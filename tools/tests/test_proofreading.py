@@ -324,7 +324,12 @@ def _compare_command_exits_on_the_verdict() -> None:
         for label, value in (("base", base), ("other", other)):
             paths[label] = folder / f"{label}.json"
             receipts.write(paths[label], value)
-        (folder / "repeated.json").write_text('{"format": 1, "format": 2}', encoding="utf-8")
+        # A constant named twice, with two entries, in a reading the schema accepts once
+        # either one is dropped: only the refusal of repeated keys stands in its way.
+        repeated = json.dumps(base).replace(
+            '"constants": {', f'"constants": {{"M.a": {json.dumps(_entry("M.a", "= 1"))}, ', 1)
+        proofreading.validate(json.loads(repeated))
+        (folder / "repeated.json").write_text(repeated, encoding="utf-8")
         (folder / "list.json").write_text("[]", encoding="utf-8")
 
         def run(*argv: str) -> tuple[int, str]:
