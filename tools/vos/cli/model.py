@@ -235,11 +235,6 @@ ORACLE_STAMP = ".verifiedos-oracle-source"
 # were never ambiguous.
 ORACLE_CSTD = "-std=gnu17"
 
-# What a Windows checkout can leave CRLF in and both `make` and `sail` then read as LF.
-ORACLE_TEXT_SUFFIXES = (".sail", ".ml", ".mli", ".lem", ".sh", ".mk", ".c", ".h",
-                        ".cpp", ".hpp", ".json")
-ORACLE_TEXT_NAMES = ("Makefile", "opam")
-
 
 def _configure(e: env.Environment, build_dir: Path,
                extra: list[str] | None = None, out: IO[str] | None = None) -> int:
@@ -1233,15 +1228,17 @@ def _read_blobs(repo: Path, oids: list[str]) -> dict[str, bytes]:
 
 
 def _verify_oracle_copy(src: Path, tree: Path, pins: tuple[str, str]) -> None:
-    """The synced tree holds exactly the pinned commits' files, line endings aside.
+    """Leave the synced tree byte for byte the pinned commits' files, or refuse.
 
     Decided on the copy rather than by `git status` over the checkout, for two reasons.
     It is the copy the build reads, so this is the question that matters; and the
     guest's git over a checkout the host's git wrote re-reads every file across the
-    mount and reads the host's CRLF conversion as an edit to each one. Line endings are
-    compared normalized, which is what the copy does to the files the build parses.
-    Anything else, an edited file, a missing one, or an untracked or ignored one the
-    copy carried in, refuses.
+    mount and reads the host's CRLF conversion as an edit to each one. A file that
+    differs from its pinned blob in line endings alone is that conversion, whatever
+    kind of file it is, and is rewritten to the blob's bytes, so the tree the stamp
+    names as these commits is exactly them. Anything else, an edited file, a missing
+    one, or an untracked or ignored one the copy carried in, refuses, and nothing is
+    rewritten until the whole copy has been compared.
     """
     expected: dict[str, tuple[str, str]] = {}
     owners: dict[str, Path] = {}
@@ -1267,6 +1264,7 @@ def _verify_oracle_copy(src: Path, tree: Path, pins: tuple[str, str]) -> None:
     for repo in (src, src / ORACLE_NESTED):
         blobs.update(_read_blobs(repo, sorted({oid for oid, owner in owners.items()
                                                 if owner == repo})))
+    restore: list[tuple[Path, bytes]] = []
     for rel, (mode, oid) in sorted(expected.items()):
         path = tree / rel
         if rel not in present:
@@ -1274,18 +1272,24 @@ def _verify_oracle_copy(src: Path, tree: Path, pins: tuple[str, str]) -> None:
         if mode == "120000":
             same = path.is_symlink() and os.fsencode(path.readlink()) == blobs[oid]
         else:
-            same = (not path.is_symlink() and path.read_bytes().replace(b"\r\n", b"\n")
+            held = b"" if path.is_symlink() else path.read_bytes()
+            same = (not path.is_symlink() and held.replace(b"\r\n", b"\n")
                     == blobs[oid].replace(b"\r\n", b"\n"))
+            if same and held != blobs[oid]:
+                restore.append((path, blobs[oid]))
         if not same:
             faults.append(f"{rel} differs from its pinned content")
     if faults:
         raise ValueError(f"the copy of {ORACLE_SRC} is not its pinned commits, "
                          f"{len(faults)} difference(s): {'; '.join(faults[:5])}; "
                          f"remove the local changes or run `{ORACLE_INIT}`")
+    for path, blob in restore:
+        path.write_bytes(blob)
 
 
 def _sync_oracle_tree(src: Path, tree: Path) -> None:
-    """Copy the pinned tree onto ext4, then normalize the line endings in it.
+    """Copy the checkout onto ext4 byte for byte, for `_verify_oracle_copy` to hold to
+    the pinned commits and to restore their line endings in.
 
     `.git` is dropped rather than copied: inside a submodule it is a file pointing back
     into the superproject, and a copy of it describes a repository that is not where it
@@ -1295,14 +1299,6 @@ def _sync_oracle_tree(src: Path, tree: Path) -> None:
     if tree.exists():
         shutil.rmtree(tree)
     shutil.copytree(src, tree, ignore=shutil.ignore_patterns(".git"), symlinks=True)
-    for path in tree.rglob("*"):
-        if not path.is_file() or path.is_symlink():
-            continue
-        if path.suffix not in ORACLE_TEXT_SUFFIXES and path.name not in ORACLE_TEXT_NAMES:
-            continue
-        data = path.read_bytes()
-        if b"\r\n" in data:
-            path.write_bytes(data.replace(b"\r\n", b"\n"))
 
 
 def _oracle_suite(e: env.Environment, tree: Path, handle: IO[str], timeout: int) -> int:
