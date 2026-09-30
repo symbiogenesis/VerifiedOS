@@ -305,7 +305,9 @@ def verify_test_corpus(suite: Path, tarball_sha256: str) -> None:
     file, which is what configure writes, so a manifest standing as a FIFO, a device
     node or a symbolic link is refused rather than waited on or read without end,
     whichever reader asks: the donor seeding, the sweep, trace-diff and the build
-    receipt.
+    receipt. No more of it is read than the listing the tree renders and one byte, so a
+    regular manifest longer than that, a sparse one among them, disagrees rather than
+    being read until memory runs out.
     """
     manifest = corpus_manifest(suite)
     if suite.is_symlink() or not suite.is_dir():
@@ -320,15 +322,15 @@ def verify_test_corpus(suite: Path, tarball_sha256: str) -> None:
     if fd is None:
         raise ValueError(f"{manifest} is not a regular file, which no configure writes; "
                          f"configure downloads {suite.name} again")
-    try:
-        with os.fdopen(fd, "rb") as handle:
-            recorded = handle.read()
-    except OSError as err:
-        raise ValueError(f"cannot read {manifest}: {err}") from err
-    try:
-        rendered = corpus_listing(suite, tarball_sha256)
-    except OSError as err:
-        raise ValueError(f"cannot list {suite}: {err}") from err
+    with os.fdopen(fd, "rb") as handle:
+        try:
+            rendered = corpus_listing(suite, tarball_sha256)
+        except OSError as err:
+            raise ValueError(f"cannot list {suite}: {err}") from err
+        try:
+            recorded = handle.read(len(rendered) + 1)
+        except OSError as err:
+            raise ValueError(f"cannot read {manifest}: {err}") from err
     if b"\nunhashed " in rendered:
         raise ValueError(f"{suite} holds a symbolic link or other non-regular entry, which "
                          "no manifest configure writes holds; configure downloads it again")

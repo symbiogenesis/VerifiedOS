@@ -660,6 +660,23 @@ def _seed_refuses_a_manifest_linked_to_dev_zero() -> None:
         _manifest_refused(donor, model_root)
 
 
+def _verify_refuses_a_sparse_manifest() -> None:
+    """A manifest that is a regular file, holding the suite's listing and then zeros to
+    a terabyte, disagrees with the suite within the deadline: no more of it is read
+    than the listing the tree renders and one byte, where a read of the whole would end
+    in the `MemoryError` that no refusal of `_seed_test_data` catches. The file is
+    sparse, so it allocates nothing; NTFS allocates an extended file, so the case is the
+    guest's and win32 is refused before the truncation."""
+    if sys.platform == "win32":
+        raise AssertionError("NTFS allocates an extended file; the sparse manifest case "
+                             "runs in the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF"})
+        os.truncate(_MODEL.corpus_manifest(suite), 1 << 40)
+        said = _refused(partial(_MODEL.verify_test_corpus, suite, _CORPUS_DIGEST))
+        ensure("disagrees" in said, f"the sparse manifest disagrees, got {said!r}")
+
+
 def _refused(call: Callable[[], object], unblock: Callable[[], None] | None = None) -> str:
     """The `ValueError` `call` refuses with, under `_returns`'s deadline; a call that
     returns instead fails the case."""
@@ -1201,6 +1218,8 @@ def cases() -> list[Case]:
         Case("seed-refuses-a-fifo-manifest", _seed_refuses_a_fifo_manifest, lane="guest"),
         Case("seed-refuses-a-manifest-linked-to-dev-zero",
              _seed_refuses_a_manifest_linked_to_dev_zero, lane="guest"),
+        Case("verify-refuses-a-sparse-manifest", _verify_refuses_a_sparse_manifest,
+             lane="guest"),
         Case("copy-regular-file", _copy_regular_file),
         Case("copy-regular-file-refuses-a-fifo-and-a-link",
              _copy_regular_file_refuses_a_fifo_and_a_link, lane="guest"),
