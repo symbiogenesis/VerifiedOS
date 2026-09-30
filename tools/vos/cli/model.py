@@ -199,8 +199,9 @@ def test_corpus_digests(model_root: Path, version: str) -> dict[str, str]:
 # suite it has just extracted from a tarball whose SHA-256 it verified, and holds that
 # suite to on every configure, downloading again a suite that disagrees. The listing is
 # the tarball's recorded digest, then each file's SHA-256 and path relative to the
-# suite, sorted by the path's bytes; a symbolic link, or a name a CMake list cannot
-# carry, is listed unhashed, and no written manifest holds one. `corpus_listing`
+# suite, sorted by the path's bytes; a symbolic link is listed unhashed, every name
+# holding `;` and one holding `\` whose `/` spelling names no file leave at least one
+# unhashed line, and no written manifest holds an unhashed line. `corpus_listing`
 # renders that listing for the readers that do not configure: the seeding that copies a
 # suite into a new lane, and the sweep and trace-diff that read one. It walks the tree
 # rather than globbing it and lists every non-regular entry unhashed without reading
@@ -403,6 +404,19 @@ ORACLE_INIT = f"git submodule update --init --recursive {ORACLE_SRC}"
 # is refused like a stamp naming other commits.
 ORACLE_STAMP = ".verifiedos-oracle-source"
 ORACLE_STAMP_CLAIM = "bytes"
+
+# Written beside the tree once the bundled suite has passed on the simulator a run just
+# built there, and read back by `trace-diff` before it runs a simulator as the oracle:
+# the stamp the tree carried, the simulator's SHA-256 and the suite's tally. `oracle`
+# removes it before it touches the tree, so it stands only while the latest run passed.
+ORACLE_RECEIPT_SUFFIX = ".receipt.json"
+
+
+def oracle_receipt(tree: Path) -> Path:
+    """Where the receipt of `tree`'s latest passing suite lives: beside the tree, as its
+    lock is."""
+    return tree.with_name(tree.name + ORACLE_RECEIPT_SUFFIX)
+
 
 # The C standard the oracle's tree is built to. gcc 15 defaults to C23, in which an
 # empty parameter list declares *no* parameters rather than an unspecified one; Sail's
@@ -1326,7 +1340,11 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
 
     The suite it then runs is the oracle's own acceptance and not the transplant's: it
     says the reference is a working machine before `trace-diff` is allowed to treat it
-    as evidence.
+    as evidence. It runs the simulator the build just linked in the tree, whatever
+    `VOS_ORACLE` names, and only once it passes is `oracle_receipt` written beside the
+    tree, naming the tree's stamp, that simulator's SHA-256 and the tally, which
+    `trace-diff` requires. The receipt is removed before the run touches the tree, so a
+    run that stops short of a passing suite, refused, failed or killed, leaves none.
 
     The compiler is this environment's `sail`, bound twice. The tree sits under the
     edition that builds it (`env.Environment.oracle_root`), because the Makefile's
@@ -1367,6 +1385,7 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
     # rather than deleting the executor under a live comparison. Taken before the log
     # is opened, so a refused run cannot truncate the log of the one it lost to.
     with env.hold_lock(tree, "an oracle build"):
+        oracle_receipt(tree).unlink(missing_ok=True)
         print(f"== log: {log}", flush=True)
         with log.open("w", encoding="utf-8") as handle:
             handle.write(f"== sail: {version.stdout.strip()} at {sail}\n")
@@ -1387,7 +1406,7 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
             handle.write(f"BUILD_EXIT={code}\n")
             handle.flush()
             if code == 0:
-                code = _oracle_suite(e, tree, handle, args.timeout)
+                code = _vouch_for_oracle(e, tree, handle, args.timeout)
             handle.write("ALL_DONE\n")
 
     print(f"== {'green' if code == 0 else 'failed'}: {log}")
@@ -1409,6 +1428,9 @@ def _stand_oracle_tree(src: Path, tree: Path, pins: tuple[str, str], handle: IO[
     if not resync and (tree / "Makefile").is_file():
         recorded = stamp.read_text(encoding="utf-8").split() if stamp.is_file() else []
         if recorded != claim:
+            if recorded[:2] == list(pins):
+                return (f"{tree} is stamped with these pins by a sync that did not "
+                        "restore their bytes; rerun with --resync")
             return (f"{tree} is stamped {' '.join(recorded) or 'with nothing'}, not "
                     f"{' '.join(claim)}: not these pins; rerun with --resync")
         handle.write("SYNC skipped: the tree is already present at these pins\n")
@@ -1456,6 +1478,13 @@ def _gitlink(listing: bytes, path: str, where: str) -> str:
     raise ValueError(f"{where} records no gitlink for {path}; run `{ORACLE_INIT}`")
 
 
+def _indexed_oracle_pin(root: Path) -> str:
+    """The commit this checkout's index pins `ORACLE_SRC` at, which is readable whether
+    or not the submodule is checked out."""
+    return _gitlink(_plain_git(["ls-files", "--stage", "--", ORACLE_SRC], root,
+                               env.git_env(root) or None), ORACLE_SRC, "this checkout's index")
+
+
 def _oracle_pins(root: Path, src: Path) -> tuple[str, str]:
     """The oracle's two pins, with both checkouts shown to be at them.
 
@@ -1465,8 +1494,7 @@ def _oracle_pins(root: Path, src: Path) -> tuple[str, str]:
     leaves a populated submodule at the old commit, and the tree's name would then
     claim a pin its bytes are not.
     """
-    outer = _gitlink(_plain_git(["ls-files", "--stage", "--", ORACLE_SRC], root,
-                                env.git_env(root) or None), ORACLE_SRC, "this checkout's index")
+    outer = _indexed_oracle_pin(root)
     head = _plain_git(["rev-parse", "HEAD"], src).decode().strip()
     if head != outer:
         raise ValueError(f"{ORACLE_SRC} is checked out at {head}, not at its pin {outer}; "
@@ -1577,18 +1605,44 @@ def _sync_oracle_tree(src: Path, tree: Path) -> None:
     shutil.copytree(src, tree, ignore=shutil.ignore_patterns(".git"), symlinks=True)
 
 
-def _oracle_suite(e: env.Environment, tree: Path, handle: IO[str], timeout: int) -> int:
+def _vouch_for_oracle(e: env.Environment, tree: Path, handle: IO[str], timeout: int) -> int:
+    """Run the bundled suite on the simulator just built in `tree` and, once it passes,
+    write the receipt `trace-diff` requires; 0 is a passing suite with its receipt.
+
+    The simulator is hashed before the suite runs, so the receipt names the bytes the
+    suite ran rather than whatever stands there after it.
+    """
+    simulator = tree / ORACLE_TARGET
+    try:
+        simulator_sha256 = receipts.digest(simulator)
+        stamp = (tree / ORACLE_STAMP).read_text(encoding="utf-8").split()
+    except OSError as err:
+        handle.write(f"cannot read the built simulator and its stamp: {err}\n")
+        return 1
+    passed, failed = _oracle_suite(e, simulator, tree, handle, timeout)
+    if failed or not passed:
+        return 1
+    receipt = oracle_receipt(tree)
+    receipts.write(receipt, {"schema": 1, "stamp": stamp, "simulator": ORACLE_TARGET,
+                             "simulator_sha256": simulator_sha256,
+                             "suite": {"pass": passed, "fail": failed}})
+    handle.write(f"RECEIPT {receipt}\n")
+    return 0
+
+
+def _oracle_suite(e: env.Environment, simulator: Path, tree: Path, handle: IO[str],
+                  timeout: int) -> tuple[int, int]:
     """The RV64 programs bundled with the oracle's own embedded sail-riscv, run against
-    the simulator just built. Each is one short single-threaded process sharing nothing,
-    so the width is the core count for the same reason `sweep`'s is."""
+    `simulator`, as (passed, failed). Each is one short single-threaded process sharing
+    nothing, so the width is the core count for the same reason `sweep`'s is."""
     elves = sorted((tree / "sail-riscv" / "test" / "riscv-tests").glob("rv64*.elf"))
     if not elves:
         handle.write("no bundled rv64 ELFs found under sail-riscv/test/riscv-tests\n")
-        return 1
+        return 0, 0
 
     def passed(elf: Path) -> bool:
         try:
-            done = subprocess.run([str(e.oracle), "-p", str(elf)], capture_output=True,
+            done = subprocess.run([str(simulator), "-p", str(elf)], capture_output=True,
                                   text=True, errors="replace", timeout=timeout, check=False)
         except subprocess.TimeoutExpired:
             return False
@@ -1601,7 +1655,7 @@ def _oracle_suite(e: env.Environment, tree: Path, handle: IO[str], timeout: int)
                 failed += 1
                 handle.write(f"FAILED: {elf.name}\n")
     handle.write(f"TESTS pass={len(elves) - failed} fail={failed}\n")
-    return 1 if failed else 0
+    return len(elves) - failed, failed
 
 
 def cmd_sweep(e: env.Environment, args: argparse.Namespace) -> int:
@@ -1681,7 +1735,8 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
     `--resync` and can relink its simulator on any build, so the comparison holds the
     tree shared for as long as it runs the oracle: such a run from any lane is refused
     rather than removing the executor under a live comparison, and a comparison is
-    refused while such a run holds the tree.
+    refused while such a run holds the tree. Under that lock it runs the oracle only
+    where the latest `oracle` run vouches for it (`_unvouched_oracle`).
     """
     if (missing := _missing_simulator(e)) is not None:
         print(missing, file=sys.stderr)
@@ -1705,8 +1760,9 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
 
     with env.hold_lock(e.oracle_root, "a trace-diff", shared=True):
         # Asked again under the lock: a sync that ran after the first asking and failed
-        # its verification or its build left no simulator behind.
-        if (missing := _missing_oracle(e)) is not None:
+        # its verification or its build left no simulator behind, and one that passed
+        # replaced the receipt.
+        if (missing := _missing_oracle(e) or _unvouched_oracle(e)) is not None:
             print(missing, file=sys.stderr)
             return 1
         return _adjudicate(e, args, elves)
@@ -1717,6 +1773,57 @@ def _missing_oracle(e: env.Environment) -> str | None:
     if e.oracle.exists():
         return None
     return f"no M0.4 oracle at {e.oracle}; run `run.py model oracle` first"
+
+
+def _unvouched_oracle(e: env.Environment) -> str | None:
+    """`trace-diff`'s refusal of a simulator no passing `oracle` run vouches for.
+
+    Three things must hold, each read while the tree is held. The tree's stamp vouches
+    for the pinned sources' bytes and names the commit this checkout's index pins
+    `ORACLE_SRC` at, which fixes the nested pin too, since `oracle` reads that out of
+    the same commit. The receipt beside the tree names that stamp and a passing tally.
+    And the simulator is the bytes the receipt records the suite passing on.
+
+    `VOS_ORACLE` may name a simulator outside the tree, and it is held to the tree's
+    receipt all the same: it runs only as a copy of the bytes that passed there, and is
+    refused otherwise.
+    """
+    tree = e.oracle_root
+    resync = "run `run.py model oracle --resync`"
+    try:
+        recorded = (tree / ORACLE_STAMP).read_text(encoding="utf-8").split()
+    except OSError:
+        recorded = []
+    if len(recorded) != 3 or recorded[-1] != ORACLE_STAMP_CLAIM:
+        return (f"{tree} is stamped {' '.join(recorded) or 'with nothing'}, which does "
+                f"not vouch for the pinned sources' bytes; {resync}")
+    try:
+        pin = _indexed_oracle_pin(e.root)
+    except ValueError as err:
+        return str(err)
+    if recorded[0] != pin:
+        return (f"{tree} is stamped for {ORACLE_SRC} at {recorded[0]}, not at this "
+                f"checkout's pin {pin}; {resync}")
+    receipt = oracle_receipt(tree)
+    rerun = f"run `run.py model oracle`, whose suite writes {receipt.name} once it passes"
+    try:
+        raw: object = json.loads(receipt.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return f"no readable receipt of a passing oracle suite at {receipt}; {rerun}"
+    record = cast("dict[str, object]", raw) if isinstance(raw, dict) else {}
+    suite = record.get("suite")
+    tally = cast("dict[str, object]", suite) if isinstance(suite, dict) else {}
+    passed = tally.get("pass")
+    if (record.get("stamp") != recorded or tally.get("fail") != 0
+            or not isinstance(passed, int) or passed < 1):
+        return f"{receipt} does not record a passing suite under {tree}'s stamp; {rerun}"
+    try:
+        held = receipts.digest(e.oracle)
+    except OSError as err:
+        return f"cannot read {e.oracle}: {err}"
+    if record.get("simulator_sha256") != held:
+        return f"{e.oracle} is not the simulator {receipt} records the suite passing on; {rerun}"
+    return None
 
 
 def _adjudicate(e: env.Environment, args: argparse.Namespace, elves: list[Path]) -> int:
