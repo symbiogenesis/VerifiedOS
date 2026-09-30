@@ -276,8 +276,9 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
             receipts.download(opam_client.release_url(architecture), opam, expected)
             opam.chmod(0o755)
             initialize_repositories(log)
-            # The metadata the snapshots are resolved against, which the locks do not fix.
-            record["opam_repositories"] = opam_client.repositories(root / "opam")
+            # The metadata the snapshots are resolved against, which the locks do not fix,
+            # refused rather than recorded where the root's own files cannot say it.
+            record["opam_repositories"] = opam_client.initialized_repositories(root / "opam")
             install_toolchains(root, jobs, log, selected)
             (root / "environment.sh").write_text(activation(values, paths),
                                                   encoding="utf-8", newline="")

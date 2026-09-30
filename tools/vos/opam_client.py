@@ -85,7 +85,9 @@ def _repo_file(root: Path, name: str) -> str:
 
 def repositories(root: Path) -> list[dict[str, str]]:
     """Every repository a root is configured with: its name, its URL and the stamp its
-    metadata carries, in the root's own order. Empty where the root configures none."""
+    metadata carries, in the root's own order. Empty where the root configures none,
+    and a stamp is empty where it cannot be read, because a report on a developer's root
+    says what it found rather than refusing."""
     try:
         text = (root / "repo" / "repos-config").read_text(encoding="utf-8")
     except OSError:
@@ -94,4 +96,24 @@ def repositories(root: Path) -> list[dict[str, str]]:
     for name, url in _CONFIGURED_RE.findall(text):
         stamp = _STAMP_RE.search(_repo_file(root, name))
         found.append({"name": name, "url": url, "stamp": stamp.group(1) if stamp else ""})
+    return found
+
+
+def initialized_repositories(root: Path) -> list[dict[str, str]]:
+    """`repositories` over a root just initialized on `OPAM_REPOSITORIES`, refused unless
+    it is configured with exactly those names and URLs and every one's stamp was read.
+
+    A record of what the snapshots were resolved against is evidence only when it is
+    complete; `repositories` reads an unreadable configuration as none and an unread
+    stamp as empty, which a record would otherwise carry as though it were the answer.
+    """
+    found = repositories(root)
+    configured = sorted((repo["name"], repo["url"]) for repo in found)
+    if configured != sorted(OPAM_REPOSITORIES):
+        listed = ", ".join(f"{name} {url}" for name, url in configured) or "no repositories"
+        raise ValueError(f"{root} is configured with {listed}, not "
+                         f"{', '.join(f'{name} {url}' for name, url in OPAM_REPOSITORIES)}")
+    unstamped = [repo["name"] for repo in found if not repo["stamp"]]
+    if unstamped:
+        raise ValueError(f"{root} records no metadata stamp for {', '.join(unstamped)}")
     return found
