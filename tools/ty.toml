@@ -11,18 +11,19 @@
 # warnings or off by default. That is deliberate and it is what a pinned version
 # buys: the alternative is a list of opt-ins that silently stops growing the day
 # ty adds a rule nobody transcribed. The gate also passes `--error all`, which
-# overrides this table, and it reports these shapes of this file as ty findings: a
-# `[rules]` table other than exactly `all = "error"`, because an editor reads the
-# table without the flag; an `[[overrides]]` entry carrying any key but `include`
-# and `exclude`, because its `rules` can lower the flag's severities and its
-# `analysis` can suppress diagnostics for the files it matches; an `[analysis]` key
-# outside the ones `vos/cli/typecheck.py` admits as suppressing nothing, which
+# overrides this table, and `--python-platform` once for each platform it types,
+# which overrides the one below, and it reports these shapes of this file as ty
+# findings: a `[rules]` table other than exactly `all = "error"`, because an editor
+# reads the table without the flag; an `[[overrides]]` entry carrying any key but
+# `include` and `exclude`, because its `rules` can lower the flag's severities and
+# its `analysis` can suppress diagnostics for the files it matches; an `[analysis]`
+# key outside the ones `vos/cli/typecheck.py` admits as suppressing nothing, which
 # refuses `allowed-unresolved-imports` and `replace-imports-with-any`; an
 # `[environment]` key other than `python-version`, `python-platform` and
 # `extra-paths`, or either of the last two at a value other than the one below,
-# because the platform decides which branches ty checks and `python`, `root`,
-# `typeshed` or another search path moves where it resolves imports; and a `[src]`
-# table other than exactly the one below, because an `include`, a further
+# because the platform decides which branches an editor's ty checks and `python`,
+# `root`, `typeshed` or another search path moves where it resolves imports; and a
+# `[src]` table other than exactly the one below, because an `include`, a further
 # `exclude`, `exclude-scripts` or honoring ignore files takes files out of the run.
 # K-75 holds `python-version`. ty also merges a user-level `ty.toml` beneath this
 # file, even beside `--config-file`, and the gate reports one that exists; it
@@ -37,12 +38,14 @@ all = "error"
 python-version = "3.14"
 
 # The tools are one lane but not one platform: `check.py` and its groups run on the
-# Windows host, while `vos/env.py`, `vos/cli/model.py` and `vos/cli/proofs.py` run in WSL and use
-# `resource.setrlimit` and `os.wait4`, which are POSIX-only and unresolvable when
-# the checker assumes the host it happens to be running on. Linux is the platform
-# that types every module here, because nothing in this directory is Windows-only.
-# ty reports nothing in a branch the platform makes unreachable, so the branches
-# the tools take only when `sys.platform` is `win32` go unchecked.
+# Windows host, while the build, model and proof commands run in WSL and call
+# POSIX-only APIs such as `resource.setrlimit`, `os.wait4`, `os.killpg` and
+# `fcntl.flock`. ty reports nothing in a branch the platform makes unreachable, so
+# no one platform reaches every branch, and the gate runs ty under
+# `--python-platform linux` and again under `win32`. The second run types the
+# branches the tools take only when `sys.platform` is `win32`, and holds every call
+# typeshed declares absent on Windows behind a `sys.platform` check. An editor's
+# server reads this one value, linux, which types the guest's POSIX-only code.
 python-platform = "linux"
 
 # `tools/` is the import root: every tool puts its own directory on `sys.path`

@@ -896,7 +896,7 @@ before adding work to every gate run.
 
 | Checker | What it decides |
 | --- | --- |
-| [ty](https://github.com/astral-sh/ty) | Every expression, against the types it can infer, with every rule at error |
+| [ty](https://github.com/astral-sh/ty) | Every expression reachable under `python-platform` linux, and every one reachable under win32, against the types it can infer, with every rule at error |
 | [ruff](https://github.com/astral-sh/ruff) | Every function, against whether it is annotated at all, and the correctness rules [ruff.toml](ruff.toml) admits |
 
 The split is not a preference. ty infers rather than demands, so a function with no
@@ -980,7 +980,8 @@ links of every staged Markdown file.
 carries, including the ones it ships as warnings or switched off, and that is deliberate:
 the alternative is a list of opt-ins that silently stops growing the day ty adds a rule
 nobody transcribed. The gate also passes `--error all`, which overrides the `[rules]`
-table, and [run.py typecheck](vos/cli/typecheck.py) holds ty.toml itself. Each of
+table, and `--python-platform` once for each platform it types, which overrides
+ty.toml's, and [run.py typecheck](vos/cli/typecheck.py) holds ty.toml itself. Each of
 these is a ty finding: a `[rules]` table other than exactly `all = "error"`, because
 an editor's ty server reads that table without the flag; an `[[overrides]]` entry
 carrying any key but `include` and `exclude`, because its `rules` can lower the flag's
@@ -989,9 +990,9 @@ severities and its `analysis` can suppress diagnostics for the files it matches;
 refuses `allowed-unresolved-imports` and `replace-imports-with-any`; an
 `[environment]` key other than `python-version`, `python-platform` and
 `extra-paths`, or `python-platform` other than `"linux"` or `extra-paths` other than
-`["."]`, because the platform decides which `sys.platform` branches ty checks and
-`python`, `root`, `typeshed` or another search path moves where it resolves imports
-(K-75 holds `python-version`); and a `[src]`
+`["."]`, because the platform decides which `sys.platform` branches an editor's ty
+checks and `python`, `root`, `typeshed` or another search path moves where it
+resolves imports (K-75 holds `python-version`); and a `[src]`
 table other than exactly `exclude = ["**/__pycache__/**"]` and
 `respect-ignore-files = false`, because an `include`, a further `exclude`,
 `exclude-scripts` or honoring ignore files takes files out of the run: ty honors
@@ -1016,10 +1017,12 @@ upward and the repository root carries none, so open `tools/` as a workspace fol
 editor's ty server to read ty.toml and share the gate's severities. In VS Code, select
 the checkout's `out/venv-win32/Scripts/python.exe` on Windows or the Linux environment's
 `bin/python` from the placement table above so editor imports use the same
-dependencies as the gate. The Linux typing target is intentional: the guest modules
-use POSIX APIs, even when the host checks them. It does not move execution into Linux,
-and ty reports nothing in a branch the target makes unreachable, so the branches taken
-only when `sys.platform` is `win32` go unchecked.
+dependencies as the gate. The editor's Linux typing target is intentional: the guest
+modules use POSIX APIs, even when the host checks them. It does not move execution into
+Linux. ty reports nothing in a branch the target makes unreachable, so the gate runs ty
+under `--python-platform linux` and again under `win32`, each run its own verdict. The
+second run types the branches taken only when `sys.platform` is `win32`, and holds every
+call typeshed declares absent on Windows behind a `sys.platform` check.
 
 The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
 addresses ty's recursive-JSON narrowing behavior, not
