@@ -193,6 +193,14 @@ def _comment_lexing_preserves_source_and_newlines() -> None:
     for source, expected in fixtures.items():
         ensure(proofs.strip_comments(source) == expected,
                f"comment boundaries changed for {source!r}")
+        # the same reading at the source's own offsets: each comment is blank space of
+        # its length, its line breaks where the source has them
+        kept = proofs.strip_comments(source, keep_offsets=True)
+        ensure(len(kept) == len(source)
+               and [i for i, c in enumerate(kept) if c == "\n"]
+               == [i for i, c in enumerate(source) if c == "\n"]
+               and kept.split() == expected.split(),
+               f"the offset-keeping reading of {source!r} is {kept!r}")
 
 
 def _sentences_end_outside_strings() -> None:

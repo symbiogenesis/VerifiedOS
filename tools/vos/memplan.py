@@ -70,7 +70,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from vos.proofs import CONTROL_PREFIXES, sentence_ends, void_flag
+from vos.proofs import CONTROL_PREFIXES, sentence_ends, strip_comments, void_flag
 
 # The one owner, the artifact it is exported to, and the command that rewrites it.
 SOURCE = "proofs/MemoryPlan.v"
@@ -195,9 +195,6 @@ _VALUE_SPELLED_RE = re.compile(r"(?:Definition|Example|Let)\s+(\w+)")
 _CONTINUES_RE = re.compile(r"[\w']")
 _APPLIED_RE = re.compile(r"\s*build_plan\s+[\w\s]+")
 
-# A comment's delimiters and a string's, for the blanked text the audits read.
-_LEXEME_RE = re.compile(r'\(\*|\*\)|"')
-
 # A record value completed from a base, `{| demo_plan with second_fetch := 16 |}`, copies
 # every field it does not assign and names none of them, so a plan spelled that way is
 # no application of `build_plan` and no literal this reader can carry. Its `with` is the
@@ -220,39 +217,6 @@ def _completed(body: str) -> bool:
     """Whether a body writes a `with` no `match` accounts for: a record completed from a
     base, or some other shape this reader does not read as a literal."""
     return "with" in body and len(_WITH_RE.findall(body)) > len(_MATCH_RE.findall(body))
-
-
-def _blanked(text: str) -> str:
-    """The text with every comment blanked to spaces, nesting and all, its line breaks
-    and so its offsets kept, so an audit reads no word, `with` or full stop a comment
-    spells. A string is read whole, inside a comment as outside one, as Rocq's lexer
-    reads it, so a delimiter inside one opens or closes nothing."""
-    pieces: list[str] = []
-    at = depth = 0
-    quoted = False
-    for token in _LEXEME_RE.finditer(text):
-        mark = token.group()
-        if quoted:
-            quoted = mark != '"'
-        elif mark == '"':
-            quoted = True
-        elif mark == "(*":
-            if not depth:
-                pieces.append(text[at:token.start()])
-                at = token.start()
-            depth += 1
-        elif depth:
-            depth -= 1
-            if not depth:
-                pieces.append(_spaces(text[at:token.end()]))
-                at = token.end()
-    pieces.append(_spaces(text[at:]) if depth else text[at:])
-    return "".join(pieces)
-
-
-def _spaces(span: str) -> str:
-    """A span as blank space of its own length, its line breaks kept."""
-    return "\n".join(" " * len(line) for line in span.split("\n"))
 
 
 def _kept(found: re.Match[str] | None, blank: str, ends: list[int],
@@ -345,7 +309,9 @@ def read(root: Path) -> Source:
 def parse(text: str, md5: str = "") -> Source:
     """`read` over text already in hand, so a test can hand it a shape and watch it
     refuse."""
-    blank = _blanked(text)
+    # every comment blanked to spaces, offsets kept, and every string read whole, inside a
+    # comment as outside one, so an audit reads no word, `with` or full stop a comment spells
+    blank = strip_comments(text, keep_offsets=True)
     ends = sentence_ends(blank)
     inductive = _kept(_INDUCTIVE_RE.search(text), blank, ends, "`RegionKind`")
     if inductive is None:

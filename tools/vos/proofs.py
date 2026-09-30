@@ -95,7 +95,7 @@ STATEMENTS = ("Theorem", "Lemma", "Fact", "Remark", "Corollary", "Proposition", 
               "Example")
 
 
-def strip_comments(text: str) -> str:
+def strip_comments(text: str, *, keep_offsets: bool = False) -> str:
     """The source with its comments blanked, where Rocq 9.3's lexer finds them in a source
     declaring no token that holds a quote or a comment opener. Rocq reads such a token
     whole, and the proof gate refuses its declaration (proofaudit.unreadable_tokens).
@@ -105,9 +105,12 @@ def strip_comments(text: str) -> str:
     string in a comment, and the locked compiler under the gate's flags refuses a quoted
     `*)` there outright. A comment is a token separator, so `Set(* c *)Kernel` is two
     words: each complete outer comment becomes its newlines, preserving source line
-    numbers, or one space when it holds none. The regex engine skips ordinary text;
-    Python visits only delimiters.
+    numbers, or one space when it holds none. With `keep_offsets` it becomes blank space
+    of its own length instead, its line breaks kept, so an offset into the result is one
+    into the source, for a reader that reports or cuts at source offsets. The regex engine
+    skips ordinary text; Python visits only delimiters.
     """
+    blank = _spaces if keep_offsets else _separator
     out: list[str] = []
     depth = start = quoted_until = 0
     for token in _COMMENT_TOKEN.finditer(text):
@@ -125,15 +128,21 @@ def strip_comments(text: str) -> str:
         elif depth:
             depth -= 1
             if not depth:
-                out.append(_separator(text, start, token.end()))
+                out.append(blank(text, start, token.end()))
                 start = token.end()
-    out.append(_separator(text, start, len(text)) if depth else text[start:])
+    out.append(blank(text, start, len(text)) if depth else text[start:])
     return "".join(out)
 
 
 def _separator(text: str, start: int, end: int) -> str:
     """What one comment leaves behind: its newlines, or one space if it holds none."""
     return "\n" * text.count("\n", start, end) or " "
+
+
+def _spaces(text: str, start: int, end: int) -> str:
+    """What one comment leaves behind at its own offsets: blank space of its length, its
+    line breaks kept."""
+    return "\n".join(" " * len(line) for line in text[start:end].split("\n"))
 
 
 def sentences(text: str) -> list[str]:
