@@ -6,7 +6,8 @@ The complete five-bit input roster is required; duplicate/missing witnesses fail
 isla-testgen executes those concrete witnesses through its helper-function API.
 This does not implement an RV64 instruction Target, instruction generation, memory
 or concurrency testing. Narrowing is checked only on the 32 expanded permission
-masks. The primary Sail C oracle remains separate from the development compiler.
+masks. The primary Sail C oracle is the locked compiler, separate from the Sail
+this lane builds from the same release archive to emit Isla IR.
 """
 
 import hashlib
