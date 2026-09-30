@@ -540,14 +540,12 @@ _K115_RECORD = (
     "| actionlint | `MIT` | The reviewed **6.5.4** release's terms. |\n\n## Next\n")
 _K115_WORKFLOW = (f"steps:\n  - uses: example/action@{_K115_SHA} # v1.2.3\n"
                   f"  - uses: example/action/restore@{_K115_SHA} # v1.2.3\n")
-_K115_OWNERS = {"tools/pyproject.toml": '[dependency-groups]\nworkflows = ["zizmor==9.8.7"]\n',
-                "tools/ci/actionlint.sh": "#!/bin/sh\nactionlint_version=6.5.4\n"}
 
 
 def _k115(files: dict[str, str | None]) -> list[str]:
     base: dict[str, str | None] = {"docs/requirements-register.md": _REGISTER_MIN,
                                    "THIRD-PARTY.md": _K115_RECORD,
-                                   ".github/workflows/a.yml": _K115_WORKFLOW, **_K115_OWNERS}
+                                   ".github/workflows/a.yml": _K115_WORKFLOW}
     merged = {path: text for path, text in {**base, **files}.items() if text is not None}
     with sandbox_tree(merged) as root:
         ctx = _context(root, fix=True)
@@ -589,18 +587,14 @@ def _k115_membership_is_held_both_ways() -> None:
            f"a row no workflow runs must report: {found!r}")
 
 
-def _k115_analyzer_rows_follow_their_owners() -> None:
-    cases: tuple[tuple[dict[str, str | None], str], ...] = (
-        ({"tools/pyproject.toml": '[dependency-groups]\nworkflows = ["zizmor==9.8.8"]\n'},
-         "states zizmor's reviewed release as 9.8.7, tools/pyproject.toml installs 9.8.8"),
-        ({"tools/ci/actionlint.sh": "#!/bin/sh\nactionlint_version=6.5.5\n"},
-         "states actionlint's reviewed release as 6.5.4"),
-        ({"tools/ci/actionlint.sh": None}, "does not state actionlint_version"),
-        ({"tools/pyproject.toml": "[dependency-groups]\n"}, "cannot supply"))
-    for files, fragment in cases:
-        found = _k115(files)
-        ensure(any(fragment in item for item in found),
-               f"an analyzer row must agree with its owner ({fragment!r}): {found!r}")
+def _k115_leaves_the_analyzer_rows_to_k118() -> None:
+    # The analyzers' rows are K-118's, held against the lock and the script that
+    # install them; K-115 reads action rows alone, so a moved analyzer release is one
+    # finding under K-118 rather than one under each rule.
+    found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace("**9.8.7**", "**9.8.8**")})
+    ensure(not found, f"K-115 does not read an analyzer row: {found!r}")
+    ensure({"zizmor", "actionlint"} <= {row.cell for row in pins.DEV_TOOL_ROWS},
+           "K-118 holds both analyzer rows")
 
 
 def _k115_unreadable_readings_fail_closed() -> None:
@@ -695,7 +689,7 @@ _K118_RECORD = (
     "| beta | `LGPL-2.1-only` | Snapshot release **4.5.6**; constant 7.8.9. |\n"
     "| gamma | `MIT` | A distribution tool. |\n"
     "| delta | `MIT` | Measured at 3.3.3. |\n"
-    "| owner/action | `MIT` | K-115's row. |\n\n"
+    "| owner/action | `MIT` | K-115's row, the reviewed v1.0.0 revision. |\n\n"
     "#### A measured run\n\nBuilt at 9.9.9.\n")
 _K118_OWNERS = {
     "tools/uv.lock": '[[package]]\nname = "alpha"\nversion = "1.2.3"\n',
@@ -892,8 +886,22 @@ def _k118_declarations_are_held() -> None:
     # a row declared to state no release that has come to state one
     found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace("A distribution tool.",
                                                              "A distribution tool, 1.0.")})
-    ensure(any("declared as stating no release of gamma" in item and "1.0" in item
+    ensure(any("declared as stating no dotted release of gamma" in item and "1.0" in item
                for item in found), f"a no-release row stating one must report: {found!r}")
+    # a declared row, or K-115's action row, states the one release it was read at,
+    # however often, and never a second or none
+    for old, new, fragment in (
+            ("Measured at 3.3.3.", "Measured at 3.3.3, then 3.3.4.",
+             "states 2 distinct releases of delta: 3.3.3, 3.3.4, which K-118 declares"),
+            ("Measured at 3.3.3.", "Measured.", "states 0 distinct releases of delta, which"),
+            ("v1.0.0 revision.", "v1.0.0 revision, after v0.9.0.",
+             "states 2 distinct releases of owner/action: 0.9.0, 1.0.0")):
+        found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace(old, new)})
+        ensure(len(found) == 1 and fragment in found[0],
+               f"a declared row stating other than one release must report: {found!r}")
+    found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace("Measured at 3.3.3.",
+                                                             "Measured at 3.3.3, tag v3.3.3.")})
+    ensure(not found, f"one release stated twice is one release: {found!r}")
     # an unowned declaration whose owner has arrived
     pending = {**_K118_DECLARED,
                "delta": pins.Declared("no snapshot yet", pending="tools/opam/z.lock")}
@@ -1294,7 +1302,7 @@ def cases() -> list[Case]:
         Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),
         Case("k115-moved-or-movable-references-fail", _k115_moved_or_movable_references_fail),
         Case("k115-membership-is-held-both-ways", _k115_membership_is_held_both_ways),
-        Case("k115-analyzer-rows-follow-their-owners", _k115_analyzer_rows_follow_their_owners),
+        Case("k115-leaves-the-analyzer-rows-to-k118", _k115_leaves_the_analyzer_rows_to_k118),
         Case("k115-unreadable-readings-fail-closed", _k115_unreadable_readings_fail_closed),
         Case("k115-every-uses-key-is-read-or-reported", _k115_every_uses_key_is_read_or_reported),
         Case("k115-census-counts-the-read-key-once", _k115_census_counts_the_read_key_once),

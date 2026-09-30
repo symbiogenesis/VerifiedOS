@@ -1680,6 +1680,17 @@ CASES: list[Case] = [
     # with an unreadable item a finding, keeps the row from passing over it unread.
     ("K-118", "a development-tool tag list naming a tag its reading cannot take",
      _first_match(THIRD_PARTY, r"byte-identical at the `", lambda m: f"{m[0]}rocq-9.0.0`, `")),
+    # A workflow analyzer's licence link moved to a tag the lock does not install while
+    # its bold release stays: the release the terms were read at and the link to them
+    # now disagree, and only a site reading the tag holds the link at all.
+    ("K-118", "a workflow analyzer's licence tag its lock does not install",
+     _first_match(THIRD_PARTY, r"(zizmorcore/zizmor/blob/v)(\d[^/]*)(/LICENSE)",
+                  lambda m: f"{m[1]}{m[2]}.1{m[3]}")),
+    # A declared row nothing here owns gains a second release in its licence link text,
+    # so the row no longer says which release its terms were read at.
+    ("K-118", "a declared development-tool row stating two releases",
+     _first_match(THIRD_PARTY, r"\[v(\d[^ \]]*)( LICENSE\]\(https://github\.com/cli/cli/)",
+                  lambda m: f"[v{m[1]}.1{m[2]}")),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row

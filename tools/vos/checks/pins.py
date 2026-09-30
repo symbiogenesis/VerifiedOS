@@ -160,17 +160,15 @@ that cannot move, `owner/repo[/path]@<40 hex digits> # vX.Y.Z`, and then holds i
 commit and release to the action's own row. Membership is total in both directions: a
 line naming an action with no row runs code whose terms nobody read, and a row naming
 an action no workflow runs is a review of nothing. The two workflow analyzers Host CI
-runs are the same kind of pin and are held the same way, each row's release against
-the owner the tool is installed from: [pyproject.toml](../../pyproject.toml)'s
-`workflows` group for zizmor and [actionlint.sh](../../ci/actionlint.sh)'s version for
-actionlint.
+runs are installed from a lock and a script rather than named by a workflow line, so
+K-118 holds their rows with the rest of the section's.
 
 **The window is the git index's workflow directory**, every tracked `.yml` or `.yaml`
 file under `.github/workflows/`, and each reading fails closed: no workflow, no
 `uses:` line at all, a record without its development-tools heading or with no action
-row under it, a row stating its reviewed revision other than exactly once, and an owner
-this rule cannot read are each a finding rather than an agreement over nothing. That is
-why it owes the floors group no member. **The reading takes one shape and a census
+row under it, and a row stating its reviewed revision other than exactly once are each
+a finding rather than an agreement over nothing. That is why it owes the floors group
+no member. **The reading takes one shape and a census
 holds it to the rest**: a reference is read only as a block mapping's bare `uses:` key
 opening its line, alone or after a sequence dash, while YAML also lets that key be
 quoted, tagged, anchored, written in a flow collection, spelled with an escape, reached
@@ -210,7 +208,8 @@ K-118 is K-97's agreement made total over the rest of the development-tools sect
 an owner here**: [uv.lock](../../uv.lock) for the Python packages,
 [pyproject.toml](../../pyproject.toml)'s `required-version` for uv, the exported
 [opam snapshots](../../opam/README.md) for the switches, and a constant or a shell
-setting where a tool installs its own release. A dependency bump moves the owner and
+setting where a tool installs its own release, [actionlint.sh](../../ci/actionlint.sh)'s
+among them for the workflow linter Host CI runs. A dependency bump moves the owner and
 leaves the row, which is how filelock's row came to name a release its lock had left.
 
 **The rows are a table this rule declares, held total in both directions.** A row is
@@ -219,15 +218,17 @@ pattern anchored on the row's own words; its groups are the releases the row sta
 and its owners together fix what those groups must be. A list of tags is read item by
 item, each a backticked release led by `v` or not, so a tag the list's reading cannot
 take is a finding and its numeral is left to the census. The declared rows are K-97's
-Verilator, K-115's action and analyzer rows, rows stating no release, a runner-supplied
-tool no artifact here fixes, a release no exported snapshot fixes yet, named with the
-owner whose arrival ends the declaration, and a measured build. A row neither held nor
-declared is a finding, so a row added for a locked package is read the day it is
-written, and a declaration naming no row is a finding too.
+Verilator, K-115's action rows, rows stating no dotted release, a measured build's
+among them, a runner-supplied tool no artifact here fixes, and a release no exported
+snapshot fixes yet, named with the owner whose arrival ends the declaration. A row
+neither held nor declared is a finding, so a row added for a locked package is read the
+day it is written, and a declaration naming no row is a finding too.
 
-**Every dotted release numeral in the section is read by a site or declared**, in the
-rows and in the paragraphs around them, so a release written into a held row or a
-paragraph restating one is a finding rather than a sentence nothing reads. A numeral
+**Every dotted release numeral in a held row or a paragraph is read by a site or
+declared**, so a release written into a held row or a paragraph restating one is a
+finding rather than a sentence nothing reads. A declared row is censused too, against
+its declaration rather than a site: it states one distinct dotted release, the one its
+terms were read at however often it names it, or none where it is declared to. A numeral
 that states no release of the tool, a licence's own version or a bound another package
 sets, is a residue declared by a literal fragment with its reason, and a residue that
 no longer stands or covers no numeral is a finding. The window ends at the next
@@ -303,13 +304,6 @@ _PINNED_USE_RE = re.compile(
     r"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)(?:/[^@\s]+)?@([0-9a-f]{40}) # (v\d+\.\d+\.\d+)")
 _ACTION_ROW_RE = re.compile(r"^\| ([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) \|")
 _REVIEWED_ACTION_RE = re.compile(r"reviewed (v\d+\.\d+\.\d+) revision `([0-9a-f]{40})`")
-
-# The workflow analyzers: each row's tool cell, the owner that installs it, and how the
-# owner states the release. The row states it as `reviewed **X** release`.
-ANALYZER_PROJECT = "tools/pyproject.toml"
-ANALYZER_SCRIPT = "tools/ci/actionlint.sh"
-_ANALYZER_SCRIPT_RE = re.compile(r"(?m)^actionlint_version=([0-9][0-9A-Za-z.]*)$")
-_REVIEWED_RELEASE_RE = re.compile(r"reviewed \*\*([^*\s]+)\*\* release")
 
 # K-118's readings. The section runs from the development-tools heading to the next
 # heading of any level, and its one table is found by its own header line.
@@ -387,9 +381,9 @@ class DevTool:
 
 @dataclass(frozen=True)
 class Declared:
-    """A row not held here, and why. `releases` is False for a row stating no release,
-    which the census then holds to stating none; `pending` is an owner whose arrival in
-    the index ends the declaration."""
+    """A row not held here, and why. The census holds the row to stating one distinct
+    dotted release, however often, or with `releases` False to stating none; `pending`
+    is an owner whose arrival in the index ends the declaration."""
 
     why: str
     releases: bool = True
@@ -425,6 +419,16 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
                              (Owner("shell", "tools/wasm-oracle/node.sh", "node_version"),)),)),
     DevTool("pre-commit", (Site("the reviewed release", rf"The reviewed `v{_V}` tag's",
                                 (_uv("pre-commit"),)),)),
+    DevTool("zizmor", (Site("the reviewed release and its licence tag",
+                            rf"The reviewed \*\*{_V}\*\* release's \[LICENSE\]"
+                            rf"\(https://github\.com/zizmorcore/zizmor/blob/v{_V}/LICENSE\)",
+                            (_uv("zizmor"),)),)),
+    DevTool("actionlint", (Site("the reviewed release and its licence tag",
+                                rf"The reviewed \*\*{_V}\*\* release's \[LICENSE\.txt\]"
+                                rf"\(https://github\.com/rhysd/actionlint/blob/v{_V}/"
+                                r"LICENSE\.txt\)",
+                                (Owner("shell", "tools/ci/actionlint.sh",
+                                       "actionlint_version"),)),)),
     DevTool("opam", (Site("the reviewed release", rf"The reviewed {_V} revision",
                           (Owner("assign", "tools/vos/opam_client.py", "OPAM_VERSION"),)),)),
     DevTool("Z3", (Site("the reviewed release and its licence tag",
@@ -502,8 +506,6 @@ DEV_TOOL_DECLARED: dict[str, Declared] = {
     "CHERI-QEMU fork": Declared("its edition is the upstream/qemu gitlink, which K-81 holds",
                                 releases=False),
     "Verilator": Declared("K-97 holds it against rtl.py's VERILATOR_PIN"),
-    "zizmor": Declared("K-115 holds it against the workflows group that installs it"),
-    "actionlint": Declared("K-115 holds it against the script that installs it"),
     "GitHub CLI": Declared("the runner image supplies it, so no artifact here fixes its "
                            "release; the row names the reading a later image is compared with"),
     "CompCert, in the oracle's switch": Declared(
@@ -512,9 +514,11 @@ DEV_TOOL_DECLARED: dict[str, Declared] = {
     "`ccache`": Declared("a distribution's build accelerator, stated with no release",
                          releases=False),
     "llama.cpp and `llama-bench`": Declared(
-        "the commit and build tag the inference-demand report measured, a record of that "
-        "run rather than a pin"),
+        "the commit and undotted build tag the inference-demand report measured, a record "
+        "of that run rather than a pin", releases=False),
 }
+# How K-118 declares an action row, which K-115 holds against the workflows.
+_ACTION_DECLARED = Declared("K-115 holds its release and commit against the workflows")
 
 # The section's paragraphs, held as one unit: the reviewed editions they state, and
 # the numerals in them that state no release a switch here installs.
@@ -764,36 +768,6 @@ def _tool_rows(text: str, findings: list[str]) -> dict[str, tuple[int, str]]:
     return rows
 
 
-def _analyzer_releases(ctx: Context, findings: list[str]) -> list[tuple[str, str, str]]:
-    """Each workflow analyzer, the owner installing it, and the release it installs."""
-    found: list[tuple[str, str, str]] = []
-    pins: list[str] = []
-    fault = "the workflows group does not pin zizmor exactly once"
-    try:
-        groups = tomllib.loads((ctx.root / ANALYZER_PROJECT).read_text(encoding="utf-8"))[
-            "dependency-groups"]["workflows"]
-        pins = [item.partition("==")[2] for item in groups
-                if isinstance(item, str) and item.partition("==")[0] == "zizmor"]
-    except (OSError, UnicodeDecodeError, ValueError, TypeError, KeyError) as err:
-        fault = str(err)
-    if len(pins) == 1 and pins[0]:
-        found.append(("zizmor", ANALYZER_PROJECT, pins[0]))
-    else:
-        findings.append(f"{ANALYZER_PROJECT} cannot supply the workflow analyzer's exact "
-                        f"zizmor pin: {fault}")
-    try:
-        script = (ctx.root / ANALYZER_SCRIPT).read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        script = ""
-    stated = _ANALYZER_SCRIPT_RE.findall(script)
-    if len(stated) == 1:
-        found.append(("actionlint", ANALYZER_SCRIPT, stated[0]))
-    else:
-        findings.append(f"{ANALYZER_SCRIPT} does not state actionlint_version exactly once "
-                        "in a form this rule reads, so the release Host CI runs is unread")
-    return found
-
-
 def _workflow_pins(ctx: Context) -> None:
     """K-115: every action a workflow runs is the commit and release its row reviewed.
 
@@ -889,24 +863,10 @@ def _workflow_pins(ctx: Context) -> None:
                      "nothing is a licence record for no code"
                      for action, (_, _, where) in actions.items() if action not in used]
 
-    for tool, owner, release in _analyzer_releases(ctx, findings):
-        if tool not in rows:
-            if rows:
-                findings.append(f"{record}'s development-tools table has no {tool} row, and "
-                                f"{owner} installs {release}")
-            continue
-        line, row = rows[tool]
-        stated = _REVIEWED_RELEASE_RE.findall(row)
-        if stated != [release]:
-            findings.append(f"{record}:{line} states {tool}'s reviewed release as "
-                            f"{', '.join(stated) or 'nothing'}, {owner} installs {release}; "
-                            "the row's terms were read at the release it states")
-
-    rep.report("K-115", "workflow action or analyzer pin(s) the reviewed record does not "
-               "state:", findings,
+    rep.report("K-115", "workflow action pin(s) the reviewed record does not state:",
+               findings,
                f"the {references} action references in {len(files)} workflows state the "
-               f"commits and releases their {len(actions)} reviewed rows record, and the "
-               "workflow analyzers' rows state the releases their owners install")
+               f"commits and releases their {len(actions)} reviewed rows record")
 
 
 class _UnreadError(Exception):
@@ -1217,13 +1177,21 @@ def _dev_tools(ctx: Context) -> None:
                 continue
             declared += 1
             if action:
-                continue
-            claimed.add(tool)
-            why = DEV_TOOL_DECLARED[tool]
-            stated = [m.group() for m in _RELEASE_RE.finditer(line)]
+                why = _ACTION_DECLARED
+            else:
+                claimed.add(tool)
+                why = DEV_TOOL_DECLARED[tool]
+            # A declared row is still censused: it states the one release its terms were
+            # read at, however often, or none where it is declared to state none.
+            stated = sorted({m.group(1) for m in _RELEASE_RE.finditer(line)})
             if not why.releases and stated:
-                findings.append(f"{where} is declared as stating no release of {tool} "
+                findings.append(f"{where} is declared as stating no dotted release of {tool} "
                                 f"({why.why}), and it states {', '.join(stated)}")
+            elif why.releases and len(stated) != 1:
+                findings.append(f"{where} states {len(stated)} distinct releases of {tool}"
+                                f"{': ' + ', '.join(stated) if stated else ''}, which K-118 "
+                                f"declares ({why.why}); a declared row states the one "
+                                "release its terms were read at")
             if why.pending and why.pending in ctx.corpus.indexed:
                 findings.append(f"{where} is declared unowned ({why.why}) until "
                                 f"{why.pending} is carried, and the index now carries it; "
@@ -1247,7 +1215,8 @@ def _dev_tools(ctx: Context) -> None:
                f"the {compared} release statements in {record}'s development-tools section "
                f"are the releases their owners fix, each of the {numerals} release numerals "
                f"its held rows and paragraphs state is read or declared, and the table's "
-               f"{declared} other rows are declared")
+               f"{declared} other rows are declared, each stating the one release, or "
+               "none, its declaration allows")
 
 
 def _sources(ctx: Context) -> list[tuple[str, str, list[bool]]]:
