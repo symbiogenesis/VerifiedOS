@@ -85,6 +85,10 @@ def sentences(text: str) -> list[str]:
     full stop outside a string literal ends one, so an attribute's quoted note keeps
     its declaration."""
     code = strip_comments(text)
+    # Most sources hold no string literal outside their comments, and for them the
+    # split in the regex engine is the same reading at a third of the cost.
+    if '"' not in code:
+        return [trimmed for s in SENTENCE_END.split(code) if (trimmed := s.strip())]
     found: list[str] = []
     start = 0
     for token in _SENTENCE_TOKEN.finditer(code):
