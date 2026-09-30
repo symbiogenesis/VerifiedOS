@@ -1802,8 +1802,8 @@ CASES: list[Case] = [
               "Where the set is located by **marker**, nothing is read. "
               "Where the set is **total**,")),
 
-    # The lead with no class in bold before its sentence ends, which opens nothing and
-    # is otherwise read as part of the class before it.
+    # The lead with no class in bold before a full stop or the line's end, which opens
+    # nothing and is otherwise read as part of the class before it.
     ("K-119", "a 'Where the set is' sentence naming no class",
      _literal(RULES, "Where the set is **total**,",
               "Where the set is located by a marker, nothing is read. "

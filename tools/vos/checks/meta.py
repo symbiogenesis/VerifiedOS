@@ -165,12 +165,13 @@ stays green, and a rule named under two leaves a reader unable to say which reac
 
 **The rules it decides about are the registry's own rows**, the set K-00 reads, so a row
 is inside it the day it is written; the classes are read off the page, each by the first
-bold phrase of the sentence opening it with `Where the set is`, whatever words stand
-between, and by one membership sentence, `which is what` or `That is what`, a list of
-ids, then `are`. The four class names are fixed here rather than read, so a class
-retitled away and a fifth class opened that way are each a finding rather than a class
-this rule stops or never starts reading, and so is a `Where the set is` in the section
-that names no class before its sentence ends. What that reading does not reach is a
+bold phrase after the `Where the set is` opening it, whatever words or italics stand
+between short of a full stop or the line's end, any `.` counting as a full stop, and by
+one membership sentence, `which is what` or `That is what`, a list of ids, then `are`.
+The four class names are fixed here rather than read, so a class retitled away and a
+fifth class opened that way are each a finding rather than a class this rule stops or
+never starts reading, and so is a `Where the set is` in the section that names no class
+in bold before a full stop or the line's end. What that reading does not reach is a
 class introduced in some other sentence form: it is read as part of the class before it,
 or as part of no class ahead of the first, and is caught only where it carries a
 membership sentence of its own, that sentence then being a class's second or one
@@ -239,15 +240,17 @@ _LANDED_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed:")
 _TIER_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed: Tier (?P<tier>[AB])\b(?P<rest>.*)")
 
 # K-119's reading of the reach section. A class opens with `Where the set is` and is
-# named by the first bold phrase before that sentence ends, whatever words stand between,
-# and every `Where the set is` in the section has to open one. The four class names are
-# fixed here rather than read off the page, so a class retitled away, a fifth class opened
-# that way, and a `Where the set is` naming no class are each a finding rather than a
-# class this rule silently stops or never starts reading.
+# named by the first bold phrase after it, whatever words or italics stand between, short
+# of a full stop or the line's end: any `.` ends the lead's reach, one inside a code span
+# or a link included, and every `Where the set is` in the section has to open a class.
+# The four class names are fixed here rather than read off the page, so a class retitled
+# away, a fifth class opened that way, and a `Where the set is` naming no class are each
+# a finding rather than a class this rule silently stops or never starts reading.
 REACH_HEADING = "## What a passing run does not decide"
 REACH_CLASSES = ("name", "computed value", "pattern", "total")
 _CLASS_LEAD_RE = re.compile(r"\bWhere the set is\b")
-_CLASS_OPEN_RE = re.compile(r"\bWhere the set is [^*.\r\n]*?\*\*([^*\r\n]+)\*\*")
+_CLASS_OPEN_RE = re.compile(
+    r"\bWhere the set is (?:[^*.\r\n]|\*(?!\*))*?\*\*([^*\r\n]+)\*\*")
 
 # A class's membership sentence: `which is what` or `That is what`, the list, then `are`.
 # The capture admits only the characters a list is spelled in, so a sentence that merely
@@ -783,8 +786,8 @@ def _classes(ctx: Context, registered: set[str]) -> None:
             # class before it, so it is reported rather than passed over.
             starts = {m.start() for m in opens}
             findings += [f"{RULES}:{doc.at(m.start())} states 'Where the set is' and names "
-                         "no class in bold before its sentence ends, so it opens no reach "
-                         "class this rule reads"
+                         "no class in bold before a full stop or the line's end, so it "
+                         "opens no reach class this rule reads"
                          for m in _CLASS_LEAD_RE.finditer(doc.raw, lo, hi)
                          if m.start() not in starts and not doc.is_fenced(m.start())]
             # No class's region reaches back past the first opener, so a membership
