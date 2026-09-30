@@ -8,10 +8,10 @@
 #include <string>
 #include <vector>
 
-#include "sail.h"
-#include "sail_riscv_model.h"
 #include "blkdev_image.h"
 #include "rot_slow_clock.h"
+#include "sail.h"
+#include "sail_riscv_model.h"
 
 struct MemoryRegion {
   uint64_t base = 0;
@@ -94,7 +94,9 @@ public:
   // The RoT watchdog and the die reset its bite asserts. The external slow
   // clock that drives it is the host's (rot_slow_clock.h) and joins here
   // rather than anywhere downstream of a retired instruction.
-  rot::watchdog_device &rot_watchdog() { return m_rot_watchdog; }
+  rot::watchdog_device &rot_watchdog() {
+    return m_rot_watchdog;
+  }
 
   int64_t xlen() const;
   int64_t physaddrbits_len() const;

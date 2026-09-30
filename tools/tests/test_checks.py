@@ -1120,8 +1120,10 @@ def _k118_every_owner_kind_detects_drift() -> None:
     # at its owner's release and reports that owner moved without the row.
     kinds = {owner.kind for tool in (*pins.DEV_TOOL_ROWS, pins.DEV_TOOL_PROSE)
              for site in tool.sites for owner in site.owners}
-    ensure(kinds == set(_K118_KINDS),
-           f"every owner kind a shipped site uses has a drift case here: {kinds!r}")
+    # The hook kinds hold a rev's commit and its frozen tag rather than kappa's release;
+    # k118-hook-revisions-are-held moves each without its row.
+    ensure(kinds == set(_K118_KINDS) | {"pre-commit", "pre-commit-rev"},
+           f"every owner kind a shipped site uses has a drift case: {kinds!r}")
     for kind, (_, _, drift) in _K118_KINDS.items():
         found = _k118_kappa(kind, {})
         ensure(not found, f"a {kind} owner at the row's release agrees: {found!r}")
@@ -1157,6 +1159,66 @@ def _k118_a_row_named_by_its_release_stays_one_row() -> None:
     found = run(record.replace("Py 3.14", "Py 3.15"))
     ensure(len(found) == 1 and "(Py 3.15) states the series as 3.15, where tools/vos/x.py's "
            "PY fixes 3.14" in found[0], f"a moved cell is its row's drift, once: {found!r}")
+
+
+# Two hook repository entries as `pre-commit autoupdate --freeze` writes them, one rev
+# bare and one quoted, and the rows holding each one's frozen release and commit.
+_K118_HOOKS = ("repos:\n"
+               "  - repo: https://github.com/example/hooks\n"
+               f"    rev: {'a' * 40} # frozen: v1.0.0\n"
+               "    hooks:\n      - id: first\n"
+               "  - repo: https://github.com/example/other\n"
+               f"    rev: \"{'b' * 40}\" # frozen: v2.0.0\n"
+               "    hooks:\n      - id: second\n")
+_K118_HOOK_RECORD = _K118_RECORD.replace(
+    "| gamma |", f"| hooks | `MIT` | The reviewed `v1.0.0` revision `{'a' * 40}`. |\n"
+    f"| other | `MIT` | The reviewed `v2.0.0` revision `{'b' * 40}` of it. |\n| gamma |")
+_K118_HOOK_ROWS = (*_K118_ROWS, pins._hook("hooks", "example/hooks"),
+                   pins._hook("other", "example/other"))
+
+
+def _k118_hook(config: str | None = _K118_HOOKS,
+               record: str = _K118_HOOK_RECORD) -> tuple[list[str], list[str]]:
+    return _k118({"THIRD-PARTY.md": record, pins.HOOK_CONFIG: config}, rows=_K118_HOOK_ROWS)
+
+
+def _k118_hook_revisions_are_held() -> None:
+    found, out = _k118_hook()
+    ensure(not found and any(line.startswith("ok K-118: the 8 release statements")
+                             for line in out),
+           f"hook rows at their configuration's release and commit agree: {found!r} {out!r}")
+    owner = f"{pins.HOOK_CONFIG}'s https://github.com/example/hooks"
+    cases: tuple[tuple[str | None, str, str], ...] = (
+        # the configuration moved without its row, release and commit each
+        (_K118_HOOKS.replace("frozen: v1.0.0", "frozen: v1.0.1"), _K118_HOOK_RECORD,
+         f"(hooks) states the reviewed release as 1.0.0, where {owner} fixes 1.0.1"),
+        (_K118_HOOKS.replace("a" * 40, "c" * 40), _K118_HOOK_RECORD,
+         f"(hooks) states the reviewed commit as {'a' * 40}, where {owner} fixes {'c' * 40}"),
+        # the row moved without its configuration
+        (_K118_HOOKS, _K118_HOOK_RECORD.replace("`v2.0.0`", "`v2.0.1`"),
+         "(other) states the reviewed release as 2.0.1, where"),
+        # a rev left as a tag is its own release and is no commit
+        (_K118_HOOKS.replace(f"{'a' * 40} # frozen: v1.0.0", "v1.0.0"), _K118_HOOK_RECORD,
+         f"(hooks) states the reviewed commit as {'a' * 40}, where {owner} fixes v1.0.0"))
+    for config, record, fragment in cases:
+        found, _ = _k118_hook(config, record)
+        ensure(len(found) == 1 and fragment in found[0],
+               f"one hook drift is one finding naming both sides ({fragment!r}): {found!r}")
+    unreadable: tuple[tuple[str | None, str], ...] = (
+        (None, f"{pins.HOOK_CONFIG} is not in the repository"),
+        (_K118_HOOKS.replace("example/hooks", "example/moved"),
+         f"{owner}'s repository is stated 0 times"),
+        (_K118_HOOKS + "  - repo: https://github.com/example/hooks\n",
+         f"{owner}'s repository is stated 2 times"),
+        (_K118_HOOKS.replace("    hooks:\n      - id: first\n",
+                             f"    rev: {'a' * 40}\n    hooks:\n"), f"{owner} states its rev 2 times"),
+        (_K118_HOOKS.replace(" # frozen: v1.0.0", " # a comment"), f"{owner} states its rev 0 times"))
+    for config, fragment in unreadable:
+        found, out = _k118_hook(config)
+        ensure(any(fragment in item for item in found),
+               f"an unreadable hook configuration must report ({fragment!r}): {found!r}")
+        ensure(not any(line.startswith("ok K-118:") for line in out),
+               "fail-closed: no ok line stands beside an unread hook configuration")
 
 
 def _k118_shipped_readings_are_declared() -> None:
@@ -1650,6 +1712,7 @@ def cases() -> list[Case]:
         Case("k118-every-owner-kind-detects-drift", _k118_every_owner_kind_detects_drift),
         Case("k118-a-row-named-by-its-release-stays-one-row",
              _k118_a_row_named_by_its_release_stays_one_row),
+        Case("k118-hook-revisions-are-held", _k118_hook_revisions_are_held),
         Case("k118-shipped-readings-are-declared", _k118_shipped_readings_are_declared),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),
         Case("k81-unused-historical-residue-fails", _k81_unused_historical_residue_fails),

@@ -22,7 +22,9 @@ public:
     mpz_mul_2exp(m_value, m_value, 32);
     mpz_add_ui(m_value, m_value, static_cast<unsigned long>(n & 0xffffffffULL));
   }
-  ~tick_count() { mpz_clear(m_value); }
+  ~tick_count() {
+    mpz_clear(m_value);
+  }
   tick_count(const tick_count &) = delete;
   tick_count &operator=(const tick_count &) = delete;
 
@@ -51,8 +53,9 @@ void model_watchdog::reset_die() {
   m_model.zreset(UNIT);
 }
 
-host_time_slow_clock::host_time_slow_clock(uint64_t period_ns)
-    : m_period_ns(period_ns), m_start(std::chrono::steady_clock::now()) {
+host_time_slow_clock::host_time_slow_clock(uint64_t period_ns) :
+    m_period_ns(period_ns),
+    m_start(std::chrono::steady_clock::now()) {
   if (period_ns == 0) {
     throw std::invalid_argument("the external slow clock needs a nonzero host period");
   }

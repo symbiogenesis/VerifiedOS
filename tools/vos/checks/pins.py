@@ -207,9 +207,12 @@ K-118 is K-97's agreement made total over the rest of the development-tools sect
 **Each row states the release its terms were read at, and most of those releases have
 an owner here**: [uv.lock](../../uv.lock) for the Python packages,
 [pyproject.toml](../../pyproject.toml)'s `required-version` for uv, the exported
-[opam snapshots](../../opam/README.md) for the switches, and a constant or a shell
+[opam snapshots](../../opam/README.md) for the switches, a constant or a shell
 setting where a tool installs its own release, [actionlint.sh](../../ci/actionlint.sh)'s
-among them for the workflow linter Host CI runs. A dependency bump moves the owner and
+among them for the workflow linter Host CI runs, and the model's
+[hook configuration](../../../model/.pre-commit-config.yaml) for the hook
+repositories pre-commit installs, whose rows it holds to each rev's commit as well as
+to the release its `# frozen:` comment names. A dependency bump moves the owner and
 leaves the row, so a row names a release its owner has left unless something holds it.
 
 **The rows are a table this rule declares, held total in both directions.** A row is
@@ -342,7 +345,9 @@ class Owner:
     `uv` is a package of a uv lock, `uv-required` the uv release a project requires,
     `opam` a package of one exported snapshot, `opam-every` a package every snapshot
     under a directory installs and `opam-any` one some of them do, `assign` a quoted
-    top-level assignment and `shell` an unquoted shell variable.
+    top-level assignment, `shell` an unquoted shell variable, and `pre-commit` and
+    `pre-commit-rev` the release a hook configuration's repository entry names after
+    `# frozen:` (its rev when there is no such comment) and that entry's rev itself.
     """
 
     kind: str
@@ -422,6 +427,19 @@ def _locked(display: str, package: str) -> Site:
                 rf"(?<![\w-]){re.escape(display)} `v?{_V}`", (_uv(package),))
 
 
+HOOK_CONFIG = "model/.pre-commit-config.yaml"
+
+
+def _hook(cell: str, repo: str) -> DevTool:
+    """A hook repository's row: the release its rev was frozen at, and the rev's commit."""
+    url = f"https://github.com/{repo}"
+    return DevTool(cell, (
+        Site("the reviewed release", rf"The reviewed `v{_V}` revision",
+             (Owner("pre-commit", HOOK_CONFIG, url),)),
+        Site("the reviewed commit", r"revision `([0-9a-f]{40})`",
+             (Owner("pre-commit-rev", HOOK_CONFIG, url),))))
+
+
 _ENV = "tools/vos/env.py"
 _GALLINA = "tools/vos/gallina.py"
 _ORACLE_ROCQ = Owner("assign", _GALLINA, "ORACLE_ROCQ_VERSION")
@@ -481,6 +499,12 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
         ("PyYAML", "pyyaml"), ("virtualenv", "virtualenv"), ("distlib", "distlib"),
         ("filelock", "filelock"), ("platformdirs", "platformdirs"),
         ("python-discovery", "python-discovery"), ("packaging", "packaging")))),
+    _hook("pre-commit-hooks", "pre-commit/pre-commit-hooks"),
+    _hook("clang-format", "pre-commit/mirrors-clang-format"),
+    _hook("Lucas-C pre-commit-hooks", "Lucas-C/pre-commit-hooks"),
+    _hook("prettier", "rbubley/mirrors-prettier"),
+    _hook("codespell", "codespell-project/codespell"),
+    _hook("markdown-link-check", "tcort/markdown-link-check"),
     DevTool("Rocq prover: `rocq-core`, `rocq-runtime` and `rocqchk`", (
         Site("the proof switch's edition", rf"{_V} in the proof switch",
              (_snap("rocq", "rocq-core"), _snap("rocq", "rocq-runtime"))),
@@ -1023,8 +1047,35 @@ class _Owners:
             spelled = (rf'(?m)^{key} = "([^"\r\n]*)"' if owner.kind == "assign"
                        else rf"(?m)^{key}=([^\s'\"#;]+)[ \t]*$")
             return self._one(owner, re.findall(spelled, self._text(owner.path)))
+        if owner.kind in ("pre-commit", "pre-commit-rev"):
+            rev, frozen = self._hook_rev(owner)
+            if owner.kind == "pre-commit-rev":
+                return frozenset({rev})
+            return frozenset({(frozen or rev).removeprefix("v")})
         raise self._fault(owner.label(), f"{owner.label()} is of the unknown kind "
                           f"{owner.kind!r}")
+
+    def _hook_rev(self, owner: Owner) -> tuple[str, str]:
+        """The rev a hook configuration pins for the repository `owner.key` names, and
+        the release its `# frozen:` comment states (empty without one).
+
+        The file is read as the lines pre-commit's own `autoupdate` rewrites: a
+        repository entry runs from its `- repo:` line to the next, and holds one `rev:`
+        line. A repository stated other than once, or an entry whose rev is stated
+        other than once, fixes nothing and is a fault.
+        """
+        entries = re.split(r"(?m)^[ \t]*-[ \t]+repo:[ \t]*", self._text(owner.path))[1:]
+        named = [entry for entry in entries
+                 if entry.split("\n", 1)[0].strip().strip("'\"") == owner.key]
+        if len(named) != 1:
+            raise self._fault(owner.label(), f"{owner.label()}'s repository is stated "
+                              f"{len(named)} times, so it fixes no one revision")
+        revs = list(re.finditer(r"(?m)^[ \t]+rev:[ \t]*([\"']?)([^\s\"'#]+)\1"
+                                r"(?:[ \t]+#[ \t]*frozen:[ \t]*(\S+))?[ \t]*\r?$", named[0]))
+        if len(revs) != 1:
+            raise self._fault(owner.label(), f"{owner.label()} states its rev "
+                              f"{len(revs)} times, so it fixes no one revision")
+        return str(revs[0].group(2)), str(revs[0].group(3) or "")
 
 
 def _dev_section(text: str, findings: list[str]) -> tuple[int, list[str]] | None:

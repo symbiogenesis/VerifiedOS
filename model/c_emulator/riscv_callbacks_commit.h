@@ -25,12 +25,29 @@ public:
   void pre_step_callback(ModelImpl &model, bool is_waiting) override;
   void post_step_callback(ModelImpl &model, bool is_waiting) override;
   void fetch_callback(ModelImpl &model, sbits opcode) override;
-  void mem_write_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value, bool tag)
-    override;
-  void mem_read_callback(ModelImpl &model, const char *type, uint64_t paddr, int64_t width, lbits value, bool tag)
-    override;
-  void xreg_full_write_callback(ModelImpl &model, const_sail_string abi_name, sbits reg, uint64_t value, bool tag)
-    override;
+  void mem_write_callback(
+    ModelImpl &model,
+    const char *type,
+    uint64_t paddr,
+    int64_t width,
+    lbits value,
+    bool tag
+  ) override;
+  void mem_read_callback(
+    ModelImpl &model,
+    const char *type,
+    uint64_t paddr,
+    int64_t width,
+    lbits value,
+    bool tag
+  ) override;
+  void xreg_full_write_callback(
+    ModelImpl &model,
+    const_sail_string abi_name,
+    sbits reg,
+    uint64_t value,
+    bool tag
+  ) override;
   void scr_full_write_callback(ModelImpl &model, const_sail_string name, fbits scr, uint64_t value, bool tag) override;
   void csr_full_write_callback(ModelImpl &model, const_sail_string csr_name, unsigned reg, uint64_t value) override;
   void trap_callback(ModelImpl &model, bool is_interrupt, fbits cause) override;

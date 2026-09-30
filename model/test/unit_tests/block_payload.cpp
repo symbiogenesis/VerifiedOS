@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // M5.3a: finite payload evidence on the actual generated Sail PIO device.
-#include <sail_config.h>
 #include "config_utils.h"
 #include "sail_riscv_model.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <numeric>
+#include <sail_config.h>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -14,7 +14,9 @@
 using Bytes = std::vector<uint64_t>;
 
 static void require(bool condition, const std::string &message) {
-  if (!condition) throw std::runtime_error(message);
+  if (!condition) {
+    throw std::runtime_error(message);
+  }
 }
 
 class Campaign {
@@ -42,31 +44,32 @@ class Campaign {
   }
 
   Bytes medium() const {
-    return Bytes(model.zblkdev_medium.data,
-                 model.zblkdev_medium.data + model.zblkdev_medium.len);
+    return Bytes(model.zblkdev_medium.data, model.zblkdev_medium.data + model.zblkdev_medium.len);
   }
 
   void compare(const Bytes &actual, const Bytes &expected, const char *what) {
     require(actual.size() == expected.size(), context + ": comparison length");
     for (size_t i = 0; i < actual.size(); ++i) {
-      require(actual[i] == expected[i], context + ": " + what + " byte " +
-              std::to_string(i) + " expected " + std::to_string(expected[i]) +
-              " got " + std::to_string(actual[i]));
+      require(
+        actual[i] == expected[i],
+        context + ": " + what + " byte " + std::to_string(i) + " expected " + std::to_string(expected[i]) + " got " +
+          std::to_string(actual[i])
+      );
     }
   }
 
   void clear_staging() {
-    require(mpz_sgn(*model.zblkdev_written.bits) == 0,
-            context + ": staging bitmap must clear");
-    for (size_t i = 0; i < model.zblkdev_staging.len; ++i)
-      require(model.zblkdev_staging.data[i] == 0,
-              context + ": staging byte must clear");
+    require(mpz_sgn(*model.zblkdev_written.bits) == 0, context + ": staging bitmap must clear");
+    for (size_t i = 0; i < model.zblkdev_staging.len; ++i) {
+      require(model.zblkdev_staging.data[i] == 0, context + ": staging byte must clear");
+    }
   }
 
   static uint64_t word(const Bytes &payload, size_t index) {
     uint64_t value = 0;
-    for (size_t byte = 0; byte < 8; ++byte)
+    for (size_t byte = 0; byte < 8; ++byte) {
       value |= payload[8 * index + byte] << (8 * byte);
+    }
     return value;
   }
 
@@ -86,11 +89,15 @@ class Campaign {
   void stage(const Bytes &payload, size_t seed, size_t omitted) {
     const size_t replaced = seed % words;
     for (size_t i : shuffled(seed)) {
-      if (i == omitted) continue;
+      if (i == omitted) {
+        continue;
+      }
       const uint64_t value = word(payload, i);
       write(256 + 8 * i, i == replaced ? ~value : value);
     }
-    if (replaced != omitted) write(256 + 8 * replaced, word(payload, replaced));
+    if (replaced != omitted) {
+      write(256 + 8 * replaced, word(payload, replaced));
+    }
   }
 
   void complete(uint64_t steps, const Bytes &before, const Bytes &after) {
@@ -119,10 +126,8 @@ class Campaign {
 
   void incomplete(const Bytes &before) {
     write(48, 2);
-    require(read(24) == 3 && read(32) == 3,
-            context + ": incomplete WRITE must be ERROR/INCOMPLETE");
-    require(mpz_sgn(model.zblkdev_remaining) == 0,
-            context + ": refused command must not be pending");
+    require(read(24) == 3 && read(32) == 3, context + ": incomplete WRITE must be ERROR/INCOMPLETE");
+    require(mpz_sgn(model.zblkdev_remaining) == 0, context + ": refused command must not be pending");
     clear_staging();
     compare(medium(), before, "refused-write medium");
     ++refusals;
@@ -130,36 +135,51 @@ class Campaign {
   }
 
 public:
-  explicit Campaign(bool wrong) : wrong_expected_byte(wrong) { model.model_init(); }
-  ~Campaign() { model.model_fini(); }
+  explicit Campaign(bool wrong) : wrong_expected_byte(wrong) {
+    model.model_init();
+  }
+  ~Campaign() {
+    model.model_fini();
+  }
 
   void run() {
-    require(model.zplat_have_blkdev && model.zblkdev_claims(model.zplat_blkdev_base, 8),
-            "payload evidence requires enabled device dispatch");
+    require(
+      model.zplat_have_blkdev && model.zblkdev_claims(model.zplat_blkdev_base, 8),
+      "payload evidence requires enabled device dispatch"
+    );
     model.zblkdev_initializze(UNIT);
     block_bytes = static_cast<size_t>(read(8));
     blocks = static_cast<size_t>(read(16));
-    require(block_bytes > 0 && block_bytes % 8 == 0 && blocks >= 2,
-            "payload fixture must contain at least two complete blocks");
-    require(block_bytes <= static_cast<size_t>(model.zblkdev_max_block_bytes) &&
-            blocks <= static_cast<size_t>(model.zblkdev_max_bytes) / block_bytes,
-            "payload enumeration exceeds admitted model geometry");
+    require(
+      block_bytes > 0 && block_bytes % 8 == 0 && blocks >= 2,
+      "payload fixture must contain at least two complete blocks"
+    );
+    require(
+      block_bytes <= static_cast<size_t>(model.zblkdev_max_block_bytes) &&
+        blocks <= static_cast<size_t>(model.zblkdev_max_bytes) / block_bytes,
+      "payload enumeration exceeds admitted model geometry"
+    );
     words = block_bytes / 8;
     require(read(24) == 0 && read(32) == 0, "fixture must begin IDLE/OK");
 
     const size_t locations = blocks * block_bytes;
     size_t address_bits = 0;
-    while ((size_t{1} << address_bits) < locations) ++address_bits;
+    while ((size_t{1} << address_bits) < locations) {
+      ++address_bits;
+    }
     // Across the family, location-bit planes distinguish every byte location,
     // and walking-one planes distinguish each bit within that byte. Endpoints
     // and the location planes also exercise uniform and nonuniform payloads.
     std::vector<Bytes> family(2 + 8 + address_bits, Bytes(locations));
     std::fill(family[1].begin(), family[1].end(), 255);
-    for (size_t bit = 0; bit < 8; ++bit)
+    for (size_t bit = 0; bit < 8; ++bit) {
       std::fill(family[2 + bit].begin(), family[2 + bit].end(), uint64_t{1} << bit);
-    for (size_t bit = 0; bit < address_bits; ++bit)
-      for (size_t byte = 0; byte < locations; ++byte)
+    }
+    for (size_t bit = 0; bit < address_bits; ++bit) {
+      for (size_t byte = 0; byte < locations; ++byte) {
         family[10 + bit][byte] = (byte & (size_t{1} << bit)) ? 255 : 0;
+      }
+    }
 
     for (size_t pattern = 0; pattern < family.size(); ++pattern) {
       for (size_t block = 0; block < blocks; ++block) {
@@ -183,12 +203,14 @@ public:
           Bytes returned(block_bytes);
           for (size_t i = 0; i < words; ++i) {
             const uint64_t value = read(256 + 8 * i);
-            for (size_t byte = 0; byte < 8; ++byte)
+            for (size_t byte = 0; byte < 8; ++byte) {
               returned[8 * i + byte] = (value >> (8 * byte)) & 255;
+            }
           }
           Bytes expected = payload;
-          if (wrong_expected_byte && pattern == 0 && block == 0 && repeat == 0)
+          if (wrong_expected_byte && pattern == 0 && block == 0 && repeat == 0) {
             expected[0] ^= 1;
+          }
           compare(returned, expected, "returned payload");
           returned_bytes += returned.size();
         }
@@ -202,7 +224,9 @@ public:
     // Exercise both the same block value and a different valid block value.
     for (size_t block = 0; block < blocks; ++block) {
       Bytes payload(block_bytes);
-      for (size_t i = 0; i < block_bytes; ++i) payload[i] = (i * 37 + block + 1) & 255;
+      for (size_t i = 0; i < block_bytes; ++i) {
+        payload[i] = (i * 37 + block + 1) & 255;
+      }
       for (size_t change = 0; change < 2; ++change) {
         context = "BLOCK rewrite " + std::to_string(change) + " block " + std::to_string(block);
         const Bytes before = medium();
@@ -220,10 +244,17 @@ public:
         incomplete(before);
       }
     }
-    std::printf("block payload: B=%zu N=%zu patterns=%zu write/read-pairs=%zu "
-                "refusals=%zu progress-events=%zu returned-bytes=%zu PASS\n",
-                block_bytes, blocks, family.size(), pairs, refusals,
-                progress_events, returned_bytes);
+    std::printf(
+      "block payload: B=%zu N=%zu patterns=%zu write/read-pairs=%zu "
+      "refusals=%zu progress-events=%zu returned-bytes=%zu PASS\n",
+      block_bytes,
+      blocks,
+      family.size(),
+      pairs,
+      refusals,
+      progress_events,
+      returned_bytes
+    );
   }
 };
 

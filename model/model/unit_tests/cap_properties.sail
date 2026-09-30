@@ -520,4 +520,3 @@ function propPermsStripBothExact(code : CapPermsCode) -> bool = {
   let stripped = perms_expand(code) & ~(0b0000_0011_0101);
   perms_expand(perms_narrow(stripped)) == stripped
 }
-

@@ -47,7 +47,9 @@ namespace {
 std::string context;
 
 void require(bool condition, const char *message) {
-  if (!condition) throw std::runtime_error(context + ": " + message);
+  if (!condition) {
+    throw std::runtime_error(context + ": " + message);
+  }
 }
 
 // The die's reset vector, and where the harness places the die before the bite
@@ -62,9 +64,12 @@ constexpr uint64_t ELSEWHERE = 0x80001234;
 // layer's own device and die-reset path, not a second copy of it.
 class observed_device final : public rot::watchdog_device {
 public:
-  explicit observed_device(hart::Model &model) : m_model(model), m_inner(model) {}
+  explicit observed_device(hart::Model &model) : m_model(model), m_inner(model) {
+  }
 
-  bool watchdog_present() override { return m_inner.watchdog_present(); }
+  bool watchdog_present() override {
+    return m_inner.watchdog_present();
+  }
 
   void watchdog_advance(uint64_t ticks) override {
     ++advances;
@@ -72,7 +77,9 @@ public:
     m_inner.watchdog_advance(ticks);
   }
 
-  bool watchdog_bitten() override { return m_inner.watchdog_bitten(); }
+  bool watchdog_bitten() override {
+    return m_inner.watchdog_bitten();
+  }
 
   void reset_die() override {
     ++resets;
@@ -100,11 +107,17 @@ private:
 // arbitrary-precision integer.
 class step_number {
 public:
-  step_number() { mpz_init_set_ui(m_value, 0); }
-  ~step_number() { mpz_clear(m_value); }
+  step_number() {
+    mpz_init_set_ui(m_value, 0);
+  }
+  ~step_number() {
+    mpz_clear(m_value);
+  }
   step_number(const step_number &) = delete;
   step_number &operator=(const step_number &) = delete;
-  void next() { mpz_add_ui(m_value, m_value, 1); }
+  void next() {
+    mpz_add_ui(m_value, m_value, 1);
+  }
 
   mpz_t m_value;
 };
@@ -113,10 +126,16 @@ public:
 // model's step function is never called and its retirement-driven platform
 // tick never fires, so nothing inside the machine moves between external
 // events.
-enum class Core { Stopped, Running };
+enum class Core {
+  Stopped,
+  Running
+};
 
 // Whether the capability holder answers the challenge inside the window.
-enum class Petter { Stopped, Answering };
+enum class Petter {
+  Stopped,
+  Answering
+};
 
 struct Outcome {
   uint64_t rounds = 0;
@@ -167,13 +186,21 @@ public:
     require(!m_model.zwatchdog_bitten && m_model.zwatchdog_ticks == 0, "arming did not open the window");
   }
 
-  ~Harness() { m_model.model_fini(); }
+  ~Harness() {
+    m_model.model_fini();
+  }
   Harness(const Harness &) = delete;
   Harness &operator=(const Harness &) = delete;
 
-  uint64_t early() { return static_cast<uint64_t>(m_model.zplat_rot_watchdog_early); }
-  uint64_t late() { return static_cast<uint64_t>(m_model.zplat_rot_watchdog_late); }
-  hart::Model &model() { return m_model; }
+  uint64_t early() {
+    return static_cast<uint64_t>(m_model.zplat_rot_watchdog_early);
+  }
+  uint64_t late() {
+    return static_cast<uint64_t>(m_model.zplat_rot_watchdog_late);
+  }
+  hart::Model &model() {
+    return m_model;
+  }
 
   // One case. `ticks_per_round` is what the external source produces between
   // pumps; zero is the detached clock the control case uses.
@@ -205,13 +232,14 @@ public:
         ++out.main_clock_ticks;
       }
 
-      if (petter == Petter::Answering && !m_model.zwatchdog_bitten
-          && m_model.zwatchdog_ticks >= early()) {
+      if (petter == Petter::Answering && !m_model.zwatchdog_bitten && m_model.zwatchdog_ticks >= early()) {
         // Answer inside the window, which needs the counter past the early
         // bound: an early pet is a bite too (R-15-240).
         ++out.pets;
-        require(m_model.zwatchdog_pet(m_model.zwatchdog_nonce) == hart::zPet_Accepted,
-                "a pet inside the window against the outstanding challenge was refused");
+        require(
+          m_model.zwatchdog_pet(m_model.zwatchdog_nonce) == hart::zPet_Accepted,
+          "a pet inside the window against the outstanding challenge was refused"
+        );
       }
 
       // Place the die away from its reset vector, so that the reset a bite
@@ -250,8 +278,10 @@ public:
       require(device.pc_after == RESET_VECTOR, "the bite did not put the die back at its reset vector");
       // The watchdog is a failure domain disjoint from the cores (R-15-240),
       // so the die reset it asserts does not clear its own record of why.
-      require(device.bitten_before && device.bitten_after,
-              "the die reset cleared the RoT's latch, which is not the RoT's domain to reset");
+      require(
+        device.bitten_before && device.bitten_after,
+        "the die reset cleared the RoT's latch, which is not the RoT's domain to reset"
+      );
     }
 
     // The latch is absorbing and nothing clears it, so a further external
@@ -267,8 +297,10 @@ public:
       require(m_model.zwatchdog_ticks == ticks_before_extra, "a bitten watchdog kept counting");
     }
     out.external_ticks_after_probe = join.delivered();
-    require(out.external_ticks_after_probe == out.external_ticks + ticks_per_round + 1,
-            "the absorbing-latch probe did not deliver its own event");
+    require(
+      out.external_ticks_after_probe == out.external_ticks + ticks_per_round + 1,
+      "the absorbing-latch probe did not deliver its own event"
+    );
 
     return out;
   }
@@ -323,12 +355,18 @@ void campaign(bool negative_retirement_bites, bool negative_no_reset) {
   }
   require(stalled.bitten, "a core that retires nothing was not bitten");
   require(stalled.die_reset_observed, "the bite was not seen with the core stopped");
-  require(negative_no_reset ? stalled.resets == 0 : stalled.resets == 1,
-          "the bite did not assert the die reset with the core stopped");
-  require(stalled.steps == 0 && stalled.retired == 0 && stalled.main_clock_ticks == 0,
-          "the stopped-main-clock case moved the machine");
-  require(stalled.rounds == expected_rounds && stalled.external_ticks == petter.external_ticks,
-          "the external schedule differed between the two cases");
+  require(
+    negative_no_reset ? stalled.resets == 0 : stalled.resets == 1,
+    "the bite did not assert the die reset with the core stopped"
+  );
+  require(
+    stalled.steps == 0 && stalled.retired == 0 && stalled.main_clock_ticks == 0,
+    "the stopped-main-clock case moved the machine"
+  );
+  require(
+    stalled.rounds == expected_rounds && stalled.external_ticks == petter.external_ticks,
+    "the external schedule differed between the two cases"
+  );
   require(stalled.ticks_at_end == late + 1, "the expired reading did not saturate with the core stopped");
 
   // The control: the same core activity, no external clock. If retirement
@@ -339,8 +377,7 @@ void campaign(bool negative_retirement_bites, bool negative_no_reset) {
     Harness h(model);
     control = h.run(Core::Running, Petter::Stopped, 0, cap);
   }
-  require(negative_retirement_bites ? control.bitten : !control.bitten,
-          "retirement alone moved the watchdog");
+  require(negative_retirement_bites ? control.bitten : !control.bitten, "retirement alone moved the watchdog");
   require(control.resets == 0 && control.external_ticks == 0, "a detached clock asserted a die reset");
   require(control.rounds == cap && control.steps > 0, "the control case did not run the core");
   require(control.ticks_at_end == 0, "a detached clock advanced the counter");
@@ -375,8 +412,10 @@ void campaign(bool negative_retirement_bites, bool negative_no_reset) {
     h.model().zPC = ELSEWHERE;
     h.model().znextPC = ELSEWHERE;
     require(!join.pump(), "an armed watchdog asserted a die reset");
-    require(h.model().zwatchdog_pet(~h.model().zwatchdog_nonce) == hart::zPet_Unmatched,
-            "a response that is not the outstanding challenge was accepted");
+    require(
+      h.model().zwatchdog_pet(~h.model().zwatchdog_nonce) == hart::zPet_Unmatched,
+      "a response that is not the outstanding challenge was accepted"
+    );
     require(join.pump(), "a bite from the pet path did not reach the die reset");
     require(join.delivered() == 0 && join.die_resets() == 1, "the pet-path reset needed an external tick");
     require(device.pc_after == RESET_VECTOR && device.bitten_after, "the pet-path bite did not reset the die");
@@ -385,20 +424,34 @@ void campaign(bool negative_retirement_bites, bool negative_no_reset) {
   // Every count below is the measured schedule's, taken before the
   // absorbing-latch probe that follows each case; the control's probe figure is
   // printed beside it because that case's only external event is the probe's.
-  std::printf("watchdog join: window=[%" PRIu64 ",%" PRIu64 "] per_round=%" PRIu64
-              " stopped_petter{rounds=%" PRIu64 " steps=%" PRIu64 " retired=%" PRIu64
-              " main_ticks=%" PRIu64 " external=%" PRIu64 " resets=%" PRIu64 "}"
-              " stopped_main_clock{rounds=%" PRIu64 " steps=0 main_ticks=0 external=%" PRIu64
-              " resets=%" PRIu64 "} control{rounds=%" PRIu64 " steps=%" PRIu64
-              " external=%" PRIu64 " after_probe=%" PRIu64 " resets=%" PRIu64
-              "} answered{pets=%" PRIu64 " external=%" PRIu64
-              " resets=0} unmatched_pet{external=0 resets=1} sail_exception=%d PASS\n",
-              early, late, per_round, petter.rounds, petter.steps, petter.retired,
-              petter.main_clock_ticks, petter.external_ticks, petter.resets, stalled.rounds,
-              stalled.external_ticks, stalled.resets, control.rounds, control.steps,
-              control.external_ticks, control.external_ticks_after_probe, control.resets,
-              alive.pets, alive.external_ticks,
-              (petter.exception_seen || control.exception_seen || alive.exception_seen) ? 1 : 0);
+  std::printf(
+    "watchdog join: window=[%" PRIu64 ",%" PRIu64 "] per_round=%" PRIu64 " stopped_petter{rounds=%" PRIu64
+    " steps=%" PRIu64 " retired=%" PRIu64 " main_ticks=%" PRIu64 " external=%" PRIu64 " resets=%" PRIu64 "}"
+    " stopped_main_clock{rounds=%" PRIu64 " steps=0 main_ticks=0 external=%" PRIu64 " resets=%" PRIu64
+    "} control{rounds=%" PRIu64 " steps=%" PRIu64 " external=%" PRIu64 " after_probe=%" PRIu64 " resets=%" PRIu64
+    "} answered{pets=%" PRIu64 " external=%" PRIu64
+    " resets=0} unmatched_pet{external=0 resets=1} sail_exception=%d PASS\n",
+    early,
+    late,
+    per_round,
+    petter.rounds,
+    petter.steps,
+    petter.retired,
+    petter.main_clock_ticks,
+    petter.external_ticks,
+    petter.resets,
+    stalled.rounds,
+    stalled.external_ticks,
+    stalled.resets,
+    control.rounds,
+    control.steps,
+    control.external_ticks,
+    control.external_ticks_after_probe,
+    control.resets,
+    alive.pets,
+    alive.external_ticks,
+    (petter.exception_seen || control.exception_seen || alive.exception_seen) ? 1 : 0
+  );
 }
 
 } // namespace
@@ -406,7 +459,9 @@ void campaign(bool negative_retirement_bites, bool negative_no_reset) {
 int main(int argc, char **argv) {
   const bool negative_retirement_bites = argc == 2 && std::strcmp(argv[1], "--negative-retirement-bites") == 0;
   const bool negative_no_reset = argc == 2 && std::strcmp(argv[1], "--negative-no-reset") == 0;
-  if (argc != 1 && !negative_retirement_bites && !negative_no_reset) return 2;
+  if (argc != 1 && !negative_retirement_bites && !negative_no_reset) {
+    return 2;
+  }
   sail_config_set_string(get_default_config());
   try {
     campaign(negative_retirement_bites, negative_no_reset);
