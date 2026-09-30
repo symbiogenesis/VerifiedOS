@@ -383,7 +383,7 @@ The scalar datapath, tag controller, bring-up SoC, and RoT references are alread
 | Ara, V-class vector unit | `pulp-platform/ara` | `SHL-0.51`, Solderpad Hardware License v0.51 | Root `LICENSE` |
 | Gemmini, M-class matrix unit | `ucb-bar/gemmini` | `BSD-3-Clause`, The Regents of the University of California | Root `LICENSE` |
 
-The scalar review applies to `lowRISC/cva6-cheri`, whose file-specific terms are recorded above. The base `openhwgroup/cva6` project has no separate incorporation route here.
+The scalar review applies to `lowRISC/cva6-cheri`, whose file-specific terms are recorded above. The base `openhwfoundation/cva6` project has no separate incorporation route here.
 
 Solderpad v0.51 permits use, modification, sublicensing, and distribution, subject to license retention, modification notices, source attribution, and applicable NOTICE content. Its text expressly permits an Apache-2.0 election. Later Solderpad forms in the CHERI-CVA6 tree also permit that election.
 
