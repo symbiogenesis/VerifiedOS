@@ -1706,7 +1706,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M1.2, in prose
 · Disposition: standing, the preprocessor line relaxed for the one output that needs it and the other two unused, the backend's assembly going through M1.4′'s in-tree assembler and composer
 
-**F-520** upstream-defect: SECOMP's security layer carries no checked robust-preservation theorem at the pin, `security/RSC.v` not building and its axioms implying `False`, and the back-translation proof rests on an admitted lemma that is false
+**F-520** upstream-defect: SECOMP's security layer carries no checked robust-preservation theorem at the pin, `security/RSC.v` not building and its axioms implying `False`, and the back-translation proof on `ccs-backtranslation`, a CompCert 3.12 base, rests on an admitted lemma that is false
 · Raised: M1.2
 · Disposition: open, owned by the proof map's U-25, whose clause-by-clause comparison with `RSC.v` refuses each axiom SECOMP#21 shows inconsistent and takes nothing resting on `step_fix_fix` as a start-from; the SECOMP proof-reuse record states both defects
 
