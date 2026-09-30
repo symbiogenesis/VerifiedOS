@@ -199,16 +199,54 @@ missing from the index, a record its owner's own reader refuses, and a gitlink t
 index does not carry are each a finding, so the rule owes the floors group no member.
 **Reported and never repaired**: the repair re-derives the registry's source identities
 from a checkout at the gitlink and is never a token substitution.
+
+K-118 is K-97's agreement made total over the rest of the development-tools section.
+**Each row states the release its terms were read at, and most of those releases have
+an owner here**: [uv.lock](../../uv.lock) for the Python packages,
+[pyproject.toml](../../pyproject.toml)'s `required-version` for uv, the exported
+[opam snapshots](../../opam/README.md) for the switches, and a constant or a shell
+setting where a tool installs its own release. A dependency bump moves the owner and
+leaves the row, which is how filelock's row came to name a release its lock had left.
+
+**The rows are a table this rule declares, held total in both directions.** A row is
+either held here, site by site, or declared with why nothing here holds it. A site is a
+pattern anchored on the row's own words; its groups are the releases the row states,
+and its owners together fix what those groups must be. The declared rows are K-97's
+Verilator, K-115's action and analyzer rows, rows stating no release, a runner-supplied
+tool no artifact here fixes, a release no exported snapshot fixes yet, named with the
+owner whose arrival ends the declaration, and a measured build. A row neither held nor
+declared is a finding, so a row added for a locked package is read the day it is
+written, and a declaration naming no row is a finding too.
+
+**Every dotted release numeral in the section is read by a site or declared**, in the
+rows and in the paragraphs around them, so a release written into a held row or a
+paragraph restating one is a finding rather than a sentence nothing reads. A numeral
+that states no release of the tool, a licence's own version or a bound another package
+sets, is a residue declared by a literal fragment with its reason, and a residue that
+no longer stands or covers no numeral is a finding. The window ends at the next
+heading, so the inference benchmark's subsection, the dependency review of a measured
+run, is outside it; a numeral joined to a word by a hyphen, as a licence identifier or a
+tag's prefix, is not read by the census, and the sites read such a tag where it states
+a release.
+
+**Fail-closed at every reading**, on K-97's ground: a record without the section or its
+table, a table with no row, a site matching other than once, and an owner absent,
+unparsable or stating its release other than once are each a finding, reported once per
+owner, so the rule owes the floors group no member. What it does not decide is whether
+the licence at the stated release was read; the row's reviewer did that. **Reported and
+never repaired**, on K-97's ground: moving a row's release would claim a licence reading
+nobody took.
 """
 
 import re
 import tomllib
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
 from vos import corpus as corpus_mod
 from vos import pins as pins_mod
-from vos import rtl_width
+from vos import rtl_width, toolenv
 from vos.checks import generated
 
 # `Context` lives in this package's __init__, which imports this module in turn.
@@ -259,6 +297,244 @@ ANALYZER_PROJECT = "tools/pyproject.toml"
 ANALYZER_SCRIPT = "tools/ci/actionlint.sh"
 _ANALYZER_SCRIPT_RE = re.compile(r"(?m)^actionlint_version=([0-9][0-9A-Za-z.]*)$")
 _REVIEWED_RELEASE_RE = re.compile(r"reviewed \*\*([^*\s]+)\*\* release")
+
+# K-118's readings. The section runs from the development-tools heading to the next
+# heading of any level, and its one table is found by its own header line.
+TOOLS_TABLE = "| Tool | License | Standing |"
+SNAPSHOTS = "tools/opam/"
+_SEPARATOR_RE = re.compile(r"^\|[\s:|-]+\|\s*$")
+
+# One stated release as the section writes it: led by a digit, with dots only between
+# its parts, so the full stop closing a sentence is never read as part of the release.
+_V = r"(\d[\w+~-]*(?:\.[\w+~-]+)*)"
+
+# What the census reads as a stated release: a dotted numeral, optionally led by v or V,
+# that is not the tail of a longer word. A hyphen before one makes it a licence
+# identifier's version (`LGPL-2.1`) or a tag's own prefix (`release-1.14`), which the
+# census leaves to the sites that read such a tag as the release it states.
+_RELEASE_RE = re.compile(r"(?<![\w.+-])[vV]?(\d+(?:\.\d+)+)(?!\w|\.\d)")
+
+# A list of tags a licence file was read at, and one tag in it.
+_TAGS_READ = r"byte-identical at the ((?:`[^`]*`(?:,? and |, ))*`[^`]*`) tags"
+_TAG = r"`V?(\d[^`]*)`"
+
+
+@dataclass(frozen=True)
+class Owner:
+    """An artifact here that fixes a release, and which entry of it does.
+
+    `uv` is a package of a uv lock, `uv-required` the uv release a project requires,
+    `opam` a package of one exported snapshot, `opam-every` a package every snapshot
+    under a directory installs and `opam-any` one some of them do, `assign` a quoted
+    top-level assignment and `shell` an unquoted shell variable.
+    """
+
+    kind: str
+    path: str
+    key: str
+
+    def label(self) -> str:
+        if self.kind == "opam-every":
+            return f"the {self.key} every snapshot under {self.path} installs"
+        if self.kind == "opam-any":
+            return f"the {self.key} the snapshots under {self.path} install"
+        return f"{self.path}'s {self.key}"
+
+
+@dataclass(frozen=True)
+class Site:
+    """One statement of a release: what it is, the pattern reading it, and its owners.
+
+    Every group the pattern captures states releases, one each or, with `each`, as a
+    list read by that pattern; the union of the owners' releases is what they must be.
+    """
+
+    what: str
+    pattern: str
+    owners: tuple[Owner, ...]
+    each: str = ""
+
+
+@dataclass(frozen=True)
+class DevTool:
+    """A row held here, by its tool cell: its sites, and its numerals that are not
+    releases of the tool, each a literal fragment with the reason. `cell_re` names a
+    row whose cell itself states a release, so the row stays one row when it moves."""
+
+    cell: str
+    sites: tuple[Site, ...] = ()
+    residues: tuple[tuple[str, str], ...] = ()
+    cell_re: str = ""
+
+    def names(self, tool: str) -> bool:
+        return bool(re.fullmatch(self.cell_re, tool)) if self.cell_re else tool == self.cell
+
+
+@dataclass(frozen=True)
+class Declared:
+    """A row not held here, and why. `releases` is False for a row stating no release,
+    which the census then holds to stating none; `pending` is an owner whose arrival in
+    the index ends the declaration."""
+
+    why: str
+    releases: bool = True
+    pending: str = ""
+
+
+def _uv(package: str) -> Owner:
+    return Owner("uv", toolenv.LOCK, package)
+
+
+def _snap(lock: str, package: str) -> Owner:
+    return Owner("opam", f"{SNAPSHOTS}{lock}.lock", package)
+
+
+def _locked(display: str, package: str) -> Site:
+    """A Python package's locked release, stated as its name and a backticked tag."""
+    return Site(f"{display}'s locked release",
+                rf"(?<![\w-]){re.escape(display)} `v?{_V}`", (_uv(package),))
+
+
+_ENV = "tools/vos/env.py"
+_GALLINA = "tools/vos/gallina.py"
+_ORACLE_ROCQ = Owner("assign", _GALLINA, "ORACLE_ROCQ_VERSION")
+_ORACLE_OCAML = Owner("assign", _GALLINA, "ORACLE_OCAML_VERSION")
+_FLOOR = Owner("assign", "tools/ty.toml", "python-version")
+_MENHIR = tuple(_snap(lock, package) for lock in ("sail", "quickchick")
+                for package in ("menhir", "menhirLib", "menhirSdk", "menhirCST", "menhirGLR"))
+
+# The rows K-118 holds, each release against the artifact fixing it. A lock's release
+# is the one that installs; the manifests restating the direct pins are K-67's and uv's.
+DEV_TOOL_ROWS: tuple[DevTool, ...] = (
+    DevTool("Node.js", (Site("the reviewed release", rf"pinned release's `v{_V}` tag",
+                             (Owner("shell", "tools/wasm-oracle/node.sh", "node_version"),)),)),
+    DevTool("pre-commit", (Site("the reviewed release", rf"The reviewed `v{_V}` tag's",
+                                (_uv("pre-commit"),)),)),
+    DevTool("opam", (Site("the reviewed release", rf"The reviewed {_V} revision",
+                          (Owner("assign", "tools/vos/opam_client.py", "OPAM_VERSION"),)),)),
+    DevTool("Z3", (Site("the reviewed release and its licence tag",
+                        rf"The reviewed \[{_V} LICENSE\.txt\]"
+                        rf"\(https://github\.com/Z3Prover/z3/blob/z3-{_V}/LICENSE\.txt\)",
+                        (Owner("assign", _ENV, "Z3_VERSION"),)),)),
+    DevTool("QuickChick", (Site("the switch's release", rf"version \*\*{_V}\*\*",
+                                (_snap("quickchick", "coq-quickchick"),)),)),
+    DevTool("Rupicola, Bedrock2, and the Bedrock2 compiler", (
+        Site("Rupicola's release", rf"Rupicola \*\*{_V}\*\*", (_snap("rupicola", "coq-rupicola"),)),
+        Site("Bedrock2's and its compiler's release", rf"Bedrock2 and its compiler \*\*{_V}\*\*",
+             (_snap("rupicola", "coq-bedrock2"), _snap("rupicola", "coq-bedrock2-compiler"))))),
+    DevTool("coqutil", (Site("the switch's release", rf"version \*\*{_V}\*\*",
+                             (_snap("rupicola", "coq-coqutil"),)),)),
+    DevTool("riscv-coq", (Site("the switch's release", rf"version \*\*{_V}\*\*",
+                               (_snap("rupicola", "coq-riscv"),)),)),
+    DevTool("uv", (Site("the reviewed release", rf"The reviewed `{_V}` tag's",
+                        (Owner("uv-required", toolenv.PROJECT, "tool.uv.required-version"),)),)),
+    DevTool("ruff", (Site("the reviewed release", rf"The reviewed `{_V}` tag's", (_uv("ruff"),)),)),
+    DevTool("ty", (Site("the reviewed release", rf"The reviewed `{_V}` tag of", (_uv("ty"),)),)),
+    DevTool("CPython", (
+        Site("the interpreter series", r"^\| CPython (\d+\.\d+) \|", (_FLOOR,)),
+        Site("the admitted series", r"`requires-python` admits (\d+\.\d+) alone", (_FLOOR,)),
+        Site("the reviewed tag's series", r"The reviewed `v(\d+\.\d+)\.\d+` tag's", (_FLOOR,))),
+        cell_re=r"CPython \d+\.\d+"),
+    DevTool("jsonschema, with `attrs`, `referencing`, `rpds-py` and `jsonschema-specifications`",
+            tuple(_locked(name, name) for name in (
+                "jsonschema", "attrs", "referencing", "jsonschema-specifications", "rpds-py"))),
+    DevTool("pre-commit's dependencies", tuple(_locked(display, package) for display, package in (
+        ("cfgv", "cfgv"), ("identify", "identify"), ("nodeenv", "nodeenv"),
+        ("PyYAML", "pyyaml"), ("virtualenv", "virtualenv"), ("distlib", "distlib"),
+        ("filelock", "filelock"), ("platformdirs", "platformdirs"),
+        ("python-discovery", "python-discovery"), ("packaging", "packaging")))),
+    DevTool("Rocq prover: `rocq-core`, `rocq-runtime` and `rocqchk`", (
+        Site("the proof switch's edition", rf"{_V} in the proof switch",
+             (_snap("rocq", "rocq-core"), _snap("rocq", "rocq-runtime"))),
+        Site("the lowering switch's edition", rf"{_V} in the lowering switch",
+             (_snap("rupicola", "rocq-core"), _snap("rupicola", "rocq-runtime"))),
+        Site("the QuickChick and oracle switches' edition",
+             rf"{_V} in the QuickChick and CertiRocq oracle switches",
+             (_snap("quickchick", "rocq-core"), _snap("quickchick", "rocq-runtime"), _ORACLE_ROCQ)),
+        Site("the tags read", _TAGS_READ, (Owner("opam-any", SNAPSHOTS, "rocq-core"), _ORACLE_ROCQ),
+             each=_TAG)),
+        residues=(("the LGPL version 2.1 text", "the licence's own version"),)),
+    DevTool("OCaml compiler", (
+        Site("the exported snapshots' compiler", rf"{_V} in the exported snapshots",
+             (Owner("opam-every", SNAPSHOTS, "ocaml-base-compiler"),)),
+        Site("the oracle switch's compiler", rf"{_V} in the CertiRocq oracle switch", (_ORACLE_OCAML,)),
+        Site("the tags read", _TAGS_READ,
+             (Owner("opam-every", SNAPSHOTS, "ocaml-base-compiler"), _ORACLE_OCAML), each=_TAG)),
+        residues=(("under LGPL version 2.1", "the licence's own version"),
+                  ("headers name version 2.1", "the licence version the headers name"))),
+    DevTool("dune", (
+        Site("the Sail and proof snapshots' release", rf"{_V} in the Sail and proof snapshots",
+             (_snap("sail", "dune"), _snap("rocq", "dune"))),
+        Site("the tags read", _TAGS_READ, (Owner("opam-any", SNAPSHOTS, "dune"),), each=_TAG))),
+    DevTool("Zarith", (
+        Site("the release in every switch", rf"{_V} in every switch",
+             (Owner("opam-every", SNAPSHOTS, "zarith"),)),
+        Site("the tag read", rf"The `release-{_V}` tag's", (Owner("opam-every", SNAPSHOTS, "zarith"),)))),
+    DevTool("Menhir", (Site("the Sail and QuickChick snapshots' release",
+                            rf"Sail and QuickChick snapshots at {_V},", _MENHIR),)),
+    DevTool("std++", (
+        Site("the proof snapshot's release",
+             rf"\[the proof snapshot\]\(tools/opam/rocq\.lock\) at {_V}\.",
+             (_snap("rocq", "rocq-stdpp"),)),
+        Site("the tag read", rf"at the `stdpp-{_V}` tag", (_snap("rocq", "rocq-stdpp"),)))),
+    DevTool("Sail compiler and its C runtime", (
+        Site("the Sail snapshot's release", rf"{_V} in \[the Sail snapshot\]", (_snap("sail", "sail"),)),)),
+)
+
+# The rows K-118 does not hold, each with why; an action row, `owner/repo`, is K-115's
+# by its shape and needs no entry.
+DEV_TOOL_DECLARED: dict[str, Declared] = {
+    "CHERI-QEMU fork": Declared("its edition is the upstream/qemu gitlink, which K-81 holds",
+                                releases=False),
+    "Verilator": Declared("K-97 holds it against rtl.py's VERILATOR_PIN"),
+    "zizmor": Declared("K-115 holds it against the workflows group that installs it"),
+    "actionlint": Declared("K-115 holds it against the script that installs it"),
+    "GitHub CLI": Declared("the runner image supplies it, so no artifact here fixes its "
+                           "release; the row names the reading a later image is compared with"),
+    "CompCert, in the oracle's switch": Declared(
+        "the oracle switch's snapshot is not exported, so no artifact here fixes the "
+        "release its solver chose", pending=f"{SNAPSHOTS}certirocq.lock"),
+    "`ccache`": Declared("a distribution's build accelerator, stated with no release",
+                         releases=False),
+    "llama.cpp and `llama-bench`": Declared(
+        "the commit and build tag the inference-demand report measured, a record of that "
+        "run rather than a pin"),
+}
+
+# The section's paragraphs, held as one unit: the reviewed editions they state, and
+# the numerals in them that state no release a switch here installs.
+DEV_TOOL_PROSE = DevTool("the section's paragraphs", (
+    Site("Rocq Stdlib's reviewed edition", rf"The reviewed V{_V} edition is",
+         (_snap("rocq", "rocq-stdlib"),)),
+    Site("Sail Rocq support library's reviewed release",
+         rf"The reviewed release is {_V}, the one paired with the locked Sail: the tag "
+         rf"`{_V}`, fetched as \[its release archive\]"
+         rf"\(https://github\.com/rems-project/coq-sail/archive/refs/tags/{_V}\.tar\.gz\)",
+         (_snap("sail", "sail"),)),
+    Site("Sail Rocq support library's licence tag",
+         rf"\[LICENSE\]\(https://github\.com/rems-project/coq-sail/blob/{_V}/LICENSE\)",
+         (_snap("sail", "sail"),)),
+    Site("QuickChick's release", rf"`coq-quickchick\.{_V}` retains",
+         (_snap("quickchick", "coq-quickchick"),)),
+    Site("QuickChick switch's prover", rf"retains Rocq {_V} because",
+         (_snap("quickchick", "rocq-core"),)),
+    Site("riscv-coq's release", rf"`coq-riscv\.{_V}` uses", (_snap("rupicola", "coq-riscv"),)),
+    Site("lowering snapshot's compiler", rf"fixes OCaml {_V}, Rocq",
+         (_snap("rupicola", "ocaml-base-compiler"),)),
+    Site("lowering snapshot's prover", rf"fixes OCaml [^,]+, Rocq {_V}, and",
+         (_snap("rupicola", "rocq-core"),))),
+    residues=(
+        ("state LGPL version 2.1", "Stdlib's licence version"),
+        ("the 0.20.2 release's read on", "the earlier reading the current one is compared with"),
+        ("`rocq-stdpp-bitvector` 1.13.0",
+         "the release coq-sail's metadata requires, which no project switch installs"),
+        ("requires Coq below 9.2", "coq-simple-io's upper bound, a constraint and not a release"),
+        ("`coq-compcert >= 3.17`", "CertiRocq's lower bound, a constraint and not a release"),
+        ("the current resolution installs 3.18",
+         "the release the oracle switch's solver chose, which no exported snapshot fixes yet"),
+        ("The reviewed 3.18 `LICENSE` is byte-identical to 3.17",
+         "that same unowned release's reading and the edition it was compared with"),
+    ))
 
 # Every id this repository writes beside an upstream's name that is not that
 # upstream's pin, with what it actually is. Each one is a reading trap on its face:
@@ -363,6 +639,7 @@ def run(ctx: Context) -> None:
     _pins(ctx)
     _version_pin(ctx)
     _workflow_pins(ctx)
+    _dev_tools(ctx)
     _bindings(ctx)
     rep.line()
 
@@ -617,6 +894,327 @@ def _workflow_pins(ctx: Context) -> None:
                f"the {references} action references in {len(files)} workflows state the "
                f"commits and releases their {len(actions)} reviewed rows record, and the "
                "workflow analyzers' rows state the releases their owners install")
+
+
+class _UnreadError(Exception):
+    """An owner K-118 cannot read; its message is already among the reader's faults."""
+
+
+def _lock_packages(packages: object) -> dict[str, list[str]]:
+    """A uv lock's `[[package]]` array as each name's releases, or a TypeError."""
+    if not isinstance(packages, list):
+        raise TypeError("its package key is not an array of tables")
+    table: dict[str, list[str]] = {}
+    for package in cast("list[object]", packages):
+        entry = cast("dict[str, object]", package) if isinstance(package, dict) else {}
+        name, version = entry.get("name"), entry.get("version")
+        if not isinstance(name, str) or not isinstance(version, str):
+            raise TypeError("a package entry states no name and version")
+        table.setdefault(name, []).append(version)
+    return table
+
+
+class _Owners:
+    """Each owner's releases, every file read once and every fault reported once.
+
+    A fault is keyed by what failed, a file or one entry of it, so an unreadable lock
+    is one finding however many rows it owns rather than one per row.
+    """
+
+    def __init__(self, ctx: Context) -> None:
+        self.ctx = ctx
+        self.faults: dict[str, str] = {}
+        self._texts: dict[str, str | None] = {}
+        self._uv: dict[str, dict[str, list[str]]] = {}
+        self._opam: dict[str, dict[str, list[str]]] = {}
+
+    def _fault(self, key: str, message: str) -> _UnreadError:
+        self.faults.setdefault(key, message)
+        return _UnreadError(message)
+
+    def _text(self, path: str) -> str:
+        if path not in self._texts:
+            text: str | None = None
+            if path in self.ctx.corpus.indexed:
+                try:
+                    text = (self.ctx.root / path).read_text(encoding="utf-8")
+                except (OSError, UnicodeDecodeError):
+                    text = None
+            self._texts[path] = text
+        text = self._texts[path]
+        if text is None:
+            raise self._fault(path, f"{path} is not in the repository or does not read as "
+                              "text, so the releases it fixes are unread")
+        return text
+
+    def _uv_lock(self, path: str) -> dict[str, list[str]]:
+        if path not in self._uv:
+            text = self._text(path)
+            try:
+                self._uv[path] = _lock_packages(tomllib.loads(text)["package"])
+            except (ValueError, TypeError, KeyError) as err:
+                raise self._fault(path, f"{path} cannot supply its resolved releases: "
+                                  f"{err}") from None
+        return self._uv[path]
+
+    def _snapshot(self, path: str) -> dict[str, list[str]]:
+        if path not in self._opam:
+            block = re.search(r"^installed:\s*\[(.*?)\]", self._text(path),
+                              re.MULTILINE | re.DOTALL)
+            if block is None:
+                raise self._fault(path, f"{path} carries no installed closure, so the "
+                                  "releases it fixes are unread")
+            table: dict[str, list[str]] = {}
+            for entry in re.findall(r'"([^"\r\n]*)"', block.group(1)):
+                name, dot, version = entry.partition(".")
+                if not (name and dot and version):
+                    raise self._fault(path, f"{path} installs {entry!r}, which is not "
+                                      "name.version")
+                table.setdefault(name, []).append(version)
+            self._opam[path] = table
+        return self._opam[path]
+
+    def _snapshots(self) -> list[str]:
+        found = sorted(rel for rel in self.ctx.corpus.indexed
+                       if rel.startswith(SNAPSHOTS) and rel.endswith(".lock"))
+        if not found:
+            raise self._fault(SNAPSHOTS, f"the index carries no exported snapshot under "
+                              f"{SNAPSHOTS}, so no switch's release can be read")
+        return found
+
+    def _one(self, owner: Owner, versions: list[str]) -> frozenset[str]:
+        if len(versions) != 1:
+            raise self._fault(owner.label(), f"{owner.label()} is stated {len(versions)} "
+                              "times, so it fixes no one release")
+        return frozenset(versions)
+
+    def releases(self, owner: Owner) -> frozenset[str]:
+        """What the owner fixes, or `_UnreadError` once its fault is recorded."""
+        if owner.kind == "uv":
+            return self._one(owner, self._uv_lock(owner.path).get(owner.key, []))
+        if owner.kind == "opam":
+            return self._one(owner, self._snapshot(owner.path).get(owner.key, []))
+        if owner.kind in ("opam-every", "opam-any"):
+            found: set[str] = set()
+            for path in self._snapshots():
+                versions = self._snapshot(path).get(owner.key, [])
+                if versions or owner.kind == "opam-every":
+                    found |= self._one(Owner("opam", path, owner.key), versions)
+            if not found:
+                raise self._fault(owner.label(), f"no snapshot under {owner.path} installs "
+                                  f"{owner.key}")
+            return frozenset(found)
+        if owner.kind == "uv-required":
+            try:
+                required: object = tomllib.loads(self._text(owner.path))["tool"]["uv"][
+                    "required-version"]
+            except (ValueError, TypeError, KeyError) as err:
+                raise self._fault(owner.label(), f"{owner.label()} cannot be read: "
+                                  f"{err}") from None
+            spelled = required if isinstance(required, str) else ""
+            exact = re.fullmatch(r"==\s*([^,\s]+)", spelled)
+            if exact is None:
+                raise self._fault(owner.label(), f"{owner.label()} is {required!r}, which "
+                                  "requires no one exact release")
+            return frozenset({str(exact.group(1))})
+        if owner.kind in ("assign", "shell"):
+            key = re.escape(owner.key)
+            spelled = (rf'(?m)^{key} = "([^"\r\n]*)"' if owner.kind == "assign"
+                       else rf"(?m)^{key}=([^\s'\"#;]+)[ \t]*$")
+            return self._one(owner, re.findall(spelled, self._text(owner.path)))
+        raise self._fault(owner.label(), f"{owner.label()} is of the unknown kind "
+                          f"{owner.kind!r}")
+
+
+def _dev_section(text: str, findings: list[str]) -> tuple[int, list[str]] | None:
+    """The development-tools section's lines, and the line number of the first."""
+    found = re.search(rf"(?m)^{re.escape(TOOLS_HEADING)}[^\S\r\n]*$", text)
+    if found is None:
+        findings.append(f"{pins_mod.RECORD} carries no `{TOOLS_HEADING}` heading, so no "
+                        "development-tool release can be read")
+        return None
+    lines: list[str] = []
+    for raw in text[found.start():].split("\n")[1:]:
+        line = raw.removesuffix("\r")
+        if line.startswith("#"):
+            break
+        lines.append(line)
+    return text.count("\n", 0, found.start()) + 2, lines
+
+
+def _dev_table(lines: list[str], first: int,
+               findings: list[str]) -> tuple[list[tuple[int, str, str]], set[int]] | None:
+    """The table's rows as (index, tool cell, line), and every index the table spans."""
+    record = pins_mod.RECORD
+    headers = [i for i, line in enumerate(lines) if line.rstrip() == TOOLS_TABLE]
+    if len(headers) != 1:
+        findings.append(f"{record}'s development-tools section carries {len(headers)} "
+                        f"`{TOOLS_TABLE}` headers; exactly one table is read")
+        return None
+    head = headers[0]
+    if head + 1 >= len(lines) or not _SEPARATOR_RE.match(lines[head + 1]):
+        findings.append(f"{record}:{first + head} is the development-tools table's header "
+                        "with no rule under it, so no row can be read")
+        return None
+    rows: list[tuple[int, str, str]] = []
+    index = head + 2
+    while index < len(lines) and lines[index].startswith("|"):
+        cells = lines[index].split("|")
+        rows.append((index, cells[1].strip() if len(cells) > 2 else "", lines[index]))
+        index += 1
+    if not rows:
+        findings.append(f"{record}'s development-tools table has no row, so its releases "
+                        "would be held against nothing")
+    return rows, set(range(head, index))
+
+
+def _at(where: str) -> Callable[[int], str]:
+    """A row's locator: every offset in one row stands on that row's line."""
+    return lambda _offset: where
+
+
+def _hold(where: Callable[[int], str], name: str, text: str, tool: DevTool,
+          owners: _Owners, findings: list[str]) -> tuple[int, int]:
+    """K-118 over one unit, a row named by its tool or, unnamed, the section's
+    paragraphs: how many sites it compared with their owners, and how many release
+    numerals its census read."""
+    subject = f"{name}'s row" if name else tool.cell
+    row = f" ({name})" if name else ""
+    spans: list[tuple[int, int]] = []
+    compared = 0
+    complete = True
+    for site in tool.sites:
+        hits = list(re.finditer(site.pattern, text))
+        if len(hits) != 1:
+            findings.append(f"{where(0)}{row} states {site.what} {len(hits)} times in the "
+                            "form K-118 reads; exactly one statement is held")
+            complete = False
+            continue
+        hit = hits[0]
+        stated: set[str] = set()
+        for group in range(1, hit.re.groups + 1):
+            spans.append(hit.span(group))
+            value = hit.group(group) or ""
+            stated.update(re.findall(site.each, value) if site.each else [value])
+        fixed: set[str] = set()
+        try:
+            for owner in site.owners:
+                fixed |= owners.releases(owner)
+        except _UnreadError:
+            continue
+        compared += 1
+        if stated != fixed:
+            fixers = " with ".join(owner.label() for owner in site.owners)
+            verb = "fixes" if len(site.owners) == 1 else "fix"
+            findings.append(
+                f"{where(hit.start())}{row} states {site.what} as "
+                f"{', '.join(sorted(stated))}, where {fixers} {verb} "
+                f"{', '.join(sorted(fixed))}; the terms were read at the release stated, so "
+                "the edit is a licence read and never a token repair")
+    for fragment, why in tool.residues:
+        start, count = text.find(fragment), text.count(fragment)
+        declared = f"the residue `{fragment}` ({why}) declared for {subject}"
+        if count != 1:
+            findings.append(f"{declared} stands in it {count} times; a residue names one "
+                            "place, and one suppressing nothing is a carve-out nobody audits")
+            continue
+        end = start + len(fragment)
+        if not any(start <= m.start(1) and m.end(1) <= end
+                   for m in _RELEASE_RE.finditer(text)):
+            findings.append(f"{declared} covers no release numeral, so it suppresses nothing")
+            continue
+        spans.append((start, end))
+    if not complete:
+        return compared, 0
+    numerals = list(_RELEASE_RE.finditer(text))
+    findings += [f"{where(m.start())} states {m.group()} in {subject}, which no K-118 site "
+                 "reads and no residue declares; hold it against the artifact fixing it, or "
+                 "declare why it states no release that one fixes"
+                 for m in numerals
+                 if not any(s < m.end(1) and m.start(1) < e for s, e in spans)]
+    return compared, len(numerals)
+
+
+def _dev_tools(ctx: Context) -> None:
+    """K-118: every release the development-tools section states is its owner's.
+
+    Fail-closed at every reading, on K-97's ground; see the module's account of K-118
+    for the declarations and the census.
+    """
+    rep = ctx.rep
+    record = pins_mod.RECORD
+    findings: list[str] = []
+    owners = _Owners(ctx)
+    compared = declared = numerals = 0
+    text = ctx.text(record)
+    if not text:
+        findings.append(f"{record} is not in the repository, so no development-tool "
+                        "release can be read")
+    section = _dev_section(text, findings) if text else None
+    table = _dev_table(section[1], section[0], findings) if section else None
+    if section is not None and table is not None:
+        first, lines = section
+        rows, spanned = table
+        claimed: set[str] = set()
+        seen: set[str] = set()
+        for index, tool, line in rows:
+            where = f"{record}:{first + index}"
+            if tool in seen:
+                findings.append(f"{where} is a second row for {tool}, and a release stated "
+                                "twice is one the page can disagree with itself about")
+                continue
+            seen.add(tool)
+            held = [row for row in DEV_TOOL_ROWS if row.names(tool)]
+            action = _ACTION_ROW_RE.match(line) is not None
+            kinds = len(held) + int(tool in DEV_TOOL_DECLARED) + int(action)
+            if not kinds:
+                findings.append(f"{where} is a development-tools row for {tool}, which K-118 "
+                                "neither holds against an owner nor declares; hold each "
+                                "release it states against the artifact fixing it, or "
+                                "declare why none does")
+                continue
+            if kinds > 1:
+                findings.append(f"{where} is a development-tools row for {tool}, which K-118 "
+                                f"reads {kinds} ways; a row is held or declared, once")
+                continue
+            if held:
+                claimed.add(held[0].cell)
+                sites, read = _hold(_at(where), tool, line, held[0], owners, findings)
+                compared, numerals = compared + sites, numerals + read
+                continue
+            declared += 1
+            if action:
+                continue
+            claimed.add(tool)
+            why = DEV_TOOL_DECLARED[tool]
+            stated = [m.group() for m in _RELEASE_RE.finditer(line)]
+            if not why.releases and stated:
+                findings.append(f"{where} is declared as stating no release of {tool} "
+                                f"({why.why}), and it states {', '.join(stated)}")
+            if why.pending and why.pending in ctx.corpus.indexed:
+                findings.append(f"{where} is declared unowned ({why.why}) until "
+                                f"{why.pending} is carried, and the index now carries it; "
+                                "hold the row against it")
+        findings += [f"K-118 declares a development-tools row for {cell}, and the table "
+                     "has none; a declaration that holds nothing is a carve-out nobody audits"
+                     for cell in [row.cell for row in DEV_TOOL_ROWS] + list(DEV_TOOL_DECLARED)
+                     if cell not in claimed]
+        # The paragraphs keep their lines, the table's blanked, so an offset names a line.
+        prose = "\n".join("" if index in spanned else line for index, line in enumerate(lines))
+
+        def in_prose(offset: int) -> str:
+            return f"{record}:{first + prose.count('\n', 0, offset)}"
+
+        sites, read = _hold(in_prose, "", prose, DEV_TOOL_PROSE, owners, findings)
+        compared, numerals = compared + sites, numerals + read
+    findings += list(owners.faults.values())
+
+    rep.report("K-118", "development-tool release(s) the record states and the owner does "
+               "not fix:", findings,
+               f"the {compared} release statements in {record}'s development-tools section "
+               f"are the releases their owners fix, each of the {numerals} release numerals "
+               f"its held rows and paragraphs state is read or declared, and the table's "
+               f"{declared} other rows are declared")
 
 
 def _sources(ctx: Context) -> list[tuple[str, str, list[bool]]]:

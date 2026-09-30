@@ -665,6 +665,204 @@ def _k115_census_counts_the_read_key_once() -> None:
     found = _k115({".github/workflows/a.yml": flow})
     ensure(len(found) == 1 and "a.yml:6 runs example/action at ffffffffffff" in found[0],
            f"a read key is held against its row and not also counted unread: {found!r}")
+# K-118's fixture: a section with a paragraph, a table of five rows, and a later
+# subsection whose numerals lie outside the window. Each held release has an owner of
+# its own kind: a uv lock package, one snapshot's package, the snapshots every lock
+# carries, and a quoted constant.
+_K118_RECORD = (
+    "# Components\n\n### Development tools, contained by use\n\n"
+    "**Lib.** The reviewed V2.0.0 edition is the snapshots' own.\n\n"
+    "| Tool | License | Standing |\n| --- | --- | --- |\n"
+    "| alpha | `MIT` | The reviewed `v1.2.3` tag's terms, under licence version 2.1. |\n"
+    "| beta | `LGPL-2.1-only` | Snapshot release **4.5.6**; constant 7.8.9. |\n"
+    "| gamma | `MIT` | A distribution tool. |\n"
+    "| delta | `MIT` | Measured at 3.3.3. |\n"
+    "| owner/action | `MIT` | K-115's row. |\n\n"
+    "#### A measured run\n\nBuilt at 9.9.9.\n")
+_K118_OWNERS = {
+    "tools/uv.lock": '[[package]]\nname = "alpha"\nversion = "1.2.3"\n',
+    "tools/opam/x.lock": 'opam-version: "2.0"\ninstalled: ["beta.4.5.6" "lib.2.0.0"]\n',
+    "tools/opam/y.lock": 'opam-version: "2.0"\ninstalled: [\n  "lib.2.0.0"\n]\n',
+    "tools/vos/x.py": 'BETA = "7.8.9"\n'}
+_K118_ROWS = (
+    pins.DevTool("alpha", (pins.Site("the reviewed release", rf"The reviewed `v{pins._V}` tag's",
+                                     (pins.Owner("uv", "tools/uv.lock", "alpha"),)),),
+                 residues=(("licence version 2.1", "the licence's own version"),)),
+    pins.DevTool("beta", (
+        pins.Site("the snapshot release", rf"\*\*{pins._V}\*\*",
+                  (pins.Owner("opam", "tools/opam/x.lock", "beta"),)),
+        pins.Site("the constant", rf"constant {pins._V}\.",
+                  (pins.Owner("assign", "tools/vos/x.py", "BETA"),)))))
+_K118_DECLARED = {"gamma": pins.Declared("states no release", releases=False),
+                  "delta": pins.Declared("a measured run")}
+_K118_PROSE = pins.DevTool("the paragraphs", (
+    pins.Site("Lib's edition", rf"The reviewed V{pins._V} edition",
+              (pins.Owner("opam-every", "tools/opam/", "lib"),)),))
+
+
+def _k118(files: dict[str, str | None], rows: tuple[pins.DevTool, ...] = _K118_ROWS,
+          declared: dict[str, pins.Declared] | None = None,
+          prose: pins.DevTool = _K118_PROSE) -> tuple[list[str], list[str]]:
+    base: dict[str, str | None] = {"docs/requirements-register.md": _REGISTER_MIN,
+                                   "THIRD-PARTY.md": _K118_RECORD, **_K118_OWNERS}
+    merged = {path: text for path, text in {**base, **files}.items() if text is not None}
+    with sandbox_tree(merged) as root:
+        ctx = _context(root, fix=True)
+        with (patch.object(pins, "DEV_TOOL_ROWS", rows),
+              patch.object(pins, "DEV_TOOL_DECLARED",
+                           _K118_DECLARED if declared is None else declared),
+              patch.object(pins, "DEV_TOOL_PROSE", prose)):
+            pins._dev_tools(ctx)
+        ensure(not ctx.fixed, "a release edit cannot manufacture a licence review")
+        return _findings_under(ctx, "K-118"), ctx.rep.out
+
+
+def _k118_agreement_passes() -> None:
+    found, out = _k118({})
+    ensure(not found, f"rows and paragraphs at their owners' releases agree: {found!r}")
+    # four sites compared; alpha's two numerals, beta's two past its licence identifier
+    # and the paragraph's one read; gamma, delta and the action row declared
+    ensure(any(line.startswith("ok K-118: the 4 release statements") and "the 5 release "
+               "numerals" in line and "3 other rows" in line for line in out),
+           f"the ok line counts what was compared, read and declared: {out!r}")
+
+
+def _k118_drift_each_way_is_a_finding() -> None:
+    cases: tuple[tuple[dict[str, str | None], str], ...] = (
+        # a row moved without its owner, in each owner kind
+        ({"THIRD-PARTY.md": _K118_RECORD.replace("`v1.2.3`", "`v1.2.4`")},
+         "THIRD-PARTY.md:9 (alpha) states the reviewed release as 1.2.4, where tools/uv.lock's "
+         "alpha fixes 1.2.3"),
+        ({"THIRD-PARTY.md": _K118_RECORD.replace("**4.5.6**", "**4.5.7**")},
+         "(beta) states the snapshot release as 4.5.7, where tools/opam/x.lock's beta fixes 4.5.6"),
+        ({"THIRD-PARTY.md": _K118_RECORD.replace("V2.0.0", "V2.0.1")},
+         "THIRD-PARTY.md:5 states Lib's edition as 2.0.1, where the lib every snapshot "
+         "under tools/opam/ installs fixes 2.0.0"),
+        # an owner moved without its row, in each owner kind
+        ({"tools/uv.lock": _K118_OWNERS["tools/uv.lock"].replace("1.2.3", "1.2.5")},
+         "as 1.2.3, where tools/uv.lock's alpha fixes 1.2.5"),
+        ({"tools/vos/x.py": 'BETA = "7.8.10"\n'}, "tools/vos/x.py's BETA fixes 7.8.10"),
+        ({"tools/opam/y.lock": _K118_OWNERS["tools/opam/y.lock"].replace("2.0.0", "2.0.2")},
+         "installs fixes 2.0.0, 2.0.2"))
+    for files, fragment in cases:
+        found, _ = _k118(files)
+        ensure(len(found) == 1 and fragment in found[0],
+               f"one drift is one finding naming both releases ({fragment!r}): {found!r}")
+
+
+def _k118_unreadable_owners_fail_closed() -> None:
+    cases: tuple[tuple[dict[str, str | None], str], ...] = (
+        ({"tools/uv.lock": None}, "tools/uv.lock is not in the repository"),
+        ({"tools/uv.lock": "[broken\n"}, "cannot supply its resolved releases"),
+        ({"tools/uv.lock": 'package = "not a table array"\n'}, "not an array of tables"),
+        ({"tools/uv.lock": _K118_OWNERS["tools/uv.lock"] * 2}, "alpha is stated 2 times"),
+        ({"tools/opam/x.lock": 'opam-version: "2.0"\n'}, "carries no installed closure"),
+        ({"tools/opam/y.lock": 'installed: ["other.1.0"]\n'}, "y.lock's lib is stated 0 times"),
+        ({"tools/vos/x.py": "BETA = 7\n"}, "tools/vos/x.py's BETA is stated 0 times"))
+    for files, fragment in cases:
+        found, out = _k118(files)
+        ensure(any(fragment in item for item in found),
+               f"an unreadable owner must report ({fragment!r}): {found!r}")
+        ensure(not any(line.startswith("ok K-118:") for line in out),
+               "fail-closed: no ok line stands beside an unread owner")
+    # one fault per owner however many sites it owns
+    two = (*_K118_ROWS, pins.DevTool("epsilon", (pins.Site(
+        "reviewed release", rf"at {pins._V}\.", (pins.Owner("uv", "tools/uv.lock", "alpha"),)),)))
+    record = _K118_RECORD.replace("| gamma |", "| epsilon | `MIT` | Read at 1.2.3. |\n| gamma |")
+    found, _ = _k118({"tools/uv.lock": None, "THIRD-PARTY.md": record}, rows=two)
+    ensure(sum("tools/uv.lock is not in the repository" in item for item in found) == 1,
+           f"an unreadable lock is one finding, not one per row: {found!r}")
+
+
+def _k118_unreadable_record_fails_closed() -> None:
+    cases: tuple[tuple[dict[str, str | None], str], ...] = (
+        ({"THIRD-PARTY.md": None}, "is not in the repository"),
+        ({"THIRD-PARTY.md": "# Components\n"}, "carries no `### Development tools"),
+        ({"THIRD-PARTY.md": _K118_RECORD.replace("| Tool | License | Standing |\n", "")},
+         "carries 0 `| Tool | License | Standing |` headers"),
+        ({"THIRD-PARTY.md": _K118_RECORD.replace("**4.5.6**", "4.5.6")},
+         "(beta) states the snapshot release 0 times"),
+        ({"THIRD-PARTY.md": _K118_RECORD.replace("| gamma |", "| alpha |")},
+         "is a second row for alpha"))
+    for files, fragment in cases:
+        found, _ = _k118(files)
+        ensure(any(fragment in item for item in found),
+               f"an unreadable record must report ({fragment!r}): {found!r}")
+
+
+def _k118_every_row_is_held_or_declared() -> None:
+    # a row neither held nor declared, as a newly locked package's row would arrive
+    found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace(
+        "| gamma |", "| zeta | `MIT` | Locked at **5.5.5**. |\n| gamma |")})
+    ensure(any("row for zeta, which K-118 neither holds" in item for item in found),
+           f"an unmapped row must report: {found!r}")
+    # a declaration naming no row, each kind
+    found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace("| delta | `MIT` | Measured at "
+                                                             "3.3.3. |\n", "")})
+    ensure(any("declares a development-tools row for delta, and the table has none" in item
+               for item in found), f"a declaration holding nothing must report: {found!r}")
+    found, _ = _k118({}, rows=(*_K118_ROWS, pins.DevTool("omega")))
+    ensure(any("row for omega, and the table has none" in item for item in found),
+           f"a held row the table lacks must report: {found!r}")
+    # a row both held and declared
+    found, _ = _k118({}, declared={**_K118_DECLARED, "alpha": pins.Declared("twice")})
+    ensure(any("row for alpha, which K-118 reads 2 ways" in item for item in found),
+           f"a row read two ways must report: {found!r}")
+
+
+def _k118_census_reads_every_numeral() -> None:
+    # a release written into a held row that no site reads
+    found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace("constant 7.8.9.",
+                                                             "constant 7.8.9. Bundled 6.6.")})
+    ensure(len(found) == 1
+           and "THIRD-PARTY.md:10 states 6.6 in beta's row, which no K-118 site reads" in found[0],
+           f"an unread numeral in a held row must report: {found!r}")
+    # and one written into a paragraph
+    found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace(
+        "the snapshots' own.", "the snapshots' own, and v8.1 before it.")})
+    ensure(len(found) == 1 and "THIRD-PARTY.md:5 states v8.1 in the paragraphs" in found[0],
+           f"an unread numeral in a paragraph must report on its line: {found!r}")
+    # a residue that no longer stands, or covers no numeral, suppresses nothing
+    found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace("licence version 2.1",
+                                                             "the licence")})
+    ensure(any("residue `licence version 2.1`" in item and "stands in it 0 times" in item
+               for item in found), f"a residue whose fragment left must report: {found!r}")
+    covered = (pins.DevTool("alpha", _K118_ROWS[0].sites,
+                            residues=(("The reviewed", "covers nothing"),
+                                      ("licence version 2.1", "the licence's own version"))),
+               _K118_ROWS[1])
+    found, _ = _k118({}, rows=covered)
+    ensure(any("residue `The reviewed` (covers nothing) declared for alpha's row covers no "
+               "release numeral" in item for item in found),
+           f"a residue covering no numeral must report: {found!r}")
+
+
+def _k118_declarations_are_held() -> None:
+    # a row declared to state no release that has come to state one
+    found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace("A distribution tool.",
+                                                             "A distribution tool, 1.0.")})
+    ensure(any("declared as stating no release of gamma" in item and "1.0" in item
+               for item in found), f"a no-release row stating one must report: {found!r}")
+    # an unowned declaration whose owner has arrived
+    pending = {**_K118_DECLARED,
+               "delta": pins.Declared("no snapshot yet", pending="tools/opam/z.lock")}
+    ensure(not _k118({}, declared=pending)[0], "an owner still absent keeps the declaration")
+    found, _ = _k118({"tools/opam/z.lock": 'installed: ["delta.3.3.3"]\n'}, declared=pending)
+    ensure(any("until tools/opam/z.lock is carried, and the index now carries it" in item
+               for item in found), f"an arrived owner must end the declaration: {found!r}")
+
+
+def _k118_shipped_readings_are_declared() -> None:
+    # The shipped tables name real owners of every kind the reader carries, and every
+    # declared residue and row is one the record states; `check` decides the agreement.
+    kinds = {owner.kind for tool in (*pins.DEV_TOOL_ROWS, pins.DEV_TOOL_PROSE)
+             for site in tool.sites for owner in site.owners}
+    ensure(kinds == {"uv", "uv-required", "opam", "opam-every", "opam-any", "assign", "shell"},
+           f"every owner kind the reader carries is exercised by a shipped site: {kinds!r}")
+    ensure(all(tool.sites for tool in pins.DEV_TOOL_ROWS),
+           "a held row with no site would hold nothing")
+    ensure(all(why.why.strip() for why in pins.DEV_TOOL_DECLARED.values()),
+           "every declaration states its reason")
 
 
 def _k116(files: dict[str, str], gitlinks: dict[str, str]) -> list[str]:
@@ -1049,6 +1247,14 @@ def cases() -> list[Case]:
         Case("k115-unreadable-readings-fail-closed", _k115_unreadable_readings_fail_closed),
         Case("k115-every-uses-key-is-read-or-reported", _k115_every_uses_key_is_read_or_reported),
         Case("k115-census-counts-the-read-key-once", _k115_census_counts_the_read_key_once),
+        Case("k118-agreement-passes", _k118_agreement_passes),
+        Case("k118-drift-each-way-is-a-finding", _k118_drift_each_way_is_a_finding),
+        Case("k118-unreadable-owners-fail-closed", _k118_unreadable_owners_fail_closed),
+        Case("k118-unreadable-record-fails-closed", _k118_unreadable_record_fails_closed),
+        Case("k118-every-row-is-held-or-declared", _k118_every_row_is_held_or_declared),
+        Case("k118-census-reads-every-numeral", _k118_census_reads_every_numeral),
+        Case("k118-declarations-are-held", _k118_declarations_are_held),
+        Case("k118-shipped-readings-are-declared", _k118_shipped_readings_are_declared),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),
         Case("k81-unused-historical-residue-fails", _k81_unused_historical_residue_fails),
         Case("k81-historical-residue-cannot-exempt-table",

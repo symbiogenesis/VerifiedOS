@@ -1653,6 +1653,22 @@ CASES: list[Case] = [
      _first_match("tools/rtl-width-transforms.json", r'^(  "pin": ")([0-9a-f])',
                   lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
 
+    # A development-tool row moved to a release its lock does not fix, the drift that
+    # once left filelock's row a release behind: the release is extended rather than
+    # spelled, so the case survives every reviewed bump.
+    ("K-118", "a development-tool row stating a release its lock does not fix",
+     _first_match(THIRD_PARTY, r"filelock `(\d[^`]*)`", lambda m: f"filelock `{m[1]}.1`")),
+    # The other direction, which no reader of the record can see: the lock moves and
+    # the row it owns stays, a bump without a licence read.
+    ("K-118", "a locked Python release its development-tool row does not state",
+     _first_match("tools/uv.lock", r'name = "filelock"\r?\nversion = "([^"]+)"',
+                  lambda m: m.group().replace(f'"{m[1]}"', f'"{m[1]}.1"'))),
+    # The same direction through an opam snapshot, a different owner reader: one
+    # switch's Zarith moves while the row says every switch carries one release.
+    ("K-118", "an opam snapshot release its development-tool row does not state",
+     _first_match("tools/opam/sail.lock", r'"zarith\.([^"]+)"',
+                  lambda m: f'"zarith.{m[1]}.1"')),
+
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row
     # still renders, the table is still the width its header declares, no id and no
