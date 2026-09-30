@@ -15,14 +15,14 @@ a later run believes, the tree is shared with whatever else is running, and a mu
 is by definition a file this repository must not carry. A run stages the proofs and
 the harness into the lane's own directory and compiles there.
 
-**Separate proof and oracle environments.** The proof gate uses Rocq 9.3, while
-CertiRocq and QuickChick depend on packages that still require Rocq 9.1. The shipped
-proofs use the prelude alone and name no library: an assumption reachable through an
-import is an assumption inside R-05-163's gate. A vector harness has to render a number
-as text, so it wants `Stdlib.Strings` from the CertiRocq oracle's switch. That is the
-right switch on its own terms as well, being the one the
-Wasm oracle runs in and so the one the Gallina front is exercised in. It is **read**
-here and never written.
+**A harness compiles in the switch its libraries decide.** The vector harnesses load
+Stdlib and nothing else, and the proof gate's switch carries Stdlib, so
+`quickchick vectors`, `quickchick freeze`, `kernel vectors` and `seed coq`'s enumerative
+mode compile in that switch, at the gate's release and under their own flags: a proof
+source that compiles under the gate compiles under them. The randomized harness loads
+QuickChick and the Wasm oracle loads CertiRocq, and no release of either admits a Rocq
+newer than 9.1, so each keeps a switch of its own at Rocq 9.1.1. Every switch is
+**read** here and never written.
 """
 
 import os
@@ -34,8 +34,15 @@ from pathlib import Path
 
 from vos import env, proofs
 
-# The switch the Gallina front is compiled in: the CertiRocq oracle's own, which
-# carries the standard library the shipped proofs deliberately do not need.
+# The switch the Stdlib-only harnesses compile in: the proof gate's own, at its release.
+# Named here rather than spelled `env.ROCQ_SWITCH` at each instrument, so that the
+# switch every vector instrument compiles in is one constant rather than a choice each
+# instrument restates.
+VECTOR_SWITCH = env.ROCQ_SWITCH
+VECTOR_ROCQ_VERSION = env.ROCQ_VERSION
+
+# The CertiRocq oracle's switch, where the Wasm oracle compiles: CertiRocq and its Wasm
+# library cap Rocq below 9.2.
 ORACLE_ROCQ_VERSION = "9.1.1"
 CERTIROCQ_VERSION = "0.9.1+9.1"
 # CertiRocq's bootstrap C wrapper collides with the inline Hd_val introduced in
@@ -46,7 +53,9 @@ ORACLE_SWITCH = f"verifiedos-certirocq-0.9.1-ocaml-{ORACLE_OCAML_VERSION}"
 
 # QuickChick's coq-simple-io dependency caps Coq below 9.2~ independently of CertiRocq.
 # Its dune < 3.22 constraint warrants a separate resolution from the Wasm oracle.
-QUICKCHICK_SWITCH = f"verifiedos-quickchick-{ORACLE_ROCQ_VERSION}-ocaml-{env.OCAML_VERSION}"
+QUICKCHICK_ROCQ_VERSION = ORACLE_ROCQ_VERSION
+QUICKCHICK_SWITCH = (f"verifiedos-quickchick-{QUICKCHICK_ROCQ_VERSION}"
+                     f"-ocaml-{env.OCAML_VERSION}")
 
 # Where the shipped proofs are, and where this repository's own Gallina harnesses are.
 # The second is not under `proofs/` on purpose: the proof gate compiles everything it
@@ -341,10 +350,10 @@ def emit(root: Path, work: Path, out: list[str],
     `Require`, so a proof the staged tree cannot build is reported as what it is
     instead of as a load-path failure several files away inside the harness.
     """
-    found = prover(ORACLE_SWITCH)
+    found = prover(VECTOR_SWITCH)
     if found is None:
-        out.append(f"FAIL no prover in the {ORACLE_SWITCH} switch; "
-                   "tools/wasm-oracle/README.md states how it is created")
+        out.append(f"FAIL no prover in the {VECTOR_SWITCH} switch, the proof gate's; "
+                   "`run.py provision --apply` imports it")
         return None
     stage(root, work)
     failures = compile_proofs(found, work) + compile_support(found, work)

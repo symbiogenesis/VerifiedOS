@@ -19,8 +19,8 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from tests.harness import Case, ensure
-from vos import gallina, proofs
-from vos.cli import quickchick
+from vos import env, gallina, proofs
+from vos.cli import kernel, quickchick, seed
 
 _A = "Definition a : nat := 1.\n"
 _B = "Require Import A.\nDefinition b : nat := a.\n"
@@ -254,6 +254,36 @@ def _the_two_switches_are_named_apart() -> None:
            "the harness would live inside the proof gate's own subject")
 
 
+def _the_stdlib_harnesses_compile_in_the_proof_switch() -> None:
+    """The vector instruments ask for the gate's own switch and the randomized one for
+    QuickChick's, each by the constant that names it. Asked of the prover lookup rather
+    than read off the source, so an instrument that spelled another switch is caught
+    wherever it spells it."""
+    ensure(gallina.VECTOR_SWITCH == env.ROCQ_SWITCH
+           and gallina.VECTOR_ROCQ_VERSION == env.ROCQ_VERSION,
+           "the vector harnesses no longer compile in the proof gate's switch")
+    asked: list[str] = []
+
+    def absent(switch: str) -> None:
+        asked.append(switch)
+
+    with patch.object(gallina, "prover", side_effect=absent):
+        said: list[str] = []
+        ensure(gallina.emit(Path(), Path(), said) is None
+               and kernel.emit(Path(), Path(), said) is None,
+               "an absent prover must stop the run before staging")
+        ensure(all(gallina.VECTOR_SWITCH in line for line in said),
+               f"the refusal must name the switch it looked in: {said}")
+        with (patch.object(seed, "lane_env", return_value=Mock()),
+              redirect_stdout(io.StringIO())):
+            for randomized in (False, True):
+                args = argparse.Namespace(file=seed.COQ_SUBJECT, quickchick=randomized)
+                ensure(seed.cmd_coq(args) == 1, "an absent prover must be refused")
+    want = [gallina.VECTOR_SWITCH, gallina.VECTOR_SWITCH, gallina.VECTOR_SWITCH,
+            gallina.QUICKCHICK_SWITCH]
+    ensure(asked == want, f"the instruments asked for {asked}, not {want}")
+
+
 def _quickchick_rejects_other_versions() -> None:
     with (patch.object(quickchick, "installed", return_value="2.1.0"),
           patch.object(gallina, "prover", return_value=["rocq", "c"]),
@@ -298,5 +328,7 @@ def cases() -> list[Case]:
              _an_unterminated_quote_yields_nothing_more),
         Case("written vectors are one per line", _written_vectors_are_one_per_line),
         Case("the two switches are named apart", _the_two_switches_are_named_apart),
+        Case("the Stdlib harnesses compile in the proof switch",
+             _the_stdlib_harnesses_compile_in_the_proof_switch),
         Case("QuickChick rejects other versions", _quickchick_rejects_other_versions),
     ]

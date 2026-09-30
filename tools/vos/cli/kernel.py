@@ -15,7 +15,7 @@
 [KernelVectors.v](../../quickchick/KernelVectors.v) walks generated domains over those
 statements' definitions and prints each point's inputs beside the definitions' answers.
 
-`vectors` compiles that harness in the CertiRocq oracle's switch against its `Require`
+`vectors` compiles that harness in the proof gate's switch against its `Require`
 closure only, not the whole proof tree. `check` compiles the kernel C in its host model
 with the lane's C compiler and holds every `kx`, `kc`, `kr`, `kq` and `ke` line against
 it, then holds every `kt` line against [vos/kernelrun.py](../kernelrun.py), the reader
@@ -103,10 +103,10 @@ def closure(work: Path, harness: Path) -> list[list[Path]]:
 
 def emit(root: Path, work: Path, out: list[str]) -> list[str] | None:
     """Stage, compile the harness's closure, and read the vectors it prints."""
-    found = gallina.prover(gallina.ORACLE_SWITCH)
+    found = gallina.prover(gallina.VECTOR_SWITCH)
     if found is None:
-        out.append(f"FAIL no prover in the {gallina.ORACLE_SWITCH} switch; "
-                   "tools/wasm-oracle/README.md states how it is created")
+        out.append(f"FAIL no prover in the {gallina.VECTOR_SWITCH} switch, the proof "
+                   "gate's; `run.py provision --apply` imports it")
         return None
     gallina.stage(root, work)
     harness = work / "harness" / HARNESS
@@ -126,7 +126,7 @@ def emit(root: Path, work: Path, out: list[str]) -> list[str] | None:
     if said:
         out.append(f"FAIL {HARNESS} did not run:\n{said}")
         return None
-    out.append(f"   {gallina.version(found)} in the {gallina.ORACLE_SWITCH} switch")
+    out.append(f"   {gallina.version(found)} in the {gallina.VECTOR_SWITCH} switch")
     return lines
 
 

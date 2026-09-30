@@ -445,12 +445,14 @@ FACTS: tuple[Fact, ...] = (
          _pinned_z3,
          env.Z3_INSTALL),
     Fact("the prover switch", TOOLCHAIN,
-         "run.py proofs and run.py seed coq",
+         "run.py proofs, and the Stdlib-only Gallina harnesses of run.py quickchick "
+         "vectors and freeze, run.py kernel vectors, check and mutants, and run.py seed "
+         "coq's enumerative mode",
          "tools/vos/env.py's ROCQ_SWITCH and ROCQ_VERSION",
          partial(_switch_at, env.ROCQ_SWITCH, "rocq-core", env.ROCQ_VERSION),
          env.ROCQ_INSTALL),
     Fact("the CertiRocq oracle switch", TOOLCHAIN,
-         "run.py quickchick vectors, and the M1.5 Wasm oracle",
+         "the M1.5 Wasm oracle",
          "tools/vos/gallina.py's ORACLE_SWITCH, its recipe in tools/wasm-oracle/README.md",
          partial(_switch_at, gallina.ORACLE_SWITCH, "rocq-certirocq",
                  gallina.CERTIROCQ_VERSION)),

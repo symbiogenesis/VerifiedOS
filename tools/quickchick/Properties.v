@@ -13,11 +13,11 @@
    a minimal one rather than handing back the frame it happened to draw.
 
    It needs `coq-quickchick`, which is installed in a switch of its own,
-   `quickchick-9.1.1`, at 2.2.0 against Rocq 9.1.1. `tools/quickchick.py
+   `quickchick-9.1.1`, at 2.2.0 against Rocq 9.1.1. `run.py quickchick
    check` says which switch holds it, and the tool's own header states why
    the switch is separate: adding the library to the CertiCoq oracle's switch
-   downgrades dune and recompiles fifty-nine packages, and the proof gate's
-   switch carries no library at all on purpose.
+   downgrades dune and recompiles fifty-nine packages, and no QuickChick
+   release admits the Rocq release the proof gate's switch carries.
 
    The properties are the computable shadows of theorems the shipped proofs
    prove, and that is the point of stating them here rather than only there. A

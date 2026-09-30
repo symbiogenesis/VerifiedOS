@@ -9,9 +9,8 @@ the same question at different prices.
 
 [quickchick/Vectors.v](quickchick/Vectors.v) is the half that runs today: a domain
 declared in Gallina, walked exhaustively, printing one line of text per point. It
-needs no library this repository has not already got, it is compiled in the oracle's
-own switch, and its output is a text file, which is the form both earlier
-model-as-oracle rigs crossed in.
+loads Stdlib alone, it is compiled in the proof gate's own switch, and its output is a
+text file, which is the form both earlier model-as-oracle rigs crossed in.
 
 [quickchick/Properties.v](quickchick/Properties.v) is the half that needs an install:
 random generators, `forAll` over them, and the thing no enumeration has, **automatic
@@ -144,10 +143,10 @@ def _vectors(args: argparse.Namespace, e: env.Environment, root: Path, work: Pat
         print("\n".join(out))
         return 1
     target = gallina.write(lines, work / gallina.VECTORS)
-    found = gallina.prover(gallina.ORACLE_SWITCH)
+    found = gallina.prover(gallina.VECTOR_SWITCH)
     out.append(f"== {target} (lane {e.lane or 'primary'})")
     out.append(f"   {gallina.version(found) if found else 'unknown prover'} in the "
-               f"{gallina.ORACLE_SWITCH} switch")
+               f"{gallina.VECTOR_SWITCH} switch")
     out.append(f"   {len(lines)} vector(s) over the admission algebra")
     out.extend(f"     {line}" for line in lines[:args.show])
     out.append(f"ok the Gallina front answered {len(lines)} generated inputs")
@@ -255,11 +254,11 @@ def _freeze(args: argparse.Namespace, e: env.Environment, root: Path, work: Path
         return 1
 
     vector_file = gallina.write(theirs, work / gallina.FREEZE_VECTORS)
-    found = gallina.prover(gallina.ORACLE_SWITCH)
+    found = gallina.prover(gallina.VECTOR_SWITCH)
     out.append(f"   {freezemodel.HARNESS:<32} {len(theirs):>4} vector(s)  "
                f"{vector_file}")
     out.append(f"   {gallina.version(found) if found else 'unknown prover'} in the "
-               f"{gallina.ORACLE_SWITCH} switch")
+               f"{gallina.VECTOR_SWITCH} switch")
     out.append("   " + "  ".join(f"{name} {count}" for name, count
                                  in freezemodel.family_counts(theirs).items()))
     out.extend(f"     {line}" for line in ours[:args.show])
