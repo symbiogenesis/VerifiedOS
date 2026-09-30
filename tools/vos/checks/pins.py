@@ -192,14 +192,15 @@ K-116 is the third kind: **a commit a tool consumes rather than a sentence resta
 The width-transform registry binds the imported core's gitlink it was derived through,
 and K-81 does not read that binding, the registry's `"pin"` naming no upstream on its
 line. `rtl_width.stage` compares it with the populated imported core only when a guest
-elaboration runs, which no hosted gate does, so a gitlink moved without re-deriving the
-registry passed every hosted gate. This rule holds the recorded commit, whole, against
-the index's gitlink, which every checkout carries populated or not. The device-register
-package's recorded Mocha revision is the same kind of binding inside a generated
-artifact, so K-88's row for that package holds it, and the row keeps the package out of
-K-81's window. **The sites are enumerated in code and read fail-closed**: an artifact
-missing from the index, a record its owner's own reader refuses, and a gitlink the
-index does not carry are each a finding, so the rule owes the floors group no member.
+elaboration runs, which no hosted gate does, so without this rule a gitlink moved
+without re-deriving the registry passes every hosted gate. This rule holds the recorded
+commit, whole, against the index's gitlink, which every checkout carries populated or
+not. The device-register package's recorded Mocha revision is the same kind of binding
+inside a generated artifact, so K-88's row for that package holds it, and the row keeps
+the package out of K-81's window.
+**The sites are enumerated in code and read fail-closed**: an artifact missing from the
+index, a record its owner's own reader refuses, and a gitlink the index does not carry
+are each a finding, so the rule owes the floors group no member.
 **Reported and never repaired**: the repair re-derives the registry's source identities
 from a checkout at the gitlink and is never a token substitution.
 
