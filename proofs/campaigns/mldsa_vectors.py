@@ -3,9 +3,11 @@
 
 Run inside WSL with --work under the assigned native /root/build/lane-* root.
 No upstream implementation or extracted runtime source is incorporated. The
-notice beside this file governs the downloaded NIST test data. Pure ML-DSA,
-internal bit-message, and external-mu test adapters are supported; HashML-DSA
-prehash groups are deliberately excluded, never sent through the pure adapter.
+notice beside this file governs the downloaded NIST test data, and the run
+retains the upstream README notice beside it. tools/vos/acvp.py pins the
+revision and every fetched file's SHA-256. Pure ML-DSA, internal bit-message,
+and external-mu test adapters are supported; HashML-DSA prehash groups are
+deliberately excluded, never sent through the pure adapter.
 """
 from __future__ import annotations
 
@@ -19,21 +21,15 @@ import signal
 import subprocess
 import sys
 import time
-import urllib.request
 
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
-from vos import env, gallina  # noqa: E402
+from vos import acvp, env, gallina  # noqa: E402
 
-REVISION = "975de31eb83d87039ec88934fdc47d8c312b892d"
-BASE = "https://raw.githubusercontent.com/usnistgov/ACVP-Server/" + REVISION + "/"
-SOURCES = {
-    "keyGen": "e67ee6540d40e11506c3c4e3b1f79fc1cefcd49820db99fc61f87cc8ba463baf",
-    "sigGen": "72dcaf5f69853ca267ccd16af9cb40949786aca0fcfbf05d1ebeba132b93af22",
-    "sigVer": "47cdd6314c7f746d02421ffcba89d4dbc7bb875ac49e07a029fdfc26fba55437",
-}
-README_SHA = "d5a569884ee83bd1c4737042d0a2cc7d68c6950690f75a73ef14f505a9aa3555"
+REVISION = acvp.REVISION
+BASE = acvp.BASE
+OPERATIONS = ("keyGen", "sigGen", "sigVer")
 EXTRACTION = '''From Stdlib Require Import Extraction.
 From Stdlib.extraction Require Import ExtrOcamlBasic ExtrOcamlNatInt ExtrOcamlZBigInt.
 Require Import MlDsa.
@@ -149,15 +145,16 @@ def build(work: Path) -> dict[str, str]:
     return bindings
 
 
+def fetched(relative: str, dest: Path) -> tuple[bytes, dict]:
+    """A pinned file's verified bytes and the identity the receipt records."""
+    data = acvp.fetch(relative, dest)
+    return data, {"url": acvp.url(relative), "sha256": sha(data), "bytes": len(data)}
+
+
 def source(work: Path, op: str) -> tuple[dict, dict]:
-    rel = f"gen-val/json-files/ML-DSA-{op}-FIPS204/internalProjection.json"
-    dest = work / f"ML-DSA-{op}-FIPS204.json"
-    if not dest.exists():
-        dest.write_bytes(urllib.request.urlopen(BASE + rel, timeout=60).read())
-    data = dest.read_bytes()
-    if sha(data) != SOURCES[op]:
-        raise ValueError(f"source identity mismatch: {dest}")
-    return json.loads(data), {"url": BASE + rel, "sha256": sha(data), "bytes": len(data)}
+    family = f"ML-DSA-{op}-FIPS204"
+    data, identity = fetched(acvp.vector_path(family), work / f"{family}.json")
+    return json.loads(data), identity
 
 
 def invoke(work: Path, operation: str, args: list[str]) -> list[str]:
@@ -276,8 +273,10 @@ def main() -> int:
     work.mkdir(parents=True, exist_ok=True)
     started = time.time()
     bindings = build(work)
+    # The complete upstream notice, retained beside the test data it governs.
+    _, notice = fetched(acvp.NOTICE, work / "NIST-README.md")
     documents, identities, items, excluded = {}, {}, [], []
-    for op in SOURCES:
+    for op in OPERATIONS:
         documents[op], identities[op] = source(work, op)
         for group in documents[op]["testGroups"]:
             if group["parameterSet"] != "ML-DSA-87":
@@ -297,8 +296,9 @@ def main() -> int:
     toolchain = {"rocq": checked(env.rocq_command() + ["--version"], work, "rocq-version.log").strip(),
                  "ocaml": checked(["ocamlopt", "-version"], work, "ocaml-version.log").strip(),
                  "zarith": checked(["ocamlfind", "query", "-format", "%v", "zarith"], work, "zarith-version.log").strip()}
-    receipt = {"source_revision": REVISION, "sources": identities, "bindings": bindings,
-               "toolchain": toolchain, "started_unix": started, "finished_unix": time.time(),
+    receipt = {"source_revision": REVISION, "notice": notice, "sources": identities,
+               "bindings": bindings, "toolchain": toolchain,
+               "started_unix": started, "finished_unix": time.time(),
                "comparison": "complete byte equality; sigVer boolean equality; generated signatures additionally verified",
                "boundary": "Rocq standard extraction, OCaml native compiler/runtime and Zarith Big_int_Z; local Keccak is executed without substitution; extracted nat uses bounded host integers on this finite campaign",
                "excluded_groups": excluded, "official_cases": results, "authored_cases": local,
