@@ -56,8 +56,9 @@ position within each OS, with every item assigned once.
 Every mutation runs the checker in a fresh process and private sandbox, through the
 group that decides its rule (`check.py --through`); a survivor runs the whole checker.
 Each shard checks its pristine baseline and registry coverage; shard 1 also runs
-the complete repair path, the ordinary checker and typecheck. Members within a
-shard run concurrently. Each platform runs on an explicit
+the complete repair path, the ordinary checker and typecheck, and Ubuntu's shard 1
+analyzes the workflows with the tools the [Guest CI contract](ci/README.md#acceptance-and-handoff)
+describes. Members within a shard run concurrently. Each platform runs on an explicit
 runner image label, and its `host-gates (Ubuntu)` or `host-gates (Windows)` check,
 named for the platform so that an image move renames nothing, is the name
 `fanout_ci.HOST_JOBS` accepts. The two checks require every shard
@@ -859,6 +860,9 @@ The optional `model` group pins the pre-commit runner used by the curated model'
 hook configuration. Set `UV_PROJECT_ENVIRONMENT` to the environment in the placement
 table above, then run `uv run --project tools --locked --group model pre-commit --version`.
 For a WSL-mounted checkout, `run.py model lane` supplies the guest lane root.
+The optional `workflows` group pins zizmor, which Host CI syncs alone into an
+environment of its own; the [Guest CI contract](ci/README.md#acceptance-and-handoff)
+gives the command. PyPI publishes no Windows ARM64 wheel for it, so run it on Linux.
 The ordinary host gates synchronize only their default dependency groups.
 
 `--error all` escalates every rule ty carries, including the ones it ships as warnings or

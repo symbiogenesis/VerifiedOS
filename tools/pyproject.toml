@@ -8,6 +8,7 @@ dependencies = ["jsonschema"]
 [dependency-groups]
 dev = ["ty==0.0.84", "ruff==0.16.9"]
 model = ["pre-commit==4.6.2"]
+workflows = ["zizmor==1.30.1"]
 
 [tool.uv]
 package = false

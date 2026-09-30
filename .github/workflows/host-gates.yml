@@ -9,7 +9,8 @@
 #
 # Shards partition mutation cases and behavioral test modules: four on Ubuntu and
 # eight on Windows, whose CPU-bound shards run the same work more slowly. Shard 1
-# also runs the checker, typecheck and mutation repair path. All shards must pass.
+# also runs the checker, typecheck and mutation repair path, and Ubuntu's shard 1
+# analyzes the workflows with zizmor and actionlint. All shards must pass.
 # uv installs locked dependencies into a checkout-local environment;
 # only downloads are cached. K-67 checks dependency pins; K-75 checks the Python floor.
 #
@@ -132,6 +133,23 @@ jobs:
           SHARD: ${{ matrix.shard }}
           SHARDS: ${{ matrix.shards }}
         run: python tools/run.py --check --tests --shard "$SHARD/$SHARDS" --summary "$RUNNER_TEMP/$VERDICT_FILE"
+
+      # The analyzers read only the checked-out workflow files, so one runner decides
+      # them. zizmor is locked in tools/uv.lock's workflows group, outside the gate's
+      # environment; actionlint.sh verifies its pinned release archive. No pinned
+      # shellcheck or pyflakes is provisioned, so actionlint runs without either.
+      - name: Analyze workflows
+        if: ${{ !cancelled() && matrix.platform == 'Ubuntu' && matrix.shard == 1 }}
+        shell: bash
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/venv-workflows
+          ACTIONLINT_ROOT: ${{ runner.temp }}/toolchains
+        run: |
+          status=0
+          uv run --project tools --locked --exact --only-group workflows --no-python-downloads \
+            zizmor --offline .github/workflows || status=1
+          sh tools/ci/actionlint.sh -shellcheck= -pyflakes= || status=1
+          exit "$status"
 
       - name: Report gate results
         if: ${{ !cancelled() }}

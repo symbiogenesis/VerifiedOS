@@ -278,7 +278,18 @@ objects, dependencies, toolchain context and failed runs.
 
 Focused tests must cover installation planning and failure propagation, including
 unavailable dependencies and corrupt downloads where the installer owns download
-verification. Workflow syntax is checked with actionlint. Use the repository's
+verification. Host CI's Ubuntu shard 1 analyzes every workflow. zizmor, pinned in
+[the manifest](../pyproject.toml)'s `workflows` group and locked outside the gate's
+environment, runs its offline security audits, including the one requiring every
+action to be pinned by commit. [actionlint.sh](actionlint.sh) runs actionlint from a
+release archive verified against its pinned SHA-256, reading
+[.github/actionlint.yml](../../.github/actionlint.yml) for hosted runner labels newer
+than that release's own table. It checks workflow syntax, expressions and contexts but
+not shell bodies, because no pinned shellcheck or pyflakes is provisioned. To run both
+in WSL, set `UV_PROJECT_ENVIRONMENT` and `ACTIONLINT_ROOT` to directories under the
+lane root, then run
+`uv run --project tools --locked --exact --only-group workflows zizmor --offline .github/workflows`
+and `sh tools/ci/actionlint.sh -shellcheck= -pyflakes=`. Use the repository's
 [validation handoff](../../AGENTS.md#tool-execution-and-validation) for the settled
 revision. Select `cold: true` when proof freshness or cold installation is required.
 Dispatch alone does not establish proof correctness, cold installation or cache

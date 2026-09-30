@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:
-      actions: read
+      actions: read # the previous run's conclusion and artifact names
     outputs:
       unchanged: ${{ steps.previous.outputs.unchanged }}
     steps:
