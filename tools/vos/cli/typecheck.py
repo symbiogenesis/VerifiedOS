@@ -8,7 +8,9 @@ proof, no model, and no reviewer but the person who wrote them. This is that gat
 
 It runs two checkers, because one of them cannot do the whole job:
 
-    ty     the types      every expression, against the types it can infer
+    ty     the types      every expression reachable under python-platform linux,
+                          and every one reachable under win32, against the types
+                          it can infer
     ruff   the coverage   every function, against whether it is annotated at all
 
 The split is not a preference. ty infers aggressively and reports what it can prove
@@ -23,13 +25,20 @@ Both are pinned, for the reason Rocq and z3 are pinned: a checker that changes
 underneath the tree changes what the tree is allowed to say without anyone
 deciding it. A version other than the pinned one is a finding, not a warning.
 
+ty runs once per platform, because it reports nothing in a branch the platform
+makes unreachable and the tools run on the Windows host as well as in the Linux
+guest. Under linux it types the guest's POSIX-only code; under win32 it types the
+branches only the host takes, and holds every call typeshed declares absent on
+Windows behind a `sys.platform` check. Each run is its own verdict.
+
 Every rule ty carries runs at error, including the ones it ships as warnings or
 switched off. `ty.toml` states that in its `[rules]` table, and it and `ruff.toml`
 hold the rest of the settings, so an editor's language server decides what this
 decides. The gate also passes ty `--error all`, which overrides the `[rules]`
-table, and it reads `ty.toml` itself. Each of these is a ty finding, because an
-editor reads the file without the flag or because the flag cannot restore what the
-setting takes away:
+table, and `--python-platform`, which overrides the platform an editor reads from
+`[environment]`, and it reads `ty.toml` itself. Each of these is a ty finding,
+because an editor reads the file without the flags or because a flag cannot restore
+what the setting takes away:
 
     [rules]        a table other than exactly `all = "error"`
     [[overrides]]  an entry carrying any key but `include` and `exclude`: its
@@ -40,8 +49,9 @@ setting takes away:
     [environment]  a key other than `python-version`, `python-platform` and
                    `extra-paths`, or either of the last two at a value other than
                    `"linux"` and `["."]`, since the platform decides which branches
-                   ty checks and `python`, `root`, `typeshed` or another search path
-                   changes where it resolves imports; K-75 holds `python-version`
+                   an editor's ty checks and `python`, `root`, `typeshed` or another
+                   search path changes where it resolves imports; K-75 holds
+                   `python-version`
     [src]          a table other than exactly `exclude = ["**/__pycache__/**"]` and
                    `respect-ignore-files = false`, since an `include`, a further
                    `exclude`, `exclude-scripts` or honoring ignore files takes
@@ -49,6 +59,9 @@ setting takes away:
 
 A user-level ty configuration is a ty finding too: ty merges it beneath `ty.toml`
 even beside `--config-file`, so a setting `ty.toml` leaves out would come from it.
+So is a set `PYTHONPATH`, whose directories ty searches just after `extra-paths` and
+ahead of the standard library, which is what `typeshed` and a further `extra-paths`
+entry are refused for.
 
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
@@ -64,6 +77,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import NamedTuple
 
 from vos import corpus as corpus_mod
 from vos import toolenv
@@ -98,14 +112,20 @@ TY_ANALYSIS_KEYS = frozenset({"respect-type-ignore-comments", "strict-equality-s
 
 # The `[environment]` values the gate holds, and the keys it admits beside them. ty
 # reports nothing in a branch `python-platform` makes unreachable, so the platform
-# decides which `sys.platform` branches are checked at all, and an `extra-paths`
-# entry comes first in resolving every import. ty's other three keys each move a
-# resolution: `python` another environment's packages for an editor, the gate's
-# `--python` overriding it, `root` the first-party modules, and `typeshed` the
-# standard library. A key the gate has not read is refused with them.
-# `python-version` is admitted and K-75 holds its value.
+# decides which `sys.platform` branches an editor's ty server checks at all, the
+# gate's `--python-platform` overriding it, and an `extra-paths` entry comes first in
+# resolving every import. ty's other three keys each move a resolution: `python`
+# another environment's packages for an editor, the gate's `--python` overriding it,
+# `root` the first-party modules, and `typeshed` the standard library. A key the gate
+# has not read is refused with them. `python-version` is admitted and K-75 holds its
+# value.
 TY_ENVIRONMENT = {"python-platform": "linux", "extra-paths": ["."]}
 TY_ENVIRONMENT_KEYS = frozenset({"python-version", *TY_ENVIRONMENT})
+
+# The platforms the gate types the tools under, one ty run each, named on its
+# command line. Neither alone reaches every branch, so the gate runs both: the first
+# is the one `TY_ENVIRONMENT` holds for an editor, and the second is the host's.
+TY_PLATFORMS = ("linux", "win32")
 
 # How many findings of one rule are printed before the rest are counted. A run that
 # has just switched a rule on is a list of hundreds of one thing, and the verdict is
@@ -221,10 +241,32 @@ def _parse_ruff(text: str) -> list[tuple[str, str]]:
     return findings
 
 
-def _run_checker(rep: Reporter, name: str, pin: str, args: list[str], cwd: Path,
-                 with_stderr: bool, parse: Callable[[str], list[tuple[str, str]]],
-                 label: str, ok: str) -> None:
-    """One checker: the pin gate, the run, the parse, and the verdict.
+class Pass(NamedTuple):
+    """One run of a pinned checker: its arguments, the name its failures are reported
+    under, and the verdict its findings or its clean exit read as."""
+    args: list[str]
+    who: str
+    label: str
+    ok: str
+
+
+def _run_checker(rep: Reporter, name: str, pin: str, passes: list[Pass], cwd: Path,
+                 with_stderr: bool, parse: Callable[[str], list[tuple[str, str]]]) -> None:
+    """One checker: the pin gate once, then each pass's run, parse and verdict.
+
+    The pin is probed once because it is one fact about one executable: a drifted
+    version is one finding, and no pass runs under it.
+    """
+    exe = _pinned(rep, name, pin)
+    if exe is None:
+        return
+    for run in passes:
+        _run_pass(rep, name, exe, run, cwd, with_stderr, parse)
+
+
+def _run_pass(rep: Reporter, name: str, exe: str, run: Pass, cwd: Path,
+              with_stderr: bool, parse: Callable[[str], list[tuple[str, str]]]) -> None:
+    """One pass: the run, the parse, and the verdict, reported under `name`.
 
     A returncode outside (0, 1) is a crash whatever was printed first, so it is
     always reported, beside whatever findings did parse: a checker that died partway
@@ -232,16 +274,12 @@ def _run_checker(rep: Reporter, name: str, pin: str, args: list[str], cwd: Path,
     the whole verdict. A checker that hangs or cannot be executed is a finding for
     the same reason the version probe's failures are.
     """
-    exe = _pinned(rep, name, pin)
-    if exe is None:
-        return
-
     try:
-        done = subprocess.run([exe, *args], capture_output=True, encoding="utf-8",
+        done = subprocess.run([exe, *run.args], capture_output=True, encoding="utf-8",
                               errors="replace", cwd=cwd, check=False, timeout=TIMEOUT)
     except subprocess.TimeoutExpired:
         rep.report(name, "checker error(s):",
-                   [f"{name} gave no verdict within {TIMEOUT}s"])
+                   [f"{run.who} gave no verdict within {TIMEOUT}s"])
         return
     except OSError as err:
         rep.report(name, "checker error(s):", [f"{exe} could not be run: {err}"])
@@ -251,16 +289,16 @@ def _run_checker(rep: Reporter, name: str, pin: str, args: list[str], cwd: Path,
 
     if done.returncode == 1 and not findings:
         rep.report(name, "checker error(s):",
-                   [f"{name} exited 1 but no diagnostic was recognized: "
+                   [f"{run.who} exited 1 but no diagnostic was recognized: "
                     f"{(done.stdout + done.stderr).strip()[:400] or '(no output)'}"])
         return
     if done.returncode not in (0, 1):
         rep.report(name, "checker error(s):",
-                   [f"{name} exited {done.returncode}: "
+                   [f"{run.who} exited {done.returncode}: "
                     f"{(done.stderr or done.stdout).strip()[:400]}"])
         if not findings:
             return
-    _summarize(rep, name, label, findings, ok)
+    _summarize(rep, name, run.label, findings, run.ok)
 
 
 def _ty_settings(config: Path) -> list[str]:
@@ -280,8 +318,11 @@ def _ty_settings(config: Path) -> list[str]:
     Not held here: the value of `python-version`, which K-75 holds against the
     project's interpreter constraint; `[terminal]`, whose `output-format` the gate's
     own flag overrides and whose `error-on-warning` cannot clear a warning the gate
-    reads from the output; and a table or key ty does not accept, which ty refuses
-    as an invalid `ty.toml`, exiting 2, before it checks anything.
+    reads from the output; and a top-level table or key, or a `[terminal]` key, that
+    ty does not accept, which ty refuses as an invalid `ty.toml`, exiting 2 before it
+    checks anything, and the gate's run reports as a checker error. A key ty does not
+    accept inside `[rules]`, `[src]`, `[analysis]`, `[environment]` or an
+    `[[overrides]]` entry is refused here as well, being outside what each admits.
 
     Fail-closed: a file that cannot be read or parsed, an `overrides` value that is
     not an array of tables, or an `analysis` or `environment` value that is not a
@@ -316,8 +357,8 @@ def _ty_settings(config: Path) -> list[str]:
             + f"; the gate admits only {', '.join(sorted(TY_ANALYSIS_KEYS))}, "
             "the settings that suppress no diagnostic the defaults report")
     held = " and ".join(f"{key} to {value!r}" for key, value in TY_ENVIRONMENT.items())
-    why = ("because the platform decides which sys.platform branches ty checks and "
-           "extra-paths comes first in resolving every import")
+    why = ("because the platform decides which sys.platform branches an editor's ty "
+           "checks and extra-paths comes first in resolving every import")
     environment = settings.get("environment")
     if environment is None:
         findings.append(f"{name} carries no [environment] table; the gate holds {held}, {why}")
@@ -329,7 +370,8 @@ def _ty_settings(config: Path) -> list[str]:
                 f"{name}'s [environment] carries "
                 + ", ".join(f"{key} {environment[key]!r}" for key in refused)
                 + f"; the gate admits only {', '.join(sorted(TY_ENVIRONMENT_KEYS))}, "
-                "because python, root and typeshed each move where ty resolves imports")
+                "because python, root and typeshed each move where ty resolves imports, "
+                "and a key the gate has not read is refused with them")
         if changed := [key for key, want in TY_ENVIRONMENT.items()
                        if environment.get(key) != want]:
             findings.append(
@@ -380,13 +422,22 @@ def _user_config() -> Path | None:
 
 
 def _run_ty(rep: Reporter, root: Path) -> None:
-    """Every expression in the directory, against the types ty can infer for it.
+    """Every expression in the directory reachable under each of `TY_PLATFORMS`,
+    against the types ty can infer for it, one run and one verdict per platform.
 
     The settings are held first and the checker runs regardless: a refused setting
     stands beside the checker's verdict rather than hiding the findings it would
     still report, and that verdict then claims no more than the run showed. A
     user-level configuration is reported rather than redirected away from, because
-    ty merges it into this run and the finding is what tells its owner so."""
+    ty merges it into this run and the finding is what tells its owner so.
+
+    A set `PYTHONPATH` is reported on the same ground rather than removed from ty's
+    environment. ty searches each directory it names just after `extra-paths` and
+    ahead of the standard library, which is what `typeshed` and a further
+    `extra-paths` entry are refused for; an editor's ty server inherits the variable
+    as this run does, so removing it here alone would pass what the editor resolves
+    differently. The variable is reported whenever it is present, an empty value
+    included, because ty reads it whenever it is present."""
     tools = root / "tools"
     held = ", all rules at error"
     if refused := _ty_settings(tools / "ty.toml"):
@@ -396,25 +447,40 @@ def _run_ty(rep: Reporter, root: Path) -> None:
         rep.report("ty", "user-level configuration(s) the gate refuses:",
                    [f"a user-level ty configuration at {user} merges into the gate's run"])
         held = " under the settings refused above"
+    if (search := os.environ.get("PYTHONPATH")) is not None:
+        rep.report("ty", "environment variable(s) the gate refuses:",
+                   [f"PYTHONPATH is set to {search!r}, and ty searches each directory it "
+                    "names ahead of the standard library in the gate's run"])
+        held = " under the settings refused above"
     _run_checker(
         rep, "ty", TY_VERSION,
-        ["check", "--config-file", str(tools / "ty.toml"), "--error", "all",
-         "--python", sys.executable,
-         "--output-format", "concise", "--color", "never", "."],
-        tools, with_stderr=True, parse=_parse_ty, label="type error(s):",
-        ok=f"every expression typechecks under ty {TY_VERSION}{held}")
+        [Pass(["check", "--config-file", str(tools / "ty.toml"), "--error", "all",
+               "--python", sys.executable, "--python-platform", platform,
+               "--output-format", "concise", "--color", "never", "."],
+              f"ty under python-platform {platform}",
+              f"type error(s) under python-platform {platform}:",
+              f"every expression reachable under python-platform {platform} typechecks "
+              f"under ty {TY_VERSION}{held}")
+         for platform in TY_PLATFORMS],
+        tools, with_stderr=True, parse=_parse_ty)
 
 
 def _run_ruff(rep: Reporter, root: Path) -> None:
     """Every function, against whether it is annotated, and the correctness rules
-    `ruff.toml` admits besides."""
+    `ruff.toml` admits besides.
+
+    `--no-respect-gitignore` restates `ruff.toml`'s `respect-gitignore = false` for
+    this run: ruff otherwise skips whatever an ignore file matches, and a tracked
+    module an ignore pattern matched would leave the run with nothing reported."""
     tools = root / "tools"
     _run_checker(
         rep, "ruff", RUFF_VERSION,
-        ["check", "--config", str(tools / "ruff.toml"), "--no-cache",
-         "--output-format", "concise", "--no-fix", "."],
-        tools, with_stderr=False, parse=_parse_ruff, label="lint finding(s):",
-        ok=f"every function is annotated and ruff {RUFF_VERSION} is clean")
+        [Pass(["check", "--config", str(tools / "ruff.toml"), "--no-cache",
+               "--no-respect-gitignore",
+               "--output-format", "concise", "--no-fix", "."],
+              "ruff", "lint finding(s):",
+              f"every function is annotated and ruff {RUFF_VERSION} is clean")],
+        tools, with_stderr=False, parse=_parse_ruff)
 
 
 def run(root: Path) -> Reporter:

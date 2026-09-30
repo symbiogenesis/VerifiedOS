@@ -344,9 +344,11 @@ def _hold(proofs: Path) -> int:
     native directory without touching the original checkout. The descriptor
     stays open, and locked, until the process exits.
 
-    POSIX-only, and this file is typed on the host as well as run in the guest, so the
-    import is deferred the way `vos.env` defers its own.
+    POSIX-only, and this file is typed on the host as well as run in the guest, so
+    win32 is refused and the import deferred the way `vos.env` does both.
     """
+    if sys.platform == "win32":
+        raise RuntimeError("the proof workspace is held in the guest")
     import fcntl  # noqa: PLC0415
     proofs.mkdir(parents=True, exist_ok=True)
     fd = os.open(str(proofs), os.O_RDONLY)

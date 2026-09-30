@@ -20,6 +20,12 @@
 target-version = "py314"
 line-length = 100          # E501 is not selected; this only sizes the few rules that read it
 
+# ruff otherwise skips whatever a `.gitignore`, `.ignore`, `.git/info/exclude` or
+# global gitignore matches, so an ignore pattern matching a tracked module, one in
+# a file this tree does not carry included, would take it out of the run. The gate
+# also passes `--no-respect-gitignore`, so its run does not depend on this line.
+respect-gitignore = false
+
 [lint]
 select = [
     "F",      # pyflakes: undefined names, redefinitions, unused imports

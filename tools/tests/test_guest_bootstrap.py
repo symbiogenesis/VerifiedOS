@@ -11,6 +11,7 @@ import tempfile
 from collections.abc import Callable
 from contextlib import redirect_stderr
 from pathlib import Path
+from types import SimpleNamespace
 from typing import IO, cast
 from unittest.mock import patch
 
@@ -54,7 +55,10 @@ def _package_query_is_batched() -> None:
 
 
 def _nonroot_system_install() -> None:
+    # The installation is Linux's, so a host run patches the platform this module
+    # reads rather than the interpreter's own.
     with (patch.object(bootstrap, "missing_packages", side_effect=[["m4"], []]),
+          patch.object(bootstrap, "sys", SimpleNamespace(platform="linux")),
           patch.object(bootstrap.os, "geteuid", return_value=1000, create=True),
           patch.object(bootstrap, "run") as launched):
         bootstrap.system_packages(True, io.StringIO())
