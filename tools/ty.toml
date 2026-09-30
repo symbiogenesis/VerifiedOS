@@ -11,10 +11,15 @@
 # warnings or off by default. That is deliberate and it is what a pinned version
 # buys: the alternative is a list of opt-ins that silently stops growing the day
 # ty adds a rule nobody transcribed. The gate also passes `--error all`, which
-# overrides this table, and it reports two shapes of this file as ty findings: a
+# overrides this table, and it reports these shapes of this file as ty findings: a
 # `[rules]` table other than exactly `all = "error"`, because an editor reads the
-# table without the flag, and an `[[overrides]]` entry carrying `rules`, because such
-# an entry can lower the flag's severities for the files it matches.
+# table without the flag; an `[[overrides]]` entry carrying any key but `include`
+# and `exclude`, because its `rules` can lower the flag's severities and its
+# `analysis` can suppress diagnostics for the files it matches; an `[analysis]` key
+# outside the ones `vos/cli/typecheck.py` admits as suppressing nothing, which
+# refuses `allowed-unresolved-imports` and `replace-imports-with-any`; and a `[src]`
+# table other than exactly the one below, because an `include`, a further `exclude`
+# or `exclude-scripts` takes files out of the run.
 # `tools/README.md` records the pin.
 
 [rules]

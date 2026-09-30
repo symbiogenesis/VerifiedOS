@@ -946,11 +946,16 @@ every commit to the repository.
 carries, including the ones it ships as warnings or switched off, and that is deliberate:
 the alternative is a list of opt-ins that silently stops growing the day ty adds a rule
 nobody transcribed. The gate also passes `--error all`, which overrides the `[rules]`
-table, and [run.py typecheck](vos/cli/typecheck.py) holds ty.toml itself: a `[rules]`
-table other than exactly `all = "error"` is a ty finding, because an editor's ty
-server reads that table without the flag, and so is an `[[overrides]]` entry carrying
-`rules`, because such an entry can lower the flag's severities for the files it
-matches. An unreadable ty.toml is a finding too. What ruff is *not*
+table, and [run.py typecheck](vos/cli/typecheck.py) holds ty.toml itself. Each of
+these is a ty finding: a `[rules]` table other than exactly `all = "error"`, because
+an editor's ty server reads that table without the flag; an `[[overrides]]` entry
+carrying any key but `include` and `exclude`, because its `rules` can lower the flag's
+severities and its `analysis` can suppress diagnostics for the files it matches; an
+`[analysis]` key outside the ones the gate admits as suppressing nothing, which
+refuses `allowed-unresolved-imports` and `replace-imports-with-any`; and a `[src]`
+table other than exactly `exclude = ["**/__pycache__/**"]`, because an `include`, a
+further `exclude` or `exclude-scripts` takes files out of the run. An unreadable
+ty.toml is a finding too. What ruff is *not*
 asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own line and
 each for a reason that would hold in any project, and no group switched off to spare this
 code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and
