@@ -980,8 +980,11 @@ carrying any key but `include` and `exclude`, because its `rules` can lower the 
 severities and its `analysis` can suppress diagnostics for the files it matches; an
 `[analysis]` key outside the ones the gate admits as suppressing nothing, which
 refuses `allowed-unresolved-imports` and `replace-imports-with-any`; and a `[src]`
-table other than exactly `exclude = ["**/__pycache__/**"]`, because an `include`, a
-further `exclude` or `exclude-scripts` takes files out of the run. An unreadable
+table other than exactly `exclude = ["**/__pycache__/**"]` and
+`respect-ignore-files = false`, because an `include`, a further `exclude`,
+`exclude-scripts` or honoring ignore files takes files out of the run: ty honors
+`.gitignore`, `.ignore`, `.git/info/exclude` and the global gitignore by default,
+so a pattern in one of them matching a tracked module would drop it. An unreadable
 ty.toml is a finding too. What ruff is *not*
 asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own line and
 each for a reason that would hold in any project, and no group switched off to spare this

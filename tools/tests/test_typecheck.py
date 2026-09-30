@@ -247,7 +247,7 @@ def _pin_gate_refusals() -> None:
 # The ty.toml this tree carries, which the gate reads from the same place.
 _TY_TOML = Path(typecheck.__file__).resolve().parents[2] / "ty.toml"
 _ALL_ERROR = '[rules]\nall = "error"\n'
-_SRC = '\n[src]\nexclude = ["**/__pycache__/**"]\n'
+_SRC = '\n[src]\nexclude = ["**/__pycache__/**"]\nrespect-ignore-files = false\n'
 # The smallest ty.toml the gate admits: the two tables it holds exactly.
 _ADMITTED = _ALL_ERROR + _SRC
 
@@ -368,20 +368,28 @@ def _ty_settings_refuse_analysis() -> None:
 
 def _ty_settings_refuse_src() -> None:
     # The table is held exactly: each way of taking files out of the run, a changed
-    # glob, and no table at all are each one finding.
+    # glob, and no table at all are each one finding. Ignore files are honored unless
+    # the table says otherwise, so a table that is silent on them is refused with one
+    # that honors them.
+    ignore = 'respect-ignore-files = false\n'
     for text, expected in (
             (_ALL_ERROR, "carries no [src] table"),
-            (_ALL_ERROR + '\n[src]\nexclude = ["**/__pycache__/**", "vos/**"]\n',
+            (_ALL_ERROR + '\n[src]\nexclude = ["**/__pycache__/**", "vos/**"]\n' + ignore,
              "'vos/**'"),
-            (_ALL_ERROR + '\n[src]\nexclude = ["vos/**"]\n', "'vos/**'"),
+            (_ALL_ERROR + '\n[src]\nexclude = ["vos/**"]\n' + ignore, "'vos/**'"),
             (_ALL_ERROR + _SRC + 'include = ["tests"]\n', "'include': ['tests']"),
             (_ALL_ERROR + _SRC + 'exclude-scripts = true\n', "'exclude-scripts': True"),
-            (_ALL_ERROR + _SRC + 'respect-ignore-files = false\n',
-             "'respect-ignore-files': False"),
+            (_ALL_ERROR + '\n[src]\nexclude = ["**/__pycache__/**"]\n'
+                          'respect-ignore-files = true\n', "'respect-ignore-files': True"),
+            (_ALL_ERROR + '\n[src]\nexclude = ["**/__pycache__/**"]\n',
+             "sets [src] to {'exclude': ['**/__pycache__/**']}"),
+            (_ALL_ERROR + '\n[src]\n' + ignore, "sets [src] to {'respect-ignore-files'"),
             (_ALL_ERROR + '\n[src]\n', "sets [src] to {}")):
         found = _settings(text)
         ensure(len(found) == 1 and expected in found[0]
-               and "exactly {'exclude': ['**/__pycache__/**']}" in found[0],
+               and "exactly {'exclude': ['**/__pycache__/**'], 'respect-ignore-files': "
+                   "False}" in found[0]
+               and "honoring ignore files" in found[0],
                f"a [src] table other than the committed one must be one finding: {found!r}")
 
 

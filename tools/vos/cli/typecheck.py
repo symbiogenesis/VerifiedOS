@@ -37,9 +37,10 @@ setting takes away:
                    suppress diagnostics, for the files it matches
     [analysis]     a key outside the ones that suppress nothing, which refuses
                    `allowed-unresolved-imports` and `replace-imports-with-any`
-    [src]          a table other than exactly `exclude = ["**/__pycache__/**"]`,
-                   since an `include`, a further `exclude` or `exclude-scripts`
-                   takes files out of the run
+    [src]          a table other than exactly `exclude = ["**/__pycache__/**"]` and
+                   `respect-ignore-files = false`, since an `include`, a further
+                   `exclude`, `exclude-scripts` or honoring ignore files takes
+                   files out of the run
 
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
@@ -67,8 +68,11 @@ RUFF_VERSION = _PINS["ruff"]
 TY_RULES = {"all": "error"}
 
 # The one `[src]` table ty.toml may carry. `include`, a further `exclude` glob and
-# `exclude-scripts` each take files out of the run, where no severity reaches them.
-TY_SRC = {"exclude": ["**/__pycache__/**"]}
+# `exclude-scripts` each take files out of the run, where no severity reaches them,
+# and so does `respect-ignore-files`, which defaults to true: a `.gitignore`,
+# `.ignore`, `.git/info/exclude` or global gitignore pattern matching a tracked
+# module would otherwise drop it.
+TY_SRC = {"exclude": ["**/__pycache__/**"], "respect-ignore-files": False}
 
 # The keys an `[[overrides]]` entry may carry: which files it matches, and nothing
 # it does to them. ty also accepts `rules`, which can lower `--error all` for those
@@ -271,8 +275,8 @@ def _ty_settings(config: Path) -> list[str]:
     if src != TY_SRC:
         found = "carries no [src] table" if src is None else f"sets [src] to {src!r}"
         findings.append(f"{name} {found}; the gate holds it to exactly {TY_SRC!r}, "
-                        "because an include, a further exclude or exclude-scripts takes "
-                        "files out of the run")
+                        "because an include, a further exclude, exclude-scripts or "
+                        "honoring ignore files takes files out of the run")
     analysis = settings.get("analysis", {})
     if not isinstance(analysis, dict):
         findings.append(f"{name}'s analysis must be a table, found {analysis!r}")

@@ -18,8 +18,8 @@
 # `analysis` can suppress diagnostics for the files it matches; an `[analysis]` key
 # outside the ones `vos/cli/typecheck.py` admits as suppressing nothing, which
 # refuses `allowed-unresolved-imports` and `replace-imports-with-any`; and a `[src]`
-# table other than exactly the one below, because an `include`, a further `exclude`
-# or `exclude-scripts` takes files out of the run.
+# table other than exactly the one below, because an `include`, a further
+# `exclude`, `exclude-scripts` or honoring ignore files takes files out of the run.
 # `tools/README.md` records the pin.
 
 [rules]
@@ -42,6 +42,10 @@ extra-paths = ["."]
 
 [src]
 exclude = ["**/__pycache__/**"]
+# ty otherwise skips whatever a `.gitignore`, `.ignore`, `.git/info/exclude` or
+# global gitignore matches, so an ignore pattern matching a tracked module, one in
+# a file this tree does not carry included, would take it out of the run.
+respect-ignore-files = false
 
 [terminal]
 output-format = "concise"
