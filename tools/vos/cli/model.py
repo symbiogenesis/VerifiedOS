@@ -901,25 +901,48 @@ def _seed_test_data(donors: list[Path], target: Path, model_root: Path) -> None:
 def _copy_verified_suite(suite: Path, into: Path, digest: str) -> None:
     """Copy `suite` and its manifest to `into`, publishing only a copy that verifies.
 
-    The donor is verified before it is copied as well as after. `copytree` reads every
-    entry it copies, and `shutil.copyfile` refuses only a FIFO: a character device such
-    as a `/dev/zero` node is read without end, so a donor holding one would stall the
-    command standing the lane up. The listing the verification renders reads no
-    non-regular entry and refuses a suite holding one. The check on the copy stays,
-    because the donor can change while it is copied.
+    The donor is verified before it is copied as well as after. A FIFO is waited on and
+    a character device such as a `/dev/zero` node is read without end, so a donor
+    holding either would stall the command standing the lane up; the listing the
+    verification renders reads no non-regular entry and refuses a suite holding one.
+    The donor can still change between that verification and the copy, so every file,
+    the manifest among them, is copied by `_copy_regular_file`, which reads only what
+    opens as a regular file, and the copy is verified before it is published.
     """
     verify_test_corpus(suite, digest)
     into.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{into.name}-seed-", dir=into.parent))
     try:
         copy = staging / into.name
-        shutil.copytree(suite, copy, symlinks=True)
-        shutil.copy2(corpus_manifest(suite), corpus_manifest(copy))
+        shutil.copytree(suite, copy, symlinks=True, copy_function=_copy_regular_file)
+        _copy_regular_file(corpus_manifest(suite), corpus_manifest(copy))
         verify_test_corpus(copy, digest)
         copy.rename(into)
         corpus_manifest(copy).replace(corpus_manifest(into))
     finally:
         shutil.rmtree(staging, ignore_errors=True)
+
+
+def _copy_regular_file(source: Path | str, destination: Path | str) -> Path | str:
+    """`copy2` for a donor's suite, reading `source` only if it opens as a regular file.
+
+    `copytree` calls this for every entry that is neither a directory nor a link when
+    it lists the directory, and the entry can have been replaced since: the descriptor
+    this reads from is the one whose kind was checked, so a FIFO is not waited on and a
+    device is not read. What is refused raises `ValueError`, which `copytree` does not
+    collect and so ends the copy at the first such entry. Mode and times are kept from
+    that descriptor, as `copy2` keeps them.
+    """
+    fd = _open_regular(source)
+    if fd is None:
+        raise ValueError(f"{source} is not a regular file; the donor changed after it "
+                         "verified")
+    with os.fdopen(fd, "rb") as reader, Path(destination).open("xb") as writer:
+        shutil.copyfileobj(reader, writer)
+        held = os.fstat(reader.fileno())
+    Path(destination).chmod(stat.S_IMODE(held.st_mode))
+    os.utime(destination, ns=(held.st_atime_ns, held.st_mtime_ns))
+    return destination
 
 
 def cmd_wait(e: env.Environment, args: argparse.Namespace) -> int:
