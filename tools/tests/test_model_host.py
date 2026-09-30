@@ -15,6 +15,7 @@ and a case that decides the overlay decides nothing about whether the configure 
 it: the defect this repository met lived at this call and not one module over.
 """
 
+import hashlib
 import importlib.util
 import io
 import json
@@ -229,26 +230,186 @@ def _seed_cache_file() -> None:
         ensure(not cold.exists(), "an absent donor leaves the target cold")
 
 
+_CORPUS_DIGEST = "ab" * 32
+_OTHER_DIGEST = "cd" * 32
+_RELEASE = "2031-02-03"
+
+
+def _corpus_model(root: Path) -> Path:
+    """A model root declaring one release and the riscv-tests digest at it."""
+    model_root = root / "model"
+    declaration = model_root / "test/CMakeLists.txt"
+    declaration.parent.mkdir(parents=True, exist_ok=True)
+    declaration.write_text(
+        f'set(TEST_DOWNLOAD_VERSION "{_RELEASE}" CACHE STRING "tests")\n'
+        f'set(TEST_DOWNLOAD_SHA256_{_RELEASE}_riscv-tests "{_CORPUS_DIGEST}")\n',
+        encoding="utf-8", newline="")
+    return model_root
+
+
+def _extracted(tree: Path, files: dict[str, bytes], digest: str = _CORPUS_DIGEST) -> Path:
+    """A suite as configure leaves it: its files, and the manifest written beside them."""
+    suite = tree / "test" / _RELEASE / "riscv-tests"
+    for name, data in files.items():
+        (suite / name).parent.mkdir(parents=True, exist_ok=True)
+        (suite / name).write_bytes(data)
+    _MODEL.corpus_manifest(suite).write_bytes(_MODEL.corpus_listing(suite, digest))
+    return suite
+
+
+def _corpus_listing_format() -> None:
+    """The listing is one format with two renderers, `riscv_tests_listing` in
+    model/test/CMakeLists.txt and `corpus_listing`, so its bytes are stated here
+    rather than derived from either: the digest line, then `<sha256>  <path>` per file,
+    ordered by the whole relative path's bytes. `a/b` sorts between `a.c` and `a0`
+    because `/` lies between `.` and `0`, which a per-directory walk would not give."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        suite = Path(td) / "riscv-tests"
+        files = {"a0": b"zero", "a/b": b"nested", "a.c": b"dot", "a-b": b"dash"}
+        for name, data in files.items():
+            (suite / name).parent.mkdir(parents=True, exist_ok=True)
+            (suite / name).write_bytes(data)
+
+        def line(name: str) -> str:
+            return f"{hashlib.sha256(files[name]).hexdigest()}  {name}\n"
+
+        want = (f"tarball riscv-tests.tar.gz sha256 {_CORPUS_DIGEST}\n"
+                + line("a-b") + line("a.c") + line("a/b") + line("a0")).encode()
+        got = _MODEL.corpus_listing(suite, _CORPUS_DIGEST)
+        ensure(got == want, f"the listing's bytes are the stated format, got {got!r}")
+        ensure(_MODEL.corpus_manifest(suite) == Path(td) / "riscv-tests.manifest",
+               "the manifest sits beside the suite, where no suite glob reaches it")
+
+
+def _corpus_digests() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        model_root = _corpus_model(Path(td))
+        declaration = model_root / "test/CMakeLists.txt"
+        valid = declaration.read_text(encoding="utf-8")
+        vector = f'set(TEST_DOWNLOAD_SHA256_{_RELEASE}_riscv-vector-tests-v64x64 "{"0" * 64}")\n'
+        other = f'set(TEST_DOWNLOAD_SHA256_2020-01-01_riscv-tests "{"1" * 64}")\n'
+        declaration.write_text(valid + vector + other, encoding="utf-8", newline="")
+        got = _MODEL.test_corpus_digests(model_root, _RELEASE)
+        ensure(got == {"riscv-tests": _CORPUS_DIGEST, "riscv-vector-tests-v64x64": "0" * 64},
+               f"every tarball of the release and no other release's, got {got}")
+        repeated = valid + f'set(TEST_DOWNLOAD_SHA256_{_RELEASE}_riscv-tests "{"2" * 64}")\n'
+        short = valid + f'set(TEST_DOWNLOAD_SHA256_{_RELEASE}_riscv-arch-tests "{"3" * 63}")\n'
+        upper = valid + f'set(TEST_DOWNLOAD_SHA256_{_RELEASE}_riscv-arch-tests "{"A" * 64}")\n'
+        for text in (repeated, short, upper):
+            declaration.write_text(text, encoding="utf-8", newline="")
+            try:
+                _MODEL.test_corpus_digests(model_root, _RELEASE)
+            except ValueError:
+                continue
+            raise AssertionError(f"a repeated or malformed digest must be refused: {text!r}")
+
+
+def _verify_test_corpus() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF", "rv64ui-p-add.dump": b"d"})
+        _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
+
+        def refused(why: str, digest: str = _CORPUS_DIGEST) -> None:
+            try:
+                _MODEL.verify_test_corpus(suite, digest)
+            except ValueError as err:
+                ensure(why in str(err), f"the refusal names {why!r}, got {err}")
+            else:
+                raise AssertionError(f"a suite that {why} must be refused")
+
+        refused("disagrees", _OTHER_DIGEST)  # recorded for another tarball digest
+        (suite / "rv64ui-p-add").write_bytes(b"\x7fELF tampered")
+        refused("disagrees")
+        (suite / "rv64ui-p-add").write_bytes(b"\x7fELF")
+        (suite / "rv64ui-p-sub").write_bytes(b"not extracted")
+        refused("disagrees")
+        (suite / "rv64ui-p-sub").unlink()
+        (suite / "rv64ui-p-add.dump").unlink()
+        refused("disagrees")
+        (suite / "rv64ui-p-add.dump").write_bytes(b"d")
+        _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
+        _MODEL.corpus_manifest(suite).unlink()
+        refused("has no riscv-tests.manifest")
+
+        # a link is never hashed through, even under a manifest crafted to list it
+        try:
+            (suite / "rv64ui-p-link").symlink_to(suite / "rv64ui-p-add")
+        except OSError:
+            return  # a Windows host without the symlink privilege; Linux runs it
+        _MODEL.corpus_manifest(suite).write_bytes(
+            _MODEL.corpus_listing(suite, _CORPUS_DIGEST))
+        refused("non-regular")
+
+
 def _seed_test_data() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
+        model_root = _corpus_model(root)
         donor, target = root / "donor", root / "target"
-        suite = donor / "test" / "first_party" / "riscv-tests"
-        suite.mkdir(parents=True)
-        (suite / "rv64ui-p-add.elf").write_bytes(b"\x7fELF")
+        _extracted(donor, {"rv64ui-p-add": b"\x7fELF"})
+        # another release's cache beside it is not a suite of the declared release
+        (donor / "test/2020-01-01/riscv-tests").mkdir(parents=True)
+        (donor / "test/2020-01-01/riscv-tests/rv64ui-p-add").write_bytes(b"old")
 
-        _MODEL._seed_test_data([donor], target)
-        ensure((target / "test" / "first_party" / "riscv-tests"
-                / "rv64ui-p-add.elf").read_bytes() == b"\x7fELF",
-               "the downloaded suite is copied into the cold tree")
+        with redirect_stderr(io.StringIO()) as err:
+            _MODEL._seed_test_data([donor], target, model_root)
+        suite = target / "test" / _RELEASE / "riscv-tests"
+        ensure((suite / "rv64ui-p-add").read_bytes() == b"\x7fELF",
+               f"the verified suite is copied into the cold tree, got {err.getvalue()!r}")
+        _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
+        ensure(not (target / "test/2020-01-01").exists(),
+               "another release's suite is not seeded")
+        ensure(sorted(p.name for p in suite.parent.iterdir())
+               == ["riscv-tests", "riscv-tests.manifest"],
+               "the suite and its manifest land, and no staging copy is left behind")
 
-        # an existing suite directory is left alone rather than merged into
-        marker = target / "test" / "first_party" / "mine.txt"
+        # an existing suite directory is left to configure rather than merged into
+        marker = suite / "mine.txt"
         marker.write_text("mine\n", encoding="utf-8", newline="")
-        _MODEL._seed_test_data([donor], target)
-        ensure(marker.read_text(encoding="utf-8") == "mine\n"
-               and (target / "test" / "first_party" / "riscv-tests").exists(),
+        _MODEL._seed_test_data([donor], target, model_root)
+        ensure(marker.read_text(encoding="utf-8") == "mine\n",
                "a tree that already holds the suite's directory keeps it as it is")
+
+
+def _seed_test_data_refuses_unverified() -> None:
+    """The primary's tree predates the manifest, so it is the case that matters most:
+    a donor whose suite does not verify seeds nothing, and configure downloads."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        model_root = _corpus_model(root)
+        bare = root / "bare"
+        (bare / "test" / _RELEASE / "riscv-tests").mkdir(parents=True)
+        (bare / "test" / _RELEASE / "riscv-tests/rv64ui-p-add").write_bytes(b"\x7fELF")
+        tampered = root / "tampered"
+        (_extracted(tampered, {"rv64ui-p-add": b"\x7fELF"}) / "rv64ui-p-add").write_bytes(
+            b"changed after extraction")
+        extra = root / "extra"
+        (_extracted(extra, {"rv64ui-p-add": b"\x7fELF"}) / "rv64ui-p-sub").write_bytes(
+            b"never in the tarball")
+        stale = root / "stale"
+        _extracted(stale, {"rv64ui-p-add": b"\x7fELF"}, digest=_OTHER_DIGEST)
+
+        for donor, why in ((bare, "has no riscv-tests.manifest"), (tampered, "disagrees"),
+                           (extra, "disagrees"), (stale, "disagrees")):
+            target = root / f"target-{donor.name}"
+            with redirect_stderr(io.StringIO()) as err:
+                _MODEL._seed_test_data([donor], target, model_root)
+            release = target / "test" / _RELEASE
+            ensure(not release.exists() or not any(release.iterdir()),
+                   f"the {donor.name} donor must seed nothing and leave no staging copy")
+            ensure(why in err.getvalue() and str(donor) in err.getvalue(),
+                   f"the refusal names the donor and {why!r}, got {err.getvalue()!r}")
+
+        # a refused donor is passed over for the next one, whose suite verifies
+        good = root / "good"
+        _extracted(good, {"rv64ui-p-add": b"\x7fELF good"})
+        target = root / "target-fallback"
+        with redirect_stderr(io.StringIO()):
+            _MODEL._seed_test_data([tampered, good], target, model_root)
+        suite = target / "test" / _RELEASE / "riscv-tests"
+        ensure((suite / "rv64ui-p-add").read_bytes() == b"\x7fELF good",
+               "the first donor that verifies seeds the suite")
+        _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
 
 
 # `_configure` in a child of its own, with `env.stage` standing in for the run. Two
@@ -503,5 +664,9 @@ def cases() -> list[Case]:
         Case("sync-oracle-tree", _sync_oracle_tree),
         Case("seed-smt-cache", _seed_smt_cache),
         Case("seed-cache-file", _seed_cache_file),
+        Case("corpus-listing-format", _corpus_listing_format),
+        Case("corpus-digests", _corpus_digests),
+        Case("verify-test-corpus", _verify_test_corpus),
         Case("seed-test-data", _seed_test_data),
+        Case("seed-test-data-refuses-unverified", _seed_test_data_refuses_unverified),
     ]

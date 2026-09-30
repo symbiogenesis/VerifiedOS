@@ -168,11 +168,118 @@ def test_corpus_version(model_root: Path) -> str:
     return cast("str", versions[0].group(1))
 
 
+def test_corpus_digests(model_root: Path, version: str) -> dict[str, str]:
+    """The SHA-256 the model records for each tarball of one release, by tarball name.
+
+    Fail-closed like `test_corpus_version`: a digest line of the release that is not a
+    well-formed 64-hex declaration, or a tarball declared twice, is refused rather than
+    passed over, since a suite whose digest went unread would go unverified.
+    """
+    source = model_root / "test/CMakeLists.txt"
+    try:
+        text = source.read_text(encoding="utf-8")
+    except OSError as err:
+        raise ValueError(f"cannot read the test corpus digests from {source}: {err}") from err
+    prefix = f"set(TEST_DOWNLOAD_SHA256_{version}_"
+    declared = [line for line in text.splitlines() if line.startswith(prefix)]
+    digests: dict[str, str] = {}
+    for line in declared:
+        found = re.fullmatch(rf'set\(TEST_DOWNLOAD_SHA256_{re.escape(version)}_'
+                             r'([A-Za-z0-9-]+) "([0-9a-f]{64})"\)', line)
+        if found is None or found.group(1) in digests:
+            raise ValueError(f"{source} declares a malformed or repeated digest: {line}")
+        digests[found.group(1)] = found.group(2)
+    return digests
+
+
+# The manifest `download_riscv_tests` in model/test/CMakeLists.txt writes beside a
+# suite it has just extracted from a tarball whose SHA-256 it verified, and holds that
+# suite to on every configure, downloading again a suite that disagrees. The listing is
+# the tarball's recorded digest, then each file's SHA-256 and path relative to the
+# suite, sorted by the path's bytes; a symbolic link or other non-regular entry is
+# listed unhashed, and no written manifest holds one. `corpus_listing` renders the same
+# bytes for the readers that do not configure: the seeding that copies a suite into a
+# new lane, and the sweep and trace-diff that read one. A build's receipt reads the
+# corpus through `_test_corpus` too, so a disagreement between the two renderings
+# fails the first build that records its evidence rather than passing unseen.
+CORPUS_MANIFEST_SUFFIX = ".manifest"
+
+
+def corpus_manifest(suite: Path) -> Path:
+    """Where the manifest of an extracted suite lives: beside it, not inside it."""
+    return suite.with_name(suite.name + CORPUS_MANIFEST_SUFFIX)
+
+
+def _unreadable(err: OSError) -> None:
+    """`os.walk` passes over a directory it cannot read unless told otherwise, and a
+    listing that skipped one would no longer describe the whole tree."""
+    raise err
+
+
+def corpus_listing(suite: Path, tarball_sha256: str) -> bytes:
+    """The listing `download_riscv_tests` records for `suite`, rendered from the tree."""
+    entries: list[tuple[bytes, str]] = []
+    for directory, dirs, files in os.walk(suite, onerror=_unreadable):
+        for name in (*dirs, *files):
+            path = Path(directory, name)
+            if name in dirs and not path.is_symlink():
+                continue
+            relative = path.relative_to(suite).as_posix()
+            if "\n" in relative or "\r" in relative:
+                raise ValueError(f"{path}: a path a manifest line cannot hold")
+            if path.is_symlink() or not path.is_file():
+                line = f"unhashed {relative}\n"
+            else:
+                line = f"{receipts.digest(path)}  {relative}\n"
+            entries.append((relative.encode("utf-8", "surrogateescape"), line))
+    head = f"tarball {suite.name}.tar.gz sha256 {tarball_sha256}\n"
+    return (head + "".join(line for _, line in sorted(entries))).encode(
+        "utf-8", "surrogateescape")
+
+
+def verify_test_corpus(suite: Path, tarball_sha256: str) -> None:
+    """Refuse a suite unless it is what its manifest records for this tarball digest."""
+    manifest = corpus_manifest(suite)
+    if suite.is_symlink() or not suite.is_dir():
+        raise ValueError(f"{suite} is not an extracted suite directory")
+    try:
+        recorded = manifest.read_bytes()
+    except FileNotFoundError:
+        raise ValueError(f"{suite} has no {manifest.name}, so no configure that verified "
+                         "its tarball extracted it; configure downloads it again") from None
+    except OSError as err:
+        raise ValueError(f"cannot read {manifest}: {err}") from err
+    try:
+        rendered = corpus_listing(suite, tarball_sha256)
+    except OSError as err:
+        raise ValueError(f"cannot list {suite}: {err}") from err
+    if b"\nunhashed " in rendered:
+        raise ValueError(f"{suite} holds a symbolic link or other non-regular entry, which "
+                         "no manifest configure writes holds; configure downloads it again")
+    if recorded == rendered:
+        return
+    held, found = recorded.splitlines(), rendered.splitlines()
+    where = next((i for i, (a, b) in enumerate(zip(held, found, strict=False)) if a != b),
+                 min(len(held), len(found)))
+    manifest_line, tree_line = (
+        lines[where].decode("utf-8", "replace") if where < len(lines) else "<end>"
+        for lines in (held, found))
+    raise ValueError(f"{suite} disagrees with {manifest.name} at line {where + 1}: the "
+                     f"manifest has {manifest_line!r} and the tree {tree_line!r}; "
+                     "configure downloads it again")
+
+
 def _test_corpus(directory: Path, model_root: Path) -> Path:
-    """Select the declared release even when older or newer donor caches coexist."""
-    suite = directory / "test" / test_corpus_version(model_root) / "riscv-tests"
+    """Select the declared release even when older or newer donor caches coexist, and
+    only a suite that is the verified extraction its manifest records."""
+    version = test_corpus_version(model_root)
+    suite = directory / "test" / version / "riscv-tests"
     if not suite.is_dir():
         raise ValueError(f"no downloaded riscv-tests at the pinned release: {suite}")
+    digest = test_corpus_digests(model_root, version).get("riscv-tests")
+    if digest is None:
+        raise ValueError(f"the model records no riscv-tests digest at release {version}")
+    verify_test_corpus(suite, digest)
     return suite
 
 
@@ -533,10 +640,18 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
     if code == 0 and build_identity(e) != identity:
         print("the inputs changed during the build; its evidence is stale", file=sys.stderr)
         code = 1
+    artifacts: dict[str, str] = {}
+    if code == 0:
+        # The sweep's inputs are read through `_test_corpus`, which holds the suite to
+        # the manifest configure wrote, so an unverified corpus fails the build here.
+        try:
+            artifacts = build_artifacts(build_dir, e.model)
+        except ValueError as err:
+            print(f"the build's evidence cannot be recorded: {err}", file=sys.stderr)
+            code = 1
     receipts.write(record_path, {
         "schema": 1, "run_id": run_id, "exit_code": code, "stages": stages,
-        "identity": identity,
-        "artifacts": build_artifacts(build_dir, e.model) if code == 0 else {},
+        "identity": identity, "artifacts": artifacts,
         "log_sha256": receipts.digest(log), "extra_options": extra,
     })
 
@@ -600,7 +715,7 @@ def _seed_tree(e: env.Environment, target: Path) -> None:
     # ask. On the primary worktree the two are the same path, which `!=` removes.
     donors = [d for d in (e.build_dir, e.primary_build_dir) if d != target and d.is_dir()]
     _seed_smt_cache(donors, target)
-    _seed_test_data(donors, target)
+    _seed_test_data(donors, target, e.model)
 
 
 def _seed_smt_cache(donors: list[Path], target: Path) -> None:
@@ -674,21 +789,61 @@ def _seed_cache_file(donors: list[Path], target: Path) -> None:
             return
 
 
-def _seed_test_data(donors: list[Path], target: Path) -> None:
-    """Copy the downloaded riscv-tests and nothing else.
+def _seed_test_data(donors: list[Path], target: Path, model_root: Path) -> None:
+    """Copy the declared release's downloaded suites, each with its manifest, and only
+    a copy that verifies.
 
-    The suite is recognized by holding a `riscv-tests` directory, which is the same
-    thing `sweep` and `trace-diff` glob for, rather than by being any directory under
-    `test/`: the rest of what is there is cmake's and ninja's, and a fresh tree that
-    finds a previous tree's `CMakeFiles` under it is being configured against a state
-    it did not produce.
+    A suite is a directory `test/<release>/<tarball>` whose tarball the model records a
+    digest for at the declared release, which is what configure downloads into and what
+    `sweep` and `trace-diff` read, rather than any directory under `test/`: the rest of
+    what is there is cmake's and ninja's, and a fresh tree that finds a previous tree's
+    `CMakeFiles` under it is being configured against a state it did not produce.
+    Another release's suites stay behind, since nothing reads them.
+
+    The copy is made beside its destination and held to the manifest copied with it
+    before it is moved into place, so a donor whose suite has no manifest, disagrees
+    with it, or changes during the copy seeds nothing, and configure downloads that
+    suite instead. A suite the target already holds is left to configure, which keeps
+    it only if it matches its manifest.
     """
-    for donor in donors:
-        for suite in sorted(donor.glob("test/*/riscv-tests")):
-            into = target / "test" / suite.parent.name
-            if not into.exists():
-                into.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copytree(suite.parent, into)
+    try:
+        version = test_corpus_version(model_root)
+        digests = test_corpus_digests(model_root, version)
+    except ValueError as err:
+        # configure refuses the same declaration, and says so where the build is read
+        print(f"== no test corpus seeded: {err}", file=sys.stderr)
+        return
+    for name, digest in sorted(digests.items()):
+        into = target / "test" / version / name
+        if into.exists() or into.is_symlink():
+            continue
+        for donor in donors:
+            suite = donor / "test" / version / name
+            if not suite.exists():
+                continue
+            try:
+                _copy_verified_suite(suite, into, digest)
+            except (OSError, ValueError) as err:
+                print(f"== {name} not seeded from {donor}: {err}", file=sys.stderr)
+                continue
+            break
+
+
+def _copy_verified_suite(suite: Path, into: Path, digest: str) -> None:
+    """Copy `suite` and its manifest to `into`, publishing only a copy that verifies."""
+    if not corpus_manifest(suite).is_file():
+        raise ValueError(f"{suite} has no {corpus_manifest(suite).name}")
+    into.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=f".{into.name}-seed-", dir=into.parent))
+    try:
+        copy = staging / into.name
+        shutil.copytree(suite, copy, symlinks=True)
+        shutil.copy2(corpus_manifest(suite), corpus_manifest(copy))
+        verify_test_corpus(copy, digest)
+        copy.rename(into)
+        corpus_manifest(copy).replace(corpus_manifest(into))
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
 
 
 def cmd_wait(e: env.Environment, args: argparse.Namespace) -> int:

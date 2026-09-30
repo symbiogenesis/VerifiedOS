@@ -13,6 +13,28 @@ set(TEST_DOWNLOAD_SHA256_2026-08-20_riscv-vector-tests-v128x64 "a9c91631d4bb3c9f
 set(TEST_DOWNLOAD_SHA256_2026-08-20_riscv-vector-tests-v256x64 "a4d150a38e5226bdd40bee9c15ba6d29d5474f25cc7206e1d57c15ae965e785f")
 set(TEST_DOWNLOAD_SHA256_2026-08-20_riscv-vector-tests-v512x64 "a968025ffd35fa9cb301ed9fb84c4108473ea9ec696f19e17b42a54857c92acf")
 
+# The listing an extracted suite is held to, which download_riscv_tests records
+# as <suite>.manifest beside a suite it has just extracted from a verified
+# tarball: the tarball's recorded SHA-256, then the SHA-256 and relative path of
+# every file in the suite, sorted by path. A symbolic link or other non-regular
+# entry is listed unhashed, and no manifest is written holding one.
+# tools/vos/cli/model.py renders the same listing for the readers that do not
+# configure.
+function(riscv_tests_listing SUITE TARBALL_NAME EXPECTED_SHA256 OUT_VAR)
+    set(listing "tarball ${TARBALL_NAME}.tar.gz sha256 ${EXPECTED_SHA256}\n")
+    file(GLOB_RECURSE entries LIST_DIRECTORIES false RELATIVE "${SUITE}" "${SUITE}/*")
+    list(SORT entries)
+    foreach(entry IN LISTS entries)
+        if(IS_SYMLINK "${SUITE}/${entry}" OR IS_DIRECTORY "${SUITE}/${entry}")
+            string(APPEND listing "unhashed ${entry}\n")
+        else()
+            file(SHA256 "${SUITE}/${entry}" digest)
+            string(APPEND listing "${digest}  ${entry}\n")
+        endif()
+    endforeach()
+    set(${OUT_VAR} "${listing}" PARENT_SCOPE)
+endfunction()
+
 # Function to download and extract test files
 function(download_riscv_tests DOWNLOAD_PATH TARBALL_NAME DOWNLOAD_URL)
     # Checked even when an extracted tree is already present, so an enabled
@@ -25,6 +47,25 @@ function(download_riscv_tests DOWNLOAD_PATH TARBALL_NAME DOWNLOAD_URL)
             "${TEST_DOWNLOAD_VERSION}: record the release asset's digest as "
             "TEST_DOWNLOAD_SHA256_${TEST_DOWNLOAD_VERSION}_${TARBALL_NAME} in "
             "${CMAKE_CURRENT_FUNCTION_LIST_FILE}")
+    endif()
+
+    # An extracted suite is kept only while its files are the ones its manifest
+    # records for this digest, so a suite extracted before the manifest existed,
+    # copied in without one, or changed since is removed and downloaded again.
+    set(suite "${DOWNLOAD_PATH}/${TARBALL_NAME}")
+    set(manifest "${suite}.manifest")
+    if(EXISTS "${suite}" OR IS_SYMLINK "${suite}")
+        set(recorded "")
+        set(listing "unverified")
+        if(EXISTS "${manifest}" AND IS_DIRECTORY "${suite}" AND NOT IS_SYMLINK "${suite}")
+            file(READ "${manifest}" recorded)
+            riscv_tests_listing("${suite}" "${TARBALL_NAME}" "${expected_sha256}" listing)
+        endif()
+        string(FIND "${listing}" "\nunhashed " unhashed)
+        if(NOT recorded STREQUAL listing OR NOT unhashed EQUAL -1)
+            message(STATUS "${TARBALL_NAME} has no matching ${TARBALL_NAME}.manifest, downloading again...")
+            file(REMOVE_RECURSE "${suite}" "${manifest}")
+        endif()
     endif()
 
     if(NOT EXISTS "${DOWNLOAD_PATH}/${TARBALL_NAME}")
@@ -59,6 +100,17 @@ function(download_riscv_tests DOWNLOAD_PATH TARBALL_NAME DOWNLOAD_URL)
         if(NOT extract_result EQUAL 0)
             message(FATAL_ERROR "Failed to extract ${TARBALL_NAME}")
         endif()
+
+        # Record what the verified tarball extracted to, for the check above.
+        riscv_tests_listing("${suite}" "${TARBALL_NAME}" "${expected_sha256}" listing)
+        string(FIND "${listing}" "\nunhashed " unhashed)
+        if(NOT unhashed EQUAL -1)
+            message(FATAL_ERROR
+                "${TARBALL_NAME}.tar.gz extracted a symbolic link or other "
+                "non-regular file, which ${TARBALL_NAME}.manifest cannot record")
+        endif()
+        file(WRITE "${manifest}.partial" "${listing}")
+        file(RENAME "${manifest}.partial" "${manifest}")
 
         # Clean up the tar.gz file
         file(REMOVE "${DOWNLOAD_PATH}/${TARBALL_NAME}.tar.gz")
