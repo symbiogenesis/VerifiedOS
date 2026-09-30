@@ -2,15 +2,15 @@
 """The elaborated reading's framing, parse and comparison, and its native controls.
 
 The host cases hold the parse against answers transcribed from the pinned Rocq 9.3.0,
-each beside the shape it must refuse. The toolchain case compiles a two-module fixture
-with the proof gate's flags and holds the comparison to naming exactly the change each
+each beside the shape it must refuse, and hold the command to reading only a compile
+that passed. The toolchain case reads a two-module fixture, which the command compiles
+with the proof gate's flags, and holds the comparison to naming exactly the change each
 control makes to the leaf module, and nothing for the edits that change no meaning.
 """
 
 import contextlib
 import io
 import json
-import os
 import shutil
 import subprocess
 import tempfile
@@ -344,22 +344,26 @@ def _default_objects_need_a_passing_receipt() -> None:
         (objects / "A.v").write_text("Definition a := 0.\n", encoding="utf-8")
         (objects / "A.vo").write_bytes(b"compiled")
         receipt = {"status": "passed", "kernel_recheck": "passed",
-                   "inputs": receipts.snapshot(work, [objects / "A.v"]),
+                   "inputs": {**receipts.snapshot(work, [objects / "A.v"]),
+                              "tools/vos/cli/proofs.py": _SHA},
                    "outputs": receipts.snapshot(work, [objects / "A.vo"])}
         with patch.object(proofs_cli, "workspace", return_value=work):
             receipts.write(work / proofs_cli.RECEIPT, receipt)
-            ensure(cli.gate_objects(Path("root")) == objects, "a passing compile is read")
+            ensure(cli.gate_objects(Path("root")) == (objects, cli._snapshot(objects)),
+                   "a passing compile is read, bound to the staged files the receipt names")
             for label, change in (
                     ("a failed run", {"status": "failed"}),
-                    ("another compile's objects", {"outputs": {"proofs/A.vo": _SHA}}),
-                    ("another source", {"inputs": {"proofs/A.v": _SHA}})):
+                    ("a receipt with no outputs", {"outputs": None}),
+                    ("a receipt with no staged source", {"inputs": {}, "outputs": {}})):
                 receipts.write(work / proofs_cli.RECEIPT, {**receipt, **change})
                 _refused(lambda: cli.gate_objects(Path("root")), f"{label} was read")
+            receipts.write(work / proofs_cli.RECEIPT, [receipt])
+            _refused(lambda: cli.gate_objects(Path("root")), "a receipt that is no object")
             (work / proofs_cli.RECEIPT).unlink()
             _refused(lambda: cli.gate_objects(Path("root")), "a lane with no receipt was read")
 
 
-def _modules_need_current_objects() -> None:
+def _modules_need_their_objects() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-reading-modules-") as temporary:
         objects = Path(temporary)
         for stem in ("A", "B"):
@@ -368,12 +372,106 @@ def _modules_need_current_objects() -> None:
         ensure(cli.modules_in(objects) == ["A", "B"], "every source in the directory")
         ensure(cli.modules_in(objects, ["B", "B"]) == ["B"], "or the ones named")
         _refused(lambda: cli.modules_in(objects, ["C"]), "a module with no source was read")
-        stale = objects / "B.vo"
-        os.utime(stale, (0, 0))
-        _refused(lambda: cli.modules_in(objects), "an object older than its source was read")
-        stale.unlink()
+        (objects / "B.vo").unlink()
         _refused(lambda: cli.modules_in(objects), "a source with no object was read")
         _refused(lambda: cli.modules_in(objects / "empty"), "an empty directory was read")
+
+
+def _prover_stub() -> tuple[str, str]:
+    return "The Rocq Prover, version 9.3.0", _SHA
+
+
+def _lane_scratch(_root: Path, prefix: str) -> tempfile.TemporaryDirectory[str]:
+    return tempfile.TemporaryDirectory(prefix=f"vos-reading-{prefix}")
+
+
+def _record_reads_only_the_compile_that_passed() -> None:
+    """A directory is read only while it holds the bytes its compile was recorded with."""
+    def read(_objects: Path, _scratch: Path, module: str, _bound: int) -> dict[str, Any]:
+        return {f"{module}.a": _entry(f"{module}.a")}
+
+    with (tempfile.TemporaryDirectory(prefix="vos-reading-record-") as temporary,
+          patch.object(cli, "_prover", side_effect=_prover_stub),
+          patch.object(cli, "_scratch", side_effect=_lane_scratch),
+          patch.object(cli, "read_module", side_effect=read),
+          contextlib.redirect_stdout(io.StringIO())):
+        objects = Path(temporary)
+        (objects / "A.v").write_text("Definition a := 0.\n", encoding="utf-8")
+        (objects / "A.vo").write_bytes(b"compiled")
+        passed = cli._snapshot(objects)
+        reading = cli.record(Path("root"), objects, passed, None, 1)
+        ensure(reading["provenance"] == {"sources": {"A.v": passed["A.v"]},
+                                         "objects": {"A.vo": passed["A.vo"]}},
+               f"the provenance is the compile's own digests: {reading['provenance']}")
+        for label, digests in (
+                ("a stale object", {**passed, "A.vo": _SHA}),
+                ("a changed source", {**passed, "A.v": _SHA}),
+                ("a file the compile did not make", {"A.v": passed["A.v"]})):
+            _refused(lambda digests=digests: cli.record(Path("root"), objects, digests, None, 1),
+                     f"{label} was read")
+
+
+def _fake_compiler(commands: list[list[str]], said: dict[str, tuple[int, str]],
+                   ) -> Callable[..., subprocess.CompletedProcess[str]]:
+    """A prover that writes each object it is asked for, or answers as `said` scripts."""
+    def run(command: list[str], *, cwd: Path, **_: object) -> subprocess.CompletedProcess[str]:
+        name = command[-1]
+        commands.append(command)
+        code, text = said.get(name, (0, ""))
+        if not code:
+            (Path(cwd) / name).with_suffix(".vo").write_text(f"compiled {name}", encoding="utf-8")
+        return subprocess.CompletedProcess(command, code, "", text)
+    return run
+
+
+def _sources_compile_as_the_gate_compiles() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-reading-sources-") as temporary:
+        folder = Path(temporary)
+
+        def attempt(sources: dict[str, str], said: dict[str, tuple[int, str]] | None = None,
+                    ) -> tuple[list[str], list[str], dict[str, str] | str]:
+            """The sources compiled, the first command, and the digests or the refusal."""
+            for old in folder.iterdir():
+                shutil.rmtree(old)
+            given, objects = folder / "given", folder / "objects"
+            given.mkdir()
+            objects.mkdir()
+            for name, text in sources.items():
+                (given / name).write_text(text, encoding="utf-8")
+            # A stale object beside the sources, which the compile must never carry over.
+            (given / "B.vo").write_text("stale", encoding="utf-8")
+            commands: list[list[str]] = []
+            with (patch.object(env, "rocq_command", return_value=["rocq", "c"]),
+                  patch.object(cli.subprocess, "run",
+                               side_effect=_fake_compiler(commands, said or {}))):
+                try:
+                    result: dict[str, str] | str = cli.compile_sources(given, objects, 2)
+                except proofreading.ReadingError as error:
+                    result = str(error)
+            return ([command[-1] for command in commands], commands[0] if commands else [],
+                    result)
+
+        sources = {"B.v": "Require Import A.\nDefinition b := a.\n",
+                   "A.v": "Definition a := 0.\n"}
+        compiled, command, result = attempt(sources)
+        ensure(compiled == ["A.v", "B.v"], f"the gate's dependency order: {compiled}")
+        ensure(command[2:] == ["-q", "-Q", str(folder / "objects"), "", *proofs_cli.STRICT,
+                               "A.v"], f"the gate's flags over the copies: {command}")
+        ensure(isinstance(result, dict) and sorted(result) == ["A.v", "A.vo", "B.v", "B.vo"]
+               and (folder / "objects" / "B.vo").read_text(encoding="utf-8")
+               == "compiled B.v", f"the copies and the objects compiled from them: {result}")
+        for label, changed, said in (
+                ("a pinned setting reset", {"A.v": 'Set Warnings "-all".\n'}, None),
+                ("a module type", {"A.v": "Module Type T.\nEnd T.\n"}, None),
+                ("a Require cycle", {"A.v": "Require Import B.\n"}, None),
+                ("a diagnostic", {}, {"A.v": (0, "Warning: something")}),
+                ("a failed compile", {}, {"A.v": (1, "")})):
+            compiled, _, result = attempt({**sources, **changed}, said)
+            ensure(isinstance(result, str) and "B.v" not in compiled
+                   and not (folder / "objects" / "B.vo").exists(),
+                   f"{label} was compiled past: {compiled} {result}")
+        _, _, result = attempt({})
+        ensure(isinstance(result, str), "a directory with no source was compiled")
 
 
 # The native controls' fixture: a base module the leaf Requires, and a leaf whose
@@ -457,28 +555,28 @@ def _compile(folder: Path, name: str) -> None:
 def _native_controls() -> None:
     """The pinned prover over the fixture, each control against the base reading.
 
-    The whole fixture is read twice through the command, which must write the same
-    bytes both times. Each control then recompiles the leaf against the base module's
-    unchanged object and reads the leaf alone, two controls at a time, which is the
-    guest's budget of prover processes.
+    The whole fixture is read twice through the command, which compiles its sources
+    each time and must write the same bytes both times. Each control then changes the
+    leaf's source and reads the leaf alone, two controls at a time, which is the guest's
+    budget of prover processes. The base fixture's own objects lie beside every changed
+    source, newer than it, which is the directory a reading of objects rather than of
+    sources would take the base's meaning from.
     """
     root = Path(__file__).resolve().parents[2]
-    lane = env.lane_root(env.lane_of(root)) / "proof-reading"
-    lane.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="native-test-", dir=lane) as temporary:
+    with cli._scratch(root, "native-test-") as temporary:
         work = Path(temporary)
         base = work / "base"
         base.mkdir()
         (base / "Base.v").write_text(_BASE, encoding="utf-8")
-        _compile(base, "Base.v")
         (base / "Leaf.v").write_text(_LEAF, encoding="utf-8")
-        _compile(base, "Leaf.v")
         readings = [work / "first.json", work / "second.json"]
         for target in readings:
             with contextlib.redirect_stdout(io.StringIO()) as said:
-                code = cli.main(["record", "--objects", str(base), "--out", str(target),
+                code = cli.main(["record", "--sources", str(base), "--out", str(target),
                                  "--jobs", "2"])
             ensure(code == 0, f"the base reading was refused: {said.getvalue()}")
+        _compile(base, "Base.v")
+        _compile(base, "Leaf.v")
         ensure(readings[0].read_bytes() == readings[1].read_bytes(),
                "two readings of one compile differ")
         with contextlib.redirect_stdout(io.StringIO()) as said:
@@ -496,11 +594,11 @@ def _native_controls() -> None:
                 return f"{label}: the control no longer applies to the fixture"
             variant = work / label
             variant.mkdir()
-            for name in ("Base.v", "Base.vo"):
-                shutil.copyfile(base / name, variant / name)
+            shutil.copyfile(base / "Base.v", variant / "Base.v")
             (variant / "Leaf.v").write_text(text, encoding="utf-8")
-            _compile(variant, "Leaf.v")
-            candidate = cli.record(root, variant, ["Leaf"], 1)
+            for name in ("Base.vo", "Leaf.vo"):
+                shutil.copyfile(base / name, variant / name)
+            candidate = cli.record_sources(root, variant, ["Leaf"], 1)
             found = {(difference.subject, difference.what)
                      for difference in proofreading.compare(leaf, candidate)}
             return "" if found == expected else (
@@ -526,6 +624,9 @@ def cases() -> list[Case]:
         Case("module-reading-asks-bodies-where-they-belong",
              _module_reading_asks_bodies_only_where_they_belong),
         Case("default-objects-need-a-passing-receipt", _default_objects_need_a_passing_receipt),
-        Case("modules-need-current-objects", _modules_need_current_objects),
+        Case("modules-need-their-objects", _modules_need_their_objects),
+        Case("record-reads-only-the-compile-that-passed",
+             _record_reads_only_the_compile_that_passed),
+        Case("sources-compile-as-the-gate-compiles", _sources_compile_as_the_gate_compiles),
         Case("native-reading-controls", _native_controls, lane="toolchain"),
     ]
