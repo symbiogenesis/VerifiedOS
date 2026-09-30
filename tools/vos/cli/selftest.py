@@ -1990,7 +1990,8 @@ CASES: list[Case] = [
                   lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
     # The same row's block half, seeded at its owner rather than at the package: the
     # contract's ACK offset moves and the package still agrees with its index and its
-    # gitlink, so only the host's re-derivation of the BLK_ lines can see it.
+    # gitlink, so only the host's rendering of the package from its block owners can
+    # see it.
     ("K-88", "a block-contract register offset moved without regenerating the "
              "device-register package",
      _literal("interfaces/block-device-contract.md", "| `0x38` | `ACK` |",
