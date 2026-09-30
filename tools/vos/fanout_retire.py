@@ -320,6 +320,38 @@ def _owned_logs(logs: Path, lane: str, peers: list[str]) -> tuple[list[Path], li
 _DIRECTORY_LOCKS = ("proof-gate",)
 
 
+def _native_locks(targets: list[tuple[Path, Path]], source: Path, *, oracle: bool) -> set[Path]:
+    """The locks `retain_native` holds through the move of `targets`, selected afresh."""
+    lock_paths: set[Path] = set()
+    for before, _ in targets:
+        # A root's own descriptor: the lane root, a log directory, or a log file.
+        lock_paths.add(before)
+        if before == source:
+            # Named rather than walked: the walk drops an internal link, and the proof
+            # gate flocks the link's resolved target under a name not in this list, so
+            # the link itself is selected, and refused as a redirecting lock.
+            lock_paths.update(source / name for name in _DIRECTORY_LOCKS
+                              if (source / name).exists() or (source / name).is_symlink())
+        if before.is_dir():
+            lock_paths.update(path for path in _tree_safe(before) if path.name.endswith(".lock"))
+        adjacent = env._lock_path(before)
+        if adjacent.exists() or adjacent.is_symlink():
+            lock_paths.add(adjacent)
+    # The oracle is shared across lanes; its owner locks the shared build tree,
+    # whereas its lane-specific log must travel with this lane. The tree is named for
+    # the oracle pin under a directory keyed by the Sail edition, and the log's name
+    # carries neither, so a log another checkout wrote is covered only by holding the
+    # lock of every tree of the family, under every edition and at the unkeyed
+    # spelling earlier checkouts locked, whichever pin it names.
+    if oracle:
+        family = env.ORACLE_TREE.rsplit("-", 1)[0]
+        for oracle_lock in (*source.parent.glob(f"sail-*/{family}-*.lock"),
+                            *source.parent.glob(f"{family}-*.lock")):
+            if oracle_lock.exists() or oracle_lock.is_symlink():
+                lock_paths.add(oracle_lock)
+    return lock_paths
+
+
 def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
                   peers: list[str] | None = None) -> dict[str, object]:
     """Run only on the native guest; retain outputs while holding their live locks.
@@ -333,9 +365,13 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
     directory is opened, so the size of a tree (a private opam root holds tens of
     thousands of directories) never meets the descriptor limit. A lock that cannot be
     opened or taken, including for want of descriptors, and a move the filesystem
-    rejects refuse naming the path. Exact peer-colliding and unknown log layouts
-    remain in place with explicit deferred evidence. No source path is recursively
-    deleted.
+    rejects refuse naming the path. With every selected lock held the selection is
+    repeated, and a lock that appeared or vanished since refuses. Residual: a producer
+    that takes a new lock after that repetition and before the rename is not seen,
+    and one that opens its lock after the rename recreates the lane root, because
+    `env._open_lock` and `proofs._hold` create missing parents. Exact peer-colliding
+    and unknown log layouts remain in place with explicit deferred evidence. No
+    source path is recursively deleted.
     """
     if sys.platform == "win32":
         raise RetirementError("native output retention must run through the guest")
@@ -363,36 +399,12 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
     selected_logs, deferred = _owned_logs(logs, lane, peers)
     targets = [(source, destination / "lane")] if source.exists() else []
     targets.extend((path, destination / "logs" / path.relative_to(logs)) for path in selected_logs)
-    lock_paths: set[Path] = set()
     for before, after in targets:
         _plain(before)
         if before.is_mount() or after.exists() or after.is_symlink():
             raise RetirementError(f"native output or retained destination needs review: {before}, {after}")
-        # A root's own descriptor: the lane root, a log directory, or a log file.
-        lock_paths.add(before)
-        if before.is_dir():
-            lock_paths.update(path for path in _tree_safe(before) if path.name.endswith(".lock"))
-        if before == source:
-            # Named rather than walked: the walk drops an internal link, and the proof
-            # gate flocks the link's resolved target under a name not in this list, so
-            # the link itself is selected, and refused below as a redirecting lock.
-            lock_paths.update(source / name for name in _DIRECTORY_LOCKS
-                              if (source / name).exists() or (source / name).is_symlink())
-        adjacent = env._lock_path(before)
-        if adjacent.exists() or adjacent.is_symlink():
-            lock_paths.add(adjacent)
-    # The oracle is shared across lanes; its owner locks the shared build tree,
-    # whereas its lane-specific log must travel with this lane. The tree is named for
-    # the oracle pin under a directory keyed by the Sail edition, and the log's name
-    # carries neither, so a log another checkout wrote is covered only by holding the
-    # lock of every tree of the family, under every edition and at the unkeyed
-    # spelling earlier checkouts locked, whichever pin it names.
-    if logs / f"oracle-build-{lane}.log" in selected_logs:
-        family = env.ORACLE_TREE.rsplit("-", 1)[0]
-        for oracle_lock in (*source.parent.glob(f"sail-*/{family}-*.lock"),
-                            *source.parent.glob(f"{family}-*.lock")):
-            if oracle_lock.exists() or oracle_lock.is_symlink():
-                lock_paths.add(oracle_lock)
+    oracle = logs / f"oracle-build-{lane}.log" in selected_logs
+    lock_paths = _native_locks(targets, source, oracle=oracle)
     with contextlib.ExitStack() as stack:
         for path in sorted(lock_paths):
             _plain(path)
@@ -409,6 +421,13 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
             except OSError as exc:
                 raise RetirementError(f"native output lock cannot be taken: {path} "
                                       f"({exc.strerror or exc}; {len(lock_paths)} locks needed)") from exc
+        # A producer that created and took a lock after the first selection is not
+        # among those held: with every selected lock held, the selection is repeated
+        # and a lock that appeared or vanished meanwhile refuses.
+        changed = lock_paths ^ _native_locks(targets, source, oracle=oracle)
+        if changed:
+            raise RetirementError("native output locks changed while retirement took them: "
+                                  + ", ".join(str(path) for path in sorted(changed)))
         for before, after in targets:
             _plain(before)
             _plain(after)

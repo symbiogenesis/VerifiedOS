@@ -257,6 +257,44 @@ def _native_linked_proof_workspace() -> None:
         ensure(target.is_dir() and (lane / "proof-gate").is_symlink(), "a linked workspace stays in place")
 
 
+def _lock_taken_late(name: str) -> None:
+    """Create and take the lane's `name` just after the selection first walks the lane."""
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        lane = root / "build" / "lane-worker"
+        lane.mkdir(parents=True)
+        (lane / "result.bin").write_bytes(b"proof")
+        late, walk = lane / name, retire._tree_safe
+        held: list[int] = []
+
+        def racing(path: Path, *, checkout: bool = False) -> list[Path]:
+            found = walk(path, checkout=checkout)
+            if path == lane and not held:
+                if late.suffix == ".lock":
+                    late.write_text("", encoding="utf-8")
+                else:
+                    late.mkdir()
+                held.append(os.open(late, os.O_RDONLY))
+                _hold(held[-1])
+            return found
+
+        try:
+            with patch.object(retire, "_tree_safe", side_effect=racing):
+                _refused(lambda: retire.retain_native("worker", str(lane), str(root / "logs"), "6" * 20),
+                         f"native output locks changed while retirement took them: {late}")
+        finally:
+            for fd in held:
+                os.close(fd)
+        ensure((lane / "result.bin").exists(), f"a lane whose {name} was taken late stays in place")
+
+
+def _native_locks_taken_late() -> None:
+    """A producer that creates and takes a lock once the selection has walked the lane,
+    a `*.lock` file or the proof workspace, is seen by the selection repeated under the
+    held locks, and the lane stays in place."""
+    for name in ("late.lock", "proof-gate"):
+        _lock_taken_late(name)
+
+
 def _venv_links_and_target_locks() -> None:
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
         lane = root / "build" / "lane-worker"
@@ -664,6 +702,7 @@ def cases() -> list[Case]:
             Case("native-outputs-and-lock", _native_outputs_and_lock, lane="guest"),
             Case("native-directory-lock", _native_directory_lock, lane="guest"),
             Case("native-linked-proof-workspace", _native_linked_proof_workspace, lane="guest"),
+            Case("native-locks-taken-late", _native_locks_taken_late, lane="guest"),
             Case("venv-links-and-target-locks", _venv_links_and_target_locks, lane="guest"),
             Case("native-exact-log-ownership", _native_exact_log_ownership, lane="guest"),
             Case("native-log-directories-and-companions", _native_log_directories_and_companions, lane="guest"),
