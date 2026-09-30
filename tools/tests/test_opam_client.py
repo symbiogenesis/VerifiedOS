@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """The opam client's owner reads a root's repositories from its own files, in each
-layout a reviewed client leaves them, refuses to vouch for an incomplete reading, and
-installs the client only as the reviewed bytes and never over another file.
+layout a reviewed client leaves them, refuses to vouch for an incomplete reading, names
+what a standing root lacks of the one its root-creation route makes, and installs the
+client only as the reviewed bytes and never over another file.
 
 Roots are written here in opam's layouts rather than made by a client, so the cases run
 on any lane: a repository's metadata unpacked in a directory, tarred under a directory
@@ -136,6 +137,56 @@ def _initialized_format_is_the_clients() -> None:
             raise AssertionError("a root that states no format was accepted")
 
 
+def _root_creation_is_the_owners_route() -> None:
+    """`CREATE_ROOT` initializes a bare root on the first owned repository, with no shell
+    setup and no opamrc, and adds every other one unselected, in the owner's order."""
+    (default, url), *others = opam_client.OPAM_REPOSITORIES
+    want = (("opam", "init", "--bare", "--no-setup", "--no-opamrc", "-y", default, url),
+            *(("opam", "repository", "add", name, address, "--dont-select", "-y")
+              for name, address in others))
+    ensure(want == opam_client.CREATE_ROOT,
+           f"the route is derived from OPAM_REPOSITORIES, got {opam_client.CREATE_ROOT}")
+
+
+def _root_gaps_name_what_a_root_lacks() -> None:
+    """A root stands where its `config` does, and one that stands is complete only when
+    it states a format and carries every owned repository at its URL."""
+    (default, url), *others = opam_client.OPAM_REPOSITORIES
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        absent = Path(td) / "absent"
+        ensure(not opam_client.root_exists(absent), "a missing directory is no root")
+        absent.mkdir()
+        ensure(not opam_client.root_exists(absent), "a directory without config is no root")
+        for layout in ("flat", "nested"):
+            root = Path(td) / layout
+            opam_root(root, layout)
+            ensure(opam_client.root_exists(root) and opam_client.root_gaps(root) == [],
+                   f"a complete {layout} root has no gaps: {opam_client.root_gaps(root)}")
+        unformatted = Path(td) / "unformatted"
+        opam_root(unformatted, "flat")
+        (unformatted / "config").write_bytes(b'opam-version: "2.0"\n')
+        ensure(opam_client.root_gaps(unformatted) == ["states no format"],
+               f"a config naming no format is a gap: {opam_client.root_gaps(unformatted)}")
+        partial = Path(td) / "partial"
+        opam_root(partial, "flat", configured=((default, url),))
+        missing = ", ".join(f"{name} {address}" for name, address in others)
+        ensure(opam_client.root_gaps(partial) == [f"lacks {missing}"],
+               f"a missing repository is named: {opam_client.root_gaps(partial)}")
+        moved = Path(td) / "moved"
+        opam_root(moved, "flat", configured=((default, url + "/elsewhere"), *others))
+        ensure(opam_client.root_gaps(moved) == [f"lacks {default} {url}"],
+               f"a repository at another URL is not the owned one: "
+               f"{opam_client.root_gaps(moved)}")
+        bare = Path(td) / "bare"
+        bare.mkdir()
+        (bare / "config").write_bytes(b"")
+        ensure(opam_client.root_gaps(bare) == [
+                   "states no format",
+                   "lacks " + ", ".join(f"{name} {address}"
+                                        for name, address in opam_client.OPAM_REPOSITORIES)],
+               f"an empty root lacks everything: {opam_client.root_gaps(bare)}")
+
+
 def _install_verifies_and_never_replaces() -> None:
     """The one install route fetches the reviewed asset against its reviewed digest,
     leaves it executable, and refuses a different file already at the destination."""
@@ -181,5 +232,7 @@ def cases() -> list[Case]:
         Case("reports-what-it-could-not-read", _reports_what_it_could_not_read),
         Case("initialized-root-is-complete", _initialized_root_is_complete),
         Case("initialized-format-is-the-clients", _initialized_format_is_the_clients),
+        Case("root-creation-is-the-owners-route", _root_creation_is_the_owners_route),
+        Case("root-gaps-name-what-a-root-lacks", _root_gaps_name_what_a_root_lacks),
         Case("install-verifies-and-never-replaces", _install_verifies_and_never_replaces),
     ]
