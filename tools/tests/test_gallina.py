@@ -207,6 +207,12 @@ def _sentences_end_outside_strings() -> None:
         "Check m.(f). Check Nat.add.\nQed.": ["Check m.(f)", "Check Nat.add", "Qed"],
         "a(* . *)b. c": ["a b", "c"],
         '(* "x. y" *) Lemma l : True.': ["Lemma l : True"],
+        # Rocq reads `..` as a token that ends nothing and `...` as a sentence end.
+        'Notation "[ x ; .. ; y ]" := (cons x .. (cons y nil) ..).\nCheck [ 1 ; 2 ].': [
+            'Notation "[ x ; .. ; y ]" := (cons x .. (cons y nil) ..)', "Check [ 1 ; 2 ]"],
+        "Lemma l : (∀.. (x : TeleO), True) -> P. Qed.": [
+            "Lemma l : (∀.. (x : TeleO), True) -> P", "Qed"],
+        "Proof with auto. split... Qed.": ["Proof with auto", "split..", "Qed"],
     }
     for source, expected in fixtures.items():
         got = proofs.sentences(source)

@@ -32,11 +32,15 @@ from types import MappingProxyType
 REQUIRE = re.compile(r"^(?:From\s+(\S+)\s+)?Require(?:\s+(?:Import|Export))?\s+(.+)$")
 
 # A Rocq sentence ends at a full stop followed by whitespace, which is what keeps
-# `m.(field)` and `Nat.add` inside their sentence. A full stop inside a string literal
-# ends nothing, so the sentence split reads each string whole first, an unterminated one
-# to the end as strip_comments reads it; a doubled quote inside one is two adjacent
-# strings to this reading and one string to Rocq's, which covers the same characters.
-SENTENCE_END = re.compile(r"\.(?=\s|$)")
+# `m.(field)` and `Nat.add` inside their sentence. Rocq's lexer reads `...` as a sentence
+# end too, but `..` as a token that ends nothing, so the second of exactly two full stops
+# ends nothing here either: a recursive notation's `x .. y` keeps its declaration, and a
+# library token ending in `..`, stdpp's telescope binder `∀..` among them, keeps its
+# statement. A full stop inside a string literal ends nothing, so the sentence split
+# reads each string whole first, an unterminated one to the end as strip_comments reads
+# it; a doubled quote inside one is two adjacent strings to this reading and one string
+# to Rocq's, which covers the same characters.
+SENTENCE_END = re.compile(r"(?<!(?<!\.)\.)\.(?=\s|$)")
 _SENTENCE_TOKEN = re.compile(r'"[^"]*(?:"|\Z)|' + SENTENCE_END.pattern)
 _COMMENT_TOKEN = re.compile(r'\(\*|\*\)|"')
 

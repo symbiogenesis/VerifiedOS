@@ -312,6 +312,18 @@ def _a_comment_separates_a_decoration_from_its_head() -> None:
     ensure(found.unbuilt == ["Plan"], f"a section variable after a comment was lost: {found!r}")
 
 
+def _a_token_ending_in_two_full_stops_ends_no_statement() -> None:
+    """stdpp's telescope binder `∀..` is one token to Rocq's lexer, and `..` ends no
+    sentence there; the pinned Rocq 9.3.0 compiles this statement under the gate's flags
+    with stdpp's telescopes imported and its scope open, so the Machine after the binder
+    is quantified."""
+    statement = ("Lemma counted : (∀.. (x : TeleO), True) -> forall m : Machine, "
+                 "unit_count m = unit_count m.\nProof. intros _ m. reflexivity. Qed.\n")
+    found = gate.scan_witnesses(_MACHINE + statement)
+    ensure(found.quantified == {"Machine": 1} and found.unbuilt == ["Machine"],
+           f"a statement after a telescope binder quantified nothing, got {found!r}")
+
+
 def _a_tight_control_prefix_still_decorates() -> None:
     """Rocq's lexer needs no blank after a control word before `#[`, nor around a quoted
     Redirect or Profile target: the pinned Rocq 9.3.0 compiles `Time#[local]Lemma` and,
@@ -437,6 +449,8 @@ def cases() -> list[Case]:
         Case("comment-separates-decoration-from-head",
              _a_comment_separates_a_decoration_from_its_head),
         Case("tight-control-prefix-still-decorates", _a_tight_control_prefix_still_decorates),
+        Case("two-full-stops-end-no-statement",
+             _a_token_ending_in_two_full_stops_ends_no_statement),
         Case("decorated-witness-is-no-witness", _a_decorated_witness_is_no_witness),
         Case("companion-witness-inhabits", _a_companion_witness_inhabits_an_imported_record),
         Case("comment-is-not-read", _a_comment_is_not_read),
