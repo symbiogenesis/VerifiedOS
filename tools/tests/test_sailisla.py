@@ -193,10 +193,11 @@ def _provision_uses_fresh_prefix() -> None:
         base = environment.lane_root / "sail-isla"
         stale = base / "sail-prefix/lib/superseded/META"
         stale_plugin = base / "sail-prefix/share/libsail/plugins/superseded.cmxs"
+        stale_driver = base / "build/driver/build.rs"
         stamp = base / "provision.json"
 
         def plant() -> None:
-            for path in (stale, stale_plugin, stamp):
+            for path in (stale, stale_plugin, stale_driver, stamp):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("superseded", encoding="utf-8")
 
@@ -239,6 +240,8 @@ def _provision_uses_fresh_prefix() -> None:
                "provisioning must install the current Sail into its prefix")
         ensure(not stale.exists() and not stale_plugin.exists(),
                "nothing a superseded build installed may stay on OCAMLPATH or in the plugin site")
+        ensure(not stale_driver.exists() and (base / "build/driver/Cargo.toml").is_file(),
+               "a build script a superseded driver recipe had must not reach the driver build")
         ensure(json.loads(stamp.read_text(encoding="utf-8"))["assets_sha256"] == "a" * 64,
                "the stamp must describe the rebuilt prefix")
         plant()

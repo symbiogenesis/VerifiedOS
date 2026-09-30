@@ -411,8 +411,12 @@ def provision(e: env.Environment, jobs: int = 2) -> Stamp:
         runner.run(["cargo", "build", "--release", "--locked", "--bin",
                     "isla-execute-function", "-j", str(jobs)], isla_build,
                    {**process, "CARGO_TARGET_DIR": str(base / "target-isla")})
+        # A fresh copy: a file only a superseded driver recipe had, such as a build
+        # script, would still reach Cargo. The build cache has its own target directory.
         driver = base / "build/driver"
-        shutil.copytree(e.root / ASSETS / "driver", driver, dirs_exist_ok=True)
+        if driver.exists():
+            shutil.rmtree(driver)
+        shutil.copytree(e.root / ASSETS / "driver", driver)
         runner.run(["cargo", "build", "--release", "--locked", "-j", str(jobs)], driver,
                    {**process, "CARGO_TARGET_DIR": str(base / "target-testgen")})
         stamp: Stamp = {"version": 1, "assets_sha256": asset_digest(e.root),
