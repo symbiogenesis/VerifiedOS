@@ -35,6 +35,7 @@ def main() -> int:
     os.environ["PATH"] = str(args.opam_bin) + os.pathsep + os.environ.get("PATH", "")
     sys.dont_write_bytecode = True
     sys.path.insert(0, str(args.repo / "tools"))
+    from vos import acvp
     from vos.mutate import COQ, OPERATORS, Operator, mutants, regions
 
     extra = (
@@ -125,7 +126,9 @@ def main() -> int:
                     else:
                         queries, expected = [], []
                         for family in ["ML-KEM-keyGen-FIPS203", "ML-KEM-encapDecap-FIPS203"]:
-                            data = json.loads((args.baseline / "vectors/gen-val/json-files" / family / "internalProjection.json").read_text())
+                            # The baseline campaign's download, held to its pinned digest.
+                            relative = acvp.vector_path(family)
+                            data = json.loads(acvp.read(relative, args.baseline / "vectors" / relative))
                             for group in data["testGroups"]:
                                 if group["parameterSet"] != "ML-KEM-1024":
                                     continue
