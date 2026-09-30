@@ -1639,18 +1639,11 @@ CASES: list[Case] = [
     # A gitlink moved with an artifact derived through it left behind, seeded as the
     # recorded commit's first digit changed so the index, the licence record and every
     # restating sentence still agree. The registry's line names no upstream, so K-81
-    # cannot see the first case and only this rule holds it. The second is read by
-    # K-81 too, the stamp naming its upstream, and needs its own case because a rule
-    # narrowed to the registry would still kill the first. Both anchor on the line's
-    # own words rather than on the pinned id, so a pin advance does not unseed them.
+    # cannot see it and only this rule holds it. The case anchors on the line's own
+    # words rather than on the pinned id, so a pin advance does not unseed it.
     ("K-116", "a width-transform registry naming a commit the imported core's gitlink "
               "does not carry",
      _first_match("tools/rtl-width-transforms.json", r'^(  "pin": ")([0-9a-f])',
-                  lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
-    ("K-116", "a device-register package recording an owner commit the Mocha gitlink "
-              "does not carry",
-     _first_match("rtl/vos_device_regs_pkg.sv",
-                  r"^(// UART owner revision: upstream/mocha at )([0-9a-f])",
                   lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
@@ -1901,6 +1894,17 @@ CASES: list[Case] = [
     ("K-88", "the Fiat wrapper changed without regenerating its emission",
      _literal("tools/fiat_crypto_emit.py", "Inclusion wrapper added by VerifiedOS",
               "Inclusion wrapper revised by VerifiedOS")),
+    # The device-register package's guest row, seeded at its recorded owner commit with
+    # the first digit changed, so the index, the licence record and every restating
+    # sentence still agree. The row keeps the header out of K-81's window, so no other
+    # rule reads the stamp. Sandboxes share one index, so the seed also moves the working
+    # tree off the staged blob; the row's unit case isolates the gitlink comparison. The
+    # anchor is the line's own words, so a pin advance does not unseed it.
+    ("K-88", "a device-register package recording an owner commit the Mocha gitlink "
+             "does not carry",
+     _first_match("rtl/vos_device_regs_pkg.sv",
+                  r"^(// UART owner revision: upstream/mocha at )([0-9a-f])",
+                  lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
     # The *emitter* is edited rather than a configuration, because that is the direction
     # this defect arrives from: a window is declared once and a node for it is written
     # once, and what goes wrong afterwards is the node, either never written or written
