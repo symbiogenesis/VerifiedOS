@@ -14,7 +14,7 @@ from collections import defaultdict
 from typing import TypedDict
 
 from vos import proofcites
-from vos.proofs import SENTENCE_END, sentences, strip_comments
+from vos.proofs import SENTENCE_END, sentences
 
 MARKER = "VOS_PROOF_AUDIT|"
 EMPTY_BLACKLIST = "Current search blacklist :  is empty."
@@ -60,15 +60,21 @@ PINNED_SETTINGS = ("Warnings", "Default Goal Selector", "Bullet Behavior",
 # a declaration after them, in effect beyond the proof. Then everything Rocq 9.3's
 # vernac_control grammar lets precede a command: control flags, quoted attributes and
 # legacy attributes, Program among them, plus the Export locality of option commands.
-# A lexical reading anchored after them sees the command however it is decorated. An
-# attribute's quoted value is read whole, since a bracket inside it closes nothing; an
-# unquoted bracket is Rocq's syntax error, and stopping there keeps each read linear.
+# A lexical reading anchored after them sees the command however it is decorated. Rocq's
+# lexer needs no blank after a word before `#[` or a string, nor after a string: the
+# pinned Rocq 9.3.0 compiles `Time#[local]Set` and, once its output warning is silenced,
+# `Redirect"out"Load`. So a word prefix ends where its word does, and a quoted one where
+# its string does, doubled quotes inside it. An attribute's quoted value is read whole,
+# since a bracket inside it closes nothing; an unquoted bracket is Rocq's syntax error,
+# and stopping there keeps each read linear.
 _ATTRIBUTE = r'#\[(?:[^\[\]"]|"[^"]*")*'
+_QUOTED = r'"(?:[^"]|"")*"\s*'
 CONTROL_PREFIXES = (r"(?:[-+*{}]\s*|(?:\d+|\[[\w']+\]|!)\s*:\s*\{\s*"
-                    r'|(?:Time|Instructions|Fail|Succeed)\s+|Profile\s+(?:"[^"]*"\s+)?'
-                    r'|Redirect\s+"[^"]*"\s+|Timeout\s+\d+\s+|AllocLimit\s+\d+\s*(?:Mw|kw)\s+'
+                    r"|(?:Time|Instructions|Fail|Succeed)(?![\w'])\s*"
+                    r"|Profile(?![\w'])\s*(?:" + _QUOTED + r")?|Redirect\s*" + _QUOTED
+                    + r"|Timeout\s+\d+\s*|AllocLimit\s+\d+\s*(?:Mw|kw)(?![\w'])\s*"
                     r"|" + _ATTRIBUTE + r"\]\s*|(?:Local|Global|Export|Polymorphic|Monomorphic"
-                    r"|Cumulative|NonCumulative|Private|Program)\s+)*")
+                    r"|Cumulative|NonCumulative|Private|Program)(?![\w'])\s*)*")
 _PINNED = re.compile(CONTROL_PREFIXES + r"(?:Set|Unset)\s+(?:" + "|".join(
     r"\s+".join(map(re.escape, name.split())) for name in PINNED_SETTINGS) + r")\b")
 # Attributes that relax the same settings for one declaration. A wall-clock Timeout or
@@ -83,10 +89,37 @@ _TIMEOUT = re.compile(CONTROL_PREFIXES + r"(?:Timeout|AllocLimit)\s+\d")
 # identifier named exactly after one, a record field among them, is refused too, which is
 # loud and costs a rename; an identifier that only contains one is read whole.
 _TACTICAL = re.compile(r"(?<![\w'])(?:timeoutf?|alloc_limit)(?![\w'])")
-# Once comments are blanked, every remaining quote opens or closes a string literal.
+# Once comments are blanked, every remaining quote opens or closes a string literal, in
+# a source that declares no token holding one, which unreadable_tokens refuses.
 _STRING = re.compile(r'"[^"]*"')
 # A module command's head: whether it declares a module, and whether it opens a signature.
 _MODULE = re.compile(CONTROL_PREFIXES + r"(Declare\s+)?Module\s+(Type\b)?")
+# Commands that bring into a compile what no lexical reading of the source sees. Load
+# runs another file's sentences, Cd moves where a relative Load resolves, Declare ML
+# Module loads a plugin, and Ltac2's `@ external` binds any primitive a loaded plugin
+# exports, the timeout tactical among them, under a name of the source's choosing. Add
+# LoadPath, Add Rec LoadPath, Remove LoadPath and Add ML Path would choose which files a
+# Require reads; the pinned Rocq 9.3.0 parses each as an option table it lacks and
+# refuses it, as its deprecation refuses Cd under the gate's flags, and they are refused
+# here all the same.
+DYNAMIC_SOURCE = re.compile(
+    CONTROL_PREFIXES + r"(?:Load|Cd|(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)"
+    r"|Declare\s+ML\s+Module|Ltac2\s*@\s*external)(?![\w'])")
+# Where a declared token comes from. Rocq's lexer matches the longest declared token
+# before it looks for a string, a comment or a full stop inside one (find_keyword and
+# process_chars in the pinned 9.3.0's cLexer.ml), so once a notation declares `^"`, `a"`,
+# `*(*` or `^.`, each is one token wherever it stands. The shared lexer knows no declared
+# token. It would open a string at the quote or a comment at the opener, hiding every
+# sentence up to the close, or end a sentence at the full stop, cutting the statement it
+# is in. That holds for Rocq's own `.` and `...` too: a notation may declare either as an
+# infix, and the pinned Rocq 9.3.0 then compiles `1 ... 2 = 3 -> forall m : Machine, P`
+# as one statement. Tokens come from the strings a Notation, Reserved Notation, Infix,
+# Reserved Infix, Tactic Notation or Ltac2 Notation writes before its `:=`, a Tactic or
+# Ltac2 Notation's separators among them. An attribute's strings declare none, and
+# neither does a `where` clause: the pinned Rocq 9.3.0 refuses one whose parsing rule no
+# earlier Reserved Notation declared.
+_DECLARES_TOKENS = re.compile(r"(?<![\w'])(?:Notation|Infix)(?![\w'])")
+_TOKEN_SOURCE = re.compile(_ATTRIBUTE + r'\]|"((?:[^"]|"")*)"|:=')
 
 
 class AuditError(ValueError):
@@ -249,19 +282,60 @@ def kernel_context(summary: str) -> list[str]:
 def pinned_overrides(text: str) -> list[str]:
     """Sentences that would change a gate-pinned setting for their own source.
 
-    The tactical reading empties string literals before it splits sentences, so neither
-    a quoted tactic nor a quoted full stop is read as code. It keeps a comment as the
-    separator Rocq's lexer reads it as: strip_comments drops a comment that holds no
-    newline, which would join `timeout(* c *)5` into one identifier.
+    The shared lexer reads a comment as the separator Rocq's lexer reads it as, so
+    `timeout(* c *)5` is the word and its argument, and ends a sentence only outside a
+    string literal, so a quoted full stop hides no command. The tactical reading empties
+    each sentence's string literals, so a quoted tactic is not read as code. Each
+    sentence is reported once, as written.
     """
-    found = [sentence for sentence in sentences(text)
-             if _PINNED.match(sentence) or _PINNED_ATTRIBUTE.search(sentence)
-             or _TIMEOUT.match(sentence)]
-    if "timeout" in text or "alloc_limit" in text:
-        spaced = text.replace("*)", "*) ")
-        code = SENTENCE_END.split(_STRING.sub('""', strip_comments(spaced)))
-        found += [sentence.strip() for sentence in code if _TACTICAL.search(sentence)]
+    tactical = "timeout" in text or "alloc_limit" in text
+    return [sentence for sentence in sentences(text)
+            if _PINNED.match(sentence) or _PINNED_ATTRIBUTE.search(sentence)
+            or _TIMEOUT.match(sentence)
+            or (tactical and _TACTICAL.search(_STRING.sub('""', sentence)))]
+
+
+def dynamic_sources(text: str) -> list[str]:
+    """Sentences that load a file, a plugin or a plugin's primitive into the compile.
+
+    What one loads passes every other refusal here unread: `Load` of a file outside
+    `proofs/` compiles with a pinned setting on and the pinned reading sees none of it,
+    and an Ltac2 external binds the timeout tactical under a name no word list can
+    follow. So each is refused before compilation, and the gate also withdraws cache
+    reuse for it. The head is read after the control prefixes, as every head reading
+    here is.
+    """
+    return [sentence for sentence in sentences(text) if DYNAMIC_SOURCE.match(sentence)]
+
+
+def unreadable_tokens(text: str) -> list[str]:
+    """Sentences declaring a token the shared lexer would not read as Rocq's lexer does.
+
+    Such a token holds a quote or a comment opener, or a full stop at which the sentence
+    split would end a sentence Rocq continues, `.` and `...` among them. Until one is
+    declared, the shared lexer finds every string, comment and sentence end Rocq's does,
+    the installed libraries declaring no such token, so it reads the declaring sentence
+    as Rocq does. Refusing that sentence before compilation keeps every other lexical
+    reading here sound. A declaration's tokens are its strings' blank-separated parts, a
+    quoted part's quotes aside.
+    """
+    found: list[str] = []
+    for sentence in sentences(text):
+        if not _DECLARES_TOKENS.search(_STRING.sub('""', sentence)):
+            continue
+        for part in _TOKEN_SOURCE.finditer(sentence):
+            if part.group() == ":=":
+                break
+            if part.group(1) is not None and _unreadable(part.group(1)):
+                found.append(sentence)
+                break
     return found
+
+
+def _unreadable(literal: str) -> bool:
+    """Whether a declaring string literal, doubled quotes as written, holds such a token."""
+    return ('"' in literal or "(*" in literal
+            or any(SENTENCE_END.search(part.strip("'")) for part in literal.split()))
 
 
 def unsupported_abstractions(text: str) -> list[str]:

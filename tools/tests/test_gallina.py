@@ -170,20 +170,56 @@ def _source_index_is_one_immutable_snapshot() -> None:
 
 
 def _comment_lexing_preserves_source_and_newlines() -> None:
+    # Read as the locked Rocq 9.3.0's lexer reads each: a comment is a separator, and a
+    # string literal inside a comment is read whole, so a quoted `(*` or `*)` there
+    # opens or closes nothing and an unterminated one runs the comment to the end.
     fixtures = {
-        "before(* hidden *)after": "beforeafter",
+        "before(* hidden *)after": "before after",
         "a(* first\n(* nested\n*)tail\n*)b": "a\n\n\nb",
-        'Definition s := "(* literal *)". (* hidden *)': 'Definition s := "(* literal *)". ',
+        'Definition s := "(* literal *)". (* hidden *)': 'Definition s := "(* literal *)".  ',
         'Definition s := "a ""(* literal *)"" b".': 'Definition s := "a ""(* literal *)"" b".',
         '"unterminated (* literal': '"unterminated (* literal',
         "before(* first\n(* second\n*)": "before\n\n",
-        'a(* " *)b': "ab",
+        "before(* unterminated": "before ",
+        'a(* " *)b': "a ",
+        'a(* "(*" *)b': "a b",
+        'a(* "*)" *)b': "a b",
+        'a(* """*)" *)b': "a b",
+        'a(* "x" *)b(* "\n" *)c': "a b\nc",
         "a *) b": "a *) b",
         "a(* one\r\ntwo *)b": "a\nb",
     }
     for source, expected in fixtures.items():
         ensure(proofs.strip_comments(source) == expected,
                f"comment boundaries changed for {source!r}")
+
+
+def _sentences_end_outside_strings() -> None:
+    # A full stop followed by whitespace ends a sentence only outside a string literal,
+    # whose doubled quote Rocq reads as one quote inside it.
+    fixtures = {
+        'Definition a := "x. y". Definition b := 0.': ['Definition a := "x. y"',
+                                                       "Definition b := 0"],
+        '#[deprecated(note="see x. y")] Lemma l : True.': [
+            '#[deprecated(note="see x. y")] Lemma l : True'],
+        # A string spans lines as Rocq reads it, a full stop before its line break too.
+        '#[deprecated(note="see x.\ny")] Lemma l : True.': [
+            '#[deprecated(note="see x.\ny")] Lemma l : True'],
+        'Goal True. idtac "a"". b". exact I.': ["Goal True", 'idtac "a"". b"', "exact I"],
+        'Definition s := "unterminated. x': ['Definition s := "unterminated. x'],
+        "Check m.(f). Check Nat.add.\nQed.": ["Check m.(f)", "Check Nat.add", "Qed"],
+        "a(* . *)b. c": ["a b", "c"],
+        '(* "x. y" *) Lemma l : True.': ["Lemma l : True"],
+        # Rocq reads `..` as a token that ends nothing and `...` as a sentence end.
+        'Notation "[ x ; .. ; y ]" := (cons x .. (cons y nil) ..).\nCheck [ 1 ; 2 ].': [
+            'Notation "[ x ; .. ; y ]" := (cons x .. (cons y nil) ..)', "Check [ 1 ; 2 ]"],
+        "Lemma l : (∀.. (x : TeleO), True) -> P. Qed.": [
+            "Lemma l : (∀.. (x : TeleO), True) -> P", "Qed"],
+        "Proof with auto. split... Qed.": ["Proof with auto", "split..", "Qed"],
+    }
+    for source, expected in fixtures.items():
+        got = proofs.sentences(source)
+        ensure(got == expected, f"sentence boundaries changed for {source!r}: {got!r}")
 
 
 def _a_library_require_is_not_ordered() -> None:
@@ -289,6 +325,7 @@ def cases() -> list[Case]:
         Case("cycle refusals include only blocked sources", _cycle_refusals_include_only_blocked_sources),
         Case("source index is one immutable snapshot", _source_index_is_one_immutable_snapshot),
         Case("comment lexing preserves source and newlines", _comment_lexing_preserves_source_and_newlines),
+        Case("sentences end outside strings", _sentences_end_outside_strings),
         Case("a library Require orders nothing", _a_library_require_is_not_ordered),
         Case("staging leaves compiled artifacts behind",
              _staging_leaves_the_compiled_artifacts_behind),

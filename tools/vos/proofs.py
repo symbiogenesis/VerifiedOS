@@ -13,8 +13,12 @@ tools make is written once.
 way. They were the proof gate's own, private to [run.py proofs](cli/proofs.py), until
 [proofcites.py](proofcites.py) needed the second half of a `.v` the gate already reads: what
 the file *defines*, which is a sentence's opening vernacular and so is decided by where
-the comments end. Both are lexical and neither knows any Gallina: a comment nests and a
-string literal outside one is kept whole, and that is the whole of what they are for.
+the comments end. Both are lexical and neither knows any Gallina: a comment nests,
+separates the tokens beside it and reads a string literal inside it whole, a string
+literal outside one is kept whole, and a sentence ends at a full stop outside both, and
+that is the whole of what they are for. Nor do they know the tokens a source declares,
+which Rocq's lexer reads whole, so the proof gate refuses a declared token they would
+read as a string, a comment or a sentence end ([proofaudit.py](proofaudit.py)).
 """
 
 import re
@@ -30,46 +34,77 @@ from types import MappingProxyType
 REQUIRE = re.compile(r"^(?:From\s+(\S+)\s+)?Require(?:\s+(?:Import|Export))?\s+(.+)$")
 
 # A Rocq sentence ends at a full stop followed by whitespace, which is what keeps
-# `m.(field)` and `Nat.add` inside their sentence.
-SENTENCE_END = re.compile(r"\.(?=\s|$)")
+# `m.(field)` and `Nat.add` inside their sentence. Rocq's lexer reads `...` as a sentence
+# end too, but `..` as a token that ends nothing, so the second of exactly two full stops
+# ends nothing here either: a recursive notation's `x .. y` keeps its declaration, and a
+# library token ending in `..`, stdpp's telescope binder `∀..` among them, keeps its
+# statement. A full stop inside a string literal ends nothing, so the sentence split
+# reads each string whole first, an unterminated one to the end as strip_comments reads
+# it; a doubled quote inside one is two adjacent strings to this reading and one string
+# to Rocq's, which covers the same characters.
+SENTENCE_END = re.compile(r"(?<!(?<!\.)\.)\.(?=\s|$)")
+_SENTENCE_TOKEN = re.compile(r'"[^"]*(?:"|\Z)|' + SENTENCE_END.pattern)
 _COMMENT_TOKEN = re.compile(r'\(\*|\*\)|"')
 
 
 def strip_comments(text: str) -> str:
-    """The source with its comments blanked. Rocq comments nest, and a string literal
-    outside one is kept whole so a `(*` inside it does not open one.
+    """The source with its comments blanked, where Rocq 9.3's lexer finds them in a source
+    declaring no token that holds a quote or a comment opener. Rocq reads such a token
+    whole, and the proof gate refuses its declaration (proofaudit.unreadable_tokens).
 
-    The regex engine skips ordinary text; Python visits only delimiters. Each complete
-    outer comment contributes its newlines in one count, preserving source line numbers.
+    Comments nest. A string literal is read whole inside a comment as well as outside
+    one, so a `(*` or `*)` quoted in either opens or closes nothing: the lexer reads a
+    string in a comment, and the locked compiler under the gate's flags refuses a quoted
+    `*)` there outright. A comment is a token separator, so `Set(* c *)Kernel` is two
+    words: each complete outer comment becomes its newlines, preserving source line
+    numbers, or one space when it holds none. The regex engine skips ordinary text;
+    Python visits only delimiters.
     """
     out: list[str] = []
     depth = start = quoted_until = 0
     for token in _COMMENT_TOKEN.finditer(text):
         if token.start() < quoted_until:
             continue
-        if depth:
-            if token.group() == "(*":
-                depth += 1
-            elif token.group() == "*)":
-                depth -= 1
-                if not depth:
-                    out.append("\n" * text.count("\n", start, token.end()))
-                    start = token.end()
-        elif token.group() == '"':
+        if token.group() == '"':
             quoted_until = text.find('"', token.end()) + 1
             if not quoted_until:
                 break
         elif token.group() == "(*":
-            out.append(text[start:token.start()])
-            start = token.start()
-            depth = 1
-    out.append("\n" * text.count("\n", start) if depth else text[start:])
+            if not depth:
+                out.append(text[start:token.start()])
+                start = token.start()
+            depth += 1
+        elif depth:
+            depth -= 1
+            if not depth:
+                out.append(_separator(text, start, token.end()))
+                start = token.end()
+    out.append(_separator(text, start, len(text)) if depth else text[start:])
     return "".join(out)
 
 
+def _separator(text: str, start: int, end: int) -> str:
+    """What one comment leaves behind: its newlines, or one space if it holds none."""
+    return "\n" * text.count("\n", start, end) or " "
+
+
 def sentences(text: str) -> list[str]:
-    """Every sentence the source states, comments gone and whitespace trimmed."""
-    return [trimmed for s in SENTENCE_END.split(strip_comments(text)) if (trimmed := s.strip())]
+    """Every sentence the source states, comments gone and whitespace trimmed. Only a
+    full stop outside a string literal ends one, so an attribute's quoted note keeps
+    its declaration."""
+    code = strip_comments(text)
+    # Most sources hold no string literal outside their comments, and for them the
+    # split in the regex engine is the same reading at a third of the cost.
+    if '"' not in code:
+        return [trimmed for s in SENTENCE_END.split(code) if (trimmed := s.strip())]
+    found: list[str] = []
+    start = 0
+    for token in _SENTENCE_TOKEN.finditer(code):
+        if token.group() == ".":
+            found.append(code[start:token.start()])
+            start = token.end()
+    found.append(code[start:])
+    return [trimmed for s in found if (trimmed := s.strip())]
 
 
 def local_requires(source: Path, stems: set[str]) -> set[str]:
