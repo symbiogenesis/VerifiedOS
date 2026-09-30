@@ -2,26 +2,50 @@
 set(TEST_DOWNLOAD_URL "https://github.com/riscv-software-src/sail-riscv-tests/releases/download" CACHE STRING "Base URL to download precompiled riscv-tests and riscv-vector-tests from")
 set(TEST_DOWNLOAD_VERSION "2026-08-20" CACHE STRING "Version of precompiled tests to download")
 
+# The SHA-256 of every release asset this file can download, as the GitHub
+# release publishes it, keyed by release and tarball name. Configure refuses an
+# enabled suite whose tarball has no digest here at the selected release, so
+# selecting another release means recording its digests first.
+set(TEST_DOWNLOAD_SHA256_2026-08-20_riscv-tests "eb24265e83ca0b68a24a513dff7e4535975e724fe07d71f3cf75fef87fd75bec")
+set(TEST_DOWNLOAD_SHA256_2026-08-20_riscv-arch-tests "c07ba4f475e96395d77287e1fd471a4a43af47d09f121393f61812158462b3c1")
+set(TEST_DOWNLOAD_SHA256_2026-08-20_riscv-vector-tests-v64x64 "07bc6b49f4078a76c278f3ab91fed25c7012693164dd1b0af26e9cb4a759e5cb")
+set(TEST_DOWNLOAD_SHA256_2026-08-20_riscv-vector-tests-v128x64 "a9c91631d4bb3c9f6af0463fcd81eb00a1f849170bb50f6dcfe844c92c8e8e76")
+set(TEST_DOWNLOAD_SHA256_2026-08-20_riscv-vector-tests-v256x64 "a4d150a38e5226bdd40bee9c15ba6d29d5474f25cc7206e1d57c15ae965e785f")
+set(TEST_DOWNLOAD_SHA256_2026-08-20_riscv-vector-tests-v512x64 "a968025ffd35fa9cb301ed9fb84c4108473ea9ec696f19e17b42a54857c92acf")
+
 # Function to download and extract test files
 function(download_riscv_tests DOWNLOAD_PATH TARBALL_NAME DOWNLOAD_URL)
+    # Checked even when an extracted tree is already present, so an enabled
+    # suite always has recorded bytes to stand for.
+    set(expected_sha256 "${TEST_DOWNLOAD_SHA256_${TEST_DOWNLOAD_VERSION}_${TARBALL_NAME}}")
+    string(LENGTH "${expected_sha256}" expected_length)
+    if(NOT expected_sha256 MATCHES "^[0-9a-f]+$" OR NOT expected_length EQUAL 64)
+        message(FATAL_ERROR
+            "No SHA-256 is recorded for ${TARBALL_NAME}.tar.gz at test release "
+            "${TEST_DOWNLOAD_VERSION}: record the release asset's digest as "
+            "TEST_DOWNLOAD_SHA256_${TEST_DOWNLOAD_VERSION}_${TARBALL_NAME} in "
+            "${CMAKE_CURRENT_FUNCTION_LIST_FILE}")
+    endif()
+
     if(NOT EXISTS "${DOWNLOAD_PATH}/${TARBALL_NAME}")
-        if(NOT EXISTS "${DOWNLOAD_PATH}/${TARBALL_NAME}.tar.gz")
-            message(STATUS "${TARBALL_NAME}.tar.gz not found, downloading...")
+        message(STATUS "${TARBALL_NAME}.tar.gz not extracted, downloading...")
 
-            # Download the tar.gz file
-            file(DOWNLOAD
-                "${DOWNLOAD_URL}"
-                "${DOWNLOAD_PATH}/${TARBALL_NAME}.tar.gz"
-                SHOW_PROGRESS
-                STATUS download_status
-            )
+        # Download the tar.gz file. A tarball left by an earlier run is kept
+        # only if it already has the expected digest; otherwise it is fetched
+        # again, and bytes that do not match fail the download.
+        file(DOWNLOAD
+            "${DOWNLOAD_URL}"
+            "${DOWNLOAD_PATH}/${TARBALL_NAME}.tar.gz"
+            SHOW_PROGRESS
+            EXPECTED_HASH SHA256=${expected_sha256}
+            STATUS download_status
+        )
 
-            # Check download status
-            list(GET download_status 0 status_code)
-            if(NOT status_code EQUAL 0)
-                list(GET download_status 1 error_message)
-                message(FATAL_ERROR "Failed to download ${TARBALL_NAME}: ${error_message}")
-            endif()
+        # Check download status
+        list(GET download_status 0 status_code)
+        if(NOT status_code EQUAL 0)
+            list(GET download_status 1 error_message)
+            message(FATAL_ERROR "Failed to download ${TARBALL_NAME}: ${error_message}")
         endif()
 
         # Create directory and extract the tar.gz file into it
