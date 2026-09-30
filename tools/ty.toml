@@ -11,8 +11,10 @@
 # warnings or off by default. That is deliberate and it is what a pinned version
 # buys: the alternative is a list of opt-ins that silently stops growing the day
 # ty adds a rule nobody transcribed. The gate also passes `--error all`, which
-# overrides this table, so lowering or dropping an entry here cannot lower what the
-# gate enforces; an `[[overrides]]` table would, and none is carried.
+# overrides this table, and it reports two shapes of this file as ty findings: a
+# `[rules]` table other than exactly `all = "error"`, because an editor reads the
+# table without the flag, and an `[[overrides]]` entry carrying `rules`, because such
+# an entry would lower the flag's severities for the files it matches.
 # `tools/README.md` records the pin.
 
 [rules]
