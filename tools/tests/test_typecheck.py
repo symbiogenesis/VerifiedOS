@@ -15,8 +15,8 @@ an `[environment]` key other than the three it admits or either held value chang
 a `[src]` table other than exactly the committed one, and a file it cannot read.
 The run cases hold one pin probe for a checker's passes, one ty pass per platform,
 linux and then win32, with the real ty showing the win32 pass reaching a branch the
-linux pass cannot, and a user-level configuration or a set `PYTHONPATH` reported
-beside the run.
+linux pass cannot, a user-level configuration or a set `PYTHONPATH` reported
+beside the run, and the real ruff keeping a module an ignore file matches.
 """
 
 import os
@@ -567,6 +567,27 @@ def _win32_pass_types_host_branches() -> None:
            f"the win32 pass must report the error in the win32 branch: {rep.out!r}")
 
 
+def _ruff_checks_ignored_modules() -> None:
+    # The real ruff over a module an ignore file matches, under a ruff.toml that does
+    # not say respect-gitignore = false: ruff would skip the module and report
+    # nothing, so the gate's own flag is what keeps it in the run.
+    rep = Reporter()
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        tools = root / "tools"
+        tools.mkdir()
+        (tools / "ruff.toml").write_text('[lint]\nselect = ["ANN"]\n', encoding="utf-8",
+                                         newline="")
+        (tools / ".ignore").write_text("ignored.py\n", encoding="utf-8", newline="")
+        (tools / "ignored.py").write_text("def f(x):\n    return x\n", encoding="utf-8",
+                                          newline="")
+        typecheck._run_ruff(rep, root)
+    joined = "\n".join(rep.out)
+    ensure(rep.findings == 2 and "FAIL ruff: 2 lint finding(s):" in joined
+           and "ANN001: 1" in joined and "ignored.py:1:" in joined,
+           f"a module an ignore file matches must stay in the ruff run: {rep.out!r}")
+
+
 def _ty_settings_reported_beside_the_run() -> None:
     # The refusal is a ty finding in the gate's own report, and the checker still runs.
     for text, refused in ((_ADMITTED, False), ('[rules]\nall = "warn"\n' + _HELD, True)):
@@ -729,6 +750,7 @@ def cases() -> list[Case]:
         Case("ty-settings-fail-closed", _ty_settings_fail_closed),
         Case("ty-runs-every-platform", _ty_runs_every_platform),
         Case("win32-pass-types-host-branches", _win32_pass_types_host_branches),
+        Case("ruff-checks-ignored-modules", _ruff_checks_ignored_modules),
         Case("ty-settings-reported-beside-the-run", _ty_settings_reported_beside_the_run),
         Case("user-config-located", _user_config_located),
         Case("user-config-reported-beside-the-run", _user_config_reported_beside_the_run),

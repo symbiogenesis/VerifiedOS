@@ -1010,6 +1010,9 @@ asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own li
 each for a reason that would hold in any project, and no group switched off to spare this
 code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and
 the sentence saying why; the `PGH` group refuses a blanket `# noqa` or `# type: ignore`.
+ruff also honors ignore files by default, so ruff.toml sets `respect-gitignore = false`
+and the gate passes `--no-respect-gitignore`: a pattern matching a tracked module would
+otherwise take it out of the lint and annotation run with nothing reported.
 
 The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml). ruff finds its file
 from each checked path, but the ty CLI discovers configuration from its working directory

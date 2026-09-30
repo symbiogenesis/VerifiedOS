@@ -467,11 +467,16 @@ def _run_ty(rep: Reporter, root: Path) -> None:
 
 def _run_ruff(rep: Reporter, root: Path) -> None:
     """Every function, against whether it is annotated, and the correctness rules
-    `ruff.toml` admits besides."""
+    `ruff.toml` admits besides.
+
+    `--no-respect-gitignore` restates `ruff.toml`'s `respect-gitignore = false` for
+    this run: ruff otherwise skips whatever an ignore file matches, and a tracked
+    module an ignore pattern matched would leave the run with nothing reported."""
     tools = root / "tools"
     _run_checker(
         rep, "ruff", RUFF_VERSION,
         [Pass(["check", "--config", str(tools / "ruff.toml"), "--no-cache",
+               "--no-respect-gitignore",
                "--output-format", "concise", "--no-fix", "."],
               "ruff", "lint finding(s):",
               f"every function is annotated and ruff {RUFF_VERSION} is clean")],
