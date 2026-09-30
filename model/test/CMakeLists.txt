@@ -264,7 +264,7 @@ endif()
 # R-15-007h, R-15-007p; model/core/addr_checks.sail).  No `-march` string and no
 # curated subset reaches past that: what the set needs is the purecap toolchain,
 # whose `la` derives a capability off PCC rather than materializing an integer,
-# and that is M1.4's.
+# and that is the in-tree assembler M1.4-prime extended to the backend's mix.
 #
 # What answers the question the set was asked is this repository's own pair, the
 # model's `$[test]` harness (model/unit_tests/) and the differential corpus

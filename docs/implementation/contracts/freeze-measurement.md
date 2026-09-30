@@ -55,7 +55,7 @@ A corpus member is a named, hashed, reproducibly built artifact that at least on
 
 | Id | Member | Produced by | Pinned by | Feeds |
 | --- | --- | --- | --- | --- |
-| `FM-1` | the composed base image, position-fixed, over the first-release roster | M1.4's image composer, after the §10 and §13 levers | roster revision (R-18-004), backend commit, composer commit, provisional profile revision | FD-1, FD-2, FD-3, FD-4, FD-5, FD-6, FD-7, FD-8 |
+| `FM-1` | the composed base image, position-fixed, over the first-release roster | M1.4′'s image composer, after the §10 and §13 levers | roster revision (R-18-004), backend commit, composer commit, provisional profile revision | FD-1, FD-2, FD-3, FD-4, FD-5, FD-6, FD-7, FD-8 |
 | `FM-2` | generated UPER RRC codecs, encoder and decoder | the verified ASN.1 (X.691 UPER) to Narcissus front end over the published 3GPP modules (R-05-048, R-18-029) | 3GPP TS 38.331 edition, front-end commit | FD-5 |
 | `FM-3` | generated IEI/TLV 5G-NAS codecs | the hand-written NAS grammar's generator (R-05-050, R-18-029) | TS 24.501 edition, grammar revision | FD-5 |
 | `FM-4` | generated MMIO register accessors | the verified HAL's accessor generator over the attested devicetree (R-05-083, R-18-018) | devicetree revision, generator commit | FD-5, FD-7 |

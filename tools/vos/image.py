@@ -15,10 +15,11 @@ relocate anything (R-15-002, R-15-002b, R-15-036l). So a section's address is
 decided at layout and every symbol is an absolute number by the time this module
 sees it.
 
-This is *not* the image composer M1.4 ships. That one consumes a linker's output
-for a whole base system; this one exists so that hand-written corpus programs
-have something to run before any of that exists, and it is the acceptance corpus
-M1.4 is later checked against (M0.12).
+M0.12 wrote this writer so that hand-written corpus programs had something to run.
+Since M1.4-prime the backend's emitted mix is assembled into the same container, and
+[compose.py](compose.py) composes images from it; M1.4 re-homes only LLVM's
+disassembly and object tooling beside them, so another composer needs a reviewed
+replacement contract.
 """
 
 import struct
