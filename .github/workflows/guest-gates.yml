@@ -224,9 +224,12 @@ jobs:
       - name: Bootstrap guest toolchains
         id: bootstrap
         timeout-minutes: 120
+        env:
+          GUEST_TOOLCHAIN_OPTIONS: ${{ matrix.toolchains }}
         run: |
+          read -r -a toolchain_options <<< "$GUEST_TOOLCHAIN_OPTIONS"
           /usr/bin/time -f "$GUEST_TIME" python3 tools/ci/bootstrap_guest.py \
-            --root "$HOME/verifiedos-guest" --install-system ${{ matrix.toolchains }} \
+            --root "$HOME/verifiedos-guest" --install-system "${toolchain_options[@]}" \
             --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
             2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
 

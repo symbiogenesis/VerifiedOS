@@ -123,8 +123,13 @@ jobs:
             tools/pyproject.toml
             tools/uv.lock
 
+      # bash on both platforms reads the shard and verdict path from the environment.
       - name: Host gates and behavioral tests
-        run: python tools/run.py --check --tests --shard ${{ matrix.shard }}/${{ matrix.shards }} --summary "${{ runner.temp }}/${{ env.VERDICT_FILE }}"
+        shell: bash
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ matrix.shards }}
+        run: python tools/run.py --check --tests --shard "$SHARD/$SHARDS" --summary "$RUNNER_TEMP/$VERDICT_FILE"
 
       - name: Report gate results
         if: ${{ !cancelled() }}
