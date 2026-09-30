@@ -133,5 +133,6 @@ unmerged or moved branches, retained outputs, host-managed preservation, wrong
 revision or incomplete Host CI evidence, failed dispatch and interrupted resume.
 Run focused tests and typecheck during implementation, then require hosted Host CI
 and dispatch both Guest CI lanes for the settled revision. Host CI analyzes workflow
-edits with zizmor and actionlint, as the [Guest CI contract](ci/README.md#acceptance-and-handoff)
-describes. No local model or proof gate is needed for this orchestration tool.
+edits with zizmor and actionlint, as the tools guide's
+[workflow analysis](README.md#workflow-analysis) describes. No local model or proof
+gate is needed for this orchestration tool.
