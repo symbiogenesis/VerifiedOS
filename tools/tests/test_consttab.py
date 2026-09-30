@@ -86,10 +86,17 @@ def _a_statement_stops_at_its_own_full_stop() -> None:
         got, why = _values("Example table : l = 3 :: 5 :: 7 :: nil.\n" + follower,
                            "example")
         ensure(got == [3, 5, 7], f"after {follower!r} the Example read {got} ({why})")
-    # a comment inside the statement is no value and its full stop ends nothing
+    # a comment inside the statement is no value and its full stop ends nothing, nested
+    # comments included, and a string's full stop ends nothing either
     got, why = _values("Definition table : list nat :=\n"
                        "  3 :: (* the second. It was 4 once. *) 5 :: 7 :: nil.\n")
     ensure(got == [3, 5, 7], f"a comment inside the table read {got} ({why})")
+    got, why = _values("Definition table : list nat :=\n"
+                       "  3 :: (* outer (* inner. *) 4. *) 5 :: 7 :: nil.\n")
+    ensure(got == [3, 5, 7], f"a nested comment inside the table read {got} ({why})")
+    got, why = _values("Definition table : list nat :=\n"
+                       '  let _ := "a. b" in 3 :: 5 :: 7 :: nil.\n')
+    ensure(got == [3, 5, 7], f"a string's full stop ended the table: {got} ({why})")
     # and a qualified name's period is no full stop
     got, why = _values("Definition table : list N := N.of_nat 3 :: 5 :: 7 :: nil.\n")
     ensure(got == [3, 5, 7], f"a qualified name ended the statement: {got} ({why})")

@@ -182,14 +182,17 @@ def _control_prefixed_definition_is_a_residue() -> None:
 
 
 def _record_completed_from_a_base_is_a_residue() -> None:
-    # `{| v with alpha := True |}` projects beta and gamma out of v and spells neither,
-    # so both readings agree on consuming nothing; the `with` is what refuses it.
+    # `{| v with alpha := v.(beta) |}` projects gamma out of v and spells it nowhere, so
+    # both readings agree on beta alone; the `with` is what refuses it, and the beta it
+    # does spell is no consumer the refused body is answered with.
     rec = _read(_APEX + "\nDefinition relax (v : Vocabulary) : Vocabulary := "
-                        "{| v with alpha := True |}.\n")
+                        "{| v with alpha := v.(beta) |}.\n")
     ensure(any("'relax' writes 1 `with` where its `match` account for 0" in said
                for said in rec.unread),
            f"a record completed from a base is a residue, got {rec.unread!r}")
-    ensure("relax" not in rec.def_fields, "and the parse states no reading of it")
+    ensure("relax" not in rec.def_fields
+           and rec.consumers["beta"] == ["witness", "seam_one"],
+           f"and the parse states no reading of it: {rec.consumers['beta']!r}")
     # the same token under a `match` is the match's own and is read
     rec = _read(_APEX + "\nDefinition pick (v : Vocabulary) (b : bool) : Prop :=\n"
                         "  match b with true => v.(alpha) | false => v.(beta) end.\n")
