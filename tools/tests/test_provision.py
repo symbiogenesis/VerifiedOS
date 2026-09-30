@@ -448,6 +448,18 @@ def _install_opam_installs_only_what_is_absent() -> None:
                    and "lacks" in said.getvalue() and not launched.called
                    and (partial / "repo" / "repos-config").read_bytes() == before,
                    f"an incomplete root is reported and left as it is: {said.getvalue()}")
+        # With no client, a root the row reads as incomplete is refused before the
+        # client is installed, which would otherwise leave a client and a failure.
+        older = Path(td) / "older"
+        opam_root(older, "nested", configured=opam_client.OPAM_REPOSITORIES[:1])
+        with (patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)),
+              patch.object(provision, "env", SimpleNamespace(opam_root=lambda: older)),
+              patch.object(provision.opam_client, "install") as installer,
+              patch.object(provision.subprocess, "run") as launched,
+              redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()) as said):
+            ensure(provision.install_opam(target) == 1 and "left as it is" in said.getvalue()
+                   and not installer.called and not launched.called,
+                   f"no client over an incomplete root installs nothing: {said.getvalue()}")
         _creation_failures(Path(td), target)
         selected[0] = None
         absent = SimpleNamespace(opam_root=lambda: Path(td) / "absent")

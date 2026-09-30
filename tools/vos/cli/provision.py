@@ -361,21 +361,29 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
     """The opam row's command: the reviewed client where no client is on PATH, and a
     root by `opam_client.CREATE_ROOT` where none stands.
 
-    It installs only what is absent and alters nothing that exists. A client on PATH
-    at another release is refused, because replacing one is the recorded step
-    `_opam_client` describes; a client is installed by `opam_client.install`, which
-    verifies the download before publishing it and refuses to replace a different file
-    at the destination. Every switch recipe runs `opam` by name, so a destination this
-    PATH does not reach is reported rather than left to fail at the first switch. A
-    standing root is left as it is and held to what the row reads; a root this command
-    creates is held to what guest bootstrap holds its own to, the reviewed client's
-    format and exactly the owner's repositories with every stamp read. Where it would
-    create one, it first holds the machine to `opam_client.ROOT_PREREQUISITES` as the
-    rows ahead of this one do, and refuses, naming each package absent, before it
-    installs anything: `opam init` refuses to create a root without them.
+    It installs only what is absent and alters nothing that exists, and it decides
+    every refusal about the root before it installs anything, so a run it refuses
+    leaves the machine as it found it. A standing root is left as it is and held to
+    what the row reads, and one the row reads as incomplete is refused whatever the
+    client; where it would create one, it first holds the machine to
+    `opam_client.ROOT_PREREQUISITES` as the rows ahead of this one do, and refuses,
+    naming each package absent, because `opam init` refuses to create a root without
+    them. A client on PATH at another release is refused, because replacing one is the
+    recorded step `_opam_client` describes; a client is installed by
+    `opam_client.install`, which verifies the download before publishing it and refuses
+    to replace a different file at the destination. Every switch recipe runs `opam` by
+    name, so a destination this PATH does not reach is reported rather than left to
+    fail at the first switch. A root this command creates is held to what guest
+    bootstrap holds its own to, the reviewed client's format and exactly the owner's
+    repositories with every stamp read.
     """
     root = env.opam_root()
-    if not opam_client.root_exists(root) and (missing := _missing_root_prerequisites()):
+    stands = opam_client.root_exists(root)
+    if stands and (gaps := opam_client.root_gaps(root)):
+        print(f"the opam root at {root} {' and '.join(gaps)}; a standing root is left "
+              "as it is", file=sys.stderr)
+        return 1
+    if not stands and (missing := _missing_root_prerequisites()):
         print(f"no opam root stands at {root}, and opam init refuses to create one without "
               f"{', '.join(missing)}, which dpkg reports absent; the rows ahead of the opam "
               "row install them", file=sys.stderr)
@@ -400,11 +408,7 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
                   f"{present}; the reviewed client {opam_client.OPAM_VERSION} is "
                   "installed only where there is none", file=sys.stderr)
             return 1
-    if opam_client.root_exists(root):
-        if gaps := opam_client.root_gaps(root):
-            print(f"the opam root at {root} {' and '.join(gaps)}; a standing root is left "
-                  "as it is", file=sys.stderr)
-            return 1
+    if stands:
         print(f"the opam root at {root} already stands complete")
         return 0
     return _create_root(root)
