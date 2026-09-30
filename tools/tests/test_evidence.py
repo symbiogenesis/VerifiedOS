@@ -348,7 +348,9 @@ def _launch_failure_is_a_result() -> None:
            "failure to start a member must be recorded as a failed execution")
 
 
-def _timeout_kills_the_process_group() -> None:
+def _timed_out_member(platform: str) -> tuple[evidence.Result, Mock, Mock, MagicMock]:
+    """One member whose first `communicate` times out, launched as on `platform`:
+    the result, the `Popen` stand-in, the `os.killpg` stand-in and the child."""
     kill_group = Mock()
     child = MagicMock()
     child.pid = 12345
@@ -361,7 +363,8 @@ def _timeout_kills_the_process_group() -> None:
         if calls == 1:
             ensure(timeout == 17, "the member's configured timeout must reach communicate")
             raise subprocess.TimeoutExpired("child", 17)
-        ensure(kill_group.called, "the process group must be killed before draining its pipes")
+        ensure(kill_group.called or child.kill.called,
+               "the member must be killed before its pipes are drained")
         return "partial output\n", "partial error\n"
 
     child.communicate.side_effect = communicate
@@ -371,15 +374,29 @@ def _timeout_kills_the_process_group() -> None:
     with (patch.object(evidence, "subprocess", fake_process),
           patch.object(evidence, "os", SimpleNamespace(killpg=kill_group)),
           patch.object(evidence, "signal", SimpleNamespace(SIGKILL=9)),
+          patch.object(evidence, "sys", SimpleNamespace(platform=platform)),
           patch.object(evidence, "TIMEOUTS", {"hang": 17}),
           redirect_stdout(io.StringIO())):
         found = evidence._launch(evidence.Member("hang", ("unused",)))
     ensure(found.exit_code != 0 and found.stdout == "partial output\n"
            and "partial error" in found.stderr and "timed out" in found.stderr,
            "timeout must retain captured diagnostics and a failed result")
+    return found, popen, kill_group, child
+
+
+def _timeout_kills_the_process_group() -> None:
+    _, popen, kill_group, child = _timed_out_member("linux")
     ensure(popen.call_args.kwargs["start_new_session"] is True,
            "the member must own the process group the timeout kills")
     kill_group.assert_called_once_with(12345, 9)
+    child.kill.assert_not_called()
+
+
+def _timeout_kills_the_child_on_windows() -> None:
+    # Windows ignores start_new_session and has no os.killpg: the child is killed.
+    _, _, kill_group, child = _timed_out_member("win32")
+    child.kill.assert_called_once_with()
+    kill_group.assert_not_called()
 
 
 def cases() -> list[Case]:
@@ -402,4 +419,5 @@ def cases() -> list[Case]:
         Case("launch-subprocess-isolation", _launch_uses_an_isolated_subprocess),
         Case("launch-failure-recorded", _launch_failure_is_a_result),
         Case("timeout-kills-process-group", _timeout_kills_the_process_group),
+        Case("timeout-kills-child-on-windows", _timeout_kills_the_child_on_windows),
     ]

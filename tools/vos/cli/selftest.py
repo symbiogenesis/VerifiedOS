@@ -1749,6 +1749,22 @@ CASES: list[Case] = [
     ("K-84", "a current claim relying on a retired rule",
      _literal(PLAN, "K-86 checks this span floor", "**K-102** checks this span floor")),
 
+    # A class list that stopped growing, which is the direction the defect arrives from:
+    # a rule is registered and the list that should name it is left as it was. The id
+    # dropped is the head of the total class's list, a rule no other case moves, so the
+    # registry and the code go on agreeing and only this rule reads the list at all.
+    ("K-119", "a registered rule dropped from its reach class's list",
+     _literal(RULES, "That is what K-00, K-38,", "That is what K-38,")),
+
+    # The other direction, which the case above does not reach: with the two-class
+    # finding deleted that mutant is still killed, so a rule narrowed to unplaced rules
+    # would pass its own selftest while a rule named under two classes left its reach
+    # undecidable from the page. The same rule is written into the name class's list
+    # as well, so every id still resolves and only the exactly-one reading can see it.
+    ("K-119", "a registered rule named under a second reach class",
+     _literal(RULES, "which is what K-01 through K-17,",
+              "which is what K-00, K-01 through K-17,")),
+
     # Seeded on the plan's side, which is the direction the defect arrives from: a
     # completion note is edited far more often than the index over it. The word alone
     # moves and its bullets stay, which is exactly what a finding added to a note
@@ -1928,6 +1944,13 @@ CASES: list[Case] = [
      _first_match("rtl/vos_device_regs_pkg.sv",
                   r"^(// UART owner revision: upstream/mocha at )([0-9a-f])",
                   lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
+    # The same row's block half, seeded at its owner rather than at the package: the
+    # contract's ACK offset moves and the package still agrees with its index and its
+    # gitlink, so only the host's re-derivation of the BLK_ lines can see it.
+    ("K-88", "a block-contract register offset moved without regenerating the "
+             "device-register package",
+     _literal("interfaces/block-device-contract.md", "| `0x38` | `ACK` |",
+              "| `0x40` | `ACK` |")),
     # The *emitter* is edited rather than a configuration, because that is the direction
     # this defect arrives from: a window is declared once and a node for it is written
     # once, and what goes wrong afterwards is the node, either never written or written

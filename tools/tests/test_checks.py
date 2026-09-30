@@ -511,6 +511,123 @@ def _k75_every_workflow_job_is_held() -> None:
            f"a later job's interpreter below the floor must report: {found!r}")
 
 
+# K-119's fixture: seven active rules and one struck row inside the name class's range,
+# so the passing page already exercises a range skipping a struck id. A membership
+# sentence in the section after the reach section must not be read as a class.
+_K119_ROWS = ("# Rules\n\n| Rule | Group | Passing means | Ground |\n| --- | --- | --- | --- |\n"
+              "| K-00 | meta | a | b |\n| K-01 | traces | a | b |\n| K-02 | traces | a | b |\n"
+              "| ~~K-03~~ | retired | n/a | gone |\n| K-04 | traces | a | b |\n"
+              "| K-05 | counts | a | b |\n| K-06 | floors | a | b |\n| K-07 | tables | a | b |\n")
+_K119_NAME = ("Where the set is found by **name**, it resolves, which is what K-01 through "
+              "K-04 are.")
+_K119_COMPUTED = ("Where the set is a **computed value**, it is recomputed, which is what "
+                  "K-05 are.")
+_K119_PATTERN = ("Where the set is found by **pattern**, a regex, which is what K-06 are, "
+                 "and it matches less.")
+_K119_TOTAL = ("Where the set is **total**, nothing narrows. That is what K-00 and K-07 are: "
+               "the registry.")
+
+
+def _k119(name: str = _K119_NAME, computed: str = _K119_COMPUTED,
+          pattern: str = _K119_PATTERN, total: str = _K119_TOTAL,
+          heading: str = meta.REACH_HEADING,
+          quarantined: str | None = None) -> tuple[list[str], list[str]]:
+    page = (f"{_K119_ROWS}\n{heading}\n\n{name} {computed} {pattern}\n\n{total}\n\n"
+            "## After\n\nA stray list, which is what K-09 are.\n")
+    files = {"docs/requirements-register.md": _REGISTER_MIN, meta.RULES: page}
+    if quarantined is not None:
+        files[meta.Q_RULES] = quarantined
+    with sandbox_tree(files) as root:
+        ctx = _context(root)
+        meta.run(ctx)
+        return _findings_under(ctx, "K-119"), ctx.rep.out
+
+
+def _k119_each_rule_in_one_class_passes() -> None:
+    found, out = _k119()
+    ensure(not found, f"every active rule named once is clean: {found!r}")
+    ensure("ok K-119: each of the registry's 7 rules is named under exactly one of the four "
+           "reach classes (name 3, computed value 1, pattern 1, total 2)" in out,
+           f"the range places K-01, K-02 and K-04 and skips the struck row: {out!r}")
+
+
+def _k119_unnamed_and_doubly_named_rules_are_findings() -> None:
+    for kwargs, want in (
+            ({"total": _K119_TOTAL.replace("K-00 and K-07", "K-00")},
+             "K-07 is registered and named under no reach class"),
+            ({"pattern": _K119_PATTERN.replace("K-06 are", "K-05 and K-06 are")},
+             "K-05 is named under two reach classes, computed value and pattern, where the "
+             "page says one"),
+            ({"name": _K119_NAME.replace("K-01 through", "K-01, K-01 through")},
+             "the 'name' class names K-01 more than once")):
+        found, _ = _k119(**kwargs)
+        ensure(want in found, f"{want!r} must be reported: {found!r}")
+
+
+def _k119_ids_a_class_names_must_be_active_rules() -> None:
+    held_apart = ("# Held apart\n\n| Rule | Group | Passing means | Ground |\n"
+                  "| --- | --- | --- | --- |\n| K-58 | banks | a | b |\n")
+    for kwargs, wants in (
+            ({"total": _K119_TOTAL.replace("K-00 and K-07", "K-00, K-07 and K-09")},
+             ["the 'total' class names K-09, which the registry does not carry"]),
+            ({"total": _K119_TOTAL.replace("K-00 and K-07", "K-00, K-03 and K-07")},
+             ["the 'total' class names K-03, which the registry carries struck, so no run "
+              "reports it"]),
+            ({"total": _K119_TOTAL.replace("K-00 and K-07", "K-00, K-07 and K-58"),
+              "quarantined": held_apart},
+             ["the 'total' class names K-58, which the quarantine's registry carries and "
+              "its own gate runs"]),
+            ({"pattern": _K119_PATTERN.replace("K-06 are", "K-09 are")},
+             ["the 'pattern' class names K-09, which the registry does not carry",
+              "the 'pattern' class names no rule the registry carries",
+              "K-06 is registered and named under no reach class"])):
+        found, _ = _k119(**kwargs)
+        for want in wants:
+            ensure(want in found, f"{want!r} must be reported: {found!r}")
+
+
+def _k119_ranges_expand_over_active_rows() -> None:
+    for kwargs, wants in (
+            # the range reaches K-02, so naming it again elsewhere is a second class
+            ({"computed": _K119_COMPUTED.replace("K-05 are", "K-02 and K-05 are")},
+             ["K-02 is named under two reach classes, name and computed value, where the "
+              "page says one"]),
+            # an end on a struck row cannot stand in for the active rule past it
+            ({"name": _K119_NAME.replace("K-01 through K-04", "K-01 through K-03")},
+             ["the 'name' class closes a range at K-03, which the registry carries struck, "
+              "so no run reports it"]),
+            ({"name": _K119_NAME.replace("K-01 through K-04", "K-04 through K-01")},
+             ["the 'name' class names the range K-04 through K-01, which runs backwards or "
+              "spans one rule"])):
+        found, _ = _k119(**kwargs)
+        for want in wants:
+            ensure(want in found, f"{want!r} must be reported: {found!r}")
+
+
+def _k119_unreadable_class_sentences_fail_closed() -> None:
+    for kwargs, want in (
+            ({"name": _K119_NAME.replace("K-04 are", "K-04 and the rest are")},
+             "the 'name' class lists 'K-01 through K-04 and the rest', which is not a list "
+             "of rule ids and ranges this rule reads"),
+            ({"computed": "Where the set is a **computed value**, it is recomputed."},
+             "the 'computed value' class states no membership sentence(s) this rule reads"),
+            ({"computed": _K119_COMPUTED + " That is what K-05 are."},
+             "the 'computed value' class states two membership sentence(s) this rule reads"),
+            ({"total": _K119_TOTAL.replace("**total**", "**whole**")},
+             "opens a reach class '**whole**' that is not one of the four this rule reads"),
+            ({"total": _K119_TOTAL.replace("**total**", "**whole**")},
+             "tools/check-rules.md opens no 'total' class in a form this rule reads"),
+            ({"heading": "## What a run decides"},
+             "tools/check-rules.md carries no '## What a passing run does not decide' "
+             "section")):
+        found, out = _k119(**kwargs)
+        ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
+        ensure(not any("named under no reach class" in item for item in found),
+               f"an unread class is one finding, not one per rule it held: {found!r}")
+        ensure(not any(line.startswith("ok K-119:") for line in out),
+               "fail-closed: no ok line stands beside an unread class")
+
+
 def _k97_reviewed_pin_is_required_without_prose_copies() -> None:
     source = 'VERILATOR_PIN = "9.999"\n'
     record = ("# Components\n\n| Tool | License | Standing |\n| --- | --- | --- |\n"
@@ -919,10 +1036,27 @@ def _k88_device_regs(files: dict[str, str], gitlinks: dict[str, str],
         return reading.findings
 
 
+_K88_BLOCK = "\n".join(
+    f"| `0x{8 * i:02x}` | `{name}` | RO | value |" for i, name in enumerate(
+        ("VERSION", "BLOCK_BYTES", "BLOCK_COUNT", "STATUS", "RESULT", "BLOCK", "COMMAND",
+         "ACK"))) + "\n| `0x100 + 8*i`, `0 <= i < B/8` | `DATA[i]` | RW | staging |\n"
+_K88_MODEL = ("let blkdev_max_bytes : int(8192) = 8192\n"
+              "let blkdev_max_block_bytes : int(4096) = 4096\n")
+_K88_OWNERS = {device_regs.BLOCK: _K88_BLOCK, device_regs.BLOCK_MODEL: _K88_MODEL}
+
+
+def _k88_device_header(mocha: str) -> str:
+    """A package stamped at `mocha`, carrying what the fixture's block owners emit."""
+    with sandbox_tree(_K88_OWNERS) as root:
+        block = device_regs.block_lines(root)
+    return "\n".join((f"// generated\n{device_regs.STAMP}{mocha}\npackage p;", *block,
+                      "endpackage\n"))
+
+
 def _k88_device_register_stamp_is_held_whole_and_fail_closed() -> None:
     mocha = "d" * 40
-    header = f"// generated\n{device_regs.STAMP}{mocha}\npackage p;\nendpackage\n"
-    files = {device_regs.ARTIFACT: header}
+    header = _k88_device_header(mocha)
+    files = {**_K88_OWNERS, device_regs.ARTIFACT: header}
     links = {device_regs.UPSTREAM: mocha}
     ensure(not _k88_device_regs(files, links),
            "an indexed header recording its gitlink's commit passes")
@@ -934,14 +1068,42 @@ def _k88_device_register_stamp_is_held_whole_and_fail_closed() -> None:
         # a hand edit leaves the stamp agreeing and the bytes off the index
         (files, links, header.replace("package p;", "package q;"),
          "differs from its indexed emission"),
-        ({device_regs.ARTIFACT: header.replace(device_regs.STAMP, "// ")}, links, None,
-         "records no readable owner revision"),
-        ({}, links, None, "the git index does not carry it"),
+        ({**files, device_regs.ARTIFACT: header.replace(device_regs.STAMP, "// ")}, links,
+         None, "records no readable owner revision"),
+        (_K88_OWNERS, links, None, "the git index does not carry it"),
         (files, {}, None, "carries no gitlink"))
     for changed, gitlinks, edit, needle in cases:
         found = _k88_device_regs(changed, gitlinks, edit)
         ensure(len(found) == 1 and needle in found[0],
                f"each broken reading is one finding naming it: {found!r}")
+
+
+def _k88_device_register_block_half_is_decided_on_the_host() -> None:
+    mocha = "d" * 40
+    header = _k88_device_header(mocha)
+    files = {**_K88_OWNERS, device_regs.ARTIFACT: header}
+    links = {device_regs.UPSTREAM: mocha}
+    moved = "BLK_ constants differ"
+    cases: tuple[tuple[dict[str, str], str], ...] = (
+        # a block-contract offset moved and the package, still what the index holds,
+        # was not regenerated: no Mocha checkout is needed to see it
+        ({**files, device_regs.BLOCK: _K88_BLOCK.replace("`0x38` | `ACK`",
+                                                         "`0x40` | `ACK`")}, moved),
+        ({**files, device_regs.BLOCK_MODEL: _K88_MODEL.replace("= 4096", "= 2048")}, moved),
+        # a constant edited in the tracked package itself agrees with its index
+        ({**files, device_regs.ARTIFACT: header.replace("BLK_ACK = 64'h38",
+                                                        "BLK_ACK = 64'h40")}, moved),
+        ({**files, device_regs.ARTIFACT: "\n".join(
+            line for line in header.split("\n") if "BLK_DATA" not in line)}, moved),
+        # an owner the block half reads is gone or ambiguous: refused, never passed
+        ({device_regs.ARTIFACT: header, device_regs.BLOCK_MODEL: _K88_MODEL},
+         "block constants cannot be derived"),
+        ({**files, device_regs.BLOCK: _K88_BLOCK + _K88_BLOCK},
+         "block constants cannot be derived"))
+    for changed, needle in cases:
+        found = _k88_device_regs(changed, links)
+        ensure(len(found) == 1 and needle in found[0],
+               f"each block-half defect is one finding naming it: {found!r}")
 
 
 def _k81(files: dict[str, str], residues: dict[tuple[str, str], str],
@@ -1238,6 +1400,14 @@ def cases() -> list[Case]:
         Case("k75-install-command-still-uses-supported-version",
              _k75_install_command_still_uses_supported_version),
         Case("k75-every-workflow-job-is-held", _k75_every_workflow_job_is_held),
+        Case("k119-each-rule-in-one-class-passes", _k119_each_rule_in_one_class_passes),
+        Case("k119-unnamed-and-doubly-named-rules-are-findings",
+             _k119_unnamed_and_doubly_named_rules_are_findings),
+        Case("k119-ids-a-class-names-must-be-active-rules",
+             _k119_ids_a_class_names_must_be_active_rules),
+        Case("k119-ranges-expand-over-active-rows", _k119_ranges_expand_over_active_rows),
+        Case("k119-unreadable-class-sentences-fail-closed",
+             _k119_unreadable_class_sentences_fail_closed),
         Case("k97-reviewed-pin-is-required-without-prose-copies",
              _k97_reviewed_pin_is_required_without_prose_copies),
         Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),
@@ -1266,6 +1436,8 @@ def cases() -> list[Case]:
              _k116_consumed_bindings_are_held_whole_and_fail_closed),
         Case("k88-device-register-stamp-is-held-whole-and-fail-closed",
              _k88_device_register_stamp_is_held_whole_and_fail_closed),
+        Case("k88-device-register-block-half-is-decided-on-the-host",
+             _k88_device_register_block_half_is_decided_on_the_host),
         Case("k88-foreign-library-is-a-finding", _k88_foreign_library_is_a_finding),
         Case("k84-retired-holders-are-historical-only", _k84_retired_holders_are_historical_only),
         Case("k84-retirement-needs-an-unfenced-registry-row",

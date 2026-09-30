@@ -15,6 +15,7 @@ import shlex
 import shutil
 import signal
 import subprocess
+import sys
 import sysconfig
 import time
 import xml.etree.ElementTree as ET
@@ -365,6 +366,9 @@ def verify_dependency_closure(dependencies: dict[str, str], manifest: dict[str, 
 
 def _measure(name: str, argv: list[str], directory: Path, logs: Path,
              extra_env: dict[str, str] | None = None) -> dict[str, object]:
+    if sys.platform == "win32":
+        # The child's usage is read with the POSIX-only `os.wait4`.
+        raise RuntimeError("Sail modular measurements run in the guest")
     log = logs / f"{name}.log"
     started = time.monotonic()
     with (log.open("wb") as stream,

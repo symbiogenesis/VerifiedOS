@@ -128,6 +128,8 @@ def system_packages(install: bool, log: IO[str]) -> None:
     if not install:
         raise ValueError("missing Ubuntu packages: " + " ".join(missing)
                          + "; use --install-system to install them")
+    if sys.platform != "linux":
+        raise ValueError("system packages are installed on Linux, inside the guest lane")
     prefix = () if os.geteuid() == 0 else ("sudo", "-n")
     run((*prefix, "apt-get", "update"), log)
     run((*prefix, "env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y",
@@ -147,13 +149,11 @@ def install_switch(steps: tuple[tuple[str, ...], ...], log: IO[str]) -> None:
 
 
 def initialize_repositories(log: IO[str]) -> None:
-    """Initialize the private root on its default repository and add the rest unselected,
-    each switch naming the repositories it resolves from."""
-    (default, default_url), *others = opam_client.OPAM_REPOSITORIES
-    run(("opam", "init", "--bare", "--no-setup", "--no-opamrc", "-y", default, default_url),
-        log)
-    for name, url in others:
-        run(("opam", "repository", "add", name, url, "--dont-select", "-y"), log)
+    """Create the private root by the opam client owner's one route, `CREATE_ROOT`:
+    initialized on its default repository with the rest added unselected, each switch
+    naming the repositories it resolves from."""
+    for argv in opam_client.CREATE_ROOT:
+        run(argv, log)
 
 
 def install_toolchains(root: Path, jobs: int, log: IO[str],

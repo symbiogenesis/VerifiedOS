@@ -11,6 +11,7 @@ import tempfile
 from collections.abc import Callable
 from contextlib import redirect_stderr
 from pathlib import Path
+from types import SimpleNamespace
 from typing import IO, cast
 from unittest.mock import patch
 
@@ -54,7 +55,10 @@ def _package_query_is_batched() -> None:
 
 
 def _nonroot_system_install() -> None:
+    # The installation is Linux's, so a host run patches the platform this module
+    # reads rather than the interpreter's own.
     with (patch.object(bootstrap, "missing_packages", side_effect=[["m4"], []]),
+          patch.object(bootstrap, "sys", SimpleNamespace(platform="linux")),
           patch.object(bootstrap.os, "geteuid", return_value=1000, create=True),
           patch.object(bootstrap, "run") as launched):
         bootstrap.system_packages(True, io.StringIO())
@@ -336,10 +340,16 @@ def _opam_client_has_one_owner() -> None:
 
 
 def _repositories_come_from_the_owner() -> None:
-    """The root is initialized on the owner's repositories, the first as the default."""
+    """The root is created by the owner's one route, on the owner's repositories, the
+    first as the default; bootstrap spells no opam command of its own for it."""
     launched: list[tuple[str, ...]] = []
     with patch.object(bootstrap, "run", side_effect=lambda argv, log: launched.append(argv)):
         bootstrap.initialize_repositories(io.StringIO())
+    ensure(launched == list(bootstrap.opam_client.CREATE_ROOT),
+           f"bootstrap runs the owner's root-creation route, ran {launched}")
+    source = Path(bootstrap.__file__).read_text(encoding="utf-8")
+    ensure('"init"' not in source and '"repository"' not in source,
+           "bootstrap must run the owner's route, not restate its commands")
     (default, url), *others = bootstrap.opam_client.OPAM_REPOSITORIES
     ensure(launched[0][:2] == ("opam", "init") and launched[0][-2:] == (default, url),
            f"the root is initialized on the default repository, ran {launched[0]}")

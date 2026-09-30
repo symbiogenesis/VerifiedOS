@@ -484,6 +484,123 @@ def _workflow_host_job_names() -> None:
            "every aggregate platform runs the shards it requires")
     faults = _runner_faults(contents)
     ensure(not faults, f"{ci.HOST} names an explicit runner image per platform: {faults!r}")
+    faults = _gate_faults(contents)
+    ensure(not faults, f"{ci.HOST} runs the gate once on every runner: {faults!r}")
+
+
+# The shard gate's command, and its two platform branches as the workflow spells them:
+# PowerShell on Windows and bash on every other runner, so each runner takes one.
+_GATE = "python tools/run.py --check --tests --shard"
+_GATE_BRANCHES = sorted((("${{ runner.os == 'Windows' }}", "pwsh"),
+                         ("${{ runner.os != 'Windows' }}", "bash")))
+
+
+def _step_texts(job: str) -> list[str]:
+    """The text of each step of a job's block-sequence `steps:`, comment lines dropped."""
+    lines = [line for line in job.split("\n") if not line.lstrip().startswith("#")]
+    start = next((n for n, line in enumerate(lines) if line.rstrip() == "    steps:"), None)
+    steps: list[list[str]] = []
+    for line in lines[start + 1:] if start is not None else []:
+        if line.strip() and not line.startswith("      "):
+            break
+        if line.startswith("      - "):
+            steps.append([])
+        if steps:
+            steps[-1].append(line)
+    return ["\n".join(step) for step in steps]
+
+
+def _step_values(step: str, key: str) -> list[str]:
+    """Every value a step states for one of its own keys, on its dash line or beneath."""
+    pattern = r"(?m)^(?:      - |        )" + re.escape(key) + r":[ \t]*(.*?)[ \t]*$"
+    return [m[1] for m in re.finditer(pattern, step)]
+
+
+def _gate_faults(contents: str) -> list[str]:
+    """Why the host workflow's shard job does not run its gate exactly once per runner.
+
+    The gate is two steps, and a step whose `if:` is false is skipped with its job still
+    green, so a shard on which neither condition held would pass having run nothing.
+    Each gate step is a block step whose own single-line `run:` starts with the gate
+    command, the command standing anywhere else in the job is refused rather than read,
+    and the two steps' `if:` and `shell:` must be exactly the complementary pair.
+    """
+    shards = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)[0]
+    gates = [step for step in _step_texts(shards)
+             if any(value.startswith(_GATE) for value in _step_values(step, "run"))]
+    text = "\n".join(line for line in shards.split("\n") if not line.lstrip().startswith("#"))
+    faults: list[str] = []
+    if text.count(_GATE) != len(gates):
+        faults.append("the gate command stands outside a step's own single-line run")
+    if len(gates) != 2:
+        faults.append(f"the shard job runs the gate in {len(gates)} step(s), not two")
+    branches: list[tuple[str, str]] = []
+    for step in gates:
+        conditions, shells = _step_values(step, "if"), _step_values(step, "shell")
+        if len(conditions) != 1 or len(shells) != 1:
+            faults.append(f"a gate step states {len(conditions)} if and {len(shells)} "
+                          "shell keys, not one of each")
+            continue
+        branches.append((conditions[0], shells[0]))
+    if len(gates) == 2 and sorted(branches) != _GATE_BRANCHES:
+        faults.append(f"the gate steps' conditions and shells are {sorted(branches)!r}, "
+                      f"not the complementary {_GATE_BRANCHES!r}")
+    return faults
+
+
+_GATE_JOB = """jobs:
+  host-gates-shard:
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Keep temporary files on the checkout drive
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          "TMP=$env:RUNNER_TEMP" >> $env:GITHUB_ENV
+
+      # The gate, once per platform.
+      - name: Host gates and behavioral tests (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: python tools/run.py --check --tests --shard "$env:SHARD/$env:SHARDS"
+
+      - name: Host gates and behavioral tests (Ubuntu)
+        if: ${{ runner.os != 'Windows' }}
+        shell: bash
+        run: python tools/run.py --check --tests --shard "$SHARD/$SHARDS"
+
+      - name: Report gate results
+        if: ${{ !cancelled() }}
+        shell: python
+        run: print("report")
+  host-gates:
+    runs-on: ubuntu-26.04
+"""
+
+
+def _workflow_gate_on_every_runner() -> None:
+    # The reading is held to fixtures of its own: the complementary pair passes, and a
+    # pair that leaves some runner without a gate, or a gate it cannot read, is refused.
+    found = _gate_faults(_GATE_JOB)
+    ensure(not found, f"the complementary pair passes: {found!r}")
+    ubuntu = _GATE_JOB.split("      - name: Host gates and behavioral tests (Ubuntu)\n", 1)
+    missing = ubuntu[0] + "      - name: Report" + ubuntu[1].split("      - name: Report", 1)[1]
+    for workflow, fragment in (
+            (_GATE_JOB.replace("runner.os != 'Windows'", "runner.os == 'Linux'"),
+             "not the complementary"),
+            (_GATE_JOB.replace("runner.os != 'Windows'", "runner.os == 'Windows'"),
+             "not the complementary"),
+            (_GATE_JOB.replace("shell: bash", "shell: pwsh"), "not the complementary"),
+            (missing, "in 1 step(s), not two"),
+            (_GATE_JOB.replace('run: python tools/run.py --check --tests --shard "$SHARD',
+                               'run: |\n          python tools/run.py --check --tests '
+                               '--shard "$SHARD'), "outside a step's own single-line run"),
+            (_GATE_JOB.replace("        shell: bash\n",
+                               "        shell: bash\n        if: ${{ false }}\n"),
+             "states 2 if and 1 shell keys")):
+        found = _gate_faults(workflow)
+        ensure(any(fragment in fault for fault in found),
+               f"a gate some runner would skip must be refused ({fragment!r}): {found!r}")
 
 
 def _key_values(text: str, key: str) -> list[str]:
@@ -522,7 +639,10 @@ def _runner_faults(contents: str) -> list[str]:
 
     Every `runner` key the shard job states, in any mapping style, must belong to an
     include entry naming one platform, every platform of the matrix must have one, and
-    no label may be a moving `-latest` alias; every `runs-on` is held to the same.
+    no label may be a moving `-latest` alias. Every `runs-on` is a block line whose
+    value is either the shard job's `${{ matrix.runner }}`, stated once and there alone,
+    or one unquoted label fully matching `[A-Za-z0-9][A-Za-z0-9._-]*` without `latest`,
+    so a YAML alias, a flow sequence, another expression or a trailing comment is refused.
     """
     faults: list[str] = []
     shards = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)[0]
@@ -548,9 +668,19 @@ def _runner_faults(contents: str) -> list[str]:
     runs_on = re.findall(r"(?m)^[ \t]*runs-on:[ \t]*(.+?)[ \t]*$", workflow)
     if len(runs_on) != len(_key_values(workflow, "runs-on")):
         faults.append("a runs-on key is not a block line this reading takes")
-    faults += [f"runs-on {label!r} names a moving alias" for label in runs_on if "latest" in label]
+    matrix_runner = "${{ matrix.runner }}"
+    for label in runs_on:
+        if label == matrix_runner:
+            continue
+        if "latest" in label:
+            faults.append(f"runs-on {label!r} names a moving alias")
+        elif not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", label):
+            faults.append(f"runs-on {label!r} is not an explicit image label")
     if not re.search(r"(?m)^    runs-on: \$\{\{ matrix\.runner \}\}$", shards):
         faults.append("the shard job does not run on its matrix's runner")
+    if runs_on.count(matrix_runner) > 1:
+        faults.append(f"runs-on {matrix_runner} is stated {runs_on.count(matrix_runner)} "
+                      "times, not once in the shard job")
     return faults
 
 
@@ -597,6 +727,19 @@ def _workflow_runner_labels_any_style() -> None:
         "runs-on: ubuntu-26.04", "runs-on: ubuntu-latest"))
     ensure(any("moving alias" in fault for fault in found),
            f"a runs-on alias must be refused: {found!r}")
+    # A runs-on value that names no label outright: a YAML alias, a flow sequence,
+    # another expression, a quoted label or a trailing comment.
+    for value in ("*image", "[ubuntu-26.04]", "${{ inputs.runner }}", "'ubuntu-26.04'",
+                  "ubuntu-26.04 # image"):
+        found = _runner_faults(_SHARD_JOB.replace("INCLUDE", flow).replace(
+            "runs-on: ubuntu-26.04", f"runs-on: {value}"))
+        ensure(any(f"runs-on {value!r} is not an explicit image label" in fault
+                   for fault in found),
+               f"runs-on {value!r} must be refused: {found!r}")
+    found = _runner_faults(_SHARD_JOB.replace("INCLUDE", flow).replace(
+        "runs-on: ubuntu-26.04", "runs-on: ${{ matrix.runner }}"))
+    ensure(any("stated 2 times, not once in the shard job" in fault for fault in found),
+           f"the matrix's runner belongs to the shard job alone: {found!r}")
 
 
 def _workflow_checkout_validation() -> None:
@@ -653,5 +796,6 @@ def cases() -> list[Case]:
             Case("dispatch-subject", _dispatch_subject),
             Case("workflow-titles", _workflow_titles),
             Case("workflow-host-job-names", _workflow_host_job_names),
+            Case("workflow-gate-on-every-runner", _workflow_gate_on_every_runner),
             Case("workflow-runner-labels-any-style", _workflow_runner_labels_any_style),
             Case("workflow-checkout-validation", _workflow_checkout_validation)]

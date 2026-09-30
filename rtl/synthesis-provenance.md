@@ -30,7 +30,7 @@ A row whose binding is neither is a finding, because an absence bound to nothing
 | A-07 | Prefetch engine | n/a: the imported core issues no fetch a prior execution's data selects, so there is no request generator to disable | no prefetch module elaborates |
 | A-08 | SMT / second hardware thread context | n/a: the imported core is single-threaded by construction | no duplicated architectural register file and no thread-identifier field elaborate |
 | A-09 | Instruction cache | n/a **and this one is authoring work**: no parameter deletes the fetch-path cache, which elaborates at every configuration the imported core admits | `cva6_icache` present, over its own tag, data and valid arrays |
-| A-10 | Data cache | n/a, on the same ground as A-09 | the five write-through modules present, over 84 RAM, 18 cache-SRAM and 18 SRAM instances |
+| A-10 | Data cache | n/a, on the same ground as A-09 | the five write-through modules present, over 72 `prim_ram_1p`, 12 `sram_cache` and 12 `sram` instances of the curated arm's 84, 20 and 20; A-09's arrays are the rest |
 | A-11 | Tag cache | n/a: the structure is in the imported tag controller rather than in the core, so it is outside the netlist this record is taken over and outside any parameter this package carries | no tag-cache module elaborates in the core |
 | A-12 | DVFS / frequency control | n/a: the imported core carries no PLL, no frequency-scaling state machine and no rail control | none elaborates |
 | A-12a | Activity-driven memory power gating | n/a: the structure would sit in the memory controller, which is not this core and not this package | none elaborates |
@@ -74,9 +74,9 @@ The curated scalar build also applies [the guarded width transformations](../doc
 to exact pinned inputs in its native build directory. The registry checks source
 and output identities and replacement counts, retains notices and emits diffs.
 This staging is distinct from the module-substitution/absence mechanism above.
-The frozen transport/store probe and standalone package checks pass; complete
-curated-core elaboration still fails at the remaining permission, root, sentry
-and exception interfaces. No whole-core absence or correspondence receipt follows.
+The frozen transport/store probe and standalone package checks pass, and the
+curated arm elaborates; that settles names, members and widths, and no
+whole-core absence or correspondence receipt follows.
 
 **The capability- and tag-carrying interconnect is curated here as a functional reference and authored under route (a) afterwards**, and that disposition is written down because both readings are otherwise equally available from the artifacts. R-15-092 requires the net-new blocks authored in a formal-semantics HDL and proven, and names the DMA fabric among them; the pinned `axi-cheri-tagcontroller` is described in [THIRD-PARTY.md](../THIRD-PARTY.md) as the functional reference for exactly that block. Whether elaborating the pinned tree is the act R-15-092 forbids is a question neither artifact answers.
 

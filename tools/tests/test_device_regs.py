@@ -56,6 +56,28 @@ def _missing_or_duplicate_owners_refuse() -> None:
                 raise AssertionError("absent or ambiguous UART layout accepted")
 
 
+def _block_half_needs_no_mocha_owner() -> None:
+    with sandbox_tree(_tree()) as root:
+        text = regs.emit(root, _REV)
+        lines = text.splitlines()
+        uart, block = regs.uart_lines(root), regs.block_lines(root)
+        ensure(lines[8:8 + len(uart) + len(block)] == uart + block,
+               "the package is the UART half followed by the block half")
+        ensure(regs.emitted_block_lines(text) == block,
+               "the package's BLK_ lines read back as the block half")
+    tree = _tree()
+    del tree[regs.UART], tree[regs.UART_SPEC]
+    with sandbox_tree(tree) as root:
+        ensure(regs.block_lines(root) == block,
+               "the block half is derived without the Mocha checkout")
+        try:
+            regs.uart_lines(root)
+        except OSError:
+            pass
+        else:
+            raise AssertionError("the UART half was derived with no Mocha owner")
+
+
 def _refused(read: Callable[..., object], *args: object) -> None:
     try:
         read(*args)
@@ -94,6 +116,7 @@ def _stamp_is_taken_from_the_owner_checkout_itself() -> None:
 def cases() -> list[Case]:
     return [Case("owners-drive-offsets-and-fields", _owners_drive_offsets_and_fields),
             Case("missing-or-duplicate-owners-refuse", _missing_or_duplicate_owners_refuse),
+            Case("block-half-needs-no-mocha-owner", _block_half_needs_no_mocha_owner),
             Case("stamp-records-the-owner-revision", _stamp_records_the_owner_revision),
             Case("stamp-is-taken-from-the-owner-checkout-itself",
                  _stamp_is_taken_from_the_owner_checkout_itself)]

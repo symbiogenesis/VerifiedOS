@@ -9,6 +9,7 @@ import select
 import shutil
 import signal
 import subprocess
+import sys
 import tarfile
 import time
 import urllib.request
@@ -346,6 +347,9 @@ class Session:
                             and message.get("params", {}).get("uri") == uri)
 
     def close(self, *, terminate: bool = False) -> dict[str, Any]:
+        if sys.platform == "win32":
+            # The server's process group is ended with the POSIX-only `os.killpg`.
+            raise RuntimeError("the Sail language server runs in the guest")
         self.sample()
         shutdown: dict[str, Any] | None = None
         if self.process.poll() is None:
@@ -375,6 +379,9 @@ class Session:
 
 
 def _batch(e: env.Environment, project: Path, directory: Path, name: str, timeout: float) -> dict[str, Any]:
+    if sys.platform == "win32":
+        # A timed-out batch's process group is ended with the POSIX-only `os.killpg`.
+        raise RuntimeError("the Sail batch comparison runs in the guest")
     log = directory / (name + ".batch.log")
     timing = directory / (name + ".batch.time")
     argv = ["sail", "--strict-var", "--strict-bitvector", "--strict-exponentials",

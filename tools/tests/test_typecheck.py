@@ -13,6 +13,10 @@ other than exactly `all = "error"`, an `[[overrides]]` entry carrying any key bu
 `include` and `exclude`, an `[analysis]` key outside the ones that suppress nothing,
 an `[environment]` key other than the three it admits or either held value changed,
 a `[src]` table other than exactly the committed one, and a file it cannot read.
+The run cases hold one pin probe for a checker's passes, one ty pass per platform,
+linux and then win32, with the real ty showing the win32 pass reaching a branch the
+linux pass cannot, a user-level configuration or a set `PYTHONPATH` reported
+beside the run, and the real ruff keeping a module an ignore file matches.
 """
 
 import os
@@ -20,7 +24,8 @@ import sys
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from typing import cast
+from unittest.mock import MagicMock, patch
 
 from tests.harness import Case, ensure
 from vos.cli import typecheck
@@ -169,17 +174,27 @@ def _checker_stub_body(exit_code: int, finding: bool) -> str:
             f"exit /b 0\r\n)\r\n{line}exit /b {exit_code}\r\n")
 
 
-def _run_stub_checker(body: str, pin: str) -> Reporter:
-    """One `_run_checker` pass routed at a stub, so the pin gate, the run,
-    the parse and the verdict are all the real code's."""
+def _stub_pass(detail: str = "") -> typecheck.Pass:
+    """A pass over the stub, reported under its name and `detail`, if any."""
+    who = f"{_STUB_NAME} {detail}".strip()
+    return typecheck.Pass(["check", detail] if detail else ["check"], who,
+                          f"lint finding(s){' ' + detail if detail else ''}:",
+                          f"clean{' ' + detail if detail else ''}")
+
+
+def _run_stub_checker(body: str, pin: str,
+                      passes: list[typecheck.Pass] | None = None) -> Reporter:
+    """One `_run_checker` call routed at a stub, one pass unless `passes` says
+    otherwise, so the pin gate, each run, the parse and the verdict are all the real
+    code's."""
     rep = Reporter()
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         directory = Path(td)
         stub = _stub(directory, _STUB_NAME, body)
         with patch.object(typecheck, "_tool", return_value=str(stub)):
             typecheck._run_checker(
-                rep, _STUB_NAME, pin, ["check"], directory, with_stderr=False,
-                parse=typecheck._parse_ruff, label="lint finding(s):", ok="clean")
+                rep, _STUB_NAME, pin, passes or [_stub_pass()], directory,
+                with_stderr=False, parse=typecheck._parse_ruff)
     return rep
 
 
@@ -239,12 +254,38 @@ def _pin_gate_refusals() -> None:
 
     absent = Reporter()
     typecheck._run_checker(
-        absent, "vostest-absent-tool", "1.0.0", ["check"], Path.cwd(),
-        with_stderr=False, parse=typecheck._parse_ruff, label="lint finding(s):",
-        ok="clean")
+        absent, "vostest-absent-tool", "1.0.0", [_stub_pass()], Path.cwd(),
+        with_stderr=False, parse=typecheck._parse_ruff)
     ensure("not installed:" in "\n".join(absent.out)
             and "synchronize tools/uv.lock" in "\n".join(absent.out),
            f"an absent tool must name the uv remedy, got {absent.out!r}")
+
+
+def _passes_share_one_pin_probe() -> None:
+    # Each pass is its own verdict under the checker's one rule, in the order given,
+    # and a crash names the pass it came from. The pin is one fact about one
+    # executable: probed once, so a drifted pin is one finding and no pass runs.
+    two = [_stub_pass("first"), _stub_pass("second")]
+    clean = _run_stub_checker(_checker_stub_body(0, finding=False), _STUB_PIN, two)
+    ensure(clean.findings == 0 and clean.out == [f"ok {_STUB_NAME}: clean first",
+                                                 f"ok {_STUB_NAME}: clean second"],
+           f"two clean passes must be two verdicts, in order: {clean.out!r}")
+    found = _run_stub_checker(_checker_stub_body(1, finding=True), _STUB_PIN, two)
+    ensure(found.findings == 2
+           and [line for line in found.out if line.startswith("FAIL ")]
+           == [f"FAIL {_STUB_NAME}: 1 lint finding(s) first:",
+               f"FAIL {_STUB_NAME}: 1 lint finding(s) second:"],
+           f"a finding in each pass must be reported under each: {found.out!r}")
+    crashed = _run_stub_checker(_checker_stub_body(4, finding=False), _STUB_PIN, two)
+    joined = "\n".join(crashed.out)
+    ensure(f"{_STUB_NAME} first exited 4" in joined
+           and f"{_STUB_NAME} second exited 4" in joined,
+           f"a crash must name the pass it came from: {crashed.out!r}")
+    drifted = _run_stub_checker(_checker_stub_body(0, finding=False), "1.0.0", two)
+    ensure(drifted.findings == 1
+           and "version(s) other than the pinned one:" in "\n".join(drifted.out)
+           and not any(line.startswith("ok ") for line in drifted.out),
+           f"a drifted pin must be one finding and run no pass: {drifted.out!r}")
 
 
 # The ty.toml this tree carries, which the gate reads from the same place.
@@ -387,7 +428,8 @@ def _ty_settings_refuse_environment() -> None:
                       ('future-setting = 1\n', "future-setting 1")):
         found = _settings(_ALL_ERROR + _ENV + line + _SRC)
         ensure(len(found) == 1 and f"[environment] carries {key};" in found[0]
-               and "admits only extra-paths, python-platform, python-version" in found[0],
+               and "admits only extra-paths, python-platform, python-version" in found[0]
+               and "a key the gate has not read is refused with them" in found[0],
                f"an [environment] key outside the admitted ones must be refused: {found!r}")
     # The two held values are held exactly: another platform, an added or a missing
     # search path, and an absent key are each named, and one table is one finding.
@@ -454,6 +496,98 @@ def _ty_settings_fail_closed() -> None:
                f"an absent or malformed ty.toml must be a finding: {found!r}")
 
 
+def _passes(checker: MagicMock) -> list[typecheck.Pass]:
+    """The passes the patched `_run_checker` was given, one per platform."""
+    passes = cast("list[typecheck.Pass]", checker.call_args.args[3])
+    ensure(all(isinstance(run, typecheck.Pass) for run in passes)
+           and len(passes) == len(typecheck.TY_PLATFORMS),
+           f"ty must run once per platform, got {passes!r}")
+    return passes
+
+
+def _claims(checker: MagicMock) -> list[bool]:
+    """Whether each ty pass the patched `_run_checker` was given claims every rule at
+    error, one entry per pass."""
+    return [run.ok.endswith("all rules at error") for run in _passes(checker)]
+
+
+def _ty_runs_every_platform() -> None:
+    # One ty pass per platform, linux and then win32, each naming its platform on the
+    # command line, in its verdict and in its failures, with every other argument
+    # the same; the first is the platform ty.toml holds for an editor.
+    ensure(typecheck.TY_PLATFORMS[0] == typecheck.TY_ENVIRONMENT["python-platform"],
+           "the gate's first platform must be the one ty.toml holds for an editor")
+    rep = Reporter()
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        (root / "tools").mkdir()
+        (root / "tools" / "ty.toml").write_text(_ADMITTED, encoding="utf-8", newline="")
+        with patch.dict(os.environ), \
+                patch.object(typecheck, "_user_config", return_value=None), \
+                patch.object(typecheck, "_run_checker") as checker:
+            os.environ.pop("PYTHONPATH", None)
+            typecheck._run_ty(rep, root)
+    passes = _passes(checker)
+    platforms = [run.args[run.args.index("--python-platform") + 1] for run in passes]
+    ensure(platforms == ["linux", "win32"],
+           f"the gate must run ty under linux and then win32, got {platforms!r}")
+    shared = {tuple(a for a in run.args if a not in platforms) for run in passes}
+    ensure(len(shared) == 1, f"the passes may differ only in the platform: {passes!r}")
+    for run, platform in zip(passes, platforms, strict=True):
+        ensure(run.ok == f"every expression reachable under python-platform {platform} "
+                        f"typechecks under ty {typecheck.TY_VERSION}, all rules at error"
+               and run.label == f"type error(s) under python-platform {platform}:"
+               and run.who == f"ty under python-platform {platform}",
+               f"the {platform} pass must name its platform: {run!r}")
+
+
+def _win32_pass_types_host_branches() -> None:
+    # The real ty over a module whose one error sits in a branch only win32 takes.
+    # The linux pass, which is ty.toml's platform and the whole of what one run under
+    # it would check, reports nothing; the win32 pass reports the error.
+    rep = Reporter()
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        (root / "tools").mkdir()
+        (root / "tools" / "ty.toml").write_text(_ADMITTED, encoding="utf-8", newline="")
+        (root / "tools" / "hostonly.py").write_text(
+            'import sys\n\nif sys.platform == "win32":\n    count: int = "one"\n',
+            encoding="utf-8", newline="")
+        with patch.dict(os.environ), \
+                patch.object(typecheck, "_user_config", return_value=None):
+            os.environ.pop("PYTHONPATH", None)
+            typecheck._run_ty(rep, root)
+    joined = "\n".join(rep.out)
+    ensure(rep.out[:1] == ["ok ty: every expression reachable under python-platform linux "
+                           f"typechecks under ty {typecheck.TY_VERSION}, all rules at error"],
+           f"the linux pass cannot reach the win32 branch: {rep.out!r}")
+    ensure(rep.findings == 1
+           and "FAIL ty: 1 type error(s) under python-platform win32:" in joined
+           and "hostonly.py:4:" in joined,
+           f"the win32 pass must report the error in the win32 branch: {rep.out!r}")
+
+
+def _ruff_checks_ignored_modules() -> None:
+    # The real ruff over a module an ignore file matches, under a ruff.toml that does
+    # not say respect-gitignore = false: ruff would skip the module and report
+    # nothing, so the gate's own flag is what keeps it in the run.
+    rep = Reporter()
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        tools = root / "tools"
+        tools.mkdir()
+        (tools / "ruff.toml").write_text('[lint]\nselect = ["ANN"]\n', encoding="utf-8",
+                                         newline="")
+        (tools / ".ignore").write_text("ignored.py\n", encoding="utf-8", newline="")
+        (tools / "ignored.py").write_text("def f(x):\n    return x\n", encoding="utf-8",
+                                          newline="")
+        typecheck._run_ruff(rep, root)
+    joined = "\n".join(rep.out)
+    ensure(rep.findings == 2 and "FAIL ruff: 2 lint finding(s):" in joined
+           and "ANN001: 1" in joined and "ignored.py:1:" in joined,
+           f"a module an ignore file matches must stay in the ruff run: {rep.out!r}")
+
+
 def _ty_settings_reported_beside_the_run() -> None:
     # The refusal is a ty finding in the gate's own report, and the checker still runs.
     for text, refused in ((_ADMITTED, False), ('[rules]\nall = "warn"\n' + _HELD, True)):
@@ -463,21 +597,24 @@ def _ty_settings_reported_beside_the_run() -> None:
             (root / "tools").mkdir()
             (root / "tools" / "ty.toml").write_text(text, encoding="utf-8", newline="")
             with patch.object(typecheck, "_run_checker") as checker, \
-                    patch.object(typecheck, "_user_config", return_value=None):
+                    patch.object(typecheck, "_user_config", return_value=None), \
+                    patch.dict(os.environ):
+                os.environ.pop("PYTHONPATH", None)
                 typecheck._run_ty(rep, root)
         ensure(checker.call_count == 1, "the checker must run whatever the settings say")
         joined = "\n".join(rep.out)
-        claims = str(checker.call_args.kwargs["ok"]).endswith("all rules at error")
+        claims = _claims(checker)
         if refused:
             ensure(rep.findings == 1
                    and "FAIL ty: 1 ty.toml setting(s) the gate refuses:" in joined,
                    f"a refused setting must fail the gate under ty: {rep.out!r}")
-            ensure(not claims, "a clean run beside refused settings must not claim "
-                               "every rule ran at error")
+            ensure(not any(claims), "a clean run beside refused settings must not claim "
+                                    "every rule ran at error")
         else:
             ensure(rep.findings == 0 and rep.out == [],
                    f"an admitted ty.toml must add nothing to the report: {rep.out!r}")
-            ensure(claims, "a clean run under admitted settings claims every rule at error")
+            ensure(all(claims), "a clean run under admitted settings claims every rule at "
+                                "error")
 
 
 def _user_config_located() -> None:
@@ -537,21 +674,54 @@ def _user_config_reported_beside_the_run() -> None:
                                 encoding="utf-8", newline="")
             with patch.dict(os.environ, {variable: str(root / "config")}), \
                     patch.object(typecheck, "_run_checker") as checker:
+                os.environ.pop("PYTHONPATH", None)
                 typecheck._run_ty(rep, root)
         ensure(checker.call_count == 1, "the checker must run whatever the settings say")
         joined = "\n".join(rep.out)
-        claims = str(checker.call_args.kwargs["ok"]).endswith("all rules at error")
+        claims = _claims(checker)
         if present:
             ensure(rep.findings == 1
                    and "FAIL ty: 1 user-level configuration(s) the gate refuses:" in joined
                    and f"a user-level ty configuration at {user} merges into the gate's "
                        "run" in joined,
                    f"a user-level ty.toml must be a ty finding naming it: {rep.out!r}")
-            ensure(not claims, "a run beside a user-level ty.toml must not claim every "
-                               "rule ran at error")
+            ensure(not any(claims), "a run beside a user-level ty.toml must not claim every "
+                                    "rule ran at error")
         else:
-            ensure(rep.findings == 0 and rep.out == [] and claims,
+            ensure(rep.findings == 0 and rep.out == [] and all(claims),
                    f"an empty user configuration directory must add nothing: {rep.out!r}")
+
+
+def _pythonpath_reported_beside_the_run() -> None:
+    # A PYTHONPATH that ty would search ahead of the standard library is a ty finding
+    # naming its value, an empty one included; the checker still runs, and the run no
+    # longer claims every rule at error. Without the variable nothing is added.
+    for value in (None, "", "shadow"):
+        rep = Reporter()
+        with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+            root = Path(td)
+            (root / "tools").mkdir()
+            (root / "tools" / "ty.toml").write_text(_ADMITTED, encoding="utf-8", newline="")
+            with patch.dict(os.environ), \
+                    patch.object(typecheck, "_user_config", return_value=None), \
+                    patch.object(typecheck, "_run_checker") as checker:
+                os.environ.pop("PYTHONPATH", None)
+                if value is not None:
+                    os.environ["PYTHONPATH"] = value
+                typecheck._run_ty(rep, root)
+        ensure(checker.call_count == 1, "the checker must run whatever the environment says")
+        joined = "\n".join(rep.out)
+        claims = _claims(checker)
+        if value is None:
+            ensure(rep.findings == 0 and rep.out == [] and all(claims),
+                   f"an unset PYTHONPATH must add nothing: {rep.out!r}")
+        else:
+            ensure(rep.findings == 1
+                   and "FAIL ty: 1 environment variable(s) the gate refuses:" in joined
+                   and f"PYTHONPATH is set to {value!r}" in joined,
+                   f"a set PYTHONPATH must be a ty finding naming it: {rep.out!r}")
+            ensure(not any(claims), "a run beside a set PYTHONPATH must not claim every rule "
+                                    "ran at error")
 
 
 def cases() -> list[Case]:
@@ -570,6 +740,7 @@ def cases() -> list[Case]:
         Case("failed-check-requires-a-diagnostic",
              _failed_check_requires_a_diagnostic, lane="host"),
         Case("pin-gate-refusals", _pin_gate_refusals, lane="host"),
+        Case("passes-share-one-pin-probe", _passes_share_one_pin_probe, lane="host"),
         Case("ty-settings-admitted", _ty_settings_admitted),
         Case("ty-settings-refuse-rules", _ty_settings_refuse_rules),
         Case("ty-settings-refuse-overrides", _ty_settings_refuse_overrides),
@@ -577,7 +748,11 @@ def cases() -> list[Case]:
         Case("ty-settings-refuse-environment", _ty_settings_refuse_environment),
         Case("ty-settings-refuse-src", _ty_settings_refuse_src),
         Case("ty-settings-fail-closed", _ty_settings_fail_closed),
+        Case("ty-runs-every-platform", _ty_runs_every_platform),
+        Case("win32-pass-types-host-branches", _win32_pass_types_host_branches),
+        Case("ruff-checks-ignored-modules", _ruff_checks_ignored_modules),
         Case("ty-settings-reported-beside-the-run", _ty_settings_reported_beside_the_run),
         Case("user-config-located", _user_config_located),
         Case("user-config-reported-beside-the-run", _user_config_reported_beside_the_run),
+        Case("pythonpath-reported-beside-the-run", _pythonpath_reported_beside_the_run),
     ]
