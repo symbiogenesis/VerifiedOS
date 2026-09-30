@@ -314,7 +314,9 @@ def verified_build(e: env.Environment, *, fast: bool = False) -> dict[str, objec
     record = cast("dict[str, object]", raw)
     if (record.get("schema") != 1 or record.get("exit_code") != 0
             or record.get("stages") != {"configure": 0, "build": 0, "ctest": 0}):
-        raise ValueError("the build receipt does not record a successful complete build")
+        refusal = record.get("refusal")
+        raise ValueError("the build receipt does not record a successful complete build"
+                         + (f": {refusal}" if isinstance(refusal, str) and refusal else ""))
     if record.get("identity") != build_identity(e):
         raise ValueError("the build receipt is stale: sources, tools or options changed")
     if record.get("artifacts") != build_artifacts(
@@ -646,22 +648,28 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
                 break
         handle.write("ALL_DONE\n")
 
+    # A build whose stages passed can still be refused its evidence. The reason is kept
+    # in the receipt as well as printed, because a background build's stderr goes
+    # nowhere, and `verified_build`, which `model wait` reports through, names it.
+    refusal = ""
     if code == 0 and build_identity(e) != identity:
-        print("the inputs changed during the build; its evidence is stale", file=sys.stderr)
-        code = 1
+        refusal = "the inputs changed during the build; its evidence is stale"
     artifacts: dict[str, str] = {}
-    if code == 0:
+    if code == 0 and not refusal:
         # The sweep's inputs are read through `_test_corpus`, which holds the suite to
         # the manifest configure wrote, so an unverified corpus fails the build here.
         try:
             artifacts = build_artifacts(build_dir, e.model)
         except ValueError as err:
-            print(f"the build's evidence cannot be recorded: {err}", file=sys.stderr)
-            code = 1
+            refusal = f"the build's evidence cannot be recorded: {err}"
+    if refusal:
+        print(refusal, file=sys.stderr)
+        code = 1
     receipts.write(record_path, {
         "schema": 1, "run_id": run_id, "exit_code": code, "stages": stages,
         "identity": identity, "artifacts": artifacts,
         "log_sha256": receipts.digest(log), "extra_options": extra,
+        **({"refusal": refusal} if refusal else {}),
     })
 
     print(f"== {'green' if code == 0 else 'failed'}: {log}")

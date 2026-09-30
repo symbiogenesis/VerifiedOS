@@ -3,6 +3,7 @@
 
 import argparse
 import io
+import json
 import subprocess
 import tempfile
 from contextlib import ExitStack, redirect_stderr, redirect_stdout
@@ -150,6 +151,47 @@ def _stale_build() -> None:
             except ValueError:
                 return
         raise AssertionError("removing every sweep input must invalidate its receipt")
+
+
+def _refused_evidence_is_recorded() -> None:
+    """A build whose stages pass but whose evidence is refused fails, and its receipt
+    keeps why: a background build's stderr goes nowhere, so the reason `model wait`
+    reports through `verified_build` has to come from the receipt."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        e = _environment(Path(td))
+        for rel in model.BUILD_ARTIFACTS:
+            path = e.build_dir / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"artifact")
+        # Extracted and never sealed: no manifest stands beside the suite.
+        (_corpus_fixture(e) / "rv64ui-p-add").write_bytes(b"test program")
+        identity = {"inputs": {"source": "hash"}}
+        moved = {"inputs": {"source": "edited during the build"}}
+        log = e.log("model-build")
+        version = subprocess.CompletedProcess([], 0, "Sail 9.9.9 (fixture)\n", "")
+        for identities, why in (([identity, identity], "has no riscv-tests.manifest"),
+                                ([identity, moved], "the inputs changed during the build")):
+            with (patch.object(model, "build_identity", side_effect=identities),
+                  patch.object(model, "_configure", return_value=0),
+                  patch.object(model, "env", SimpleNamespace(stage=Mock(return_value=0))),
+                  patch.object(model, "subprocess",
+                               SimpleNamespace(run=Mock(return_value=version))),
+                  redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
+                code = model._build_locked(e, e.build_dir, log, [])
+            record = json.loads(log.with_suffix(".json").read_text(encoding="utf-8"))
+            ensure(code == 1 and record.get("exit_code") == 1
+                   and record.get("stages") == {"configure": 0, "build": 0, "ctest": 0},
+                   f"green stages with refused evidence fail the build, got {code} and "
+                   f"{record}")
+            ensure(why in str(record.get("refusal")),
+                   f"the receipt records why the evidence was refused, got {record}")
+            with patch.object(model, "build_identity", return_value=identity):
+                try:
+                    model.verified_build(e)
+                except ValueError as err:
+                    ensure(why in str(err), f"verified_build names the refusal, said {err}")
+                else:
+                    raise AssertionError("a receipt recording a refusal was verified")
 
 
 def _git(root: Path, *argv: str) -> None:
@@ -628,6 +670,7 @@ def _member_terminal_isolation() -> None:
 def cases() -> list[Case]:
     return [Case("solver-failure", _solver_failure), Case("detach-race", _detach_race),
             Case("reference-failure", _reference_failure), Case("stale-build", _stale_build),
+            Case("refused-evidence-is-recorded", _refused_evidence_is_recorded),
             Case("proof-publication-keeps-build-identity", _proof_publication_keeps_build_identity),
             Case("identity-binds-only-opened-gitlinks", _identity_binds_only_opened_gitlinks),
             Case("oracle-binds-the-environments-sail", _oracle_binds_the_environments_sail),
