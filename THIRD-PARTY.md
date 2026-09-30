@@ -153,6 +153,11 @@ revision:
   vendored CVA6-CHERI, debug-module and tag-controller sources keep the terms
   recorded below. Its CVA6-CHERI vendor lock now selects the edition the
   `upstream/cva6-cheri` gitlink pins.
+- OpenTitan advances to its `master` tip as a read reference: `LICENSE` and the
+  SECDED assertion and generator files the proof-reuse survey cites are
+  byte-identical to the preceding pin's. Elaboration takes its primitives from
+  Mocha's vendored OpenTitan tree, the edition Mocha integrates the imported
+  core with, rather than from this pin.
 - CVA6-CHERI stays at the tip of its `mocha` branch, the edition Mocha vendors
   and the width-transform registry binds.
 - The standalone tag controller stays at its `main` tip, which carries the
@@ -179,7 +184,7 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 | `upstream/mocha` | `lowRISC/mocha` | `4b9bec92`, on `main` | `Apache-2.0` for lowRISC content; vendored subtrees have the terms below | Bring-up SoC used to author the device and tag-fabric descriptions in [the RTL delta](docs/hardware/rtl-reparameterization-delta.md) and [provenance record](rtl/synthesis-provenance.md). `run.py rtl devicescheck` reads its UART register and status declarations. `run.py rtl elaborate` reads the primitive packages, assertion header and primitive libraries of its vendored OpenTitan tree, the edition it integrates the imported core with. | consumed |
 | `upstream/cva6-cheri` | `lowRISC/cva6-cheri` | `0c7b3adf` | `SHL-0.51` at the root; file-specific `Apache-2.0 WITH SHL-2.0` and `Apache-2.0 WITH SHL-2.1` | C-class scalar datapath adapted to the 64+1-bit profile. `run.py rtl elaborate` builds the baseline and curated configurations. | consumed |
 | `upstream/axi-cheri-tagcontroller` | `Capabilities-Limited/axi_cheri_tagcontroller` | `c8245850` | `SHL-0.51` | Tag-fabric survey reference. The flat-store design in the RTL delta uses CVA6-CHERI's older nested pin, identified in the provenance record. | read |
-| `upstream/opentitan` | `lowRISC/opentitan` | `fbedb68e` | `Apache-2.0` | RoT peripheral reference. [The hardware proof-reuse survey](docs/assurance/proof-reuse/hardware.md) cites its SECDED assertions and generator at this pin. | read |
+| `upstream/opentitan` | `lowRISC/opentitan` | `73baf700`, on `master` | `Apache-2.0` | RoT peripheral reference. [The hardware proof-reuse survey](docs/assurance/proof-reuse/hardware.md) cites its SECDED assertions and generator at this pin. | read |
 | `upstream/ibex` | `lowRISC/ibex` | `4dd3932a` | `Apache-2.0` | RoT functional reference. | pinned to read later |
 | `upstream/cheriot-ibex` | `microsoft/cheriot-ibex` | `531ca2ec` | `Apache-2.0` | Conformance-methodology reference. The profile does not adopt its RV32 capability encoding. | pinned to read later |
 | `upstream/cheri-compressed-cap` | `CTSRD-CHERI/cheri-compressed-cap` | `6a94fc12` | `BSD-2-Clause`; `test/FuzzedDataProvider.h` is `Apache-2.0 WITH LLVM-exception` | Library narrowed to the frozen 64+1-bit fields in the unpublished emulator repository, from the edition the completion log records. No build or check here uses it. | pinned for a struck milestone |
