@@ -3,6 +3,7 @@
 
 import ast
 import errno
+import io
 import json
 import os
 import re
@@ -10,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Callable
+from contextlib import redirect_stdout
 from dataclasses import asdict, replace
 from pathlib import Path
 from unittest.mock import patch
@@ -17,6 +19,7 @@ from unittest.mock import patch
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from tests.test_worktree import _commit, _git
 from vos import fanout_retire as retire
+from vos.cli import model as model_cli
 from vos.cli import proofs as proofs_cli
 from vos.cli import worktree
 
@@ -377,6 +380,38 @@ def _native_oracle_locks_of_every_edition() -> None:
                "with no oracle build running, the lane's oracle log travels with it")
 
 
+def _persistence_campaign_lock() -> None:
+    """The emulator flocks its block images inside the campaign's output, which the
+    retirement does not open; a live campaign is seen through the `<output>.lock` the
+    campaign holds beside it, and a finished one retires with its images."""
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        e = retire.env.Environment(root, root / "model", root / "build", root / "logs",
+                                   "worker", 4, 4096, 2, 2)
+        seen: list[str] = []
+
+        def campaign(*args: object) -> dict[str, object]:
+            output = Path(str(args[3]))
+            output.mkdir(parents=True)
+            (output / "durable.img").write_bytes(b"image")
+            try:
+                retire.retain_native("worker", str(e.lane_root), str(root / "logs"), "3" * 20)
+            except retire.RetirementError as exc:
+                seen.append(str(exc))
+            return {"passed": True}
+
+        with (patch.object(model_cli.block_persistence, "run", side_effect=campaign),
+              redirect_stdout(io.StringIO())):
+            ensure(model_cli._corpus_persistence(e, e.lane_root / "corpus", 30) == 0,
+                   "the stand-in campaign passes")
+        ensure(len(seen) == 1 and seen[0].startswith("native output lock is active: ")
+               and re.search(r"/corpus/persistence-[0-9a-f]{32}\.lock$", seen[0]) is not None,
+               f"a retirement during the campaign refuses on its output lock, got {seen}")
+        result = retire.retain_native("worker", str(e.lane_root), str(root / "logs"), "3" * 20)
+        images = list((Path(str(result["archive"])) / "lane" / "corpus").glob("persistence-*/durable.img"))
+        ensure(len(images) == 1 and not e.lane_root.exists(),
+               "after the campaign the lane retires with its images")
+
+
 # The descriptor limit is process-wide, so it is lowered in a child: lowered here, it
 # would bind every module the runner's worker process takes next. The child builds a
 # lane with four directories per descriptor and a second lane with two lock files per
@@ -565,4 +600,5 @@ def cases() -> list[Case]:
             Case("native-log-directories-and-companions", _native_log_directories_and_companions, lane="guest"),
             Case("native-log-locks-and-peer-directories", _native_log_locks_and_peer_directories, lane="guest"),
             Case("native-oracle-locks-of-every-edition", _native_oracle_locks_of_every_edition, lane="guest"),
+            Case("persistence-campaign-lock", _persistence_campaign_lock, lane="guest"),
             Case("native-locks-fit-descriptor-limit", _native_locks_fit_descriptor_limit, lane="guest")]
