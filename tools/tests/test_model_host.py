@@ -4,7 +4,7 @@
 `model.py` runs in the guest, but its verdict and seeding machinery is pure: the
 build-log reading `wait` stands on (`_report_build` and the one `STAGE_EXIT`
 spelling both ends share), the manifest check `corpus` decides per member
-(`_check_trace`), the oracle tree's copy-and-normalize (`_sync_oracle_tree`), and
+(`_check_trace`), the oracle tree's byte-verbatim copy (`_sync_oracle_tree`), and
 the two donor-seeding copies a lane stands up from. Held here with fixture logs and
 throwaway directories, because a regression in any of them reports the wrong run's
 verdict or configures a tree against state it did not produce.
@@ -161,12 +161,11 @@ def _sync_oracle_tree() -> None:
 
         tree = Path(td) / "tree"
         _MODEL._sync_oracle_tree(src, tree)
-        ensure((tree / "code.c").read_bytes() == b"int f();\nint g();\n"
-               and (tree / "Makefile").read_bytes() == b"all:\n\ttrue\n"
-               and (tree / "sub" / "x.sail").read_bytes() == b"val x\n",
-               "CRLF must be normalized out of every text kind the build reads")
-        ensure((tree / "blob.bin").read_bytes() == b"\r\n\x00",
-               "a file outside the text kinds is copied byte-verbatim")
+        ensure(_tree_bytes(tree) == {str(Path(name)): data for name, data in (
+                   ("Makefile", b"all:\r\n\ttrue\r\n"), ("blob.bin", b"\r\n\x00"),
+                   ("code.c", b"int f();\r\nint g();\r\n"), ("sub/x.sail", b"val x\r\n"))},
+               "every file is copied byte-verbatim: line endings are restored to the "
+               "pinned blobs' by _verify_oracle_copy, which knows what they are")
         ensure(not (tree / ".git").exists(),
                ".git is dropped: a copy of it describes a repository it is not in")
 
