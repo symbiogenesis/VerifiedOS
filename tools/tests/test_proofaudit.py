@@ -12,8 +12,8 @@ import threading
 from pathlib import Path
 from unittest.mock import patch
 
-from tests.harness import Case, ensure
-from vos import proofaudit, proofcites, proofs, receipts
+from tests.harness import TOOLS, Case, ensure
+from vos import corpus, proofaudit, proofcites, proofs, receipts
 from vos.cli import evidence
 from vos.cli import proofs as gate
 
@@ -493,6 +493,132 @@ def _unreadable_tokens_are_refused_before_compiling() -> None:
                f"the setting after a readable token was not refused: {checked.error!r}")
 
 
+_COINDUCTIVE = ("sources may not write coinductive types or cofixpoints while the locked "
+                "Rocq lacks the guard fixes for rocq#22386 and rocq#22389: ")
+_STREAM = "CoInductive stream : Type := Cons : nat -> stream -> stream."
+# Everything the control prefixes read, one spelling of each alternative.
+_PREFIXES = ("- ", "+ ", "* ", "{ ", "} ", "1: { ", "[a]: { ", "!: { ", "Time ",
+             "Instructions ", "Fail ", "Succeed ", "Profile ", 'Profile "p" ',
+             'Redirect "out" ', "Timeout 5 ", "AllocLimit 1 Mw ", "#[local] ", "Local ",
+             "Global ", "Export ", "Polymorphic ", "Monomorphic ", "Cumulative ",
+             "NonCumulative ", "Private ", "Program ")
+
+
+def _coinductive_forms_are_refused_before_compiling() -> None:
+    # Under the gate's flags the pinned Rocq 9.3.0 compiles each whole and each inner
+    # form here after the stream, `CoInductive trivial : Prop := keep : trivial -> trivial`,
+    # a Section around `Let`, and Ltac2 with its `Std` or `Constr.Unsafe` imported as each
+    # needs, every cofixpoint guarded; the Gallina identifiers are refused loudly. Its
+    # lexer ends a numeral before a letter, running `do 1cofix H` as the cofix tactic, so
+    # the lexical cases read each numeral and the lone quote apart from the word, as they
+    # read each control prefix before a command.
+    whole = (_STREAM, "CoInductive conat : Type := { pred : option conat }.",
+             "CoFixpoint zeros : stream := Cons 0 zeros.",
+             "Let CoFixpoint threes : stream := Cons 3 threes.",
+             "Definition ones : stream := cofix ones : stream := Cons 1 ones.",
+             "Definition twos : stream := let cofix twos := Cons 2 twos in twos.",
+             "Definition h := Eval cbv cofix in 0.", "Search is:CoFixpoint.",
+             "Fail CoFixpoint zeros : stream := Cons true zeros.",
+             "Succeed CoFixpoint fours : stream := Cons 4 fours.",
+             "Ltac2 go () := Std.cofix_ @H.", "Ltac2 go () := cofix_ @H.",
+             "Ltac2 is_cofix_term (c : constr) := match Constr.Unsafe.kind c with "
+             "Constr.Unsafe.CoFix _ _ _ => true | _ => false end.",
+             "Ltac2 is_cofix_term (c : constr) := match kind c with "
+             "CoFix _ _ _ => true | _ => false end.",
+             "Definition CoInductive := 0.", "Definition CoFix := 0.",
+             "Definition cofix_ := 0.")
+    lexical = (*(f"Check {numeral}cofix." for numeral in ("1", "1_", "1e5", "1e+5", "1.5",
+                                                          "0x1p5", "0x1cp5", "0x1'", "'")),
+               *(prefix + word for prefix in _PREFIXES
+                 for word in (_STREAM, "CoFixpoint zeros : stream := Cons 0 zeros.")))
+    for text in (*whole, *lexical):
+        ensure(proofaudit.coinductive_forms(text) == [text.removesuffix(".")],
+               f"a coinductive form passed: {text!r}")
+    # One sentence of several, and a comment holding no newline beside the word.
+    proof = "Lemma always : trivial. Proof. {} Qed."
+    within = (proof.format("cofix H. exact (keep H)."),
+              proof.format("do 1cofix H. exact (keep H)."),
+              proof.format("do 1_cofix H. exact (keep H)."),
+              proof.format("Std.cofix_ @H. apply keep. assumption."),
+              "Lemma reduced : True. Proof. cbv cofix. exact I. Qed.",
+              "CoFixpoint(* c *)zeros : stream := Cons 0 zeros.",
+              "Definition ones : stream :=(* c *)cofix ones : stream := Cons 1 ones.",
+              "Time(* c *)CoInductive s : Type := c : s -> s.",
+              '(* "(*" *)Let CoFixpoint z : stream := Cons 0 z.')
+    for text in within:
+        ensure(len(proofaudit.coinductive_forms(text)) == 1,
+               f"a coinductive form within its source passed: {text!r}")
+    with tempfile.TemporaryDirectory(prefix="vos-coinductive-") as temporary:
+        root = Path(temporary)
+        source = root / "proofs" / "M.v"
+        source.parent.mkdir()
+        for text in (*whole, *lexical, *within):
+            source.write_text(text, encoding="utf-8")
+            with patch.object(gate, "_compile", side_effect=AssertionError("compiled")):
+                checked = gate._check_source(root, source, [source])
+            ensure(checked.error.startswith(_COINDUCTIVE),
+                   f"a coinductive form was not refused by name: {text!r}: {checked.error!r}")
+
+
+def _coinductive_controls_reach_the_compiler() -> None:
+    # The pinned Rocq 9.3.0 compiles each identifier here, and reads `co(* c *)fix` as two
+    # words, refusing the definition as a syntax error. A letter that continues a numeral
+    # leaves no word: its lexer reads `0x1c` then `ofix`, and `1` then `ecofix`.
+    allowed = ("Definition cofix' := 0.", "Definition is_cofix := 0.",
+               "Definition CoFixed := 0.", "Definition tCoFix := 0.",
+               "Definition CoInductive_lemma := 0.", "Definition rCofix := 0.",
+               "Ltac2 get (f : Std.red_flags) := f.(Std.rCofix).",
+               "Definition x'cofix := 0.", "Definition x1cofix := 0.", "Check 0x1cofix.",
+               "Check 1ecofix.",
+               "Definition ones : stream := co(* c *)fix ones : stream := Cons 1 ones.",
+               "(* CoInductive s : Type := c : s -> s. CoFixpoint z : s := c z. *) "
+               "Definition x := 0.",
+               "Lemma a : True. Proof. (* cofix H. Std.cofix_ @H. Constr.Unsafe.CoFix *) "
+               "exact I. Qed.",
+               'Definition label := "cofix".', 'Definition label := "a. CoFixpoint z. b".',
+               'Lemma a : True. Proof. idtac "cofix_ CoFix CoInductive". exact I. Qed.',
+               '#[deprecated(since="1", note="see CoFixpoint and cofix")] Definition old := 0.',
+               "Definition double := fix double (n : nat) : nat := "
+               "match n with 0 => 0 | S m => S (S (double m)) end.",
+               "Inductive tree : Type := leaf | node : tree -> tree -> tree.",
+               "Variant color : Type := red | green.",
+               "Record point : Type := { px : nat; py : nat }.",
+               "Structure box : Type := { content : nat }.",
+               "Class Sized (A : Type) := { size : A -> nat }.",
+               "Fixpoint depth (t : tree) : nat := "
+               "match t with leaf => 0 | node l r => S (Nat.max (depth l) (depth r)) end.")
+    # The compile each control reaches stops the audit there, under its own diagnostic.
+    stopped = subprocess.CompletedProcess([], 1, stdout="", stderr="stopped here")
+    with tempfile.TemporaryDirectory(prefix="vos-coinductive-control-") as temporary:
+        root = Path(temporary)
+        source = root / "proofs" / "M.v"
+        source.parent.mkdir()
+        for text in allowed:
+            ensure(not proofaudit.coinductive_forms(text),
+                   f"a source writing no coinductive form was refused: {text!r}")
+            source.write_text(text, encoding="utf-8")
+            with patch.object(gate, "_compile", return_value=stopped) as compiled:
+                checked = gate._check_source(root, source, [source])
+            ensure(compiled.called and checked.error == "compile exited 1: stopped here",
+                   f"a control did not reach the compiler: {text!r}: {checked.error!r}")
+
+
+def _shipped_sources_write_no_coinductive_form() -> None:
+    """Every tracked proof source passes the coinductive refusal, which still reads them:
+    a declaration appended to one is the one sentence it reports."""
+    root = TOOLS.parent
+    names = sorted(name for name in corpus.read_index(root).indexed
+                   if name.startswith(f"{gate.PROOFS}/") and name.endswith(".v"))
+    ensure(bool(names), f"no tracked proof source under {gate.PROOFS}/")
+    texts = {name: (root / name).read_text(encoding="utf-8") for name in names}
+    found = [f"{name}: {sentence}" for name, text in texts.items()
+             for sentence in proofaudit.coinductive_forms(text)]
+    ensure(not found, f"a tracked proof source writes a coinductive form: {found!r}")
+    seeded = f"{texts[names[0]]}\n{_STREAM}\n"
+    ensure(proofaudit.coinductive_forms(seeded) == [_STREAM.removesuffix(".")],
+           f"a declaration appended to {names[0]} was not the one sentence refused")
+
+
 def _nested_sources_cannot_be_omitted() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-nested-proof-") as temporary:
         root = Path(temporary)
@@ -749,6 +875,12 @@ def cases() -> list[Case]:
                  _dynamic_sources_are_refused_before_compiling),
             Case("unreadable-tokens-are-refused-before-compiling",
                  _unreadable_tokens_are_refused_before_compiling),
+            Case("coinductive-forms-are-refused-before-compiling",
+                 _coinductive_forms_are_refused_before_compiling),
+            Case("coinductive-controls-reach-the-compiler",
+                 _coinductive_controls_reach_the_compiler),
+            Case("shipped-sources-write-no-coinductive-form",
+                 _shipped_sources_write_no_coinductive_form),
             Case("nested-sources-cannot-be-omitted", _nested_sources_cannot_be_omitted),
             Case("parallel-wave-blocks-stale-dependents", _parallel_wave_blocks_stale_dependents),
             Case("staged-run-binds-original-inputs", _staged_run_binds_original_inputs),

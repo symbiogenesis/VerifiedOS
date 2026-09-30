@@ -682,6 +682,12 @@ def _check_source(root: Path, source: Path, sources: list[Path] | ProofAnalysis,
             raise proofaudit.AuditError(
                 "sources may not declare tokens the gate's lexer cannot follow: "
                 + "; ".join(tokens))
+        coinductive = proofaudit.coinductive_forms(text)
+        if coinductive:
+            raise proofaudit.AuditError(
+                "sources may not write coinductive types or cofixpoints while the locked "
+                "Rocq lacks the guard fixes for rocq#22386 and rocq#22389: "
+                + "; ".join(coinductive))
         loads = proofaudit.dynamic_sources(text)
         if loads:
             raise proofaudit.AuditError(

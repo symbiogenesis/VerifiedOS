@@ -308,6 +308,43 @@ def dynamic_sources(text: str) -> list[str]:
     return [sentence for sentence in sentences(text) if DYNAMIC_SOURCE.match(sentence)]
 
 
+# The words that write a coinductive type or a cofixpoint (coinductive_forms). Rocq's
+# lexer reads a numeral, fraction and exponent included, as one token and a lone quote
+# as another, so neither joins the word after it: the pinned Rocq 9.3.0 runs
+# `do 1cofix H` as the cofix tactic. Each word begins with a hexadecimal digit, which a
+# hexadecimal numeral reads on through, so a hexadecimal numeral is tried first and the
+# read is possessive, as the lexer's is: `0x1cofix` is `0x1c` and then `ofix`. That also
+# keeps a long run of digits linear.
+_NUMERAL = (r"0[xX][0-9a-fA-F][0-9a-fA-F_]*(?:\.[0-9a-fA-F_]+)?(?:[pP][+-]?[0-9][0-9_]*)?"
+            r"|[0-9][0-9_]*(?:\.[0-9_]+)?(?:[eE][+-]?[0-9][0-9_]*)?")
+_COINDUCTIVE = re.compile(r"(?<![\w'])(?:'|" + _NUMERAL + r")*+"
+                          r"(?:CoInductive|CoFixpoint|CoFix|cofix_|cofix)(?![\w'])")
+
+
+def coinductive_forms(text: str) -> list[str]:
+    """Sentences that write a coinductive type or a cofixpoint, whose guard check the
+    locked kernel gets wrong.
+
+    Rocq 9.3.0's cofixpoint guard checker computes a cofixpoint's recursive tree in the
+    wrong environment (rocq#22386) and checks nested mutual cofixpoints against one tree
+    (rocq#22389). Rocq's critical-bug list records `rocqchk` affected alike, so neither
+    the kernel recheck nor the assumption audit is taken as a cover. `CoInductive`,
+    `CoFixpoint` and `cofix`, which is Rocq's term binder, Ltac tactic and reduction flag,
+    write one, and so do Ltac2's `Std.cofix_` tactic and its `Constr.Unsafe.CoFix`
+    constructor. So each is refused as a whole identifier wherever it stands, qualified or
+    not, `Let CoFixpoint`, a Search filter `is:CoFixpoint` and the forms under `Fail` or
+    `Succeed` among them. A Gallina identifier spelled as one is refused too, which is
+    loud and costs a rename, as the tactical refusal refuses `timeout`; an identifier that
+    only contains one is read whole. A comment separates, so `co(* c *)fix` is two words,
+    and string literals are emptied first. [The lock guide](../opam/README.md) states the
+    lock move that retires the refusal.
+    """
+    if "cofix" not in text and "CoFix" not in text and "CoInductive" not in text:
+        return []
+    return [sentence for sentence in sentences(text)
+            if _COINDUCTIVE.search(_STRING.sub('""', sentence))]
+
+
 def unreadable_tokens(text: str) -> list[str]:
     """Sentences declaring a token the shared lexer would not read as Rocq's lexer does.
 
