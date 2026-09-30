@@ -2,7 +2,7 @@
 
 Copyright 2026 Edward Miller.
 
-*Three licenses govern this repository, one per kind of content, and every tracked path falls under exactly one of them. Where this document and a license file disagree, the license file wins. [THIRD-PARTY.md](THIRD-PARTY.md) carries everything somebody else wrote and the terms it arrives under.*
+*Three licenses govern this repository, one per kind of content, and every original tracked path falls under exactly one of them. Where this document and a license file disagree, the license file wins. [THIRD-PARTY.md](THIRD-PARTY.md) carries everything somebody else wrote and the terms it arrives under.*
 
 ## The map
 
