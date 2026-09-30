@@ -416,8 +416,9 @@ moment. After deleting one from the manifest, `uv lock --project tools` should r
 only that package's line from uv.lock's `[options.exclude-newer-package]`, and the
 table's header with its last line, leaving every `[[package]]` entry byte-identical.
 A changed version of the deleted entry's own package means the entry went before its
-date; any other `[[package]]` change is index drift from the re-resolution and is
-reviewed on its own.
+date, and any other change then follows from it; when that package keeps its version,
+any other `[[package]]` change is index drift from the re-resolution and is reviewed
+on its own.
 
 When a compatible Python is absent, install it explicitly with your platform's
 installer or `uv python install --no-config 3.14`. That one command bypasses project
