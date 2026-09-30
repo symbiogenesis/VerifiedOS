@@ -4,12 +4,14 @@
 # paths below are written from the repository root: `files` keeps every hook
 # inside model/, and the exclusion and hook configuration paths name model/.
 # Run with `pre-commit run --config model/.pre-commit-config.yaml`.
+# Each rev is the full commit of the tag its `# frozen:` comment names, the form
+# `pre-commit autoupdate --freeze` writes: a tag can be moved, a commit cannot.
 files: "^model/"
 exclude: "^(model/dependencies/)"
 minimum_pre_commit_version: 4.6.2
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # frozen: v6.0.0
     hooks:
       - id: trailing-whitespace
         # Do not strip trailing whitespace from patches or SVG images.
@@ -22,26 +24,26 @@ repos:
       - id: check-executables-have-shebangs
       - id: check-shebang-scripts-are-executable
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: "v21.1.8"
+    rev: "75ca4ad908dc4a99f57921f29b7e6c1521e10b26" # frozen: v21.1.8
     hooks:
       - id: clang-format
         types_or: [c, c++] # Don't try running clang-format on .json files
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.6
+    rev: ad1b27d73581aa16cca06fc4a0761fc563ffe8e8 # frozen: v1.5.6
     hooks:
       - id: forbid-tabs
         exclude: '.*\.(diff|dump|patch|svg|S|old)|Makefile*'
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.9.9
+    rev: ef4a397f916211b4a39ccf9d3d9cbb6562157251 # frozen: v3.9.9
     hooks:
       - id: prettier
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.3
+    rev: 57b21406f092110c18776e39b0bda50d37c945c8 # frozen: v2.4.3
     hooks:
       - id: codespell
         args: [--config, model/.codespellrc]
   - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.15.0
+    rev: 275c27c5035a5b4a656fe0e21a4c1403c118c767 # frozen: v3.15.0
     hooks:
       - id: markdown-link-check
         args: [-q, -c model/.markdown-link-check.config]
