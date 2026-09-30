@@ -444,7 +444,12 @@ def _install_opam_installs_only_what_is_absent() -> None:
                 opam_root(root, "flat")
             return subprocess.CompletedProcess(argv, 0)
 
-        with (patch.object(provision, "shutil",
+        # PATH searches the destination's directory, spelled with a trailing separator
+        # behind another entry and an empty one.
+        searched = {"PATH": os.pathsep.join((str(Path(td) / "first"), "",
+                                             f"{target.parent}{os.sep}"))}
+        with (patch.dict(os.environ, searched),
+              patch.object(provision, "shutil",
                            SimpleNamespace(which=lambda name: selected[0])),
               patch.object(provision, "env", SimpleNamespace(opam_root=lambda: root)),
               patch.object(provision, "_say", return_value=opam_client.OPAM_VERSION),
@@ -511,7 +516,8 @@ def _install_opam_installs_only_what_is_absent() -> None:
         _creation_failures(Path(td), target)
         selected[0] = None
         absent = SimpleNamespace(opam_root=lambda: Path(td) / "absent")
-        with (patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)),
+        with (patch.dict(os.environ, searched),
+              patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)),
               patch.object(provision, "env", absent),
               patch.object(provision.opam_client, "install",
                            side_effect=ValueError("downloaded SHA256 does not match")),
@@ -519,13 +525,23 @@ def _install_opam_installs_only_what_is_absent() -> None:
             ensure(provision.install_opam(target) == 1
                    and "does not match" in said.getvalue(),
                    f"a refused download is the command's failure: {said.getvalue()}")
-        with (patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)),
-              patch.object(provision, "env", absent),
-              patch.object(provision.opam_client, "install"),
-              redirect_stderr(io.StringIO()) as said):
-            ensure(provision.install_opam(target) == 1
-                   and "not on PATH" in said.getvalue(),
-                   f"a client no switch recipe can run is a failure: {said.getvalue()}")
+        # A destination whose directory PATH does not search is refused before the
+        # client is installed, and one PATH still does not find once installed is the
+        # backstop's failure.
+        elsewhere = {"PATH": str(Path(td) / "elsewhere")}
+        for environment, installs, fragment in (
+                (elsewhere, False, "would be at"), (searched, True, "is at")):
+            with (patch.dict(os.environ, environment),
+                  patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)),
+                  patch.object(provision, "env", absent),
+                  patch.object(provision.opam_client, "install") as installer,
+                  patch.object(provision.subprocess, "run") as launched,
+                  redirect_stderr(io.StringIO()) as said):
+                ensure(provision.install_opam(target) == 1
+                       and f"{fragment} {target}, which is not on PATH" in said.getvalue()
+                       and installer.called is installs and not launched.called,
+                       f"a client no switch recipe can run is a failure, installed="
+                       f"{installs}: {said.getvalue()}")
 
 
 def _creation_failures(scratch: Path, target: Path) -> None:

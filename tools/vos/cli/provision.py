@@ -381,21 +381,24 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
     that route leaves after its leading steps.
 
     It installs only what is absent and alters nothing that exists but a root in that
-    shape, and it decides every refusal about the root before it installs anything, so
-    a run it refuses leaves the machine as it found it. A standing root is held to what
-    the row reads: a complete one is left as it is, one `opam_client.root_resumable`
-    reads in that shape is completed by running the route again, and any other the row
-    reads as incomplete is refused whatever the client. Where it would run the route, it first holds the machine to
-    `opam_client.ROOT_PREREQUISITES` as the rows ahead of this one do, and refuses,
-    naming each package absent, because `opam init` refuses to create a root without
-    them. A client on PATH at another release is refused, because replacing one is the
-    recorded step `_opam_client` describes; a client is installed by
+    shape, and it decides every refusal, about the root, the machine and where the
+    client would go, before it installs anything, so a run it refuses leaves the
+    machine as it found it. A standing root is held to what the row reads: a complete
+    one is left as it is, one `opam_client.root_resumable` reads in that shape is
+    completed by running the route again, and any other the row reads as incomplete is
+    refused whatever the client. Where it would run the route, it first holds the
+    machine to `opam_client.ROOT_PREREQUISITES` as the rows ahead of this one do, and
+    refuses, naming each package absent, because `opam init` refuses to create a root
+    without them. A client on PATH at another release is refused, because replacing one
+    is the recorded step `_opam_client` describes; a client is installed by
     `opam_client.install`, which verifies the download before publishing it and refuses
     to replace a different file at the destination. Every switch recipe runs `opam` by
-    name, so a destination this PATH does not reach is reported rather than left to
-    fail at the first switch. A root this command creates or finishes is held to what
-    guest bootstrap holds its own to, the reviewed client's format and exactly the
-    owner's repositories with every stamp read.
+    name, so a destination whose directory this PATH does not search is refused before
+    the client is installed rather than left to fail at the first switch; a client PATH
+    still does not find once installed is reported as that command's failure. A root
+    this command creates or completes is held to what guest bootstrap holds its own to,
+    the reviewed client's format and exactly the owner's repositories with every stamp
+    read.
     """
     root = env.opam_root()
     stands = opam_client.root_exists(root)
@@ -412,6 +415,11 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
         return 1
     present = shutil.which("opam")
     if present is None:
+        if not _searched(destination.parent):
+            print(f"opam {opam_client.OPAM_VERSION} would be at {destination}, which is not "
+                  "on PATH, so no switch recipe could run it; nothing was installed",
+                  file=sys.stderr)
+            return 1
         try:
             opam_client.install(destination, platform.machine())
         except (OSError, ValueError) as err:
@@ -434,6 +442,25 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
         print(f"the opam root at {root} already stands complete")
         return 0
     return _create_root(root, resuming=resuming)
+
+
+def _searched(directory: Path) -> bool:
+    """Whether `directory` is one this process's PATH searches for an executable, read
+    as `os.get_exec_path` reads it, so a client installed there is one `opam` by name
+    finds where no other client stands ahead of it."""
+    try:
+        wanted = directory.resolve()
+    except OSError:
+        return False
+    for entry in os.get_exec_path():
+        if not entry:
+            continue
+        try:
+            if Path(entry).resolve() == wanted:
+                return True
+        except OSError:
+            continue
+    return False
 
 
 def _missing_root_prerequisites() -> list[str]:
