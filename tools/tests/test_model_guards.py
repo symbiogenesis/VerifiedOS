@@ -21,14 +21,23 @@ def _environment(root: Path) -> env.Environment:
                            "", 4, 4096, 2, 2)
 
 
+_CORPUS_DIGEST = "ab" * 32
+
+
 def _corpus_fixture(e: env.Environment) -> Path:
     declaration = e.model / "test/CMakeLists.txt"
     declaration.parent.mkdir(parents=True, exist_ok=True)
-    declaration.write_text('set(TEST_DOWNLOAD_VERSION "2031-02-03" CACHE STRING "tests")\n',
-                           encoding="utf-8")
+    declaration.write_text('set(TEST_DOWNLOAD_VERSION "2031-02-03" CACHE STRING "tests")\n'
+                           'set(TEST_DOWNLOAD_SHA256_2031-02-03_riscv-tests '
+                           f'"{_CORPUS_DIGEST}")\n', encoding="utf-8")
     suite = e.build_dir / "test/2031-02-03/riscv-tests"
     suite.mkdir(parents=True, exist_ok=True)
     return suite
+
+
+def _seal(suite: Path) -> None:
+    """Write the manifest configure leaves beside a suite it extracted, as it stands."""
+    model.corpus_manifest(suite).write_bytes(model.corpus_listing(suite, _CORPUS_DIGEST))
 
 
 def _solver_failure() -> None:
@@ -100,6 +109,7 @@ def _stale_build() -> None:
             path.write_bytes(b"artifact")
         elf = _corpus_fixture(e) / "rv64ui-p-add"
         elf.write_bytes(b"test program")
+        _seal(elf.parent)
         identity = {"inputs": {"source": "hash"}}
         receipts.write(log.with_suffix(".json"), {
             "schema": 1, "exit_code": 0,
@@ -107,11 +117,14 @@ def _stale_build() -> None:
             "identity": identity, "artifacts": model.build_artifacts(e.build_dir, e.model),
             "log_sha256": receipts.digest(log),
         })
+        # Each corpus change below is sealed with a fresh manifest, as a re-download
+        # would leave it, so what refuses it is the receipt and not the manifest check.
         with patch.object(model, "build_identity", return_value=identity):
             model.verified_build(e)
             for target in (*(e.build_dir / rel for rel in model.BUILD_ARTIFACTS), elf):
                 original = target.read_bytes()
                 target.write_bytes(b"replaced")
+                _seal(elf.parent)
                 try:
                     model.verified_build(e)
                 except ValueError:
@@ -119,8 +132,10 @@ def _stale_build() -> None:
                 else:
                     raise AssertionError(f"replacing {target.name} did not invalidate its receipt")
                 target.write_bytes(original)
+                _seal(elf.parent)
             extra = elf.with_name("rv64ui-p-new")
             extra.write_bytes(b"new test program")
+            _seal(elf.parent)
             try:
                 model.verified_build(e)
             except ValueError:
@@ -129,6 +144,7 @@ def _stale_build() -> None:
                 raise AssertionError("adding a sweep input did not invalidate its receipt")
             extra.unlink()
             elf.unlink()
+            _seal(elf.parent)
             try:
                 model.verified_build(e)
             except ValueError:
@@ -454,6 +470,7 @@ def _empty_sweep_is_refused() -> None:
         # A dump and another width's program are not runnable members of this selection.
         (suite / "rv64ui-p-add.dump").write_bytes(b"dump")
         (suite / "rv32ui-p-add").write_bytes(b"other width")
+        _seal(suite)
         fake = SimpleNamespace(run=Mock(side_effect=AssertionError("executed an empty suite")))
         with (patch.object(model, "subprocess", fake), redirect_stderr(io.StringIO()),
               redirect_stdout(io.StringIO()) as output):
@@ -476,6 +493,7 @@ def _warm_test_corpus() -> None:
         e = _environment(Path(td))
         current = _corpus_fixture(e) / "rv64ui-p-add"
         current.write_bytes(b"current")
+        _seal(current.parent)
         for version in ("2020-01-01", "2040-01-01"):
             stale = e.build_dir / "test" / version / "riscv-tests/rv64ui-p-add"
             stale.parent.mkdir(parents=True)
@@ -503,6 +521,39 @@ def _warm_test_corpus() -> None:
               patch.object(model, "_run_trace") as runner, redirect_stderr(io.StringIO())):
             ensure(model.cmd_trace_diff(e, args) == 1 and not runner.called,
                    "trace-diff must refuse a missing current corpus before execution")
+
+
+def _unverified_corpus_is_refused() -> None:
+    """The sweep and trace-diff read only a suite its manifest records, so a tree
+    extracted before the manifest existed, or changed since, runs nothing."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        e = _environment(Path(td))
+        e.simulator.parent.mkdir(parents=True)
+        e.simulator.write_bytes(b"unused simulator")
+        e.oracle.parent.mkdir(parents=True, exist_ok=True)
+        e.oracle.write_bytes(b"unused oracle")
+        suite = _corpus_fixture(e)
+        elf = suite / "rv64ui-p-add"
+        elf.write_bytes(b"program")
+        _seal(suite)
+        ensure(model.sweep_inputs(e.build_dir, e.model) == [elf],
+               "precondition: the sealed suite is read")
+        fake = SimpleNamespace(run=Mock(side_effect=AssertionError("ran an unverified suite")),
+                               TimeoutExpired=subprocess.TimeoutExpired)
+        trace = argparse.Namespace(elf=[], corpus=True, limit=1, timeout=1)
+        for change, why in ((lambda: elf.write_bytes(b"changed"), "disagrees"),
+                            (lambda: model.corpus_manifest(suite).unlink(),
+                             "has no riscv-tests.manifest")):
+            change()
+            with (patch.object(model, "subprocess", fake),
+                  patch.object(model, "_run_trace") as runner,
+                  redirect_stderr(io.StringIO()) as err, redirect_stdout(io.StringIO())):
+                swept = model.cmd_sweep(e, argparse.Namespace(xlen="64", timeout=1))
+                traced = model.cmd_trace_diff(e, trace)
+            ensure(swept == 1 and traced == 1 and not runner.called
+                   and err.getvalue().count(why) == 2,
+                   f"a suite that {why} must be refused by both readers, got {swept}, "
+                   f"{traced} and {err.getvalue()!r}")
 
 
 def _invalid_test_corpus_pin() -> None:
@@ -562,6 +613,7 @@ def cases() -> list[Case]:
             Case("oracle-copy-is-the-pinned-commits", _oracle_copy_is_the_pinned_commits),
             Case("empty-sweep-refused", _empty_sweep_is_refused),
             Case("warm-test-corpus", _warm_test_corpus),
+            Case("unverified-corpus-refused", _unverified_corpus_is_refused),
             Case("invalid-test-corpus-pin", _invalid_test_corpus_pin),
             Case("empty-corpus-refused", _empty_corpus_is_refused),
             Case("member-terminal-isolation", _member_terminal_isolation)]
