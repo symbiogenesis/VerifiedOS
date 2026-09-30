@@ -16,7 +16,7 @@ mutable under another name after a definition and not at all after a proof.
 import re
 
 from tests.harness import Case, ensure
-from vos import mutate
+from vos import mutate, proofs
 
 
 def _sites(text: str, lane: str, operator: str, **kw: object) -> list[mutate.Mutant]:
@@ -139,6 +139,21 @@ def _the_shared_decoration_grammar_keys_the_region() -> None:
         mutate.COQ)]
     ensure(keyed == [("Definition", "T"), ("Export", "Foo."), ("Set", "Printing")],
            f"a brace or an exported module was read as a decoration: {keyed}")
+
+
+def _every_defining_keyword_opens_its_own_region() -> None:
+    """A keyword missing from the region table left its sentence the tail of the region
+    above: a `Variant` after a definition was mutable under the definition's name, and a
+    rewrite of an `Inductive` as a `Variant` moved a region with nothing said."""
+    first = "Definition f (n : nat) : nat := n + 1.\n"
+    for keyword in (*proofs.DECLARATIONS, "Let"):
+        text = first + f"{keyword} g : nat := 2.\n"
+        keyed = [(r.keyword, r.name) for r in mutate.regions(text, mutate.COQ)]
+        ensure(keyed == [("Definition", "f"), (keyword, "g")],
+               f"a line opening with {keyword} opened {keyed}")
+        found = _sites(text, mutate.COQ, "const-inc", named=("f",))
+        ensure([m.before for m in found] == ["1"],
+               f"the definition above swallowed the {keyword}'s sites: {found}")
 
 
 def _a_decorated_proof_ends_the_definition_above() -> None:
@@ -348,6 +363,8 @@ def cases() -> list[Case]:
              _a_decorated_proof_ends_the_definition_above),
         Case("the shared decoration grammar keys the region",
              _the_shared_decoration_grammar_keys_the_region),
+        Case("every defining keyword opens its own region",
+             _every_defining_keyword_opens_its_own_region),
         Case("a void command defines nothing to mutate",
              _a_void_command_defines_nothing_to_mutate),
         Case("a line inside a comment opens no region",

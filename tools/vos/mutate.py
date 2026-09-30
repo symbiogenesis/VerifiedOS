@@ -47,7 +47,7 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from vos.proofs import VOID, decorations, strip_comments
+from vos.proofs import DECLARATIONS, VOID, decorations, strip_comments
 
 # The lanes this engine carries. Named rather than passed as free strings, because the
 # comment syntax, the region keywords and the operator table are three facts that have
@@ -67,15 +67,19 @@ SAIL_TOP = re.compile(
 # information; what carries behaviour is a function body and a table written as a `let`.
 SAIL_MUTABLE = ("function", "let", "mapping")
 
-# Rocq's command keywords, same reading. The list is what this repository's own proofs
-# use plus the neighbours a proof file reaches for, and a command outside it opens no
-# region, which leaves its lines attached to the region above: that is why `Proof` and
-# `Qed` are both here even though neither is mutable.
-COQ_TOP = re.compile(
-    r"^(Definition|Fixpoint|Inductive|Record|Lemma|Theorem|Example|Corollary|"
-    r"Proposition|Remark|Fact|Proof|Qed|Defined|Admitted|Require|Import|Export|"
-    r"Arguments|Print|Section|End|Notation|Local|Global|Set|Unset|Open|Close|"
-    r"Hint|Instance|Class|Variable|Parameter|Axiom|Context|Ltac|From)")
+# Rocq's command keywords, same reading. Every vernacular whose sentence binds a
+# top-level name is the shared lexer's `DECLARATIONS`, Rocq 9.3's theorem keywords,
+# recursive definitions and inductive types among them, and `Let` binds one inside a
+# section; beside them, the commands this repository's own proofs use plus the
+# neighbours a proof file reaches for. A command outside the list opens no region, which
+# leaves its lines attached to the region above: that is why `Proof` and `Qed` are both
+# here even though neither is mutable, and why a `Variant` or a `CoFixpoint` missing
+# from it joined the definition above it.
+COQ_TOP = re.compile("^(" + "|".join((
+    *DECLARATIONS, "Let", "Proof", "Qed", "Defined", "Admitted", "Require", "Import",
+    "Export", "Arguments", "Print", "Section", "End", "Notation", "Local", "Global", "Set",
+    "Unset", "Open", "Close", "Hint", "Class", "Variable", "Parameter", "Axiom", "Context",
+    "Ltac", "From")) + ")")
 
 # And the ones a mutation may land in: the definitional commands, and deliberately not
 # a `Lemma` or a `Theorem`. A mutation inside a proof script breaks the proof and kills
