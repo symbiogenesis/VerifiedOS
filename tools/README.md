@@ -56,8 +56,9 @@ position within each OS, with every item assigned once.
 Every mutation runs the checker in a fresh process and private sandbox, through the
 group that decides its rule (`check.py --through`); a survivor runs the whole checker.
 Each shard checks its pristine baseline and registry coverage; shard 1 also runs
-the complete repair path, the ordinary checker and typecheck, and Ubuntu's shard 1
-analyzes the workflows as [workflow analysis](#workflow-analysis) describes. Members
+the complete repair path, the ordinary checker and typecheck, Ubuntu's shard 1
+analyzes the workflows as [workflow analysis](#workflow-analysis) describes, and
+Ubuntu's last shard runs [the model's hooks](#model-hooks). Members
 within a shard run concurrently. The gate runs under each
 platform's native shell, PowerShell on Windows and bash on Ubuntu, as a developer
 there runs `run.py`, and reads its shard and verdict path from the step's environment
@@ -944,11 +945,12 @@ The optional `model` group pins the pre-commit runner used by the curated model'
 hook configuration. Set `UV_PROJECT_ENVIRONMENT` to the environment in the placement
 table above, then run `uv run --project tools --locked --group model pre-commit --version`.
 For a WSL-mounted checkout, `run.py model lane` supplies the guest lane root.
-The ordinary host gates synchronize only their default dependency groups, so the
-gates hold the group's resolution and nothing more: [uv.lock](uv.lock) is one
-resolution covering every group, and each `run.py` bootstrap's `uv run --locked`
-refuses a lockfile the manifest would change. No gate installs or runs the group,
-so whether it installs on each platform and how it behaves are unchecked.
+The gate step itself synchronizes only the default dependency groups, and
+[uv.lock](uv.lock) is one resolution covering every group, so each `run.py`
+bootstrap's `uv run --locked` refuses a lockfile the manifest would change. Host CI's
+last Ubuntu shard synchronizes the group alone and runs it, as
+[the model's hooks](#model-hooks) describe, which checks that it installs and runs on
+Linux x86_64; no gate installs it on Windows or on either ARM64 platform.
 `uv sync --project tools --locked --group model --dry-run` lists what a
 synchronization would install without installing it.
 
@@ -956,21 +958,30 @@ The optional `workflows` group pins zizmor, which Host CI syncs alone into an
 environment of its own; [workflow analysis](#workflow-analysis) gives the command.
 PyPI publishes no Windows ARM64 wheel for it, so run it on Linux.
 
-pre-commit changes directory to the Git top level before it reads a configuration,
-so [model/.pre-commit-config.yaml](../model/.pre-commit-config.yaml) states its paths
-from this repository's root: the top-level `files: "^model/"` confines every hook to
-paths under `model/`, the exclusion names `model/dependencies/`, and codespell and
-markdown-link-check are handed `model/.codespellrc` and
-`model/.markdown-link-check.config`. Run the hooks from the checkout root with the
-environment above:
-`uv run --project tools --locked --group model pre-commit run --config model/.pre-commit-config.yaml --files <paths>`,
-or with `--all-files`, which selects the tracked files under `model/` outside
-`model/dependencies/` and nothing else. The fixing hooks (trailing-whitespace,
+<a id="model-hooks"></a>**Host CI holds the curated model to its hooks, all but the
+link check.** pre-commit changes directory to the Git top level before it reads a
+configuration, so [model/.pre-commit-config.yaml](../model/.pre-commit-config.yaml)
+states its paths from this repository's root: the top-level `files: "^model/"`
+confines every hook to paths under `model/`, the exclusion names
+`model/dependencies/`, and codespell and markdown-link-check are handed
+`model/.codespellrc` and `model/.markdown-link-check.config`. Each hook repository is
+pinned by the full commit of the tag its `# frozen:` comment names, and its
+[THIRD-PARTY.md](../THIRD-PARTY.md) development-tools row states both, which K-118
+holds. clang-format stays at the release upstream's own hooks pin, because a later
+release lays out upstream's code differently and would ask for rewrites of upstream
+bytes. The last Ubuntu shard of [Host CI](../.github/workflows/host-gates.yml) runs
+the set with `--all-files`, which selects the tracked files under `model/` outside
+`model/dependencies/` and nothing else, and with `SKIP=markdown-link-check`, because
+that hook fetches every external link the model's Markdown names; a finding or a
+rewrite from any other hook fails the job, and `--show-diff-on-failure` prints the
+rewrite. The hooks' own dependencies install unlocked when pre-commit sets a hook up,
+as their rows say. To run the same set from the checkout root with the environment
+above, set `SKIP=markdown-link-check` and run
+`uv run --project tools --locked --group model pre-commit run --config model/.pre-commit-config.yaml --all-files`,
+or name paths with `--files <paths>`. The fixing hooks (trailing-whitespace,
 end-of-file-fixer, clang-format and prettier) rewrite the files they select, so read
-`git diff -- model` after a run, and markdown-link-check fetches every external link
-it finds. No gate runs these hooks. The curated tree is not held to them: a run over
-it reports findings and rewrites local files, including the JSON under `model/config/`,
-so revert what a run rewrites unless the change is a deliberate formatting change.
+`git diff -- model` after a run and keep a rewrite only as part of the change that
+caused it. Without the skip, markdown-link-check fetches every external link it finds.
 The advice in [model/CONTRIBUTING.md](../model/CONTRIBUTING.md) to run
 `pre-commit install` is upstream's and does not apply here. Never run it: it writes the
 hook into the Git directory every worktree shares, so every session's commits would run it.
