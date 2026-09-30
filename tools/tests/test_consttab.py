@@ -7,11 +7,13 @@ loud about a table that grew or shrank, and silent about one whose extra numeral
 happen not to arrive: what has to be pinned here is that the reading takes the
 statement, the whole statement and nothing but the statement.
 
-Three boundaries, one case each. A statement under an attribute or a locality is the
-statement and is read; one under `Fail` or `Succeed` states nothing the file keeps and
-is refused by name. And a statement stops at its own full stop, so the `Proof using`
-line, the decorated declaration or the comment around its table adds no value to it,
-where the list of next constructs this replaces read the first two as more table.
+Four boundaries, one case each. A statement under an attribute or a locality is the
+statement and is read; one under `Fail` or `Succeed`, on its line or above it past blank
+lines and comments, states nothing the file keeps and is refused by name; and one a
+comment quotes is no statement at all. And a statement stops at its own full stop, so
+the `Proof using` line, the decorated declaration or the comment around its table adds
+no value to it, where the list of next constructs this replaces read the first two as
+more table.
 """
 
 from tests.harness import Case, ensure
@@ -44,13 +46,31 @@ def _a_decorated_statement_is_read() -> None:
 
 
 def _a_void_statement_is_refused() -> None:
-    for flag in ("Fail ", "Succeed ", "#[local] Fail ", "Fail\n"):
-        got, why = _values(flag + _TABLE)
-        ensure(got is None and f"under `{flag.split()[-1]}`" in why,
-               f"a table under {flag!r} was read as {got} ({why})")
+    # on the statement's line or above it, however many blank lines, comments or
+    # attributes stand between the flag and the keyword
+    for lead, flag in (("Fail ", "Fail"), ("Succeed ", "Succeed"),
+                       ("#[local] Fail ", "Fail"), ("Fail\n", "Fail"),
+                       ("Fail\n\n", "Fail"), ("Fail (* why. *)\n", "Fail"),
+                       ("Fail\n(* a note\n   spanning lines *)\n", "Fail"),
+                       ('Succeed\n#[deprecated(note="a. b")]\n', "Succeed")):
+        got, why = _values(lead + _TABLE)
+        ensure(got is None and f"under `{flag}`" in why,
+               f"a table under {lead!r} was read as {got} ({why})")
     got, why = _values("  " + _TABLE)
     ensure(got is None and "states no Definition named table" in why,
            f"an indented statement opens no statement here: {got} ({why})")
+    # a flag that ends the sentence before is no flag of this one
+    got, why = _values("Check Fail.\n" + _TABLE)
+    ensure(got == [3, 5, 7], f"a word of the sentence before voided the table: {got} ({why})")
+
+
+def _a_statement_inside_a_comment_is_none() -> None:
+    # a statement a comment quotes at column zero is prose, and the table is the one
+    # the file states
+    got, why = _values("(* the table once read:\n"
+                       "Definition table : list nat := 9 :: 9 :: 9 :: nil.\n"
+                       "*)\n" + _TABLE)
+    ensure(got == [3, 5, 7], f"the table a comment quotes was read: {got} ({why})")
 
 
 def _a_statement_stops_at_its_own_full_stop() -> None:
@@ -79,6 +99,7 @@ def cases() -> list[Case]:
     return [
         Case("a-decorated-statement-is-read", _a_decorated_statement_is_read),
         Case("a-void-statement-is-refused", _a_void_statement_is_refused),
+        Case("a-statement-inside-a-comment-is-none", _a_statement_inside_a_comment_is_none),
         Case("a-statement-stops-at-its-own-full-stop",
              _a_statement_stops_at_its_own_full_stop),
     ]
