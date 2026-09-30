@@ -159,6 +159,10 @@ def cmd_properties(args: argparse.Namespace) -> int:
 
     Refused rather than skipped: a run that reported `ok` having tested nothing is the
     vacuous pass every floor in this repository exists to catch.
+
+    It compiles Properties.v's `Require` closure and nothing else, the proofs it reads
+    and the support harnesses it Requires, as `kernel vectors` does for its harness. A
+    proof outside that closure is compile time no verdict here can depend on.
     """
     return _with_workspace(args, _properties)
 
@@ -181,15 +185,15 @@ def _properties(args: argparse.Namespace, e: env.Environment, root: Path, work: 
         return 1
 
     gallina.stage(root, work)
-    failures = gallina.compile_proofs(found, work) + gallina.compile_support(found, work)
-    if failures:
-        print("\n".join(f"FAIL {f.source} did not compile:\n{f.said}"
-                        for f in failures))
-        return 1
     source = work / "harness" / gallina.RANDOMIZED
     if not source.is_file():
         print(f"FAIL there is no harness at "
               f"{gallina.HARNESS_DIR}/{gallina.RANDOMIZED}")
+        return 1
+    failures = gallina.compile_closure(found, work, source)
+    if failures:
+        print("\n".join(f"FAIL {f.source} did not compile:\n{f.said}"
+                        for f in failures))
         return 1
     done = gallina.compile_one(found, work, source)
     print(done.stdout + done.stderr)

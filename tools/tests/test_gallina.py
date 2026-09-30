@@ -13,6 +13,7 @@ last entry would compare two files that agree on everything they carry.
 import argparse
 import io
 import os
+import subprocess
 import tempfile
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -284,6 +285,37 @@ def _the_stdlib_harnesses_compile_in_the_proof_switch() -> None:
     ensure(asked == want, f"the instruments asked for {asked}, not {want}")
 
 
+def _the_randomized_harness_compiles_its_closure_alone() -> None:
+    """`quickchick properties` compiles what Properties.v Requires, through the
+    harnesses it Requires into the proofs they read, and then the harness: never a
+    proof outside that closure, nor another entry point."""
+    files = {"proofs/A.v": _A, "proofs/B.v": _B, "proofs/Far.v": _A,
+             "tools/quickchick/Probe.v": "Require Import A.\n",
+             "tools/quickchick/Vectors.v": "Require Import Far.\n",
+             f"tools/quickchick/{gallina.RANDOMIZED}":
+                 "From QuickChick Require Import QuickChick.\nRequire Import B Probe.\n"}
+    compiled: list[str] = []
+
+    def compile_one(found: gallina.Prover, work: Path, source: Path,
+                    timeout: int = 900) -> subprocess.CompletedProcess[str]:
+        del found, work, timeout
+        compiled.append(source.stem)
+        return subprocess.CompletedProcess([], 0, "+++ Passed 10000 tests\n", "")
+
+    with (_tree(files) as td, tempfile.TemporaryDirectory(prefix="vos-work-") as wd,
+          patch.object(quickchick, "installed", return_value=quickchick.VERSION),
+          patch.object(gallina, "prover", return_value=gallina.Prover("s", ("rocq", "c"))),
+          patch.object(gallina, "compile_one", side_effect=compile_one),
+          redirect_stdout(io.StringIO()) as output):
+        code = quickchick._properties(argparse.Namespace(), Mock(), Path(td),
+                                      Path(wd) / "gallina")
+    ensure(code == 0, f"the closure run failed: {output.getvalue()}")
+    ensure(compiled[-1] == "Properties" and sorted(compiled[:-1]) == ["A", "B", "Probe"],
+           f"the run compiled {compiled}, not the harness's closure and then the harness")
+    ensure(compiled.index("A") < min(compiled.index("B"), compiled.index("Probe")),
+           f"a Require was compiled after what reads it: {compiled}")
+
+
 def _quickchick_rejects_other_versions() -> None:
     with (patch.object(quickchick, "installed", return_value="2.1.0"),
           patch.object(gallina, "prover", return_value=["rocq", "c"]),
@@ -330,5 +362,7 @@ def cases() -> list[Case]:
         Case("the two switches are named apart", _the_two_switches_are_named_apart),
         Case("the Stdlib harnesses compile in the proof switch",
              _the_stdlib_harnesses_compile_in_the_proof_switch),
+        Case("the randomized harness compiles its closure alone",
+             _the_randomized_harness_compiles_its_closure_alone),
         Case("QuickChick rejects other versions", _quickchick_rejects_other_versions),
     ]

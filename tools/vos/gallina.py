@@ -244,6 +244,28 @@ def compile_dependents(found: Prover, work: Path, rel: str) -> list[Failure]:
     return _compile_waves(found, work, proofs.dependents(sources, stem))
 
 
+def closure(work: Path, harness: Path) -> list[list[Path]]:
+    """One harness's `Require` closure over the staged tree, in dependency order, the
+    harness in the last wave.
+
+    The proofs and the harnesses are read as one namespace because `compile_one` roots
+    both directories at the empty logical path, so a harness's `Require` resolves
+    against either and its closure runs through both.
+    """
+    sources = sorted((work / PROOFS).glob("*.v")) + sorted((work / "harness").glob("*.v"))
+    index = proofs.SourceIndex.read(sources)
+    wanted = set(index.imports[harness]) | {harness}
+    return [[s for s in wave if s in wanted] for wave in index.ordered
+            if any(s in wanted for s in wave)]
+
+
+def compile_closure(found: Prover, work: Path, harness: Path) -> list[Failure]:
+    """What one harness Requires and nothing else, in Require order, every failure
+    kept; the harness itself is left for its caller to run."""
+    return _compile_waves(found, work, [[s for s in wave if s != harness]
+                                        for wave in closure(work, harness)])
+
+
 def compile_support(found: Prover, work: Path) -> list[Failure]:
     """The harness directory's shared sources: everything there that is not an entry
     point, which is what an entry point's `Require` resolves against.

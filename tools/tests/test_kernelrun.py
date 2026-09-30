@@ -14,6 +14,7 @@ import tempfile
 from pathlib import Path
 
 from tests.harness import TOOLS, Case, ensure
+from vos import gallina
 from vos import kernelrun as k
 from vos.cli import kernel as cli_kernel
 
@@ -224,7 +225,7 @@ def the_harness_closure_is_its_requires_only() -> None:
                         ignore=shutil.ignore_patterns("*.json"))
         shutil.copytree(root / "tools" / "quickchick", work / "harness")
         harness = work / "harness" / cli_kernel.HARNESS
-        names = [p.stem for wave in cli_kernel.closure(work, harness) for p in wave]
+        names = [p.stem for wave in gallina.closure(work, harness) for p in wave]
     ensure(names[-1] == "KernelVectors", f"the harness is not last: {names}")
     ensure(set(names) == {"PartitionContext", "BoundaryCost", "CyclicExecutive",
                           "KernelInstance", "Probe", "KernelVectors"},
