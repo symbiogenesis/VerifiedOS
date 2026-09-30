@@ -26,6 +26,8 @@ The 5.1.1 wrapper compilation and Gallina vector checks pass, but the full Certi
 
 CertiRocq and its Wasm library require Rocq below 9.2. QuickChick independently requires `coq-simple-io`, which caps Coq below 9.2 and dune below 3.22. Their Coq 9.1.1 compatibility package fixes the standard library at 9.0.0. Those library constraints do not limit the proof gate or Rupicola switch.
 
+The Rupicola switch stays on Rocq 9.2.0, the kernel the proof switch left. Its released lowering packages, `coq-coqutil` 0.0.7, `coq-riscv` 0.0.6, `coq-bedrock2` and `coq-bedrock2-compiler` 0.0.9 and `coq-rupicola` 0.0.11, set no upper bound on the prover, but they were tagged between 2025-09-05 and 2025-10-02. The `master` branches of mit-plv's bedrock2 and coqutil later adapted sources those packages build to three changes milestoned for Rocq 9.3+rc1, [rocq#21849](https://github.com/rocq-prover/rocq/pull/21849), [#21987](https://github.com/rocq-prover/rocq/pull/21987) and [#21478](https://github.com/rocq-prover/rocq/pull/21478): bedrock2's for #21849 and #21987, coqutil's for #21987 and #21478. No tagged release carries those adaptations, and no build of the released packages against Rocq 9.3.0 has been measured.
+
 The [guest bootstrap](../ci/bootstrap_guest.py) owns the reviewed opam client release
 and architecture-specific SHA-256 hashes. It initializes an isolated root, registers
 the package repositories and imports the Sail and proof snapshots without changing
