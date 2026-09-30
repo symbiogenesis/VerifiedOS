@@ -22,8 +22,9 @@ and the files it names, each tracked module a run's log does not name reported
 under its checker and a crash not held to it, the real ruff and ty each reporting a
 module a default exclusion or a ruff.toml exclusion drops, the real ty reaching every
 module and writing no profile with `TY_LOG` and `TY_LOG_PROFILE` set, the index read
-for the tracked modules, and the live tree reaching every module it tracks. The
-import cases hold the scan beside the checkers: an import of a module ruff.toml bans
+for the tracked modules, and each live-tree run giving a verdict and reaching every
+module the tree tracks, a missing or another installed checker refused. The import
+cases hold the scan beside the checkers: an import of a module ruff.toml bans
 at module level refused outside a function body, in a class body, a module-level block
 or the main guard, and admitted in a function body or behind a `sys.platform` check, a
 ruff.toml or module the scan cannot read refused, and the real ruff leaving open what
@@ -1134,21 +1135,63 @@ def _tracked_reads_the_index() -> None:
     ensure(found == {"a.py", "sub/b.pyi"}, f"the tracked modules read as {sorted(found)!r}")
 
 
+def _unreached(out: list[str]) -> list[str]:
+    """Why a report of the gate's ty and ruff runs does not show every run reaching
+    every tracked module: a line saying a run left a module unchecked, crashed, or never
+    ran for want of the pinned checker, and each run giving no verdict line, since a
+    run that never happened reports no module unchecked."""
+    refusals = ("did not check", "checker error(s)", "not installed",
+                "other than the pinned one")
+    def ty_verdict(line: str, platform: str) -> bool:
+        return (line.startswith(f"ok ty: every expression reachable under python-platform "
+                                f"{platform} ")
+                or (line.startswith("FAIL ty: ")
+                    and line.endswith(f" type error(s) under python-platform {platform}:")))
+
+    problems = [line for line in out if any(refusal in line for refusal in refusals)]
+    problems.extend(f"no verdict from ty under python-platform {platform}"
+                    for platform in typecheck.TY_PLATFORMS
+                    if not any(ty_verdict(line, platform) for line in out))
+    if not any(line.startswith("ok ruff: every function is annotated")
+               or (line.startswith("FAIL ruff: ") and line.endswith(" lint finding(s):"))
+               for line in out):
+        problems.append("no verdict from ruff")
+    return problems
+
+
+def _live_runs(root: Path, tracked: frozenset[str]) -> Reporter:
+    """The gate's ty runs and its ruff run over `root`, held to `tracked`."""
+    rep = Reporter()
+    typecheck._run_ty(rep, root, tracked)
+    typecheck._run_ruff(rep, root, tracked)
+    return rep
+
+
 def _live_tree_reaches_every_tracked_module() -> None:
-    # This checkout: the index's modules include this file and the gate's, and the
-    # gate's ruff run and a ty run reach every one of them. One ty platform stands
-    # for both, since which files a run reaches does not depend on the platform.
+    # This checkout: the index's modules include this file and the gate's, and each of
+    # the gate's ty runs and its ruff run gives a verdict and reaches every one of them.
+    # The controls run the gate with its checker missing and with another version
+    # installed: neither run happens, so neither reports a module unchecked, and each is
+    # refused for the missing verdict and the pin gate's own line.
     root = Path(typecheck.__file__).resolve().parents[3]
     tracked = typecheck._tracked(root)
     ensure({"vos/cli/typecheck.py", "tests/test_typecheck.py"} <= tracked,
            f"the live index must track the gate and its tests: {len(tracked)} module(s)")
-    rep = Reporter()
-    with patch.object(typecheck, "TY_PLATFORMS", ("linux",)):
-        typecheck._run_ty(rep, root, tracked)
-    typecheck._run_ruff(rep, root, tracked)
-    ensure(not any("did not check" in line or "checker error(s)" in line
-                   for line in rep.out),
-           f"the live tree must reach every module it tracks: {rep.out!r}")
+    rep = _live_runs(root, tracked)
+    ensure(not _unreached(rep.out),
+           f"the live tree must reach every module it tracks: {_unreached(rep.out)!r} "
+           f"{rep.out!r}")
+    for control, refusal in ((patch.object(typecheck, "_tool", return_value=None),
+                              "not installed"),
+                             (patch.object(typecheck, "_version", return_value="0.0.0"),
+                              "other than the pinned one")):
+        with control:
+            missed = _unreached(_live_runs(root, tracked).out)
+        ensure(any(refusal in line for line in missed)
+               and "no verdict from ruff" in missed
+               and all(f"no verdict from ty under python-platform {platform}" in missed
+                       for platform in typecheck.TY_PLATFORMS),
+               f"a run that never happened must not read as reaching the tree: {missed!r}")
 
 
 def cases() -> list[Case]:
