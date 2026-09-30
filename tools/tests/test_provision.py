@@ -18,16 +18,20 @@ The one case that runs the command is the guest's, doubled and bracketed by
 exactly the defect this tool exists not to be.
 """
 
+import io
 import os
 import subprocess
 import sys
+import tarfile
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
-from vos import env
+from vos import env, opam_client
 from vos.cli import provision, rtl, typecheck
 from vos.report import Reporter
 
@@ -181,6 +185,58 @@ def _opam_probe_preserves_build_suffix() -> None:
                "the same release built for another Rocq version must be rejected")
 
 
+def _opam_root_fixture(root: Path) -> None:
+    """A root in opam's own layout: one repository unpacked, the other tarred."""
+    (root / "config").write_text('opam-version: "2.0"\nopam-root-version: "2.2"\n',
+                                 encoding="utf-8")
+    repo = root / "repo"
+    (repo / "default").mkdir(parents=True)
+    (repo / "repos-config").write_text(
+        'opam-version: "2.0"\nrepositories: [\n  "default" {"https://opam.ocaml.org"}\n'
+        '  "rocq-released" {"https://rocq-prover.org/opam/released"}\n]\n', encoding="utf-8")
+    (repo / "default" / "repo").write_text('opam-version: "2.0"\nstamp: "44871cd5"\n',
+                                           encoding="utf-8")
+    payload = b'opam-version: "2.0"\nstamp: "2026-09-29 06:07"\n'
+    with tarfile.open(repo / "rocq-released.tar.gz", "w:gz") as archive:
+        member = tarfile.TarInfo("rocq-released/repo")
+        member.size = len(payload)
+        archive.addfile(member, io.BytesIO(payload))
+
+
+def _opam_probe_holds_the_reviewed_client() -> None:
+    """The client on PATH is held to the reviewed release, and the report says what a
+    reader needs to act on a mismatch: where the client and its root are, the root's
+    format, and each repository's URL and metadata stamp. It plans nothing, because
+    moving a developer's root to another client is a recorded step and not a repair."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        _opam_root_fixture(root)
+        fake_env = SimpleNamespace(opam_root=lambda: root)
+        on_path = SimpleNamespace(which=lambda name: "/usr/bin/opam")
+        for version, present in (("2.5.0", False), (opam_client.OPAM_VERSION, True)):
+            with (patch.object(provision, "shutil", on_path),
+                  patch.object(provision, "env", fake_env),
+                  patch.object(provision, "_say", return_value=version)):
+                found = provision._opam_client()
+            ensure(found.present is present, f"opam {version} must read present={present}")
+            for fragment in (f"opam {version} at /usr/bin/opam", "format 2.2",
+                             "default https://opam.ocaml.org at stamp 44871cd5",
+                             "rocq-released https://rocq-prover.org/opam/released at stamp "
+                             "2026-09-29 06:07"):
+                ensure(fragment in found.saw, f"the report must say {fragment!r}: {found.saw}")
+            ensure(present or (f"the reviewed client is {opam_client.OPAM_VERSION}" in found.saw
+                               and "one way" in found.saw),
+                   f"a mismatch names the reviewed client and the cost of moving: {found.saw}")
+        with patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)):
+            found = provision._opam_client()
+        ensure(not found.present and "no opam on PATH" in found.saw,
+               f"an absent client is reported as absent: {found.saw}")
+    row = next(fact for fact in provision.FACTS if fact.name == "opam")
+    ensure(row.probe is provision._opam_client and row.install == ()
+           and "tools/vos/opam_client.py" in row.owner,
+           "the opam row probes the reviewed client, names its owner and plans no install")
+
+
 def _failed_import_can_retry() -> None:
     registered: set[str] = set()
     seen: list[tuple[str, ...]] = []
@@ -321,6 +377,7 @@ def cases() -> list[Case]:
         Case("versions-are-read-and-not-typed", _versions_are_read_and_not_typed),
         Case("number-reads-the-banners", _number_reads_the_banners),
         Case("opam-probe-preserves-build-suffix", _opam_probe_preserves_build_suffix),
+        Case("opam-probe-holds-the-reviewed-client", _opam_probe_holds_the_reviewed_client),
         Case("failed-import-can-retry", _failed_import_can_retry),
         Case("placement-probe-decides-by-filesystem",
              _placement_probe_decides_by_filesystem),

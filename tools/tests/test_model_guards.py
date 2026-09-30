@@ -5,9 +5,10 @@ import argparse
 import io
 import subprocess
 import tempfile
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import ExitStack, redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import Mock, patch
 
 from tests.harness import Case, ensure, sandbox_tree
@@ -135,12 +136,25 @@ def _stale_build() -> None:
         raise AssertionError("removing every sweep input must invalidate its receipt")
 
 
+def _git(root: Path, *argv: str) -> None:
+    subprocess.run(["git", "-C", str(root), "-c", "user.name=Fixture",
+                    "-c", "user.email=fixture@example.invalid", *argv],
+                   check=True, capture_output=True, timeout=60)
+
+
+def _pin(root: Path, path: str, commit: str) -> None:
+    """Record `path` as a submodule pinned at `commit`, as a gitlink bump leaves it."""
+    _git(root, "update-index", "--add", "--cacheinfo", f"160000,{commit},{path}")
+
+
+_ORACLE_PIN = "1" * 40
+
+
 def _proof_publication_keeps_build_identity() -> None:
     with sandbox_tree({"model/source.sail": "model bytes\n",
                        "proofs/proof-evidence.json": "old receipt\n"}) as root:
-        subprocess.run(["git", "-C", str(root), "-c", "user.name=Fixture",
-                        "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"],
-                       check=True, capture_output=True, timeout=60)
+        _pin(root, model.ORACLE_SRC, _ORACLE_PIN)
+        _git(root, "commit", "-qm", "fixture")
         e = _environment(root)
         with patch.object(receipts, "executables", return_value={"sail": "compiler bytes"}):
             before = model.build_identity(e)
@@ -159,6 +173,276 @@ def _proof_publication_keeps_build_identity() -> None:
             (root / "model/new.sail").write_text("new model input\n", encoding="utf-8")
             ensure(model.build_identity(e) != before,
                    "new model inputs must still invalidate the build")
+
+
+def _identity_binds_only_opened_gitlinks() -> None:
+    """A pin recorded to be read later is not a model input; the oracle's pin is.
+
+    Tip-tracking an unread reference advances its gitlink without changing anything a
+    model command opens, so the build receipt and the evidence inputs must stay current
+    across it, while the oracle's own pin, the one submodule a model command reads,
+    still moves the identity. The binding stays fail-closed: an index that no longer
+    records the oracle as a gitlink is refused rather than dropped from the manifest.
+    """
+    with sandbox_tree({"model/source.sail": "model bytes\n",
+                       ".gitmodules": "[submodule \"upstream/sail-cheri-riscv\"]\n"}) as root:
+        _pin(root, model.ORACLE_SRC, _ORACLE_PIN)
+        _pin(root, "upstream/llvm-project", "2" * 40)
+        _git(root, "commit", "-qm", "fixture")
+        e = _environment(root)
+        with patch.object(receipts, "executables", return_value={"sail": "compiler bytes"}):
+            before = model.build_identity(e)
+            inputs = cast("dict[str, str]", before["inputs"])
+            ensure(inputs.get(model.ORACLE_SRC) == f"gitlink:{_ORACLE_PIN}"
+                   and "upstream/llvm-project" not in inputs and ".gitmodules" in inputs,
+                   f"the identity binds the oracle's pin and .gitmodules alone, got {inputs}")
+            _pin(root, "upstream/llvm-project", "3" * 40)
+            ensure(model.build_identity(e) == before,
+                   "advancing a read-later gitlink must leave the build identity unchanged")
+            _pin(root, model.ORACLE_SRC, "4" * 40)
+            ensure(model.build_identity(e) != before,
+                   "advancing the oracle's gitlink must change the build identity")
+            _pin(root, model.ORACLE_SRC, _ORACLE_PIN)
+            ensure(model.build_identity(e) == before, "restoring the pin restores the identity")
+            (root / ".gitmodules").write_text("[submodule \"moved\"]\n", encoding="utf-8")
+            ensure(model.build_identity(e) != before, ".gitmodules stays bound")
+            _git(root, "update-index", "--force-remove", model.ORACLE_SRC)
+            try:
+                model.build_identity(e)
+            except ValueError as err:
+                ensure(model.ORACLE_SRC in str(err), f"the refusal names the gitlink: {err}")
+            else:
+                raise AssertionError("an identity without the oracle's gitlink was accepted")
+
+
+def _oracle_fixture(root: Path) -> Path:
+    """An oracle source with the two paths `cmd_oracle` requires before it builds."""
+    src = root / model.ORACLE_SRC
+    (src / "sail-riscv" / "model").mkdir(parents=True)
+    (src / "Makefile").write_text("all:\n", encoding="utf-8")
+    return src
+
+
+_PINS = ("a" * 40, "b" * 40)
+_SAIL = "/root/.opam/verifiedos-sail-9.9.9-ocaml-5.4.1/bin/sail"
+
+
+def _copy_stub() -> Mock:
+    """A stand-in for the copy that leaves a tree for the stamp and the reuse check."""
+    def copy(src: Path, tree: Path) -> None:
+        tree.mkdir(parents=True, exist_ok=True)
+        (tree / "Makefile").write_text("all:\n", encoding="utf-8")
+
+    return Mock(side_effect=copy)
+
+
+def _run_oracle(e: env.Environment, sail: str | None = _SAIL, *, resync: bool = False,
+                **stubs: object) -> tuple[int, list[list[str]], str]:
+    """`cmd_oracle` with its lock, stages, source reading, copy and suite standing in,
+    so what is held is the command line, the tree it builds in and what it refuses."""
+    staged: list[list[str]] = []
+
+    def stage(name: str, argv: list[str], report_to: object = None, **kwargs: object) -> int:
+        staged.append(argv)
+        return 0
+
+    fake_env = SimpleNamespace(stage=stage, hold_lock=lambda target, what: io.StringIO(),
+                               git_env=env.git_env)
+    version = subprocess.CompletedProcess([], 0, "Sail 9.9.9 (fixture)\n", "")
+    fake_shutil = SimpleNamespace(which=lambda name: sail if name == "sail" else None,
+                                  rmtree=Mock())
+    defaults: dict[str, object] = {"_oracle_pins": Mock(return_value=_PINS),
+                                   "_verify_oracle_copy": Mock(),
+                                   "_sync_oracle_tree": _copy_stub()}
+    errors = io.StringIO()
+    with ExitStack() as stack:
+        stack.enter_context(patch.object(model, "env", fake_env))
+        stack.enter_context(patch.object(model, "shutil", fake_shutil))
+        stack.enter_context(patch.object(
+            model, "subprocess", SimpleNamespace(run=Mock(return_value=version))))
+        stack.enter_context(patch.object(model, "_oracle_suite", return_value=0))
+        for name, value in {**defaults, **stubs}.items():
+            stack.enter_context(patch.object(model, name, value))
+        stack.enter_context(redirect_stdout(io.StringIO()))
+        stack.enter_context(redirect_stderr(errors))
+        try:
+            code = model.cmd_oracle(e, argparse.Namespace(resync=resync, timeout=1))
+        except SystemExit as err:
+            code = 1
+            errors.write(str(err))
+    return code, staged, errors.getvalue()
+
+
+def _oracle_binds_the_environments_sail() -> None:
+    """The oracle is built by the compiler the environment selects, into a tree filed
+    under that compiler's edition, and the log says which binary and source it was."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        e = _environment(root)
+        _oracle_fixture(root)
+        synced = _copy_stub()
+        code, staged, _ = _run_oracle(e, _sync_oracle_tree=synced)
+        ensure(code == 0 and len(staged) == 1, f"the fixture build is green, got {code}")
+        ensure(f"SAIL={_SAIL}" in staged[0],
+               f"make must be handed the environment's sail, got {staged[0]}")
+        ensure(synced.call_args.args[1] == e.oracle_root
+               and e.oracle_root.parent.name == f"sail-{env.SAIL_VERSION}",
+               f"the tree is the edition-keyed one, got {synced.call_args.args[1]}")
+        log = e.log("oracle-build").read_text(encoding="utf-8")
+        ensure(f"== sail: Sail 9.9.9 (fixture) at {_SAIL}" in log,
+               f"the log names the version and the binary that built it, got {log!r}")
+        ensure(f"{model.ORACLE_SRC} at {_PINS[0]}, {model.ORACLE_NESTED} at {_PINS[1]}" in log,
+               f"the log names both source commits, got {log!r}")
+        code, staged, _ = _run_oracle(e, None)
+        ensure(code == 1 and not staged, "with no sail on PATH nothing is built")
+
+
+def _oracle_refuses_an_unpopulated_source() -> None:
+    """Both halves of the source are required by name, with the command that fills them,
+    before anything is copied: an empty nested directory otherwise fails late in make."""
+    for absent in ("Makefile", "sail-riscv/model"):
+        with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+            root = Path(td)
+            e = _environment(root)
+            src = _oracle_fixture(root)
+            target = src / absent
+            if target.is_dir():
+                target.rmdir()
+            else:
+                target.unlink()
+            synced = _copy_stub()
+            code, staged, said = _run_oracle(e, _sync_oracle_tree=synced)
+            ensure(code == 1 and not staged and not synced.called,
+                   f"a source missing {absent} must be refused before the copy")
+            ensure(model.ORACLE_INIT in said and "--recursive" in model.ORACLE_INIT,
+                   f"the refusal names the recursive init command, said {said!r}")
+
+
+def _oracle_reuses_only_a_stamped_tree() -> None:
+    """A standing tree is reused only while its stamp names the current pins."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        e = _environment(root)
+        _oracle_fixture(root)
+        code, _, _ = _run_oracle(e)
+        stamp = e.oracle_root / model.ORACLE_STAMP
+        ensure(code == 0 and stamp.read_text(encoding="utf-8").split() == list(_PINS),
+               "a verified copy is stamped with both pins")
+        synced = _copy_stub()
+        code, staged, _ = _run_oracle(e, _sync_oracle_tree=synced)
+        ensure(code == 0 and bool(staged) and not synced.called,
+               "a tree stamped with the current pins is reused")
+        moved = Mock(return_value=("c" * 40, _PINS[1]))
+        code, staged, said = _run_oracle(e, _oracle_pins=moved, _sync_oracle_tree=synced)
+        ensure(code == 1 and not staged and not synced.called and "--resync" in said,
+               f"a tree stamped with other pins is refused, said {said!r}")
+        stamp.unlink()
+        code, staged, _ = _run_oracle(e, _sync_oracle_tree=synced)
+        ensure(code == 1 and not staged, "an unstamped standing tree is refused")
+        code, staged, _ = _run_oracle(e, resync=True, _oracle_pins=moved,
+                                      _sync_oracle_tree=synced)
+        ensure(code == 0 and bool(staged) and synced.called
+               and stamp.read_text(encoding="utf-8").split() == ["c" * 40, _PINS[1]],
+               "--resync copies, verifies and stamps the current pins")
+        rejected = Mock(side_effect=ValueError("the copy differs"))
+        code, staged, said = _run_oracle(e, resync=True, _verify_oracle_copy=rejected)
+        ensure(code == 1 and not staged and "the copy differs" in said,
+               "a copy that fails verification is not built")
+
+
+def _head(repo: Path) -> str:
+    return subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True,
+                          text=True, check=True, timeout=60).stdout.strip()
+
+
+def _oracle_checkout(root: Path) -> tuple[Path, tuple[str, str]]:
+    """A superproject pinning an oracle source that pins its own nested model, each a
+    real repository checked out at its pin, as the recursive init leaves them."""
+    src = root / model.ORACLE_SRC
+    nested = src / model.ORACLE_NESTED
+    (nested / "model").mkdir(parents=True)
+    (nested / "model" / "main.sail").write_text("val main : unit -> unit\n", encoding="utf-8")
+    (nested / "README").write_text("nested\n", encoding="utf-8")
+    _git(nested, "init", "-q")
+    _git(nested, "add", "model/main.sail", "README")
+    _git(nested, "commit", "-qm", "nested")
+    (src / "Makefile").write_text("all:\n\ttrue\n", encoding="utf-8")
+    (src / "src").mkdir()
+    (src / "src" / "cheri.sail").write_text("val cheri : unit -> unit\n", encoding="utf-8")
+    _git(src, "init", "-q")
+    _git(src, "add", "Makefile", "src/cheri.sail")
+    _pin(src, model.ORACLE_NESTED, _head(nested))
+    _git(src, "commit", "-qm", "oracle")
+    (root / "model").mkdir()
+    (root / "model" / "source.sail").write_text("model bytes\n", encoding="utf-8")
+    _git(root, "init", "-q")
+    _git(root, "add", "model/source.sail")
+    _pin(root, model.ORACLE_SRC, _head(src))
+    _git(root, "commit", "-qm", "superproject")
+    return src, (_head(src), _head(nested))
+
+
+def _oracle_pins_hold_both_checkouts() -> None:
+    """Both checkouts must be at their pins, the inner pin read from the outer commit."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td).resolve()
+        src, pins = _oracle_checkout(root)
+        ensure(model._oracle_pins(root, src) == pins, "checkouts at their pins are accepted")
+        refusals: list[str] = []
+
+        def refused(what: str) -> None:
+            try:
+                model._oracle_pins(root, src)
+            except ValueError as err:
+                ensure(model.ORACLE_INIT in str(err), f"{what}: the refusal names the init")
+                refusals.append(what)
+            else:
+                raise AssertionError(f"{what} was accepted")
+
+        _pin(root, model.ORACLE_SRC, "c" * 40)
+        refused("an outer checkout behind its bumped gitlink")
+        _pin(root, model.ORACLE_SRC, pins[0])
+        nested = src / model.ORACLE_NESTED
+        (nested / "later").write_text("later\n", encoding="utf-8")
+        _git(nested, "add", "later")
+        _git(nested, "commit", "-qm", "later")
+        refused("a nested checkout moved past its pin")
+        ensure(len(refusals) == 2, "both refusals were reached")
+
+
+def _oracle_copy_is_the_pinned_commits() -> None:
+    """The copy must hold the pinned commits' files and no others, line endings aside."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td).resolve()
+        src, pins = _oracle_checkout(root)
+        tree = root / "build" / "oracle"
+
+        def verdict() -> str:
+            model._sync_oracle_tree(src, tree)
+            try:
+                model._verify_oracle_copy(src, tree, pins)
+            except ValueError as err:
+                return str(err)
+            return ""
+
+        ensure(verdict() == "", "a clean checkout's copy is its pinned commits")
+        makefile = src / "Makefile"
+        held = makefile.read_bytes()
+        makefile.write_bytes(held.replace(b"\n", b"\r\n"))
+        ensure(verdict() == "", "a Windows checkout's line endings are not an edit")
+        readme = src / model.ORACLE_NESTED / "README"
+        readme.write_bytes(b"nested\r\n")
+        ensure(verdict() == "", "nor are they outside the kinds the copy normalizes")
+        makefile.write_bytes(b"all:\n\tfalse\n")
+        ensure("Makefile differs" in verdict(), "an edited tracked file is refused")
+        makefile.write_bytes(held)
+        stray = src / model.ORACLE_NESTED / "model" / "local.sail"
+        stray.write_text("untracked\n", encoding="utf-8")
+        ensure("sail-riscv/model/local.sail is in the copy" in verdict(),
+               "an untracked file the copy would carry in is refused")
+        stray.unlink()
+        (src / "src" / "cheri.sail").unlink()
+        ensure("src/cheri.sail is missing" in verdict(), "a deleted tracked file is refused")
 
 
 def _empty_sweep_is_refused() -> None:
@@ -270,6 +554,12 @@ def cases() -> list[Case]:
     return [Case("solver-failure", _solver_failure), Case("detach-race", _detach_race),
             Case("reference-failure", _reference_failure), Case("stale-build", _stale_build),
             Case("proof-publication-keeps-build-identity", _proof_publication_keeps_build_identity),
+            Case("identity-binds-only-opened-gitlinks", _identity_binds_only_opened_gitlinks),
+            Case("oracle-binds-the-environments-sail", _oracle_binds_the_environments_sail),
+            Case("oracle-refuses-an-unpopulated-source", _oracle_refuses_an_unpopulated_source),
+            Case("oracle-reuses-only-a-stamped-tree", _oracle_reuses_only_a_stamped_tree),
+            Case("oracle-pins-hold-both-checkouts", _oracle_pins_hold_both_checkouts),
+            Case("oracle-copy-is-the-pinned-commits", _oracle_copy_is_the_pinned_commits),
             Case("empty-sweep-refused", _empty_sweep_is_refused),
             Case("warm-test-corpus", _warm_test_corpus),
             Case("invalid-test-corpus-pin", _invalid_test_corpus_pin),

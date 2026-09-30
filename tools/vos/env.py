@@ -161,6 +161,28 @@ Z3_VERSION = "5.1.0"
 Z3_PREFIX = Path(f"/root/z3-{Z3_VERSION}")
 Z3_DISTRIBUTION = "4.13.3"
 
+# The solver's wheels as uv installs them. uv reads hashes only from a requirements
+# file, so the release's wheel pin and the reviewed SHA-256 of each architecture's
+# wheel live in that file, held against `Z3_VERSION` by the environment's tests.
+Z3_REQUIREMENTS = Path(__file__).resolve().parents[1] / "z3-requirements.txt"
+
+
+def z3_install(target: Path, python: str = sys.executable) -> tuple[tuple[str, ...], ...]:
+    """The one recipe for the pinned solver, into `target`, for the bootstrap's private
+    prefix and the provisioner's alike.
+
+    `--require-hashes` installs only a wheel whose bytes the requirements file names,
+    and `--no-build` refuses the source archive a host older than a wheel's glibc tag
+    would otherwise compile in its place: Sail's memo records the solver's answers and
+    not which solver gave them, and Guest CI keys that memo by the solver's version
+    alone, so a solver built some other way would write into it unseen.
+    """
+    return (("uv", "pip", "install", "--no-build", "--require-hashes", "--python", python,
+             "--target", str(target), "-r", str(Z3_REQUIREMENTS)),)
+
+
+Z3_INSTALL = z3_install(Z3_PREFIX)
+
 # The proof gate uses the newest prover its own libraries admit, independently of oracle
 # libraries; tools/opam/README.md records what holds it there. CertiRocq and QuickChick
 # retain their own 9.1 compatibility constraints in gallina.py; neither limits proofs
@@ -347,8 +369,10 @@ class Environment:
         that is: the oracle is stock `sail-cheri-riscv` at a pinned commit, so every
         checkout of this repository would build the same bytes from it, and none of
         this repository's own curation reaches it.
+
+        Keyed by the Sail edition as well as the pin: see `oracle_tree`.
         """
-        return _env_path("VOS_ORACLE_ROOT", self.build_root / ORACLE_TREE)
+        return _env_path("VOS_ORACLE_ROOT", oracle_tree(self.build_root))
 
     @property
     def oracle(self) -> Path:
@@ -573,6 +597,20 @@ def lane_dir(root: Path, lane: str) -> Path:
 def lane_root(lane: str) -> Path:
     """Where the named lane's guest outputs land, under this machine's build root."""
     return lane_dir(build_root(), lane)
+
+
+def oracle_tree(root: Path) -> Path:
+    """The M0.4 oracle's shared tree under a build root, keyed by the Sail edition.
+
+    The pin names the tree and `SAIL_VERSION` names the directory above it. The
+    upstream Makefile's generated C depends on the Sail sources and not on the
+    compiler, so a tree built by an earlier edition would otherwise answer as current
+    after a lock change. A parent directory, and not a suffix, because the pin's
+    spelling has to end the tree's name for the pin checks to read it; and one tree per
+    edition, because a checkout on an earlier lock still builds its own oracle beside
+    this one's. `Environment.oracle_root` and the lane retirement's lock read it here.
+    """
+    return root / f"sail-{SAIL_VERSION}" / ORACLE_TREE
 
 
 def mount_type(mountinfo: str, path: PurePosixPath | str) -> str:

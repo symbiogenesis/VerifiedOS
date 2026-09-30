@@ -26,15 +26,11 @@ sys.path.insert(0, str(TOOLS))
 from vos import (  # noqa: E402  (standalone bootstrap precedes the locked environment)
     cli,
     env,
+    opam_client,
     receipts,
 )
 from vos.cli import rtl  # noqa: E402
 
-OPAM_VERSION = "2.6.0"
-OPAM_HASHES: dict[str, tuple[str, str]] = {
-    "aarch64": ("arm64", "aeaeb4294a9abaa7d37844d9138230125933c648e631da2eec888b5e4ce55bde"),
-    "x86_64": ("x86_64", "a59184447f881005dae70b2ae455c3a7e9549834a41c635c49a5a28235eca758"),
-}
 PACKAGES: tuple[str, ...] = tuple(dict.fromkeys((
     "build-essential", "bubblewrap", "ca-certificates", "curl", "unzip", "patch",
     "pkg-config", "m4", "cmake", "ninja-build", "libgmp-dev", "clang", "ccache",
@@ -150,12 +146,22 @@ def install_switch(steps: tuple[tuple[str, ...], ...], log: IO[str]) -> None:
         run(argv, log)
 
 
+def initialize_repositories(log: IO[str]) -> None:
+    """Initialize the private root on its default repository and add the rest unselected,
+    each switch naming the repositories it resolves from."""
+    (default, default_url), *others = opam_client.OPAM_REPOSITORIES
+    run(("opam", "init", "--bare", "--no-setup", "--no-opamrc", "-y", default, default_url),
+        log)
+    for name, url in others:
+        run(("opam", "repository", "add", name, url, "--dont-select", "-y"), log)
+
+
 def install_toolchains(root: Path, jobs: int, log: IO[str],
                        selected: tuple[str, ...] = TOOLCHAINS) -> None:
     """Provide Sail's solver at startup and probe each tool before building the next."""
     if "sail" in selected:
-        run(("uv", "pip", "install", "--python", sys.executable, "--target",
-             str(root / "z3"), f"z3-solver=={env.Z3_VERSION}.0"), log)
+        for step in env.z3_install(root / "z3", sys.executable):
+            run(step, log)
         # Sail initializes its solver even for --version. VOS_Z3_BIN is consumed by
         # run.py's environment setup, which does not run in this bootstrap process.
         solver_bin = root / "z3" / "bin"
@@ -212,7 +218,7 @@ def retain_logs(root: Path) -> None:
 def bootstrap(args: argparse.Namespace) -> int:
     if sys.platform != "linux":
         raise ValueError("guest bootstrap runs on Linux; invoke it inside the assigned guest lane")
-    if platform.machine() not in OPAM_HASHES:
+    if platform.machine() not in opam_client.OPAM_HASHES:
         raise ValueError(f"no reviewed opam binary for {platform.machine()}")
     manifest = tomllib.loads((TOOLS / "pyproject.toml").read_text(encoding="utf-8"))
     uv_version = manifest["tool"]["uv"]["required-version"].removeprefix("==")
@@ -249,7 +255,7 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
         "schema": 1, "started_utc": datetime.now(UTC).isoformat(),
         "platform": platform.platform(), "python": sys.version, "jobs": jobs,
         "toolchains": list(selected), "bootstrap_sha256": receipts.digest(Path(__file__)),
-        "uv": uv_version, "opam": OPAM_VERSION, "sail": env.SAIL_VERSION,
+        "uv": uv_version, "opam": opam_client.OPAM_VERSION, "sail": env.SAIL_VERSION,
         "rocq": env.ROCQ_VERSION, "z3": env.Z3_VERSION, "verilator": rtl.VERILATOR_PIN,
         "snapshots": {name: receipts.digest(TOOLS / "opam" / f"{name}.lock")
                       for name in ("sail", "rocq")}, "exit_code": 1,
@@ -265,15 +271,13 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
                 ("git", "-C", str(TOOLS.parent), "rev-parse", "HEAD"), capture_output=True,
                 text=True, check=True, timeout=60,
                 env=os.environ | env.git_env(TOOLS.parent)).stdout.strip()
-            architecture, expected = OPAM_HASHES[platform.machine()]
+            architecture, expected = opam_client.OPAM_HASHES[platform.machine()]
             opam = binary_dir / "opam"
-            receipts.download(f"https://github.com/ocaml/opam/releases/download/{OPAM_VERSION}/"
-                              f"opam-{OPAM_VERSION}-{architecture}-linux", opam, expected)
+            receipts.download(opam_client.release_url(architecture), opam, expected)
             opam.chmod(0o755)
-            run(("opam", "init", "--bare", "--no-setup", "--no-opamrc", "-y",
-                 "default", "https://opam.ocaml.org"), log)
-            run(("opam", "repository", "add", "rocq-released",
-                 "https://rocq-prover.org/opam/released", "--dont-select", "-y"), log)
+            initialize_repositories(log)
+            # The metadata the snapshots are resolved against, which the locks do not fix.
+            record["opam_repositories"] = opam_client.repositories(root / "opam")
             install_toolchains(root, jobs, log, selected)
             (root / "environment.sh").write_text(activation(values, paths),
                                                   encoding="utf-8", newline="")
