@@ -1675,6 +1675,11 @@ CASES: list[Case] = [
     ("K-118", "an opam snapshot release its development-tool row does not state",
      _first_match("tools/opam/sail.lock", r'"zarith\.([^"]+)"',
                   lambda m: f'"zarith.{m[1]}.1"')),
+    # A licence reading's tag list gains a tag in a form the list's reading cannot take:
+    # every other tag still agrees with the switches, so only a list read item by item,
+    # with an unreadable item a finding, keeps the row from passing over it unread.
+    ("K-118", "a development-tool tag list naming a tag its reading cannot take",
+     _first_match(THIRD_PARTY, r"byte-identical at the `", lambda m: f"{m[0]}rocq-9.0.0`, `")),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row

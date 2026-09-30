@@ -855,6 +855,39 @@ def _k118_census_reads_every_numeral() -> None:
            f"a residue covering no numeral must report: {found!r}")
 
 
+def _k118_each_tag_is_read_or_reported() -> None:
+    # A list of tags read against the releases some snapshot installs: every item is
+    # one tag the site reads whole, so a tag added or removed is drift, and one the site
+    # cannot read is a finding rather than an item dropped from a list read as a whole.
+    eps = pins.DevTool("eps", (pins.Site("the tags read", pins._TAGS_READ,
+                                         (pins.Owner("opam-any", "tools/opam/", "eps"),),
+                                         each=pins._TAG),))
+    owners = {"tools/opam/x.lock": 'installed: ["beta.4.5.6" "lib.2.0.0" "eps.1.0.0"]\n',
+              "tools/opam/y.lock": 'installed: ["lib.2.0.0" "eps.2.0.0"]\n'}
+    tags = "`V1.0.0` and `v2.0.0`"
+
+    def run(stated: str) -> list[str]:
+        record = _K118_RECORD.replace(
+            "| gamma |", f"| eps | `MIT` | Read byte-identical at the {stated} tags. |\n| gamma |")
+        return _k118({**owners, "THIRD-PARTY.md": record}, rows=(*_K118_ROWS, eps))[0]
+
+    found = run(tags)
+    ensure(not found, f"a list naming each installed release, led by V or v, agrees: {found!r}")
+    for stated, fragment in (
+            ("`V1.0.0`, `v2.0.0` and `V3.0.0`", "(eps) states the tags read as 1.0.0, 2.0.0, "
+                                                 "3.0.0, where the eps the snapshots"),
+            ("`v2.0.0`", "(eps) states the tags read as 2.0.0, where"),
+            ("`V1.0.0`, `release-1.5` and `v2.0.0`",
+             "(eps) states a tag K-118 cannot read among the tags read, `release-1.5`")):
+        found = run(stated)
+        ensure(len(found) == 1 and fragment in found[0],
+               f"a tag added, removed or unreadable is one finding ({fragment!r}): {found!r}")
+    # An unreadable item's numeral is not covered by the list, so the census reads it.
+    found = run("`V1.0.0`, `rocq 1.5` and `v2.0.0`")
+    ensure(len(found) == 2 and "states 1.5 in eps's row, which no K-118 site reads" in found[1],
+           f"an unreadable tag's numeral falls to the census: {found!r}")
+
+
 def _k118_declarations_are_held() -> None:
     # a row declared to state no release that has come to state one
     found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace("A distribution tool.",
@@ -1271,6 +1304,7 @@ def cases() -> list[Case]:
         Case("k118-unreadable-record-fails-closed", _k118_unreadable_record_fails_closed),
         Case("k118-every-row-is-held-or-declared", _k118_every_row_is_held_or_declared),
         Case("k118-census-reads-every-numeral", _k118_census_reads_every_numeral),
+        Case("k118-each-tag-is-read-or-reported", _k118_each_tag_is_read_or_reported),
         Case("k118-declarations-are-held", _k118_declarations_are_held),
         Case("k118-shipped-readings-are-declared", _k118_shipped_readings_are_declared),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),

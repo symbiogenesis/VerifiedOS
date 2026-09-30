@@ -216,7 +216,9 @@ leaves the row, which is how filelock's row came to name a release its lock had 
 **The rows are a table this rule declares, held total in both directions.** A row is
 either held here, site by site, or declared with why nothing here holds it. A site is a
 pattern anchored on the row's own words; its groups are the releases the row states,
-and its owners together fix what those groups must be. The declared rows are K-97's
+and its owners together fix what those groups must be. A list of tags is read item by
+item, each a backticked release led by `v` or not, so a tag the list's reading cannot
+take is a finding and its numeral is left to the census. The declared rows are K-97's
 Verilator, K-115's action and analyzer rows, rows stating no release, a runner-supplied
 tool no artifact here fixes, a release no exported snapshot fixes yet, named with the
 owner whose arrival ends the declaration, and a measured build. A row neither held nor
@@ -325,9 +327,10 @@ _V = r"(\d[\w+~-]*(?:\.[\w+~-]+)*)"
 # census leaves to the sites that read such a tag as the release it states.
 _RELEASE_RE = re.compile(r"(?<![\w.+-])[vV]?(\d+(?:\.\d+)+)(?!\w|\.\d)")
 
-# A list of tags a licence file was read at, and one tag in it.
+# A list of tags a licence file was read at, and the one form every tag in it takes.
 _TAGS_READ = r"byte-identical at the ((?:`[^`]*`(?:,? and |, ))*`[^`]*`) tags"
-_TAG = r"`V?(\d[^`]*)`"
+_TAG = rf"`[vV]?{_V}`"
+_BACKTICKED = re.compile(r"`[^`]*`")
 
 
 @dataclass(frozen=True)
@@ -357,7 +360,8 @@ class Site:
     """One statement of a release: what it is, the pattern reading it, and its owners.
 
     Every group the pattern captures states releases, one each or, with `each`, as a
-    list read by that pattern; the union of the owners' releases is what they must be.
+    list of backticked items that pattern must read whole, its first group the release;
+    the union of the owners' releases is what they must be.
     """
 
     what: str
@@ -1101,10 +1105,30 @@ def _hold(where: Callable[[int], str], name: str, text: str, tool: DevTool,
             continue
         hit = hits[0]
         stated: set[str] = set()
+        readable = True
         for group in range(1, hit.re.groups + 1):
-            spans.append(hit.span(group))
             value = hit.group(group) or ""
-            stated.update(re.findall(site.each, value) if site.each else [value])
+            if not site.each:
+                spans.append(hit.span(group))
+                stated.add(value)
+                continue
+            # A list: every item is one tag in the form `each` reads, and only the
+            # numerals read are spanned, so an item it cannot read is a finding and its
+            # numeral is left to the census rather than covered by the list.
+            base = hit.start(group)
+            for item in _BACKTICKED.finditer(value):
+                tag = re.fullmatch(site.each, item.group())
+                if tag is None:
+                    readable = False
+                    findings.append(f"{where(base + item.start())}{row} states a tag K-118 "
+                                    f"cannot read among {site.what}, {item.group()}; each is "
+                                    "read as a backticked release, led by v or not")
+                    continue
+                start = base + item.start()
+                spans.append((start + tag.start(1), start + tag.end(1)))
+                stated.add(tag.group(1))
+        if not readable:
+            continue
         fixed: set[str] = set()
         try:
             for owner in site.owners:
