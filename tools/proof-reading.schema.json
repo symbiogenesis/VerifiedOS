@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VerifiedOS proof reading, version 1",
+  "description": "What Rocq printed about every constant the proof audit's native inventory names, per module, under Set Printing All, Set Printing Universes and the audit's depth and width. A reading decides nothing alone: two readings are compared, and every entry outside provenance must be byte-identical for them to agree. It accepts no proof and does not show that a statement expresses its requirement.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "schema", "reader", "modules", "provenance"],
+  "properties": {
+    "format": {"const": "verifiedos-proof-reading"},
+    "schema": {"const": 1},
+    "reader": {
+      "description": "What produced every answer: a difference here is a difference between the readings, never a normalization.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prover", "prover_sha256", "query_flags", "inventory_settings", "reading_settings"],
+      "properties": {
+        "prover": {"type": "string", "minLength": 1, "description": "The prover's own version banner."},
+        "prover_sha256": {"$ref": "#/$defs/sha256"},
+        "query_flags": {"type": "array", "items": {"type": "string", "minLength": 1}, "description": "The proof gate's compile flags, under which every query ran."},
+        "inventory_settings": {"type": "string", "minLength": 1, "description": "The proof audit's inventory settings, whose Search enumerates the constants."},
+        "reading_settings": {"type": "string", "minLength": 1, "description": "The printing settings every Check, About and Print ran under."}
+      }
+    },
+    "modules": {
+      "type": "object",
+      "propertyNames": {"$ref": "#/$defs/module"},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["constants"],
+        "properties": {
+          "constants": {
+            "type": "object",
+            "propertyNames": {"pattern": "^[\\w']+(?:\\.[\\w']+)+$"},
+            "additionalProperties": {"$ref": "#/$defs/entry"}
+          }
+        }
+      }
+    },
+    "provenance": {
+      "description": "The compile this reading was taken from. Never compared: two compiles of one source may differ in their objects and mean the same thing.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sources", "objects"],
+      "properties": {
+        "sources": {"type": "object", "propertyNames": {"pattern": "^[A-Za-z_][A-Za-z0-9_]*\\.v$"}, "additionalProperties": {"$ref": "#/$defs/sha256"}},
+        "objects": {"type": "object", "propertyNames": {"pattern": "^[A-Za-z_][A-Za-z0-9_]*\\.vo$"}, "additionalProperties": {"$ref": "#/$defs/sha256"}}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "module": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "opacity", "universes", "check", "about", "print"],
+      "properties": {
+        "kind": {"enum": ["Constant", "Inductive", "Constructor"], "description": "The kind About's expansion names."},
+        "opacity": {"enum": ["transparent", "opaque", "n/a"], "description": "About's opacity sentence; n/a for a kind that states none."},
+        "universes": {"enum": ["monomorphic", "polymorphic", "template"], "description": "About's universe sentence."},
+        "check": {"type": "string", "minLength": 1, "description": "The answer to Check @name, fresh universe levels of the query itself renamed ?u1, ?u2 by first appearance."},
+        "about": {"type": "string", "minLength": 1, "description": "The answer to About name, less its Declared in location lines."},
+        "print": {"type": ["string", "null"], "minLength": 1, "description": "The answer to Print name for a transparent constant or an inductive; null otherwise."}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"kind": {"const": "Constant"}}},
+          "then": {"properties": {"opacity": {"enum": ["transparent", "opaque"]}}},
+          "else": {"properties": {"opacity": {"const": "n/a"}}}
+        },
+        {
+          "if": {"anyOf": [
+            {"properties": {"kind": {"const": "Inductive"}}},
+            {"properties": {"kind": {"const": "Constant"}, "opacity": {"const": "transparent"}}}
+          ]},
+          "then": {"properties": {"print": {"type": "string"}}},
+          "else": {"properties": {"print": {"type": "null"}}}
+        }
+      ]
+    }
+  }
+}
