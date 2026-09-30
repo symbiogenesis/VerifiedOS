@@ -28,13 +28,16 @@ licenses and source identities are recorded separately in the build receipt.
 
 The bridge is the only added upstream binary target. The upstream algorithms and
 dependency lock remain unchanged. Cargo builds only `coreba` and the bridge.
-Rust 1.85.1 and its installer are pinned; installation modifies no shell profile
-or global toolchain. The build checks every downloaded upstream file, checks
-Cargo dependency archives against the pinned lock, and checks unpacked dependency
-files against those archives. Archive members are inspected without extraction
-by this adapter, with traversal and special-entry refusal. Rustup and Cargo own
-their installation and extraction steps. The candidate executable is hashed
-before and after each invocation. These identities describe execution inputs;
+The pin manifest fixes the Rust version and each compiler component archive's
+SHA-256, the same set the [optional Isla tools](../../../tools/sail-isla/lock.json)
+pin. Each archive is checked before its installer runs into the lane; no rustup,
+shell profile or global toolchain is involved. The build checks every downloaded
+upstream file, checks Cargo dependency archives against the pinned lock, and
+checks unpacked dependency files against those archives. Archive members are
+inspected without extraction by this adapter, with traversal and special-entry
+refusal. The Rust component installers and Cargo own their installation and
+extraction steps. The candidate executable is hashed before and after each
+invocation. These identities describe execution inputs;
 they are not compiler-correctness or source-to-model theorems.
 
 `plan` accepts the same instance and placement JSON as `memory-planner`. It

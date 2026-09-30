@@ -73,10 +73,13 @@ The [candidate integration](docs/implementation/static-memory/candidates.md)
 fetches idealloc's `coreba` implementation at the revision and source hashes in
 [its manifest](tools/memory-planner/idealloc.json). Its upstream MIT license is
 read before integration and retained with the fetched source. The tracked Rust
-bridge is authored here. Rust tooling, Cargo dependencies, caches, source and
-executables stay in the native guest lane; their individual licenses and pinned
-dependency closure remain applicable. This is an untrusted candidate producer,
-not code installed in a VerifiedOS image.
+bridge is authored here. The Rust toolchain is installed from the same
+hash-pinned 1.98.1 component archives as the optional Isla tools, whose license
+reading is recorded under [Sail agent assistance references](#sail-agent-assistance-references).
+Rust tooling, Cargo dependencies, caches, source and executables stay in the
+native guest lane; their individual licenses and pinned dependency closure
+remain applicable. This is an untrusted candidate producer, not code installed
+in a VerifiedOS image.
 
 The [certificate integration](docs/implementation/static-memory/certificates.md)
 fetches `lrat_isa` and CaDiCaL using [its pinned manifest](tools/memory-planner/certificates.json).

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-from tests.harness import Case, ensure
+from tests.harness import TOOLS, Case, ensure
 from vos import memory_planner as planner
 from vos import memory_planner_candidates as candidates
 from vos.cli import memory_planner_candidates as cli
@@ -153,6 +153,30 @@ def dependency_archive_and_source_identity() -> None:
         raise AssertionError("archive traversal was accepted")
 
 
+def rust_pin_is_the_project_toolchain() -> None:
+    pin = json.loads((TOOLS / "memory-planner/idealloc.json").read_text(encoding="utf-8"))["rust"]
+    isla = json.loads((TOOLS / "sail-isla/lock.json").read_text(encoding="utf-8"))["rust"]
+    ensure(pin == isla, "idealloc and the optional Isla tools must pin one Rust version and component set")
+
+
+def rust_component_digest_mismatch_is_refused() -> None:
+    pin = json.loads((TOOLS / "memory-planner/idealloc.json").read_text(encoding="utf-8"))["rust"]
+    with tempfile.TemporaryDirectory() as temporary:
+        output = Path(temporary)
+        with (patch.object(candidates.platform, "system", return_value="Linux"),
+              patch.object(candidates.platform, "machine", return_value="aarch64"),
+              patch.object(candidates, "urlopen", return_value=io.BytesIO(b"not the pinned archive")),
+              patch.object(candidates.subprocess, "run") as run):
+            try:
+                candidates.rust_environment(output, pin)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("an unpinned Rust component archive was accepted")
+            ensure(not run.called, "an installer ran before every component matched its pin")
+        ensure(not list((output / "rust-dist").glob("*.tar.xz*")), "a mismatched archive was kept")
+
+
 def setup_failure_preserves_cli_baseline() -> None:
     instance = model()
     baseline = candidates.separate_baseline(instance)
@@ -176,4 +200,6 @@ def cases() -> list[Case]:
             Case("invalid baseline blocks optional work", invalid_baseline_stops_optional_work),
             Case("comparison corpus local candidates checked", corpus_candidates_are_checked_and_repeatable),
             Case("dependency archive and unpacked-source tampering refused", dependency_archive_and_source_identity),
+            Case("idealloc and Isla pin one Rust toolchain", rust_pin_is_the_project_toolchain),
+            Case("Rust component digest mismatch refused before install", rust_component_digest_mismatch_is_refused),
             Case("optional setup failure preserves CLI baseline", setup_failure_preserves_cli_baseline)]

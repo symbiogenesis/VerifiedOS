@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import platform
+import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -116,41 +117,65 @@ def native_output(root: Path, output: Path) -> Path:
     return output
 
 
-def rust_environment(output: Path) -> tuple[str, dict[str, str]]:
-    """Install the reviewed fixed compiler in this lane, without profile changes."""
-    architecture = platform.machine()
-    installers = {"x86_64": "20a06e644b0d9bd2fbdbfd52d42540bdde820ea7df86e92e533c073da0cdd43c",
-                  "aarch64": "e3853c5a252fca15252d07cb23a1bdd9377a8c6f3efa01531109281ae47f841c"}
-    if architecture not in installers:
+def rust_target() -> str:
+    triple = {"x86_64": "x86_64-unknown-linux-gnu",
+              "aarch64": "aarch64-unknown-linux-gnu"}.get(platform.machine())
+    if platform.system() != "Linux" or triple is None:
         raise ValueError("idealloc demonstration requires a supported 64-bit Linux Rust toolchain")
-    target = architecture + "-unknown-linux-gnu"
-    cargo_home = output / "cargo-home"
-    cargo = cargo_home / "bin/cargo"
-    process_env = dict(os.environ, CARGO_HOME=str(cargo_home),
-                       RUSTUP_HOME=str(output / "rustup-home"),
-                       RUSTUP_TOOLCHAIN="1.85.1-" + target,
-                       CARGO_TARGET_DIR=str(output / "target"))
-    process_env["PATH"] = str(cargo_home / "bin") + os.pathsep + process_env.get("PATH", "")
-    with urlopen("https://static.rust-lang.org/dist/channel-rust-1.85.1.toml", timeout=30) as response:
-        channel = response.read()
-    if hashlib.sha256(channel).hexdigest() != "1e7dae690cd12e27405a97e64704917489a27c650201bf47780a936055d67909":
-        raise ValueError("pinned Rust component manifest hash mismatch")
-    (output / "rust-toolchain.toml").write_bytes(channel)
-    if not cargo.is_file():
-        installer = output / "rustup-init"
-        url = f"https://static.rust-lang.org/rustup/archive/1.28.2/{target}/rustup-init"
-        with urlopen(url, timeout=30) as response:
-            data = response.read()
-        expected = installers[architecture]
-        if hashlib.sha256(data).hexdigest() != expected:
-            raise ValueError("pinned Rust installer hash mismatch")
-        installer.write_bytes(data)
-        installer.chmod(0o700)
+    return triple
+
+
+def _fetch_component(url: str, expected: str, archive: Path) -> None:
+    """Keep only an archive whose SHA-256 is the manifest-pinned component hash."""
+    if archive.is_file() and digest(archive) == expected:
+        return
+    if not url.startswith("https://static.rust-lang.org/dist/"):
+        raise ValueError("Rust components come only from the HTTPS distribution server")
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    part = archive.with_name(archive.name + ".part")
+    with (urlopen(url, timeout=120) as response,  # noqa: S310 -- HTTPS origin checked above; hash-pinned bytes.
+          part.open("wb") as stream):
+        shutil.copyfileobj(response, stream)
+    if digest(part) != expected:
+        part.unlink()
+        raise ValueError("pinned Rust component hash mismatch")
+    part.replace(archive)
+
+
+def rust_environment(output: Path, pin: dict[str, Any]) -> tuple[str, dict[str, str]]:
+    """Install the pinned Rust component archives in this lane, without rustup or profile changes.
+
+Each archive is checked against its channel-manifest xz_hash before extraction, so
+the installed compiler is bound to the pin rather than to a live manifest.
+"""
+    triple = rust_target()
+    version, components = pin["version"], pin["components"][triple]
+    prefix = output / "rust"
+    stamp = prefix / "vos-rust-components.json"
+    wanted = {"version": version, "target": triple, "components": components}
+    try:
+        installed = json.loads(stamp.read_text(encoding="utf-8")) == wanted
+    except (OSError, ValueError):
+        installed = False
+    if not installed or not (prefix / "bin/cargo").is_file():
+        shutil.rmtree(prefix, ignore_errors=True)
+        downloads = output / "rust-dist"
+        names = [f"{component}-{version}-{triple}" for component in components]
+        for name, expected in zip(names, components.values(), strict=True):
+            _fetch_component(f"https://static.rust-lang.org/dist/{name}.tar.xz", expected,
+                             downloads / f"{name}.tar.xz")
         with (output / "rust-install.log").open("w", encoding="utf-8", newline="") as log:
-            subprocess.run([str(installer), "-y", "--no-modify-path", "--profile", "minimal",
-                            "--default-toolchain", "1.85.1"], cwd=output, env=process_env,
-                           stdout=log, stderr=subprocess.STDOUT, timeout=600, check=True)
-    return str(cargo), process_env
+            for name in names:
+                with tarfile.open(downloads / f"{name}.tar.xz") as stream:
+                    stream.extractall(downloads, filter="data")
+                subprocess.run(["sh", str(downloads / name / "install.sh"), f"--prefix={prefix}",
+                                "--disable-ldconfig"], cwd=output, stdout=log, stderr=subprocess.STDOUT,
+                               timeout=600, check=True)
+        stamp.write_text(json.dumps(wanted, indent=2), encoding="utf-8", newline="")
+    process_env = dict(os.environ, CARGO_HOME=str(output / "cargo-home"),
+                       RUSTC=str(prefix / "bin/rustc"), CARGO_TARGET_DIR=str(output / "target"))
+    process_env["PATH"] = str(prefix / "bin") + os.pathsep + process_env.get("PATH", "")
+    return str(prefix / "bin/cargo"), process_env
 
 
 def verify_crate(package_root: Path, archive: Path, checksum: str) -> None:
@@ -210,7 +235,7 @@ def build_idealloc(root: Path, output: Path) -> dict[str, Any]:
     manifest = source / "coreba/Cargo.toml"
     with manifest.open("a", encoding="utf-8", newline="") as stream:
         stream.write('\n[[bin]]\nname = "vos-idealloc"\npath = "src/bin/vos_bridge.rs"\n')
-    cargo, cargo_env = rust_environment(output)
+    cargo, cargo_env = rust_environment(output, pin["rust"])
     command = [cargo, "build", "--locked", "--release", "--jobs", "2", "-p", "coreba", "--bin", "vos-idealloc"]
     begin = time.perf_counter()
     metadata = subprocess.run([cargo, "metadata", "--locked", "--format-version", "1"],
@@ -248,19 +273,18 @@ def build_idealloc(root: Path, output: Path) -> dict[str, Any]:
     if done.returncode:
         raise ValueError(f"idealloc build failed; inspect {output / 'compile.log'}")
     executable = output / "target/release/vos-idealloc"
-    receipt = {"schema": "vos-idealloc-build-v1", "commit": pin["commit"], "license": pin["license"],
+    rustc = Path(cargo_env["RUSTC"])
+    receipt = {"schema": "vos-idealloc-build-v2", "commit": pin["commit"], "license": pin["license"],
                "manifest_sha256": digest(root / PIN_PATH), "bridge_sha256": digest(root / BRIDGE_PATH),
                "workspace_sha256": digest(workspace), "patched_crate_manifest_sha256": digest(manifest),
                "lock_sha256": digest(source / "Cargo.lock"), "dependency_closure": closure,
                "command": command, "build_seconds": time.perf_counter() - begin,
                "executable": str(executable), "executable_sha256": digest(executable),
-               "compiler": subprocess.run([str(output / "cargo-home/bin/rustc"), "-vV"], cwd=output,
-                                           env=cargo_env, capture_output=True, text=True, check=True).stdout.strip(),
+               "compiler": subprocess.run([str(rustc), "-vV"], cwd=output, env=cargo_env,
+                                          capture_output=True, text=True, check=True).stdout.strip(),
+               "rustc_sha256": digest(rustc), "cargo_sha256": digest(Path(cargo)),
+               "rust_component_sha256": pin["rust"]["components"][rust_target()],
                "compile_log_sha256": digest(output / "compile.log")}
-    compiler_path = subprocess.run([str(output / "cargo-home/bin/rustup"), "which", "rustc"], cwd=output,
-                                   env=cargo_env, capture_output=True, text=True, check=True).stdout.strip()
-    receipt.update(rustc_sha256=digest(Path(compiler_path)),
-                   rust_component_manifest_sha256=digest(output / "rust-toolchain.toml"))
     (output / "build-evidence.json").write_text(json.dumps(receipt, indent=2), encoding="utf-8", newline="")
     return receipt
 
