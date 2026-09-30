@@ -17,7 +17,7 @@ import tempfile
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any
+from typing import IO, Any
 from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
@@ -353,6 +353,7 @@ def _default_objects_need_a_passing_receipt() -> None:
                    "a passing compile is read, bound to the staged files the receipt names")
             for label, change in (
                     ("a failed run", {"status": "failed"}),
+                    ("a failed kernel recheck", {"kernel_recheck": "failed"}),
                     ("a receipt with no outputs", {"outputs": None}),
                     ("a receipt with no staged source", {"inputs": {}, "outputs": {}})):
                 receipts.write(work / proofs_cli.RECEIPT, {**receipt, **change})
@@ -409,6 +410,75 @@ def _record_reads_only_the_compile_that_passed() -> None:
                 ("a file the compile did not make", {"A.v": passed["A.v"]})):
             _refused(lambda digests=digests: cli.record(Path("root"), objects, digests, None, 1),
                      f"{label} was read")
+
+
+def _a_reading_that_moves_writes_nothing() -> None:
+    """A source or an object rewritten while it is read refuses the reading unwritten."""
+    with (tempfile.TemporaryDirectory(prefix="vos-reading-moved-") as temporary,
+          patch.object(cli, "_prover", side_effect=_prover_stub),
+          patch.object(cli, "_scratch", side_effect=_lane_scratch)):
+        folder = Path(temporary)
+        objects = folder / proofs_cli.PROOFS
+        objects.mkdir()
+        (objects / "A.v").write_text("Definition a := 0.\n", encoding="utf-8")
+        (objects / "A.vo").write_bytes(b"compiled")
+        passed = cli._snapshot(objects)
+
+        def run(moved: str | None) -> tuple[int, str, Path]:
+            """The default route over the directory, with `moved` rewritten mid-read."""
+            def read(_objects: Path, _scratch: Path, module: str, _bound: int,
+                     ) -> dict[str, Any]:
+                if moved:
+                    (objects / moved).write_bytes(b"rewritten")
+                return {f"{module}.a": _entry(f"{module}.a")}
+
+            target = folder / f"{moved or 'unmoved'}.json"
+            with (patch.object(cli, "gate_objects", return_value=(objects, passed)),
+                  patch.object(cli, "read_module", side_effect=read),
+                  contextlib.redirect_stdout(io.StringIO()) as said):
+                code = cli.main(["record", "--out", str(target), "--jobs", "1"])
+            return code, said.getvalue(), target
+
+        code, said, target = run(None)
+        ensure(code == 0 and target.is_file(), f"an unmoved compile is read and written: {said}")
+        for moved in ("A.v", "A.vo"):
+            original = (objects / moved).read_bytes()
+            code, said, target = run(moved)
+            ensure(code == 1 and "changed while they were read" in said and not target.exists(),
+                   f"{moved} rewritten mid-read was written: {code} {said}")
+            (objects / moved).write_bytes(original)
+
+
+def _stream_prover(code: int, stderr: bytes, answer: bytes,
+                   ) -> Callable[..., subprocess.CompletedProcess[bytes]]:
+    """A query process that writes `answer` to its output file, as `_query` directs it."""
+    def run(command: list[str], *, stdout: IO[bytes], **_: object,
+            ) -> subprocess.CompletedProcess[bytes]:
+        stdout.write(answer)
+        return subprocess.CompletedProcess(command, code, None, stderr)
+    return run
+
+
+def _query_reads_only_a_clean_bounded_answer() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-reading-query-") as temporary:
+        scratch = Path(temporary)
+
+        def ask(code: int, stderr: bytes, answer: bytes) -> str:
+            with (patch.object(env, "rocq_command", return_value=["rocq", "c"]),
+                  patch.object(cli.subprocess, "run",
+                               side_effect=_stream_prover(code, stderr, answer))):
+                return cli._query(Path("objects"), scratch, "VosReadingFacts_M", "Check 0.\n", 16)
+
+        ensure(ask(0, b"", b"0\n     : nat\n") == "0\n     : nat\n", "a clean answer is read")
+        ensure(ask(0, b"", b"x" * 16) == "x" * 16, "an answer at the bound is read")
+        for label, code, stderr, answer in (
+                ("a diagnostic", 0, b"Warning: a deprecated notation", b"0\n     : nat\n"),
+                ("a failed query", 1, b"", b""),
+                ("an answer past the bound", 0, b"", b"x" * 17)):
+            _refused(lambda code=code, stderr=stderr, answer=answer: ask(code, stderr, answer),
+                     f"{label} was read")
+        ensure([path.name for path in scratch.iterdir()] == ["VosReadingFacts_M.v"],
+               "the answer file outlived its query")
 
 
 def _fake_compiler(commands: list[list[str]], said: dict[str, tuple[int, str]],
@@ -627,6 +697,8 @@ def cases() -> list[Case]:
         Case("modules-need-their-objects", _modules_need_their_objects),
         Case("record-reads-only-the-compile-that-passed",
              _record_reads_only_the_compile_that_passed),
+        Case("a-reading-that-moves-writes-nothing", _a_reading_that_moves_writes_nothing),
+        Case("query-reads-only-a-clean-bounded-answer", _query_reads_only_a_clean_bounded_answer),
         Case("sources-compile-as-the-gate-compiles", _sources_compile_as_the_gate_compiles),
         Case("native-reading-controls", _native_controls, lane="toolchain"),
     ]
