@@ -62,8 +62,9 @@ on both platforms to succeed, including refusal after a skipped or cancelled sha
 One shard alone supplies only a partial verdict. The unsharded local command retains
 the complete suite.
 
-Shards cache uv downloads keyed by the manifest and lockfile, with only shard 1
-of each OS on pushes to `main` saving caches; other jobs restore them. Environments
+Shards cache uv downloads keyed by the manifest and lockfile under Host CI's own key
+suffix, with only shard 1 of each OS on pushes to `main` saving caches; other jobs
+restore them. Environments
 and gate results are rebuilt on every run. Windows shards set `TMP` and `TEMP` to
 `runner.temp`, on the checkout's drive, because the image's default temporary
 directory is on a

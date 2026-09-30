@@ -129,7 +129,9 @@ Each lane has its own source cache. Its key includes the lane, runner OS and arc
 Sail and Rocq snapshots, bootstrap, the Verilator installer and shared download helper.
 A prefix fallback reuses the lane's older source downloads, with the installers' checksum
 verification still required. Cache eviction simply means a cold installation. Only the
-model lane saves the uv cache; both lanes restore it. Each lane's commands stay
+model lane saves the uv cache; both lanes restore it. Its `guest-gates` key suffix keeps
+Host CI's smaller download set, saved under Host CI's own suffix, from claiming the key
+when both workflows run on one runner image. Each lane's commands stay
 sequential within its runner's memory budget.
 
 Ordinary weekly and manual runs restore a lane's installed
