@@ -46,13 +46,27 @@ def transform(text: str, source: Source, notice: str) -> str:
     return text
 
 
+def _pin(data: object) -> str:
+    pin = data.get("pin") if isinstance(data, dict) else None
+    if not isinstance(pin, str) or re.fullmatch(r"[0-9a-f]{40}", pin) is None:
+        raise ValueError(f"{REGISTRY}: expected exact source pin")
+    return pin
+
+
+def recorded_pin(text: str) -> str:
+    """The exact imported-core commit the registry's identities were taken at.
+
+    `stage` holds it against the populated checkout; K-116 holds it against the
+    index's gitlink, which needs no checkout.
+    """
+    return _pin(json.loads(text))
+
+
 def load(root: Path) -> tuple[str, str, tuple[Source, ...]]:
     data = json.loads((root / REGISTRY).read_text(encoding="utf-8"))
     if not isinstance(data, dict) or data.get("schema") != "vos.rtl-width-transforms/1":
         raise ValueError(f"{REGISTRY}: unsupported registry")
-    pin, notice, rows = data.get("pin"), data.get("notice"), data.get("sources")
-    if not isinstance(pin, str) or re.fullmatch(r"[0-9a-f]{40}", pin) is None:
-        raise ValueError(f"{REGISTRY}: expected exact source pin")
+    pin, notice, rows = _pin(data), data.get("notice"), data.get("sources")
     if not isinstance(notice, str) or not notice.startswith("// Modified by VerifiedOS"):
         raise ValueError(f"{REGISTRY}: missing modification notice")
     if not isinstance(rows, list) or not rows:

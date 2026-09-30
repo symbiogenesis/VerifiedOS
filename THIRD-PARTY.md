@@ -155,6 +155,31 @@ emissions, vector checks and independent replay with regenerated provenance.
 The current generated headers and their historical source identities remain
 the accepted inputs.
 
+The RTL review on 2026-09-29 resolved the branch [.gitmodules](.gitmodules) names
+for each RTL pin and read each advanced pin's own license instruments at its new
+revision:
+
+- Mocha advances to its `main` tip. `REUSE.toml`, `hw/vendor/REUSE.toml`, the
+  `LICENSES/` texts, the UART register and status owners and `hw/top_chip/` are
+  byte-identical to the preceding pin's. The added `doc/` pages fall under the
+  root manifest's `Apache-2.0` annotation and the two added assertion patches
+  under the vendor manifest's `patches/**` `Apache-2.0` annotation. The modified
+  vendored CVA6-CHERI, debug-module and tag-controller sources keep the terms
+  recorded below. Its CVA6-CHERI vendor lock now selects the edition the
+  `upstream/cva6-cheri` gitlink pins.
+- OpenTitan advances to its `master` tip as a read reference: `LICENSE` and the
+  SECDED assertion and generator files the proof-reuse survey cites are
+  byte-identical to the preceding pin's. Elaboration takes its primitives from
+  Mocha's vendored OpenTitan tree, the edition Mocha integrates the imported
+  core with, rather than from this pin.
+- CVA6-CHERI stays at the tip of its `mocha` branch, the edition Mocha vendors
+  and the width-transform registry binds.
+- The standalone tag controller stays at its `main` tip, which carries the
+  `2level-september-2026` snapshot tag.
+- Ibex stays at its `master` tip; its newest release tag is older.
+- CHERIoT-Ibex stays at its `main` tip; its `cheriot_ibex_v1.0` release predates
+  a later RTL fix.
+
 The **Use** column records repository activity:
 
 - **consumed:** a command under [tools/run.py](tools/run.py) opens the submodule's files.
@@ -170,10 +195,10 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 | `upstream/sail-cheri-riscv` | `CTSRD-CHERI/sail-cheri-riscv` | `bb07488d` | `BSD-2-Clause` | Capability-semantics oracle built by `run.py model oracle`. | consumed |
 | `upstream/SECOMP` | `secure-compilation/SECOMP` | `5c20b839` | INRIA Non-Commercial License Agreement, over a dual-licensed subset | CompCert fork measured in a separate, unpublished local repository. No build here invokes it. | read |
 | `upstream/llvm-project` | `llvm/llvm-project` | `d53a3f75`, on `main` | `Apache-2.0 WITH LLVM-exception` | Untrusted disassembly and object tooling for M1.4 to re-home to the frozen dialect, reusing the in-tree assembler's generated encoding and image composition. | pinned to read later |
-| `upstream/mocha` | `lowRISC/mocha` | `2c11b745`, on `main` | `Apache-2.0` for lowRISC content; vendored subtrees have the terms below | Bring-up SoC used to author the device and tag-fabric descriptions in [the RTL delta](docs/hardware/rtl-reparameterization-delta.md) and [provenance record](rtl/synthesis-provenance.md). `run.py rtl devicescheck` reads its UART register and status declarations. | consumed |
+| `upstream/mocha` | `lowRISC/mocha` | `4b9bec92`, on `main` | `Apache-2.0` for lowRISC content; vendored subtrees have the terms below | Bring-up SoC used to author the device and tag-fabric descriptions in [the RTL delta](docs/hardware/rtl-reparameterization-delta.md) and [provenance record](rtl/synthesis-provenance.md). `run.py rtl devicescheck` reads its UART register and status declarations. `run.py rtl elaborate` reads the primitive packages, assertion header and primitive libraries of its vendored OpenTitan tree, the edition it integrates the imported core with. | consumed |
 | `upstream/cva6-cheri` | `lowRISC/cva6-cheri` | `0c7b3adf` | `SHL-0.51` at the root; file-specific `Apache-2.0 WITH SHL-2.0` and `Apache-2.0 WITH SHL-2.1` | C-class scalar datapath adapted to the 64+1-bit profile. `run.py rtl elaborate` builds the baseline and curated configurations. | consumed |
 | `upstream/axi-cheri-tagcontroller` | `Capabilities-Limited/axi_cheri_tagcontroller` | `c8245850` | `SHL-0.51` | Tag-fabric survey reference. The flat-store design in the RTL delta uses CVA6-CHERI's older nested pin, identified in the provenance record. | read |
-| `upstream/opentitan` | `lowRISC/opentitan` | `fbedb68e` | `Apache-2.0` | RoT peripheral reference. `run.py rtl elaborate` reads three primitive packages and the assertion header under `hw/ip` omitted by the imported core's manifest. Mocha retains its own older vendor lock. | consumed |
+| `upstream/opentitan` | `lowRISC/opentitan` | `73baf700`, on `master` | `Apache-2.0` | RoT peripheral reference. [The hardware proof-reuse survey](docs/assurance/proof-reuse/hardware.md) cites its SECDED assertions and generator at this pin. | read |
 | `upstream/ibex` | `lowRISC/ibex` | `4dd3932a` | `Apache-2.0` | RoT functional reference. | pinned to read later |
 | `upstream/cheriot-ibex` | `microsoft/cheriot-ibex` | `531ca2ec` | `Apache-2.0` | Conformance-methodology reference: its `dv/formal` carries the formal artifact [HW-10](docs/assurance/proof-reuse/hardware.md#hw-10-cheriot-ibex-observational-rtlsail-verification) reads. The profile does not adopt its RV32 capability encoding. Its RTL has had no commit since 2026-03-05, while `lowRISC/ibex` `master` has carried the maintained CHERIoT v1.0 RTL since `f1cea015`, which the Ibex pin includes. That is a restructured integration: it renames the modules and drops cheriot-ibex's stack zeroing, TBRE revocation engine and legacy instruction formats, so the `dv/formal` artifact does not target it. The milestone that reads this reference decides which of the two it means. | pinned to read later |
 | `upstream/cheri-compressed-cap` | `CTSRD-CHERI/cheri-compressed-cap` | `6a94fc12` | `BSD-2-Clause`; `test/FuzzedDataProvider.h` is `Apache-2.0 WITH LLVM-exception` | Library narrowed to the frozen 64+1-bit fields in the unpublished emulator repository, from the edition the completion log records. No build or check here uses it. | pinned for a struck milestone |
@@ -201,7 +226,7 @@ The recorded RTL reviews date to 2026-08-23, except Mocha's `v0.1.1` review on 2
 - Ethernet block: `MIT`.
 - Vendored OpenTitan and its patches: `Apache-2.0`, credited to lowRISC Contributors.
 
-The OpenTitan subtree, `hw/vendor/lowrisc_ip/`, supplies platform devices. Its `ip/` directory includes `rom_ctrl`, `uart`, `entropy_src`, `i2c`, `kmac`, `lc_ctrl`, the `prim` families, `rv_core_pkg`, `rv_timer`, `spi_device`, `spi_host`, and `tlul`. Its `ip_templates/` includes `alert_handler`, `clkmgr`, `gpio`, `pwrmgr`, `rstmgr`, and `rv_plic`.
+The OpenTitan subtree, `hw/vendor/lowrisc_ip/`, supplies platform devices. Its `ip/` directory includes `rom_ctrl`, `uart`, `entropy_src`, `i2c`, `kmac`, `lc_ctrl`, the `prim` families, `rv_core_pkg`, `rv_timer`, `spi_device`, `spi_host`, and `tlul`. Its `ip_templates/` includes `alert_handler`, `clkmgr`, `gpio`, `pwrmgr`, `rstmgr`, and `rv_plic`. The primitive files the imported core's elaboration reads carry OpenTitan's own `Apache-2.0` headers, and none of Mocha's `patches/lowrisc_ip/prim/` patches modifies them.
 
 The manifest does not annotate `hw/vendor/lint/` or `hw/vendor/sonata_system/`. Their waiver and DPI simulation files instead carry lowRISC copyright notices and `SPDX-License-Identifier: Apache-2.0` in each file. This review was recorded on 2026-09-03 at `ef1370c1`.
 
@@ -414,9 +439,9 @@ notice and adds a modification notice to the native staged derivative. Source
 identity, match counts, output identity and staged diffs are recorded; no imported
 module body is copied into tracked `rtl/`.
 
-For R1c-ii's authored UART character wrapper, the `2c11b745` Mocha pin's
+For R1c-ii's authored UART character wrapper, the `4b9bec92` Mocha pin's
 `hw/vendor/lowrisc_ip/ip/uart/rtl/uart_reg_pkg.sv` and `data/uart.hjson` were read
-with `LICENSES/Apache-2.0.txt` on 2026-09-24. Those interface sources identify
+with `LICENSES/Apache-2.0.txt` on 2026-09-29. Those interface sources identify
 Apache-2.0. The wrapper's generated constants use that declared register layout;
 no UART implementation body is imported. This interface use neither qualifies
 the complete OpenTitan UART nor changes the existing primitive dependency route.

@@ -347,14 +347,14 @@ and possible separately contained library use need an explicit future choice.
 **Standing: established hardware project proof suite.** The lowRISC
 contributors' [SECDED generator documentation](https://opentitan.org/book/util/design/index.html)
 describes generated RTL, assertions and formal targets. At local upstream pin
-`fbedb68e`,
-[prim_secded_39_32_assert_fpv.sv](https://github.com/lowRISC/opentitan/blob/fbedb68e/hw/ip/prim/fpv/vip/prim_secded_39_32_assert_fpv.sv)
+`73baf700`,
+[prim_secded_39_32_assert_fpv.sv](https://github.com/lowRISC/opentitan/blob/73baf700/hw/ip/prim/fpv/vip/prim_secded_39_32_assert_fpv.sv)
 contains `SingleErrorCorrect_A`, single/double detection and syndrome properties,
 under `MaxTwoErrors_M`, which assumes at most two injected errors.
-[util/design/secded_gen.py](https://github.com/lowRISC/opentitan/blob/fbedb68e/util/design/secded_gen.py)
+[util/design/secded_gen.py](https://github.com/lowRISC/opentitan/blob/73baf700/util/design/secded_gen.py)
 generates the assertion family. Both file headers name Apache-2.0 and lowRISC
 contributors, under the root
-[LICENSE](https://github.com/lowRISC/opentitan/blob/fbedb68e/LICENSE).
+[LICENSE](https://github.com/lowRISC/opentitan/blob/73baf700/LICENSE).
 
 **Reuse:** nearest permissible verification-IP template for the data-code half
 of R-15-175/R-15-179/R-15-181a. The inspected instance is 39/32, not the local

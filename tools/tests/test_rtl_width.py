@@ -99,6 +99,19 @@ def _registry_rejects_unsafe_and_duplicate_sources() -> None:
             raise AssertionError("duplicate source accepted")
 
 
+def _recorded_pin_is_exact_or_refused() -> None:
+    """The host rule's reading of the pin, which needs neither a checkout nor sources."""
+    ensure(width.recorded_pin(_registry()) == _PIN, "the registry's exact pin reads back")
+    for text in (json.dumps({"pin": _PIN[:8]}), json.dumps({"pin": _PIN.upper()}),
+                 json.dumps({"schema": "x"}), json.dumps([_PIN]), "{"):
+        try:
+            width.recorded_pin(text)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"an inexact or unreadable pin was accepted: {text!r}")
+
+
 # The imported names the frozen format has no member for. A staged output that
 # still carries one would compile the datapath against a format the model does
 # not state, which is the failure the transform route exists to make visible.
@@ -228,7 +241,7 @@ def cases() -> list[Case]:
     return [Case(fn.__name__.lstrip("_"), fn) for fn in (
         _exact_edits_retain_notices, _identity_and_match_guards,
         _staging_requires_one_member_and_exact_pin, _registry_rejects_unsafe_and_duplicate_sources,
-        _checked_in_registry_loads_with_exact_identities, _no_edit_reintroduces_a_retired_name,
+        _recorded_pin_is_exact_or_refused, _checked_in_registry_loads_with_exact_identities, _no_edit_reintroduces_a_retired_name,
         _no_edit_reads_an_absent_member, _every_frozen_name_an_edit_uses_is_declared,
         _excluded_operations_decode_as_illegal, _reset_grants_follow_the_model,
     )]
