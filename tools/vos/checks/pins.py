@@ -170,7 +170,17 @@ file under `.github/workflows/`, and each reading fails closed: no workflow, no
 `uses:` line at all, a record without its development-tools heading or with no action
 row under it, a row stating its reviewed revision other than exactly once, and an owner
 this rule cannot read are each a finding rather than an agreement over nothing. That is
-why it owes the floors group no member. What it does not decide is whether the commit
+why it owes the floors group no member. **The reading takes one shape and a census
+holds it to the rest**: a reference is read only as a block mapping's bare `uses:` key
+opening its line, alone or after a sequence dash, while GitHub also runs one written as
+a quoted key, inside a flow mapping or as an explicit `? uses` key. So every `uses` key
+on a non-comment line, in any of those shapes, is counted, and one the reading did not
+take is a finding naming its line; otherwise a reference in another shape would run
+code the rule reported agreement about without having read it. The census errs toward
+a finding, counting a key inside a trailing comment or a block scalar's text; the one
+spelling it does not read is a double-quoted key written with escape sequences. While a
+reference stands unread, a row is not also reported as run by nothing, the unread line
+being what may run it. What it does not decide is whether the commit
 is the release the comment names; the row's reviewer read that, and zizmor's online
 audits are the instrument that asks GitHub. **Reported and never repaired**, on K-97's
 ground: moving a row's commit would claim a licence reading nobody took.
@@ -228,7 +238,17 @@ _VERILATOR_SITES: list[tuple[str, str, re.Pattern[str]]] = [
 # record's rows are the development-tools table's, one per action named `owner/repo`.
 WORKFLOWS = ".github/workflows/"
 TOOLS_HEADING = "### Development tools, contained by use"
-_USES_RE = re.compile(r"(?m)^[ \t]*(?:-[ \t]+)?uses:[ \t]*(.*?)[ \t]*$")
+# The one shape a reference is read in: a block mapping's bare `uses:` key opening its
+# line, alone or after a sequence dash, with the reference the rest of the line.
+_USES_RE = re.compile(r"^[ \t]*(?:-[ \t]+)?(?P<key>uses):[ \t]*(.*?)[ \t]*$")
+# Every `uses` key a line can carry, in any shape YAML gives one: bare or quoted, at the
+# line's start, after a blank or a sequence dash, inside a flow mapping after `{` or
+# `,`, or as an explicit `? uses` key. It is wider than the reading on purpose, and a
+# key it finds that the reading did not take is a finding rather than a reference
+# nobody held against the record.
+_USES_KEY_RE = re.compile(
+    r"""(?:(?<=[\s{,\[])|^)(?P<q>["']?)uses(?P=q)(?=[ \t]*:)"""
+    r"""|\?[ \t]+(?P<e>["']?)uses(?P=e)[ \t]*$""")
 _PINNED_USE_RE = re.compile(
     r"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)(?:/[^@\s]+)?@([0-9a-f]{40}) # (v\d+\.\d+\.\d+)")
 _ACTION_ROW_RE = re.compile(r"^\| ([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) \|")
@@ -524,6 +544,7 @@ def _workflow_pins(ctx: Context) -> None:
                         "reference is read")
     used: set[str] = set()
     references = 0
+    unread = 0
     for rel in files:
         try:
             source = (ctx.root / rel).read_text(encoding="utf-8")
@@ -531,13 +552,29 @@ def _workflow_pins(ctx: Context) -> None:
             findings.append(f"{rel} cannot be read as text, so its action references are "
                             "unread")
             continue
-        for m in _USES_RE.finditer(source):
-            references += 1
-            number = source.count("\n", 0, m.start()) + 1
+        for number, raw in enumerate(source.split("\n"), start=1):
+            text_line = raw.removesuffix("\r")
+            if text_line.lstrip().startswith("#"):
+                continue
             where = f"{rel}:{number}"
-            pinned = _PINNED_USE_RE.fullmatch(m.group(1))
+            m = _USES_RE.match(text_line)
+            # The census: every `uses` key on the line other than the one the reading
+            # took, so a reference in a shape the reading does not parse is a finding
+            # rather than one the rule reports agreement about without having read it.
+            taken = m.start("key") if m else -1
+            for key in _USES_KEY_RE.finditer(text_line):
+                if key.start() != taken:
+                    unread += 1
+                    findings.append(f"{where} states an action reference in a form K-115 "
+                                    "does not read; write it as a block `uses:` key, alone "
+                                    "or after a sequence dash, so it is held against the "
+                                    "reviewed row")
+            if m is None:
+                continue
+            references += 1
+            pinned = _PINNED_USE_RE.fullmatch(m.group(2))
             if pinned is None:
-                findings.append(f"{where} uses `{m.group(1)}`, which is not "
+                findings.append(f"{where} uses `{m.group(2)}`, which is not "
                                 "owner/repo[/path]@<full commit> # vX.Y.Z; a tag or branch "
                                 "can move under the reviewed row")
                 continue
@@ -554,10 +591,12 @@ def _workflow_pins(ctx: Context) -> None:
                     f"{where} runs {action} at {sha[:12]} ({version}), {row} reviewed "
                     f"{want_sha[:12]} ({want_version}); the row's terms were read at the "
                     "revision it states, so the edit is a person's")
-    if files and not references:
+    if files and not references and not unread:
         findings.append(f"no workflow under {WORKFLOWS} states an action reference, so the "
                         "rows would be held against nothing")
-    if references:
+    # A row is held to being run only when every reference was read: an unread one may
+    # be what runs it, and that site is already the finding a person acts on.
+    if references and not unread:
         findings += [f"{where} reviews {action}, which no workflow runs; a row reviewing "
                      "nothing is a licence record for no code"
                      for action, (_, _, where) in actions.items() if action not in used]

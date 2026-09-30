@@ -1632,6 +1632,13 @@ CASES: list[Case] = [
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^(\s*- uses: [^@\s]+)@[0-9a-f]{40} # (v\d+)\.\d+\.\d+$",
                   lambda m: f"{m[1]}@{m[2]}")),
+    # The same line under a quoted key, which GitHub runs exactly as the bare one and the
+    # block reading does not take: the action is run elsewhere too, so only the census of
+    # `uses` keys stops the rule reporting agreement about a line it never read.
+    ("K-115", "a workflow action stated in a shape the reading does not parse",
+     _first_match(".github/workflows/host-gates.yml",
+                  r"(?m)^(\s*- )uses:( [^@\s]+@[0-9a-f]{40} # v\d+\.\d+\.\d+)$",
+                  lambda m: f'{m[1]}"uses":{m[2]}')),
     # The record's side: a row renamed away from the action it reviews leaves both a
     # workflow running code with no row and a row reviewing code nothing runs.
     ("K-115", "an action row that names no action a workflow runs",

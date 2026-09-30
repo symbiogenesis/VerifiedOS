@@ -57,14 +57,34 @@ Every mutation runs the checker in a fresh process and private sandbox, through 
 group that decides its rule (`check.py --through`); a survivor runs the whole checker.
 Each shard checks its pristine baseline and registry coverage; shard 1 also runs
 the complete repair path, the ordinary checker and typecheck, and Ubuntu's shard 1
-analyzes the workflows with the tools the [Guest CI contract](ci/README.md#acceptance-and-handoff)
-describes. Members within a shard run concurrently. Each platform runs on an explicit
-runner image label, and its `host-gates (Ubuntu)` or `host-gates (Windows)` check,
-named for the platform so that an image move renames nothing, is the name
-`fanout_ci.HOST_JOBS` accepts. The two checks require every shard
+analyzes the workflows as [workflow analysis](#workflow-analysis) describes. Members
+within a shard run concurrently. The gate runs under each
+platform's native shell, PowerShell on Windows and bash on Ubuntu, as a developer
+there runs `run.py`, and reads its shard and verdict path from the step's environment
+rather than from expressions written into the command. Each platform runs on an explicit
+runner image label, and its aggregate check is named for the platform rather than the
+image, so that an image move renames nothing. `HOST_JOBS` in
+[vos/fanout_ci.py](vos/fanout_ci.py) owns those names as the Host CI evidence fanout
+accepts, and [test_fanout_ci.py](tests/test_fanout_ci.py) holds the workflow's
+aggregate jobs to them. The aggregate checks require every shard
 on both platforms to succeed, including refusal after a skipped or cancelled shard.
 One shard alone supplies only a partial verdict. The unsharded local command retains
 the complete suite.
+
+<a id="workflow-analysis"></a>**Ubuntu's shard 1 analyzes every workflow**, in a
+step of its own that runs whatever the gate's verdict and fails the job on either
+analyzer's finding. zizmor, pinned in [pyproject.toml](pyproject.toml)'s `workflows`
+group and locked outside the gate's environment, runs its offline security audits,
+including the one requiring every action to be pinned by commit.
+[ci/actionlint.sh](ci/actionlint.sh) runs actionlint from a release archive verified
+against its pinned SHA-256, reading [.github/actionlint.yml](../.github/actionlint.yml)
+for hosted runner labels newer than that release's own table. It checks workflow
+syntax, expressions and contexts but not shell bodies, because no pinned shellcheck
+or pyflakes is provisioned. To reproduce the step in WSL, set `UV_CACHE_DIR`,
+`UV_PROJECT_ENVIRONMENT` and `ACTIONLINT_ROOT` to directories under the `lane_root`
+that `run.py worktree list --json` reports for the checkout, then run
+`uv run --project tools --locked --exact --only-group workflows --no-python-downloads zizmor --offline .github/workflows`
+and `sh tools/ci/actionlint.sh -shellcheck= -pyflakes=` from the checkout.
 
 Shards cache uv downloads keyed by the manifest and lockfile under Host CI's own key
 suffix, with only shard 1 of each OS on pushes to `main` saving caches; other jobs
@@ -927,8 +947,8 @@ so whether it installs on each platform and how it behaves are unchecked.
 synchronization would install without installing it.
 
 The optional `workflows` group pins zizmor, which Host CI syncs alone into an
-environment of its own; the [Guest CI contract](ci/README.md#acceptance-and-handoff)
-gives the command. PyPI publishes no Windows ARM64 wheel for it, so run it on Linux.
+environment of its own; [workflow analysis](#workflow-analysis) gives the command.
+PyPI publishes no Windows ARM64 wheel for it, so run it on Linux.
 
 [model/.pre-commit-config.yaml](../model/.pre-commit-config.yaml) keeps upstream's
 paths, which assume a repository root at `model/`. pre-commit changes directory to
