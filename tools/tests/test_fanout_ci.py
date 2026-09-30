@@ -639,7 +639,10 @@ def _runner_faults(contents: str) -> list[str]:
 
     Every `runner` key the shard job states, in any mapping style, must belong to an
     include entry naming one platform, every platform of the matrix must have one, and
-    no label may be a moving `-latest` alias; every `runs-on` is held to the same.
+    no label may be a moving `-latest` alias. Every `runs-on` is a block line whose
+    value is either the shard job's `${{ matrix.runner }}`, stated once and there alone,
+    or one unquoted label fully matching `[A-Za-z0-9][A-Za-z0-9._-]*` without `latest`,
+    so a YAML alias, a flow sequence, another expression or a trailing comment is refused.
     """
     faults: list[str] = []
     shards = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)[0]
@@ -665,9 +668,19 @@ def _runner_faults(contents: str) -> list[str]:
     runs_on = re.findall(r"(?m)^[ \t]*runs-on:[ \t]*(.+?)[ \t]*$", workflow)
     if len(runs_on) != len(_key_values(workflow, "runs-on")):
         faults.append("a runs-on key is not a block line this reading takes")
-    faults += [f"runs-on {label!r} names a moving alias" for label in runs_on if "latest" in label]
+    matrix_runner = "${{ matrix.runner }}"
+    for label in runs_on:
+        if label == matrix_runner:
+            continue
+        if "latest" in label:
+            faults.append(f"runs-on {label!r} names a moving alias")
+        elif not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", label):
+            faults.append(f"runs-on {label!r} is not an explicit image label")
     if not re.search(r"(?m)^    runs-on: \$\{\{ matrix\.runner \}\}$", shards):
         faults.append("the shard job does not run on its matrix's runner")
+    if runs_on.count(matrix_runner) > 1:
+        faults.append(f"runs-on {matrix_runner} is stated {runs_on.count(matrix_runner)} "
+                      "times, not once in the shard job")
     return faults
 
 
@@ -714,6 +727,19 @@ def _workflow_runner_labels_any_style() -> None:
         "runs-on: ubuntu-26.04", "runs-on: ubuntu-latest"))
     ensure(any("moving alias" in fault for fault in found),
            f"a runs-on alias must be refused: {found!r}")
+    # A runs-on value that names no label outright: a YAML alias, a flow sequence,
+    # another expression, a quoted label or a trailing comment.
+    for value in ("*image", "[ubuntu-26.04]", "${{ inputs.runner }}", "'ubuntu-26.04'",
+                  "ubuntu-26.04 # image"):
+        found = _runner_faults(_SHARD_JOB.replace("INCLUDE", flow).replace(
+            "runs-on: ubuntu-26.04", f"runs-on: {value}"))
+        ensure(any(f"runs-on {value!r} is not an explicit image label" in fault
+                   for fault in found),
+               f"runs-on {value!r} must be refused: {found!r}")
+    found = _runner_faults(_SHARD_JOB.replace("INCLUDE", flow).replace(
+        "runs-on: ubuntu-26.04", "runs-on: ${{ matrix.runner }}"))
+    ensure(any("stated 2 times, not once in the shard job" in fault for fault in found),
+           f"the matrix's runner belongs to the shard job alone: {found!r}")
 
 
 def _workflow_checkout_validation() -> None:
