@@ -49,7 +49,8 @@ The workflow retains results and proof receipts when available.
 
 [bootstrap_guest.py](bootstrap_guest.py) installs only the missing Ubuntu packages
 when passed `--install-system`, using root or passwordless sudo. Its `PACKAGES`
-tuple owns that list. One package-database query checks all prerequisites; a fatal
+tuple owns that list, taking the packages `opam init` needs from
+[the opam client's owner](../vos/opam_client.py). One package-database query checks all prerequisites; a fatal
 query error stops installation. Python must satisfy [the manifest](../pyproject.toml),
 and uv must match its exact pin before bootstrap starts. The script checks the downloaded
 opam executable, imports the [package snapshots](../opam/README.md), and calls the

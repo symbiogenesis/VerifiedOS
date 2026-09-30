@@ -31,8 +31,10 @@ from vos import (  # noqa: E402  (standalone bootstrap precedes the locked envir
 )
 from vos.cli import rtl  # noqa: E402
 
+# The opam root's own prerequisites come from the client's owner, which states why
+# `opam init` needs each; the rest are the toolchains' build and run dependencies.
 PACKAGES: tuple[str, ...] = tuple(dict.fromkeys((
-    "build-essential", "bubblewrap", "ca-certificates", "curl", "unzip", "patch",
+    "build-essential", *opam_client.ROOT_PREREQUISITES, "patch",
     "pkg-config", "m4", "cmake", "ninja-build", "libgmp-dev", "clang", "ccache",
     "device-tree-compiler", "git", "time", *rtl.VERILATOR_PACKAGES,
 )))
