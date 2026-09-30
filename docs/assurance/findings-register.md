@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 835 of them across 144 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 836 of them across 144 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1128,6 +1128,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-565** upstream-defect: the locked proof switch's Rocq 9.3.0 carries the cofixpoint guard-checker inconsistencies #22386 and #22389, which Rocq's critical-bug list reports fixed in V9.3
 · Raised: Q39
 · Disposition: open, Q38 refusing coinductive definitions in authored proof sources until a lock move takes a Rocq release carrying #22388 and #22392
+
+**F-525** upstream-defect: the locked proof switch's Rocq 9.3.0 carries #22387, module subtyping of inductives whose constructor types differ in let-ins, which Rocq's critical-bug list reports fixed in 9.2.0 and 9.3
+· Raised: Q39
+· Disposition: standing, the proof audit's refusal of functors and module signatures in authored sources covering the form
 
 ## M0 · Hardware reference
 

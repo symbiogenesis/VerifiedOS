@@ -3,9 +3,10 @@
 
 import io
 import json
+import tarfile
 import tomllib
 from collections.abc import Callable
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import nullcontext, redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import patch
@@ -181,6 +182,83 @@ def _sail_pin_is_locked_release() -> None:
         ensure(not run.called, "the Sail pin must be refused before the baseline switch is inspected")
 
 
+def _provision_uses_fresh_prefix() -> None:
+    lock = (TOOLS / "sail-isla/lock.json").read_text(encoding="utf-8")
+    files = {"tools/sail-isla/lock.json": lock, "tools/sail-isla/isla.Cargo.lock": "override",
+             "tools/sail-isla/driver/Cargo.toml": "[package]\n"}
+    with sandbox_tree(files) as root:
+        environment = env.Environment(root=root, model=root / "model", build_root=root / "native",
+                                      log_root=root / "logs", lane="", cpus=1, mem_available_mb=1024,
+                                      jobs=1, test_jobs=1)
+        base = environment.lane_root / "sail-isla"
+        stale = base / "sail-prefix/lib/superseded/META"
+        stale_plugin = base / "sail-prefix/share/libsail/plugins/superseded.cmxs"
+        stamp = base / "provision.json"
+
+        def plant() -> None:
+            for path in (stale, stale_plugin, stamp):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("superseded", encoding="utf-8")
+
+        def fetch(pin: sailisla.SourcePin, destination: Path, runner: sailisla.Runner) -> None:
+            destination.mkdir(parents=True, exist_ok=True)
+            (destination / "Cargo.lock").write_text("upstream", encoding="utf-8")
+
+        def download(url: str, expected: str, destination: Path) -> None:
+            member = tarfile.TarInfo(json.loads(lock)["sail"]["directory"] + "/dune-project")
+            member.size = 4
+            with tarfile.open(destination, "w") as archive:
+                archive.addfile(member, io.BytesIO(b"sail"))
+
+        def run(self: sailisla.Runner, argv: list[str], cwd: Path,
+                process_env: dict[str, str] | None = None, timeout: int = 1800) -> str:
+            if "install" in argv and "--prefix" in argv:
+                installed = Path(argv[argv.index("--prefix") + 1]) / "lib/libsail/META"
+                installed.parent.mkdir(parents=True, exist_ok=True)
+                installed.write_text("current", encoding="utf-8")
+            return "/switch\n" if argv[:2] == ["opam", "var"] else ""
+
+        def provision(build: Callable[..., str] = run) -> None:
+            with (patch.object(sailisla.env, "hold_lock", side_effect=lambda *_: nullcontext()),
+                  patch.object(sailisla, "_prerequisites", return_value=root / "z3"),
+                  patch.object(sailisla.platform, "system", return_value="Linux"),
+                  patch.object(sailisla.platform, "machine", return_value="x86_64"),
+                  patch.object(sailisla, "_fetch", side_effect=fetch),
+                  patch.object(sailisla, "check_lock_override"),
+                  patch.object(sailisla, "_install_rust"),
+                  patch.object(sailisla, "_download", side_effect=download),
+                  patch.object(sailisla.Runner, "run", autospec=True, side_effect=build),
+                  patch.object(sailisla, "asset_digest", return_value="a" * 64),
+                  patch.object(sailisla, "_binaries", return_value=[])):
+                sailisla.provision(environment)
+
+        plant()
+        provision()
+        ensure((base / "sail-prefix/lib/libsail/META").read_text(encoding="utf-8") == "current"
+               and (base / "sail-prefix/share/libsail/plugins").is_dir(),
+               "provisioning must install the current Sail into its prefix")
+        ensure(not stale.exists() and not stale_plugin.exists(),
+               "nothing a superseded build installed may stay on OCAMLPATH or in the plugin site")
+        ensure(json.loads(stamp.read_text(encoding="utf-8"))["assets_sha256"] == "a" * 64,
+               "the stamp must describe the rebuilt prefix")
+        plant()
+        with patch.object(sailisla, "_fresh_prefix", side_effect=lambda lane: lane / "sail-prefix"):
+            provision()
+        ensure(stale.exists() and stale_plugin.exists(),
+               "control: the superseded recipe's reused prefix keeps a superseded build's files")
+
+        def interrupted(self: sailisla.Runner, argv: list[str], cwd: Path,
+                        process_env: dict[str, str] | None = None, timeout: int = 1800) -> str:
+            if "install" in argv and "--prefix" in argv:
+                raise sailisla.IslaError("command exited 1")
+            return run(self, argv, cwd, process_env, timeout)
+
+        plant()
+        _reject(lambda: provision(interrupted))
+        ensure(not stamp.exists() and not stale.exists(),
+               "an interrupted provisioning must leave no stamp describing a removed prefix")
+
+
 def _report() -> dict[str, Any]:
     return {
         "version": 1, "advisory_only": True, "notice": sailisla.NOTICE, "passed": True,
@@ -250,6 +328,7 @@ def cases() -> list[Case]:
             Case("lock-override-refuses-upstream-equal-or-newer", _lock_override_upstream_caught_up),
             Case("tracked-lock-override-carries-declared-versions", _tracked_lock_override),
             Case("sail-pin-is-the-locked-release", _sail_pin_is_locked_release),
+            Case("provisioning-installs-into-a-fresh-prefix", _provision_uses_fresh_prefix),
             Case("versioned-json-schema", _schema),
             Case("cli-refuses-partial-verdict", _cli),
             Case("oracle-replays-generated-inputs", _harness_uses_model)]

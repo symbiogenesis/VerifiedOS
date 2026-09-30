@@ -7,7 +7,10 @@ import json
 import re
 import subprocess
 import tarfile
+from collections.abc import Callable
+from contextlib import nullcontext
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
@@ -155,6 +158,84 @@ def _superseded_archive() -> None:
         ensure((root / "marker").read_text() == "unchanged", "a refused directory must not be removed")
 
 
+def _rebuild_uses_fresh_prefix() -> None:
+    specs = [{"name": "lsp", "directory": "lsp-1", "license_file": "LICENSE"},
+             {"name": "sail", "directory": "sail-1", "license_file": "LICENSE"}]
+    files = {saillsp.LOCK: json.dumps({"sources": specs}), "tools/opam/sail.lock": 'installed: ["ocaml.5.4.1"]',
+             "tools/vos/saillsp.py": "recipe", "tools/sail-lsp/dependency-refresh.patch": "patch"}
+    with sandbox_tree(files) as root:
+        environment = _environment(root)
+        location = saillsp.home(environment)
+        stale_library = location / "prefix/lib/superseded/META"
+        stale_config = location / "config/sail_lsp/superseded.json"
+
+        def plant() -> None:
+            for path in (stale_library, stale_config):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("superseded", encoding="utf-8")
+            (location / "installation.json").write_text(json.dumps({"lock_sha256": "0" * 64}), encoding="utf-8")
+
+        def source(spec: dict[str, Any], directory: Path) -> Path:
+            target = directory / str(spec["directory"])
+            (target / "lib").mkdir(parents=True, exist_ok=True)
+            (target / spec["license_file"]).write_text("license", encoding="utf-8")
+            (target / "lib/prelude.sail").write_text("prelude", encoding="utf-8")
+            return target
+
+        def run(argv: list[str], cwd: Path, environ: dict[str, str], log: Path) -> None:
+            if argv[:2] == ["dune", "install"]:
+                prefix = Path(argv[argv.index("--prefix") + 1])
+                installed = prefix / ("bin/sail_lsp" if cwd.name == "sail_lsp" else f"lib/{cwd.name}/META")
+                installed.parent.mkdir(parents=True, exist_ok=True)
+                installed.write_text("current", encoding="utf-8")
+
+        def install(build: Callable[..., None] = run) -> dict[str, Any]:
+            with (patch.object(saillsp.env, "hold_lock", side_effect=lambda *_: nullcontext()),
+                  patch.object(saillsp, "_base_inventory", return_value=["ocaml.5.4.1"]),
+                  patch.object(saillsp, "_source", side_effect=source),
+                  patch.object(saillsp, "_run", side_effect=build)):
+                return saillsp.install(environment)
+
+        def artifacts() -> dict[str, str]:
+            receipt = json.loads((location / "installation.json").read_text(encoding="utf-8"))
+            return cast(dict[str, str], receipt["artifacts"])
+
+        plant()
+        ensure(install()["installed"] is True, "a rebuilt installation must be usable")
+        ensure("prefix/bin/sail_lsp" in artifacts() and "prefix/lib/sail-1/META" in artifacts(),
+               "the rebuilt receipt must hash what the current recipe installed")
+        ensure("prefix/lib/superseded/META" not in artifacts() and not stale_library.exists(),
+               "a file a superseded recipe installed must leave the prefix and the receipt")
+        ensure(not stale_config.exists(), "a rebuild must not keep a superseded configuration")
+
+        def kept(directory: Path) -> Path:
+            """The superseded recipe's `prefix.mkdir(exist_ok=True)`, as the control."""
+            directory.mkdir(parents=True, exist_ok=True)
+            return directory
+
+        plant()
+        with patch.object(saillsp, "_fresh", side_effect=kept):
+            install()
+        ensure("prefix/lib/superseded/META" in artifacts() and stale_config.exists(),
+               "control: reusing the prefix hashes a superseded file as an artifact of the new build")
+
+        def interrupted(argv: list[str], cwd: Path, environ: dict[str, str], log: Path) -> None:
+            if cwd.name == "sail_lsp":
+                raise ValueError("build command exited 1")
+            run(argv, cwd, environ, log)
+
+        plant()
+        try:
+            install(interrupted)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("an interrupted rebuild reported success")
+        ensure(not (location / "installation.json").exists() and not stale_library.exists()
+               and saillsp.status(environment)["installed"] is False,
+               "an interrupted rebuild must leave no receipt describing a removed prefix")
+
+
 def _base_lock() -> None:
     files = {"tools/opam/sail.lock": 'installed: ["ocaml.5.4.1" "dune.3.24.2" "sail.0.20.3"]',
              saillsp.LOCK: json.dumps({"sources": [{"name": "lsp", "version": "1.27.0"},
@@ -202,5 +283,6 @@ def cases() -> list[Case]:
             Case("optional-installation-provenance", _provenance),
             Case("archive-extraction-confinement", _archive_confinement),
             Case("superseded-archive-fetched-verified-and-replaced", _superseded_archive),
+            Case("rebuild-installs-into-a-fresh-prefix", _rebuild_uses_fresh_prefix),
             Case("locked-base-dependency-closure", _base_lock),
             Case("tool-sail-pins-are-the-locked-release", _tool_sail_pins_agree)]

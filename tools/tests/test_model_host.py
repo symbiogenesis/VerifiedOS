@@ -20,6 +20,7 @@ import importlib.util
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -27,6 +28,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import ModuleType
 from typing import cast
+from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
 from vos import differential
@@ -412,6 +414,72 @@ def _seed_test_data_refuses_unverified() -> None:
         _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
 
 
+def _seeded_without_copying(donor: Path, model_root: Path) -> None:
+    """Seed from `donor`, which holds an entry that is not a regular file under a
+    manifest crafted to list it, and hold that nothing is copied or seeded; then seed
+    from a clean donor, the positive control, whose suite `copytree` is called for."""
+    ensure(_MODEL.corpus_manifest(donor / "test" / _RELEASE / "riscv-tests").is_file(),
+           "precondition: the donor's manifest stands, which is all that was checked "
+           "before the copy when the donor was verified only after it")
+    target = donor.parent / f"target-{donor.name}"
+    with (patch.object(shutil, "copytree", wraps=shutil.copytree) as copied,
+          redirect_stderr(io.StringIO()) as err):
+        _MODEL._seed_test_data([donor], target, model_root)
+    ensure(not copied.called,
+           f"a donor holding a non-regular entry is refused before copytree reads it, "
+           f"got {copied.call_args_list}")
+    ensure("non-regular" in err.getvalue() and str(donor) in err.getvalue(),
+           f"the refusal names the donor and the entry's kind, got {err.getvalue()!r}")
+    release = target / "test" / _RELEASE
+    ensure(not release.exists() or not any(release.iterdir()), "and nothing is seeded")
+    clean = donor.parent / f"clean-{donor.name}"
+    _extracted(clean, {"rv64ui-p-add": b"\x7fELF"})
+    with patch.object(shutil, "copytree", wraps=shutil.copytree) as copied:
+        _MODEL._seed_test_data([clean], donor.parent / f"target-clean-{donor.name}",
+                               model_root)
+    ensure(copied.call_count == 1,
+           f"control: a clean donor's suite is copied, got {copied.call_args_list}")
+
+
+_DEVICE = "rv64ui-p-device"
+
+
+def _seed_refuses_a_device_donor() -> None:
+    """`shutil.copyfile` refuses a FIFO but reads a character device such as a
+    `/dev/zero` node without end, so a donor holding one would stall the lane's first
+    build if it were copied before it was verified. A device node cannot be made
+    unprivileged, so one is simulated: a regular stand-in that `Path.is_file`, the one
+    question the listing asks of an entry that is not a link, answers as not a regular
+    file."""
+    real = Path.is_file
+
+    def is_file(self: Path, *, follow_symlinks: bool = True) -> bool:
+        return self.name != _DEVICE and real(self, follow_symlinks=follow_symlinks)
+
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td, \
+            patch.object(Path, "is_file", is_file):
+        root = Path(td)
+        model_root = _corpus_model(root)
+        donor = root / "device"
+        _extracted(donor, {"rv64ui-p-add": b"\x7fELF", _DEVICE: b""})
+        _seeded_without_copying(donor, model_root)
+
+
+def _seed_refuses_a_fifo_donor() -> None:
+    """A real FIFO in a donor is refused before the copy as well. POSIX-only, so the
+    case is the guest's and win32 is refused before `os.mkfifo`."""
+    if sys.platform == "win32":
+        raise AssertionError("mkfifo is POSIX-only; the FIFO donor case runs in the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        model_root = _corpus_model(root)
+        donor = root / "fifo"
+        suite = _extracted(donor, {"rv64ui-p-add": b"\x7fELF"})
+        os.mkfifo(suite / "rv64ui-p-fifo")
+        _MODEL.corpus_manifest(suite).write_bytes(_MODEL.corpus_listing(suite, _CORPUS_DIGEST))
+        _seeded_without_copying(donor, model_root)
+
+
 # `_configure` in a child of its own, with `env.stage` standing in for the run. Two
 # reasons for the child and neither is style: the environment that names a checkout's
 # administrative directory is process-global and the runner runs modules in a pool, so
@@ -669,4 +737,6 @@ def cases() -> list[Case]:
         Case("verify-test-corpus", _verify_test_corpus),
         Case("seed-test-data", _seed_test_data),
         Case("seed-test-data-refuses-unverified", _seed_test_data_refuses_unverified),
+        Case("seed-refuses-a-device-donor", _seed_refuses_a_device_donor),
+        Case("seed-refuses-a-fifo-donor", _seed_refuses_a_fifo_donor, lane="guest"),
     ]
