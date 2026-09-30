@@ -979,7 +979,12 @@ an editor's ty server reads that table without the flag; an `[[overrides]]` entr
 carrying any key but `include` and `exclude`, because its `rules` can lower the flag's
 severities and its `analysis` can suppress diagnostics for the files it matches; an
 `[analysis]` key outside the ones the gate admits as suppressing nothing, which
-refuses `allowed-unresolved-imports` and `replace-imports-with-any`; and a `[src]`
+refuses `allowed-unresolved-imports` and `replace-imports-with-any`; an
+`[environment]` key other than `python-version`, `python-platform` and
+`extra-paths`, or `python-platform` other than `"linux"` or `extra-paths` other than
+`["."]`, because the platform decides which `sys.platform` branches ty checks and
+`python`, `root`, `typeshed` or another search path moves where it resolves imports
+(K-75 holds `python-version`); and a `[src]`
 table other than exactly `exclude = ["**/__pycache__/**"]` and
 `respect-ignore-files = false`, because an `include`, a further `exclude`,
 `exclude-scripts` or honoring ignore files takes files out of the run: ty honors
@@ -998,7 +1003,9 @@ editor's ty server to read ty.toml and share the gate's severities. In VS Code, 
 the checkout's `out/venv-win32/Scripts/python.exe` on Windows or the Linux environment's
 `bin/python` from the placement table above so editor imports use the same
 dependencies as the gate. The Linux typing target is intentional: the guest modules
-use POSIX APIs, even when the host checks them. It does not move execution into Linux.
+use POSIX APIs, even when the host checks them. It does not move execution into Linux,
+and ty reports nothing in a branch the target makes unreachable, so the branches taken
+only when `sys.platform` is `win32` go unchecked.
 
 The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
 addresses ty's recursive-JSON narrowing behavior, not

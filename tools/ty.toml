@@ -17,10 +17,14 @@
 # and `exclude`, because its `rules` can lower the flag's severities and its
 # `analysis` can suppress diagnostics for the files it matches; an `[analysis]` key
 # outside the ones `vos/cli/typecheck.py` admits as suppressing nothing, which
-# refuses `allowed-unresolved-imports` and `replace-imports-with-any`; and a `[src]`
+# refuses `allowed-unresolved-imports` and `replace-imports-with-any`; an
+# `[environment]` key other than `python-version`, `python-platform` and
+# `extra-paths`, or either of the last two at a value other than the one below,
+# because the platform decides which branches ty checks and `python`, `root`,
+# `typeshed` or another search path moves where it resolves imports; and a `[src]`
 # table other than exactly the one below, because an `include`, a further
 # `exclude`, `exclude-scripts` or honoring ignore files takes files out of the run.
-# `tools/README.md` records the pin.
+# K-75 holds `python-version`. `tools/README.md` records the pin.
 
 [rules]
 all = "error"
@@ -33,6 +37,8 @@ python-version = "3.14"
 # `resource.setrlimit` and `os.wait4`, which are POSIX-only and unresolvable when
 # the checker assumes the host it happens to be running on. Linux is the platform
 # that types every module here, because nothing in this directory is Windows-only.
+# ty reports nothing in a branch the platform makes unreachable, so the branches
+# the tools take only when `sys.platform` is `win32` go unchecked.
 python-platform = "linux"
 
 # `tools/` is the import root: every tool puts its own directory on `sys.path`
