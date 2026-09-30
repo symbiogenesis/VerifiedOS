@@ -61,10 +61,12 @@ The device-register package is a guest row too: `run.py rtl device-regs` reads i
 UART owners behind the `upstream/mocha` gitlink, which no hosted gate populates, and
 stamps the header with the commit that checkout stood at. Its host inspector holds the
 working tree to the index and the stamp, whole, to the index's Mocha gitlink, so a
-gitlink moved without a regeneration is a host finding. The block half is decided on
-the host: the block contract and the model's block bounds are in every checkout, so the
-inspector re-derives the `BLK_` lines and compares them with the package's. `run.py rtl
-devicescheck` decides the UART constants where the submodule is populated. The row also
+gitlink moved without a regeneration is a host finding. Every byte but the UART values
+is decided on the host too: the block contract and the model's block bounds are in
+every checkout, so the inspector renders the package from them, the recorded stamp and
+the package's own UART lines, which must be the generator's declarations in its order
+and form with only their values open, and compares the result with the whole file. `run.py
+rtl devicescheck` decides the UART values where the submodule is populated. The row also
 keeps the stamp out of K-81's transcription window: it is the generator's record of what
 it read, not a sentence restating a pin. No repair: each answer is a regeneration from
 a checkout at the gitlink.
@@ -204,12 +206,13 @@ def _fiat_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
 def _device_regs_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
     """Hold the device-register package to its index, its owners and the Mocha gitlink.
 
-    The UART owners sit behind a gitlink no hosted gate populates, so the UART constants
-    are decided by the row's checker in a populated guest. This lane decides the rest:
-    the bytes against the index, the `BLK_` lines against what the block owners every
-    checkout carries emit now, and the owner commit the stamp records, whole, against the
-    commit the index carries. No repair: each answer is a regeneration from a checkout
-    at the gitlink.
+    The UART owners sit behind a gitlink no hosted gate populates, so the UART values
+    are decided by the row's checker in a populated guest. This lane decides every other
+    byte: the bytes against the index, the owner commit the stamp records, whole, against
+    the commit the index carries, and the package against what the generator renders from
+    the block owners every checkout carries, that stamp and the package's own UART lines,
+    which must be the generator's UART declarations in its order and form with only their
+    values open. No repair: each answer is a regeneration from a checkout at the gitlink.
     """
     out = Reading(findings=[], fixed=[])
     if staged is None:
@@ -231,16 +234,18 @@ def _device_regs_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
     except UnicodeDecodeError as exc:
         out.findings.append(f"{row.path} is not UTF-8: {exc}")
         return out
+    block: list[str] | None = None
+    uart: list[str] | None = None
     try:
-        expected = device_regs.block_lines(ctx.root)
+        block = device_regs.block_lines(ctx.root)
     except (OSError, ValueError) as exc:
         out.findings.append(f"{row.path}'s block constants cannot be derived from "
                             f"{device_regs.BLOCK} and {device_regs.BLOCK_MODEL}: {exc}")
-    else:
-        if device_regs.emitted_block_lines(text) != expected:
-            out.findings.append(
-                f"{row.path}'s BLK_ constants differ from what {device_regs.BLOCK} and "
-                f"{device_regs.BLOCK_MODEL} emit; regenerate it with `{row.generator}`")
+    try:
+        uart = device_regs.emitted_uart_lines(text)
+    except ValueError as exc:
+        out.findings.append(f"{row.path}'s UART constants are not the ones "
+                            f"`{row.generator}` declares: {exc}; regenerate it")
     try:
         recorded = device_regs.recorded_revision(text)
     except ValueError as exc:
@@ -256,6 +261,17 @@ def _device_regs_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
             f"{device_regs.UPSTREAM} at {oid[:12]}; regenerate it with `{row.generator}` "
             "from a checkout at the gitlink, which re-derives what was read there and is "
             "never a token repair")
+    if block is not None and uart is not None:
+        rendered = device_regs.render(uart, block, recorded)
+        if rendered != text:
+            want, got = rendered.split("\n"), text.split("\n")
+            line = next((i for i, (a, b) in enumerate(zip(want, got, strict=False), start=1)
+                         if a != b), min(len(want), len(got)) + 1)
+            out.findings.append(
+                f"{row.path} is not what `{row.generator}` renders from "
+                f"{device_regs.BLOCK}, {device_regs.BLOCK_MODEL}, its recorded owner "
+                f"revision and its own UART values, first differing at line {line}; "
+                f"regenerate it with `{row.generator}`")
     return out
 
 
@@ -387,8 +403,8 @@ GENERATED: tuple[Row, ...] = (
         owners="the register declarations and reviewed modeled MMIO functions",
         checker="this gate", emit=_device_registers_rtl),
     # The simulation wrappers' register package, whose UART owners sit behind the Mocha
-    # gitlink: a guest row whose host half is its index, its block constants and its
-    # recorded owner commit.
+    # gitlink: a guest row whose host half is its index, its recorded owner commit and
+    # every byte but the UART values.
     Row(path=device_regs.ARTIFACT,
         generator="run.py rtl device-regs", lane="guest",
         owners="the Mocha gitlink's UART owners, the block contract and the model's "
@@ -673,8 +689,8 @@ def run(ctx: Context) -> None:
         f"{hosted} of them held against what their generator writes here and now, and "
         f"the rest against their indexed bytes and host-readable provenance, including "
         f"{owners} Sail owner(s), the Fiat source pin/recipe/wrapper/hashes, the "
-        f"device-register package's block constants and Mocha revision, and the staged "
-        f"signature streams' manifest; "
+        f"device-register package's Mocha revision and every byte outside its UART "
+        f"values, and the staged signature streams' manifest; "
         f"guest regeneration remains `{guest}`")
     for line in fixed:
         rep.line(line)

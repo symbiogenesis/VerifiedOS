@@ -29,7 +29,7 @@ The additional scalar and device sources have these scoped owners:
 | [vos_uart.sv](vos_uart.sv) | authored | Bounded polled character backend, no physical UART timing |
 | [vos_block_device.sv](vos_block_device.sv) | authored | Logical PIO/progress/reset/tear interface to a synchronous external medium |
 | [vos_device_route.sv](vos_device_route.sv) | authored | DTB/error routing over the composed map |
-| [vos_device_regs_pkg.sv](vos_device_regs_pkg.sv) | generated | UART and block register constants emitted by `rtl device-regs` from the Mocha gitlink's UART owners, the logical block contract and the model's block bounds. K-88 holds its index bytes and recorded Mocha revision and decides its block constants on the host; `rtl devicescheck` decides the whole package where Mocha is populated |
+| [vos_device_regs_pkg.sv](vos_device_regs_pkg.sv) | generated | UART and block register constants emitted by `rtl device-regs` from the Mocha gitlink's UART owners, the logical block contract and the model's block bounds. K-88 holds its index bytes and recorded Mocha revision and decides every byte but the UART values on the host; `rtl devicescheck` decides the whole package where Mocha is populated |
 | [generated/device_registers_pkg.sv](generated/device_registers_pkg.sv) | generated | Relative register offsets and field shifts, widths and masks of the modeled MMIO surface, emitted by `run.py device-registers emit` from [the register declarations](../interfaces/device-registers.json); K-88 holds it against what that generator writes, on the host |
 
 `rtl device-regs` emits the tracked register package from the pinned UART
