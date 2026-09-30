@@ -15,6 +15,8 @@ an `[environment]` key other than the three it admits or either held value chang
 a `[src]` table other than exactly the committed one, and a file it cannot read.
 """
 
+import os
+import sys
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -460,7 +462,8 @@ def _ty_settings_reported_beside_the_run() -> None:
             root = Path(td)
             (root / "tools").mkdir()
             (root / "tools" / "ty.toml").write_text(text, encoding="utf-8", newline="")
-            with patch.object(typecheck, "_run_checker") as checker:
+            with patch.object(typecheck, "_run_checker") as checker, \
+                    patch.object(typecheck, "_user_config", return_value=None):
                 typecheck._run_ty(rep, root)
         ensure(checker.call_count == 1, "the checker must run whatever the settings say")
         joined = "\n".join(rep.out)
@@ -475,6 +478,80 @@ def _ty_settings_reported_beside_the_run() -> None:
             ensure(rep.findings == 0 and rep.out == [],
                    f"an admitted ty.toml must add nothing to the report: {rep.out!r}")
             ensure(claims, "a clean run under admitted settings claims every rule at error")
+
+
+def _user_config_located() -> None:
+    # ty's user configuration directory on each platform, read from the environment
+    # ty inherits: the variable when it names a usable directory, the home directory's
+    # default otherwise, and nothing where no file is.
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        base, home = Path(td) / "base", Path(td) / "home"
+        home.mkdir()
+        for platform, variable, default in (("win32", "APPDATA", ("AppData", "Roaming")),
+                                            ("linux", "XDG_CONFIG_HOME", (".config",))):
+            under_base = base / platform / "ty" / "ty.toml"
+            under_home = home.joinpath(*default, "ty", "ty.toml")
+            environment = {"HOME": str(home), "USERPROFILE": str(home)}
+            with patch.object(typecheck, "sys", SimpleNamespace(platform=platform)):
+                with patch.dict(os.environ, {**environment,
+                                             variable: str(base / platform)}):
+                    ensure(typecheck._user_config() is None,
+                           f"{platform}: no file must locate nothing")
+                    under_base.parent.mkdir(parents=True)
+                    under_base.write_text("", encoding="utf-8")
+                    ensure(typecheck._user_config() == under_base,
+                           f"{platform}: the {variable} file must be located")
+                under_home.parent.mkdir(parents=True)
+                under_home.write_text("", encoding="utf-8")
+                with patch.dict(os.environ, {**environment, variable: ""}):
+                    ensure(typecheck._user_config() == under_home,
+                           f"{platform}: an empty {variable} must fall back to the home "
+                           "directory's default")
+                with patch.dict(os.environ, environment):
+                    os.environ.pop(variable, None)
+                    ensure(typecheck._user_config() == under_home,
+                           f"{platform}: an unset {variable} must fall back to the home "
+                           "directory's default")
+        # ty ignores an XDG_CONFIG_HOME that is not absolute.
+        with patch.object(typecheck, "sys", SimpleNamespace(platform="linux")), \
+                patch.dict(os.environ, {"HOME": str(home), "USERPROFILE": str(home),
+                                        "XDG_CONFIG_HOME": "base/linux"}):
+            ensure(typecheck._user_config() == home / ".config" / "ty" / "ty.toml",
+                   "a relative XDG_CONFIG_HOME must fall back to ~/.config")
+
+
+def _user_config_reported_beside_the_run() -> None:
+    # A user-level ty.toml that ty would merge is a ty finding naming its path, the
+    # checker still runs, and the run no longer claims every rule at error.
+    variable = "APPDATA" if sys.platform == "win32" else "XDG_CONFIG_HOME"
+    for present in (False, True):
+        rep = Reporter()
+        with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+            root = Path(td)
+            (root / "tools").mkdir()
+            (root / "tools" / "ty.toml").write_text(_ADMITTED, encoding="utf-8", newline="")
+            user = root / "config" / "ty" / "ty.toml"
+            user.parent.mkdir(parents=True)
+            if present:
+                user.write_text('[analysis]\nallowed-unresolved-imports = ["**"]\n',
+                                encoding="utf-8", newline="")
+            with patch.dict(os.environ, {variable: str(root / "config")}), \
+                    patch.object(typecheck, "_run_checker") as checker:
+                typecheck._run_ty(rep, root)
+        ensure(checker.call_count == 1, "the checker must run whatever the settings say")
+        joined = "\n".join(rep.out)
+        claims = str(checker.call_args.kwargs["ok"]).endswith("all rules at error")
+        if present:
+            ensure(rep.findings == 1
+                   and "FAIL ty: 1 user-level configuration(s) the gate refuses:" in joined
+                   and f"a user-level ty configuration at {user} merges into the gate's "
+                       "run" in joined,
+                   f"a user-level ty.toml must be a ty finding naming it: {rep.out!r}")
+            ensure(not claims, "a run beside a user-level ty.toml must not claim every "
+                               "rule ran at error")
+        else:
+            ensure(rep.findings == 0 and rep.out == [] and claims,
+                   f"an empty user configuration directory must add nothing: {rep.out!r}")
 
 
 def cases() -> list[Case]:
@@ -501,4 +578,6 @@ def cases() -> list[Case]:
         Case("ty-settings-refuse-src", _ty_settings_refuse_src),
         Case("ty-settings-fail-closed", _ty_settings_fail_closed),
         Case("ty-settings-reported-beside-the-run", _ty_settings_reported_beside_the_run),
+        Case("user-config-located", _user_config_located),
+        Case("user-config-reported-beside-the-run", _user_config_reported_beside_the_run),
     ]

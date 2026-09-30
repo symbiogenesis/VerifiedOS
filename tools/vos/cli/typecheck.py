@@ -47,11 +47,15 @@ setting takes away:
                    `exclude`, `exclude-scripts` or honoring ignore files takes
                    files out of the run
 
+A user-level ty configuration is a ty finding too: ty merges it beneath `ty.toml`
+even beside `--config-file`, so a setting `ty.toml` leaves out would come from it.
+
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
 """
 
 import argparse
+import os
 import subprocess
 import sys
 import sysconfig
@@ -348,16 +352,49 @@ def _ty_settings(config: Path) -> list[str]:
     return findings
 
 
+def _user_config() -> Path | None:
+    """The user-level `ty.toml` ty merges beneath the one it is given, if one exists.
+
+    ty reads `ty/ty.toml` under the user configuration directory: `%APPDATA%` on
+    Windows, or the roaming application-data folder when that is unset or empty,
+    which this reads as `AppData\\Roaming` under the home directory; and
+    `$XDG_CONFIG_HOME` on Linux and macOS when it is an absolute path, else
+    `~/.config`. The environment is the one the gate's own ty inherits.
+    """
+    if sys.platform == "win32":
+        base = os.environ.get("APPDATA", "")
+        fallback = ("AppData", "Roaming")
+    else:
+        base = os.environ.get("XDG_CONFIG_HOME", "")
+        base = base if Path(base).is_absolute() else ""
+        fallback = (".config",)
+    if base:
+        directory = Path(base)
+    else:
+        try:
+            directory = Path.home().joinpath(*fallback)
+        except RuntimeError:
+            return None
+    candidate = directory / "ty" / "ty.toml"
+    return candidate if candidate.is_file() else None
+
+
 def _run_ty(rep: Reporter, root: Path) -> None:
     """Every expression in the directory, against the types ty can infer for it.
 
     The settings are held first and the checker runs regardless: a refused setting
     stands beside the checker's verdict rather than hiding the findings it would
-    still report, and that verdict then claims no more than the run showed."""
+    still report, and that verdict then claims no more than the run showed. A
+    user-level configuration is reported rather than redirected away from, because
+    ty merges it into this run and the finding is what tells its owner so."""
     tools = root / "tools"
     held = ", all rules at error"
     if refused := _ty_settings(tools / "ty.toml"):
         rep.report("ty", "ty.toml setting(s) the gate refuses:", refused)
+        held = " under the settings refused above"
+    if (user := _user_config()) is not None:
+        rep.report("ty", "user-level configuration(s) the gate refuses:",
+                   [f"a user-level ty configuration at {user} merges into the gate's run"])
         held = " under the settings refused above"
     _run_checker(
         rep, "ty", TY_VERSION,

@@ -990,7 +990,11 @@ table other than exactly `exclude = ["**/__pycache__/**"]` and
 `exclude-scripts` or honoring ignore files takes files out of the run: ty honors
 `.gitignore`, `.ignore`, `.git/info/exclude` and the global gitignore by default,
 so a pattern in one of them matching a tracked module would drop it. An unreadable
-ty.toml is a finding too. What ruff is *not*
+ty.toml is a finding too, and so is a user-level ty configuration: ty merges
+`%APPDATA%\ty\ty.toml` on Windows, or `$XDG_CONFIG_HOME/ty/ty.toml` (by default
+`~/.config/ty/ty.toml`) on Linux and macOS, beneath ty.toml even when the gate names
+ty.toml with `--config-file`, so a setting ty.toml leaves out would come from it. The
+gate reports such a file rather than steering ty away from it. What ruff is *not*
 asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own line and
 each for a reason that would hold in any project, and no group switched off to spare this
 code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and
