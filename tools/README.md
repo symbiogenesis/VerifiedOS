@@ -866,7 +866,28 @@ The optional `model` group pins the pre-commit runner used by the curated model'
 hook configuration. Set `UV_PROJECT_ENVIRONMENT` to the environment in the placement
 table above, then run `uv run --project tools --locked --group model pre-commit --version`.
 For a WSL-mounted checkout, `run.py model lane` supplies the guest lane root.
-The ordinary host gates synchronize only their default dependency groups.
+The ordinary host gates synchronize only their default dependency groups, so the
+gates hold the group's resolution and nothing more: [uv.lock](uv.lock) is one
+resolution covering every group, and each `run.py` bootstrap's `uv run --locked`
+refuses a lockfile the manifest would change. No gate installs or runs the group,
+so whether it installs on each platform and how it behaves are unchecked.
+`uv sync --project tools --locked --group model --dry-run` lists what a
+synchronization would install without installing it.
+
+[model/.pre-commit-config.yaml](../model/.pre-commit-config.yaml) keeps upstream's
+paths, which assume a repository root at `model/`. pre-commit changes directory to
+the Git top level before it reads a configuration, so here they resolve against this
+repository's root: the `^(dependencies/)` exclusion never matches
+`model/dependencies/`, codespell does not find `model/.codespellrc`, and
+markdown-link-check looks for `.markdown-link-check.config` at the root, where there
+is none. Run the hooks only on named model files, from the checkout root and with
+the environment above:
+`uv run --project tools --locked --group model pre-commit run --config model/.pre-commit-config.yaml --files <paths>`,
+listing paths under `model/` outside `model/dependencies/`. The fixing hooks
+(trailing-whitespace, end-of-file-fixer, clang-format and prettier) rewrite the
+files they are given. Never pass `--all-files`, which selects every tracked file in
+the repository, and never run `pre-commit install`, which would run these hooks on
+every commit to the repository.
 
 [ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
 carries, including the ones it ships as warnings or switched off, and that is deliberate:
