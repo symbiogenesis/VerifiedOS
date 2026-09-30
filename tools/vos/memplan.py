@@ -16,8 +16,10 @@ the `RegionKind` constructors. A list this reader cannot find or cannot read is
 states (K-67, K-75): a regex that stops matching would otherwise yield zero regions and
 a green report about nothing. A declaration under an attribute or a locality is read as
 the bare one, and a list or a `build_plan` variant spelled where no head reads it, or a
-plan completed from a base with `with`, is `PlanError` too, since the export would
-otherwise lack it with only a floor on its plan count to notice. `emit` writes the
+value of any written type completed from a base with `with` that assigns a field of
+`Plan`, is `PlanError` too, since the export would otherwise lack it with only a floor
+on its plan count to notice. Those audits read the file with its comments blanked, so
+a comment's `match` or full stop hides nothing from them. `emit` writes the
 export K-88 holds byte-identical to what this reader writes, so a hand edit of the
 artifact is a finding at the next gate and an edit of the `.v` that this reader no
 longer follows is a raise at the same gate.
@@ -160,26 +162,34 @@ _PLAN_RE = re.compile(
     r"^" + _PREFIX + r"Definition (?P<name>\w+) : Plan :=\s*"
     r"build_plan (?P<args>[\w\s]+?)\.", re.MULTILINE)
 
-# The typed lists and the plan values as the file spells them, at any column, under any
-# prefix and at any spacing. A list or a `build_plan` application found here and not by
-# the heads above is one the export would silently lack, so it is `PlanError` rather than
-# a shorter `lists_read` or one variant fewer, which only a floor on the plan count would
-# notice. `Example` is `Definition` by another name and is counted as one. The keyword's
-# own boundary is checked on the hits rather than written into the pattern, a leading
-# lookbehind being re-decided at every position of a file this size.
+# The typed lists and the values as the file spells them, at any column, under any
+# prefix, at any spacing and with any binders or none, read over the file with its
+# comments blanked. A list or a `build_plan` application found here and not by the heads
+# above is one the export would silently lack, so it is `PlanError` rather than a shorter
+# `lists_read` or one variant fewer, which only a floor on the plan count would notice.
+# `Example` is `Definition` by another name and `Let` is one inside a section, so each
+# is read as one. The keyword's own boundary is checked on the hits rather than written
+# into the pattern, a leading lookbehind being re-decided at every position of a file
+# this size.
 _LIST_SPELLED_RE = re.compile(
     r"(?:Definition|Example)\s+(\w+)\s*:\s*list\s+(?:nat|bool|RegionKind)\s*:=")
-_PLAN_SPELLED_RE = re.compile(r"(?:Definition|Example)\s+(\w+)\s*:\s*Plan\s*:=")
+_VALUE_SPELLED_RE = re.compile(r"(?:Definition|Example|Let)\s+(\w+)")
 _CONTINUES_RE = re.compile(r"[\w']")
 _SENTENCE_END_RE = re.compile(r"\.(?=\s|$)")
 _APPLIED_RE = re.compile(r"\s*build_plan\s+[\w\s]+")
 
+# A comment's delimiters and a string's, for the blanked text the audits read.
+_LEXEME_RE = re.compile(r'\(\*|\*\)|"')
+
 # A record value completed from a base, `{| demo_plan with second_fetch := 16 |}`, copies
 # every field it does not assign and names none of them, so a plan spelled that way is
 # no application of `build_plan` and no literal this reader can carry. Its `with` is the
-# token that says so, a `match` accounting for every other one a plan's body writes.
+# token that says so, a `match` accounting for every other one a value's body writes, and
+# a field of `Plan` among the names it assigns is what makes the record a plan, whether
+# or not the value's type is written.
 _WITH_RE = re.compile(r"(?<![\w'])with(?![\w'])")
 _MATCH_RE = re.compile(r"(?<![\w'])match(?![\w'])")
+_ASSIGNED_RE = re.compile(r"(?<![\w'])(\w+)\s*:=")
 
 
 def _spelled(head: re.Pattern[str], text: str) -> Iterator[re.Match[str]]:
@@ -192,7 +202,40 @@ def _spelled(head: re.Pattern[str], text: str) -> Iterator[re.Match[str]]:
 def _completed(body: str) -> bool:
     """Whether a body writes a `with` no `match` accounts for: a record completed from a
     base, or some other shape this reader does not read as a literal."""
-    return len(_WITH_RE.findall(body)) > len(_MATCH_RE.findall(body))
+    return "with" in body and len(_WITH_RE.findall(body)) > len(_MATCH_RE.findall(body))
+
+
+def _blanked(text: str) -> str:
+    """The text with every comment blanked to spaces, nesting and all, its line breaks
+    and so its offsets kept, so an audit reads no word, `with` or full stop a comment
+    spells. A string is read whole, inside a comment as outside one, as Rocq's lexer
+    reads it, so a delimiter inside one opens or closes nothing."""
+    pieces: list[str] = []
+    at = depth = 0
+    quoted = False
+    for token in _LEXEME_RE.finditer(text):
+        mark = token.group()
+        if quoted:
+            quoted = mark != '"'
+        elif mark == '"':
+            quoted = True
+        elif mark == "(*":
+            if not depth:
+                pieces.append(text[at:token.start()])
+                at = token.start()
+            depth += 1
+        elif depth:
+            depth -= 1
+            if not depth:
+                pieces.append(_spaces(text[at:token.end()]))
+                at = token.end()
+    pieces.append(_spaces(text[at:]) if depth else text[at:])
+    return "".join(pieces)
+
+
+def _spaces(span: str) -> str:
+    """A span as blank space of its own length, its line breaks kept."""
+    return "\n".join(" " * len(line) for line in span.split("\n"))
 
 
 def _cons(body: str, name: str) -> list[str] | None:
@@ -319,12 +362,14 @@ def parse(text: str, md5: str = "") -> Source:
                     raise PlanError(f"{SOURCE}'s {name} carries `{t}`, which is no "
                                     f"`RegionKind` constructor")
             kind_lists[name] = tuple(members)
-    skipped = {m.group(1) for m in _spelled(_LIST_SPELLED_RE, text)} - {
+    blank = _blanked(text)
+    skipped = {m.group(1) for m in _spelled(_LIST_SPELLED_RE, blank)} - {
         *nat_lists, *bool_lists, *kind_lists, *unread}
     if skipped:
         raise PlanError(f"{SOURCE} spells {', '.join(sorted(skipped))} as a typed list "
                         f"this reader does not read, being under a prefix it does not "
-                        f"take, indented or spaced apart from the head it reads")
+                        f"take, indented, or spaced or commented apart from the head it "
+                        f"reads")
 
     build = _BUILD_RE.search(text)
     if build is None:
@@ -392,14 +437,19 @@ def parse(text: str, md5: str = "") -> Source:
                 raise PlanError(f"{SOURCE}'s {m.group('name')} names `{arg}`, which is "
                                 f"no `list nat` this reader found")
         plans[m.group("name")] = (tuple(args[:-1]), _nat(args[-1], m.group("name")))
-    # every plan value the file spells, each up to its sentence's full stop: one
-    # completed from a base is refused, and an application of build_plan is a variant
-    # the reading above has to have carried
+    # every value the file spells, its body read from its own `:=` to its sentence's
+    # full stop with its comments blanked: a record completed from a base that assigns a
+    # field of `Plan` is refused, and an application of build_plan is a variant the
+    # reading above has to have carried
+    record = {name for name, _ in _FIELD_RE.findall(build.group("body"))}
     unbuilt: set[str] = set()
-    for m in _spelled(_PLAN_SPELLED_RE, text):
-        end = _SENTENCE_END_RE.search(text, m.end())
-        body = text[m.end():end.start() if end else len(text)]
-        if _completed(body):
+    for m in _spelled(_VALUE_SPELLED_RE, blank):
+        end = _SENTENCE_END_RE.search(blank, m.end())
+        sentence = blank[m.end():end.start() if end else len(blank)]
+        _, defined, body = sentence.partition(":=")
+        if not defined:
+            continue
+        if _completed(body) and record.intersection(_ASSIGNED_RE.findall(body)):
             raise PlanError(f"{SOURCE}'s {m.group(1)} completes a plan from a base with "
                             f"`with`, which copies fields it never names, so it is no "
                             f"variant this reader can carry")
@@ -408,7 +458,8 @@ def parse(text: str, md5: str = "") -> Source:
     if unbuilt:
         raise PlanError(f"{SOURCE} builds {', '.join(sorted(unbuilt))} from build_plan "
                         f"where this reader does not read it, being under a prefix it "
-                        f"does not take, indented or spaced apart from the head it reads")
+                        f"does not take, indented, untyped, given binders, or spaced or "
+                        f"commented apart from the head it reads")
     if STANDING not in plans:
         raise PlanError(f"{SOURCE} no longer builds `{STANDING}` from build_plan")
 
