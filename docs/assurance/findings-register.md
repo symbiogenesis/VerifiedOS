@@ -198,7 +198,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-198b** owed-act: three classes of fact a workflow must state have no owner in this tree, the runner label, the action references it pins, and the bootstrap route
 · Raised: S14
-· Disposition: open for the bootstrap route alone. The action references are closed by K-115, which holds every workflow `uses:` line to a full commit with its release in a comment, and both to the action's reviewed THIRD-PARTY.md development-tools row, in both directions. The runner label is narrowed rather than owned: every workflow names an explicit runner image, and test_fanout_ci's `workflow-host-job-names` case refuses a `-latest` label in host-gates.yml and holds its aggregate job names to `fanout_ci.HOST_JOBS`; nothing holds the guest and campaign labels, and `.github/actionlint.yml`'s label list is a lint allowance, not an owner
+· Disposition: open for the bootstrap route and for the guest and campaign runner labels. The action references are closed by K-115, which holds every workflow `uses:` line to a full commit with its release in a comment, and both to the action's reviewed THIRD-PARTY.md development-tools row, in both directions. The runner label is narrowed rather than owned: every workflow names an explicit runner image, and test_fanout_ci's `workflow-host-job-names` case refuses a `-latest` label in host-gates.yml and holds its aggregate job names to `fanout_ci.HOST_JOBS`; nothing holds the guest and campaign labels, and `.github/actionlint.yml`'s label list is a lint allowance, not an owner
 
 **F-198c** measurement: the provisioner's apply arm ended in a traceback rather than a verdict where an installer was absent, found by pointing it at a host that is not the lane
 · Raised: S14
@@ -1706,13 +1706,13 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M1.2, in prose
 · Disposition: standing, the preprocessor line relaxed for the one output that needs it and the other two unused, the backend's assembly going through M1.4′'s in-tree assembler and composer
 
-**F-520** upstream-defect: SECOMP's security layer carries no checked robust-preservation theorem at the pin, `security/RSC.v` not building and its axioms implying `False`, and the back-translation proof rests on an admitted lemma that is false
+**F-520** upstream-defect: SECOMP's security layer carries no checked robust-preservation theorem at the pin, `security/RSC.v` not building and its axioms implying `False`, and the back-translation proof on `ccs-backtranslation`, a CompCert 3.12 base, rests on an admitted lemma that is false
 · Raised: M1.2
-· Disposition: open, the SECOMP proof-reuse record restating its use and limits, and R-05-024's deferred proof taking none of those axioms or that lemma as a start-from
+· Disposition: open, owned by the proof map's U-25, whose clause-by-clause comparison with `RSC.v` refuses each axiom SECOMP#21 shows inconsistent and takes nothing resting on `step_fix_fix` as a start-from; the SECOMP proof-reuse record states both defects
 
-**F-521** owed-act: the contained compiler is built by an unlocked distribution toolchain, Coq 8.20.1 and OCaml 5.4.0 under `-ignore-ocaml-version` with Menhir 20260209, whose kernel carries guard-checker defects Rocq 9.3.0 fixes, no manifest binding the compiler records those identities, and its source's only copy has no remote
+**F-521** owed-act: the contained compiler is built by an unlocked distribution toolchain, Coq 8.20.1 and OCaml 5.4.0 under `-ignore-ocaml-version` with Menhir 20260209, whose kernel carries guard-checker defects Rocq 9.3.0 fixes, the tracked manifest binding the compiler stating none of those identities and the retained kernel receipts naming the prover and checker by command, one adding the Coq and OCaml versions and none a Menhir identity or a prover digest, and its source's only copy has no remote
 · Raised: M1.2
-· Disposition: open, Q39 locking and re-checking the build and binding its identities, and whether the source gains a private backup or remote a decision owed to the user
+· Disposition: open, Q39 locking and re-checking the build and binding its identities, and whether the source gains a private backup or remote a decision owed to the user; if Q39 locks a kernel before Rocq 9.3, the kernel half stays open under the named follow-up item Q39 commissions and prices from its port census
 
 **F-224** upstream-defect: the pin carries no stock target backend to start from, the one under its architecture directory being the compartment-aware modification of it and carrying two admitted lemmas in its assembly language file, both in that added layer's own material
 · Raised: M1.2a
@@ -1994,13 +1994,13 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-522** upstream-defect: the pin's `common/Events.v` declares an unused axiom that implies `False`, which `Print Assumptions` on the compiler's theorems cannot report and only a whole-environment summary names
 · Raised: M1.2g
-· Disposition: open, M1.2g reading the contained file, removing the axiom where it stands, and stating whether each contained proof receipt's assumption audit reads the whole environment
+· Disposition: open, Q39 reading the contained file, removing the axiom where it stands and stating each contained proof receipt's audit scope; the retained receipts do not read the whole environment, none running `coqchk -o` (`rocqchk -o` from Rocq 9)
 
 **F-523** upstream-defect: the pin's `riscV/TargetPrinter.ml` has no arm for the load that reads a stack-passed parameter, so `ccomp` fails on any function reading an argument past the eighth, and M1.2b's float deletion edited that file
 · Raised: M1.2d
-· Disposition: open, M1.2d naming the contained printer's arm for that load and a replay reading a parameter past the eighth before it closes
+· Disposition: open, Q39 naming the contained printer's arm for that load and replaying through its rebuilt compiler a call reading a parameter past the eighth
 
-**F-524** upstream-defect: the pin's `backend/Regalloc.ml` requires every builtin argument in a register and fails an assertion on an external or runtime builtin with more arguments than allocatable registers, which only interpretation and the back-translation produce
+**F-524** upstream-defect: the pin's `backend/Regalloc.ml` requires every argument of a builtin other than an annotation or debug record in a register and fails an assertion on an external or runtime builtin with more arguments than allocatable registers, which reaches the allocator only under `-interp-asm` and in the back-translation, compiled output carrying none and `riscV/Asmexpand.ml` failing an assertion on one after allocation
 · Raised: M1.2d
 · Disposition: open, owed only if the contained compiler takes `-interp-asm` or the back-translation, or rebases onto a SECOMP revision carrying SECOMP#32, which then merges against M1.2b's edit of the same file
 
