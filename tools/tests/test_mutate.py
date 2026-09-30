@@ -108,15 +108,31 @@ def _a_decorated_proof_ends_the_definition_above() -> None:
 
 def _a_void_command_defines_nothing_to_mutate() -> None:
     """`Fail` and `Succeed` keep nothing the command defines, so a definition under
-    either opens a region no mutation lands in, and ends the region above it."""
-    for flag in ("Fail ", "Succeed ", "#[local] Fail "):
-        text = ("Definition f (n : nat) : nat := n + 1.\n"
-                f"{flag}Definition g (n : nat) : nat := n + 2.\n")
+    either opens a region no mutation lands in, and ends the region above it. Written on
+    a line of its own above the definition, with blank lines, comments or attributes
+    between, the flag is the same flag and the region opens where it stands."""
+    first = "Definition f (n : nat) : nat := n + 1.\n"
+    for lead, flag in (("Fail ", "Fail"), ("Succeed ", "Succeed"),
+                       ("#[local] Fail ", "Fail"), ("Fail\n", "Fail"),
+                       ("Succeed\n", "Succeed"), ("#[local]\nFail\n", "Fail"),
+                       ("Fail\n\n", "Fail"), ("Fail (* why *)\n", "Fail"),
+                       ("Fail\n(* a note\n   Definition *)\n#[local]\n", "Fail")):
+        text = first + f"{lead}Definition g (n : nat) : nat := n + 2.\n"
         found = _sites(text, mutate.COQ, "const-inc")
         ensure([m.before for m in found] == ["1"],
-               f"under {flag!r} the sites were {[m.before for m in found]}")
-        keys = [r.keyword for r in mutate.regions(text, mutate.COQ)]
-        ensure(keys == ["Definition", flag.split()[-1]], f"regions keyed {keys}")
+               f"under {lead!r} the sites were {[m.before for m in found]}")
+        keyed = [(r.keyword, r.name, r.start) for r in mutate.regions(text, mutate.COQ)]
+        ensure(keyed == [("Definition", "f", 0), (flag, "g", len(first))],
+               f"under {lead!r} the regions were {keyed}")
+    # `Time` keeps what it times, and a flag above a tactic waits for no command
+    text = first + "Time\nDefinition g (n : nat) : nat := n + 2.\n"
+    found = _sites(text, mutate.COQ, "const-inc")
+    ensure([m.before for m in found] == ["1", "2"], f"a timed definition's sites: {found}")
+    text = ("Lemma l : True.\nProof.\nFail\n  exact 1.\nexact I.\nQed.\n"
+            "Definition g (n : nat) : nat := n + 2.\n")
+    keys = [r.keyword for r in mutate.regions(text, mutate.COQ)]
+    ensure(keys == ["Lemma", "Proof", "Qed", "Definition"],
+           f"a tactic's flag waited past it: {keys}")
 
 
 def _a_line_inside_a_comment_opens_no_region() -> None:
