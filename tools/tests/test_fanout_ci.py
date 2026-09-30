@@ -4,6 +4,7 @@
 import copy
 import json
 import os
+import re
 import subprocess
 import sys
 import textwrap
@@ -465,6 +466,27 @@ def _workflow_titles() -> None:
                f"{workflow} titles a dispatch with its name and the title input, and no token")
 
 
+def _workflow_host_job_names() -> None:
+    # The aggregate jobs' names are the evidence _host_status accepts: a renamed job
+    # or platform leaves fanout refusing every Host CI run, however green.
+    contents = (ROOT / ".github/workflows" / ci.HOST).read_text(encoding="utf-8")
+    shards, aggregate = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)
+    platform_list = re.compile(r"(?m)^        platform: \[([^\]\n]*)\]$")
+    named = platform_list.search(aggregate)
+    ensure(aggregate.startswith("    name: host-gates (${{ matrix.platform }})\n")
+           and named is not None,
+           f"{ci.HOST}'s aggregate job is named for its platform matrix")
+    platforms = [platform.strip() for platform in named[1].split(",")] if named else []
+    ensure({f"host-gates ({platform})" for platform in platforms} == ci.HOST_JOBS,
+           f"{ci.HOST}'s aggregate names are fanout_ci.HOST_JOBS: {platforms!r}")
+    sharded = platform_list.search(shards)
+    ensure(named is not None and sharded is not None and sharded[1] == named[1],
+           "every aggregate platform runs the shards it requires")
+    labels = re.findall(r"(?m)^\s*(?:runs-on|- \{platform: \w+, runner): ([^\s,}]+)", contents)
+    ensure(bool(labels) and not any("latest" in label for label in labels),
+           f"{ci.HOST} names explicit runner images: {labels!r}")
+
+
 def _workflow_checkout_validation() -> None:
     scripts: list[str] = []
     for workflow in (ci.HOST, ci.GUEST):
@@ -518,4 +540,5 @@ def cases() -> list[Case]:
             Case("transport-contract", _transport_contract),
             Case("dispatch-subject", _dispatch_subject),
             Case("workflow-titles", _workflow_titles),
+            Case("workflow-host-job-names", _workflow_host_job_names),
             Case("workflow-checkout-validation", _workflow_checkout_validation)]

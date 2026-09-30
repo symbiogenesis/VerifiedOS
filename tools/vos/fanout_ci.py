@@ -23,7 +23,9 @@ from typing import NotRequired, TypedDict, cast, override
 
 HOST = "host-gates.yml"
 GUEST = "guest-gates.yml"
-HOST_JOBS = {"host-gates (ubuntu-latest)", "host-gates (windows-latest)"}
+# host-gates.yml names each aggregate job for its platform, never for its runner
+# image, so an image move leaves this set and the evidence it accepts unchanged.
+HOST_JOBS = {"host-gates (Ubuntu)", "host-gates (Windows)"}
 API_VERSION = "2026-03-10"
 # A push to main starts Host CI itself, but GitHub lists that run seconds after it
 # accepts the push. Dispatching before then runs every host shard twice for one

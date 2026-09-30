@@ -9,7 +9,8 @@
 #
 # Shards partition mutation cases and behavioral test modules: four on Ubuntu and
 # eight on Windows, whose CPU-bound shards run the same work more slowly. Shard 1
-# also runs the checker, typecheck and mutation repair path. All shards must pass.
+# also runs the checker, typecheck and mutation repair path, and Ubuntu's shard 1
+# analyzes the workflows with zizmor and actionlint. All shards must pass.
 # uv installs locked dependencies into a checkout-local environment;
 # only downloads are cached. K-67 checks dependency pins; K-75 checks the Python floor.
 #
@@ -50,23 +51,25 @@ env:
 
 jobs:
   host-gates-shard:
-    name: host-gates (${{ matrix.os }}, shard ${{ matrix.shard }}/${{ matrix.shards }})
-    runs-on: ${{ matrix.os }}
+    name: host-gates (${{ matrix.platform }}, shard ${{ matrix.shard }}/${{ matrix.shards }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        platform: [Ubuntu, Windows]
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
         exclude:
-          - {os: ubuntu-latest, shard: 5}
-          - {os: ubuntu-latest, shard: 6}
-          - {os: ubuntu-latest, shard: 7}
-          - {os: ubuntu-latest, shard: 8}
-        # Each include adds its OS's partition count to that OS's combinations.
+          - {platform: Ubuntu, shard: 5}
+          - {platform: Ubuntu, shard: 6}
+          - {platform: Ubuntu, shard: 7}
+          - {platform: Ubuntu, shard: 8}
+        # Each include adds its platform's image label and partition count to that
+        # platform's combinations. Explicit labels make an image move a reviewed edit;
+        # the job names carry the platform alone, so moving an image renames nothing.
         include:
-          - {os: ubuntu-latest, shards: 4}
-          - {os: windows-latest, shards: 8}
+          - {platform: Ubuntu, runner: ubuntu-26.04, shards: 4}
+          - {platform: Windows, runner: windows-2025-vs2026, shards: 8}
     steps:
       # Windows images keep the checkout and runner.temp on D: but TEMP on the slower
       # C: drive; selftest sandboxes and test scratch trees follow TMP and TEMP.
@@ -77,7 +80,7 @@ jobs:
           "TMP=$env:RUNNER_TEMP" >> $env:GITHUB_ENV
           "TEMP=$env:RUNNER_TEMP" >> $env:GITHUB_ENV
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.revision || github.sha }}
           fetch-depth: 0
@@ -106,22 +109,47 @@ jobs:
           subprocess.run(["git", "merge-base", "--is-ancestor", revision,
                           os.environ["DISPATCH_MAIN_SHA"]], check=True)
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.14"
 
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           version-file: tools/pyproject.toml
           enable-cache: true
           # PRs reuse main's downloads without uploading a cache for each merge ref.
           save-cache: ${{ github.event_name == 'push' && matrix.shard == 1 }}
+          # The key names the runner image but no workflow; the suffix keeps Guest
+          # CI's larger download set and this one apart on a shared image.
+          cache-suffix: host-gates
           cache-dependency-glob: |
             tools/pyproject.toml
             tools/uv.lock
 
+      # bash on both platforms reads the shard and verdict path from the environment.
       - name: Host gates and behavioral tests
-        run: python tools/run.py --check --tests --shard ${{ matrix.shard }}/${{ matrix.shards }} --summary "${{ runner.temp }}/${{ env.VERDICT_FILE }}"
+        shell: bash
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ matrix.shards }}
+        run: python tools/run.py --check --tests --shard "$SHARD/$SHARDS" --summary "$RUNNER_TEMP/$VERDICT_FILE"
+
+      # The analyzers read only the checked-out workflow files, so one runner decides
+      # them. zizmor is locked in tools/uv.lock's workflows group, outside the gate's
+      # environment; actionlint.sh verifies its pinned release archive. No pinned
+      # shellcheck or pyflakes is provisioned, so actionlint runs without either.
+      - name: Analyze workflows
+        if: ${{ !cancelled() && matrix.platform == 'Ubuntu' && matrix.shard == 1 }}
+        shell: bash
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/venv-workflows
+          ACTIONLINT_ROOT: ${{ runner.temp }}/toolchains
+        run: |
+          status=0
+          uv run --project tools --locked --exact --only-group workflows --no-python-downloads \
+            zizmor --offline .github/workflows || status=1
+          sh tools/ci/actionlint.sh -shellcheck= -pyflakes= || status=1
+          exit "$status"
 
       - name: Report gate results
         if: ${{ !cancelled() }}
@@ -165,17 +193,19 @@ jobs:
               # Reporting is diagnostic; the gate step owns the job's verdict.
               annotate("warning", f"Could not render gate results: {err!r}")
 
-  # Keep the existing required-check names. A failed, skipped or cancelled shard
-  # cannot leave a successful aggregate, even if its peers completed successfully.
+  # fanout_ci.HOST_JOBS in tools/vos/fanout_ci.py owns these job names; renaming one
+  # changes the evidence fanout accepts. No repository ruleset requires them. A failed,
+  # skipped or cancelled shard cannot leave a successful aggregate, even if its peers
+  # completed successfully.
   host-gates:
-    name: host-gates (${{ matrix.os }})
+    name: host-gates (${{ matrix.platform }})
     needs: host-gates-shard
     if: ${{ always() }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 2
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        platform: [Ubuntu, Windows]
     steps:
       - name: Require every shard on both operating systems
         env:

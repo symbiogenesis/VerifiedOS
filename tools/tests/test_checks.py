@@ -531,6 +531,96 @@ def _k97_reviewed_pin_is_required_without_prose_copies() -> None:
             ensure(not ctx.fixed, "a version edit cannot manufacture a licence review")
 
 
+_K115_SHA = "0123456789abcdef0123456789abcdef01234567"
+_K115_RECORD = (
+    "# Components\n\n### Development tools, contained by use\n\n"
+    "| Tool | License | Standing |\n| --- | --- | --- |\n"
+    f"| example/action | `MIT` | The reviewed v1.2.3 revision `{_K115_SHA}` has terms. |\n"
+    "| zizmor | `MIT` | The reviewed **9.8.7** release's terms. |\n"
+    "| actionlint | `MIT` | The reviewed **6.5.4** release's terms. |\n\n## Next\n")
+_K115_WORKFLOW = (f"steps:\n  - uses: example/action@{_K115_SHA} # v1.2.3\n"
+                  f"  - uses: example/action/restore@{_K115_SHA} # v1.2.3\n")
+_K115_OWNERS = {"tools/pyproject.toml": '[dependency-groups]\nworkflows = ["zizmor==9.8.7"]\n',
+                "tools/ci/actionlint.sh": "#!/bin/sh\nactionlint_version=6.5.4\n"}
+
+
+def _k115(files: dict[str, str | None]) -> list[str]:
+    base: dict[str, str | None] = {"docs/requirements-register.md": _REGISTER_MIN,
+                                   "THIRD-PARTY.md": _K115_RECORD,
+                                   ".github/workflows/a.yml": _K115_WORKFLOW, **_K115_OWNERS}
+    merged = {path: text for path, text in {**base, **files}.items() if text is not None}
+    with sandbox_tree(merged) as root:
+        ctx = _context(root, fix=True)
+        pins._workflow_pins(ctx)
+        ensure(not ctx.fixed, "a pin edit cannot manufacture a licence review")
+        return _findings_under(ctx, "K-115")
+
+
+def _k115_agreement_and_sub_actions_pass() -> None:
+    found = _k115({})
+    ensure(not found, f"an action and its sub-action at the reviewed commit agree: {found!r}")
+
+
+def _k115_moved_or_movable_references_fail() -> None:
+    other = "f" * 40
+    for workflow, fragment in (
+            (_K115_WORKFLOW.replace(f"{_K115_SHA} # v1.2.3\n  -", f"{other} # v1.2.3\n  -"),
+             "runs example/action at ffffffffffff (v1.2.3)"),
+            (_K115_WORKFLOW.replace("# v1.2.3\n  -", "# v1.2.4\n  -"), "(v1.2.4)"),
+            (_K115_WORKFLOW.replace(f"example/action@{_K115_SHA} # v1.2.3", "example/action@v1"),
+             "uses `example/action@v1`, which is not"),
+            (_K115_WORKFLOW.replace(f"@{_K115_SHA} # v1.2.3\n  -", f"@{_K115_SHA}\n  -"),
+             "which is not owner/repo")):
+        found = _k115({".github/workflows/a.yml": workflow})
+        ensure(any(fragment in item for item in found),
+               f"a moved or movable reference must report {fragment!r}: {found!r}")
+
+
+def _k115_membership_is_held_both_ways() -> None:
+    found = _k115({".github/workflows/b.yaml":
+                   f"steps:\n  - uses: other/action@{_K115_SHA} # v1.2.3\n"})
+    ensure(any("runs other/action, which" in item for item in found),
+           f"an action with no reviewed row must report: {found!r}")
+    found = _k115({".github/workflows/a.yml": f"steps:\n  - uses: other/action@{_K115_SHA} # v1.2.3\n",
+                   "THIRD-PARTY.md": _K115_RECORD.replace(
+                       "| zizmor |", f"| other/action | `MIT` | The reviewed v1.2.3 revision "
+                                     f"`{_K115_SHA}`. |\n| zizmor |")})
+    ensure(any("reviews example/action, which no workflow runs" in item for item in found),
+           f"a row no workflow runs must report: {found!r}")
+
+
+def _k115_analyzer_rows_follow_their_owners() -> None:
+    cases: tuple[tuple[dict[str, str | None], str], ...] = (
+        ({"tools/pyproject.toml": '[dependency-groups]\nworkflows = ["zizmor==9.8.8"]\n'},
+         "states zizmor's reviewed release as 9.8.7, tools/pyproject.toml installs 9.8.8"),
+        ({"tools/ci/actionlint.sh": "#!/bin/sh\nactionlint_version=6.5.5\n"},
+         "states actionlint's reviewed release as 6.5.4"),
+        ({"tools/ci/actionlint.sh": None}, "does not state actionlint_version"),
+        ({"tools/pyproject.toml": "[dependency-groups]\n"}, "cannot supply"))
+    for files, fragment in cases:
+        found = _k115(files)
+        ensure(any(fragment in item for item in found),
+               f"an analyzer row must agree with its owner ({fragment!r}): {found!r}")
+
+
+def _k115_unreadable_readings_fail_closed() -> None:
+    duplicate = (f"| example/action | x | The reviewed v1.2.3 revision `{_K115_SHA}`. |\n"
+                 "| zizmor |")
+    cases: tuple[tuple[dict[str, str | None], str], ...] = (
+        ({"THIRD-PARTY.md": None}, "is not in the repository"),
+        ({"THIRD-PARTY.md": "# Components\n"}, "carries no `### Development tools"),
+        ({"THIRD-PARTY.md": _K115_RECORD.replace(" v1.2.3 revision", " revision")},
+         "0 times"),
+        ({"THIRD-PARTY.md": _K115_RECORD.replace("| zizmor |", duplicate)},
+         "is a second row for example/action"),
+        ({".github/workflows/a.yml": None}, "carries no workflow"),
+        ({".github/workflows/a.yml": "jobs: {}\n"}, "states an action reference"))
+    for files, fragment in cases:
+        found = _k115(files)
+        ensure(any(fragment in item for item in found),
+               f"an unreadable reading must report ({fragment!r}): {found!r}")
+
+
 def _k81(files: dict[str, str], residues: dict[tuple[str, str], str],
          table_id: str = "1234abcd") -> Context:
     record = ("# Components\n\n## Pinned as submodules\n\n"
@@ -817,6 +907,11 @@ def cases() -> list[Case]:
         Case("k75-every-workflow-job-is-held", _k75_every_workflow_job_is_held),
         Case("k97-reviewed-pin-is-required-without-prose-copies",
              _k97_reviewed_pin_is_required_without_prose_copies),
+        Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),
+        Case("k115-moved-or-movable-references-fail", _k115_moved_or_movable_references_fail),
+        Case("k115-membership-is-held-both-ways", _k115_membership_is_held_both_ways),
+        Case("k115-analyzer-rows-follow-their-owners", _k115_analyzer_rows_follow_their_owners),
+        Case("k115-unreadable-readings-fail-closed", _k115_unreadable_readings_fail_closed),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),
         Case("k81-unused-historical-residue-fails", _k81_unused_historical_residue_fails),
         Case("k81-historical-residue-cannot-exempt-table",
