@@ -238,8 +238,9 @@ def build_idealloc(root: Path, output: Path) -> dict[str, Any]:
     cargo, cargo_env = rust_environment(output, pin["rust"])
     command = [cargo, "build", "--locked", "--release", "--jobs", "2", "-p", "coreba", "--bin", "vos-idealloc"]
     begin = time.perf_counter()
+    # On a cold Cargo home, metadata downloads every locked crate to read its manifest.
     metadata = subprocess.run([cargo, "metadata", "--locked", "--format-version", "1"],
-                              cwd=source, env=cargo_env, capture_output=True, text=True, check=True, timeout=30)
+                              cwd=source, env=cargo_env, capture_output=True, text=True, check=True, timeout=600)
     resolved = json.loads(metadata.stdout)
     packages = resolved["packages"]
     root_id = next(p["id"] for p in packages if p["name"] == "coreba")
