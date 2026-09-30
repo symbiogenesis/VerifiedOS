@@ -335,15 +335,18 @@ def _oracle_refuses_an_unpopulated_source() -> None:
 
 
 def _oracle_reuses_only_a_stamped_tree() -> None:
-    """A standing tree is reused only while its stamp names the current pins."""
+    """A standing tree is reused only while its stamp names the current pins and
+    vouches for their bytes: a stamp naming both pins and nothing more is refused."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
         e = _environment(root)
         _oracle_fixture(root)
         code, _, _ = _run_oracle(e)
         stamp = e.oracle_root / model.ORACLE_STAMP
-        ensure(code == 0 and stamp.read_text(encoding="utf-8").split() == list(_PINS),
-               "a verified copy is stamped with both pins")
+        written = f"{_PINS[0]}\n{_PINS[1]}\n{model.ORACLE_STAMP_CLAIM}\n"
+        ensure(code == 0 and stamp.read_bytes() == written.encode(),
+               f"a verified copy is stamped with both pins and its claim, got "
+               f"{stamp.read_bytes()!r}")
         synced = _copy_stub()
         code, staged, _ = _run_oracle(e, _sync_oracle_tree=synced)
         ensure(code == 0 and bool(staged) and not synced.called,
@@ -352,13 +355,20 @@ def _oracle_reuses_only_a_stamped_tree() -> None:
         code, staged, said = _run_oracle(e, _oracle_pins=moved, _sync_oracle_tree=synced)
         ensure(code == 1 and not staged and not synced.called and "--resync" in said,
                f"a tree stamped with other pins is refused, said {said!r}")
+        stamp.write_text(f"{_PINS[0]}\n{_PINS[1]}\n", encoding="utf-8", newline="")
+        code, staged, said = _run_oracle(e, _sync_oracle_tree=synced)
+        ensure(code == 1 and not staged and not synced.called
+               and "not these pins; rerun with --resync" in said,
+               f"a stamp naming the pins without vouching for their bytes is refused, "
+               f"said {said!r}")
         stamp.unlink()
         code, staged, _ = _run_oracle(e, _sync_oracle_tree=synced)
         ensure(code == 1 and not staged, "an unstamped standing tree is refused")
         code, staged, _ = _run_oracle(e, resync=True, _oracle_pins=moved,
                                       _sync_oracle_tree=synced)
         ensure(code == 0 and bool(staged) and synced.called
-               and stamp.read_text(encoding="utf-8").split() == ["c" * 40, _PINS[1]],
+               and stamp.read_text(encoding="utf-8").split()
+               == ["c" * 40, _PINS[1], model.ORACLE_STAMP_CLAIM],
                "--resync copies, verifies and stamps the current pins")
         rejected = Mock(side_effect=ValueError("the copy differs"))
         code, staged, said = _run_oracle(e, resync=True, _verify_oracle_copy=rejected)
