@@ -2000,7 +2000,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M1.2d
 · Disposition: open, M1.2d naming the contained printer's arm for that load and a replay reading a parameter past the eighth before it closes
 
-**F-524** upstream-defect: the pin's `backend/Regalloc.ml` requires every builtin argument in a register and fails an assertion on an external or runtime builtin with more arguments than allocatable registers, which only interpretation and the back-translation produce
+**F-524** upstream-defect: the pin's `backend/Regalloc.ml` requires every argument of a builtin other than an annotation or debug record in a register and fails an assertion on an external or runtime builtin with more arguments than allocatable registers, which reaches the allocator only under `-interp-asm` and in the back-translation, compiled output carrying none and `riscV/Asmexpand.ml` failing an assertion on one after allocation
 · Raised: M1.2d
 · Disposition: open, owed only if the contained compiler takes `-interp-asm` or the back-translation, or rebases onto a SECOMP revision carrying SECOMP#32, which then merges against M1.2b's edit of the same file
 
