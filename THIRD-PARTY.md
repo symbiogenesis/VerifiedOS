@@ -28,7 +28,7 @@ Each component retains its upstream license file, unmodified, beside the governe
 | Transplanted capability semantics | n/a | `CTSRD-CHERI/sail-cheri-riscv` | `BSD-2-Clause` | [model/LICENCE.cheri](model/LICENCE.cheri) |
 | Transcribed capability-helper properties, `model/model/unit_tests/cap_properties.sail` | `4da8fd10` | `CTSRD-CHERI/sail-cheri-riscv-verif` | `BSD-2-Clause` | [model/LICENCE.cheri-verif](model/LICENCE.cheri-verif) |
 | ELFIO | `660e9051`, on `main`; the header reports 3.14 | Serge Lamikhov-Center | `MIT` | `model/dependencies/elfio/LICENSE.txt` |
-| Berkeley SoftFloat | 3e | The Regents of the University of California, John R. Hauser | `BSD-3-Clause` | `model/dependencies/softfloat/berkeley-softfloat-3/COPYING.txt` |
+| Berkeley SoftFloat | `a0c6494c`, on `master`, with one local change | The Regents of the University of California, John R. Hauser | `BSD-3-Clause` | `model/dependencies/softfloat/berkeley-softfloat-3/COPYING.txt` |
 
 These licenses are permissive. Redistribution must retain the applicable notices, conditions, and disclaimers; BSD-3-Clause also restricts endorsement using the holders' or contributors' names. None requires source disclosure or restricts a field of use.
 
@@ -37,6 +37,8 @@ The curated model is a modified derivative: curation removes upstream features a
 [model/LICENCE](model/LICENCE) governs the curated tree under BSD-2-Clause and excludes third-party code in `dependencies/`, where ELFIO and SoftFloat retain their own licenses. The capability-helper properties are transcribed for Sail 0.20.2 and the frozen capability widths because the upstream file does not load unchanged; the transcription loads unchanged at the locked 0.20.3. Their separate notice preserves the upstream holders and funding acknowledgements. K-80 checks the tracked license paths in the table.
 
 ELFIO has no release after `Release_3.12`. The vendored headers and README are the untagged `main` commit `660e90514a2e80fba1c55f2cee07bbeda3d1c601`, which includes bounds, overflow and use-after-free fixes, absent from that release, on the non-lazy load path the emulator's loader uses. Its `LICENSE.txt`, SHA-256 `54e2f5ccbae52ada660f9a38658cac957506b3fb94871fc0f056e9916c34aa2f` and read at that commit on 2026-09-29, states MIT, as does each header's notice. The local `CMakeLists.txt` adds a `SYSTEM` include and `SKIP_LINTING` and omits the upstream `ario` target.
+
+SoftFloat is the `ucb-bar/berkeley-softfloat-3` repository at `master` commit `a0c6494cdc11865811dec815d5c0049fba9d82a8` (2025-03-07), which adds BF16 conversions and build and typo fixes to Release 3e; the repository has no tags. Every vendored file is that commit's blob except `build/Linux-x86_64-GCC/platform.h`, whose local change defines `INLINE` as `static inline` rather than `inline`. `COPYING.txt`, SHA-256 `145ea96b4a4a04a1a7738d2a2bf9e830f861971e69606187b018d9e8fc0b95c7` and read at that commit on 2026-09-29, is the Release 3e license, BSD-3-Clause.
 
 ## Fetched at build time
 
