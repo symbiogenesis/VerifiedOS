@@ -150,9 +150,34 @@ holds it and this one says so rather than reaching for it.
 **Reported and never repaired**, on this group's own ground. The record's row states
 the version beside the terms read at it, so a token substitution would claim a licence
 review at a version that has not been reviewed.
+
+K-115 is the same agreement one step further out, **for the code the hosted workflows
+run**. A workflow's `uses:` line names another repository's code and the job token it
+runs with, and the record's development-tools table carries one row per action
+stating the release and the full commit its terms were read at. A tag moves under that
+row without any file here changing, so the rule first holds each line to the one form
+that cannot move, `owner/repo[/path]@<40 hex digits> # vX.Y.Z`, and then holds its
+commit and release to the action's own row. Membership is total in both directions: a
+line naming an action with no row runs code whose terms nobody read, and a row naming
+an action no workflow runs is a review of nothing. The two workflow analyzers Host CI
+runs are the same kind of pin and are held the same way, each row's release against
+the owner the tool is installed from: [pyproject.toml](../../pyproject.toml)'s
+`workflows` group for zizmor and [actionlint.sh](../../ci/actionlint.sh)'s version for
+actionlint.
+
+**The window is the git index's workflow directory**, every tracked `.yml` or `.yaml`
+file under `.github/workflows/`, and each reading fails closed: no workflow, no
+`uses:` line at all, a record without its development-tools heading or with no action
+row under it, a row stating its reviewed revision other than exactly once, and an owner
+this rule cannot read are each a finding rather than an agreement over nothing. That is
+why it owes the floors group no member. What it does not decide is whether the commit
+is the release the comment names; the row's reviewer read that, and zizmor's online
+audits are the instrument that asks GitHub. **Reported and never repaired**, on K-97's
+ground: moving a row's commit would claim a licence reading nobody took.
 """
 
 import re
+import tomllib
 from typing import TYPE_CHECKING, cast
 
 from vos import corpus as corpus_mod
@@ -180,6 +205,23 @@ _VERILATOR_SITES: list[tuple[str, str, re.Pattern[str]]] = [
     ("development-tools row", pins_mod.RECORD,
      re.compile(r"(?m)^\| Verilator \|[^|]*\|[^|]*pinned at \*\*([^*]+)\*\*")),
 ]
+
+# K-115's readings. The workflows are the index's own files under this directory; the
+# record's rows are the development-tools table's, one per action named `owner/repo`.
+WORKFLOWS = ".github/workflows/"
+TOOLS_HEADING = "### Development tools, contained by use"
+_USES_RE = re.compile(r"(?m)^[ \t]*(?:-[ \t]+)?uses:[ \t]*(.*?)[ \t]*$")
+_PINNED_USE_RE = re.compile(
+    r"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)(?:/[^@\s]+)?@([0-9a-f]{40}) # (v\d+\.\d+\.\d+)")
+_ACTION_ROW_RE = re.compile(r"^\| ([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) \|")
+_REVIEWED_ACTION_RE = re.compile(r"reviewed (v\d+\.\d+\.\d+) revision `([0-9a-f]{40})`")
+
+# The workflow analyzers: each row's tool cell, the owner that installs it, and how the
+# owner states the release. The row states it as `reviewed **X** release`.
+ANALYZER_PROJECT = "tools/pyproject.toml"
+ANALYZER_SCRIPT = "tools/ci/actionlint.sh"
+_ANALYZER_SCRIPT_RE = re.compile(r"(?m)^actionlint_version=([0-9][0-9A-Za-z.]*)$")
+_REVIEWED_RELEASE_RE = re.compile(r"reviewed \*\*([^*\s]+)\*\* release")
 
 # Every id this repository writes beside an upstream's name that is not that
 # upstream's pin, with what it actually is. Each one is a reading trap on its face:
@@ -274,6 +316,7 @@ def run(ctx: Context) -> None:
     rep.line(HEADING)
     _pins(ctx)
     _version_pin(ctx)
+    _workflow_pins(ctx)
     rep.line()
 
 
@@ -321,6 +364,165 @@ def _version_pin(ctx: Context) -> None:
                "not fix:", findings,
                f"the reviewed elaborator row states {pin or 'no version'}, which "
                f"{VERILATOR_SRC} fixes and every rtl loop refuses another of")
+
+
+def _tool_rows(text: str, findings: list[str]) -> dict[str, tuple[int, str]]:
+    """The development-tools table's rows, keyed by their tool cell, with line numbers.
+
+    Read from the record's own heading to the next heading, so a row of another
+    table is never taken for this one's; a tool stated by two rows is a finding, the
+    record then disagreeing with itself about which terms were read.
+    """
+    found = re.search(rf"(?m)^{re.escape(TOOLS_HEADING)}[^\S\r\n]*$", text)
+    if found is None:
+        findings.append(f"{pins_mod.RECORD} carries no `{TOOLS_HEADING}` heading, so no "
+                        "reviewed row can be read")
+        return {}
+    base = text.count("\n", 0, found.start()) + 1
+    rows: dict[str, tuple[int, str]] = {}
+    for offset, raw in enumerate(text[found.start():].split("\n")[1:], start=1):
+        line = raw.removesuffix("\r")
+        if line.startswith("#"):
+            break
+        cells = line.split("|")
+        if not line.startswith("| ") or len(cells) < 3:
+            continue
+        tool = cells[1].strip()
+        if tool in rows:
+            findings.append(f"{pins_mod.RECORD}:{base + offset} is a second row for {tool}, "
+                            "and a pin stated twice is one the page can disagree with "
+                            "itself about")
+            continue
+        rows[tool] = (base + offset, line)
+    return rows
+
+
+def _analyzer_releases(ctx: Context, findings: list[str]) -> list[tuple[str, str, str]]:
+    """Each workflow analyzer, the owner installing it, and the release it installs."""
+    found: list[tuple[str, str, str]] = []
+    pins: list[str] = []
+    fault = "the workflows group does not pin zizmor exactly once"
+    try:
+        groups = tomllib.loads((ctx.root / ANALYZER_PROJECT).read_text(encoding="utf-8"))[
+            "dependency-groups"]["workflows"]
+        pins = [item.partition("==")[2] for item in groups
+                if isinstance(item, str) and item.partition("==")[0] == "zizmor"]
+    except (OSError, UnicodeDecodeError, ValueError, TypeError, KeyError) as err:
+        fault = str(err)
+    if len(pins) == 1 and pins[0]:
+        found.append(("zizmor", ANALYZER_PROJECT, pins[0]))
+    else:
+        findings.append(f"{ANALYZER_PROJECT} cannot supply the workflow analyzer's exact "
+                        f"zizmor pin: {fault}")
+    try:
+        script = (ctx.root / ANALYZER_SCRIPT).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        script = ""
+    stated = _ANALYZER_SCRIPT_RE.findall(script)
+    if len(stated) == 1:
+        found.append(("actionlint", ANALYZER_SCRIPT, stated[0]))
+    else:
+        findings.append(f"{ANALYZER_SCRIPT} does not state actionlint_version exactly once "
+                        "in a form this rule reads, so the release Host CI runs is unread")
+    return found
+
+
+def _workflow_pins(ctx: Context) -> None:
+    """K-115: every action a workflow runs is the commit and release its row reviewed.
+
+    Fail-closed at every reading, on K-97's ground; see the module's account of K-115
+    for what each missing reading would otherwise let pass.
+    """
+    rep = ctx.rep
+    record = pins_mod.RECORD
+    findings: list[str] = []
+    text = ctx.text(record)
+    if not text:
+        findings.append(f"{record} is not in the repository, so no reviewed row can be read")
+    rows = _tool_rows(text, findings) if text else {}
+
+    # action -> (release, commit, where the row stands); an unreadable row keeps its
+    # key with empty values, so the lines naming it are not also reported as rowless
+    actions: dict[str, tuple[str, str, str]] = {}
+    for tool, (line, row) in rows.items():
+        if not _ACTION_ROW_RE.match(row):
+            continue
+        where = f"{record}:{line}"
+        stated = _REVIEWED_ACTION_RE.findall(row)
+        if len(stated) != 1:
+            findings.append(f"{where} states {tool}'s reviewed release and revision "
+                            f"{len(stated)} times; exactly one `reviewed vX.Y.Z revision "
+                            "`<full commit>`` is read")
+            actions[tool] = ("", "", where)
+            continue
+        actions[tool] = (stated[0][0], stated[0][1], where)
+    if rows and not actions:
+        findings.append(f"{record}'s development-tools table carries no action row, so the "
+                        "workflows would be held against nothing")
+
+    files = sorted(rel for rel in ctx.corpus.tracked
+                   if rel.startswith(WORKFLOWS) and rel.endswith((".yml", ".yaml")))
+    if not files:
+        findings.append(f"the index carries no workflow under {WORKFLOWS}, so no action "
+                        "reference is read")
+    used: set[str] = set()
+    references = 0
+    for rel in files:
+        try:
+            source = (ctx.root / rel).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            findings.append(f"{rel} cannot be read as text, so its action references are "
+                            "unread")
+            continue
+        for m in _USES_RE.finditer(source):
+            references += 1
+            number = source.count("\n", 0, m.start()) + 1
+            where = f"{rel}:{number}"
+            pinned = _PINNED_USE_RE.fullmatch(m.group(1))
+            if pinned is None:
+                findings.append(f"{where} uses `{m.group(1)}`, which is not "
+                                "owner/repo[/path]@<full commit> # vX.Y.Z; a tag or branch "
+                                "can move under the reviewed row")
+                continue
+            action, sha, version = pinned.groups()
+            used.add(action)
+            if action not in actions:
+                findings.append(f"{where} runs {action}, which {record}'s development-tools "
+                                "table has no row for, so nobody read the terms of the code "
+                                "it runs")
+                continue
+            want_version, want_sha, row = actions[action]
+            if want_sha and (sha, version) != (want_sha, want_version):
+                findings.append(
+                    f"{where} runs {action} at {sha[:12]} ({version}), {row} reviewed "
+                    f"{want_sha[:12]} ({want_version}); the row's terms were read at the "
+                    "revision it states, so the edit is a person's")
+    if files and not references:
+        findings.append(f"no workflow under {WORKFLOWS} states an action reference, so the "
+                        "rows would be held against nothing")
+    if references:
+        findings += [f"{where} reviews {action}, which no workflow runs; a row reviewing "
+                     "nothing is a licence record for no code"
+                     for action, (_, _, where) in actions.items() if action not in used]
+
+    for tool, owner, release in _analyzer_releases(ctx, findings):
+        if tool not in rows:
+            if rows:
+                findings.append(f"{record}'s development-tools table has no {tool} row, and "
+                                f"{owner} installs {release}")
+            continue
+        line, row = rows[tool]
+        stated = _REVIEWED_RELEASE_RE.findall(row)
+        if stated != [release]:
+            findings.append(f"{record}:{line} states {tool}'s reviewed release as "
+                            f"{', '.join(stated) or 'nothing'}, {owner} installs {release}; "
+                            "the row's terms were read at the release it states")
+
+    rep.report("K-115", "workflow action or analyzer pin(s) the reviewed record does not "
+               "state:", findings,
+               f"the {references} action references in {len(files)} workflows state the "
+               f"commits and releases their {len(actions)} reviewed rows record, and the "
+               "workflow analyzers' rows state the releases their owners install")
 
 
 def _sources(ctx: Context) -> list[tuple[str, str, list[bool]]]:

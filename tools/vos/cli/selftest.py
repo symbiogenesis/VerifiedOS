@@ -1619,6 +1619,24 @@ CASES: list[Case] = [
     ("K-97", "an elaborator pin the record states and the lane's own constant refuses",
      _literal(THIRD_PARTY, "pinned at **5.052**", "pinned at **5.036**")),
 
+    # A workflow's action moves to a commit its row never reviewed, which is what a
+    # bump without a licence read leaves. The first pinned line is found by its shape
+    # and its last digit changed, so the case survives every reviewed bump.
+    ("K-115", "a workflow action at a commit its reviewed row does not state",
+     _first_match(".github/workflows/host-gates.yml",
+                  r"(?m)^(\s*- uses: [^@\s]+@[0-9a-f]{39})([0-9a-f])",
+                  lambda m: m[1] + ("1" if m[2] == "0" else "0"))),
+    # The same line returned to a movable tag: the row still states a reviewed commit,
+    # and nothing fixes the code the tag names on the next run.
+    ("K-115", "a workflow action referenced by a tag that can move",
+     _first_match(".github/workflows/host-gates.yml",
+                  r"(?m)^(\s*- uses: [^@\s]+)@[0-9a-f]{40} # (v\d+)\.\d+\.\d+$",
+                  lambda m: f"{m[1]}@{m[2]}")),
+    # The record's side: a row renamed away from the action it reviews leaves both a
+    # workflow running code with no row and a row reviewing code nothing runs.
+    ("K-115", "an action row that names no action a workflow runs",
+     _literal(THIRD_PARTY, "| actions/download-artifact |", "| actions/download-artifacts |")),
+
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row
     # still renders, the table is still the width its header declares, no id and no
