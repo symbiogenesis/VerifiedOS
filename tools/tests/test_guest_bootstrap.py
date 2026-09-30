@@ -389,8 +389,19 @@ def _repository_state_is_recorded() -> None:
                for name, url in bootstrap.opam_client.OPAM_REPOSITORIES],
            f"the repositories' URLs and stamps are recorded beside the client, "
            f"got {record.get('opam_repositories')}")
-    ensure(record["opam"] == bootstrap.opam_client.OPAM_VERSION,
-           "the client recorded is the reviewed one")
+    ensure(record["opam"] == bootstrap.opam_client.OPAM_VERSION
+           and record["opam_root_format"] == bootstrap.opam_client.OPAM_ROOT_FORMAT,
+           "the client recorded is the reviewed one, and the root is in its format")
+
+
+def _root_in_another_format_is_refused() -> None:
+    """A root the reviewed client did not write in its own format is not the one the
+    record names: the recorded format would otherwise drift from the client's unseen."""
+    code, record, installed = _install_over(lambda opam: opam_root(opam, "nested"))
+    ensure(code == 1 and not installed and "opam_root_format" not in record
+           and f"format 2.2, not the reviewed client's {bootstrap.opam_client.OPAM_ROOT_FORMAT}"
+           in str(record.get("error")),
+           f"a 2.2-format root fails the bootstrap and says so, got {record}")
 
 
 def _unread_repository_state_is_refused() -> None:
@@ -468,4 +479,5 @@ def cases() -> list[Case]:
         Case("repositories come from the owner", _repositories_come_from_the_owner),
         Case("repository state is recorded", _repository_state_is_recorded),
         Case("unread repository state is refused", _unread_repository_state_is_refused),
+        Case("a root in another format is refused", _root_in_another_format_is_refused),
     ]

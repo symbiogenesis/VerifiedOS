@@ -43,8 +43,8 @@ nothing asking whether a root exists. Three further rows carry no command for re
 of their own: the interpreter floor is the interpreter taking the probe, which nothing
 it runs can replace; the cache invariant's repair is to give a lane a copy rather than
 to delete somebody's warm cache; and the opam client is held to the reviewed release
-guest bootstrap downloads, where replacing a developer's client upgrades that root's
-format one way and is a recorded step rather than a repair. Every figure any document
+guest bootstrap downloads, where replacing a developer's client can upgrade that
+root's format one way and is a recorded step rather than a repair. Every figure any document
 states about this table is a count over `FACTS`, held by K-24 rather than by care.
 
     python tools/run.py provision              # what is here and what is not
@@ -278,6 +278,23 @@ def _switch_at(switch: str, package: str, pin: str) -> Found:
     return Found(found == pin, f"{package} {found} in {switch}")
 
 
+def _format_key(fmt: str) -> tuple[int, ...]:
+    """A root format's release numbers, for ordering two formats: `2.6~alpha` reads as
+    2.6, which is as near as a report needs to come to opam's own ordering."""
+    return tuple(int(part) for part in re.findall(r"\d+", fmt.partition("~")[0]))
+
+
+def _moving_the_root(fmt: str) -> str:
+    """What moving a root of format `fmt` to the reviewed client does to it, as a clause,
+    empty where the root is already in that client's format or states none."""
+    want = opam_client.OPAM_ROOT_FORMAT
+    if not fmt or fmt == want:
+        return ""
+    if _format_key(fmt) > _format_key(want):
+        return f", which cannot read this root's format {fmt}"
+    return f", and moving to it upgrades this root's format from {fmt} to {want} one way"
+
+
 def _opam_client() -> Found:
     """The opam client on PATH against the reviewed release, and what its root reads.
 
@@ -286,7 +303,8 @@ def _opam_client() -> Found:
     metadata stamp, which the locks do not fix. The root is read from its files rather
     than through opam, because a client newer than the root's format upgrades the root
     to answer. A mismatch has no command here: moving a developer's root to another
-    client upgrades its format one way, so it is a recorded step and not a repair.
+    client can rewrite its format one way, which the report says where the root's
+    format is not the reviewed client's, so it is a recorded step and not a repair.
     """
     where = shutil.which("opam")
     if where is None:
@@ -294,14 +312,14 @@ def _opam_client() -> Found:
                             f"{opam_client.OPAM_VERSION}")
     found = _number(_say(("opam", "--version")))
     root = env.opam_root()
+    fmt = opam_client.root_format(root)
     repositories = ", ".join(
         f"{repo['name']} {repo['url']} at stamp {repo['stamp'] or 'unrecorded'}"
         for repo in opam_client.repositories(root)) or "no repositories"
     saw = (f"opam {found or 'answering no version'} at {where} over {root} "
-           f"(format {opam_client.root_format(root) or 'unread'}; {repositories})")
+           f"(format {fmt or 'unread'}; {repositories})")
     if found != opam_client.OPAM_VERSION:
-        saw += (f"; the reviewed client is {opam_client.OPAM_VERSION}, and moving to it "
-                "upgrades the root's format one way")
+        saw += f"; the reviewed client is {opam_client.OPAM_VERSION}{_moving_the_root(fmt)}"
     return Found(found == opam_client.OPAM_VERSION, saw)
 
 

@@ -279,6 +279,7 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
             # The metadata the snapshots are resolved against, which the locks do not fix,
             # refused rather than recorded where the root's own files cannot say it.
             record["opam_repositories"] = opam_client.initialized_repositories(root / "opam")
+            record["opam_root_format"] = opam_client.initialized_format(root / "opam")
             install_toolchains(root, jobs, log, selected)
             (root / "environment.sh").write_text(activation(values, paths),
                                                   encoding="utf-8", newline="")

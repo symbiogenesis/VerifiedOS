@@ -225,8 +225,21 @@ def _opam_probe_holds_the_reviewed_client() -> None:
                              "2026-09-29 06:07"):
                 ensure(fragment in found.saw, f"the report must say {fragment!r}: {found.saw}")
             ensure(present or (f"the reviewed client is {opam_client.OPAM_VERSION}" in found.saw
-                               and "one way" in found.saw),
+                               and f"from 2.2 to {opam_client.OPAM_ROOT_FORMAT} one way"
+                               in found.saw),
                    f"a mismatch names the reviewed client and the cost of moving: {found.saw}")
+        # The cost is stated only where there is one: a root already in the reviewed
+        # client's format is not rewritten by moving to it, and a newer one is unreadable.
+        for fmt, clause in ((opam_client.OPAM_ROOT_FORMAT, ""),
+                            ("99.0", "which cannot read this root's format 99.0")):
+            (root / "config").write_text(f'opam-root-version: "{fmt}"\n', encoding="utf-8")
+            with (patch.object(provision, "shutil", on_path),
+                  patch.object(provision, "env", fake_env),
+                  patch.object(provision, "_say", return_value="2.5.0")):
+                found = provision._opam_client()
+            ensure(not found.present and f"format {fmt};" in found.saw
+                   and "one way" not in found.saw and clause in found.saw,
+                   f"a root of format {fmt} is reported without an upgrade: {found.saw}")
         with patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)):
             found = provision._opam_client()
         ensure(not found.present and "no opam on PATH" in found.saw,

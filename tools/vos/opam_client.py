@@ -8,8 +8,10 @@ lock built under two clients yields two identities. This module is the one owner
 the client's reviewed release and its per-architecture SHA-256 values, which
 [guest bootstrap](../ci/bootstrap_guest.py) verifies its download against and
 [`run.py provision`](cli/provision.py) holds the installed client to. A client is
-replaced deliberately rather than repaired: each release upgrades the root's format
-one way, after which an earlier client cannot read it.
+replaced deliberately rather than repaired: a client rewrites a root whose format is
+older than its own to its own format, one way, after which an earlier client cannot
+read it. Not every release raises the format, so the reviewed client's is recorded
+here beside its release rather than inferred from the version.
 
 The locks fix package versions but not the metadata they were resolved from, which the
 repositories publish and revise in place. What a root was resolved against is its
@@ -26,6 +28,12 @@ import tarfile
 from pathlib import Path
 
 OPAM_VERSION = "2.6.0"
+
+# The root format the reviewed client writes, the `opam-root-version` a root it creates
+# or rewrites declares; 2.6.0's release notes record raising it to 2.6. Guest bootstrap
+# holds a root it initializes to this, and `run.py provision` reads it to say whether
+# moving a developer's root to the reviewed client rewrites that root.
+OPAM_ROOT_FORMAT = "2.6"
 
 # The release's asset suffix and its SHA-256, per `platform.machine()`. Each matches
 # the digest GitHub publishes for the asset and the opam dev team's signature over
@@ -60,6 +68,16 @@ def root_format(root: Path) -> str:
     except OSError:
         return ""
     return str(found.group(1)) if found else ""
+
+
+def initialized_format(root: Path) -> str:
+    """The format of a root the reviewed client just initialized, refused unless it is
+    `OPAM_ROOT_FORMAT`, so the recorded format cannot drift from the client unseen."""
+    found = root_format(root)
+    if found != OPAM_ROOT_FORMAT:
+        raise ValueError(f"{root} declares root format {found or 'none'}, not the "
+                         f"reviewed client's {OPAM_ROOT_FORMAT}")
+    return found
 
 
 def _repo_file(root: Path, name: str) -> str:

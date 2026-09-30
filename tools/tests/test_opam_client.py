@@ -112,9 +112,31 @@ def _initialized_root_is_complete() -> None:
            "an unread stamp is refused, not recorded as ''")
 
 
+def _initialized_format_is_the_clients() -> None:
+    """A root just initialized declares the reviewed client's format, or is refused."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        for layout in ("flat", "nested"):
+            root = Path(td) / layout
+            opam_root(root, layout)
+            try:
+                found = opam_client.initialized_format(root)
+            except ValueError as err:
+                found = str(err)
+            want = (opam_client.OPAM_ROOT_FORMAT if layout == "flat" else
+                    f"format 2.2, not the reviewed client's {opam_client.OPAM_ROOT_FORMAT}")
+            ensure(want in found, f"a {layout} root's format reads {found!r}")
+        try:
+            opam_client.initialized_format(Path(td) / "absent")
+        except ValueError as err:
+            ensure("format none" in str(err), f"an absent root states no format: {err}")
+        else:
+            raise AssertionError("a root that states no format was accepted")
+
+
 def cases() -> list[Case]:
     return [
         Case("reads-every-layout", _reads_every_layout),
         Case("reports-what-it-could-not-read", _reports_what_it_could_not_read),
         Case("initialized-root-is-complete", _initialized_root_is_complete),
+        Case("initialized-format-is-the-clients", _initialized_format_is_the_clients),
     ]
