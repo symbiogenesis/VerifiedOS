@@ -47,7 +47,9 @@ The register-layout owner is Mocha revision
 the adjacent `data/uart.hjson`. Its own SPDX declaration and
 `LICENSES/Apache-2.0.txt` were read at that revision. The selected offsets are
 `UART_STATUS_OFFSET`, `UART_RDATA_OFFSET`, and `UART_WDATA_OFFSET`; the generator
-reads them from that file rather than assigning new locations.
+reads them from that file rather than assigning new locations. The generated
+package records the owner revision it was emitted at: `rtl devicescheck` holds it
+against the populated checkout, and K-115 holds it against the gitlink.
 
 The wrapper supplies a bounded, polled character transport: one byte of RX
 buffering and one byte of TX buffering, with external ready/valid byte channels.

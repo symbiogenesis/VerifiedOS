@@ -150,12 +150,30 @@ holds it and this one says so rather than reaching for it.
 **Reported and never repaired**, on this group's own ground. The record's row states
 the version beside the terms read at it, so a token substitution would claim a licence
 review at a version that has not been reviewed.
+
+K-115 is the third kind: **a commit a tool consumes rather than a sentence restates.**
+Two tracked artifacts bind the gitlinks they were derived through, and K-81 reads
+neither. The width-transform registry's `"pin"` names no upstream on its line, and
+`rtl_width.stage` compares it with the populated imported core only when a guest
+elaboration runs. The device-register package records the Mocha commit its UART owners
+were read at, and `rtl devicescheck` regenerates it only where the submodule is
+populated, which no hosted gate does. So a gitlink moved without re-deriving either
+artifact passed every hosted gate. This rule holds each recorded commit, whole, against
+the index's gitlink, which every checkout carries populated or not. **The sites are
+enumerated in code and read fail-closed**: an artifact missing from the index, a record
+its owner's own reader refuses, and a gitlink the index does not carry are each a
+finding, so the rule owes the floors group no member. **Reported and never repaired**:
+the repair is a regeneration from a checkout at the gitlink, which re-derives the
+registry's source identities or the package's constants and is never a token
+substitution.
 """
 
 import re
+from collections.abc import Callable
 from typing import TYPE_CHECKING, cast
 
 from vos import corpus as corpus_mod
+from vos import device_regs, rtl_width
 from vos import pins as pins_mod
 from vos.checks import generated
 
@@ -269,12 +287,51 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
 }
 
 
+# K-115's sites: what each binding is, the tracked artifact carrying it, the owner's
+# own reader of the commit it records, and the gitlink that commit must be.
+BINDINGS: list[tuple[str, str, Callable[[str], str], str]] = [
+    ("width-transform registry pin", rtl_width.REGISTRY, rtl_width.recorded_pin,
+     rtl_width.CORE),
+    ("device-register owner revision", device_regs.ARTIFACT,
+     device_regs.recorded_revision, device_regs.UPSTREAM),
+]
+
+
 def run(ctx: Context) -> None:
     rep = ctx.rep
     rep.line(HEADING)
     _pins(ctx)
     _version_pin(ctx)
+    _bindings(ctx)
     rep.line()
+
+
+def _bindings(ctx: Context) -> None:
+    """K-115: every tool-consumed RTL binding names the commit the index carries."""
+    findings: list[str] = []
+    for label, file, reader, path in BINDINGS:
+        if file not in ctx.corpus.indexed:
+            findings.append(f"{file} is not in the repository, so its {label} cannot "
+                            "be read")
+            continue
+        try:
+            recorded = reader((ctx.root / file).read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, ValueError) as error:
+            findings.append(f"{file}'s {label} cannot be read: {error}")
+            continue
+        oid = ctx.corpus.gitlinks.get(path)
+        if oid is None:
+            findings.append(f"{file}'s {label} names {path}, which the index carries no "
+                            "gitlink for")
+        elif oid != recorded:
+            findings.append(
+                f"{file}'s {label} is {recorded[:12]} and the index carries {path} at "
+                f"{oid[:12]}; regenerate it from a checkout at the gitlink, which "
+                "re-derives what was read there and is never a token repair")
+    ctx.rep.report("K-115", "tool-consumed RTL binding(s) that disagree with the gitlink "
+                   "they were derived through:", findings,
+                   f"the {len(BINDINGS)} tool-consumed RTL bindings record the commits "
+                   "the index carries for their gitlinks")
 
 
 def _version_pin(ctx: Context) -> None:

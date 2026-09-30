@@ -1619,6 +1619,23 @@ CASES: list[Case] = [
     ("K-97", "an elaborator pin the record states and the lane's own constant refuses",
      _literal(THIRD_PARTY, "pinned at **5.052**", "pinned at **5.036**")),
 
+    # A gitlink moved with an artifact derived through it left behind, seeded as the
+    # recorded commit's first digit changed so the index, the licence record and every
+    # restating sentence still agree. The registry's line names no upstream, so K-81
+    # cannot see the first case and only this rule holds it. The second is read by
+    # K-81 too, the stamp naming its upstream, and needs its own case because a rule
+    # narrowed to the registry would still kill the first. Both anchor on the line's
+    # own words rather than on the pinned id, so a pin advance does not unseed them.
+    ("K-115", "a width-transform registry naming a commit the imported core's gitlink "
+              "does not carry",
+     _first_match("tools/rtl-width-transforms.json", r'^(  "pin": ")([0-9a-f])',
+                  lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
+    ("K-115", "a device-register package recording an owner commit the Mocha gitlink "
+              "does not carry",
+     _first_match("rtl/vos_device_regs_pkg.sv",
+                  r"^(// UART owner revision: upstream/mocha at )([0-9a-f])",
+                  lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
+
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row
     # still renders, the table is still the width its header declares, no id and no
