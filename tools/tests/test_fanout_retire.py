@@ -234,6 +234,29 @@ def _native_directory_lock() -> None:
         ensure(proofs.exists(), "proof directory lock protects native outputs")
 
 
+def _native_linked_proof_workspace() -> None:
+    """`proofs.workspace` resolves the lane's `proof-gate`, so through a relative link
+    the gate flocks a directory whose name retirement does not hold: the link itself
+    is selected and refused, idle or held."""
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        lane = root / "build" / "lane-worker"
+        target = lane / "proof-gate-real"
+        target.mkdir(parents=True)
+        (lane / "proof-gate").symlink_to("proof-gate-real", target_is_directory=True)
+        held = (lane / "proof-gate").resolve()
+        ensure(held == target, "precondition: the gate's resolved workspace is the link's target")
+        fd = os.open(held, os.O_RDONLY)
+        try:
+            _hold(fd)
+            _refused(lambda: retire.retain_native("worker", str(lane), str(root / "logs"), "5" * 20),
+                     "redirects")
+        finally:
+            os.close(fd)
+        _refused(lambda: retire.retain_native("worker", str(lane), str(root / "logs"), "5" * 20),
+                 "redirects")
+        ensure(target.is_dir() and (lane / "proof-gate").is_symlink(), "a linked workspace stays in place")
+
+
 def _venv_links_and_target_locks() -> None:
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
         lane = root / "build" / "lane-worker"
@@ -640,6 +663,7 @@ def cases() -> list[Case]:
             Case("symlink-escape", _symlink_escape, lane="guest"),
             Case("native-outputs-and-lock", _native_outputs_and_lock, lane="guest"),
             Case("native-directory-lock", _native_directory_lock, lane="guest"),
+            Case("native-linked-proof-workspace", _native_linked_proof_workspace, lane="guest"),
             Case("venv-links-and-target-locks", _venv_links_and_target_locks, lane="guest"),
             Case("native-exact-log-ownership", _native_exact_log_ownership, lane="guest"),
             Case("native-log-directories-and-companions", _native_log_directories_and_companions, lane="guest"),

@@ -371,8 +371,13 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
         # A root's own descriptor: the lane root, a log directory, or a log file.
         lock_paths.add(before)
         if before.is_dir():
-            lock_paths.update(path for path in _tree_safe(before) if path.name.endswith(".lock") or (
-                path.parent == source and path.name in _DIRECTORY_LOCKS))
+            lock_paths.update(path for path in _tree_safe(before) if path.name.endswith(".lock"))
+        if before == source:
+            # Named rather than walked: the walk drops an internal link, and the proof
+            # gate flocks the link's resolved target under a name not in this list, so
+            # the link itself is selected, and refused below as a redirecting lock.
+            lock_paths.update(source / name for name in _DIRECTORY_LOCKS
+                              if (source / name).exists() or (source / name).is_symlink())
         adjacent = env._lock_path(before)
         if adjacent.exists() or adjacent.is_symlink():
             lock_paths.add(adjacent)
