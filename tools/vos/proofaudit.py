@@ -258,7 +258,7 @@ def pinned_overrides(text: str) -> list[str]:
              if _PINNED.match(sentence) or _PINNED_ATTRIBUTE.search(sentence)
              or _TIMEOUT.match(sentence)]
     if "timeout" in text or "alloc_limit" in text:
-        spaced = text.replace("(*", " (*").replace("*)", "*) ")
+        spaced = text.replace("*)", "*) ")
         code = SENTENCE_END.split(_STRING.sub('""', strip_comments(spaced)))
         found += [sentence.strip() for sentence in code if _TACTICAL.search(sentence)]
     return found
