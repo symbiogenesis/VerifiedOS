@@ -62,11 +62,13 @@ OPAM_REPOSITORIES: tuple[tuple[str, str], ...] = (
 # on the first repository, with no shell setup and no opamrc, then every other
 # repository added unselected, each switch naming the repositories it resolves from.
 # Guest bootstrap runs it in its private root, and `run.py provision --install-opam`
-# where no root stands or where `root_resumable` reads one the route stopped partway
-# through. Repeating it over a root it made finishes that root and changes a finished
-# one in nothing: `opam init` reports the root already initialized and exits 0, and
-# adding a repository the root already carries at that URL reports no changes and
-# exits 0, as the reviewed client did over a private root on the guest.
+# where no root stands or where `root_resumable` reads one in the shape the route
+# leaves after its leading steps. Repeating the route over a root it made finishes that
+# root, and it is not inert over a finished one: `opam init` over a root that stands
+# reports it already initialized, fetches nothing and exits 0, while adding a
+# repository the root already carries at that URL keeps its configuration but fetches
+# it again, refreshing its metadata and stamp, and removes that repository from the
+# root, its configuration and its metadata, where the fetch fails.
 CREATE_ROOT: tuple[tuple[str, ...], ...] = (
     ("opam", "init", "--bare", "--no-setup", "--no-opamrc", "-y", *OPAM_REPOSITORIES[0]),
     *(("opam", "repository", "add", name, url, "--dont-select", "-y")
@@ -79,8 +81,8 @@ CREATE_ROOT: tuple[tuple[str, ...], ...] = (
 # creates sandboxes package builds. curl is the download tool here, and it fetches the
 # HTTPS repositories against the certificate store `ca-certificates` carries, which the
 # distribution's curl library only recommends. GNU patch, diff and getconf are not
-# among them, because this client computes and applies patches itself and no longer
-# requires getconf. Guest bootstrap installs these, and `run.py provision` probes and
+# among them, because this client computes and applies patches itself and does not
+# require getconf. Guest bootstrap installs these, and `run.py provision` probes and
 # installs each ahead of the opam row.
 ROOT_PREREQUISITES: tuple[str, ...] = ("bubblewrap", "ca-certificates", "curl", "tar", "unzip")
 
@@ -140,6 +142,14 @@ def newer_than_reviewed(fmt: str) -> bool:
     return bool(fmt) and format_key(fmt) > format_key(OPAM_ROOT_FORMAT)
 
 
+def older_than_reviewed(fmt: str) -> bool:
+    """Whether a stated root format is older than `OPAM_ROOT_FORMAT`: any stated format
+    other than it that is not newer, a prerelease of it among them, since opam orders a
+    prerelease before its release. The reviewed client rewrites such a root to its own
+    format, one way, so moving the root to it is a deliberate, recorded step."""
+    return bool(fmt) and fmt != OPAM_ROOT_FORMAT and not newer_than_reviewed(fmt)
+
+
 def root_gaps(root: Path) -> list[str]:
     """What a root that stands lacks of one the reviewed client can use as `CREATE_ROOT`
     makes it, as clauses: a stated format no newer than `OPAM_ROOT_FORMAT`, each of
@@ -166,10 +176,14 @@ def root_gaps(root: Path) -> list[str]:
 
 
 def root_resumable(root: Path) -> bool:
-    """Whether a standing root is one `CREATE_ROOT` stopped partway through, which
-    running the route again finishes: in `OPAM_ROOT_FORMAT`, configured with exactly the
-    route's leading repositories, at least the one `opam init` fetched and not every
-    one, each at its owned URL and with its stamp read.
+    """Whether a standing root is in the shape `CREATE_ROOT` leaves after its leading
+    steps, which running the route again completes: in `OPAM_ROOT_FORMAT`, configured
+    with exactly the route's leading repositories, at least the one `opam init` fetched
+    and not every one, each at its owned URL and with its stamp read.
+
+    The shape is what is read, not how the root came to be: a root a developer
+    initialized by hand on the first repository alone is in it too, and the route
+    completes that root the same way.
 
     A root whose first repository's stamp is unread is not one: `opam init` over a
     root that stands reports it initialized without fetching anything, so the route run

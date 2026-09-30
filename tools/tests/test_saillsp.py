@@ -8,7 +8,7 @@ import re
 import subprocess
 import tarfile
 from collections.abc import Callable
-from contextlib import nullcontext
+from contextlib import nullcontext, redirect_stderr
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import patch
@@ -158,12 +158,42 @@ def _superseded_archive() -> None:
         ensure((root / "marker").read_text() == "unchanged", "a refused directory must not be removed")
 
 
+_BUILD_SPECS = [{"name": "lsp", "directory": "lsp-1", "license_file": "LICENSE"},
+                {"name": "sail", "directory": "sail-1", "license_file": "LICENSE"}]
+_BUILD_RECIPE = {saillsp.LOCK: json.dumps({"sources": _BUILD_SPECS}),
+                 "tools/opam/sail.lock": 'installed: ["ocaml.5.4.1"]',
+                 "tools/vos/saillsp.py": "recipe", "tools/sail-lsp/dependency-refresh.patch": "patch"}
+
+
+def _mock_source(spec: dict[str, Any], directory: Path) -> Path:
+    target = directory / str(spec["directory"])
+    (target / "lib").mkdir(parents=True, exist_ok=True)
+    (target / spec["license_file"]).write_text("license", encoding="utf-8")
+    (target / "lib/prelude.sail").write_text("prelude", encoding="utf-8")
+    return target
+
+
+def _mock_build(argv: list[str], cwd: Path, environ: dict[str, str], log: Path) -> None:
+    if argv[:2] == ["dune", "install"]:
+        prefix = Path(argv[argv.index("--prefix") + 1])
+        installed = prefix / ("bin/sail_lsp" if cwd.name == "sail_lsp" else f"lib/{cwd.name}/META")
+        installed.parent.mkdir(parents=True, exist_ok=True)
+        installed.write_text("current", encoding="utf-8")
+
+
+def _mock_install(environment: env.Environment, build: Callable[..., None] = _mock_build,
+                  stderr: io.StringIO | None = None) -> dict[str, Any]:
+    """install with the switch inventory, source fetches and build commands mocked."""
+    with (patch.object(saillsp.env, "hold_lock", side_effect=lambda *_: nullcontext()),
+          patch.object(saillsp, "_base_inventory", return_value=["ocaml.5.4.1"]),
+          patch.object(saillsp, "_source", side_effect=_mock_source),
+          patch.object(saillsp, "_run", side_effect=build),
+          redirect_stderr(io.StringIO() if stderr is None else stderr)):
+        return saillsp.install(environment)
+
+
 def _rebuild_uses_fresh_prefix() -> None:
-    specs = [{"name": "lsp", "directory": "lsp-1", "license_file": "LICENSE"},
-             {"name": "sail", "directory": "sail-1", "license_file": "LICENSE"}]
-    files = {saillsp.LOCK: json.dumps({"sources": specs}), "tools/opam/sail.lock": 'installed: ["ocaml.5.4.1"]',
-             "tools/vos/saillsp.py": "recipe", "tools/sail-lsp/dependency-refresh.patch": "patch"}
-    with sandbox_tree(files) as root:
+    with sandbox_tree(_BUILD_RECIPE) as root:
         environment = _environment(root)
         location = saillsp.home(environment)
         stale_library = location / "prefix/lib/superseded/META"
@@ -175,26 +205,10 @@ def _rebuild_uses_fresh_prefix() -> None:
                 path.write_text("superseded", encoding="utf-8")
             (location / "installation.json").write_text(json.dumps({"lock_sha256": "0" * 64}), encoding="utf-8")
 
-        def source(spec: dict[str, Any], directory: Path) -> Path:
-            target = directory / str(spec["directory"])
-            (target / "lib").mkdir(parents=True, exist_ok=True)
-            (target / spec["license_file"]).write_text("license", encoding="utf-8")
-            (target / "lib/prelude.sail").write_text("prelude", encoding="utf-8")
-            return target
-
-        def run(argv: list[str], cwd: Path, environ: dict[str, str], log: Path) -> None:
-            if argv[:2] == ["dune", "install"]:
-                prefix = Path(argv[argv.index("--prefix") + 1])
-                installed = prefix / ("bin/sail_lsp" if cwd.name == "sail_lsp" else f"lib/{cwd.name}/META")
-                installed.parent.mkdir(parents=True, exist_ok=True)
-                installed.write_text("current", encoding="utf-8")
+        run = _mock_build
 
         def install(build: Callable[..., None] = run) -> dict[str, Any]:
-            with (patch.object(saillsp.env, "hold_lock", side_effect=lambda *_: nullcontext()),
-                  patch.object(saillsp, "_base_inventory", return_value=["ocaml.5.4.1"]),
-                  patch.object(saillsp, "_source", side_effect=source),
-                  patch.object(saillsp, "_run", side_effect=build)):
-                return saillsp.install(environment)
+            return _mock_install(environment, build)
 
         def artifacts() -> dict[str, str]:
             receipt = json.loads((location / "installation.json").read_text(encoding="utf-8"))
@@ -234,6 +248,47 @@ def _rebuild_uses_fresh_prefix() -> None:
         ensure(not (location / "installation.json").exists() and not stale_library.exists()
                and saillsp.status(environment)["installed"] is False,
                "an interrupted rebuild must leave no receipt describing a removed prefix")
+
+
+def _refused_installation_rebuilt() -> None:
+    """status refuses an installation of the current recipe whose receipt or artifacts
+    changed, and names install as the repair; install then rebuilds instead of repeating
+    the refusal."""
+    with sandbox_tree(_BUILD_RECIPE) as root:
+        environment = _environment(root)
+        location = saillsp.home(environment)
+        binary = location / "prefix/bin/sail_lsp"
+        receipt = location / "installation.json"
+        builds: list[list[str]] = []
+
+        def counted(argv: list[str], cwd: Path, environ: dict[str, str], log: Path) -> None:
+            builds.append(argv)
+            _mock_build(argv, cwd, environ, log)
+
+        ensure(_mock_install(environment)["installed"] is True, "the first build must be usable")
+        ensure(_mock_install(environment, counted)["installed"] is True and not builds,
+               "control: an installation status accepts must be returned without a rebuild")
+        damages: tuple[tuple[str, Callable[[], object]], ...] = (
+            ("changed", lambda: binary.write_text("edited", encoding="utf-8")),
+            ("missing", binary.unlink),
+            ("unreadable", lambda: receipt.write_text(receipt.read_text(encoding="utf-8")[:40],
+                                                      encoding="utf-8")))
+        for problem, damage in damages:
+            damage()
+            try:
+                saillsp.status(environment)
+            except ValueError as exc:
+                ensure(problem in str(exc) and str(exc).endswith("run sail-lsp install"),
+                       f"status must refuse a {problem} installation and name its repair: {exc}")
+            else:
+                raise AssertionError(f"status accepted a {problem} installation")
+            builds.clear()
+            report = io.StringIO()
+            result = _mock_install(environment, counted, report)
+            ensure(bool(builds) and result["installed"] is True
+                   and binary.read_text(encoding="utf-8") == "current",
+                   f"install must rebuild an installation status refuses as {problem}")
+            ensure(problem in report.getvalue(), f"install must report why it rebuilt: {report.getvalue()!r}")
 
 
 def _base_lock() -> None:
@@ -284,5 +339,6 @@ def cases() -> list[Case]:
             Case("archive-extraction-confinement", _archive_confinement),
             Case("superseded-archive-fetched-verified-and-replaced", _superseded_archive),
             Case("rebuild-installs-into-a-fresh-prefix", _rebuild_uses_fresh_prefix),
+            Case("refused-installation-is-rebuilt", _refused_installation_rebuilt),
             Case("locked-base-dependency-closure", _base_lock),
             Case("tool-sail-pins-are-the-locked-release", _tool_sail_pins_agree)]
