@@ -1039,10 +1039,14 @@ Linux. ty reports nothing in a branch the target makes unreachable, so the gate 
 under `--python-platform linux` and again under `win32`, each run its own verdict. The
 second run types the branches taken only when `sys.platform` is `win32`, and holds every
 call typeshed declares absent on Windows behind a `sys.platform` check. typeshed stubs
-each module one platform lacks, such as `fcntl` or `msvcrt`, for both platforms, so
-neither run sees a module-level import of one fail on the other platform; ruff.toml's
-`banned-module-level-imports` refuses those imports, and each module is imported inside
-the function that uses it, behind a `sys.platform` check.
+most modules one platform lacks, such as `fcntl` or `msvcrt`, for both platforms, so
+neither run sees an import of one fail on the other platform. ruff.toml's
+`banned-module-level-imports` lists each standard-library module the interpreter cannot
+import on Windows or on Linux that ty resolves under both platforms, a listed name
+covering its submodules; a module ty resolves under neither is ty's own
+`unresolved-import` finding. ruff refuses an unnested module-level import of a listed
+module, and each is imported inside the function that uses it, behind a `sys.platform`
+check.
 
 The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
 addresses ty's recursive-JSON narrowing behavior, not
