@@ -429,8 +429,9 @@ def _dynamic_sources_are_refused_before_compiling() -> None:
 def _unreadable_tokens_are_refused_before_compiling() -> None:
     # Under the gate's flags the pinned Rocq 9.3.0 compiles each declaration here and then
     # reads its token whole: after `^"` or `*(*` a Set or a Load compiles with the setting
-    # on, and after `^.` a statement's later binder quantifies unread. The shared lexer
-    # would open a string, open a comment, or end the sentence there.
+    # on, and after `^.` or `...` a statement's later binder quantifies unread. The shared
+    # lexer would open a string, open a comment, or end the sentence there. A `.` infix
+    # makes Rocq read every later full stop in a term as the infix.
     add = "(Nat.add a b) (at level 50)."
     refused = (f'Notation "a ^"" b" := {add}',
                'Notation "x a"" y" := (Nat.add x y) (at level 50).',
@@ -441,7 +442,9 @@ def _unreadable_tokens_are_refused_before_compiling() -> None:
                f'Notation "a *(* b" := {add}', f'Local Notation "a ^. b" := {add}',
                f'#[local] Notation "a ^. b" := {add}', f'Notation "a x. b" := {add}',
                f"Notation \"a '^.' b\" := {add}",
-               'Notation "a .\u00a0b c" := (Nat.add a c) (at level 50).')
+               'Notation "a .\u00a0b c" := (Nat.add a c) (at level 50).',
+               f'Notation "a ... b" := {add}', f'Notation "a . b" := {add}',
+               f"Notation \"a '.' b\" := {add}")
     for text in refused:
         ensure(proofaudit.unreadable_tokens(text) == [text.removesuffix(".")],
                f"a token the lexer cannot follow was declared: {text!r}")

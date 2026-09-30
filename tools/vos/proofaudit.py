@@ -111,14 +111,15 @@ DYNAMIC_SOURCE = re.compile(
 # `*(*` or `^.`, each is one token wherever it stands. The shared lexer knows no declared
 # token. It would open a string at the quote or a comment at the opener, hiding every
 # sentence up to the close, or end a sentence at the full stop, cutting the statement it
-# is in. Tokens come from the strings a Notation, Reserved Notation, Infix, Reserved Infix,
-# Tactic Notation or Ltac2 Notation writes before its `:=`, a Tactic or Ltac2 Notation's
-# separators among them. An attribute's strings declare none, and neither does a `where`
-# clause: the pinned Rocq 9.3.0 refuses one whose parsing rule no earlier Reserved
-# Notation declared.
+# is in. That holds for Rocq's own `.` and `...` too: a notation may declare either as an
+# infix, and the pinned Rocq 9.3.0 then compiles `1 ... 2 = 3 -> forall m : Machine, P`
+# as one statement. Tokens come from the strings a Notation, Reserved Notation, Infix,
+# Reserved Infix, Tactic Notation or Ltac2 Notation writes before its `:=`, a Tactic or
+# Ltac2 Notation's separators among them. An attribute's strings declare none, and
+# neither does a `where` clause: the pinned Rocq 9.3.0 refuses one whose parsing rule no
+# earlier Reserved Notation declared.
 _DECLARES_TOKENS = re.compile(r"(?<![\w'])(?:Notation|Infix)(?![\w'])")
 _TOKEN_SOURCE = re.compile(_ATTRIBUTE + r'\]|"((?:[^"]|"")*)"|:=')
-_BLANKS = re.compile(r"[ \t\n\r]+")
 
 
 class AuditError(ValueError):
@@ -311,12 +312,12 @@ def unreadable_tokens(text: str) -> list[str]:
     """Sentences declaring a token the shared lexer would not read as Rocq's lexer does.
 
     Such a token holds a quote or a comment opener, or a full stop at which the sentence
-    split would end a sentence Rocq continues; Rocq's own `.` and `...` end one for both.
-    Until one is declared, the shared lexer finds every string, comment and sentence end
-    Rocq's does, the installed libraries declaring no such token, so it reads the
-    declaring sentence as Rocq does. Refusing that sentence before compilation keeps
-    every other lexical reading here sound. A declaration's tokens are its strings'
-    blank-separated parts, a quoted part's quotes aside.
+    split would end a sentence Rocq continues, `.` and `...` among them. Until one is
+    declared, the shared lexer finds every string, comment and sentence end Rocq's does,
+    the installed libraries declaring no such token, so it reads the declaring sentence
+    as Rocq does. Refusing that sentence before compilation keeps every other lexical
+    reading here sound. A declaration's tokens are its strings' blank-separated parts, a
+    quoted part's quotes aside.
     """
     found: list[str] = []
     for sentence in sentences(text):
@@ -333,10 +334,8 @@ def unreadable_tokens(text: str) -> list[str]:
 
 def _unreadable(literal: str) -> bool:
     """Whether a declaring string literal, doubled quotes as written, holds such a token."""
-    if '"' in literal or "(*" in literal:
-        return True
-    return any(SENTENCE_END.search(token) and token not in (".", "...")
-               for token in (part.strip("'") for part in _BLANKS.split(literal)))
+    return ('"' in literal or "(*" in literal
+            or any(SENTENCE_END.search(part.strip("'")) for part in literal.split()))
 
 
 def unsupported_abstractions(text: str) -> list[str]:
