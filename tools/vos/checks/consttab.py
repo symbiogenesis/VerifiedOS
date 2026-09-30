@@ -93,6 +93,8 @@ from collections.abc import Callable
 from math import isqrt
 from typing import TYPE_CHECKING, TypedDict
 
+from vos.proofs import VOID, decorations
+
 # `Context` lives in this package's __init__, which imports this module in turn.
 if TYPE_CHECKING:
     from . import Context
@@ -198,17 +200,11 @@ _CONTINUES_RE = re.compile(r"[\w']")
 _STATEMENT_TOKEN_RE = re.compile(r'\(\*|\*\)|"|\.(?=\s|$)')
 
 # What may stand before a statement's keyword, on its line or above it back to the full
-# stop of the sentence before, blank lines and comments between: quoted and legacy
-# attributes, which leave the statement what it is, and the control flags. `Fail` and
+# stop of the sentence before, blank lines and comments between, is the shared lexer's
+# decoration grammar (vos/proofs.py): quoted and legacy attributes and a proof's
+# bullets, which leave the statement what it is, and the control flags. `Fail` and
 # `Succeed` keep nothing the statement states, so a row whose statement stands under
 # either is refused by name rather than read.
-_DECORATION_RE = re.compile(
-    r'#\[(?:[^\]"]|"[^"]*")*\]\s*'
-    r"|(Local|Global|Program|Polymorphic|Monomorphic|Cumulative|NonCumulative|Private"
-    r"|Time|Instructions|Fail|Succeed)\s+"
-    r'|(Profile)\s+(?:"[^"]*"\s+)?|(Redirect)\s+"[^"]*"\s+|(Timeout)\s+\d+\s+'
-    r"|(AllocLimit)\s+\d+\s*(?:Mw|kw)\s+")
-_VOID = ("Fail", "Succeed")
 
 # A comment's delimiters and a string's, for the blanked text a statement's head and its
 # decorations are found in.
@@ -308,18 +304,14 @@ def _blanked(raw: str) -> str:
 
 
 def _decorations(lead: str, spaced: bool = False) -> list[str] | None:
-    """The decorations `lead` is made of, by their keywords and `#[` for an attribute,
-    or None where it carries anything else. An empty lead is no decoration at all, and
-    a spaced one may carry blank space before and between them."""
-    flags: list[str] = []
-    at = len(lead) - len(lead.lstrip()) if spaced else 0
-    while at < len(lead):
-        found = _DECORATION_RE.match(lead, at)
-        if found is None:
-            return None
-        flags.append(next((str(g) for g in found.groups() if g), "#["))
-        at = found.end()
-    return flags
+    """The decorations `lead` is made of, by their keywords, `#[` for an attribute and a
+    bullet as itself, or None where it carries anything else. An empty lead is no
+    decoration at all, and a spaced one may carry blank space before and between them."""
+    found, at = decorations(lead, len(lead) - len(lead.lstrip()) if spaced else 0)
+    if at < len(lead):
+        return None
+    return [str(decoration.group("word") or (decoration.group("bullet") or "#[").strip())
+            for decoration in found]
 
 
 def _lead(blank: str, opened: int) -> list[str] | None:
@@ -388,7 +380,7 @@ def _gallina_body(raw: str, pair: Pair, keyword: str) -> tuple[str | None, str]:
         if not _CONTINUES_RE.match(raw, opened + len(head)):
             flags = _lead(blank, opened)
             if flags is not None:
-                void = next((flag for flag in flags if flag in _VOID), None)
+                void = next((flag for flag in flags if flag in VOID), None)
                 if void is not None:
                     return None, (f"{pair['gallina']} states {keyword} {pair['name']} "
                                   f"under `{void}`, which keeps nothing it states, so "

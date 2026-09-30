@@ -43,6 +43,13 @@ def _a_decorated_statement_is_read() -> None:
     got, why = _values("#[local] Example table : map id l = 3 :: 5 :: 7 :: nil.\n"
                        "Proof. reflexivity. Qed.\n", "example")
     ensure(got == [3, 5, 7], f"a decorated Example read {got} ({why})")
+    # the shared lexer's grammar, spelled as Rocq's lexer reads it: no blank after a word
+    # or a string, a doubled quote in a quoted target, and a bullet inside a proof
+    for decoration in ("Time#[local]", 'Profile"p"', 'Redirect "a""b" ', "Timeout 5Local ",
+                       "Lemma l : True.\nProof.\n- "):
+        got, why = _values(decoration + _TABLE)
+        ensure(got == [3, 5, 7] and not why,
+               f"under {decoration!r} the table read {got} ({why})")
 
 
 def _a_void_statement_is_refused() -> None:
@@ -52,7 +59,9 @@ def _a_void_statement_is_refused() -> None:
                        ("#[local] Fail ", "Fail"), ("Fail\n", "Fail"),
                        ("Fail\n\n", "Fail"), ("Fail (* why. *)\n", "Fail"),
                        ("Fail\n(* a note\n   spanning lines *)\n", "Fail"),
-                       ('Succeed\n#[deprecated(note="a. b")]\n', "Succeed")):
+                       ('Succeed\n#[deprecated(note="a. b")]\n', "Succeed"),
+                       ("Succeed#[local]", "Succeed"), ("Succeed#[local]\n", "Succeed"),
+                       ('Redirect "a""b" Fail\n', "Fail"), ('Profile"p"Fail ', "Fail")):
         got, why = _values(lead + _TABLE)
         ensure(got is None and f"under `{flag}`" in why,
                f"a table under {lead!r} was read as {got} ({why})")
