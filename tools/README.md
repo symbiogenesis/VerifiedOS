@@ -892,9 +892,14 @@ with `uv add --project tools --no-sync PACKAGE`, or edit the manifest and run
 `uv lock --project tools`. After changing pins, run
 the Windows and Linux gates. Review and commit the manifest and lockfile together.
 To refresh resolution within the declared constraints and the
-[release cooldown](#running-them), use `uv lock --project tools --upgrade`. Normal
-commands synchronize each checkout on its next invocation, so no manual reinstall
-window exists across worktrees or OSes.
+[release cooldown](#running-them), use `uv lock --project tools --upgrade`. The
+cooldown binds the dependency groups' exact `==` pins too: a pin to a release
+uploaded within the cooldown does not resolve, and uv reports the requirement
+unsatisfiable because the release was published after the cutoff. Move such a pin
+once its release has aged past the cooldown, and never by adding an
+`exclude-newer-package` entry, which is reserved for the releases grandfathered when
+the cooldown was adopted. Normal commands synchronize each checkout on its next
+invocation, so no manual reinstall window exists across worktrees or OSes.
 
 The manifest sets `no-build = true`, so uv installs published wheels only and
 refuses a package that would need a source build instead of running its build
