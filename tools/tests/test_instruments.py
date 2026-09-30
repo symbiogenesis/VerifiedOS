@@ -53,6 +53,9 @@ def _each_form_is_read() -> None:
         "Definition f (o : option nat) : nat :=\n  if o is Some n then n else 0.": [(2, IF)],
         "Definition f (b : bool) (o : option nat) :=\n"
         "  if b then (if o is Some n then n else 0) else 1.": [(2, IF)],
+        # a recursive notation's `..` ends no sentence, so its `if` still pends
+        'Notation "f[ x ; .. ; y ]" :=\n'
+        "  (if cons x .. (cons y nil) .. is cons _ _ then 1 else 0).": [(2, IF)],
         "Definition g (r : R) : R := {| r with f1 := 0 |}.": [(1, WITH)],
         "Definition g r := {| (match r with | _ => r end) with f1 := 0 |}.": [(1, WITH)],
         "Definition h (n : nat) & n = 0 : nat := n.": [(1, AMP)],

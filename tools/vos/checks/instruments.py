@@ -52,10 +52,9 @@ a record's, a class's or an instance's braces is refused, as are the intro patte
 `(p & q)` and a notation token such as `&=`, which the reading cannot tell from the
 binder. What the reading cannot see is stated rather than left to be met: a form a
 notation or a loaded library supplies, text a source reaches otherwise than by a
-`Require` it spells, a subject a caller names beyond a row's defaults, a string inside a
-comment that the shared lexer reads as closing the comment early, and an instrument that
-compiles Gallina outside the table, or reaches the rig's prover otherwise than by calling
-`gallina.prover` under some name.
+`Require` it spells, a subject a caller names beyond a row's defaults, and an instrument
+that compiles Gallina outside the table, or reaches the rig's prover otherwise than by
+calling `gallina.prover` under some name.
 
 Fail-closed at every reading. An empty table, a switch or release that cannot be read or
 is not a release, a harness or named source the index does not carry, a named path that
@@ -271,10 +270,11 @@ def forms(text: str) -> list[tuple[int, str]]:
 
 def _sentence(body: str, at: int) -> tuple[int, int]:
     """Where the sentence holding an offset opens and where it ends, by the shared
-    lexer's own full stop: one followed by whitespace or the end of the text."""
+    lexer's own full stop: one followed by whitespace or the end of the text, and not
+    the second of exactly two, which Rocq reads as the token `..`."""
     opens = at
     while (dot := body.rfind(".", 0, opens)) >= 0:
-        if dot + 1 == len(body) or body[dot + 1].isspace():
+        if proofs.SENTENCE_END.match(body, dot):
             break
         opens = dot
     closes = proofs.SENTENCE_END.search(body, at)
