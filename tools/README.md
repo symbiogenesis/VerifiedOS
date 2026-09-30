@@ -57,7 +57,10 @@ Every mutation runs the checker in a fresh process and private sandbox, through 
 group that decides its rule (`check.py --through`); a survivor runs the whole checker.
 Each shard checks its pristine baseline and registry coverage; shard 1 also runs
 the complete repair path, the ordinary checker and typecheck. Members within a
-shard run concurrently. Both existing `host-gates (OS)` checks require every shard
+shard run concurrently. Each platform runs on an explicit
+runner image label, and its `host-gates (Ubuntu)` or `host-gates (Windows)` check,
+named for the platform so that an image move renames nothing, is the name
+`fanout_ci.HOST_JOBS` accepts. The two checks require every shard
 on both platforms to succeed, including refusal after a skipped or cancelled shard.
 One shard alone supplies only a partial verdict. The unsharded local command retains
 the complete suite.

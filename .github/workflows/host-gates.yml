@@ -50,23 +50,25 @@ env:
 
 jobs:
   host-gates-shard:
-    name: host-gates (${{ matrix.os }}, shard ${{ matrix.shard }}/${{ matrix.shards }})
-    runs-on: ${{ matrix.os }}
+    name: host-gates (${{ matrix.platform }}, shard ${{ matrix.shard }}/${{ matrix.shards }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        platform: [Ubuntu, Windows]
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
         exclude:
-          - {os: ubuntu-latest, shard: 5}
-          - {os: ubuntu-latest, shard: 6}
-          - {os: ubuntu-latest, shard: 7}
-          - {os: ubuntu-latest, shard: 8}
-        # Each include adds its OS's partition count to that OS's combinations.
+          - {platform: Ubuntu, shard: 5}
+          - {platform: Ubuntu, shard: 6}
+          - {platform: Ubuntu, shard: 7}
+          - {platform: Ubuntu, shard: 8}
+        # Each include adds its platform's image label and partition count to that
+        # platform's combinations. Explicit labels make an image move a reviewed edit;
+        # the job names carry the platform alone, so moving an image renames nothing.
         include:
-          - {os: ubuntu-latest, shards: 4}
-          - {os: windows-latest, shards: 8}
+          - {platform: Ubuntu, runner: ubuntu-26.04, shards: 4}
+          - {platform: Windows, runner: windows-2025-vs2026, shards: 8}
     steps:
       # Windows images keep the checkout and runner.temp on D: but TEMP on the slower
       # C: drive; selftest sandboxes and test scratch trees follow TMP and TEMP.
@@ -173,17 +175,19 @@ jobs:
               # Reporting is diagnostic; the gate step owns the job's verdict.
               annotate("warning", f"Could not render gate results: {err!r}")
 
-  # Keep the existing required-check names. A failed, skipped or cancelled shard
-  # cannot leave a successful aggregate, even if its peers completed successfully.
+  # fanout_ci.HOST_JOBS in tools/vos/fanout_ci.py owns these job names; renaming one
+  # changes the evidence fanout accepts. No repository ruleset requires them. A failed,
+  # skipped or cancelled shard cannot leave a successful aggregate, even if its peers
+  # completed successfully.
   host-gates:
-    name: host-gates (${{ matrix.os }})
+    name: host-gates (${{ matrix.platform }})
     needs: host-gates-shard
     if: ${{ always() }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 2
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        platform: [Ubuntu, Windows]
     steps:
       - name: Require every shard on both operating systems
         env:
