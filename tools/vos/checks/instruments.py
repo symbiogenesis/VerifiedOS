@@ -36,10 +36,15 @@ the gate's release.
 **The reading is lexical, over the shared lexer's text.** `proofs.strip_comments` blanks
 the comments and each string literal is blanked here, so neither can trigger a form.
 `is` is refused where an `if` of its sentence has not yet met its `then`; `with` where
-it is the first of `:=`, `with` and `|}` at a `{|`'s own depth; a lone `&` where the
-innermost bracket around it is not a plain brace, so `{x : A & P}` passes and the intro
-pattern `(p & q)` is refused with the binder; and any `of`, which 9.3 reserves as a
-keyword, so a name spelled `of` is refused with the binder. What the reading cannot see
+it is the first of `:=`, `with` and `|}` at a `{|`'s own depth; a lone `&` unless it is
+a separator an older Rocq reads, a sigma type's directly inside a plain brace holding a
+term or `exists2`'s after its binders, and even then where a `forall`, `fun`, `exists`,
+`exists2`, `let`, `fix` or `cofix` binder list is open at its depth; and any `of`, which
+9.3 reserves as a keyword, so a name spelled `of` is refused with the binder. So
+`{x : A & P}` and `exists2 x, P & Q` pass, and a field's binder written directly inside
+a record's, a class's or an instance's braces is refused, as are the intro pattern
+`(p & q)` and a notation token such as `&=`, which the reading cannot tell from the
+binder. What the reading cannot see
 is stated rather than left to be met: a form a notation or a loaded library supplies,
 text a source reaches otherwise than by a `Require` it spells, a subject a caller names
 beyond a row's defaults, a string inside a comment that the shared lexer reads as closing
@@ -172,6 +177,18 @@ _OPENERS = {"(": ")", "[": "]", "{": "}", "{|": "|}"}
 # What may stand before a focusing brace at a sentence's opening: bullets, a goal
 # selector, and the braces already read past.
 _LEAD_RE = re.compile(r"[\s\-+*{}]*(?:(?:\d+|all)\s*:)?[\s{}]*")
+# The declarations whose plain braces after `:=` hold fields rather than a term, behind
+# any attribute or modifier, and what stands before such a brace: the `:=` or a
+# constructor's name after it.
+_FIELDS_RE = re.compile(r"(?:#\[[^\]]*\]\s*|(?:Local|Global|Polymorphic|Monomorphic|"
+                        r"Cumulative|NonCumulative|Private|Program)\s+)*"
+                        r"(?:Record|Structure|Class|Inductive|CoInductive|Variant|"
+                        r"Instance)(?![\w'])")
+_FIELD_LIST_RE = re.compile(r"(?::=|\|)\s*(?:[^\W\d][\w']*\s*)?\Z")
+# What a lone `&` is read through: the brackets, the keywords opening a binder list and
+# the tokens closing one at its own depth, and each `&` before it.
+_SCOPE_RE = re.compile(r"\{\||\|\}|[()\[\]{}]|,|=>|:=|(?<!&)&(?!&)|"
+                       + _WORD.format("(?:forall|fun|exists2?|let|fix|cofix)"))
 
 # A caller of the rig's prover lookup, and the definition that is not one.
 _PROVER_CALL_RE = re.compile(r"(?<![\w.])gallina\.prover\(|(?<![\w.])(?<!def )prover\(")
@@ -218,7 +235,7 @@ def forms(text: str) -> list[tuple[int, str]]:
         elif lexeme == "of":
             found.append((start, FORM_OF))
         elif lexeme == "&":
-            if _innermost(body, opens, start) != "{":
+            if not _separates(body, opens, start):
                 found.append((start, FORM_AMP))
         elif _completed(body, hit.end(), closes):
             found.append((start, FORM_WITH))
@@ -247,25 +264,65 @@ def _whole(body: str, hit: re.Match[str]) -> bool:
     return len(lexeme) == 1 if lexeme.startswith("&") else True
 
 
-def _innermost(body: str, start: int, end: int) -> str:
-    """The bracket innermost around an offset within its sentence, "" where none is.
+def _separates(body: str, start: int, at: int) -> bool:
+    """Whether the lone `&` at `at` is a separator an older Rocq reads: a sigma type's,
+    directly inside a plain brace holding a term, or `exists2`'s, after its binders.
+
+    Either way no binder list may be open at its depth, since 9.3 reads an `&` there as
+    a binder: after `forall`, `fun`, `exists`, `exists2`, `let`, `fix` or `cofix` and
+    before the `,`, `=>` or `:=` closing their binders. An `&` a field list holds
+    directly, a record's, a class's or an instance's, is a field's binder and never a
+    sigma type's."""
+    bracket, inside, fields = _context(body, start, at)
+    depth, keyword, pending = 0, "", 0
+    for mark in _SCOPE_RE.finditer(body, inside, at):
+        lexeme = mark.group()
+        if lexeme in _OPENERS:
+            depth += 1
+        elif lexeme in _OPENERS.values():
+            depth = max(0, depth - 1)
+        elif depth:
+            continue
+        elif lexeme in (",", "=>", ":="):
+            pending += keyword == "exists2" and lexeme == ","
+            keyword = ""
+        elif lexeme == "&":
+            pending = max(0, pending - 1)
+        else:
+            keyword = lexeme
+    if keyword:
+        return False
+    return (bracket == "{" and not fields) or pending > 0
+
+
+def _context(body: str, start: int, end: int) -> tuple[str, int, bool]:
+    """The bracket innermost around an offset within its sentence, "" where none is,
+    where its contents open, and whether it is a field list: a plain brace at the
+    sentence's own depth, after its `:=` and any constructor name, in a declaration
+    that takes fields.
 
     A brace opening the sentence, after any bullet or goal selector, is a focusing brace
     around a proof step and not a bracket around its text, so a leading run of them is
     read past."""
-    stack: list[str] = []
+    stack: list[tuple[str, int, bool]] = []
     leading = True
+    declares = False
     for mark in _BRACKET_RE.finditer(body, start, end):
         lexeme = mark.group()
         if leading and lexeme in ("{", "}") and _LEAD_RE.fullmatch(body, start, mark.start()):
             start = mark.end()
             continue
+        if leading:
+            lead = _LEAD_RE.match(body, start)
+            declares = bool(_FIELDS_RE.match(body, lead.end() if lead else start))
         leading = False
         if lexeme in _OPENERS:
-            stack.append(lexeme)
+            listed = (declares and lexeme == "{" and not stack
+                      and _FIELD_LIST_RE.search(body[start:mark.start()]) is not None)
+            stack.append((lexeme, mark.end(), listed))
         elif stack:
             stack.pop()
-    return stack[-1] if stack else ""
+    return stack[-1] if stack else ("", start, False)
 
 
 def _completed(body: str, start: int, end: int) -> bool:

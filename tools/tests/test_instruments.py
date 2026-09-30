@@ -60,6 +60,20 @@ def _each_form_is_read() -> None:
         "Variant t := C1 of nat & bool.": [(1, OF), (1, AMP)],
         # a focusing brace opens the sentence and is not the bracket around its text
         "Proof.\n{ intros n & H.": [(2, AMP)],
+        # a binder list open inside a brace, whether a field list's or a sigma type's
+        "Record R := { f : forall & nat, nat }.": [(1, AMP)],
+        "Record R := Mk { g : nat; h : forall (n : nat) & n = 0, True }.": [(1, AMP)],
+        "Definition s := {x : nat & forall & x = 0, True}.": [(1, AMP)],
+        "Definition s := {x : nat | forall & x = 0, True}.": [(1, AMP)],
+        "Class C := { m : forall & nat, nat }.": [(1, AMP)],
+        "Definition t := {x : nat & fun & nat => x}.": [(1, AMP)],
+        "Definition e := {x : nat & exists & x = 0, True}.": [(1, AMP)],
+        "Definition l := {x : nat & let h & nat := True in h}.": [(1, AMP)],
+        "Definition s := {x : nat & x = 0 & forall & x = 0, True}.": [(1, AMP)],
+        # a field's own binders, directly inside the braces of a declaration's fields
+        "Record R := { f (n : nat) & n = 0 : nat }.": [(1, AMP)],
+        "#[global] Instance i : C := { m & nat := 0 }.": [(1, AMP)],
+        "Inductive I := MkI { i & nat : nat }.": [(1, AMP)],
     }
     for source, want in cases.items():
         got = k117.forms(source)
@@ -80,6 +94,16 @@ def _look_alikes_pass() -> None:
         "Definition is' := 0. Definition of' := is'. Definition x'is := 1.",
         "Proof. { exact (existT _ 0 eq_refl : {x : nat & x = 0}). } Qed.",
         "Definition r := {| f := [| 1; 2 | 0 |]; g := 0 |}.",
+        # `exists2`'s own separator, after its binders, and a sigma body's closed binders
+        "Definition e := exists2 x, x = 0 & x = 1.",
+        "Definition e := (exists2 x : nat, forall y : nat, y = x & x = 1) /\\ True.",
+        "Definition e := {x : nat & exists2 y, x = y & y = 0}.",
+        "Definition s := {x : nat & forall y : nat, x = y & True}.",
+        "Definition s := {x : nat & (fun y : nat => True) x & True}.",
+        # a sigma type where a declaration's fields would be, and one exists2 among them
+        "Record R (p : {x : nat & x = 0}) := { f : {x : nat | x = 0 & True} }.",
+        "Inductive t := K : {x : nat & x = 0} -> t.",
+        "Record R := { e : exists2 x, x = 0 & x = 1 }.",
     ]
     for source in sources:
         got = k117.forms(source)
