@@ -1129,6 +1129,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q39
 · Disposition: open, Q38 refusing coinductive definitions in authored proof sources until a lock move takes a Rocq release carrying #22388 and #22392
 
+**F-525** upstream-defect: the locked proof switch's Rocq 9.3.0 carries #22387, module subtyping of inductives whose constructor types differ in let-ins, which Rocq's critical-bug list reports fixed in 9.2.0 and 9.3
+· Raised: Q39
+· Disposition: standing, the proof audit's refusal of functors and module signatures in authored sources covering the form
+
 ## M0 · Hardware reference
 
 **F-001** upstream-defect: the CHERI upstream embeds an older `sail-riscv` than the base it would be reconciled against, so the two are not one shared base under two configurations
