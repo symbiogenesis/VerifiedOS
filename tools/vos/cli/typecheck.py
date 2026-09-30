@@ -29,7 +29,7 @@ hold the rest of the settings, so an editor's language server decides what this
 decides. The gate also passes ty `--error all`, which overrides the `[rules]`
 table, and it reads `ty.toml` itself: a `[rules]` table other than exactly
 `all = "error"` is a ty finding, because an editor reads the table without the flag,
-and so is an `[[overrides]]` entry carrying `rules`, because such an entry would
+and so is an `[[overrides]]` entry carrying `rules`, because such an entry can
 lower the flag's severities for the files it matches.
 
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
@@ -219,7 +219,7 @@ def _ty_settings(config: Path) -> list[str]:
     `--error all` overrides the `[rules]` table, so the gate's own run cannot see a
     lowered entry there; an editor's language server reads the table without the
     flag, which is why the table is held exactly rather than by what it means. An
-    `[[overrides]]` entry carrying `rules` would lower the flag itself for the files it
+    `[[overrides]]` entry carrying `rules` can lower the flag itself for the files it
     matches; one carrying only other settings changes no severity and is admitted.
 
     Fail-closed: a file that cannot be read or parsed, or an `overrides` value that is
@@ -243,7 +243,7 @@ def _ty_settings(config: Path) -> list[str]:
     else:
         findings.extend(
             f"{name}'s [[overrides]] entry {index} (include {entry.get('include')!r}) "
-            f"carries rules {entry['rules']!r}, which would lower --error all for the "
+            f"carries rules {entry['rules']!r}, which can lower --error all for the "
             "files it matches"
             for index, entry in enumerate(overrides, start=1) if "rules" in entry)
     return findings

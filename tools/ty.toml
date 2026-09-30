@@ -14,7 +14,7 @@
 # overrides this table, and it reports two shapes of this file as ty findings: a
 # `[rules]` table other than exactly `all = "error"`, because an editor reads the
 # table without the flag, and an `[[overrides]]` entry carrying `rules`, because such
-# an entry would lower the flag's severities for the files it matches.
+# an entry can lower the flag's severities for the files it matches.
 # `tools/README.md` records the pin.
 
 [rules]

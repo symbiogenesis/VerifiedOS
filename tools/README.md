@@ -949,7 +949,7 @@ nobody transcribed. The gate also passes `--error all`, which overrides the `[ru
 table, and [run.py typecheck](vos/cli/typecheck.py) holds ty.toml itself: a `[rules]`
 table other than exactly `all = "error"` is a ty finding, because an editor's ty
 server reads that table without the flag, and so is an `[[overrides]]` entry carrying
-`rules`, because such an entry would lower the flag's severities for the files it
+`rules`, because such an entry can lower the flag's severities for the files it
 matches. An unreadable ty.toml is a finding too. What ruff is *not*
 asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own line and
 each for a reason that would hold in any project, and no group switched off to spare this
