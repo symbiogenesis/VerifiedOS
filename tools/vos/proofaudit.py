@@ -250,16 +250,15 @@ def pinned_overrides(text: str) -> list[str]:
     """Sentences that would change a gate-pinned setting for their own source.
 
     The tactical reading empties string literals before it splits sentences, so neither
-    a quoted tactic nor a quoted full stop is read as code. It keeps a comment as the
-    separator Rocq's lexer reads it as: strip_comments drops a comment that holds no
-    newline, which would join `timeout(* c *)5` into one identifier.
+    a quoted tactic nor a quoted full stop is read as code. strip_comments reads a
+    comment as the separator Rocq's lexer reads it as, so `timeout(* c *)5` is the word
+    and its argument.
     """
     found = [sentence for sentence in sentences(text)
              if _PINNED.match(sentence) or _PINNED_ATTRIBUTE.search(sentence)
              or _TIMEOUT.match(sentence)]
     if "timeout" in text or "alloc_limit" in text:
-        spaced = text.replace("*)", "*) ")
-        code = SENTENCE_END.split(_STRING.sub('""', strip_comments(spaced)))
+        code = SENTENCE_END.split(_STRING.sub('""', strip_comments(text)))
         found += [sentence.strip() for sentence in code if _TACTICAL.search(sentence)]
     return found
 

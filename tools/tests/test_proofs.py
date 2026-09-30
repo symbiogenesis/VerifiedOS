@@ -275,6 +275,22 @@ def _a_decorated_statement_still_quantifies() -> None:
            f"a decorated Context quantified nothing, got {found!r}")
 
 
+def _a_comment_separates_a_decoration_from_its_head() -> None:
+    """Rocq's lexer reads a comment as a separator, and the pinned Rocq 9.3.0 compiles
+    `Local(* c *)Lemma`, so a comment with no space beside it joins nothing."""
+    for decoration in ("Local(* c *)", "Time(* c *)", "Local(* a *)Program(* b *)",
+                       '(* "(*" *)'):
+        statement = _COUNTED.replace("Lemma", f"{decoration}Lemma")
+        found = gate.scan_witnesses(_MACHINE + statement)
+        ensure(found.quantified == {"Machine": 1} and found.unbuilt == ["Machine"],
+               f"a statement after {decoration!r} quantified nothing, got {found!r}")
+        found = gate.scan_witnesses(f"{decoration}{_MACHINE}{_COUNTED}")
+        ensure(found.unbuilt == ["Machine"],
+               f"a record after {decoration!r} demanded no witness, got {found!r}")
+    found = gate.scan_witnesses(_SECTIONED.replace("Variable", "Polymorphic(* c *)Variable"))
+    ensure(found.unbuilt == ["Plan"], f"a section variable after a comment was lost: {found!r}")
+
+
 def _a_decorated_witness_is_no_witness() -> None:
     """Reading decorated heads widens the demands and not the inhabitants: the witness
     convention names an undecorated `Definition`, `Program` aside as it always was, and
@@ -377,6 +393,8 @@ def cases() -> list[Case]:
         Case("section-variable-quantifies", _a_section_variable_quantifies),
         Case("decorated-record-demands-a-witness", _a_decorated_record_still_demands_its_witness),
         Case("decorated-statement-quantifies", _a_decorated_statement_still_quantifies),
+        Case("comment-separates-decoration-from-head",
+             _a_comment_separates_a_decoration_from_its_head),
         Case("decorated-witness-is-no-witness", _a_decorated_witness_is_no_witness),
         Case("companion-witness-inhabits", _a_companion_witness_inhabits_an_imported_record),
         Case("comment-is-not-read", _a_comment_is_not_read),

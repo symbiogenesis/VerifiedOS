@@ -263,6 +263,24 @@ def _rocq_93_settings_are_pinned() -> None:
         ensure(not proofaudit.pinned_overrides(text), f"reading a pinned setting was refused: {text}")
 
 
+def _settings_read_as_the_lexer_reads_them() -> None:
+    # Each compiles under the gate's flags in the pinned Rocq 9.3.0 with the setting in
+    # effect: a comment is a separator, and a `(*` quoted inside a comment opens nothing.
+    refused = ("Set(* c *)Kernel Conversion Dep Heuristic.",
+               "Local(* c *)Set(* c *)Kernel(* c *)Conversion Dep Heuristic.",
+               '(* "(*" *) Set Kernel Conversion Dep Heuristic. (* c *)',
+               '(* "x" *)Set(* "y" *)Kernel Conversion Dep Heuristic.')
+    for text in refused:
+        ensure(len(proofaudit.pinned_overrides(text)) == 1,
+               f"a pinned setting the lexer reads passed: {text!r}")
+    allowed = ("Test(* c *)Kernel Conversion Dep Heuristic.",
+               '(* "x" Set Kernel Conversion Dep Heuristic. *) Definition x := 0.',
+               "(* (* Set Guard Checking. *) Unset Guard Checking. *) Definition x := 0.")
+    for text in allowed:
+        ensure(not proofaudit.pinned_overrides(text),
+               f"a setting inside a comment was refused: {text!r}")
+
+
 def _settings_after_bullets_are_refused() -> None:
     # The pinned Rocq 9.3.0 compiles a setting or a Timeout after a bullet, a brace or a
     # focusing selector, and the setting outlives the proof. Program is a legacy attribute.
@@ -577,6 +595,7 @@ def cases() -> list[Case]:
             Case("kernel-verdict-needs-a-clean-summary", _kernel_verdict_needs_a_clean_summary),
             Case("pinned-settings-cannot-be-overridden", _pinned_settings_cannot_be_overridden),
             Case("rocq-93-settings-are-pinned", _rocq_93_settings_are_pinned),
+            Case("settings-read-as-the-lexer-reads-them", _settings_read_as_the_lexer_reads_them),
             Case("settings-after-bullets-are-refused", _settings_after_bullets_are_refused),
             Case("machine-bound-tacticals-are-refused", _machine_bound_tacticals_are_refused),
             Case("nested-sources-cannot-be-omitted", _nested_sources_cannot_be_omitted),

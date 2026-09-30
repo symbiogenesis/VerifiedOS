@@ -170,14 +170,22 @@ def _source_index_is_one_immutable_snapshot() -> None:
 
 
 def _comment_lexing_preserves_source_and_newlines() -> None:
+    # Read as the locked Rocq 9.3.0's lexer reads each: a comment is a separator, and a
+    # string literal inside a comment is read whole, so a quoted `(*` or `*)` there
+    # opens or closes nothing and an unterminated one runs the comment to the end.
     fixtures = {
-        "before(* hidden *)after": "beforeafter",
+        "before(* hidden *)after": "before after",
         "a(* first\n(* nested\n*)tail\n*)b": "a\n\n\nb",
-        'Definition s := "(* literal *)". (* hidden *)': 'Definition s := "(* literal *)". ',
+        'Definition s := "(* literal *)". (* hidden *)': 'Definition s := "(* literal *)".  ',
         'Definition s := "a ""(* literal *)"" b".': 'Definition s := "a ""(* literal *)"" b".',
         '"unterminated (* literal': '"unterminated (* literal',
         "before(* first\n(* second\n*)": "before\n\n",
-        'a(* " *)b': "ab",
+        "before(* unterminated": "before ",
+        'a(* " *)b': "a ",
+        'a(* "(*" *)b': "a b",
+        'a(* "*)" *)b': "a b",
+        'a(* """*)" *)b': "a b",
+        'a(* "x" *)b(* "\n" *)c': "a b\nc",
         "a *) b": "a *) b",
         "a(* one\r\ntwo *)b": "a\nb",
     }

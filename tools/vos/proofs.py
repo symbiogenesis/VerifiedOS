@@ -13,8 +13,9 @@ tools make is written once.
 way. They were the proof gate's own, private to [run.py proofs](cli/proofs.py), until
 [proofcites.py](proofcites.py) needed the second half of a `.v` the gate already reads: what
 the file *defines*, which is a sentence's opening vernacular and so is decided by where
-the comments end. Both are lexical and neither knows any Gallina: a comment nests and a
-string literal outside one is kept whole, and that is the whole of what they are for.
+the comments end. Both are lexical and neither knows any Gallina: a comment nests,
+separates the tokens beside it and reads a string literal inside it whole, and a string
+literal outside one is kept whole, and that is the whole of what they are for.
 """
 
 import re
@@ -36,35 +37,42 @@ _COMMENT_TOKEN = re.compile(r'\(\*|\*\)|"')
 
 
 def strip_comments(text: str) -> str:
-    """The source with its comments blanked. Rocq comments nest, and a string literal
-    outside one is kept whole so a `(*` inside it does not open one.
+    """The source with its comments blanked, read as Rocq 9.3's lexer reads them.
 
-    The regex engine skips ordinary text; Python visits only delimiters. Each complete
-    outer comment contributes its newlines in one count, preserving source line numbers.
+    Comments nest. A string literal is read whole inside a comment as well as outside
+    one, so a `(*` or `*)` quoted in either opens or closes nothing: the lexer reads a
+    string in a comment, and the locked compiler under the gate's flags refuses a quoted
+    `*)` there outright. A comment is a token separator, so `Set(* c *)Kernel` is two
+    words: each complete outer comment becomes its newlines, preserving source line
+    numbers, or one space when it holds none. The regex engine skips ordinary text;
+    Python visits only delimiters.
     """
     out: list[str] = []
     depth = start = quoted_until = 0
     for token in _COMMENT_TOKEN.finditer(text):
         if token.start() < quoted_until:
             continue
-        if depth:
-            if token.group() == "(*":
-                depth += 1
-            elif token.group() == "*)":
-                depth -= 1
-                if not depth:
-                    out.append("\n" * text.count("\n", start, token.end()))
-                    start = token.end()
-        elif token.group() == '"':
+        if token.group() == '"':
             quoted_until = text.find('"', token.end()) + 1
             if not quoted_until:
                 break
         elif token.group() == "(*":
-            out.append(text[start:token.start()])
-            start = token.start()
-            depth = 1
-    out.append("\n" * text.count("\n", start) if depth else text[start:])
+            if not depth:
+                out.append(text[start:token.start()])
+                start = token.start()
+            depth += 1
+        elif depth:
+            depth -= 1
+            if not depth:
+                out.append(_separator(text, start, token.end()))
+                start = token.end()
+    out.append(_separator(text, start, len(text)) if depth else text[start:])
     return "".join(out)
+
+
+def _separator(text: str, start: int, end: int) -> str:
+    """What one comment leaves behind: its newlines, or one space if it holds none."""
+    return "\n" * text.count("\n", start, end) or " "
 
 
 def sentences(text: str) -> list[str]:
