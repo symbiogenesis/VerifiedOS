@@ -682,13 +682,14 @@ Example generated_traces_preserve_resource_and_ownership_checks :
     Some s => state_ok reference s | None => false end) generated_corpus = true.
 Proof.
   apply forallb_forall; intros es H.
-  pose proof (generated_reachable_is_accepted 5 es H) as HA.
+  pose proof (generated_reachable_is_accepted 5 es H) as HA. clear H.
   unfold accepted in HA. destruct (run reference initial es) as [s|] eqn:E;
     try discriminate. exact (run_preserves_admission es reference initial s eq_refl E).
 Qed.
 Example generated_neighbors_are_refused :
   forallb (fun es => negb (accepted reference initial es)) generated_refusals = true.
 Proof.
-  apply forallb_forall; intros es H. apply in_flat_map in H as [prefix [_ H]].
-  apply negb_true_iff. now apply (generated_neighbor_is_refused prefix es).
+  apply forallb_forall; intros es H.
+  destruct (proj1 (in_flat_map refuted_neighbors generated_corpus es) H) as [prefix [_ Hn]].
+  clear H. apply negb_true_iff. now apply (generated_neighbor_is_refused prefix es).
 Qed.
