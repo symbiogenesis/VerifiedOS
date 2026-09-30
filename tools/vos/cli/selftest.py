@@ -1660,9 +1660,9 @@ CASES: list[Case] = [
      _first_match("tools/rtl-width-transforms.json", r'^(  "pin": ")([0-9a-f])',
                   lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
 
-    # A development-tool row moved to a release its lock does not fix, the drift that
-    # once left filelock's row a release behind: the release is extended rather than
-    # spelled, so the case survives every reviewed bump.
+    # A development-tool row moved to a release its lock does not fix, the drift a row
+    # edited without its owner leaves: the release is extended rather than spelled, so
+    # the case survives every reviewed bump.
     ("K-118", "a development-tool row stating a release its lock does not fix",
      _first_match(THIRD_PARTY, r"filelock `(\d[^`]*)`", lambda m: f"filelock `{m[1]}.1`")),
     # The other direction, which no reader of the record can see: the lock moves and

@@ -210,7 +210,7 @@ an owner here**: [uv.lock](../../uv.lock) for the Python packages,
 [opam snapshots](../../opam/README.md) for the switches, and a constant or a shell
 setting where a tool installs its own release, [actionlint.sh](../../ci/actionlint.sh)'s
 among them for the workflow linter Host CI runs. A dependency bump moves the owner and
-leaves the row, which is how filelock's row came to name a release its lock had left.
+leaves the row, so a row names a release its owner has left unless something holds it.
 
 **The rows are a table this rule declares, held total in both directions.** A row is
 either held here, site by site, or declared with why nothing here holds it. A site is a
