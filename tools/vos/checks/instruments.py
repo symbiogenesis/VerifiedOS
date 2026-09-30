@@ -655,9 +655,12 @@ def _selections(root: Path, tracked: set[str],
         if (not rel.startswith(_SCANNED) or not rel.endswith(".py")
                 or rel.startswith(f"{_SCANNED}checks/")):
             continue
+        # Only a module spelling both the rig and its lookup can call it, so no other is
+        # parsed; the rig itself spells its own name in its prose.
         try:
             text = (root / rel).read_text(encoding="utf-8")
-            tree = ast.parse(text, filename=rel) if _PROVER in text else None
+            spelled = _PROVER in text and "gallina" in text
+            tree = ast.parse(text, filename=rel) if spelled else None
         except (OSError, UnicodeDecodeError, SyntaxError) as err:
             found.append(f"{rel} cannot be read, so whether it resolves a prover through "
                          f"gallina.prover is undecided ({err})")
@@ -693,6 +696,7 @@ def _asks(tree: ast.Module, own: bool) -> tuple[set[str] | None, list[int]]:
     back through the statements binding it in the call's function, then the module's."""
     modules: dict[str, object] = {}
     callees = {_PROVER} if own else set()
+    candidates: list[ast.Call] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom):
             source = node.module or ""
@@ -705,18 +709,26 @@ def _asks(tree: ast.Module, own: bool) -> tuple[set[str] | None, list[int]]:
             modules |= {a.asname: _MODULES[a.name.removeprefix("vos.")] for a in node.names
                         if a.asname and a.name.removeprefix("vos.") in _MODULES
                         and a.name.startswith("vos.")}
+        elif isinstance(node, ast.Call):
+            candidates.append(node)
+    calls = [node for node in candidates if _calls_prover(node.func, callees, modules)]
+    if not calls:
+        return None, []
     bare = gallina if own else None
 
-    # Each node's innermost function, or the module: the walk reaches an outer scope
-    # before any scope inside it, so the last assignment is the innermost.
+    # Each node's innermost function, or the module, and the names each of those binds,
+    # in one pass over the tree: a function's own statement lives in the scope around it.
     scopes: dict[ast.AST, ast.AST] = {}
-    for scope in ast.walk(tree):
-        if isinstance(scope, ast.Module | ast.FunctionDef | ast.AsyncFunctionDef):
-            scopes |= dict.fromkeys(ast.walk(scope), scope)
     bindings: dict[ast.AST, dict[str, list[ast.expr]]] = {}
-    for node, scope in scopes.items():
-        for name, value in _binds(node):
-            bindings.setdefault(scope, {}).setdefault(name, []).append(value)
+    stack: list[tuple[ast.AST, ast.AST]] = [(tree, tree)]
+    while stack:
+        node, scope = stack.pop()
+        inner = node if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) else scope
+        for child in ast.iter_child_nodes(node):
+            scopes[child] = inner
+            for name, value in _binds(child):
+                bindings.setdefault(inner, {}).setdefault(name, []).append(value)
+            stack.append((child, inner))
 
     def named(expr: ast.expr, scope: ast.AST, seen: set[str]) -> set[str]:
         out: set[str] = set()
@@ -733,11 +745,9 @@ def _asks(tree: ast.Module, own: bool) -> tuple[set[str] | None, list[int]]:
                 out |= found
         return out
 
-    asked: set[str] | None = None
+    asked: set[str] = set()
     unread: list[int] = []
-    for node in ast.walk(tree):
-        if not (isinstance(node, ast.Call) and _calls_prover(node.func, callees, modules)):
-            continue
+    for node in sorted(calls, key=lambda call: call.lineno):
         argument = (node.args[0] if node.args
                     else next((k.value for k in node.keywords), None))
         got: set[str] = set()
@@ -745,7 +755,7 @@ def _asks(tree: ast.Module, own: bool) -> tuple[set[str] | None, list[int]]:
             got.add(argument.value)
         elif argument is not None:
             got = named(argument, scopes.get(node, tree), set())
-        asked = got if asked is None else asked | got
+        asked |= got
         if not got:
             unread.append(node.lineno)
     return asked, unread
