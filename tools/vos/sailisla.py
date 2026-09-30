@@ -336,9 +336,14 @@ def _fresh_prefix(base: Path) -> Path:
     """The lane Sail's install prefix, emptied so nothing a superseded build installed
     stays in libsail's plugin site or on the plugin build's OCAMLPATH.
 
-    dune install records the prefix in the executables it installs as libsail's site
-    location (a move needs `--relocatable`), so the prefix cannot be built beside and
-    renamed into place. The stamp goes first, so an interrupted run leaves none.
+    dune install records its prefix in the executables it installs as libsail's site
+    location, so a sibling prefix renamed into place would need `--relocatable` or a
+    `--destdir` staging tree. Neither is worth it: qualification directs provisioning
+    only when the stamp is absent or its build inputs or tools changed, and it refuses
+    both, so a needed provisioning has no usable installation to preserve and builds
+    in place. The stamp goes first, so an interrupted run leaves none: of the prefix's
+    files it hashes only the sail executable, so a stamp beside a partly emptied
+    prefix could pass qualification's stamp check.
     """
     (base / "provision.json").unlink(missing_ok=True)
     prefix = base / "sail-prefix"

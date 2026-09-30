@@ -263,7 +263,7 @@ def _provision_uses_fresh_prefix() -> None:
                "an interrupted provisioning must leave no stamp describing a removed prefix")
 
         # The stamp hashes only the prefix's sail executable, so a stamp left beside a
-        # prefix whose removal stopped partway could still pass qualification.
+        # prefix whose removal stopped partway could pass qualification's stamp check.
         remove = shutil.rmtree
 
         def removal_interrupted(path: Path) -> None:
