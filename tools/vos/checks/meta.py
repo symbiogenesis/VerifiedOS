@@ -164,21 +164,26 @@ added to one leaves the section describing less than the table while every other
 stays green, and a rule named under two leaves a reader unable to say which reach it has.
 
 **The rules it decides about are the registry's own rows**, the set K-00 reads, so a row
-is inside it the day it is written; the classes are read off the page, each by the bold
-word of its opening sentence and by one membership sentence, `which is what` or `That is
-what`, a list of ids, then `are`. The four class names are fixed here rather than read,
-so a class retitled away and a fifth class written in are each a finding rather than a
-class this rule stops or never starts reading. A list is decided whole by a grammar of
-ids, `K-a through K-b` ranges, commas and `and`, and a range expands over the active rows
-whose numbers it spans, so a struck row inside one is skipped rather than placed.
+is inside it the day it is written; the classes are read off the page, each by the first
+bold phrase of the sentence opening it with `Where the set is`, whatever words stand
+between, and by one membership sentence, `which is what` or `That is what`, a list of
+ids, then `are`. The four class names are fixed here rather than read, so a class
+retitled away and a fifth class opened that way are each a finding rather than a class
+this rule stops or never starts reading, and so is a `Where the set is` in the section
+that names no class before its sentence ends. What that reading does not reach is a
+class introduced in some other sentence form: it is read as part of the class before it
+and is caught only where it carries a membership sentence of its own, that class then
+stating two. A list is decided whole by a grammar of ids, `K-a through K-b` ranges,
+commas and `and`, and a range expands over the active rows whose numbers it spans, so a
+struck row inside one is skipped rather than placed.
 
-**Fail-closed at every reading.** A missing section, a class with no membership sentence
-or with two, a list carrying a word the grammar does not know, a range that runs
-backwards or ends on an id the registry does not carry as an active rule, an id a class
-names that is struck, quarantined or never registered, and a class naming no registered
-rule are each findings, so the floor is inside the rule for the reason K-84's is. What it
-does not decide is whether a rule sits in the class its row and code fit, which is a
-reading.
+**Fail-closed at every reading.** A missing section, a `Where the set is` that opens no
+class, a class with no membership sentence or with two, a list carrying a word the
+grammar does not know, a range that runs backwards or ends on an id the registry does
+not carry as an active rule, an id a class names that is struck, quarantined or never
+registered, and a class naming no registered rule are each findings, so the floor is
+inside the rule for the reason K-84's is. What it does not decide is whether a rule sits
+in the class its row and code fit, which is a reading.
 """
 
 import re
@@ -231,12 +236,16 @@ _HOLDER_RE = re.compile(r"\*\*(K-\d{2,3})\*\*")
 _LANDED_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed:")
 _TIER_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed: Tier (?P<tier>[AB])\b(?P<rest>.*)")
 
-# K-119's reading of the reach section. The four class names are fixed here rather than
-# read off the page, so a class retitled away and a fifth class written in are each a
-# finding rather than a class this rule silently stops or never starts reading.
+# K-119's reading of the reach section. A class opens with `Where the set is` and is
+# named by the first bold phrase before that sentence ends, whatever words stand between,
+# and every `Where the set is` in the section has to open one. The four class names are
+# fixed here rather than read off the page, so a class retitled away, a fifth class opened
+# that way, and a `Where the set is` naming no class are each a finding rather than a
+# class this rule silently stops or never starts reading.
 REACH_HEADING = "## What a passing run does not decide"
 REACH_CLASSES = ("name", "computed value", "pattern", "total")
-_CLASS_OPEN_RE = re.compile(r"Where the set is (?:found by |a )?\*\*([^*\r\n]+)\*\*")
+_CLASS_LEAD_RE = re.compile(r"\bWhere the set is\b")
+_CLASS_OPEN_RE = re.compile(r"\bWhere the set is [^*.\r\n]*?\*\*([^*\r\n]+)\*\*")
 
 # A class's membership sentence: `which is what` or `That is what`, the list, then `are`.
 # The capture admits only the characters a list is spelled in, so a sentence that merely
@@ -768,6 +777,14 @@ def _classes(ctx: Context, registered: set[str]) -> None:
             hi = doc.starts[bottom] if bottom < len(doc.lines) else len(doc.raw)
             opens = [m for m in _CLASS_OPEN_RE.finditer(doc.raw, lo, hi)
                      if not doc.is_fenced(m.start())]
+            # A lead that opens no class leaves what it introduces read as part of the
+            # class before it, so it is reported rather than passed over.
+            starts = {m.start() for m in opens}
+            findings += [f"{RULES}:{doc.at(m.start())} states 'Where the set is' and names "
+                         "no class in bold before its sentence ends, so it opens no reach "
+                         "class this rule reads"
+                         for m in _CLASS_LEAD_RE.finditer(doc.raw, lo, hi)
+                         if m.start() not in starts and not doc.is_fenced(m.start())]
             seen_classes: set[str] = set()
             for k, m in enumerate(opens):
                 name = m.group(1)

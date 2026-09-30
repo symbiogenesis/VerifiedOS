@@ -1794,6 +1794,21 @@ CASES: list[Case] = [
      _literal(RULES, "which is what K-01 through K-17,",
               "which is what K-00, K-01 through K-17,")),
 
+    # A fifth class opened in other words than the four use. It carries no membership
+    # sentence, so an opener read only as `found by` or `a` before the bold name passes
+    # it over and the text sits unnoticed inside the pattern class's region.
+    ("K-119", "a fifth reach class opened in words the four do not use",
+     _literal(RULES, "Where the set is **total**,",
+              "Where the set is located by **marker**, nothing is read. "
+              "Where the set is **total**,")),
+
+    # The lead with no class in bold before its sentence ends, which opens nothing and
+    # is otherwise read as part of the class before it.
+    ("K-119", "a 'Where the set is' sentence naming no class",
+     _literal(RULES, "Where the set is **total**,",
+              "Where the set is located by a marker, nothing is read. "
+              "Where the set is **total**,")),
+
     # Seeded on the plan's side, which is the direction the defect arrives from: a
     # completion note is edited far more often than the index over it. The word alone
     # moves and its bullets stay, which is exactly what a finding added to a note

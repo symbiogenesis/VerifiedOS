@@ -2,8 +2,13 @@
 """Retirement checks ownership, ancestry, retention and interrupted removal in real Git."""
 
 import ast
+import errno
+import json
 import os
+import re
+import subprocess
 import sys
+import tempfile
 from collections.abc import Callable
 from dataclasses import asdict, replace
 from pathlib import Path
@@ -12,6 +17,7 @@ from unittest.mock import patch
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from tests.test_worktree import _commit, _git
 from vos import fanout_retire as retire
+from vos.cli import proofs as proofs_cli
 from vos.cli import worktree
 
 FILES = {".gitignore": "/.worktrees/\n/out/\n", "README.md": "fixture\n"}
@@ -371,6 +377,175 @@ def _native_oracle_locks_of_every_edition() -> None:
                "with no oracle build running, the lane's oracle log travels with it")
 
 
+# The descriptor limit is process-wide, so it is lowered in a child: lowered here, it
+# would bind every module the runner's worker process takes next. The child builds a
+# lane with four directories per descriptor and a second lane with two lock files per
+# descriptor, then reports each outcome as a string, an OSError by its errno.
+_DESCRIPTOR_PROBE = """
+import fcntl
+import json
+import os
+import resource
+import sys
+from pathlib import Path
+from unittest.mock import patch
+
+from vos import env
+from vos import fanout_retire as retire
+
+root, limit = Path(sys.argv[1]).resolve(), int(sys.argv[2])
+build, logs = root / "build", root / "logs"
+logs.mkdir(parents=True)
+lane = build / "lane-worker"
+for index in range(4 * limit):
+    (lane / "opam" / f"package-{index:04}" / "lib").mkdir(parents=True)
+(lane / "proof-gate").mkdir()
+crowded = build / "lane-crowded"
+crowded.mkdir()
+for index in range(2 * limit):
+    (crowded / f"run-{index:04}.lock").write_text("", encoding="utf-8")
+resource.setrlimit(resource.RLIMIT_NOFILE, (limit, resource.getrlimit(resource.RLIMIT_NOFILE)[1]))
+found = {"limit": resource.getrlimit(resource.RLIMIT_NOFILE)[0]}
+
+
+def outcome(name, batch):
+    try:
+        retire.retain_native(name, str(build / f"lane-{name}"), str(logs), batch)
+    except retire.RetirementError as exc:
+        return f"refused: {exc}"
+    except OSError as exc:
+        return f"OSError {exc.errno}"
+    return "retired"
+
+
+# Positive control: the selection that held every directory, opened as it opened it.
+held = []
+try:
+    for path in [lane, *(path for path in retire._tree_safe(lane)
+                         if path.is_dir() or path.name.endswith(".lock"))]:
+        held.append(os.open(path, os.O_RDONLY))
+    found["control"] = "opened"
+except OSError as exc:
+    found["control"] = f"OSError {exc.errno}"
+finally:
+    for fd in held:
+        os.close(fd)
+with patch.object(retire.env, "filesystem", return_value="ext4"):
+    handle = env.hold_lock(lane / "opam" / "package-0001" / "lib" / "cache", "a nested producer")
+    found["nested"] = outcome("worker", "1" * 20)
+    handle.close()
+    fd = os.open(lane / "proof-gate", os.O_RDONLY)
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    found["directory"] = outcome("worker", "1" * 20)
+    os.close(fd)
+    found["held-in-place"] = lane.is_dir()
+    found["retired"] = outcome("worker", "1" * 20)
+    found["crowded"] = outcome("crowded", "2" * 20)
+    found["crowded-in-place"] = len(list(crowded.glob("*.lock")))
+archive = build / "fanout-retained" / ("1" * 20) / "worker" / "lane" / "opam"
+found["archived"] = len(list(archive.iterdir())) if archive.is_dir() else 0
+print(json.dumps(found))
+"""
+
+
+def _native_locks_fit_descriptor_limit() -> None:
+    """Retirement opens only the locks a producer can hold, so a lane with more
+    directories than descriptors retires, a held nested lock still refuses it, and
+    more lock files than descriptors refuse as a verdict naming the path, never as an
+    uncaught OSError."""
+    limit = 64
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as work:
+        done = subprocess.run([sys.executable, "-c", _DESCRIPTOR_PROBE, work, str(limit)],
+                              capture_output=True, encoding="utf-8", errors="replace",
+                              check=False, timeout=300, env={**os.environ, "PYTHONPATH": str(TOOLS)})
+    ensure(done.returncode == 0, f"the descriptor probe must answer: {done.stderr[-800:]!r}")
+    found = json.loads(done.stdout)
+    ensure(found["limit"] == limit and found["control"] == f"OSError {errno.EMFILE}",
+           f"precondition: holding every directory exhausts the lowered limit, got {found}")
+    ensure(str(found["nested"]).startswith("refused: native output lock is active")
+           and str(found["nested"]).endswith("/opam/package-0001/lib/cache.lock"),
+           f"a producer's nested lock file still refuses retirement, got {found['nested']}")
+    ensure(str(found["directory"]).startswith("refused: native output lock is active")
+           and str(found["directory"]).endswith("/lane-worker/proof-gate") and found["held-in-place"],
+           f"the proof workspace's directory lock still refuses retirement, got {found['directory']}")
+    ensure(found["retired"] == "retired" and found["archived"] == 4 * limit,
+           f"a lane with more directories than descriptors retires whole, got {found}")
+    ensure(str(found["crowded"]).startswith("refused: native output lock cannot be taken: ")
+           and "run-" in str(found["crowded"]) and f"{2 * limit + 1} locks needed" in str(found["crowded"])
+           and found["crowded-in-place"] == 2 * limit,
+           f"more lock files than descriptors refuse naming the path and move nothing, got {found}")
+
+
+def _tool_sources(pattern: str) -> list[Path]:
+    """The tools' own sources: the tests and any installed environment are not producers."""
+    return [path for path in TOOLS.rglob(pattern)
+            if not {"tests", "site-packages", "node_modules"} & set(path.relative_to(TOOLS).parts)
+            and not any(part.startswith(".") for part in path.relative_to(TOOLS).parts)]
+
+
+def _flock_sites(path: Path) -> set[tuple[str, str]]:
+    """Each (module, innermost function) that calls `flock` in one source file."""
+    name = path.relative_to(TOOLS).as_posix()
+    sites: set[tuple[str, str]] = set()
+
+    def visit(node: ast.AST, owner: str) -> None:
+        for child in ast.iter_child_nodes(node):
+            inner = child.name if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef) else owner
+            if (isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute)
+                    and child.func.attr == "flock"):
+                sites.add((name, owner))
+            visit(child, inner)
+
+    visit(ast.parse(path.read_text(encoding="utf-8")), "<module>")
+    return sites
+
+
+def _producer_lock_inventory() -> None:
+    """The retirement's lock rule holds only while every producer lock is a `*.lock`
+    file or a directory in `_DIRECTORY_LOCKS`: each `flock` site is classified here."""
+    lock_files = {("vos/env.py", "_flock"), ("vos/env.py", "_unlock"),  # env._lock_path
+                  ("vos/cli/fanout.py", "_exclusive"),  # out/fanout/.lock, host side
+                  ("vos/fanout_retire.py", "retain_native")}  # the retirement itself
+    directories = {("vos/cli/proofs.py", "_hold")}
+    sources = _tool_sources("*.py")
+    sites = set().union(*(_flock_sites(path) for path in sources))
+    ensure(directories | {("vos/env.py", "_flock")} <= sites,
+           f"precondition: the scan finds the known flock sites, got {sites}")
+    ensure(sites <= lock_files | directories, f"unclassified flock sites: {sites - lock_files - directories}")
+    callers = 0
+    for path in sources:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for call in ast.walk(tree):
+            if not isinstance(call, ast.Call) or not (
+                    (isinstance(call.func, ast.Attribute) and call.func.attr == "_hold")
+                    or (path.name == "proofs.py" and isinstance(call.func, ast.Name)
+                        and call.func.id == "_hold")):
+                continue
+            callers += 1
+            argument = call.args[0] if call.args else None
+            ensure(isinstance(argument, ast.Call) and (
+                (isinstance(argument.func, ast.Name) and argument.func.id == "workspace")
+                or (isinstance(argument.func, ast.Attribute) and argument.func.attr == "workspace")),
+                f"{path.name}:{call.lineno} flocks a directory other than the proof workspace")
+    ensure(callers > 0, "precondition: the proof workspace's lock callers are found")
+    lane = Path("/nonexistent/build/lane-worker").resolve()
+    with patch.object(proofs_cli.env, "lane_of", return_value="worker"), \
+            patch.object(proofs_cli.env, "lane_root", return_value=lane), \
+            patch.object(proofs_cli.env, "filesystem", return_value="ext4"):
+        held = proofs_cli.workspace(Path("/nonexistent/checkout").resolve())
+    ensure(held.parent == lane and held.name in retire._DIRECTORY_LOCKS,
+           f"the proof workspace {held} must be a directory lock retirement holds")
+    scripts = _tool_sources("*.sh")
+    ensure(any("flock" in script.read_text(encoding="utf-8") for script in scripts),
+           "precondition: the toolchain installer scripts' locks are found")
+    for script in scripts:
+        text = script.read_text(encoding="utf-8")
+        for fd in re.findall(r"flock\s+-\w+\s+(\d+)", text):
+            targets = re.findall(rf'\)\s*{fd}>"([^"]+)"', text)
+            ensure(bool(targets) and all(target.endswith(".lock") for target in targets),
+                   f"{script.name} flocks descriptor {fd} on something other than a *.lock file")
+
+
 def cases() -> list[Case]:
     return [Case("retains-outputs-and-repeats", _retains_outputs_and_repeats),
             Case("dirty-and-unintegrated", _dirty_and_unintegrated),
@@ -381,6 +556,7 @@ def cases() -> list[Case]:
             Case("branch-moved-after-removal", _branch_moved_after_removal),
             Case("missing-without-receipt", _missing_without_receipt),
             Case("records", _records), Case("log-inventory-covers-callers", _log_inventory_covers_callers),
+            Case("producer-lock-inventory", _producer_lock_inventory),
             Case("symlink-escape", _symlink_escape, lane="guest"),
             Case("native-outputs-and-lock", _native_outputs_and_lock, lane="guest"),
             Case("native-directory-lock", _native_directory_lock, lane="guest"),
@@ -388,4 +564,5 @@ def cases() -> list[Case]:
             Case("native-exact-log-ownership", _native_exact_log_ownership, lane="guest"),
             Case("native-log-directories-and-companions", _native_log_directories_and_companions, lane="guest"),
             Case("native-log-locks-and-peer-directories", _native_log_locks_and_peer_directories, lane="guest"),
-            Case("native-oracle-locks-of-every-edition", _native_oracle_locks_of_every_edition, lane="guest")]
+            Case("native-oracle-locks-of-every-edition", _native_oracle_locks_of_every_edition, lane="guest"),
+            Case("native-locks-fit-descriptor-limit", _native_locks_fit_descriptor_limit, lane="guest")]

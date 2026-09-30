@@ -628,6 +628,23 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
                "fail-closed: no ok line stands beside an unread class")
 
 
+def _k119_every_class_lead_is_read() -> None:
+    # A fifth class opened by other words than the four use is still read and named, and
+    # a lead naming no class in bold is reported rather than folded into the class before.
+    for kwargs, want in (
+            ({"total": "Where the set is located by **marker**, nothing narrows. "
+                       + _K119_TOTAL},
+             "opens a reach class '**marker**' that is not one of the four this rule reads"),
+            ({"computed": _K119_COMPUTED
+              + " Where the set is located by a marker, nothing narrows."},
+             "states 'Where the set is' and names no class in bold before its sentence "
+             "ends")):
+        found, out = _k119(**kwargs)
+        ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
+        ensure(not any(line.startswith("ok K-119:") for line in out),
+               "fail-closed: no ok line stands beside an unread lead")
+
+
 def _k97_reviewed_pin_is_required_without_prose_copies() -> None:
     source = 'VERILATOR_PIN = "9.999"\n'
     record = ("# Components\n\n| Tool | License | Standing |\n| --- | --- | --- |\n"
@@ -1577,6 +1594,7 @@ def cases() -> list[Case]:
         Case("k119-ranges-expand-over-active-rows", _k119_ranges_expand_over_active_rows),
         Case("k119-unreadable-class-sentences-fail-closed",
              _k119_unreadable_class_sentences_fail_closed),
+        Case("k119-every-class-lead-is-read", _k119_every_class_lead_is_read),
         Case("k97-reviewed-pin-is-required-without-prose-copies",
              _k97_reviewed_pin_is_required_without_prose_copies),
         Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),
