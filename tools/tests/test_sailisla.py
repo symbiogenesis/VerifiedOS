@@ -3,6 +3,7 @@
 
 import io
 import json
+import tomllib
 from collections.abc import Callable
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -79,6 +80,46 @@ def _download_digest() -> None:
                "a mismatched download must not become an installable archive")
 
 
+_UPSTREAM_LOCK = """version = 3
+
+[[package]]
+name = "crossbeam-channel"
+version = "0.5.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-utils"
+version = "0.8.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb"
+"""
+
+
+def _lock_override() -> None:
+    declared = {"crossbeam-channel": "0.5.17"}
+    override = _UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.17"').replace('"aa"', '"cc"')
+    sailisla.check_lock_override(_UPSTREAM_LOCK, override, declared)
+    for changed in (override.replace('"0.8.19"', '"0.8.23"'),
+                    override.replace('"0.5.17"', '"0.5.16"'),
+                    override.replace(' "crossbeam-utils",\n', ""),
+                    override.replace("version = 3", "version = 4"),
+                    override + '\n[[package]]\nname = "extra"\nversion = "1.0.0"\n'):
+        _reject(lambda text=changed: sailisla.check_lock_override(_UPSTREAM_LOCK, text, declared))
+    _reject(lambda: sailisla.check_lock_override(_UPSTREAM_LOCK, override, {"crossbeam-epoch": "0.9.21"}))
+
+
+def _tracked_lock_override() -> None:
+    lock = json.loads((TOOLS / "sail-isla/lock.json").read_text(encoding="utf-8"))
+    override = (TOOLS / "sail-isla" / lock["isla"]["cargo_lock"]).read_text(encoding="utf-8")
+    rows = {(row["name"], row["version"]) for row in tomllib.loads(override)["package"]}
+    ensure(all((name, version) in rows for name, version in lock["isla"]["cargo_lock_overrides"].items()),
+           "the tracked Isla lock override must carry every declared version")
+
+
 def _report() -> dict[str, Any]:
     return {
         "version": 1, "advisory_only": True, "notice": sailisla.NOTICE, "passed": True,
@@ -144,6 +185,8 @@ def cases() -> list[Case]:
             Case("defect-control-classification", _controls),
             Case("mutation-unique-anchors", _mutation_anchors),
             Case("download-digest-refusal", _download_digest),
+            Case("lock-override-declared-versions-only", _lock_override),
+            Case("tracked-lock-override-carries-declared-versions", _tracked_lock_override),
             Case("versioned-json-schema", _schema),
             Case("cli-refuses-partial-verdict", _cli),
             Case("oracle-replays-generated-inputs", _harness_uses_model)]

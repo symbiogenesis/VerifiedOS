@@ -19,7 +19,7 @@ from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
-from vos import sailbundle, workorder
+from vos import device_regs, rtl_width, sailbundle, workorder
 from vos.checks import Context, bindings, compounds, counts, estimates, generated, meta, pins
 from vos.register import read_artifacts, read_register
 from vos.report import Reporter
@@ -619,6 +619,38 @@ def _k115_unreadable_readings_fail_closed() -> None:
         found = _k115(files)
         ensure(any(fragment in item for item in found),
                f"an unreadable reading must report ({fragment!r}): {found!r}")
+def _k116(files: dict[str, str], gitlinks: dict[str, str]) -> list[str]:
+    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN, **files}) as root:
+        ctx = _context(root, fix=True)
+        ctx.corpus.gitlinks.clear()
+        ctx.corpus.gitlinks.update(gitlinks)
+        pins._bindings(ctx)
+        ensure(not ctx.fixed, "a consumed binding is re-derived, never rewritten")
+        return _findings_under(ctx, "K-116")
+
+
+def _k116_consumed_bindings_are_held_whole_and_fail_closed() -> None:
+    core, mocha = "c" * 40, "d" * 40
+    registry = json.dumps({"schema": "vos.rtl-width-transforms/1", "pin": core})
+    header = f"// generated\n{device_regs.STAMP}{mocha}\npackage p;\nendpackage\n"
+    files = {rtl_width.REGISTRY: registry, device_regs.ARTIFACT: header}
+    links = {rtl_width.CORE: core, device_regs.UPSTREAM: mocha}
+    ensure(not _k116(files, links), "bindings recording their gitlinks' commits pass")
+    for changed, gitlinks, needle in (
+            # a moved gitlink with neither artifact re-derived
+            (files, {**links, rtl_width.CORE: "e" * 40}, "carries upstream/cva6-cheri at eeee"),
+            # the whole id is held, not the abbreviation a finding quotes
+            (files, {**links, device_regs.UPSTREAM: mocha[:39] + "e"},
+             "carries upstream/mocha at dddd"),
+            ({**files, device_regs.ARTIFACT: header.replace(device_regs.STAMP, "// ")},
+             links, "owner revision cannot be read"),
+            ({**files, rtl_width.REGISTRY: json.dumps({"pin": core[:8]})},
+             links, "registry pin cannot be read"),
+            ({rtl_width.REGISTRY: registry}, links, "is not in the repository"),
+            (files, {rtl_width.CORE: core}, "carries no gitlink")):
+        found = _k116(changed, gitlinks)
+        ensure(len(found) == 1 and needle in found[0],
+               f"each broken binding is one finding naming it: {found!r}")
 
 
 def _k81(files: dict[str, str], residues: dict[tuple[str, str], str],
@@ -917,6 +949,8 @@ def cases() -> list[Case]:
         Case("k81-historical-residue-cannot-exempt-table",
              _k81_historical_residue_cannot_exempt_table),
         Case("k81-historical-residue-requires-reason", _k81_historical_residue_requires_reason),
+        Case("k116-consumed-bindings-are-held-whole-and-fail-closed",
+             _k116_consumed_bindings_are_held_whole_and_fail_closed),
         Case("k88-foreign-library-is-a-finding", _k88_foreign_library_is_a_finding),
         Case("k84-retired-holders-are-historical-only", _k84_retired_holders_are_historical_only),
         Case("k84-retirement-needs-an-unfenced-registry-row",

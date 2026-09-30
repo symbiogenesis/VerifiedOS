@@ -77,10 +77,13 @@ The [candidate integration](docs/implementation/static-memory/candidates.md)
 fetches idealloc's `coreba` implementation at the revision and source hashes in
 [its manifest](tools/memory-planner/idealloc.json). Its upstream MIT license is
 read before integration and retained with the fetched source. The tracked Rust
-bridge is authored here. Rust tooling, Cargo dependencies, caches, source and
-executables stay in the native guest lane; their individual licenses and pinned
-dependency closure remain applicable. This is an untrusted candidate producer,
-not code installed in a VerifiedOS image.
+bridge is authored here. The Rust toolchain is installed from the same
+hash-pinned 1.98.1 component archives as the optional Isla tools, whose license
+reading is recorded under [Sail agent assistance references](#sail-agent-assistance-references).
+Rust tooling, Cargo dependencies, caches, source and executables stay in the
+native guest lane; their individual licenses and pinned dependency closure
+remain applicable. This is an untrusted candidate producer, not code installed
+in a VerifiedOS image.
 
 The [certificate integration](docs/implementation/static-memory/certificates.md)
 fetches `lrat_isa` and CaDiCaL using [its pinned manifest](tools/memory-planner/certificates.json).
@@ -152,6 +155,31 @@ emissions, vector checks and independent replay with regenerated provenance.
 The current generated headers and their historical source identities remain
 the accepted inputs.
 
+The RTL review on 2026-09-29 resolved the branch [.gitmodules](.gitmodules) names
+for each RTL pin and read each advanced pin's own license instruments at its new
+revision:
+
+- Mocha advances to its `main` tip. `REUSE.toml`, `hw/vendor/REUSE.toml`, the
+  `LICENSES/` texts, the UART register and status owners and `hw/top_chip/` are
+  byte-identical to the preceding pin's. The added `doc/` pages fall under the
+  root manifest's `Apache-2.0` annotation and the two added assertion patches
+  under the vendor manifest's `patches/**` `Apache-2.0` annotation. The modified
+  vendored CVA6-CHERI, debug-module and tag-controller sources keep the terms
+  recorded below. Its CVA6-CHERI vendor lock now selects the edition the
+  `upstream/cva6-cheri` gitlink pins.
+- OpenTitan advances to its `master` tip as a read reference: `LICENSE` and the
+  SECDED assertion and generator files the proof-reuse survey cites are
+  byte-identical to the preceding pin's. Elaboration takes its primitives from
+  Mocha's vendored OpenTitan tree, the edition Mocha integrates the imported
+  core with, rather than from this pin.
+- CVA6-CHERI stays at the tip of its `mocha` branch, the edition Mocha vendors
+  and the width-transform registry binds.
+- The standalone tag controller stays at its `main` tip, which carries the
+  `2level-september-2026` snapshot tag.
+- Ibex stays at its `master` tip; its newest release tag is older.
+- CHERIoT-Ibex stays at its `main` tip; its `cheriot_ibex_v1.0` release predates
+  a later RTL fix.
+
 The **Use** column records repository activity:
 
 - **consumed:** a command under [tools/run.py](tools/run.py) opens the submodule's files.
@@ -167,10 +195,10 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 | `upstream/sail-cheri-riscv` | `CTSRD-CHERI/sail-cheri-riscv` | `bb07488d` | `BSD-2-Clause` | Capability-semantics oracle built by `run.py model oracle`. | consumed |
 | `upstream/SECOMP` | `secure-compilation/SECOMP` | `5c20b839` | INRIA Non-Commercial License Agreement, over a dual-licensed subset | CompCert fork measured in a separate, unpublished local repository. No build here invokes it. | read |
 | `upstream/llvm-project` | `llvm/llvm-project` | `d53a3f75`, on `main` | `Apache-2.0 WITH LLVM-exception` | Untrusted disassembly and object tooling for M1.4 to re-home to the frozen dialect, reusing the in-tree assembler's generated encoding and image composition. | pinned to read later |
-| `upstream/mocha` | `lowRISC/mocha` | `2c11b745`, on `main` | `Apache-2.0` for lowRISC content; vendored subtrees have the terms below | Bring-up SoC used to author the device and tag-fabric descriptions in [the RTL delta](docs/hardware/rtl-reparameterization-delta.md) and [provenance record](rtl/synthesis-provenance.md). `run.py rtl devicescheck` reads its UART register and status declarations. | consumed |
+| `upstream/mocha` | `lowRISC/mocha` | `4b9bec92`, on `main` | `Apache-2.0` for lowRISC content; vendored subtrees have the terms below | Bring-up SoC used to author the device and tag-fabric descriptions in [the RTL delta](docs/hardware/rtl-reparameterization-delta.md) and [provenance record](rtl/synthesis-provenance.md). `run.py rtl devicescheck` reads its UART register and status declarations. `run.py rtl elaborate` reads the primitive packages, assertion header and primitive libraries of its vendored OpenTitan tree, the edition it integrates the imported core with. | consumed |
 | `upstream/cva6-cheri` | `lowRISC/cva6-cheri` | `0c7b3adf` | `SHL-0.51` at the root; file-specific `Apache-2.0 WITH SHL-2.0` and `Apache-2.0 WITH SHL-2.1` | C-class scalar datapath adapted to the 64+1-bit profile. `run.py rtl elaborate` builds the baseline and curated configurations. | consumed |
 | `upstream/axi-cheri-tagcontroller` | `Capabilities-Limited/axi_cheri_tagcontroller` | `c8245850` | `SHL-0.51` | Tag-fabric survey reference. The flat-store design in the RTL delta uses CVA6-CHERI's older nested pin, identified in the provenance record. | read |
-| `upstream/opentitan` | `lowRISC/opentitan` | `fbedb68e` | `Apache-2.0` | RoT peripheral reference. `run.py rtl elaborate` reads three primitive packages and the assertion header under `hw/ip` omitted by the imported core's manifest. Mocha retains its own older vendor lock. | consumed |
+| `upstream/opentitan` | `lowRISC/opentitan` | `73baf700`, on `master` | `Apache-2.0` | RoT peripheral reference. [The hardware proof-reuse survey](docs/assurance/proof-reuse/hardware.md) cites its SECDED assertions and generator at this pin. | read |
 | `upstream/ibex` | `lowRISC/ibex` | `4dd3932a` | `Apache-2.0` | RoT functional reference. | pinned to read later |
 | `upstream/cheriot-ibex` | `microsoft/cheriot-ibex` | `531ca2ec` | `Apache-2.0` | Conformance-methodology reference: its `dv/formal` carries the formal artifact [HW-10](docs/assurance/proof-reuse/hardware.md#hw-10-cheriot-ibex-observational-rtlsail-verification) reads. The profile does not adopt its RV32 capability encoding. Its RTL has had no commit since 2026-03-05, while `lowRISC/ibex` `master` has carried the maintained CHERIoT v1.0 RTL since `f1cea015`, which the Ibex pin includes. That is a restructured integration: it renames the modules and drops cheriot-ibex's stack zeroing, TBRE revocation engine and legacy instruction formats, so the `dv/formal` artifact does not target it. The milestone that reads this reference decides which of the two it means. | pinned to read later |
 | `upstream/cheri-compressed-cap` | `CTSRD-CHERI/cheri-compressed-cap` | `6a94fc12` | `BSD-2-Clause`; `test/FuzzedDataProvider.h` is `Apache-2.0 WITH LLVM-exception` | Library narrowed to the frozen 64+1-bit fields in the unpublished emulator repository, from the edition the completion log records. No build or check here uses it. | pinned for a struck milestone |
@@ -198,7 +226,7 @@ The recorded RTL reviews date to 2026-08-23, except Mocha's `v0.1.1` review on 2
 - Ethernet block: `MIT`.
 - Vendored OpenTitan and its patches: `Apache-2.0`, credited to lowRISC Contributors.
 
-The OpenTitan subtree, `hw/vendor/lowrisc_ip/`, supplies platform devices. Its `ip/` directory includes `rom_ctrl`, `uart`, `entropy_src`, `i2c`, `kmac`, `lc_ctrl`, the `prim` families, `rv_core_pkg`, `rv_timer`, `spi_device`, `spi_host`, and `tlul`. Its `ip_templates/` includes `alert_handler`, `clkmgr`, `gpio`, `pwrmgr`, `rstmgr`, and `rv_plic`.
+The OpenTitan subtree, `hw/vendor/lowrisc_ip/`, supplies platform devices. Its `ip/` directory includes `rom_ctrl`, `uart`, `entropy_src`, `i2c`, `kmac`, `lc_ctrl`, the `prim` families, `rv_core_pkg`, `rv_timer`, `spi_device`, `spi_host`, and `tlul`. Its `ip_templates/` includes `alert_handler`, `clkmgr`, `gpio`, `pwrmgr`, `rstmgr`, and `rv_plic`. The primitive files the imported core's elaboration reads carry OpenTitan's own `Apache-2.0` headers, and none of Mocha's `patches/lowrisc_ip/prim/` patches modifies them.
 
 The manifest does not annotate `hw/vendor/lint/` or `hw/vendor/sonata_system/`. Their waiver and DPI simulation files instead carry lowRISC copyright notices and `SPDX-License-Identifier: Apache-2.0` in each file. This review was recorded on 2026-09-03 at `ef1370c1`.
 
@@ -411,9 +439,9 @@ notice and adds a modification notice to the native staged derivative. Source
 identity, match counts, output identity and staged diffs are recorded; no imported
 module body is copied into tracked `rtl/`.
 
-For R1c-ii's authored UART character wrapper, the `2c11b745` Mocha pin's
+For R1c-ii's authored UART character wrapper, the `4b9bec92` Mocha pin's
 `hw/vendor/lowrisc_ip/ip/uart/rtl/uart_reg_pkg.sv` and `data/uart.hjson` were read
-with `LICENSES/Apache-2.0.txt` on 2026-09-24. Those interface sources identify
+with `LICENSES/Apache-2.0.txt` on 2026-09-29. Those interface sources identify
 Apache-2.0. The wrapper's generated constants use that declared register layout;
 no UART implementation body is imported. This interface use neither qualifies
 the complete OpenTitan UART nor changes the existing primitive dependency route.
@@ -698,22 +726,23 @@ Explicit optional commands fetch/build native tools into an isolated lane; no ne
 gitlink, agent SDK or model account is introduced. The acceptance compiler and
 curated model retain their existing pins. Selected licenses and notices below were
 read on 2026-09-21 before incorporation, and the locked Sail's again at 0.20.3 on
-2026-09-29, byte-identical to 0.20.2's. The tracked Sail dependency-refresh patch
+2026-09-29, byte-identical to 0.20.2's. Rows whose selection moved on 2026-09-29
+state that re-reading. The tracked Sail dependency-refresh patch
 and its verbatim notice have an explicit BSD-2-Clause entry in the
 [copyright map](COPYRIGHT.md#the-map).
 
 | Reference | Selected reading and license instrument | Disposition |
 | --- | --- | --- |
 | Locked Sail 0.20.3 | [3df54034 LICENSE](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/LICENSE), BSD-2-Clause with its stated third-party exceptions | Consume the already tracked documentation bundle through the existing reader; no emitter code is copied. |
-| Development Sail and native LSP | [ce60ba57 LICENSE](https://github.com/rems-project/sail/blob/ce60ba570b4402a42431bc5033145d9aeb327f20/LICENSE), BSD-2-Clause; `THIRD_PARTY_FILES` BSD-3-Clause/MIT exceptions and server source headers also read | Optional isolated LSP/Libsail and Isla-plugin builds. The tracked `tools/sail-lsp/dependency-refresh.patch` retains BSD-2-Clause context and offers its modifications on the same terms, with upstream notice beside it. Acceptance Sail is unchanged. |
+| Optional Sail builds and native LSP | The locked row's 0.20.3 release archive (`sail-0.20.3.tbz`, the archive its opam package builds from); in that archive the `THIRD_PARTY_FILES.md` BSD-3-Clause/MIT exceptions and the BSD-2-Clause `src/sail_lsp` source headers were re-read on 2026-09-29, and its LICENSE is byte-identical to the tracked `tools/sail-lsp/SAIL-LICENSE.md` | Optional isolated LSP/Libsail and Isla-plugin builds from that archive. The tracked `tools/sail-lsp/dependency-refresh.patch` retains BSD-2-Clause context and offers its modifications on the same terms, with upstream notice beside it. Acceptance Sail is unchanged. |
 | Current RISC-V model | [8890da78 LICENCE](https://github.com/riscv/sail-riscv/blob/8890da780108672e05cf87b6d119bf6a76113fbf/LICENCE), BSD-2-Clause with its dependency exclusions | Read source modules and the C++ generation recipe; no code or pin change. |
 | Modular SAIL experiment | [aa8cb46a LICENCE](https://github.com/imec-csa/sail-riscv/blob/aa8cb46a9284b30b537bcd803cd163d5517f2e2e/LICENCE), BSD-2-Clause with its stated exclusions; [paper v1](https://arxiv.org/abs/2507.12471v1) | Adapt the separate-compilation concept to generated C++ using libclang ranges and authored CMake/static-library tooling. The paper is a research reference, not a software license. No fork scripts, patches or loader code are copied. |
-| Isla | [bf1a42f8 LICENSE](https://github.com/rems-project/isla/blob/bf1a42f8a6097089fba4810fccc73dcc640267ab/LICENSE), BSD-2-Clause; third-party exception inventory read | Optional standalone symbolic executor built with its upstream Cargo.lock. Cat code has CeCILL-B/BSD-3-Clause notices; unused litmus and web paths have separate LGPL/CeCILL-B and MIT terms. No upstream source is tracked here. |
+| Isla | [e9b5d945 LICENSE](https://github.com/rems-project/isla/blob/e9b5d945394277656593a0d429466d7fa0a2b4b3/LICENSE), BSD-2-Clause; third-party exception inventory and the changed plugin and SMT sources' BSD-2-Clause headers read there on 2026-09-29 | Optional standalone symbolic executor built with a tracked lock override, Cargo-generated from its upstream Cargo.lock and differing only in crossbeam-channel and crossbeam-epoch releases past their advisories. Cat code has CeCILL-B/BSD-3-Clause notices; unused litmus and web paths have separate LGPL/CeCILL-B and MIT terms. No upstream source is tracked here. |
 | Isla test generation | [ee2d7efc LICENSE](https://github.com/rems-project/isla-testgen/blob/ee2d7efcec993fdb364bd74788b4fd39e857d151/LICENSE), BSD-2-Clause; its Isla submodule [bcc7ee84 LICENSE](https://github.com/rems-project/isla/blob/bcc7ee8463a8fed5911ccf7167da5a82f7b5e4db/LICENSE) also read | Optional library executor behind the authored helper-level driver. Its separate Isla revision is preserved; driver dependencies are recorded in the tracked Cargo.lock. No RV64 instruction target or upstream testgen source is copied. |
-| OCaml LSP/JSON-RPC 1.25.0 | [ocaml-lsp LICENSE.md](https://github.com/ocaml/ocaml-lsp/blob/1.25.0/LICENSE.md), ISC, read from the pinned archive | Optional protocol libraries built in the private LSP prefix, without changing the shared opam switch. |
-| topkg 1.0.8 and uutf 1.0.4 | Their selected release license texts, ISC | Optional LSP build dependencies, built in the same private prefix. |
+| OCaml LSP/JSON-RPC 1.27.0 | [ocaml-lsp LICENSE.md](https://github.com/ocaml/ocaml-lsp/blob/1.27.0/LICENSE.md), ISC, read from the pinned archive on 2026-09-29 | Optional protocol libraries built in the private LSP prefix, without changing the shared opam switch. |
+| topkg 1.1.1 and uutf 1.0.4 | Their selected release license texts, ISC; topkg's read from the 1.1.1 archive on 2026-09-29 | Optional LSP build dependencies, built in the same private prefix. |
 | ppx_yojson_conv_lib v0.17.0 | Selected release `LICENSE.md`, MIT | Optional LSP JSON support; source/archive hashes are recorded by its build recipe. |
-| Rust 1.90.0 and SHA2 | Selected Rust core license texts and sha2 0.8.2 license texts, MIT OR Apache-2.0 | Optional lane-local Rust build tool and authored-driver dependency. Locked transitive Cargo sources remain native build inputs, not tracked source or normal host-gate prerequisites. Distribution of a resulting executable must retain the applicable dependency notices. |
+| Rust 1.98.1 and SHA2 | Rust core license texts (`COPYRIGHT`, `LICENSE-APACHE`, `LICENSE-MIT`), read in the 1.98.1 component archives on 2026-09-29, and sha2 0.8.2 license texts; MIT OR Apache-2.0. Cargo's `LICENSE-THIRD-PARTY` in the same archives lists the terms of libraries linked into the Cargo binary, including OpenSSL, libgit2 (GPL-2.0 with its linking exception), libssh2 and libcurl; they govern that tool binary, not its build outputs | Optional lane-local Rust build tool, installed from the same pinned component archives for these tools and the [idealloc candidate build](#optional-static-memory-research-tools), and authored-driver dependency. Locked transitive Cargo sources remain native build inputs, not tracked source or normal host-gate prerequisites. Distribution of a resulting executable must retain the applicable dependency notices. |
 | LLVM libclang 21.1.8 | Installed `libclang1-21` 21.1.8-6ubuntu1 copyright and [release license](https://github.com/llvm/llvm-project/blob/2078da43e25a4623cab2d0d60decddf709aaea28/LICENSE.TXT); Apache-2.0 WITH LLVM-exception with its separately licensed third-party/legacy notices | Optional system-provided compiler AST API called through standard-library ctypes, separate from the compiler-development gitlink. No LLVM source or binary is redistributed in this tree. Exact selected tool/library bytes enter the qualification receipt. |
 
 The build recipes retain source revisions/archive identities and dependency locks;

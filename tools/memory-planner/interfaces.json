@@ -29,11 +29,13 @@
     ]
   },
   "executorch": {
-    "license_url": "https://github.com/pytorch/executorch/blob/420948be0b6895244a7f63742222d2d72d84a31c/LICENSE",
+    "license_url": "https://github.com/pytorch/executorch/blob/3b60683923245cf472b7323426920e15623ba361/LICENSE",
     "boundary": "MemoryPlanningAlgorithmSuite algorithm callback -> MemoryAlgoResult",
     "sha256": "f141012f46c9a2d409fe22d1629b6bede532fcbc4f6405e0dfef6178c8a32550",
     "license": "BSD-3-Clause",
-    "commit": "420948be0b6895244a7f63742222d2d72d84a31c",
+    "commit": "3b60683923245cf472b7323426920e15623ba361",
+    "tag": "v1.5.1",
+    "identity_scope": "The sha256 is the file's bytes at the tag and in executorch 1.5.1's Linux and macOS wheels; the win_amd64 wheel stores CRLF line endings and does not match.",
     "interface": "exir/memory_planning.py"
   },
   "schema_version": 1,

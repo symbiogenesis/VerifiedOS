@@ -50,9 +50,9 @@ names a line a person can read on both sides. What it decides is agreement over 
 vectors it emitted; it is not the co-simulation gate, which is R2's and runs a core.
 
 **Tracked `rtl/` holds files this repository authored or generated.** Imported sources
-are reached through the gitlinks under `upstream/`. The SRAM compatibility step copies
-one imported source into the build lane, retaining its notices and adapting two port
-names for the current OpenTitan primitives in both arms. The address map under `rtl/`
+are reached through the gitlinks under `upstream/`, the OpenTitan primitives through the
+bring-up SoC's vendored tree. Its primitive interfaces are the ones the imported core
+connects, so no imported source is adapted to a primitive. The address map under `rtl/`
 is one of the generated sources: `lint` compiles it
 because whether a generator's output is *SystemVerilog* is a question K-88's byte
 comparison does not ask, and it is reported apart from the authored sources because the
@@ -105,6 +105,11 @@ VERILATOR_PIN = "5.052"
 VERILATOR_URL = ("https://github.com/verilator/verilator/archive/refs/tags/"
                  f"v{VERILATOR_PIN}.tar.gz")
 VERILATOR_SHA256 = "8c8d2e11e6ad32f641dd250742a94195ddecb912e2e2dabe2f42ddbbb99c1092"
+# GitHub generates the tag archive, so the hash above authenticates GitHub's bytes.
+# The tag's own identity lets a regenerated archive be re-authenticated against the
+# tagged Git content instead of being trusted anew.
+VERILATOR_TAG_OBJECT = "efa4927be48e75c3cd08fc848b198d1d9d237f00"
+VERILATOR_COMMIT = "ea338be98e1e838d3518809ce8899f85a009963c"
 VERILATOR_HOW = "python tools/run.py rtl install"
 VERILATOR_PREREQUISITES = ("autoconf", "bison", "flex", "g++", "make", "help2man")
 VERILATOR_PACKAGES = (*VERILATOR_PREREQUISITES, "libfl-dev")
@@ -250,19 +255,15 @@ UNHANDLED_RE = re.compile(r"(\d+) of an unknown kind")
 CORE = "upstream/cva6-cheri"
 CORE_FLIST = "core/Flist.cva6"
 CORE_VAR = "${CVA6_REPO_DIR}"
-PRIM = "upstream/opentitan/hw/ip"
+# The OpenTitan primitives come from the bring-up SoC's own vendored tree, the edition
+# Mocha integrates and signs the imported core off with, so the imported sources
+# compile against the primitive interfaces they were written for and none is adapted.
+PRIM_UPSTREAM = "upstream/mocha"
+PRIM = f"{PRIM_UPSTREAM}/hw/vendor/lowrisc_ip/ip"
 PRIM_ASSERTIONS = "prim/rtl/prim_assert.sv"
 
-# The imported SRAM wrapper uses the earlier OpenTitan response-port spelling.
-# Both elaboration arms stage this source with only those two connections renamed;
-# the memory implementation remains the pinned OpenTitan primitive.
-RAM_PORT_SOURCE = f"{CORE}/common/local/util/sram.sv"
-RAM_PORT_OLD = ".cfg_rsp_o("
-RAM_PORT_NEW = ".cfg_o("
-RAM_PORT_CONNECTIONS = 2
-
 # Three OpenTitan primitives the imported core instantiates that its own manifest does
-# not list, because the bring-up SoC supplies them from a vendored tree. Named here
+# not list, because the bring-up SoC supplies them from that vendored tree. Named here
 # rather than globbed, so that a primitive arriving under a new name is a failed
 # elaboration with a message rather than a silent change of what was elaborated.
 PRIM_PACKAGES: tuple[str, ...] = (
@@ -951,23 +952,6 @@ def _baseline_config(root: Path, work: Path) -> Path:
     return path
 
 
-def _stage_ram_compatibility(root: Path, files: FileList, work: Path) -> tuple[str, ...]:
-    """Rename only the two obsolete SRAM response connections in a build-lane copy."""
-    original = root / RAM_PORT_SOURCE
-    if not any(Path(line) == original for line in files.lines):
-        return files.lines
-    source = original.read_text(encoding="utf-8")
-    count = source.count(RAM_PORT_OLD)
-    if count != RAM_PORT_CONNECTIONS:
-        raise ValueError(f"{original}: expected {RAM_PORT_CONNECTIONS} {RAM_PORT_OLD} "
-                         f"connections for OpenTitan compatibility, found {count}")
-    staged = work / "compatibility" / "cva6-sram.sv"
-    staged.parent.mkdir(parents=True, exist_ok=True)
-    staged.write_text(source.replace(RAM_PORT_OLD, RAM_PORT_NEW),
-                      encoding="utf-8", newline="")
-    return tuple(str(staged) if Path(line) == original else line for line in files.lines)
-
-
 def _elaborate(binary: str, root: Path, files: FileList, ast: Path,
                *, curated: bool = False) -> tuple[int, str]:
     """One elaboration of the imported core, its AST written where the caller says.
@@ -981,8 +965,8 @@ def _elaborate(binary: str, root: Path, files: FileList, ast: Path,
     """
     prim = root / PRIM
     listing = ast.with_suffix(".f")
+    lines = files.lines
     try:
-        lines = _stage_ram_compatibility(root, files, ast.parent)
         if curated:
             lines = rtl_width.stage(root, lines, ast.parent)
     except (OSError, ValueError) as error:
@@ -1103,9 +1087,6 @@ def cmd_filelist(args: argparse.Namespace) -> int:
     files = _file_list(root, config, SUBSTITUTIONS)
     introduced_by, displaced_by = _substitution_modules(root, files.taken)
     out.append(f"== the curated arm's file list, {len(files.lines)} entries")
-    if any(Path(line) == root / RAM_PORT_SOURCE for line in files.lines):
-        out.append(f"   dependency compatibility: {RAM_PORT_SOURCE} is staged with "
-                   "cfg_rsp_o renamed to cfg_o in both elaboration arms")
     out.append(f"   {len(SUBSTITUTIONS)} declared substitution(s), {len(files.taken)} "
                "of them standing in the imported manifest's place")
     out.extend(f"   {'ok  ' if sub in files.taken else 'FAIL'} {sub.authored} "
@@ -1167,8 +1148,7 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
     if absent:
         out.extend(f"FAIL {rel} is not in this checkout" for rel in absent)
         out.append("     the imported cores are gitlinks and this elaboration reads "
-                   "them: `git submodule update --init upstream/cva6-cheri "
-                   "upstream/opentitan`")
+                   f"them: `git submodule update --init {CORE} {PRIM_UPSTREAM}`")
         print("\n".join(out))
         return 1
 

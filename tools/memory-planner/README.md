@@ -49,7 +49,9 @@ certificate retained under its explicitly stated objective.
 ## ExecuTorch
 
 The optional factory checks the installed `exir/memory_planning.py` source hash
-against the exact commit in the manifest before exposing the suite callback:
+against the exact commit in the manifest before exposing the suite callback. The
+manifest names tag v1.5.1; executorch 1.5.1's Linux and macOS wheels carry those
+bytes, while its win_amd64 wheel stores CRLF line endings and is refused:
 
 ```python
 from executorch.exir.memory_planning import MemoryPlanningAlgorithmSuite

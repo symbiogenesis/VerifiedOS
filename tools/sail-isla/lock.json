@@ -2,7 +2,12 @@
   "version": 1,
   "isla": {
     "url": "https://github.com/rems-project/isla.git",
-    "revision": "bf1a42f8a6097089fba4810fccc73dcc640267ab"
+    "revision": "e9b5d945394277656593a0d429466d7fa0a2b4b3",
+    "cargo_lock": "isla.Cargo.lock",
+    "cargo_lock_overrides": {
+      "crossbeam-channel": "0.5.17",
+      "crossbeam-epoch": "0.9.21"
+    }
   },
   "testgen": {
     "url": "https://github.com/rems-project/isla-testgen.git",
@@ -10,22 +15,24 @@
     "isla_revision": "bcc7ee8463a8fed5911ccf7167da5a82f7b5e4db"
   },
   "sail": {
-    "revision": "ce60ba570b4402a42431bc5033145d9aeb327f20",
-    "url": "https://codeload.github.com/rems-project/sail/tar.gz/ce60ba570b4402a42431bc5033145d9aeb327f20",
-    "sha256": "a561fd10fb4c95562b043f93fd751a2bc41644b2f37393eae0e7b13bbb88173a"
+    "version": "0.20.3",
+    "revision": "3df54034910b31a1e00d948ee965b2e9603d68e0",
+    "url": "https://github.com/rems-project/sail/releases/download/0.20.3/sail-0.20.3.tbz",
+    "sha256": "0b223ed83f521ad87eaacd88186390fbaf0b944f63c6a04a3ebdf96a1ff5a60c",
+    "directory": "sail-0.20.3"
   },
   "rust": {
-    "version": "1.90.0",
+    "version": "1.98.1",
     "components": {
       "aarch64-unknown-linux-gnu": {
-        "rustc": "4e1a9987a11d7d91f0d5afbf5333feb62f44172e4a31f33ce7246549003217f2",
-        "cargo": "bd8d1da6fe88ea7e29338f24277c22156267447adbfc47d690467ad32d02c2a7",
-        "rust-std": "4952abb7d9d3ed7cea4f7ea44dcb23dc67631fae4ac44a5f059b90a4b5e9223f"
+        "rustc": "89fb83041993b48816514815606f53a5264729b8b449671a6b291e6f0ae74f40",
+        "cargo": "c09425a7f300af148c0bdfded0e7d5f1fe7c075b2b9674e8935afa769297b2f6",
+        "rust-std": "9bf796a6ec5b004813ebd0b650775a7c6a4f3aae97ad362ae294798dca4f3b23"
       },
       "x86_64-unknown-linux-gnu": {
-        "rustc": "48c2a42de9e92fcae8c24568f5fe40d5734696a6f80e83cc6d46eef1a78f13c9",
-        "cargo": "9853db03d68578a30972e2755c89c66aec035fec641cf8f3a7117c81eec2578d",
-        "rust-std": "663f4ab7945b392d5e5294dec1b050a66820a20e86f084ec37eeb0f2f7ff5569"
+        "rustc": "e974f036b28565f37c0f3bd92ddefa809bee16c04f9dcf07b9ed96e05aaaf7c4",
+        "cargo": "ea1de9f9e23107d97ee2b41a72c552f34064a593da503789218387aee59f3ba4",
+        "rust-std": "fa3ff450172a16c026944030230c5069947af93c728d9179971d44e5e0cfb561"
       }
     }
   }
