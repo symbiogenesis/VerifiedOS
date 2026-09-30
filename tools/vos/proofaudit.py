@@ -87,6 +87,17 @@ _TACTICAL = re.compile(r"(?<![\w'])(?:timeoutf?|alloc_limit)(?![\w'])")
 _STRING = re.compile(r'"[^"]*"')
 # A module command's head: whether it declares a module, and whether it opens a signature.
 _MODULE = re.compile(CONTROL_PREFIXES + r"(Declare\s+)?Module\s+(Type\b)?")
+# Commands that bring into a compile what no lexical reading of the source sees. Load
+# runs another file's sentences, Cd moves where a relative Load resolves, Declare ML
+# Module loads a plugin, and Ltac2's `@ external` binds any primitive a loaded plugin
+# exports, the timeout tactical among them, under a name of the source's choosing. Add
+# LoadPath, Add Rec LoadPath, Remove LoadPath and Add ML Path would choose which files a
+# Require reads; the pinned Rocq 9.3.0 parses each as an option table it lacks and
+# refuses it, as its deprecation refuses Cd under the gate's flags, and they are refused
+# here all the same.
+DYNAMIC_SOURCE = re.compile(
+    CONTROL_PREFIXES + r"(?:Load|Cd|(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)"
+    r"|Declare\s+ML\s+Module|Ltac2\s*@\s*external)(?![\w'])")
 
 
 class AuditError(ValueError):
@@ -260,6 +271,19 @@ def pinned_overrides(text: str) -> list[str]:
             if _PINNED.match(sentence) or _PINNED_ATTRIBUTE.search(sentence)
             or _TIMEOUT.match(sentence)
             or (tactical and _TACTICAL.search(_STRING.sub('""', sentence)))]
+
+
+def dynamic_sources(text: str) -> list[str]:
+    """Sentences that load a file, a plugin or a plugin's primitive into the compile.
+
+    What one loads passes every other refusal here unread: `Load` of a file outside
+    `proofs/` compiles with a pinned setting on and the pinned reading sees none of it,
+    and an Ltac2 external binds the timeout tactical under a name no word list can
+    follow. So each is refused before compilation, and the gate also withdraws cache
+    reuse for it. The head is read after the control prefixes, as every head reading
+    here is.
+    """
+    return [sentence for sentence in sentences(text) if DYNAMIC_SOURCE.match(sentence)]
 
 
 def unsupported_abstractions(text: str) -> list[str]:

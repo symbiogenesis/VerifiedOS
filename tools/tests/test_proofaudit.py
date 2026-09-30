@@ -264,10 +264,10 @@ def _rocq_93_settings_are_pinned() -> None:
 
 
 def _settings_read_as_the_lexer_reads_them() -> None:
-    # Each compiles under the gate's flags in the pinned Rocq 9.3.0 with the setting in
-    # effect: a comment is a separator, a `(*` quoted inside a comment opens nothing, and
-    # a full stop quoted in an attribute ends no sentence, so the `warnings` attribute
-    # after it silences the deprecation that refuses the same declaration without it.
+    # Each compiles under the gate's flags in the pinned Rocq 9.3.0 with the setting or
+    # tactical in effect: a comment is a separator, a `(*` quoted inside a comment opens
+    # nothing, and a full stop quoted in an attribute ends no sentence, so the `warnings`
+    # attribute after it silences the deprecation that refuses the declaration without it.
     refused = ("Set(* c *)Kernel Conversion Dep Heuristic.",
                "Local(* c *)Set(* c *)Kernel(* c *)Conversion Dep Heuristic.",
                '(* "(*" *) Set Kernel Conversion Dep Heuristic. (* c *)',
@@ -354,6 +354,44 @@ def _machine_bound_tacticals_are_refused() -> None:
     for text in allowed:
         ensure(not proofaudit.pinned_overrides(text),
                f"a sentence with no tactical was refused: {text!r}")
+
+
+def _dynamic_sources_are_refused_before_compiling() -> None:
+    # Under the gate's flags the pinned Rocq 9.3.0 compiles Load of a path or a name, Time
+    # Load, Declare ML Module and every Ltac2 external spelling here, a loaded file's
+    # setting staying in effect. It refuses Cd as deprecated, the load-path commands as
+    # option tables it lacks and a Load inside an open proof; they are refused here too.
+    external = " budget : int -> (unit -> 'a) -> 'a := \"rocq-runtime.plugins.ltac2\" \"timeout\"."
+    refused = ('Load "/elsewhere/hidden.v".', 'Load Verbose "/elsewhere/hidden.v".',
+               "Load hidden.", 'Time Load "hidden.v".', 'Fail Load "hidden.v".',
+               'Lemma a : True. Proof. - Load "hidden.v". exact I. Qed.',
+               'Cd "/elsewhere".', "Cd.", 'Add LoadPath "/elsewhere" as Elsewhere.',
+               'Add Rec LoadPath "/elsewhere" as Elsewhere.', 'Remove LoadPath "/elsewhere".',
+               'Add ML Path "/elsewhere".', 'Declare ML Module "rocq-runtime.plugins.ltac2".',
+               f"Ltac2 @ external{external}", f"Ltac2@external{external}",
+               f"Ltac2(* c *)@(* c *)external{external}", f"#[local] Ltac2 @ external{external}",
+               f"Local Ltac2 @\n  external{external}")
+    for text in refused:
+        ensure(len(proofaudit.dynamic_sources(text)) == 1,
+               f"a source loading what the gate cannot read passed: {text!r}")
+    allowed = ("Record Load := { level : nat }.", "Definition Loaded := 0.",
+               "Definition Cd := 0.", "Ltac2 external := 0.", "Print LoadPath.",
+               "Print ML Path.", "Pwd.", '(* Load "hidden.v". *) Definition x := 0.',
+               'Definition label := "a. Declare ML Module ""p"". b".')
+    for text in allowed:
+        ensure(not proofaudit.dynamic_sources(text),
+               f"a source that loads nothing was refused: {text!r}")
+    with tempfile.TemporaryDirectory(prefix="vos-dynamic-source-") as temporary:
+        root = Path(temporary)
+        source = root / "proofs" / "M.v"
+        source.parent.mkdir()
+        for text in ('Load "hidden.v".', f"Ltac2 @ external{external}"):
+            source.write_text(text, encoding="utf-8")
+            with patch.object(gate, "_compile", side_effect=AssertionError("compiled")):
+                checked = gate._check_source(root, source, [source])
+            ensure(checked.error.startswith("sources may not load files, plugins or plugin "
+                                            "primitives the gate cannot read: "),
+                   f"a dynamic source was not refused by name: {checked.error!r}")
 
 
 def _nested_sources_cannot_be_omitted() -> None:
@@ -607,6 +645,8 @@ def cases() -> list[Case]:
             Case("settings-read-as-the-lexer-reads-them", _settings_read_as_the_lexer_reads_them),
             Case("settings-after-bullets-are-refused", _settings_after_bullets_are_refused),
             Case("machine-bound-tacticals-are-refused", _machine_bound_tacticals_are_refused),
+            Case("dynamic-sources-are-refused-before-compiling",
+                 _dynamic_sources_are_refused_before_compiling),
             Case("nested-sources-cannot-be-omitted", _nested_sources_cannot_be_omitted),
             Case("parallel-wave-blocks-stale-dependents", _parallel_wave_blocks_stale_dependents),
             Case("staged-run-binds-original-inputs", _staged_run_binds_original_inputs),

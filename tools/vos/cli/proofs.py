@@ -132,10 +132,6 @@ _HEAD = re.compile(r"^([\w']+)")
 _TOP_DELIMITERS = {mark: re.compile(r"[()\[\]{}]|" + re.escape(mark))
                    for mark in (":", ":=", "->")}
 _REQUIRE_TOKEN = re.compile(r"\bRequire\b")
-_DYNAMIC_SOURCE = re.compile(
-    "^" + proofaudit.CONTROL_PREFIXES
-    + r'(?:Load|Cd|(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)'
-    r'|Declare\s+ML\s+Module)\b')
 
 
 @dataclass(frozen=True)
@@ -679,6 +675,11 @@ def _check_source(root: Path, source: Path, sources: list[Path] | ProofAnalysis,
     try:
         text = (sources.index.texts[source] if isinstance(sources, ProofAnalysis)
                 else source.read_text(encoding="utf-8"))
+        loads = proofaudit.dynamic_sources(text)
+        if loads:
+            raise proofaudit.AuditError(
+                "sources may not load files, plugins or plugin primitives the gate "
+                "cannot read: " + "; ".join(loads))
         unsupported = proofaudit.unsupported_abstractions(text)
         if unsupported:
             raise proofaudit.AuditError(
@@ -964,7 +965,7 @@ def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
            and not proofs_mod.REQUIRE.fullmatch(sentence)
            for sentence in source_sentences):
         return None
-    if any(_DYNAMIC_SOURCE.match(sentence) for sentence in source_sentences):
+    if any(proofaudit.DYNAMIC_SOURCE.match(sentence) for sentence in source_sentences):
         return None
     try:
         command = env.rocq_command()
