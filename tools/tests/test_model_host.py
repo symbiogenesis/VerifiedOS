@@ -21,12 +21,16 @@ import io
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
-from contextlib import redirect_stderr, redirect_stdout
+import threading
+from collections.abc import Callable
+from contextlib import redirect_stderr, redirect_stdout, suppress
+from functools import partial
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from typing import cast
 from unittest.mock import patch
 
@@ -419,8 +423,8 @@ def _seeded_without_copying(donor: Path, model_root: Path) -> None:
     manifest crafted to list it, and hold that nothing is copied or seeded; then seed
     from a clean donor, the positive control, whose suite `copytree` is called for."""
     ensure(_MODEL.corpus_manifest(donor / "test" / _RELEASE / "riscv-tests").is_file(),
-           "precondition: the donor's manifest stands, which is all that was checked "
-           "before the copy when the donor was verified only after it")
+           "precondition: the donor's manifest stands, so only the entry's kind decides "
+           "the refusal")
     target = donor.parent / f"target-{donor.name}"
     with (patch.object(shutil, "copytree", wraps=shutil.copytree) as copied,
           redirect_stderr(io.StringIO()) as err):
@@ -445,12 +449,11 @@ _DEVICE = "rv64ui-p-device"
 
 
 def _seed_refuses_a_device_donor() -> None:
-    """`shutil.copyfile` refuses a FIFO but reads a character device such as a
-    `/dev/zero` node without end, so a donor holding one would stall the lane's first
-    build if it were copied before it was verified. A device node cannot be made
-    unprivileged, so one is simulated: a regular stand-in that `Path.is_file`, the one
-    question the listing asks of an entry that is not a link, answers as not a regular
-    file."""
+    """A character device such as a `/dev/zero` node is read without end, so a donor
+    holding one would stall the lane's first build if it were read, and the donor is
+    refused before the copy. A device node cannot be made unprivileged, so one is
+    simulated: a regular stand-in that `Path.is_file`, the first question the listing
+    asks of an entry that is not a link, answers as not a regular file."""
     real = Path.is_file
 
     def is_file(self: Path, *, follow_symlinks: bool = True) -> bool:
@@ -478,6 +481,287 @@ def _seed_refuses_a_fifo_donor() -> None:
         os.mkfifo(suite / "rv64ui-p-fifo")
         _MODEL.corpus_manifest(suite).write_bytes(_MODEL.corpus_listing(suite, _CORPUS_DIGEST))
         _seeded_without_copying(donor, model_root)
+
+
+def _returns(call: Callable[[], None], unblock: Callable[[], None] | None = None,
+             within: float = 15.0) -> None:
+    """Run `call` on a thread of its own and fail, rather than hang the suite, when it
+    has not returned within `within` seconds; what it raises is raised here. `unblock`
+    releases a call still waiting at the deadline, so that its thread ends as well."""
+    raised: list[BaseException] = []
+
+    def run() -> None:
+        try:
+            call()
+        except BaseException as err:  # raised again on the case's own thread below
+            raised.append(err)
+
+    worker = threading.Thread(target=run, daemon=True)
+    worker.start()
+    worker.join(within)
+    if worker.is_alive():
+        if unblock is not None:
+            unblock()
+            worker.join(within)
+        raise AssertionError(f"the call had not returned after {within:g} s")
+    if raised:
+        raise raised[0]
+
+
+def _end_of_file(fifo: Path) -> None:
+    """Open and close `fifo`'s write end, which releases a reader waiting to open it and
+    hands that reader end of file. With no reader waiting the open is refused, and there
+    is nothing to release."""
+    with suppress(OSError):
+        os.close(os.open(fifo, os.O_WRONLY | getattr(os, "O_NONBLOCK", 0)))
+
+
+def _manifest_refused(donor: Path, model_root: Path,
+                      unblock: Callable[[], None] | None = None) -> None:
+    """Seed from `donor`, whose manifest is not a regular file, and hold that the seeding
+    returns, names the donor and the manifest's kind, never calls `copytree`, and seeds
+    nothing."""
+    manifest = _MODEL.corpus_manifest(donor / "test" / _RELEASE / "riscv-tests")
+    target = donor.parent / f"target-{donor.name}"
+    with (patch.object(shutil, "copytree", wraps=shutil.copytree) as copied,
+          redirect_stderr(io.StringIO()) as err):
+        _returns(lambda: _MODEL._seed_test_data([donor], target, model_root), unblock)
+    said = err.getvalue()
+    ensure(f"{manifest} is not a regular file" in said and str(donor) in said,
+           f"the refusal names the donor and the manifest's kind, got {said!r}")
+    ensure(not copied.called,
+           f"a donor whose manifest is not a regular file is refused before copytree, "
+           f"got {copied.call_args_list}")
+    release = target / "test" / _RELEASE
+    ensure(not release.exists() or not any(release.iterdir()), "and nothing is seeded")
+
+
+def _os_with_a_device(named: Callable[[str], bool]) -> SimpleNamespace:
+    """`os` as model.py sees it, except that a descriptor opened on a path `named`
+    accepts reports itself a character device the first time it is asked. A device node
+    cannot be made unprivileged, and the kind the opened descriptor reports is the one
+    question model.py asks of a file before reading it."""
+    devices: set[int] = set()
+
+    def opened(path: str | Path, flags: int, mode: int = 0o777) -> int:
+        fd = os.open(path, flags, mode)
+        if named(str(path)):
+            devices.add(fd)
+        return fd
+
+    def described(fd: int) -> os.stat_result:
+        held = os.fstat(fd)
+        if fd not in devices:
+            return held
+        devices.discard(fd)
+        return os.stat_result((stat.S_IFCHR | 0o666, *tuple(held)[1:]))
+
+    return SimpleNamespace(**{**vars(os), "open": opened, "fstat": described})
+
+
+def _seed_refuses_a_device_manifest() -> None:
+    """A donor whose manifest is a device node is refused by the kind its opened
+    descriptor reports, simulated by `_os_with_a_device`. The positive control is the
+    same donor read with the descriptor's own kind, which seeds."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        model_root = _corpus_model(root)
+        donor = root / "device-manifest"
+        _extracted(donor, {"rv64ui-p-add": b"\x7fELF"})
+        device = _os_with_a_device(lambda path: path.endswith(_MODEL.CORPUS_MANIFEST_SUFFIX))
+        with patch.object(_MODEL, "os", device):
+            _manifest_refused(donor, model_root)
+        target = root / "target-control"
+        with patch.object(shutil, "copytree", wraps=shutil.copytree) as copied:
+            _returns(lambda: _MODEL._seed_test_data([donor], target, model_root))
+        ensure(copied.call_count == 1
+               and (target / "test" / _RELEASE / "riscv-tests/rv64ui-p-add").is_file(),
+               f"control: the same donor read as it is seeds, got {copied.call_args_list}")
+
+
+def _seed_refuses_a_fifo_manifest() -> None:
+    """A donor whose manifest is a FIFO is refused rather than waited on: opening a FIFO
+    for reading waits for a writer, and none comes. POSIX-only, so the case is the
+    guest's and win32 is refused before `os.mkfifo`."""
+    if sys.platform == "win32":
+        raise AssertionError("mkfifo is POSIX-only; the FIFO manifest case runs in the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        model_root = _corpus_model(root)
+        donor = root / "fifo-manifest"
+        manifest = _MODEL.corpus_manifest(_extracted(donor, {"rv64ui-p-add": b"\x7fELF"}))
+        manifest.unlink()
+        os.mkfifo(manifest)
+        _manifest_refused(donor, model_root, partial(_end_of_file, manifest))
+
+
+def _seed_refuses_a_manifest_linked_to_dev_zero() -> None:
+    """A donor whose manifest is a symbolic link to `/dev/zero` is refused before a byte
+    of it is read: followed, the link names a device read without end, until the
+    `MemoryError` that ends the read, which no refusal of `_seed_test_data` catches.
+    POSIX-only, so the case is the guest's."""
+    if sys.platform == "win32":
+        raise AssertionError("/dev/zero is POSIX-only; the linked manifest case runs in "
+                             "the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        model_root = _corpus_model(root)
+        donor = root / "linked-manifest"
+        manifest = _MODEL.corpus_manifest(_extracted(donor, {"rv64ui-p-add": b"\x7fELF"}))
+        manifest.unlink()
+        manifest.symlink_to("/dev/zero")
+        _manifest_refused(donor, model_root)
+
+
+def _refused(call: Callable[[], object], unblock: Callable[[], None] | None = None) -> str:
+    """The `ValueError` `call` refuses with, under `_returns`'s deadline; a call that
+    returns instead fails the case."""
+    refusals: list[str] = []
+
+    def run() -> None:
+        try:
+            call()
+        except ValueError as err:
+            refusals.append(str(err))
+
+    _returns(run, unblock)
+    ensure(bool(refusals), "the call must refuse, and it returned")
+    return refusals[0]
+
+
+def _copy_regular_file() -> None:
+    """The copy `copytree` makes of each donor entry, and of the manifest, reads a
+    source only when the descriptor it opened is a regular file. A regular source is
+    copied byte for byte with its mode and modification time, as `copy2` copies it, and
+    the carriage return and 0x1A in it hold that a win32 read is not a text-mode one; a
+    device, simulated by `_os_with_a_device`, is refused naming it and leaves no
+    destination. Seeding a clean donor copies its entry and its manifest through it."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        source, copied = root / "rv64ui-p-add", root / "copied"
+        source.write_bytes(b"\x7fELF\r\n\x1a after")
+        source.chmod(0o640)
+        os.utime(source, ns=(1_000_000_000, 2_000_000_000))
+        _MODEL._copy_regular_file(source, copied)
+        was, now = source.stat(), copied.stat()
+        ensure(copied.read_bytes() == source.read_bytes()
+               and stat.S_IMODE(now.st_mode) == stat.S_IMODE(was.st_mode)
+               and now.st_mtime_ns == was.st_mtime_ns,
+               "a regular source is copied byte for byte with its mode and time")
+
+        device, kept = root / "rv64ui-p-device", root / "device-copy"
+        device.write_bytes(b"")
+        with patch.object(_MODEL, "os", _os_with_a_device(lambda path: path == str(device))):
+            said = _refused(partial(_MODEL._copy_regular_file, device, kept))
+        ensure(f"{device} is not a regular file" in said,
+               f"the refusal names the source, got {said!r}")
+        ensure(not kept.exists(), "and nothing is written for it")
+
+        model_root = _corpus_model(root)
+        donor = root / "clean"
+        suite = _extracted(donor, {"rv64ui-p-add": b"\x7fELF"})
+        with patch.object(_MODEL, "_copy_regular_file",
+                          wraps=_MODEL._copy_regular_file) as copy:
+            _MODEL._seed_test_data([donor], root / "target", model_root)
+        sources = {Path(call.args[0]) for call in copy.call_args_list}
+        ensure(sources == {suite / "rv64ui-p-add", _MODEL.corpus_manifest(suite)},
+               f"the entry and the manifest are copied through it, got {sources}")
+
+
+def _copy_regular_file_refuses_a_fifo_and_a_link() -> None:
+    """A real FIFO source is refused rather than waited on, and a symbolic link, here
+    to a regular file, rather than followed. POSIX-only, so the case is the guest's and
+    win32 is refused before `os.mkfifo`."""
+    if sys.platform == "win32":
+        raise AssertionError("mkfifo is POSIX-only; the FIFO source case runs in the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        fifo, link = root / "rv64ui-p-fifo", root / "rv64ui-p-link"
+        os.mkfifo(fifo)
+        (root / "regular").write_bytes(b"\x7fELF")
+        link.symlink_to(root / "regular")
+        for source in (fifo, link):
+            kept = root / f"{source.name}-copy"
+            said = _refused(partial(_MODEL._copy_regular_file, source, kept),
+                            partial(_end_of_file, fifo))
+            ensure(f"{source} is not a regular file" in said,
+                   f"the refusal names the source, got {said!r}")
+            ensure(not kept.exists(), f"nothing is written for {source.name}")
+
+
+def _seed_refuses_an_entry_replaced_during_the_copy() -> None:
+    """A donor entry replaced by a FIFO after the donor verified and after `copytree`
+    listed its directory, the window a check by name does not close, is refused by the
+    copy rather than waited on: the seeding returns, names the donor and the entry, and
+    seeds nothing, and the staging copy is removed. POSIX-only, so the case is the
+    guest's and win32 is refused before `os.mkfifo`."""
+    if sys.platform == "win32":
+        raise AssertionError("mkfifo is POSIX-only; the replaced entry case runs in the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        model_root = _corpus_model(root)
+        donor = root / "replaced"
+        entry = _extracted(donor, {"rv64ui-p-add": b"\x7fELF"}) / "rv64ui-p-add"
+        copy = _MODEL._copy_regular_file
+
+        def replacing(source: Path | str, destination: Path | str) -> Path | str:
+            if Path(source) == entry:
+                entry.unlink()
+                os.mkfifo(entry)
+            # cast because a module loaded from a path answers `Any` for every attribute
+            return cast("Path | str", copy(source, destination))
+
+        target = root / "target"
+        with (patch.object(_MODEL, "_copy_regular_file", replacing),
+              redirect_stderr(io.StringIO()) as err):
+            _returns(lambda: _MODEL._seed_test_data([donor], target, model_root),
+                     partial(_end_of_file, entry))
+        said = err.getvalue()
+        ensure(f"{entry} is not a regular file" in said and str(donor) in said,
+               f"the refusal names the donor and the entry, got {said!r}")
+        release = target / "test" / _RELEASE
+        ensure(not release.exists() or not any(release.iterdir()),
+               "nothing is seeded, and no staging copy is left behind")
+
+
+def _listing_hashes_only_regular_descriptors() -> None:
+    """An entry the listing's check by name passes but that does not open as a regular
+    file, which is an entry replaced between that check and the read, is listed unhashed
+    rather than read, and the suite is refused as holding a non-regular entry. The
+    device is simulated by `_os_with_a_device`; the positive control is the same suite
+    read as it is, which verifies."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF"})
+        entry = suite / "rv64ui-p-add"
+        with patch.object(_MODEL, "os", _os_with_a_device(lambda path: path == str(entry))):
+            listed = cast("bytes", _MODEL.corpus_listing(suite, _CORPUS_DIGEST))
+            said = _refused(partial(_MODEL.verify_test_corpus, suite, _CORPUS_DIGEST))
+        ensure(b"\nunhashed rv64ui-p-add\n" in listed,
+               f"the entry is listed unhashed, got {listed!r}")
+        ensure("non-regular" in said, f"and the suite is refused, got {said!r}")
+        _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
+
+
+def _listing_refuses_a_fifo_its_check_by_name_missed() -> None:
+    """A FIFO that the listing's check by name answers as a regular file, which is a
+    file replaced by a FIFO between that check and the read, is listed unhashed rather
+    than waited on, and the suite is refused. POSIX-only, so the case is the guest's and
+    win32 is refused before `os.mkfifo`."""
+    if sys.platform == "win32":
+        raise AssertionError("mkfifo is POSIX-only; the FIFO listing case runs in the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF"})
+        fifo = suite / "rv64ui-p-fifo"
+        os.mkfifo(fifo)
+        real = Path.is_file
+
+        def is_file(self: Path, *, follow_symlinks: bool = True) -> bool:
+            return self == fifo or real(self, follow_symlinks=follow_symlinks)
+
+        with patch.object(Path, "is_file", is_file):
+            said = _refused(partial(_MODEL.verify_test_corpus, suite, _CORPUS_DIGEST),
+                            partial(_end_of_file, fifo))
+        ensure("non-regular" in said, f"the suite is refused, got {said!r}")
 
 
 # `_configure` in a child of its own, with `env.stage` standing in for the run. Two
@@ -739,4 +1023,17 @@ def cases() -> list[Case]:
         Case("seed-test-data-refuses-unverified", _seed_test_data_refuses_unverified),
         Case("seed-refuses-a-device-donor", _seed_refuses_a_device_donor),
         Case("seed-refuses-a-fifo-donor", _seed_refuses_a_fifo_donor, lane="guest"),
+        Case("seed-refuses-a-device-manifest", _seed_refuses_a_device_manifest),
+        Case("seed-refuses-a-fifo-manifest", _seed_refuses_a_fifo_manifest, lane="guest"),
+        Case("seed-refuses-a-manifest-linked-to-dev-zero",
+             _seed_refuses_a_manifest_linked_to_dev_zero, lane="guest"),
+        Case("copy-regular-file", _copy_regular_file),
+        Case("copy-regular-file-refuses-a-fifo-and-a-link",
+             _copy_regular_file_refuses_a_fifo_and_a_link, lane="guest"),
+        Case("seed-refuses-an-entry-replaced-during-the-copy",
+             _seed_refuses_an_entry_replaced_during_the_copy, lane="guest"),
+        Case("listing-hashes-only-regular-descriptors",
+             _listing_hashes_only_regular_descriptors),
+        Case("listing-refuses-a-fifo-its-check-by-name-missed",
+             _listing_refuses_a_fifo_its_check_by_name_missed, lane="guest"),
     ]

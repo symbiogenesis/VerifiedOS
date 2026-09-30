@@ -39,10 +39,13 @@ into it, and `wait` blocks on that lock rather than on a marker or on a sleep.
 """
 
 import argparse
+import errno
+import hashlib
 import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -201,9 +204,10 @@ def test_corpus_digests(model_root: Path, version: str) -> dict[str, str]:
 # renders that listing for the readers that do not configure: the seeding that copies a
 # suite into a new lane, and the sweep and trace-diff that read one. It walks the tree
 # rather than globbing it and lists every non-regular entry unhashed without reading
-# it, so the sweep and trace-diff also refuse what configure does not tell apart: a FIFO
-# or device node, which the verified tarball does not contain, and a name holding `\`
-# beside the file its `/` spelling names, which configure's glob folds into that file.
+# it, hashing a file only through a descriptor that is a regular file, so the sweep and
+# trace-diff also refuse what configure does not tell apart: a FIFO or device node,
+# which the verified tarball does not contain, and a name holding `\` beside the file
+# its `/` spelling names, which configure's glob folds into that file.
 # A build's receipt reads the corpus through `_test_corpus` too, so a disagreement
 # between the two renderings fails the first build that records its evidence rather
 # than passing unseen.
@@ -232,26 +236,85 @@ def corpus_listing(suite: Path, tarball_sha256: str) -> bytes:
             relative = path.relative_to(suite).as_posix()
             if "\n" in relative or "\r" in relative:
                 raise ValueError(f"{path}: a path a manifest line cannot hold")
-            if path.is_symlink() or not path.is_file():
-                line = f"unhashed {relative}\n"
-            else:
-                line = f"{receipts.digest(path)}  {relative}\n"
+            hashed = (None if path.is_symlink() or not path.is_file()
+                      else _regular_digest(path))
+            line = f"unhashed {relative}\n" if hashed is None else f"{hashed}  {relative}\n"
             entries.append((relative.encode("utf-8", "surrogateescape"), line))
     head = f"tarball {suite.name}.tar.gz sha256 {tarball_sha256}\n"
     return (head + "".join(line for _, line in sorted(entries))).encode(
         "utf-8", "surrogateescape")
 
 
+# How a corpus file is opened for reading: without waiting and without following a
+# final link, so what the descriptor is decides whether it is read. Opening a FIFO for
+# reading otherwise waits for a writer that never comes, and a character device such as
+# `/dev/zero`, or a link to one, is read without end. win32 has neither flag, so there
+# the opened descriptor's kind decides alone; `O_BINARY` keeps its reads byte-exact.
+_REGULAR_ONLY = (os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
+                 | getattr(os, "O_BINARY", 0))
+
+
+def _open_regular(path: Path | str) -> int | None:
+    """A read descriptor on `path` when it is a regular file, and None when it is not.
+
+    The kind is the opened descriptor's, not the name's, so an entry replaced between a
+    check by name and the read is still refused. A final symbolic link is refused where
+    the platform refuses to open one; an `OSError` from the open is otherwise the
+    caller's.
+    """
+    try:
+        fd = os.open(path, _REGULAR_ONLY)
+    except OSError as err:
+        if err.errno == errno.ELOOP and Path(path).is_symlink():
+            return None
+        raise
+    try:
+        regular = stat.S_ISREG(os.fstat(fd).st_mode)
+    except BaseException:
+        os.close(fd)
+        raise
+    if not regular:
+        os.close(fd)
+        return None
+    return fd
+
+
+def _regular_digest(path: Path) -> str | None:
+    """The SHA-256 of `path`, read through a descriptor that is a regular file, and None
+    when it does not open as one: the listing's check by name comes first, and an entry
+    replaced after it is listed unhashed rather than waited on or read without end."""
+    fd = _open_regular(path)
+    if fd is None:
+        return None
+    with os.fdopen(fd, "rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
 def verify_test_corpus(suite: Path, tarball_sha256: str) -> None:
-    """Refuse a suite unless it is what its manifest records for this tarball digest."""
+    """Refuse a suite unless it is what its manifest records for this tarball digest.
+
+    The manifest is read only when its opened descriptor is a regular file, which is
+    what configure writes, so a manifest standing as a FIFO or a device node, or as a
+    link where the platform refuses to open one, is refused rather than waited on or
+    read without end, whichever reader asks: the donor seeding, the sweep, trace-diff
+    and the build receipt.
+    """
     manifest = corpus_manifest(suite)
     if suite.is_symlink() or not suite.is_dir():
         raise ValueError(f"{suite} is not an extracted suite directory")
     try:
-        recorded = manifest.read_bytes()
+        fd = _open_regular(manifest)
     except FileNotFoundError:
         raise ValueError(f"{suite} has no {manifest.name}, so no configure that verified "
                          "its tarball extracted it; configure downloads it again") from None
+    except OSError as err:
+        raise ValueError(f"cannot read {manifest}: {err}") from err
+    if fd is None:
+        raise ValueError(f"{manifest} is not a regular file, which no configure writes; "
+                         f"configure downloads {suite.name} again")
+    try:
+        with os.fdopen(fd, "rb") as handle:
+            recorded = handle.read()
     except OSError as err:
         raise ValueError(f"cannot read {manifest}: {err}") from err
     try:
@@ -819,9 +882,9 @@ def _seed_test_data(donors: list[Path], target: Path, model_root: Path) -> None:
 
     The donor's suite is held to its manifest before it is copied, and the copy, made
     beside its destination, is held to the manifest copied with it before it is moved
-    into place, so a donor whose suite has no manifest, disagrees with it, holds an
-    entry that is not a regular file, or changes during the copy seeds nothing, and
-    configure downloads that suite instead. A suite the target already holds is left
+    into place, so a donor whose suite has no manifest or one that is not a regular
+    file, disagrees with its manifest, holds an entry that is not a regular file, or
+    changes during the copy seeds nothing, and configure downloads that suite instead. A suite the target already holds is left
     to configure, which keeps it only if it matches its manifest.
     """
     try:
@@ -850,25 +913,48 @@ def _seed_test_data(donors: list[Path], target: Path, model_root: Path) -> None:
 def _copy_verified_suite(suite: Path, into: Path, digest: str) -> None:
     """Copy `suite` and its manifest to `into`, publishing only a copy that verifies.
 
-    The donor is verified before it is copied as well as after. `copytree` reads every
-    entry it copies, and `shutil.copyfile` refuses only a FIFO: a character device such
-    as a `/dev/zero` node is read without end, so a donor holding one would stall the
-    command standing the lane up. The listing the verification renders reads no
-    non-regular entry and refuses a suite holding one. The check on the copy stays,
-    because the donor can change while it is copied.
+    The donor is verified before it is copied as well as after. A FIFO is waited on and
+    a character device such as a `/dev/zero` node is read without end, so a donor
+    holding either would stall the command standing the lane up; the listing the
+    verification renders reads no non-regular entry and refuses a suite holding one.
+    The donor can still change between that verification and the copy, so every file,
+    the manifest among them, is copied by `_copy_regular_file`, which reads only what
+    opens as a regular file, and the copy is verified before it is published.
     """
     verify_test_corpus(suite, digest)
     into.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{into.name}-seed-", dir=into.parent))
     try:
         copy = staging / into.name
-        shutil.copytree(suite, copy, symlinks=True)
-        shutil.copy2(corpus_manifest(suite), corpus_manifest(copy))
+        shutil.copytree(suite, copy, symlinks=True, copy_function=_copy_regular_file)
+        _copy_regular_file(corpus_manifest(suite), corpus_manifest(copy))
         verify_test_corpus(copy, digest)
         copy.rename(into)
         corpus_manifest(copy).replace(corpus_manifest(into))
     finally:
         shutil.rmtree(staging, ignore_errors=True)
+
+
+def _copy_regular_file(source: Path | str, destination: Path | str) -> Path | str:
+    """`copy2` for a donor's suite, reading `source` only if it opens as a regular file.
+
+    `copytree` calls this for every entry that is neither a directory nor a link when
+    it lists the directory, and the entry can have been replaced since: the descriptor
+    this reads from is the one whose kind was checked, so a FIFO is not waited on and a
+    device is not read. What is refused raises `ValueError`, which `copytree` does not
+    collect and so ends the copy at the first such entry. Mode and times are kept from
+    that descriptor, as `copy2` keeps them.
+    """
+    fd = _open_regular(source)
+    if fd is None:
+        raise ValueError(f"{source} is not a regular file; the donor changed after it "
+                         "verified")
+    with os.fdopen(fd, "rb") as reader, Path(destination).open("xb") as writer:
+        shutil.copyfileobj(reader, writer)
+        held = os.fstat(reader.fileno())
+    Path(destination).chmod(stat.S_IMODE(held.st_mode))
+    os.utime(destination, ns=(held.st_atime_ns, held.st_mtime_ns))
+    return destination
 
 
 def cmd_wait(e: env.Environment, args: argparse.Namespace) -> int:
