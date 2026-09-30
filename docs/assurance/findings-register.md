@@ -1712,7 +1712,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-521** owed-act: the contained compiler is built by an unlocked distribution toolchain, Coq 8.20.1 and OCaml 5.4.0 under `-ignore-ocaml-version` with Menhir 20260209, whose kernel carries guard-checker defects Rocq 9.3.0 fixes, the tracked manifest binding the compiler stating none of those identities and the retained kernel receipts naming the prover and checker by command, one adding the Coq and OCaml versions and none a Menhir identity or a prover digest, and its source's only copy has no remote
 · Raised: M1.2
-· Disposition: open, Q39 locking and re-checking the build and binding its identities, and whether the source gains a private backup or remote a decision owed to the user
+· Disposition: open, Q39 locking and re-checking the build and binding its identities, and whether the source gains a private backup or remote a decision owed to the user; if Q39 locks a kernel before Rocq 9.3, the kernel half stays open under the named follow-up item Q39 commissions and prices from its port census
 
 **F-224** upstream-defect: the pin carries no stock target backend to start from, the one under its architecture directory being the compartment-aware modification of it and carrying two admitted lemmas in its assembly language file, both in that added layer's own material
 · Raised: M1.2a
