@@ -35,7 +35,8 @@ creates a root on them. The
 root by that route, records each repository's URL and metadata stamp in
 `bootstrap.json`, and imports the Sail and proof snapshots without changing the developer's
 active switch. `run.py provision` holds a developer's client to the same release and their
-root to one stating a format and carrying each of those repositories at its URL. It installs
+root to one stating a format no newer than that client writes and carrying each of those
+repositories at its URL with its metadata stamp read. It installs
 the client where no client is on `PATH`, creates a root by the same route where none stands,
 and reports the root's format and repository stamps; it replaces no client and alters no
 standing root. A client

@@ -50,8 +50,10 @@ of it probe and install the distribution packages that route needs,
 rather than start a root `opam init` would refuse to create. It alters
 nothing that exists: replacing a developer's client can upgrade that root's format one
 way, which is a recorded step rather than a repair, so a client at another release is
-reported and never planned, and neither is a standing root that states no format or
-lacks one of the owner's repositories. Every figure any document states about this
+reported and never planned, and neither is a standing root with a gap
+`opam_client.root_gaps` names: no stated format or one newer than the reviewed
+client writes, or an owned repository absent, at another URL or with its stamp
+unread. Every figure any document states about this
 table is a count over `FACTS`, held by K-24 rather than by care.
 
     python tools/run.py provision                # what is here and what is not
@@ -297,20 +299,13 @@ def _switch_at(switch: str, package: str, pin: str) -> Found:
     return Found(found == pin, f"{package} {found} in {switch}")
 
 
-def _format_key(fmt: str) -> tuple[int, ...]:
-    """A root format's release numbers, for ordering two formats: `2.6~alpha` reads as
-    2.6, which is as near as a report needs to come to opam's own ordering."""
-    return tuple(int(part) for part in re.findall(r"\d+", fmt.partition("~")[0]))
-
-
 def _moving_the_root(fmt: str) -> str:
     """What moving a root of format `fmt` to the reviewed client does to it, as a clause,
-    empty where the root is already in that client's format or states none."""
+    empty where the root is already in that client's format, states none, or states a
+    newer one, which the root's gaps already report."""
     want = opam_client.OPAM_ROOT_FORMAT
-    if not fmt or fmt == want:
+    if not fmt or fmt == want or opam_client.newer_than_reviewed(fmt):
         return ""
-    if _format_key(fmt) > _format_key(want):
-        return f", which cannot read this root's format {fmt}"
     return f", and moving to it upgrades this root's format from {fmt} to {want} one way"
 
 
@@ -319,9 +314,11 @@ def _opam_client() -> Found:
     one the owner's root-creation route makes.
 
     The fact is the client's release and the root's completeness: a root stands where
-    its `config` does, and is complete where it states a format and carries each of
-    `OPAM_REPOSITORIES` at its URL, because every switch recipe fails in a root that
-    does not stand and the prover's fails without its repository. The rest is what a
+    its `config` does, and is complete where `opam_client.root_gaps` names nothing, a
+    format stated and no newer than the reviewed client writes and each of
+    `OPAM_REPOSITORIES` at its URL with its stamp read, because every switch recipe
+    fails in a root that does not stand or that the client refuses to write to, and the
+    prover's fails without its repository. The rest is what a
     reader needs to act on it: where the client and its root are, the root's format,
     and each repository's URL and metadata stamp, which the locks do not fix. The root
     is read from its files rather than through opam, because a client newer than the

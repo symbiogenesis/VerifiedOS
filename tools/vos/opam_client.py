@@ -125,15 +125,41 @@ def root_exists(root: Path) -> bool:
     return (root / "config").is_file()
 
 
+def format_key(fmt: str) -> tuple[int, ...]:
+    """A root format's release numbers, for ordering two formats: `2.6~alpha` reads as
+    2.6, which is as near as a report needs to come to opam's own ordering."""
+    return tuple(int(part) for part in re.findall(r"\d+", fmt.partition("~")[0]))
+
+
+def newer_than_reviewed(fmt: str) -> bool:
+    """Whether a stated root format is newer than `OPAM_ROOT_FORMAT`. The reviewed
+    client still reads such a root, but refuses every command that takes its write lock
+    as "more recent than this version of opam", a switch creation among them."""
+    return bool(fmt) and format_key(fmt) > format_key(OPAM_ROOT_FORMAT)
+
+
 def root_gaps(root: Path) -> list[str]:
-    """What a root that stands lacks of one `CREATE_ROOT` makes, as clauses: a stated
-    format, and each of `OPAM_REPOSITORIES` at its URL. Empty for a complete root."""
-    gaps = [] if root_format(root) else ["states no format"]
-    configured = {(repo["name"], repo["url"]) for repo in repositories(root)}
+    """What a root that stands lacks of one the reviewed client can use as `CREATE_ROOT`
+    makes it, as clauses: a stated format no newer than `OPAM_ROOT_FORMAT`, each of
+    `OPAM_REPOSITORIES` at its URL, and each of those with its metadata stamp read, as
+    `initialized_repositories` holds a root just created. Empty for a complete root."""
+    fmt = root_format(root)
+    gaps: list[str] = []
+    if not fmt:
+        gaps.append("states no format")
+    elif newer_than_reviewed(fmt):
+        gaps.append(f"is in format {fmt}, newer than the reviewed client's "
+                    f"{OPAM_ROOT_FORMAT}, which refuses to write to it")
+    found = repositories(root)
+    configured = {(repo["name"], repo["url"]) for repo in found}
     missing = [f"{name} {url}" for name, url in OPAM_REPOSITORIES
                if (name, url) not in configured]
     if missing:
         gaps.append(f"lacks {', '.join(missing)}")
+    unstamped = [repo["name"] for repo in found
+                 if (repo["name"], repo["url"]) in OPAM_REPOSITORIES and not repo["stamp"]]
+    if unstamped:
+        gaps.append(f"records no metadata stamp for {', '.join(unstamped)}")
     return gaps
 
 

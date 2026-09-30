@@ -196,6 +196,39 @@ def _root_gaps_name_what_a_root_lacks() -> None:
                    "lacks " + ", ".join(f"{name} {address}"
                                         for name, address in opam_client.OPAM_REPOSITORIES)],
                f"an empty root lacks everything: {opam_client.root_gaps(bare)}")
+        newer = Path(td) / "newer"
+        opam_root(newer, "flat")
+        (newer / "config").write_bytes(b'opam-version: "2.0"\nopam-root-version: "99.0"\n')
+        ensure(opam_client.root_gaps(newer) == [
+                   f"is in format 99.0, newer than the reviewed client's "
+                   f"{opam_client.OPAM_ROOT_FORMAT}, which refuses to write to it"],
+               f"a format newer than the reviewed client's is a gap: "
+               f"{opam_client.root_gaps(newer)}")
+        unstamped = Path(td) / "unstamped"
+        opam_root(unstamped, "flat", stamps={name: "s" for name, _ in others})
+        ensure(opam_client.root_gaps(unstamped) == [f"records no metadata stamp for {default}"],
+               f"an owned repository whose stamp is unread is a gap: "
+               f"{opam_client.root_gaps(unstamped)}")
+        foreign = Path(td) / "foreign"
+        opam_root(foreign, "flat", stamps={name: "s" for name, _ in opam_client.OPAM_REPOSITORIES},
+                  configured=(*opam_client.OPAM_REPOSITORIES, ("mine", "https://example.invalid")))
+        ensure(opam_client.root_gaps(foreign) == [],
+               f"a repository the owner does not name is the developer's, stamped or not: "
+               f"{opam_client.root_gaps(foreign)}")
+
+
+def _newer_formats_are_ordered() -> None:
+    """A stated format is newer than the reviewed client's only by its release numbers:
+    an older format, the reviewed one and a prerelease of it are not, and none stated
+    is not a newer one."""
+    reviewed = opam_client.OPAM_ROOT_FORMAT
+    for fmt, newer in (("99.0", True), (f"{reviewed}.1", True), (reviewed, False),
+                       (f"{reviewed}~alpha1", False), ("2.2", False), ("2.0", False),
+                       ("", False)):
+        ensure(opam_client.newer_than_reviewed(fmt) is newer,
+               f"format {fmt!r} reads newer={opam_client.newer_than_reviewed(fmt)}")
+    ensure(opam_client.format_key("2.10") > opam_client.format_key("2.9"),
+           "formats are ordered by number, not by text")
 
 
 def _install_verifies_and_never_replaces() -> None:
@@ -246,5 +279,6 @@ def cases() -> list[Case]:
         Case("root-creation-is-the-owners-route", _root_creation_is_the_owners_route),
         Case("root-prerequisites-are-packages", _root_prerequisites_are_packages),
         Case("root-gaps-name-what-a-root-lacks", _root_gaps_name_what_a_root_lacks),
+        Case("newer-formats-are-ordered", _newer_formats_are_ordered),
         Case("install-verifies-and-never-replaces", _install_verifies_and_never_replaces),
     ]

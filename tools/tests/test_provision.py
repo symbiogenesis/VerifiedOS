@@ -236,9 +236,11 @@ def _opam_probe_holds_the_reviewed_client() -> None:
                                in found.saw),
                    f"a mismatch names the reviewed client and the cost of moving: {found.saw}")
         # The cost is stated only where there is one: a root already in the reviewed
-        # client's format is not rewritten by moving to it, and a newer one is unreadable.
+        # client's format is not rewritten by moving to it, and a newer one is a gap of
+        # the root's own, which the reviewed client refuses to write to.
         for fmt, clause in ((opam_client.OPAM_ROOT_FORMAT, ""),
-                            ("99.0", "which cannot read this root's format 99.0")):
+                            ("99.0", "the root is in format 99.0, newer than the reviewed "
+                                     f"client's {opam_client.OPAM_ROOT_FORMAT}")):
             (root / "config").write_text(f'opam-root-version: "{fmt}"\n', encoding="utf-8")
             found = _opam_probe(root, "/usr/bin/opam", "2.5.0")
             ensure(not found.present and f"format {fmt};" in found.saw
@@ -258,9 +260,11 @@ def _opam_probe_holds_the_reviewed_client() -> None:
 
 
 def _opam_probe_holds_the_root() -> None:
-    """The row holds only where a root stands complete: stating a format and carrying
-    each owned repository at its URL. An absent root is repairable, since the command
-    creates one; a standing root it would leave incomplete is reported, never planned."""
+    """The row holds only where a root stands complete: stating a format no newer than
+    the reviewed client's and carrying each owned repository at its URL with its stamp
+    read. An absent root is repairable, since the command creates one; a standing root
+    it would leave incomplete is reported, never planned, whether or not a client is on
+    PATH, and so is one in a format the reviewed client refuses to write to."""
     (default, url), *others = opam_client.OPAM_REPOSITORIES
     reviewed = opam_client.OPAM_VERSION
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
@@ -274,9 +278,18 @@ def _opam_probe_holds_the_root() -> None:
         (unformatted / "config").write_text('opam-version: "2.0"\n', encoding="utf-8")
         partial = Path(td) / "partial"
         opam_root(partial, "flat", configured=((default, url),))
+        newer = Path(td) / "newer"
+        opam_root(newer, "flat")
+        (newer / "config").write_text('opam-root-version: "99.0"\n', encoding="utf-8")
+        unstamped = Path(td) / "unstamped"
+        opam_root(unstamped, "flat", stamps={name: "s" for name, _ in others})
         missing = ", ".join(f"{name} {address}" for name, address in others)
-        for incomplete, fragment in ((unformatted, "the root states no format"),
-                                     (partial, f"the root lacks {missing}")):
+        for incomplete, fragment in (
+                (unformatted, "the root states no format"),
+                (partial, f"the root lacks {missing}"),
+                (newer, "the root is in format 99.0, newer than the reviewed client's "
+                        f"{opam_client.OPAM_ROOT_FORMAT}, which refuses to write to it"),
+                (unstamped, f"the root records no metadata stamp for {default}")):
             for where, version in (("/usr/bin/opam", reviewed), (None, "")):
                 found = _opam_probe(incomplete, where, version)
                 ensure(not found.present and not found.repairable and fragment in found.saw
@@ -301,14 +314,18 @@ def _opam_row_plans_only_what_is_absent() -> None:
     row = next(fact for fact in provision.FACTS if fact.name == "opam")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         complete, partial = Path(td) / "complete", Path(td) / "partial"
+        newer = Path(td) / "newer"
         opam_root(complete, "flat")
         opam_root(partial, "flat", configured=opam_client.OPAM_REPOSITORIES[:1])
+        opam_root(newer, "flat")
+        (newer / "config").write_text('opam-root-version: "99.0"\n', encoding="utf-8")
         for where, version, root, planned in (
                 (None, "", Path(td) / "absent", True), (None, "", complete, True),
                 ("/usr/bin/opam", reviewed, Path(td) / "absent", True),
                 ("/usr/bin/opam", "2.5.0", Path(td) / "absent", False),
                 ("/usr/bin/opam", "2.5.0", complete, False),
-                ("/usr/bin/opam", reviewed, partial, False), (None, "", partial, False)):
+                ("/usr/bin/opam", reviewed, partial, False), (None, "", partial, False),
+                ("/usr/bin/opam", reviewed, newer, False), (None, "", newer, False)):
             with (patch.object(provision, "shutil", SimpleNamespace(which=lambda name, at=where: at)),
                   patch.object(provision.env, "opam_root", return_value=root),
                   patch.object(provision, "_say", return_value=version)):
@@ -450,16 +467,22 @@ def _install_opam_installs_only_what_is_absent() -> None:
                    f"an incomplete root is reported and left as it is: {said.getvalue()}")
         # With no client, a root the row reads as incomplete is refused before the
         # client is installed, which would otherwise leave a client and a failure.
-        older = Path(td) / "older"
+        older, newer = Path(td) / "older", Path(td) / "newer"
         opam_root(older, "nested", configured=opam_client.OPAM_REPOSITORIES[:1])
-        with (patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)),
-              patch.object(provision, "env", SimpleNamespace(opam_root=lambda: older)),
-              patch.object(provision.opam_client, "install") as installer,
-              patch.object(provision.subprocess, "run") as launched,
-              redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()) as said):
-            ensure(provision.install_opam(target) == 1 and "left as it is" in said.getvalue()
-                   and not installer.called and not launched.called,
-                   f"no client over an incomplete root installs nothing: {said.getvalue()}")
+        opam_root(newer, "flat")
+        (newer / "config").write_text('opam-root-version: "99.0"\n', encoding="utf-8")
+        for incomplete in (older, newer):
+            with (patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)),
+                  patch.object(provision, "env",
+                               SimpleNamespace(opam_root=lambda at=incomplete: at)),
+                  patch.object(provision.opam_client, "install") as installer,
+                  patch.object(provision.subprocess, "run") as launched,
+                  redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()) as said):
+                ensure(provision.install_opam(target) == 1
+                       and "left as it is" in said.getvalue()
+                       and not installer.called and not launched.called,
+                       f"no client over the incomplete root {incomplete.name} installs "
+                       f"nothing: {said.getvalue()}")
         _creation_failures(Path(td), target)
         selected[0] = None
         absent = SimpleNamespace(opam_root=lambda: Path(td) / "absent")
