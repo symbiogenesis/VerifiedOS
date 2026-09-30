@@ -155,6 +155,30 @@ and so having no count to hand it. What none of the three reaches is the reading
 narrows *without* emptying, a single owner cell reworded off the `path's SYMBOL` form
 dropping its symbol with the gate green, which is the residue `tools/check-rules.md`
 declares of every pattern here.
+
+K-119 holds the registry against the section of `tools/check-rules.md` that prices it.
+That section sorts the rules into four reach classes, found by name, a computed value,
+found by pattern and total, and states that every rule the registry carries is named
+under exactly one of them. A class list is prose, so a rule registered without being
+added to one leaves the section describing less than the table while every other gate
+stays green, and a rule named under two leaves a reader unable to say which reach it has.
+
+**The rules it decides about are the registry's own rows**, the set K-00 reads, so a row
+is inside it the day it is written; the classes are read off the page, each by the bold
+word of its opening sentence and by one membership sentence, `which is what` or `That is
+what`, a list of ids, then `are`. The four class names are fixed here rather than read,
+so a class retitled away and a fifth class written in are each a finding rather than a
+class this rule stops or never starts reading. A list is decided whole by a grammar of
+ids, `K-a through K-b` ranges, commas and `and`, and a range expands over the active rows
+whose numbers it spans, so a struck row inside one is skipped rather than placed.
+
+**Fail-closed at every reading.** A missing section, a class with no membership sentence
+or with two, a list carrying a word the grammar does not know, a range that runs
+backwards or ends on an id the registry does not carry as an active rule, an id a class
+names that is struck, quarantined or never registered, and a class naming no registered
+rule are each findings, so the floor is inside the rule for the reason K-84's is. What it
+does not decide is whether a rule sits in the class its row and code fit, which is a
+reading.
 """
 
 import re
@@ -206,6 +230,29 @@ _HOLDER_RE = re.compile(r"\*\*(K-\d{2,3})\*\*")
 # which is what makes a mistyped declaration a finding instead of a line nothing reads.
 _LANDED_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed:")
 _TIER_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed: Tier (?P<tier>[AB])\b(?P<rest>.*)")
+
+# K-119's reading of the reach section. The four class names are fixed here rather than
+# read off the page, so a class retitled away and a fifth class written in are each a
+# finding rather than a class this rule silently stops or never starts reading.
+REACH_HEADING = "## What a passing run does not decide"
+REACH_CLASSES = ("name", "computed value", "pattern", "total")
+_CLASS_OPEN_RE = re.compile(r"Where the set is (?:found by |a )?\*\*([^*\r\n]+)\*\*")
+
+# A class's membership sentence: `which is what` or `That is what`, the list, then `are`.
+# The capture admits only the characters a list is spelled in, so a sentence that merely
+# discusses a rule is not read as a list; what it captures is then decided whole by the
+# grammar below, so a word the grammar does not know is a finding rather than a list cut
+# short at it. Ids admit the letter suffix, so a suffixed id is named and resolved rather
+# than making the sentence unreadable.
+_MEMBERS_RE = re.compile(r"\b(?:which|That) is what (K-[\w ,-]*?) are\b")
+_CLASS_ID = r"K-\d{2,3}[a-z]?"
+_CLASS_ITEM = rf"{_CLASS_ID}(?: through {_CLASS_ID})?"
+_CLASS_ITEM_RE = re.compile(rf"({_CLASS_ID})(?: through ({_CLASS_ID}))?")
+_CLASS_LIST_RE = re.compile(rf"{_CLASS_ITEM}(?:(?:, and |, | and ){_CLASS_ITEM})*")
+
+# A struck registry row, retired or never allocated: an id the registry carries and no
+# run reports, so a class naming one is placing a rule that decides nothing.
+_STRUCK_ROW_RE = re.compile(rf"^\| ~~({_CLASS_ID})~~ \|")
 
 # The two trees K-83 stands between, and the kind of file it reads in each.
 TOOLS_TREE = "tools/"
@@ -335,6 +382,7 @@ def run(ctx: Context) -> None:
         rep.report("K-00", "rule id(s) the registry and the checks disagree on:", findings,
                    f"the registry's {len(seen)} rules and the checks agree, both directions")
 
+    _classes(ctx, seen)
     _pins(ctx)
     _floor(ctx)
     # A holder citation resolves against either registry, because a quarantined rule
@@ -622,6 +670,165 @@ def _landings(ctx: Context, registered: set[str]) -> None:
                f"historical retired rules, and each of the {declared} landing declarations "
                "in the plan and the completion log states a tier and, at Tier B, the "
                "rule holding what it created")
+
+
+def _rule_key(rule: str) -> tuple[int, str]:
+    """A rule id's place in the numbering, a letter suffix ordering it after its number.
+
+    Every id reaching here matched `_CLASS_ID` or `REGISTRY_ROW_RE`, both of which fix
+    the digits and at most one lower-case letter after them, so the split cannot fail.
+    """
+    digits = rule[2:].rstrip("abcdefghijklmnopqrstuvwxyz")
+    return int(digits), rule[2 + len(digits):]
+
+
+def _class_members(listed: str, registered: set[str], struck: set[str],
+                   quarantined: set[str]) -> tuple[list[str], list[str]]:
+    """One class's list, expanded: the registered rules it names, and what it names wrongly.
+
+    The list has already matched the whole grammar, so every item is an id or a range.
+    A range expands over the registered rules whose numbers it spans, which is what lets
+    a struck row sit inside one without being placed; its two ends have to be registered
+    themselves, so a range cannot quietly reach past the rules it was written over.
+    """
+    members: list[str] = []
+    wrong: list[str] = []
+
+    def unplaceable(rule: str, role: str) -> str | None:
+        if rule in registered:
+            return None
+        if rule in struck:
+            why = "which the registry carries struck, so no run reports it"
+        elif rule in quarantined:
+            why = "which the quarantine's registry carries and its own gate runs"
+        else:
+            why = "which the registry does not carry"
+        return f"{role} {rule}, {why}"
+
+    for m in _CLASS_ITEM_RE.finditer(listed):
+        first, last = m.group(1), m.group(2)
+        if last is None:
+            problem = unplaceable(first, "names")
+            if problem:
+                wrong.append(problem)
+            else:
+                members.append(first)
+            continue
+        ends = [p for p in (unplaceable(first, "opens a range at"),
+                            unplaceable(last, "closes a range at")) if p]
+        if ends:
+            wrong += ends
+            continue
+        lo, hi = _rule_key(first), _rule_key(last)
+        if lo >= hi:
+            wrong.append(f"names the range {first} through {last}, which runs backwards "
+                         "or spans one rule")
+            continue
+        members += sorted((r for r in registered if lo <= _rule_key(r) <= hi),
+                          key=_rule_key)
+    return members, wrong
+
+
+def _classes(ctx: Context, registered: set[str]) -> None:
+    """K-119: every registered rule is named under exactly one reach class.
+
+    The rules decided about are the registry's own rows, so nothing narrows them; the
+    classes are read off the reach section, and every way that reading can fail is a
+    finding rather than a class read as empty. A class that could not be read is not
+    followed by a finding for every rule it would have placed, because the unreadable
+    class is already the finding and the rest would restate it once per member.
+    """
+    rep = ctx.rep
+    findings: list[str] = []
+    doc = ctx.corpus.get(RULES)
+    placed: dict[str, list[str]] = {rule: [] for rule in registered}
+    sizes: dict[str, int] = {}
+    unread = False
+
+    if doc is None:
+        findings.append(f"{RULES} is not in the repository, so there is no reach class "
+                        "to read")
+    elif not registered:
+        findings.append(f"{RULES} registers no rule this run can read, so no class "
+                        "membership is held against anything")
+    else:
+        struck = {m.group(1) for _, m in doc.unfenced("| ~~K-", _STRUCK_ROW_RE)}
+        quarantined = _quarantined_rules(ctx)
+        top = next((i for i, line in enumerate(doc.lines)
+                    if line == REACH_HEADING and not doc.fenced[i]), None)
+        if top is None:
+            findings.append(f"{RULES} carries no '{REACH_HEADING}' section, so no rule "
+                            "can be placed in a reach class")
+            unread = True
+        else:
+            bottom = next((i for i in range(top + 1, len(doc.lines))
+                           if doc.lines[i].startswith("## ") and not doc.fenced[i]),
+                          len(doc.lines))
+            lo = doc.starts[top]
+            hi = doc.starts[bottom] if bottom < len(doc.lines) else len(doc.raw)
+            opens = [m for m in _CLASS_OPEN_RE.finditer(doc.raw, lo, hi)
+                     if not doc.is_fenced(m.start())]
+            seen_classes: set[str] = set()
+            for k, m in enumerate(opens):
+                name = m.group(1)
+                where = f"{RULES}:{doc.at(m.start())}"
+                if name not in REACH_CLASSES:
+                    findings.append(f"{where} opens a reach class '**{name}**' that is not "
+                                    f"one of the {figures.words(len(REACH_CLASSES))} this "
+                                    "rule reads, so the rules it names are placed nowhere")
+                    unread = True
+                    continue
+                if name in seen_classes:
+                    findings.append(f"{where} opens the '{name}' class a second time")
+                    unread = True
+                    continue
+                seen_classes.add(name)
+                end = opens[k + 1].start() if k + 1 < len(opens) else hi
+                clauses = [c for c in _MEMBERS_RE.finditer(doc.raw, m.end(), end)
+                           if not doc.is_fenced(c.start())]
+                if len(clauses) != 1:
+                    findings.append(
+                        f"{where}: the '{name}' class states "
+                        f"{'no' if not clauses else figures.words(len(clauses))} "
+                        "membership sentence(s) this rule reads, where it needs exactly "
+                        "one: 'which is what' or 'That is what', its rules, then 'are'")
+                    unread = True
+                    continue
+                listed = clauses[0].group(1)
+                if not _CLASS_LIST_RE.fullmatch(listed):
+                    findings.append(f"{RULES}:{doc.at(clauses[0].start())}: the '{name}' "
+                                    f"class lists '{listed}', which is not a list of rule "
+                                    "ids and ranges this rule reads")
+                    unread = True
+                    continue
+                members, wrong = _class_members(listed, registered, struck, quarantined)
+                findings += [f"the '{name}' class {problem}" for problem in wrong]
+                if not members:
+                    findings.append(f"the '{name}' class names no rule the registry "
+                                    "carries")
+                for rule in sorted(set(members), key=_rule_key):
+                    if members.count(rule) > 1:
+                        findings.append(f"the '{name}' class names {rule} more than once")
+                    placed[rule].append(name)
+                sizes[name] = len(set(members))
+            for name in REACH_CLASSES:
+                if name not in seen_classes:
+                    findings.append(f"{RULES} opens no '{name}' class in a form this rule "
+                                    "reads: 'Where the set is', then the class in bold")
+                    unread = True
+
+    for rule in sorted(placed, key=_rule_key):
+        classes = placed[rule]
+        if len(classes) > 1:
+            findings.append(f"{rule} is named under {figures.words(len(classes))} reach "
+                            f"classes, {' and '.join(classes)}, where the page says one")
+        elif not classes and not unread and doc is not None:
+            findings.append(f"{rule} is registered and named under no reach class")
+
+    rep.report("K-119", "rule(s) the reach classes do not place exactly once:", findings,
+               f"each of the registry's {len(registered)} rules is named under exactly one "
+               f"of the {figures.words(len(REACH_CLASSES))} reach classes ("
+               + ", ".join(f"{name} {sizes.get(name, 0)}" for name in REACH_CLASSES) + ")")
 
 
 def _at(text: str, offset: int) -> int:
