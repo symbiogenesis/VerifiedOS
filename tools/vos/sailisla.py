@@ -332,6 +332,21 @@ def _install_rust(root: Path, base: Path, triple: str, runner: Runner) -> None:
                     "--disable-ldconfig"], base)
 
 
+def _fresh_prefix(base: Path) -> Path:
+    """The lane Sail's install prefix, emptied so nothing a superseded build installed
+    stays in libsail's plugin site or on the plugin build's OCAMLPATH.
+
+    dune install records the prefix in the executables it installs as libsail's site
+    location (a move needs `--relocatable`), so the prefix cannot be built beside and
+    renamed into place. The stamp goes first, so an interrupted run leaves none.
+    """
+    (base / "provision.json").unlink(missing_ok=True)
+    prefix = base / "sail-prefix"
+    if prefix.exists():
+        shutil.rmtree(prefix)
+    return prefix
+
+
 def provision(e: env.Environment, jobs: int = 2) -> Stamp:
     """Explicit downloads and builds; never installs into the baseline opam switch."""
     if not 1 <= jobs <= 16:
@@ -376,7 +391,7 @@ def provision(e: env.Environment, jobs: int = 2) -> Stamp:
             shutil.rmtree(sail_source)
         with tarfile.open(archive) as compressed:
             compressed.extractall(base, filter="data")
-        prefix = base / "sail-prefix"
+        prefix = _fresh_prefix(base)
         opam = ["opam", "exec", f"--switch={env.SAIL_SWITCH}", "--"]
         runner.run([*opam, "dune", "build", "-p", "sail,sail_maker,libsail", "@install",
                     "-j", str(jobs)], sail_source, process)

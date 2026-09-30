@@ -14,8 +14,11 @@ opam package inventory and Z3 version, and refuses a Sail archive pin whose
 version is not the Sail release that inventory installs. It reads the baseline
 switch without installing into it. A separate Sail executable and the Isla
 plugin are built in the lane from the release archive the locked compiler's
-opam package also builds from, extracted into a fresh tree on each
-provisioning. The primary compiler is unchanged.
+opam package also builds from. Each provisioning extracts that archive into a
+fresh tree and installs Sail into an emptied prefix, so no file from a superseded
+build reaches the plugin build or libsail's plugin site. Removing the previous
+provisioning record before emptying that prefix leaves qualification nothing to
+accept from an interrupted install. The primary compiler is unchanged.
 
 `lock.json` fixes the standalone Isla revision, isla-testgen revision and its
 different Isla submodule revision, and Sail release archive digest. The shared
@@ -36,6 +39,17 @@ ACL2 parser without editing upstream source. The build does not request the
 optional web or litmus executables, LLVM, or a new opam solution. Cargo still
 builds transitive libraries required by the two selected crate graphs.
 
+The Isla lock override still carries two RustSec advisories, as OSV listed them
+on 2026-09-30: rand 0.7.3
+([RUSTSEC-2026-0097](https://rustsec.org/advisories/RUSTSEC-2026-0097.html),
+fixed in 0.8.6) through the isla crate that provides isla-execute-function, and
+the unmaintained bincode 1.3.3
+([RUSTSEC-2025-0141](https://rustsec.org/advisories/RUSTSEC-2025-0141.html),
+no fixed release) through isla and isla-lib. They stay because Isla e9b5d945
+requires rand `0.7.3`, which admits no 0.8 release, and bincode `1.2.1`, and a
+lock override cannot carry a version outside the semver-compatible range its
+manifests admit.
+
 The driver's Cargo.lock carries four RustSec advisories, as OSV listed them on
 2026-09-30, each reached only through isla-testgen and its nested Isla
 bcc7ee84. Through isla-testgen's crossbeam 0.7.3 come crossbeam-utils 0.7.2
@@ -48,7 +62,7 @@ reads uninitialized memory, fixed in 0.6.2). rand 0.7.3
 unsound with a custom logger, fixed in 0.8.6) comes from both, and the
 unmaintained bincode 1.3.3
 ([RUSTSEC-2025-0141](https://rustsec.org/advisories/RUSTSEC-2025-0141.html),
-no fixed release) from the nested Isla's library. They stay because
+no fixed release) from the nested Isla's isla and isla-lib. They stay because
 isla-testgen requires crossbeam and rand `0.7.3` and the nested Isla requires
 rand `0.7.3` and bincode `1.2.1`: no release those requirements admit carries a
 fix, so moving them means changing upstream manifests rather than this lock.

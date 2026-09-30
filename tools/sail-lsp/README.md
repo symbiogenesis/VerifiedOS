@@ -41,12 +41,15 @@ another package graph. Sources and license notices remain in the native lane.
 `status` checks the recipe identity and SHA-256 of installed artifacts.
 `install` rebuilds when the tracked recipe changes. It downloads again any
 source archive that is missing or differs from its pin, keeps a download only
-once its SHA-256 matches, and extracts each source into a fresh tree. Native install and
-qualification outputs remain in the assigned build lane; build logs use its
-assigned native log location. Installation receipts retain source hashes,
-license-file hashes, the complete inherited package inventory, and artifact
-hashes. These detect accidental changes, not malicious substitution of both
-artifacts and receipts.
+once its SHA-256 matches, and extracts each source into a fresh tree. It removes
+the previous receipt first and installs into an emptied prefix and
+configuration, so nothing a superseded recipe installed is loaded or hashed as an
+artifact, and an interrupted rebuild leaves no installation for `status` to
+accept. Native install and qualification outputs remain in the assigned build
+lane; build logs use its assigned native log location. Installation receipts
+retain source hashes, license-file hashes, the complete inherited package
+inventory, and artifact hashes. These detect accidental changes, not malicious
+substitution of both artifacts and receipts.
 
 [dependency-refresh.patch](dependency-refresh.patch) is the maintained local
 change to [upstream handler.ml at the source pin](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/sail_lsp/handler.ml).
