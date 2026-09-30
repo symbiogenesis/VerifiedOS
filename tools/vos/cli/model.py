@@ -876,9 +876,13 @@ def cmd_wait(e: env.Environment, args: argparse.Namespace) -> int:
 
     The wait is on the lane's lock rather than on the log, because the lock is released
     by the kernel when the builder exits however it exits, where a marker is only
-    written by a build that got as far as writing one. The log carries the verdict, and
-    it is read while the lock is still held: read after releasing, a build started in
-    that window truncates the log first and the report is about the wrong run.
+    written by a build that got as far as writing one. The log carries the stages'
+    verdict and the receipt the evidence's: a log whose stages passed is then held to
+    `verified_build`, which fails the wait on a receipt that is missing, malformed or
+    records no successful complete build, naming the refusal it records when it records
+    one, or on one gone stale since. Both are read while the lock is still held: read after
+    releasing, a build started in that window truncates the log first and the report is
+    about the wrong run.
     """
     log = e.log("model-build-fast" if args.fast else "model-build")
     lock = env.wait_for_build(e.fast_build_dir if args.fast else e.build_dir)
