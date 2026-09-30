@@ -45,12 +45,21 @@ def lock_identity(root: Path) -> str:
 
 
 def _base_inventory(root: Path) -> list[str]:
-    """Refuse drift in every package of the existing compiler's transitive lock."""
+    """Refuse drift in every package of the existing compiler's transitive lock.
+
+    The private Libsail and server build from the pinned Sail release archive, so
+    that pin must be the Sail release the locked compiler installs.
+    """
     lock = (root / "tools/opam/sail.lock").read_text(encoding="utf-8")
     match = re.search(r"installed:\s*\[(.*?)\]", lock, re.DOTALL)
     if match is None:
         raise ValueError("the base Sail lock has no installed package closure")
     expected = sorted(re.findall(r'"([^"\n]+)"', match.group(1)))
+    sail = [spec for spec in json.loads((root / LOCK).read_text(encoding="utf-8"))["sources"]
+            if spec["name"] == "sail"]
+    if len(sail) != 1 or f"sail.{sail[0]['version']}" not in expected:
+        raise ValueError("the LSP lock's Sail archive is not the Sail release "
+                         "tools/opam/sail.lock installs")
     done = subprocess.run(["opam", "list", f"--switch={env.SAIL_SWITCH}", "--installed",
                            "--columns=name,version", "--short"], capture_output=True,
                           text=True, check=True)
@@ -71,17 +80,27 @@ def _run(argv: list[str], cwd: Path, environ: dict[str, str], log: Path) -> None
 
 
 def _source(spec: dict[str, Any], directory: Path) -> Path:
+    """Fetch a missing or superseded archive, keep it only once its pin matches, and
+    extract a fresh tree so no member of an earlier archive survives into the build."""
+    name = str(spec["directory"])
+    if Path(name).name != name or name in ("", ".", ".."):
+        raise ValueError("a source directory must be one archive member name")
     archive = directory / (spec["name"] + ".archive")
-    if not archive.exists():
+    if not archive.is_file() or sha256(archive) != spec["sha256"]:
         if not spec["url"].startswith("https://"):
             raise ValueError("source URLs must use HTTPS")
+        part = archive.with_name(archive.name + ".part")
         with (urllib.request.urlopen(spec["url"], timeout=60) as response,  # noqa: S310 -- HTTPS checked above; tracked pins only.
-              archive.open("wb") as output):
+              part.open("wb") as output):
             shutil.copyfileobj(response, output)
-    if sha256(archive) != spec["sha256"]:
-        raise ValueError(f"source archive digest mismatch: {archive}")
-    target = directory / str(spec["directory"])
+        if sha256(part) != spec["sha256"]:
+            part.unlink()
+            raise ValueError(f"source archive digest mismatch: {spec['url']}")
+        part.replace(archive)
+    target = directory / name
     # Restore original archive members before a reproducible patch/build retry.
+    if target.exists():
+        shutil.rmtree(target)
     with tarfile.open(archive) as source:
         source.extractall(directory, filter="data")
     return target

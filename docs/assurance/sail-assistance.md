@@ -313,9 +313,10 @@ dependencies, cancellation and restart, including a curated-model comparison wit
 strict batch typechecking. The client must send standard
 `workspace/didChangeWatchedFiles` notifications for `**/*.sail` and
 `**/*.sail_project`; saving an open document also refreshes dependencies. The
-launcher directs server logging to the native log lane so it cannot corrupt LSP
-Content-Length framing. Cancellation protocol behavior is checked separately from
-whether work interruption was observed. Retain ordinary batch acceptance for
+pinned server logs to stderr unless given `--log-file`; the launcher passes a
+file in the native log lane, so the server log persists there instead of
+passing to the client's stderr handling. Cancellation protocol behavior is
+checked separately from whether work interruption was observed. Retain ordinary batch acceptance for
 every candidate; live state does not replace the model's required gates.
 
 Provisioning details, schemas and prerequisites are in the [LSP guide](../../tools/sail-lsp/README.md),

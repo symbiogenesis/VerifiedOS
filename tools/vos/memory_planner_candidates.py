@@ -23,10 +23,12 @@ from typing import Any
 from urllib.request import urlopen
 
 from vos import memory_planner as planner
+from vos import rust_toolchain
 
 MAX_OBJECTS = 4096
 MAX_TOTAL_SIZE = (1 << 31) - 1
 PIN_PATH = "tools/memory-planner/idealloc.json"
+PIN_SCHEMA = "vos-idealloc-pin-v3"
 BRIDGE_PATH = "tools/memory-planner/idealloc/bridge.rs"
 
 
@@ -126,10 +128,10 @@ def rust_target() -> str:
 
 
 def _fetch_component(url: str, expected: str, archive: Path) -> None:
-    """Keep only an archive whose SHA-256 is the manifest-pinned component hash."""
+    """Keep only an archive whose SHA-256 is the pinned component hash."""
     if archive.is_file() and digest(archive) == expected:
         return
-    if not url.startswith("https://static.rust-lang.org/dist/"):
+    if not url.startswith(rust_toolchain.DIST):
         raise ValueError("Rust components come only from the HTTPS distribution server")
     archive.parent.mkdir(parents=True, exist_ok=True)
     part = archive.with_name(archive.name + ".part")
@@ -142,13 +144,16 @@ def _fetch_component(url: str, expected: str, archive: Path) -> None:
     part.replace(archive)
 
 
-def rust_environment(output: Path, pin: dict[str, Any]) -> tuple[str, dict[str, str]]:
-    """Install the pinned Rust component archives in this lane, without rustup or profile changes.
+def rust_environment(root: Path, output: Path) -> tuple[str, dict[str, str], dict[str, str]]:
+    """Install the shared pinned Rust component archives in this lane, without rustup or profile changes.
 
-Each archive is checked against its channel-manifest xz_hash before extraction, so
-the installed compiler is bound to the pin rather than to a live manifest.
+The pin is the checkout's shared Rust toolchain owner, also read by the optional
+Isla tools. Each archive is checked against its channel-manifest xz_hash before
+extraction, so the installed compiler is bound to the pin rather than to a live
+manifest. Returns Cargo, its process environment and the installed component hashes.
 """
     triple = rust_target()
+    pin = rust_toolchain.load(root)
     version, components = pin["version"], pin["components"][triple]
     prefix = output / "rust"
     stamp = prefix / "vos-rust-components.json"
@@ -160,12 +165,11 @@ the installed compiler is bound to the pin rather than to a live manifest.
     if not installed or not (prefix / "bin/cargo").is_file():
         shutil.rmtree(prefix, ignore_errors=True)
         downloads = output / "rust-dist"
-        names = [f"{component}-{version}-{triple}" for component in components]
-        for name, expected in zip(names, components.values(), strict=True):
-            _fetch_component(f"https://static.rust-lang.org/dist/{name}.tar.xz", expected,
-                             downloads / f"{name}.tar.xz")
+        rows = rust_toolchain.archives(pin, triple)
+        for name, url, expected in rows:
+            _fetch_component(url, expected, downloads / f"{name}.tar.xz")
         with (output / "rust-install.log").open("w", encoding="utf-8", newline="") as log:
-            for name in names:
+            for name, _, _ in rows:
                 with tarfile.open(downloads / f"{name}.tar.xz") as stream:
                     stream.extractall(downloads, filter="data")
                 subprocess.run(["sh", str(downloads / name / "install.sh"), f"--prefix={prefix}",
@@ -175,7 +179,7 @@ the installed compiler is bound to the pin rather than to a live manifest.
     process_env = dict(os.environ, CARGO_HOME=str(output / "cargo-home"),
                        RUSTC=str(prefix / "bin/rustc"), CARGO_TARGET_DIR=str(output / "target"))
     process_env["PATH"] = str(prefix / "bin") + os.pathsep + process_env.get("PATH", "")
-    return str(prefix / "bin/cargo"), process_env
+    return str(prefix / "bin/cargo"), process_env, components
 
 
 def verify_crate(package_root: Path, archive: Path, checksum: str) -> None:
@@ -213,6 +217,9 @@ def build_idealloc(root: Path, output: Path) -> dict[str, Any]:
     """Build only a hash-bound upstream core and this repository's authored bridge."""
     output = native_output(root, output)
     pin = json.loads((root / PIN_PATH).read_text(encoding="utf-8"))
+    # Version 3 moved the Rust pin to the shared rust_toolchain owner.
+    if pin.get("schema") != PIN_SCHEMA or "rust" in pin:
+        raise ValueError(f"unsupported idealloc pin manifest; expected {PIN_SCHEMA}")
     source = output / "upstream"
     for entry in pin["files"]:
         relative = Path(entry["path"])
@@ -235,7 +242,7 @@ def build_idealloc(root: Path, output: Path) -> dict[str, Any]:
     manifest = source / "coreba/Cargo.toml"
     with manifest.open("a", encoding="utf-8", newline="") as stream:
         stream.write('\n[[bin]]\nname = "vos-idealloc"\npath = "src/bin/vos_bridge.rs"\n')
-    cargo, cargo_env = rust_environment(output, pin["rust"])
+    cargo, cargo_env, rust_components = rust_environment(root, output)
     command = [cargo, "build", "--locked", "--release", "--jobs", "2", "-p", "coreba", "--bin", "vos-idealloc"]
     begin = time.perf_counter()
     # On a cold Cargo home, metadata downloads every locked crate to read its manifest.
@@ -275,8 +282,9 @@ def build_idealloc(root: Path, output: Path) -> dict[str, Any]:
         raise ValueError(f"idealloc build failed; inspect {output / 'compile.log'}")
     executable = output / "target/release/vos-idealloc"
     rustc = Path(cargo_env["RUSTC"])
-    receipt = {"schema": "vos-idealloc-build-v2", "commit": pin["commit"], "license": pin["license"],
+    receipt = {"schema": "vos-idealloc-build-v3", "commit": pin["commit"], "license": pin["license"],
                "manifest_sha256": digest(root / PIN_PATH), "bridge_sha256": digest(root / BRIDGE_PATH),
+               "rust_pin_sha256": digest(root / rust_toolchain.PATH),
                "workspace_sha256": digest(workspace), "patched_crate_manifest_sha256": digest(manifest),
                "lock_sha256": digest(source / "Cargo.lock"), "dependency_closure": closure,
                "command": command, "build_seconds": time.perf_counter() - begin,
@@ -284,7 +292,7 @@ def build_idealloc(root: Path, output: Path) -> dict[str, Any]:
                "compiler": subprocess.run([str(rustc), "-vV"], cwd=output, env=cargo_env,
                                           capture_output=True, text=True, check=True).stdout.strip(),
                "rustc_sha256": digest(rustc), "cargo_sha256": digest(Path(cargo)),
-               "rust_component_sha256": pin["rust"]["components"][rust_target()],
+               "rust_component_sha256": rust_components,
                "compile_log_sha256": digest(output / "compile.log")}
     (output / "build-evidence.json").write_text(json.dumps(receipt, indent=2), encoding="utf-8", newline="")
     return receipt

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "isla": {
     "url": "https://github.com/rems-project/isla.git",
     "revision": "e9b5d945394277656593a0d429466d7fa0a2b4b3",
@@ -20,20 +20,5 @@
     "url": "https://github.com/rems-project/sail/releases/download/0.20.3/sail-0.20.3.tbz",
     "sha256": "0b223ed83f521ad87eaacd88186390fbaf0b944f63c6a04a3ebdf96a1ff5a60c",
     "directory": "sail-0.20.3"
-  },
-  "rust": {
-    "version": "1.98.1",
-    "components": {
-      "aarch64-unknown-linux-gnu": {
-        "rustc": "89fb83041993b48816514815606f53a5264729b8b449671a6b291e6f0ae74f40",
-        "cargo": "c09425a7f300af148c0bdfded0e7d5f1fe7c075b2b9674e8935afa769297b2f6",
-        "rust-std": "9bf796a6ec5b004813ebd0b650775a7c6a4f3aae97ad362ae294798dca4f3b23"
-      },
-      "x86_64-unknown-linux-gnu": {
-        "rustc": "e974f036b28565f37c0f3bd92ddefa809bee16c04f9dcf07b9ed96e05aaaf7c4",
-        "cargo": "ea1de9f9e23107d97ee2b41a72c552f34064a593da503789218387aee59f3ba4",
-        "rust-std": "fa3ff450172a16c026944030230c5069947af93c728d9179971d44e5e0cfb561"
-      }
-    }
   }
 }

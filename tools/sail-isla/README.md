@@ -10,29 +10,54 @@ command and oracle logs use the lane's standard log names.
 
 The prerequisites are the repository's locked baseline Sail opam inventory,
 pinned Z3 shared library, Git, a C compiler and binutils. Provisioning checks the
-opam package inventory and Z3 version. It reads the baseline switch without
-installing into it. A separate Sail executable and the Isla plugin are built in
-the lane from the release archive the locked compiler's opam package also builds
-from. The primary compiler is unchanged.
+opam package inventory and Z3 version, and refuses a Sail archive pin whose
+version is not the Sail release that inventory installs. It reads the baseline
+switch without installing into it. A separate Sail executable and the Isla
+plugin are built in the lane from the release archive the locked compiler's
+opam package also builds from, extracted into a fresh tree on each
+provisioning. The primary compiler is unchanged.
 
 `lock.json` fixes the standalone Isla revision, isla-testgen revision and its
-different Isla submodule revision, Sail release archive digest, and the Rust
-version with its component digests for Linux aarch64 and x86_64. Standalone Isla
-builds in a copy of its pristine checkout with the tracked
-[isla.Cargo.lock](isla.Cargo.lock), which raises crossbeam-channel and
-crossbeam-epoch past RUSTSEC-2025-0024 and RUSTSEC-2026-0204. Provisioning
-refuses the override unless it equals upstream's Cargo.lock apart from the
-package versions `lock.json` declares for it, so an Isla repin with a changed
-upstream lock needs the override regenerated. The authored driver's Cargo.lock
+different Isla submodule revision, and Sail release archive digest. The shared
+[Rust toolchain pin](../rust-toolchain.json), which the idealloc candidate build
+also reads, fixes the Rust version with its component digests for Linux aarch64
+and x86_64. Standalone Isla builds in a copy of its pristine checkout with the
+tracked [isla.Cargo.lock](isla.Cargo.lock), which raises crossbeam-channel and
+crossbeam-epoch past RUSTSEC-2025-0024 and RUSTSEC-2026-0204. Right after
+fetching Isla, before the Rust download and Sail build, provisioning refuses the
+override unless it equals upstream's Cargo.lock apart from the versions and
+checksums of the packages `lock.json` declares for it, and unless each declared
+version is a later plain release than upstream's. An Isla repin with a changed
+upstream lock, or one whose upstream lock already carries a declared release,
+needs the override regenerated or retired. The authored driver's Cargo.lock
 fixes the testgen dependency graph; ordinary builds use `--locked`. The explicit
 lalrpop-util lexer feature supplies a feature required by upstream's generated
 ACL2 parser without editing upstream source. The build does not request the
 optional web or litmus executables, LLVM, or a new opam solution. Cargo still
 builds transitive libraries required by the two selected crate graphs.
 
+The driver's Cargo.lock carries four RustSec advisories, as OSV listed them on
+2026-09-30, each reached only through isla-testgen and its nested Isla
+bcc7ee84. Through isla-testgen's crossbeam 0.7.3 come crossbeam-utils 0.7.2
+([RUSTSEC-2022-0041](https://rustsec.org/advisories/RUSTSEC-2022-0041.html),
+unsound 64-bit atomic arithmetic on 32-bit targets, fixed in 0.8.7) and
+memoffset 0.5.6
+([RUSTSEC-2023-0045](https://rustsec.org/advisories/RUSTSEC-2023-0045.html),
+reads uninitialized memory, fixed in 0.6.2). rand 0.7.3
+([RUSTSEC-2026-0097](https://rustsec.org/advisories/RUSTSEC-2026-0097.html),
+unsound with a custom logger, fixed in 0.8.6) comes from both, and the
+unmaintained bincode 1.3.3
+([RUSTSEC-2025-0141](https://rustsec.org/advisories/RUSTSEC-2025-0141.html),
+no fixed release) from the nested Isla's library. They stay because
+isla-testgen requires crossbeam and rand `0.7.3` and the nested Isla requires
+rand `0.7.3` and bincode `1.2.1`: no release those requirements admit carries a
+fix, so moving them means changing upstream manifests rather than this lock.
+The driver builds only for the 64-bit Linux targets the Rust pin names.
+
 The report checks the provisioned binaries and build-input digest before use.
-Changing a recipe or asset requires provisioning again. The report also records
-current curated source hashes, generated IR hash, baseline compiler/runtime
+Changing a recipe, an asset or the shared Rust pin requires provisioning again.
+The report also records current curated source hashes, generated IR hash,
+baseline compiler/runtime
 inputs, optional binary hashes, invocation arguments, logs, and control outcomes.
 The baseline's dynamic system libraries remain prerequisites; these checks are
 input identification, not a hermetic-build or authenticity guarantee.
@@ -90,4 +115,6 @@ are advisory evidence, never a universal proof or a substitute for normal gates.
 No upstream source is vendored here. The optional fetched tools retain their own
 license files. See the repository's THIRD-PARTY.md for incorporation and license
 details. The local Rust driver, configuration, Sail wrappers and Python recipe are
-authored under the repository's Apache-2.0 terms.
+authored under the repository's Apache-2.0 terms. The Isla lock override and the
+driver's Cargo.lock are resolver-generated dependency metadata, neither authored
+nor upstream source, as the [copyright map](../../COPYRIGHT.md#the-map) states.

@@ -7,13 +7,13 @@ import tomllib
 from collections.abc import Callable
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
-from vos import sailisla
+from vos import env, sailisla
 from vos.cli import sail_isla
 
 
@@ -99,17 +99,56 @@ checksum = "bb"
 """
 
 
+def _refusal(call: Callable[[], object]) -> str:
+    try:
+        call()
+    except sailisla.IslaError as exc:
+        return str(exc)
+    raise AssertionError("incomplete or ambiguous evidence must be refused")
+
+
 def _lock_override() -> None:
     declared = {"crossbeam-channel": "0.5.17"}
     override = _UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.17"').replace('"aa"', '"cc"')
     sailisla.check_lock_override(_UPSTREAM_LOCK, override, declared)
+    metadata = '\n[metadata]\nnote = "{}"\n'
+    sailisla.check_lock_override(_UPSTREAM_LOCK + metadata.format("a"), override + metadata.format("a"),
+                                 declared)
     for changed in (override.replace('"0.8.19"', '"0.8.23"'),
                     override.replace('"0.5.17"', '"0.5.16"'),
                     override.replace(' "crossbeam-utils",\n', ""),
+                    override.replace('checksum = "cc"\n', ""),
+                    override.replace('checksum = "cc"', 'checksum = "cc"\nreplace = "x"'),
                     override.replace("version = 3", "version = 4"),
+                    override + metadata.format("b"),
                     override + '\n[[package]]\nname = "extra"\nversion = "1.0.0"\n'):
         _reject(lambda text=changed: sailisla.check_lock_override(_UPSTREAM_LOCK, text, declared))
+    _reject(lambda: sailisla.check_lock_override(_UPSTREAM_LOCK + metadata.format("a"),
+                                                 override + metadata.format("b"), declared))
     _reject(lambda: sailisla.check_lock_override(_UPSTREAM_LOCK, override, {"crossbeam-epoch": "0.9.21"}))
+    suffixed = override.replace('"0.5.17"', '"0.5.17-rc.1"')
+    ensure("not a plain major.minor.patch release" in _refusal(
+        lambda: sailisla.check_lock_override(_UPSTREAM_LOCK, suffixed, {"crossbeam-channel": "0.5.17-rc.1"})),
+        "a pre-release override must be refused rather than ordered")
+
+
+def _lock_override_upstream_caught_up() -> None:
+    declared = {"crossbeam-channel": "0.5.17"}
+    override = _UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.17"').replace('"aa"', '"cc"')
+    newer = _UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.18"').replace('"aa"', '"dd"')
+    message = _refusal(lambda: sailisla.check_lock_override(newer, override, declared))
+    ensure("upstream already carries crossbeam-channel 0.5.18" in message
+           and "retire or regenerate the override" in message,
+           "an override older than upstream's release would silently downgrade it")
+    message = _refusal(lambda: sailisla.check_lock_override(override, override, declared))
+    ensure("upstream already carries crossbeam-channel 0.5.17" in message,
+           "an override equal to upstream's release is no longer an override")
+    # Ordering is numeric per component, not lexical over the version string.
+    sailisla.check_lock_override(_UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.9"'), override, declared)
+    ensure("upstream already carries crossbeam-channel 0.10.0" in _refusal(
+        lambda: sailisla.check_lock_override(_UPSTREAM_LOCK.replace('"0.5.12"', '"0.10.0"'), override,
+                                             declared)),
+        "a later minor release must order above every patch of an earlier minor")
 
 
 def _tracked_lock_override() -> None:
@@ -118,6 +157,28 @@ def _tracked_lock_override() -> None:
     rows = {(row["name"], row["version"]) for row in tomllib.loads(override)["package"]}
     ensure(all((name, version) in rows for name, version in lock["isla"]["cargo_lock_overrides"].items()),
            "the tracked Isla lock override must carry every declared version")
+
+
+def _sail_pin_is_locked_release() -> None:
+    lock = json.loads((TOOLS / "sail-isla/lock.json").read_text(encoding="utf-8"))
+
+    def pin(version: str) -> sailisla.SailPin:
+        return cast(sailisla.SailPin, {**lock["sail"], "version": version})
+
+    installed = 'installed: [\n  "ocaml.5.4.1"\n  "sail.0.20.3"\n  "sail_maker.0.20.3"\n]\n'
+    with sandbox_tree({"tools/opam/sail.lock": installed}) as root:
+        ensure(sailisla.baseline_packages(root, pin("0.20.3"))
+               == {"ocaml.5.4.1", "sail.0.20.3", "sail_maker.0.20.3"},
+               "the complete locked inventory must be returned")
+        for version in ("0.20.4", "0.20", "maker.0.20.3"):
+            _reject(lambda v=version: sailisla.baseline_packages(root, pin(v)))
+        environment = env.Environment(root=root, model=root / "model", build_root=root / "native",
+                                      log_root=root / "logs", lane="", cpus=1, mem_available_mb=1024,
+                                      jobs=1, test_jobs=1)
+        runner = sailisla.Runner(environment, "test")
+        with patch.object(sailisla.Runner, "run") as run:
+            _reject(lambda: sailisla._prerequisites(environment, runner, pin("0.20.4")))
+        ensure(not run.called, "the Sail pin must be refused before the baseline switch is inspected")
 
 
 def _report() -> dict[str, Any]:
@@ -186,7 +247,9 @@ def cases() -> list[Case]:
             Case("mutation-unique-anchors", _mutation_anchors),
             Case("download-digest-refusal", _download_digest),
             Case("lock-override-declared-versions-only", _lock_override),
+            Case("lock-override-refuses-upstream-equal-or-newer", _lock_override_upstream_caught_up),
             Case("tracked-lock-override-carries-declared-versions", _tracked_lock_override),
+            Case("sail-pin-is-the-locked-release", _sail_pin_is_locked_release),
             Case("versioned-json-schema", _schema),
             Case("cli-refuses-partial-verdict", _cli),
             Case("oracle-replays-generated-inputs", _harness_uses_model)]
