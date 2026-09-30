@@ -246,10 +246,12 @@ residue that no longer stands or covers no numeral is a finding. A residue whose
 release no exported snapshot fixes yet names that owner, as its declared row does, and
 becomes a finding the day the index carries it. The window ends at the next heading, so
 the inference benchmark's subsection, the dependency review of a measured run, is
-outside it. A release is read whole, an opam identifier's after its name's dot and with
-any letter, `~`, `+` or dotted suffix it carries; a numeral joined to the word before
-it by a hyphen, a letter or `+`, as a licence identifier's version or a tag's prefix
-is, is not read by the census, and the sites read such a tag where it states a release.
+outside it. A release is read whole, with any letter, `~`, `+` or dotted suffix it
+carries, an opam identifier's after its name's dot, whether the name ends in a letter
+or in digits a letter leads, and one after an underscore too. A numeral joined to the
+word before it by a hyphen, a letter or `+`, as a licence identifier's version or a
+tag's prefix is, is not read by the census, nor is its continuation past its dot, and
+the sites read such a tag where it states a release.
 
 **Fail-closed at every reading**, on K-97's ground: a record without the section or its
 table, a table with no row, a site matching other than once, and an owner absent,
@@ -337,12 +339,32 @@ _V = r"(\d[\w+~-]*(?:\.[\w+~-]+)*)"
 # optionally led by v or V, with any suffix a release takes attached, letters, `~` or
 # `+` (`1.2.3rc1`, `2.0~beta`) and further dotted parts carrying a digit (`1.0.post1`),
 # so a full stop or a file extension after it is not read as part of it. An opam
-# identifier's release after its name's dot (`coq-riscv.0.0.6`) is read; a numeral
-# joined to the word before it by a hyphen, a letter or `+` is not, being a licence
-# identifier's version (`LGPL-2.1`) or a tag's own prefix (`release-1.14`), which the
-# census leaves to the sites that read such a tag as the release it states.
-_RELEASE_RE = re.compile(r"(?<![\w+-])(?<!\d\.)[vV]?"
+# identifier's release after its name's dot is read, the name ending in a letter
+# (`coq-riscv.0.0.6`) or in digits a letter leads (`base64.3.5.1`, so `python3.14.7`
+# reads 14.7, erring toward a finding), and so is a numeral after an underscore
+# (`rocq_9.4.0`). A numeral joined to the word before it by a hyphen, a letter or `+`
+# is not, nor one continuing such a numeral past its dot, being a licence identifier's
+# version (`LGPL-2.1`) or a tag's own prefix (`release-1.14`), which the census leaves
+# to the sites that read such a tag as the release it states. `_releases` applies the
+# last rule, which no fixed-width lookbehind can state.
+_RELEASE_RE = re.compile(r"(?<![^\W_])(?<![+-])[vV]?"
                          r"(\d+(?:\.\d+)+(?:[A-Za-z~+][\w~+]*)?(?:\.(?=[\w~+]*\d)[\w~+]+)*)")
+
+
+def _releases(text: str) -> list[re.Match[str]]:
+    """The release numerals the census reads in the text: `_RELEASE_RE`'s matches, less
+    each whose dot follows digits no letter leads, the tail of the numeral before it."""
+    found: list[re.Match[str]] = []
+    for m in _RELEASE_RE.finditer(text):
+        dot = run = m.start() - 1
+        while run > 0 and text[run - 1] in "0123456789":
+            run -= 1
+        if dot >= 0 and text[dot] == "." and run < dot and not (
+                run > 0 and text[run - 1].isalpha()):
+            continue
+        found.append(m)
+    return found
+
 
 # A list of tags a licence file was read at, and the one form every tag in it takes.
 _TAGS_READ = r"byte-identical at the ((?:`[^`]*`(?:,? and |, ))*`[^`]*`) tags"
@@ -1177,13 +1199,13 @@ def _hold(where: Callable[[int], str], name: str, text: str, tool: DevTool,
             continue
         end = start + len(fragment)
         if not any(start <= m.start(1) and m.end(1) <= end
-                   for m in _RELEASE_RE.finditer(text)):
+                   for m in _releases(text)):
             findings.append(f"{declared} covers no release numeral, so it suppresses nothing")
             continue
         spans.append((start, end))
     if not complete:
         return compared, 0
-    numerals = list(_RELEASE_RE.finditer(text))
+    numerals = _releases(text)
     findings += [f"{where(m.start())} states {m.group()} in {subject}, which no K-118 site "
                  "reads and no residue declares; hold it against the artifact fixing it, or "
                  "declare why it states no release that one fixes"
@@ -1252,7 +1274,7 @@ def _dev_tools(ctx: Context) -> None:
                 why = DEV_TOOL_DECLARED[tool]
             # A declared row is still censused: it states the one release its terms were
             # read at, however often, or none where it is declared to state none.
-            stated = sorted({m.group(1) for m in _RELEASE_RE.finditer(line)})
+            stated = sorted({m.group(1) for m in _releases(line)})
             if not why.releases and stated:
                 findings.append(f"{where} is declared as stating no dotted release of {tool} "
                                 f"({why.why}), and it states {', '.join(stated)}")

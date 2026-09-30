@@ -1714,6 +1714,13 @@ CASES: list[Case] = [
      _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
                                r"dedicated switch)\.",
                   lambda m: f"{m[1]} beside `coq-simple-io.1.10.0`.")),
+    # The same row gains a release after an opam name ending in digits: a census taking
+    # every numeral whose dot follows a digit for the tail of the numeral before it
+    # leaves that release unread.
+    ("K-118", "a development-tool row stating a release after a name ending in digits",
+     _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
+                               r"dedicated switch)\.",
+                  lambda m: f"{m[1]} beside `base64.3.5.1`.")),
     # A declared row nothing here owns gains a second release in its licence link text,
     # so the row no longer says which release its terms were read at.
     ("K-118", "a declared development-tool row stating two releases",
