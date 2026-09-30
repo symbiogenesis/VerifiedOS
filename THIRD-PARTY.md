@@ -135,11 +135,18 @@ SECOMP stays at the edition M1.1 pinned: its `ccs-main` tip changes only
 whose bytes the kernel and purecap receipts bind, names that pin's `riscV/` tree.
 
 Fiat-Crypto retains the edition used to generate the incorporated field headers.
-The reviewed development tip requires Rocq 9.2 and changes proofs and nested
-dependencies; no fix to the consumed field outputs was identified. Advancing it
-requires a separate isolated generator build, repeated emissions, vector checks
-and independent replay with regenerated provenance. The current generated
-headers and their historical source identities remain the accepted inputs.
+The development tip read on 2026-09-29 needs Stdlib 9.1 or later, the first
+release carrying the `Zmod` library its arithmetic now uses. Its version-pinned
+CI jobs build it with Rocq 9.2.0 and its Docker job with Rocq master; a build
+with the locked Rocq 9.3.0 and Stdlib 9.2.0 is unmeasured. The tip changes
+proofs and nested dependencies, restating the Montgomery arithmetic and the
+operation specifications over `Zmod`, and leaves `fiat-c/` and the synthesis
+and printing sources unchanged. No fix to the consumed field outputs was
+identified, and whether the tip emits the same raw bytes is unmeasured.
+Advancing the pin requires a separate isolated generator build, repeated
+emissions, vector checks and independent replay with regenerated provenance.
+The current generated headers and their historical source identities remain
+the accepted inputs.
 
 The **Use** column records repository activity:
 
