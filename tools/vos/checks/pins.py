@@ -172,17 +172,22 @@ row under it, a row stating its reviewed revision other than exactly once, and a
 this rule cannot read are each a finding rather than an agreement over nothing. That is
 why it owes the floors group no member. **The reading takes one shape and a census
 holds it to the rest**: a reference is read only as a block mapping's bare `uses:` key
-opening its line, alone or after a sequence dash, while GitHub also runs one written as
-a quoted key, inside a flow mapping or as an explicit `? uses` key. So every `uses` key
-on a non-comment line, in any of those shapes, is counted, and one the reading did not
-take is a finding naming its line; otherwise a reference in another shape would run
-code the rule reported agreement about without having read it. The census errs toward
-a finding, counting a key inside a trailing comment or a block scalar's text; the one
-spelling it does not read is a double-quoted key written with escape sequences. While a
-reference stands unread, a row is not also reported as run by nothing, the unread line
-being what may run it. What it does not decide is whether the commit
-is the release the comment names; the row's reviewer read that, and zizmor's online
-audits are the instrument that asks GitHub. **Reported and never repaired**, on K-97's
+opening its line, alone or after a sequence dash, while YAML also lets that key be
+quoted, tagged, anchored, written in a flow collection, spelled with an escape, reached
+through an alias or opened by an explicit `?` indicator. So the census splits each
+file at every YAML line break, 1.1's included, and on each non-comment line counts a
+`uses` key, bare or quoted, followed by its `:`; a double-quoted key holding an escape
+and an alias used as a key, whatever they spell; and every explicit-key `?` indicator,
+whatever key it opens. A line carrying any of them other than the key the reading took
+is one finding naming that line; otherwise a reference in another shape would run code
+the rule reported agreement about without having read it. The census errs toward a
+finding, counting a key inside a trailing comment or a block scalar's text and an
+escaped, alias or explicit key that names something else. The one shape it does not
+count is a flow mapping's key whose `:` stands on a later line, which the YAML 1.2.2
+grammar admits and PyYAML refuses. While a reference stands unread, a row is not also
+reported as run by nothing, the unread line being what may run it. What it does not
+decide is whether the commit is the release the comment names; the row's reviewer read
+that, and zizmor's online audits are the instrument that asks GitHub. **Reported and never repaired**, on K-97's
 ground: moving a row's commit would claim a licence reading nobody took.
 
 K-116 is the third kind: **a commit a tool consumes rather than a sentence restates.**
@@ -278,14 +283,20 @@ TOOLS_HEADING = "### Development tools, contained by use"
 # The one shape a reference is read in: a block mapping's bare `uses:` key opening its
 # line, alone or after a sequence dash, with the reference the rest of the line.
 _USES_RE = re.compile(r"^[ \t]*(?:-[ \t]+)?(?P<key>uses):[ \t]*(.*?)[ \t]*$")
-# Every `uses` key a line can carry, in any shape YAML gives one: bare or quoted, at the
-# line's start, after a blank or a sequence dash, inside a flow mapping after `{` or
-# `,`, or as an explicit `? uses` key. It is wider than the reading on purpose, and a
-# key it finds that the reading did not take is a finding rather than a reference
-# nobody held against the record.
+# Every key on a line that can be `uses`, wider than the reading on purpose: a `uses`
+# key, bare or quoted, followed by its `:`; a double-quoted key holding an escape and
+# an alias used as a key, whatever they spell; and every explicit-key `?` indicator,
+# opening its line after indentation and block indicators or following `{`, `,` or
+# `[`, whatever key it opens. Each stands after a blank, a flow indicator or the line's
+# start, so a tag or an anchor before the key does not hide it. A key it finds that the
+# reading did not take is a finding rather than a reference nobody held against the
+# record.
 _USES_KEY_RE = re.compile(
-    r"""(?:(?<=[\s{,\[])|^)(?P<q>["']?)uses(?P=q)(?=[ \t]*:)"""
-    r"""|\?[ \t]+(?P<e>["']?)uses(?P=e)[ \t]*$""")
+    r"""(?:(?<=[\s{,\[])|^)"""
+    r"""(?:(?P<q>["']?)uses(?P=q)|"[^"]*\\[^"]*"|\*[^\s,\[\]{}]+)(?=[ \t]*:)"""
+    r"""|^[ \t]*(?:[-?:][ \t]+)*\?(?=[ \t]|$)|(?<=[{,\[])[ \t]*\?(?=[ \t]|$)""")
+# The line breaks YAML reads, 1.1's included, so a line here is a line to the parser.
+_YAML_BREAK_RE = re.compile(r"\r\n|[\r\n\x85\u2028\u2029]")
 _PINNED_USE_RE = re.compile(
     r"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)(?:/[^@\s]+)?@([0-9a-f]{40}) # (v\d+\.\d+\.\d+)")
 _ACTION_ROW_RE = re.compile(r"^\| ([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) \|")
@@ -827,23 +838,21 @@ def _workflow_pins(ctx: Context) -> None:
             findings.append(f"{rel} cannot be read as text, so its action references are "
                             "unread")
             continue
-        for number, raw in enumerate(source.split("\n"), start=1):
-            text_line = raw.removesuffix("\r")
+        for number, text_line in enumerate(_YAML_BREAK_RE.split(source), start=1):
             if text_line.lstrip().startswith("#"):
                 continue
             where = f"{rel}:{number}"
             m = _USES_RE.match(text_line)
-            # The census: every `uses` key on the line other than the one the reading
-            # took, so a reference in a shape the reading does not parse is a finding
+            # The census: a line carrying any key the reading did not take is one
+            # finding, so a reference in a shape the reading does not parse is a finding
             # rather than one the rule reports agreement about without having read it.
             taken = m.start("key") if m else -1
-            for key in _USES_KEY_RE.finditer(text_line):
-                if key.start() != taken:
-                    unread += 1
-                    findings.append(f"{where} states an action reference in a form K-115 "
-                                    "does not read; write it as a block `uses:` key, alone "
-                                    "or after a sequence dash, so it is held against the "
-                                    "reviewed row")
+            if any(key.start() != taken for key in _USES_KEY_RE.finditer(text_line)):
+                unread += 1
+                findings.append(f"{where} states an action reference in a form K-115 "
+                                "does not read; write it as a block `uses:` key, alone "
+                                "or after a sequence dash, so it is held against the "
+                                "reviewed row")
             if m is None:
                 continue
             references += 1

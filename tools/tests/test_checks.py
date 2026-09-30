@@ -625,26 +625,44 @@ _K115_UNREAD = "states an action reference in a form K-115 does not read"
 
 
 def _k115_every_uses_key_is_read_or_reported() -> None:
-    # GitHub runs a reference written in a flow mapping, under a quoted key or as an
-    # explicit key, and the block reading takes none of them. Each shape stands beside
-    # the agreeing block lines, so a census that missed it would leave the rule reporting
-    # agreement over an action with no row or a commit nobody reviewed.
-    shapes = ("  - {{name: step, uses: {ref}}}\n",
-              "  - {{uses: {ref}, with: {{a: b}}}}\n",
-              '  - "uses": {ref} # v1.2.3\n',
-              "  - 'uses': {ref} # v1.2.3\n",
-              '  - name: step\n    "uses": {ref} # v1.2.3\n',
-              "  - ? uses\n    : {ref} # v1.2.3\n",
-              "  - uses : {ref} # v1.2.3\n")
+    # YAML gives the step a `uses` key in each shape below and the block reading takes
+    # none of them. Each stands beside the agreeing block lines, so a census that missed
+    # it would leave the rule reporting agreement over an action with no row or a commit
+    # nobody reviewed. The second item is the shape's line offset the finding names.
+    shapes = (("  - {{name: step, uses: {ref}}}\n", 0),
+              ("  - {{uses: {ref}, with: {{a: b}}}}\n", 0),
+              ('  - "uses": {ref} # v1.2.3\n', 0),
+              ("  - 'uses': {ref} # v1.2.3\n", 0),
+              ('  - name: step\n    "uses": {ref} # v1.2.3\n', 1),
+              ("  - ? uses\n    : {ref} # v1.2.3\n", 0),
+              ("  - uses : {ref} # v1.2.3\n", 0),
+              # an explicit key with a trailing comment, a tag or an anchor, or its key
+              # standing on the next line
+              ("  - ? uses # c\n    : {ref} # v1.2.3\n", 0),
+              ("  - ? !!str uses\n    : {ref} # v1.2.3\n", 0),
+              ("  - ? &k uses\n    : {ref} # v1.2.3\n", 0),
+              ("  - ?\n      uses\n    : {ref} # v1.2.3\n", 0),
+              # an alias of a `uses` scalar anchored elsewhere, used as the key: the
+              # finding is the alias's line, not the anchor's
+              ("  - name: step\n    id: &k uses\n    *k : {ref} # v1.2.3\n", 2),
+              # a double-quoted key spelled with an escape
+              ('  - "u\\x73es": {ref} # v1.2.3\n', 0),
+              # an explicit key inside a flow mapping, two census hits on one line
+              ("  - {{? uses : {ref}}}\n", 0))
     refs = (f"example/action@{_K115_SHA}",   # the reviewed commit
             f"other/action@{_K115_SHA}",     # an action with no row
             f"example/action@{'f' * 40}")    # a commit the row never reviewed
-    for shape in shapes:
-        offset = next(n for n, text in enumerate(shape.split("\n")) if "uses" in text)
+    for shape, offset in shapes:
         for ref in refs:
             found = _k115({".github/workflows/a.yml": _K115_WORKFLOW + shape.format(ref=ref)})
             ensure(len(found) == 1 and f"a.yml:{4 + offset} {_K115_UNREAD}" in found[0],
                    f"an unread shape is one finding at its line ({shape!r}, {ref}): {found!r}")
+    # A carriage return alone breaks a YAML line, so an explicit key after one opens a
+    # line to the parser and is counted there.
+    found = _k115({".github/workflows/a.yml": _K115_WORKFLOW
+                   + f"  - ? uses\r    : example/action@{_K115_SHA} # v1.2.3\n"})
+    ensure(len(found) == 1 and f"a.yml:4 {_K115_UNREAD}" in found[0],
+           f"a lone carriage return is a YAML line break: {found!r}")
     # The only reference unread: its line is the finding, and neither the empty-subject
     # nor the row-runs-nothing direction speaks about a reference it could not read.
     found = _k115({".github/workflows/a.yml": f"steps:\n  - {{uses: example/action@{_K115_SHA}}}\n"})
