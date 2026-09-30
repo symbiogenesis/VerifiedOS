@@ -107,9 +107,12 @@ VERILATOR_URL = ("https://github.com/verilator/verilator/archive/refs/tags/"
 VERILATOR_SHA256 = "8c8d2e11e6ad32f641dd250742a94195ddecb912e2e2dabe2f42ddbbb99c1092"
 # GitHub generates the tag archive, so the hash above authenticates GitHub's bytes.
 # The tag's own identity lets a regenerated archive be re-authenticated against the
-# tagged Git content instead of being trusted anew.
-VERILATOR_TAG_OBJECT = "efa4927be48e75c3cd08fc848b198d1d9d237f00"
-VERILATOR_COMMIT = "ea338be98e1e838d3518809ce8899f85a009963c"
+# tagged Git content instead of being trusted anew. Each row is a release's annotated
+# tag object and the commit it tags, keyed by version; a test holds the pin to a row.
+VERILATOR_TAGS: dict[str, tuple[str, str]] = {
+    "5.052": ("efa4927be48e75c3cd08fc848b198d1d9d237f00",
+              "ea338be98e1e838d3518809ce8899f85a009963c"),
+}
 VERILATOR_HOW = "python tools/run.py rtl install"
 VERILATOR_PREREQUISITES = ("autoconf", "bison", "flex", "g++", "make", "help2man")
 VERILATOR_PACKAGES = (*VERILATOR_PREREQUISITES, "libfl-dev")

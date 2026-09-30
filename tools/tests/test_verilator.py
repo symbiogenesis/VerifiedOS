@@ -3,6 +3,7 @@
 
 import hashlib
 import io
+import re
 import tarfile
 from argparse import Namespace
 from contextlib import nullcontext
@@ -101,8 +102,19 @@ def _provision_probes_the_selected_project_binary() -> None:
                    "PATH remains available when no project installation exists")
 
 
+def _pin_has_its_tag_identity() -> None:
+    # A pin moved without its tag row leaves a regenerated archive nothing to be
+    # re-authenticated against; the row is the tag object and the commit it tags.
+    row = rtl.VERILATOR_TAGS.get(rtl.VERILATOR_PIN)
+    ensure(row is not None, f"VERILATOR_PIN {rtl.VERILATOR_PIN} has no tag identity row")
+    ensure(row is not None and len(row) == 2 and row[0] != row[1]
+           and all(re.fullmatch(r"[0-9a-f]{40}", oid) for oid in row),
+           f"the row is two distinct full object ids, got {row!r}")
+
+
 def cases() -> list[Case]:
     return [
+        Case("pin-has-its-tag-identity", _pin_has_its_tag_identity),
         Case("changed-archive-is-rejected", _rejects_changed_archive_before_extraction),
         Case("authenticated-archive-cannot-escape", _authenticated_archive_cannot_escape),
         Case("verified-archive-replaces-stale-source", _verified_archive_replaces_stale_source_tree),
