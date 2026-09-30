@@ -357,20 +357,25 @@ def _head(repo: Path) -> str:
 
 def _oracle_checkout(root: Path) -> tuple[Path, tuple[str, str]]:
     """A superproject pinning an oracle source that pins its own nested model, each a
-    real repository checked out at its pin, as the recursive init leaves them."""
+    real repository checked out at its pin, as the recursive init leaves them.
+
+    Every file is written and committed byte for byte, whatever the host's newline or
+    `core.autocrlf`, so each blob's line endings are the ones a case chose: LF, and in
+    `run.bat` CRLF, as an upstream's Windows script is committed."""
     src = root / model.ORACLE_SRC
     nested = src / model.ORACLE_NESTED
     (nested / "model").mkdir(parents=True)
-    (nested / "model" / "main.sail").write_text("val main : unit -> unit\n", encoding="utf-8")
-    (nested / "README").write_text("nested\n", encoding="utf-8")
+    (nested / "model" / "main.sail").write_bytes(b"val main : unit -> unit\n")
+    (nested / "README").write_bytes(b"nested\n")
+    (nested / "run.bat").write_bytes(b"@echo off\r\n")
     _git(nested, "init", "-q")
-    _git(nested, "add", "model/main.sail", "README")
+    _git(nested, "-c", "core.autocrlf=false", "add", "model/main.sail", "README", "run.bat")
     _git(nested, "commit", "-qm", "nested")
-    (src / "Makefile").write_text("all:\n\ttrue\n", encoding="utf-8")
+    (src / "Makefile").write_bytes(b"all:\n\ttrue\n")
     (src / "src").mkdir()
-    (src / "src" / "cheri.sail").write_text("val cheri : unit -> unit\n", encoding="utf-8")
+    (src / "src" / "cheri.sail").write_bytes(b"val cheri : unit -> unit\n")
     _git(src, "init", "-q")
-    _git(src, "add", "Makefile", "src/cheri.sail")
+    _git(src, "-c", "core.autocrlf=false", "add", "Makefile", "src/cheri.sail")
     _pin(src, model.ORACLE_NESTED, _head(nested))
     _git(src, "commit", "-qm", "oracle")
     (root / "model").mkdir()
@@ -411,7 +416,8 @@ def _oracle_pins_hold_both_checkouts() -> None:
 
 
 def _oracle_copy_is_the_pinned_commits() -> None:
-    """The copy must hold the pinned commits' files and no others, line endings aside."""
+    """The copy must hold the pinned commits' files and no others, and a copy that
+    passes is those files byte for byte, whatever line endings the checkout has."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td).resolve()
         src, pins = _oracle_checkout(root)
@@ -430,9 +436,17 @@ def _oracle_copy_is_the_pinned_commits() -> None:
         held = makefile.read_bytes()
         makefile.write_bytes(held.replace(b"\n", b"\r\n"))
         ensure(verdict() == "", "a Windows checkout's line endings are not an edit")
+        ensure((tree / "Makefile").read_bytes() == held,
+               "and the verified copy carries the blob's line endings, not the checkout's")
         readme = src / model.ORACLE_NESTED / "README"
         readme.write_bytes(b"nested\r\n")
-        ensure(verdict() == "", "nor are they outside the kinds the copy normalizes")
+        script = src / model.ORACLE_NESTED / "run.bat"
+        script.write_bytes(b"@echo off\n")
+        ensure(verdict() == "", "nor are they an edit in any other kind of file")
+        ensure((tree / model.ORACLE_NESTED / "README").read_bytes() == b"nested\n"
+               and (tree / model.ORACLE_NESTED / "run.bat").read_bytes() == b"@echo off\r\n",
+               "every file of a verified copy equals its pinned blob, whichever way the "
+               "checkout converted it")
         makefile.write_bytes(b"all:\n\tfalse\n")
         ensure("Makefile differs" in verdict(), "an edited tracked file is refused")
         makefile.write_bytes(held)

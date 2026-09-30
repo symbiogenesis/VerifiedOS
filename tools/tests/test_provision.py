@@ -25,13 +25,14 @@ import sys
 import tarfile
 import tempfile
 from collections.abc import Callable
+from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
-from vos import env, opam_client
+from vos import cli, env, opam_client
 from vos.cli import provision, rtl, typecheck
 from vos.report import Reporter
 
@@ -206,8 +207,8 @@ def _opam_root_fixture(root: Path) -> None:
 def _opam_probe_holds_the_reviewed_client() -> None:
     """The client on PATH is held to the reviewed release, and the report says what a
     reader needs to act on a mismatch: where the client and its root are, the root's
-    format, and each repository's URL and metadata stamp. It plans nothing, because
-    moving a developer's root to another client is a recorded step and not a repair."""
+    format, and each repository's URL and metadata stamp. Only an absent client is
+    repairable: moving a developer's root to another client is a recorded step."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
         _opam_root_fixture(root)
@@ -225,16 +226,88 @@ def _opam_probe_holds_the_reviewed_client() -> None:
                              "2026-09-29 06:07"):
                 ensure(fragment in found.saw, f"the report must say {fragment!r}: {found.saw}")
             ensure(present or (f"the reviewed client is {opam_client.OPAM_VERSION}" in found.saw
-                               and "one way" in found.saw),
+                               and f"from 2.2 to {opam_client.OPAM_ROOT_FORMAT} one way"
+                               in found.saw),
                    f"a mismatch names the reviewed client and the cost of moving: {found.saw}")
+        # The cost is stated only where there is one: a root already in the reviewed
+        # client's format is not rewritten by moving to it, and a newer one is unreadable.
+        for fmt, clause in ((opam_client.OPAM_ROOT_FORMAT, ""),
+                            ("99.0", "which cannot read this root's format 99.0")):
+            (root / "config").write_text(f'opam-root-version: "{fmt}"\n', encoding="utf-8")
+            with (patch.object(provision, "shutil", on_path),
+                  patch.object(provision, "env", fake_env),
+                  patch.object(provision, "_say", return_value="2.5.0")):
+                found = provision._opam_client()
+            ensure(not found.present and f"format {fmt};" in found.saw
+                   and "one way" not in found.saw and clause in found.saw,
+                   f"a root of format {fmt} is reported without an upgrade: {found.saw}")
+            ensure(not found.repairable, "a client at another release is never replaced")
         with patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)):
             found = provision._opam_client()
-        ensure(not found.present and "no opam on PATH" in found.saw,
-               f"an absent client is reported as absent: {found.saw}")
+        ensure(not found.present and found.repairable and "no opam on PATH" in found.saw,
+               f"an absent client is reported as absent and installable: {found.saw}")
     row = next(fact for fact in provision.FACTS if fact.name == "opam")
-    ensure(row.probe is provision._opam_client and row.install == ()
+    ensure(row.probe is provision._opam_client
+           and row.install == (tuple(cli.entry("provision", "--install-opam")),)
            and "tools/vos/opam_client.py" in row.owner,
-           "the opam row probes the reviewed client, names its owner and plans no install")
+           "the opam row probes the reviewed client, names its owner and installs it "
+           "by provision's own command")
+
+
+def _opam_row_plans_only_where_no_client_is() -> None:
+    """The opam row's command runs for a machine with no client and for no other: a
+    client at another release is a finding the run reports and plans nothing for."""
+    for present_at, planned in ((None, True), ("/usr/bin/opam", False)):
+        on_path = SimpleNamespace(which=lambda name, at=present_at: at)
+        with (patch.object(provision, "shutil", on_path),
+              patch.object(provision, "_say", return_value="2.5.0")):
+            row = next(fact for fact in provision.FACTS if fact.name == "opam")
+            results = provision.take((row,))
+            report = provision.run((row,))
+        ensure(bool(provision.plan(results)) is planned,
+               f"with opam at {present_at}, the row plans {provision.plan(results)}")
+        said = "\n".join(report.out)
+        ensure(report.findings == 1 and ("--install-opam" in said)
+               and (planned or "does not run over what is there" in said),
+               f"with opam at {present_at}, the report names the command: {said}")
+
+
+def _install_opam_installs_only_where_none_is() -> None:
+    """`--install-opam` installs through the owner's route and never over a client."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        target = Path(td) / "bin" / "opam"
+        selected: list[str | None] = [None]
+        installed: list[tuple[Path, str]] = []
+
+        def install(destination: Path, machine: str) -> None:
+            installed.append((destination, machine))
+            selected[0] = str(destination)
+
+        with (patch.object(provision, "shutil",
+                           SimpleNamespace(which=lambda name: selected[0])),
+              patch.object(provision.opam_client, "install", side_effect=install),
+              patch.object(provision.platform, "machine", return_value="x86_64"),
+              redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()) as said):
+            ensure(provision.install_opam(target) == 0
+                   and installed == [(target, "x86_64")],
+                   f"an absent client is installed at the destination, got {installed}")
+            ensure(provision.install_opam(target) == 1 and len(installed) == 1
+                   and "already on PATH" in said.getvalue(),
+                   "a client on PATH is never replaced")
+        selected[0] = None
+        with (patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)),
+              patch.object(provision.opam_client, "install",
+                           side_effect=ValueError("downloaded SHA256 does not match")),
+              redirect_stderr(io.StringIO()) as said):
+            ensure(provision.install_opam(target) == 1
+                   and "does not match" in said.getvalue(),
+                   f"a refused download is the command's failure: {said.getvalue()}")
+        with (patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)),
+              patch.object(provision.opam_client, "install"),
+              redirect_stderr(io.StringIO()) as said):
+            ensure(provision.install_opam(target) == 1
+                   and "not on PATH" in said.getvalue(),
+                   f"a client no switch recipe can run is a failure: {said.getvalue()}")
 
 
 def _failed_import_can_retry() -> None:
@@ -378,6 +451,10 @@ def cases() -> list[Case]:
         Case("number-reads-the-banners", _number_reads_the_banners),
         Case("opam-probe-preserves-build-suffix", _opam_probe_preserves_build_suffix),
         Case("opam-probe-holds-the-reviewed-client", _opam_probe_holds_the_reviewed_client),
+        Case("opam-row-plans-only-where-no-client-is",
+             _opam_row_plans_only_where_no_client_is),
+        Case("install-opam-installs-only-where-none-is",
+             _install_opam_installs_only_where_none_is),
         Case("failed-import-can-retry", _failed_import_can_retry),
         Case("placement-probe-decides-by-filesystem",
              _placement_probe_decides_by_filesystem),

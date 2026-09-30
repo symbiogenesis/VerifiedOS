@@ -39,23 +39,27 @@ creation of an opam root, and the CertiRocq oracle's switch, whose recipe lives 
 Inventing a command for one of them would be the unowned derived fact the working
 rules refuse. Two of the three are rows here, `uv` and the oracle switch; the third
 is a route no row probes, the `opam` row reading a root's format and repositories and
-nothing asking whether a root exists. Three further rows carry no command for reasons
-of their own: the interpreter floor is the interpreter taking the probe, which nothing
-it runs can replace; the cache invariant's repair is to give a lane a copy rather than
-to delete somebody's warm cache; and the opam client is held to the reviewed release
-guest bootstrap downloads, where replacing a developer's client upgrades that root's
-format one way and is a recorded step rather than a repair. Every figure any document
-states about this table is a count over `FACTS`, held by K-24 rather than by care.
+nothing asking whether a root exists. Other rows carry no command for reasons of their
+own, among them the interpreter floor, which is the interpreter taking the probe and
+which nothing it runs can replace, and the cache invariant, whose repair is to give a
+lane a copy rather than to delete somebody's warm cache. The `opam` row's command
+installs the reviewed client by the route guest bootstrap takes, and only on a machine
+with no client on PATH: replacing a developer's client can upgrade that root's format
+one way, which is a recorded step rather than a repair, so a client at another release
+is reported and never planned. Every figure any document states about this table is a
+count over `FACTS`, held by K-24 rather than by care.
 
-    python tools/run.py provision              # what is here and what is not
-    python tools/run.py provision --apply      # and install what is not
-    python tools/run.py provision --only gate  # the rows the host gates alone want
+    python tools/run.py provision                # what is here and what is not
+    python tools/run.py provision --apply        # and install what is not
+    python tools/run.py provision --only gate    # the rows the host gates alone want
+    python tools/run.py provision --install-opam # the opam row's command alone
 
 Exit 0 clean, 1 on any absent fact, which is the convention every tool here keeps.
 """
 
 import argparse
 import importlib.util
+import platform
 import re
 import shutil
 import subprocess
@@ -67,7 +71,7 @@ from functools import partial
 from importlib import metadata
 from pathlib import Path
 
-from vos import env, gallina, opam_client
+from vos import cli, env, gallina, opam_client
 from vos.cli import quickchick, rtl, typecheck
 from vos.corpus import find_root
 from vos.report import Reporter
@@ -85,6 +89,10 @@ TIMEOUT = 60
 # before this file did, which is why every row below names a consumer already in the
 # tree and a row that cannot name one is not written.
 APT: tuple[str, ...] = ("apt-get", "install", "-y")
+
+# Where the opam row's command puts the reviewed client on a machine with none: ahead
+# of /usr/bin on a Debian or Ubuntu PATH, where opam's own installer puts a client.
+OPAM_DESTINATION = Path("/usr/local/bin/opam")
 
 # The two groups, and what separates them. `gate` is what the three host gates and the
 # tools' own tests want and nothing more, which is the split I8 already drew between
@@ -117,10 +125,14 @@ class Found:
     Reporting absent what is present is the one failure a pinned-version gate must not
     have, which is [typecheck.py](typecheck.py)'s own words about the same hazard; a
     probe that reports *present* on a wrong version is the other half of it.
+
+    `repairable` is false where the row's command must not run over what the probe
+    found, as the opam row's installs a client only where none is on PATH.
     """
 
     present: bool
     saw: str
+    repairable: bool = True
 
 
 @dataclass(frozen=True)
@@ -278,6 +290,23 @@ def _switch_at(switch: str, package: str, pin: str) -> Found:
     return Found(found == pin, f"{package} {found} in {switch}")
 
 
+def _format_key(fmt: str) -> tuple[int, ...]:
+    """A root format's release numbers, for ordering two formats: `2.6~alpha` reads as
+    2.6, which is as near as a report needs to come to opam's own ordering."""
+    return tuple(int(part) for part in re.findall(r"\d+", fmt.partition("~")[0]))
+
+
+def _moving_the_root(fmt: str) -> str:
+    """What moving a root of format `fmt` to the reviewed client does to it, as a clause,
+    empty where the root is already in that client's format or states none."""
+    want = opam_client.OPAM_ROOT_FORMAT
+    if not fmt or fmt == want:
+        return ""
+    if _format_key(fmt) > _format_key(want):
+        return f", which cannot read this root's format {fmt}"
+    return f", and moving to it upgrades this root's format from {fmt} to {want} one way"
+
+
 def _opam_client() -> Found:
     """The opam client on PATH against the reviewed release, and what its root reads.
 
@@ -285,8 +314,10 @@ def _opam_client() -> Found:
     the client and its root are, the root's format, and each repository's URL and
     metadata stamp, which the locks do not fix. The root is read from its files rather
     than through opam, because a client newer than the root's format upgrades the root
-    to answer. A mismatch has no command here: moving a developer's root to another
-    client upgrades its format one way, so it is a recorded step and not a repair.
+    to answer. Only an absent client is repairable, by `install_opam`: moving a
+    developer's root to another client can rewrite its format one way, which the
+    report says where the root's format is not the reviewed client's, so replacing a
+    client is a recorded step and not a repair.
     """
     where = shutil.which("opam")
     if where is None:
@@ -294,15 +325,43 @@ def _opam_client() -> Found:
                             f"{opam_client.OPAM_VERSION}")
     found = _number(_say(("opam", "--version")))
     root = env.opam_root()
+    fmt = opam_client.root_format(root)
     repositories = ", ".join(
         f"{repo['name']} {repo['url']} at stamp {repo['stamp'] or 'unrecorded'}"
         for repo in opam_client.repositories(root)) or "no repositories"
     saw = (f"opam {found or 'answering no version'} at {where} over {root} "
-           f"(format {opam_client.root_format(root) or 'unread'}; {repositories})")
+           f"(format {fmt or 'unread'}; {repositories})")
     if found != opam_client.OPAM_VERSION:
-        saw += (f"; the reviewed client is {opam_client.OPAM_VERSION}, and moving to it "
-                "upgrades the root's format one way")
-    return Found(found == opam_client.OPAM_VERSION, saw)
+        saw += f"; the reviewed client is {opam_client.OPAM_VERSION}{_moving_the_root(fmt)}"
+    return Found(found == opam_client.OPAM_VERSION, saw, repairable=False)
+
+
+def install_opam(destination: Path = OPAM_DESTINATION) -> int:
+    """The opam row's command: the reviewed client, onto a machine with no client.
+
+    Refused where any client is on PATH, because replacing one is the recorded step
+    `_opam_client` describes; installed by `opam_client.install`, which verifies the
+    download before publishing it and refuses to replace a different file at the
+    destination. Every switch recipe runs `opam` by name, so a destination this PATH
+    does not reach is reported rather than left to fail at the first switch.
+    """
+    present = shutil.which("opam")
+    if present is not None:
+        print(f"opam is already on PATH at {present}; the reviewed client is installed "
+              "only where there is none", file=sys.stderr)
+        return 1
+    try:
+        opam_client.install(destination, platform.machine())
+    except (OSError, ValueError) as err:
+        print(f"the reviewed opam client was not installed at {destination}: {err}",
+              file=sys.stderr)
+        return 1
+    if shutil.which("opam") is None:
+        print(f"opam {opam_client.OPAM_VERSION} is at {destination}, which is not on "
+              "PATH, so no switch recipe can run it", file=sys.stderr)
+        return 1
+    print(f"installed opam {opam_client.OPAM_VERSION} at {destination}")
+    return 0
 
 
 def _pinned_z3() -> Found:
@@ -432,7 +491,8 @@ FACTS: tuple[Fact, ...] = (
     Fact("opam", TOOLCHAIN,
          "every switch below, and vos/env.py's _apply_opam_env",
          "tools/vos/opam_client.py's OPAM_VERSION and OPAM_REPOSITORIES",
-         _opam_client),
+         _opam_client,
+         (tuple(cli.entry("provision", "--install-opam")),)),
     Fact("the Sail switch", TOOLCHAIN,
          "run.py model typecheck, build, emit and bundle",
          f"tools/vos/env.py's SAIL_SWITCH and SAIL_VERSION (M0.2 pinned {env.SAIL_VERSION})",
@@ -549,19 +609,25 @@ def plan(results: Sequence[tuple[Fact, Found]]) -> list[tuple[Fact, tuple[tuple[
     already satisfied plans nothing and changes nothing. A fact with no stated command
     contributes nothing either and is reported instead, which is the difference between
     a plan that is empty because there is nothing to do and one that is empty because
-    there is nothing this tool may do.
+    there is nothing this tool may do; so does a fact whose probe found something its
+    command must not run over.
     """
     return [(fact, fact.install) for fact, found in results
-            if not found.present and fact.install]
+            if not found.present and fact.install and found.repairable]
 
 
 def _verdict(rep: Reporter, fact: Fact, found: Found) -> None:
     if found.present:
         rep.report(fact.name, "", [], f"{found.saw}, for {fact.needs}")
         return
-    repair = (env.install_line(fact.install) if fact.install else
-              "no artifact here states a command for it, so this run reports it and "
-              "plans nothing")
+    if not fact.install:
+        repair = ("no artifact here states a command for it, so this run reports it and "
+                  "plans nothing")
+    elif not found.repairable:
+        repair = (f"its command, {env.install_line(fact.install)}, does not run over what "
+                  "is there, so this run plans nothing")
+    else:
+        repair = env.install_line(fact.install)
     rep.report(fact.name, "absent, or at a version this lane is not:",
                [f"{found.saw}; {fact.needs} wants it and {fact.owner} fixes it; "
                 f"{repair}"])
@@ -658,9 +724,14 @@ def main(argv: list[str] | None = None) -> int:
                       help="report what is absent and change nothing (the default)")
     what.add_argument("--apply", action="store_true",
                       help="install every absent fact this tree states a command for")
+    what.add_argument("--install-opam", action="store_true",
+                      help="install the reviewed opam client where no client is on PATH, "
+                           "the opam row's command")
     parser.add_argument("--only", choices=GROUPS, default="", metavar="GROUP",
                         help=f"narrow to one group of rows: {' or '.join(GROUPS)}")
     args = parser.parse_args(argv)
+    if args.install_opam:
+        return install_opam()
 
     report = run(group=args.only, apply=args.apply)
     print("\n".join(report.out))

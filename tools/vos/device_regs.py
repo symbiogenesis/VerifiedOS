@@ -4,9 +4,9 @@
 The UART owners live behind the `upstream/mocha` gitlink, so the header records the
 commit the populated owner checkout stood at when the constants were emitted. `rtl
 devicescheck` regenerates the header and so holds that stamp against the checkout it
-reads, and K-116 holds the committed stamp against the index's gitlink, which is what
-makes a gitlink moved without a regeneration a host finding rather than a guest-only
-one.
+reads, and K-88's row for the header holds the committed stamp against the index's
+gitlink, which is what makes a gitlink moved without a regeneration a host finding
+rather than a guest-only one.
 """
 
 import re

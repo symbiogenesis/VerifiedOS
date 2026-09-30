@@ -59,8 +59,10 @@ and probes it, prepending its private binary directory to `PATH` before Sail sta
 even for `--version`. Each tool is probed immediately after installation, so a failed
 Sail probe stops before building Rocq or Verilator. A repeatable `--toolchain` option
 selects `sail` (with its solver), `rocq` or `rtl`. The default installs all three in
-that order, and `bootstrap.json` records the selection and each opam repository's URL and
-metadata stamp. Bootstrap failures print the last
+that order, and `bootstrap.json` records the selection, each opam repository's URL and
+metadata stamp, and the root's format. Bootstrap fails when the root is not configured with
+exactly the owner's repositories, a stamp cannot be read, or the format is not the reviewed
+client's. Bootstrap failures print the last
 40 log lines in the Actions console as well as retaining the complete log.
 Bootstrap and the Verilator installer share verified-download and atomic-publication
 helpers in [vos/receipts.py](../vos/receipts.py); the reporter and JSON writers use

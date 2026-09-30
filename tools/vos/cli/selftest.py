@@ -1646,19 +1646,28 @@ CASES: list[Case] = [
     # A gitlink moved with an artifact derived through it left behind, seeded as the
     # recorded commit's first digit changed so the index, the licence record and every
     # restating sentence still agree. The registry's line names no upstream, so K-81
-    # cannot see the first case and only this rule holds it. The second is read by
-    # K-81 too, the stamp naming its upstream, and needs its own case because a rule
-    # narrowed to the registry would still kill the first. Both anchor on the line's
-    # own words rather than on the pinned id, so a pin advance does not unseed them.
+    # cannot see it and only this rule holds it. The case anchors on the line's own
+    # words rather than on the pinned id, so a pin advance does not unseed it.
     ("K-116", "a width-transform registry naming a commit the imported core's gitlink "
               "does not carry",
      _first_match("tools/rtl-width-transforms.json", r'^(  "pin": ")([0-9a-f])',
                   lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
-    ("K-116", "a device-register package recording an owner commit the Mocha gitlink "
-              "does not carry",
-     _first_match("rtl/vos_device_regs_pkg.sv",
-                  r"^(// UART owner revision: upstream/mocha at )([0-9a-f])",
-                  lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
+
+    # A development-tool row moved to a release its lock does not fix, the drift that
+    # once left filelock's row a release behind: the release is extended rather than
+    # spelled, so the case survives every reviewed bump.
+    ("K-118", "a development-tool row stating a release its lock does not fix",
+     _first_match(THIRD_PARTY, r"filelock `(\d[^`]*)`", lambda m: f"filelock `{m[1]}.1`")),
+    # The other direction, which no reader of the record can see: the lock moves and
+    # the row it owns stays, a bump without a licence read.
+    ("K-118", "a locked Python release its development-tool row does not state",
+     _first_match("tools/uv.lock", r'name = "filelock"\r?\nversion = "([^"]+)"',
+                  lambda m: m.group().replace(f'"{m[1]}"', f'"{m[1]}.1"'))),
+    # The same direction through an opam snapshot, a different owner reader: one
+    # switch's Zarith moves while the row says every switch carries one release.
+    ("K-118", "an opam snapshot release its development-tool row does not state",
+     _first_match("tools/opam/sail.lock", r'"zarith\.([^"]+)"',
+                  lambda m: f'"zarith.{m[1]}.1"')),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row
@@ -1908,6 +1917,17 @@ CASES: list[Case] = [
     ("K-88", "the Fiat wrapper changed without regenerating its emission",
      _literal("tools/fiat_crypto_emit.py", "Inclusion wrapper added by VerifiedOS",
               "Inclusion wrapper revised by VerifiedOS")),
+    # The device-register package's guest row, seeded at its recorded owner commit with
+    # the first digit changed, so the index, the licence record and every restating
+    # sentence still agree. The row keeps the header out of K-81's window, so no other
+    # rule reads the stamp. Sandboxes share one index, so the seed also moves the working
+    # tree off the staged blob; the row's unit case isolates the gitlink comparison. The
+    # anchor is the line's own words, so a pin advance does not unseed it.
+    ("K-88", "a device-register package recording an owner commit the Mocha gitlink "
+             "does not carry",
+     _first_match("rtl/vos_device_regs_pkg.sv",
+                  r"^(// UART owner revision: upstream/mocha at )([0-9a-f])",
+                  lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
     # The *emitter* is edited rather than a configuration, because that is the direction
     # this defect arrives from: a window is declared once and a node for it is written
     # once, and what goes wrong afterwards is the node, either never written or written

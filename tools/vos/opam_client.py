@@ -7,9 +7,12 @@ client that built it in its version string, `sail @ opam-v<client> <release>`, s
 lock built under two clients yields two identities. This module is the one owner of
 the client's reviewed release and its per-architecture SHA-256 values, which
 [guest bootstrap](../ci/bootstrap_guest.py) verifies its download against and
-[`run.py provision`](cli/provision.py) holds the installed client to. A client is
-replaced deliberately rather than repaired: each release upgrades the root's format
-one way, after which an earlier client cannot read it.
+[`run.py provision`](cli/provision.py) holds the installed client to, and of the one
+route both take to install it. A client is
+replaced deliberately rather than repaired: a client rewrites a root whose format is
+older than its own to its own format, one way, after which an earlier client cannot
+read it. Not every release raises the format, so the reviewed client's is recorded
+here beside its release rather than inferred from the version.
 
 The locks fix package versions but not the metadata they were resolved from, which the
 repositories publish and revise in place. What a root was resolved against is its
@@ -25,7 +28,15 @@ import re
 import tarfile
 from pathlib import Path
 
+from vos import receipts
+
 OPAM_VERSION = "2.6.0"
+
+# The root format the reviewed client writes, the `opam-root-version` a root it creates
+# or rewrites declares; 2.6.0's release notes record raising it to 2.6. Guest bootstrap
+# holds a root it initializes to this, and `run.py provision` reads it to say whether
+# moving a developer's root to the reviewed client rewrites that root.
+OPAM_ROOT_FORMAT = "2.6"
 
 # The release's asset suffix and its SHA-256, per `platform.machine()`. Each matches
 # the digest GitHub publishes for the asset and the opam dev team's signature over
@@ -53,6 +64,22 @@ def release_url(architecture: str) -> str:
             f"opam-{OPAM_VERSION}-{architecture}-linux")
 
 
+def install(destination: Path, machine: str) -> None:
+    """Put the reviewed client for `machine` at `destination`, executable.
+
+    The one install route, which guest bootstrap takes into its private root and
+    `run.py provision --install-opam` onto a machine with no client. The download is
+    verified against the reviewed SHA-256 before it is published at `destination`, and
+    a file already there is kept only when it is that client: any other is refused
+    rather than replaced.
+    """
+    if machine not in OPAM_HASHES:
+        raise ValueError(f"no reviewed opam binary for {machine}")
+    architecture, expected = OPAM_HASHES[machine]
+    receipts.download(release_url(architecture), destination, expected)
+    destination.chmod(0o755)
+
+
 def root_format(root: Path) -> str:
     """The format a root's own `config` declares, empty where it states none."""
     try:
@@ -60,6 +87,16 @@ def root_format(root: Path) -> str:
     except OSError:
         return ""
     return str(found.group(1)) if found else ""
+
+
+def initialized_format(root: Path) -> str:
+    """The format of a root the reviewed client just initialized, refused unless it is
+    `OPAM_ROOT_FORMAT`, so the recorded format cannot drift from the client unseen."""
+    found = root_format(root)
+    if found != OPAM_ROOT_FORMAT:
+        raise ValueError(f"{root} declares root format {found or 'none'}, not the "
+                         f"reviewed client's {OPAM_ROOT_FORMAT}")
+    return found
 
 
 def _repo_file(root: Path, name: str) -> str:
@@ -85,7 +122,9 @@ def _repo_file(root: Path, name: str) -> str:
 
 def repositories(root: Path) -> list[dict[str, str]]:
     """Every repository a root is configured with: its name, its URL and the stamp its
-    metadata carries, in the root's own order. Empty where the root configures none."""
+    metadata carries, in the root's own order. Empty where the root configures none,
+    and a stamp is empty where it cannot be read, because a report on a developer's root
+    says what it found rather than refusing."""
     try:
         text = (root / "repo" / "repos-config").read_text(encoding="utf-8")
     except OSError:
@@ -94,4 +133,24 @@ def repositories(root: Path) -> list[dict[str, str]]:
     for name, url in _CONFIGURED_RE.findall(text):
         stamp = _STAMP_RE.search(_repo_file(root, name))
         found.append({"name": name, "url": url, "stamp": stamp.group(1) if stamp else ""})
+    return found
+
+
+def initialized_repositories(root: Path) -> list[dict[str, str]]:
+    """`repositories` over a root just initialized on `OPAM_REPOSITORIES`, refused unless
+    it is configured with exactly those names and URLs and every one's stamp was read.
+
+    A record of what the snapshots were resolved against is evidence only when it is
+    complete; `repositories` reads an unreadable configuration as none and an unread
+    stamp as empty, which a record would otherwise carry as though it were the answer.
+    """
+    found = repositories(root)
+    configured = sorted((repo["name"], repo["url"]) for repo in found)
+    if configured != sorted(OPAM_REPOSITORIES):
+        listed = ", ".join(f"{name} {url}" for name, url in configured) or "no repositories"
+        raise ValueError(f"{root} is configured with {listed}, not "
+                         f"{', '.join(f'{name} {url}' for name, url in OPAM_REPOSITORIES)}")
+    unstamped = [repo["name"] for repo in found if not repo["stamp"]]
+    if unstamped:
+        raise ValueError(f"{root} records no metadata stamp for {', '.join(unstamped)}")
     return found

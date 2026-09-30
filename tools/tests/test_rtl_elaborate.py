@@ -33,9 +33,13 @@ declaration is not one. And a declared name is reduced the way a netlist name is
 two name spaces join rather than reporting one module as two findings.
 """
 
+import io
 import json
 import re
+from argparse import Namespace
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import provenance
@@ -543,8 +547,67 @@ def _primitives_are_the_integrators_and_sram_is_imported_unmodified() -> None:
                    f"the primitive headers come from one vendored tree, got {files.lines!r}")
 
 
+def _sparse_mocha_without_primitives_is_refused_by_name() -> None:
+    # A Mocha checkout narrowed to the UART cone devicescheck reads carries the vendored
+    # tree's root and none of the primitives; each is named with the widening command.
+    uart = f"{rtl.PRIM}/uart/rtl/uart_reg_pkg.sv"
+    tree = {**_TREE, uart: "package uart_reg_pkg;\nendpackage\n"}
+    for sub in rtl.SUBSTITUTIONS:
+        tree.update(dict.fromkeys(sub.placed, "package authored;\nendpackage\n"))
+        tree.update({f"{rtl.CORE}/{rel}": "package imported;\nendpackage\n"
+                     for rel in sub.imported})
+    widen = ("git -C upstream/mocha sparse-checkout add hw/vendor/lowrisc_ip/ip/prim "
+             "hw/vendor/lowrisc_ip/ip/prim_generic")
+    with sandbox_tree(tree) as root:
+        ensure((root / rtl.PRIM).is_dir(), "the fixture carries the vendored tree's root")
+        absent, hints = rtl._absent_inputs(root)
+        ensure(absent == list(rtl.prim_inputs()),
+               f"every primitive input is named, got {absent!r}")
+        ensure(len(hints) == 1 and "git submodule update --init upstream/mocha" in hints[0],
+               f"an unpopulated Mocha directory is initialized, got {hints!r}")
+        (root / rtl.PRIM_UPSTREAM / ".git").write_text("gitdir: elsewhere\n",
+                                                       encoding="utf-8")
+        absent, hints = rtl._absent_inputs(root)
+        ensure(absent == list(rtl.prim_inputs()) and len(hints) == 1 and widen in hints[0],
+               f"a populated sparse Mocha checkout is widened, got {hints!r}")
+        with (patch.object(rtl, "find_root", return_value=root),
+              redirect_stdout(io.StringIO()) as said):
+            code = rtl.cmd_filelist(Namespace(show=False))
+        note = said.getvalue()
+        ensure(code == 0 and widen in note and all(rel in note for rel in absent),
+               f"filelist names the same inputs and remedy without refusing, got {note!r}")
+        with (patch.object(rtl.env, "load"),
+              patch.object(rtl, "_require_verilator", return_value="verilator"),
+              patch.object(rtl, "find_root", return_value=root),
+              redirect_stdout(io.StringIO()) as said):
+            code = rtl.cmd_elaborate(Namespace(background=False))
+        refusal = said.getvalue()
+        ensure(code == 1 and widen in refusal
+               and all(f"FAIL {rel} is not in this checkout" in refusal for rel in absent),
+               f"elaborate refuses each missing input before the elaborator runs, "
+               f"got {refusal!r}")
+        for rel in rtl.prim_inputs():
+            path = root / rel
+            if rel.endswith(".sv"):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("// primitive\n", encoding="utf-8")
+            else:
+                path.mkdir(parents=True, exist_ok=True)
+        ensure(rtl._absent_inputs(root) == ([], []),
+               "a checkout carrying every primitive input is not refused")
+        (root / _FLIST).unlink()
+        (root / rtl.PRIM / rtl.PRIM_ASSERTIONS).unlink()
+        (root / rtl.PRIM_UPSTREAM / ".git").unlink()
+        absent, hints = rtl._absent_inputs(root)
+        ensure(absent == [_FLIST, f"{rtl.PRIM}/{rtl.PRIM_ASSERTIONS}"] and len(hints) == 1
+               and f"--init {rtl.CORE} {rtl.PRIM_UPSTREAM}`" in hints[0],
+               f"two uninitialized gitlinks are one command, got {absent!r} {hints!r}")
+
+
 def cases() -> list[Case]:
     return [
+        Case("sparse-mocha-without-primitives-is-refused-by-name",
+             _sparse_mocha_without_primitives_is_refused_by_name),
         Case("json-inventory-validates-all-definitions", _json_inventory_validates_all_definitions),
         Case("primitives-are-the-integrators-and-sram-is-imported-unmodified",
              _primitives_are_the_integrators_and_sram_is_imported_unmodified),

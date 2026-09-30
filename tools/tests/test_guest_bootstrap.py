@@ -8,13 +8,15 @@ import os
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from contextlib import redirect_stderr
 from pathlib import Path
-from typing import IO
+from typing import IO, cast
 from unittest.mock import patch
 
 from ci import bootstrap_guest as bootstrap
 from tests.harness import Case, ensure
+from tests.test_opam_client import opam_root
 
 
 def _missing_dependency_refuses() -> None:
@@ -350,9 +352,10 @@ def _repositories_come_from_the_owner() -> None:
            f"the prover switch resolves only from configured repositories, got {selected}")
 
 
-def _repository_state_is_recorded() -> None:
-    """bootstrap.json names the metadata the snapshots were resolved against."""
-    states = [{"name": "default", "url": "https://opam.ocaml.org", "stamp": "fixture"}]
+def _install_over(initialize: Callable[[Path], None]) -> tuple[int, dict[str, object], bool]:
+    """`install` with every step standing in but the reading of the opam root, which
+    `initialize` writes where the private root keeps it: the exit code, the record, and
+    whether any toolchain was installed."""
     with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {}, clear=True):
         root = Path(directory)
         args = argparse.Namespace(jobs=2, toolchains=["rocq"], install_system=False,
@@ -364,17 +367,58 @@ def _repository_state_is_recorded() -> None:
               patch.object(bootstrap.platform, "machine", return_value="x86_64"),
               patch.object(bootstrap.receipts, "download",
                            side_effect=lambda url, target, expected: target.write_bytes(b"")),
-              patch.object(bootstrap, "initialize_repositories") as initialized,
-              patch.object(bootstrap.opam_client, "repositories", return_value=states),
-              patch.object(bootstrap, "install_toolchains"),
-              patch.object(bootstrap, "retain_logs")):
+              patch.object(bootstrap, "initialize_repositories",
+                           side_effect=lambda log: initialize(root / "opam")),
+              patch.object(bootstrap, "install_toolchains") as toolchains,
+              patch.object(bootstrap, "retain_logs"),
+              redirect_stderr(io.StringIO())):
             code = bootstrap.install(args, root, "fixture")
-        record = json.loads((root / "logs" / "bootstrap.json").read_text(encoding="utf-8"))
-        ensure(code == 0 and record["exit_code"] == 0, f"the fixture installs, got {record}")
-        ensure(initialized.called and record["opam_repositories"] == states,
-               "the repositories' URLs and stamps are recorded beside the client")
-        ensure(record["opam"] == bootstrap.opam_client.OPAM_VERSION,
-               "the client recorded is the reviewed one")
+        record = cast("dict[str, object]", json.loads(
+            (root / "logs" / "bootstrap.json").read_text(encoding="utf-8")))
+        return code, record, toolchains.called
+
+
+def _repository_state_is_recorded() -> None:
+    """bootstrap.json names the metadata the snapshots were resolved against, read from
+    a root in the layout the reviewed client leaves: 2.6's, each repository tarred flat."""
+    code, record, installed = _install_over(lambda opam: opam_root(opam, "flat"))
+    ensure(code == 0 and record["exit_code"] == 0 and installed,
+           f"the fixture installs, got {record}")
+    ensure(record["opam_repositories"] == [
+               {"name": name, "url": url, "stamp": f"{name}-stamp"}
+               for name, url in bootstrap.opam_client.OPAM_REPOSITORIES],
+           f"the repositories' URLs and stamps are recorded beside the client, "
+           f"got {record.get('opam_repositories')}")
+    ensure(record["opam"] == bootstrap.opam_client.OPAM_VERSION
+           and record["opam_root_format"] == bootstrap.opam_client.OPAM_ROOT_FORMAT,
+           "the client recorded is the reviewed one, and the root is in its format")
+
+
+def _root_in_another_format_is_refused() -> None:
+    """A root the reviewed client did not write in its own format is not the one the
+    record names: the recorded format would otherwise drift from the client's unseen."""
+    code, record, installed = _install_over(lambda opam: opam_root(opam, "nested"))
+    ensure(code == 1 and not installed and "opam_root_format" not in record
+           and f"format 2.2, not the reviewed client's {bootstrap.opam_client.OPAM_ROOT_FORMAT}"
+           in str(record.get("error")),
+           f"a 2.2-format root fails the bootstrap and says so, got {record}")
+
+
+def _unread_repository_state_is_refused() -> None:
+    """A root whose repositories cannot be read fails the bootstrap before any toolchain
+    is resolved against it, rather than recording an empty or unstamped state."""
+    (default, _), *others = bootstrap.opam_client.OPAM_REPOSITORIES
+    for what, initialize in (
+            ("an empty listing", lambda opam: None),
+            ("an unstamped repository",
+             lambda opam: opam_root(opam, "flat", {name: "s" for name, _ in others}))):
+        code, record, installed = _install_over(initialize)
+        ensure(code == 1 and record["exit_code"] == 1 and not installed
+               and "opam_repositories" not in record,
+               f"{what} must fail the bootstrap unrecorded, got {record}")
+        ensure(("no repositories" if what == "an empty listing"
+                else f"no metadata stamp for {default}") in str(record.get("error")),
+               f"{what}: the record says what was not read, got {record.get('error')}")
 
 
 def _job_arguments() -> None:
@@ -434,4 +478,6 @@ def cases() -> list[Case]:
         Case("the opam client has one owner", _opam_client_has_one_owner),
         Case("repositories come from the owner", _repositories_come_from_the_owner),
         Case("repository state is recorded", _repository_state_is_recorded),
+        Case("unread repository state is refused", _unread_repository_state_is_refused),
+        Case("a root in another format is refused", _root_in_another_format_is_refused),
     ]

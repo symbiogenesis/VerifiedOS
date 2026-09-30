@@ -342,8 +342,22 @@ def _preparation_budget_and_foreign_model() -> None:
     lock.assert_not_called()
 
 
+def _log_release_probe() -> None:
+    # The probe refuses while another handle is open and passes once it closes, and
+    # the report waits on it; elsewhere the process group's kill leaves no holder.
+    with tempfile.TemporaryDirectory(prefix="vos-sail-assist-") as temporary:
+        path = Path(temporary) / "stderr.bin"
+        path.write_bytes(b"")
+        with path.open("rb"):
+            ensure(sys.platform != "win32" or not sailassist._released(path),
+                   "an open handle must hold the log")
+        ensure(sailassist._released(path), "a closed log is released")
+        sailassist._await_release((path,), seconds=1)
+
+
 def cases() -> list[Case]:
     return [Case("raw-process-status-and-bytes", _raw_process_bytes),
+            Case("log-release-probe", _log_release_probe),
             Case("timeout-stops-descendants", _timeout_process_tree),
             Case("stopped-process-procfs-race", _stopped_probe_race),
             Case("resistant-descendant-after-parent-exit", _resistant_descendant, lane="guest"),
