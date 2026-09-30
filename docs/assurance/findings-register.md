@@ -1708,7 +1708,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-520** upstream-defect: SECOMP's security layer carries no checked robust-preservation theorem at the pin, `security/RSC.v` not building and its axioms implying `False`, and the back-translation proof rests on an admitted lemma that is false
 · Raised: M1.2
-· Disposition: open, the SECOMP proof-reuse record restating its use and limits, and R-05-024's deferred proof taking none of those axioms or that lemma as a start-from
+· Disposition: open, owned by the proof map's U-25, whose clause-by-clause comparison with `RSC.v` refuses each axiom SECOMP#21 shows inconsistent and takes nothing resting on `step_fix_fix` as a start-from; the SECOMP proof-reuse record states both defects
 
 **F-521** owed-act: the contained compiler is built by an unlocked distribution toolchain, Coq 8.20.1 and OCaml 5.4.0 under `-ignore-ocaml-version` with Menhir 20260209, whose kernel carries guard-checker defects Rocq 9.3.0 fixes, no manifest binding the compiler records those identities, and its source's only copy has no remote
 · Raised: M1.2
