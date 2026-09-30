@@ -642,22 +642,26 @@ def _seed_refuses_a_fifo_manifest() -> None:
         _manifest_refused(donor, model_root, partial(_end_of_file, manifest))
 
 
-def _seed_refuses_a_manifest_linked_to_dev_zero() -> None:
-    """A donor whose manifest is a symbolic link to `/dev/zero` is refused before a byte
-    of it is read: followed, the link names a device read without end, until the
-    `MemoryError` that ends the read, which no refusal of `_seed_test_data` catches.
-    POSIX-only, so the case is the guest's."""
+def _seed_refuses_a_manifest_linked_to_a_fifo() -> None:
+    """A donor whose manifest is a symbolic link is refused without being followed. The
+    link names a FIFO, which a reader following it waits on for a writer that never
+    comes, rather than a device such as `/dev/zero`, which such a reader reads until
+    the guest runs out of memory: a regression then fails at `_returns`'s deadline, and
+    the FIFO's write end, opened and closed, releases the reader. POSIX-only, so the
+    case is the guest's and win32 is refused before `os.mkfifo`."""
     if sys.platform == "win32":
-        raise AssertionError("/dev/zero is POSIX-only; the linked manifest case runs in "
-                             "the guest")
+        raise AssertionError("mkfifo is POSIX-only; the linked manifest case runs in the "
+                             "guest")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
         model_root = _corpus_model(root)
         donor = root / "linked-manifest"
         manifest = _MODEL.corpus_manifest(_extracted(donor, {"rv64ui-p-add": b"\x7fELF"}))
+        fifo = root / "target-fifo"
+        os.mkfifo(fifo)
         manifest.unlink()
-        manifest.symlink_to("/dev/zero")
-        _manifest_refused(donor, model_root)
+        manifest.symlink_to(fifo)
+        _manifest_refused(donor, model_root, partial(_end_of_file, fifo))
 
 
 def _verify_refuses_a_sparse_manifest() -> None:
@@ -1321,8 +1325,8 @@ def cases() -> list[Case]:
         Case("open-regular-asks-the-name-first", _open_regular_asks_the_name_first),
         Case("seed-refuses-a-device-manifest", _seed_refuses_a_device_manifest),
         Case("seed-refuses-a-fifo-manifest", _seed_refuses_a_fifo_manifest, lane="guest"),
-        Case("seed-refuses-a-manifest-linked-to-dev-zero",
-             _seed_refuses_a_manifest_linked_to_dev_zero, lane="guest"),
+        Case("seed-refuses-a-manifest-linked-to-a-fifo",
+             _seed_refuses_a_manifest_linked_to_a_fifo, lane="guest"),
         Case("verify-refuses-a-sparse-manifest", _verify_refuses_a_sparse_manifest,
              lane="guest"),
         Case("verify-reads-no-file-until-the-paths-agree",
