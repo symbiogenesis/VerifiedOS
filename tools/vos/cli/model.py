@@ -1002,8 +1002,9 @@ def _seed_test_data(donors: list[Path], target: Path, model_root: Path) -> None:
     beside its destination, is held to the manifest copied with it before it is moved
     into place, so a donor whose suite has no manifest or one that is not a regular
     file, disagrees with its manifest, holds an entry that is not a regular file, or
-    changes during the copy seeds nothing, and configure downloads that suite instead. A suite the target already holds is left
-    to configure, which keeps it only if it matches its manifest.
+    changes during the copy seeds nothing, and configure downloads that suite instead.
+    A suite the target already holds is left to configure, which keeps it only if it
+    matches its manifest.
     """
     try:
         version = test_corpus_version(model_root)
