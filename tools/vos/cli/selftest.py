@@ -1663,10 +1663,32 @@ CASES: list[Case] = [
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^([ \t]*)- uses:( [^@\s]+@[0-9a-f]{40} # v\d+\.\d+\.\d+)$",
                   lambda m: f"{m[1]}- ? uses # the action\n{m[1]}  :{m[2]}")),
+    # The same line as a flow mapping whose explicit key stands flush against its `?`:
+    # PyYAML reads every `?` inside a flow collection as a key's indicator, so the step
+    # is unchanged, and only a census counting a flow `?` whatever follows it sees it.
+    ("K-115", "a workflow action stated as a flow mapping's unspaced explicit key",
+     _first_match(".github/workflows/host-gates.yml",
+                  r"(?m)^([ \t]*)- uses: ([^@\s]+@[0-9a-f]{40})( # v\d+\.\d+\.\d+)$",
+                  lambda m: f"{m[1]}- {{?uses: {m[2]}}}{m[3]}")),
+    # The same line as a flow mapping whose `uses` key follows a quoted name continued
+    # onto a line opening with `#`: that line is the scalar's text rather than a comment,
+    # so only a census reading every line, a comment's included, counts the key.
+    ("K-115", "a workflow action stated after a quoted scalar's line opening with #",
+     _first_match(".github/workflows/host-gates.yml",
+                  r"(?m)^([ \t]*)- uses: ([^@\s]+@[0-9a-f]{40})( # v\d+\.\d+\.\d+)$",
+                  lambda m: f'{m[1]}- {{name: "the action\n{m[1]}  # pinned", '
+                            f"uses: {m[2]}}}{m[3]}")),
     # The record's side: a row renamed away from the action it reviews leaves both a
     # workflow running code with no row and a row reviewing code nothing runs.
     ("K-115", "an action row that names no action a workflow runs",
      _literal(THIRD_PARTY, "| actions/download-artifact |", "| actions/download-artifacts |")),
+    # A row's licence link moved off the commit the row reviewed, its last digit changed
+    # so the case survives every reviewed bump: the reviewed revision and every workflow
+    # still agree, and only a rule holding the link to that revision sees the terms
+    # linked at another edition.
+    ("K-115", "an action row linking its licence at a commit other than the one it reviewed",
+     _first_match(THIRD_PARTY, r"(github\.com/actions/checkout/blob/[0-9a-f]{39})([0-9a-f])",
+                  lambda m: m[1] + ("1" if m[2] == "0" else "0"))),
     # A gitlink moved with an artifact derived through it left behind, seeded as the
     # recorded commit's first digit changed so the index, the licence record and every
     # restating sentence still agree. The registry's line names no upstream, so K-81
@@ -1709,6 +1731,13 @@ CASES: list[Case] = [
      _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
                                r"dedicated switch)\.",
                   lambda m: f"{m[1]} beside `coq-simple-io.1.10.0`.")),
+    # The same row gains a release after an opam name ending in digits: a census taking
+    # every numeral whose dot follows a digit for the tail of the numeral before it
+    # leaves that release unread.
+    ("K-118", "a development-tool row stating a release after a name ending in digits",
+     _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
+                               r"dedicated switch)\.",
+                  lambda m: f"{m[1]} beside `base64.3.5.1`.")),
     # A declared row nothing here owns gains a second release in its licence link text,
     # so the row no longer says which release its terms were read at.
     ("K-118", "a declared development-tool row stating two releases",

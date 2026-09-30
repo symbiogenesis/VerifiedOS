@@ -688,7 +688,8 @@ _K115_SHA = "0123456789abcdef0123456789abcdef01234567"
 _K115_RECORD = (
     "# Components\n\n### Development tools, contained by use\n\n"
     "| Tool | License | Standing |\n| --- | --- | --- |\n"
-    f"| example/action | `MIT` | The reviewed v1.2.3 revision `{_K115_SHA}` has terms. |\n"
+    f"| example/action | `MIT` | The reviewed v1.2.3 revision `{_K115_SHA}` has "
+    f"[terms](https://github.com/example/action/blob/{_K115_SHA}/LICENSE). |\n"
     "| zizmor | `MIT` | The reviewed **9.8.7** release's terms. |\n"
     "| actionlint | `MIT` | The reviewed **6.5.4** release's terms. |\n\n## Next\n")
 _K115_WORKFLOW = (f"steps:\n  - uses: example/action@{_K115_SHA} # v1.2.3\n"
@@ -738,6 +739,34 @@ def _k115_membership_is_held_both_ways() -> None:
                                      f"`{_K115_SHA}`. |\n| zizmor |")})
     ensure(any("reviews example/action, which no workflow runs" in item for item in found),
            f"a row no workflow runs must report: {found!r}")
+
+
+def _k115_licence_link_names_the_reviewed_commit() -> None:
+    # The row's licence link is the edition its terms were read at: every link into the
+    # action's own repository, whatever the case of its owner and name, names the
+    # reviewed commit, and one at another commit, a tag or a branch is one finding. The
+    # finding quotes both at twelve digits, or as far as they must run to differ.
+    link = f"example/action/blob/{_K115_SHA}/LICENSE"
+    last = f"{_K115_SHA[:-1]}8"
+    moved = f"example/action/blob/{last}/LICENSE"
+    for edit, quoted in (
+            (moved, f"{last}, the row reviewed {_K115_SHA}"),
+            (f"example/action/blob/{_K115_SHA[:12]}/LICENSE",
+             f"{_K115_SHA[:12]}, the row reviewed {_K115_SHA[:13]}"),
+            ("example/action/blob/v1.2.3/LICENSE", "v1.2.3, the row reviewed 0123456789ab"),
+            ("example/action/blob/main/LICENSE", "main, the row reviewed 0123456789ab"),
+            (f"Example/Action/blob/{'f' * 40}/LICENSE",
+             "ffffffffffff, the row reviewed 0123456789ab"),
+            (f"{link}) and [a copy](https://github.com/{moved}",
+             f"{last}, the row reviewed {_K115_SHA}")):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(link, edit)})
+        ensure(len(found) == 1
+               and f"THIRD-PARTY.md:7 links example/action's licence at {quoted}" in found[0],
+               f"a licence link off the reviewed commit is one finding ({edit}): {found!r}")
+    # A link into another repository states no revision of this action.
+    found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(
+        link, f"{link}) and [its dependency](https://github.com/other/dep/blob/{'f' * 40}/LICENSE")})
+    ensure(not found, f"another repository's link is not this row's revision: {found!r}")
 
 
 def _k115_leaves_the_analyzer_rows_to_k118() -> None:
@@ -795,7 +824,25 @@ def _k115_every_uses_key_is_read_or_reported() -> None:
               # a double-quoted key spelled with an escape
               ('  - "u\\x73es": {ref} # v1.2.3\n', 0),
               # an explicit key inside a flow mapping, two census hits on one line
-              ("  - {{? uses : {ref}}}\n", 0))
+              ("  - {{? uses : {ref}}}\n", 0),
+              # an explicit key flush against its `?` in a flow collection, which PyYAML
+              # reads as a key's indicator whatever follows it: after `{`, a blank, an
+              # entry's `,` or `[`, quoted, escaped or an alias, and opening a line that
+              # continues a flow mapping
+              ("  - {{?uses: {ref}}}\n", 0),
+              ("  - {{ ?uses : {ref}}}\n", 0),
+              ("  - [?uses: {ref}]\n", 0),
+              ("  - {{name: a, ?uses: {ref}}}\n", 0),
+              ('  - {{?"uses": {ref}}}\n', 0),
+              ('  - {{?"u\\x73es": {ref}}}\n', 0),
+              ("  - name: step\n    id: &k uses\n  - {{?*k : {ref}}}\n", 2),
+              ("  - {{name: step,\n    ?uses : {ref}}}\n", 1),
+              # a key on a line opening with `#` that continues a quoted scalar, and on
+              # one whose `#` follows a no-break or ideographic space, which YAML reads
+              # as content rather than a blank
+              ('  - {{name: "a\n    # b", uses: {ref}}}\n', 1),
+              ("  - {{name: x,\n  \u00a0#x, uses: {ref}}}\n", 1),
+              ("  - {{name: x,\n  \u3000#x, uses: {ref}}}\n", 1))
     refs = (f"example/action@{_K115_SHA}",   # the reviewed commit
             f"other/action@{_K115_SHA}",     # an action with no row
             f"example/action@{'f' * 40}")    # a commit the row never reviewed
@@ -819,17 +866,29 @@ def _k115_every_uses_key_is_read_or_reported() -> None:
 
 def _k115_census_counts_the_read_key_once() -> None:
     # The controls: a key the reading took is not counted again, a flow mapping whose
-    # `uses:` opens its own line is read and held, and neither a comment nor a word
-    # ending in the key's letters is a key.
-    control = (_K115_WORKFLOW + "  # - {uses: other/action@v1}\n"
+    # `uses:` opens its own line is read and held, and neither a comment's prose nor a
+    # word ending in the key's letters is a key.
+    control = (_K115_WORKFLOW + "  # every step uses a reviewed action\n"
                "  - run: echo reuses: nothing\n")
     found = _k115({".github/workflows/a.yml": control})
-    ensure(not found, f"comments and other words are not keys: {found!r}")
+    ensure(not found, f"prose and other words are not keys: {found!r}")
+    # A comment line is read like any other, so a key's shape in one is counted, as one
+    # in a trailing comment is: the census errs toward a finding.
+    found = _k115({".github/workflows/a.yml": _K115_WORKFLOW + "  # - {uses: other/action@v1}\n"})
+    ensure(len(found) == 1 and f"a.yml:4 {_K115_UNREAD}" in found[0],
+           f"a key's shape in a comment line is counted: {found!r}")
+    # After a block indicator, a `?` flush against what follows opens a plain scalar,
+    # `?uses`, which PyYAML reads as no `uses` key.
+    found = _k115({".github/workflows/a.yml": _K115_WORKFLOW
+                   + f"  - ?uses: other/action@{_K115_SHA}\n"})
+    ensure(not found, f"a block plain scalar opening with ? is not a key: {found!r}")
     flow = (_K115_WORKFLOW + "  - {\n      name: step,\n"
             f"      uses: example/action@{'f' * 40} # v1.2.3\n    }}\n")
     found = _k115({".github/workflows/a.yml": flow})
     ensure(len(found) == 1 and "a.yml:6 runs example/action at ffffffffffff" in found[0],
            f"a read key is held against its row and not also counted unread: {found!r}")
+
+
 # K-118's fixture: a section with a paragraph, a table of five rows, and a later
 # subsection whose numerals lie outside the window. Each held release has an owner of
 # its own kind: a uv lock package, one snapshot's package, the snapshots every lock
@@ -995,19 +1054,23 @@ def _k118_census_reads_every_numeral() -> None:
         "the snapshots' own.", "the snapshots' own, and v8.1 before it.")})
     ensure(len(found) == 1 and "THIRD-PARTY.md:5 states v8.1 in the paragraphs" in found[0],
            f"an unread numeral in a paragraph must report on its line: {found!r}")
-    # an opam identifier's release after its name's dot, a release carrying a letter
-    # suffix and one continuing past it are each read, whole
-    for written, numeral in (("`coq-extra.6.6.6`", "6.6.6"), ("6.6.6rc1", "6.6.6rc1"),
-                             ("v6.6.6a1.dev2", "v6.6.6a1.dev2")):
+    # an opam identifier's release after its name's dot, whether the name ends in a
+    # letter or in digits a letter leads, one after an underscore, a release carrying a
+    # letter suffix and one continuing past it are each read, whole; a name's digits are
+    # not told from a release's, so `python3.6.6` reads 6.6, erring toward a finding
+    for written, numeral in (("`coq-extra.6.6.6`", "6.6.6"), ("`base64.6.6.6`", "6.6.6"),
+                             ("`x509.6.6.6`", "6.6.6"), ("`iso8601.6.6.6`", "6.6.6"),
+                             ("`rocq_6.6.6`", "6.6.6"), ("`python3.6.6`", "6.6"),
+                             ("6.6.6rc1", "6.6.6rc1"), ("v6.6.6a1.dev2", "v6.6.6a1.dev2")):
         found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace(
             "constant 7.8.9.", f"constant 7.8.9. Bundled {written}.")})
         ensure(len(found) == 1
                and f"THIRD-PARTY.md:10 states {numeral} in beta's row, which no" in found[0],
                f"a release written as {written} must be read: {found!r}")
     # a numeral joined to the word before it is a licence identifier's version or a
-    # tag's prefix, left to the sites
+    # tag's prefix, left to the sites, and so is its continuation past its dot
     found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace(
-        "constant 7.8.9.", "constant 7.8.9. Under GPL-6.6 at tag release-6.6.")})
+        "constant 7.8.9.", "constant 7.8.9. Under GPL-6.6 or LGPL-6.6.6 at tag release-6.6.6.")})
     ensure(not found, f"a hyphen-joined numeral is not a release the census reads: {found!r}")
     # a residue that no longer stands, or covers no numeral, suppresses nothing
     found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace("licence version 2.1",
@@ -1716,6 +1779,8 @@ def cases() -> list[Case]:
         Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),
         Case("k115-moved-or-movable-references-fail", _k115_moved_or_movable_references_fail),
         Case("k115-membership-is-held-both-ways", _k115_membership_is_held_both_ways),
+        Case("k115-licence-link-names-the-reviewed-commit",
+             _k115_licence_link_names_the_reviewed_commit),
         Case("k115-leaves-the-analyzer-rows-to-k118", _k115_leaves_the_analyzer_rows_to_k118),
         Case("k115-unreadable-readings-fail-closed", _k115_unreadable_readings_fail_closed),
         Case("k115-every-uses-key-is-read-or-reported", _k115_every_uses_key_is_read_or_reported),
