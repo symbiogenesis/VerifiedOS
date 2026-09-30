@@ -341,9 +341,9 @@ def _fresh_prefix(base: Path) -> Path:
     `--destdir` staging tree. Neither is worth it: qualification directs provisioning
     only when the stamp is absent or its build inputs or tools changed, and it refuses
     both, so a needed provisioning has no usable installation to preserve and builds
-    in place. The stamp goes first, so an interrupted run leaves none: of the prefix's
-    files it hashes only the sail executable, so a stamp beside a partly emptied
-    prefix could pass qualification's stamp check.
+    in place. The stamp goes before the prefix's removal starts, so a run interrupted
+    from then on leaves none: of the prefix's files it hashes only the sail executable,
+    so a stamp beside a partly emptied prefix could pass qualification's stamp check.
     """
     (base / "provision.json").unlink(missing_ok=True)
     prefix = base / "sail-prefix"
