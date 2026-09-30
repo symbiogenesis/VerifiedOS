@@ -825,7 +825,7 @@ before adding work to every gate run.
 
 | Checker | What it decides |
 | --- | --- |
-| [ty](https://github.com/astral-sh/ty) | Every expression, against the types it can infer, with `--error all` |
+| [ty](https://github.com/astral-sh/ty) | Every expression, against the types it can infer, with every rule at error |
 | [ruff](https://github.com/astral-sh/ruff) | Every function, against whether it is annotated at all, and the correctness rules [ruff.toml](ruff.toml) admits |
 
 The split is not a preference. ty infers rather than demands, so a function with no
@@ -868,16 +868,21 @@ table above, then run `uv run --project tools --locked --group model pre-commit 
 For a WSL-mounted checkout, `run.py model lane` supplies the guest lane root.
 The ordinary host gates synchronize only their default dependency groups.
 
-`--error all` escalates every rule ty carries, including the ones it ships as warnings or
-switched off, and that is deliberate: the alternative is a list of opt-ins that silently
-stops growing the day ty adds a rule nobody transcribed. What ruff is *not* asked is in
-[ruff.toml](ruff.toml): the excluded rules, each named on its own line and each for a reason
-that would hold in any project, and no group switched off to spare this code a rewrite. A
-single site that has to differ carries a `# noqa` naming its rule and the sentence saying
-why; the `PGH` group refuses a blanket `# noqa` or `# type: ignore`.
+[ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
+carries, including the ones it ships as warnings or switched off, and that is deliberate:
+the alternative is a list of opt-ins that silently stops growing the day ty adds a rule
+nobody transcribed. The gate also passes `--error all`, which overrides the table, so an
+edit that lowers an entry there cannot lower what the gate enforces. What ruff is *not*
+asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own line and
+each for a reason that would hold in any project, and no group switched off to spare this
+code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and
+the sentence saying why; the `PGH` group refuses a blanket `# noqa` or `# type: ignore`.
 
-The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml). In VS Code,
-select `out/venv-win32/Scripts/python.exe` on Windows or the Linux environment's
+The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml). ruff finds its file
+from each checked path, but ty discovers configuration from its working directory upward
+and the repository root carries none, so an editor's ty server reads ty.toml, and reaches
+the gate's severities, only with `tools/` open as a workspace folder. In VS Code, select
+the checkout's `out/venv-win32/Scripts/python.exe` on Windows or the Linux environment's
 `bin/python` from the placement table above so editor imports use the same
 dependencies as the gate. The Linux typing target is intentional: the guest modules
 use POSIX APIs, even when the host checks them. It does not move execution into Linux.
