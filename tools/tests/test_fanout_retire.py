@@ -3,6 +3,7 @@
 
 import ast
 import os
+import sys
 from collections.abc import Callable
 from dataclasses import asdict, replace
 from pathlib import Path
@@ -176,9 +177,17 @@ def _records() -> None:
         _refused(lambda: retire.validate_record({**asdict(record), "head": "HEAD"}), "commit")
 
 
-def _native_outputs_and_lock() -> None:
+def _hold(fd: int) -> None:
+    """Take the nonblocking exclusive `flock` a native run holds on `fd`, as the cases
+    below do to stand in for an active run. POSIX-only, so these cases are the
+    guest's and win32 is refused before the deferred import."""
+    if sys.platform == "win32":
+        raise AssertionError("flock is POSIX-only; the native lock cases run in the guest")
     import fcntl  # noqa: PLC0415
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
+
+def _native_outputs_and_lock() -> None:
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
         lane = root / "build" / "lane-worker"
         logs = root / "logs"
@@ -191,7 +200,7 @@ def _native_outputs_and_lock() -> None:
         lock = lane / "model.lock"
         lock.write_text("", encoding="utf-8")
         with lock.open() as handle:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _hold(handle.fileno())
             _refused(lambda: retire.retain_native("worker", str(lane), str(logs), "a" * 20), "lock is active")
         ensure((lane / "result.bin").exists(), "locked native lane is unchanged")
         result = retire.retain_native("worker", str(lane), str(logs), "a" * 20)
@@ -202,15 +211,13 @@ def _native_outputs_and_lock() -> None:
 
 
 def _native_directory_lock() -> None:
-    import fcntl  # noqa: PLC0415
-
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
         lane = root / "build" / "lane-worker"
         proofs = lane / "proof-gate"
         proofs.mkdir(parents=True)
         fd = os.open(proofs, os.O_RDONLY)
         try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _hold(fd)
             _refused(lambda: retire.retain_native("worker", str(lane), str(root / "logs"), "b" * 20), "lock is active")
         finally:
             os.close(fd)
@@ -218,8 +225,6 @@ def _native_directory_lock() -> None:
 
 
 def _venv_links_and_target_locks() -> None:
-    import fcntl  # noqa: PLC0415
-
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
         lane = root / "build" / "lane-worker"
         library = lane / "venv-linux" / "lib"
@@ -228,7 +233,7 @@ def _venv_links_and_target_locks() -> None:
         lock = library / "active.lock"
         lock.write_text("", encoding="utf-8")
         with lock.open() as handle:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _hold(handle.fileno())
             _refused(lambda: retire.retain_native("worker", str(lane), str(root / "logs"), "c" * 20),
                      "lock is active")
         result = retire.retain_native("worker", str(lane), str(root / "logs"), "c" * 20)
@@ -309,8 +314,6 @@ def _native_log_directories_and_companions() -> None:
 
 
 def _native_log_locks_and_peer_directories() -> None:
-    import fcntl  # noqa: PLC0415
-
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
         lane, logs = root / "build" / "lane-worker", root / "logs"
         lane.mkdir(parents=True)
@@ -318,13 +321,13 @@ def _native_log_locks_and_peer_directories() -> None:
         lock = logs / "testrig-worker.log.lock"
         lock.write_text("", encoding="utf-8")
         with lock.open() as handle:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _hold(handle.fileno())
             _refused(lambda: retire.retain_native("worker", str(lane), str(logs), "f" * 20), "lock is active")
         folder = logs / "worker" / "supervisor"
         folder.mkdir(parents=True)
         fd = os.open(folder, os.O_RDONLY)
         try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _hold(fd)
             _refused(lambda: retire.retain_native("worker", str(lane), str(logs), "f" * 20), "lock is active")
         finally:
             os.close(fd)
@@ -340,8 +343,6 @@ def _native_log_locks_and_peer_directories() -> None:
 def _native_oracle_locks_of_every_edition() -> None:
     """A lane's oracle log is moved only while no edition's oracle build holds its tree:
     the log's name does not say which edition's checkout wrote it."""
-    import fcntl  # noqa: PLC0415
-
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
         build, logs = root / "build", root / "logs"
         lane = build / "lane-worker"
@@ -354,7 +355,7 @@ def _native_oracle_locks_of_every_edition() -> None:
             lock.parent.mkdir()
             lock.write_text("", encoding="utf-8")
             with lock.open() as handle:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                _hold(handle.fileno())
                 _refused(lambda: retire.retain_native("worker", str(lane), str(logs), "0a" * 10),
                          "native output lock is active")
             ensure(log.exists() and lane.exists(),

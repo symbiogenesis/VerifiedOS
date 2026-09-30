@@ -535,7 +535,10 @@ def _compiler_args() -> list[str]:
 
 def _raise_stack_limit() -> None:
     # POSIX-only, and this module is read on the host as well as run in the guest.
-    # Deferring the import is what keeps `import vos.env` from failing on Windows.
+    # Deferring the import is what keeps `import vos.env` from failing on Windows,
+    # and refusing win32 first states the platform in a form ty reads.
+    if sys.platform == "win32":
+        raise RuntimeError("the stack limit is raised in the guest")
     import resource  # noqa: PLC0415
     soft, hard = resource.getrlimit(resource.RLIMIT_STACK)
     want = STACK_BYTES if hard == resource.RLIM_INFINITY else min(STACK_BYTES, hard)
@@ -896,10 +899,13 @@ def _flock(handle: IO[str], *, blocking: bool) -> bool:
     """Take an exclusive lock on an open file, or say that it is held.
 
     POSIX-only, and this module is read on the host as well as run in the guest, so
-    the import is deferred for the reason `_raise_stack_limit`'s is. `flock` belongs to
-    the open file description rather than to the process, which is what lets a detached
-    build hold a lock its launcher took: see `build_lock`.
+    win32 is refused and the import deferred for the reasons `_raise_stack_limit`'s
+    are. `flock` belongs to the open file description rather than to the process,
+    which is what lets a detached build hold a lock its launcher took: see
+    `build_lock`.
     """
+    if sys.platform == "win32":
+        raise RuntimeError("build locks are taken in the guest")
     import fcntl  # noqa: PLC0415
     flags = fcntl.LOCK_EX if blocking else fcntl.LOCK_EX | fcntl.LOCK_NB
     try:
@@ -910,6 +916,8 @@ def _flock(handle: IO[str], *, blocking: bool) -> bool:
 
 
 def _unlock(handle: IO[str]) -> None:
+    if sys.platform == "win32":
+        raise RuntimeError("build locks are released in the guest")
     import fcntl  # noqa: PLC0415
     fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
@@ -1061,7 +1069,11 @@ def stage(name: str, argv: list[str], report_to: Writable | None = None, *,
     reports its own peak and not the heavy one's.
 
         STAGE emit wall=107.4s cpu=99% maxrss=2411360kB
+
+    `os.wait4` is POSIX-only, so win32 is refused before the stage starts.
     """
+    if sys.platform == "win32":
+        raise RuntimeError("build stages run in the guest")
     started = time.perf_counter()
     proc = subprocess.Popen(argv, cwd=cwd, stdout=stdout, stderr=stderr,
                             env=None if add_env is None else {**os.environ, **add_env})

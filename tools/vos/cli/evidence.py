@@ -14,6 +14,7 @@ import os
 import re
 import signal
 import subprocess
+import sys
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -71,8 +72,13 @@ def _launch(member: Member) -> Result:
             except subprocess.TimeoutExpired:
                 # This command runs in the guest. End its process group as well, so
                 # a hung compiler cannot keep writing after the sweep releases locks.
-                with contextlib.suppress(ProcessLookupError):
-                    os.killpg(child.pid, signal.SIGKILL)
+                # Windows ignores `start_new_session` and has no `os.killpg`, so there
+                # the child alone is killed.
+                if sys.platform == "win32":
+                    child.kill()
+                else:
+                    with contextlib.suppress(ProcessLookupError):
+                        os.killpg(child.pid, signal.SIGKILL)
                 stdout, stderr = child.communicate()
                 return Result(member.name, member.command, 1, stdout,
                               stderr + "\nevidence member timed out", time.perf_counter() - started)

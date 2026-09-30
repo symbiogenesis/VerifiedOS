@@ -128,6 +128,8 @@ def system_packages(install: bool, log: IO[str]) -> None:
     if not install:
         raise ValueError("missing Ubuntu packages: " + " ".join(missing)
                          + "; use --install-system to install them")
+    if sys.platform != "linux":
+        raise ValueError("system packages are installed on Linux, inside the guest lane")
     prefix = () if os.geteuid() == 0 else ("sudo", "-n")
     run((*prefix, "apt-get", "update"), log)
     run((*prefix, "env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y",

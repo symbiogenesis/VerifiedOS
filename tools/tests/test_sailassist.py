@@ -127,6 +127,9 @@ def _timeout_process_tree() -> None:
 
 
 def _resistant_descendant() -> None:
+    # Process groups and os.killpg are POSIX-only, so this case is the guest's.
+    if sys.platform == "win32":
+        raise AssertionError("process groups are POSIX-only; this case runs in the guest")
     # The grandchild reports readiness only after installing its SIGTERM handler.
     child_script = ("import signal,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); "
                     "print('ready',flush=True); time.sleep(30)")
