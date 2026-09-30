@@ -132,7 +132,7 @@ def _empty_table_composes_the_manifest_alone() -> None:
 def _assertion_macros_precede_both_arms() -> None:
     with sandbox_tree(_TREE) as root:
         for files in (_compose(root), _compose(root, _SRAM)):
-            header = str(root / "upstream/opentitan/hw/ip/prim/rtl/prim_assert.sv")
+            header = str(root / rtl.PRIM / rtl.PRIM_ASSERTIONS)
             ensure(files.lines[0] == header and files.lines.count(header) == 1,
                    "both arms need the upstream assertion definitions before any source")
 
@@ -523,33 +523,31 @@ def _json_inventory_validates_all_definitions() -> None:
                 raise AssertionError(f"invalid module definition was silently accepted: {defect!r}")
 
 
-def _ram_compatibility_is_shared_and_preserves_upstream() -> None:
-    source = "// upstream notice\nmodule sram;\n.cfg_rsp_o( ),\n.cfg_rsp_o( )\nendmodule\n"
-    tree = {**_TREE, rtl.RAM_PORT_SOURCE: source,
-            _FLIST: _MANIFEST + "${CVA6_REPO_DIR}/common/local/util/sram.sv\n"}
+def _primitives_are_the_integrators_and_sram_is_imported_unmodified() -> None:
+    # The primitives come from the bring-up SoC's vendored tree, whose SRAM primitive
+    # still spells the response port the imported wrapper connects, so the wrapper is
+    # compiled from its own gitlink in both arms rather than from an adapted copy.
+    ensure(rtl.PRIM == "upstream/mocha/hw/vendor/lowrisc_ip/ip"
+           and rtl.PRIM.startswith(f"{rtl.PRIM_UPSTREAM}/"),
+           f"elaboration must read the integrator's vendored primitives, got {rtl.PRIM!r}")
+    wrapper = "common/local/util/sram.sv"
+    tree = {**_TREE, f"{rtl.CORE}/{wrapper}": "module sram;\n.cfg_rsp_o( )\nendmodule\n",
+            _FLIST: _MANIFEST + f"${{CVA6_REPO_DIR}}/{wrapper}\n"}
     with sandbox_tree(tree) as root:
-        for arm, files in (("baseline", _compose(root)), ("curated", _compose(root, _SRAM))):
-            lines = rtl._stage_ram_compatibility(root, files, root / arm)
-            staged = root / arm / "compatibility/cva6-sram.sv"
-            ensure(str(staged) in lines, f"{arm} must compile the staged compatibility source")
-            ensure(staged.read_text() == source.replace(".cfg_rsp_o(", ".cfg_o("),
-                   "only the two named-port spellings may change")
-        ensure((root / rtl.RAM_PORT_SOURCE).read_text() == source,
-               "the upstream source must remain untouched")
-        (root / rtl.RAM_PORT_SOURCE).write_text(source.replace(".cfg_rsp_o(", ".cfg_o(", 1))
-        try:
-            rtl._stage_ram_compatibility(root, _compose(root), root / "unexpected")
-        except ValueError as error:
-            ensure("expected 2" in str(error), "upstream interface drift must be reported")
-        else:
-            raise AssertionError("changed upstream interface silently entered the build")
+        imported = root / rtl.CORE / wrapper
+        for files in (_compose(root), _compose(root, _SRAM)):
+            ensure(sum(Path(line) == imported for line in files.lines) == 1,
+                   f"each arm compiles the imported wrapper itself, got {files.lines!r}")
+            ensure(all(line.startswith(str(root / rtl.PRIM))
+                       for line in files.lines[:1 + len(rtl.PRIM_PACKAGES)]),
+                   f"the primitive headers come from one vendored tree, got {files.lines!r}")
 
 
 def cases() -> list[Case]:
     return [
         Case("json-inventory-validates-all-definitions", _json_inventory_validates_all_definitions),
-        Case("ram-compatibility-shared-and-upstream-preserved",
-             _ram_compatibility_is_shared_and_preserves_upstream),
+        Case("primitives-are-the-integrators-and-sram-is-imported-unmodified",
+             _primitives_are_the_integrators_and_sram_is_imported_unmodified),
         Case("json-inventory-preserves-hierarchy-and-declarations",
              _json_inventory_preserves_hierarchy_and_declarations),
         Case("json-inventory-rejects-unresolved-hierarchy",
