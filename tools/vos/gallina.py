@@ -21,8 +21,9 @@ Stdlib and nothing else, and the proof gate's switch carries Stdlib, so
 mode compile in that switch, at the gate's release and under their own flags: a proof
 source that compiles under the gate compiles under them. The randomized harness loads
 QuickChick and the Wasm oracle loads CertiRocq, and no release of either admits a Rocq
-newer than 9.1, so each keeps a switch of its own at Rocq 9.1.1. Every switch is
-**read** here and never written.
+newer than 9.1, so each keeps a switch of its own at Rocq 9.1.1, and K-117 holds what
+those two compile free of the syntax only Rocq 9.3 reads. Every switch is **read** here
+and never written.
 """
 
 import os
