@@ -28,7 +28,6 @@ sys.path.insert(0, str(ROOT / "tools"))
 from vos import acvp, env, gallina  # noqa: E402
 
 REVISION = acvp.REVISION
-BASE = acvp.BASE
 OPERATIONS = ("keyGen", "sigGen", "sigVer")
 EXTRACTION = '''From Stdlib Require Import Extraction.
 From Stdlib.extraction Require Import ExtrOcamlBasic ExtrOcamlNatInt ExtrOcamlZBigInt.

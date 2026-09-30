@@ -16,8 +16,9 @@ from typing import Any
 from vos import acvp, boot_handoff, receipts
 
 # The ACVP identities are acvp.py's; these names keep the receipts' fields and readers.
+# Every ACVP download goes through `official`, so acvp.py's refusal of an unpinned
+# file governs it.
 REVISION = acvp.REVISION
-BASE = acvp.BASE
 SOURCES: dict[str, tuple[str, str]] = {
     scheme: (family, acvp.VECTORS[family])
     for scheme, family in (("slh", "SLH-DSA-sigVer-FIPS205"), ("mldsa", "ML-DSA-sigVer-FIPS204"))}
@@ -58,8 +59,17 @@ def run(command: list[str], work: Path, timeout: int = 240) -> str:
 
 
 def fetch(url: str, dest: Path, expected: str) -> bytes:
+    """A non-ACVP download held to `expected`; ACVP inputs come through `official`."""
     receipts.download(url, dest, expected)
     return dest.read_bytes()
+
+
+def official(work: Path, notice: str) -> dict[str, bytes]:
+    """Each scheme's pinned ACVP input, fetched and verified through acvp.py, with the
+    upstream notice retained beside them as `notice`."""
+    acvp.fetch(acvp.NOTICE, work / notice)
+    return {scheme: acvp.fetch(acvp.vector_path(family), work / (scheme + ".json"))
+            for scheme, (family, _) in SOURCES.items()}
 
 
 def build(root: Path, work: Path) -> Path:
@@ -345,11 +355,9 @@ def campaign(root: Path, work: Path, gallina: bool = False, first: bool = False)
     binary = build(root, work)
     compiler = {"executables": compiler_identity, "version": compiler_version,
                 "command": json.loads((work / "compile.json").read_text(encoding="utf-8"))}
-    fetch(BASE+"README.md", work / "NIST-README.md", NOTICE_SHA)
     vectors: list[Case] = []
     omitted: list[str] = []
-    for scheme, (directory, digest) in SOURCES.items():
-        data = fetch(BASE+f"gen-val/json-files/{directory}/internalProjection.json", work / (scheme+".json"), digest)
+    for scheme, data in official(work, "NIST-README.md").items():
         selected, excluded = cases(json.loads(data), scheme)
         vectors.extend(selected)
         omitted.extend(excluded)

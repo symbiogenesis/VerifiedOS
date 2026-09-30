@@ -65,18 +65,25 @@ def identities_are_well_formed() -> None:
 
 
 def no_consumer_restates_a_pin() -> None:
-    literals = {acvp.REVISION, *acvp.pinned().values()}
-    sources = [*CAMPAIGNS.glob("*.py"), *(TOOLS / "vos").rglob("*.py"), *(TOOLS / "tests").glob("*.py")]
+    """No Python consumer writes an ACVP identity, and none outside the tests builds an
+    ACVP address, so every download is one acvp.url names and acvp.fetch verifies."""
+    identities = {acvp.REVISION, *acvp.pinned().values()}
+    addresses = {"githubusercontent.com/usnistgov", "gen-val/json-files", "acvp.BASE"}
+    consumers = [*CAMPAIGNS.glob("*.py"), *(TOOLS / "vos").rglob("*.py")]
+    sources = [*consumers, *(TOOLS / "tests").glob("*.py")]
     owner = (TOOLS / "vos" / "acvp.py").resolve()
-    ensure(any(path.name == "mlkem_vectors.py" for path in sources), "campaigns not scanned")
-    texts = {path: path.read_text(encoding="utf-8") for path in sources if path.resolve() != owner}
-    restated = sorted(f"{path.relative_to(ROOT).as_posix()}: {literal[:8]}"
-                      for path, text in texts.items() for literal in literals if literal in text)
-    ensure(not restated, f"ACVP identities restated outside acvp.py: {restated}")
+    ensure(any(path.name == "mlkem_vectors.py" for path in consumers), "campaigns not scanned")
+    ensure(any(path.name == "boot_crypto_target.py" for path in consumers), "boot comparison not scanned")
+    restated = sorted(f"{path.relative_to(ROOT).as_posix()}: {literal[:32]}"
+                      for path in sources if path.resolve() != owner
+                      for text in [path.read_text(encoding="utf-8")]
+                      for literal in (identities | addresses if path in consumers else identities)
+                      if literal in text)
+    ensure(not restated, f"ACVP identities or addresses written outside acvp.py: {restated}")
 
 
 def consumers_read_the_owner() -> None:
-    ensure(b.REVISION == acvp.REVISION and b.BASE == acvp.BASE and b.NOTICE_SHA == acvp.NOTICE_SHA,
+    ensure(b.REVISION == acvp.REVISION and b.NOTICE_SHA == acvp.NOTICE_SHA,
            "boot comparison carries its own revision or notice")
     ensure(all(digest == acvp.VECTORS[family] for family, digest in b.SOURCES.values())
            and set(b.SOURCES) == {"slh", "mldsa"}, "boot comparison carries its own digests")
@@ -142,10 +149,36 @@ def campaigns_refuse_a_corrupt_cache() -> None:
                "a campaign cached unverified bytes")
 
 
+def boot_comparison_fetches_through_the_owner() -> None:
+    """Both boot comparisons take their ACVP inputs from boot_crypto.official, which the
+    owner governs: its digest decides, and a family it does not pin is never fetched."""
+    digest = hashlib.sha256(BYTES).hexdigest()
+    with (tempfile.TemporaryDirectory() as name,
+          patch.object(acvp, "NOTICE_SHA", digest),
+          patch.dict(acvp.VECTORS, {FIXTURE: digest})):
+        work = Path(name)
+        urls: list[str] = []
+        carried = "0" * 64
+        with (patch.dict(b.SOURCES, {"slh": (FIXTURE, carried), "mldsa": (FIXTURE, carried)}),
+              patch.object(urllib.request, "urlopen", _served(BYTES, urls))):
+            ensure(b.official(work, "NIST-NOTICE.md") == {"slh": BYTES, "mldsa": BYTES},
+                   "the owner's verified bytes were not returned")
+        ensure(urls == [acvp.url(acvp.NOTICE), *[acvp.url(acvp.vector_path(FIXTURE))] * 2],
+               f"the boot comparison fetched another address: {urls}")
+        ensure((work / "NIST-NOTICE.md").read_bytes() == BYTES, "the notice was not retained")
+        (work / "slh.json").unlink()
+        with (patch.dict(b.SOURCES, {"slh": ("FIXTURE-unpinned", digest)}),
+              patch.object(urllib.request, "urlopen", _served(BYTES, urls))):
+            _refused(lambda: b.official(work, "NIST-NOTICE.md"), "not a pinned ACVP family")
+        ensure(len(urls) == 3 and not (work / "slh.json").exists(), "an unpinned family was fetched")
+
+
 def cases() -> list[Case]:
     return [Case("pinned identities are well formed", identities_are_well_formed),
             Case("no consumer restates an ACVP pin", no_consumer_restates_a_pin),
             Case("consumers take their identities from the owner", consumers_read_the_owner),
             Case("unpinned paths are refused before any download", unpinned_paths_are_refused),
             Case("downloads publish only verified bytes", downloads_publish_only_verified_bytes),
-            Case("campaigns refuse a corrupt or unverified cache", campaigns_refuse_a_corrupt_cache)]
+            Case("campaigns refuse a corrupt or unverified cache", campaigns_refuse_a_corrupt_cache),
+            Case("the boot comparison fetches through the owner",
+                 boot_comparison_fetches_through_the_owner)]
