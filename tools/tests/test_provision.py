@@ -559,8 +559,8 @@ def _creation_failures(scratch: Path, target: Path) -> None:
 def _stopped_route_is_finished() -> None:
     """A route that fails after `opam init` made the root reports what stands and what
     remains of the route, and the next run finishes that root by running the route
-    again over it, as the reviewed client did on the guest: `opam init` finds the root
-    initialized and exits 0, and the remaining repositories are added."""
+    again over it: `opam init` over a root that stands reports it already initialized,
+    fetches nothing and exits 0, and adding each remaining repository fetches it."""
     (default, url), *_ = opam_client.OPAM_REPOSITORIES
     reviewed = opam_client.OPAM_VERSION
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:

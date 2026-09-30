@@ -63,10 +63,12 @@ OPAM_REPOSITORIES: tuple[tuple[str, str], ...] = (
 # repository added unselected, each switch naming the repositories it resolves from.
 # Guest bootstrap runs it in its private root, and `run.py provision --install-opam`
 # where no root stands or where `root_resumable` reads one the route stopped partway
-# through. Repeating it over a root it made finishes that root and changes a finished
-# one in nothing: `opam init` reports the root already initialized and exits 0, and
-# adding a repository the root already carries at that URL reports no changes and
-# exits 0, as the reviewed client did over a private root on the guest.
+# through. Repeating the route over a root it made finishes that root, and it is not
+# inert over a finished one: `opam init` over a root that stands reports it already
+# initialized, fetches nothing and exits 0, while adding a repository the root already
+# carries at that URL keeps its configuration but fetches it again, refreshing its
+# metadata and stamp, and removes that repository from the root, its configuration
+# and its metadata, where the fetch fails.
 CREATE_ROOT: tuple[tuple[str, ...], ...] = (
     ("opam", "init", "--bare", "--no-setup", "--no-opamrc", "-y", *OPAM_REPOSITORIES[0]),
     *(("opam", "repository", "add", name, url, "--dont-select", "-y")
