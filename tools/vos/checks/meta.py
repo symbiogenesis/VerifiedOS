@@ -171,19 +171,21 @@ ids, then `are`. The four class names are fixed here rather than read, so a clas
 retitled away and a fifth class opened that way are each a finding rather than a class
 this rule stops or never starts reading, and so is a `Where the set is` in the section
 that names no class before its sentence ends. What that reading does not reach is a
-class introduced in some other sentence form: it is read as part of the class before it
-and is caught only where it carries a membership sentence of its own, that class then
-stating two. A list is decided whole by a grammar of ids, `K-a through K-b` ranges,
-commas and `and`, and a range expands over the active rows whose numbers it spans, so a
-struck row inside one is skipped rather than placed.
+class introduced in some other sentence form: it is read as part of the class before it,
+or as part of no class ahead of the first, and is caught only where it carries a
+membership sentence of its own, that sentence then being a class's second or one
+standing ahead of every class. A list is decided whole by a grammar of ids, `K-a through
+K-b` ranges, commas and `and`, and a range expands over the active rows whose numbers it
+spans, so a struck row inside one is skipped rather than placed.
 
 **Fail-closed at every reading.** A missing section, a `Where the set is` that opens no
-class, a class with no membership sentence or with two, a list carrying a word the
-grammar does not know, a range that runs backwards or ends on an id the registry does
-not carry as an active rule, an id a class names that is struck, quarantined or never
-registered, and a class naming no registered rule are each findings, so the floor is
-inside the rule for the reason K-84's is. What it does not decide is whether a rule sits
-in the class its row and code fit, which is a reading.
+class, a membership sentence ahead of the first class, a class with no membership
+sentence or with two, a list carrying a word the grammar does not know, a range that
+runs backwards or ends on an id the registry does not carry as an active rule, an id a
+class names that is struck, quarantined or never registered, and a class naming no
+registered rule are each findings, so the floor is inside the rule for the reason
+K-84's is. What it does not decide is whether a rule sits in the class its row and code
+fit, which is a reading.
 """
 
 import re
@@ -785,6 +787,15 @@ def _classes(ctx: Context, registered: set[str]) -> None:
                          "class this rule reads"
                          for m in _CLASS_LEAD_RE.finditer(doc.raw, lo, hi)
                          if m.start() not in starts and not doc.is_fenced(m.start())]
+            # No class's region reaches back past the first opener, so a membership
+            # sentence ahead of it belongs to a class no reading sees.
+            first = opens[0].start() if opens else hi
+            ahead = [c for c in _MEMBERS_RE.finditer(doc.raw, lo, first)
+                     if not doc.is_fenced(c.start())]
+            findings += [f"{RULES}:{doc.at(c.start())} states a membership sentence ahead "
+                         "of the first reach class, so no class reads it" for c in ahead]
+            if ahead:
+                unread = True
             seen_classes: set[str] = set()
             for k, m in enumerate(opens):
                 name = m.group(1)

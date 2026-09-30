@@ -1809,6 +1809,14 @@ CASES: list[Case] = [
               "Where the set is located by a marker, nothing is read. "
               "Where the set is **total**,")),
 
+    # A membership sentence ahead of the first class, which no class's region reaches.
+    # The rule it names is still placed once by its own class, so the section reads as
+    # agreeing with the registry and only a reading of the stretch before the first
+    # class sees a class introduced there in other words.
+    ("K-119", "a membership sentence ahead of the first reach class",
+     _literal(RULES, "and there are four answers.",
+              "and there are four answers, which is what K-26 are.")),
+
     # Seeded on the plan's side, which is the direction the defect arrives from: a
     # completion note is edited far more often than the index over it. The word alone
     # moves and its bullets stay, which is exactly what a finding added to a note
