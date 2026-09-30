@@ -1174,6 +1174,11 @@ def _dev_tools(ctx: Context) -> None:
                                 "declare why none does")
                 continue
             if kinds > 1:
+                # Each reading still names this row, so none of them is also reported
+                # as a declaration the table has no row for.
+                claimed.update(row.cell for row in held)
+                if tool in DEV_TOOL_DECLARED:
+                    claimed.add(tool)
                 findings.append(f"{where} is a development-tools row for {tool}, which K-118 "
                                 f"reads {kinds} ways; a row is held or declared, once")
                 continue

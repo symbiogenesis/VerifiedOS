@@ -816,10 +816,11 @@ def _k118_every_row_is_held_or_declared() -> None:
     found, _ = _k118({}, rows=(*_K118_ROWS, pins.DevTool("omega")))
     ensure(any("row for omega, and the table has none" in item for item in found),
            f"a held row the table lacks must report: {found!r}")
-    # a row both held and declared
+    # a row both held and declared is one finding: neither reading is also reported as
+    # naming a row the table lacks
     found, _ = _k118({}, declared={**_K118_DECLARED, "alpha": pins.Declared("twice")})
-    ensure(any("row for alpha, which K-118 reads 2 ways" in item for item in found),
-           f"a row read two ways must report: {found!r}")
+    ensure(len(found) == 1 and "row for alpha, which K-118 reads 2 ways" in found[0],
+           f"a row read two ways must report once: {found!r}")
 
 
 def _k118_census_reads_every_numeral() -> None:
