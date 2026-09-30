@@ -1998,7 +1998,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-523** upstream-defect: the pin's `riscV/TargetPrinter.ml` has no arm for the load that reads a stack-passed parameter, so `ccomp` fails on any function reading an argument past the eighth, and M1.2b's float deletion edited that file
 · Raised: M1.2d
-· Disposition: open, Q39 naming the contained printer's arm for that load and replaying through its rebuilt compiler a call reading a parameter past the eighth
+· Disposition: open, Q39 naming the contained printer's arm for that load or, where it has none, the printer the accepted output takes and adding SECOMP#31's arm, and replaying through its rebuilt compiler a call reading a parameter past the eighth
 
 **F-524** upstream-defect: the pin's `backend/Regalloc.ml` requires every argument of a builtin other than an annotation or debug record in a register and fails an assertion on an external or runtime builtin with more arguments than allocatable registers, which reaches the allocator only under `-interp-asm` and in the back-translation, compiled output carrying none and `riscV/Asmexpand.ml` failing an assertion on one after allocation
 · Raised: M1.2d
