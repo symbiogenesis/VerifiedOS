@@ -254,7 +254,7 @@ def _entries_hold_a_body_exactly_where_one_belongs() -> None:
 
 def _compare_names_every_difference() -> None:
     base = _reading({"M": {"M.a": _entry("M.a"), "M.b": _entry("M.b", None, opacity="opaque"),
-                           "M.gone": _entry("M.gone")},
+                           "M.gone": _entry("M.gone"), "M.k": _entry("M.k")},
                      "Old": {"Old.x": _entry("Old.x")}})
     ensure(proofreading.compare(base, base) == [], "a reading equals itself")
     moved = json.loads(json.dumps(base))
@@ -265,6 +265,8 @@ def _compare_names_every_difference() -> None:
     constants = changed["modules"]["M"]["constants"]
     constants["M.a"]["print"] = "M.a = 1"
     constants["M.b"] = _entry("M.b", "= 0")
+    # Kind and universes differ alone: every answer the entry keeps is unchanged.
+    constants["M.k"].update(kind="Inductive", universes="polymorphic")
     del constants["M.gone"]
     constants["M.new"] = _entry("M.new")
     del changed["modules"]["Old"]
@@ -274,7 +276,8 @@ def _compare_names_every_difference() -> None:
     named = [(difference.subject, difference.what) for difference in found]
     ensure(named == [("reader", "prover"), ("Old", "module removed"), ("New", "module added"),
                      ("M.gone", "removed"), ("M.new", "added"), ("M.a", "print"),
-                     ("M.b", "opacity"), ("M.b", "about"), ("M.b", "print")],
+                     ("M.b", "opacity"), ("M.b", "about"), ("M.b", "print"),
+                     ("M.k", "kind"), ("M.k", "universes")],
            f"every difference, in a fixed order: {named}")
     detail = {(difference.subject, difference.what): difference.detail for difference in found}
     ensure(detail[("M.a", "print")] == "M.a = 0 -> M.a = 1"
@@ -455,6 +458,11 @@ def _modules_need_their_objects() -> None:
         (objects / "B.vo").unlink()
         _refused(lambda: cli.modules_in(objects), "a source with no object was read")
         _refused(lambda: cli.modules_in(objects / "empty"), "an empty directory was read")
+        for stem in ("VosReadingFacts_A", "A-1"):
+            (objects / f"{stem}.v").write_text("", encoding="utf-8")
+            (objects / f"{stem}.vo").write_bytes(b"")
+            _refused(lambda stem=stem: cli.modules_in(objects, [stem]),
+                     f"a module named {stem} was read")
 
 
 def _prover_stub() -> tuple[str, str]:
