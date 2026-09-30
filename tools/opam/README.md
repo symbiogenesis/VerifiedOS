@@ -29,12 +29,16 @@ CertiRocq and its Wasm library require Rocq below 9.2. QuickChick independently 
 The Rupicola switch stays on Rocq 9.2.0, the kernel the proof switch left. Its released lowering packages, `coq-coqutil` 0.0.7, `coq-riscv` 0.0.6, `coq-bedrock2` and `coq-bedrock2-compiler` 0.0.9 and `coq-rupicola` 0.0.11, set no upper bound on the prover, but they were tagged between 2025-09-05 and 2025-10-02. The `master` branches of mit-plv's bedrock2 and coqutil later adapted sources those packages build to three changes milestoned for Rocq 9.3+rc1, [rocq#21849](https://github.com/rocq-prover/rocq/pull/21849), [#21987](https://github.com/rocq-prover/rocq/pull/21987) and [#21478](https://github.com/rocq-prover/rocq/pull/21478): bedrock2's for #21849 and #21987, coqutil's for #21987 and #21478. No tagged release carries those adaptations, and no build of the released packages against Rocq 9.3.0 has been measured.
 
 [The opam client's owner](../vos/opam_client.py) fixes the reviewed client release, its
-architecture-specific SHA-256 hashes and the package repositories. The
-[guest bootstrap](../ci/bootstrap_guest.py) downloads that client, initializes an isolated
-root on those repositories, records each repository's URL and metadata stamp in
+architecture-specific SHA-256 hashes, the package repositories and the one route that
+creates a root on them. The
+[guest bootstrap](../ci/bootstrap_guest.py) downloads that client, creates an isolated
+root by that route, records each repository's URL and metadata stamp in
 `bootstrap.json`, and imports the Sail and proof snapshots without changing the developer's
-active switch. `run.py provision` holds a developer's client to the same release, installs it
-where no client is on `PATH`, and reports its root's format and repository stamps. A client
+active switch. `run.py provision` holds a developer's client to the same release and their
+root to one stating a format and carrying each of those repositories at its URL. It installs
+the client where no client is on `PATH`, creates a root by the same route where none stands,
+and reports the root's format and repository stamps; it replaces no client and alters no
+standing root. A client
 rewrites a root older than its own format one way, and the owner records the reviewed
 client's format as `OPAM_ROOT_FORMAT`, so moving an existing root is a deliberate, recorded step. See [the CI guide](../ci/README.md)
 for invocation, placement and environment setup. The remaining experimental switches are installed
