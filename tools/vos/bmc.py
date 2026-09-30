@@ -153,8 +153,8 @@ INPUTS: Final = (
                      "at the pin and a THIRD-PARTY.md row, before any file of it is used"),
     ("SymbiYosys", "Yosys, SymbiYosys and one SMT solver provisioned in the guest lane, "
                    "each pinned with a THIRD-PARTY.md row"),
-    ("core", "the curated scalar core elaborating under Verilator (R1b), which the "
-             "formal front end then has to read as well"),
+    ("core", "the curated scalar core (R1b) read by the formal front end; it elaborates "
+             "under Verilator, which does not establish that reading"),
     ("port", "the RVFI obligations the harness contract lists: an order, every synchronous "
              "trap retired with its cause, and the full register value on the probes"),
 )

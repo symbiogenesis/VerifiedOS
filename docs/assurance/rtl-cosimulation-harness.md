@@ -117,7 +117,7 @@ R-15-094 places riscv-formal/rvfi as bounded-depth evidence and the cheapest bri
 
 **Wrapper obligations.** The wrapper presents riscv-formal's signals at `XLEN` 64, with register data as the memory encoding the frame's `rd_wdata` carries, and an `order` the port states (section 3). It states the fairness assumption as an assumption active only when the liveness check runs, and how riscv-formal expresses that is re-read at the pin. It composes its instruction list from the plan's scope, since at the cited revision no list joins RV64IM to the bit-manipulation forms and the one carrying `Zbc` includes `clmulr`, and it supplies the models the plan owes. riscv-formal checks no tag; the tag's correctness is the co-simulation's to decide.
 
-**What it waits on, each refused by name until present:** riscv-formal pinned under `upstream/` with its licence read at the pin and a THIRD-PARTY.md row before any of its files is used; Yosys, SymbiYosys and one SMT solver provisioned in the guest lane with their own rows; the curated core elaborating (R1b); and the port obligations of section 3. None is present at this revision, and the check names and meanings in the plan are riscv-formal's as its documentation states them, to be re-read at the pin before a run.
+**What it waits on, each refused by name until present:** riscv-formal pinned under `upstream/` with its licence read at the pin and a THIRD-PARTY.md row before any of its files is used; Yosys, SymbiYosys and one SMT solver provisioned in the guest lane with their own rows; the curated core (R1b) read by the formal front end, a core that elaborates under Verilator ([the RTL tree's own account](../../rtl/README.md#3-what-each-has-been-held-to-and-what-it-has-not)) but has not been read by Yosys and does not yet compute a correct PC, jump target, data address or integer CSR value; and the port obligations of section 3. None of the four is present at this revision, and the check names and meanings in the plan are riscv-formal's as its documentation states them, to be re-read at the pin before a run.
 
 ## 8. The revocation join
 
@@ -159,7 +159,7 @@ That is 16 to 23 h in total, outside R2's cell as priced, and it waits on M4.4's
 
 ## 10. What is owed
 
-- The Verilator top that wraps the curated core, loads a corpus image, detects the `tohost` store and instantiates the frame writer, which waits on R1b's elaborating core and its port contract.
+- The Verilator top that wraps the curated core, loads a corpus image, detects the `tohost` store and instantiates the frame writer, which waits on the port contract of section 3; the curated core it wraps elaborates under Verilator.
 - The port obligations of section 3, in that contract.
 - The declared member scope of section 5, and a disposition for the three classes it excludes.
 - The bounded model-checking smoke's four inputs of section 7, the models its plan owes in place of riscv-formal's, and the depths its first run sets.
