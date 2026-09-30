@@ -419,8 +419,8 @@ def _seeded_without_copying(donor: Path, model_root: Path) -> None:
     manifest crafted to list it, and hold that nothing is copied or seeded; then seed
     from a clean donor, the positive control, whose suite `copytree` is called for."""
     ensure(_MODEL.corpus_manifest(donor / "test" / _RELEASE / "riscv-tests").is_file(),
-           "precondition: the donor's manifest stands, which is all that was checked "
-           "before the copy when the donor was verified only after it")
+           "precondition: the donor's manifest stands, so only the entry's kind decides "
+           "the refusal")
     target = donor.parent / f"target-{donor.name}"
     with (patch.object(shutil, "copytree", wraps=shutil.copytree) as copied,
           redirect_stderr(io.StringIO()) as err):
