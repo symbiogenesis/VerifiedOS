@@ -48,9 +48,11 @@ answer to what it happened to see.
 **Two spellings Rocq admits are read or refused, never skipped.** A definition under an
 attribute or a locality, `#[local] Definition`, is the same body and is read as one; a
 count taken wider than the reading makes any other decoration a residue rather than a
-definition nobody saw. A record value completed from a base, `{| v with f := x |}`,
-consumes by projection every field it does not assign and names none of them, so a body
-that may carry one is `unread` rather than answered from the fields it happens to spell.
+definition nobody saw, and a definition under `Fail` or `Succeed` on a line of its own
+above it is one too, the flag keeping nothing it states. A record value completed from
+a base, `{| v with f := x |}`, consumes by projection every field it does not assign and
+names none of them, so a body that may carry one is `unread` rather than answered from
+the fields it happens to spell.
 """
 
 import re
@@ -93,6 +95,18 @@ _WORD_RE = re.compile(r"\w+")
 # nothing defined, so a sentence under one is counted below and read by nothing.
 _PREFIX = (r'(?:#\[(?:[^\]"]|"[^"]*")*\]\s*|(?:Local|Global|Program|Polymorphic'
            r'|Monomorphic|Cumulative|NonCumulative|Private)\s+)*')
+
+# What may stand between one sentence's full stop and the next sentence's head besides
+# blank space: the attributes above and the control flags, on the head's line or on lines
+# of their own. A `Definition` the pattern below reads under `Fail` or `Succeed` so
+# written defines nothing, so it is read by nothing and the count makes it a residue.
+_LEAD_RE = re.compile(
+    r'\s*(?:#\[(?:[^\]"]|"[^"]*")*\]'
+    r"|(Local|Global|Program|Polymorphic|Monomorphic|Cumulative|NonCumulative|Private"
+    r"|Time|Instructions|Fail|Succeed)(?![\w'])"
+    r'|Profile(?:\s+"[^"]*")?(?![\w\'])|Redirect\s+"[^"]*"|Timeout\s+\d+'
+    r"|AllocLimit\s+\d+\s*(?:Mw|kw))")
+_VOID = ("Fail", "Succeed")
 
 # A `Definition` sentence and its body. The body ends at a period that a sentence head
 # follows, which is what a Gallina sentence boundary is, so no list of vernacular
@@ -214,6 +228,24 @@ def _quote(piece: str) -> str:
     return flat if len(flat) <= 60 else flat[:57] + "..."
 
 
+def _void(raw: str, opened: int) -> str | None:
+    """The control flag, `Fail` or `Succeed`, among the decorations standing between the
+    previous sentence's full stop and the head opening at `opened`, or None where there
+    is none or something other than a decoration stands there."""
+    stop = raw.rfind(".", 0, opened)
+    while stop >= 0 and not raw[stop + 1:stop + 2].isspace():
+        stop = raw.rfind(".", 0, stop)
+    lead = raw[stop + 1:opened]
+    at = 0
+    flags: list[str] = []
+    while (found := _LEAD_RE.match(lead, at)) is not None:
+        flags.append(found.group(1) or "")
+        at = found.end()
+    if lead[at:].strip():
+        return None
+    return next((flag for flag in flags if flag in _VOID), None)
+
+
 def read(path: Path) -> ApexRecord:
     raw = _strip_comments(path.read_text(encoding="utf-8"))
 
@@ -247,8 +279,11 @@ def read(path: Path) -> ApexRecord:
             if word in rec.field_set and word != name:
                 rec.consumers[word].append(name)
 
-    # every Definition consuming a field through the record value, in body order
-    definitions = _DEFINITION_RE.findall(raw)
+    # every Definition consuming a field through the record value, in body order, and
+    # none that a control flag above its line keeps nothing of
+    definitions = [(found.group(1), found.group(2))
+                   for found in _DEFINITION_RE.finditer(raw)
+                   if _void(raw, found.start()) is None]
     spelled = len(_DEFINITION_HEAD_RE.findall(raw))
     if len(definitions) < spelled:
         rec.unread.append(
