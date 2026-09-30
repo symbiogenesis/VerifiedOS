@@ -677,6 +677,40 @@ def _verify_refuses_a_sparse_manifest() -> None:
         ensure("disagrees" in said, f"the sparse manifest disagrees, got {said!r}")
 
 
+def _verify_reads_no_file_until_the_paths_agree() -> None:
+    """A suite whose walked paths differ from the ones its manifest records is refused
+    before any of its files is read, so an entry the manifest does not list is never
+    hashed however long it is, and neither is any other when a listed one is gone. The
+    positive control is the suite as sealed, each of whose files is read once."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF", "rv64ui-p-sub": b"\x7fELF"})
+
+        def refused_unread(*where: str) -> None:
+            with patch.object(_MODEL, "_regular_digest",
+                              wraps=_MODEL._regular_digest) as hashed:
+                said = _refused(partial(_MODEL.verify_test_corpus, suite, _CORPUS_DIGEST))
+            ensure("disagrees" in said and all(part in said for part in where)
+                   and not hashed.called,
+                   f"the suite disagrees ({where}) before a file is read, got {said!r} "
+                   f"after reading {hashed.call_args_list}")
+
+        unlisted = suite / "rv64ui-p-unlisted"
+        unlisted.write_bytes(b"never in the tarball")
+        refused_unread(f"at line 4: the manifest has '<end>' and the tree '{unlisted.name}'")
+        unlisted.unlink()
+        # the manifest is read no further than the two remaining files' lines reach
+        gone = suite / "rv64ui-p-sub"
+        gone.unlink()
+        refused_unread("at line 3: the manifest has '", ", read no further, and the tree '<end>'")
+        gone.write_bytes(b"\x7fELF")
+        with patch.object(_MODEL, "_regular_digest", wraps=_MODEL._regular_digest) as hashed:
+            _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
+        ensure(sorted(Path(read.args[0]).name for read in hashed.call_args_list)
+               == ["rv64ui-p-add", "rv64ui-p-sub"],
+               f"control: each file of the sealed suite is read once, got "
+               f"{hashed.call_args_list}")
+
+
 def _refused(call: Callable[[], object], unblock: Callable[[], None] | None = None) -> str:
     """The `ValueError` `call` refuses with, under `_returns`'s deadline; a call that
     returns instead fails the case."""
@@ -809,13 +843,15 @@ def _listing_hashes_only_regular_descriptors() -> None:
 def _listing_refuses_a_fifo_its_check_by_name_missed() -> None:
     """A FIFO that the listing's check by name answers as a regular file, which is a
     file replaced by a FIFO between that check and the read, is listed unhashed rather
-    than waited on, and the suite is refused. POSIX-only, so the case is the guest's and
-    win32 is refused before `os.mkfifo`."""
+    than waited on, and the suite is refused. The FIFO stands under a name the manifest
+    lists, so the suite's paths agree with the manifest's and only the read meets it.
+    POSIX-only, so the case is the guest's and win32 is refused before `os.mkfifo`."""
     if sys.platform == "win32":
         raise AssertionError("mkfifo is POSIX-only; the FIFO listing case runs in the guest")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
-        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF"})
+        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF", "rv64ui-p-fifo": b"x"})
         fifo = suite / "rv64ui-p-fifo"
+        fifo.unlink()
         os.mkfifo(fifo)
         real = Path.is_file
 
@@ -1220,6 +1256,8 @@ def cases() -> list[Case]:
              _seed_refuses_a_manifest_linked_to_dev_zero, lane="guest"),
         Case("verify-refuses-a-sparse-manifest", _verify_refuses_a_sparse_manifest,
              lane="guest"),
+        Case("verify-reads-no-file-until-the-paths-agree",
+             _verify_reads_no_file_until_the_paths_agree),
         Case("copy-regular-file", _copy_regular_file),
         Case("copy-regular-file-refuses-a-fifo-and-a-link",
              _copy_regular_file_refuses_a_fifo_and_a_link, lane="guest"),

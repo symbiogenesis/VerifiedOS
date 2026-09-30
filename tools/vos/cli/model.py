@@ -54,7 +54,7 @@ import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import IO, cast
+from typing import IO, NamedTuple, cast
 
 from vos import (
     asm,
@@ -226,9 +226,19 @@ def _unreadable(err: OSError) -> None:
     raise err
 
 
-def corpus_listing(suite: Path, tarball_sha256: str) -> bytes:
-    """The listing `download_riscv_tests` records for `suite`, rendered from the tree."""
-    entries: list[tuple[bytes, str]] = []
+class _CorpusEntry(NamedTuple):
+    """One entry of a suite as the walk finds it, before any file is read."""
+
+    relative: str  # the path relative to the suite, as a listing line spells it
+    path: Path
+    regular: bool  # whether the name, its final link not followed, is a regular file
+
+
+def _corpus_entries(suite: Path) -> list[_CorpusEntry]:
+    """Every entry of `suite` a listing has a line for, sorted by its relative path's
+    bytes, as the walk finds them: a file, a symbolic link, or a node of another kind,
+    and no file opened."""
+    entries: list[tuple[bytes, _CorpusEntry]] = []
     for directory, dirs, files in os.walk(suite, onerror=_unreadable):
         for name in (*dirs, *files):
             path = Path(directory, name)
@@ -237,13 +247,34 @@ def corpus_listing(suite: Path, tarball_sha256: str) -> bytes:
             relative = path.relative_to(suite).as_posix()
             if "\n" in relative or "\r" in relative:
                 raise ValueError(f"{path}: a path a manifest line cannot hold")
-            hashed = (None if path.is_symlink() or not path.is_file()
-                      else _regular_digest(path))
-            line = f"unhashed {relative}\n" if hashed is None else f"{hashed}  {relative}\n"
-            entries.append((relative.encode("utf-8", "surrogateescape"), line))
-    head = f"tarball {suite.name}.tar.gz sha256 {tarball_sha256}\n"
-    return (head + "".join(line for _, line in sorted(entries))).encode(
-        "utf-8", "surrogateescape")
+            entries.append((_listed(relative), _CorpusEntry(
+                relative, path, not path.is_symlink() and path.is_file())))
+    return [entry for _, entry in sorted(entries, key=lambda pair: pair[0])]
+
+
+def _listed(text: str) -> bytes:
+    """A listing's text as its bytes: a name that is not UTF-8 keeps the bytes it has."""
+    return text.encode("utf-8", "surrogateescape")
+
+
+def _listing_head(suite: Path, tarball_sha256: str) -> str:
+    """The first line of `suite`'s listing, which records its tarball's digest."""
+    return f"tarball {suite.name}.tar.gz sha256 {tarball_sha256}\n"
+
+
+def _hashed_listing(suite: Path, tarball_sha256: str, entries: list[_CorpusEntry]) -> bytes:
+    """The listing of `entries`, reading each file only through `_regular_digest`."""
+    lines = [_listing_head(suite, tarball_sha256)]
+    for entry in entries:
+        hashed = _regular_digest(entry.path) if entry.regular else None
+        lines.append(f"unhashed {entry.relative}\n" if hashed is None
+                     else f"{hashed}  {entry.relative}\n")
+    return _listed("".join(lines))
+
+
+def corpus_listing(suite: Path, tarball_sha256: str) -> bytes:
+    """The listing `download_riscv_tests` records for `suite`, rendered from the tree."""
+    return _hashed_listing(suite, tarball_sha256, _corpus_entries(suite))
 
 
 # How a corpus file is opened for reading once its name has been found to be a regular
@@ -298,6 +329,40 @@ def _regular_digest(path: Path) -> str | None:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+# A hashed listing line, `<sha256>  <path>`, and the path it records.
+_HASHED_LINE = re.compile(rb"[0-9a-f]{64}  (.*)", re.DOTALL)
+
+
+def _recorded_path(line: bytes) -> bytes:
+    """The path a manifest's hashed line records, and a line of any other shape whole,
+    which then names no entry of the tree."""
+    found = _HASHED_LINE.fullmatch(line)
+    return line if found is None else cast("bytes", found.group(1))
+
+
+def _non_regular(suite: Path) -> ValueError:
+    """The refusal of a suite holding an entry that is not a regular file."""
+    return ValueError(f"{suite} holds a symbolic link or other non-regular entry, which "
+                      "no manifest configure writes holds; configure downloads it again")
+
+
+def _disagreement(suite: Path, manifest: Path, held: list[bytes], kept: list[bytes],
+                  found: list[bytes], *, cut: bool = False) -> ValueError:
+    """The refusal at the first line where `kept`, the manifest's lines `held` as they
+    are compared, differs from `found`, the tree's. `cut` says the read stopped at its
+    bound rather than at the manifest's end, so the last line held is only as much of
+    that line as was read."""
+    where = next((i for i, (a, b) in enumerate(zip(kept, found, strict=False)) if a != b),
+                 min(len(kept), len(found)))
+    manifest_line, tree_line = (
+        lines[where].decode("utf-8", "replace") if where < len(lines) else "<end>"
+        for lines in (held, found))
+    unread = ", read no further," if cut and where == len(held) - 1 else ""
+    return ValueError(f"{suite} disagrees with {manifest.name} at line {where + 1}: the "
+                      f"manifest has {manifest_line!r}{unread} and the tree {tree_line!r}; "
+                      "configure downloads it again")
+
+
 def verify_test_corpus(suite: Path, tarball_sha256: str) -> None:
     """Refuse a suite unless it is what its manifest records for this tarball digest.
 
@@ -305,9 +370,19 @@ def verify_test_corpus(suite: Path, tarball_sha256: str) -> None:
     file, which is what configure writes, so a manifest standing as a FIFO, a device
     node or a symbolic link is refused rather than waited on or read without end,
     whichever reader asks: the donor seeding, the sweep, trace-diff and the build
-    receipt. No more of it is read than the listing the tree renders and one byte, so a
-    regular manifest longer than that, a sparse one among them, disagrees rather than
-    being read until memory runs out.
+    receipt.
+
+    The tree is walked before any file of it is read. An entry that is not a regular
+    file is refused, and then the walked paths are held to the ones the manifest
+    records, so an entry it does not list, or a listed one that is gone, is refused
+    before a file is hashed. No more of the manifest is read than the listing of those
+    paths is long and one byte, so a regular manifest longer than that, a sparse one
+    among them, disagrees rather than being read until memory runs out. Only then is
+    each file hashed and the whole listing compared. A file under a listed name is
+    hashed whatever its length, since the listing records no sizes: an oversized one,
+    a sparse one among them, is read in full before it is found to disagree. That
+    residual is the listing format's, which `riscv_tests_listing` in
+    model/test/CMakeLists.txt owns.
     """
     manifest = corpus_manifest(suite)
     if suite.is_symlink() or not suite.is_dir():
@@ -324,27 +399,32 @@ def verify_test_corpus(suite: Path, tarball_sha256: str) -> None:
                          f"configure downloads {suite.name} again")
     with os.fdopen(fd, "rb") as handle:
         try:
-            rendered = corpus_listing(suite, tarball_sha256)
+            entries = _corpus_entries(suite)
         except OSError as err:
             raise ValueError(f"cannot list {suite}: {err}") from err
+        if not all(entry.regular for entry in entries):
+            raise _non_regular(suite)
+        head = _listed(_listing_head(suite, tarball_sha256))
+        paths = [_listed(entry.relative) for entry in entries]
+        # each file's line is its digest in hex, two spaces, its path and a newline
+        length = len(head) + sum(64 + 2 + len(path) + 1 for path in paths)
         try:
-            recorded = handle.read(len(rendered) + 1)
+            recorded = handle.read(length + 1)
         except OSError as err:
             raise ValueError(f"cannot read {manifest}: {err}") from err
+    held = recorded.splitlines()
+    kept = [*held[:1], *(_recorded_path(line) for line in held[1:])]
+    walked = [head.rstrip(b"\n"), *paths]
+    if kept != walked:
+        raise _disagreement(suite, manifest, held, kept, walked, cut=len(recorded) > length)
+    try:
+        rendered = _hashed_listing(suite, tarball_sha256, entries)
+    except OSError as err:
+        raise ValueError(f"cannot list {suite}: {err}") from err
     if b"\nunhashed " in rendered:
-        raise ValueError(f"{suite} holds a symbolic link or other non-regular entry, which "
-                         "no manifest configure writes holds; configure downloads it again")
-    if recorded == rendered:
-        return
-    held, found = recorded.splitlines(), rendered.splitlines()
-    where = next((i for i, (a, b) in enumerate(zip(held, found, strict=False)) if a != b),
-                 min(len(held), len(found)))
-    manifest_line, tree_line = (
-        lines[where].decode("utf-8", "replace") if where < len(lines) else "<end>"
-        for lines in (held, found))
-    raise ValueError(f"{suite} disagrees with {manifest.name} at line {where + 1}: the "
-                     f"manifest has {manifest_line!r} and the tree {tree_line!r}; "
-                     "configure downloads it again")
+        raise _non_regular(suite)
+    if recorded != rendered:
+        raise _disagreement(suite, manifest, held, held, rendered.splitlines())
 
 
 def _test_corpus(directory: Path, model_root: Path) -> Path:
