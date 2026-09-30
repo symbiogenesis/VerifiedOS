@@ -259,6 +259,24 @@ def _the_decoration_grammar_is_one_reading() -> None:
                f"the run and the walk stop apart over {source!r}")
 
 
+def _the_look_back_reads_only_decorations() -> None:
+    # The flag a command stands under is read from the full stop ending the sentence
+    # before, a string's aside, through the command's own line; a head with anything
+    # else between it and that full stop opens inside a sentence and is under no flag.
+    fixtures = (
+        ('Definition a := 0.\nFail #[deprecated(note="x. y")]\nDefinition b := 1.\n',
+         "Definition b", "Fail"),
+        ("Fail\nTime Definition b := 1.\n", "Time", "Fail"),
+        ("Definition a := 0. Succeed#[local]\nDefinition b := 1.\n", "Definition b",
+         "Succeed"),
+        ("Definition a := 0. Time\nDefinition b := 1.\n", "Definition b", None),
+        ("Definition a := 0.\nFail Check x\nDefinition b := 1.\n", "Definition b", None),
+    )
+    for code, head, flag in fixtures:
+        got = proofs.void_flag(code, code.index(head), proofs.sentence_ends(code))
+        ensure(got == flag, f"the look-back from {head!r} in {code!r} read {got!r}")
+
+
 def _a_library_require_is_not_ordered() -> None:
     """What a library provides is not this module's to order, so `From Stdlib Require
     Import String` names no local dependency and opens no wave of its own."""
@@ -364,6 +382,7 @@ def cases() -> list[Case]:
         Case("comment lexing preserves source and newlines", _comment_lexing_preserves_source_and_newlines),
         Case("sentences end outside strings", _sentences_end_outside_strings),
         Case("the decoration grammar is one reading", _the_decoration_grammar_is_one_reading),
+        Case("the look-back reads only decorations", _the_look_back_reads_only_decorations),
         Case("a library Require orders nothing", _a_library_require_is_not_ordered),
         Case("staging leaves compiled artifacts behind",
              _staging_leaves_the_compiled_artifacts_behind),
