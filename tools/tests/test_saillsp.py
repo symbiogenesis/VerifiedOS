@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Wire framing and optional-install identities without requiring native packages."""
 
+import hashlib
 import io
 import json
 import subprocess
@@ -101,6 +102,58 @@ def _archive_confinement() -> None:
         ensure((root / "marker").read_text() == "unchanged", "rejected source must not overwrite outside its directory")
 
 
+def _tar(members: dict[str, bytes]) -> bytes:
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w") as output:
+        for name, data in members.items():
+            member = tarfile.TarInfo(name)
+            member.size = len(data)
+            output.addfile(member, io.BytesIO(data))
+    return buffer.getvalue()
+
+
+def _superseded_archive() -> None:
+    with sandbox_tree({"marker": "unchanged"}) as root:
+        directory = root / "sources"
+        directory.mkdir()
+        archive = directory / "test.archive"
+        archive.write_bytes(_tar({"test-1/old.ml": b"earlier pin"}))
+        stale = directory / "test-1/old.ml"
+        stale.parent.mkdir()
+        stale.write_bytes(b"earlier pin")
+        current = _tar({"test-1/new.ml": b"current pin"})
+        spec = {"name": "test", "directory": "test-1", "url": "https://example.invalid/test.tbz",
+                "sha256": hashlib.sha256(current).hexdigest()}
+        with patch.object(saillsp.urllib.request, "urlopen", return_value=io.BytesIO(current)) as fetch:
+            target = saillsp._source(spec, directory)
+        ensure(fetch.call_count == 1, "an archive whose digest differs from the tracked pin must be fetched again")
+        ensure(archive.read_bytes() == current and not archive.with_name("test.archive.part").exists(),
+               "the verified download must replace the superseded archive")
+        ensure((target / "new.ml").read_bytes() == b"current pin" and not (target / "old.ml").exists(),
+               "no member of the superseded archive may survive into the build tree")
+        with patch.object(saillsp.urllib.request, "urlopen") as fetch:
+            saillsp._source(spec, directory)
+        ensure(not fetch.called, "an archive matching its pin must be reused without a download")
+        stale_bytes = _tar({"test-1/old.ml": b"earlier pin"})
+        archive.write_bytes(stale_bytes)
+        with patch.object(saillsp.urllib.request, "urlopen", return_value=io.BytesIO(b"not the pin")):
+            try:
+                saillsp._source(spec, directory)
+            except ValueError as exc:
+                ensure("digest mismatch" in str(exc), "a mismatched download needs a concrete error")
+            else:
+                raise AssertionError("a download differing from its pin was accepted")
+        ensure(archive.read_bytes() == stale_bytes and not archive.with_name("test.archive.part").exists(),
+               "a mismatched download must neither replace the archive nor remain as a partial file")
+        for escaped in ("..", "../outside", ""):
+            try:
+                saillsp._source({**spec, "directory": escaped}, directory)
+            except ValueError:
+                continue
+            raise AssertionError(f"source directory {escaped!r} escaped its lane directory")
+        ensure((root / "marker").read_text() == "unchanged", "a refused directory must not be removed")
+
+
 def _base_lock() -> None:
     with sandbox_tree({"tools/opam/sail.lock": 'installed: ["ocaml.5.4.1" "dune.3.24.2"]'}) as root:
         with patch.object(saillsp.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "dune 3.24.2\nocaml 5.4.1\n")):
@@ -119,4 +172,5 @@ def cases() -> list[Case]:
             Case("malformed-and-unbounded-frames", _bad_frames),
             Case("optional-installation-provenance", _provenance),
             Case("archive-extraction-confinement", _archive_confinement),
+            Case("superseded-archive-fetched-verified-and-replaced", _superseded_archive),
             Case("locked-base-dependency-closure", _base_lock)]

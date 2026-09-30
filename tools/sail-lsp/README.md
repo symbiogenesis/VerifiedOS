@@ -36,7 +36,9 @@ other build dependencies come from the existing exact lock without solving
 another package graph. Sources and license notices remain in the native lane.
 
 `status` checks the recipe identity and SHA-256 of installed artifacts.
-`install` rebuilds when the tracked recipe changes. Native install and
+`install` rebuilds when the tracked recipe changes. It downloads again any
+source archive that is missing or differs from its pin, keeps a download only
+once its SHA-256 matches, and extracts each source into a fresh tree. Native install and
 qualification outputs remain in the assigned build lane; build logs use its
 assigned native log location. Installation receipts retain source hashes,
 license-file hashes, the complete inherited package inventory, and artifact

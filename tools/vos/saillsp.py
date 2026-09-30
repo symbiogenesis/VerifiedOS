@@ -71,17 +71,27 @@ def _run(argv: list[str], cwd: Path, environ: dict[str, str], log: Path) -> None
 
 
 def _source(spec: dict[str, Any], directory: Path) -> Path:
+    """Fetch a missing or superseded archive, keep it only once its pin matches, and
+    extract a fresh tree so no member of an earlier archive survives into the build."""
+    name = str(spec["directory"])
+    if Path(name).name != name or name in ("", ".", ".."):
+        raise ValueError("a source directory must be one archive member name")
     archive = directory / (spec["name"] + ".archive")
-    if not archive.exists():
+    if not archive.is_file() or sha256(archive) != spec["sha256"]:
         if not spec["url"].startswith("https://"):
             raise ValueError("source URLs must use HTTPS")
+        part = archive.with_name(archive.name + ".part")
         with (urllib.request.urlopen(spec["url"], timeout=60) as response,  # noqa: S310 -- HTTPS checked above; tracked pins only.
-              archive.open("wb") as output):
+              part.open("wb") as output):
             shutil.copyfileobj(response, output)
-    if sha256(archive) != spec["sha256"]:
-        raise ValueError(f"source archive digest mismatch: {archive}")
-    target = directory / str(spec["directory"])
+        if sha256(part) != spec["sha256"]:
+            part.unlink()
+            raise ValueError(f"source archive digest mismatch: {spec['url']}")
+        part.replace(archive)
+    target = directory / name
     # Restore original archive members before a reproducible patch/build retry.
+    if target.exists():
+        shutil.rmtree(target)
     with tarfile.open(archive) as source:
         source.extractall(directory, filter="data")
     return target
