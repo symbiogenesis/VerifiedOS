@@ -160,6 +160,10 @@ INSTRUMENTS: tuple[Instrument, ...] = (
                env.ROCQ_SWITCH, env.ROCQ_VERSION),
     Instrument("the supervisor comparison", "tools/vos/supervisor.py",
                env.ROCQ_SWITCH, env.ROCQ_VERSION),
+    # The recipes compile in the switch they import from tools/opam/certirocq.lock, the
+    # one ORACLE_SWITCH names, whose CertiRocq `run.py provision` holds at the rig's pin;
+    # the Docker image's own Rocq 9.1 only bootstraps opam. The row reads the rig's
+    # constants by decision, the recipes importing none.
     Instrument("the Wasm oracle's recipes", "tools/wasm-oracle/README.md",
                gallina.ORACLE_SWITCH, gallina.ORACLE_ROCQ_VERSION,
                beside="tools/wasm-oracle"),
