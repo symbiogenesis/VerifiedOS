@@ -203,17 +203,30 @@ def _fetch(pin: SourcePin, destination: Path, runner: Runner) -> None:
         raise IslaError(f"optional source checkout has wrong revision or edits: {destination}")
 
 
+_RELEASE = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
+
+
+def _release(version: object, what: str) -> tuple[int, int, int]:
+    """A plain major.minor.patch release; pre-release and build suffixes are refused."""
+    match = _RELEASE.fullmatch(version) if isinstance(version, str) else None
+    if match is None:
+        raise IslaError(f"{what} is not a plain major.minor.patch release: {version!r}")
+    return int(match[1]), int(match[2]), int(match[3])
+
+
 def check_lock_override(upstream: str, override: str, versions: dict[str, str]) -> None:
     """Refuse an override differing from upstream's lock beyond the declared versions.
 
-    A declared package keeps its source and dependencies and changes only its
-    version and checksum; every other package entry must be identical.
+    A declared package keeps every other field, including its source and
+    dependencies, and changes only its version and checksum, to a release later
+    than upstream's. Every other package entry and top-level key must be identical.
     """
     try:
         before, after = tomllib.loads(upstream), tomllib.loads(override)
     except tomllib.TOMLDecodeError as exc:
         raise IslaError("an Isla Cargo.lock is not TOML") from exc
-    if set(before) != set(after) or before.get("version") != after.get("version"):
+    if ({key: value for key, value in before.items() if key != "package"}
+            != {key: value for key, value in after.items() if key != "package"}):
         raise IslaError("the Isla lock override changes the lock format")
 
     def split(lock: dict[str, object]) -> tuple[list[str], dict[str, dict[str, object]]]:
@@ -236,9 +249,14 @@ def check_lock_override(upstream: str, override: str, versions: dict[str, str]) 
         raise IslaError("a declared Isla lock override names no locked package")
     for name, version in versions.items():
         old, new = moved_before[name], moved_after[name]
-        if (new["version"] != version or old.get("source") != new.get("source")
-                or old.get("dependencies") != new.get("dependencies")):
+        changing = ("version", "checksum")
+        if (new["version"] != version or set(old) != set(new)
+                or {k: v for k, v in old.items() if k not in changing}
+                != {k: v for k, v in new.items() if k not in changing}):
             raise IslaError(f"the Isla lock override for {name} is not the declared version alone")
+        if _release(old["version"], f"upstream's {name}") >= _release(version, f"the declared {name}"):
+            raise IslaError(f"upstream already carries {name} {old['version']}; "
+                            "retire or regenerate the override")
 
 
 def _prerequisites(e: env.Environment, runner: Runner) -> Path:
@@ -305,6 +323,18 @@ def provision(e: env.Environment, jobs: int = 2) -> Stamp:
                   "x86_64": "x86_64-unknown-linux-gnu"}.get(platform.machine())
         if platform.system() != "Linux" or triple is None:
             raise IslaError("optional native tools support Linux aarch64 and x86_64")
+        sources = e.lane_root / "sources"
+        isla, testgen = sources / "isla", sources / "isla-testgen"
+        _fetch(lock["isla"], isla, runner)
+        # The fetched checkout stays pristine; a build copy carries the tracked
+        # lock override, which may differ from upstream only as declared. Check it
+        # before the Rust download and Sail build so a stale override fails first.
+        override_name = lock["isla"]["cargo_lock"]
+        if Path(override_name).name != override_name or override_name in ("", ".", ".."):
+            raise IslaError("the Isla lock override must be a file beside lock.json")
+        override = (e.root / ASSETS / override_name).read_text(encoding="utf-8")
+        check_lock_override((isla / "Cargo.lock").read_text(encoding="utf-8"), override,
+                            lock["isla"]["cargo_lock_overrides"])
         for component, expected in lock["rust"]["components"][triple].items():
             name = f"{component}-{lock['rust']['version']}-{triple}"
             archive = base / f"{name}.tar.xz"
@@ -314,9 +344,6 @@ def provision(e: env.Environment, jobs: int = 2) -> Stamp:
             runner.run(["sh", str(base / name / "install.sh"), f"--prefix={base / 'rust'}",
                         "--disable-ldconfig"], base)
         process = _process_env(base, z3_lib)
-        sources = e.lane_root / "sources"
-        isla, testgen = sources / "isla", sources / "isla-testgen"
-        _fetch(lock["isla"], isla, runner)
         _fetch(lock["testgen"], testgen, runner)
         runner.run(["git", "-C", str(testgen), "submodule", "update", "--init", "--depth=1",
                     "isla"], testgen)
@@ -342,14 +369,6 @@ def provision(e: env.Environment, jobs: int = 2) -> Stamp:
         plugin_env = {**process, "OCAMLPATH": f"{prefix / 'lib'}:{switch}/lib"}
         runner.run([*opam, "dune", "build", "--release", "-j", str(jobs)],
                    isla / "isla-sail", plugin_env)
-        # The fetched checkout stays pristine; a build copy carries the tracked
-        # lock override, which may differ from upstream only as declared.
-        override_name = lock["isla"]["cargo_lock"]
-        if Path(override_name).name != override_name or override_name in ("", ".", ".."):
-            raise IslaError("the Isla lock override must be a file beside lock.json")
-        override = (e.root / ASSETS / override_name).read_text(encoding="utf-8")
-        check_lock_override((isla / "Cargo.lock").read_text(encoding="utf-8"), override,
-                            lock["isla"]["cargo_lock_overrides"])
         isla_build = base / "build/isla"
         if isla_build.exists():
             shutil.rmtree(isla_build)

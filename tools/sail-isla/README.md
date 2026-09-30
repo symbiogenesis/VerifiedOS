@@ -20,10 +20,13 @@ different Isla submodule revision, Sail release archive digest, and the Rust
 version with its component digests for Linux aarch64 and x86_64. Standalone Isla
 builds in a copy of its pristine checkout with the tracked
 [isla.Cargo.lock](isla.Cargo.lock), which raises crossbeam-channel and
-crossbeam-epoch past RUSTSEC-2025-0024 and RUSTSEC-2026-0204. Provisioning
-refuses the override unless it equals upstream's Cargo.lock apart from the
-package versions `lock.json` declares for it, so an Isla repin with a changed
-upstream lock needs the override regenerated. The authored driver's Cargo.lock
+crossbeam-epoch past RUSTSEC-2025-0024 and RUSTSEC-2026-0204. Right after
+fetching Isla, before the Rust download and Sail build, provisioning refuses the
+override unless it equals upstream's Cargo.lock apart from the versions and
+checksums of the packages `lock.json` declares for it, and unless each declared
+version is a later plain release than upstream's. An Isla repin with a changed
+upstream lock, or one whose upstream lock already carries a declared release,
+needs the override regenerated or retired. The authored driver's Cargo.lock
 fixes the testgen dependency graph; ordinary builds use `--locked`. The explicit
 lalrpop-util lexer feature supplies a feature required by upstream's generated
 ACL2 parser without editing upstream source. The build does not request the

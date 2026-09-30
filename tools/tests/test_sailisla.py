@@ -99,17 +99,56 @@ checksum = "bb"
 """
 
 
+def _refusal(call: Callable[[], object]) -> str:
+    try:
+        call()
+    except sailisla.IslaError as exc:
+        return str(exc)
+    raise AssertionError("incomplete or ambiguous evidence must be refused")
+
+
 def _lock_override() -> None:
     declared = {"crossbeam-channel": "0.5.17"}
     override = _UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.17"').replace('"aa"', '"cc"')
     sailisla.check_lock_override(_UPSTREAM_LOCK, override, declared)
+    metadata = '\n[metadata]\nnote = "{}"\n'
+    sailisla.check_lock_override(_UPSTREAM_LOCK + metadata.format("a"), override + metadata.format("a"),
+                                 declared)
     for changed in (override.replace('"0.8.19"', '"0.8.23"'),
                     override.replace('"0.5.17"', '"0.5.16"'),
                     override.replace(' "crossbeam-utils",\n', ""),
+                    override.replace('checksum = "cc"\n', ""),
+                    override.replace('checksum = "cc"', 'checksum = "cc"\nreplace = "x"'),
                     override.replace("version = 3", "version = 4"),
+                    override + metadata.format("b"),
                     override + '\n[[package]]\nname = "extra"\nversion = "1.0.0"\n'):
         _reject(lambda text=changed: sailisla.check_lock_override(_UPSTREAM_LOCK, text, declared))
+    _reject(lambda: sailisla.check_lock_override(_UPSTREAM_LOCK + metadata.format("a"),
+                                                 override + metadata.format("b"), declared))
     _reject(lambda: sailisla.check_lock_override(_UPSTREAM_LOCK, override, {"crossbeam-epoch": "0.9.21"}))
+    suffixed = override.replace('"0.5.17"', '"0.5.17-rc.1"')
+    ensure("not a plain major.minor.patch release" in _refusal(
+        lambda: sailisla.check_lock_override(_UPSTREAM_LOCK, suffixed, {"crossbeam-channel": "0.5.17-rc.1"})),
+        "a pre-release override must be refused rather than ordered")
+
+
+def _lock_override_upstream_caught_up() -> None:
+    declared = {"crossbeam-channel": "0.5.17"}
+    override = _UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.17"').replace('"aa"', '"cc"')
+    newer = _UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.18"').replace('"aa"', '"dd"')
+    message = _refusal(lambda: sailisla.check_lock_override(newer, override, declared))
+    ensure("upstream already carries crossbeam-channel 0.5.18" in message
+           and "retire or regenerate the override" in message,
+           "an override older than upstream's release would silently downgrade it")
+    message = _refusal(lambda: sailisla.check_lock_override(override, override, declared))
+    ensure("upstream already carries crossbeam-channel 0.5.17" in message,
+           "an override equal to upstream's release is no longer an override")
+    # Ordering is numeric per component, not lexical over the version string.
+    sailisla.check_lock_override(_UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.9"'), override, declared)
+    ensure("upstream already carries crossbeam-channel 0.10.0" in _refusal(
+        lambda: sailisla.check_lock_override(_UPSTREAM_LOCK.replace('"0.5.12"', '"0.10.0"'), override,
+                                             declared)),
+        "a later minor release must order above every patch of an earlier minor")
 
 
 def _tracked_lock_override() -> None:
@@ -186,6 +225,7 @@ def cases() -> list[Case]:
             Case("mutation-unique-anchors", _mutation_anchors),
             Case("download-digest-refusal", _download_digest),
             Case("lock-override-declared-versions-only", _lock_override),
+            Case("lock-override-refuses-upstream-equal-or-newer", _lock_override_upstream_caught_up),
             Case("tracked-lock-override-carries-declared-versions", _tracked_lock_override),
             Case("versioned-json-schema", _schema),
             Case("cli-refuses-partial-verdict", _cli),
