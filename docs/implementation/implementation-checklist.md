@@ -401,19 +401,19 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,215.7 |
-| Total estimate range h | 2,676.6–5,754.8 |
+| Total estimate midpoint h | 4,218.7 |
+| Total estimate range h | 2,678.1–5,759.3 |
 | Completed scope h | 705.2 |
 | Complete by estimate % | 16.7 |
-| Remaining h | 3,510.5 |
-| Open class I h | 784 |
-| Open class X h | 2,726.5 |
+| Remaining h | 3,513.5 |
+| Open class I h | 778.5 |
+| Open class X h | 2,735 |
 | Retained completion estimate h | 164.5 |
 | Unmeasured completed items | 20 |
-| Calibrated total h | 5,133.5 |
+| Calibrated total h | 5,141.6 |
 | Committed M8a open h | 94.5 |
 | Committed M8b open h | 90.5 |
-| Other committed open h | 2,100 |
+| Other committed open h | 2,103 |
 | Conditional open h | 811.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1134,7 +1134,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,409.4 h · 57% · 115.4 h complete · open range 1,304–3,284 h.
+**Q subtotal:** 2,412.4 h · 57% · 115.4 h complete · open range 1,305.5–3,288.5 h.
 
 ### M0 · Hardware reference
 
@@ -1940,7 +1940,7 @@ Each task starts with a concrete witness and a refuted alternative, then extends
   * **No compatible combined reduction is qualified by the survey.** VERICA/FIVER and related tools provide external checker evidence; CAPA, M&M and CINI-class constructions have their own models and are not the selected countermeasure. The Coq theorem shape at CompCert's RTL level, recorded in [the fault lineage](../background/inspirations.md#the-masking-and-fault-countermeasure-lineage-dom-to-matchi-the-netlist-level-discharge-and-the-theorem-shapes-the-two-axioms-import), informs the detection side and supplies no complete proof of the combined case.
   * **The range prices the reduction over accepted premises.** Its case split still needs the actual R-16-008f detection theorem and countermeasure construction, whose full implementations are not costed by this cell. [The unassigned proof map](../assurance/unassigned-proof-map.md) prices the detection theorem's construction model as U-19 and records the countermeasure's authoring route as a register act outside its total; a source-level template or a conditional theorem cannot be counted as their implementation.
 
-**M8–M10 subtotal:** 231.9 h · 6% · 0.4 h complete · open range 134–329 h.
+**M8–M10 subtotal:** 231.9 h · 5% · 0.4 h complete · open range 134–329 h.
 
 ## Build-loop instruments
 
