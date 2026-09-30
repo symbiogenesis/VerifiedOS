@@ -22,8 +22,8 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.request import urlopen
 
+from vos import env, rust_toolchain
 from vos import memory_planner as planner
-from vos import rust_toolchain
 
 MAX_OBJECTS = 4096
 MAX_TOTAL_SIZE = (1 << 31) - 1
@@ -214,8 +214,18 @@ checked before addressing local files; unexpected source files are also refused.
 
 
 def build_idealloc(root: Path, output: Path) -> dict[str, Any]:
-    """Build only a hash-bound upstream core and this repository's authored bridge."""
+    """Build only a hash-bound upstream core and this repository's authored bridge.
+
+    Cargo flocks `target/<profile>/.cargo-lock` and `$CARGO_HOME/.package-cache`, both
+    inside `output`; the build holds `<output>.lock` beside it throughout, which is the
+    lock a lane retirement takes.
+    """
     output = native_output(root, output)
+    with env.hold_lock(output, "an idealloc build"):
+        return _build_idealloc(root, output)
+
+
+def _build_idealloc(root: Path, output: Path) -> dict[str, Any]:
     pin = json.loads((root / PIN_PATH).read_text(encoding="utf-8"))
     # Version 3 moved the Rust pin to the shared rust_toolchain owner.
     if pin.get("schema") != PIN_SCHEMA or "rust" in pin:

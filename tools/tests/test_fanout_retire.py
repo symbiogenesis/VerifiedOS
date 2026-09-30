@@ -19,6 +19,7 @@ from unittest.mock import patch
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from tests.test_worktree import _commit, _git
 from vos import fanout_retire as retire
+from vos import memory_planner_candidates as candidates
 from vos.cli import model as model_cli
 from vos.cli import proofs as proofs_cli
 from vos.cli import worktree
@@ -412,6 +413,50 @@ def _persistence_campaign_lock() -> None:
                "after the campaign the lane retires with its images")
 
 
+def _idealloc_build_lock() -> None:
+    """Cargo flocks `.cargo-lock` and `.package-cache` inside the idealloc build's
+    output, names the retirement does not select; a live build is seen through the
+    `<output>.lock` the build holds beside it, and a finished one retires."""
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        lane = root / "build" / "lane-worker"
+        output = lane / "memory-planner-idealloc"
+        checkout = root / "checkout"
+        (checkout / candidates.BRIDGE_PATH).parent.mkdir(parents=True)
+        (checkout / candidates.PIN_PATH).write_text(json.dumps(
+            {"schema": candidates.PIN_SCHEMA, "files": [], "commit": "0" * 40, "license": "fixture"}),
+            encoding="utf-8")
+        (checkout / candidates.BRIDGE_PATH).write_text("// bridge\n", encoding="utf-8")
+        (output / "upstream" / "coreba" / "src" / "bin").mkdir(parents=True)
+        seen: list[str] = []
+
+        def cargo(*_: object) -> tuple[str, dict[str, str], dict[str, str]]:
+            lock = output / "target" / "release" / ".cargo-lock"
+            lock.parent.mkdir(parents=True)
+            lock.write_text("", encoding="utf-8")
+            with lock.open() as handle:
+                _hold(handle.fileno())
+                try:
+                    retire.retain_native("worker", str(lane), str(root / "logs"), "4" * 20)
+                except retire.RetirementError as exc:
+                    seen.append(str(exc))
+            raise ValueError("the stand-in toolchain stops the build")
+
+        with (patch.object(candidates, "native_output", side_effect=lambda _, path: path),
+              patch.object(candidates, "rust_environment", side_effect=cargo)):
+            stopped = False
+            try:
+                candidates.build_idealloc(checkout, output)
+            except ValueError as exc:
+                stopped = "stand-in" in str(exc)
+            ensure(stopped, "the stand-in toolchain ends the build")
+        ensure(seen == [f"native output lock is active: {lane / 'memory-planner-idealloc.lock'}"],
+               f"a retirement during the build refuses on its output lock, got {seen}")
+        result = retire.retain_native("worker", str(lane), str(root / "logs"), "4" * 20)
+        saved = Path(str(result["archive"])) / "lane" / "memory-planner-idealloc"
+        ensure((saved / "target" / "release" / ".cargo-lock").exists() and not lane.exists(),
+               "after the build the lane retires with its outputs")
+
+
 # The descriptor limit is process-wide, so it is lowered in a child: lowered here, it
 # would bind every module the runner's worker process takes next. The child builds a
 # lane with four directories per descriptor and a second lane with two lock files per
@@ -601,4 +646,5 @@ def cases() -> list[Case]:
             Case("native-log-locks-and-peer-directories", _native_log_locks_and_peer_directories, lane="guest"),
             Case("native-oracle-locks-of-every-edition", _native_oracle_locks_of_every_edition, lane="guest"),
             Case("persistence-campaign-lock", _persistence_campaign_lock, lane="guest"),
+            Case("idealloc-build-lock", _idealloc_build_lock, lane="guest"),
             Case("native-locks-fit-descriptor-limit", _native_locks_fit_descriptor_limit, lane="guest")]
