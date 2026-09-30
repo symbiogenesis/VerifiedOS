@@ -52,7 +52,7 @@ The repository retains each component's license and `CMakeLists.txt` under `mode
 
 Hashes identify the downloaded bytes; the licenses govern their use. Dependency updates maintain these pins locally and verify them through a fresh model build. Upstream reconciliation preserves a newer local dependency pin. Asio uses its official GitHub tag archive because the SourceForge endpoint does not reliably return archive bytes.
 
-[model/test/CMakeLists.txt](model/test/CMakeLists.txt) declares the downloadable test release. The `sail-riscv-tests` wrapper is Apache-2.0 and the `riscv-tests` sources are BSD-3-Clause; their license instruments are unchanged in the recorded release. The profile-refusal sweep downloads the corpus into the build lane and selects the declared release even if older caches exist. No test binary is tracked or distributed here.
+[model/test/CMakeLists.txt](model/test/CMakeLists.txt) declares the downloadable test release and the SHA-256 the release publishes for each tarball it can download. Configure refuses an enabled suite with no recorded digest and fails a download whose bytes differ; at release `2026-08-20`, `riscv-tests.tar.gz` is SHA-256 `eb24265e83ca0b68a24a513dff7e4535975e724fe07d71f3cf75fef87fd75bec`. The digest verifies each download, not an extracted suite that a new build lane copies from another tree. The `sail-riscv-tests` wrapper is Apache-2.0 and the `riscv-tests` sources are BSD-3-Clause; their license instruments are unchanged in the recorded release. The profile-refusal sweep downloads the corpus into the build lane and selects the declared release even if older caches exist. No test binary is tracked or distributed here.
 
 ### Post-quantum validation inputs
 
