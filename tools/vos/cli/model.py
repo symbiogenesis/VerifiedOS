@@ -246,23 +246,29 @@ def corpus_listing(suite: Path, tarball_sha256: str) -> bytes:
         "utf-8", "surrogateescape")
 
 
-# How a corpus file is opened for reading: without waiting and without following a
-# final link, so what the descriptor is decides whether it is read. Opening a FIFO for
-# reading otherwise waits for a writer that never comes, and a character device such as
-# `/dev/zero`, or a link to one, is read without end. win32 has neither flag, so there
-# the opened descriptor's kind decides alone; `O_BINARY` keeps its reads byte-exact.
+# How a corpus file is opened for reading once its name has been found to be a regular
+# file: without waiting, without following a final link and without taking a terminal
+# as the controlling one, so an entry replaced by another kind since is opened without
+# effect and then refused by its descriptor. Opening a FIFO for reading otherwise waits
+# for a writer that never comes, and a character device such as `/dev/zero`, or a link
+# to one, is read without end. win32 has none of these flags, so there the name's and
+# the opened descriptor's kinds decide alone; `O_BINARY` keeps its reads byte-exact.
 _REGULAR_ONLY = (os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
-                 | getattr(os, "O_BINARY", 0))
+                 | getattr(os, "O_NOCTTY", 0) | getattr(os, "O_BINARY", 0))
 
 
 def _open_regular(path: Path | str) -> int | None:
     """A read descriptor on `path` when it is a regular file, and None when it is not.
 
-    The kind is the opened descriptor's, not the name's, so an entry replaced between a
-    check by name and the read is still refused. A final symbolic link is refused where
-    the platform refuses to open one; an `OSError` from the open is otherwise the
-    caller's.
+    The name is asked first, without following a final link, and nothing it reports as
+    another kind is opened, since opening a device node can act on the device. The
+    opened descriptor must then be a regular file and the very file the name reported,
+    by device and inode, so an entry replaced between the two is refused as well. An
+    `OSError` from either question, `FileNotFoundError` among them, is the caller's.
     """
+    named = os.lstat(path)
+    if not stat.S_ISREG(named.st_mode):
+        return None
     try:
         fd = os.open(path, _REGULAR_ONLY)
     except OSError as err:
@@ -270,11 +276,12 @@ def _open_regular(path: Path | str) -> int | None:
             return None
         raise
     try:
-        regular = stat.S_ISREG(os.fstat(fd).st_mode)
+        held = os.fstat(fd)
     except BaseException:
         os.close(fd)
         raise
-    if not regular:
+    if (not stat.S_ISREG(held.st_mode)
+            or (held.st_dev, held.st_ino) != (named.st_dev, named.st_ino)):
         os.close(fd)
         return None
     return fd
@@ -294,11 +301,11 @@ def _regular_digest(path: Path) -> str | None:
 def verify_test_corpus(suite: Path, tarball_sha256: str) -> None:
     """Refuse a suite unless it is what its manifest records for this tarball digest.
 
-    The manifest is read only when its opened descriptor is a regular file, which is
-    what configure writes, so a manifest standing as a FIFO or a device node, or as a
-    link where the platform refuses to open one, is refused rather than waited on or
-    read without end, whichever reader asks: the donor seeding, the sweep, trace-diff
-    and the build receipt.
+    The manifest is read only when its name and its opened descriptor are one regular
+    file, which is what configure writes, so a manifest standing as a FIFO, a device
+    node or a symbolic link is refused rather than waited on or read without end,
+    whichever reader asks: the donor seeding, the sweep, trace-diff and the build
+    receipt.
     """
     manifest = corpus_manifest(suite)
     if suite.is_symlink() or not suite.is_dir():

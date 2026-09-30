@@ -561,6 +561,51 @@ def _os_with_a_device(named: Callable[[str], bool]) -> SimpleNamespace:
     return SimpleNamespace(**{**vars(os), "open": opened, "fstat": described})
 
 
+def _open_regular_asks_the_name_first() -> None:
+    """`_open_regular` opens nothing its name reports as another kind than a regular
+    file, since opening a device node can act on the device, and hands back a
+    descriptor only on the very file the name reported. A device node cannot be made
+    unprivileged, so the name's answer is simulated: a character device, which is never
+    opened, and a regular file on another inode, a file replaced after its name was
+    asked, which is opened and refused. The positive control is the same file asked as
+    it is, which opens; `O_NOCTTY` rides every open where the platform has it."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        path = Path(td) / "rv64ui-p-add"
+        path.write_bytes(b"\x7fELF")
+        opened: list[str] = []
+
+        def recorded(named: str | Path, flags: int, mode: int = 0o777) -> int:
+            opened.append(str(named))
+            return os.open(named, flags, mode)
+
+        def answering(kind: int, inode_shift: int = 0) -> SimpleNamespace:
+            def lstat(named: str | Path) -> os.stat_result:
+                held = tuple(os.lstat(named))
+                return os.stat_result((kind | stat.S_IMODE(held[0]), held[1] + inode_shift,
+                                       *held[2:]))
+            return SimpleNamespace(**{**vars(os), "open": recorded, "lstat": lstat})
+
+        for kind, shift, why in ((stat.S_IFCHR, 0, "a device is refused unopened"),
+                                 (stat.S_IFREG, 1, "another file is refused once opened")):
+            opened.clear()
+            with patch.object(_MODEL, "os", answering(kind, shift)):
+                fd = _MODEL._open_regular(path)
+            if fd is not None:
+                os.close(fd)
+            ensure(fd is None and opened == ([] if kind == stat.S_IFCHR else [str(path)]),
+                   f"{why}, got {fd} after opening {opened}")
+        opened.clear()
+        with patch.object(_MODEL, "os", answering(stat.S_IFREG)):
+            fd = _MODEL._open_regular(path)
+        ensure(fd is not None and opened == [str(path)],
+               f"control: the file the name reported opens, got {fd} after {opened}")
+        with os.fdopen(cast("int", fd), "rb") as stream:
+            ensure(stream.read() == b"\x7fELF", "and reads as it is")
+        noctty = getattr(os, "O_NOCTTY", 0)
+        ensure(_MODEL._REGULAR_ONLY & noctty == noctty,
+               "no terminal a corpus open meets becomes the controlling one")
+
+
 def _seed_refuses_a_device_manifest() -> None:
     """A donor whose manifest is a device node is refused by the kind its opened
     descriptor reports, simulated by `_os_with_a_device`. The positive control is the
@@ -1151,6 +1196,7 @@ def cases() -> list[Case]:
         Case("seed-test-data-refuses-unverified", _seed_test_data_refuses_unverified),
         Case("seed-refuses-a-device-donor", _seed_refuses_a_device_donor),
         Case("seed-refuses-a-fifo-donor", _seed_refuses_a_fifo_donor, lane="guest"),
+        Case("open-regular-asks-the-name-first", _open_regular_asks_the_name_first),
         Case("seed-refuses-a-device-manifest", _seed_refuses_a_device_manifest),
         Case("seed-refuses-a-fifo-manifest", _seed_refuses_a_fifo_manifest, lane="guest"),
         Case("seed-refuses-a-manifest-linked-to-dev-zero",
