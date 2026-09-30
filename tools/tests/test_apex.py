@@ -181,6 +181,28 @@ def _control_prefixed_definition_is_a_residue() -> None:
            f"a timed definition is read: {rec.unread!r} {rec.def_fields!r}")
 
 
+def _a_flag_behind_a_quoted_full_stop_is_still_read() -> None:
+    # The look-back for a flag above the definition runs to the full stop that ends the
+    # sentence before, which a string's full stop is not, and reads each flag however
+    # the decoration grammar spells it: a quoted target with a doubled quote, or no blank
+    # after a word or a string.
+    for lead in ('Succeed #[deprecated(since="1", note="see x. y")]\n',
+                 'Fail #[deprecated(since="1", note="a""b. c")]\n#[local]\n',
+                 'Profile"p"Succeed\n', 'Redirect "a""b" Fail\n'):
+        rec = _read(_APEX + f"\n{lead}Definition inner (v : Vocabulary) : Prop := "
+                            "v.(gamma).\n")
+        ensure(any("spells 3 `Definition` sentences and this parse reads 2" in said
+                   for said in rec.unread),
+               f"a definition under {lead!r} is a residue, got {rec.unread!r}")
+        ensure(rec.consumers["gamma"] == ["seam_one"],
+               f"and under {lead!r} it consumes nothing: {rec.consumers['gamma']!r}")
+    # the positive control: a quoted full stop above a definition no flag voids
+    rec = _read(_APEX + '\n#[deprecated(since="1", note="see x. y")]\n'
+                        "Definition inner (v : Vocabulary) : Prop := v.(gamma).\n")
+    ensure(rec.unread == [] and rec.def_fields.get("inner") == ["gamma"],
+           f"a deprecated definition is read: {rec.unread!r} {rec.def_fields!r}")
+
+
 def _record_completed_from_a_base_is_a_residue() -> None:
     # `{| v with alpha := v.(beta) |}` projects gamma out of v and spells it nowhere, so
     # both readings agree on beta alone; the `with` is what refuses it, and the beta it
@@ -224,6 +246,8 @@ def cases() -> list[Case]:
         Case("prefixed-definition-is-read", _prefixed_definition_is_read),
         Case("control-prefixed-definition-is-a-residue",
              _control_prefixed_definition_is_a_residue),
+        Case("a-flag-behind-a-quoted-full-stop-is-still-read",
+             _a_flag_behind_a_quoted_full_stop_is_still_read),
         Case("record-completed-from-a-base-is-a-residue",
              _record_completed_from_a_base_is_a_residue),
     ]

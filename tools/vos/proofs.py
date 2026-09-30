@@ -30,7 +30,8 @@ capture or look-back from the pieces here.
 """
 
 import re
-from collections.abc import Mapping
+from bisect import bisect_left
+from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
 from graphlib import CycleError, TopologicalSorter
@@ -86,6 +87,7 @@ DECORATION = re.compile("(?P<bullet>" + BULLETS + r")|(?=(?P<word>[A-Za-z]+))(?:
                         + _ATTRIBUTE_VALUES + r")\]\s*")
 # The control flags that run their command and keep nothing it states.
 VOID = ("Fail", "Succeed")
+_BLANK = re.compile(r"\s*")
 
 # The vernaculars whose sentence states a theorem: Rocq 9.3's seven theorem keywords, its
 # grammar's `thm_token`, and `Example`, which states and defines.
@@ -145,12 +147,20 @@ def sentences(text: str) -> list[str]:
         return [trimmed for s in SENTENCE_END.split(code) if (trimmed := s.strip())]
     found: list[str] = []
     start = 0
-    for token in _SENTENCE_TOKEN.finditer(code):
-        if token.group() == ".":
-            found.append(code[start:token.start()])
-            start = token.end()
+    for end in sentence_ends(code):
+        found.append(code[start:end])
+        start = end + 1
     found.append(code[start:])
     return [trimmed for s in found if (trimmed := s.strip())]
+
+
+def sentence_ends(code: str) -> list[int]:
+    """Where each sentence of comment-free code ends: the offset of every full stop the
+    sentence split ends one at, each string read whole first. Comments blanked to spaces
+    of their own length leave the offsets the source's."""
+    if '"' not in code:
+        return [end.start() for end in SENTENCE_END.finditer(code)]
+    return [token.start() for token in _SENTENCE_TOKEN.finditer(code) if token.group() == "."]
 
 
 def decorations(code: str, at: int = 0) -> tuple[list[re.Match[str]], int]:
@@ -161,6 +171,31 @@ def decorations(code: str, at: int = 0) -> tuple[list[re.Match[str]], int]:
         found.append(decoration)
         at = decoration.end()
     return found, at
+
+
+def void_flag(code: str, opened: int, ends: Sequence[int]) -> str | None:
+    """The control flag keeping nothing, `Fail` or `Succeed`, that a command stands under
+    in comment-free code, where `opened` is where its line's head opens and `ends` is
+    `sentence_ends(code)`.
+
+    A flag may stand on the command's line or on lines of its own above it, so the walk
+    starts at the full stop ending the sentence before and reads every decoration from
+    there to the command's keyword. That full stop is found where the sentence split finds
+    it, so a string's full stop, an attribute's quoted note among them, ends no look-back
+    early. None where there is no such flag, or where something other than blank space and
+    decorations stands between that full stop and `opened`, the head then opening inside a
+    sentence rather than at one.
+    """
+    before = bisect_left(ends, opened)
+    start = ends[before - 1] + 1 if before else 0
+    blank = _BLANK.match(code, start)
+    found, at = decorations(code, blank.end() if blank else start)
+    if at < opened:
+        return None
+    for decoration in found:
+        if decoration.group("word") in VOID:
+            return str(decoration.group("word"))
+    return None
 
 
 def local_requires(source: Path, stems: set[str]) -> set[str]:

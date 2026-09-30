@@ -247,6 +247,15 @@ def _a_declaration_the_reader_does_not_take_is_refused() -> None:
     # `Time` keeps what it times, so a variant under it is carried as itself
     src = memplan.parse(_TOY + "Time\n" + _VARIANT)
     ensure("dear_plan" in src.plans, f"a timed variant is a variant: {src.plans}")
+    # the look-back runs to the full stop ending the sentence before, which a string's
+    # full stop is not, and reads a flag however the decoration grammar spells it
+    for lead, flag in (('Succeed #[deprecated(since="1", note="see x. y")]\n', "Succeed"),
+                       ('Fail #[deprecated(since="1", note="a""b. c")]\n#[local]\n', "Fail"),
+                       ('Profile"p"Succeed\n', "Succeed"), ('Redirect "a""b" Fail\n', "Fail")):
+        _refused_saying(_TOY + lead + _VARIANT, f"states dear_plan under `{flag}`",
+                        f"a variant under {lead!r} was carried")
+    src = memplan.parse(_TOY + '#[deprecated(since="1", note="see x. y")]\n' + _VARIANT)
+    ensure("dear_plan" in src.plans, f"a deprecated variant is a variant: {src.plans}")
     # the positive control: a plan value that is no application of build_plan was never
     # a variant this reader carries, and it stays outside the export as it was
     src = memplan.parse(_TOY + "Definition alias_plan : Plan := demo_plan.\n")
@@ -268,6 +277,11 @@ def _a_plan_completed_from_a_base_is_refused() -> None:
                            "  {| demo_plan (* no match *) with second_fetch := 13 |}.\n",
                     "dear_plan completes a plan from a base with `with`",
                     "a comment's `match` hid a variant completed from a base")
+    # nor does a string's full stop end the value early
+    _refused_saying(_TOY + 'Definition dear_plan := let _ := "see x. y" in\n'
+                           "  {| demo_plan with second_fetch := 13 |}.\n",
+                    "dear_plan completes a plan from a base with `with`",
+                    "a string's full stop hid a variant completed from a base")
     # an application of build_plan the head does not read for the same two reasons is
     # refused as unread rather than dropped
     for respelled in (_VARIANT.replace(" : Plan", ""),
