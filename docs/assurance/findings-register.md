@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 808 of them across 138 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 816 of them across 139 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1040,6 +1040,38 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-503** measurement: Q36's restatement left the canonical-term record calling Rocq 9.2.0 the locked prover, inside both support-library releases' bound
 · Raised: Q37
 · Disposition: closed at Q37, the record's blocking-input bullet restated at Rocq 9.3.0
+
+**F-504** measurement: the gate's pinned-setting and `Timeout` readings, anchored at a sentence head, missed a setting after a bullet, brace or focusing selector, which the locked Rocq 9.3.0 keeps in effect beyond the proof
+· Raised: Q38a
+· Disposition: closed at Q38a, the control prefixes every head reading shares covering bullets, braces and selectors
+
+**F-505** measurement: the machine-bound tacticals compile silently in forms a numeral-anchored lexical reading passes: an Ltac identifier argument, Ltac2's first-class `Control.timeout` and `Control.timeoutf`, and a comment between the word and its argument
+· Raised: Q38a
+· Disposition: closed at Q38a, each word refused wherever it stands as a whole identifier outside comments and strings
+
+**F-506** measurement: the gate's attribute prefix stopped at a `]` inside a quoted attribute value, hiding a decorated statement from the witness scan and a `warnings` attribute from the pinned reading, and the pinned-attribute pattern was quadratic in its input
+· Raised: Q38a
+· Disposition: closed at Q38a, quoted values read whole by a linear pattern
+
+**F-507** owed-act: `strip_comments` drops a comment holding no newline and so joins its neighbours, so `Set(* c *)Kernel Conversion Dep Heuristic.` compiles with the flag on while no lexical reading sees it
+· Raised: Q38a
+· Disposition: open, Q38d
+
+**F-508** owed-act: `sentences` splits at a full stop inside a string literal, so a quoted attribute note hides the statement it decorates from the witness scan and a `warnings` attribute after it from the pinned reading
+· Raised: Q38a
+· Disposition: open, Q38d
+
+**F-509** owed-act: the witness scan's definer table lacks `Remark` and `Proposition`, which its statement table lists, and `Property`, so a statement under any of them never quantifies over a record
+· Raised: Q38a
+· Disposition: open, Q38d
+
+**F-510** owed-act: `Load` of a file outside `proofs/` runs commands no lexical reading sees, and the gate only withdraws cache reuse for it
+· Raised: Q38a
+· Disposition: open, Q38d
+
+**F-511** owed-act: `Ltac2 @ external` binds a plugin primitive, the timeout tactical among them, under any name, which no lexical refusal can follow
+· Raised: Q38a
+· Disposition: open, Q38d
 
 ## M0 · Hardware reference
 

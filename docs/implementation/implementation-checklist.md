@@ -401,19 +401,19 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,147 |
-| Total estimate range h | 2,629.4–5,664.6 |
-| Completed scope h | 696 |
+| Total estimate midpoint h | 4,150.7 |
+| Total estimate range h | 2,632.6–5,668.8 |
+| Completed scope h | 698.2 |
 | Complete by estimate % | 16.8 |
-| Remaining h | 3,451 |
-| Open class I h | 737 |
+| Remaining h | 3,452.5 |
+| Open class I h | 738.5 |
 | Open class X h | 2,714 |
 | Retained completion estimate h | 164.5 |
 | Unmeasured completed items | 20 |
-| Calibrated total h | 5,073.1 |
+| Calibrated total h | 5,076.4 |
 | Committed M8a open h | 94.5 |
 | Committed M8b open h | 90.5 |
-| Other committed open h | 2,040.5 |
+| Other committed open h | 2,042 |
 | Conditional open h | 811.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1089,15 +1089,17 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
 * [ ] **Q38 · Modernize and harden the proof corpus at Rocq 9.3.0**
   * Q36 locked Rocq 9.3.0 for its kernel fixes. This item takes what the release offers the proof sources and the gate that accepts them. **No child moves a statement:** an edit that would change an elaborated statement, a transparent body, an opacity, an assumption or a witness returns to the requirement owner under [the portable proof workflow](../assurance/proof-assistance.md). The release's source syntax, `if … is` ([rocq#21609](https://github.com/rocq-prover/rocq/pull/21609)), record values completed from a base with `with` ([rocq#22207](https://github.com/rocq-prover/rocq/pull/22207)) and anonymous `&` binders ([rocq#21611](https://github.com/rocq-prover/rocq/pull/21611)), prints byte for byte as the forms it replaces under the audit's `Set Printing All`. No released QuickChick, simple-io or CertiRocq admits Rocq 9.2, though, and [gallina.py](../../tools/vos/gallina.py) compiles every proof source in their Rocq 9.1.1 switches, so that syntax waits on the child that decides those instruments' route.
   * **Three children are added when their inputs land:** the oracle-route decision, which reads a build of the unreleased QuickChick and simple-io sources at Rocq 9.3.0 and CertiRocq's readiness; the source modernization, which takes that decision's syntax and Q38c's comparison; and the performance child, which takes per-module compile and kernel-recheck timings.
-  * [ ] **Q38a · Close the gate's Rocq 9.3 setting gaps and its prefix blind spots** · 3 h, range 2–4 · I
-    * **Dispatch. Start:** the pinned-setting reading in [proofaudit.py](../../tools/vos/proofaudit.py) and the witness scan in [proofs.py](../../tools/vos/cli/proofs.py) at `2c08d4b6`. Rocq 9.3.0 adds `Kernel Conversion Dep Heuristic` ([rocq#21514](https://github.com/rocq-prover/rocq/pull/21514)), a typing flag each declaration records, which the checker re-applies and neither `Print Assumptions` nor `rocqchk -o` reports. `Default Proof Using` annotates every unannotated section lemma, and an annotation declaring more than the proof uses adds hypotheses to the discharged statement. Neither setting is pinned. The Ltac tactical `timeout n` and 9.3's `alloc_limit n` ([rocq#17266](https://github.com/rocq-prover/rocq/pull/17266)) pass the lexical refusal that the `Timeout` and `AllocLimit` commands meet, although they tie a verdict to the machine as those do. The witness scan reads `Record`, `Structure` and statement heads with no prefix but `Program`, so an attribute or locality prefix silently removes a record from those it holds or a statement's quantifiers from its reading. The functor and signature refusal reads unprefixed heads alone. The current sources exercise none of these. **Owns:** the two settings added to the pinned set; a refusal of either tactical before a numeral in any sentence, comments and strings excepted; the witness scan's record, definer and section-binder heads and the abstraction refusal read after the control prefixes the pinned-setting reading already strips; and host tests for each. It owns no proof source and no other reader. **Check:** a refusal case and a positive control each: each new setting set under a locality prefix and under an attribute is refused, and printing it is not; `timeout 5 tac` and `alloc_limit 1 Mw tac` are refused, and an identifier containing either word is not; a `Record` prefixed by `#[local]`, `Local` or `Polymorphic` still demands its witness, and a prefixed `Lemma` quantifying over it still counts; a prefixed `Module Type` is refused. `run.py test --only proofaudit` and `--only proofs` pass on the host. The witness facts `ProofAnalysis` reports over the current tree equal the base's. Host CI passes, and Guest CI runs both lanes, its proofs lane taking the full recheck a change to the gate's identity forces. **Join:** Q38c's reading and every later source child, which the widened scan reads.
-    * **Estimate basis:** settings and tactical refusal with tests 1–1.5 h, prefix-tolerant heads with tests 0.5–1.5 h, witness-fact comparison and hosted dispatch 0.5–1 h.
+  * [x] **Q38a · Close the gate's Rocq 9.3 setting gaps and its prefix blind spots** · 2.2 h actual · agent-parallel
+    * The gate pins Rocq 9.3's unreported conversion flag and `Default Proof Using`, refuses the machine-bound tactical identifiers, and reads every head after the prefixes a sentence can carry, bullets, braces and quoted attributes among them. ([note](completion-log.md#q38a-close-the-gates-rocq-93-setting-gaps-and-its-prefix-blind-spots))
   * [ ] **Q38b · Make the proof-source readers outside the gate refuse what they cannot read** · 5 h, range 3–7 · I
     * **Dispatch. Start:** the readers' patterns at `2c08d4b6`: [apex.py](../../tools/vos/apex.py) behind K-42 to K-44, [memplan.py](../../tools/vos/memplan.py) behind K-88's memory-plan row, [mutate.py](../../tools/vos/mutate.py) behind `seed coq`, [consttab.py](../../tools/vos/checks/consttab.py) behind K-107, and `source_declarations` in [cic_corpus.py](../../tools/vos/cic_corpus.py). Each reads declaration heads anchored without a prefix, or record literals spelled field by field. A prefixed `Definition` or plan variant leaves apex's reading, the plan export or the mutable regions without a finding. A record completed from a base with `with` hides its copied fields from apex's consumption reading, and a plan variant spelled that way leaves the export, which only test_memplan's floor would notice. A `Proof using` line or a prefixed declaration after a K-107 table is absorbed into the table. **Owns:** each reader either reading the prefixed and `with` forms exactly or refusing them with a named diagnostic, never dropping them; host tests with an accepted and a refused case per form per reader; and a `selftest --rule` run for each rule whose reader changes. It owns neither the gate (Q38a), the dated campaigns under `proofs/campaigns/`, whose recorded selections stay as recorded, nor any proof source. **Check:** the tests; `run.py test --only` for the apex, memplan, mutate, consttab and cic_corpus modules; `run.py selftest --rule` for K-42, K-43, K-44, K-88 and K-107, reported as killed, survived and unseeded apart, with none survived or unseeded; each reader's output over the current tree unchanged from the base: apex's facts, the memory-plan export byte for byte, the default subject's mutant population, the K-107 tables and the corpus report's source declarations; and Host CI passing. **Join:** Q38c's comparison and every later source child.
     * **Estimate basis:** apex 1–1.5 h, memplan 0.5–1.5 h, mutate 0.5–1.5 h, consttab and the corpus exporter 0.5–1 h, selftest runs and review 0.5–2 h.
   * [ ] **Q38c · Read the whole corpus's elaborated meaning for comparison** · 8 h, range 5–11 · I
     * **Dispatch. Start:** the native receipt's inventory, the [statement freeze's](../assurance/proof-assistance.md#statement-freeze) query settings, and the CIC corpus exporter's query framing. The native receipt holds each constant's `Search` type and assumptions but no transparent body, opacity, universe or inductive declaration. The corpus exporter deletes the bodies it prints, and `proof-freeze` reads one target. So no instrument can show that an edit across many sources changed no elaborated meaning. **Owns:** a guest command outside the gate's import closure that, over a lane's passing compile, writes per module a reading of every constant the native inventory names, under `Set Printing All`, `Set Printing Universes` and the audit's depth and width: its `Check` type, its opacity and universe lines from `About` without locations, and `Print` output for each transparent constant and inductive, each query framed by a marker; a compare mode that exits nonzero and names every differing entry between two readings, set differences included; JSON output with a tracked schema; and tests with native controls. It implements no part of `proof-freeze`, whose contract stays open, and owns no proof source. **Check:** in the toolchain test lane, one leaf-module control each for a changed statement, a convertible and a non-convertible change to a transparent body, `Defined` turned into `Qed`, a removed symbol, a universe-polymorphic definition and swapped constructors: compare names each and nothing else. A comment edit, a changed opaque script and each 9.3 syntax rewrite of a transparent body show no difference. Two readings of the base compile are byte-identical; `run.py test --only` passes for the command's module on the host and in the guest; and Host CI passes. **Join:** every later source child, whose landing carries a base reading, a candidate reading and their comparison.
     * **Estimate basis:** queries and framing 2–3 h, compare and schema 1–2 h, native controls 1.5–3 h, the base reading and review 0.5–3 h.
+  * [ ] **Q38d · Close the lexical bypasses the Q38a review routed** · 4.5 h, range 3–6 · I
+    * **Dispatch. Start:** F-507 to F-511 and their probes in [Q38a's note](completion-log.md#q38a-close-the-gates-rocq-93-setting-gaps-and-its-prefix-blind-spots); the shared lexer in [proofs.py](../../tools/vos/proofs.py), the witness scan's keyword tables in [cli/proofs.py](../../tools/vos/cli/proofs.py) and the pinned reading in [proofaudit.py](../../tools/vos/proofaudit.py). **Owns:** `strip_comments` reading a comment that holds no newline as one separator, as Rocq's lexer does; sentences split only outside string literals; `Remark`, `Proposition` and `Property` read as statements that quantify; `Load`, `Cd`, `Add LoadPath`, `Add Rec LoadPath`, `Declare ML Module` and `Ltac2 @ external` refused in proof sources before compilation; the pinned lexing fixture in `test_gallina` restated at the new lexing; and host tests for each. It owns no proof source. **Check:** each finding's probe is refused or demanded, with a positive control; every consumer of the shared lexer reads the live tree exactly as at the base, among them the gate, `proofcites`, `proofsearch`, the corpus exporter, `admission`, `composer`, `wire_formats` and Q38b's readers; `run.py test --only` passes for those modules; `run.py selftest --rule` passes for each rule whose reader moves, with none survived or unseeded; Host CI passes; and Guest CI runs both lanes, its proofs lane taking the full recheck a change to the gate's identity forces. **Join:** every later source child.
+    * **Estimate basis:** the lexer changes with the fixture 1–1.5 h, keyword tables and refusals with tests 1–2 h, the consumer comparison and selftest runs 1–2 h, hosted dispatch 0–0.5 h.
 
 **Evidence and cost stay with their owners.** Q2b owns the target connection and Q3b its selected functional/fault evidence; existing compiler, admission and image-validation owners retain the mandatory exact-artifact duties. The canceled Q20c comparison owns no production implementation. Share source/configuration/image identities and baseline records across them, adding each task's distinct check. Changed semantics or bytes invalidate affected evidence. Each missing theorem, port, primitive or executable gets one implementation owner and one estimate; Q2c's foundation map remains the shared prerequisite record for Q21b, Q25d and any separately commissioned generic-library proposal.
 
@@ -1107,7 +1109,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,340.7 h · 56% · 106.2 h complete · open range 1,266–3,203 h.
+**Q subtotal:** 2,344.4 h · 56% · 108.4 h complete · open range 1,267–3,205 h.
 
 ### M0 · Hardware reference
 
@@ -1986,10 +1988,10 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 | attended | X-read | 14 | 45.5 | 26.9 | 0.59 |
 | attended | X-authored | 3 | 18 | 25.5 | 1.42 |
 | attended | All | 63 | 323.9 | 238.4 | 0.74 |
-| agent-parallel | I | 27 | 231 | 64.6 | 0.28 |
+| agent-parallel | I | 28 | 234 | 66.8 | 0.29 |
 | agent-parallel | X-read | 10 | 101.5 | 34.7 | 0.34 |
 | agent-parallel | X-authored | 22 | 267 | 39.6 | 0.15 |
-| agent-parallel | All | 59 | 599.5 | 138.9 | 0.23 |
+| agent-parallel | All | 60 | 602.5 | 141.1 | 0.23 |
 <!-- calibration-results:end -->
 
 ### Calibration record
@@ -2158,6 +2160,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q34a | I | 12 |
 | Q35a | n/a | n/a |
 | Q35e | X-read | 14 |
+| Q38a | I | 3 |
 | M0.20 | n/a | n/a |
 | M1.2a | X-read | 4 |
 | M1.2b | n/a | n/a |
