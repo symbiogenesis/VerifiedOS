@@ -420,7 +420,8 @@ _MENHIR = tuple(_snap(lock, package) for lock in ("sail", "quickchick")
                 for package in ("menhir", "menhirLib", "menhirSdk", "menhirCST", "menhirGLR"))
 
 # The rows K-118 holds, each release against the artifact fixing it. A lock's release
-# is the one that installs; the manifests restating the direct pins are K-67's and uv's.
+# is the one that installs; ty's and ruff's manifest pins are K-67's, and uv's locked
+# sync refuses any other manifest the lock no longer resolves.
 DEV_TOOL_ROWS: tuple[DevTool, ...] = (
     DevTool("Node.js", (Site("the reviewed release", rf"pinned release's `v{_V}` tag",
                              (Owner("shell", "tools/wasm-oracle/node.sh", "node_version"),)),)),
