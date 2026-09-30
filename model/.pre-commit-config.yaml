@@ -1,6 +1,11 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
-exclude: "^(dependencies/)"
+# This directory is not the Git top level, which pre-commit runs from, so the
+# paths below are written from the repository root: `files` keeps every hook
+# inside model/, and the exclusion and hook configuration paths name model/.
+# Run with `pre-commit run --config model/.pre-commit-config.yaml`.
+files: "^model/"
+exclude: "^(model/dependencies/)"
 minimum_pre_commit_version: 4.6.2
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -34,8 +39,9 @@ repos:
     rev: v2.4.3
     hooks:
       - id: codespell
+        args: [--config, model/.codespellrc]
   - repo: https://github.com/tcort/markdown-link-check
     rev: v3.15.0
     hooks:
       - id: markdown-link-check
-        args: [-q, -c .markdown-link-check.config]
+        args: [-q, -c model/.markdown-link-check.config]

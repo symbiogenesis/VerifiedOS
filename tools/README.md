@@ -923,24 +923,25 @@ The optional `workflows` group pins zizmor, which Host CI syncs alone into an
 environment of its own; the [Guest CI contract](ci/README.md#acceptance-and-handoff)
 gives the command. PyPI publishes no Windows ARM64 wheel for it, so run it on Linux.
 
-[model/.pre-commit-config.yaml](../model/.pre-commit-config.yaml) keeps upstream's
-paths, which assume a repository root at `model/`. pre-commit changes directory to
-the Git top level before it reads a configuration, so here they resolve against this
-repository's root: the `^(dependencies/)` exclusion never matches
-`model/dependencies/`, codespell does not find `model/.codespellrc`, and
-markdown-link-check looks for `.markdown-link-check.config` at the root, where there
-is none. Run the hooks only on named model files, from the checkout root and with
-the environment above:
+pre-commit changes directory to the Git top level before it reads a configuration,
+so [model/.pre-commit-config.yaml](../model/.pre-commit-config.yaml) states its paths
+from this repository's root: the top-level `files: "^model/"` confines every hook to
+paths under `model/`, the exclusion names `model/dependencies/`, and codespell and
+markdown-link-check are handed `model/.codespellrc` and
+`model/.markdown-link-check.config`. Run the hooks from the checkout root with the
+environment above:
 `uv run --project tools --locked --group model pre-commit run --config model/.pre-commit-config.yaml --files <paths>`,
-listing paths under `model/` outside `model/dependencies/`. That repairs the
-exclusion only: codespell still runs without `model/.codespellrc`, and
-markdown-link-check reports its configuration file inaccessible on every Markdown
-path, so set `SKIP=codespell,markdown-link-check` for such a run and read neither
-hook's result as upstream's verdict. The fixing hooks
-(trailing-whitespace, end-of-file-fixer, clang-format and prettier) rewrite the
-files they are given. Never pass `--all-files`, which selects every tracked file in
-the repository, and never run `pre-commit install`, which would run these hooks on
-every commit to the repository.
+or with `--all-files`, which selects the tracked files under `model/` outside
+`model/dependencies/` and nothing else. The fixing hooks (trailing-whitespace,
+end-of-file-fixer, clang-format and prettier) rewrite the files they select, so read
+`git diff -- model` after a run, and markdown-link-check fetches every external link
+it finds. No gate runs these hooks. Never run `pre-commit install`: it writes the hook
+into the Git directory every worktree shares, so every session's commits would run it.
+The hook calls the installing environment's interpreter, which a commit from the
+other side of the WSL boundary cannot execute, so that side's commits are refused
+unless its own `pre-commit` is on `PATH`. On a commit touching `model/`, a fixing hook
+that rewrites a staged file fails the commit, and markdown-link-check fetches the
+links of every staged Markdown file.
 
 [ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
 carries, including the ones it ships as warnings or switched off, and that is deliberate:
