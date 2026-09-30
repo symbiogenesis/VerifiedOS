@@ -265,9 +265,10 @@ def mask(text: str, lane: str) -> list[bool]:
 
 
 def _coq_head(line: str) -> tuple[list[str], str, str] | None:
-    """The decorations a Rocq line opens with, each as its word or `#[` for an attribute,
-    the command keyword under them and the rest of the line after it, or None where the
-    line opens with neither. `line` is the line with its comments blanked.
+    """The decorations a Rocq line opens with, each as its word, `#[` for an attribute or
+    a bullet as itself, the command keyword under them and the rest of the line after it,
+    or None where the line opens with neither. `line` is the line with its comments
+    blanked.
 
     A bare line names a command exactly when it starts with a `COQ_TOP` keyword. A
     decorated one names the `COQ_TOP` keyword under it, else the capitalised command
@@ -276,11 +277,11 @@ def _coq_head(line: str) -> tuple[list[str], str, str] | None:
     otherwise. Whether the line is code at all is the caller's to decide too, a line
     inside a comment reading the same.
 
-    Two decorations name a command only where a `COQ_TOP` keyword follows them, and the
-    line is otherwise read bare. At a line's start `-`, `+`, `*` and `{` continue a term
-    as often as they open a proof step, and a capitalised word after one is as often a
-    constructor as a command. `Export` decorates an option command, `Set` or `Unset`, and
-    is otherwise the command that exports a module.
+    A bullet, a brace or a goal selector, and `Export`, name a command only where a
+    `COQ_TOP` keyword follows them, the line otherwise read bare. At a line's start `-`,
+    `+`, `*` and `{` continue a term as often as they open a proof step, and a capitalised
+    word after one is as often a constructor as a command. `Export` decorates an option
+    command, `Set` or `Unset`, and is otherwise the command that exports a module.
     """
     found, at = decorations(line) if line[:1] and not line[:1].isspace() else ([], 0)
     rest = line[at:]
