@@ -100,8 +100,9 @@ COQ_VOID = ("Fail", "Succeed")
 _DECORATION_OPENS = frozenset("#LGPMCNTIFSRA")
 
 # The command under a decoration where `COQ_TOP` does not name it, `Opaque` under
-# `Local` being one this repository's proofs write.
-_COMMAND_WORD = re.compile(r"(\w+)")
+# `Local` being one this repository's proofs write. A command is capitalised, so a word
+# under a flag that is not is a tactic's, `Time lia` in a proof script, and no command.
+_COMMAND_WORD = re.compile(r"([A-Z]\w*)")
 
 
 @dataclass(frozen=True)
@@ -269,10 +270,11 @@ def _coq_head(line: str) -> tuple[str, str] | None:
     or None where it opens none.
 
     A bare line opens a region exactly when it starts with a `COQ_TOP` keyword. A
-    decorated one always does, since a decoration only ever opens a command: keyed by
-    the `COQ_TOP` keyword under it, else by the word under it, else by the decoration
-    itself where the command continues on the next line, and by `Fail` or `Succeed`
-    wherever either is among the decorations.
+    decorated one opens a region keyed by the `COQ_TOP` keyword under it, else by the
+    capitalised command word under it, else by the decoration itself where the command
+    continues on the next line, and by `Fail` or `Succeed` wherever either is among the
+    decorations; under a word that is no command it opens none. Whether the line is
+    code at all is the caller's to decide, a line inside a comment reading the same.
     """
     at = 0
     flags: list[str] = []
@@ -286,25 +288,35 @@ def _coq_head(line: str) -> tuple[str, str] | None:
         return (str(found.group(1)), rest[found.end():]) if found else None
     if found is None:
         found = _COMMAND_WORD.match(rest)
+        if found is None and rest.strip():
+            return None
     keyword, after = ((str(found.group(1)), rest[found.end():]) if found
                       else (flags[0], rest))
     void = next((flag for flag in flags if flag in COQ_VOID), None)
     return (void or keyword), after
 
 
-def regions(text: str, lane: str) -> list[Region]:
+def regions(text: str, lane: str, lexical: list[bool] | None = None) -> list[Region]:
     """The source's top-level blocks, each from its own keyword to the next one.
 
     A line-based reading rather than a parse, and it is enough for what it decides: a
     block's *extent* only has to be right about which command a character belongs to,
     and both languages here put every top-level command at the start of a line. A Rocq
-    command's decorations are read past, so the region is keyed by what they decorate.
+    command's decorations are read past, so the region is keyed by what they decorate,
+    and a Rocq line whose first character lies inside a comment or a string is prose
+    that opens nothing, whatever word it starts with, its lines staying in the region
+    above. `lexical` is `mask(text, lane)` where the caller holds it already.
     """
     starts: list[tuple[int, str, str]] = []
     offset = 0
     for line in text.splitlines(keepends=True):
         if lane == COQ:
             head = _coq_head(line)
+            if head is not None:
+                if lexical is None:
+                    lexical = mask(text, lane)
+                if not lexical[offset]:
+                    head = None
         else:
             found = SAIL_TOP.match(line)
             head = (found.group(1), line[found.end():]) if found else None
@@ -333,7 +345,7 @@ def mutable_mask(text: str, lane: str, only: tuple[str, ...] | None = None,
         COQ_MUTABLE if lane == COQ else SAIL_MUTABLE)
     ok = mask(text, lane)
     inside = [False] * len(text)
-    for region in regions(text, lane):
+    for region in regions(text, lane, ok):
         if region.keyword not in admitted:
             continue
         if named and region.name not in named:

@@ -119,6 +119,28 @@ def _a_void_command_defines_nothing_to_mutate() -> None:
         ensure(keys == ["Definition", flag.split()[-1]], f"regions keyed {keys}")
 
 
+def _a_line_inside_a_comment_opens_no_region() -> None:
+    """A line that opens inside a comment is prose whatever word it starts with, so the
+    definition around it keeps its region and its sites. Read as a command, a flag word
+    at the start of such a line keyed the rest of the definition by whatever followed."""
+    for opener in ("Time is linear here", "Fail to see why", "#[local] was tried",
+                   "Definition of the bound", "Proof sketch"):
+        text = ("Definition f (n : nat) : nat :=\n"
+                "  (* the bound\n"
+                f"{opener} *)\n"
+                "  n + 2.\n")
+        found = _sites(text, mutate.COQ, "const-inc")
+        ensure([m.before for m in found] == ["2"],
+               f"under a comment line {opener!r} the sites were {found}")
+        keys = [(r.keyword, r.name) for r in mutate.regions(text, mutate.COQ)]
+        ensure(keys == [("Definition", "f")], f"a comment line opened regions {keys}")
+    # a word under a flag that is no command is a tactic's, and opens nothing either
+    text = ("Definition f (n : nat) : nat := n + 1.\n"
+            "Lemma l : f 1 = 2.\nProof.\nTime reflexivity.\nQed.\n")
+    keys = [r.keyword for r in mutate.regions(text, mutate.COQ)]
+    ensure(keys == ["Definition", "Lemma", "Proof", "Qed"], f"a timed tactic: {keys}")
+
+
 def _a_record_completed_from_a_base_is_mutable() -> None:
     # 9.3's `{| r with f := v |}` is a definition's own text, so its literal is a site.
     text = ("Definition g (r : R) : R := {| r with f := 3 |}.\n")
@@ -264,6 +286,8 @@ def cases() -> list[Case]:
              _a_decorated_proof_ends_the_definition_above),
         Case("a void command defines nothing to mutate",
              _a_void_command_defines_nothing_to_mutate),
+        Case("a line inside a comment opens no region",
+             _a_line_inside_a_comment_opens_no_region),
         Case("a record completed from a base is mutable",
              _a_record_completed_from_a_base_is_mutable),
         Case("a hex or bit literal is one token", _hex_and_bit_literals_are_not_arithmetic),
