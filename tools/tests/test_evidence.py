@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, Mock, patch
 from tests.harness import Case, ensure, sandbox_tree
 from vos import env, receipts
 from vos.cli import evidence
+from vos.cli import model as model_cli
 from vos.report import Reporter
 
 _OUTPUT = {
@@ -65,7 +66,7 @@ def _scenario(*, build: bool = False, failed: str = "", absent: str = "",
         verify = Mock(side_effect=receipt_error) if receipt_error else Mock(
             side_effect=[{"identity": "before"},
                          {"identity": "after" if changed_build else "before"}])
-        fake_model = SimpleNamespace(BUILD_INPUTS=("model",), verified_build=verify)
+        fake_model = SimpleNamespace(build_inputs=fake_receipts.inputs, verified_build=verify)
         verify_proofs = (Mock(side_effect=proof_error) if proof_error else
                          Mock(return_value={"sha256": "proof receipt",
                                             "constants": 7,
@@ -181,10 +182,17 @@ def _changed_inputs_and_artifacts_invalidate_measurements() -> None:
                "source or artifact changes after successful members invalidate the sweep")
 
 
+def _pin(root: Path, path: str, commit: str) -> None:
+    """Record `path` as a submodule pinned at `commit`, as a gitlink bump leaves it."""
+    subprocess.run(["git", "-C", str(root), "update-index", "--add", "--cacheinfo",
+                    f"160000,{commit},{path}"], check=True, capture_output=True, timeout=60)
+
+
 def _proof_receipt_is_an_output() -> None:
     with sandbox_tree({"proofs/Theorem.v": "Theorem bytes\n",
                        "proofs/proof-evidence.json": "old receipt\n",
                        "proofs/README.md": "proof metadata\n"}) as root:
+        _pin(root, model_cli.ORACLE_SRC, "1" * 40)
         before = evidence._inputs(root)
         receipt = root / "proofs/proof-evidence.json"
         receipt.write_text("new receipt\n", encoding="utf-8")
@@ -203,6 +211,27 @@ def _proof_receipt_is_an_output() -> None:
         (root / "proofs/New.v").write_text("new proof\n", encoding="utf-8")
         ensure(evidence._inputs(root) != before,
                "new proof sources must still change the input manifest")
+
+
+def _read_later_gitlinks_are_not_inputs() -> None:
+    """The sweep binds the gitlinks a model command opens, as the build identity does."""
+    with sandbox_tree({"proofs/Theorem.v": "Theorem bytes\n"}) as root:
+        _pin(root, model_cli.ORACLE_SRC, "1" * 40)
+        _pin(root, "upstream/katamaran", "2" * 40)
+        before = evidence._inputs(root)
+        _pin(root, "upstream/katamaran", "3" * 40)
+        ensure(evidence._inputs(root) == before,
+               "advancing a read-later gitlink must leave the evidence inputs unchanged")
+        _pin(root, model_cli.ORACLE_SRC, "4" * 40)
+        ensure(evidence._inputs(root) != before,
+               "advancing the oracle's gitlink must change the evidence inputs")
+        subprocess.run(["git", "-C", str(root), "update-index", "--force-remove",
+                        model_cli.ORACLE_SRC], check=True, capture_output=True, timeout=60)
+        try:
+            evidence._inputs(root)
+        except ValueError:
+            return
+        raise AssertionError("evidence inputs without the oracle's gitlink were accepted")
 
 
 def _reused_proofs_keep_their_measurement() -> None:
@@ -362,6 +391,7 @@ def cases() -> list[Case]:
         Case("missing-stale-receipts-stop-consumers", _missing_or_stale_receipt_stops_consumers),
         Case("changed-inputs-artifacts-invalidate", _changed_inputs_and_artifacts_invalidate_measurements),
         Case("proof-receipt-is-an-output", _proof_receipt_is_an_output),
+        Case("read-later-gitlinks-are-not-inputs", _read_later_gitlinks_are_not_inputs),
         Case("reused-proofs-keep-measurement", _reused_proofs_keep_their_measurement),
         Case("proof-measurement-counts-inventory", _proof_measurement_counts_validated_inventory),
         Case("missing-measurement-fails", _missing_measurement_is_a_failure),

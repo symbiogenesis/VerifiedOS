@@ -188,7 +188,7 @@ jobs:
             ~/verifiedos-guest/.verifiedos-guest-root
             ~/verifiedos-guest/opam/download-cache
             ~/verifiedos-guest/build/verilator-*-source/*.tar.gz
-          key: guest-downloads-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/cli/rtl.py', 'tools/vos/receipts.py') }}
+          key: guest-downloads-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/opam_client.py', 'tools/vos/cli/rtl.py', 'tools/vos/receipts.py') }}
           restore-keys: guest-downloads-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Identify the runner image
@@ -215,9 +215,10 @@ jobs:
         with:
           path: ${{ env.GUEST_TOOLCHAIN_PATHS }}
           # Switch names and the Verilator prefix carry their versions, and bootstrap
-          # imports each lock into a restored switch, so env.py and rtl.py stay out.
+          # imports each lock into a restored switch, so env.py and rtl.py stay out; the
+          # opam client's owner is hashed because that client builds every switch.
           # Exact keys only: another snapshot's switch is never restored.
-          key: guest-toolchains-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.toolchain }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py') }}
+          key: guest-toolchains-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.toolchain }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/opam_client.py') }}
           # A cold run only learns whether the installation needs saving.
           lookup-only: ${{ env.GUEST_COLD == 'true' }}
 

@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+# Sail's pinned solver as uv installs it: tools/vos/env.py's Z3_VERSION names the
+# release and `z3_install` runs this file with --no-build and --require-hashes, so
+# only these two wheels install, never a solver compiled from the source archive.
+# The hashes are PyPI's for the manylinux_2_27_x86_64 and manylinux_2_38_aarch64
+# wheels, in that order, and equal the digests of the release's own wheel assets.
+z3-solver==5.1.0.0 \
+    --hash=sha256:dfad9e309d7010b1ff6bdb33f21570a1603ef4727373221c7117a74448f0cfef \
+    --hash=sha256:1dcfcccb4b027951d7adf267b5b236e7a67b8433cc358d802dcb0280151587bf

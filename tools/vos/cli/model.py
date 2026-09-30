@@ -98,13 +98,36 @@ SAIL_HOW = env.install_line(env.SAIL_INSTALL)
 # verdict back out of. One spelling, at both ends.
 STAGE_EXIT = re.compile(r"^\w+_EXIT=(\d+)$")
 
+# The M0.4 oracle's pinned source, and the only submodule any model command opens.
+ORACLE_SRC = "upstream/sail-cheri-riscv"
+
+# The gitlinks a model build and the evidence sweep bind, which are the ones a model
+# command opens and no others: a pin recorded to be read later changes nothing these
+# commands read, so advancing one must not stale a build receipt or the evidence
+# inputs. `build_inputs` refuses an identity missing any of them.
+BUILD_GITLINKS = (ORACLE_SRC,)
 BUILD_INPUTS = ("model", "tools/run.py", "tools/vos", "tools/generated", "interfaces", "corpus",
-                "upstream", ".gitmodules")
+                *BUILD_GITLINKS, ".gitmodules")
 BUILD_ARTIFACTS = ("c_emulator/sail_riscv_sim", "test/unit_tests/unit_tests",
                    "test/unit_tests/block_payload", "test/unit_tests/block_reset",
                    "test/unit_tests/block_image",
                    "test/unit_tests/block_receipt",
                    "CMakeCache.txt", "build.ninja")
+
+
+def build_inputs(root: Path, *extra: str) -> dict[str, str]:
+    """The model's source manifest, with `extra` pathspecs bound beside it.
+
+    Fail-closed on the gitlinks: each of `BUILD_GITLINKS` must be recorded as a pinned
+    commit, so a submodule removed, renamed or replaced by ordinary files is refused
+    rather than dropped from the identity.
+    """
+    manifest = receipts.inputs(root, *BUILD_INPUTS, *extra)
+    for gitlink in BUILD_GITLINKS:
+        if not manifest.get(gitlink, "").startswith("gitlink:"):
+            raise ValueError(f"{gitlink} is not a pinned gitlink in this checkout's index, "
+                             "and the model's build identity binds it")
+    return manifest
 
 
 def build_identity(e: env.Environment) -> dict[str, object]:
@@ -121,7 +144,7 @@ def build_identity(e: env.Environment) -> dict[str, object]:
         raise ValueError("git could not identify the model for its build receipt")
     compilers = [arg.split("=", 1)[1] for arg in e.compilers if "=" in arg]
     return {
-        "inputs": receipts.inputs(e.root, *BUILD_INPUTS),
+        "inputs": build_inputs(e.root),
         "tools": receipts.executables("sail", "z3", "cmake", "ctest", "ninja",
                                       *(compilers or ["cc", "c++"])),
         "compiler_options": e.compilers, "cache_options": e.ccache,
@@ -189,8 +212,16 @@ def verified_build(e: env.Environment, *, fast: bool = False) -> dict[str, objec
         raise ValueError("the build receipt is stale: its test log changed")
     return record
 
-ORACLE_SRC = "upstream/sail-cheri-riscv"
 ORACLE_TARGET = "c_emulator/cheri_riscv_sim_RV64"
+
+# The oracle's embedded `sail-riscv`, a submodule of the pinned tree rather than of this
+# repository, and the one command that checks out both at their recorded commits.
+ORACLE_NESTED = "sail-riscv"
+ORACLE_INIT = f"git submodule update --init --recursive {ORACLE_SRC}"
+
+# Written into a synced tree once its files are shown to be the pinned commits', and
+# read back before a tree already standing is reused.
+ORACLE_STAMP = ".verifiedos-oracle-source"
 
 # The C standard the oracle's tree is built to. gcc 15 defaults to C23, in which an
 # empty parameter list declares *no* parameters rather than an unspecified one; Sail's
@@ -1030,18 +1061,37 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
     The suite it then runs is the oracle's own acceptance and not the transplant's: it
     says the reference is a working machine before `trace-diff` is allowed to treat it
     as evidence.
+
+    The compiler is this environment's `sail`, bound twice. The tree sits under the
+    edition that builds it (`env.Environment.oracle_root`), because the Makefile's
+    generated C depends on the sources and not on the compiler; and `make` is handed
+    `SAIL` on its command line, which overrides the Makefile's own reading of opam's
+    current switch and with it the runtime library it compiles against, so the build
+    uses the compiler the log names.
+
+    The source is bound as well. The tree's name asserts the pin, so the checkout it
+    is copied from has to be that pin: both submodules at their recorded commits
+    (`_oracle_pins`), and the copy holding those commits' files and no others
+    (`_verify_oracle_copy`). A tree that passes carries a stamp naming both commits,
+    and a standing tree is reused only while its stamp names the current pins.
     """
     _require("sail", SAIL_HOW)
+    sail = shutil.which("sail") or "sail"
     src = e.root / ORACLE_SRC
-    if not (src / "Makefile").is_file():
-        print(f"no oracle source at {src}; the submodule is not checked out",
-              file=sys.stderr)
+    if not (src / "Makefile").is_file() or not (src / ORACLE_NESTED / "model").is_dir():
+        print(f"no oracle source at {src}: the submodule or its nested {ORACLE_NESTED} "
+              f"is not checked out; run `{ORACLE_INIT}`", file=sys.stderr)
+        return 1
+    try:
+        pins = _oracle_pins(e.root, src)
+    except ValueError as err:
+        print(str(err), file=sys.stderr)
         return 1
 
     tree = e.oracle_root
     e.log_dir.mkdir(parents=True, exist_ok=True)
     log = e.log("oracle-build")
-    version = subprocess.run(["sail", "--version"], capture_output=True, text=True, check=False)
+    version = subprocess.run([sail, "--version"], capture_output=True, text=True, check=False)
 
     # The one tree every lane shares, so the lock sits beside it rather than in any
     # lane, and a second run, from this checkout or another, is refused rather than
@@ -1050,17 +1100,19 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
     with env.hold_lock(tree, "an oracle build"):
         print(f"== log: {log}", flush=True)
         with log.open("w", encoding="utf-8") as handle:
-            handle.write(f"== sail: {version.stdout.strip()}\n")
+            handle.write(f"== sail: {version.stdout.strip()} at {sail}\n")
             handle.write(f"== tree: {tree}\n")
-            if args.resync or not (tree / "Makefile").is_file():
-                handle.write(f"SYNC from {src}\n")
-                handle.flush()
-                _sync_oracle_tree(src, tree)
-            else:
-                handle.write("SYNC skipped: the tree is already present\n")
+            handle.write(f"== source: {ORACLE_SRC} at {pins[0]}, "
+                         f"{ORACLE_NESTED} at {pins[1]}\n")
+            refusal = _stand_oracle_tree(src, tree, pins, handle, resync=args.resync)
+            if refusal:
+                handle.write(f"SYNC refused: {refusal}\nALL_DONE\n")
+                print(refusal, file=sys.stderr)
+                print(f"== failed: {log}")
+                return 1
             handle.flush()
 
-            code = env.stage("oracle", ["make", "-j", str(e.jobs),
+            code = env.stage("oracle", ["make", "-j", str(e.jobs), f"SAIL={sail}",
                                         f"C_WARNINGS={ORACLE_CSTD}", ORACLE_TARGET],
                              cwd=tree, stdout=handle, stderr=handle)
             handle.write(f"BUILD_EXIT={code}\n")
@@ -1071,6 +1123,165 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
 
     print(f"== {'green' if code == 0 else 'failed'}: {log}")
     return code
+
+
+def _stand_oracle_tree(src: Path, tree: Path, pins: tuple[str, str], handle: IO[str], *,
+                       resync: bool) -> str:
+    """Leave `tree` holding the pinned source, or say why it cannot; "" is success.
+
+    A tree already standing is reused only when its stamp names these pins, so one
+    synced from another checkout or before the stamp existed is refused rather than
+    built as though it were this pin. A fresh copy is verified before it is stamped,
+    and a copy that fails is removed, so no unverified tree is left to be reused.
+    """
+    stamp = tree / ORACLE_STAMP
+    if not resync and (tree / "Makefile").is_file():
+        recorded = stamp.read_text(encoding="utf-8").split() if stamp.is_file() else []
+        if recorded != list(pins):
+            return (f"{tree} records {' and '.join(recorded) or 'no source commits'}, "
+                    f"not these pins; rerun with --resync")
+        handle.write("SYNC skipped: the tree is already present at these pins\n")
+        return ""
+    handle.write(f"SYNC from {src}\n")
+    handle.flush()
+    _sync_oracle_tree(src, tree)
+    try:
+        _verify_oracle_copy(src, tree, pins)
+    except ValueError as err:
+        shutil.rmtree(tree, ignore_errors=True)
+        return str(err)
+    stamp.write_text(f"{pins[0]}\n{pins[1]}\n", encoding="utf-8", newline="")
+    handle.write("SYNC verified: the copy is the pinned commits' files\n")
+    return ""
+
+
+def _plain_git(argv: list[str], cwd: Path, overlay: dict[str, str] | None = None,
+               stdin: bytes | None = None) -> bytes:
+    """One `git` read, answered from the repository `cwd` stands in, or refused.
+
+    Every inherited variable that would point git at another repository is dropped,
+    because the submodules are repositories of their own; `overlay` is how the
+    superproject's reading still gets a lane's administrative directory.
+    """
+    scrubbed = {name: value for name, value in os.environ.items()
+                if name not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")}
+    done = subprocess.run(["git", *argv], cwd=cwd, input=stdin, capture_output=True,
+                          check=False, timeout=900, env={**scrubbed, **(overlay or {})})
+    if done.returncode:
+        raise ValueError(f"`git {' '.join(argv)}` in {cwd} failed: "
+                         f"{done.stderr.decode('utf-8', errors='replace').strip()}")
+    return done.stdout
+
+
+def _gitlink(listing: bytes, path: str, where: str) -> str:
+    """The commit a `ls-files --stage` or `ls-tree` line records for `path`."""
+    for line in listing.decode("utf-8", errors="replace").splitlines():
+        meta, _, named = line.partition("\t")
+        fields = meta.split()
+        if named == path and fields and fields[0] == "160000":
+            commit = next((f for f in fields[1:] if re.fullmatch(r"[0-9a-f]{40,64}", f)), "")
+            if commit:
+                return commit
+    raise ValueError(f"{where} records no gitlink for {path}; run `{ORACLE_INIT}`")
+
+
+def _oracle_pins(root: Path, src: Path) -> tuple[str, str]:
+    """The oracle's two pins, with both checkouts shown to be at them.
+
+    The outer pin is this repository's gitlink; the inner one is what that commit
+    records for its nested `sail-riscv`, read from the commit rather than from an index
+    a local edit could have moved. Each checkout's HEAD must be its pin: a gitlink bump
+    leaves a populated submodule at the old commit, and the tree's name would then
+    claim a pin its bytes are not.
+    """
+    outer = _gitlink(_plain_git(["ls-files", "--stage", "--", ORACLE_SRC], root,
+                                env.git_env(root) or None), ORACLE_SRC, "this checkout's index")
+    head = _plain_git(["rev-parse", "HEAD"], src).decode().strip()
+    if head != outer:
+        raise ValueError(f"{ORACLE_SRC} is checked out at {head}, not at its pin {outer}; "
+                         f"run `{ORACLE_INIT}`")
+    inner = _gitlink(_plain_git(["ls-tree", outer, "--", ORACLE_NESTED], src),
+                     ORACLE_NESTED, f"{ORACLE_SRC} at {outer}")
+    # An uninitialized nested directory answers for the repository around it, so the
+    # top level is asked for as well as the commit.
+    nested = src / ORACLE_NESTED
+    answer = _plain_git(["rev-parse", "--show-toplevel", "HEAD"], nested).decode().splitlines()
+    try:
+        own = len(answer) == 2 and Path(answer[0]).samefile(nested)
+    except OSError:
+        own = False
+    if not own or answer[1] != inner:
+        raise ValueError(f"{ORACLE_SRC}/{ORACLE_NESTED} is not checked out at its pin "
+                         f"{inner}; run `{ORACLE_INIT}`")
+    return outer, inner
+
+
+def _read_blobs(repo: Path, oids: list[str]) -> dict[str, bytes]:
+    """The contents of `oids`, read in one `git cat-file --batch`."""
+    out = _plain_git(["cat-file", "--batch"], repo, stdin="".join(f"{o}\n" for o in oids).encode())
+    blobs: dict[str, bytes] = {}
+    at = 0
+    for oid in oids:
+        end = out.index(b"\n", at)
+        header = out[at:end].decode("utf-8", errors="replace").split()
+        if len(header) != 3 or header[0] != oid or header[1] != "blob":
+            raise ValueError(f"{repo} cannot supply {oid}: {' '.join(header)}")
+        size = int(header[2])
+        blobs[oid] = out[end + 1:end + 1 + size]
+        at = end + 1 + size + 1
+    return blobs
+
+
+def _verify_oracle_copy(src: Path, tree: Path, pins: tuple[str, str]) -> None:
+    """The synced tree holds exactly the pinned commits' files, line endings aside.
+
+    Decided on the copy rather than by `git status` over the checkout, for two reasons.
+    It is the copy the build reads, so this is the question that matters; and the
+    guest's git over a checkout the host's git wrote re-reads every file across the
+    mount and reads the host's CRLF conversion as an edit to each one. Line endings are
+    compared normalized, which is what the copy does to the files the build parses.
+    Anything else, an edited file, a missing one, or an untracked or ignored one the
+    copy carried in, refuses.
+    """
+    expected: dict[str, tuple[str, str]] = {}
+    owners: dict[str, Path] = {}
+    for repo, prefix, commit in ((src, "", pins[0]),
+                                 (src / ORACLE_NESTED, f"{ORACLE_NESTED}/", pins[1])):
+        listing = _plain_git(["ls-tree", "-r", "-z", "--full-tree", commit], repo)
+        for entry in listing.decode("utf-8", errors="surrogateescape").split("\0"):
+            if not entry:
+                continue
+            meta, _, path = entry.partition("\t")
+            mode, kind, oid = meta.split()
+            if kind == "blob":
+                expected[prefix + path] = (mode, oid)
+                owners[oid] = repo
+            elif kind != "commit":
+                raise ValueError(f"{prefix + path} is a {kind}, which the copy cannot hold")
+    present = {path.relative_to(tree).as_posix() for path in tree.rglob("*")
+               if path.is_symlink() or path.is_file()}
+    faults = [f"{rel} is in the copy and not in the pinned commits"
+              for rel in sorted(present - expected.keys())]
+    faults += [f"{rel} is missing" for rel in sorted(expected.keys() - present)]
+    blobs: dict[str, bytes] = {}
+    for repo in (src, src / ORACLE_NESTED):
+        blobs.update(_read_blobs(repo, sorted({oid for oid, owner in owners.items()
+                                                if owner == repo})))
+    for rel, (mode, oid) in sorted(expected.items()):
+        path = tree / rel
+        if rel not in present:
+            continue
+        if mode == "120000":
+            same = path.is_symlink() and os.fsencode(path.readlink()) == blobs[oid]
+        else:
+            same = (not path.is_symlink() and path.read_bytes().replace(b"\r\n", b"\n")
+                    == blobs[oid].replace(b"\r\n", b"\n"))
+        if not same:
+            faults.append(f"{rel} differs from its pinned content")
+    if faults:
+        raise ValueError(f"the copy of {ORACLE_SRC} is not its pinned commits, "
+                         f"{len(faults)} difference(s): {'; '.join(faults[:5])}; "
+                         f"remove the local changes or run `{ORACLE_INIT}`")
 
 
 def _sync_oracle_tree(src: Path, tree: Path) -> None:

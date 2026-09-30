@@ -133,7 +133,7 @@ jobs:
             !~/verifiedos-guest/opam/download-cache
             !~/verifiedos-guest/opam/log
             ~/verifiedos-guest/build/toolchains
-          key: guest-toolchains-v1-model-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py') }}
+          key: guest-toolchains-v1-model-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/opam_client.py') }}
 
       - name: Bootstrap the Sail toolchain
         id: bootstrap

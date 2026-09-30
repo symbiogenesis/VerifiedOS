@@ -24,11 +24,15 @@ The 5.1.1 wrapper compilation and Gallina vector checks pass, but the full Certi
 
 CertiRocq and its Wasm library require Rocq below 9.2. QuickChick independently requires `coq-simple-io`, which caps Coq below 9.2 and dune below 3.22. Their Coq 9.1.1 compatibility package fixes the standard library at 9.0.0. Those library constraints do not limit the proof gate or Rupicola switch.
 
-The [guest bootstrap](../ci/bootstrap_guest.py) owns the reviewed opam client release
-and architecture-specific SHA-256 hashes. It initializes an isolated root, registers
-the package repositories and imports the Sail and proof snapshots without changing
-the developer's active switch. See [the CI guide](../ci/README.md) for invocation,
-placement and environment setup. The remaining experimental switches are installed
+[The opam client's owner](../vos/opam_client.py) fixes the reviewed client release, its
+architecture-specific SHA-256 hashes and the package repositories. The
+[guest bootstrap](../ci/bootstrap_guest.py) downloads that client, initializes an isolated
+root on those repositories, records each repository's URL and metadata stamp in
+`bootstrap.json`, and imports the Sail and proof snapshots without changing the developer's
+active switch. `run.py provision` holds a developer's client to the same release and reports
+its root's format and repository stamps; moving an existing root to a newer client upgrades
+its format one way, so it is a deliberate, recorded step. See [the CI guide](../ci/README.md)
+for invocation, placement and environment setup. The remaining experimental switches are installed
 separately into an initialized root.
 
 From the repository root in the guest, register the repositories and import a snapshot into its dedicated switch:
