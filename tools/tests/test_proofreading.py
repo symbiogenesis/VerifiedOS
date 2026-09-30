@@ -75,6 +75,24 @@ A.pid is transparent
 Expands to: Constant A.pid
 Declared in library A, line 11, characters 37-40"""
 
+# `About S.ax.` for `Axiom ax : nat.`, and for `Definition s := 1.` followed in its
+# module by `Global Strategy 5 [s].`: Rocq 9.3 states no opacity for a constant with
+# no body, and a sentence of its own for a strategy other than the default.
+_ABOUT_AXIOM = """\
+S.ax : nat
+
+S.ax is not universe polymorphic
+Expands to: Constant S.ax
+Declared in library S, line 1, characters 6-8"""
+
+_ABOUT_STRATEGY = """\
+S.s : nat
+
+S.s is not universe polymorphic
+S.s is transparent (level 5)
+Expands to: Constant S.s
+Declared in library S, line 9, characters 11-14"""
+
 # `Check @B.upoly.` twice and then `Check @A.pid.` in one query process: the fresh
 # levels are named after the query file and a counter over the whole process.
 _CHECK_POLYMORPHIC = """\
@@ -188,6 +206,23 @@ def _about_keeps_every_fact_but_locations() -> None:
         name = "A.color" if "inductive" in label else "A.five_is"
         _refused(lambda name=name, text=text: proofreading.parse_about(name, text),
                  f"About with {label} was placed")
+    strategy = "S.s is transparent (level 5)"
+    for name, text, cause in (
+            ("S.ax", _ABOUT_AXIOM, "no body"),
+            ("S.s", _ABOUT_STRATEGY, "reduction strategy"),
+            ("S.s", _ABOUT_STRATEGY.replace(strategy, "S.s is transparent (level -3)"),
+             "reduction strategy"),
+            ("S.s", _ABOUT_STRATEGY.replace(strategy, "S.s is transparent (expand)"),
+             "reduction strategy"),
+            ("S.s", _ABOUT_STRATEGY.replace(strategy,
+                                            "S.s is opaque but may be made transparent"),
+             "reduction strategy")):
+        try:
+            proofreading.parse_about(name, text)
+        except proofreading.ReadingError as error:
+            ensure(cause in str(error), f"{name} was refused for another cause: {error}")
+            continue
+        raise AssertionError(f"About {name} with {cause} was placed")
 
 
 def _fresh_universes_are_renamed_by_appearance() -> None:
