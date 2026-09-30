@@ -159,7 +159,7 @@ That is 16 to 23 h in total, outside R2's cell as priced, and it waits on M4.4's
 
 ## 10. What is owed
 
-- The Verilator top that wraps the curated core, loads a corpus image, detects the `tohost` store and instantiates the frame writer, which waits on the port contract of section 3; the curated core it wraps elaborates under Verilator.
+- The Verilator top that wraps the curated core, loads a corpus image, detects the `tohost` store and instantiates the frame writer, which waits on R1b's [core-port contract](../hardware/core-port-contract.md) stating the obligations of section 3; the curated core it wraps elaborates under Verilator.
 - The port obligations of section 3, in that contract.
 - The declared member scope of section 5, and a disposition for the three classes it excludes.
 - The bounded model-checking smoke's four inputs of section 7, the models its plan owes in place of riscv-formal's, and the depths its first run sets.
