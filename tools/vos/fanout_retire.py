@@ -321,8 +321,8 @@ def _owned_logs(logs: Path, lane: str, peers: list[str]) -> tuple[list[Path], li
 # output: the curated emulator's block-image lock through the block persistence
 # campaign's, or under ctest through the lock its caller holds beside the build tree
 # or a directory containing it, and Cargo's `.cargo-lock` and `.package-cache` through
-# the idealloc build's and Isla provisioning's. The tests hold this list against every
-# `flock` call site in the tools' Python and shell sources.
+# the idealloc build's and Isla provisioning's. The tests classify every `flock` site
+# in the tools' Python and in the checkout's shell, C and C++ sources against this list.
 _DIRECTORY_LOCKS = ("proof-gate",)
 
 
