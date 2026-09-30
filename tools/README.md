@@ -1030,7 +1030,11 @@ modules use POSIX APIs, even when the host checks them. It does not move executi
 Linux. ty reports nothing in a branch the target makes unreachable, so the gate runs ty
 under `--python-platform linux` and again under `win32`, each run its own verdict. The
 second run types the branches taken only when `sys.platform` is `win32`, and holds every
-call typeshed declares absent on Windows behind a `sys.platform` check.
+call typeshed declares absent on Windows behind a `sys.platform` check. typeshed stubs
+each module one platform lacks, such as `fcntl` or `msvcrt`, for both platforms, so
+neither run sees a module-level import of one fail on the other platform; ruff.toml's
+`banned-module-level-imports` refuses those imports, and each module is imported inside
+the function that uses it, behind a `sys.platform` check.
 
 The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
 addresses ty's recursive-JSON narrowing behavior, not

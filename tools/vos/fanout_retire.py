@@ -325,7 +325,7 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
     """
     if sys.platform == "win32":
         raise RetirementError("native output retention must run through the guest")
-    import fcntl  # noqa: PLC0415
+    import fcntl
 
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", lane) or lane in {".", ".."}:
         raise RetirementError("invalid native lane")

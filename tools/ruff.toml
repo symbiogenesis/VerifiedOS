@@ -53,7 +53,7 @@ select = [
     "TRY",    # exception handling, less the message-shape rule below
     "SLOT",   # __slots__ on the classes that want them
     "INT",    # printf-string correctness
-    "TID",    # tidy imports: absolute over relative-from-a-parent
+    "TID",    # tidy imports: absolute over relative-from-a-parent, platform modules deferred
     "PGH",    # a blanket `# noqa` or `# type: ignore`: a suppression names its rule, as above
 ]
 
@@ -91,3 +91,8 @@ suppress-none-returning = false
 suppress-dummy-args = false
 allow-star-arg-any = false
 mypy-init-return = false
+
+[lint.flake8-tidy-imports]
+# Absent on one platform but stubbed for both, so ty cannot see a module-level import fail.
+banned-module-level-imports = ["fcntl", "grp", "msvcrt", "posix", "pty", "pwd", "resource",
+                               "syslog", "termios", "tty", "winreg", "winsound"]

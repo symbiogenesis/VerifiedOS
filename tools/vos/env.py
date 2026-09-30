@@ -539,7 +539,7 @@ def _raise_stack_limit() -> None:
     # and refusing win32 first states the platform in a form ty reads.
     if sys.platform == "win32":
         raise RuntimeError("the stack limit is raised in the guest")
-    import resource  # noqa: PLC0415
+    import resource
     soft, hard = resource.getrlimit(resource.RLIMIT_STACK)
     want = STACK_BYTES if hard == resource.RLIM_INFINITY else min(STACK_BYTES, hard)
     if soft == resource.RLIM_INFINITY or soft >= want:
@@ -907,7 +907,7 @@ def _flock(handle: IO[str], *, blocking: bool) -> bool:
     """
     if sys.platform == "win32":
         raise RuntimeError("build locks are taken in the guest")
-    import fcntl  # noqa: PLC0415
+    import fcntl
     flags = fcntl.LOCK_EX if blocking else fcntl.LOCK_EX | fcntl.LOCK_NB
     try:
         fcntl.flock(handle.fileno(), flags)
@@ -919,7 +919,7 @@ def _flock(handle: IO[str], *, blocking: bool) -> bool:
 def _unlock(handle: IO[str]) -> None:
     if sys.platform == "win32":
         raise RuntimeError("build locks are released in the guest")
-    import fcntl  # noqa: PLC0415
+    import fcntl
     fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
