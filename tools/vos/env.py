@@ -892,8 +892,12 @@ def _lock_path(build_dir: Path) -> Path:
     return build_dir.parent / f"{build_dir.name}.lock"
 
 
-def _flock(handle: IO[str], *, blocking: bool) -> bool:
-    """Take an exclusive lock on an open file, or say that it is held.
+def _flock(handle: IO[str], *, blocking: bool, shared: bool = False) -> bool:
+    """Take a lock on an open file, or say that it is held.
+
+    Exclusive unless `shared`: a shared lock stands beside any number of other shared
+    ones and against an exclusive one, which is how a reader keeps out a run that
+    would replace what it reads without keeping out a second reader (see `hold_lock`).
 
     POSIX-only, and this module is read on the host as well as run in the guest, so
     the import is deferred for the reason `_raise_stack_limit`'s is. `flock` belongs to
@@ -901,7 +905,8 @@ def _flock(handle: IO[str], *, blocking: bool) -> bool:
     build hold a lock its launcher took: see `build_lock`.
     """
     import fcntl  # noqa: PLC0415
-    flags = fcntl.LOCK_EX if blocking else fcntl.LOCK_EX | fcntl.LOCK_NB
+    kind = fcntl.LOCK_SH if shared else fcntl.LOCK_EX
+    flags = kind if blocking else kind | fcntl.LOCK_NB
     try:
         fcntl.flock(handle.fileno(), flags)
     except OSError:
@@ -920,16 +925,18 @@ def _open_lock(build_dir: Path) -> IO[str]:
     return path.open("a+", encoding="utf-8")
 
 
-def _try_lock(target: Path) -> tuple[IO[str] | None, str]:
+def _try_lock(target: Path, *, reader: str = "") -> tuple[IO[str] | None, str]:
     """Take the lock beside `target`, or name who holds it.
 
     Exactly one half of the pair is meaningful: the open locked handle with this
-    process recorded as holder, or, when the handle is `None`, the pid the holding
-    run recorded in the lock file.
+    process recorded as holder, or, when the handle is `None`, what the holding run
+    recorded in the lock file. A `reader` takes the lock shared and records itself as
+    `<pid> <reader>`, so a refusal can tell a reader from a writer; a writer records
+    its pid alone.
     """
     handle = _open_lock(target)
-    if _flock(handle, blocking=False):
-        record_lock_holder(handle, os.getpid())
+    if _flock(handle, blocking=False, shared=bool(reader)):
+        record_lock_holder(handle, os.getpid(), reader)
         return handle, ""
     handle.seek(0)
     holder = handle.read().strip() or "unknown"
@@ -963,7 +970,7 @@ def build_lock(build_dir: Path) -> IO[str] | None:
     return handle
 
 
-def hold_lock(target: Path, what: str) -> IO[str]:
+def hold_lock(target: Path, what: str, *, shared: bool = False) -> IO[str]:
     """Hold `target` for the life of this process, or refuse naming the holder.
 
     `build_lock`'s machinery for the mutable state a build lock does not cover: the
@@ -972,20 +979,33 @@ def hold_lock(target: Path, what: str) -> IO[str]:
     pre-exists whatever the run creates and survives whatever the run deletes. The
     caller must keep the returned handle bound for as long as it means to hold
     `target`; dropping it closes the descriptor and releases the lock.
+
+    `shared` is for a run that only reads `target`, such as `trace-diff` over the
+    oracle tree: readers hold it together, a writer is refused while any reader holds
+    it, and a reader is refused while a writer does. Neither side waits. The file
+    names its latest holder, so a writer refused by several readers names the last to
+    arrive, which may since have finished while an earlier one still reads.
     """
-    handle, holder = _try_lock(target)
-    if handle is None:
-        raise SystemExit(f"{what} already holds {target} (pid {holder}); "
-                         f"wait for it to finish")
-    return handle
+    handle, holder = _try_lock(target, reader=(what or "a reader") if shared else "")
+    if handle is not None:
+        return handle
+    pid, _, reader = holder.splitlines()[-1].partition(" ")
+    if shared:
+        raise SystemExit(f"{what} cannot read {target} while a run that can replace it "
+                         f"holds it (pid {pid}); wait for it to finish")
+    if reader:
+        raise SystemExit(f"{what} cannot hold {target} while {reader} reads it "
+                         f"(pid {pid}); wait for it to finish")
+    raise SystemExit(f"{what} already holds {target} (pid {holder}); "
+                     f"wait for it to finish")
 
 
-def record_lock_holder(handle: IO[str], pid: int) -> None:
+def record_lock_holder(handle: IO[str], pid: int, reader: str = "") -> None:
     """Name the process the lock is being held for, which in the detached case is not
-    the process that took it."""
+    the process that took it, and, for a shared holder, what it reads for."""
     handle.seek(0)
     handle.truncate()
-    handle.write(f"{pid}\n")
+    handle.write(f"{pid} {reader}\n" if reader else f"{pid}\n")
     handle.flush()
 
 

@@ -1264,8 +1264,10 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
 
     # The one tree every lane shares, so the lock sits beside it rather than in any
     # lane, and a second run, from this checkout or another, is refused rather than
-    # left to rmtree the tree out from under the first's make. Taken before the log is
-    # opened, so a refused run cannot truncate the log of the one it lost to.
+    # left to rmtree the tree out from under the first's make. A `trace-diff` holds the
+    # same lock shared while it runs the simulator, so this run is refused, naming it,
+    # rather than deleting the executor under a live comparison. Taken before the log
+    # is opened, so a refused run cannot truncate the log of the one it lost to.
     with env.hold_lock(tree, "an oracle build"):
         print(f"== log: {log}", flush=True)
         with log.open("w", encoding="utf-8") as handle:
@@ -1576,13 +1578,18 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
     capability and faults on; the prefix is therefore bounded by the corpus rather than
     by either model. The regression is that the prefix must not *shorten*, which
     --floor enforces.
+
+    The oracle's tree is every lane's, and `oracle` deletes it on a first sync or a
+    `--resync` and can relink its simulator on any build, so the comparison holds the
+    tree shared for as long as it runs the oracle: such a run from any lane is refused
+    rather than removing the executor under a live comparison, and a comparison is
+    refused while such a run holds the tree.
     """
     if (missing := _missing_simulator(e)) is not None:
         print(missing, file=sys.stderr)
         return 1
-    if not e.oracle.exists():
-        print(f"no M0.4 oracle at {e.oracle}; run `run.py model oracle` first",
-              file=sys.stderr)
+    if (missing := _missing_oracle(e)) is not None:
+        print(missing, file=sys.stderr)
         return 1
 
     elves = [Path(p) for p in args.elf]
@@ -1598,6 +1605,25 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
         print("nothing to compare: pass one or more ELFs, or --corpus", file=sys.stderr)
         return 1
 
+    with env.hold_lock(e.oracle_root, "a trace-diff", shared=True):
+        # Asked again under the lock: a sync that ran after the first asking and failed
+        # its verification or its build left no simulator behind.
+        if (missing := _missing_oracle(e)) is not None:
+            print(missing, file=sys.stderr)
+            return 1
+        return _adjudicate(e, args, elves)
+
+
+def _missing_oracle(e: env.Environment) -> str | None:
+    """`trace-diff`'s refusal when there is no oracle simulator to compare against."""
+    if e.oracle.exists():
+        return None
+    return f"no M0.4 oracle at {e.oracle}; run `run.py model oracle` first"
+
+
+def _adjudicate(e: env.Environment, args: argparse.Namespace, elves: list[Path]) -> int:
+    """Run both executors over `elves` and report each verdict, while `cmd_trace_diff`
+    holds the oracle's tree."""
     profile = e.profile
     tally = {"AGREE": 0, "PREFIX": 0, "SHORT": 0, "SKIP": 0}
     shortest = None
