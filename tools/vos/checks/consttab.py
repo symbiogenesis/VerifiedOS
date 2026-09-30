@@ -197,10 +197,11 @@ _CONTINUES_RE = re.compile(r"[\w']")
 # cut out on the way, so a numeral in one is no value either.
 _STATEMENT_TOKEN_RE = re.compile(r'\(\*|\*\)|"|\.(?=\s|$)')
 
-# What may stand before a statement's keyword, on its line or on lines of their own
-# above it: quoted and legacy attributes, which leave the statement what it is, and the
-# control flags. `Fail` and `Succeed` keep nothing the statement states, so a row whose
-# statement stands under either is refused by name rather than read.
+# What may stand before a statement's keyword, on its line or above it back to the full
+# stop of the sentence before, blank lines and comments between: quoted and legacy
+# attributes, which leave the statement what it is, and the control flags. `Fail` and
+# `Succeed` keep nothing the statement states, so a row whose statement stands under
+# either is refused by name rather than read.
 _DECORATION_RE = re.compile(
     r'#\[(?:[^\]"]|"[^"]*")*\]\s*'
     r"|(Local|Global|Program|Polymorphic|Monomorphic|Cumulative|NonCumulative|Private"
@@ -208,6 +209,10 @@ _DECORATION_RE = re.compile(
     r'|(Profile)\s+(?:"[^"]*"\s+)?|(Redirect)\s+"[^"]*"\s+|(Timeout)\s+\d+\s+'
     r"|(AllocLimit)\s+\d+\s*(?:Mw|kw)\s+")
 _VOID = ("Fail", "Succeed")
+
+# A comment's delimiters and a string's, for the blanked text a statement's head and its
+# decorations are found in.
+_LEXEME_RE = re.compile(r'\(\*|\*\)|"')
 
 # One arm of a Sail `match` whose value is a literal, and one whose value is a nested
 # `match`. A wildcard arm is a key like any other here: the model writes the last arm of
@@ -262,11 +267,52 @@ def _only(pair: Pair) -> tuple[str | None, str]:
     return pair["sites"][0], ""
 
 
-def _decorations(lead: str) -> list[str] | None:
+def _spaces(span: str) -> str:
+    """A span as blank space of its own length, its line breaks kept."""
+    return "\n".join(" " * len(line) for line in span.split("\n"))
+
+
+def _blanked(raw: str) -> str:
+    """The text with every comment blanked to spaces, nesting and all, and every string's
+    inside with it, the quotes, line breaks and so the offsets kept: a head or a flag a
+    comment or a string spells opens nothing, and a full stop in one ends nothing. A
+    string inside a comment is read whole, as Rocq's lexer reads it."""
+    pieces: list[str] = []
+    at = depth = 0
+    quoted = False
+    for token in _LEXEME_RE.finditer(raw):
+        mark = token.group()
+        if quoted:
+            if mark == '"':
+                quoted = False
+                if not depth:
+                    pieces.append(_spaces(raw[at:token.start()]))
+                    at = token.start()
+        elif mark == '"':
+            quoted = True
+            if not depth:
+                pieces.append(raw[at:token.end()])
+                at = token.end()
+        elif mark == "(*":
+            if not depth:
+                pieces.append(raw[at:token.start()])
+                at = token.start()
+            depth += 1
+        elif depth:
+            depth -= 1
+            if not depth:
+                pieces.append(_spaces(raw[at:token.end()]))
+                at = token.end()
+    pieces.append(_spaces(raw[at:]) if depth or quoted else raw[at:])
+    return "".join(pieces)
+
+
+def _decorations(lead: str, spaced: bool = False) -> list[str] | None:
     """The decorations `lead` is made of, by their keywords and `#[` for an attribute,
-    or None where it carries anything else. An empty lead is no decoration at all."""
+    or None where it carries anything else. An empty lead is no decoration at all, and
+    a spaced one may carry blank space before and between them."""
     flags: list[str] = []
-    at = 0
+    at = len(lead) - len(lead.lstrip()) if spaced else 0
     while at < len(lead):
         found = _DECORATION_RE.match(lead, at)
         if found is None:
@@ -276,20 +322,20 @@ def _decorations(lead: str) -> list[str] | None:
     return flags
 
 
-def _lead(raw: str, opened: int) -> list[str] | None:
-    """The decorations before the statement whose keyword opens at `opened`, on its own
-    line and on lines of nothing else above it, or None where its line opens with
+def _lead(blank: str, opened: int) -> list[str] | None:
+    """The decorations before the statement whose keyword opens at `opened` in the
+    blanked text: on its own line, and above it back to the full stop of the sentence
+    before where nothing else stands there; or None where its own line opens with
     something else and the keyword begins no statement."""
-    start = raw.rfind("\n", 0, opened) + 1
-    flags = _decorations(raw[start:opened])
-    while flags is not None and start > 0:
-        above = raw.rfind("\n", 0, start - 1) + 1
-        more = _decorations(raw[above:start]) if raw[above:start].strip() else None
-        if not more:
-            break
-        flags = more + flags
-        start = above
-    return flags
+    start = blank.rfind("\n", 0, opened) + 1
+    flags = _decorations(blank[start:opened])
+    if flags is None:
+        return None
+    stop = blank.rfind(".", 0, start)
+    while stop >= 0 and not blank[stop + 1:stop + 2].isspace():
+        stop = blank.rfind(".", 0, stop)
+    above = _decorations(blank[stop + 1:start], spaced=True)
+    return flags if above is None else above + flags
 
 
 def _statement(raw: str, opened: int) -> str:
@@ -331,14 +377,16 @@ def _gallina_body(raw: str, pair: Pair, keyword: str) -> tuple[str | None, str]:
     of these files costing more than the whole of the rest of the rule.
 
     The keyword opens a statement at column zero or after decorations alone, which are
-    read past; under `Fail` or `Succeed` the file keeps nothing the statement states,
-    and that is refused by name rather than read as the table.
+    read past, and never inside a comment or a string; under `Fail` or `Succeed`, on its
+    line or above it, the file keeps nothing the statement states, and that is refused
+    by name rather than read as the table.
     """
     head = f"{keyword} {pair['name']}"
-    opened = raw.find(head)
+    blank = _blanked(raw)
+    opened = blank.find(head)
     while opened >= 0:
         if not _CONTINUES_RE.match(raw, opened + len(head)):
-            flags = _lead(raw, opened)
+            flags = _lead(blank, opened)
             if flags is not None:
                 void = next((flag for flag in flags if flag in _VOID), None)
                 if void is not None:
@@ -346,7 +394,7 @@ def _gallina_body(raw: str, pair: Pair, keyword: str) -> tuple[str | None, str]:
                                   f"under `{void}`, which keeps nothing it states, so "
                                   "no table is read out of it")
                 return _statement(raw, opened), ""
-        opened = raw.find(head, opened + 1)
+        opened = blank.find(head, opened + 1)
     return None, f"{pair['gallina']} states no {keyword} named {pair['name']}"
 
 

@@ -108,15 +108,53 @@ def _a_decorated_proof_ends_the_definition_above() -> None:
 
 def _a_void_command_defines_nothing_to_mutate() -> None:
     """`Fail` and `Succeed` keep nothing the command defines, so a definition under
-    either opens a region no mutation lands in, and ends the region above it."""
-    for flag in ("Fail ", "Succeed ", "#[local] Fail "):
-        text = ("Definition f (n : nat) : nat := n + 1.\n"
-                f"{flag}Definition g (n : nat) : nat := n + 2.\n")
+    either opens a region no mutation lands in, and ends the region above it. Written on
+    a line of its own above the definition, with blank lines, comments or attributes
+    between, the flag is the same flag and the region opens where it stands."""
+    first = "Definition f (n : nat) : nat := n + 1.\n"
+    for lead, flag in (("Fail ", "Fail"), ("Succeed ", "Succeed"),
+                       ("#[local] Fail ", "Fail"), ("Fail\n", "Fail"),
+                       ("Succeed\n", "Succeed"), ("#[local]\nFail\n", "Fail"),
+                       ("Fail\n\n", "Fail"), ("Fail (* why *)\n", "Fail"),
+                       ("Fail\n(* a note\n   Definition *)\n#[local]\n", "Fail")):
+        text = first + f"{lead}Definition g (n : nat) : nat := n + 2.\n"
         found = _sites(text, mutate.COQ, "const-inc")
         ensure([m.before for m in found] == ["1"],
-               f"under {flag!r} the sites were {[m.before for m in found]}")
-        keys = [r.keyword for r in mutate.regions(text, mutate.COQ)]
-        ensure(keys == ["Definition", flag.split()[-1]], f"regions keyed {keys}")
+               f"under {lead!r} the sites were {[m.before for m in found]}")
+        keyed = [(r.keyword, r.name, r.start) for r in mutate.regions(text, mutate.COQ)]
+        ensure(keyed == [("Definition", "f", 0), (flag, "g", len(first))],
+               f"under {lead!r} the regions were {keyed}")
+    # `Time` keeps what it times, and a flag above a tactic waits for no command
+    text = first + "Time\nDefinition g (n : nat) : nat := n + 2.\n"
+    found = _sites(text, mutate.COQ, "const-inc")
+    ensure([m.before for m in found] == ["1", "2"], f"a timed definition's sites: {found}")
+    text = ("Lemma l : True.\nProof.\nFail\n  exact 1.\nexact I.\nQed.\n"
+            "Definition g (n : nat) : nat := n + 2.\n")
+    keys = [r.keyword for r in mutate.regions(text, mutate.COQ)]
+    ensure(keys == ["Lemma", "Proof", "Qed", "Definition"],
+           f"a tactic's flag waited past it: {keys}")
+
+
+def _a_line_inside_a_comment_opens_no_region() -> None:
+    """A line that opens inside a comment is prose whatever word it starts with, so the
+    definition around it keeps its region and its sites. Read as a command, a flag word
+    at the start of such a line keyed the rest of the definition by whatever followed."""
+    for opener in ("Time is linear here", "Fail to see why", "#[local] was tried",
+                   "Definition of the bound", "Proof sketch"):
+        text = ("Definition f (n : nat) : nat :=\n"
+                "  (* the bound\n"
+                f"{opener} *)\n"
+                "  n + 2.\n")
+        found = _sites(text, mutate.COQ, "const-inc")
+        ensure([m.before for m in found] == ["2"],
+               f"under a comment line {opener!r} the sites were {found}")
+        keys = [(r.keyword, r.name) for r in mutate.regions(text, mutate.COQ)]
+        ensure(keys == [("Definition", "f")], f"a comment line opened regions {keys}")
+    # a word under a flag that is no command is a tactic's, and opens nothing either
+    text = ("Definition f (n : nat) : nat := n + 1.\n"
+            "Lemma l : f 1 = 2.\nProof.\nTime reflexivity.\nQed.\n")
+    keys = [r.keyword for r in mutate.regions(text, mutate.COQ)]
+    ensure(keys == ["Definition", "Lemma", "Proof", "Qed"], f"a timed tactic: {keys}")
 
 
 def _a_record_completed_from_a_base_is_mutable() -> None:
@@ -264,6 +302,8 @@ def cases() -> list[Case]:
              _a_decorated_proof_ends_the_definition_above),
         Case("a void command defines nothing to mutate",
              _a_void_command_defines_nothing_to_mutate),
+        Case("a line inside a comment opens no region",
+             _a_line_inside_a_comment_opens_no_region),
         Case("a record completed from a base is mutable",
              _a_record_completed_from_a_base_is_mutable),
         Case("a hex or bit literal is one token", _hex_and_bit_literals_are_not_arithmetic),

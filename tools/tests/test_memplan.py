@@ -10,8 +10,9 @@ nothing, so the first cases hand the reader the live file and hold the roster, t
 literals and the lists to what the `.v`'s own `the_demo_plan_declares` states, and then
 hand it shapes with a list missing, a chain malformed and a kind unknown and require
 `PlanError` each time. Every head reads a declaration under an attribute or a locality
-as the bare one, while a variant or a list under `Fail`, indented or respaced, and a
-plan completed from a base with `with`, are refused by name.
+as the bare one, while a variant or a list under `Fail`, indented, respaced, untyped or
+commented apart from its head, and a value completed from a base with `with` that
+assigns a field of `Plan`, are refused by name.
 
 **The port agrees with the proof file on every plan the file decides.** The `.v` ships
 one admitted plan and fifteen variants each moving one declared quantity, and states in
@@ -234,6 +235,18 @@ def _a_declaration_the_reader_does_not_take_is_refused() -> None:
     _refused_saying(_TOY + "Fail Definition extra : list nat := cons 1 nil.\n",
                     "spells extra as a typed list this reader does not read",
                     "a list under a control prefix was dropped")
+    # a control flag on a line above the head, however much blank space, comment or
+    # attribute stands between them, leaves the head reading a declaration the file
+    # does not keep, and the head refuses it by the flag
+    for lead, flag in (("Fail\n", "Fail"), ("Succeed\n", "Succeed"),
+                       ("#[local]\nFail\n", "Fail"), ("Fail (* why. *)\n\n", "Fail")):
+        _refused_saying(_TOY + lead + _VARIANT, f"states dear_plan under `{flag}`",
+                        f"a variant under {lead!r} was carried")
+        _refused_saying(_TOY + lead + "Definition extra : list nat := cons 1 nil.\n",
+                        f"states extra under `{flag}`", f"a list under {lead!r} was read")
+    # `Time` keeps what it times, so a variant under it is carried as itself
+    src = memplan.parse(_TOY + "Time\n" + _VARIANT)
+    ensure("dear_plan" in src.plans, f"a timed variant is a variant: {src.plans}")
     # the positive control: a plan value that is no application of build_plan was never
     # a variant this reader carries, and it stays outside the export as it was
     src = memplan.parse(_TOY + "Definition alias_plan : Plan := demo_plan.\n")
@@ -242,11 +255,30 @@ def _a_declaration_the_reader_does_not_take_is_refused() -> None:
 
 def _a_plan_completed_from_a_base_is_refused() -> None:
     # `{| demo_plan with second_fetch := 13 |}` is the variant above in 9.3's record
-    # syntax, and it names none of the fields it copies.
+    # syntax, and it names none of the fields it copies. The field it assigns makes it a
+    # plan with no type written, and a comment's `match` or full stop hides nothing.
+    for spelled in ("Definition dear_plan : Plan :=\n",
+                    "Definition dear_plan :=\n",
+                    "Let dear_plan := (* see Q38. *)\n",
+                    "Definition dear_plan (n : nat) : Plan :=\n"):
+        _refused_saying(_TOY + spelled + "  {| demo_plan with second_fetch := 13 |}.\n",
+                        "dear_plan completes a plan from a base with `with`",
+                        f"a variant completed from a base under {spelled!r} was dropped")
     _refused_saying(_TOY + "Definition dear_plan : Plan :=\n"
-                           "  {| demo_plan with second_fetch := 13 |}.\n",
+                           "  {| demo_plan (* no match *) with second_fetch := 13 |}.\n",
                     "dear_plan completes a plan from a base with `with`",
-                    "a variant completed from a base was dropped")
+                    "a comment's `match` hid a variant completed from a base")
+    # an application of build_plan the head does not read for the same two reasons is
+    # refused as unread rather than dropped
+    for respelled in (_VARIANT.replace(" : Plan", ""),
+                      _VARIANT.replace(":=\n", ":= (* see Q38. *)\n")):
+        _refused_saying(_TOY + respelled, "builds dear_plan from build_plan where this "
+                        "reader does not read it",
+                        f"a variant spelled {respelled.splitlines()[0]!r} was dropped")
+    # a record of another type completed from a base assigns no field of `Plan`
+    src = memplan.parse(_TOY + "Definition near_holdings :=\n"
+                               "  {| demo_holdings with domain_len := 3 |}.\n")
+    ensure(set(src.plans) == {"demo_plan"}, f"another record is no plan: {src.plans}")
     _refused_saying(_TOY.replace("Plan := {|\n  region_count := 2;",
                                  "Plan := {| base_plan with\n  region_count := 2;"),
                     "build_plan completes its record from a base with `with`",
