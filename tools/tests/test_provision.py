@@ -27,6 +27,7 @@ import tempfile
 from collections.abc import Callable
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -322,11 +323,71 @@ def _opam_row_plans_only_what_is_absent() -> None:
                    f"with {case}, the report names the command: {said}")
 
 
+def _dpkg_reports(*absent: str) -> Callable[[str], provision.Found]:
+    """dpkg's answer on a machine the case describes: every package installed but
+    those in `absent`."""
+    return lambda package: provision.Found(
+        package not in absent,
+        f"dpkg knows no {package}" if package in absent else "install ok installed 1.0")
+
+
+def _root_prerequisites_precede_the_opam_row() -> None:
+    """Each package the root-creation route needs is a row of its own ahead of the opam
+    row, probed by dpkg and installed by apt, so `--apply` installs it before the opam
+    row's command runs `opam init`, and names that root creation as what wants it."""
+    names = [fact.name for fact in provision.FACTS]
+    opam_at = names.index("opam")
+    for package in opam_client.ROOT_PREREQUISITES:
+        ensure(package in names[:opam_at],
+               f"{package} is a row ahead of the opam row: {names}")
+        row = provision.FACTS[names.index(package)]
+        probe = row.probe
+        ensure(isinstance(probe, partial) and probe.func is provision._dpkg
+               and probe.args == (package,),
+               f"the {package} row asks dpkg for {package}: {probe}")
+        ensure(row.install == ((*provision.APT, package),)
+               and "root creation" in row.needs
+               and "tools/vos/opam_client.py's ROOT_PREREQUISITES" in row.owner,
+               f"the {package} row installs it by apt, for the opam row's root creation, "
+               f"and names its owner: {row}")
+
+
+def _install_opam_refuses_without_root_prerequisites() -> None:
+    """Where the command would create a root and a package `opam init` needs is absent,
+    it refuses naming each such package, before it installs a client or runs opam; a
+    root that already stands needs none of them."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        target, root = Path(td) / "bin" / "opam", Path(td) / "opam"
+        first, *_, last = opam_client.ROOT_PREREQUISITES
+        with (patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)),
+              patch.object(provision, "env", SimpleNamespace(opam_root=lambda: root)),
+              patch.object(provision, "_dpkg", side_effect=_dpkg_reports(first, last)),
+              patch.object(provision.opam_client, "install") as installer,
+              patch.object(provision.subprocess, "run") as launched,
+              redirect_stderr(io.StringIO()) as said):
+            ensure(provision.install_opam(target) == 1
+                   and f"without {first}, {last}," in said.getvalue()
+                   and not installer.called and not launched.called,
+                   f"absent root prerequisites stop the command first: {said.getvalue()}")
+        opam_root(root, "flat")
+        with (patch.object(provision, "shutil",
+                           SimpleNamespace(which=lambda name: "/usr/bin/opam")),
+              patch.object(provision, "env", SimpleNamespace(opam_root=lambda: root)),
+              patch.object(provision, "_say", return_value=opam_client.OPAM_VERSION),
+              patch.object(provision, "_dpkg", side_effect=_dpkg_reports(first, last)),
+              patch.object(provision.subprocess, "run") as launched,
+              redirect_stdout(io.StringIO()) as out):
+            ensure(provision.install_opam(target) == 0 and not launched.called
+                   and "already stands complete" in out.getvalue(),
+                   f"a complete root needs no root prerequisite: {out.getvalue()}")
+
+
 def _install_opam_installs_only_what_is_absent() -> None:
     """`--install-opam` installs the client through the owner's route where none is on
     PATH and creates a root by the owner's route where none stands, never over what
     stands: a client at another release, or a root the row reads as incomplete."""
-    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+    with (tempfile.TemporaryDirectory(prefix="vos-test-") as td,
+          patch.object(provision, "_dpkg", side_effect=_dpkg_reports())):
         target = Path(td) / "bin" / "opam"
         root = Path(td) / "opam"
         selected: list[str | None] = [None]
@@ -389,7 +450,9 @@ def _install_opam_installs_only_what_is_absent() -> None:
                    f"an incomplete root is reported and left as it is: {said.getvalue()}")
         _creation_failures(Path(td), target)
         selected[0] = None
+        absent = SimpleNamespace(opam_root=lambda: Path(td) / "absent")
         with (patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)),
+              patch.object(provision, "env", absent),
               patch.object(provision.opam_client, "install",
                            side_effect=ValueError("downloaded SHA256 does not match")),
               redirect_stderr(io.StringIO()) as said):
@@ -397,6 +460,7 @@ def _install_opam_installs_only_what_is_absent() -> None:
                    and "does not match" in said.getvalue(),
                    f"a refused download is the command's failure: {said.getvalue()}")
         with (patch.object(provision, "shutil", SimpleNamespace(which=lambda name: None)),
+              patch.object(provision, "env", absent),
               patch.object(provision.opam_client, "install"),
               redirect_stderr(io.StringIO()) as said):
             ensure(provision.install_opam(target) == 1
@@ -577,6 +641,10 @@ def cases() -> list[Case]:
         Case("opam-probe-holds-the-reviewed-client", _opam_probe_holds_the_reviewed_client),
         Case("opam-probe-holds-the-root", _opam_probe_holds_the_root),
         Case("opam-row-plans-only-what-is-absent", _opam_row_plans_only_what_is_absent),
+        Case("root-prerequisites-precede-the-opam-row",
+             _root_prerequisites_precede_the_opam_row),
+        Case("install-opam-refuses-without-root-prerequisites",
+             _install_opam_refuses_without_root_prerequisites),
         Case("install-opam-installs-only-what-is-absent",
              _install_opam_installs_only_what_is_absent),
         Case("failed-import-can-retry", _failed_import_can_retry),

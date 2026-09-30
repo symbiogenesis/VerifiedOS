@@ -339,6 +339,18 @@ def _opam_client_has_one_owner() -> None:
             f"the download is the reviewed release's {suffix} asset")
 
 
+def _root_prerequisites_come_from_the_owner() -> None:
+    """The packages `opam init` needs are installed before bootstrap creates the root,
+    and bootstrap reads them from the client's owner rather than restating them."""
+    missing = [package for package in bootstrap.opam_client.ROOT_PREREQUISITES
+               if package not in bootstrap.PACKAGES]
+    ensure(not missing, f"bootstrap installs every root prerequisite, lacking {missing}")
+    source = Path(bootstrap.__file__).read_text(encoding="utf-8")
+    restated = [package for package in bootstrap.opam_client.ROOT_PREREQUISITES
+                if f'"{package}"' in source]
+    ensure(not restated, f"bootstrap must read the root prerequisites, not restate {restated}")
+
+
 def _repositories_come_from_the_owner() -> None:
     """The root is created by the owner's one route, on the owner's repositories, the
     first as the default; bootstrap spells no opam command of its own for it."""
@@ -486,6 +498,7 @@ def cases() -> list[Case]:
         Case("log retention failure preserves verdict and discards stale evidence", _failed_retention_preserves_verdict),
         Case("busy root preserves the active bootstrap's state", _busy_root_is_untouched),
         Case("the opam client has one owner", _opam_client_has_one_owner),
+        Case("root prerequisites come from the owner", _root_prerequisites_come_from_the_owner),
         Case("repositories come from the owner", _repositories_come_from_the_owner),
         Case("repository state is recorded", _repository_state_is_recorded),
         Case("unread repository state is refused", _unread_repository_state_is_refused),

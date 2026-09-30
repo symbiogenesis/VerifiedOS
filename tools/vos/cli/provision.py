@@ -44,7 +44,10 @@ invariant, whose repair is to give a lane a copy rather than to delete somebody'
 cache. The `opam` row's command installs the reviewed client by the route guest
 bootstrap takes, only on a machine with no client on PATH, and creates a root by the
 root-creation route bootstrap runs, `opam_client.CREATE_ROOT`, only where no root
-stands, so the switch recipes planned after it in one pass find a root. It alters
+stands, so the switch recipes planned after it in one pass find a root. The rows ahead
+of it probe and install the distribution packages that route needs,
+`opam_client.ROOT_PREREQUISITES`, and the command refuses, naming each one absent,
+rather than start a root `opam init` would refuse to create. It alters
 nothing that exists: replacing a developer's client can upgrade that root's format one
 way, which is a recorded step rather than a repair, so a client at another release is
 reported and never planned, and neither is a standing root that states no format or
@@ -366,8 +369,17 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
     PATH does not reach is reported rather than left to fail at the first switch. A
     standing root is left as it is and held to what the row reads; a root this command
     creates is held to what guest bootstrap holds its own to, the reviewed client's
-    format and exactly the owner's repositories with every stamp read.
+    format and exactly the owner's repositories with every stamp read. Where it would
+    create one, it first holds the machine to `opam_client.ROOT_PREREQUISITES` as the
+    rows ahead of this one do, and refuses, naming each package absent, before it
+    installs anything: `opam init` refuses to create a root without them.
     """
+    root = env.opam_root()
+    if not opam_client.root_exists(root) and (missing := _missing_root_prerequisites()):
+        print(f"no opam root stands at {root}, and opam init refuses to create one without "
+              f"{', '.join(missing)}, which dpkg reports absent; the rows ahead of the opam "
+              "row install them", file=sys.stderr)
+        return 1
     present = shutil.which("opam")
     if present is None:
         try:
@@ -388,7 +400,6 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
                   f"{present}; the reviewed client {opam_client.OPAM_VERSION} is "
                   "installed only where there is none", file=sys.stderr)
             return 1
-    root = env.opam_root()
     if opam_client.root_exists(root):
         if gaps := opam_client.root_gaps(root):
             print(f"the opam root at {root} {' and '.join(gaps)}; a standing root is left "
@@ -397,6 +408,13 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
         print(f"the opam root at {root} already stands complete")
         return 0
     return _create_root(root)
+
+
+def _missing_root_prerequisites() -> list[str]:
+    """Each of `opam_client.ROOT_PREREQUISITES` dpkg does not report installed, read by
+    the probe the rows ahead of the opam row take, so the command and the table agree."""
+    return [package for package in opam_client.ROOT_PREREQUISITES
+            if not _dpkg(package).present]
 
 
 def _create_root(root: Path) -> int:
@@ -527,7 +545,8 @@ def _outputs_on_the_guest() -> Found:
 # The lane, row by row. Each row names the loop that wants the fact and the artifact
 # that fixes it, and every version in it is read from that artifact rather than typed
 # here. The order is the order a machine is built in and the order a report reads in:
-# the gate's five, then the toolchain from opam outward.
+# the gate's five, then the toolchain from the opam root's system packages outward, so
+# `--apply` installs what `opam init` needs before the opam row's command runs it.
 FACTS: tuple[Fact, ...] = (
     Fact("the interpreter floor", GATE,
          "every command here, on both lanes",
@@ -549,6 +568,13 @@ FACTS: tuple[Fact, ...] = (
          "run.py model validate-config, and ty on every lane",
             "tools/pyproject.toml's project.dependencies; synchronized by run.py",
             partial(_importable, "jsonschema", "jsonschema")),
+    *(Fact(package, TOOLCHAIN,
+           "the opam row's root creation, whose opam init refuses to create a root "
+           "without it",
+           "tools/vos/opam_client.py's ROOT_PREREQUISITES",
+           partial(_dpkg, package),
+           ((*APT, package),))
+      for package in opam_client.ROOT_PREREQUISITES),
     Fact("opam", TOOLCHAIN,
          "every switch below, and vos/env.py's _apply_opam_env",
          "tools/vos/opam_client.py's OPAM_VERSION and OPAM_REPOSITORIES",

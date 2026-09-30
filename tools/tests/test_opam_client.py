@@ -11,6 +11,7 @@ of the archive, as the 2.6 format rewrites it.
 """
 
 import io
+import re
 import sys
 import tarfile
 import tempfile
@@ -148,6 +149,16 @@ def _root_creation_is_the_owners_route() -> None:
            f"the route is derived from OPAM_REPOSITORIES, got {opam_client.CREATE_ROOT}")
 
 
+def _root_prerequisites_are_packages() -> None:
+    """The route's system prerequisites are distribution package names, each once, so
+    guest bootstrap's query and provision's rows can take them as they stand."""
+    packages = opam_client.ROOT_PREREQUISITES
+    ensure(bool(packages) and len(set(packages)) == len(packages),
+           f"the prerequisites are a nonempty list without repeats: {packages}")
+    ensure(all(re.fullmatch(r"[a-z0-9][a-z0-9+.-]+", package) for package in packages),
+           f"each prerequisite is a Debian package name: {packages}")
+
+
 def _root_gaps_name_what_a_root_lacks() -> None:
     """A root stands where its `config` does, and one that stands is complete only when
     it states a format and carries every owned repository at its URL."""
@@ -233,6 +244,7 @@ def cases() -> list[Case]:
         Case("initialized-root-is-complete", _initialized_root_is_complete),
         Case("initialized-format-is-the-clients", _initialized_format_is_the_clients),
         Case("root-creation-is-the-owners-route", _root_creation_is_the_owners_route),
+        Case("root-prerequisites-are-packages", _root_prerequisites_are_packages),
         Case("root-gaps-name-what-a-root-lacks", _root_gaps_name_what_a_root_lacks),
         Case("install-verifies-and-never-replaces", _install_verifies_and_never_replaces),
     ]

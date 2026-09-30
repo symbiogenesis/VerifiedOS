@@ -21,6 +21,10 @@ repositories' URLs and the `stamp` each one's `repo` file carries, and both read
 record them. They are read from the root's own files rather than by running opam,
 because a client newer than the root's format would upgrade the root to answer.
 
+The route has system prerequisites of its own, which this module also owns, because
+`opam init` refuses to create a root without them and every switch recipe then fails
+in a root that does not stand.
+
 Guest CI's download and installed-toolchain caches must hash this file, because an
 opam root restored under another client is another root.
 """
@@ -66,6 +70,17 @@ CREATE_ROOT: tuple[tuple[str, ...], ...] = (
     *(("opam", "repository", "add", name, url, "--dont-select", "-y")
       for name, url in OPAM_REPOSITORIES[1:]),
 )
+
+# The Debian and Ubuntu packages `CREATE_ROOT` needs on the machine it runs on. The
+# reviewed client's `opam init` refuses to create a root, exiting 50 before it writes
+# one, unless curl or wget, tar, unzip and bwrap are on PATH: bwrap because the root it
+# creates sandboxes package builds. curl is the download tool here, and it fetches the
+# HTTPS repositories against the certificate store `ca-certificates` carries, which the
+# distribution's curl library only recommends. GNU patch, diff and getconf are not
+# among them, because this client computes and applies patches itself and no longer
+# requires getconf. Guest bootstrap installs these, and `run.py provision` probes and
+# installs each ahead of the opam row.
+ROOT_PREREQUISITES: tuple[str, ...] = ("bubblewrap", "ca-certificates", "curl", "tar", "unzip")
 
 _CONFIGURED_RE = re.compile(r'"([^"\r\n]+)"\s*\{\s*"([^"\r\n]+)"')
 _STAMP_RE = re.compile(r'(?m)^stamp:\s*"([^"\r\n]*)"')
