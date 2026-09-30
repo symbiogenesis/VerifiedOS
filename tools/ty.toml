@@ -1,14 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
 # The type checker's settings, held here rather than passed on a command line so
 # that an editor's language server (`ty server`) decides exactly what
-# `tools/typecheck.py` decides. A rule enforced in one and not the other is a rule
-# that gets switched off, so there is one file and both read it.
+# `run.py typecheck` (`vos/cli/typecheck.py`) decides. A rule enforced in one and
+# not the other is a rule that gets switched off, so there is one file and both
+# read it. ty discovers this file from its working directory upward and anchors
+# its relative paths at `tools/`, so an editor reads it with `tools/` open as a
+# workspace folder; the repository root carries no ty configuration.
 #
-# The severities themselves are not here. `typecheck.py` passes `--error all`,
-# which escalates every rule ty carries, including the ones it ships as warnings
-# or off by default. That is deliberate and it is what a pinned version buys: the
-# alternative is a list of opt-ins that silently stops growing the day ty adds a
-# rule nobody transcribed. `tools/README.md` records the pin.
+# `[rules]` sets every rule ty carries to error, including the ones it ships as
+# warnings or off by default. That is deliberate and it is what a pinned version
+# buys: the alternative is a list of opt-ins that silently stops growing the day
+# ty adds a rule nobody transcribed. The gate also passes `--error all`, which
+# overrides this table, so an edit that lowers or drops an entry here cannot lower
+# what the gate enforces. `tools/README.md` records the pin.
+
+[rules]
+all = "error"
 
 [environment]
 python-version = "3.14"

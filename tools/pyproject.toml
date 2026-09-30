@@ -13,3 +13,4 @@ model = ["pre-commit==4.6.2"]
 package = false
 required-version = "==0.12.19"
 python-downloads = "never"
+no-build = true

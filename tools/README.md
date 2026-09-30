@@ -354,6 +354,17 @@ at the version declared by [pyproject.toml](pyproject.toml)'s
 Windows installations do not supply WSL's prerequisites. No activation, global
 package installation, or separate checker installation is needed.
 
+`required-version` is an exact pin, not a floor. A uv patch release can change how
+the lockfile is written, CI's `setup-uv` would resolve a range in the manifest to
+the highest release it admits, and [guest bootstrap](ci/bootstrap_guest.py)
+requires the installed uv to equal the pin. Move the pin when a release fixes
+something these tools exercise, or together with other tool refreshes, rather than
+for every patch release. A move is one coordinated switch: uv refuses a project
+whose `required-version` it does not satisfy, and every checkout on the machine
+shares the host's uv and the WSL guest's uv, so both binaries change with the
+manifest, and a checkout whose manifest still names the old pin stops until it
+takes the move.
+
 When a compatible Python is absent, install it explicitly with your platform's
 installer or `uv python install --no-config 3.14`. That one command bypasses project
 configuration for the manual install. The project keeps `python-downloads = "never"`,
@@ -825,7 +836,7 @@ before adding work to every gate run.
 
 | Checker | What it decides |
 | --- | --- |
-| [ty](https://github.com/astral-sh/ty) | Every expression, against the types it can infer, with `--error all` |
+| [ty](https://github.com/astral-sh/ty) | Every expression, against the types it can infer, with every rule at error |
 | [ruff](https://github.com/astral-sh/ruff) | Every function, against whether it is annotated at all, and the correctness rules [ruff.toml](ruff.toml) admits |
 
 The split is not a preference. ty infers rather than demands, so a function with no
@@ -851,21 +862,59 @@ To refresh resolution within the declared constraints, use
 `uv lock --project tools --upgrade`. Normal commands synchronize each checkout on
 its next invocation, so no manual reinstall window exists across worktrees or OSes.
 
+The manifest sets `no-build = true`, so uv installs published wheels only and
+refuses a package that would need a source build instead of running its build
+backend or requiring a compiler. The project itself is virtual and is never
+built. Each locked package therefore needs a pure-Python or CPython 3.14 wheel for
+every platform that synchronizes it: Windows ARM64 on the development host,
+Linux aarch64 in its WSL guest, and Windows x64 and Linux x86_64 on the CI runners.
+The x64 runners cannot reveal a missing Windows ARM64 wheel, so read a new
+dependency's wheel list in [uv.lock](uv.lock) before committing it. Only requested
+groups are installed, so a non-default group without one platform's wheel is
+refused on that platform alone and the default synchronization is unaffected.
+
 The optional `model` group pins the pre-commit runner used by the curated model's
 hook configuration. Set `UV_PROJECT_ENVIRONMENT` to the environment in the placement
 table above, then run `uv run --project tools --locked --group model pre-commit --version`.
 For a WSL-mounted checkout, `run.py model lane` supplies the guest lane root.
-The ordinary host gates synchronize only their default dependency groups.
+The ordinary host gates synchronize only their default dependency groups, so the
+gates hold the group's resolution and nothing more: [uv.lock](uv.lock) is one
+resolution covering every group, and each `run.py` bootstrap's `uv run --locked`
+refuses a lockfile the manifest would change. No gate installs or runs the group,
+so whether it installs on each platform and how it behaves are unchecked.
+`uv sync --project tools --locked --group model --dry-run` lists what a
+synchronization would install without installing it.
 
-`--error all` escalates every rule ty carries, including the ones it ships as warnings or
-switched off, and that is deliberate: the alternative is a list of opt-ins that silently
-stops growing the day ty adds a rule nobody transcribed. What ruff is *not* asked is in
-[ruff.toml](ruff.toml): the excluded rules, each named on its own line and each for a reason
-that would hold in any project, and no group switched off to spare this code a rewrite. A
-single site that has to differ carries a `# noqa` and the sentence saying why.
+[model/.pre-commit-config.yaml](../model/.pre-commit-config.yaml) keeps upstream's
+paths, which assume a repository root at `model/`. pre-commit changes directory to
+the Git top level before it reads a configuration, so here they resolve against this
+repository's root: the `^(dependencies/)` exclusion never matches
+`model/dependencies/`, codespell does not find `model/.codespellrc`, and
+markdown-link-check looks for `.markdown-link-check.config` at the root, where there
+is none. Run the hooks only on named model files, from the checkout root and with
+the environment above:
+`uv run --project tools --locked --group model pre-commit run --config model/.pre-commit-config.yaml --files <paths>`,
+listing paths under `model/` outside `model/dependencies/`. The fixing hooks
+(trailing-whitespace, end-of-file-fixer, clang-format and prettier) rewrite the
+files they are given. Never pass `--all-files`, which selects every tracked file in
+the repository, and never run `pre-commit install`, which would run these hooks on
+every commit to the repository.
 
-The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml). In VS Code,
-select `out/venv-win32/Scripts/python.exe` on Windows or the Linux environment's
+[ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
+carries, including the ones it ships as warnings or switched off, and that is deliberate:
+the alternative is a list of opt-ins that silently stops growing the day ty adds a rule
+nobody transcribed. The gate also passes `--error all`, which overrides the table, so an
+edit that lowers an entry there cannot lower what the gate enforces. What ruff is *not*
+asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own line and
+each for a reason that would hold in any project, and no group switched off to spare this
+code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and
+the sentence saying why; the `PGH` group refuses a blanket `# noqa` or `# type: ignore`.
+
+The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml). ruff finds its file
+from each checked path, but ty discovers configuration from its working directory upward
+and the repository root carries none, so an editor's ty server reads ty.toml, and reaches
+the gate's severities, only with `tools/` open as a workspace folder. In VS Code, select
+the checkout's `out/venv-win32/Scripts/python.exe` on Windows or the Linux environment's
 `bin/python` from the placement table above so editor imports use the same
 dependencies as the gate. The Linux typing target is intentional: the guest modules
 use POSIX APIs, even when the host checks them. It does not move execution into Linux.
