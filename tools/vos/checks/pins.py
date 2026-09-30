@@ -168,25 +168,25 @@ file under `.github/workflows/`, and each reading fails closed: no workflow, no
 `uses:` line at all, a record without its development-tools heading or with no action
 row under it, and a row stating its reviewed revision other than exactly once are each
 a finding rather than an agreement over nothing. That is why it owes the floors group
-no member. **The reading takes one shape and a census
-holds it to the rest**: a reference is read only as a block mapping's bare `uses:` key
-opening its line, alone or after a sequence dash, while YAML also lets that key be
-quoted, tagged, anchored, written in a flow collection, spelled with an escape, reached
-through an alias or opened by an explicit `?` indicator. So the census splits each
-file at every YAML line break, 1.1's included, and on each non-comment line counts a
-`uses` key, bare or quoted, followed by its `:`; a double-quoted key holding an escape
-and an alias used as a key, whatever they spell; and every explicit-key `?` indicator,
-whatever key it opens. A line carrying any of them other than the key the reading took
-is one finding naming that line; otherwise a reference in another shape would run code
-the rule reported agreement about without having read it. The census errs toward a
-finding, counting a key inside a trailing comment or a block scalar's text and an
-escaped, alias or explicit key that names something else. The one shape it does not
-count is a flow mapping's key whose `:` stands on a later line, which the YAML 1.2.2
-grammar admits and PyYAML refuses. While a reference stands unread, a row is not also
-reported as run by nothing, the unread line being what may run it. What it does not
-decide is whether the commit is the release the comment names; the row's reviewer read
-that, and zizmor's online audits are the instrument that asks GitHub. **Reported and never repaired**, on K-97's
-ground: moving a row's commit would claim a licence reading nobody took.
+no member. **The reading takes one shape and a census holds it to the rest**: a
+reference is read only as a block mapping's bare `uses:` key opening its line, alone or
+after a sequence dash, while YAML also lets that key be quoted, tagged, anchored,
+written in a flow collection, spelled with an escape, reached through an alias or
+opened by an explicit `?` indicator. So the census splits each file at every YAML line
+break, 1.1's included, and on each non-comment line counts a `uses` key, bare or
+quoted, followed by its `:`; a double-quoted key holding an escape and an alias used as
+a key, whatever they spell; and every explicit-key `?` indicator, whatever key it
+opens. A line carrying any of them other than the key the reading took is one finding
+naming that line; otherwise a reference in another shape would run code the rule
+reported agreement about without having read it. The census errs toward a finding,
+counting a key inside a trailing comment or a block scalar's text and an escaped, alias
+or explicit key that names something else. The one shape it does not count is a flow
+mapping's key whose `:` stands on a later line, which the YAML 1.2.2 grammar admits and
+PyYAML refuses. While a reference stands unread, a row is not also reported as run by
+nothing, the unread line being what may run it. What it does not decide is whether the
+commit is the release the comment names; the row's reviewer read that, and zizmor's
+online audits are the instrument that asks GitHub. **Reported and never repaired**, on
+K-97's ground: moving a row's commit would claim a licence reading nobody took.
 
 K-116 is the third kind: **a commit a tool consumes rather than a sentence restates.**
 The width-transform registry binds the imported core's gitlink it was derived through,
@@ -228,18 +228,17 @@ day it is written, and a declaration naming no row is a finding too.
 declared**, so a release written into a held row or a paragraph restating one is a
 finding rather than a sentence nothing reads. A declared row is censused too, against
 its declaration rather than a site: it states one distinct dotted release, the one its
-terms were read at however often it names it, or none where it is declared to. A numeral
-that states no release of the tool, a licence's own version or a bound another package
-sets, is a residue declared by a literal fragment with its reason, and a residue that
-no longer stands or covers no numeral is a finding. A residue whose release no exported
-snapshot fixes yet names that owner, as its declared row does, and becomes a finding
-the day the index carries it. The window ends at the next
-heading, so the inference benchmark's subsection, the dependency review of a measured
-run, is outside it. A release is read whole, an opam identifier's after its name's dot
-and with any letter, `~`, `+` or dotted suffix it carries; a numeral joined to the word
-before it by a hyphen, a letter or `+`, as a licence identifier's version or a tag's
-prefix is, is not read by the census, and the sites read such a tag where it states a
-release.
+terms were read at however often it names it, or none where it is declared to. A
+numeral that states no release of the tool, a licence's own version or a bound another
+package sets, is a residue declared by a literal fragment with its reason, and a
+residue that no longer stands or covers no numeral is a finding. A residue whose
+release no exported snapshot fixes yet names that owner, as its declared row does, and
+becomes a finding the day the index carries it. The window ends at the next heading, so
+the inference benchmark's subsection, the dependency review of a measured run, is
+outside it. A release is read whole, an opam identifier's after its name's dot and with
+any letter, `~`, `+` or dotted suffix it carries; a numeral joined to the word before
+it by a hyphen, a letter or `+`, as a licence identifier's version or a tag's prefix
+is, is not read by the census, and the sites read such a tag where it states a release.
 
 **Fail-closed at every reading**, on K-97's ground: a record without the section or its
 table, a table with no row, a site matching other than once, and an owner absent,
