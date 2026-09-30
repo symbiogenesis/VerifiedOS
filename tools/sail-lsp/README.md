@@ -38,10 +38,17 @@ UTF library, and the UTF library's build helper. Compiler, dune, Yojson, and
 other build dependencies come from the existing exact lock without solving
 another package graph. Sources and license notices remain in the native lane.
 
-`status` checks the recipe identity and SHA-256 of installed artifacts.
-`install` rebuilds when the tracked recipe changes. It downloads again any
-source archive that is missing or differs from its pin, keeps a download only
-once its SHA-256 matches, and extracts each source into a fresh tree. It removes
+`status` checks the recipe identity and SHA-256 of installed artifacts. It
+refuses a stale recipe, an unreadable receipt, and a missing or changed
+artifact, naming `install` as the repair. The recipe identity covers
+[sources.lock.json](sources.lock.json), `tools/opam/sail.lock`, the installer
+module `tools/vos/saillsp.py` and the dependency-refresh patch, so a change to
+any of them, the installer's own code included, makes `status` refuse each
+lane's installation as stale until `install` rebuilds it. `install` returns an
+installation `status` accepts and otherwise builds one, first printing any
+refusal it repairs. It downloads again any source archive that is missing or
+differs from its pin, keeps a download only once its SHA-256 matches, and
+extracts each source into a fresh tree. It removes
 the previous receipt first and installs into an emptied prefix and
 configuration, so nothing a superseded recipe installed is loaded or hashed as an
 artifact, and an interrupted rebuild leaves no installation for `status` to
