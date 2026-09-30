@@ -14,11 +14,12 @@ what says so, on every checker run.
 **The set is derived and never listed.** `INSTRUMENTS` below is the one table of every
 instrument that compiles a proof source or a harness outside the gate: its switch, its
 Rocq release, the harnesses it compiles, whether it also compiles the rig's support
-harnesses or a directory of its own, and whether it compiles every proof source, as
+harnesses or a directory of its own, whether it compiles every proof source, as
 `seed coq` does for the `--file` its caller names and as `gallina.emit` does for the
-vector harnesses. Each switch and release is the instrument's own constant, imported,
+vector harnesses, and the proof sources it names itself, as the Rupicola lowering names
+its default owner. Each switch and release is the instrument's own constant, imported,
 or, where it has none to import, the literal in its own file, read by name out of that
-file's syntax tree. The rows older than 9.3.0 decide the set, and each harness brings its
+file's syntax tree, and so is a proof source the instrument names. The rows older than 9.3.0 decide the set, and each harness brings its
 `Require` closure, read by [vos/proofs.py](../proofs.py)'s own reader over the proofs
 directory and the harness's directory as one namespace, because that is how every row
 stages them: the rig roots both at the empty logical path, and the recipes copy the proof
@@ -90,10 +91,14 @@ RIG = gallina.HARNESS_DIR
 
 @dataclass(frozen=True)
 class Literal:
-    """A value an instrument states only in its own file: the string assigned to the
+    """A value an instrument states only in its own file: the value assigned to the
     module-level `name`, or, where `name` opens with `--`, the default of that
     command-line option. `within` is a pattern whose first group is the value where the
-    string carries it inside a longer one."""
+    string carries it inside a longer one.
+
+    The value is a string literal, or a path built from `Path(__file__)` by `.resolve()`,
+    `.parent` and `/`, read as the checkout-relative path it names, through `str(...)`
+    and the module's own names."""
 
     path: str
     name: str
@@ -107,8 +112,9 @@ class Instrument:
     `selects` is the module that chooses its switch. `release` is None where the
     instrument states none. `harnesses` are the files it runs, `support` whether it
     also compiles the rig's non-entry harnesses as `gallina.compile_support` does,
-    `beside` a directory whose every tracked Gallina file it compiles, and `whole`
-    whether it compiles every proof source.
+    `beside` a directory whose every tracked Gallina file it compiles, `whole`
+    whether it compiles every proof source, and `subjects` the proof sources it names
+    itself and compiles, each with its `Require` closure.
     """
 
     name: str
@@ -119,6 +125,7 @@ class Instrument:
     support: bool = False
     beside: str = ""
     whole: bool = False
+    subjects: tuple[str | Literal, ...] = ()
 
 
 _REGENERATE = "tools/bedrock2-lowering/regenerate.py"
@@ -158,11 +165,11 @@ INSTRUMENTS: tuple[Instrument, ...] = (
                beside="tools/wasm-oracle"),
     Instrument("compare_component.py", _COMPARE, Literal(_COMPARE, "--switch"), None,
                beside="tools/wasm-oracle"),
-    # The lowering's `--owner` is caller-named; its default owner is RingContract.v,
-    # which DescriptorCheck.v Requires, so the closure reaches it.
+    # The lowering compiles its `--owner` before the source; a caller may name another.
     Instrument("the Rupicola lowering", _REGENERATE, Literal(_REGENERATE, "SWITCH"),
                Literal(_REGENERATE, "SWITCH", r"-rupicola-(\d+\.\d+\.\d+)-ocaml-"),
-               beside="tools/bedrock2-lowering"),
+               beside="tools/bedrock2-lowering",
+               subjects=(Literal(_REGENERATE, "--owner"),)),
 )
 
 _RELEASE_RE = re.compile(r"(\d+)\.(\d+)\.(\d+)")
@@ -370,21 +377,16 @@ def literal(root: Path, spec: Literal) -> tuple[str | None, str]:
     except (OSError, UnicodeDecodeError, SyntaxError) as err:
         return None, f"{spec.path} cannot be read as Python, so its {spec.name} is unread ({err})"
     option = spec.name.startswith("--")
-    values: list[str] = []
-    for node in ast.walk(tree) if option else tree.body:
-        if option:
-            if (isinstance(node, ast.Call) and node.args
-                    and isinstance(node.args[0], ast.Constant)
-                    and node.args[0].value == spec.name):
-                values += [k.value.value for k in node.keywords
-                           if k.arg == "default" and isinstance(k.value, ast.Constant)
-                           and isinstance(k.value.value, str)]
-        elif isinstance(node, ast.Assign | ast.AnnAssign):
-            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            if (any(isinstance(t, ast.Name) and t.id == spec.name for t in targets)
-                    and isinstance(node.value, ast.Constant)
-                    and isinstance(node.value.value, str)):
-                values.append(node.value.value)
+    if option:
+        stated = [k.value for node in ast.walk(tree)
+                  if isinstance(node, ast.Call) and node.args
+                  and isinstance(node.args[0], ast.Constant)
+                  and node.args[0].value == spec.name
+                  for k in node.keywords if k.arg == "default"]
+    else:
+        stated = _assigned(tree, spec.name)
+    values = [value if isinstance(value, str) else "/".join(value) for expr in stated
+              if (value := _evaluate(tree, expr, spec.path)) is not None]
     if len(values) != 1:
         what = (f"string default of its {spec.name} option" if option
                 else f"module-level string {spec.name}")
@@ -397,6 +399,54 @@ def literal(root: Path, spec: Literal) -> tuple[str | None, str]:
         return None, (f"{spec.path}'s {spec.name} is {values[0]!r}, which carries no value "
                       f"the pattern {spec.within!r} reads")
     return str(inner.group(1)), ""
+
+
+def _assigned(tree: ast.Module, name: str) -> list[ast.expr]:
+    """Every value a module's own top level assigns to one name."""
+    out: list[ast.expr] = []
+    for node in tree.body:
+        if isinstance(node, ast.Assign | ast.AnnAssign) and node.value is not None:
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if any(isinstance(t, ast.Name) and t.id == name for t in targets):
+                out.append(node.value)
+    return out
+
+
+def _evaluate(tree: ast.Module, expr: ast.expr, here: str,
+              depth: int = 0) -> str | tuple[str, ...] | None:
+    """A value one instrument states, as a string, or as the parts of a path under the
+    checkout while it is still being built; None for anything else, a path leaving the
+    checkout or a name bound other than once among them."""
+    if depth > 16:
+        return None
+    step = depth + 1
+    if isinstance(expr, ast.Constant):
+        return expr.value if isinstance(expr.value, str) else None
+    if isinstance(expr, ast.Name):
+        bound = _assigned(tree, expr.id)
+        return _evaluate(tree, bound[0], here, step) if len(bound) == 1 else None
+    if isinstance(expr, ast.Attribute) and expr.attr == "parent":
+        inner = _evaluate(tree, expr.value, here, step)
+        return inner[:-1] if isinstance(inner, tuple) and inner else None
+    if isinstance(expr, ast.BinOp) and isinstance(expr.op, ast.Div):
+        left, right = (_evaluate(tree, side, here, step) for side in (expr.left, expr.right))
+        parts = tuple(right.split("/")) if isinstance(right, str) else ()
+        if isinstance(left, tuple) and parts and not {"", ".", ".."} & set(parts):
+            return left + parts
+        return None
+    if not isinstance(expr, ast.Call) or expr.keywords:
+        return None
+    func, args = expr.func, expr.args
+    if isinstance(func, ast.Name) and len(args) == 1:
+        if func.id == "Path" and isinstance(args[0], ast.Name) and args[0].id == "__file__":
+            return tuple(here.split("/"))
+        if func.id == "str":
+            inner = _evaluate(tree, args[0], here, step)
+            return "/".join(inner) if isinstance(inner, tuple) else inner
+    if isinstance(func, ast.Attribute) and func.attr == "resolve" and not args:
+        inner = _evaluate(tree, func.value, here, step)
+        return inner if isinstance(inner, tuple) else None
+    return None
 
 
 def _entry(root: Path, value: str | Literal | None) -> tuple[str | None, str]:
@@ -444,7 +494,7 @@ def decide(root: Path, index: Iterable[str],
     namespaces: set[str] = set()
     starts: list[tuple[Instrument, str, set[str]]] = []
     for row, switch, release in older:
-        files, own = _starts(row, tracked, findings)
+        files, own = _starts(root, row, tracked, findings)
         if row.whole:
             if not proof_sources:
                 findings.append(f"{row.name} compiles every proof source and the index "
@@ -486,7 +536,7 @@ def decide(root: Path, index: Iterable[str],
     return findings, ok
 
 
-def _starts(row: Instrument, tracked: set[str],
+def _starts(root: Path, row: Instrument, tracked: set[str],
             findings: list[str]) -> tuple[set[str], set[str]]:
     """The harness files one row compiles, and the directories they sit in."""
     files: set[str] = set()
@@ -495,6 +545,15 @@ def _starts(row: Instrument, tracked: set[str],
             files.add(rel)
         else:
             findings.append(f"{row.name} runs {rel}, which the git index does not carry")
+    for spec in row.subjects:
+        rel, why = _entry(root, spec)
+        if rel is None:
+            findings.append(why)
+        elif rel in tracked:
+            files.add(rel)
+        else:
+            findings.append(f"{row.name} compiles {rel!r}, which the git index does not "
+                            "carry")
     if row.support:
         files |= {rel for rel in _gallina_in(tracked, RIG)
                   if rel.rsplit("/", 1)[1] not in gallina.ENTRY_POINTS}
@@ -516,14 +575,15 @@ def _closures(root: Path, tracked: set[str], proof_sources: list[str],
               namespaces: set[str],
               findings: list[str]) -> dict[str, dict[str, set[str]]]:
     """Each harness directory's `Require` closures, read over the proofs and that
-    directory as one namespace, keyed by directory and then by file.
+    directory as one namespace, keyed by directory and then by file; the proofs' own,
+    for a proof source a row names, over the proofs alone.
 
     One snapshot of every namespace is read where no stem is held twice across them,
     which is the common case and reads each proof once; otherwise each namespace is read
     apart, so a stem two directories share is resolved as each instrument resolves it.
     """
-    members = {directory: sorted(_gallina_in(tracked, directory)) + proof_sources
-               for directory in namespaces if directory != PROOFS}
+    members = {directory: sorted(_gallina_in(tracked, directory) | set(proof_sources))
+               for directory in namespaces}
     if not members:
         return {}
     for rels in members.values():

@@ -187,6 +187,39 @@ def _an_option_default_is_read() -> None:
     ensure(none[0] is None and "0 string default" in none[1], f"an absent option: {none}")
 
 
+def _a_subject_the_instrument_names_is_read() -> None:
+    driver = ("import argparse\nfrom pathlib import Path\n"
+              "HERE = Path(__file__).resolve().parent\n"
+              "OWNER = HERE.parent.parent / {owner}\n"
+              "p = argparse.ArgumentParser()\n"
+              'p.add_argument("--owner", default=str(OWNER))\n')
+    files: dict[str, str | bytes] = {
+        "tools/low/drive.py": driver.format(owner='"proofs" / "Owner.v"'),
+        "tools/low/D.v": "Definition d := 0.\n",
+        "proofs/Owner.v": "Require Import Dep.\n",
+        "proofs/Dep.v": "Definition c (o : option nat) := if o is Some n then n else 0.\n",
+        "proofs/Far.v": "Definition far (o : option nat) := if o is Some n then n else 0.\n",
+    }
+    owner = k117.Literal("tools/low/drive.py", "--owner")
+    row = k117.Instrument("low", "tools/low/drive.py", "some-switch", "9.1.1",
+                          beside="tools/low", subjects=(owner,))
+    with _tree(files) as root:
+        read = k117.literal(root, owner)
+    ensure(read == ("proofs/Owner.v", ""), f"the default owner reads as its path: {read}")
+    found, _ = _decide(files, [row])
+    ensure([f.split(" ")[0] for f in found] == ["proofs/Dep.v:1"],
+           f"the owner brings its closure and nothing past it: {found}")
+    for escape in (driver.format(owner='".." / "Owner.v"'),
+                   driver.replace("HERE.parent", "HERE.parent.parent").format(owner='"x.v"')):
+        left, _ = _decide({**files, "tools/low/drive.py": escape}, [row])
+        ensure(any("0 string default of its --owner option" in f for f in left),
+               f"a path that leaves the checkout is unread, not dropped: {left}")
+    moved = {**files, "tools/low/drive.py": driver.format(owner='"proofs" / "Gone.v"')}
+    gone, _ = _decide(moved, [row])
+    ensure(any("'proofs/Gone.v', which the git index does not carry" in f for f in gone),
+           f"an owner the index does not carry is a finding: {gone}")
+
+
 def _an_unlisted_prover_caller_is_a_finding() -> None:
     caller = "from vos import gallina\nfound = gallina.prover('s')\n"
     definer = "def prover(switch):\n    return None\n"
@@ -269,6 +302,10 @@ def _the_live_rows_read_their_instruments() -> None:
     release, _ = k117.literal(root, release_spec)
     ensure(switch is not None and release is not None and release in switch,
            f"the lowering's release is read out of its switch: {switch!r}, {release!r}")
+    owners = [k117.literal(root, spec) for spec in lowering.subjects
+              if isinstance(spec, k117.Literal)]
+    ensure(owners == [("proofs/RingContract.v", "")],
+           f"the lowering's default owner is read out of its driver: {owners}")
     compare = by_name["compare_component.py"]
     ensure(isinstance(compare.switch, k117.Literal) and compare.release is None,
            "compare_component.py states a switch and no release")
@@ -289,6 +326,7 @@ def cases() -> list[Case]:
         _the_set_follows_closure_and_release,
         _readings_fail_closed,
         _an_option_default_is_read,
+        _a_subject_the_instrument_names_is_read,
         _an_unlisted_prover_caller_is_a_finding,
         _each_rig_module_asks_for_its_rows_switches,
         _the_live_rows_read_their_instruments,
