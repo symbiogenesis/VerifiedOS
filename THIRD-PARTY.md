@@ -141,6 +141,26 @@ requires a separate isolated generator build, repeated emissions, vector checks
 and independent replay with regenerated provenance. The current generated
 headers and their historical source identities remain the accepted inputs.
 
+The RTL review on 2026-09-29 resolved the branch [.gitmodules](.gitmodules) names
+for each RTL pin and read each advanced pin's own license instruments at its new
+revision:
+
+- Mocha advances to its `main` tip. `REUSE.toml`, `hw/vendor/REUSE.toml`, the
+  `LICENSES/` texts, the UART register and status owners and `hw/top_chip/` are
+  byte-identical to the preceding pin's. The added `doc/` pages fall under the
+  root manifest's `Apache-2.0` annotation and the two added assertion patches
+  under the vendor manifest's `patches/**` `Apache-2.0` annotation. The modified
+  vendored CVA6-CHERI, debug-module and tag-controller sources keep the terms
+  recorded below. Its CVA6-CHERI vendor lock now selects the edition the
+  `upstream/cva6-cheri` gitlink pins.
+- CVA6-CHERI stays at the tip of its `mocha` branch, the edition Mocha vendors
+  and the width-transform registry binds.
+- The standalone tag controller stays at its `main` tip, which carries the
+  `2level-september-2026` snapshot tag.
+- Ibex stays at its `master` tip; its newest release tag is older.
+- CHERIoT-Ibex stays at its `main` tip; its `cheriot_ibex_v1.0` release predates
+  a later RTL fix.
+
 The **Use** column records repository activity:
 
 - **consumed:** a command under [tools/run.py](tools/run.py) opens the submodule's files.
@@ -156,7 +176,7 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 | `upstream/sail-cheri-riscv` | `CTSRD-CHERI/sail-cheri-riscv` | `bb07488d` | `BSD-2-Clause` | Capability-semantics oracle built by `run.py model oracle`. | consumed |
 | `upstream/SECOMP` | `secure-compilation/SECOMP` | `5c20b839` | INRIA Non-Commercial License Agreement, over a dual-licensed subset | CompCert fork measured in a separate, unpublished local repository. No build here invokes it. | read |
 | `upstream/llvm-project` | `llvm/llvm-project` | `d53a3f75`, on `main` | `Apache-2.0 WITH LLVM-exception` | LLVM MC and `lld`, the untrusted assembler and linker to be adapted to the frozen dialect. | pinned to read later |
-| `upstream/mocha` | `lowRISC/mocha` | `2c11b745`, on `main` | `Apache-2.0` for lowRISC content; vendored subtrees have the terms below | Bring-up SoC used to author the device and tag-fabric descriptions in [the RTL delta](docs/hardware/rtl-reparameterization-delta.md) and [provenance record](rtl/synthesis-provenance.md). `run.py rtl devicescheck` reads its UART register and status declarations. | consumed |
+| `upstream/mocha` | `lowRISC/mocha` | `4b9bec92`, on `main` | `Apache-2.0` for lowRISC content; vendored subtrees have the terms below | Bring-up SoC used to author the device and tag-fabric descriptions in [the RTL delta](docs/hardware/rtl-reparameterization-delta.md) and [provenance record](rtl/synthesis-provenance.md). `run.py rtl devicescheck` reads its UART register and status declarations. | consumed |
 | `upstream/cva6-cheri` | `lowRISC/cva6-cheri` | `0c7b3adf` | `SHL-0.51` at the root; file-specific `Apache-2.0 WITH SHL-2.0` and `Apache-2.0 WITH SHL-2.1` | C-class scalar datapath adapted to the 64+1-bit profile. `run.py rtl elaborate` builds the baseline and curated configurations. | consumed |
 | `upstream/axi-cheri-tagcontroller` | `Capabilities-Limited/axi_cheri_tagcontroller` | `c8245850` | `SHL-0.51` | Tag-fabric survey reference. The flat-store design in the RTL delta uses CVA6-CHERI's older nested pin, identified in the provenance record. | read |
 | `upstream/opentitan` | `lowRISC/opentitan` | `fbedb68e` | `Apache-2.0` | RoT peripheral reference. `run.py rtl elaborate` reads three primitive packages and the assertion header under `hw/ip` omitted by the imported core's manifest. Mocha retains its own older vendor lock. | consumed |
@@ -380,9 +400,9 @@ notice and adds a modification notice to the native staged derivative. Source
 identity, match counts, output identity and staged diffs are recorded; no imported
 module body is copied into tracked `rtl/`.
 
-For R1c-ii's authored UART character wrapper, the `2c11b745` Mocha pin's
+For R1c-ii's authored UART character wrapper, the `4b9bec92` Mocha pin's
 `hw/vendor/lowrisc_ip/ip/uart/rtl/uart_reg_pkg.sv` and `data/uart.hjson` were read
-with `LICENSES/Apache-2.0.txt` on 2026-09-24. Those interface sources identify
+with `LICENSES/Apache-2.0.txt` on 2026-09-29. Those interface sources identify
 Apache-2.0. The wrapper's generated constants use that declared register layout;
 no UART implementation body is imported. This interface use neither qualifies
 the complete OpenTitan UART nor changes the existing primitive dependency route.
