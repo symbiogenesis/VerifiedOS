@@ -384,9 +384,11 @@ def _machine_bound_tacticals_are_refused() -> None:
 
 def _dynamic_sources_are_refused_before_compiling() -> None:
     # Under the gate's flags the pinned Rocq 9.3.0 compiles Load of a path or a name, Time
-    # Load, Declare ML Module and every Ltac2 external spelling here, a loaded file's
-    # setting staying in effect. It refuses Cd as deprecated, the load-path commands as
-    # option tables it lacks and a Load inside an open proof; they are refused here too.
+    # Load, Declare ML Module, Time Declare ML Module across lines and every Ltac2 external
+    # spelling here, a loaded file's setting staying in effect. It refuses Cd as deprecated,
+    # which Fail absorbs, the load-path commands as option tables it lacks and a Load
+    # inside an open proof; they are refused here too, a control prefix or a line break
+    # before any of them.
     external = " budget : int -> (unit -> 'a) -> 'a := \"rocq-runtime.plugins.ltac2\" \"timeout\"."
     refused = ('Load "/elsewhere/hidden.v".', 'Load Verbose "/elsewhere/hidden.v".',
                "Load hidden.", 'Time Load "hidden.v".', 'Fail Load "hidden.v".',
@@ -394,6 +396,8 @@ def _dynamic_sources_are_refused_before_compiling() -> None:
                'Cd "/elsewhere".', "Cd.", 'Add LoadPath "/elsewhere" as Elsewhere.',
                'Add Rec LoadPath "/elsewhere" as Elsewhere.', 'Remove LoadPath "/elsewhere".',
                'Add ML Path "/elsewhere".', 'Declare ML Module "rocq-runtime.plugins.ltac2".',
+               'Time Declare\nML\nModule "rocq-runtime.plugins.ltac2".', 'Fail Cd "/elsewhere".',
+               'Time Add Rec\nLoadPath "/elsewhere" as Elsewhere.',
                f"Ltac2 @ external{external}", f"Ltac2@external{external}",
                f"Ltac2(* c *)@(* c *)external{external}", f"#[local] Ltac2 @ external{external}",
                f"Local Ltac2 @\n  external{external}")
@@ -402,6 +406,7 @@ def _dynamic_sources_are_refused_before_compiling() -> None:
                f"a source loading what the gate cannot read passed: {text!r}")
     allowed = ("Record Load := { level : nat }.", "Definition Loaded := 0.",
                "Ltac Loaded := idtac. Lemma a : True. Proof. Loaded. exact I. Qed.",
+               "Ltac Load' := idtac. Lemma a : True. Proof. Load'. exact I. Qed.",
                "Definition Cd := 0.", "Ltac2 external := 0.", "Print LoadPath.",
                "Print ML Path.", "Pwd.", '(* Load "hidden.v". *) Definition x := 0.',
                'Definition label := "a. Declare ML Module ""p"". b".')
