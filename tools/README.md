@@ -416,12 +416,14 @@ microsecond precision, and a cutoff copied from uv.lock's millisecond `upload-ti
 excludes a file uploaded within that millisecond and silently drops it from the lock.
 An entry can be deleted once three days have passed since its cutoff, when its
 release has aged past the cooldown; the comment on each manifest line gives that
-moment. After deleting one from the manifest, `uv lock --project tools` should remove
+moment, and no rule checks that comment against its cutoff, because the entries are
+transient. After deleting one from the manifest, `uv lock --project tools` should remove
 only that package's line from uv.lock's `[options.exclude-newer-package]`, and the
 table's header with its last line, leaving every `[[package]]` entry byte-identical.
 A changed version of the deleted entry's own package means the entry went before its
-date; any other `[[package]]` change is index drift from the re-resolution and is
-reviewed on its own.
+date, and any other change then follows from it; when that package keeps its version,
+any other `[[package]]` change is index drift from the re-resolution and is reviewed
+on its own.
 
 When a compatible Python is absent, install it explicitly with your platform's
 installer or `uv python install --no-config 3.14`. That one command bypasses project
@@ -983,10 +985,22 @@ an editor's ty server reads that table without the flag; an `[[overrides]]` entr
 carrying any key but `include` and `exclude`, because its `rules` can lower the flag's
 severities and its `analysis` can suppress diagnostics for the files it matches; an
 `[analysis]` key outside the ones the gate admits as suppressing nothing, which
-refuses `allowed-unresolved-imports` and `replace-imports-with-any`; and a `[src]`
-table other than exactly `exclude = ["**/__pycache__/**"]`, because an `include`, a
-further `exclude` or `exclude-scripts` takes files out of the run. An unreadable
-ty.toml is a finding too. What ruff is *not*
+refuses `allowed-unresolved-imports` and `replace-imports-with-any`; an
+`[environment]` key other than `python-version`, `python-platform` and
+`extra-paths`, or `python-platform` other than `"linux"` or `extra-paths` other than
+`["."]`, because the platform decides which `sys.platform` branches ty checks and
+`python`, `root`, `typeshed` or another search path moves where it resolves imports
+(K-75 holds `python-version`); and a `[src]`
+table other than exactly `exclude = ["**/__pycache__/**"]` and
+`respect-ignore-files = false`, because an `include`, a further `exclude`,
+`exclude-scripts` or honoring ignore files takes files out of the run: ty honors
+`.gitignore`, `.ignore`, `.git/info/exclude` and the global gitignore by default,
+so a pattern in one of them matching a tracked module would drop it. An unreadable
+ty.toml is a finding too, and so is a user-level ty configuration: ty merges
+`%APPDATA%\ty\ty.toml` on Windows, or `$XDG_CONFIG_HOME/ty/ty.toml` (by default
+`~/.config/ty/ty.toml`) on Linux and macOS, beneath ty.toml even when the gate names
+ty.toml with `--config-file`, so a setting ty.toml leaves out would come from it. The
+gate reports such a file rather than steering ty away from it. What ruff is *not*
 asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own line and
 each for a reason that would hold in any project, and no group switched off to spare this
 code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and
@@ -999,7 +1013,9 @@ editor's ty server to read ty.toml and share the gate's severities. In VS Code, 
 the checkout's `out/venv-win32/Scripts/python.exe` on Windows or the Linux environment's
 `bin/python` from the placement table above so editor imports use the same
 dependencies as the gate. The Linux typing target is intentional: the guest modules
-use POSIX APIs, even when the host checks them. It does not move execution into Linux.
+use POSIX APIs, even when the host checks them. It does not move execution into Linux,
+and ty reports nothing in a branch the target makes unreachable, so the branches taken
+only when `sys.platform` is `win32` go unchecked.
 
 The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
 addresses ty's recursive-JSON narrowing behavior, not

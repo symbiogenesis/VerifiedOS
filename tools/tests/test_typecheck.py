@@ -11,9 +11,12 @@ parsed, because a checker that died partway has not cleared the files it never
 reached. The ty.toml cases hold the settings the gate refuses: a `[rules]` table
 other than exactly `all = "error"`, an `[[overrides]]` entry carrying any key but
 `include` and `exclude`, an `[analysis]` key outside the ones that suppress nothing,
+an `[environment]` key other than the three it admits or either held value changed,
 a `[src]` table other than exactly the committed one, and a file it cannot read.
 """
 
+import os
+import sys
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -247,9 +250,14 @@ def _pin_gate_refusals() -> None:
 # The ty.toml this tree carries, which the gate reads from the same place.
 _TY_TOML = Path(typecheck.__file__).resolve().parents[2] / "ty.toml"
 _ALL_ERROR = '[rules]\nall = "error"\n'
-_SRC = '\n[src]\nexclude = ["**/__pycache__/**"]\n'
-# The smallest ty.toml the gate admits: the two tables it holds exactly.
-_ADMITTED = _ALL_ERROR + _SRC
+_ENV = '\n[environment]\npython-platform = "linux"\nextra-paths = ["."]\n'
+_SRC = '\n[src]\nexclude = ["**/__pycache__/**"]\nrespect-ignore-files = false\n'
+# The tables beside `[rules]` that the gate requires, `[src]` last so that a case
+# can append a key to it.
+_HELD = _ENV + _SRC
+# The smallest ty.toml the gate admits: the tables it holds exactly, and the two
+# environment values it holds.
+_ADMITTED = _ALL_ERROR + _HELD
 
 
 def _settings(text: str | None) -> list[str]:
@@ -276,7 +284,11 @@ def _ty_settings_admitted() -> None:
                              'strict-equality-semantics = true\n'
                              'strict-generic-narrowing = true\n',
                  _ADMITTED + '\n[analysis]\nstrict-literal-narrowing = true\n',
-                 _ADMITTED + '\n[analysis]\n'):
+                 _ADMITTED + '\n[analysis]\n',
+                 # python-version's value is K-75's to hold, so this gate admits the
+                 # key whatever it says, and its absence.
+                 _ALL_ERROR + _ENV + 'python-version = "3.14"\n' + _SRC,
+                 _ALL_ERROR + _ENV + 'python-version = "3.12"\n' + _SRC):
         ensure(_settings(text) == [], f"an admissible ty.toml was refused: {text!r}")
 
 
@@ -284,12 +296,12 @@ def _ty_settings_refuse_rules() -> None:
     # The table is held exactly: a lowered `all`, an entry beside it, and no table are
     # each one finding, even the entry that restates what `all` already says.
     for text, expected in (
-            ('[rules]\nall = "warn"\n' + _SRC, "sets [rules] to {'all': 'warn'}"),
-            (_ALL_ERROR + 'unresolved-import = "ignore"\n' + _SRC,
+            ('[rules]\nall = "warn"\n' + _HELD, "sets [rules] to {'all': 'warn'}"),
+            (_ALL_ERROR + 'unresolved-import = "ignore"\n' + _HELD,
              "'unresolved-import': 'ignore'"),
-            (_ALL_ERROR + 'unresolved-import = "error"\n' + _SRC,
+            (_ALL_ERROR + 'unresolved-import = "error"\n' + _HELD,
              "'unresolved-import': 'error'"),
-            ('[environment]\npython-version = "3.14"\n' + _SRC, "carries no [rules] table")):
+            (_HELD, "carries no [rules] table")):
         found = _settings(text)
         ensure(len(found) == 1 and expected in found[0]
                and "exactly {'all': 'error'}" in found[0],
@@ -335,7 +347,7 @@ def _ty_settings_refuse_overrides() -> None:
         shaped = _settings(text)
         ensure(len(shaped) == 1 and "must be an array of tables" in shaped[0],
                f"an overrides value of another shape must be refused: {shaped!r}")
-    both = _settings('[rules]\nall = "warn"\n' + _SRC + carrying)
+    both = _settings('[rules]\nall = "warn"\n' + _HELD + carrying)
     ensure(len(both) == 2, f"each refused half must be its own finding: {both!r}")
 
 
@@ -366,22 +378,72 @@ def _ty_settings_refuse_analysis() -> None:
            f"an analysis value of another shape must be refused: {shaped!r}")
 
 
+def _ty_settings_refuse_environment() -> None:
+    # Each key that moves where ty resolves imports is refused whatever it says, and
+    # so is a key the gate has not read.
+    for line, key in (('typeshed = "stubs"\n', "typeshed 'stubs'"),
+                      ('root = ["src"]\n', "root ['src']"),
+                      ('python = ".venv"\n', "python '.venv'"),
+                      ('future-setting = 1\n', "future-setting 1")):
+        found = _settings(_ALL_ERROR + _ENV + line + _SRC)
+        ensure(len(found) == 1 and f"[environment] carries {key};" in found[0]
+               and "admits only extra-paths, python-platform, python-version" in found[0],
+               f"an [environment] key outside the admitted ones must be refused: {found!r}")
+    # The two held values are held exactly: another platform, an added or a missing
+    # search path, and an absent key are each named, and one table is one finding.
+    for text, expected in (
+            ('\n[environment]\npython-platform = "win32"\nextra-paths = ["."]\n',
+             "sets python-platform to 'win32';"),
+            ('\n[environment]\npython-platform = "all"\nextra-paths = ["."]\n',
+             "sets python-platform to 'all';"),
+            ('\n[environment]\npython-platform = "linux"\nextra-paths = [".", "stubs"]\n',
+             "sets extra-paths to ['.', 'stubs'];"),
+            ('\n[environment]\npython-platform = "linux"\nextra-paths = []\n',
+             "sets extra-paths to [];"),
+            ('\n[environment]\nextra-paths = ["."]\n', "carries no python-platform;"),
+            ('\n[environment]\npython-version = "3.14"\n',
+             "carries no python-platform, carries no extra-paths;"),
+            ('\n[environment]\npython-platform = "win32"\nextra-paths = ["stubs"]\n',
+             "sets python-platform to 'win32', sets extra-paths to ['stubs'];"),
+            ('', "carries no [environment] table;")):
+        found = _settings(_ALL_ERROR + text + _SRC)
+        ensure(len(found) == 1 and expected in found[0]
+               and "python-platform to 'linux' and extra-paths to ['.']" in found[0],
+               f"an [environment] value other than the held one must be refused: {found!r}")
+    # A refused key and a changed value are two findings; another shape is one.
+    two = _settings(_ALL_ERROR + '\n[environment]\npython-platform = "win32"\n'
+                    'extra-paths = ["."]\ntypeshed = "stubs"\n' + _SRC)
+    ensure(len(two) == 2, f"a refused key beside a changed value must be two findings: {two!r}")
+    shaped = _settings('environment = "linux"\n' + _ALL_ERROR + _SRC)
+    ensure(len(shaped) == 1 and "environment must be a table" in shaped[0],
+           f"an environment value of another shape must be refused: {shaped!r}")
+
+
 def _ty_settings_refuse_src() -> None:
     # The table is held exactly: each way of taking files out of the run, a changed
-    # glob, and no table at all are each one finding.
+    # glob, and no table at all are each one finding. Ignore files are honored unless
+    # the table says otherwise, so a table that is silent on them is refused with one
+    # that honors them.
+    head = _ALL_ERROR + _ENV
+    ignore = 'respect-ignore-files = false\n'
     for text, expected in (
-            (_ALL_ERROR, "carries no [src] table"),
-            (_ALL_ERROR + '\n[src]\nexclude = ["**/__pycache__/**", "vos/**"]\n',
+            (head, "carries no [src] table"),
+            (head + '\n[src]\nexclude = ["**/__pycache__/**", "vos/**"]\n' + ignore,
              "'vos/**'"),
-            (_ALL_ERROR + '\n[src]\nexclude = ["vos/**"]\n', "'vos/**'"),
-            (_ALL_ERROR + _SRC + 'include = ["tests"]\n', "'include': ['tests']"),
-            (_ALL_ERROR + _SRC + 'exclude-scripts = true\n', "'exclude-scripts': True"),
-            (_ALL_ERROR + _SRC + 'respect-ignore-files = false\n',
-             "'respect-ignore-files': False"),
-            (_ALL_ERROR + '\n[src]\n', "sets [src] to {}")):
+            (head + '\n[src]\nexclude = ["vos/**"]\n' + ignore, "'vos/**'"),
+            (head + _SRC + 'include = ["tests"]\n', "'include': ['tests']"),
+            (head + _SRC + 'exclude-scripts = true\n', "'exclude-scripts': True"),
+            (head + '\n[src]\nexclude = ["**/__pycache__/**"]\n'
+                    'respect-ignore-files = true\n', "'respect-ignore-files': True"),
+            (head + '\n[src]\nexclude = ["**/__pycache__/**"]\n',
+             "sets [src] to {'exclude': ['**/__pycache__/**']}"),
+            (head + '\n[src]\n' + ignore, "sets [src] to {'respect-ignore-files'"),
+            (head + '\n[src]\n', "sets [src] to {}")):
         found = _settings(text)
         ensure(len(found) == 1 and expected in found[0]
-               and "exactly {'exclude': ['**/__pycache__/**']}" in found[0],
+               and "exactly {'exclude': ['**/__pycache__/**'], 'respect-ignore-files': "
+                   "False}" in found[0]
+               and "honoring ignore files" in found[0],
                f"a [src] table other than the committed one must be one finding: {found!r}")
 
 
@@ -394,13 +456,14 @@ def _ty_settings_fail_closed() -> None:
 
 def _ty_settings_reported_beside_the_run() -> None:
     # The refusal is a ty finding in the gate's own report, and the checker still runs.
-    for text, refused in ((_ADMITTED, False), ('[rules]\nall = "warn"\n' + _SRC, True)):
+    for text, refused in ((_ADMITTED, False), ('[rules]\nall = "warn"\n' + _HELD, True)):
         rep = Reporter()
         with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
             root = Path(td)
             (root / "tools").mkdir()
             (root / "tools" / "ty.toml").write_text(text, encoding="utf-8", newline="")
-            with patch.object(typecheck, "_run_checker") as checker:
+            with patch.object(typecheck, "_run_checker") as checker, \
+                    patch.object(typecheck, "_user_config", return_value=None):
                 typecheck._run_ty(rep, root)
         ensure(checker.call_count == 1, "the checker must run whatever the settings say")
         joined = "\n".join(rep.out)
@@ -415,6 +478,80 @@ def _ty_settings_reported_beside_the_run() -> None:
             ensure(rep.findings == 0 and rep.out == [],
                    f"an admitted ty.toml must add nothing to the report: {rep.out!r}")
             ensure(claims, "a clean run under admitted settings claims every rule at error")
+
+
+def _user_config_located() -> None:
+    # ty's user configuration directory on each platform, read from the environment
+    # ty inherits: the variable when it names a usable directory, the home directory's
+    # default otherwise, and nothing where no file is.
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        base, home = Path(td) / "base", Path(td) / "home"
+        home.mkdir()
+        for platform, variable, default in (("win32", "APPDATA", ("AppData", "Roaming")),
+                                            ("linux", "XDG_CONFIG_HOME", (".config",))):
+            under_base = base / platform / "ty" / "ty.toml"
+            under_home = home.joinpath(*default, "ty", "ty.toml")
+            environment = {"HOME": str(home), "USERPROFILE": str(home)}
+            with patch.object(typecheck, "sys", SimpleNamespace(platform=platform)):
+                with patch.dict(os.environ, {**environment,
+                                             variable: str(base / platform)}):
+                    ensure(typecheck._user_config() is None,
+                           f"{platform}: no file must locate nothing")
+                    under_base.parent.mkdir(parents=True)
+                    under_base.write_text("", encoding="utf-8")
+                    ensure(typecheck._user_config() == under_base,
+                           f"{platform}: the {variable} file must be located")
+                under_home.parent.mkdir(parents=True)
+                under_home.write_text("", encoding="utf-8")
+                with patch.dict(os.environ, {**environment, variable: ""}):
+                    ensure(typecheck._user_config() == under_home,
+                           f"{platform}: an empty {variable} must fall back to the home "
+                           "directory's default")
+                with patch.dict(os.environ, environment):
+                    os.environ.pop(variable, None)
+                    ensure(typecheck._user_config() == under_home,
+                           f"{platform}: an unset {variable} must fall back to the home "
+                           "directory's default")
+        # ty ignores an XDG_CONFIG_HOME that is not absolute.
+        with patch.object(typecheck, "sys", SimpleNamespace(platform="linux")), \
+                patch.dict(os.environ, {"HOME": str(home), "USERPROFILE": str(home),
+                                        "XDG_CONFIG_HOME": "base/linux"}):
+            ensure(typecheck._user_config() == home / ".config" / "ty" / "ty.toml",
+                   "a relative XDG_CONFIG_HOME must fall back to ~/.config")
+
+
+def _user_config_reported_beside_the_run() -> None:
+    # A user-level ty.toml that ty would merge is a ty finding naming its path, the
+    # checker still runs, and the run no longer claims every rule at error.
+    variable = "APPDATA" if sys.platform == "win32" else "XDG_CONFIG_HOME"
+    for present in (False, True):
+        rep = Reporter()
+        with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+            root = Path(td)
+            (root / "tools").mkdir()
+            (root / "tools" / "ty.toml").write_text(_ADMITTED, encoding="utf-8", newline="")
+            user = root / "config" / "ty" / "ty.toml"
+            user.parent.mkdir(parents=True)
+            if present:
+                user.write_text('[analysis]\nallowed-unresolved-imports = ["**"]\n',
+                                encoding="utf-8", newline="")
+            with patch.dict(os.environ, {variable: str(root / "config")}), \
+                    patch.object(typecheck, "_run_checker") as checker:
+                typecheck._run_ty(rep, root)
+        ensure(checker.call_count == 1, "the checker must run whatever the settings say")
+        joined = "\n".join(rep.out)
+        claims = str(checker.call_args.kwargs["ok"]).endswith("all rules at error")
+        if present:
+            ensure(rep.findings == 1
+                   and "FAIL ty: 1 user-level configuration(s) the gate refuses:" in joined
+                   and f"a user-level ty configuration at {user} merges into the gate's "
+                       "run" in joined,
+                   f"a user-level ty.toml must be a ty finding naming it: {rep.out!r}")
+            ensure(not claims, "a run beside a user-level ty.toml must not claim every "
+                               "rule ran at error")
+        else:
+            ensure(rep.findings == 0 and rep.out == [] and claims,
+                   f"an empty user configuration directory must add nothing: {rep.out!r}")
 
 
 def cases() -> list[Case]:
@@ -437,7 +574,10 @@ def cases() -> list[Case]:
         Case("ty-settings-refuse-rules", _ty_settings_refuse_rules),
         Case("ty-settings-refuse-overrides", _ty_settings_refuse_overrides),
         Case("ty-settings-refuse-analysis", _ty_settings_refuse_analysis),
+        Case("ty-settings-refuse-environment", _ty_settings_refuse_environment),
         Case("ty-settings-refuse-src", _ty_settings_refuse_src),
         Case("ty-settings-fail-closed", _ty_settings_fail_closed),
         Case("ty-settings-reported-beside-the-run", _ty_settings_reported_beside_the_run),
+        Case("user-config-located", _user_config_located),
+        Case("user-config-reported-beside-the-run", _user_config_reported_beside_the_run),
     ]
