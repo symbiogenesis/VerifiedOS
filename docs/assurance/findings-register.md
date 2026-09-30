@@ -1654,6 +1654,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M1.2, in prose
 · Disposition: standing, the preprocessor line relaxed for the one output that needs it and the other two waiting on M1.4's toolchain
 
+**F-520** upstream-defect: SECOMP's security layer carries no checked robust-preservation theorem at the pin, `security/RSC.v` not building and its axioms implying `False`, and the back-translation proof rests on an admitted lemma that is false
+· Raised: M1.2
+· Disposition: open, the SECOMP proof-reuse record restating its use and limits, and R-05-024's deferred proof taking none of those axioms or that lemma as a start-from
+
 **F-224** upstream-defect: the pin carries no stock target backend to start from, the one under its architecture directory being the compartment-aware modification of it and carrying two admitted lemmas in its assembly language file, both in that added layer's own material
 · Raised: M1.2a
 · Disposition: closed, the start-from ruled as the pin's own `riscV/` as the contained repository carries it, compartment layer and all, because it alone composes with the `Mach` layer and the security layer M1.1b keeps for robust preservation, and a stock tree would be a new pin, a new licence read and a backend that no longer composes
@@ -1931,6 +1935,18 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-323** method: the lane's own build script emitted the header "`.v` of `FILES` with no `.vo`" and then ran a loop over a command substitution whose stdout was discarded, so it captured nothing and the loop body was `:`; the log showed the header followed by no lines at all, which a later reader takes as "every member built". That is the fourth shape of a check that decides nothing, a count with no predicate, and it is how the figure "203 of the 204 `.v` of `FILES`" stood in the note, the checklist cell and the gate block, wrong in both numerator and denominator: `$(FILES)` has 203 members at this branch and 202 at the pin, 202 of them build in each tree, and the 203 `.vo` the script did count is a `find` over the whole tree that includes `security/Tactics.vo`, which the Makefile comments out of `SECURITY` and builds only as a dependency
 · Raised: M1.2b
 · Disposition: closed; the stub is replaced by a census that expands `$(FILES)` with `make --eval` and tests each member against the `.vo` basenames present, `FILES` naming bare basenames resolved through the Makefile's VPATH, and every restatement of the figure is corrected to 202 of 203.
+
+**F-522** upstream-defect: the pin's `common/Events.v` declares an unused axiom that implies `False`, which `Print Assumptions` on the compiler's theorems cannot report and only a whole-environment summary names
+· Raised: M1.2g
+· Disposition: open, M1.2g reading the contained file, removing the axiom where it stands, and stating whether each contained proof receipt's assumption audit reads the whole environment
+
+**F-523** upstream-defect: the pin's `riscV/TargetPrinter.ml` has no arm for the load that reads a stack-passed parameter, so `ccomp` fails on any function reading an argument past the eighth, and M1.2b's float deletion edited that file
+· Raised: M1.2d
+· Disposition: open, M1.2d naming the contained printer's arm for that load and a replay reading a parameter past the eighth before it closes
+
+**F-524** upstream-defect: the pin's `backend/Regalloc.ml` requires every builtin argument in a register and fails an assertion on an external or runtime builtin with more arguments than allocatable registers, which only interpretation and the back-translation produce
+· Raised: M1.2d
+· Disposition: open, owed only if the contained compiler takes `-interp-asm` or the back-translation, or rebases onto a SECOMP revision carrying SECOMP#32, which then merges against M1.2b's edit of the same file
 
 **F-449** measurement: the typed backend refuses a narrowing program whose allocation places the length register on the capability's register, "typed narrowing: length register aliases capability", 2 of the default campaign's 70 members and 4 of 30 narrowing draws
 · Raised: M1.2f, in prose
