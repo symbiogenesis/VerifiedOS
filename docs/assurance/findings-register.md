@@ -1125,6 +1125,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q38c
 · Disposition: standing
 
+**F-565** upstream-defect: the locked proof switch's Rocq 9.3.0 carries the cofixpoint guard-checker inconsistencies #22386 and #22389, which Rocq's critical-bug list reports fixed in V9.3
+· Raised: Q39
+· Disposition: open, Q38 refusing coinductive definitions in authored proof sources until a lock move takes a Rocq release carrying #22388 and #22392
+
 ## M0 · Hardware reference
 
 **F-001** upstream-defect: the CHERI upstream embeds an older `sail-riscv` than the base it would be reconciled against, so the two are not one shared base under two configurations
