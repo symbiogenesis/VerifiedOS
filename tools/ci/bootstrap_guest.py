@@ -271,10 +271,7 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
                 ("git", "-C", str(TOOLS.parent), "rev-parse", "HEAD"), capture_output=True,
                 text=True, check=True, timeout=60,
                 env=os.environ | env.git_env(TOOLS.parent)).stdout.strip()
-            architecture, expected = opam_client.OPAM_HASHES[platform.machine()]
-            opam = binary_dir / "opam"
-            receipts.download(opam_client.release_url(architecture), opam, expected)
-            opam.chmod(0o755)
+            opam_client.install(binary_dir / "opam", platform.machine())
             initialize_repositories(log)
             # The metadata the snapshots are resolved against, which the locks do not fix,
             # refused rather than recorded where the root's own files cannot say it.

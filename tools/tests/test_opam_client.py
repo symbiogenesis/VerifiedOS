@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The opam client's owner reads a root's repositories from its own files, in each
-layout a reviewed client leaves them, and refuses to vouch for an incomplete reading.
+layout a reviewed client leaves them, refuses to vouch for an incomplete reading, and
+installs the client only as the reviewed bytes and never over another file.
 
 Roots are written here in opam's layouts rather than made by a client, so the cases run
 on any lane: a repository's metadata unpacked in a directory, tarred under a directory
@@ -9,9 +10,11 @@ of the archive, as the 2.6 format rewrites it.
 """
 
 import io
+import sys
 import tarfile
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import opam_client
@@ -133,10 +136,50 @@ def _initialized_format_is_the_clients() -> None:
             raise AssertionError("a root that states no format was accepted")
 
 
+def _install_verifies_and_never_replaces() -> None:
+    """The one install route fetches the reviewed asset against its reviewed digest,
+    leaves it executable, and refuses a different file already at the destination."""
+    architecture, expected = opam_client.OPAM_HASHES["x86_64"]
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        target = Path(td) / "bin" / "opam"
+        fetched: list[tuple[str, str]] = []
+
+        def download(url: str, destination: Path, digest: str) -> None:
+            fetched.append((url, digest))
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(b"client")
+
+        with patch.object(opam_client.receipts, "download", side_effect=download):
+            opam_client.install(target, "x86_64")
+        ensure(fetched == [(opam_client.release_url(architecture), expected)]
+               and target.read_bytes() == b"client",
+               f"the reviewed asset is fetched against its digest, got {fetched}")
+        ensure(sys.platform == "win32" or target.stat().st_mode & 0o111 == 0o111,
+               "the installed client is executable")
+        try:
+            opam_client.install(target, "riscv64")
+        except ValueError as err:
+            ensure("no reviewed opam binary for riscv64" in str(err), f"said {err}")
+        else:
+            raise AssertionError("a machine with no reviewed binary was installed for")
+        other = Path(td) / "usr" / "opam"
+        other.parent.mkdir()
+        other.write_bytes(b"a distribution's client")
+        try:
+            opam_client.install(other, "x86_64")
+        except ValueError as err:
+            ensure("does not match" in str(err), f"said {err}")
+        else:
+            raise AssertionError("a different client at the destination was accepted")
+        ensure(other.read_bytes() == b"a distribution's client",
+               "a different file at the destination is kept, not replaced")
+
+
 def cases() -> list[Case]:
     return [
         Case("reads-every-layout", _reads_every_layout),
         Case("reports-what-it-could-not-read", _reports_what_it_could_not_read),
         Case("initialized-root-is-complete", _initialized_root_is_complete),
         Case("initialized-format-is-the-clients", _initialized_format_is_the_clients),
+        Case("install-verifies-and-never-replaces", _install_verifies_and_never_replaces),
     ]

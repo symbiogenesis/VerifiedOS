@@ -7,7 +7,8 @@ client that built it in its version string, `sail @ opam-v<client> <release>`, s
 lock built under two clients yields two identities. This module is the one owner of
 the client's reviewed release and its per-architecture SHA-256 values, which
 [guest bootstrap](../ci/bootstrap_guest.py) verifies its download against and
-[`run.py provision`](cli/provision.py) holds the installed client to. A client is
+[`run.py provision`](cli/provision.py) holds the installed client to, and of the one
+route both take to install it. A client is
 replaced deliberately rather than repaired: a client rewrites a root whose format is
 older than its own to its own format, one way, after which an earlier client cannot
 read it. Not every release raises the format, so the reviewed client's is recorded
@@ -26,6 +27,8 @@ opam root restored under another client is another root.
 import re
 import tarfile
 from pathlib import Path
+
+from vos import receipts
 
 OPAM_VERSION = "2.6.0"
 
@@ -59,6 +62,22 @@ def release_url(architecture: str) -> str:
     """Where the reviewed release's binary for one asset suffix is published."""
     return (f"https://github.com/ocaml/opam/releases/download/{OPAM_VERSION}/"
             f"opam-{OPAM_VERSION}-{architecture}-linux")
+
+
+def install(destination: Path, machine: str) -> None:
+    """Put the reviewed client for `machine` at `destination`, executable.
+
+    The one install route, which guest bootstrap takes into its private root and
+    `run.py provision --install-opam` onto a machine with no client. The download is
+    verified against the reviewed SHA-256 before it is published at `destination`, and
+    a file already there is kept only when it is that client: any other is refused
+    rather than replaced.
+    """
+    if machine not in OPAM_HASHES:
+        raise ValueError(f"no reviewed opam binary for {machine}")
+    architecture, expected = OPAM_HASHES[machine]
+    receipts.download(release_url(architecture), destination, expected)
+    destination.chmod(0o755)
 
 
 def root_format(root: Path) -> str:
