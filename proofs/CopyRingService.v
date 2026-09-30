@@ -333,6 +333,13 @@
 
 Require Import RingContract.
 
+(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
+   the goal in the tactic and again where the kernel checks its cast at Qed;
+   this casts eq_refl to the goal unevaluated, so only the check at Qed
+   evaluates it. *)
+Local Ltac vm_reflexivity :=
+  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
+
 (* -------------------------------------------------------------------------
    List, boolean and arithmetic helpers, defined here rather than imported:
    the prelude carries the list type and not the library over it, and
@@ -659,7 +666,7 @@ Proof. reflexivity. Qed.
 Example three_of_the_four_header_words_are_shared :
   andb (Nat.eqb (count_of all_header_words) 4)
        (Nat.eqb (count_of (filter_of is_shared_cell all_header_words)) 3) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_generation_word_is_the_one_that_is_not_shared :
   is_shared_cell hw_generation = false.
@@ -670,11 +677,11 @@ Proof. reflexivity. Qed.
    lifecycle's length is its rank at the terminal state plus one. *)
 Example the_operation_list_is_the_contracts :
   Nat.eqb (count_of all_ops) op_count = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_state_list_is_the_contracts_lifecycle :
   Nat.eqb (count_of all_slot_states) (S (lifecycle_rank state_Reclaimed)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* One event per step the contract states, which is what makes the count six:
    five states carry a successor and one carries the malformed step. Checking
@@ -692,7 +699,7 @@ Example there_are_six_service_events :
                                            | None => false
                                            end)
                                  all_slot_states)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition consumer_act_eqb (a b : consumer_act) : bool :=
   match a, b with
@@ -732,7 +739,7 @@ Proof. intro a; destruct a; reflexivity. Qed.
 
 Example the_operations_are_pairwise_distinct :
   all_of (fun o => Nat.eqb (count_of (filter_of (op_eqb o) all_ops)) 1) all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* =========================================================================
    Part 1: the index algebra (readings 1, 2 and 3).
@@ -775,7 +782,7 @@ Theorem the_wire_index_separates_a_live_window :
                                    (Nat.eqb d 0))
                    (upto (S ring_capacity)))
          (upto ring_index_span) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* A slot is reused exactly a capacity later, which is the whole content of
    "the producer never overwrites an unconsumed entry": every distance strictly
@@ -787,13 +794,13 @@ Theorem the_producer_never_writes_a_live_slot :
                                    (negb (Nat.eqb (rv_slot (base + d)) (rv_slot base))))
                    (upto ring_capacity))
          (upto ring_capacity) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-12-091 |*)
 Theorem the_slot_is_reused_exactly_a_capacity_later :
   all_of (fun base => Nat.eqb (rv_slot (base + ring_capacity)) (rv_slot base))
          (upto ring_capacity) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the two algebras are joined rather than asserted to be joined: over every
    occupancy the capacity admits and from every base the span carries, the
@@ -811,7 +818,7 @@ Theorem the_occupancy_is_the_contracts_modular_difference :
                                      (Nat.ltb 0 occ))
                    (upto (S ring_capacity)))
          (upto ring_index_span) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The specification's two steps. Each writes one index and reads the other,
    which is what R-12-008a's three concurrently shared atomics buy: no
@@ -916,7 +923,7 @@ Theorem the_ring_fills_to_capacity_and_refuses_one_past :
         | submit_would_block => true
         | submit_enqueued => false
         end) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* R-12-095's "no partial enqueue" as a property of the step rather than as a
    sentence: a refused submission leaves the view exactly where it was. *)
@@ -1086,7 +1093,7 @@ Example the_refuting_views_sit_on_the_two_boundaries :
   andb (Nat.eqb (rv_occupancy brimming_view) (Nat.pred ring_capacity))
        (andb (Nat.eqb (rv_occupancy full_view) ring_capacity)
              (Nat.eqb (rv_occupancy empty_view) 0)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* =========================================================================
    Part 2: the two ordered protocols, and the weakenings generated over them
@@ -1169,13 +1176,13 @@ Proof. reflexivity. Qed.
 Theorem the_specification_consumer_chain_breaks_nothing :
   andb (consumer_chain_ok spec_consumer_chain)
        (Nat.eqb (consumer_broken spec_consumer_chain) 0) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-12-096, R-12-008a |*)
 Theorem the_specification_producer_chain_breaks_nothing :
   andb (producer_chain_ok spec_producer_chain)
        (Nat.eqb (producer_broken spec_producer_chain) 0) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The four generators, over any chain. *)
 Definition transpositions {A : Type} (l : list A) : list (list A) :=
@@ -1205,22 +1212,22 @@ Definition producer_weakening_at (n : nat) : list producer_act :=
 
 Example the_consumer_family_is_fifteen :
   count_of (all_weakenings spec_consumer_chain act_drain) = 15.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_producer_family_is_eleven :
   count_of (all_weakenings spec_producer_chain act_stage) = 11.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Refused as one conversion. *)
 Theorem every_consumer_weakening_is_refused :
   all_of (fun c => negb (consumer_chain_ok c))
          (all_weakenings spec_consumer_chain act_drain) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem every_producer_weakening_is_refused :
   all_of (fun c => negb (producer_chain_ok c))
          (all_weakenings spec_producer_chain act_stage) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And again per family, so that a family emptied by an edit says so where it
    is rather than one theorem later. *)
@@ -1228,79 +1235,79 @@ Theorem no_consumer_transposition_is_a_well_formed_chain :
   andb (Nat.eqb (count_of (transpositions spec_consumer_chain)) 3)
        (all_of (fun c => negb (consumer_chain_ok c))
                (transpositions spec_consumer_chain)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem no_consumer_deletion_is_a_well_formed_chain :
   andb (Nat.eqb (count_of (deletions spec_consumer_chain)) 4)
        (all_of (fun c => negb (consumer_chain_ok c))
                (deletions spec_consumer_chain)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem no_consumer_suffix_is_a_well_formed_chain :
   andb (Nat.eqb (count_of (proper_suffixes spec_consumer_chain)) 4)
        (all_of (fun c => negb (consumer_chain_ok c))
                (proper_suffixes spec_consumer_chain)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem no_duplicated_consumer_act_is_a_well_formed_chain :
   andb (Nat.eqb (count_of (duplications spec_consumer_chain act_drain)) 4)
        (all_of (fun c => negb (consumer_chain_ok c))
                (duplications spec_consumer_chain act_drain)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem no_producer_transposition_is_a_well_formed_chain :
   andb (Nat.eqb (count_of (transpositions spec_producer_chain)) 2)
        (all_of (fun c => negb (producer_chain_ok c))
                (transpositions spec_producer_chain)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem no_producer_deletion_is_a_well_formed_chain :
   andb (Nat.eqb (count_of (deletions spec_producer_chain)) 3)
        (all_of (fun c => negb (producer_chain_ok c))
                (deletions spec_producer_chain)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem no_producer_suffix_is_a_well_formed_chain :
   andb (Nat.eqb (count_of (proper_suffixes spec_producer_chain)) 3)
        (all_of (fun c => negb (producer_chain_ok c))
                (proper_suffixes spec_producer_chain)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem no_duplicated_producer_act_is_a_well_formed_chain :
   andb (Nat.eqb (count_of (duplications spec_producer_chain act_stage)) 3)
        (all_of (fun c => negb (producer_chain_ok c))
                (duplications spec_producer_chain act_stage)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And again as a bounded quantifier over the index, whose bound decides
    something: one wider reaches the fallback, which is the specification. *)
 Theorem every_consumer_weakening_is_refused_by_index :
   all_of (fun n => negb (consumer_chain_ok (consumer_weakening_at n))) (upto 15) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_consumer_index_bound_is_exact :
   all_of (fun n => negb (consumer_chain_ok (consumer_weakening_at n))) (upto 16) = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem every_producer_weakening_is_refused_by_index :
   all_of (fun n => negb (producer_chain_ok (producer_weakening_at n))) (upto 11) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_producer_index_bound_is_exact :
   all_of (fun n => negb (producer_chain_ok (producer_weakening_at n))) (upto 12) = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Each transposition breaks exactly one conjunct and the specification breaks
    none, which is the check that no conjunct is dead. *)
 Theorem each_consumer_transposition_breaks_exactly_one :
   all_of (fun c => Nat.eqb (consumer_broken c) 1)
          (transpositions spec_consumer_chain) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem each_duplicated_consumer_act_breaks_exactly_one :
   all_of (fun c => Nat.eqb (consumer_broken c) 1)
          (duplications spec_consumer_chain act_drain) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* A producer that stages and neither releases nor signals. It is not in the
    generated family and it is what makes conjunct 1 a strict order: two acts
@@ -1311,13 +1318,13 @@ Definition staging_only : list producer_act := cons act_stage nil.
 Theorem a_producer_that_only_stages_breaks_the_order_and_both_counts :
   andb (Nat.eqb (producer_broken staging_only) 3)
        (negb (at_member producer_conjuncts 1 (fun _ => true) staging_only)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_consumer_order_is_strict_at_the_same_place :
   andb (Nat.eqb (consumer_broken (cons act_drain nil)) 5)
        (negb (at_member consumer_conjuncts 1 (fun _ => true)
                         (cons act_drain nil))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The other two order conjuncts are strict for the same reason, and each is
    decided on the chain where the two acts it orders are both absent: a reading
@@ -1327,23 +1334,23 @@ Theorem the_drain_order_is_strict_at_its_own_boundary :
   andb (Nat.eqb (consumer_broken (suffix_at 2 spec_consumer_chain)) 4)
        (negb (at_member consumer_conjuncts 0 (fun _ => true)
                         (suffix_at 2 spec_consumer_chain))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_release_order_is_strict_at_its_own_boundary :
   andb (Nat.eqb (producer_broken (suffix_at 2 spec_producer_chain)) 4)
        (negb (at_member producer_conjuncts 0 (fun _ => true)
                         (suffix_at 2 spec_producer_chain))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem each_producer_transposition_breaks_exactly_one :
   all_of (fun c => Nat.eqb (producer_broken c) 1)
          (transpositions spec_producer_chain) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem each_duplicated_producer_act_breaks_exactly_one :
   all_of (fun c => Nat.eqb (producer_broken c) 1)
          (duplications spec_producer_chain act_stage) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Every conjunct is broken by some member of the two families, which is the
    other half of the same check: a conjunct nothing reaches decides nothing. *)
@@ -1352,14 +1359,14 @@ Theorem every_consumer_conjunct_is_reached :
                                                     (fun _ => true) c))
                           (all_weakenings spec_consumer_chain act_drain))
          (upto 7) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem every_producer_conjunct_is_reached :
   all_of (fun k => any_of (fun c => negb (at_member producer_conjuncts k
                                                     (fun _ => true) c))
                           (all_weakenings spec_producer_chain act_stage))
          (upto 5) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* =========================================================================
    Part 3: the interleaved notification protocol (readings 5, 6 and 8 of
@@ -1537,7 +1544,7 @@ Theorem a_producer_that_never_signals_leaves_work_behind_a_sleep :
   let z := silent_activation ring_max_batch_size spec_consumer_chain quiet_world in
   andb (w_asleep z) (andb (Nat.ltb (rv_consumed (w_view z)) (rv_produced (w_view z)))
                           (Nat.eqb (w_signals z) 0)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the same schedule with a signalling producer wakes it, which is what
    makes the refutation the missing signal and not the schedule. *)
@@ -1546,7 +1553,7 @@ Theorem the_same_schedule_with_a_signal_wakes_the_consumer :
              (run_with reset_at_the_signal ring_max_batch_size spec_consumer_chain 0
                        (S (count_of spec_consumer_chain)) quiet_world) in
   andb (w_asleep z) (Nat.ltb 0 (w_signals z)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the silent producer keeps the obligation it does not break, stated of an
    arbitrary world rather than of the schedule above: its view moves exactly as
@@ -1575,7 +1582,7 @@ Theorem the_silent_publisher_refuses_a_full_ring :
   Nat.eqb (rv_produced (w_view (producer_publishes_silently
                                   (mk_world full_view false 0 0 0 false))))
           ring_capacity = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* R-12-096's coalescing, and where the two reset arms differ. A burst is two
    publications with no drain between them: the signal reset sends one signal
@@ -1589,25 +1596,25 @@ Definition signals_in_a_burst (r : reset_owner) : nat :=
 
 Theorem the_signal_reset_coalesces_a_burst_to_one :
   Nat.eqb (signals_in_a_burst reset_at_the_signal) 1 = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_drain_reset_sends_two_signals_for_one_arming :
   Nat.eqb (signals_in_a_burst reset_at_the_drain) 2 = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_two_reset_arms_differ_only_on_the_second_publication :
   andb (Nat.eqb (w_signals (producer_publishes reset_at_the_signal armed_world))
                 (w_signals (producer_publishes reset_at_the_drain armed_world)))
        (negb (Nat.eqb (signals_in_a_burst reset_at_the_signal)
                       (signals_in_a_burst reset_at_the_drain))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Both bursts publish the same two items, so what separates the arms is the
    signal count and never the ring. *)
 Theorem the_two_bursts_publish_the_same_two_items :
   Nat.eqb (rv_produced (w_view (burst reset_at_the_signal armed_world)))
           (rv_produced (w_view (burst reset_at_the_drain armed_world))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* R-12-096's "the indices are the source of truth", refutably: a sleep
    decision is a function of what the consumer has seen against what it has
@@ -1659,7 +1666,7 @@ Theorem the_specification_sleep_rule_is_the_contracts :
                              (cons true (cons false nil)))
                    (upto (S ring_capacity)))
          (upto ring_index_span) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_counting_sleep_rule_is_refuted :
   ~ NeverSleepsOverASeenGap counting_sleep_rule.
@@ -1674,14 +1681,14 @@ Qed.
    defect is not about. *)
 Theorem the_counting_sleep_rule_declines_after_a_signal :
   counting_sleep_rule after_the_signal_arrived = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The two rules on one burst, which is the observable difference: the
    coalesced burst leaves two items pending with one signal spent. *)
 Theorem the_counting_rule_and_the_index_rule_differ_on_a_coalesced_burst :
   andb (counting_sleep_rule after_a_coalesced_burst)
        (negb (spec_sleep_rule after_a_coalesced_burst)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* R-07-029a is what a sleep here is: the poll-site yield of R-07-037b, a
    synchronous invocation that returns, and nowhere a block. Stated as a
@@ -1739,18 +1746,18 @@ Theorem the_greedy_consumer_leaves_its_budget :
   Nat.leb (w_drained (greedy_consumer_steps ring_max_batch_size act_drain
                                             backlogged_world)) ring_max_batch_size
   = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_specification_consumer_stops_at_its_budget :
   Nat.eqb (w_drained (consumer_steps reset_at_the_signal ring_max_batch_size act_drain
                                      backlogged_world)) ring_max_batch_size = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_greedy_consumer_still_drains_what_it_saw :
   Nat.eqb (rv_consumed (w_view (greedy_consumer_steps ring_max_batch_size act_drain
                                                       backlogged_world)))
           (rv_produced (w_view backlogged_world)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the two consumers agree at every act but the drain, so what refuses the
    greedy one is the budget it does not read and not a second difference. *)
@@ -1762,7 +1769,7 @@ Theorem the_two_consumers_differ_only_at_the_drain :
                                                     ring_max_batch_size a
                                                     backlogged_world)))
          all_consumer_acts = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* =========================================================================
    Part 4: R-12-008a's ownership phases, and R-12-094's lifecycle over one
@@ -1811,24 +1818,24 @@ Definition breaks_ownership (d : ownership_defect) (o : ownership) : bool :=
 Theorem no_phase_is_both_producer_writable_and_consumer_readable :
   all_of (fun o => negb (andb (producer_may_write o) (consumer_may_read o)))
          all_ownership_phases = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-12-008a |*)
 Theorem exactly_one_phase_admits_the_consumer :
   Nat.eqb (count_of (filter_of consumer_may_read all_ownership_phases)) 1 = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-12-008a, R-12-094 |*)
 Theorem the_publication_consumes_writable_ownership :
   andb (producer_may_write own_producer_writable)
        (negb (producer_may_write (ownership_next own_producer_writable))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-12-008a |*)
 Theorem each_rejected_path_is_broken_somewhere :
   all_of (fun d => any_of (breaks_ownership d) all_ownership_phases)
          all_rejected_paths = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And each is broken at the phase its own name points at and not at another,
    so the three predicates are three and not one predicate spelled three ways.
@@ -1842,7 +1849,7 @@ Theorem each_rejected_path_is_at_the_phase_that_names_it :
              (andb (breaks_ownership restores_under_a_reader own_consumer_acquired)
                    (negb (breaks_ownership restores_under_a_reader own_returned))))
   = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* One request slot, and what a service's own acts do to it. *)
 Record slot : Set := mk_slot {
@@ -1937,7 +1944,7 @@ Definition state_eqb (a b : slot_state) : bool :=
 Example the_lifecycle_rank_separates_the_six_states :
   all_of (fun t => Nat.eqb (count_of (filter_of (state_eqb t) all_slot_states)) 1)
          all_slot_states = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* A step is the contract's own successor or the contract's own malformed step
    *at the state that licenses it*. R-12-094 puts the malformed step from
@@ -2017,7 +2024,7 @@ Proof. reflexivity. Qed.
 (*| discharges: R-12-092, R-12-094 |*)
 Theorem the_specification_advancer_keeps_every_obligation :
   andb (advancer_ok spec_advance) (Nat.eqb (advancer_broken spec_advance) 0) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The advancer that reclaims a slot straight back to Free, which is the
    lifecycle read as a cycle rather than as R-12-094's monotone sequence. *)
@@ -2070,11 +2077,11 @@ Definition all_refuting_advancers : list Advancer :=
 
 Theorem no_refuting_advancer_keeps_every_obligation :
   all_of (fun f => negb (advancer_ok f)) all_refuting_advancers = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem each_refuting_advancer_breaks_exactly_one :
   all_of (fun f => Nat.eqb (advancer_broken f) 1) all_refuting_advancers = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And each breaks the one it is named for, which is what makes the refutation
    the named defect rather than its shape. *)
@@ -2082,25 +2089,25 @@ Theorem the_backward_advancer_breaks_the_lifecycle_alone :
   andb (negb (step_is_lawful advance_backwards))
        (andb (never_reclaims_under_a_reader advance_backwards)
              (never_accepts_before_validation advance_backwards)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_unvalidated_advancer_breaks_the_validation_alone :
   andb (negb (never_accepts_before_validation advance_unvalidated))
        (andb (step_is_lawful advance_unvalidated)
              (never_reclaims_under_a_reader advance_unvalidated)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_reader_advancer_breaks_the_reclamation_alone :
   andb (negb (never_reclaims_under_a_reader advance_under_a_reader))
        (andb (step_is_lawful advance_under_a_reader)
              (never_accepts_before_validation advance_under_a_reader)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_skipping_advancer_breaks_the_lifecycle_alone :
   andb (negb (step_is_lawful advance_skipping))
        (andb (never_reclaims_under_a_reader advance_skipping)
              (never_accepts_before_validation advance_skipping)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And this is what the repaired reading buys, stated rather than asserted: the
    rank-only reading admits the skipping advancer and the contract's own two
@@ -2110,7 +2117,7 @@ Proof. vm_compute; reflexivity. Qed.
 Theorem the_rank_only_reading_admits_the_skipping_advancer :
   andb (rank_only_step_is_lawful advance_skipping)
        (negb (step_is_lawful advance_skipping)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The two readings agree on the specification and on the other three
    refuters, so what separates them is the skip alone. *)
@@ -2119,7 +2126,7 @@ Theorem the_two_lawfulness_readings_agree_on_everything_else :
          (cons spec_advance
          (cons advance_backwards
          (cons advance_unvalidated (cons advance_under_a_reader nil)))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the licensed skip is still licensed: the contract's own malformed step
    is lawful under the repaired reading, so the repair excludes the second skip
@@ -2127,7 +2134,7 @@ Proof. vm_compute; reflexivity. Qed.
 Theorem the_licensed_malformed_step_is_still_lawful :
   andb (contract_step_ok state_Submitted state_Terminal)
        (negb (contract_step_ok state_Free state_Submitted)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The malformed step is the one admitted step past a successor, and it
    acquires no authority: the contract's own second relation, instantiated
@@ -2139,7 +2146,7 @@ Theorem the_malformed_event_takes_the_contracts_own_step :
                       (2 + lifecycle_rank state_Submitted)
   | None => false
   end = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-12-094 |*)
 Theorem the_malformed_event_is_admitted_at_one_state_only :
@@ -2148,7 +2155,7 @@ Theorem the_malformed_event_is_admitted_at_one_state_only :
                                          | None => false
                                          end)
                                (map_over slot_at all_slot_states))) 1 = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* =========================================================================
    Part 5: the copy itself (reading 8, gaps i and j).
@@ -2248,7 +2255,7 @@ Qed.
    refuses it is the second read and not a failure to check anything. *)
 Lemma the_revalidating_copier_answers_on_the_two_images :
   copy_revalidating declared_extent first_image second_image = Some revalidated_run.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_revalidating_copier_leaves_the_validated_extent :
   ~ StaysInsideTheValidatedExtent copy_revalidating.
@@ -2289,7 +2296,7 @@ Qed.
 Example the_two_buffer_images_differ_only_in_their_length :
   andb (Nat.eqb (buf_datum first_image) (buf_datum second_image))
        (negb (Nat.eqb (buf_length first_image) (buf_length second_image))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_copy_once_run_is_the_one_the_specification_answers :
   match copy_once declared_extent first_image second_image with
@@ -2298,7 +2305,7 @@ Example the_copy_once_run_is_the_one_the_specification_answers :
                          (Nat.eqb (cr_staged r) (cr_staged staged_run)))
   | None => false
   end = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_revalidated_run_is_the_one_the_refuter_answers :
   match copy_revalidating declared_extent first_image second_image with
@@ -2307,7 +2314,7 @@ Example the_revalidated_run_is_the_one_the_refuter_answers :
                          (Nat.eqb (cr_staged r) (cr_staged revalidated_run)))
   | None => false
   end = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the copy is charged at the declared maximum rather than at what
    arrived, which is what gives R-11-006's admission a bound to read: the cost
@@ -2346,7 +2353,7 @@ Qed.
 Theorem charging_at_the_arrival_still_bounds_a_run_inside_its_extent :
   Nat.leb (charged_at_the_arrival ring_max_segments staged_run)
           (declared_copy_cost ring_max_segments) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* =========================================================================
    Part 6: the batch (R-12-098).
@@ -2388,19 +2395,19 @@ Definition enqueued_count (l : list submit_result) : nat :=
 Theorem the_batch_admits_what_the_ring_holds_and_refuses_the_rest :
   andb (Nat.eqb (enqueued_count (submit_batch 5 crowded_view)) 3)
        (Nat.eqb (enqueued_count (submit_batch 5 roomy_view)) 5) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_transactional_batch_rolls_back_what_it_enqueued :
   andb (Nat.eqb (enqueued_count (transactional_batch 5 crowded_view)) 0)
        (Nat.eqb (enqueued_count (submit_batch 5 crowded_view)) 3) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the transactional batch keeps the obligation it is not aimed at: where
    nothing is refused, the two disciplines agree exactly. *)
 Theorem the_two_batches_agree_where_nothing_is_refused :
   Nat.eqb (enqueued_count (transactional_batch 5 roomy_view))
           (enqueued_count (submit_batch 5 roomy_view)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* A batch's publication is bounded by the declared maximum batch size, which
    is the contract's own constant and never a figure of this file. *)
@@ -2408,7 +2415,7 @@ Proof. vm_compute; reflexivity. Qed.
 Theorem a_batch_is_bounded_by_the_declared_maximum :
   Nat.eqb (enqueued_count (submit_batch ring_max_batch_size roomy_view))
           ring_max_batch_size = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* =========================================================================
    Part 7: the service declaration, and section 6's admission rule over it.
@@ -2758,29 +2765,29 @@ Qed.
 Theorem the_declared_service_is_admitted :
   andb (admissible_service demo_service) (Nat.eqb (service_broken demo_service) 0)
   = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem every_spoiling_breaks_exactly_one_conjunct :
   all_of (fun k => Nat.eqb (service_broken (spoiled_at k)) 1) (upto 13) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem no_spoiled_service_is_admitted :
   all_of (fun k => negb (admissible_service (spoiled_at k))) (upto 13) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And from the filter side: each dropped conjunct admits exactly the service
    it stopped checking, which is what makes a conjunct's presence decide
    something rather than merely be present. *)
 Theorem every_dropped_conjunct_admits_the_service_it_stopped_checking :
   all_of (fun k => declared_without k (spoiled_at k)) (upto 13) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem no_dropped_conjunct_admits_another_spoiling :
   all_of (fun k =>
             Nat.eqb (count_of (filter_of (fun j => declared_without k (spoiled_at j))
                                          (upto 13))) 1)
          (upto 13) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Each numeric spoiling moves its own field by exactly one, so the ledger
    pins the weakening rather than merely reporting that one happened: a
@@ -2808,7 +2815,7 @@ Example every_numeric_spoiling_moves_its_field_by_one :
     (cons (Nat.eqb (so_progress_slack (svc_per_op (spoiled_at 9) op_read_extent))
                    (S (so_progress_slack demo_read_record)))
      nil)))))))))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Conjunct 2 is decided at both of its own boundaries: a batch of one is a
    legal amortization unit and an empty one is not, so the test is against zero
@@ -2821,7 +2828,7 @@ Theorem the_batch_conjunct_admits_one_and_refuses_none :
                   (with_caps demo_service batch_of_one))
        (negb (at_member service_conjuncts 2 (fun _ => false)
                         (with_caps demo_service batch_of_none))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Conjunct 7 reads all three of the costs R-12-101's record fixes, decided
    once per cost rather than once for the conjunct. *)
@@ -2831,11 +2838,11 @@ Theorem the_cost_conjunct_reads_all_three_costs :
     (cons (spoil_op demo_service op_read_extent set_service 1201)
     (cons (spoil_op demo_service op_read_extent set_publication 17)
      nil))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_declared_service_keeps_the_cost_conjunct :
   at_member service_conjuncts 7 (fun _ => false) demo_service = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The reset arm the declared bound refuses, and it is refused at conjunct 11
    alone: R-12-096 states no reset owner, and what decides between the two is
@@ -2844,11 +2851,11 @@ Theorem the_drain_reset_service_is_refused_at_the_notification_bound :
   andb (negb (admissible_service (with_reset demo_service reset_at_the_drain)))
        (Nat.eqb (service_broken (with_reset demo_service reset_at_the_drain)) 1)
   = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_drain_reset_service_keeps_every_other_conjunct :
   declared_without 11 (with_reset demo_service reset_at_the_drain) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the conjunct's quantifier is decided at every variant rather than at
    one: the drain reset's second signal exceeds the declared maximum at each of
@@ -2857,19 +2864,19 @@ Theorem the_notification_bound_is_exceeded_at_every_variant :
   all_of (fun o => Nat.ltb (rec_max_notifications (op_declared_record o))
                            (signals_in_a_burst reset_at_the_drain))
          all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The other live-state arm is admitted, so gap d is exhibited rather than
    decided, and the difference is observable on a slot being written. *)
 Theorem the_other_live_state_arm_is_admitted_too :
   admissible_service (with_live demo_service writing_not_live) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_two_live_state_arms_differ_on_a_slot_being_written :
   andb (svc_live demo_service state_Writing)
        (negb (svc_live (with_live demo_service writing_not_live) state_Writing))
   = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* R-12-092's duplicate live identifier, decided over the declared live set
    and handed to the contract's own `accept`. *)
@@ -2887,17 +2894,17 @@ Definition busy_slots : list slot :=
 Theorem a_duplicate_live_identifier_is_refused_at_this_service :
   service_accept demo_service busy_slots ring_session_generation
                  ring_session_generation 9 = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem a_fresh_identifier_is_accepted_at_this_service :
   service_accept demo_service busy_slots ring_session_generation
                  ring_session_generation 11 = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem a_stale_generation_is_refused_at_this_service :
   service_accept demo_service busy_slots ring_session_generation
                  (S ring_session_generation) 11 = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The two live-state arms differ observably here and not merely in the
    declaration: an identifier held by a slot being written is reusable under
@@ -2907,7 +2914,7 @@ Theorem the_live_state_arms_differ_on_an_identifier_being_written :
                              ring_session_generation 7))
        (service_accept (with_live demo_service writing_not_live) busy_slots
                        ring_session_generation ring_session_generation 7) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* =========================================================================
    Part 8: the accounting arms, and what the joint bound turns on (gaps e
@@ -2917,12 +2924,12 @@ Proof. vm_compute; reflexivity. Qed.
 Theorem the_drain_activations_empty_a_full_ring :
   Nat.leb ring_capacity (drain_activations (cap_batch demo_capacities)
                          * cap_batch demo_capacities) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_drain_activations_are_the_least_such_count :
   Nat.ltb (Nat.pred (drain_activations (cap_batch demo_capacities))
            * cap_batch demo_capacities) ring_capacity = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The service the other accounting arm declares, admitted on its own terms:
    the same costs and the same slacks, with the latency and the progress bound
@@ -2944,14 +2951,14 @@ Definition service_alone : Service :=
 
 Theorem the_service_alone_accounting_is_admitted_too :
   admissible_service service_alone = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The two arms are compared at one cadence and one batch, so what separates
    them is the accounting they declare and nothing else about them. *)
 Theorem the_two_accountings_are_compared_at_one_cadence :
   andb (Nat.eqb (svc_cadence service_alone) (svc_cadence demo_service))
        (Nat.eqb (svc_identity service_alone) (S (svc_identity demo_service))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the arm that charges the service alone does not read the cadence at all,
    which is the other half of what gap e leaves open: one of the two readings
@@ -2960,13 +2967,13 @@ Theorem the_service_alone_accounting_does_not_read_the_cadence :
   all_of (fun o => Nat.eqb (accounted_latency (with_cadence service_alone 1) o)
                            (accounted_latency service_alone o))
          all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_queueing_accounting_does_read_the_cadence :
   all_of (fun o => negb (Nat.eqb (accounted_latency (with_cadence demo_service 1) o)
                                  (accounted_latency demo_service o)))
          all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the two arms differ observably at every operation, by exactly the
    queueing term: eight activations of the declared cadence. *)
@@ -2976,13 +2983,13 @@ Theorem the_two_accountings_differ_by_the_queueing_term :
                             * svc_cadence demo_service
                             + accounted_latency service_alone o))
          all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem the_two_accountings_are_never_equal :
   all_of (fun o => negb (Nat.eqb (accounted_latency demo_service o)
                                  (accounted_latency service_alone o)))
          all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The activation cost is the contract's own and this service reproduces it
    rather than restating it: what the service adds is the copy, which rides
@@ -2995,13 +3002,13 @@ Theorem the_service_reproduces_the_contracts_activation_cost :
                                + so_service (svc_per_op demo_service o)
                                + so_publication (svc_per_op demo_service o))))
          all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-11-006, R-12-101 |*)
 Theorem the_activation_still_spends_the_declared_slot_budget :
   all_of (fun o => Nat.eqb (activation_cost o + op_activation_slack o) ring_slot_budget)
          all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* R-12-097's cleanup: the interval admission accounts from expiry observation
    to terminal completion is the contract's, and what this service adds is
@@ -3012,13 +3019,13 @@ Theorem the_cleanup_sits_inside_the_declared_bound :
   all_of (fun o => Nat.leb (so_cleanup (svc_per_op demo_service o))
                            (rec_cancellation_cleanup_cost (op_declared_record o)))
          all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-12-097 |*)
 Theorem every_held_reference_is_released_at_cleanup :
   all_of (fun o => Nat.eqb (so_released (svc_per_op demo_service o)) (op_buffer_refs o))
          all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-12-097 |*)
 Theorem the_cancellation_interval_is_the_contracts :
@@ -3026,7 +3033,7 @@ Theorem the_cancellation_interval_is_the_contracts :
                          (Nat.eqb (cancellation_interval o + op_cancellation_slack o)
                                   (op_max_to_terminal o)))
          all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The segment bound this service takes through R-12-101's record rather than
    through R-12-100's own sentence (gap b), and the payload the contract
@@ -3035,14 +3042,14 @@ Proof. vm_compute; reflexivity. Qed.
 Theorem every_declared_segment_count_is_inside_the_rings :
   all_of (fun o => Nat.leb (so_segments (svc_per_op demo_service o)) ring_max_segments)
          all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-05-124, R-12-101 |*)
 Theorem the_staging_buffer_holds_the_declared_payload :
   all_of (fun o => Nat.leb (rec_max_payload_bytes (op_declared_record o))
                            (so_staging (svc_per_op demo_service o)))
          all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* =========================================================================
    The ledger. Every field of every witness no obligation reads is pinned
@@ -3056,7 +3063,7 @@ Example the_declared_capacities :
        (andb (Nat.eqb (cap_ring_slack demo_capacities) 16)
              (andb (Nat.eqb (cap_batch demo_capacities) 8)
                    (Nat.eqb (cap_batch_slack demo_capacities) 0))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Pinned as sums over the five records rather than as bounds. A bound admits
    every value below it, so a field moved downward is a field the ledger did
@@ -3072,7 +3079,7 @@ Example every_declared_record_states_its_segments_and_its_staging :
     (cons (Nat.eqb (sum_of (map_over (fun o => so_staging_slack (demo_op_record o))
                                      all_ops)) 512)
      nil)))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example every_declared_record_states_its_cleanup_and_its_releases :
   all_of (fun b => b)
@@ -3083,7 +3090,7 @@ Example every_declared_record_states_its_cleanup_and_its_releases :
     (cons (Nat.eqb (sum_of (map_over (fun o => so_released (demo_op_record o))
                                      all_ops)) 5)
      nil))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example every_declared_record_states_its_three_costs :
   all_of (fun o => andb (Nat.eqb (so_validation (demo_op_record o))
@@ -3092,11 +3099,11 @@ Example every_declared_record_states_its_three_costs :
                                        (rec_device_service_bound (op_declared_record o)))
                               (Nat.eqb (so_publication (demo_op_record o)) 16)))
          all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example every_declared_record_states_one_progress_bound :
   all_of (fun o => Nat.eqb (so_progress_bound (demo_op_record o)) 22000) all_ops = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_declared_service_states_its_seven_other_fields :
   andb (andb (negb (svc_counter demo_service))
@@ -3112,7 +3119,7 @@ Example the_declared_service_states_its_seven_other_fields :
                                 | accounts_the_queue => true
                                 | accounts_the_service_alone => false
                                 end))))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_read_record_states_its_thirteen_fields :
   all_of (fun b => b)
@@ -3130,16 +3137,16 @@ Example the_read_record_states_its_thirteen_fields :
     (cons (Nat.eqb (so_progress_slack demo_read_record) 800)
     (cons (Nat.eqb (so_progress_bound demo_read_record) 22000)
      nil))))))))))))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example every_spoiling_moves_one_field_and_keeps_the_identity :
   all_of (fun k => Nat.eqb (svc_identity (spoiled_at k)) (svc_identity demo_service))
          (upto 13) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_two_services_carry_different_identities :
   negb (Nat.eqb (svc_identity demo_service) (svc_identity service_alone)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_four_ring_views :
   andb (Nat.eqb (rv_produced full_view) ring_capacity)
@@ -3148,12 +3155,12 @@ Example the_four_ring_views :
                    (andb (Nat.eqb (rv_produced empty_view) 0)
                          (andb (Nat.eqb (rv_consumed empty_view) 0)
                                (Nat.eqb (rv_occupancy single_view) 1))))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_two_batch_views :
   andb (Nat.eqb (rv_occupancy roomy_view) 0)
        (Nat.eqb (rv_occupancy crowded_view + 3) ring_capacity) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_four_worlds :
   all_of (fun b => b)
@@ -3165,7 +3172,7 @@ Example the_four_worlds :
     (cons (world_eqb after_the_signal_arrived
                      (mk_world (mk_ring_view 2 0) true 1 2 0 false))
      nil))))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The three slot witnesses are one request seen three ways, so their
    identifiers agree and what separates them is the reader count and the
@@ -3183,7 +3190,7 @@ Example the_slot_witnesses_carry_their_readers_and_their_validation :
     (cons (Nat.eqb (sl_readers unvalidated_submitted_slot) 0)
     (cons (sl_validated held_terminal_slot)
      nil)))))))))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_copy_witnesses_carry_their_lengths_and_their_extent :
   all_of (fun b => b)
@@ -3195,13 +3202,13 @@ Example the_copy_witnesses_carry_their_lengths_and_their_extent :
     (cons (Nat.eqb (cr_bytes staged_run) (buf_length first_image))
     (cons (Nat.eqb (cr_bytes revalidated_run) (buf_length second_image))
      nil))))))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_two_busy_slots :
   andb (Nat.eqb (count_of busy_slots) 2)
        (Nat.eqb (count_of (filter_of (fun z => svc_live demo_service (sl_state z))
                                      busy_slots)) 2) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The contract's own records, inhabited here so that a statement quantifying
    over one has a witness on this side of the Require and the campaign's
@@ -3239,7 +3246,7 @@ Example the_descriptor_states_both_of_its_buffer_references :
     (cons (Nat.eqb (sum_of (scalars demo_descriptor)) 4096)
     (cons (Nat.eqb (count_of (flags demo_descriptor)) 1)
      nil))))))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_completion_states_its_byte_counts_and_its_metadata :
   all_of (fun b => b)
@@ -3255,7 +3262,7 @@ Example the_completion_states_its_byte_counts_and_its_metadata :
            | _ => false
            end)
      nil))))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_descriptor_and_the_completion_carry_one_request :
   andb (Nat.eqb (request_id demo_descriptor) (completion_request_id demo_completion))
@@ -3263,16 +3270,16 @@ Example the_descriptor_and_the_completion_carry_one_request :
                       (server_generation demo_completion))
              (Nat.eqb (count_of (buffers demo_descriptor))
                       (op_buffer_refs (descriptor_op demo_descriptor)))) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_declared_labels_are_inside_the_lattice :
   andb (Nat.ltb (confidentiality demo_labels) label_levels)
        (Nat.ltb (integrity demo_labels) label_levels) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_declared_record_is_the_contracts :
   Nat.eqb (rec_max_requests_drained demo_op_declaration) ring_max_batch_size = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_buffer_reference_declares_its_direction_and_its_content :
   andb (Nat.eqb (ref_length demo_buffer_ref) 4096)
@@ -3284,13 +3291,13 @@ Example the_buffer_reference_declares_its_direction_and_its_content :
               | content_opaque_bytes => true
               | content_frame_extent => false
               end)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_two_copy_runs :
   andb (Nat.eqb (cr_reads (mk_copy_run 1 7 4)) 1)
        (andb (Nat.eqb (cr_staged (mk_copy_run 1 7 4)) 7)
              (Nat.eqb (cr_bytes (mk_copy_run 2 7 9)) 9)) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    R-05-166's inhabitation witnesses: one closed definition per record this

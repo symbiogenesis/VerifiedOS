@@ -198,6 +198,13 @@ Require Import Keccak.
 
 Open Scope list_scope.
 
+(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
+   the goal in the tactic and again where the kernel checks its cast at Qed;
+   this casts eq_refl to the goal unevaluated, so only the check at Qed
+   evaluates it. *)
+Local Ltac vm_reflexivity :=
+  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
+
 (* -------------------------------------------------------------------------
    Helpers this file adds to Keccak.v's, in the same idiom.
    ------------------------------------------------------------------------- *)
@@ -237,12 +244,12 @@ Definition any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
 Example the_ceiling_rounds_up_where_the_division_does_not_divide :
   andb (andb (Nat.eqb (ceil_div 8 8) 1) (Nat.eqb (ceil_div 9 8) 2))
        (andb (Nat.eqb (ceil_div 0 8) 0) (Nat.eqb (ceil_div 16 8) 2)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_value_equal_to_the_base_takes_two_digits :
   andb (andb (Nat.eqb (digits_base 8 16 15) 1) (Nat.eqb (digits_base 8 16 16) 2))
        (andb (Nat.eqb (digits_base 8 16 255) 2) (Nat.eqb (digits_base 8 16 256) 3)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The prelude carries `Nat.leb` and `Nat.ltb` and none of the arithmetic
    theory about them, so the one ordering fact the floor check needs is
@@ -312,43 +319,43 @@ Definition shake_256s : ParameterSet :=
 Example the_table_row_agrees_with_the_height_it_implies :
   Nat.eqb (subtree_height shake_256s)
           (Nat.div (tree_height shake_256s) (layers shake_256s)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_two_winternitz_lengths_are_sixty_four_and_three :
   andb (Nat.eqb (message_len shake_256s) 64) (Nat.eqb (checksum_len shake_256s) 3) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_chain_count_is_sixty_seven : Nat.eqb (chain_count shake_256s) 67 = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Table 2's own m, pk and sig columns, against the formulas above. *)
 Example the_message_digest_is_the_published_forty_seven_bytes :
   Nat.eqb (digest_bytes shake_256s) 47 = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_public_key_is_the_published_sixty_four_bytes :
   Nat.eqb (public_key_bytes shake_256s) 64 = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_signature_is_the_published_twenty_nine_thousand_seven_hundred_and_ninety_two_bytes :
   Nat.eqb (signature_bytes shake_256s) 29792 = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* R-09-005a's first figure, made a figure. *)
 Example the_signature_is_tens_of_kilobytes :
   andb (Nat.leb (10 * 1024) (signature_bytes shake_256s))
        (Nat.ltb (signature_bytes shake_256s) (100 * 1024)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_signature_is_four_hundred_and_sixty_five_times_the_public_key_and_a_half :
   Nat.eqb (2 * signature_bytes shake_256s)
           (931 * public_key_bytes shake_256s) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_maximum_checksum_takes_three_base_sixteen_digits :
   andb (Nat.eqb (message_len shake_256s * (winternitz shake_256s - 1)) 960)
        (Nat.eqb (checksum_len shake_256s) 3) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The whole of Table 2's SHAKE half, because one row checks the formulas at
@@ -383,35 +390,35 @@ Definition shake_sets : list ParameterSet :=
 
 Example the_six_rows_derive_their_published_message_digest_lengths :
   map_over digest_bytes shake_sets = 30 :: 34 :: 39 :: 42 :: 47 :: 49 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_six_rows_derive_their_published_public_key_sizes :
   map_over public_key_bytes shake_sets = 32 :: 32 :: 48 :: 48 :: 64 :: 64 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_six_rows_derive_their_published_signature_sizes :
   map_over signature_bytes shake_sets = 7856 :: 17088 :: 16224 :: 35664 :: 29792 :: 49856 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* h' is tabulated and h / d determines it, so the table states one quantity
    twice and the two are held together here rather than left to agree. *)
 Example every_rows_subtree_height_is_its_own_quotient :
   all_of (fun p => Nat.eqb (subtree_height p) (Nat.div (tree_height p) (layers p)))
          shake_sets = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example every_rows_checksum_takes_three_digits :
   all_of (fun p => Nat.eqb (checksum_len p) 3) shake_sets = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_six_rows_derive_their_chain_counts :
   map_over chain_count shake_sets = 35 :: 35 :: 51 :: 51 :: 67 :: 67 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_frozen_row_is_the_one_the_suite_names :
   andb (Nat.eqb (hash_bytes shake_256s) 32)
        (negb (Nat.eqb (tree_height shake_256s) (tree_height shake_256f))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    FIPS 205 s11.1: the six functions at the SHAKE parameter sets, each of
@@ -486,19 +493,19 @@ Definition demo_address_two : list bool :=
 Example the_addresses_are_the_standards_thirty_two_bytes :
   andb (Nat.eqb (length_of demo_address_one) (8 * address_bytes))
        (Nat.eqb (length_of demo_address_two) (8 * address_bytes)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The seed and the message are n bytes, which is what the standard's own
    arguments to these functions are. *)
 Example the_seed_and_the_message_are_n_bytes :
   andb (Nat.eqb (length_of demo_seed) (8 * hash_bytes shake_256s))
        (Nat.eqb (length_of demo_message) (8 * hash_bytes shake_256s)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_two_addresses_differ_in_one_byte :
   andb (negb (bits_eqb demo_address_one demo_address_two))
        (bits_eqb (drop_of 8 demo_address_one) (drop_of 8 demo_address_two)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_six_functions_return_the_lengths_the_standard_fixes :
   andb (Nat.eqb (length_of (h_msg shake_256s demo_seed demo_seed demo_seed demo_message))
@@ -509,12 +516,12 @@ Example the_six_functions_return_the_lengths_the_standard_fixes :
                  (8 * hash_bytes shake_256s))
         (Nat.eqb (length_of (f_chain shake_256s demo_seed demo_address_one demo_message))
                  (8 * hash_bytes shake_256s)))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example two_addresses_separate_the_same_message :
   negb (bits_eqb (f_chain shake_256s demo_seed demo_address_one demo_message)
                  (f_chain shake_256s demo_seed demo_address_two demo_message)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The two PRFs read the same three inputs, return the same length, and
    differ at the first pair of seeds that are not the address. *)
@@ -525,7 +532,7 @@ Example the_argument_ordered_prf_misses_the_standards_answer :
        (negb (bits_eqb (prf_in_its_argument_order shake_256s demo_seed demo_message
                                                   demo_address_one)
                        (prf shake_256s demo_seed demo_message demo_address_one))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And it agrees with the standard's wherever the address and the secret
    seed are the same string, which is the family of inputs a test that
@@ -533,7 +540,7 @@ Proof. vm_compute. reflexivity. Qed.
 Example the_argument_ordered_prf_agrees_where_the_two_tails_coincide :
   bits_eqb (prf_in_its_argument_order shake_256s demo_seed demo_message demo_message)
            (prf shake_256s demo_seed demo_message demo_message) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_address_free_hash_collapses_the_two_addresses :
   andb (bits_eqb (f_without_its_address shake_256s demo_seed demo_address_one demo_message)
@@ -542,7 +549,7 @@ Example the_address_free_hash_collapses_the_two_addresses :
                                                   demo_message))
                 (length_of (f_chain shake_256s demo_seed demo_address_one demo_message)))
   = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The hash-call census: arithmetic over the parameter set, with each term
@@ -583,7 +590,7 @@ Definition verify_calls_at_least (p : ParameterSet) : nat :=
 Example the_census_runs_from_seven_hundred_and_sixty_four_to_eight_thousand_four_hundred_and_forty_four :
   andb (Nat.eqb (verify_calls_at_least shake_256s) 764)
        (Nat.eqb (verify_calls_at_most shake_256s) 8444) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The two ends of the *call* census, stated as calls. R-09-005a's second
    figure is over permutations, which this file bounds from below and never
@@ -593,12 +600,12 @@ Example the_high_end_is_thousands_of_calls_and_the_low_end_is_hundreds :
   andb (andb (Nat.leb 1000 (verify_calls_at_most shake_256s))
              (Nat.ltb (verify_calls_at_most shake_256s) 10000))
        (Nat.ltb (verify_calls_at_least shake_256s) 1000) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_forty_seven_byte_digest_is_the_only_call_that_is_not_n_bytes :
   andb (Nat.eqb (digest_bytes shake_256s) 47)
        (negb (Nat.eqb (digest_bytes shake_256s) (hash_bytes shake_256s))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The verifier as a record of what it has: R-09-005's fixed-layout header
@@ -766,7 +773,7 @@ Example the_three_equalities_decide_their_own_enumerations :
   andb (eqb_decides prim_eqb all_prims)
   (andb (eqb_decides phase_eqb all_phases)
         (eqb_decides root_eqb all_roots)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* An equality that is reflexive on every constructor and still wrong, so
    that the two halves of the test above are both load-bearing: this one
@@ -781,7 +788,7 @@ Definition lax_root_eqb (a b : Root) : bool :=
 Example a_reflexive_equality_can_still_be_wrong :
   andb (all_of (fun r => lax_root_eqb r r) all_roots)
        (negb (eqb_decides lax_root_eqb all_roots)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition admits_version (v : RomVerifier) (version : nat) : bool :=
   Nat.leb (rollback_floor v) version.
@@ -932,7 +939,7 @@ Proof. vm_compute. reflexivity. Qed.
 
 Example the_witness_reaches_five_calls_and_every_one_is_the_hash :
   andb (Nat.eqb (length_of (calls demo)) 5) (hash_only_b demo) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Each call returns the length its role takes: the message digest is the
    only one of the six that is not n bytes, and the other four are. *)
@@ -943,7 +950,7 @@ Example every_call_returns_the_length_its_role_takes :
                             | _ => 8 * hash_bytes (parameters demo)
                             end))
          (calls demo) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_five_roles_are_five_and_the_digest_is_the_odd_one :
   andb (Nat.eqb (count_where (fun c => match call_role c with
@@ -951,16 +958,16 @@ Example the_five_roles_are_five_and_the_digest_is_the_odd_one :
                              (calls demo)) 1)
        (negb (Nat.eqb (8 * digest_bytes (parameters demo))
                       (8 * hash_bytes (parameters demo)))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_witness_refuses_a_version_below_its_floor :
   andb (negb (admits_version demo 0)) (admits_version demo 1) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_witness_accepts_no_engineering_root_in_any_state :
   all_of (fun l => negb (any_of (fun r => root_eqb r EngineeringRoot) (accepted_roots demo l)))
          all_lifecycles = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* One: R-05-058c's refused shape, a ROM-resident lattice verifier. Its four
    primitives are the four that entry names beside the hash. *)
@@ -976,7 +983,7 @@ Definition with_a_lattice_verifier : RomVerifier :=
      rollback_floor := rollback_floor demo |}.
 
 Example the_lattice_verifier_is_refused : admissible_b with_a_lattice_verifier = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_lattice_verifier_keeps_every_clause_but_the_hash_only_one :
   andb (andb (order_is_fixed_b with_a_lattice_verifier)
@@ -984,12 +991,12 @@ Example the_lattice_verifier_keeps_every_clause_but_the_hash_only_one :
   (andb (andb (floor_is_set_b with_a_lattice_verifier)
               (header_is_well_formed_b with_a_lattice_verifier))
         (negb (hash_only_b with_a_lattice_verifier))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_lattice_verifier_carries_all_four_of_the_entrys_names :
   all_of (fun q => any_of (fun c => prim_eqb (call_prim c) q) (calls with_a_lattice_verifier))
          lattice_prims = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Two: a verifier that executes before it is measured. It still verifies
    the signature first, which is what makes the measurement's own clause
@@ -1004,7 +1011,7 @@ Definition executing_before_it_is_measured : RomVerifier :=
 
 Example the_unmeasured_verifier_is_refused :
   admissible_b executing_before_it_is_measured = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_unmeasured_verifier_still_verifies_first :
   andb (andb (precedes_in phase_eqb VerifySignature Execute
@@ -1013,7 +1020,7 @@ Example the_unmeasured_verifier_still_verifies_first :
                           (order executing_before_it_is_measured)))
        (negb (precedes_in phase_eqb Measure Execute
                           (order executing_before_it_is_measured))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Three: a verifier whose order drops the floor check. Every other phase
    is in place and each occurs once. *)
@@ -1027,12 +1034,12 @@ Definition with_no_floor_check : RomVerifier :=
 
 Example the_verifier_with_no_floor_check_is_refused :
   admissible_b with_no_floor_check = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_verifier_with_no_floor_check_still_measures_first :
   andb (precedes_in phase_eqb Measure Execute (order with_no_floor_check))
        (negb (precedes_in phase_eqb CheckFloor Execute (order with_no_floor_check))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Four: R-09-036's refused shape, a production part that also accepts a
    development root. It accepts the production root too, which is why the
@@ -1050,14 +1057,14 @@ Definition accepting_a_development_root_in_production : RomVerifier :=
 
 Example the_widened_root_set_is_refused :
   admissible_b accepting_a_development_root_in_production = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_widened_root_set_still_accepts_the_production_root :
   andb (any_of (fun r => root_eqb r ProductionRoot)
                (accepted_roots accepting_a_development_root_in_production Production))
        (negb (production_accepts_one_root_b accepting_a_development_root_in_production))
   = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Five: a header whose signature field is sized at the public key's size,
    which is the transcription defect of reading Table 2's two size columns
@@ -1077,14 +1084,14 @@ Definition signature_field_sized_at_the_public_key : RomVerifier :=
 
 Example the_undersized_signature_field_is_refused :
   admissible_b signature_field_sized_at_the_public_key = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_undersized_signature_field_is_still_a_fixed_layout :
   andb (header_is_fixed_layout (header signature_field_sized_at_the_public_key))
        (negb (signature_field_holds_the_scheme
                 (parameters signature_field_sized_at_the_public_key)
                 (header signature_field_sized_at_the_public_key))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    Three headers that break one clause of the layout each, and two verifiers
@@ -1133,20 +1140,20 @@ Example each_broken_header_breaks_exactly_the_clause_it_exists_for :
         (andb (fields_pack (header_fields header_with_an_empty_field))
               (negb (all_of (fun f => Nat.ltb 0 (field_length f))
                             (header_fields header_with_an_empty_field))))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_three_broken_headers_are_refused_and_the_witness_is_not :
   andb (header_is_fixed_layout demo_header)
   (andb (negb (header_is_fixed_layout header_whose_fields_overlap))
   (andb (negb (header_is_fixed_layout header_running_past_its_length))
         (negb (header_is_fixed_layout header_with_an_empty_field)))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example each_broken_header_still_sizes_its_signature_field_to_the_scheme :
   andb (signature_field_holds_the_scheme shake_256s header_whose_fields_overlap)
   (andb (signature_field_holds_the_scheme shake_256s header_running_past_its_length)
         (signature_field_holds_the_scheme shake_256s header_with_an_empty_field)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Four: a production part whose accepted set has one member and it is the
    wrong one, which is what separates the set's size from its membership. *)
@@ -1164,7 +1171,7 @@ Definition accepting_one_wrong_root_in_production : RomVerifier :=
 Example one_wrong_root_is_refused_though_the_set_is_still_a_singleton :
   andb (Nat.eqb (length_of (accepted_roots accepting_one_wrong_root_in_production Production)) 1)
        (negb (admissible_b accepting_one_wrong_root_in_production)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Five: a verifier with no floor at all, which keeps the floor check in its
    order and admits every version there is. *)
@@ -1181,14 +1188,14 @@ Example a_floor_of_zero_is_refused_and_admits_every_version :
              (precedes_in phase_eqb CheckFloor Execute (order with_the_floor_at_zero)))
        (andb (admits_version with_the_floor_at_zero 0)
              (hash_only_b with_the_floor_at_zero)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_witness_and_its_order_place_every_phase_where_the_entry_wants_it :
   andb (andb (Nat.eqb (index_of phase_eqb ReadHeader spec_order) 0)
              (Nat.eqb (index_of phase_eqb Execute spec_order) 4))
        (andb (negb (precedes_in phase_eqb Execute Execute spec_order))
              (negb (precedes_in phase_eqb Execute ReadHeader spec_order))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The edges the statements above reach past, each one a site `run.py seed`
@@ -1202,15 +1209,15 @@ Proof. vm_compute. reflexivity. Qed.
 
 Example the_packing_of_no_fields_at_all_holds :
   fields_pack nil = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_last_end_of_no_fields_at_all_is_zero :
   Nat.eqb (last_end nil) 0 = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_digit_count_out_of_fuel_answers_zero :
   Nat.eqb (digits_base 0 (winternitz shake_256s) (signature_bytes shake_256s)) 0 = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The field-length clause's floor is one byte and not two: a one-byte
    field names a byte, so the header below packs its four fields exactly,
@@ -1225,7 +1232,7 @@ Definition header_with_a_one_byte_field : Header :=
 
 Example a_field_of_a_single_byte_is_admitted :
   header_is_fixed_layout header_with_a_one_byte_field = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    R-05-166's inhabitation witnesses: one closed definition per record this

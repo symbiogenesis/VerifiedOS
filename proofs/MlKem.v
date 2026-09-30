@@ -63,6 +63,13 @@ From Stdlib Require Import ZArith List Arith Lia.
 
 Open Scope Z_scope.
 
+(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
+   the goal in the tactic and again where the kernel checks its cast at Qed;
+   this casts eq_refl to the goal unevaluated, so only the check at Qed
+   evaluates it. *)
+Local Ltac vm_reflexivity :=
+  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
+
 (* -------------------------------------------------------------------------
    The parameter set. R-05-058a freezes ML-KEM-1024; the statements below are
    over an arbitrary record and the instance decides only what the executable
@@ -582,19 +589,19 @@ Proof. reflexivity. Qed.
 
 Example matrix_sampler_does_not_reduce_rejected_candidates :
   sample_ntt_bytes mlkem_1024 (repeat 255 (3*280)) = None.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example matrix_sampler_accepts_exactly_a_whole_polynomial :
   sample_ntt_bytes mlkem_1024 (repeat 0 384) = Some (repeat 0 256).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example matrix_sampler_refuses_a_short_stream :
   sample_ntt_bytes mlkem_1024 (repeat 0 381) = None.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example cbd_uses_consecutive_groups_of_bits :
   sample_cbd_bytes mlkem_1024 2 (3 :: 12 :: nil) = (2 :: 0 :: 3327 :: 0 :: nil).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -606,13 +613,13 @@ Example the_parameter_set_determines_these_sizes :
   (kem_ek_bytes mlkem_1024, kem_dk_bytes mlkem_1024, kem_ct_bytes mlkem_1024,
    kem_seed_bytes mlkem_1024)
   = (1568%nat, 3168%nat, 1568%nat, 32%nat).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_parameter_set_is_the_category_five_one :
   (kem_rank mlkem_1024, kem_eta1 mlkem_1024, kem_eta2 mlkem_1024,
    kem_du mlkem_1024, kem_dv mlkem_1024, kem_dt mlkem_1024)
   = (4%nat, 2%nat, 2%nat, 11%nat, 5%nat, 12%nat).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -644,7 +651,7 @@ Example the_generated_keys_have_the_sizes_the_parameters_give :
   (length demo_ek, length demo_dk, length demo_ct, length demo_key)
   = (kem_ek_bytes demo_p, kem_dk_bytes demo_p, kem_ct_bytes demo_p,
      kem_seed_bytes demo_p).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The public key inside the decapsulation key is the encapsulation key, and
    the digest field is its hash, which is what makes the re-encryption above
@@ -654,7 +661,7 @@ Example the_decapsulation_key_carries_its_own_public_key_and_digest :
    poly_eqb (dk_digest demo_p demo_dk) (kem_h demo_o demo_ek),
    poly_eqb (dk_reject demo_p demo_dk) demo_z)
   = (true, true, true).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The encryption recovers its message, which is the bound PqArith.v's
    one-bit compression states and this file does not prove: at this
@@ -663,19 +670,19 @@ Proof. vm_compute. reflexivity. Qed.
 (*| discharges: R-05-059 |*)
 Example the_encryption_recovers_its_message :
   poly_eqb (decaps_message demo_p demo_dk demo_ct) demo_m = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-05-058 |*)
 Example decapsulation_returns_the_encapsulated_key :
   poly_eqb (kem_decaps demo_p demo_o demo_dk demo_ct) demo_key = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And on a ciphertext one byte different the re-encryption does not
    reproduce it, so the transform takes its other branch. *)
 Example a_tampered_ciphertext_fails_the_re_encryption_check :
   poly_eqb (decaps_reencryption demo_p demo_o demo_dk demo_tampered)
            demo_tampered = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-05-058 |*)
 Example a_tampered_ciphertext_decapsulates_to_the_rejection_value :
@@ -683,7 +690,7 @@ Example a_tampered_ciphertext_decapsulates_to_the_rejection_value :
             (decaps_rejection demo_p demo_o demo_dk demo_tampered),
    poly_eqb (kem_decaps demo_p demo_o demo_dk demo_tampered) demo_key)
   = (true, false).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The refutations, at that same ciphertext. Each construction keeps every
    clause it does not break and answers differently exactly where the
@@ -692,14 +699,14 @@ Proof. vm_compute. reflexivity. Qed.
 Example a_decapsulation_with_no_re_encryption_check_is_refused :
   poly_eqb (decaps_without_the_reencryption_check demo_p demo_o demo_dk demo_tampered)
            (kem_decaps demo_p demo_o demo_dk demo_tampered) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* It agrees with the transform wherever the check passes, which holds it to
    that single difference. *)
 Example the_unchecked_decapsulation_agrees_on_an_honest_ciphertext :
   poly_eqb (decaps_without_the_reencryption_check demo_p demo_o demo_dk demo_ct)
            (kem_decaps demo_p demo_o demo_dk demo_ct) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-05-165 |*)
 Example a_distinguishable_refusal_is_refused :
@@ -708,7 +715,7 @@ Example a_distinguishable_refusal_is_refused :
    poly_eqb (kem_decaps demo_p demo_o demo_dk demo_tampered)
             (zero_poly (kem_seed_bytes demo_p)))
   = (true, false).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the conflation: a check that accepts a ciphertext near the
    re-encrypted one accepts this one, where the equality refuses it. That is
@@ -721,7 +728,7 @@ Example a_bounded_check_accepts_what_the_equality_refuses :
    poly_eqb (kem_decaps demo_p demo_o demo_dk demo_tampered)
             (fst (decaps_pair demo_p demo_o demo_dk demo_tampered)))
   = (true, false).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-05-165 |*)
 Example an_encryption_that_omits_the_message_is_refused :
@@ -732,7 +739,7 @@ Example an_encryption_that_omits_the_message_is_refused :
                (snd (kem_encaps_pair demo_p demo_o demo_ek demo_m)))
             demo_ct)
   = (true, false).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The two matrix readings are different matrices, which is what makes the
    transposition at encryption a decision rather than a spelling. *)
@@ -740,14 +747,14 @@ Example the_matrix_and_its_transpose_are_different_matrices :
   poly_eqb (concat (concat (matrix_at demo_p demo_o (ek_seed demo_p demo_ek))))
            (concat (concat (matrix_transposed demo_p demo_o
                               (ek_seed demo_p demo_ek)))) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The two noise widths at one seed and two counters are two draws, as a
    local check of the deterministic demonstration oracle. *)
 Example two_counters_at_one_seed_are_two_draws :
   poly_eqb (kem_noise demo_o (kem_eta1 demo_p) demo_d 0%nat)
            (kem_noise demo_o (kem_eta1 demo_p) demo_d 1%nat) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -760,21 +767,21 @@ Example the_adapter_returns_the_requested_number_of_bytes :
   (length (shake_bytes 256 32 (1 :: 2 :: nil)),
    length (shake_bytes 128 8 (1 :: 2 :: nil)))
   = (32%nat, 8%nat).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_adapter_returns_bytes :
   forallb (fun b => andb (Z.leb 0 b) (Z.ltb b 256)) (shake_bytes 256 32 (7 :: nil))
   = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_two_strengths_are_two_functions :
   poly_eqb (shake_bytes 128 32 nil) (shake_bytes 256 32 nil) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* A direct local check of the concrete hash adapter's digest length. *)
 Example the_keccak_oracles_are_an_oracle_record :
   kem_seed_bytes demo_p = length (kem_h (shake_oracles demo_p) (1 :: nil)).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -784,24 +791,24 @@ Proof. vm_compute. reflexivity. Qed.
 
 Example the_message_is_one_bit_a_coefficient :
   (length (byte_decode 1 demo_m), length demo_m) = (256%nat, 32%nat).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_message_bit_decompresses_to_zero_or_half_the_modulus :
   (decompress (kem_modulus demo_p) 1 0, decompress (kem_modulus demo_p) 1 1)
   = (0, 1665).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_tampered_ciphertext_differs_in_one_byte :
   (Nat.eqb (length demo_tampered) (length demo_ct),
    Nat.eqb (length (filter (fun pr => negb (Z.eqb (fst pr) (snd pr)))
                            (combine demo_ct demo_tampered))) 1)
   = (true, true).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_demonstration_seeds_are_these :
   (digest_of 3329 demo_d, digest_of 3329 demo_z, digest_of 3329 demo_m)
   = (2746, 894, 167).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_bounded_check_s_tolerance :
   decaps_tolerance demo_p = 256.
@@ -809,7 +816,7 @@ Proof. reflexivity. Qed.
 
 Example an_empty_matrix_product_is_the_zero_polynomial :
   poly_eqb (dot_ntt demo_p nil nil) (zero_poly (kem_degree demo_p)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The four decapsulation-key accessors read four fields whose lengths sum to
    the whole key, which is what the statements above need of the layout and
@@ -819,7 +826,7 @@ Example the_key_fields_cover_the_decapsulation_key :
    length (dk_digest demo_p demo_dk), length (dk_reject demo_p demo_dk),
    length demo_dk)
   = (1536%nat, 1568%nat, 32%nat, 32%nat, 3168%nat).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------

@@ -98,6 +98,13 @@ Require Import StorageRecovery.
 Require AesGcm.
 Import ListNotations.
 
+(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
+   the goal in the tactic and again where the kernel checks its cast at Qed;
+   this casts eq_refl to the goal unevaluated, so only the check at Qed
+   evaluates it. *)
+Local Ltac vm_reflexivity :=
+  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
+
 (* -------------------------------------------------------------------------
    Device bytes and the frame layout.
    ------------------------------------------------------------------------- *)
@@ -201,7 +208,7 @@ Definition frame_nonce (generation position kind : nat) : bytes :=
    bit encoding. No assertion about unbounded nat serialization is used. *)
 Lemma every_octet_roundtrips :
   forallb (fun n => AesGcm.byte_value (AesGcm.bits_of_byte n) =? n) (seq 0 256) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Lemma octet_roundtrip : forall n, n < 256 ->
   AesGcm.byte_value (AesGcm.bits_of_byte n) = n.
@@ -874,13 +881,13 @@ Definition bridge_medium : bytes :=
 
 Example the_medium_is_the_writer_s_journal :
   journal_medium bridge_layout bridge_frames = bridge_medium.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_layout_fits_the_encoding : layout_fits bridge_layout = true := eq_refl.
 
 Example the_written_journal_recovers_both_transactions :
   decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 2) bridge_medium = Recovered bridge_recovered.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* What those transactions replay to, block by block, under either raw arm. *)
 Example the_recovered_transactions_replay_every_write :
@@ -969,7 +976,7 @@ Example a_torn_committed_payload_is_refused :
   decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 0)
     (flip_bit bridge_medium (1 * 128 + frame_header_bytes))
   = RefusedCommittedPayload 2.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Generated: crash images the device's tear rule leaves while the journal is
    written frame by frame. Frames before `k` landed whole and frame `k` was in
@@ -1004,7 +1011,7 @@ Example each_crash_image_recovers_exactly_the_landed_commits :
                   (crash_image (fst c) (snd c))) crash_cases
   = map (fun c => Recovered (expected_after_crash (fst c) (forallb (Nat.eqb 255) (snd c))))
         crash_cases.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition is_refusal (o : Outcome) : bool :=
   match o with Recovered _ => false | _ => true end.
@@ -1025,7 +1032,7 @@ Example inverting_a_field_s_low_bit_is_refused :
   forallb (fun o => is_refusal (decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 1)
                                         (flip_bit bridge_medium o)))
           field_offsets = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Admission and checkpoint controls for the reviewed bounded format.
    Identity functions below are test doubles only, never crypto evidence. *)
@@ -1038,7 +1045,7 @@ Definition shape_sealer : Sealer := fun _ _ m => (m, repeat 0 frame_tag_bytes).
 
 Example the_public_writer_accepts_the_authenticated_fixture :
   write_journal bridge_layout bridge_seal bridge_generation bridge_txns = Some bridge_medium.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_last_generation_is_usable_and_exhaustion_never_wraps :
   reserve_generation 255 = Some (255, 256) /\ reserve_generation 256 = None
@@ -1072,7 +1079,7 @@ Example short_long_and_non_octet_media_are_refused :
   map (decode bridge_layout bridge_open bridge_journal bridge_generation (bridge_checkpoint 0))
     [firstn 767 bridge_medium; bridge_medium ++ [0]; 256 :: tl bridge_medium]
   = repeat RefusedFormat 3.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_largest_position_and_fields_fit :
   let l := {| frame_bytes := 50; journal_frames := 256; payload_limit := 1 |} in
@@ -1094,7 +1101,7 @@ Definition invalid_transactions : list (list Txn) :=
 
 Example invalid_writer_fields_and_overfull_journals_refuse :
   map (write_journal bridge_layout shape_sealer 0) invalid_transactions = repeat None 6.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example malformed_sealer_outputs_refuse :
   map (fun seal => write_journal bridge_layout seal 0 bridge_txns)
@@ -1105,14 +1112,14 @@ Example malformed_sealer_outputs_refuse :
      (fun _ _ _ => ([256], repeat 0 16));
      (fun _ _ m => (m, 256 :: repeat 0 15))]
   = repeat None 6.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example an_opener_cannot_publish_a_non_octet :
   decode bridge_layout (fun _ _ ciphertext _ =>
     match ciphertext with [] => Some [] | _ => Some [256] end)
     bridge_journal bridge_generation (bridge_checkpoint 0) bridge_medium
   = RefusedCommittedPayload 2.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example wrong_checkpoint_contexts_refuse :
   map (fun c => decode bridge_layout bridge_open bridge_journal bridge_generation c bridge_medium)
@@ -1121,7 +1128,7 @@ Example wrong_checkpoint_contexts_refuse :
      checkpoint_for {| frame_bytes := 64; journal_frames := 12; payload_limit := 1 |}
        bridge_journal bridge_generation bridge_recovered]
   = repeat RefusedCheckpointBinding 3.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example equal_counts_cannot_hide_acknowledged_substitutions :
   map (fun txns => decode bridge_layout bridge_open bridge_journal bridge_generation
@@ -1132,13 +1139,13 @@ Example equal_counts_cannot_hide_acknowledged_substitutions :
      [(8, [(2,22); (1,21)]); (7, [(3,11)])];
      rev bridge_recovered]
   = repeat RefusedAcknowledgedMismatch 5.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_generation_bound_to_its_checkpoint_still_needs_authentication :
   decode bridge_layout bridge_open bridge_journal 2
     (checkpoint_for bridge_layout bridge_journal 2 bridge_recovered) bridge_medium
   = RefusedAcknowledgedMissing 0 2.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition witness_Layout : Layout := bridge_layout.
 Definition witness_Entry : Entry := {| entry_position := 0; entry_target := 1; entry_tag := [] |}.
