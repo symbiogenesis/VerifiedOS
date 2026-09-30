@@ -25,7 +25,9 @@
 # table other than exactly the one below, because an `include`, a further
 # `exclude`, `exclude-scripts` or honoring ignore files takes files out of the run.
 # K-75 holds `python-version`. ty also merges a user-level `ty.toml` beneath this
-# file, even beside `--config-file`, and the gate reports one that exists.
+# file, even beside `--config-file`, and the gate reports one that exists; it
+# searches the directories a `PYTHONPATH` names just after `extra-paths`, and the
+# gate reports that variable when it is set.
 # `tools/README.md` records the pin.
 
 [rules]

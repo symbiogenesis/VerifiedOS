@@ -1001,7 +1001,10 @@ ty.toml is a finding too, and so is a user-level ty configuration: ty merges
 `%APPDATA%\ty\ty.toml` on Windows, or `$XDG_CONFIG_HOME/ty/ty.toml` (by default
 `~/.config/ty/ty.toml`) on Linux and macOS, beneath ty.toml even when the gate names
 ty.toml with `--config-file`, so a setting ty.toml leaves out would come from it. The
-gate reports such a file rather than steering ty away from it. What ruff is *not*
+gate reports such a file rather than steering ty away from it, and reports a set
+`PYTHONPATH` rather than removing it: ty searches each directory it names just after
+`extra-paths` and ahead of the standard library, and an editor's ty server inherits
+the variable as the gate's run does. What ruff is *not*
 asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own line and
 each for a reason that would hold in any project, and no group switched off to spare this
 code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and

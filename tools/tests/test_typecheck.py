@@ -464,7 +464,9 @@ def _ty_settings_reported_beside_the_run() -> None:
             (root / "tools").mkdir()
             (root / "tools" / "ty.toml").write_text(text, encoding="utf-8", newline="")
             with patch.object(typecheck, "_run_checker") as checker, \
-                    patch.object(typecheck, "_user_config", return_value=None):
+                    patch.object(typecheck, "_user_config", return_value=None), \
+                    patch.dict(os.environ):
+                os.environ.pop("PYTHONPATH", None)
                 typecheck._run_ty(rep, root)
         ensure(checker.call_count == 1, "the checker must run whatever the settings say")
         joined = "\n".join(rep.out)
@@ -538,6 +540,7 @@ def _user_config_reported_beside_the_run() -> None:
                                 encoding="utf-8", newline="")
             with patch.dict(os.environ, {variable: str(root / "config")}), \
                     patch.object(typecheck, "_run_checker") as checker:
+                os.environ.pop("PYTHONPATH", None)
                 typecheck._run_ty(rep, root)
         ensure(checker.call_count == 1, "the checker must run whatever the settings say")
         joined = "\n".join(rep.out)
@@ -553,6 +556,38 @@ def _user_config_reported_beside_the_run() -> None:
         else:
             ensure(rep.findings == 0 and rep.out == [] and claims,
                    f"an empty user configuration directory must add nothing: {rep.out!r}")
+
+
+def _pythonpath_reported_beside_the_run() -> None:
+    # A PYTHONPATH that ty would search ahead of the standard library is a ty finding
+    # naming its value, an empty one included; the checker still runs, and the run no
+    # longer claims every rule at error. Without the variable nothing is added.
+    for value in (None, "", "shadow"):
+        rep = Reporter()
+        with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+            root = Path(td)
+            (root / "tools").mkdir()
+            (root / "tools" / "ty.toml").write_text(_ADMITTED, encoding="utf-8", newline="")
+            with patch.dict(os.environ), \
+                    patch.object(typecheck, "_user_config", return_value=None), \
+                    patch.object(typecheck, "_run_checker") as checker:
+                os.environ.pop("PYTHONPATH", None)
+                if value is not None:
+                    os.environ["PYTHONPATH"] = value
+                typecheck._run_ty(rep, root)
+        ensure(checker.call_count == 1, "the checker must run whatever the environment says")
+        joined = "\n".join(rep.out)
+        claims = str(checker.call_args.kwargs["ok"]).endswith("all rules at error")
+        if value is None:
+            ensure(rep.findings == 0 and rep.out == [] and claims,
+                   f"an unset PYTHONPATH must add nothing: {rep.out!r}")
+        else:
+            ensure(rep.findings == 1
+                   and "FAIL ty: 1 environment variable(s) the gate refuses:" in joined
+                   and f"PYTHONPATH is set to {value!r}" in joined,
+                   f"a set PYTHONPATH must be a ty finding naming it: {rep.out!r}")
+            ensure(not claims, "a run beside a set PYTHONPATH must not claim every rule "
+                               "ran at error")
 
 
 def cases() -> list[Case]:
@@ -581,4 +616,5 @@ def cases() -> list[Case]:
         Case("ty-settings-reported-beside-the-run", _ty_settings_reported_beside_the_run),
         Case("user-config-located", _user_config_located),
         Case("user-config-reported-beside-the-run", _user_config_reported_beside_the_run),
+        Case("pythonpath-reported-beside-the-run", _pythonpath_reported_beside_the_run),
     ]

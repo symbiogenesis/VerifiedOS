@@ -49,6 +49,9 @@ setting takes away:
 
 A user-level ty configuration is a ty finding too: ty merges it beneath `ty.toml`
 even beside `--config-file`, so a setting `ty.toml` leaves out would come from it.
+So is a set `PYTHONPATH`, whose directories ty searches just after `extra-paths` and
+ahead of the standard library, which is what `typeshed` and a further `extra-paths`
+entry are refused for.
 
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
@@ -390,7 +393,15 @@ def _run_ty(rep: Reporter, root: Path) -> None:
     stands beside the checker's verdict rather than hiding the findings it would
     still report, and that verdict then claims no more than the run showed. A
     user-level configuration is reported rather than redirected away from, because
-    ty merges it into this run and the finding is what tells its owner so."""
+    ty merges it into this run and the finding is what tells its owner so.
+
+    A set `PYTHONPATH` is reported on the same ground rather than removed from ty's
+    environment. ty searches each directory it names just after `extra-paths` and
+    ahead of the standard library, which is what `typeshed` and a further
+    `extra-paths` entry are refused for; an editor's ty server inherits the variable
+    as this run does, so removing it here alone would pass what the editor resolves
+    differently. The variable is reported whenever it is present, an empty value
+    included, because ty reads it whenever it is present."""
     tools = root / "tools"
     held = ", all rules at error"
     if refused := _ty_settings(tools / "ty.toml"):
@@ -399,6 +410,11 @@ def _run_ty(rep: Reporter, root: Path) -> None:
     if (user := _user_config()) is not None:
         rep.report("ty", "user-level configuration(s) the gate refuses:",
                    [f"a user-level ty configuration at {user} merges into the gate's run"])
+        held = " under the settings refused above"
+    if (search := os.environ.get("PYTHONPATH")) is not None:
+        rep.report("ty", "environment variable(s) the gate refuses:",
+                   [f"PYTHONPATH is set to {search!r}, and ty searches each directory it "
+                    "names ahead of the standard library in the gate's run"])
         held = " under the settings refused above"
     _run_checker(
         rep, "ty", TY_VERSION,
