@@ -308,17 +308,9 @@ def _compare_command_exits_on_the_verdict() -> None:
                    f"{broken} was compared rather than refused: {said}")
 
 
-def _module_reading_asks_bodies_only_where_they_belong() -> None:
-    marker = proofreading.MARKER
-    about = ("A.{0} : nat\n\nA.{0} is not universe polymorphic\nA.{0} is {1}\n"
-             "Expands to: Constant A.{0}\nDeclared in library A, line 1, characters 0-1")
-    answers = {
-        "VosReadingInventory_A": f"{proofaudit.EMPTY_BLACKLIST}\nA.t: nat\nA.o: nat\n",
-        "VosReadingFacts_A": "".join(
-            f"{marker}A.{name}|check\nA.{name}\n     : nat\n{marker}A.{name}|about\n"
-            + about.format(name, opacity) + "\n"
-            for name, opacity in (("o", "opaque"), ("t", "transparent"))),
-        "VosReadingBodies_A": f"{marker}A.t|print\nA.t = O\n     : nat\n"}
+def _read_answered(answers: dict[str, str],
+                   ) -> tuple[dict[str, proofreading.Entry], dict[str, str]]:
+    """Module A read from scripted answers, and the query text each process was given."""
     asked: dict[str, str] = {}
 
     def query(_objects: Path, _scratch: Path, name: str, text: str, _bound: int) -> str:
@@ -326,7 +318,20 @@ def _module_reading_asks_bodies_only_where_they_belong() -> None:
         return answers[name]
 
     with patch.object(cli, "_query", side_effect=query):
-        read = cli.read_module(Path("objects"), Path("scratch"), "A")
+        return cli.read_module(Path("objects"), Path("scratch"), "A"), asked
+
+
+def _module_reading_asks_bodies_only_where_they_belong() -> None:
+    marker = proofreading.MARKER
+    about = ("A.{0} : nat\n\nA.{0} is not universe polymorphic\nA.{0} is {1}\n"
+             "Expands to: Constant A.{0}\nDeclared in library A, line 1, characters 0-1")
+    read, asked = _read_answered({
+        "VosReadingInventory_A": f"{proofaudit.EMPTY_BLACKLIST}\nA.t: nat\nA.o: nat\n",
+        "VosReadingFacts_A": "".join(
+            f"{marker}A.{name}|check\nA.{name}\n     : nat\n{marker}A.{name}|about\n"
+            + about.format(name, opacity) + "\n"
+            for name, opacity in (("o", "opaque"), ("t", "transparent"))),
+        "VosReadingBodies_A": f"{marker}A.t|print\nA.t = O\n     : nat\n"})
     ensure(asked["VosReadingInventory_A"] == proofaudit.inventory_query("A"),
            "the inventory is the audit's own query")
     ensure("Print A.t." in asked["VosReadingBodies_A"]
@@ -334,6 +339,40 @@ def _module_reading_asks_bodies_only_where_they_belong() -> None:
     ensure(read["A.o"]["print"] is None and read["A.t"]["print"] == "A.t = O\n     : nat",
            f"the entries: {read}")
     ensure("Declared in" not in read["A.o"]["about"], "locations never enter the reading")
+
+
+def _module_reading_renames_its_own_levels() -> None:
+    """A polymorphic constant reads the same however many were asked before it.
+
+    Rocq names a level a query instantiates after the query file and a counter over
+    its whole process, and Check is where the pinned prover does so. A level so named
+    is renamed in every answer, About and Print included; a declared level is not.
+    """
+    marker = proofreading.MARKER
+
+    def read(counter: int) -> proofreading.Entry:
+        fresh, printed = f"VosReadingFacts_A.{counter}", f"VosReadingBodies_A.{counter + 7}"
+        about = _ABOUT_POLYMORPHIC.replace("(* u |  *)", f"(* u | u <= {fresh} *)")
+        answered, _ = _read_answered({
+            "VosReadingInventory_A": f"{proofaudit.EMPTY_BLACKLIST}\n"
+                                     "A.pid: forall (A : Type) (_ : A), A\n",
+            "VosReadingFacts_A": (
+                f"{marker}A.pid|check\nA.pid@{{{fresh}}}\n"
+                f"     : forall (A : Type@{{{fresh}}}) (_ : A), A\n(* {{{fresh}}} |  *)\n"
+                f"{marker}A.pid|about\n{about}\n"),
+            "VosReadingBodies_A": (
+                f"{marker}A.pid|print\nA.pid@{{u}} = fun (A : Type@{{u}}) (a : A) => a\n"
+                f"     : forall (A : Type@{{u}}) (_ : A), A\n(* u | u <= {printed} *)\n")})
+        return answered["A.pid"]
+
+    first = read(21)
+    ensure(first == read(34), "one constant's reading depends on its query's counter")
+    for field in ("check", "about", "print"):
+        text = first[field] or ""
+        ensure("?u1" in text and "VosReading" not in text,
+               f"{field} keeps a level its query named: {text!r}")
+    ensure("A.pid@{u}" in first["about"] and "Type@{u}" in (first["print"] or ""),
+           f"a declared level keeps its name: {first}")
 
 
 def _default_objects_need_a_passing_receipt() -> None:
@@ -573,6 +612,7 @@ Proof. reflexivity. Qed.
 Definition ifis (x : option nat) : nat := match x with Some n => n | None => 0 end.
 Definition upd (r : pt) : pt := {| px := 3; py := py r |}.
 Definition amp (n : nat) (_ : n = 0) : nat := n.
+#[universes(polymorphic)] Definition zpoly (A B : Type) (a : A) (_ : B) : A := a.
 """
 
 _SCHEMES = ("Leaf.sw_ind", "Leaf.sw_rec", "Leaf.sw_rect")
@@ -595,6 +635,11 @@ _CONTROLS: tuple[tuple[str, str, str, set[tuple[str, str]]], ...] = (
      {("Leaf.removable", "removed")}),
     ("universe-polymorphic", "Definition upoly", "#[universes(polymorphic)] Definition upoly",
      {("Leaf.upoly", what) for what in ("universes", "check", "about", "print")}),
+    # A polymorphic constant asked before `zpoly` moves the counter Rocq names the levels
+    # of zpoly's Check after, which the reading must not see.
+    ("polymorphic-added-first", "Definition conv : nat := 2 + 2.",
+     "#[universes(polymorphic)] Definition apoly (A : Type) (a : A) : A := a.\n"
+     "Definition conv : nat := 2 + 2.", {("Leaf.apoly", "added")}),
     ("swapped-constructors", "First | Second", "Second | First",
      {("Leaf.sw", "print"), *((scheme, what) for scheme in _SCHEMES
                               for what in ("check", "about", "print"))}),
@@ -653,8 +698,10 @@ def _native_controls() -> None:
             code = cli.main(["compare", str(readings[0]), str(readings[1])])
         ensure(code == 0, f"the command refused two equal readings: {said.getvalue()}")
         whole = proofreading.load(readings[0])
-        ensure(set(whole["modules"]) == {"Base", "Leaf"}
-               and "Leaf.sw" in whole["modules"]["Leaf"]["constants"],
+        constants = whole["modules"]["Leaf"]["constants"]
+        ensure(set(whole["modules"]) == {"Base", "Leaf"} and "Leaf.sw" in constants
+               and constants["Leaf.zpoly"]["universes"] == "polymorphic"
+               and "?u1" in constants["Leaf.zpoly"]["check"],
                f"the fixture's modules and constants: {sorted(whole['modules'])}")
         leaf: proofreading.Reading = {**whole, "modules": {"Leaf": whole["modules"]["Leaf"]}}
 
@@ -693,6 +740,7 @@ def cases() -> list[Case]:
         Case("compare-command-exits-on-the-verdict", _compare_command_exits_on_the_verdict),
         Case("module-reading-asks-bodies-where-they-belong",
              _module_reading_asks_bodies_only_where_they_belong),
+        Case("module-reading-renames-its-own-levels", _module_reading_renames_its_own_levels),
         Case("default-objects-need-a-passing-receipt", _default_objects_need_a_passing_receipt),
         Case("modules-need-their-objects", _modules_need_their_objects),
         Case("record-reads-only-the-compile-that-passed",
