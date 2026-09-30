@@ -337,6 +337,34 @@ def _native_log_locks_and_peer_directories() -> None:
                "a peer's nested log namespace protects an overlapping output directory")
 
 
+def _native_oracle_locks_of_every_edition() -> None:
+    """A lane's oracle log is moved only while no edition's oracle build holds its tree:
+    the log's name does not say which edition's checkout wrote it."""
+    import fcntl  # noqa: PLC0415
+
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        build, logs = root / "build", root / "logs"
+        lane = build / "lane-worker"
+        lane.mkdir(parents=True)
+        logs.mkdir()
+        log = logs / "oracle-build-worker.log"
+        log.write_text("oracle", encoding="utf-8")
+        for edition in ("sail-0.0.1", f"sail-{retire.env.SAIL_VERSION}"):
+            lock = retire.env._lock_path(build / edition / retire.env.ORACLE_TREE)
+            lock.parent.mkdir()
+            lock.write_text("", encoding="utf-8")
+            with lock.open() as handle:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                _refused(lambda: retire.retain_native("worker", str(lane), str(logs), "0a" * 10),
+                         "native output lock is active")
+            ensure(log.exists() and lane.exists(),
+                   f"an oracle build under {edition} keeps the lane's log and outputs in place")
+        result = retire.retain_native("worker", str(lane), str(logs), "0a" * 10)
+        saved = Path(str(result["archive"])) / "logs" / log.name
+        ensure(saved.read_text(encoding="utf-8") == "oracle" and not log.exists(),
+               "with no oracle build running, the lane's oracle log travels with it")
+
+
 def cases() -> list[Case]:
     return [Case("retains-outputs-and-repeats", _retains_outputs_and_repeats),
             Case("dirty-and-unintegrated", _dirty_and_unintegrated),
@@ -353,4 +381,5 @@ def cases() -> list[Case]:
             Case("venv-links-and-target-locks", _venv_links_and_target_locks, lane="guest"),
             Case("native-exact-log-ownership", _native_exact_log_ownership, lane="guest"),
             Case("native-log-directories-and-companions", _native_log_directories_and_companions, lane="guest"),
-            Case("native-log-locks-and-peer-directories", _native_log_locks_and_peer_directories, lane="guest")]
+            Case("native-log-locks-and-peer-directories", _native_log_locks_and_peer_directories, lane="guest"),
+            Case("native-oracle-locks-of-every-edition", _native_oracle_locks_of_every_edition, lane="guest")]
