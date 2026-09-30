@@ -27,10 +27,19 @@ Every rule ty carries runs at error, including the ones it ships as warnings or
 switched off. `ty.toml` states that in its `[rules]` table, and it and `ruff.toml`
 hold the rest of the settings, so an editor's language server decides what this
 decides. The gate also passes ty `--error all`, which overrides the `[rules]`
-table, and it reads `ty.toml` itself: a `[rules]` table other than exactly
-`all = "error"` is a ty finding, because an editor reads the table without the flag,
-and so is an `[[overrides]]` entry carrying `rules`, because such an entry would
-lower the flag's severities for the files it matches.
+table, and it reads `ty.toml` itself. Each of these is a ty finding, because an
+editor reads the file without the flag or because the flag cannot restore what the
+setting takes away:
+
+    [rules]        a table other than exactly `all = "error"`
+    [[overrides]]  an entry carrying any key but `include` and `exclude`: its
+                   `rules` can lower the flag's severities, and its `analysis` can
+                   suppress diagnostics, for the files it matches
+    [analysis]     a key outside the ones that suppress nothing, which refuses
+                   `allowed-unresolved-imports` and `replace-imports-with-any`
+    [src]          a table other than exactly `exclude = ["**/__pycache__/**"]`,
+                   since an `include`, a further `exclude` or `exclude-scripts`
+                   takes files out of the run
 
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
@@ -56,6 +65,23 @@ RUFF_VERSION = _PINS["ruff"]
 
 # The one `[rules]` table ty.toml may carry: every rule at error, and nothing else.
 TY_RULES = {"all": "error"}
+
+# The one `[src]` table ty.toml may carry. `include`, a further `exclude` glob and
+# `exclude-scripts` each take files out of the run, where no severity reaches them.
+TY_SRC = {"exclude": ["**/__pycache__/**"]}
+
+# The keys an `[[overrides]]` entry may carry: which files it matches, and nothing
+# it does to them. ty also accepts `rules`, which can lower `--error all` for those
+# files, and `analysis`, which can suppress their diagnostics under it.
+TY_OVERRIDE_KEYS = frozenset({"include", "exclude"})
+
+# The `[analysis]` settings that suppress no diagnostic the defaults report. ty's
+# other two, `allowed-unresolved-imports` and `replace-imports-with-any`, suppress
+# diagnostics for the modules they match under `--error all`, and a key the gate has
+# not read is refused with them. `strict-literal-narrowing` is ty's alias for
+# `strict-equality-semantics`.
+TY_ANALYSIS_KEYS = frozenset({"respect-type-ignore-comments", "strict-equality-semantics",
+                              "strict-literal-narrowing", "strict-generic-narrowing"})
 
 # How many findings of one rule are printed before the rest are counted. A run that
 # has just switched a rule on is a list of hundreds of one thing, and the verdict is
@@ -214,16 +240,20 @@ def _run_checker(rep: Reporter, name: str, pin: str, args: list[str], cwd: Path,
 
 
 def _ty_settings(config: Path) -> list[str]:
-    """Whatever in `ty.toml` would split the editor from the gate or lower the gate.
+    """Whatever in `ty.toml` would split the editor from the gate or narrow the gate.
 
     `--error all` overrides the `[rules]` table, so the gate's own run cannot see a
     lowered entry there; an editor's language server reads the table without the
-    flag, which is why the table is held exactly rather than by what it means. An
-    `[[overrides]]` entry carrying `rules` would lower the flag itself for the files it
-    matches; one carrying only other settings changes no severity and is admitted.
+    flag, which is why the table is held exactly rather than by what it means. The
+    flag does not reach the rest, so it is held by shape: an `[[overrides]]` entry
+    carries only `TY_OVERRIDE_KEYS`, `[analysis]` only `TY_ANALYSIS_KEYS`, and
+    `[src]` is exactly `TY_SRC`. The shape is held rather than the values, so an
+    override restating `all = "error"` and an empty suppression list are refused too.
 
-    Fail-closed: a file that cannot be read or parsed, or an `overrides` value that is
-    not an array of tables, is a finding, never a pass.
+    Fail-closed: a file that cannot be read or parsed, an `overrides` value that is
+    not an array of tables, or an `analysis` value that is not a table is a finding,
+    never a pass, and a key the gate has not admitted is refused, never assumed
+    harmless.
     """
     name = f"tools/{config.name}"
     try:
@@ -237,15 +267,33 @@ def _ty_settings(config: Path) -> list[str]:
         found = "carries no [rules] table" if rules is None else f"sets [rules] to {rules!r}"
         findings.append(f"{name} {found}; the gate holds it to exactly {TY_RULES!r}, "
                         "the table an editor's ty server reads without --error all")
+    src = settings.get("src")
+    if src != TY_SRC:
+        found = "carries no [src] table" if src is None else f"sets [src] to {src!r}"
+        findings.append(f"{name} {found}; the gate holds it to exactly {TY_SRC!r}, "
+                        "because an include, a further exclude or exclude-scripts takes "
+                        "files out of the run")
+    analysis = settings.get("analysis", {})
+    if not isinstance(analysis, dict):
+        findings.append(f"{name}'s analysis must be a table, found {analysis!r}")
+    elif refused := sorted(set(analysis) - TY_ANALYSIS_KEYS):
+        findings.append(
+            f"{name}'s [analysis] carries "
+            + ", ".join(f"{key} {analysis[key]!r}" for key in refused)
+            + f"; the gate admits only {', '.join(sorted(TY_ANALYSIS_KEYS))}, "
+            "the settings that suppress no diagnostic the defaults report")
     overrides = settings.get("overrides", [])
     if not isinstance(overrides, list) or not all(isinstance(o, dict) for o in overrides):
         findings.append(f"{name}'s overrides must be an array of tables, found {overrides!r}")
-    else:
-        findings.extend(
-            f"{name}'s [[overrides]] entry {index} (include {entry.get('include')!r}) "
-            f"carries rules {entry['rules']!r}, which would lower --error all for the "
-            "files it matches"
-            for index, entry in enumerate(overrides, start=1) if "rules" in entry)
+        return findings
+    for index, entry in enumerate(overrides, start=1):
+        if carried := sorted(set(entry) - TY_OVERRIDE_KEYS):
+            findings.append(
+                f"{name}'s [[overrides]] entry {index} (include {entry.get('include')!r}) "
+                "carries " + ", ".join(f"{key} {entry[key]!r}" for key in carried)
+                + "; an entry may carry only include and exclude, because its rules can "
+                "lower --error all and its analysis can suppress diagnostics for the "
+                "files it matches")
     return findings
 
 
