@@ -154,8 +154,8 @@ def install_toolchains(root: Path, jobs: int, log: IO[str],
                        selected: tuple[str, ...] = TOOLCHAINS) -> None:
     """Provide Sail's solver at startup and probe each tool before building the next."""
     if "sail" in selected:
-        run(("uv", "pip", "install", "--python", sys.executable, "--target",
-             str(root / "z3"), f"z3-solver=={env.Z3_VERSION}.0"), log)
+        for step in env.z3_install(root / "z3", sys.executable):
+            run(step, log)
         # Sail initializes its solver even for --version. VOS_Z3_BIN is consumed by
         # run.py's environment setup, which does not run in this bootstrap process.
         solver_bin = root / "z3" / "bin"

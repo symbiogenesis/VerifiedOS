@@ -90,6 +90,9 @@ def _solver_available_before_sail() -> None:
 
     def run(argv: tuple[str, ...], log: IO[str]) -> None:
         if argv[0] == "uv":
+            ensure(argv == bootstrap.env.z3_install(root / "z3", sys.executable)[0]
+                   and "--require-hashes" in argv and "--no-build" in argv,
+                   f"the solver must install by the shared hashed recipe, got {argv}")
             observed.append("solver-install")
         elif argv[0] == str(root / "z3" / "bin" / "z3"):
             observed.append("solver-probe")

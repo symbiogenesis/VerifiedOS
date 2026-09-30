@@ -412,10 +412,10 @@ FACTS: tuple[Fact, ...] = (
          env.SAIL_INSTALL),
     Fact("the pinned z3", TOOLCHAIN,
          f"Sail's typechecker, ahead of the distribution's {env.Z3_DISTRIBUTION}",
-         "tools/vos/env.py's Z3_VERSION and Z3_PREFIX",
+         "tools/vos/env.py's Z3_VERSION and Z3_INSTALL, over the wheel hashes in "
+         "tools/z3-requirements.txt",
          _pinned_z3,
-         (("uv", "pip", "install", "--target", str(env.Z3_PREFIX),
-           f"z3-solver=={env.Z3_VERSION}.0"),)),
+         env.Z3_INSTALL),
     Fact("the prover switch", TOOLCHAIN,
          "run.py proofs and run.py seed coq",
          "tools/vos/env.py's ROCQ_SWITCH and ROCQ_VERSION",

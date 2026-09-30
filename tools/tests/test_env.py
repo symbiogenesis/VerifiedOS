@@ -21,6 +21,7 @@ win32 returns at the platform refusal before it gets to the preparations, so wha
 import io
 import json
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -293,6 +294,41 @@ def _oracle_tree_keys_the_edition() -> None:
         e.oracle == Path("/elsewhere/sim"), "VOS_ORACLE still names the simulator outright"))
 
 
+def _solver_install_is_hashed() -> None:
+    """The solver installs only as a wheel whose bytes the requirements file names.
+
+    uv takes hashes only from a requirements file, so the wheel pin is stated there
+    beside its hashes and held here against `Z3_VERSION`, the release every other
+    reader names: one requirement, at the release's wheel version, carrying one SHA-256
+    per architecture a guest runs on and nothing weaker.
+    """
+    recipe = env.Z3_INSTALL
+    ensure(len(recipe) == 1 and recipe == env.z3_install(env.Z3_PREFIX),
+           "the provisioner's recipe is the one the bootstrap composes")
+    argv = recipe[0]
+    ensure(argv[:3] == ("uv", "pip", "install") and "--no-build" in argv
+           and "--require-hashes" in argv,
+           f"the recipe refuses source builds and unhashed wheels, got {argv}")
+    ensure(argv[argv.index("--target") + 1] == str(env.Z3_PREFIX)
+           and argv[argv.index("-r") + 1] == str(env.Z3_REQUIREMENTS)
+           and env.Z3_REQUIREMENTS.is_absolute(),
+           "the recipe installs the checkout's requirements into the pinned prefix")
+    ensure(env.z3_install(Path("/private/z3"), "/usr/bin/python3")[0][-6:-2]
+           == ("--python", "/usr/bin/python3", "--target", str(Path("/private/z3"))),
+           "a caller names its own interpreter and prefix")
+    text = env.Z3_REQUIREMENTS.read_text(encoding="utf-8")
+    logical = [line.strip() for line in text.replace("\\\n", " ").splitlines()
+               if line.strip() and not line.lstrip().startswith("#")]
+    ensure(len(logical) == 1, f"one requirement and nothing else, got {logical}")
+    fields = logical[0].split()
+    ensure(fields[0] == f"z3-solver=={env.Z3_VERSION}.0",
+           f"the wheel pin is Z3_VERSION's release, got {fields[0]}")
+    hashes = fields[1:]
+    ensure(len(hashes) == 2 and len(set(hashes)) == 2
+           and all(re.fullmatch(r"--hash=sha256:[0-9a-f]{64}", item) for item in hashes),
+           f"one SHA-256 per guest architecture, got {hashes}")
+
+
 def _install_recipes_compose() -> None:
     """A recipe is argv and the sentence is composed from it, never the other way.
 
@@ -479,6 +515,7 @@ def cases() -> list[Case]:
         Case("hoisted-lane-constants", _hoisted_lane_constants),
         Case("install-recipes-compose", _install_recipes_compose),
         Case("oracle-tree-keys-the-edition", _oracle_tree_keys_the_edition),
+        Case("solver-install-is-hashed", _solver_install_is_hashed),
         Case("lane-shapes", _lane_shapes),
         Case("lane-override", _lane_override),
         Case("lane-roots-compose", _lane_roots_compose),
