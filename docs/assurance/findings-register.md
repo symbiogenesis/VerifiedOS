@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 816 of them across 139 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 824 of them across 140 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1071,6 +1071,38 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-511** owed-act: `Ltac2 @ external` binds a plugin primitive, the timeout tactical among them, under any name, which no lexical refusal can follow
 · Raised: Q38a
+· Disposition: open, Q38d
+
+**F-512** measurement: the memory-plan reader dropped a plan value completed from a base with `with` when its type was unwritten or a comment held a `match` or a full stop
+· Raised: Q38b
+· Disposition: closed at Q38b, every value completed from a base that assigns a field of `Plan` refused over comment-blanked text
+
+**F-513** measurement: Q38b's first head read a `Fail`, `Succeed` or other decoration on a line above a declaration as absent in apex, memplan, consttab and mutate, and the corpus exporter counted declarations under `Fail` and `Succeed`
+· Raised: Q38b
+· Disposition: closed at Q38b, each reader reading such a decoration as its command's
+
+**F-514** measurement: mutate opened a region at a Rocq line whose first character lies inside a comment or a string
+· Raised: Q38b
+· Disposition: closed at Q38b, such a line opening no region
+
+**F-515** owed-act: the memory-plan export carries neither `interior_empty_region_plan`, `build_plan` over inline `cons` chains, nor the alias `witness_Plan`, and no finding recorded either absence
+· Raised: Q38b
+· Disposition: open, Q5b
+
+**F-516** owed-act: apex and memplan look back for a decoration over text whose strings are not blanked, so a string holding a full stop ends the look-back early
+· Raised: Q38b
+· Disposition: open, Q38d
+
+**F-517** owed-act: the decoration grammar is spelled once in each of five readers outside the gate beside the gate's `CONTROL_PREFIXES`, where a parse is written once
+· Raised: Q38b
+· Disposition: open, Q38d
+
+**F-518** owed-act: mutate's region keywords omit `Variant`, `CoInductive`, `CoFixpoint`, `Structure` and `Let`, so such a line joins the region above it
+· Raised: Q38b
+· Disposition: open, Q38d
+
+**F-519** owed-act: K-91's reader ends an `Example` at the next column-0 `Proof.`, so a `Proof using` line or a decorated `Example` fails K-91 for a wrong stated reason
+· Raised: Q38b
 · Disposition: open, Q38d
 
 ## M0 · Hardware reference
