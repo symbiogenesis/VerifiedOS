@@ -61,11 +61,13 @@ The device-register package is a guest row too: `run.py rtl device-regs` reads i
 UART owners behind the `upstream/mocha` gitlink, which no hosted gate populates, and
 stamps the header with the commit that checkout stood at. Its host inspector holds the
 working tree to the index and the stamp, whole, to the index's Mocha gitlink, so a
-gitlink moved without a regeneration is a host finding. `run.py rtl devicescheck`
-decides the constants where the submodule is populated. The row also keeps the stamp
-out of K-81's transcription window: it is the generator's record of what it read, not a
-sentence restating a pin. No repair: either answer is a regeneration from a checkout at
-the gitlink.
+gitlink moved without a regeneration is a host finding. The block half is decided on
+the host: the block contract and the model's block bounds are in every checkout, so the
+inspector re-derives the `BLK_` lines and compares them with the package's. `run.py rtl
+devicescheck` decides the UART constants where the submodule is populated. The row also
+keeps the stamp out of K-81's transcription window: it is the generator's record of what
+it read, not a sentence restating a pin. No repair: each answer is a regeneration from
+a checkout at the gitlink.
 
 **Why not simply make the checker run the bundle's generator.** Two reasons, and both
 are disqualifying on their own. The host has no Sail, so a rule that ran that generator
@@ -200,13 +202,14 @@ def _fiat_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
 
 
 def _device_regs_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
-    """Hold the device-register package to its index and its stamp to the Mocha gitlink.
+    """Hold the device-register package to its index, its owners and the Mocha gitlink.
 
-    The UART owners sit behind a gitlink no hosted gate populates, so the constants are
-    decided by the row's checker in a populated guest. This lane decides the header's own
-    record: its bytes against the index, and the owner commit its stamp records, whole,
-    against the commit the index carries. No repair: either answer is a regeneration from
-    a checkout at the gitlink.
+    The UART owners sit behind a gitlink no hosted gate populates, so the UART constants
+    are decided by the row's checker in a populated guest. This lane decides the rest:
+    the bytes against the index, the `BLK_` lines against what the block owners every
+    checkout carries emit now, and the owner commit the stamp records, whole, against the
+    commit the index carries. No repair: each answer is a regeneration from a checkout
+    at the gitlink.
     """
     out = Reading(findings=[], fixed=[])
     if staged is None:
@@ -224,8 +227,23 @@ def _device_regs_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
                             f"with `{row.generator}` and review `{row.checker}` before "
                             "staging")
     try:
-        recorded = device_regs.recorded_revision(working.decode("utf-8"))
-    except (UnicodeDecodeError, ValueError) as exc:
+        text = working.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        out.findings.append(f"{row.path} is not UTF-8: {exc}")
+        return out
+    try:
+        expected = device_regs.block_lines(ctx.root)
+    except (OSError, ValueError) as exc:
+        out.findings.append(f"{row.path}'s block constants cannot be derived from "
+                            f"{device_regs.BLOCK} and {device_regs.BLOCK_MODEL}: {exc}")
+    else:
+        if device_regs.emitted_block_lines(text) != expected:
+            out.findings.append(
+                f"{row.path}'s BLK_ constants differ from what {device_regs.BLOCK} and "
+                f"{device_regs.BLOCK_MODEL} emit; regenerate it with `{row.generator}`")
+    try:
+        recorded = device_regs.recorded_revision(text)
+    except ValueError as exc:
         out.findings.append(f"{row.path} records no readable owner revision: {exc}")
         return out
     oid = ctx.corpus.gitlinks.get(device_regs.UPSTREAM)
@@ -369,7 +387,8 @@ GENERATED: tuple[Row, ...] = (
         owners="the register declarations and reviewed modeled MMIO functions",
         checker="this gate", emit=_device_registers_rtl),
     # The simulation wrappers' register package, whose UART owners sit behind the Mocha
-    # gitlink: a guest row whose host half is its index and its recorded owner commit.
+    # gitlink: a guest row whose host half is its index, its block constants and its
+    # recorded owner commit.
     Row(path=device_regs.ARTIFACT,
         generator="run.py rtl device-regs", lane="guest",
         owners="the Mocha gitlink's UART owners, the block contract and the model's "
@@ -654,8 +673,8 @@ def run(ctx: Context) -> None:
         f"{hosted} of them held against what their generator writes here and now, and "
         f"the rest against their indexed bytes and host-readable provenance, including "
         f"{owners} Sail owner(s), the Fiat source pin/recipe/wrapper/hashes, the "
-        f"device-register package's Mocha revision and the staged signature streams' "
-        f"manifest; "
+        f"device-register package's block constants and Mocha revision, and the staged "
+        f"signature streams' manifest; "
         f"guest regeneration remains `{guest}`")
     for line in fixed:
         rep.line(line)
