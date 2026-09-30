@@ -28,6 +28,19 @@ licenses and source identities are recorded separately in the build receipt.
 
 The bridge is the only added upstream binary target. The upstream algorithms and
 dependency lock remain unchanged. Cargo builds only `coreba` and the bridge.
+
+That unchanged lock carries published RustSec advisories, as the OSV database
+listed them on 2026-09-29. In `coreba`'s dependency closure, rand 0.8.5 is
+unsound with a custom logger
+([RUSTSEC-2026-0097](https://rustsec.org/advisories/RUSTSEC-2026-0097.html),
+fixed in 0.8.6), and crossbeam-epoch 0.9.18, reached through Rayon, can
+dereference an invalid pointer in its `fmt::Pointer` implementation
+([RUSTSEC-2026-0204](https://rustsec.org/advisories/RUSTSEC-2026-0204.html),
+fixed in 0.9.20). The unmaintained adler 1.0.2 and ttf-parser 0.20.0 are
+locked for other workspace members and are not compiled here. The lock stays
+byte-identical to upstream's so the build reproduces the published
+implementation; the executable is an untrusted candidate producer, and the
+portable checker decides every placement it returns.
 The pin manifest fixes the Rust version and each compiler component archive's
 SHA-256, the same set the [optional Isla tools](../../../tools/sail-isla/lock.json)
 pin. Each archive is checked before its installer runs into the lane; no rustup,
