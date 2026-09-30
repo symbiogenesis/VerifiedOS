@@ -93,6 +93,13 @@ _BLANK = re.compile(r"\s*")
 # grammar's `thm_token`, and `Example`, which states and defines.
 STATEMENTS = ("Theorem", "Lemma", "Fact", "Remark", "Corollary", "Proposition", "Property",
               "Example")
+# The vernaculars whose sentence binds a top-level name a file defines: a definition,
+# every statement, an instance, a recursive definition and every inductive type Rocq
+# 9.3's `inductive_token` and `finite_token` name but `Class`. It is wider than the
+# witness scan's definers (cli/proofs.py), the shape a closed definition typed at a
+# record takes, since a record declaration is as much a constant of the file as a lemma.
+DECLARATIONS = ("Definition", *STATEMENTS, "Instance", "Fixpoint", "CoFixpoint",
+                "Inductive", "CoInductive", "Variant", "Record", "Structure")
 
 
 def strip_comments(text: str, *, keep_offsets: bool = False) -> str:

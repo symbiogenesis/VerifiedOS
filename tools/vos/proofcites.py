@@ -21,7 +21,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-from vos.proofs import marker_depths, sentences
+from vos.proofs import (
+    CONTROL_PREFIXES,
+    DECLARATIONS,
+    STATEMENTS,
+    VOID,
+    decorations,
+    marker_depths,
+    sentences,
+)
 from vos.register import REQ_TOKEN_RE
 
 # The shipped proof artifacts, as the directory holding them and the kind they are.
@@ -54,36 +62,35 @@ _DERIVED_RE = re.compile(r"\(\*\|\s*(BEGIN|END)\s+derived\s*(?::[^|\r\n]*)?\|\*\
 # than read as prose by everything.
 _ANNOTATION_RE = re.compile(r"\(\*\|\s*discharges:[^|\r\n]*\|\*\)")
 
-# The vernaculars whose sentence binds a top-level name. It is deliberately *not*
-# `cli/proofs.py`'s `DEFINERS`, and the difference is the question each list answers
-# rather than a second copy of one answer: that one is the shape a non-vacuity witness
-# takes, a closed definition typed at a carrier record, so a `Fixpoint`, an `Inductive`
-# and a `Record` are outside it by construction. An index of what a file *defines* wants
-# all three, a record declaration being as much a constant of the file as a lemma is.
-DEFINERS = ("Definition", "Example", "Theorem", "Lemma", "Corollary", "Fact",
-            "Proposition", "Remark", "Instance", "Fixpoint", "CoFixpoint",
-            "Inductive", "CoInductive", "Variant", "Record", "Structure")
+# The vernaculars whose sentence binds a top-level name, the shared lexer's
+# `DECLARATIONS`. It is deliberately *not* `cli/proofs.py`'s `DEFINERS`, and the
+# difference is the question each list answers rather than a second copy of one answer:
+# that one is the shape a non-vacuity witness takes, a closed definition typed at a
+# carrier record, so a `Fixpoint`, an `Inductive` and a `Record` are outside it by
+# construction. An index of what a file *defines* wants all three, a record declaration
+# being as much a constant of the file as a lemma is.
+DEFINERS = DECLARATIONS
 
-# The modifiers a definition may open with and still be the same definition: an
-# attribute block, and the locality and elaboration keywords that precede a vernacular.
-# Public because [the citations check](checks/citations.py) composes a pattern of its
-# own over the same opening, and what precedes a vernacular is one fact: written twice
-# it becomes two, and the second one goes stale the first time a keyword is added here.
-MODIFIERS = r"(?:#\[[^\]]*\]\s*)?(?:Local\s+|Global\s+|Program\s+)*"
-_DEFINED_RE = re.compile(rf"^{MODIFIERS}(?:{'|'.join(DEFINERS)})\s+([\w']+)")
+# What a definition may open with and still be the same definition: the shared lexer's
+# decoration grammar, a proof's bullets, control flags, and quoted and legacy attributes,
+# of which `Fail` and `Succeed` keep nothing the definition states. Public because [the
+# citations check](checks/citations.py) composes a pattern of its own over the same
+# opening, and what precedes a vernacular is one fact: written twice it becomes two, and
+# the second one goes stale the first time a keyword is added to either.
+MODIFIERS = CONTROL_PREFIXES
+_DEFINED_RE = re.compile(rf"^({MODIFIERS})(?:{'|'.join(DEFINERS)})\s+([\w']+)")
 
-# The vernaculars whose sentence *states* something, which is the set a discharge may
-# sit above. It is a subset of `DEFINERS` and the difference is the whole content of the
-# distinction this module keeps: a `Definition`, a `Fixpoint`, an `Inductive` or a
-# `Record` introduces a term, and a term answers no obligation, where a `Theorem` and
-# its six synonyms assert one. `Example` is in because Rocq treats it as a `Definition`
-# whose body is a proof script and this repository writes its known-answer checks that
-# way, so an `Example` is a sentence somebody proved and can be claimed against an
-# entry; `Instance` is out because what it asserts is a class membership the elaborator
-# fills in, and a claim on it would be a claim about a resolution rather than about a
-# statement.
-STATEMENTS = ("Theorem", "Lemma", "Corollary", "Fact", "Proposition", "Remark",
-              "Example")
+# `STATEMENTS`, the shared lexer's, are the vernaculars whose sentence *states*
+# something, which is the set a discharge may sit above: Rocq 9.3's theorem keywords and
+# `Example`, the table the proof gate's witness scan reads. It is a subset of `DEFINERS`
+# and the difference is the whole content of the distinction this module keeps: a
+# `Definition`, a `Fixpoint`, an `Inductive` or a `Record` introduces a term, and a term
+# answers no obligation, where a `Theorem` and its six synonyms assert one. `Example` is
+# in because Rocq treats it as a `Definition` whose body is a proof script and this
+# repository writes its known-answer checks that way, so an `Example` is a sentence
+# somebody proved and can be claimed against an entry; `Instance` is out because what it
+# asserts is a class membership the elaborator fills in, and a claim on it would be a
+# claim about a resolution rather than about a statement.
 
 # The marker a discharge annotation opens with. Every occurrence of it in a proof
 # artifact is an attempt at an annotation, which is what makes a malformed one a fault
@@ -103,7 +110,8 @@ DISCHARGE_WORD = "discharges"
 # that floats above an empty line names whichever sentence happens to come next.
 _DISCHARGE_RE = re.compile(
     rf"\(\*\|[^\S\r\n]*{DISCHARGE_WORD}:(?P<ids>[^|\r\n]*)\|\*\)[^\S\r\n]*\r?\n"
-    rf"[^\S\r\n]*{MODIFIERS}(?P<vernac>[A-Za-z]+)[^\S\r\n]+(?P<name>[\w']+)")
+    rf"[^\S\r\n]*(?P<decorations>{MODIFIERS})(?P<vernac>[A-Za-z]+)[^\S\r\n]+"
+    rf"(?P<name>[\w']+)")
 
 # One annotation's whole content: the constant it sits above, and the entries that
 # constant claims to answer. Repeats inside one list are the caller's to notice; the
@@ -259,17 +267,25 @@ def cited_within(text: str, span: tuple[int, int]) -> list[str]:
     return cast("list[str]", REQ_TOKEN_RE.findall(text, span[0], span[1]))
 
 
+def _void(decorated: str) -> str | None:
+    """The control flag keeping nothing, `Fail` or `Succeed`, among a run of decorations."""
+    found, _ = decorations(decorated)
+    return next((str(decoration.group("word")) for decoration in found
+                 if decoration.group("word") in VOID), None)
+
+
 def names(text: str) -> list[str]:
     """Every top-level constant one artifact defines, in declaration order.
 
     Comments are stripped first, so a vernacular written inside the header prose no
-    more defines a constant than it would compile as one.
+    more defines a constant than it would compile as one, and a definition under `Fail`
+    or `Succeed` defines none either.
     """
     found: list[str] = []
     for sentence in sentences(text):
         m = _DEFINED_RE.match(sentence)
-        if m:
-            found.append(m.group(1))
+        if m and _void(m.group(1)) is None:
+            found.append(m.group(2))
     return found
 
 
@@ -308,13 +324,14 @@ def discharges(text: str) -> tuple[list[Claim], list[str]]:
     not decode: a rule reports what it could not read, and an artifact carrying one
     mistyped annotation still yields the rest of its claims.
 
-    Four things are refused and each is worded as itself, because they are four
+    Five things are refused and each is worded as itself, because they are five
     different edits. A marker that shares its line with code before it is not the form
     at all. A marker whose annotation will not parse is a mistyped one. An id list that
     is not a comma-separated list of distinct requirement ids claims something this parse
-    cannot name. And an annotation above a vernacular outside `STATEMENTS` is a claim on
-    a term rather than on a sentence, which is the one of the four that renders
-    perfectly and reads as correct.
+    cannot name. An annotation above a vernacular outside `STATEMENTS` is a claim on a
+    term rather than on a sentence, which renders perfectly and reads as correct. And one
+    above a statement under `Fail` or `Succeed` is a claim on a sentence the file keeps
+    nothing of. The statement is read under any decoration of the shared lexer's grammar.
 
     The line a fault names is accumulated across the scan rather than counted from the
     start of the file at each hit, which is one pass over the text for the whole walk
@@ -356,6 +373,10 @@ def discharges(text: str) -> tuple[list[Claim], list[str]]:
             faults.append(f"line {line} claims {', '.join(listed)} above "
                           f"`{vernac} {name}`, which states nothing; a discharge sits "
                           f"above one of {', '.join(STATEMENTS)}")
+            continue
+        if (flag := _void(hit.group("decorations"))) is not None:
+            faults.append(f"line {line} claims {', '.join(listed)} above `{vernac} {name}` "
+                          f"under `{flag}`, which keeps nothing it states")
             continue
         claims.append((name, listed))
     return claims, faults

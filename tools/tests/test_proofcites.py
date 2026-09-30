@@ -15,6 +15,9 @@ leave that rule green over nothing.
 What the rule half holds is that the region cannot be used to hide a citation, that
 a region carrying code or prose is a finding, and that the probe reports when the
 exclusion itself moves.
+
+Between them, the names a file defines and the statements a discharge claims are read
+with the shared lexer's keyword tables and decoration grammar, the proof gate's own.
 """
 
 from pathlib import Path
@@ -144,6 +147,47 @@ def _two_regions_in_one_file_are_both_skipped() -> None:
 
 
 # =====================================================================================
+# the names and the discharge claims: the shared keyword tables and decoration grammar
+# =====================================================================================
+
+
+def _names_read_the_shared_tables_and_decorations() -> None:
+    # `Property` is a Rocq 9.3 theorem keyword the gate's statement table names, and a
+    # definition is read under any decoration of the shared lexer's grammar, spelled as
+    # Rocq's lexer reads it, except under `Fail` or `Succeed`, which keep nothing.
+    text = ("Property p : True.\nProof. exact I. Qed.\n"
+            "Time#[local]Lemma q : True.\nProof. exact I. Qed.\n"
+            'Redirect "a""b" Local Definition d := 0.\n'
+            "#[local] #[program] Fixpoint f (n : nat) : nat := n.\n"
+            "Local(* c *)Theorem t : True.\nProof. exact I. Qed.\n"
+            "Lemma l : True.\nProof.\n- Definition b := 1.\n  exact I.\nQed.\n"
+            "Fail Definition e := tt tt.\nSucceed#[local]Lemma s : True.\nProof. exact I. Qed.\n")
+    got = proofcites.names(text)
+    ensure(got == ["p", "q", "d", "f", "t", "l", "b"], f"the names read are {got!r}")
+
+
+def _a_claim_reads_the_shared_tables_and_decorations() -> None:
+    claims, faults = proofcites.discharges(
+        "(*| discharges: R-01-001 |*)\nProperty p : True.\n"
+        "(*| discharges: R-02-002 |*)\nTime#[local]Lemma q : True.\n"
+        '(*| discharges: R-03-003 |*)\n#[local] #[deprecated(note="a""b")] Theorem r : True.\n')
+    ensure(claims == [("p", ["R-01-001"]), ("q", ["R-02-002"]), ("r", ["R-03-003"])]
+           and not faults, f"the claims read are {claims!r}, the faults {faults!r}")
+    # a statement a void flag keeps nothing of is no statement to claim against
+    for lead, flag in (("Fail ", "Fail"), ("Succeed#[local]", "Succeed"),
+                       ("Time Fail ", "Fail")):
+        claims, faults = proofcites.discharges(
+            f"(*| discharges: R-01-001 |*)\n{lead}Theorem x : True.\n")
+        ensure(not claims and len(faults) == 1 and f"under `{flag}`" in faults[0],
+               f"a claim above {lead!r} was read as {claims!r}: {faults!r}")
+    # and a decorated definition is still a term
+    claims, faults = proofcites.discharges(
+        "(*| discharges: R-01-001 |*)\nTime Definition d := 0.\n")
+    ensure(not claims and len(faults) == 1 and "`Definition d`, which states nothing"
+           in faults[0], f"a claim above a decorated term: {claims!r} {faults!r}")
+
+
+# =====================================================================================
 # the rule: K-108 over a fixture corpus
 # =====================================================================================
 
@@ -265,6 +309,10 @@ def cases() -> list[Case]:
         Case("nested-begins-are-a-fault", _nested_begins_are_a_fault),
         Case("stray-marker-is-a-fault", _a_marker_that_is_neither_delimiter_is_a_fault),
         Case("two-regions-are-both-skipped", _two_regions_in_one_file_are_both_skipped),
+        Case("names-read-the-shared-tables-and-decorations",
+             _names_read_the_shared_tables_and_decorations),
+        Case("a-claim-reads-the-shared-tables-and-decorations",
+             _a_claim_reads_the_shared_tables_and_decorations),
         Case("faithful-region-passes", _a_faithful_region_is_no_finding),
         Case("region-hiding-a-citation", _a_region_hiding_a_citation_is_the_finding),
         Case("vernacular-in-a-region", _a_vernacular_inside_a_region_is_the_finding),
