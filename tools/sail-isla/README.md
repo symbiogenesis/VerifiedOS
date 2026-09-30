@@ -14,8 +14,11 @@ opam package inventory and Z3 version, and refuses a Sail archive pin whose
 version is not the Sail release that inventory installs. It reads the baseline
 switch without installing into it. A separate Sail executable and the Isla
 plugin are built in the lane from the release archive the locked compiler's
-opam package also builds from, extracted into a fresh tree on each
-provisioning. The primary compiler is unchanged.
+opam package also builds from. Each provisioning extracts that archive into a
+fresh tree and installs Sail into an emptied prefix, so no file from a superseded
+build reaches the plugin build or libsail's plugin site. Removing the previous
+provisioning record before emptying that prefix leaves qualification nothing to
+accept from an interrupted install. The primary compiler is unchanged.
 
 `lock.json` fixes the standalone Isla revision, isla-testgen revision and its
 different Isla submodule revision, and Sail release archive digest. The shared

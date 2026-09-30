@@ -106,6 +106,21 @@ def _source(spec: dict[str, Any], directory: Path) -> Path:
     return target
 
 
+def _fresh(directory: Path) -> Path:
+    """An empty directory in place of whatever a superseded recipe left there.
+
+    A rebuild installs into a fresh prefix and configuration, so nothing an earlier
+    source installed stays on OCAMLPATH or CAML_LD_LIBRARY_PATH or among the
+    artifacts the receipt hashes. dune install records the prefix in the executables
+    it installs as libsail's site location (a move needs `--relocatable`), so the
+    build cannot happen in a sibling renamed into place afterwards.
+    """
+    if directory.exists():
+        shutil.rmtree(directory)
+    directory.mkdir(parents=True)
+    return directory
+
+
 def status(e: env.Environment) -> dict[str, Any]:
     receipt = home(e) / "installation.json"
     result: dict[str, Any] = {"schema_version": 1, "operation": "status", "notice": NOTICE,
@@ -139,9 +154,11 @@ def install(e: env.Environment) -> dict[str, Any]:
                 return status(e)
         specs = json.loads((e.root / LOCK).read_text(encoding="utf-8"))["sources"]
         sources = location / "sources"
-        prefix = location / "prefix"
         sources.mkdir(exist_ok=True)
-        prefix.mkdir(exist_ok=True)
+        # The receipt goes first, so an interrupted rebuild leaves nothing to use.
+        receipt_file.unlink(missing_ok=True)
+        prefix = _fresh(location / "prefix")
+        _fresh(location / "config")
         temporary = location / "tmp"
         temporary.mkdir(exist_ok=True)
         environ = dict(os.environ)
