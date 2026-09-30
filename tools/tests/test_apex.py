@@ -181,6 +181,31 @@ def _control_prefixed_definition_is_a_residue() -> None:
            f"a timed definition is read: {rec.unread!r} {rec.def_fields!r}")
 
 
+def _the_shared_decoration_grammar_is_read() -> None:
+    # The decorations are the shared lexer's, spelled as Rocq's lexer reads them: no
+    # blank after a word or a string, a doubled quote in a quoted target, a comment as a
+    # separator, and a bullet before a definition inside a proof.
+    for prefix in ("Time#[local]", "Local(* c *)", "Polymorphic(* a *)Program(* b *)",
+                   'Redirect "a""b" ', "Instructions\n", '#[deprecated(note="a""b")]'):
+        rec = _read(_APEX + f"\n{prefix}Definition inner (v : Vocabulary) : Prop := "
+                            "v.(gamma).\n")
+        ensure(rec.unread == [] and rec.def_fields.get("inner") == ["gamma"]
+               and rec.consumers["gamma"] == ["seam_one", "inner"],
+               f"under {prefix!r} the definition was not read as itself: {rec.unread!r} "
+               f"{rec.def_fields!r}")
+    rec = _read(_APEX + "\nLemma l : True.\nProof.\n- Definition inner (v : Vocabulary) : "
+                        "Prop := v.(gamma).\n  exact I.\nQed.\n")
+    ensure(rec.unread == [] and rec.def_fields.get("inner") == ["gamma"],
+           f"a definition after a bullet was not read: {rec.unread!r} {rec.def_fields!r}")
+    # and under a void flag however it is spelled, the definition is a residue
+    for prefix in ("Succeed#[local]", "Fail(* c *)", "Time Fail "):
+        rec = _read(_APEX + f"\n{prefix}Definition inner (v : Vocabulary) : Prop := "
+                            "v.(gamma).\n")
+        ensure(any("spells 3 `Definition` sentences and this parse reads 2" in said
+                   for said in rec.unread) and rec.consumers["gamma"] == ["seam_one"],
+               f"a definition under {prefix!r} was not a residue: {rec.unread!r}")
+
+
 def _a_flag_behind_a_quoted_full_stop_is_still_read() -> None:
     # The look-back for a flag above the definition runs to the full stop that ends the
     # sentence before, which a string's full stop is not, and reads each flag however
@@ -248,6 +273,7 @@ def cases() -> list[Case]:
              _control_prefixed_definition_is_a_residue),
         Case("a-flag-behind-a-quoted-full-stop-is-still-read",
              _a_flag_behind_a_quoted_full_stop_is_still_read),
+        Case("the-shared-decoration-grammar-is-read", _the_shared_decoration_grammar_is_read),
         Case("record-completed-from-a-base-is-a-residue",
              _record_completed_from_a_base_is_a_residue),
     ]
