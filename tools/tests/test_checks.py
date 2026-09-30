@@ -681,9 +681,9 @@ def _k115_census_counts_the_read_key_once() -> None:
 # subsection whose numerals lie outside the window. Each held release has an owner of
 # its own kind: a uv lock package, one snapshot's package, the snapshots every lock
 # carries, and a quoted constant.
+_K118_TOOLS = "# Components\n\n### Development tools, contained by use\n\n"
 _K118_RECORD = (
-    "# Components\n\n### Development tools, contained by use\n\n"
-    "**Lib.** The reviewed V2.0.0 edition is the snapshots' own.\n\n"
+    _K118_TOOLS + "**Lib.** The reviewed V2.0.0 edition is the snapshots' own.\n\n"
     "| Tool | License | Standing |\n| --- | --- | --- |\n"
     "| alpha | `MIT` | The reviewed `v1.2.3` tag's terms, under licence version 2.1. |\n"
     "| beta | `LGPL-2.1-only` | Snapshot release **4.5.6**; constant 7.8.9. |\n"
@@ -795,11 +795,18 @@ def _k118_unreadable_record_fails_closed() -> None:
         ({"THIRD-PARTY.md": _K118_RECORD.replace("**4.5.6**", "4.5.6")},
          "(beta) states the snapshot release 0 times"),
         ({"THIRD-PARTY.md": _K118_RECORD.replace("| gamma |", "| alpha |")},
-         "is a second row for alpha"))
+         "is a second row for alpha"),
+        ({"THIRD-PARTY.md": _K118_RECORD.replace("| --- | --- | --- |\n", "")},
+         "is the development-tools table's header with no rule under it"),
+        ({"THIRD-PARTY.md": _K118_TOOLS + "| Tool | License | Standing |\n| --- | --- | --- |\n"
+                            "\n## Next\n"},
+         "development-tools table has no row"))
     for files, fragment in cases:
-        found, _ = _k118(files)
+        found, out = _k118(files)
         ensure(any(fragment in item for item in found),
                f"an unreadable record must report ({fragment!r}): {found!r}")
+        ensure(not any(line.startswith("ok K-118:") for line in out),
+               "fail-closed: no ok line stands beside an unread record")
 
 
 def _k118_every_row_is_held_or_declared() -> None:
@@ -928,13 +935,90 @@ def _k118_declarations_are_held() -> None:
                for item in found), f"an arrived owner must end the declaration: {found!r}")
 
 
-def _k118_shipped_readings_are_declared() -> None:
-    # The shipped tables name real owners of every kind the reader carries, and every
-    # declared residue and row is one the record states; `check` decides the agreement.
+# One owner of each kind K-118 reads, fixing kappa's release: its owner, the files
+# that fix 1.2.3, and the edit that moves it to 1.2.4 without the row.
+_K118_KINDS: dict[str, tuple[pins.Owner, dict[str, str | None], dict[str, str | None]]] = {
+    "uv": (pins.Owner("uv", "tools/uv.lock", "kappa"),
+           {"tools/uv.lock": '[[package]]\nname = "kappa"\nversion = "1.2.3"\n'},
+           {"tools/uv.lock": '[[package]]\nname = "kappa"\nversion = "1.2.4"\n'}),
+    "uv-required": (pins.Owner("uv-required", "tools/pyproject.toml", "tool.uv.required-version"),
+                    {"tools/pyproject.toml": '[tool.uv]\nrequired-version = "==1.2.3"\n'},
+                    {"tools/pyproject.toml": '[tool.uv]\nrequired-version = "==1.2.4"\n'}),
+    "opam": (pins.Owner("opam", "tools/opam/x.lock", "kappa"),
+             {"tools/opam/x.lock": 'installed: ["kappa.1.2.3"]\n'},
+             {"tools/opam/x.lock": 'installed: ["kappa.1.2.4"]\n'}),
+    "opam-every": (pins.Owner("opam-every", "tools/opam/", "kappa"),
+                   {"tools/opam/x.lock": 'installed: ["kappa.1.2.3"]\n',
+                    "tools/opam/y.lock": 'installed: ["kappa.1.2.3"]\n'},
+                   {"tools/opam/y.lock": 'installed: ["kappa.1.2.4"]\n'}),
+    "opam-any": (pins.Owner("opam-any", "tools/opam/", "kappa"),
+                 {"tools/opam/x.lock": 'installed: ["kappa.1.2.3"]\n',
+                  "tools/opam/y.lock": 'installed: ["other.1.0"]\n'},
+                 {"tools/opam/x.lock": 'installed: ["kappa.1.2.4"]\n'}),
+    "assign": (pins.Owner("assign", "tools/vos/x.py", "KAPPA"),
+               {"tools/vos/x.py": 'KAPPA = "1.2.3"\n'}, {"tools/vos/x.py": 'KAPPA = "1.2.4"\n'}),
+    "shell": (pins.Owner("shell", "tools/x.sh", "kappa_version"),
+              {"tools/x.sh": "kappa_version=1.2.3\n"}, {"tools/x.sh": "kappa_version=1.2.4\n"}),
+}
+_K118_KAPPA = (_K118_TOOLS + "| Tool | License | Standing |\n| --- | --- | --- |\n"
+               "| kappa | `MIT` | Reviewed at 1.2.3. |\n\n## Next\n")
+
+
+def _k118_kappa(kind: str, edit: dict[str, str | None]) -> list[str]:
+    """kappa's findings, its one release held against the owner of one kind."""
+    owner, files, _ = _K118_KINDS[kind]
+    row = pins.DevTool("kappa", (pins.Site("the release", rf"Reviewed at {pins._V}\.", (owner,)),))
+    return _k118({**files, "THIRD-PARTY.md": _K118_KAPPA, **edit}, rows=(row,), declared={},
+                 prose=pins.DevTool("the paragraphs"))[0]
+
+
+def _k118_every_owner_kind_detects_drift() -> None:
+    # The shipped tables use exactly the kinds the reader carries, and each kind agrees
+    # at its owner's release and reports that owner moved without the row.
     kinds = {owner.kind for tool in (*pins.DEV_TOOL_ROWS, pins.DEV_TOOL_PROSE)
              for site in tool.sites for owner in site.owners}
-    ensure(kinds == {"uv", "uv-required", "opam", "opam-every", "opam-any", "assign", "shell"},
-           f"every owner kind the reader carries is exercised by a shipped site: {kinds!r}")
+    ensure(kinds == set(_K118_KINDS),
+           f"every owner kind a shipped site uses has a drift case here: {kinds!r}")
+    for kind, (_, _, drift) in _K118_KINDS.items():
+        found = _k118_kappa(kind, {})
+        ensure(not found, f"a {kind} owner at the row's release agrees: {found!r}")
+        found = _k118_kappa(kind, drift)
+        ensure(len(found) == 1 and "(kappa) states the release as 1.2.3, where" in found[0]
+               and "1.2.4" in found[0], f"a moved {kind} owner is one finding: {found!r}")
+    # an owner stating no one exact release is a finding, never a release read loosely
+    loose: tuple[tuple[str, dict[str, str | None], str], ...] = (
+        ("uv-required", {"tools/pyproject.toml": '[tool.uv]\nrequired-version = ">=1.2.3"\n'},
+         "is '>=1.2.3', which requires no one exact release"),
+        ("shell", {"tools/x.sh": 'kappa_version="1.2.3"\n'}, "kappa_version is stated 0 times"))
+    for kind, edit, fragment in loose:
+        found = _k118_kappa(kind, edit)
+        ensure(len(found) == 1 and fragment in found[0],
+               f"an owner not stating one exact release must report ({fragment!r}): {found!r}")
+
+
+def _k118_a_row_named_by_its_release_stays_one_row() -> None:
+    # A row whose cell states the release is named by a pattern, so a cell that moves
+    # is still that row, reported as drift rather than as a row nobody holds.
+    row = pins.DevTool("Py", (pins.Site("the series", r"^\| Py (\d+\.\d+) \|",
+                                        (pins.Owner("assign", "tools/vos/x.py", "PY"),)),),
+                       cell_re=r"Py \d+\.\d+")
+    record = (_K118_TOOLS + "| Tool | License | Standing |\n| --- | --- | --- |\n"
+              "| Py 3.14 | `PSF-2.0` | Runs every tool. |\n\n## Next\n")
+
+    def run(text: str) -> list[str]:
+        return _k118({"THIRD-PARTY.md": text, "tools/vos/x.py": 'PY = "3.14"\n'}, rows=(row,),
+                     declared={}, prose=pins.DevTool("the paragraphs"))[0]
+
+    found = run(record)
+    ensure(not found, f"a cell stating its owner's release agrees: {found!r}")
+    found = run(record.replace("Py 3.14", "Py 3.15"))
+    ensure(len(found) == 1 and "(Py 3.15) states the series as 3.15, where tools/vos/x.py's "
+           "PY fixes 3.14" in found[0], f"a moved cell is its row's drift, once: {found!r}")
+
+
+def _k118_shipped_readings_are_declared() -> None:
+    # The shipped tables hold real rows, and every declaration states its reason;
+    # `check` decides the agreement.
     ensure(all(tool.sites for tool in pins.DEV_TOOL_ROWS),
            "a held row with no site would hold nothing")
     ensure(all(why.why.strip() for why in pins.DEV_TOOL_DECLARED.values()),
@@ -1331,6 +1415,9 @@ def cases() -> list[Case]:
         Case("k118-census-reads-every-numeral", _k118_census_reads_every_numeral),
         Case("k118-each-tag-is-read-or-reported", _k118_each_tag_is_read_or_reported),
         Case("k118-declarations-are-held", _k118_declarations_are_held),
+        Case("k118-every-owner-kind-detects-drift", _k118_every_owner_kind_detects_drift),
+        Case("k118-a-row-named-by-its-release-stays-one-row",
+             _k118_a_row_named_by_its_release_stays_one_row),
         Case("k118-shipped-readings-are-declared", _k118_shipped_readings_are_declared),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),
         Case("k81-unused-historical-residue-fails", _k81_unused_historical_residue_fails),
