@@ -46,7 +46,7 @@ M1.2 owns the functional purecap backend. Its measured start-from is the pinned 
 
 The backend gates **target execution**, while firmware, kernel C, storage logic, contracts, generators and harnesses proceed against landed interfaces. M1.2b owns the representation, M1.2g the value and tagged-memory carrier, M1.2c permissions and sentries, M1.2e representability, and M1.2d frames, calling convention and primitive emission. The primitive surface R-05-023b requires, including `vmclear`, `fence.t`, `cspecialrw` and `csealentry`, must reach executable code before kernel bring-up.
 
-M1.2f joins the backend to the **landed M1.4′ assembler and image composer** and runs its component and generated-C comparisons. M1.7 then tests and independently reproduces a purecap image. Reuse that path for every downstream executable; building LLVM MC/`lld` again is deferred M1.4 work, not another bring-up prerequisite.
+M1.2f joins the backend to the **landed M1.4′ assembler and image composer** and runs its component and generated-C comparisons. M1.7 then tests and independently reproduces a purecap image. Reuse that path for every downstream executable; M1.4's deferred re-homing of LLVM disassembly and object tooling is not another bring-up prerequisite.
 
 R-18-014a's optimized scheduling and lowering belong to M1.3, outlining and tail merging to M1.3a, and the final ordered freeze to M1.8b. They consume a working backend and do not hold up its functional acceptance. Bound-directed lowering retains R-18-014c's input requirements. No purecap garbage collector is built: device lowering is GC-free.
 
@@ -1261,7 +1261,7 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
 ### M1 · Toolchain spine (incl. the CHERI-CompCert prerequisite)
 
 Build the *functional* CHERI-RISC-V CompCert backend as the first **target-execution prerequisite** (no purecap CertiCoq GC is needed, the on-device path is GC-free, §0). The host-side **CertiCoq → Wasm** oracle and component authoring proceed independently; the **GC-free on-device lowering** (CompCert-C/VST through CHERI-CompCert; arena extraction via MetaCoq→Rust onto the Rust→CHERI compiler for allocation-light components) joins the backend to produce runnable purecap artifacts from a trivial Gallina program on the M0 emulator.
-Ship the frozen-dialect **assembler, linker, and image composer** (§0) in the same milestone; nothing downstream links without them. The bring-up realization of that sentence is M1.4′, the in-tree trio M0.12 already proved on the corpus, with M1.4's LLVM re-homing its hardening replacement behind the gate.
+Ship the frozen-dialect **assembler, linker, and image composer** (§0) in the same milestone; nothing downstream links without them. The bring-up realization of that sentence is M1.4′, the in-tree trio M0.12 already proved on the corpus, with M1.4 re-homing LLVM's disassembly and object tooling behind the gate; another assembler or composer needs a reviewed replacement contract.
 Build the profile-freeze analyzer (M1.8a, landed) and, behind the M8a gate, the backend provenance outputs and the ordered dictionary, outlining, operand-form, bitfield, stack-save, and indexed-address reports against the generated corpus: the freeze decides a profile nothing before the gate is compiled against, R-15-014a having made the provisional one a total compilation target.
 Every later milestone is purecap and managed-runtime-free from here.
 
