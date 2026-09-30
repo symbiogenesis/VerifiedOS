@@ -318,6 +318,65 @@ def _busy_root_is_untouched() -> None:
         ensure(not (root / "bin").exists(), "bootstrap created directories in a busy root")
 
 
+def _opam_client_has_one_owner() -> None:
+    """The reviewed client lives in one module that bootstrap and provision both read."""
+    client = bootstrap.opam_client
+    ensure(not hasattr(bootstrap, "OPAM_VERSION") and not hasattr(bootstrap, "OPAM_HASHES"),
+           "bootstrap must read the client's release and hashes, not restate them")
+    ensure(set(client.OPAM_HASHES) == {"aarch64", "x86_64"}
+           and all(len(digest) == 64 and all(c in "0123456789abcdef" for c in digest)
+                   for _, digest in client.OPAM_HASHES.values()),
+           "each guest architecture has one reviewed SHA-256")
+    for suffix, _ in client.OPAM_HASHES.values():
+        ensure(client.release_url(suffix).endswith(
+            f"/{client.OPAM_VERSION}/opam-{client.OPAM_VERSION}-{suffix}-linux"),
+            f"the download is the reviewed release's {suffix} asset")
+
+
+def _repositories_come_from_the_owner() -> None:
+    """The root is initialized on the owner's repositories, the first as the default."""
+    launched: list[tuple[str, ...]] = []
+    with patch.object(bootstrap, "run", side_effect=lambda argv, log: launched.append(argv)):
+        bootstrap.initialize_repositories(io.StringIO())
+    (default, url), *others = bootstrap.opam_client.OPAM_REPOSITORIES
+    ensure(launched[0][:2] == ("opam", "init") and launched[0][-2:] == (default, url),
+           f"the root is initialized on the default repository, ran {launched[0]}")
+    ensure([argv[3:5] for argv in launched[1:]] == [tuple(pair) for pair in others]
+           and all("--dont-select" in argv for argv in launched[1:]),
+           f"the other repositories are added unselected, ran {launched[1:]}")
+    named = {name for name, _ in bootstrap.opam_client.OPAM_REPOSITORIES}
+    selected = next(arg for arg in bootstrap.env.ROCQ_INSTALL[0] if arg.startswith("--repos="))
+    ensure(set(selected.removeprefix("--repos=").split(",")) <= named,
+           f"the prover switch resolves only from configured repositories, got {selected}")
+
+
+def _repository_state_is_recorded() -> None:
+    """bootstrap.json names the metadata the snapshots were resolved against."""
+    states = [{"name": "default", "url": "https://opam.ocaml.org", "stamp": "fixture"}]
+    with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {}, clear=True):
+        root = Path(directory)
+        args = argparse.Namespace(jobs=2, toolchains=["rocq"], install_system=False,
+                                  github_env=None, github_path=None)
+        revision = subprocess.CompletedProcess([], 0, stdout="f" * 40 + "\n")
+        with (patch.object(bootstrap, "system_packages"),
+              patch.object(bootstrap.subprocess, "run", return_value=revision),
+              patch.object(bootstrap.platform, "platform", return_value="fixture-host"),
+              patch.object(bootstrap.platform, "machine", return_value="x86_64"),
+              patch.object(bootstrap.receipts, "download",
+                           side_effect=lambda url, target, expected: target.write_bytes(b"")),
+              patch.object(bootstrap, "initialize_repositories") as initialized,
+              patch.object(bootstrap.opam_client, "repositories", return_value=states),
+              patch.object(bootstrap, "install_toolchains"),
+              patch.object(bootstrap, "retain_logs")):
+            code = bootstrap.install(args, root, "fixture")
+        record = json.loads((root / "logs" / "bootstrap.json").read_text(encoding="utf-8"))
+        ensure(code == 0 and record["exit_code"] == 0, f"the fixture installs, got {record}")
+        ensure(initialized.called and record["opam_repositories"] == states,
+               "the repositories' URLs and stamps are recorded beside the client")
+        ensure(record["opam"] == bootstrap.opam_client.OPAM_VERSION,
+               "the client recorded is the reviewed one")
+
+
 def _job_arguments() -> None:
     for extra, expected in (([], None), (["--jobs", "64"], 64)):
         with patch.object(bootstrap, "bootstrap", return_value=0) as install:
@@ -372,4 +431,7 @@ def cases() -> list[Case]:
         Case("private native environment and validated export", _environment_is_private_and_exports_validated),
         Case("log retention failure preserves verdict and discards stale evidence", _failed_retention_preserves_verdict),
         Case("busy root preserves the active bootstrap's state", _busy_root_is_untouched),
+        Case("the opam client has one owner", _opam_client_has_one_owner),
+        Case("repositories come from the owner", _repositories_come_from_the_owner),
+        Case("repository state is recorded", _repository_state_is_recorded),
     ]

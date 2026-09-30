@@ -38,12 +38,14 @@ creation of an opam root, and the CertiRocq oracle's switch, whose recipe lives 
 [tools/wasm-oracle/README.md](../../wasm-oracle/README.md) as prose for a person.
 Inventing a command for one of them would be the unowned derived fact the working
 rules refuse. Two of the three are rows here, `uv` and the oracle switch; the third
-is a route no row probes, the `opam` row installing the binary and nothing asking
-whether a root exists. Two further rows carry no command for reasons of their own: the
-interpreter floor is the interpreter taking the probe, which nothing it runs can
-replace, and the cache invariant's repair is to give a lane a copy rather than to
-delete somebody's warm cache. Every figure any document states about this table is a
-count over `FACTS`, held by K-24 rather than by care.
+is a route no row probes, the `opam` row reading a root's format and repositories and
+nothing asking whether a root exists. Three further rows carry no command for reasons
+of their own: the interpreter floor is the interpreter taking the probe, which nothing
+it runs can replace; the cache invariant's repair is to give a lane a copy rather than
+to delete somebody's warm cache; and the opam client is held to the reviewed release
+guest bootstrap downloads, where replacing a developer's client upgrades that root's
+format one way and is a recorded step rather than a repair. Every figure any document
+states about this table is a count over `FACTS`, held by K-24 rather than by care.
 
     python tools/run.py provision              # what is here and what is not
     python tools/run.py provision --apply      # and install what is not
@@ -65,7 +67,7 @@ from functools import partial
 from importlib import metadata
 from pathlib import Path
 
-from vos import env, gallina
+from vos import env, gallina, opam_client
 from vos.cli import quickchick, rtl, typecheck
 from vos.corpus import find_root
 from vos.report import Reporter
@@ -276,6 +278,33 @@ def _switch_at(switch: str, package: str, pin: str) -> Found:
     return Found(found == pin, f"{package} {found} in {switch}")
 
 
+def _opam_client() -> Found:
+    """The opam client on PATH against the reviewed release, and what its root reads.
+
+    The version is the fact and the rest is what a reader needs to act on it: where
+    the client and its root are, the root's format, and each repository's URL and
+    metadata stamp, which the locks do not fix. The root is read from its files rather
+    than through opam, because a client newer than the root's format upgrades the root
+    to answer. A mismatch has no command here: moving a developer's root to another
+    client upgrades its format one way, so it is a recorded step and not a repair.
+    """
+    where = shutil.which("opam")
+    if where is None:
+        return Found(False, f"no opam on PATH; the reviewed client is "
+                            f"{opam_client.OPAM_VERSION}")
+    found = _number(_say(("opam", "--version")))
+    root = env.opam_root()
+    repositories = ", ".join(
+        f"{repo['name']} {repo['url']} at stamp {repo['stamp'] or 'unrecorded'}"
+        for repo in opam_client.repositories(root)) or "no repositories"
+    saw = (f"opam {found or 'answering no version'} at {where} over {root} "
+           f"(format {opam_client.root_format(root) or 'unread'}; {repositories})")
+    if found != opam_client.OPAM_VERSION:
+        saw += (f"; the reviewed client is {opam_client.OPAM_VERSION}, and moving to it "
+                "upgrades the root's format one way")
+    return Found(found == opam_client.OPAM_VERSION, saw)
+
+
 def _pinned_z3() -> Found:
     """The solver Sail's typechecker discharges its obligations with.
 
@@ -402,9 +431,8 @@ FACTS: tuple[Fact, ...] = (
             partial(_importable, "jsonschema", "jsonschema")),
     Fact("opam", TOOLCHAIN,
          "every switch below, and vos/env.py's _apply_opam_env",
-         "tools/vos/env.py",
-         partial(_on_path, "opam"),
-         ((*APT, "opam"),)),
+         "tools/vos/opam_client.py's OPAM_VERSION and OPAM_REPOSITORIES",
+         _opam_client),
     Fact("the Sail switch", TOOLCHAIN,
          "run.py model typecheck, build, emit and bundle",
          f"tools/vos/env.py's SAIL_SWITCH and SAIL_VERSION (M0.2 pinned {env.SAIL_VERSION})",
