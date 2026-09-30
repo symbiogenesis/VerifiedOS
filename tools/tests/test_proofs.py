@@ -312,6 +312,25 @@ def _a_comment_separates_a_decoration_from_its_head() -> None:
     ensure(found.unbuilt == ["Plan"], f"a section variable after a comment was lost: {found!r}")
 
 
+def _a_tight_control_prefix_still_decorates() -> None:
+    """Rocq's lexer needs no blank after a control word before `#[`, nor around a quoted
+    Redirect or Profile target: the pinned Rocq 9.3.0 compiles `Time#[local]Lemma` and,
+    once its output warning is silenced, `Redirect"o"Record`. So a head after one is
+    read, still demands a witness, and still names none."""
+    for decoration in ("Time#[local]", "Instructions#[local]", "Succeed#[local]",
+                       'Redirect"o"', 'Redirect "a""b" ', 'Profile"p"', "Timeout 5"):
+        statement = _COUNTED.replace("Lemma", f"{decoration}Lemma")
+        found = gate.scan_witnesses(_MACHINE + statement)
+        ensure(found.quantified == {"Machine": 1} and found.unbuilt == ["Machine"],
+               f"a statement after {decoration!r} quantified nothing, got {found!r}")
+        found = gate.scan_witnesses(f"{decoration}{_MACHINE}{_COUNTED}")
+        ensure(found.unbuilt == ["Machine"],
+               f"a record after {decoration!r} demanded no witness, got {found!r}")
+        found = gate.scan_witnesses(_MACHINE + _COUNTED + f"{decoration}{_WITNESSED}")
+        ensure(found.unbuilt == ["Machine"],
+               f"a witness after {decoration!r} inhabited the record, got {found!r}")
+
+
 def _a_decorated_witness_is_no_witness() -> None:
     """Reading decorated heads widens the demands and not the inhabitants: the witness
     convention names an undecorated `Definition`, `Program` aside as it always was, and
@@ -417,6 +436,7 @@ def cases() -> list[Case]:
         Case("every-theorem-keyword-quantifies", _every_theorem_keyword_quantifies),
         Case("comment-separates-decoration-from-head",
              _a_comment_separates_a_decoration_from_its_head),
+        Case("tight-control-prefix-still-decorates", _a_tight_control_prefix_still_decorates),
         Case("decorated-witness-is-no-witness", _a_decorated_witness_is_no_witness),
         Case("companion-witness-inhabits", _a_companion_witness_inhabits_an_imported_record),
         Case("comment-is-not-read", _a_comment_is_not_read),

@@ -60,15 +60,21 @@ PINNED_SETTINGS = ("Warnings", "Default Goal Selector", "Bullet Behavior",
 # a declaration after them, in effect beyond the proof. Then everything Rocq 9.3's
 # vernac_control grammar lets precede a command: control flags, quoted attributes and
 # legacy attributes, Program among them, plus the Export locality of option commands.
-# A lexical reading anchored after them sees the command however it is decorated. An
-# attribute's quoted value is read whole, since a bracket inside it closes nothing; an
-# unquoted bracket is Rocq's syntax error, and stopping there keeps each read linear.
+# A lexical reading anchored after them sees the command however it is decorated. Rocq's
+# lexer needs no blank after a word before `#[` or a string, nor after a string: the
+# pinned Rocq 9.3.0 compiles `Time#[local]Set` and, once its output warning is silenced,
+# `Redirect"out"Load`. So a word prefix ends where its word does, and a quoted one where
+# its string does, doubled quotes inside it. An attribute's quoted value is read whole,
+# since a bracket inside it closes nothing; an unquoted bracket is Rocq's syntax error,
+# and stopping there keeps each read linear.
 _ATTRIBUTE = r'#\[(?:[^\[\]"]|"[^"]*")*'
+_QUOTED = r'"(?:[^"]|"")*"\s*'
 CONTROL_PREFIXES = (r"(?:[-+*{}]\s*|(?:\d+|\[[\w']+\]|!)\s*:\s*\{\s*"
-                    r'|(?:Time|Instructions|Fail|Succeed)\s+|Profile\s+(?:"[^"]*"\s+)?'
-                    r'|Redirect\s+"[^"]*"\s+|Timeout\s+\d+\s+|AllocLimit\s+\d+\s*(?:Mw|kw)\s+'
+                    r"|(?:Time|Instructions|Fail|Succeed)(?![\w'])\s*"
+                    r"|Profile(?![\w'])\s*(?:" + _QUOTED + r")?|Redirect\s*" + _QUOTED
+                    + r"|Timeout\s+\d+\s*|AllocLimit\s+\d+\s*(?:Mw|kw)(?![\w'])\s*"
                     r"|" + _ATTRIBUTE + r"\]\s*|(?:Local|Global|Export|Polymorphic|Monomorphic"
-                    r"|Cumulative|NonCumulative|Private|Program)\s+)*")
+                    r"|Cumulative|NonCumulative|Private|Program)(?![\w'])\s*)*")
 _PINNED = re.compile(CONTROL_PREFIXES + r"(?:Set|Unset)\s+(?:" + "|".join(
     r"\s+".join(map(re.escape, name.split())) for name in PINNED_SETTINGS) + r")\b")
 # Attributes that relax the same settings for one declaration. A wall-clock Timeout or

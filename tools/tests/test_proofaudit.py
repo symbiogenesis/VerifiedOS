@@ -315,6 +315,32 @@ def _settings_after_bullets_are_refused() -> None:
                f"a bullet or brace alone was refused: {text!r}")
 
 
+def _control_prefixes_need_no_blank() -> None:
+    # Rocq's lexer ends a word where an attribute or a string begins, and a string where it
+    # closes, doubled quotes inside it. The pinned Rocq 9.3.0 compiles `Time#[local]Set`,
+    # `Instructions#[export]Set` and `Timeout 5Set` with the setting in effect, and
+    # `Redirect"out"Load` and `Profile "a""b" Set` once their output warning is silenced.
+    setting = "Set Kernel Conversion Dep Heuristic."
+    for prefix in ("Time#[local]", "Instructions#[export]", "Succeed#[local]", "Fail#[local]",
+                   'Redirect"out"', 'Redirect "a""b" ', 'Profile"p"', 'Profile "a""b" ',
+                   'Time Redirect"o"Local ', "Timeout 5", "-#[local]", "Time(* c *)#[local]"):
+        text = prefix + setting
+        ensure(len(proofaudit.pinned_overrides(text)) == 1,
+               f"a pinned setting after a tight prefix passed: {text!r}")
+        text = prefix + 'Load "/elsewhere/hidden.v".'
+        ensure(len(proofaudit.dynamic_sources(text)) == 1,
+               f"a Load after a tight prefix passed: {text!r}")
+        text = prefix + "Module Type T. End T."
+        ensure(len(proofaudit.unsupported_abstractions(text)) == 1,
+               f"a signature after a tight prefix passed: {text!r}")
+    # A prefix word is a whole word: an identifier that only begins with one is the head.
+    for text in ("TimeSet Kernel Conversion Dep Heuristic.", "Local'Set Warnings \"-all\".",
+                 "Fail_Set Guard Checking."):
+        ensure(not proofaudit.pinned_overrides(text), f"a longer identifier was a prefix: {text!r}")
+    for text in ('Timeloaded "x".', "ProgramLoad.", "Fail'Load x."):
+        ensure(not proofaudit.dynamic_sources(text), f"a longer identifier was a prefix: {text!r}")
+
+
 def _machine_bound_tacticals_are_refused() -> None:
     # Each tactic here compiles silently under the gate's flags in the pinned Rocq 9.3.0,
     # the Ltac2 ones once Ltac2 is imported, except alloc_limit, which only this switch's
@@ -645,6 +671,7 @@ def cases() -> list[Case]:
             Case("rocq-93-settings-are-pinned", _rocq_93_settings_are_pinned),
             Case("settings-read-as-the-lexer-reads-them", _settings_read_as_the_lexer_reads_them),
             Case("settings-after-bullets-are-refused", _settings_after_bullets_are_refused),
+            Case("control-prefixes-need-no-blank", _control_prefixes_need_no_blank),
             Case("machine-bound-tacticals-are-refused", _machine_bound_tacticals_are_refused),
             Case("dynamic-sources-are-refused-before-compiling",
                  _dynamic_sources_are_refused_before_compiling),
