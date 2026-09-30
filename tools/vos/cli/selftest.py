@@ -1809,6 +1809,14 @@ CASES: list[Case] = [
               "Where the set is located by a marker, nothing is read. "
               "Where the set is **total**,")),
 
+    # The same fifth class opened mid-sentence, its lead in lower case. It carries no
+    # membership sentence either, so a lead read in one letter case alone passes it over
+    # as part of the pattern class's text.
+    ("K-119", "a fifth reach class opened mid-sentence in lower case",
+     _literal(RULES, "Where the set is **total**,",
+              "Past them, where the set is located by **marker**, nothing is read. "
+              "Where the set is **total**,")),
+
     # A membership sentence ahead of the first class, which no class's region reaches.
     # The rule it names is still placed once by its own class, so the section reads as
     # agreeing with the registry and only a reading of the stretch before the first

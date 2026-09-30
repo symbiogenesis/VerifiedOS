@@ -644,6 +644,10 @@ def _k119_every_class_lead_is_read() -> None:
             ({"total": "Where the set is located by **marker**, nothing narrows. "
                        + _K119_TOTAL},
              "opens a reach class '**marker**' that is not one of the four this rule reads"),
+            # the lead is read in any letter case, so a class opened mid-sentence is read
+            ({"computed": _K119_COMPUTED
+              + " Past it, where the set is located by **marker**, nothing narrows."},
+             "opens a reach class '**marker**' that is not one of the four this rule reads"),
             ({"computed": _K119_COMPUTED
               + " Where the set is located by a marker, nothing narrows."},
              "states 'Where the set is' and names no class in bold before a full stop or "
