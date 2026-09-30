@@ -15,3 +15,12 @@ package = false
 required-version = "==0.12.19"
 python-downloads = "never"
 no-build = true
+# The release cooldown; tools/README.md gives the policy.
+exclude-newer = "3 days"
+
+# Locked releases younger than the cooldown when it was adopted, each capped at the
+# first whole second after its last file's upload. tools/README.md says when each goes.
+[tool.uv.exclude-newer-package]
+filelock = "2026-09-29T23:04:06Z"
+platformdirs = "2026-09-29T18:27:57Z"
+virtualenv = "2026-09-29T20:25:32Z"
