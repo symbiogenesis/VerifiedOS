@@ -233,9 +233,11 @@ that states no release of the tool, a licence's own version or a bound another p
 sets, is a residue declared by a literal fragment with its reason, and a residue that
 no longer stands or covers no numeral is a finding. The window ends at the next
 heading, so the inference benchmark's subsection, the dependency review of a measured
-run, is outside it; a numeral joined to a word by a hyphen, as a licence identifier or a
-tag's prefix, is not read by the census, and the sites read such a tag where it states
-a release.
+run, is outside it. A release is read whole, an opam identifier's after its name's dot
+and with any letter, `~`, `+` or dotted suffix it carries; a numeral joined to the word
+before it by a hyphen, a letter or `+`, as a licence identifier's version or a tag's
+prefix is, is not read by the census, and the sites read such a tag where it states a
+release.
 
 **Fail-closed at every reading**, on K-97's ground: a record without the section or its
 table, a table with no row, a site matching other than once, and an owner absent,
@@ -315,11 +317,16 @@ _SEPARATOR_RE = re.compile(r"^\|[\s:|-]+\|\s*$")
 # its parts, so the full stop closing a sentence is never read as part of the release.
 _V = r"(\d[\w+~-]*(?:\.[\w+~-]+)*)"
 
-# What the census reads as a stated release: a dotted numeral, optionally led by v or V,
-# that is not the tail of a longer word. A hyphen before one makes it a licence
+# What the census reads as a stated release, its group the release: a dotted numeral,
+# optionally led by v or V, with any suffix a release takes attached, letters, `~` or
+# `+` (`1.2.3rc1`, `2.0~beta`) and further dotted parts carrying a digit (`1.0.post1`),
+# so a full stop or a file extension after it is not read as part of it. An opam
+# identifier's release after its name's dot (`coq-riscv.0.0.6`) is read; a numeral
+# joined to the word before it by a hyphen, a letter or `+` is not, being a licence
 # identifier's version (`LGPL-2.1`) or a tag's own prefix (`release-1.14`), which the
 # census leaves to the sites that read such a tag as the release it states.
-_RELEASE_RE = re.compile(r"(?<![\w.+-])[vV]?(\d+(?:\.\d+)+)(?!\w|\.\d)")
+_RELEASE_RE = re.compile(r"(?<![\w+-])(?<!\d\.)[vV]?"
+                         r"(\d+(?:\.\d+)+(?:[A-Za-z~+][\w~+]*)?(?:\.(?=[\w~+]*\d)[\w~+]+)*)")
 
 # A list of tags a licence file was read at, and the one form every tag in it takes.
 _TAGS_READ = r"byte-identical at the ((?:`[^`]*`(?:,? and |, ))*`[^`]*`) tags"

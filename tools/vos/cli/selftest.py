@@ -1686,6 +1686,12 @@ CASES: list[Case] = [
     ("K-118", "a workflow analyzer's licence tag its lock does not install",
      _first_match(THIRD_PARTY, r"(zizmorcore/zizmor/blob/v)(\d[^/]*)(/LICENSE)",
                   lambda m: f"{m[1]}{m[2]}.1{m[3]}")),
+    # A held row gains a release in an opam identifier's spelling, which no site reads:
+    # only a census reading a release after its package name's dot sees it at all.
+    ("K-118", "a development-tool row stating an opam identifier's release no site reads",
+     _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
+                               r"dedicated switch)\.",
+                  lambda m: f"{m[1]} beside `coq-simple-io.1.10.0`.")),
     # A declared row nothing here owns gains a second release in its licence link text,
     # so the row no longer says which release its terms were read at.
     ("K-118", "a declared development-tool row stating two releases",

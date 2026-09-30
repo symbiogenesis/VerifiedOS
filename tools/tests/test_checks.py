@@ -834,6 +834,20 @@ def _k118_census_reads_every_numeral() -> None:
         "the snapshots' own.", "the snapshots' own, and v8.1 before it.")})
     ensure(len(found) == 1 and "THIRD-PARTY.md:5 states v8.1 in the paragraphs" in found[0],
            f"an unread numeral in a paragraph must report on its line: {found!r}")
+    # an opam identifier's release after its name's dot, a release carrying a letter
+    # suffix and one continuing past it are each read, whole
+    for written, numeral in (("`coq-extra.6.6.6`", "6.6.6"), ("6.6.6rc1", "6.6.6rc1"),
+                             ("v6.6.6a1.dev2", "v6.6.6a1.dev2")):
+        found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace(
+            "constant 7.8.9.", f"constant 7.8.9. Bundled {written}.")})
+        ensure(len(found) == 1
+               and f"THIRD-PARTY.md:10 states {numeral} in beta's row, which no" in found[0],
+               f"a release written as {written} must be read: {found!r}")
+    # a numeral joined to the word before it is a licence identifier's version or a
+    # tag's prefix, left to the sites
+    found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace(
+        "constant 7.8.9.", "constant 7.8.9. Under GPL-6.6 at tag release-6.6.")})
+    ensure(not found, f"a hyphen-joined numeral is not a release the census reads: {found!r}")
     # a residue that no longer stands, or covers no numeral, suppresses nothing
     found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace("licence version 2.1",
                                                              "the licence")})
@@ -894,6 +908,8 @@ def _k118_declarations_are_held() -> None:
             ("Measured at 3.3.3.", "Measured at 3.3.3, then 3.3.4.",
              "states 2 distinct releases of delta: 3.3.3, 3.3.4, which K-118 declares"),
             ("Measured at 3.3.3.", "Measured.", "states 0 distinct releases of delta, which"),
+            ("Measured at 3.3.3.", "Measured at 3.3.3, then 3.3.3rc1.",
+             "states 2 distinct releases of delta: 3.3.3, 3.3.3rc1"),
             ("v1.0.0 revision.", "v1.0.0 revision, after v0.9.0.",
              "states 2 distinct releases of owner/action: 0.9.0, 1.0.0")):
         found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace(old, new)})
