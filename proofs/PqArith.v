@@ -540,6 +540,29 @@ Example there_are_ten_probe_polynomials_of_the_full_degree :
    forallb (fun p => Nat.eqb (length p) 256) (probes 256)) = (10%nat, true).
 Proof. vm_reflexivity. Qed.
 
+(* The transforms and the product several examples below read at ML-KEM's
+   ring, each evaluated once into a literal and equated to its source. The
+   compiling machine keeps a constant's value from one example to the next,
+   and the kernel's recheck does not: each example rewritten through these
+   lemmas reads the literal where it would otherwise transform or multiply
+   the probes again. Each lemma unfolds its literal before the cast: the
+   recheck compares a computation with an unfolded literal several times
+   faster than with the constant that names it. *)
+Definition ramp_ntt_literal : list Z := Eval vm_compute in ntt mlkem_ring (ramp_poly 256).
+Definition stride_ntt_literal : list Z := Eval vm_compute in ntt mlkem_ring (stride_poly 256).
+Definition ramp_stride_product_literal : list Z :=
+  Eval vm_compute in negacyclic 3329 256 (ramp_poly 256) (stride_poly 256).
+
+Lemma ramp_ntt_is_its_literal : ntt mlkem_ring (ramp_poly 256) = ramp_ntt_literal.
+Proof. unfold ramp_ntt_literal. vm_reflexivity. Qed.
+
+Lemma stride_ntt_is_its_literal : ntt mlkem_ring (stride_poly 256) = stride_ntt_literal.
+Proof. unfold stride_ntt_literal. vm_reflexivity. Qed.
+
+Lemma ramp_stride_product_is_its_literal :
+  negacyclic 3329 256 (ramp_poly 256) (stride_poly 256) = ramp_stride_product_literal.
+Proof. unfold ramp_stride_product_literal. vm_reflexivity. Qed.
+
 (* An inverse with no final scaling is not an inverse: it returns 2^L times
    the input, which is the input only where the input is zero. *)
 Definition intt_without_the_final_scale (r : Ring) (a : list Z) : list Z :=
@@ -549,7 +572,7 @@ Definition intt_without_the_final_scale (r : Ring) (a : list Z) : list Z :=
 Example an_inverse_with_no_final_scaling_is_not_an_inverse :
   poly_eqb (intt_without_the_final_scale mlkem_ring
               (ntt mlkem_ring (ramp_poly 256))) (ramp_poly 256) = false.
-Proof. vm_reflexivity. Qed.
+Proof. rewrite ramp_ntt_is_its_literal. vm_reflexivity. Qed.
 
 (* And it is exactly the scaling it is missing, which is what holds it to the
    single difference it exists to exhibit. *)
@@ -557,7 +580,7 @@ Example the_missing_scaling_is_the_layer_count :
   poly_eqb (vscale 3329 (ring_split mlkem_ring) (ramp_poly 256))
            (intt_without_the_final_scale mlkem_ring
               (ntt mlkem_ring (ramp_poly 256))) = true.
-Proof. vm_reflexivity. Qed.
+Proof. rewrite ramp_ntt_is_its_literal. vm_reflexivity. Qed.
 
 (* An inverse using the forward root at each layer instead of its inverse. It
    is the same recursion, the same scaling and the same splits. *)
@@ -580,7 +603,7 @@ Definition intt_forward_root (r : Ring) (a : list Z) : list Z :=
 Example an_inverse_using_the_forward_root_is_not_an_inverse :
   poly_eqb (intt_forward_root mlkem_ring (ntt mlkem_ring (ramp_poly 256)))
            (ramp_poly 256) = false.
-Proof. vm_reflexivity. Qed.
+Proof. rewrite ramp_ntt_is_its_literal. vm_reflexivity. Qed.
 
 (* It agrees with the inverse wherever the root is its own inverse, which is
    the first layer's exponent alone at the top of the recursion; what
@@ -671,6 +694,21 @@ Definition leaf_roots_other_order (r : Ring) : list Z :=
 Definition mul_ntt_quadratic_other_order (r : Ring) (a b : list Z) : list Z :=
   basemul_quadratic (ring_modulus r) (leaf_roots_other_order r) a b.
 
+(* The other order's transforms of the same two probes, shared as the ones
+   above are. *)
+Definition ramp_ntt_other_order_literal : list Z :=
+  Eval vm_compute in ntt_other_order mlkem_ring (ramp_poly 256).
+Definition stride_ntt_other_order_literal : list Z :=
+  Eval vm_compute in ntt_other_order mlkem_ring (stride_poly 256).
+
+Lemma ramp_ntt_other_order_is_its_literal :
+  ntt_other_order mlkem_ring (ramp_poly 256) = ramp_ntt_other_order_literal.
+Proof. unfold ramp_ntt_other_order_literal. vm_reflexivity. Qed.
+
+Lemma stride_ntt_other_order_is_its_literal :
+  ntt_other_order mlkem_ring (stride_poly 256) = stride_ntt_other_order_literal.
+Proof. unfold stride_ntt_other_order_literal. vm_reflexivity. Qed.
+
 Example the_other_residue_order_round_trips_too :
   forallb (fun a => poly_eqb (intt_other_order mlkem_ring
                                 (ntt_other_order mlkem_ring a)) a)
@@ -683,12 +721,19 @@ Example the_other_residue_order_computes_the_same_product :
                  (ntt_other_order mlkem_ring (ramp_poly 256))
                  (ntt_other_order mlkem_ring (stride_poly 256))))
            (negacyclic 3329 256 (ramp_poly 256) (stride_poly 256)) = true.
-Proof. vm_reflexivity. Qed.
+Proof.
+  rewrite ramp_ntt_other_order_is_its_literal, stride_ntt_other_order_is_its_literal,
+    ramp_stride_product_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 Example the_two_residue_orders_are_different_transforms :
   poly_eqb (ntt mlkem_ring (ramp_poly 256))
            (ntt_other_order mlkem_ring (ramp_poly 256)) = false.
-Proof. vm_reflexivity. Qed.
+Proof.
+  rewrite ramp_ntt_is_its_literal, ramp_ntt_other_order_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 (* And mixing them is wrong, which is what makes the order a contract between
    two implementations rather than a presentation detail: this file's leaf
@@ -699,7 +744,11 @@ Example one_order_s_leaf_roots_against_the_other_order_s_transform_is_wrong :
                  (ntt_other_order mlkem_ring (ramp_poly 256))
                  (ntt_other_order mlkem_ring (stride_poly 256))))
            (negacyclic 3329 256 (ramp_poly 256) (stride_poly 256)) = false.
-Proof. vm_reflexivity. Qed.
+Proof.
+  rewrite ramp_ntt_other_order_is_its_literal, stride_ntt_other_order_is_its_literal,
+    ramp_stride_product_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -734,7 +783,12 @@ Example the_two_rings_multiply_under_two_different_contracts :
                                 (ntt mldsa_ring f) (ntt mldsa_ring g)))
             dsa_product)
   = (true, false, true, false).
-Proof. vm_reflexivity. Qed.
+Proof.
+  intros f g kem_product dsa_product. unfold kem_product. unfold f, g.
+  rewrite ramp_ntt_is_its_literal, stride_ntt_is_its_literal,
+    ramp_stride_product_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 (* Each ring has one leaf root per residue ring, and that count is what
    decides which contract applies. *)
@@ -763,7 +817,12 @@ Example the_ring_is_negacyclic_and_the_transform_computes_that_product :
                                 (ntt mlkem_ring f) (ntt mlkem_ring g)))
             wrapped)
   = (false, false).
-Proof. vm_reflexivity. Qed.
+Proof.
+  intros f g wrapped. unfold f, g.
+  rewrite ramp_ntt_is_its_literal, stride_ntt_is_its_literal,
+    ramp_stride_product_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 (* And the two products agree wherever nothing wraps, which holds the cyclic
    construction to the single difference it exists to exhibit: at two
