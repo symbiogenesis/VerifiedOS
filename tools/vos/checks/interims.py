@@ -284,7 +284,8 @@ NON_PREMISE: dict[tuple[str, str], NonPremise] = {
         (FSTAR, EASYCRYPT), "the admission of an EasyCrypt reduction as interim "
         "assurance beside libcrux/HACL*", ("is admissible interim assurance exactly as",)),
     (PLAN, "4. Verified crypto core (Coq)"): NonPremise(
-        (FSTAR, EASYCRYPT), "libcrux/HACL* behaviour as the reference's oracle, no "
+        (FSTAR, EASYCRYPT), "installed OpenSSL's behaviour as the reference's oracle, HACL* and "
+        "libjade named only as editions that do not carry it, no "
         "F*/Z3 dependency entering the golden model, and EasyCrypt gadget proofs "
         "informing the masking half without discharging it",
         ("behavior as the oracle", "dependency enters the golden model",

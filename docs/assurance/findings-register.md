@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 829 of them across 141 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 834 of them across 143 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -198,7 +198,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-198b** owed-act: three classes of fact a workflow must state have no owner in this tree, the runner label, the action references it pins, and the bootstrap route
 · Raised: S14
-· Disposition: open for the bootstrap route alone. The action references are closed by K-115, which holds every workflow `uses:` line to a full commit with its release in a comment, and both to the action's reviewed THIRD-PARTY.md development-tools row, in both directions. The runner label is narrowed rather than owned: every workflow names an explicit runner image, and test_fanout_ci's `workflow-host-job-names` case refuses a `-latest` label in host-gates.yml and holds its aggregate job names to `fanout_ci.HOST_JOBS`; nothing holds the guest and campaign labels, and `.github/actionlint.yml`'s label list is a lint allowance, not an owner. K-115 takes the next free id, and the id this item was priced against stays unspent
+· Disposition: open for the bootstrap route alone. The action references are closed by K-115, which holds every workflow `uses:` line to a full commit with its release in a comment, and both to the action's reviewed THIRD-PARTY.md development-tools row, in both directions. The runner label is narrowed rather than owned: every workflow names an explicit runner image, and test_fanout_ci's `workflow-host-job-names` case refuses a `-latest` label in host-gates.yml and holds its aggregate job names to `fanout_ci.HOST_JOBS`; nothing holds the guest and campaign labels, and `.github/actionlint.yml`'s label list is a lint allowance, not an owner
 
 **F-198c** measurement: the provisioner's apply arm ended in a traceback rather than a verdict where an installer was absent, found by pointing it at a host that is not the lane
 · Raised: S14
@@ -1704,7 +1704,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-128** upstream-defect: the pin's generated configuration puts an ABI flag on three tools and no cross toolchain is installed, and the assembly output reaches the non-capability backend
 · Raised: M1.2, in prose
-· Disposition: standing, the preprocessor line relaxed for the one output that needs it and the other two waiting on M1.4's toolchain
+· Disposition: standing, the preprocessor line relaxed for the one output that needs it and the other two unused, the backend's assembly going through M1.4′'s in-tree assembler and composer
 
 **F-520** upstream-defect: SECOMP's security layer carries no checked robust-preservation theorem at the pin, `security/RSC.v` not building and its axioms implying `False`, and the back-translation proof rests on an admitted lemma that is false
 · Raised: M1.2
