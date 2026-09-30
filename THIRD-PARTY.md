@@ -199,7 +199,7 @@ The manifest does not annotate `hw/vendor/lint/` or `hw/vendor/sonata_system/`. 
 
 **SECOMP.** [CompCert and SECOMP](#compcert-and-secomp) records the license decomposition. The older GitHub path, `secure-compilation/CompCert`, redirects to SECOMP and identifies the same project cited by the PriSC'23 abstract.
 
-**Emulator references.** Both pins support a struck milestone and remain unused here. QEMU's `LICENSE` at `d0bb921c` supplies the decomposition under [development tools](#development-tools-contained-by-use).
+**Emulator references.** Both pins support a struck milestone and remain unused here. QEMU's `LICENSE` at `d0bb921c` supplies the decomposition under [development tools](#development-tools-contained-by-use). The maintained CHERI QEMU is now `CHERI-Alliance/qemu` `main`, which cheribuild's `qemu` target has built since 2026-05-21, mapping this pin's URL and `qemu-cheri` branch onto it. The pinned commit exists only in `CTSRD-CHERI/qemu`, so a reinstatement re-bases onto that `main` and changes the `.gitmodules` URL and branch together with the gitlink.
 
 The `cheri-compressed-cap` root notice contains the placeholder `Copyright (c) 2018 (holder)`; its developed-by text attributes the work to SRI International and the University of Cambridge Computer Laboratory. Retain that notice as supplied. Library headers state BSD-2-Clause, untagged files use the root terms, and `test/FuzzedDataProvider.h` uses `Apache-2.0 WITH LLVM-exception`. The narrowing does not use that fuzz-harness file.
 
