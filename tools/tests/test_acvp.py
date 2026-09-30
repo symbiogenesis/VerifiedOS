@@ -21,6 +21,59 @@ CAMPAIGNS = ROOT / "proofs" / "campaigns"
 FIXTURE = "FIXTURE-family"
 BYTES = b'{"testGroups": []}\n'
 
+# The documents that restate the pinned revision or README digest by hand, beside a
+# licence reading or a reproduction recipe, with every Markdown file under CAMPAIGNS.
+# The completion log is not among them: its entries are frozen evidence of the
+# revision a landing used.
+DOCUMENTS = ("THIRD-PARTY.md", "firmware/crypto/README.md")
+# Upstreams whose commits share those documents' paragraphs with ACVP's. An id after one
+# of these names states that upstream's commit; an id after ACVP states ACVP's. A name
+# missing here lets its id read as ACVP's, which fails loudly rather than passing.
+OTHERS = ("OpenSSL", "XKCP", "HACL", "libjade", "libcrux", "Fiat-Crypto", "fiat-crypto")
+_NAME = re.compile("|".join(("ACVP", *map(re.escape, OTHERS))))
+_ID = re.compile(r"(?<![0-9A-Za-z])[0-9a-f]{7,64}(?![0-9A-Za-z])")
+# A paragraph's wrapped lines are one unit, except that each table row or list item
+# starts its own.
+_ITEM = re.compile(r"[ \t]*(?:\||[-*+] |\d+\. )")
+
+
+def _units(text: str) -> list[tuple[int, str]]:
+    """Each paragraph, table row and list item with the number of its first line."""
+    units: list[tuple[int, str]] = []
+    lines: list[str] = []
+    first = 0
+    for number, line in enumerate([*text.splitlines(), ""], start=1):
+        if lines and (not line.strip() or _ITEM.match(line)):
+            units.append((first, "\n".join(lines)))
+            lines = []
+        if line.strip():
+            first = first if lines else number
+            lines.append(line)
+    return units
+
+
+def acvp_ids(text: str) -> list[tuple[int, str]]:
+    """Each object id or SHA-256 a document states for ACVP, with its line: one whose
+    nearest preceding upstream name within its paragraph, table row or list item is
+    ACVP. An id in a unit that names ACVP after it, or not at all, is read by nothing
+    here."""
+    found: list[tuple[int, str]] = []
+    for first, unit in _units(text):
+        names = [(match.start(), match.group()) for match in _NAME.finditer(unit)]
+        for match in _ID.finditer(unit):
+            preceding = [name for start, name in names if start < match.start()]
+            if preceding and preceding[-1] == "ACVP":
+                found.append((first + unit.count("\n", 0, match.start()), match.group()))
+    return found
+
+
+def misstated(stated: list[tuple[str, str]]) -> list[str]:
+    """The stated ids that are not the owner's: a SHA-256 must be a pinned file's digest
+    and any shorter id must abbreviate or equal the pinned revision."""
+    digests = set(acvp.pinned().values())
+    return sorted(f"{where}: {value}" for where, value in stated
+                  if not (value in digests if len(value) == 64 else acvp.REVISION.startswith(value)))
+
 
 def _campaign(name: str) -> ModuleType:
     """A campaign script as a module, the way boot_crypto loads the ML-DSA one."""
@@ -80,6 +133,33 @@ def no_consumer_restates_a_pin() -> None:
                       for literal in (identities | addresses if path in consumers else identities)
                       if literal in text)
     ensure(not restated, f"ACVP identities or addresses written outside acvp.py: {restated}")
+
+
+def documents_restate_the_owners_pin() -> None:
+    """Every ACVP revision or digest the documents restate is the one acvp.py pins, so a
+    revision advance or a re-measured file names each document site left behind."""
+    paths = [*(ROOT / name for name in DOCUMENTS), *sorted(CAMPAIGNS.glob("*.md"))]
+    stated = [(f"{path.relative_to(ROOT).as_posix()}:{line}", value) for path in paths
+              for line, value in acvp_ids(path.read_text(encoding="utf-8"))]
+    ensure(bool(stated), "no document restates an ACVP id; the reading has stopped matching")
+    wrong = misstated(stated)
+    ensure(not wrong, f"documents restate ACVP ids acvp.py does not pin: {wrong}")
+
+
+def attribution_reads_each_unit() -> None:
+    """The reading attributes wrapped, tabled and quoted ids and leaves other upstreams'
+    ids alone, and the comparison refuses a stale revision or an unpinned digest."""
+    other = "a" * 64
+    text = ("The NIST ACVP source is revision\n`0123abcd`; OpenSSL at `67b5686b` is not it.\n\n"
+            f"| Row | HACL* at `504c2987` |\n| NIST ACVP vectors | `{acvp.REVISION[:8]}` and the "
+            f"README `{acvp.NOTICE_SHA}` |\n- an item naming nothing: `deadbeef0`\n\n"
+            f"> Source: NIST ACVP-Server\n> Revision: {acvp.REVISION}\n> Digest: {other}\n")
+    found = acvp_ids(text)
+    ensure(found == [(2, "0123abcd"), (5, acvp.REVISION[:8]), (5, acvp.NOTICE_SHA),
+                     (9, acvp.REVISION), (10, other)], f"attribution misread its units: {found}")
+    ensure(misstated([(f"fixture:{line}", value) for line, value in found])
+           == sorted(["fixture:2: 0123abcd", f"fixture:10: {other}"]),
+           "a stale revision or unpinned digest was accepted, or a pinned one refused")
 
 
 def consumers_read_the_owner() -> None:
@@ -176,6 +256,8 @@ def boot_comparison_fetches_through_the_owner() -> None:
 def cases() -> list[Case]:
     return [Case("pinned identities are well formed", identities_are_well_formed),
             Case("no consumer restates an ACVP pin", no_consumer_restates_a_pin),
+            Case("documents restate only the owner's pin", documents_restate_the_owners_pin),
+            Case("document attribution reads each unit", attribution_reads_each_unit),
             Case("consumers take their identities from the owner", consumers_read_the_owner),
             Case("unpinned paths are refused before any download", unpinned_paths_are_refused),
             Case("downloads publish only verified bytes", downloads_publish_only_verified_bytes),
