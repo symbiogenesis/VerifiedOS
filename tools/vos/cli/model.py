@@ -442,9 +442,24 @@ def _test_corpus(directory: Path, model_root: Path) -> Path:
 
 
 def build_artifacts(directory: Path, model_root: Path) -> dict[str, str]:
-    """Build products and the exact downloaded ELF inputs the profile sweep consumes."""
-    return receipts.snapshot(directory, [*(directory / rel for rel in BUILD_ARTIFACTS),
-                                          *sweep_inputs(directory, model_root)])
+    """Build products and the exact downloaded ELF inputs the profile sweep consumes.
+
+    The inputs are read after `sweep_inputs` has verified their suite, so each is
+    hashed through `_regular_digest` under the name `receipts.snapshot` gives the
+    products: an input replaced since by a FIFO, a device or a link is refused with a
+    `ValueError`, which the build records as its receipt's refusal, rather than waited
+    on or read without end.
+    """
+    inputs = sweep_inputs(directory, model_root)
+    recorded = receipts.snapshot(directory, [directory / rel for rel in BUILD_ARTIFACTS])
+    base = directory.resolve()
+    for path in inputs:
+        digest = _regular_digest(path)
+        if digest is None:
+            raise ValueError(f"{path} is not a regular file; the test corpus changed after "
+                             "it verified")
+        recorded[path.resolve().relative_to(base).as_posix()] = digest
+    return dict(sorted(recorded.items()))
 
 
 def sweep_inputs(directory: Path, model_root: Path, xlen: str = "64") -> list[Path]:

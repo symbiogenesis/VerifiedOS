@@ -29,7 +29,7 @@ import tarfile
 import tempfile
 import threading
 from collections.abc import Callable
-from contextlib import redirect_stderr, redirect_stdout, suppress
+from contextlib import ExitStack, redirect_stderr, redirect_stdout, suppress
 from functools import partial
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -863,6 +863,75 @@ def _listing_refuses_a_fifo_its_check_by_name_missed() -> None:
                             partial(_end_of_file, fifo))
         ensure("non-regular" in said, f"the suite is refused, got {said!r}")
 
+
+def _built_tree(root: Path) -> tuple[Path, Path, Path]:
+    """A build tree holding every build product and a sealed suite of one ELF input,
+    its model root, and the input; and the control on it: the receipt records the input
+    under the name `receipts.snapshot` gives the products."""
+    model_root = _corpus_model(root)
+    build = root / "build"
+    for rel in _MODEL.BUILD_ARTIFACTS:
+        (build / rel).parent.mkdir(parents=True, exist_ok=True)
+        (build / rel).write_bytes(b"product")
+    elf = _extracted(build, {"rv64ui-p-add": b"\x7fELF"}) / "rv64ui-p-add"
+    recorded = _MODEL.build_artifacts(build, model_root)
+    product = hashlib.sha256(b"product").hexdigest()
+    ensure(recorded == {**dict.fromkeys(_MODEL.BUILD_ARTIFACTS, product),
+                        f"test/{_RELEASE}/riscv-tests/rv64ui-p-add":
+                            hashlib.sha256(b"\x7fELF").hexdigest()},
+           f"control: the receipt records every product and the input, got {recorded}")
+    return build, model_root, elf
+
+
+def _receipt_after(build: Path, model_root: Path, replace: Callable[[], object],
+                   unblock: Callable[[], None] | None = None) -> str:
+    """The refusal `build_artifacts` gives when `replace` runs once `sweep_inputs` has
+    verified the suite and selected its inputs, which is the window a check by name
+    does not close."""
+    select = _MODEL.sweep_inputs
+
+    def selected_then_replaced(directory: Path, root: Path, xlen: str = "64") -> list[Path]:
+        # cast because a module loaded from a path answers `Any` for every attribute
+        elves = cast("list[Path]", select(directory, root, xlen))
+        replace()
+        return elves
+
+    with patch.object(_MODEL, "sweep_inputs", selected_then_replaced):
+        return _refused(partial(_MODEL.build_artifacts, build, model_root), unblock)
+
+
+def _receipt_reads_only_regular_sweep_inputs() -> None:
+    """The build receipt reads each sweep input, after its suite verified, only through
+    a descriptor that is a regular file: an input that opens as a device is refused
+    with a `ValueError` naming it, which the build records as its receipt's refusal.
+    The device is simulated by `_os_with_a_device`, from the moment the inputs are
+    selected; the positive control is `_built_tree`'s receipt of the same tree."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td, ExitStack() as later:
+        build, model_root, elf = _built_tree(Path(td))
+        device = _os_with_a_device(lambda path: path == str(elf))
+        said = _receipt_after(build, model_root,
+                              lambda: later.enter_context(patch.object(_MODEL, "os", device)))
+        ensure(f"{elf} is not a regular file" in said,
+               f"the receipt refuses the input, got {said!r}")
+
+
+def _receipt_refuses_a_fifo_sweep_input() -> None:
+    """A sweep input replaced by a real FIFO after its suite verified is refused by the
+    build receipt rather than waited on. POSIX-only, so the case is the guest's and
+    win32 is refused before `os.mkfifo`."""
+    if sys.platform == "win32":
+        raise AssertionError("mkfifo is POSIX-only; the FIFO input case runs in the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        build, model_root, elf = _built_tree(Path(td))
+
+        def replace() -> None:
+            elf.unlink()
+            os.mkfifo(elf)
+
+        said = _receipt_after(build, model_root, replace, partial(_end_of_file, elf))
+        ensure(f"{elf} is not a regular file" in said,
+               f"the receipt refuses the input, got {said!r}")
+
 # The model's own declaration, whose two suite functions the case below cuts out and runs
 # under cmake, so what it holds is what configure runs rather than a copy of it.
 _SUITE_CMAKE = TOOLS.parent / "model/test/CMakeLists.txt"
@@ -1267,6 +1336,10 @@ def cases() -> list[Case]:
              _listing_hashes_only_regular_descriptors),
         Case("listing-refuses-a-fifo-its-check-by-name-missed",
              _listing_refuses_a_fifo_its_check_by_name_missed, lane="guest"),
+        Case("receipt-reads-only-regular-sweep-inputs",
+             _receipt_reads_only_regular_sweep_inputs),
+        Case("receipt-refuses-a-fifo-sweep-input", _receipt_refuses_a_fifo_sweep_input,
+             lane="guest"),
 
         # Only where cmake is on PATH: the runner has no skipped verdict, and a case
         # that returned without cmake would pass having decided nothing.
