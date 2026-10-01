@@ -523,6 +523,45 @@ def _client_is_asked_once_per_run() -> None:
            f"a probe outside a run asks afresh: {outside} after {asked.count(version)}")
 
 
+def _prerelease_client_is_not_reviewed() -> None:
+    """The client's release is read exactly, its first word, so a prerelease or a
+    development build of the reviewed release is another client: the opam row and every
+    switch row are held back with the release they read named, and `--install-opam`
+    refuses to install over it."""
+    reviewed = opam_client.OPAM_VERSION
+    ensure(provision._release(f"{reviewed}~beta1\n") == f"{reviewed}~beta1"
+           and provision._release("") == "",
+           "the release is the client's first word, suffix and all")
+    names = ("opam", "the Sail switch", "the prover switch", "the QuickChick switch")
+    rows = tuple(fact for fact in provision.FACTS if fact.name in names)
+    for release in (f"{reviewed}~beta1", f"{reviewed}~alpha1", f"{reviewed}+dev"):
+
+        def say(argv: tuple[str, ...], release: str = release) -> str:
+            return f"{release}\n" if tuple(argv) == ("opam", "--version") else ""
+
+        with (tempfile.TemporaryDirectory(prefix="vos-test-") as td,
+              patch.object(provision, "shutil",
+                           SimpleNamespace(which=lambda name: "/usr/bin/opam")),
+              patch.object(provision.env, "opam_root", return_value=Path(td) / "absent"),
+              patch.object(provision, "_say", side_effect=say),
+              patch.object(provision, "_dpkg", side_effect=_dpkg_reports()),
+              patch.object(provision.opam_client, "install") as installer,
+              patch.object(provision.subprocess, "run") as launched):
+            results = provision.take(rows)
+            said = "\n".join(provision.run(rows).out)
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()) as refused:
+                code = provision.install_opam(Path(td) / "bin" / "opam")
+        client = f"opam {release} at /usr/bin/opam"
+        ensure(len(results) == len(names)
+               and all(not found.present and not found.repairable and client in found.saw
+                       for _, found in results)
+               and not provision.plan(results) and said.count(client) == len(names),
+               f"opam {release} holds back every row and is named in each: {results}")
+        ensure(code == 1 and f"opam {release} is already on PATH" in refused.getvalue()
+               and not installer.called and not launched.called,
+               f"--install-opam refuses opam {release}: {refused.getvalue()}")
+
+
 def _dpkg_reports(*absent: str) -> Callable[[str], provision.Found]:
     """dpkg's answer on a machine the case describes: every package installed but
     those in `absent`."""
@@ -1073,6 +1112,7 @@ def cases() -> list[Case]:
         Case("switch-rows-wait-on-an-older-root", _switch_rows_wait_on_an_older_root),
         Case("unread-switch-is-not-absent", _unread_switch_is_not_absent),
         Case("client-is-asked-once-per-run", _client_is_asked_once_per_run),
+        Case("prerelease-client-is-not-reviewed", _prerelease_client_is_not_reviewed),
         Case("root-prerequisites-precede-the-opam-row",
              _root_prerequisites_precede_the_opam_row),
         Case("install-opam-refuses-without-root-prerequisites",

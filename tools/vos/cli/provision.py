@@ -232,8 +232,9 @@ _ASKED: contextvars.ContextVar[_Asked | None] = contextvars.ContextVar("provisio
 
 
 def _client() -> tuple[str | None, str]:
-    """Where the opam client on PATH is and the dotted release it answers, empty where
-    it answers none, or no path and no release where no client is on PATH.
+    """Where the opam client on PATH is and the release `_release` reads from its
+    answer, empty where it answers none, or no path and no release where no client is on
+    PATH.
 
     Asked once per `take`, so the opam row and every switch row read one answer and the
     client is run once for all of them; a probe outside a `take` asks afresh."""
@@ -248,7 +249,19 @@ def _client() -> tuple[str | None, str]:
 
 def _ask_client() -> tuple[str | None, str]:
     where = shutil.which("opam")
-    return where, _number(_say(("opam", "--version"))) if where else ""
+    return where, _release(_say(("opam", "--version"))) if where else ""
+
+
+def _release(text: str) -> str:
+    """The release an opam client's `--version` answers, read exactly: its first
+    whitespace-separated word, empty where it answers nothing.
+
+    opam prints its release bare, and a prerelease or build suffix such as `~beta1` or
+    `+dev` is part of it, so a prerelease or a development build of the reviewed release
+    is another client than that release rather than the dotted number `_number` would
+    reduce it to."""
+    words = text.split()
+    return words[0] if words else ""
 
 
 def _floor() -> tuple[int, ...]:
@@ -559,7 +572,7 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
             return 1
         print(f"installed opam {opam_client.OPAM_VERSION} at {destination}")
     else:
-        found = _number(_say(("opam", "--version")))
+        _, found = _client()
         if found != opam_client.OPAM_VERSION:
             print(f"opam {found or 'answering no version'} is already on PATH at "
                   f"{present}; the reviewed client {opam_client.OPAM_VERSION} is "
