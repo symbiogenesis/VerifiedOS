@@ -58,6 +58,10 @@ def _a_decorated_statement_is_read() -> None:
         got, why = _lanes(decoration + _example() + "Proof. reflexivity. Qed.\n")
         ensure(got == _LANES and not why,
                f"under {decoration!r} the Example read {got} ({why})")
+    # and the name may stand on the line after its keyword, as any blank separates them
+    got, why = _lanes(_example().replace("Example ", "Example\n  ", 1)
+                      + "Proof. reflexivity. Qed.\n")
+    ensure(got == _LANES and not why, f"a name on its own line read {got} ({why})")
 
 
 def _a_void_statement_is_refused() -> None:

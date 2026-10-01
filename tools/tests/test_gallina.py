@@ -249,6 +249,7 @@ def _the_decoration_grammar_is_one_reading() -> None:
         "!: { Timeout 5AllocLimit 3 Mw Instructions Lemma l": [
             ("bullet", "!: {"), ("word", "Timeout"), ("word", "AllocLimit"),
             ("word", "Instructions")],
+        "AllocLimit 2 kw Lemma l": [("word", "AllocLimit")],
         "Export Set Printing All": [("word", "Export")],
         "TimeLemma l": [], "Local' l": [], "Timeout l": [], "Lemma l": [],
     }
