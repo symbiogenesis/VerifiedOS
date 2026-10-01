@@ -167,15 +167,16 @@ stays green, and a rule named under two leaves a reader unable to say which reac
 is inside it the day it is written; the classes are read off the page, each by the first
 bold phrase after the `Where the set is`, in any letter case, opening it, whatever words
 or italics stand between short of a full stop or the line's end, any `.` counting as a
-full stop, and by one membership sentence, `which is what` or `That is what`, a list of
-ids, then `are`. The four class names are fixed here rather than read, so a class
-retitled away and a fifth class opened that way are each a finding rather than a class
-this rule stops or never starts reading, and so is a `Where the set is` in the section
-that names no class in bold before a full stop or the line's end. What that reading
-does not reach is a class introduced in some other sentence form: it is read as part of
-the class before it, or as part of no class ahead of the first, and is caught only where
-it carries a membership sentence of its own, that sentence then being a class's second
-or one standing ahead of every class. A list is decided whole by a grammar of ids, `K-a
+full stop, and by one membership sentence standing anywhere from that lead to the next
+class's, `which is what` or `That is what`, a list of ids, then `are`. The four class
+names are fixed here rather than read, so a class retitled away and a fifth class
+opened that way are each a finding rather than a class this rule stops or never starts
+reading, and so is a `Where the set is` in the section that names no class in bold
+before a full stop or the line's end. What that reading does not reach is a class
+introduced in some other sentence form: it is read as part of the class before it, or
+as part of no class ahead of the first, and is caught only where it carries a
+membership sentence of its own, that sentence then being a class's second or one
+standing ahead of every class. A list is decided whole by a grammar of ids, `K-a
 through K-b` ranges, commas and `and`, and a range expands over the active rows whose
 numbers it spans, so a struck row inside one is skipped rather than placed.
 
@@ -815,8 +816,11 @@ def _classes(ctx: Context, registered: set[str]) -> None:
                     unread = True
                     continue
                 seen_classes.add(name)
+                # The region runs from this lead to the next, so a membership sentence
+                # standing between the lead and the bold name is this class's own and
+                # counted with the rest rather than falling between two regions.
                 end = opens[k + 1].start() if k + 1 < len(opens) else hi
-                clauses = [c for c in _MEMBERS_RE.finditer(doc.raw, m.end(), end)
+                clauses = [c for c in _MEMBERS_RE.finditer(doc.raw, m.start(), end)
                            if not doc.is_fenced(c.start())]
                 if len(clauses) != 1:
                     findings.append(

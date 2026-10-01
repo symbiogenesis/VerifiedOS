@@ -616,6 +616,11 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
              "the 'computed value' class states no membership sentence(s) this rule reads"),
             ({"computed": _K119_COMPUTED + " That is what K-05 are."},
              "the 'computed value' class states two membership sentence(s) this rule reads"),
+            # a class's region starts at its lead, so a membership sentence between the
+            # lead and the bold name is the class's own second rather than read by none
+            ({"computed": "Where the set is made of rules which is what K-01 are, and a "
+                          "**computed value**, it is recomputed, which is what K-05 are."},
+             "the 'computed value' class states two membership sentence(s)"),
             ({"total": _K119_TOTAL.replace("**total**", "**whole**")},
              "opens a reach class '**whole**' that is not one of the four this rule reads"),
             ({"total": _K119_TOTAL.replace("**total**", "**whole**")},

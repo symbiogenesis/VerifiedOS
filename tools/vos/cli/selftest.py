@@ -1881,6 +1881,14 @@ CASES: list[Case] = [
      _literal(RULES, "and there are four answers.",
               "and there are four answers, which is what K-26 are.")),
 
+    # A membership sentence between a class's lead and its bold name. The class still
+    # opens, so a region read from past the name alone passes over the sentence and the
+    # rule it names stays placed once by its own class, the section reading as agreeing
+    # with the registry while the total class names a second list.
+    ("K-119", "a membership sentence between a class's lead and its name",
+     _literal(RULES, "Where the set is **total**,",
+              "Where the set is made of rules which is what K-26 are, and **total**,")),
+
     # Seeded on the plan's side, which is the direction the defect arrives from: a
     # completion note is edited far more often than the index over it. The word alone
     # moves and its bullets stay, which is exactly what a finding added to a note
