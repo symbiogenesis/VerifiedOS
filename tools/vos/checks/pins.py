@@ -770,9 +770,10 @@ def _bindings(ctx: Context) -> None:
             findings.append(f"{file}'s {label} names {path}, which the index carries no "
                             "gitlink for")
         elif oid != recorded:
+            stated, carried = _apart(recorded, oid)
             findings.append(
-                f"{file}'s {label} is {recorded[:12]} and the index carries {path} at "
-                f"{oid[:12]}; regenerate it from a checkout at the gitlink, which "
+                f"{file}'s {label} is {stated} and the index carries {path} at "
+                f"{carried}; regenerate it from a checkout at the gitlink, which "
                 "re-derives what was read there and is never a token repair")
     ctx.rep.report("K-116", "tool-consumed RTL binding(s) that disagree with the gitlink "
                    "they were derived through:", findings,

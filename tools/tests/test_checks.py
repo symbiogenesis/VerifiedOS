@@ -1365,6 +1365,25 @@ def _k116_consumed_bindings_are_held_whole_and_fail_closed() -> None:
            "K-116 holds no binding inside an artifact K-88 already holds")
 
 
+def _k116_moved_gitlink_is_quoted_apart_from_its_binding() -> None:
+    # A binding off its gitlink is quoted beside it at twelve digits, or as far as the
+    # two must run to differ, so a gitlink sharing the binding's first twelve digits and
+    # differing in its last prints two distinct ids.
+    core = _K115_SHA
+    registry = json.dumps({"schema": "vos.rtl-width-transforms/1", "pin": core})
+    last = f"{core[:-1]}8"
+    middle = f"{core[:19]}f{core[20:]}"
+    for moved, stated, carried in (
+            (last, core, last),
+            (middle, core[:20], middle[:20]),
+            ("f" * 40, "0123456789ab", "ffffffffffff")):
+        found = _k116({rtl_width.REGISTRY: registry}, {rtl_width.CORE: moved})
+        quoted = (f"width-transform registry pin is {stated} and the index carries "
+                  f"{rtl_width.CORE} at {carried};")
+        ensure(len(found) == 1 and quoted in found[0],
+               f"a moved gitlink is quoted apart from its binding ({quoted}): {found!r}")
+
+
 def _k88_device_regs(files: dict[str, str], gitlinks: dict[str, str],
                      edit: str | None = None) -> list[str]:
     """The device-register row's findings, its header edited after staging if asked."""
@@ -1828,6 +1847,8 @@ def cases() -> list[Case]:
              _k81_generated_device_package_is_outside_the_window),
         Case("k116-consumed-bindings-are-held-whole-and-fail-closed",
              _k116_consumed_bindings_are_held_whole_and_fail_closed),
+        Case("k116-moved-gitlink-is-quoted-apart-from-its-binding",
+             _k116_moved_gitlink_is_quoted_apart_from_its_binding),
         Case("k88-device-register-stamp-is-held-whole-and-fail-closed",
              _k88_device_register_stamp_is_held_whole_and_fail_closed),
         Case("k88-device-register-is-decided-on-the-host-but-its-uart-values",
