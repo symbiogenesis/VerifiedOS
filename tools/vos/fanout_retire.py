@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
 from typing import NoReturn, cast
@@ -238,8 +239,9 @@ def _branch_safe(root: Path, record: LaneRecord, revision: str, *, removing: boo
     return True
 
 
-def _retain_host(path: Path, destination: Path) -> list[str]:
-    """Move each ignored output Git lists beneath `destination`, ancestors first.
+def _retain_host(path: Path, destination: Path, retaining: Callable[[str], None]) -> None:
+    """Move each ignored output Git lists beneath `destination`, ancestors first,
+    passing each target to `retaining` before its move.
 
     Git lists a directory whose own `.gitignore` ignores `*`, as ruff's cache does,
     together with entries inside it, which travel with the directory: an entry beneath
@@ -256,7 +258,6 @@ def _retain_host(path: Path, destination: Path) -> list[str]:
             raise RetirementError("Git returned an escaping ignored output")
         entries.append(relative)
     moved: set[Path] = set()
-    retained: list[str] = []
     for relative in sorted(entries, key=lambda entry: entry.parts):
         if not moved.isdisjoint(relative.parents):
             continue
@@ -268,10 +269,9 @@ def _retain_host(path: Path, destination: Path) -> list[str]:
         if target.exists() or target.is_symlink():
             raise RetirementError(f"retained output already exists; review before resuming: {target}")
         target.parent.mkdir(parents=True, exist_ok=True)
+        retaining(str(target))
         source.rename(target)
         moved.add(relative)
-        retained.append(str(target))
-    return retained
 
 
 def _guest(record: LaneRecord, batch: str, root: Path) -> dict[str, object]:
@@ -536,7 +536,10 @@ def retire(root: Path, record: LaneRecord, revision: str, archive_root: Path) ->
 
     A durable receipt precedes removal. If interrupted after Git removes the checkout,
     a retry recognizes that receipt and still checks branch identity and ancestry.
-    Refusals preserve everything that has not already been safely archived.
+    The receipt names each host output before it moves, and a retry keeps the native
+    outputs an earlier pass moved, so a retirement interrupted while retaining still
+    records each output once. Refusals preserve everything that has not already been
+    safely archived.
     """
     validate_record(asdict(record))
     if not record.owned:
@@ -558,11 +561,28 @@ def retire(root: Path, record: LaneRecord, revision: str, archive_root: Path) ->
     destination.mkdir(parents=True, exist_ok=True)
     if present:
         _write(receipt_path, receipt)
-        receipt["native"] = _guest(record, batch, root)
+        # A resumed native pass no longer finds the outputs an earlier one moved: they
+        # stay recorded, ahead of those this pass moves, each once.
+        earlier = receipt.get("native")
+        native = _guest(record, batch, root)
+        if isinstance(earlier, dict) and earlier.get("retained"):
+            kept = cast(list[str], earlier["retained"])
+            added = [target for target in cast(list[str], native.get("retained", [])) if target not in kept]
+            native = {**native, "retained": kept + added}
+        receipt["native"] = native
         _write(receipt_path, receipt)
-        retained = list(cast(list[str], receipt.get("retained", [])))
-        retained.extend(_retain_host(Path(record.path), destination))
-        receipt["retained"] = retained
+        # Each host output is recorded once, before it moves, so a pass interrupted on
+        # either side of a rename resumes with its target named, and an output still in
+        # place moves to that target then; a target whose output had gone is dropped.
+        retained = cast(list[str], receipt.setdefault("retained", []))
+
+        def retaining(target: str) -> None:
+            if target not in retained:
+                retained.append(target)
+                _write(receipt_path, receipt)
+
+        _retain_host(Path(record.path), destination, retaining)
+        receipt["retained"] = [target for target in retained if os.path.lexists(target)]
         _check_identity(root, record, revision)
         _branch_safe(root, record, revision, removing=True)
         receipt["phase"] = "removing"

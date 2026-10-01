@@ -113,15 +113,83 @@ def _retain_nested_cache(interrupted: bool) -> None:
                and (saved / "tools" / ".ruff_cache" / ".gitignore").is_file()
                and (saved / "out" / "evidence.json").is_file(),
                f"the {'resumed' if interrupted else 'clean'} retention moves the directory with its entries")
+        recorded = [str(saved / "out"), str(saved / "tools" / ".ruff_cache")]
+        receipt = json.loads((Path(str(result["archive"])) / "retirement.json").read_text(encoding="utf-8"))
+        ensure(result["retained"] == recorded and receipt["retained"] == recorded,
+               f"the {'resumed' if interrupted else 'clean'} retention records each moved output once, "
+               f"got {result['retained']} and {receipt['retained']}")
 
 
 def _nested_ignored_directory() -> None:
     """Git lists a directory whose own `.gitignore` ignores `*`, as ruff's cache does,
     together with entries inside it: retention moves the directory once, with them; a
-    retention interrupted between two outputs resumes; and a target that existed
-    before the pass still refuses."""
+    retention interrupted between two outputs resumes, recording each output once,
+    those moved before the interruption among them; and a target that existed before
+    the pass still refuses."""
     for interrupted in (False, True):
         _retain_nested_cache(interrupted)
+
+
+def _output_gone_before_resume() -> None:
+    """An output named before a move the interruption prevented, and gone before the
+    resumed pass, is not recorded as retained."""
+    with (sandbox_tree({**FILES, "tools/keep.py": "# fixture\n"}) as root,
+          patch.object(retire, "_guest", return_value={})):
+        path, record, revision, archive = _worker(root)
+        cache = path / "tools" / ".ruff_cache"
+        cache.mkdir()
+        (cache / ".gitignore").write_text("*\n", encoding="utf-8")
+        receipt_path = retire._archive(root, record, archive)[0] / "retirement.json"
+        with patch.object(Path, "rename", _dies_moving_cache):
+            try:
+                retire.retire(root, record, revision, archive)
+            except OSError:
+                pass
+            else:
+                raise AssertionError("the interruption must occur")
+        target = str(receipt_path.parent / "checkout" / "tools" / ".ruff_cache")
+        saved = json.loads(receipt_path.read_text(encoding="utf-8"))
+        ensure(saved.get("retained") == [target] and cache.is_dir(),
+               f"precondition: the output is named before its move, got {saved}")
+        (cache / ".gitignore").unlink()
+        cache.rmdir()
+        result = retire.retire(root, record, revision, archive)
+        saved = json.loads(receipt_path.read_text(encoding="utf-8"))
+        ensure(result["status"] == "retired" and result["retained"] == [] and saved["retained"] == [],
+               f"an output gone before the resumed pass is not recorded, got {result['retained']}")
+
+
+def _native_receipt_survives_resume() -> None:
+    """A retirement interrupted after its native retention resumes with the native
+    outputs that pass moved still recorded: the resumed native pass no longer finds
+    them, so its own evidence is added after theirs, each output once, even one both
+    passes name, and the outputs it defers, which stay in place, are the ones it
+    reports."""
+    moved_to = "/native/fanout-retained/b/worker"
+    lane, log = f"{moved_to}/lane", f"{moved_to}/logs/model-build-worker.log"
+    first = {"archive": moved_to, "retained": [lane], "deferred": []}
+    later = {"archive": first["archive"], "retained": [log, lane],
+             "deferred": [{"path": "/native/logs/legacy-worker.log", "reason": "unrecognized output layout"}]}
+    with (sandbox_tree(FILES) as root,
+          patch.object(retire, "_guest", side_effect=[dict(first), dict(later)]) as native):
+        path, record, revision, archive = _worker(root)
+        receipt_path = retire._archive(root, record, archive)[0] / "retirement.json"
+        with patch.object(retire, "_retain_host", side_effect=OSError("simulated process death")):
+            try:
+                retire.retire(root, record, revision, archive)
+            except OSError:
+                pass
+            else:
+                raise AssertionError("the interruption must occur")
+        saved = json.loads(receipt_path.read_text(encoding="utf-8"))
+        ensure(path.exists() and saved["native"] == first,
+               f"precondition: the interrupted pass recorded its native outputs, got {saved}")
+        result = retire.retire(root, record, revision, archive)
+        saved = json.loads(receipt_path.read_text(encoding="utf-8"))
+        expected = {**later, "retained": [lane, log]}
+        ensure(native.call_count == 2 and result["status"] == "retired"
+               and result["native"] == expected and saved["native"] == expected,
+               f"the resumed receipt keeps the native outputs the first pass moved, got {result['native']}")
 
 
 def _dirty_and_unintegrated() -> None:
@@ -978,27 +1046,30 @@ def _python_flock_sites(name: str, text: str) -> set[tuple[str, str]]:
     return sites
 
 
-# POSIX record locks: `lockf` and `fcntl`'s `F_SETLK` family. A record lock and a
-# `flock` on one file neither exclude each other nor are taken by the retirement.
-_RECORD_LOCKS = frozenset({"lockf", "F_SETLK", "F_SETLKW", "F_OFD_SETLK", "F_OFD_SETLKW"})
-_RECORD_LOCK = re.compile(r"\b(?:lockf|F_(?:OFD_)?SETLKW?)\b")
+# POSIX record locks: `lockf` and `fcntl`'s `F_SETLK` family, with the large-file
+# spellings glibc declares, `lockf64`, `F_SETLK64` and `F_SETLKW64`, the last two of
+# which Python's `fcntl` also exports; `F_OFD_SETLK` and `F_OFD_SETLKW` have none. A
+# record lock and a `flock` on one file neither exclude each other nor are taken by
+# the retirement.
+_RECORD_LOCKS = frozenset({"lockf", "lockf64", "F_SETLK", "F_SETLKW", "F_SETLK64", "F_SETLKW64",
+                           "F_OFD_SETLK", "F_OFD_SETLKW"})
+_RECORD_LOCK = re.compile(r"\b(?:lockf(?:64)?|F_(?:OFD_)?SETLKW?(?:64)?)\b")
 
 
 def _python_record_locks(name: str, text: str) -> list[str]:
     """Each reference to a POSIX record lock in one Python source: an attribute or a
-    name spelled as one, a name an import from `fcntl` or `os` binds to one, or a
-    string other than a docstring that names one."""
+    name spelled as one, an import of one from any module, reported at the import
+    whatever name it binds, or a string other than a docstring that names one."""
     tree = ast.parse(text)
-    bound = _RECORD_LOCKS | {alias.asname for node in ast.walk(tree)
-                             if isinstance(node, ast.ImportFrom) and node.module in {"fcntl", "os"}
-                             for alias in node.names if alias.name in _RECORD_LOCKS and alias.asname}
     docstrings = _docstrings(tree)
     found: list[str] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Attribute):
             spelled = node.attr in _RECORD_LOCKS
         elif isinstance(node, ast.Name):
-            spelled = node.id in bound
+            spelled = node.id in _RECORD_LOCKS
+        elif isinstance(node, ast.alias):
+            spelled = node.name in _RECORD_LOCKS
         elif isinstance(node, ast.Constant) and id(node) not in docstrings:
             value = node.value.decode("latin-1") if isinstance(node.value, bytes) else node.value
             spelled = isinstance(value, str) and _RECORD_LOCK.search(value) is not None
@@ -1041,16 +1112,20 @@ def _shell_code(text: str) -> str:
     return "".join(kept)
 
 
-# Every redirect of a descriptor: its operator, here-document, clobbering and
-# duplicating ones among them, and its whole target word, quoted parts and the bare
-# text joined to them.
+# The redirects of a descriptor the scan reads, each with its operator, here-document,
+# clobbering and duplicating ones among them, and its whole target word, quoted parts
+# and the bare text joined to them; `_SHELL_DESCRIPTOR` counts every redirect of the
+# descriptor, among them one whose word this cannot match, such as a process
+# substitution's `9< <(cmd)`.
 _SHELL_REDIRECT = r"(?<![\w&$]){fd}(<<<|<<-|<<|>>|>\||<>|>&|<&|>|<)[ \t]*((?:\"[^\"]*\"|'[^']*'|[^\s;&|)<>\"'])+)"
+_SHELL_DESCRIPTOR = r"(?<![\w&$]){fd}[<>]"
 
 
 def _shell_flock_sites(text: str) -> tuple[set[str], list[str]]:
     """The descriptors a script flocks in the recognized form, each opened only by `>`,
-    `>>`, `<` or `<>` on a word that is one double-quoted `*.lock` path, and every other
-    `flock` outside comments, unclassified."""
+    `>>`, `<` or `<>` on a word that is one double-quoted `*.lock` path, and, unclassified,
+    every other `flock` outside comments, among them one whose descriptor has a redirect
+    the scan cannot read."""
     code = _shell_code(text)
     descriptors: set[str] = set()
     unclassified: list[str] = []
@@ -1063,6 +1138,9 @@ def _shell_flock_sites(text: str) -> tuple[set[str], list[str]]:
         fd = form.group(1)
         redirects = [(found.group(1), found.group(2))
                      for found in re.finditer(_SHELL_REDIRECT.format(fd=fd), code)]
+        if len(re.findall(_SHELL_DESCRIPTOR.format(fd=fd), code)) != len(redirects):
+            unclassified.append(f"line {line}: descriptor {fd} has a redirect the scan cannot read")
+            continue
         other = sorted({operator for operator, _ in redirects} - {">", ">>", "<", "<>"})
         if other:
             unclassified.append(f"line {line}: descriptor {fd} is redirected by {', '.join(other)}")
@@ -1112,9 +1190,10 @@ def _c_flock_calls(text: str) -> int | None:
     return calls if calls == len(_FLOCK.findall(code)) else None
 
 
-# What a `flock(` count cannot read: a POSIX record lock, and the `flock` system call
-# reached by its number, which `\bflock\b` does not match.
-_C_UNREAD_LOCK = re.compile(r"\blockf\b|\bF_(?:OFD_)?SETLKW?\b|\b(?:SYS|__NR)_flock\b")
+# What a `flock(` count cannot read: a POSIX record lock, in its large-file spelling
+# too, and the `flock` system call reached by its number, which `\bflock\b` does not
+# match.
+_C_UNREAD_LOCK = re.compile(r"\blockf(?:64)?\b|\bF_(?:OFD_)?SETLKW?(?:64)?\b|\b(?:SYS|__NR)_flock\b")
 
 
 def _c_unread_locks(text: str) -> int:
@@ -1126,7 +1205,10 @@ def _c_unread_locks(text: str) -> int:
 def _campaign_lock(text: str) -> str | None:
     """The target, as source, of the `hold_lock` that a module's `run` holds across its
     whole body, or `None` unless every statement after its docstring sits inside one
-    `with ... hold_lock(<target>, ...)`."""
+    `with` whose first item is `hold_lock(<target>, ...)`, and every `--blkdev-image*`
+    string the module spells sits in that `with`'s body: a `with` enters its items left
+    to right, so an item before the lock runs unheld, and a block image passed from
+    anywhere else can be launched without the lock."""
     tree = ast.parse(text)
     run = next((node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "run"), None)
     if run is None:
@@ -1138,18 +1220,23 @@ def _campaign_lock(text: str) -> str | None:
     block = body[0] if len(body) == 1 else None
     if not isinstance(block, ast.With):
         return None
-    for item in block.items:
-        held = item.context_expr
-        if (isinstance(held, ast.Call) and isinstance(held.func, ast.Attribute)
-                and held.func.attr == "hold_lock" and held.args):
-            return ast.unparse(held.args[0])
-    return None
+    held = block.items[0].context_expr
+    if not (isinstance(held, ast.Call) and isinstance(held.func, ast.Attribute)
+            and held.func.attr == "hold_lock" and held.args):
+        return None
+    inside = {id(node) for statement in block.body for node in ast.walk(statement)}
+    if any(isinstance(node, ast.Constant) and isinstance(node.value, str)
+           and node.value.startswith("--blkdev-image") and id(node) not in inside
+           for node in ast.walk(tree)):
+        return None
+    return ast.unparse(held.args[0])
 
 
 def _producer_lock_scanners_fail_closed() -> None:
     """A Python `flock` bound by import or named by any string but a docstring is a
     site, a shell or C `flock` outside the one recognized form is reported rather than
-    passed over, and so is a POSIX record lock or a numbered `flock` system call."""
+    passed over, and so is a POSIX record lock, in its large-file spelling too, or a
+    numbered `flock` system call."""
     for text, owner in (("from fcntl import flock as grab\ndef take(fd):\n    grab(fd, 2)\n", "take"),
                         ("from fcntl import *\ndef take(fd):\n    flock(fd, 2)\n", "take"),
                         ("import subprocess\ndef run(path):\n"
@@ -1177,6 +1264,7 @@ def _producer_lock_scanners_fail_closed() -> None:
                  '(\n    flock -x 9\n) 9>"$d/work.lock"\n: 9>|"$d/state.json"\n',
                  '(\n    flock -x 9\n) 9>"$d/work.lock" 9>&3\n',
                  '(\n    flock -x 9\n) 9>"$d/work.lock" 9<<END\nEND\n',
+                 '(\n    flock -x 9\n) 9>"$d/work.lock" 9< <(cat "$d/state.json")\n',
                  'command -v flock >/dev/null\n'):
         descriptors, unclassified = _shell_flock_sites(text)
         ensure(len(unclassified) == 1 and not descriptors,
@@ -1187,21 +1275,29 @@ def _producer_lock_scanners_fail_closed() -> None:
            "the C scan counts a call and skips comments")
     ensure(_c_flock_calls('auto take = flock; const char *s = "flock";\n') is None,
            "the C scan reports a flock it cannot read as a call")
-    for text in ("import fcntl\ndef take(fd):\n    fcntl.lockf(fd, fcntl.LOCK_EX)\n",
-                 "import os\ndef take(fd):\n    os.lockf(fd, os.F_LOCK, 0)\n",
-                 "import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLK, record)\n",
-                 "import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLKW, record)\n",
-                 "from fcntl import F_OFD_SETLK as SET, fcntl\ndef take(fd, record):\n    fcntl(fd, SET, record)\n",
-                 "from fcntl import *\ndef take(fd, record):\n    fcntl(fd, F_OFD_SETLKW, record)\n",
-                 "import ctypes\ndef take(fd):\n    getattr(ctypes.CDLL(None), 'lockf')(fd, 1, 0)\n"):
+    for text, line in (("import fcntl\ndef take(fd):\n    fcntl.lockf(fd, fcntl.LOCK_EX)\n", 3),
+                       ("import os\ndef take(fd):\n    os.lockf(fd, os.F_LOCK, 0)\n", 3),
+                       ("import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLK, record)\n", 3),
+                       ("import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLKW, record)\n", 3),
+                       ("from fcntl import F_OFD_SETLK as SET, fcntl\ndef take(fd, record):\n"
+                        "    fcntl(fd, SET, record)\n", 1),
+                       ("from fcntl import *\ndef take(fd, record):\n    fcntl(fd, F_OFD_SETLKW, record)\n", 3),
+                       ("import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLK64, record)\n", 3),
+                       ("from fcntl import F_SETLKW64 as WAIT, fcntl\ndef take(fd, record):\n"
+                        "    fcntl(fd, WAIT, record)\n", 1),
+                       ("from posix import lockf as grab\ndef take(fd):\n    grab(fd, 1, 0)\n", 1),
+                       ("import ctypes\ndef take(fd):\n    getattr(ctypes.CDLL(None), 'lockf')(fd, 1, 0)\n", 3),
+                       ("import ctypes\ndef take(fd):\n    ctypes.CDLL(None).lockf64(fd, 1, 0)\n", 3)):
         found = _python_record_locks("probe.py", text)
-        ensure(len(found) == 1 and found[0].startswith("probe.py:3: "),
-               f"the Python scan must report the record lock in {text!r}, got {found}")
+        ensure(found == [f"probe.py:{line}: a POSIX record lock"],
+               f"the Python scan must report the record lock in {text!r} at line {line}, got {found}")
     ensure(_python_record_locks("probe.py", '"""lockf and F_SETLK are described."""\n'
                                             "import fcntl\ndef take(fd):\n    fcntl.flock(fd, 2)\n") == [],
            "a docstring naming a record lock, and a flock, are no record locks")
     for text, count in (("int f(int fd) { return lockf(fd, F_LOCK, 0); }\n", 1),
+                        ("int f(int fd) { return lockf64(fd, F_LOCK, 0); }\n", 1),
                         ("fcntl(fd, F_SETLK, &l); fcntl(fd, F_SETLKW, &l);\n", 2),
+                        ("struct flock64 l; fcntl(fd, F_SETLK64, &l); fcntl(fd, F_SETLKW64, &l);\n", 2),
                         ("fcntl(fd, F_OFD_SETLK, &l); fcntl(fd, F_OFD_SETLKW, &l);\n", 2),
                         ("syscall(SYS_flock, fd, 2); syscall(__NR_flock, fd, 8);\n", 2),
                         ("/* lockf(fd), F_SETLK */ int fd; // syscall(SYS_flock, fd, 2)\n", 0)):
@@ -1210,11 +1306,24 @@ def _producer_lock_scanners_fail_closed() -> None:
                           '    with env.hold_lock(output.parent / "persistence", "x"):\n'
                           '        launch(output)\n') == "output.parent / 'persistence'",
            "a run whose whole body sits inside its lock names the lock's target")
+    ensure(_campaign_lock('def run(root, output):\n    with env.hold_lock(output, "x"), open(output) as stream:\n'
+                          '        launch(stream)\n') == "output",
+           "an item after the lock enters with it held")
+    ensure(_campaign_lock('def run(root, output):\n    with env.hold_lock(output, "x"):\n'
+                          '        def execute(image):\n            emulate(["--blkdev-image", image])\n'
+                          '        execute(output)\n') == "output",
+           "a block image passed from inside the lock is held")
     for text in ('def run(root, output):\n    launch(output)\n'
                  '    with env.hold_lock(output, "x"):\n        launch(output)\n',
                  'def run(root, output):\n    with open(output) as stream:\n        launch(stream)\n',
-                 'def other(root, output):\n    with env.hold_lock(output, "x"):\n        launch(output)\n'):
-        ensure(_campaign_lock(text) is None, f"a run not wholly inside a lock holds none: {text!r}")
+                 'def run(root, output):\n    with launch(output), env.hold_lock(output, "x"):\n        launch(output)\n',
+                 'def other(root, output):\n    with env.hold_lock(output, "x"):\n        launch(output)\n',
+                 'def launch(output):\n    emulate(["--blkdev-image-create", output])\n'
+                 'def run(root, output):\n    with env.hold_lock(output, "x"):\n        launch(output)\n',
+                 'IMAGE = "--blkdev-image"\ndef run(root, output):\n'
+                 '    with env.hold_lock(output, "x"):\n        emulate([IMAGE, output])\n'):
+        ensure(_campaign_lock(text) is None,
+               f"a run not wholly inside a lock, or a block image outside it, holds none: {text!r}")
 
 
 def _producer_lock_inventory() -> None:
@@ -1263,7 +1372,8 @@ def _producer_lock_inventory() -> None:
            f"only the persistence campaign passes the emulator a block image, got {launchers}")
     held = _campaign_lock((TOOLS / "vos" / "block_persistence.py").read_text(encoding="utf-8"))
     ensure(held == "output.parent / 'persistence'",
-           f"block_persistence.run must hold its output directory's persistence.lock across its whole body, got {held}")
+           "block_persistence.run must hold its output directory's persistence.lock across its whole body, "
+           f"and spell every block image inside it, got {held}")
     callers = 0
     for path in sources:
         tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -1302,6 +1412,8 @@ def cases() -> list[Case]:
             Case("changed-identity-and-locked", _changed_identity_and_locked),
             Case("host-owned-and-outside", _host_owned_and_outside),
             Case("nested-repository", _nested_repository),
+            Case("output-gone-before-resume", _output_gone_before_resume),
+            Case("native-receipt-survives-resume", _native_receipt_survives_resume),
             Case("interrupted-after-git-remove", _interrupted_after_git_remove),
             Case("branch-moved-after-removal", _branch_moved_after_removal),
             Case("missing-without-receipt", _missing_without_receipt),
