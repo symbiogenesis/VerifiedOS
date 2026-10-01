@@ -60,3 +60,16 @@ def sites(name: str, lines: list[int], cap: int = 12) -> str:
     shown = (", ".join(str(n) for n in lines[:cap]) + f", and {len(lines) - cap} more"
              if len(lines) > cap else ", ".join(str(n) for n in lines))
     return f"{name}: {len(lines)} line(s): {shown}"
+
+
+def apart(ref: str, commit: str) -> tuple[str, str]:
+    """Two revisions quoted at twelve digits, or one past what two different ones share.
+
+    A finding naming both then never prints one id for two different commits; equal ones
+    keep twelve, the finding then being about something other than the commit.
+    """
+    if ref == commit:
+        return ref[:12], commit[:12]
+    shown = max(12, next((i + 1 for i, (a, b) in enumerate(zip(ref, commit, strict=False))
+                          if a != b), min(len(ref), len(commit)) + 1))
+    return ref[:shown], commit[:shown]

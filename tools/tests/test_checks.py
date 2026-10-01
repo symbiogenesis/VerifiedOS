@@ -1453,6 +1453,25 @@ def _k88_device_register_stamp_is_held_whole_and_fail_closed() -> None:
                f"each broken reading is one finding naming it: {found!r}")
 
 
+def _k88_device_register_moved_gitlink_is_quoted_apart_from_its_stamp() -> None:
+    # The stamp off its gitlink is quoted beside it at twelve digits, or as far as the
+    # two must run to differ, so a gitlink sharing the stamp's first twelve digits and
+    # differing in its last prints two distinct ids.
+    mocha = _K115_SHA
+    files = {**_K88_OWNERS, device_regs.ARTIFACT: _k88_device_header(mocha)}
+    last = f"{mocha[:-1]}8"
+    middle = f"{mocha[:19]}f{mocha[20:]}"
+    for moved, stated, carried in (
+            (last, mocha, last),
+            (middle, mocha[:20], middle[:20]),
+            ("f" * 40, "0123456789ab", "ffffffffffff")):
+        found = _k88_device_regs(files, {device_regs.UPSTREAM: moved})
+        quoted = (f"{device_regs.ARTIFACT} records its owners at {stated} and the index "
+                  f"carries {device_regs.UPSTREAM} at {carried};")
+        ensure(len(found) == 1 and quoted in found[0],
+               f"a moved gitlink is quoted apart from the stamp ({quoted}): {found!r}")
+
+
 def _k88_device_register_is_decided_on_the_host_but_its_uart_values() -> None:
     mocha = "d" * 40
     header = _k88_device_header(mocha)
@@ -1851,6 +1870,8 @@ def cases() -> list[Case]:
              _k116_moved_gitlink_is_quoted_apart_from_its_binding),
         Case("k88-device-register-stamp-is-held-whole-and-fail-closed",
              _k88_device_register_stamp_is_held_whole_and_fail_closed),
+        Case("k88-device-register-moved-gitlink-is-quoted-apart-from-its-stamp",
+             _k88_device_register_moved_gitlink_is_quoted_apart_from_its_stamp),
         Case("k88-device-register-is-decided-on-the-host-but-its-uart-values",
              _k88_device_register_is_decided_on_the_host_but_its_uart_values),
         Case("k88-foreign-library-is-a-finding", _k88_foreign_library_is_a_finding),

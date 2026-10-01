@@ -275,6 +275,7 @@ from vos import corpus as corpus_mod
 from vos import pins as pins_mod
 from vos import rtl_width, toolenv
 from vos.checks import generated
+from vos.report import apart as _apart
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -856,19 +857,6 @@ def _tool_rows(text: str, findings: list[str]) -> dict[str, tuple[int, str]]:
             continue
         rows[tool] = (base + offset, line)
     return rows
-
-
-def _apart(ref: str, commit: str) -> tuple[str, str]:
-    """Two revisions quoted at twelve digits, or one past what two different ones share.
-
-    A finding naming both then never prints one id for two different commits; equal ones
-    keep twelve, the finding then being about their releases.
-    """
-    if ref == commit:
-        return ref[:12], commit[:12]
-    shown = max(12, next((i + 1 for i, (a, b) in enumerate(zip(ref, commit, strict=False))
-                          if a != b), min(len(ref), len(commit)) + 1))
-    return ref[:shown], commit[:shown]
 
 
 def _workflow_pins(ctx: Context) -> None:
