@@ -16,7 +16,8 @@
 # only downloads are cached. K-67 checks dependency pins; K-75 checks the Python floor.
 #
 # Per-member JSON in runner.temp supplies failure annotations and the job summary.
-# Reporting is diagnostic; the gate step owns the job's verdict.
+# Reporting is diagnostic; the gate, workflow-analysis and model-hook steps own the
+# job's verdict.
 
 name: host-gates
 # A blank run-name selects GitHub's own title.
@@ -222,7 +223,8 @@ jobs:
                   summary.write(f"### Host gates: {label}\n\nAll shards must pass.\n\n"
                                 + "\n".join(rows) + "\n")
           except Exception as err:
-              # Reporting is diagnostic; the gate step owns the job's verdict.
+              # Reporting is diagnostic; the gate, workflow-analysis and model-hook
+              # steps own the job's verdict.
               annotate("warning", f"Could not render gate results: {err!r}")
 
   # fanout_ci.HOST_JOBS in tools/vos/fanout_ci.py owns these job names; renaming one
