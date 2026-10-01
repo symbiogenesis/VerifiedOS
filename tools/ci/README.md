@@ -438,8 +438,9 @@ commit; given the closing commit by `--closing` and the paths its owning item's 
 landing names by `--closing-path`, it reads that commit's own diff over the route
 inputs at R and at the closing commit, so a module a named path newly imports is one,
 and prints those paths. It refuses as closing evidence a run whose verdict is not
-passed or where a comparison does not hold, a closing parent given beside the closing
-commit that is not that commit's first parent, a closing commit that touches a route input
+passed or where a comparison does not hold, a build artifact holding no export, a
+closing parent given beside the closing commit that is not that commit's first parent,
+a closing commit that touches a route input
 other than the tracked lock, its SHA-256 equal to the artifact's export, and the named
 paths, and a run with a `base_revision` whose sample is not 20 or whose subject is not
 seed's default. The route inputs are the workflow, bootstrap_instrument.py,

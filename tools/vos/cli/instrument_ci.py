@@ -714,7 +714,10 @@ def closing_evidence(checkout: Path, report: dict[str, object], plan: dict[str, 
     exported = build.get("export") if build is not None else None
     recorded = route.as_object(exported).get("sha256") if isinstance(exported, dict) else None
     artifact = by_key.get("build")
-    if artifact is not None and (artifact / route.EXPORT).is_file():
+    if artifact is None or not (artifact / route.EXPORT).is_file():
+        refusals.append(f"the build artifact holds no {route.EXPORT}, so no tracked lock "
+                        "can be held to it")
+    else:
         digest = receipts.digest(artifact / route.EXPORT)
         if digest != recorded:
             refusals.append(f"the artifact's export has SHA-256 {digest}, the receipt "

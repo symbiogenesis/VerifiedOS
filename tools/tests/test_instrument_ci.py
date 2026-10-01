@@ -440,6 +440,12 @@ def _reader_reproduces_and_compares() -> None:
                                paths=("tools/vos/env.py",))
         ensure(held and "== closing evidence: holds" in lines,
                f"the closing commit's first parent named as the parent holds: {lines!r}")
+        (build / route.EXPORT).unlink()
+        lines, held, _ = _read(root, run, jobs, artifacts, parent=tip)
+        ensure("== closing evidence: refused" in lines
+               and any(f"holds no {route.EXPORT}" in line for line in lines),
+               f"a build artifact without its export is no closing evidence: {lines!r}")
+        (build / route.EXPORT).write_bytes(export)
         tampered = dict(report, verdict="failed")
         (artifacts / f"instrument-join-{tip}" / route.REPORT).write_text(
             json.dumps(tampered), encoding="utf-8")
