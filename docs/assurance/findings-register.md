@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 890 of them across 150 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 895 of them across 152 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1227,7 +1227,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-570** owed-act: `quickchick properties` and `quickchick check` fall back to the CertiRocq switch at Rocq 9.1.1, so K-117 carries a second 9.1.1 row over Properties.v's closure that Q38f's Check does not expect, and `seed coq --quickchick` still compiles every proof source at 9.1.1
 · Raised: Q38e
-· Disposition: open, Q38f
+· Disposition: open, Q38h for `seed coq --quickchick`'s compile of every proof source, and Q38f for the fallback to the CertiRocq switch
 
 **F-571** owed-act: Vectors.v's header says Properties.v needs an install this repository has not made, and Properties.v's header names the undeclared switch `quickchick-9.1.1`
 · Raised: Q38e
@@ -1273,6 +1273,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q38g
 · Disposition: closed at Q38l, its contract deferring them in Q38g's Check until a check site the user permits
 
+**F-610** owed-act: K-117 holds every proof source while `seed coq --quickchick` compiles every one in QuickChick's Rocq 9.1.1 switch, so no authored source may take Rocq 9.3's syntax until that compile narrows or QuickChick's switch moves
+· Raised: Q38h
+· Disposition: open, Q38h holding that compile to `Properties.v`'s `Require` closure
+
+**F-611** method: Q38i's retired-instruction procedure has no permitted site while guest runs are excluded, and Guest CI's wall times over the same sources vary by up to 71% between runs
+· Raised: Q38h
+· Disposition: standing, a cost claim about a rewrite that leaves every statement and transparent body as elaborated and Q38i's evaluation sites untouched resting on that identity
+
 **F-578** measurement: Q38i's cast clause and its Check's compile fall cannot both hold in ArithmeticComposition.v, CredentialHandles.v, InferenceAdmission.v and TwoSourceExtractor.v, whose 16 such proofs evaluate goals too small for a fall beyond single-run noise, and the cast raised ArithmeticComposition.v's recheck by 2.8% in two single runs
 · Raised: Q38i
 · Disposition: standing, the four modules keeping their scripts
@@ -1299,7 +1307,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-584** measurement: single-run retired-instruction figures of unchanged small modules moved by up to 0.75% in compile and 0.62% in recheck between two sets, so a 0.1% or 1% threshold is decidable for a module under about 10e9 instructions only by repeated interleaved runs
 · Raised: Q38i
-· Disposition: open, Q38h and Q38j
+· Disposition: open, Q38j, Q38h taking no retired-instruction figure (F-611)
 
 **F-585** measurement: a rerun of the dated ML-KEM mutation campaign's definitions-only compile would evaluate Q38i's seven literals under every mutant and PqArith's proof oracle would kill through the literal lemmas, although all 17 recorded selections name the same mutants
 · Raised: Q38i
@@ -1312,6 +1320,18 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-587** measurement: `wait4` peaks of small `rocqchk` processes read 129 to 131 MiB in two sets and 46 MiB in a third for the same modules, and Sha256.v's rose from 1,458,428 KB to 1,626,180 KB at equal instructions
 · Raised: Q38i
 · Disposition: open, Q38j
+
+**F-612** measurement: three full rechecks of the same 57 sources on Guest CI's proofs runner took 152.67 to 246.83 s to compile and audit and 725.79 to 1,242.86 s to recheck
+· Raised: Q38j
+· Disposition: standing, Q38j holding each run to its own replay of the wave schedule
+
+**F-613** measurement: Guest CI's 16 GB proofs runner checks every module in one kernel worker, whose peak of 10,030,124 KiB sits 4.3% under the 10 GiB budget
+· Raised: Q38j
+· Disposition: standing, a per-component kernel budget, the one route to two workers there, owned by no item
+
+**F-614** measurement: a model weighted by Q38i's compile retired instructions puts a dependency schedule 11.3% below the wave schedule at the runner's 4 compile workers and 22.1% below at the profiling guest's 12
+· Raised: Q38j
+· Disposition: standing, the compile and audit phase being 16 to 17% of a full recheck's wall time on the runner
 
 **F-566** owed-act: no register entry owns the response to a known inconsistency of the locked prover; the lexical refusals covering #22287, #22387 and #22510, and Q38k's for #22386 and #22389, stand on the lock guide's prose and the audit's code, while R-05-018a's acceptance rests on the compile, the R-05-163 audit and `rocqchk`, which R-05-016a records as sharing the kernel's defects
 · Raised: Q38k
