@@ -22,17 +22,16 @@ the Rupicola lowering names its default owner. `seed coq --quickchick` compiles 
 closure of its harness and the walk harness beside it alone and refuses a subject
 outside the first's, so its row holds the two harnesses and the rig's support harnesses,
 each with its closure, which today lie inside the first harness's. Each switch and
-release is the instrument's own constant, imported, or, where it has none to import, the
-literal in its own file or the rig's constant that file's top-level import binds under a
-name nothing else there binds, read by name out of that file's syntax tree, and so is a
-proof source the instrument names. The rows
-older than 9.3.0 decide the set, and each harness or named source brings its `Require`
-closure, read by [vos/proofs.py](../proofs.py)'s own reader over the proofs directory
-and the harness's directory as one namespace, because that is how every row stages
-them: the rig roots both at the empty logical path, and the recipes copy the proof
-beside the harness. The dated campaigns under `proofs/campaigns/` are not rows. A row
-that states no release is held older than 9.3.0, since a release nobody states is one
-nobody can say admits the forms.
+release is the instrument's own constant, imported, or, where it has none to import,
+the literal in its own file or the rig's constant that file's top-level import binds
+under a name nothing else there binds, read by name out of that file's syntax tree,
+and so is a proof source the instrument names. The rows older than 9.3.0 decide
+the set, and each harness or named source brings its `Require` closure, read by
+[vos/proofs.py](../proofs.py)'s own reader over the proofs directory and the harness's
+directory as one namespace, because that is how every row stages them: the rig roots both
+at the empty logical path, and the recipes copy the proof beside the harness. The dated
+campaigns under `proofs/campaigns/` are not rows. A row that states no release is held
+older than 9.3.0, since a release nobody states is one nobody can say admits the forms.
 
 **The table's own membership is held too.** Every module under `tools/vos/` that resolves
 a prover through `gallina.prover` has to be some row's `selects`, so an instrument added
