@@ -272,7 +272,11 @@ def _refused_installation_rebuilt() -> None:
             ("changed", lambda: binary.write_text("edited", encoding="utf-8")),
             ("missing", binary.unlink),
             ("unreadable", lambda: receipt.write_text(receipt.read_text(encoding="utf-8")[:40],
-                                                      encoding="utf-8")))
+                                                      encoding="utf-8")),
+            # JSON of the current recipe that lacks the fields status reports.
+            ("unreadable", lambda: receipt.write_text(
+                json.dumps({"lock_sha256": saillsp.lock_identity(root)}), encoding="utf-8")),
+            ("unreadable", lambda: receipt.write_text("[]", encoding="utf-8")))
         for problem, damage in damages:
             damage()
             try:

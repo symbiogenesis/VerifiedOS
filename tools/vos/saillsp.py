@@ -124,6 +124,10 @@ def _fresh(directory: Path) -> Path:
     return directory
 
 
+def _unreadable(reason: str) -> ValueError:
+    return ValueError(f"optional Sail LSP receipt is unreadable ({reason}); run sail-lsp install")
+
+
 def status(e: env.Environment) -> dict[str, Any]:
     receipt = home(e) / "installation.json"
     result: dict[str, Any] = {"schema_version": 1, "operation": "status", "notice": NOTICE,
@@ -133,19 +137,30 @@ def status(e: env.Environment) -> dict[str, Any]:
     try:
         raw = json.loads(receipt.read_text(encoding="utf-8"))
     except ValueError as exc:
-        raise ValueError(f"optional Sail LSP receipt is unreadable ({exc}); run sail-lsp install") from exc
+        raise _unreadable(str(exc)) from exc
+    if not isinstance(raw, dict):
+        raise _unreadable("not a JSON object")
     if raw.get("lock_sha256") != lock_identity(e.root):
         raise ValueError("optional Sail LSP installation is stale; run sail-lsp install")
-    for relative, digest in raw["artifacts"].items():
+    # A receipt lacking a field status reports is refused here, not left to raise a
+    # KeyError that install would not treat as a refusal it repairs.
+    artifacts, elapsed, log = raw.get("artifacts"), raw.get("elapsed_seconds"), raw.get("log")
+    if not isinstance(artifacts, dict) or "prefix/bin/sail_lsp" not in artifacts:
+        raise _unreadable("no artifacts object recording prefix/bin/sail_lsp")
+    if isinstance(elapsed, bool) or not isinstance(elapsed, (int, float)) or not elapsed >= 0:
+        raise _unreadable("no non-negative elapsed_seconds")
+    if not isinstance(log, str):
+        raise _unreadable("no log path")
+    for relative, digest in artifacts.items():
         path = home(e) / relative
         if not path.is_file():
             raise ValueError(f"optional Sail LSP artifact missing: {relative}; run sail-lsp install")
         if not path.resolve().is_relative_to(home(e).resolve()) or sha256(path) != digest:
             raise ValueError(f"optional Sail LSP artifact changed: {relative}; run sail-lsp install")
     result.update(installed=True, lock_sha256=raw["lock_sha256"],
-                  server_sha256=raw["artifacts"]["prefix/bin/sail_lsp"],
-                  artifact_count=len(raw["artifacts"]), receipt=str(receipt),
-                  install_seconds=raw["elapsed_seconds"], log=raw["log"])
+                  server_sha256=artifacts["prefix/bin/sail_lsp"],
+                  artifact_count=len(artifacts), receipt=str(receipt),
+                  install_seconds=elapsed, log=log)
     return result
 
 
