@@ -357,6 +357,20 @@ def _verify_test_corpus() -> None:
         refused("non-regular")
 
 
+def _verified_inputs_are_the_suites_top_level_programs() -> None:
+    """The inputs chosen from a suite that verified are the files at its top whose names
+    the pattern matches, each with the digest its verification read: not the `.dump`
+    disassembly beside one, which the pattern matches too, and not a file in a
+    subdirectory, whose path the pattern also matches since a glob's `*` matches `/`."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF", "rv64ui-p-add.dump": b"d",
+                                      "rv64ui-p-dir/rv64ui-p-nested": b"\x7fELF n"})
+        verified = _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
+        chosen = _MODEL._verified_inputs(verified, "rv64ui-p-*")
+    ensure(chosen == {suite / "rv64ui-p-add": hashlib.sha256(b"\x7fELF").hexdigest()},
+           f"only the top-level program is an input, got {chosen}")
+
+
 def _seed_test_data() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
@@ -1664,6 +1678,8 @@ def cases() -> list[Case]:
         Case("corpus-listing-format", _corpus_listing_format),
         Case("corpus-digests", _corpus_digests),
         Case("verify-test-corpus", _verify_test_corpus),
+        Case("verified-inputs-are-the-suites-top-level-programs",
+             _verified_inputs_are_the_suites_top_level_programs),
         Case("seed-test-data", _seed_test_data),
         Case("seed-test-data-refuses-unverified", _seed_test_data_refuses_unverified),
         Case("seed-refuses-a-device-donor", _seed_refuses_a_device_donor),
