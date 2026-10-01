@@ -1771,6 +1771,14 @@ CASES: list[Case] = [
     ("K-118", "an opam snapshot release its development-tool row does not state",
      _first_match("tools/opam/sail.lock", r'"zarith\.([^"]+)"',
                   lambda m: f'"zarith.{m[1]}.1"')),
+    # Both directions through the CertiRocq snapshot's rows, which read each package's
+    # backticked release by its name: an OCaml library moves in the lock while its row
+    # stays, and the row's release moves while the lock stays.
+    ("K-118", "a CertiRocq snapshot release its development-tool row does not state",
+     _first_match("tools/opam/certirocq.lock", r'"yojson\.([^"]+)"',
+                  lambda m: f'"yojson.{m[1]}.1"')),
+    ("K-118", "a CertiRocq snapshot row stating a release its lock does not fix",
+     _first_match(THIRD_PARTY, r"yojson `(\d[^`]*)`", lambda m: f"yojson `{m[1]}.1`")),
     # A licence reading's tag list gains a tag in a form the list's reading cannot take:
     # every other tag still agrees with the switches, so only a list read item by item,
     # with an unreadable item a finding, keeps the row from passing over it unread.
