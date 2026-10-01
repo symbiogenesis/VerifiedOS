@@ -15,11 +15,11 @@ any other ready module within the worker limit, under one directory lock. The lo
 gives each compiled module's start and end in seconds from the phase's start, and the
 phase's line gives beside its wall seconds the makespan a wave schedule, each
 dependency wave finishing before the next starts, would take over those seconds at
-the same limit. Unchanged
-compiled products are reused from successful receipts; changed dependencies invalidate
-their consumers. Audits and kernel verdicts are reused for the same checked bytes.
-Independent dependency components are kernel-checked in bounded parallel batches,
-with one worker also checking the joint environment; --fresh disables reuse from prior runs.
+the same limit. Unchanged compiled products are reused from successful receipts;
+changed dependencies invalidate their consumers. Audits and kernel verdicts are
+reused for the same checked bytes. Independent dependency components are
+kernel-checked in bounded parallel batches, with one worker also checking the joint
+environment; --fresh disables reuse from prior runs.
 Sources are staged into this checkout's native guest build lane; compiler
 outputs, audit scratch, the directory lock and full receipt stay there. Successful
 runs also publish a portable receipt in the checkout. `proofs status` uses the guest

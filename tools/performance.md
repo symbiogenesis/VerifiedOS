@@ -156,9 +156,9 @@ at each phase, with separate compile/audit and kernel budgets owned by
 The kernel budget is set at or above the measured peak of the one kernel worker that
 checks every module on Guest CI's proofs runner, and `proof_jobs` records those
 runs and the margin. A large core count therefore does not automatically launch a
-memory-heavy checker on every core. Explicit
-`--jobs` overrides resource sizing. Unknown memory uses conservative defaults,
-and help, metadata commands and complete cache hits perform no capacity probe.
+memory-heavy checker on every core. Explicit `--jobs` overrides resource sizing.
+Unknown memory uses conservative defaults, and help, metadata commands and complete
+cache hits perform no capacity probe.
 
 Every changed module must be an explicit recursive check target in one batch.
 The launcher verifies complete, disjoint target coverage before starting workers.
