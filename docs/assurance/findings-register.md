@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 843 of them across 146 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 844 of them across 146 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -207,6 +207,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-198d** method: a landed decline falsifies the forward claims other cells made about the act it declined, and those are present-tense sentences no gate reads
 · Raised: S14
 · Disposition: closed, eight such sentences repaired to what is true across the plan and this register, with the rerun returning to the item that owns it and that cell deliberately not re-priced here; two of the eight stood a commit longer than the rest, which is the class arriving inside the item that names it
+
+**F-526** owed-act: the host gate's shell-startup refusal reads the workflow's text, so a `BASH_ENV`, `ENV` or `BASH_FUNC_` name a step builds at run time, `PYTHONPATH`, `PYTHONHOME` or `LD_PRELOAD` set at the workflow or job level or by a `GITHUB_ENV` write, and a directory a `GITHUB_PATH` write puts ahead of `python` can each still change what a gate step runs while every host-gates reading passes
+· Raised: S14, in prose
+· Disposition: open, a reading of each gate step's effective environment and PATH: no workflow- or job-level `env` beyond a declared set, and no `GITHUB_ENV` or `GITHUB_PATH` write in a step ahead of the gate
 
 **F-000t** upstream-defect: the model's documentation emitter writes the emitting checkout's commit and dirty flag into the artifact where git answers it, so a generated file held byte-for-byte would move on every commit and would differ between two lanes describing one model
 · Raised: S15

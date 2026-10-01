@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# The releases pip installs from PyPI into the model's Python hook environments, which
+# Host CI's Model hooks step names as PIP_CONSTRAINT: the ruamel.yaml pre-commit-hooks
+# requires, the clang-format wheel the clang-format mirror requires and the rapidfuzz
+# Lucas-C's hooks require. The hook packages themselves are not listed: each builds
+# from the commit model/.pre-commit-config.yaml pins, and the two pre-commit-hooks share
+# one name. No hash is listed, because a hash in a constraints file turns on pip's
+# hash-checking mode, which refuses the directory pre-commit installs each hook package
+# from; model-hooks-build-constraints.txt holds the builds. Each release was uploaded
+# more than three days before it was pinned, the cooldown tools/pyproject.toml's
+# exclude-newer sets and the step's PIP_UPLOADED_PRIOR_TO keeps;
+# tools/README.md#model-hook-dependencies gives the review that moves them.
+clang-format==21.1.8
+rapidfuzz==3.14.6
+ruamel.yaml==0.19.1

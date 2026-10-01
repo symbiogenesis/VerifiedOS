@@ -61,11 +61,13 @@ OPAM_REPOSITORIES: tuple[tuple[str, str], ...] = (
 # The one route that creates a root, in the root `OPAMROOT` names: a bare `opam init`
 # on the first repository, with no shell setup and no opamrc, then every other
 # repository added unselected, each switch naming the repositories it resolves from.
-# Guest bootstrap runs it in its private root, and `run.py provision --install-opam`
-# where no root stands or where `root_resumable` reads one in the shape the route
-# leaves after its leading steps. Repeating the route over a root it made finishes that
-# root, and it is not inert over a finished one: `opam init` over a root that stands
-# reports it already initialized, fetches nothing and exits 0, while adding a
+# Guest bootstrap, in its private root, and `run.py provision --install-opam` run it
+# where no root stands. Over a root in the shape `root_resumable` reads, both run the
+# route's remaining steps, `remaining_route`, which complete that root, and the
+# route's first step never runs over it: `opam init` over a root that stands reports
+# it already initialized, fetches nothing and exits 0, but rewrites the root's
+# `opam-init` scripts and, since `--no-setup` implies `--disable-shell-hook`, removes
+# any shell-hook scripts there. Nor is the route inert over a finished root: adding a
 # repository the root already carries at that URL keeps its configuration but fetches
 # it again, refreshing its metadata and stamp, and removes that repository from the
 # root, its configuration and its metadata, where the fetch fails.
@@ -129,25 +131,89 @@ def root_exists(root: Path) -> bool:
     return (root / "config").is_file()
 
 
-def format_key(fmt: str) -> tuple[int, ...]:
-    """A root format's release numbers, for ordering two formats: `2.6~alpha` reads as
-    2.6, which is as near as a report needs to come to opam's own ordering."""
-    return tuple(int(part) for part in re.findall(r"\d+", fmt.partition("~")[0]))
+def _skip_zeros(text: bytes, at: int, end: int) -> int:
+    while at < end and text[at] == 0x30:
+        at += 1
+    return at
+
+
+def _digit(byte: int) -> bool:
+    return 0x30 <= byte <= 0x39
+
+
+def _rank(byte: int) -> tuple[int, int]:
+    """A non-digit's place: `~` first, then letters, then every other byte."""
+    if byte == 0x7E:
+        return (0, 0)
+    if 0x41 <= byte <= 0x5A or 0x61 <= byte <= 0x7A:
+        return (1, byte)
+    return (2, byte)
+
+
+def _compare_part(x: bytes, xi: int, xl: int, y: bytes, yi: int, yl: int) -> int:
+    """One part of two versions, alternating runs of non-digits, compared byte by byte
+    by `_rank`, with runs of digits, compared as numbers."""
+    while True:
+        if xi == xl and yi == yl:
+            return 0
+        if xi == xl:
+            rest = _skip_zeros(y, yi, yl)
+            return 0 if rest == yl else (1 if y[rest] == 0x7E else -1)
+        if yi == yl:
+            rest = _skip_zeros(x, xi, xl)
+            return 0 if rest == xl else (-1 if x[rest] == 0x7E else 1)
+        x_digit, y_digit = _digit(x[xi]), _digit(y[yi])
+        if x_digit and y_digit:
+            xi, yi = _skip_zeros(x, xi, xl), _skip_zeros(y, yi, yl)
+            xn, yn = xi, yi
+            while xn < xl and _digit(x[xn]):
+                xn += 1
+            while yn < yl and _digit(y[yn]):
+                yn += 1
+            if xn - xi != yn - yi:
+                return -1 if xn - xi < yn - yi else 1
+            if x[xi:xn] != y[yi:yn]:
+                return -1 if x[xi:xn] < y[yi:yn] else 1
+            xi, yi = xn, yn
+        elif x_digit:
+            return 1 if y[yi] == 0x7E else -1
+        elif y_digit:
+            return -1 if x[xi] == 0x7E else 1
+        elif _rank(x[xi]) != _rank(y[yi]):
+            return -1 if _rank(x[xi]) < _rank(y[yi]) else 1
+        else:
+            xi, yi = xi + 1, yi + 1
+
+
+def compare_versions(x: str, y: str) -> int:
+    """The sign of opam's ordering of two versions, ported from the reviewed release's
+    `OpamVersionCompare.compare`, by which that client orders a root's format against
+    its own: Debian's ordering, each version split at its last `-` into two parts
+    compared in turn. So `2.6~alpha` precedes 2.6, and `2.6.0`, `2.6+x` and `x` follow
+    it."""
+    if x == y:
+        return 0
+    a, b = x.encode("utf-8"), y.encode("utf-8")
+    ra = len(a) if (cut := a.rfind(b"-")) < 0 else cut
+    rb = len(b) if (cut := b.rfind(b"-")) < 0 else cut
+    if version := _compare_part(a, 0, ra, b, 0, rb):
+        return version
+    return _compare_part(a, min(ra + 1, len(a)), len(a), b, min(rb + 1, len(b)), len(b))
 
 
 def newer_than_reviewed(fmt: str) -> bool:
-    """Whether a stated root format is newer than `OPAM_ROOT_FORMAT`. The reviewed
-    client still reads such a root, but refuses every command that takes its write lock
-    as "more recent than this version of opam", a switch creation among them."""
-    return bool(fmt) and format_key(fmt) > format_key(OPAM_ROOT_FORMAT)
+    """Whether a stated root format is newer than `OPAM_ROOT_FORMAT` by opam's own
+    ordering. The reviewed client still reads such a root, but refuses every command
+    that takes its write lock as "more recent than this version of opam", a switch
+    creation among them."""
+    return bool(fmt) and compare_versions(fmt, OPAM_ROOT_FORMAT) > 0
 
 
 def older_than_reviewed(fmt: str) -> bool:
-    """Whether a stated root format is older than `OPAM_ROOT_FORMAT`: any stated format
-    other than it that is not newer, a prerelease of it among them, since opam orders a
-    prerelease before its release. The reviewed client rewrites such a root to its own
-    format, one way, so moving the root to it is a deliberate, recorded step."""
-    return bool(fmt) and fmt != OPAM_ROOT_FORMAT and not newer_than_reviewed(fmt)
+    """Whether a stated root format is older than `OPAM_ROOT_FORMAT` by opam's own
+    ordering, a prerelease of it among them. The reviewed client rewrites such a root to
+    its own format, one way, so moving the root to it is a deliberate, recorded step."""
+    return bool(fmt) and compare_versions(fmt, OPAM_ROOT_FORMAT) < 0
 
 
 def root_gaps(root: Path) -> list[str]:
@@ -177,17 +243,21 @@ def root_gaps(root: Path) -> list[str]:
 
 def root_resumable(root: Path) -> bool:
     """Whether a standing root is in the shape `CREATE_ROOT` leaves after its leading
-    steps, which running the route again completes: in `OPAM_ROOT_FORMAT`, configured
-    with exactly the route's leading repositories, at least the one `opam init` fetched
-    and not every one, each at its owned URL and with its stamp read.
+    steps, which the route's remaining steps, `remaining_route`, complete: in
+    `OPAM_ROOT_FORMAT`, configured with exactly the route's leading repositories, at
+    least the one `opam init` fetched and not every one, each at its owned URL and with
+    its stamp read.
 
     The shape is what is read, not how the root came to be: a root a developer
-    initialized by hand on the first repository alone is in it too, and the route
-    completes that root the same way.
+    initialized by hand on the first repository alone is in it too, and the remaining
+    steps complete that root the same way, leaving its shell setup as it stands.
 
-    A root whose first repository's stamp is unread is not one: `opam init` over a
-    root that stands reports it initialized without fetching anything, so the route run
-    again would leave that repository unread and the root as incomplete as it found it.
+    A root whose first repository's stamp is unread is not one, though the route's first
+    step can leave one: `opam init` writes the root's configuration before its first
+    fetch and removes the root on a failed fetch only where its directory was absent or
+    empty when it started. No remaining step fetches a repository the root already
+    configures, and `opam init` over a root that stands fetches nothing, so that
+    repository would stay unread and the root as incomplete as it was found.
     """
     if not root_exists(root) or root_format(root) != OPAM_ROOT_FORMAT:
         return False
@@ -197,6 +267,18 @@ def root_resumable(root: Path) -> bool:
     configured = {(repo["name"], repo["url"]) for repo in found}
     return any(configured == set(OPAM_REPOSITORIES[:count])
                for count in range(1, len(OPAM_REPOSITORIES)))
+
+
+def remaining_route(root: Path) -> tuple[tuple[str, ...], ...]:
+    """The steps of `CREATE_ROOT` a root at `root` still lacks: the whole route where no
+    root stands, and otherwise each `opam repository add` whose name and URL the root
+    does not already configure, never `opam init`, which over a standing root rewrites
+    its `opam-init` scripts and removes any shell-hook scripts there. Over a root in the
+    shape `root_resumable` reads, these steps complete it."""
+    if not root_exists(root):
+        return CREATE_ROOT
+    configured = {(repo["name"], repo["url"]) for repo in repositories(root)}
+    return tuple(argv for argv in CREATE_ROOT[1:] if (argv[3], argv[4]) not in configured)
 
 
 def initialized_format(root: Path) -> str:

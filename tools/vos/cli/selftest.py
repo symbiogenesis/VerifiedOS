@@ -1753,6 +1753,14 @@ CASES: list[Case] = [
     ("K-118", "a hook commit the model's hook configuration pins and its row does not state",
      _first_match("model/.pre-commit-config.yaml", r"^([ \t]+rev: \"?)([0-9a-f])",
                   lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
+    # A hook repository appended with no row, pinned as `autoupdate --freeze` writes a
+    # reviewed one: every row still agrees with its own entry, so only a census of every
+    # entry the configuration carries sees code pre-commit runs whose terms nobody read.
+    ("K-118", "a hook repository the model's hook configuration runs and no row reviews",
+     _first_match("model/.pre-commit-config.yaml", r"\Z",
+                  lambda _: "  - repo: https://github.com/example/unreviewed-hooks\n"
+                            f"    rev: {'0' * 40} # frozen: v1.0.0\n"
+                            "    hooks:\n      - id: unreviewed\n")),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row
@@ -1873,6 +1881,21 @@ CASES: list[Case] = [
               "Past them, where the set is located by **marker**, nothing is read. "
               "Where the set is **total**,")),
 
+    # The same fifth class with its lead set in underscore italics, which opens nothing.
+    # A lead found only at a word boundary does not see it, the underscore counting as a
+    # word character, so the text sits unnoticed inside the pattern class's region.
+    ("K-119", "a fifth reach class whose lead is set in underscore italics",
+     _literal(RULES, "Where the set is **total**,",
+              "_Where the set is_ located by **marker**, nothing is read. "
+              "Where the set is **total**,")),
+
+    # The same again with its lead wrapped across a line, which opens nothing either. A
+    # lead found only with single spaces between its words does not see it.
+    ("K-119", "a fifth reach class whose lead is wrapped across a line",
+     _literal(RULES, "Where the set is **total**,",
+              "Where the set\nis located by **marker**, nothing is read. "
+              "Where the set is **total**,")),
+
     # A membership sentence ahead of the first class, which no class's region reaches.
     # The rule it names is still placed once by its own class, so the section reads as
     # agreeing with the registry and only a reading of the stretch before the first
@@ -1880,6 +1903,21 @@ CASES: list[Case] = [
     ("K-119", "a membership sentence ahead of the first reach class",
      _literal(RULES, "and there are four answers.",
               "and there are four answers, which is what K-26 are.")),
+
+    # The same sentence with `that` in lower case, written mid-sentence. A membership
+    # sentence read in one capitalization of each word alone passes it over, so the
+    # section reads as agreeing with the registry just as above.
+    ("K-119", "a lower-case 'that is what' membership sentence ahead of the first class",
+     _literal(RULES, "and there are four answers.",
+              "and there are four answers; that is what K-26 are.")),
+
+    # A membership sentence between a class's lead and its bold name. The class still
+    # opens, so a region read from past the name alone passes over the sentence and the
+    # rule it names stays placed once by its own class, the section reading as agreeing
+    # with the registry while the total class names a second list.
+    ("K-119", "a membership sentence between a class's lead and its name",
+     _literal(RULES, "Where the set is **total**,",
+              "Where the set is made of rules which is what K-26 are, and **total**,")),
 
     # Seeded on the plan's side, which is the direction the defect arrives from: a
     # completion note is edited far more often than the index over it. The word alone

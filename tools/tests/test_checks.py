@@ -616,10 +616,19 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
              "the 'computed value' class states no membership sentence(s) this rule reads"),
             ({"computed": _K119_COMPUTED + " That is what K-05 are."},
              "the 'computed value' class states two membership sentence(s) this rule reads"),
+            # a class's region starts at its lead, so a membership sentence between the
+            # lead and the bold name is the class's own second rather than read by none
+            ({"computed": "Where the set is made of rules which is what K-01 are, and a "
+                          "**computed value**, it is recomputed, which is what K-05 are."},
+             "the 'computed value' class states two membership sentence(s)"),
             ({"total": _K119_TOTAL.replace("**total**", "**whole**")},
              "opens a reach class '**whole**' that is not one of the four this rule reads"),
             ({"total": _K119_TOTAL.replace("**total**", "**whole**")},
              "tools/check-rules.md opens no 'total' class in a form this rule reads"),
+            # the lead is matched in any letter case and the class name exactly, so a name
+            # differing in case alone is a fifth class
+            ({"total": _K119_TOTAL.replace("**total**", "**Total**")},
+             "opens a reach class '**Total**' that is not one of the four this rule reads"),
             ({"heading": "## What a run decides"},
              "tools/check-rules.md carries no '## What a passing run does not decide' "
              "section"),
@@ -628,13 +637,25 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
             ({"heading": meta.REACH_HEADING
               + "\n\nWhen the set is found by **marker**, which is what K-05 are."},
              "states a membership sentence ahead of the first reach class, so no class "
-             "reads it")):
+             "reads it"),
+            # either word is read in either capitalization, so a lower-case `that` written
+            # mid-sentence and a capital `Which` opening a sentence are membership
+            # sentences too
+            ({"heading": meta.REACH_HEADING
+              + "\n\nThe marker rules come first; that is what K-05 are."},
+             "states a membership sentence ahead of the first reach class, so no class "
+             "reads it"),
+            ({"computed": _K119_COMPUTED + " Which is what K-05 are."},
+             "the 'computed value' class states two membership sentence(s) this rule reads")):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
         ensure(not any("named under no reach class" in item for item in found),
                f"an unread class is one finding, not one per rule it held: {found!r}")
         ensure(not any(line.startswith("ok K-119:") for line in out),
                "fail-closed: no ok line stands beside an unread class")
+
+
+_K119_LEAD_FINDING = "states 'Where the set is' in a form that opens no reach class"
 
 
 def _k119_every_class_lead_is_read() -> None:
@@ -650,14 +671,24 @@ def _k119_every_class_lead_is_read() -> None:
              "opens a reach class '**marker**' that is not one of the four this rule reads"),
             ({"computed": _K119_COMPUTED
               + " Where the set is located by a marker, nothing narrows."},
-             "states 'Where the set is' and names no class in bold before a full stop or "
-             "the line's end"),
+             _K119_LEAD_FINDING),
             # any `.` ends the lead's reach, a code span's included, so the bold name past
             # it opens nothing
             ({"computed": _K119_COMPUTED
               + " Where the set is located by `a.b` **marker**, nothing narrows."},
-             "states 'Where the set is' and names no class in bold before a full stop or "
-             "the line's end")):
+             _K119_LEAD_FINDING),
+            # the lead is found in underscore italics, wrapped across a line or spaced
+            # apart, none of which opens a class, so each is reported rather than read
+            # as part of the class before it
+            ({"computed": _K119_COMPUTED
+              + " _Where the set is_ located by **marker**, nothing narrows."},
+             _K119_LEAD_FINDING),
+            ({"computed": _K119_COMPUTED
+              + " Where the set\nis located by **marker**, nothing narrows."},
+             _K119_LEAD_FINDING),
+            ({"computed": _K119_COMPUTED
+              + " Where the set  is located by **marker**, nothing narrows."},
+             _K119_LEAD_FINDING)):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
         ensure(not any(line.startswith("ok K-119:") for line in out),
@@ -726,6 +757,25 @@ def _k115_moved_or_movable_references_fail() -> None:
         found = _k115({".github/workflows/a.yml": workflow})
         ensure(any(fragment in item for item in found),
                f"a moved or movable reference must report {fragment!r}: {found!r}")
+
+
+def _k115_moved_reference_is_quoted_apart_from_its_row() -> None:
+    # A reference off its row's commit is quoted beside that commit at twelve digits, or
+    # as far as the two must run to differ, so a change in the last digit prints two
+    # distinct ids; a reference at the row's commit under another release keeps twelve.
+    last = f"{_K115_SHA[:-1]}8"
+    middle = f"{_K115_SHA[:19]}f{_K115_SHA[20:]}"
+    for sha, version, shown, reviewed in (
+            (last, "v1.2.3", last, _K115_SHA),
+            (middle, "v1.2.3", middle[:20], _K115_SHA[:20]),
+            ("f" * 40, "v1.2.3", "ffffffffffff", "0123456789ab"),
+            (_K115_SHA, "v1.2.4", "0123456789ab", "0123456789ab")):
+        workflow = _K115_WORKFLOW.replace(f"{_K115_SHA} # v1.2.3\n  -", f"{sha} # {version}\n  -")
+        found = _k115({".github/workflows/a.yml": workflow})
+        quoted = (f"a.yml:2 runs example/action at {shown} ({version}), THIRD-PARTY.md:7 "
+                  f"reviewed {reviewed} (v1.2.3);")
+        ensure(len(found) == 1 and quoted in found[0],
+               f"a moved reference is quoted apart from its row's commit ({quoted}): {found!r}")
 
 
 def _k115_membership_is_held_both_ways() -> None:
@@ -907,7 +957,9 @@ _K118_OWNERS = {
     "tools/uv.lock": '[[package]]\nname = "alpha"\nversion = "1.2.3"\n',
     "tools/opam/x.lock": 'opam-version: "2.0"\ninstalled: ["beta.4.5.6" "lib.2.0.0"]\n',
     "tools/opam/y.lock": 'opam-version: "2.0"\ninstalled: [\n  "lib.2.0.0"\n]\n',
-    "tools/vos/x.py": 'BETA = "7.8.9"\n'}
+    "tools/vos/x.py": 'BETA = "7.8.9"\n',
+    # a hook configuration carrying no repository, which the census reads as none
+    pins.HOOK_CONFIG: "repos: []\n"}
 _K118_ROWS = (
     pins.DevTool("alpha", (pins.Site("the reviewed release", rf"The reviewed `v{pins._V}` tag's",
                                      (pins.Owner("uv", "tools/uv.lock", "alpha"),)),),
@@ -1301,6 +1353,54 @@ def _k118_hook_revisions_are_held() -> None:
                f"an unreadable hook configuration must report ({fragment!r}): {found!r}")
         ensure(not any(line.startswith("ok K-118:") for line in out),
                "fail-closed: no ok line stands beside an unread hook configuration")
+
+
+def _k118_hook_census_reads_every_entry() -> None:
+    # Every repository entry the configuration carries is read at its line, so code
+    # pre-commit installs from a repository no row names is a finding however it is
+    # pinned, and the configuration is read with no hook row to hold as well.
+    _, out = _k118_hook()
+    ensure(any("each of the 2 repository entries" in line for line in out),
+           f"the ok line counts the entries the census read: {out!r}")
+    found, out = _k118({pins.HOOK_CONFIG: None})
+    ensure(len(found) == 1 and f"{pins.HOOK_CONFIG} is not in the repository" in found[0]
+           and not any(line.startswith("ok K-118:") for line in out),
+           f"an absent configuration fails closed with no hook row: {found!r}")
+    extra = ("  - repo: https://github.com/example/extra\n"
+             f"    rev: {'d' * 40} # frozen: v3.0.0\n    hooks:\n      - id: third\n")
+    where = f"{pins.HOOK_CONFIG}:10"
+    found, _ = _k118_hook(_K118_HOOKS + extra)
+    ensure(len(found) == 1 and f"{where} runs hooks from https://github.com/example/extra, "
+           "which no development-tools row K-118 holds names" in found[0]
+           and ", at `" not in found[0], f"an entry no row names is one finding: {found!r}")
+    for old, new, rev in ((f"{'d' * 40} # frozen: v3.0.0", "v3.0.0", "v3.0.0"),
+                          (" # frozen: v3.0.0", "", "d" * 40)):
+        found, _ = _k118_hook(_K118_HOOKS + extra.replace(old, new))
+        ensure(len(found) == 1 and "https://github.com/example/extra" in found[0]
+               and f", at `{rev}`, which is not a full commit with the `# frozen:` tag"
+               in found[0], f"an unnamed entry's movable rev is in its finding: {found!r}")
+    # pre-commit's own meta hooks need no row; a local repository runs code none reviews
+    found, out = _k118_hook(_K118_HOOKS + "  - repo: meta\n    hooks:\n"
+                            "      - id: check-useless-excludes\n")
+    ensure(not found and any("each of the 3 repository entries" in line for line in out),
+           f"a meta entry is read and needs no row: {found!r}")
+    found, _ = _k118_hook(_K118_HOOKS + "  - repo: local\n    hooks:\n      - id: mine\n"
+                          "        entry: mine\n        language: system\n")
+    ensure(len(found) == 1 and f"{where} is a local hook repository" in found[0],
+           f"a local entry is a finding: {found!r}")
+    # an entry in a shape the reading does not take is a finding at each line holding a
+    # key it did not take, whatever the entry names
+    for written, lines in ((f"  - {{repo: https://github.com/example/flow, rev: {'e' * 40}}}\n",
+                            (10,)),
+                           ('  - "repo": https://github.com/example/quoted\n', (10,)),
+                           ("  - &k repo: https://github.com/example/anchored\n", (10,)),
+                           (f"  - rev: {'e' * 40}\n    repo: https://github.com/example/late\n",
+                            (10, 11))):
+        found, _ = _k118_hook(_K118_HOOKS + written)
+        ensure(len(found) == len(lines) and all(
+            f"{pins.HOOK_CONFIG}:{line} states a hook repository's `repo` or `rev` key in a "
+            "form K-118 does not read" in item for line, item in zip(lines, found, strict=True)),
+               f"an entry K-118 cannot read is a finding at its line ({written!r}): {found!r}")
 
 
 def _k118_shipped_readings_are_declared() -> None:
@@ -1778,6 +1878,8 @@ def cases() -> list[Case]:
              _k97_reviewed_pin_is_required_without_prose_copies),
         Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),
         Case("k115-moved-or-movable-references-fail", _k115_moved_or_movable_references_fail),
+        Case("k115-moved-reference-is-quoted-apart-from-its-row",
+             _k115_moved_reference_is_quoted_apart_from_its_row),
         Case("k115-membership-is-held-both-ways", _k115_membership_is_held_both_ways),
         Case("k115-licence-link-names-the-reviewed-commit",
              _k115_licence_link_names_the_reviewed_commit),
@@ -1797,6 +1899,7 @@ def cases() -> list[Case]:
         Case("k118-a-row-named-by-its-release-stays-one-row",
              _k118_a_row_named_by_its_release_stays_one_row),
         Case("k118-hook-revisions-are-held", _k118_hook_revisions_are_held),
+        Case("k118-hook-census-reads-every-entry", _k118_hook_census_reads_every_entry),
         Case("k118-shipped-readings-are-declared", _k118_shipped_readings_are_declared),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),
         Case("k81-unused-historical-residue-fails", _k81_unused_historical_residue_fails),
