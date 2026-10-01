@@ -1308,8 +1308,9 @@ Local Ltac read_the_conjuncts :=
 
 (* The first six conjuncts of the conjunction `H` set aside, its remainder
    named `H6`: where every reading of a conjunct past the sixth starts, here
-   and over the weakened filters and the template below. *)
-Local Ltac drop_six_conjuncts :=
+   and over the weakened filters and the template below. `H` is a parameter
+   because an Ltac definition must bind every hypothesis name it reads. *)
+Local Ltac drop_six_conjuncts H :=
   destruct (andb_split _ _ H) as [ _ H1 ]; destruct (andb_split _ _ H1) as [ _ H2 ];
   destruct (andb_split _ _ H2) as [ _ H3 ]; destruct (andb_split _ _ H3) as [ _ H4 ];
   destruct (andb_split _ _ H4) as [ _ H5 ]; destruct (andb_split _ _ H5) as [ _ H6 ].
@@ -1350,7 +1351,7 @@ Lemma admissible_world_is_declared :
     Nat.ltb e.(edge_world) m.(world_count) = true.
 Proof.
   read_the_conjuncts.
-  drop_six_conjuncts.
+  drop_six_conjuncts H.
   destruct (andb_split _ _ H6) as [ H7 _ ]. exact H7.
 Qed.
 
@@ -1359,7 +1360,7 @@ Lemma admissible_format_is_inventoried :
     admissible_edge m r e = true -> m.(in_inventory) e.(edge_format) = true.
 Proof.
   read_the_conjuncts.
-  drop_six_conjuncts.
+  drop_six_conjuncts H.
   destruct (andb_split _ _ H6) as [ _ H7 ].
   destruct (andb_split _ _ H7) as [ H8 _ ]. exact H8.
 Qed.
@@ -1369,7 +1370,7 @@ Lemma admissible_format_has_a_verified_parser :
     admissible_edge m r e = true -> m.(verified_parser) e.(edge_format) = true.
 Proof.
   read_the_conjuncts.
-  drop_six_conjuncts.
+  drop_six_conjuncts H.
   destruct (andb_split _ _ H6) as [ _ H7 ].
   destruct (andb_split _ _ H7) as [ _ H8 ].
   destruct (andb_split _ _ H8) as [ H9 _ ]. exact H9.
@@ -1381,7 +1382,7 @@ Lemma admissible_bounds_inside_the_manifest :
     Nat.leb e.(edge_bounds) (m.(descriptor) e.(edge_owner)).(desc_manifest) = true.
 Proof.
   read_the_conjuncts.
-  drop_six_conjuncts.
+  drop_six_conjuncts H.
   destruct (andb_split _ _ H6) as [ _ H7 ].
   destruct (andb_split _ _ H7) as [ _ H8 ].
   destruct (andb_split _ _ H8) as [ _ H9 ].
@@ -1394,7 +1395,7 @@ Lemma admissible_ring_is_inside_the_ceiling :
     Nat.leb e.(edge_ring) m.(ring_depth_ceiling) = true.
 Proof.
   read_the_conjuncts.
-  drop_six_conjuncts.
+  drop_six_conjuncts H.
   destruct (andb_split _ _ H6) as [ _ H7 ].
   destruct (andb_split _ _ H7) as [ _ H8 ].
   destruct (andb_split _ _ H8) as [ _ H9 ].
@@ -2111,7 +2112,7 @@ Lemma dropping_the_world_keeps_the_manifest :
     Nat.leb e.(edge_bounds) (m.(descriptor) e.(edge_owner)).(desc_manifest) = true.
 Proof.
   intros m r e H. unfold edge_conjuncts in H. simpl in H.
-  drop_six_conjuncts.
+  drop_six_conjuncts H.
   destruct (andb_split _ _ H6) as [ _ H7 ].
   destruct (andb_split _ _ H7) as [ _ H8 ].
   destruct (andb_split _ _ H8) as [ H9 _ ]. exact H9.
@@ -2123,7 +2124,7 @@ Lemma dropping_the_manifest_keeps_the_world :
     Nat.ltb e.(edge_world) m.(world_count) = true.
 Proof.
   intros m r e H. unfold edge_conjuncts in H. simpl in H.
-  drop_six_conjuncts.
+  drop_six_conjuncts H.
   destruct (andb_split _ _ H6) as [ H7 _ ]. exact H7.
 Qed.
 
@@ -2775,7 +2776,7 @@ Theorem a_well_formed_template_crosses_no_undeclared_label :
     template_ok m t = true -> labels_joined m t = true.
 Proof.
   intros m t H. unfold template_ok, template_conjuncts in H. simpl in H.
-  drop_six_conjuncts.
+  drop_six_conjuncts H.
   destruct (andb_split _ _ H6) as [ H7 _ ].
   exact H7.
 Qed.
