@@ -9,8 +9,9 @@ through is `vos/seeded.py`'s and is held in [test_seeded.py](test_seeded.py), be
 the module that decides it and beside the loops that share it.
 
 Also pinned, with a stub prover, is what `seed coq --quickchick` compiles: `Properties.v`'s
-`Require` closure alone, for its baseline and for each mutant's dependents, a subject
-outside that closure refused before any prover is asked.
+`Require` closure alone, what the walk harness Requires lying inside it, for its baseline
+and for each mutant's dependents, a subject outside that closure refused before any
+prover is asked.
 """
 
 import argparse
@@ -31,8 +32,9 @@ from vos.seeded import SURVIVED
 _ROOT = TOOLS.parent
 
 # Properties.v Requires B, which Requires A, and two support harnesses, Probe over A and
-# Side over C. Far Requires A from outside that closure; Lone is support outside it, and
-# Vectors is the enumerative entry point, which Requires Far.
+# Side over C, and fixes its seed; the walk harness beside it Requires B. Far Requires A
+# from outside that closure; Lone is support outside it, and Vectors is the enumerative
+# entry point, which Requires Far.
 _RIG = gallina.HARNESS_DIR
 _CLOSED: dict[str, str] = {
     "proofs/A.v": "Definition a : nat := 1.\n",
@@ -44,7 +46,10 @@ _CLOSED: dict[str, str] = {
     f"{_RIG}/Lone.v": "Require Import Far.\n",
     f"{_RIG}/{gallina.ENUMERATIVE}": "Require Import Far Probe.\n",
     f"{_RIG}/{gallina.RANDOMIZED}": "From QuickChick Require Import QuickChick.\n"
-                                    "Require Import B Probe Side.\n",
+                                    "Require Import B Probe Side.\n"
+                                    'Extract Constant newRandomSeed => '
+                                    '"(Random.State.make [|7|])".\n',
+    f"{_RIG}/{gallina.EXHAUSTIVE}": "Require Import B.\n",
 }
 
 
@@ -61,11 +66,15 @@ def _closed_tree() -> Iterator[Path]:
 @contextmanager
 def _stub_prover(compiled: list[str]) -> Iterator[gallina.Prover]:
     """A prover that records each source it is handed, by stem, and prints one green
-    property set and one vector for every compile."""
+    property set and one vector for every compile, and one walked set that held for the
+    walk harness's."""
     def compile_one(found: gallina.Prover, work: Path, source: Path,
                     timeout: int = 900) -> subprocess.CompletedProcess[str]:
         del found, work, timeout
         compiled.append(source.stem)
+        if source.name == gallina.EXHAUSTIVE:
+            return subprocess.CompletedProcess([], 0, '= ["prop_w 9 9 0 -"] : list string\n',
+                                               "")
         return subprocess.CompletedProcess([], 0, '= ["v"]\n+++ Passed 10000 tests\n', "")
 
     with patch.object(gallina, "compile_one", side_effect=compile_one):
@@ -162,18 +171,19 @@ def _the_randomized_mode_refuses_a_subject_outside_its_closure() -> None:
 
 
 def _the_randomized_baseline_compiles_its_closure_alone() -> None:
-    """The baseline compiles what `Properties.v` Requires, in Require order, and then
-    the harness: never the proof that Requires a member from outside the closure, the
-    support harness outside it, nor another entry point."""
+    """The baseline compiles what `Properties.v` and the walk harness Require, in
+    Require order, and then the walk harness and `Properties.v`: never the proof that
+    Requires a member from outside the closure, the support harness outside it, nor
+    another entry point."""
     compiled: list[str] = []
     with (_closed_tree() as root, tempfile.TemporaryDirectory(prefix="vos-work-") as wd,
           _stub_prover(compiled) as found):
         got = seed._quickchick_baseline(root, found, Path(wd) / "quickchick",
                                         gallina.RANDOMIZED)
     ensure(got == ([], ""), f"the stubbed baseline stands up green: {got}")
-    ensure(compiled[-1] == "Properties"
-           and sorted(compiled[:-1]) == ["A", "B", "C", "Probe", "Side"],
-           f"the baseline compiled {compiled}, not the closure and then the harness")
+    ensure(compiled[-2:] == ["Walks", "Properties"]
+           and sorted(compiled[:-2]) == ["A", "B", "C", "Probe", "Side"],
+           f"the baseline compiled {compiled}, not the closure and then the harnesses")
     ensure(compiled.index("A") < min(compiled.index("B"), compiled.index("Probe"))
            and compiled.index("C") < compiled.index("Side"),
            f"a Require was compiled after what reads it: {compiled}")
@@ -181,9 +191,9 @@ def _the_randomized_baseline_compiles_its_closure_alone() -> None:
 
 def _a_randomized_mutant_compiles_its_dependents_in_the_closure() -> None:
     """A mutant under QuickChick compiles the proofs of the closure it moves, then the
-    support harnesses there it moves, then the harness: never a proof outside the
-    closure that Requires it. The enumerative mode, unchanged, compiles every proof
-    that Requires the mutant and the rig's whole support."""
+    support harnesses there it moves, then the walk harness and the drawn one: never a
+    proof outside the closure that Requires it. The enumerative mode, unchanged,
+    compiles every proof that Requires the mutant and the rig's whole support."""
     mutant = mutate.Mutant(ident="op/1", operator="op", path="proofs/A.v", line=1,
                            start=0, end=1, before="a", after="b")
     compiled: list[str] = []
@@ -206,8 +216,8 @@ def _a_randomized_mutant_compiles_its_dependents_in_the_closure() -> None:
                        f"{rel}: a reason names the closure's proofs exactly where only "
                        f"they were asked: {verdict.detail}")
                 runs[rel, randomized] = list(compiled)
-    want = {("proofs/A.v", True): ["A", "B", "Probe", "Properties"],
-            ("proofs/C.v", True): ["C", "Side", "Properties"],
+    want = {("proofs/A.v", True): ["A", "B", "Probe", "Walks", "Properties"],
+            ("proofs/C.v", True): ["C", "Side", "Walks", "Properties"],
             ("proofs/A.v", False): ["A", "B", "Far", "Lone", "Probe", "Side", "Vectors"],
             ("proofs/C.v", False): ["C", "Lone", "Probe", "Side", "Vectors"]}
     ensure(runs == want, f"the mutants compiled {runs}, not {want}")

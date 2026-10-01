@@ -362,6 +362,10 @@ def _the_live_rows_read_their_instruments() -> None:
                   if row.selects == "tools/vos/cli/quickchick.py"}
     ensure(properties == {gallina.QUICKCHICK_SWITCH},
            f"quickchick properties runs in QuickChick's own switch alone: {properties}")
+    walked = f"{k117.RIG}/{gallina.EXHAUSTIVE}"
+    ensure(all(walked in row.harnesses for row in k117.INSTRUMENTS
+               if row.name in ("quickchick properties", "seed coq --quickchick")),
+           "the randomized half's rows compile the walk harness beside the drawn one")
 
 
 def _the_live_reading_reaches_only_the_older_instruments_proofs() -> None:

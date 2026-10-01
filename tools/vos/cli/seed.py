@@ -311,10 +311,13 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
     that reads them are all under `work`, so two shards racing on one population never
     share a file.
 
-    Under QuickChick only what the mutant moves inside the harness's `Require` closure
-    is compiled, so no proof outside that closure reaches QuickChick's prover.
+    Under QuickChick only what the mutant moves inside the `Require` closure of the
+    harness and the walk harness beside it is compiled, so no proof outside that closure
+    reaches QuickChick's prover. The walk harness Requires nothing the drawn one's
+    closure does not hold, so the proofs asked are that closure's.
     """
-    moved = gallina.closure_dependents(work, harness, rel) if quickchick else None
+    walker = harness.parent / gallina.EXHAUSTIVE
+    moved = gallina.closure_dependents(work, rel, harness, walker) if quickchick else None
     failures = gallina.compile_dependents(found, work, rel, moved)
     if failures:
         return Verdict(mutant, KILLED,
@@ -329,6 +332,17 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
     if quickchick:
         # Only the closure's proofs were asked, so the reason names them and no more.
         accepted = f"the proofs {gallina.RANDOMIZED}'s Require closure holds accepted it"
+        # The walks first: they are the cheaper half, and a set a walk refutes is a
+        # kill whatever the draws would say.
+        walked, said = gallina.walks(found, work, walker)
+        if said:
+            return Verdict(mutant, STILLBORN,
+                           "the walk harness did not run over the mutant")
+        refuted = gallina.walk_failures(walked)
+        if refuted:
+            return Verdict(mutant, KILLED,
+                           f"{accepted} and {len(refuted)} of {len(walked)} walked "
+                           f"set(s) did not hold: {refuted[0]}", len(refuted))
         passed, failed, why = gallina.properties(found, work, harness)
         if failed:
             return Verdict(mutant, KILLED,
@@ -338,7 +352,8 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
             return Verdict(mutant, STILLBORN,
                            "the harness did not run over the mutant")
         return Verdict(mutant, SURVIVED,
-                       f"{accepted} and {passed} property set(s) held")
+                       f"{accepted}, {len(walked)} walked set(s) held and {passed} "
+                       "drawn property set(s) passed")
     lines, said = gallina.vectors(found, work, harness)
     if said:
         return Verdict(mutant, STILLBORN, "the harness did not run over the mutant")
@@ -427,15 +442,24 @@ def randomized_subjects(root: Path) -> list[str]:
 
 def _quickchick_baseline(root: Path, found: gallina.Prover, work: Path,
                          harness_name: str) -> tuple[list[str] | None, str]:
-    """One tree stood up for the randomized harness, whose baseline is a count of green
-    property sets rather than a vector file, so the list it hands back is empty. It
-    compiles the harness's `Require` closure and nothing else, as `quickchick
-    properties` does."""
+    """One tree stood up for the randomized harness and the walk harness beside it,
+    whose baseline is green property sets rather than a vector file, so the list it
+    hands back is empty. It compiles the two harnesses' `Require` closure and nothing
+    else, as `quickchick properties` does. A drawn harness that fixes no seed is refused
+    here, since a verdict its mutants reach would not replay."""
     gallina.stage(root, work)
-    harness = work / "harness" / harness_name
-    if gallina.compile_closure(found, work, harness):
+    drawn = work / "harness" / harness_name
+    walker = work / "harness" / gallina.EXHAUSTIVE
+    if gallina.seed(drawn) is None:
+        return None, (f"{harness_name} fixes QuickChick's random state other than once, "
+                      "so no verdict over it replays")
+    if gallina.compile_closure(found, work, drawn, walker):
         return None, "the unmutated tree did not compile, so there is no baseline"
-    passed, failed, _ = gallina.properties(found, work, harness)
+    walked, said = gallina.walks(found, work, walker)
+    if said or gallina.walk_failures(walked):
+        return None, (f"the unmutated tree's {gallina.EXHAUSTIVE} is not green: "
+                      f"{said or '; '.join(gallina.walk_failures(walked))}")
+    passed, failed, _ = gallina.properties(found, work, drawn)
     if failed or not passed:
         return None, (f"the unmutated tree's {harness_name} is not green: {failed} "
                       f"property set(s) failed and {passed} passed")
@@ -486,16 +510,18 @@ def cmd_coq(args: argparse.Namespace) -> int:
     Which generator supplies those inputs is `--quickchick`'s to choose, and the two
     are worth having apart. The enumerative harness walks a declared grid, so what it
     reaches is a list somebody wrote and its verdict is a whole vector file that moved.
-    QuickChick draws instead, so what it reaches is a range and its verdict names the
-    set a draw refuted. A mutant both miss is a site neither the proofs nor either kind
-    of generation decides anything about.
+    QuickChick draws instead, from the seed its harness fixes, so what it reaches is a
+    range and its verdict names the set a draw refuted; a set whose domain is no larger
+    than its draws is walked whole by the walk harness beside it. A mutant both miss is
+    a site neither the proofs nor either kind of generation decides anything about.
 
     Under QuickChick the run compiles `Properties.v`'s `Require` closure and nothing
-    else, for its baseline and for each mutant's dependents, and refuses a subject that
-    is not a proof source of that closure, whose mutation no property reads. The
-    enumerative mode compiles every proof source and mutates any of them. A mutant only
-    a proof outside that closure refuses is not killed by the prover in this mode; the
-    enumerative mode, which compiles every proof that Requires the subject, decides it.
+    else, what the walk harness Requires lying inside it, for its baseline and for each
+    mutant's dependents, and refuses a subject that is not a proof source of that
+    closure, whose mutation no property reads. The enumerative mode compiles every proof
+    source and mutates any of them. A mutant only a proof outside that closure refuses
+    is not killed by the prover in this mode; the enumerative mode, which compiles every
+    proof that Requires the subject, decides it.
     """
     e = lane_env()
     root = find_root()
@@ -555,8 +581,10 @@ def _coq_run(args: argparse.Namespace, e: env.Environment, root: Path, rel: str,
         book.close(1)
         print("\n".join(out))
         return 1
-    said = (f"{len(baseline)} vector(s) from the Gallina front"
-            if not args.quickchick else "green under QuickChick")
+    said = (f"{len(baseline)} vector(s) from the Gallina front" if not args.quickchick
+            else (f"green under QuickChick from seed "
+                  f"{gallina.seed(trees[0] / 'harness' / harness_name)} and at every "
+                  "point of each walked domain"))
     out.append(f"== baseline: {said}, {gallina.version(found)} in {switch}"
                + (f", over {len(trees)} staged tree(s) agreeing unmutated"
                   if len(trees) > 1 else ""))
@@ -758,7 +786,8 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
                          help="which Gallina source to mutate; with --quickchick, a "
                               "proof source Properties.v's Require closure holds")
         sub.add_argument("--quickchick", action="store_true",
-                         help="let QuickChick's draws decide instead of the "
+                         help="let QuickChick's seeded draws, and the walks over "
+                              "domains no larger than them, decide instead of the "
                               "enumerative harness's vectors")
         sub.add_argument("--jobs", type=int, default=1, metavar="N",
                          help="stage N trees and run the population across them at "

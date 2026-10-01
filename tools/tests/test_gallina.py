@@ -447,22 +447,28 @@ def _the_stdlib_harnesses_compile_in_the_proof_switch() -> None:
     ensure(asked == want, f"the instruments asked for {asked}, not {want}")
 
 
+_SEEDED = ('From QuickChick Require Import QuickChick.\n'
+           'Extract Constant newRandomSeed => "(Random.State.make [|7|])".\n')
+
+
 def _the_randomized_harness_compiles_its_closure_alone() -> None:
-    """`quickchick properties` compiles what Properties.v Requires, through the
-    harnesses it Requires into the proofs they read, and then the harness: never a
-    proof outside that closure, nor another entry point."""
-    files = {"proofs/A.v": _A, "proofs/B.v": _B, "proofs/Far.v": _A,
+    """`quickchick properties` compiles what Properties.v and Walks.v Require, through
+    the harnesses they Require into the proofs they read, once, and then the two
+    harnesses: never a proof outside that closure, nor another entry point."""
+    files = {"proofs/A.v": _A, "proofs/B.v": _B, "proofs/C.v": _A, "proofs/Far.v": _A,
              "tools/quickchick/Probe.v": "Require Import A.\n",
              "tools/quickchick/Vectors.v": "Require Import Far.\n",
-             f"tools/quickchick/{gallina.RANDOMIZED}":
-                 "From QuickChick Require Import QuickChick.\nRequire Import B Probe.\n"}
+             f"tools/quickchick/{gallina.RANDOMIZED}": _SEEDED + "Require Import B Probe.\n",
+             f"tools/quickchick/{gallina.EXHAUSTIVE}": "Require Import C Probe.\n"}
     compiled: list[str] = []
 
     def compile_one(found: gallina.Prover, work: Path, source: Path,
                     timeout: int = 900) -> subprocess.CompletedProcess[str]:
         del found, work, timeout
         compiled.append(source.stem)
-        return subprocess.CompletedProcess([], 0, "+++ Passed 10000 tests\n", "")
+        said = ('= ["prop_w 9 9 0 -"] : list string\n' if source.name == gallina.EXHAUSTIVE
+                else "+++ Passed 10000 tests\n")
+        return subprocess.CompletedProcess([], 0, said, "")
 
     with (_tree(files) as td, tempfile.TemporaryDirectory(prefix="vos-work-") as wd,
           patch.object(quickchick, "installed", return_value=quickchick.VERSION),
@@ -472,10 +478,87 @@ def _the_randomized_harness_compiles_its_closure_alone() -> None:
         code = quickchick._properties(argparse.Namespace(), Mock(), Path(td),
                                       Path(wd) / "gallina")
     ensure(code == 0, f"the closure run failed: {output.getvalue()}")
-    ensure(compiled[-1] == "Properties" and sorted(compiled[:-1]) == ["A", "B", "Probe"],
-           f"the run compiled {compiled}, not the harness's closure and then the harness")
+    ensure(compiled[-2:] == ["Properties", "Walks"]
+           and sorted(compiled[:-2]) == ["A", "B", "C", "Probe"],
+           f"the run compiled {compiled}, not the harnesses' closure once and then each")
     ensure(compiled.index("A") < min(compiled.index("B"), compiled.index("Probe")),
            f"a Require was compiled after what reads it: {compiled}")
+    ensure("from seed 7" in output.getvalue() and "1 walked set(s) held" in output.getvalue(),
+           f"the report must carry the seed and the walks: {output.getvalue()}")
+
+
+def _the_randomized_half_refuses_what_does_not_replay_or_hold() -> None:
+    """A drawn harness fixing no seed is refused before anything compiles, and a walk a
+    point refutes fails the run whatever the draws said."""
+    files = {"proofs/A.v": _A,
+             f"tools/quickchick/{gallina.RANDOMIZED}":
+                 "From QuickChick Require Import QuickChick.\nRequire Import A.\n",
+             f"tools/quickchick/{gallina.EXHAUSTIVE}": "Require Import A.\n"}
+
+    def compile_one(found: gallina.Prover, work: Path, source: Path,
+                    timeout: int = 900) -> subprocess.CompletedProcess[str]:
+        del found, work, timeout
+        said = ('= ["prop_w 9 3 2 4"] : list string\n' if source.name == gallina.EXHAUSTIVE
+                else "+++ Passed 10000 tests\n")
+        return subprocess.CompletedProcess([], 0, said, "")
+
+    for seeded, want in ((False, "fixes QuickChick's random state other than once"),
+                         (True, "2 of 9 point(s) refute it, the first at position 4")):
+        if seeded:
+            files[f"tools/quickchick/{gallina.RANDOMIZED}"] = _SEEDED + "Require Import A.\n"
+        with (_tree(files) as td, tempfile.TemporaryDirectory(prefix="vos-work-") as wd,
+              patch.object(quickchick, "installed", return_value=quickchick.VERSION),
+              patch.object(gallina, "prover",
+                           return_value=gallina.Prover("s", ("rocq", "c"))),
+              patch.object(gallina, "compile_one", side_effect=compile_one) as compiled,
+              redirect_stdout(io.StringIO()) as output):
+            code = quickchick._properties(argparse.Namespace(), Mock(), Path(td),
+                                          Path(wd) / "gallina")
+        ensure(code == 1 and want in output.getvalue(),
+               f"seeded={seeded}: the run said {output.getvalue()}")
+        ensure(seeded or compiled.call_count == 0,
+               "a harness that cannot replay must be refused before compiling")
+
+
+def _the_seed_and_the_walks_are_read() -> None:
+    with _tree({"P.v": _SEEDED, "Twice.v": _SEEDED * 2,
+                "Hidden.v": "(* " + _SEEDED.replace("(*", "").replace("*)", "") + " *)\n",
+                "Unseeded.v": "From QuickChick Require Import QuickChick.\n"}) as td:
+        root = Path(td)
+        got = {name: gallina.seed(root / f"{name}.v")
+               for name in ("P", "Twice", "Hidden", "Unseeded", "Absent")}
+    ensure(got == {"P": "7", "Twice": None, "Hidden": None, "Unseeded": None,
+                   "Absent": None}, f"the seed readings were {got}")
+    printed = {"held": '= ["prop_a 9 9 0 -"; "prop b, over c 392 81 0 -"] : list string\n',
+               "refuted": '= ["prop_a 9 4 1 0"] : list string\n',
+               "vacuous": '= ["prop_a 9 0 0 -"] : list string\n',
+               "malformed": '= ["prop_a nine 9 0 -"] : list string\n',
+               "short": '= ["prop_a 9 0 -"] : list string\n',
+               "empty": "= [] : list string\n"}
+    read: dict[str, tuple[list[gallina.Walk], str]] = {}
+    for label, text in printed.items():
+        done = subprocess.CompletedProcess([], 0, text, "")
+        with patch.object(gallina, "compile_one", return_value=done):
+            read[label] = gallina.walks(gallina.Prover("s", ("rocq", "c")), Path(), Path())
+    ensure(read["held"] == ([gallina.Walk("prop_a", 9, 9, 0, None),
+                             gallina.Walk("prop b, over c", 392, 81, 0, None)], "")
+           and not gallina.walk_failures(read["held"][0]),
+           f"a held walk reads as held, its name kept whole: {read['held']}")
+    ensure(gallina.walk_failures(read["refuted"][0])
+           == ["prop_a: 1 of 9 point(s) refute it, the first at position 0"],
+           f"a refuted walk is named with its first point: {read['refuted']}")
+    ensure(gallina.walk_failures(read["vacuous"][0])
+           == ["prop_a: no one of its 9 point(s) meets its premise, so it holds vacuously"],
+           f"a walk no point of which meets its premise holds vacuously: {read['vacuous']}")
+    for label in ("malformed", "short"):
+        ensure(read[label][0] == []
+               and "not `name points premise refuted first`" in read[label][1],
+               f"a line that is not a walk is an error: {read[label]}")
+    ensure(read["empty"][0] == [] and "printed no quoted vector" in read["empty"][1],
+           f"a walk harness printing nothing is an error: {read['empty']}")
+    ensure(gallina.walk_failures([gallina.Walk("none", 0, 0, 0, None)])
+           == ["none: its domain holds no point, so it decides nothing"],
+           "an empty domain decides nothing")
 
 
 def _quickchick_rejects_other_versions() -> None:
@@ -564,6 +647,9 @@ def cases() -> list[Case]:
              _the_stdlib_harnesses_compile_in_the_proof_switch),
         Case("the randomized harness compiles its closure alone",
              _the_randomized_harness_compiles_its_closure_alone),
+        Case("the randomized half refuses what does not replay or hold",
+             _the_randomized_half_refuses_what_does_not_replay_or_hold),
+        Case("the seed and the walks are read", _the_seed_and_the_walks_are_read),
         Case("QuickChick rejects other versions", _quickchick_rejects_other_versions),
         Case("a switch's opam environment answers no question",
              _a_switch_environment_answers_no_question),

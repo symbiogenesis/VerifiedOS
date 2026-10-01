@@ -18,20 +18,21 @@ Rocq release, the harnesses it compiles, whether it also compiles the rig's supp
 harnesses or a directory of its own, whether it compiles every proof source, as
 `seed coq`'s enumerative mode does for the `--file` its caller names and as
 `gallina.emit` does for the vector harnesses, and the proof sources it names itself, as
-the Rupicola lowering names its default owner. `seed coq --quickchick` compiles its
-harness's closure alone and refuses a subject outside it, so its row holds that harness
-and the rig's support harnesses, each with its closure, which today lie inside the
-harness's. Each switch and release is the instrument's own constant,
-imported, or, where it has none to import, the literal in its own file or the rig's
-constant that file's top-level import binds under a name nothing else there binds, read
-by name out of that file's syntax tree, and so is a proof source the instrument names.
-The rows older than 9.3.0 decide the set, and each harness or named source brings its
-`Require` closure, read by [vos/proofs.py](../proofs.py)'s own reader over the proofs
-directory and the harness's directory as one namespace, because that is how every row
-stages them: the rig roots both at the empty logical path, and the recipes copy the
-proof beside the harness. The dated campaigns under `proofs/campaigns/` are not rows. A
-row that states no release is held older than 9.3.0, since a release nobody states is
-one nobody can say admits the forms.
+the Rupicola lowering names its default owner. `seed coq --quickchick` compiles the
+closure of its harness and the walk harness beside it alone and refuses a subject
+outside the first's, so its row holds the two harnesses and the rig's support harnesses,
+each with its closure, which today lie inside the first harness's. Each switch and
+release is the instrument's own constant, imported, or, where it has none to import, the
+literal in its own file or the rig's constant that file's top-level import binds under a
+name nothing else there binds, read by name out of that file's syntax tree, and so is a
+proof source the instrument names. The rows
+older than 9.3.0 decide the set, and each harness or named source brings its `Require`
+closure, read by [vos/proofs.py](../proofs.py)'s own reader over the proofs directory
+and the harness's directory as one namespace, because that is how every row stages
+them: the rig roots both at the empty logical path, and the recipes copy the proof
+beside the harness. The dated campaigns under `proofs/campaigns/` are not rows. A row
+that states no release is held older than 9.3.0, since a release nobody states is one
+nobody can say admits the forms.
 
 **The table's own membership is held too.** Every module under `tools/vos/` that resolves
 a prover through `gallina.prover` has to be some row's `selects`, so an instrument added
@@ -153,10 +154,12 @@ INSTRUMENTS: tuple[Instrument, ...] = (
                support=True, whole=True),
     Instrument("quickchick properties", "tools/vos/cli/quickchick.py",
                gallina.QUICKCHICK_SWITCH, gallina.QUICKCHICK_ROCQ_VERSION,
-               (f"{RIG}/{gallina.RANDOMIZED}",)),
-    # Properties.v's closure alone, a subject outside it refused, beside the rig's support.
+               (f"{RIG}/{gallina.RANDOMIZED}", f"{RIG}/{gallina.EXHAUSTIVE}")),
+    # Properties.v's closure alone, the walk harness beside it, a subject outside that
+    # closure refused, beside the rig's support.
     Instrument("seed coq --quickchick", "tools/vos/cli/seed.py", gallina.QUICKCHICK_SWITCH,
-               gallina.QUICKCHICK_ROCQ_VERSION, (f"{RIG}/{gallina.RANDOMIZED}",),
+               gallina.QUICKCHICK_ROCQ_VERSION,
+               (f"{RIG}/{gallina.RANDOMIZED}", f"{RIG}/{gallina.EXHAUSTIVE}"),
                support=True),
     # Each writes its harness at run time, over proofs its own module names; at the
     # gate's release they add nothing, and older they would derive no file and fail.

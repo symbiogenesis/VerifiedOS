@@ -13,9 +13,13 @@ loads Stdlib alone, it is compiled in the proof gate's own switch, and its outpu
 text file, which is the form both earlier model-as-oracle rigs crossed in.
 
 [quickchick/Properties.v](quickchick/Properties.v) is the half that needs an install:
-random generators and `forAll` over them, which reach a range rather than a list, a
-counterexample printed as drawn because `forAll` shrinks nothing. The install is made,
-in a switch of its own, and `check` reports which version that switch holds. QuickChick's Coq and dune constraints
+random generators and `forAll` over them, which reach a range rather than a list, drawn
+from a seed the harness fixes so a verdict replays, a refuting draw printed as drawn
+because `forAll` shrinks nothing. A property set whose domain holds no more points
+than the draws QuickChick spends on it is decided instead by
+[quickchick/Walks.v](quickchick/Walks.v), which loads Stdlib alone and walks the whole
+domain, and `properties` runs both. The install is made, in a switch of its own, and
+`check` reports which version that switch holds. QuickChick's Coq and dune constraints
 require an environment independent of the proof gate and CertiRocq compiler; `INSTALL`
 below restores its tested package snapshot.
 
@@ -171,9 +175,12 @@ def cmd_properties(args: argparse.Namespace) -> int:
     Refused rather than skipped: a run that reported `ok` having tested nothing is the
     vacuous pass every floor in this repository exists to catch.
 
-    It compiles Properties.v's `Require` closure and nothing else, the proofs it reads
-    and the support harnesses it Requires, as `kernel vectors` does for its harness. A
-    proof outside that closure is compile time no verdict here can depend on.
+    It runs both harnesses of the half in QuickChick's switch: Properties.v, whose
+    sets QuickChick draws from the seed the harness fixes, and Walks.v, which decides
+    each set small enough to enumerate at every point of its domain. It compiles their
+    `Require` closure and nothing else, the proofs they read and the support harnesses
+    they Require, as `kernel vectors` does for its harness. A proof outside that closure
+    is compile time no verdict here can depend on.
     """
     return _with_workspace(args, _properties)
 
@@ -190,28 +197,46 @@ def _properties(args: argparse.Namespace, e: env.Environment, root: Path, work: 
         return 1
 
     gallina.stage(root, work)
-    source = work / "harness" / gallina.RANDOMIZED
-    if not source.is_file():
-        print(f"FAIL there is no harness at "
-              f"{gallina.HARNESS_DIR}/{gallina.RANDOMIZED}")
+    drawn = work / "harness" / gallina.RANDOMIZED
+    walked = work / "harness" / gallina.EXHAUSTIVE
+    for harness in (drawn, walked):
+        if not harness.is_file():
+            print(f"FAIL there is no harness at {gallina.HARNESS_DIR}/{harness.name}")
+            return 1
+    seed = gallina.seed(drawn)
+    if seed is None:
+        print(f"FAIL {gallina.RANDOMIZED} fixes QuickChick's random state other than once, "
+              "so no verdict it reaches replays; it states the seed in one "
+              '`Extract Constant newRandomSeed => "(Random.State.make [|N|])".`')
         return 1
-    failures = gallina.compile_closure(found, work, source)
+    failures = gallina.compile_closure(found, work, drawn, walked)
     if failures:
         print("\n".join(f"FAIL {f.source} did not compile:\n{f.said}"
                         for f in failures))
         return 1
-    done = gallina.compile_one(found, work, source)
+    done = gallina.compile_one(found, work, drawn)
     print(done.stdout + done.stderr)
     if done.returncode != 0:
         print(f"FAIL {gallina.RANDOMIZED} did not run under {PACKAGE} in {switch}")
         return 1
     passed = done.stdout.count("+++ Passed")
     failed = done.stdout.count("*** Failed")
-    if failed or not passed:
-        print(f"FAIL {gallina.RANDOMIZED}: {failed} property set(s) failed and "
-              f"{passed} passed")
+    found_walks, said = gallina.walks(found, work, walked)
+    if said:
+        print(f"FAIL {gallina.EXHAUSTIVE} did not run in {switch}:\n{said}")
         return 1
-    print(f"ok {passed} property set(s) passed under {PACKAGE} in {switch}")
+    print("\n".join(f"walked {w.name}: {w.points} point(s), {w.premise} meeting its "
+                    f"premise, {w.refuted} refuting it" for w in found_walks))
+    refuted = gallina.walk_failures(found_walks)
+    if failed or not passed or refuted:
+        print("\n".join([f"FAIL {gallina.RANDOMIZED}: {failed} drawn property set(s) "
+                         f"failed and {passed} passed; {gallina.EXHAUSTIVE}: "
+                         f"{len(refuted)} of {len(found_walks)} walked set(s) did not hold",
+                         *(f"     {line}" for line in refuted)]))
+        return 1
+    print(f"ok {passed} drawn property set(s) passed under {PACKAGE} {VERSION} in "
+          f"{switch}, from seed {seed}, and {len(found_walks)} walked set(s) held at "
+          f"every one of their {sum(w.points for w in found_walks)} point(s)")
     return 0
 
 
@@ -291,7 +316,8 @@ def _freeze(args: argparse.Namespace, e: env.Environment, root: Path, work: Path
 COMMANDS: cli.Table = {
     "check": (cmd_check, "whether QuickChick is installed, and what installing costs"),
     "vectors": (cmd_vectors, "the enumerative half: generated inputs, as text"),
-    "properties": (cmd_properties, "the randomized half, which QuickChick runs"),
+    "properties": (cmd_properties, "the randomized half: QuickChick's draws and the "
+                                   "walks over domains no larger than them"),
     "freeze": (cmd_freeze, "the freeze's density model, stated twice and compared"),
 }
 

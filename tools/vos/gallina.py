@@ -21,10 +21,11 @@ Stdlib and nothing else, and the proof gate's switch carries Stdlib, so
 mode compile in that switch, at the gate's release and under their own flags: a proof
 source that compiles under the gate compiles under them. The randomized harness loads
 QuickChick and the Wasm oracle loads CertiRocq, and no release of either admits a Rocq
-newer than 9.1, so each keeps a switch of its own at Rocq 9.1.1. K-117 holds what each
-instrument older than Rocq 9.3.0 compiles, these two and the Rupicola lowering among
-them, free of the syntax only Rocq 9.3 reads. Every switch is **read** here and never
-written.
+newer than 9.1, so each keeps a switch of its own at Rocq 9.1.1; the walk harness that
+decides the property sets small enough to enumerate compiles beside the randomized one.
+K-117 holds what each instrument older than Rocq 9.3.0 compiles, these two and the
+Rupicola lowering among them, free of the syntax only Rocq 9.3 reads. Every switch is
+**read** here and never written.
 """
 
 import os
@@ -103,6 +104,7 @@ HARNESS_DIR = "tools/quickchick"
 # where another one's output went.
 ENUMERATIVE = "Vectors.v"
 RANDOMIZED = "Properties.v"
+EXHAUSTIVE = "Walks.v"
 FREEZE = "FreezeModel.v"
 KERNEL = "KernelVectors.v"
 WORK = "gallina"
@@ -115,12 +117,25 @@ FREEZE_MODEL = "freeze-model.txt"
 # library this switch may not hold or are a second subject entirely. A set rather than
 # a tuple spelled at the one site that reads it, so that adding a harness is one edit
 # here and the exclusion cannot be the half somebody forgets.
-ENTRY_POINTS: frozenset[str] = frozenset({ENUMERATIVE, RANDOMIZED, FREEZE, KERNEL})
+ENTRY_POINTS: frozenset[str] = frozenset({ENUMERATIVE, RANDOMIZED, EXHAUSTIVE, FREEZE,
+                                          KERNEL})
 
 # The one line a harness's output is read back through. `Compute` on a `list string`
 # prints `= ["a"; "b"] : list string`, and the entries carry no quote and no backslash
 # by construction, so the quoted segments are the vectors.
 QUOTED = '"'
+
+# How many draws QuickChick spends on one property set, its `stdArgs`' `maxSuccess`. A
+# set whose domain holds no more points than this is walked whole by the exhaustive
+# harness rather than drawn, a draw of that many covering no such domain.
+DRAWS = 10_000
+
+# The one sentence that fixes QuickChick's random state in the randomized harness.
+# QuickChick extracts `newRandomSeed` as `Random.State.make_self_init ()`, read from
+# system-dependent data, so a verdict it reaches need not replay; the harness states the
+# seed instead, read here so a run can report it and refuse a harness that states none.
+_SEED = re.compile(r"\bExtract\s+Constant\s+(?:[\w']+\.)*newRandomSeed\s*=>\s*"
+                   r'"\(\s*Random\.State\.make\s*\[\|\s*(\d+)\s*\|\]\s*\)"\s*\.')
 
 
 @dataclass(frozen=True)
@@ -137,6 +152,19 @@ class Prover:
 
     switch: str
     argv: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class Walk:
+    """One property set the exhaustive harness decided over its whole domain: how many
+    points the domain holds, how many meet the property's premise, how many refute the
+    property, and the position of the first that does, None where none does."""
+
+    name: str
+    points: int
+    premise: int
+    refuted: int
+    first: int | None
 
 
 # One `NAME='value'; export NAME;` line of `opam env --shell=sh`.
@@ -281,8 +309,8 @@ def compile_dependents(found: Prover, work: Path, rel: str,
     because the closure of a name that is not there is empty and an empty compile would
     report a green baseline for a tree nobody built.
 
-    `moved`, where given, is what `closure_dependents` says the mutant moves inside one
-    harness's `Require` closure, and only the proofs among it are compiled: a proof
+    `moved`, where given, is what `closure_dependents` says the mutant moves inside the
+    harnesses' `Require` closure, and only the proofs among it are compiled: a proof
     outside that closure is never handed to the prover, however many of them Require
     the subject.
     """
@@ -296,41 +324,49 @@ def compile_dependents(found: Prover, work: Path, rel: str,
     return _compile_waves(found, work, proofs.dependents(sources, stem))
 
 
-def closure(work: Path, harness: Path) -> list[list[Path]]:
-    """One harness's `Require` closure over a tree holding the proofs and the harness's
-    own directory, in dependency order, the harness in the last wave. The tree is the
-    staged one, or the checkout, whose harnesses the stage copies unchanged.
+def closure(work: Path, *harnesses: Path) -> list[list[Path]]:
+    """The harnesses' `Require` closure over a tree holding the proofs and the
+    harnesses' own directory, in dependency order, each harness in a wave after
+    everything it Requires, one harness so in the last wave. The tree is the staged one,
+    or the checkout, whose harnesses the stage copies unchanged.
 
     The proofs and the harnesses are read as one namespace because `compile_one` roots
     both directories at the empty logical path, so a harness's `Require` resolves
-    against either and its closure runs through both.
+    against either and its closure runs through both. Several harnesses, all in one
+    directory, are read as one closure, so a source two of them Require is in it once,
+    in the order the union gives it.
     """
-    sources = sorted((work / PROOFS).glob("*.v")) + sorted(harness.parent.glob("*.v"))
+    sources = (sorted((work / PROOFS).glob("*.v"))
+               + sorted(harnesses[0].parent.glob("*.v")))
     index = proofs.SourceIndex.read(sources)
-    wanted = set(index.imports[harness]) | {harness}
+    wanted = {s for harness in harnesses for s in index.imports[harness]} | set(harnesses)
     return [[s for s in wave if s in wanted] for wave in index.ordered
             if any(s in wanted for s in wave)]
 
 
-def closure_dependents(work: Path, harness: Path, rel: str) -> list[list[Path]]:
-    """What a mutation of `rel` moves inside one harness's `Require` closure: `rel` and
+def closure_dependents(work: Path, rel: str, *harnesses: Path) -> list[list[Path]]:
+    """What a mutation of `rel` moves inside the harnesses' `Require` closure: `rel` and
     each member that Requires it, directly or through another member, proofs and
-    support harnesses alike, in Require order, the harness itself left for its caller
-    to run. `compile_dependents` takes the proofs of it and `compile_support` the rest.
+    support harnesses alike, in Require order, the harnesses themselves left for their
+    caller to run. `compile_dependents` takes the proofs of it and `compile_support` the
+    rest.
 
     A subject the closure does not hold moves the closure whole, for the reason
     `compile_dependents` falls back to the whole directory.
     """
-    whole = [kept for wave in closure(work, harness)
-             if (kept := [s for s in wave if s != harness])]
+    whole = [kept for wave in closure(work, *harnesses)
+             if (kept := [s for s in wave if s not in harnesses])]
     return proofs.dependents([s for wave in whole for s in wave], Path(rel).stem) or whole
 
 
-def compile_closure(found: Prover, work: Path, harness: Path) -> list[Failure]:
-    """What one harness Requires and nothing else, in Require order, every failure
-    kept; the harness itself is left for its caller to run."""
-    return _compile_waves(found, work, [[s for s in wave if s != harness]
-                                        for wave in closure(work, harness)])
+def compile_closure(found: Prover, work: Path, *harnesses: Path) -> list[Failure]:
+    """What the harnesses Require and nothing else, in Require order, every failure
+    kept; the harnesses themselves are left for their caller to run.
+
+    Several harnesses are read as one closure, as `closure` reads them, so a source two
+    of them Require is compiled once."""
+    return _compile_waves(found, work, [[s for s in wave if s not in harnesses]
+                                        for wave in closure(work, *harnesses)])
 
 
 def compile_support(found: Prover, work: Path,
@@ -341,14 +377,15 @@ def compile_support(found: Prover, work: Path,
     The entry points are excluded by name rather than by their contents, and the reason
     is one per harness. The randomized half needs a library this repository installs in
     a switch of its own, and compiling it to satisfy another harness's imports would
-    make the enumerative half wait on the randomized half's price. The freeze model is
-    a second subject with no reader here at all: compiling it as shared support would
-    put a `Compute` over a hundred vectors inside every `quickchick vectors` run and
-    inside every seeded mutant's baseline, which is a price paid by loops that decide
-    nothing about it.
+    make the enumerative half wait on the randomized half's price. The walk harness
+    decides its sets over whole domains as it compiles, a price only the randomized
+    half's runs owe. The freeze model is a second subject with no reader here at all:
+    compiling it as shared support would put a `Compute` over a hundred vectors inside
+    every `quickchick vectors` run and inside every seeded mutant's baseline, which is a
+    price paid by loops that decide nothing about it.
 
-    `moved`, where given, is what `closure_dependents` says a mutant moves inside one
-    harness's closure, and only the shared sources among it are compiled, in its order.
+    `moved`, where given, is what `closure_dependents` says a mutant moves inside the
+    harnesses' closure, and only the shared sources among it are compiled, in its order.
     """
     if moved is not None:
         return _compile_waves(found, work, [[s for s in wave if s.parent == work / "harness"
@@ -394,6 +431,63 @@ def properties(found: Prover, work: Path, harness: Path) -> tuple[int, int, str]
     if done.returncode != 0 and not failed:
         return 0, max(1, passed + failed), _first(said, "the harness did not compile")
     return passed, failed, _first(said, "") if failed else ""
+
+
+def seed(harness: Path) -> str | None:
+    """The seed the randomized harness fixes QuickChick's random state at, or None where
+    it fixes none or fixes it other than once.
+
+    Read with the comments blanked by the shared lexer, so a commented-out sentence
+    fixes nothing."""
+    try:
+        text = proofs.strip_comments(harness.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError):
+        return None
+    found = [str(m.group(1)) for m in _SEED.finditer(text)]
+    return found[0] if len(found) == 1 else None
+
+
+def walks(found: Prover, work: Path, harness: Path) -> tuple[list[Walk], str]:
+    """Run the exhaustive harness: each property set it walked, or why there are none.
+
+    The harness loads Stdlib alone and ends in a `Compute` over a `list string`, one
+    entry per set, `name points premise refuted first`, the last `-` where no point
+    refutes. A harness that did not compile, printed no entry or printed one this cannot
+    read is an error rather than a set that held, so a walk that never ran reads as no
+    verdict.
+    """
+    lines, said = vectors(found, work, harness)
+    if said:
+        return [], said
+    out: list[Walk] = []
+    for line in lines:
+        parts = line.rsplit(" ", 4)
+        numbers = parts[1:]
+        if (len(parts) != 5 or not all(n.isdigit() for n in numbers[:3])
+                or not (numbers[3].isdigit() or numbers[3] == "-")):
+            return [], (f"the walk harness printed {line!r}, which is not "
+                        "`name points premise refuted first`")
+        out.append(Walk(name=parts[0], points=int(numbers[0]), premise=int(numbers[1]),
+                        refuted=int(numbers[2]),
+                        first=None if numbers[3] == "-" else int(numbers[3])))
+    return out, ""
+
+
+def walk_failures(found_walks: list[Walk]) -> list[str]:
+    """Each walked set that does not hold, as one line naming it: one a point refutes,
+    one whose domain is empty and so decides nothing, and one whose premise no point
+    meets, which holds vacuously."""
+    out: list[str] = []
+    for w in found_walks:
+        if w.refuted:
+            out.append(f"{w.name}: {w.refuted} of {w.points} point(s) refute it, the "
+                       f"first at position {w.first}")
+        elif not w.points:
+            out.append(f"{w.name}: its domain holds no point, so it decides nothing")
+        elif not w.premise:
+            out.append(f"{w.name}: no one of its {w.points} point(s) meets its premise, "
+                       "so it holds vacuously")
+    return out
 
 
 def _first(text: str, fallback: str) -> str:
