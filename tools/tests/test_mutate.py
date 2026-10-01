@@ -222,6 +222,63 @@ def _a_void_command_defines_nothing_to_mutate() -> None:
            f"a tactic's flag waited past it: {keys}")
 
 
+def _a_decoration_reaches_its_command_across_lines() -> None:
+    """Rocq's lexer reads a decoration run across lines: a comment spanning lines is a
+    separator, an attribute may span lines, and the command may be indented under its
+    flag. Read a line at a time, each lost the command: `Succeed (* a` newline `b *)
+    Definition g` left g's literal mutable in the region above, and a multi-line
+    attribute under `Succeed` keyed g as a mutable definition."""
+    first = "Definition f (n : nat) : nat := n + 1.\n"
+    second = "Definition g (n : nat) : nat := n + 2.\n"
+    for lead, keyword, sites in (("Succeed (* a\n b *) ", "Succeed", ["1"]),
+                                 ("Local (* a\n*)", "Definition", ["1", "2"]),
+                                 ('Succeed #[deprecated(since="1",\n  note="x")]\n',
+                                  "Succeed", ["1"]),
+                                 ("Succeed\n  ", "Succeed", ["1"]),
+                                 ("Local\n(* why *)\n  ", "Definition", ["1", "2"]),
+                                 ("Succeed (* a *) ", "Succeed", ["1"])):
+        text = first + lead + second
+        keyed = [(r.keyword, r.name, r.start) for r in mutate.regions(text, mutate.COQ)]
+        ensure(keyed == [("Definition", "f", 0), (keyword, "g", len(first))],
+               f"under {lead!r} the regions were {keyed}")
+        found = _sites(text, mutate.COQ, "const-inc")
+        ensure([m.before for m in found] == sites,
+               f"under {lead!r} the sites were {[m.before for m in found]}")
+
+
+def _a_flag_before_a_brace_is_the_braces() -> None:
+    """A bullet, a brace or a goal selector is a command of its own, and the locked
+    compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps the definition
+    after it, so that definition's region is keyed by its own command, opens after the
+    brace and is mutable; a flag after a bullet is the definition's, which keeps nothing
+    to mutate."""
+    first = "Definition f (n : nat) : nat := n + 1.\nLemma l : True.\nProof.\n"
+    second = "Definition g (n : nat) : nat := n + 2.\n"
+    tail = "  exact I.\nQed.\n"
+    for lead, keyword, sites, opens in (("Fail } ", "Definition", ["1", "2"], "Definition g"),
+                                        ("Succeed { ", "Definition", ["1", "2"], "Definition g"),
+                                        ("Succeed 1: { ", "Definition", ["1", "2"],
+                                         "Definition g"),
+                                        ("Fail }\n", "Definition", ["1", "2"], "Definition g"),
+                                        ("Succeed\n{ ", "Definition", ["1", "2"],
+                                         "Definition g"),
+                                        ("Fail\n}\n#[local]\n", "Definition", ["1", "2"],
+                                         "#[local]"),
+                                        ("- Succeed ", "Succeed", ["1"], "Succeed"),
+                                        ("{ Succeed\n", "Succeed", ["1"], "Succeed")):
+        text = first + lead + second + tail
+        keyed = [(r.keyword, r.name) for r in mutate.regions(text, mutate.COQ)]
+        ensure(keyed == [("Definition", "f"), ("Lemma", "l"), ("Proof", "."),
+                         (keyword, "g"), ("Qed", ".")],
+               f"after {lead!r} the regions were {keyed}")
+        starts = [r.start for r in mutate.regions(text, mutate.COQ) if r.name == "g"]
+        ensure(starts == [text.index(opens, len(first))],
+               f"after {lead!r} g's region opened at {starts}")
+        found = _sites(text, mutate.COQ, "const-inc")
+        ensure([m.before for m in found] == sites,
+               f"after {lead!r} the sites were {[m.before for m in found]}")
+
+
 def _a_line_inside_a_comment_opens_no_region() -> None:
     """A line that opens inside a comment is prose whatever word it starts with, so the
     definition around it keeps its region and its sites. Read as a command, a flag word
@@ -394,6 +451,9 @@ def cases() -> list[Case]:
         Case("a keyword is a whole word", _a_keyword_is_a_whole_word),
         Case("a void command defines nothing to mutate",
              _a_void_command_defines_nothing_to_mutate),
+        Case("a decoration reaches its command across lines",
+             _a_decoration_reaches_its_command_across_lines),
+        Case("a flag before a brace is the brace's", _a_flag_before_a_brace_is_the_braces),
         Case("a line inside a comment opens no region",
              _a_line_inside_a_comment_opens_no_region),
         Case("a record completed from a base is mutable",
