@@ -676,19 +676,21 @@ def _coinductive_controls_reach_the_compiler() -> None:
 
 
 def _shipped_sources_write_no_coinductive_form() -> None:
-    """Every tracked proof source passes the coinductive refusal, which still reads them:
-    a declaration appended to one is the one sentence it reports."""
+    """Every tracked proof source, a generated module's template among them, passes the
+    coinductive refusal, which still reads them: a declaration appended to one is the one
+    sentence it reports."""
     root = TOOLS.parent
     names = sorted(name for name in corpus.read_index(root).indexed
-                   if name.startswith(f"{gate.PROOFS}/") and name.endswith(".v"))
+                   if name.startswith(f"{gate.PROOFS}/") and name.endswith((".v", ".v.in")))
     ensure(bool(names), f"no tracked proof source under {gate.PROOFS}/")
     texts = {name: (root / name).read_text(encoding="utf-8") for name in names}
     found = [f"{name}: {sentence}" for name, text in texts.items()
              for sentence in proofaudit.coinductive_forms(text)]
     ensure(not found, f"a tracked proof source writes a coinductive form: {found!r}")
-    seeded = f"{texts[names[0]]}\n{_STREAM}\n"
-    ensure(proofaudit.coinductive_forms(seeded) == [_STREAM.removesuffix(".")],
-           f"a declaration appended to {names[0]} was not the one sentence refused")
+    for declaration in (_STREAM, 'Tactic Notation "#a" tactic3(t) := t.'):
+        seeded = f"{texts[names[0]]}\n{declaration}\n"
+        ensure(proofaudit.coinductive_forms(seeded) == [declaration.removesuffix(".")],
+               f"a declaration appended to {names[0]} was not the one sentence refused")
 
 
 def _nested_sources_cannot_be_omitted() -> None:
