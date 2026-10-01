@@ -1457,7 +1457,9 @@ def _imports_refused_where_the_running_platform_lacks_them() -> None:
     # one of a module the interpreter finds and one of a submodule whose package it
     # finds, which this reading does not catch. With modules no interpreter finds, the
     # refusal follows the running platform: each of the two refuses the import it
-    # reaches, and a platform outside them refuses neither.
+    # reaches, and a platform outside them refuses neither. A name the finder refuses,
+    # raising rather than answering, is refused as one it cannot find, fail-closed, even
+    # where the interpreter has the module.
     config = ('[lint.flake8-tidy-imports]\nbanned-module-level-imports = ["fcntl", "msvcrt", '
               '"asyncio.unix_events", "asyncio.windows_events", "vosnolinux", "vosnowin32"]\n')
     running = sys.platform
@@ -1492,6 +1494,12 @@ def _imports_refused_where_the_running_platform_lacks_them() -> None:
         ensure(rep.out == ([f"FAIL imports: 1 {_SCAN_FAIL}", *expected] if expected
                            else [_SCAN_OK]),
                f"under {platform}, only the import it reaches may be refused: {rep.out!r}")
+    with patch.object(typecheck.importlib.util, "find_spec", side_effect=ValueError("refused")):
+        rep = _scan({"having.py": modules["having.py"]}, config)
+    ensure(rep.findings == 1 and rep.out == [
+        f"FAIL imports: 1 {_SCAN_FAIL}",
+        _missing("having.py:4", f"sys.platform == {running!r}", having, running)],
+        f"a name the finder refuses must be refused as one it cannot find: {rep.out!r}")
 
 
 def _imports_fail_closed() -> None:
