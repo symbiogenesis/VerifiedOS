@@ -1084,10 +1084,10 @@ against the file's name rather than a line of it; and a comment carrying
 whose `disable` with no matching `enable` runs to the end of its block, or isort's
 `skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` on a line of its own
 reaches the one logical line beneath it, a multi-line one whole, or, inside brackets,
-the one line beneath it, and one ending a line reaches that line alone, a line taking in
-the lines a backslash or a multi-line string joins to it; it is not refused. ruff's log
-names a file whose rules are switched off as checked, so the coverage floor below cannot
-see what such a suppression takes away.
+the one line of code beneath it, past blank and comment lines, and one ending a line
+reaches that line alone, a line taking in the lines a backslash or a multi-line string
+joins to it; it is not refused. ruff's log names a file whose rules are switched off as
+checked, so the coverage floor below cannot see what such a suppression takes away.
 ruff also honors ignore files by default, so ruff.toml sets `respect-gitignore = false`
 and the gate passes `--no-respect-gitignore`: a pattern matching a tracked module would
 otherwise take it out of the lint and annotation run with nothing reported. The settings

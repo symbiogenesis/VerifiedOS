@@ -1094,10 +1094,11 @@ def _ruff_ignore_reaches_one_line() -> None:
     # The reading under which the gate admits ruff's `ignore[...]` comment, held against
     # the pinned ruff: on a line of its own it reaches the one logical line beneath it,
     # past blank and comment lines, a multi-line one whole, a compound statement's header
-    # but not its block unless the block shares the header's line, a decorator but not the
-    # definition beneath, and every statement a semicolon joins; inside brackets it reaches the one line beneath it; one
-    # ending a line reaches that line alone; and a line takes in the lines a backslash or
-    # a multi-line string joins to it. The module's E711 findings are what ruff leaves.
+    # but not its block unless the block shares the header's line, a decorator but not
+    # the definition beneath, and every statement a semicolon joins; inside brackets it
+    # reaches the one line of code beneath it, past blank and comment lines; one ending a
+    # line reaches that line alone; and a line takes in the lines a backslash or a
+    # multi-line string joins to it. The module's E711 findings are what ruff leaves.
     text = "\n".join([
         "x = y = None",                          # 1
         "# ruff: ignore[E711]",                  # 2
@@ -1117,19 +1118,21 @@ def _ruff_ignore_reaches_one_line() -> None:
         "    pass",                              # 16
         "g = (",                                 # 17
         "    # ruff: ignore[E711]",              # 18
-        "    x == None,",                        # 19 reached, not 20
-        "    y == None,",                        # 20
-        ")",                                     # 21
-        "h = (x == None,  # ruff: ignore[E711]",  # 22 reached, not 23
-        "     y == None)",                       # 23
-        "i = x == None or \\",                   # 24 joined to 25
-        "    y == None  # ruff: ignore[E711]",   # 25
-        "j = (x == None, '''",                   # 26 joined to 28
-        "text",                                  # 27
-        "''')  # ruff: ignore[E711]",            # 28
-        "# ruff: ignore[E711]",                  # 29
-        "k = x == None; m = y == None",          # 30 reached, both statements
-        "n = x == None",                         # 31
+        "    # a comment inside brackets",       # 19
+        "",                                      # 20
+        "    x == None,",                        # 21 reached, not 22
+        "    y == None,",                        # 22
+        ")",                                     # 23
+        "h = (x == None,  # ruff: ignore[E711]",  # 24 reached, not 25
+        "     y == None)",                       # 25
+        "i = x == None or \\",                   # 26 joined to 27
+        "    y == None  # ruff: ignore[E711]",   # 27
+        "j = (x == None, '''",                   # 28 joined to 30
+        "text",                                  # 29
+        "''')  # ruff: ignore[E711]",            # 30
+        "# ruff: ignore[E711]",                  # 31
+        "k = x == None; m = y == None",          # 32 reached, both statements
+        "n = x == None",                         # 33
         ""])
     rep = Reporter()
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
@@ -1144,7 +1147,7 @@ def _ruff_ignore_reaches_one_line() -> None:
     found = typecheck._parse_ruff(done.stdout)
     lines = sorted(int(where.partition(" ")[0].split(":")[1]) for _, where in found)
     ensure(done.returncode == 1 and {code for code, _ in found} == {"E711"}
-           and lines == [7, 10, 15, 20, 23, 31],
+           and lines == [7, 10, 15, 22, 25, 33],
            f"ruff: ignore must reach the lines the reading says and no others: {lines!r} "
            f"{done.stdout!r} {done.stderr!r}")
 
@@ -1281,9 +1284,10 @@ def _imports_refused_outside_functions() -> None:
     # reading a `platform` other than `sys.platform`, another object's or one imported
     # from sys and read bare, is not the check the scan admits, and neither is one
     # reading `sys.platform` other than by comparing it with string literals: by truth
-    # value, beside a constant or another operand, through a call other than startswith,
-    # against a name or with `in` against a string. Both branches of such an `if` are
-    # refused, each import naming the nearest such test above it.
+    # value, beside a constant or another operand, beside a comparison of something
+    # other than `sys.platform` with literals by `==`, `in` or startswith, through a call
+    # other than startswith, against a name or with `in` against a string. Both branches
+    # of such an `if` are refused, each import naming the nearest such test above it.
     #
     # A comparison the scan reads is refused where both platforms take the branch: a
     # tautology built from the admitted forms, a test only another platform fails, a
@@ -1298,6 +1302,13 @@ def _imports_refused_outside_functions() -> None:
         "length.py": "import sys\n\nif len(sys.platform):\n    import fcntl\n",
         "operand.py": ("import sys\n\nif sys.platform == 'linux' or args.force:\n"
                        "    import fcntl\n"),
+        "otherequal.py": ("import os, sys\n\nif sys.platform == 'linux' or os.name == 'nt':\n"
+                          "    import fcntl\n"),
+        "otherin.py": ("import os, sys\n\nif sys.platform == 'linux' or os.name in ('nt',):\n"
+                       "    import fcntl\n"),
+        "otherprefix.py": ("import os, sys\n\n"
+                           "if sys.platform == 'linux' or os.name.startswith('nt'):\n"
+                           "    import fcntl\n"),
         "named.py": "import sys\n\nPOSIX = 'linux'\nif sys.platform == POSIX:\n    import fcntl\n",
         "substring.py": "import sys\n\nif sys.platform in 'linux':\n    import fcntl\n",
         "elsebranch.py": "import sys\n\nif not sys.platform:\n    pass\nelse:\n    import fcntl\n",
@@ -1325,6 +1336,9 @@ def _imports_refused_outside_functions() -> None:
         _unadmitted("named.py:5", "sys.platform == POSIX"),
         _refused("nested.py:3"), _refused("nfkc.py:2"),
         _unadmitted("operand.py:4", "sys.platform == 'linux' or args.force"),
+        _unadmitted("otherequal.py:4", "sys.platform == 'linux' or os.name == 'nt'"),
+        _unadmitted("otherin.py:4", "sys.platform == 'linux' or os.name in ('nt',)"),
+        _unadmitted("otherprefix.py:4", "sys.platform == 'linux' or os.name.startswith('nt')"),
         _refused("receiver.py:2"), _unadmitted("substring.py:4", "sys.platform in 'linux'"),
         _refused("toplevel.py:1"), _unadmitted("truthy.py:4", "sys.platform"),
         _refused("tryblock.py:2")],
@@ -1423,7 +1437,7 @@ def _imports_admitted_in_functions_and_platform_blocks() -> None:
                             "elif len(sys.platform):\n    import fcntl\n"),
         "nowhere.py": "import sys\n\nif sys.platform == 'darwin':\n    import fcntl\n",
         "emptyin.py": "import sys\n\nif sys.platform in ():\n    import fcntl\n",
-        "unrelated.py":("import asyncio\nimport fcntlx\nfrom asyncio import events\n"
+        "unrelated.py": ("import asyncio\nimport fcntlx\nfrom asyncio import events\n"
                          "from . import fcntl\nTEXT = 'import fcntl'\n"),
     }
     rep = _scan(admitted)
@@ -1432,19 +1446,22 @@ def _imports_admitted_in_functions_and_platform_blocks() -> None:
 
 
 def _missing(site: str, test: str, names: str, platform: str) -> str:
-    return (f"       {site} imports {names} outside a function body, behind `{test}`, which "
-            f"{platform} takes and where this interpreter cannot find it")
+    return (f"       {site} imports {names} outside a function body, behind `{test}`, on a "
+            f"branch {platform} takes, where this interpreter cannot find it")
 
 
 def _imports_refused_where_the_running_platform_lacks_them() -> None:
     # Keeping an import from one platform does not say which platform has the module, so
     # on each lane an import the running platform reaches is refused where this
-    # interpreter cannot find its top-level module, naming the test that lets it through,
-    # in a class body as at module level. The same import kept to the other platform is
-    # admitted, and so are one of a module the interpreter finds and one of a submodule
-    # whose package it finds, which this reading does not catch. With modules no
-    # interpreter finds, the refusal follows the running platform: each of the two
-    # refuses the import it reaches, and a platform outside them refuses neither.
+    # interpreter cannot find its top-level module, naming the nearest test reading
+    # `sys.platform`, whose body or `else` the running platform takes, in a class body as
+    # at module level. The same import kept to the other platform is admitted, and so are
+    # one of a module the interpreter finds and one of a submodule whose package it
+    # finds, which this reading does not catch. With modules no interpreter finds, the
+    # refusal follows the running platform: each of the two refuses the import it
+    # reaches, and a platform outside them refuses neither. A name the finder refuses,
+    # raising rather than answering, is refused as one it cannot find, fail-closed, even
+    # where the interpreter has the module.
     config = ('[lint.flake8-tidy-imports]\nbanned-module-level-imports = ["fcntl", "msvcrt", '
               '"asyncio.unix_events", "asyncio.windows_events", "vosnolinux", "vosnowin32"]\n')
     running = sys.platform
@@ -1452,6 +1469,8 @@ def _imports_refused_where_the_running_platform_lacks_them() -> None:
     submodule = "asyncio.unix_events" if running == "win32" else "asyncio.windows_events"
     modules = {
         "wrongside.py": f"import sys\n\nif sys.platform == {running!r}:\n    import {lacking}\n",
+        "elseside.py": (f"import sys\n\nif sys.platform != {running!r}:\n    pass\nelse:\n"
+                        f"    import {lacking}\n"),
         "classside.py": (f"import sys\n\nclass Locks:\n    if sys.platform.startswith("
                          f"{running[:3]!r}):\n        from {lacking} import flags\n"),
         "rightside.py": f"import sys\n\nif sys.platform != {running!r}:\n    import {lacking}\n",
@@ -1459,10 +1478,11 @@ def _imports_refused_where_the_running_platform_lacks_them() -> None:
         "submodule.py": f"import sys\n\nif sys.platform == {running!r}:\n    import {submodule}\n",
     }
     rep = _scan(modules, config)
-    ensure(rep.findings == 2 and rep.out == [
-        f"FAIL imports: 2 {_SCAN_FAIL}",
+    ensure(rep.findings == 3 and rep.out == [
+        f"FAIL imports: 3 {_SCAN_FAIL}",
         _missing("classside.py:5", f"sys.platform.startswith({running[:3]!r})", lacking,
                  running),
+        _missing("elseside.py:6", f"sys.platform != {running!r}", lacking, running),
         _missing("wrongside.py:4", f"sys.platform == {running!r}", lacking, running)],
         f"an import this platform reaches of a module it lacks must be refused: {rep.out!r}")
     lanes = {"lanes.py": ("import sys\n\nif sys.platform == 'linux':\n    import vosnolinux\n"
@@ -1476,6 +1496,12 @@ def _imports_refused_where_the_running_platform_lacks_them() -> None:
         ensure(rep.out == ([f"FAIL imports: 1 {_SCAN_FAIL}", *expected] if expected
                            else [_SCAN_OK]),
                f"under {platform}, only the import it reaches may be refused: {rep.out!r}")
+    with patch.object(typecheck.importlib.util, "find_spec", side_effect=ValueError("refused")):
+        rep = _scan({"having.py": modules["having.py"]}, config)
+    ensure(rep.findings == 1 and rep.out == [
+        f"FAIL imports: 1 {_SCAN_FAIL}",
+        _missing("having.py:4", f"sys.platform == {running!r}", having, running)],
+        f"a name the finder refuses must be refused as one it cannot find: {rep.out!r}")
 
 
 def _imports_fail_closed() -> None:

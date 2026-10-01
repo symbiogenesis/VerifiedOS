@@ -212,9 +212,10 @@ _NUMBER_RE = re.compile(r"\d+(?:\.\d+)+")
 def _number(text: str) -> str:
     """The dotted version in a tool's own greeting, empty where it states none.
 
-    `Z3 version 5.1.0 - 64 bit`, `Verilator 5.032 2025-01-01 rev (Debian 5.032-1)` and
-    a bare `0.20.3` from opam are the three shapes this reads, and `0.9.1+9.1` reduces
-    to the part before opam's own build suffix.
+    `Z3 version 5.1.0 - 64 bit` and `Verilator 5.032 2025-01-01 rev (Debian 5.032-1)`
+    are shapes this reads, and `0.9.1+9.1` reduces to the dotted part before its build
+    suffix. An opam client's release is not read here but by `_release`, which keeps
+    such a suffix.
     """
     found = _NUMBER_RE.search(text)
     return found.group(0) if found else ""
@@ -428,12 +429,16 @@ def _unlisted(switch: str, root: Path, client: tuple[str | None, str]) -> str:
 
 
 # What makes the reviewed client's upgrade of an older root a hard one, which it writes
-# before it reads the root, by the format the root states, as opam 2.6.0's
-# `OpamFormatUpgrade.upgrades` decides it: a format older than 2.0~beta5; 2.1~alpha or
-# 2.1~alpha2, each upgraded through 2.1~rc; and a format older than 2.6~alpha where
-# `cond_hard_upg_2_6_alpha` reads a configured repository's archive as nested. Every
-# other older root it upgrades in memory to read. Read from that release's source, so
-# the reading claims nothing of another reviewed client until its source is read.
+# before it reads the root, as opam 2.6.0's `OpamFormatUpgrade.upgrades` decides it. For
+# every format older than 2.6~alpha it runs `cond_hard_upg_2_6_alpha` over the
+# configured repositories' archives while it gathers the hard upgrades, before the
+# format decides anything, and that condition catches nothing but its own answer, so an
+# archive the client fails on fails it before it asks. Where the archives are read, the
+# upgrade is hard for a format older than 2.0~beta5; for 2.1~alpha or 2.1~alpha2, each
+# upgraded through 2.1~rc; and for any format older than 2.6~alpha where the condition
+# reads a configured repository's archive as nested. Every other older root it upgrades
+# in memory to read. Read from that release's source, so the reading claims nothing of
+# another reviewed client until its source is read.
 _UPGRADES_READ: str = "2.6.0"
 _HARD_BEFORE = "2.0~beta5"
 _HARD_FROM: tuple[str, ...] = ("2.1~alpha", "2.1~alpha2")
@@ -447,39 +452,55 @@ _UNREAD_MEMBERS = frozenset((tarfile.LNKTYPE, tarfile.SYMTYPE, tarfile.CHRTYPE,
 def _upgrades_to_read(root: Path) -> bool:
     """Whether the reviewed client must write the format upgrade of the root at `root`
     before it reads that root, so that, declining it, it lists no switch there: a hard
-    upgrade, by the root's stated format and its repositories' archives, as
-    `_HARD_BEFORE`, `_HARD_FROM` and `_NESTED_BEFORE` say."""
+    upgrade, by the root's repositories' archives and its stated format, as
+    `_HARD_BEFORE`, `_HARD_FROM` and `_NESTED_BEFORE` say.
+
+    The archives are read before the format decides, because that client reads them
+    first for every format older than `_NESTED_BEFORE`: where it may fail on them it
+    may fail before it asks, whatever the format, so such a root reads false,
+    undecided. A format at or above `_NESTED_BEFORE` leaves that client no hard
+    upgrade."""
     fmt = opam_client.root_format(root)
-    if opam_client.OPAM_VERSION != _UPGRADES_READ or not opam_client.older_than_reviewed(fmt):
+    if (opam_client.OPAM_VERSION != _UPGRADES_READ or not opam_client.older_than_reviewed(fmt)
+            or opam_client.compare_versions(fmt, _NESTED_BEFORE) >= 0):
         return False
-    if (opam_client.compare_versions(fmt, _HARD_BEFORE) < 0
-            or any(opam_client.compare_versions(fmt, hard) == 0 for hard in _HARD_FROM)):
-        return True
-    return opam_client.compare_versions(fmt, _NESTED_BEFORE) < 0 and _nested_repository(root)
+    nested = _nested_repository(root)
+    if nested is None:
+        return False
+    return (nested or opam_client.compare_versions(fmt, _HARD_BEFORE) < 0
+            or any(opam_client.compare_versions(fmt, hard) == 0 for hard in _HARD_FROM))
 
 
-def _nested_repository(root: Path) -> bool:
+def _nested_repository(root: Path) -> bool | None:
     """Whether `cond_hard_upg_2_6_alpha` holds of the root at `root`: some configured
-    repository's archive, `repo/<name>.tar.gz`, is nested, the archives read in the order
-    of their repositories' names, as the client's map holds them, until one the client
-    fails on stops the reading undecided."""
-    for name in sorted({repo["name"] for repo in opam_client.repositories(root)}):
-        nested = _archive_nested(root / "repo" / f"{name}.tar.gz")
-        if nested is None:
-            return False
-        if nested:
-            return True
-    return False
+    repository's archive, `repo/<name>.tar.gz`, is nested; None where some archive is one
+    the client fails on, which may fail it before it decides.
+
+    Every configured archive is read. The client visits them as its map's balanced tree
+    holds their names, root first, the tree built by adding each name in the order
+    `repos-config` lists it, and stops at the first nested archive or fails at the first
+    it cannot read; that order is in general neither the names' nor the listing's, so
+    whether it reaches a nested archive before one it fails on is left undecided rather
+    than modelled."""
+    names = dict.fromkeys(repo["name"] for repo in opam_client.repositories(root))
+    read = [_archive_nested(root / "repo" / f"{name}.tar.gz") for name in names]
+    return None if None in read else any(read)
 
 
 def _archive_nested(archive: Path) -> bool | None:
     """Whether the reviewed client reads one repository archive as nested under a
     directory: true where its first regular file, named as `_named_nested` reads it, is
-    outside the repository's own layout; false where the archive is absent or holds no
-    regular file; and None where that client fails on it before deciding, at a member of
-    `_UNREAD_MEMBERS` or a name it refuses ahead of the first regular file, or over an
-    archive it cannot read. A directory, or a member whose name ends in a slash, is
-    passed over, as that client passes it."""
+    outside the repository's own layout; false where the archive is absent, or holds no
+    regular file and ends where `_ended` says that client's reading ends; and None where
+    that client fails on it before deciding, or may: at a member of `_UNREAD_MEMBERS` or
+    a name it refuses ahead of the first regular file, at that file's content cut short,
+    which it reads before it decides, or over an archive it cannot otherwise read.
+
+    A directory, or a member whose name ends in a slash, which that client reads as a
+    directory, is passed over as it passes one with no content. One carrying content is
+    None, because that client reads none of it and seeks only the padding past it, so it
+    reads its next header from within the blocks that content fills, a misreading this
+    reading does not follow."""
     if not archive.is_file():
         return False
     try:
@@ -488,11 +509,26 @@ def _archive_nested(archive: Path) -> bool | None:
                 if member.type in _UNREAD_MEMBERS:
                     return None
                 if member.isdir() or member.name.endswith("/"):
+                    if member.size:
+                        return None
                     continue
+                members.fileobj.seek(member.offset_data)
+                if len(members.fileobj.read(member.size)) != member.size:
+                    return None
                 return _named_nested(member.name)
+            return _ended(members)
     except (OSError, EOFError, tarfile.TarError, zlib.error):
         return None
-    return False
+
+
+def _ended(members: tarfile.TarFile) -> bool | None:
+    """False where the archive `members` has iterated to its end stops at two zero
+    blocks, where the reviewed client's reader stops too; None where it stops otherwise.
+    tarfile stops at a single zero block, at a header it cannot read and at the stream's
+    end, and that client reads on past a single zero block and fails at the other two."""
+    members.fileobj.seek(members.offset)
+    end = bytes(2 * tarfile.BLOCKSIZE)
+    return False if members.fileobj.read(len(end)) == end else None
 
 
 def _named_nested(name: str) -> bool | None:

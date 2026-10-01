@@ -1709,6 +1709,15 @@ CASES: list[Case] = [
      _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
                                r"blob/[0-9a-f]{40}/LICENSE\))",
                   lambda m: f"{m[1]} in [its tree](https://github.com/{m[2]}/tree/main)")),
+    # The same row gaining a link to its action's tree at the reviewed commit followed by
+    # `_` in its Markdown destination, which GFM keeps, so the link names a ref other
+    # than the commit, one a branch may carry. The reviewed link still agrees, so only a
+    # reading that runs a destination's revision to the bracket closing it, rather than
+    # stripping trailing punctuation from it as from a bare link, holds the other ref.
+    ("K-115", "an action row linking its action's tree at the reviewed commit plus `_`",
+     _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
+                               r"blob/([0-9a-f]{40})/LICENSE\))",
+                  lambda m: f"{m[1]} in [its tree](https://github.com/{m[2]}/tree/{m[3]}_)")),
     # The row's licence link narrowed to its action's tree at the reviewed commit, no path
     # following the commit: the link still names the reviewed revision and every
     # workflow agrees, so only a reading that tells a view naming a file from one naming
