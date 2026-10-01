@@ -1282,9 +1282,10 @@ def _imports_refused_outside_functions() -> None:
     # reading a `platform` other than `sys.platform`, another object's or one imported
     # from sys and read bare, is not the check the scan admits, and neither is one
     # reading `sys.platform` other than by comparing it with string literals: by truth
-    # value, beside a constant or another operand, through a call other than startswith,
-    # against a name or with `in` against a string. Both branches of such an `if` are
-    # refused, each import naming the nearest such test above it.
+    # value, beside a constant or another operand, beside a comparison of something
+    # other than `sys.platform` with literals by `==`, `in` or startswith, through a call
+    # other than startswith, against a name or with `in` against a string. Both branches
+    # of such an `if` are refused, each import naming the nearest such test above it.
     #
     # A comparison the scan reads is refused where both platforms take the branch: a
     # tautology built from the admitted forms, a test only another platform fails, a
@@ -1299,6 +1300,13 @@ def _imports_refused_outside_functions() -> None:
         "length.py": "import sys\n\nif len(sys.platform):\n    import fcntl\n",
         "operand.py": ("import sys\n\nif sys.platform == 'linux' or args.force:\n"
                        "    import fcntl\n"),
+        "otherequal.py": ("import os, sys\n\nif sys.platform == 'linux' or os.name == 'nt':\n"
+                          "    import fcntl\n"),
+        "otherin.py": ("import os, sys\n\nif sys.platform == 'linux' or os.name in ('nt',):\n"
+                       "    import fcntl\n"),
+        "otherprefix.py": ("import os, sys\n\n"
+                           "if sys.platform == 'linux' or os.name.startswith('nt'):\n"
+                           "    import fcntl\n"),
         "named.py": "import sys\n\nPOSIX = 'linux'\nif sys.platform == POSIX:\n    import fcntl\n",
         "substring.py": "import sys\n\nif sys.platform in 'linux':\n    import fcntl\n",
         "elsebranch.py": "import sys\n\nif not sys.platform:\n    pass\nelse:\n    import fcntl\n",
@@ -1326,6 +1334,9 @@ def _imports_refused_outside_functions() -> None:
         _unadmitted("named.py:5", "sys.platform == POSIX"),
         _refused("nested.py:3"), _refused("nfkc.py:2"),
         _unadmitted("operand.py:4", "sys.platform == 'linux' or args.force"),
+        _unadmitted("otherequal.py:4", "sys.platform == 'linux' or os.name == 'nt'"),
+        _unadmitted("otherin.py:4", "sys.platform == 'linux' or os.name in ('nt',)"),
+        _unadmitted("otherprefix.py:4", "sys.platform == 'linux' or os.name.startswith('nt')"),
         _refused("receiver.py:2"), _unadmitted("substring.py:4", "sys.platform in 'linux'"),
         _refused("toplevel.py:1"), _unadmitted("truthy.py:4", "sys.platform"),
         _refused("tryblock.py:2")],
