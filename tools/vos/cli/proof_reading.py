@@ -191,10 +191,10 @@ def compile_sources(sources: Path, objects: Path, jobs: int) -> dict[str, str]:
     anything the gate refuses before compiling refuses here before anything compiles: a
     token the shared lexer cannot follow, a coinductive form or a token hiding one, a
     loaded file or plugin, a module body the native inventory cannot enumerate, or a
-    reset of a setting the gate pins. The copies
-    then compile under the gate's flags in its dependency waves, and a compile that
-    exits nonzero or prints anything refuses. The result is the digest of every copy
-    and object, which is the compile `record` may read.
+    reset of a setting the gate pins. The copies then compile under the gate's flags,
+    wave by wave in their own dependency order, and a compile that exits nonzero or
+    prints anything refuses. The result is the digest of every copy and object, which
+    is the compile `record` may read.
     """
     found = sorted(sources.glob("*.v"))
     if not found:

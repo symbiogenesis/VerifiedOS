@@ -52,6 +52,40 @@ def _publish_wait_resume() -> None:
             refuses(lambda: fanout.finish(root, state, path, finish_args()), "inputs changed")
 
 
+def _reading_base_reaches_ci() -> None:
+    with fixture() as (root, lane, _):
+        base = git(root, "rev-parse", "HEAD")
+        commit(lane, "worker commit")
+        state, path = init(root, lane, base)
+        forwarded: list[str | None] = []
+
+        def advance(checkout: Path, ci: fanout_ci.CIState, save: Callable[[], None]) -> bool:
+            forwarded.append(ci.get("reading_base"))
+            return True
+
+        with (patch.object(fanout_ci, "repository", return_value="example/repo"),
+              patch.object(fanout_ci, "advance", side_effect=advance),
+              patch.object(fanout_retire, "retire", return_value={"status": "retired"})):
+            ensure(fanout.finish(root, state, path, finish_args()), "the batch completes")
+        ensure(forwarded == [base],
+               "the batch's reading base reaches the CI record Guest CI's dispatch reads")
+        ci = fanout._load(path, root)["ci"]
+        ensure(ci is not None and ci.get("reading_base") == base,
+               "the CI record keeps the reading base for resume")
+    with fixture() as (root, lane, remote):
+        # Nothing lands after the reading base, so Guest CI would refuse it as no proper
+        # ancestor: finish refuses before publishing anything.
+        state, path = init(root, lane, git(root, "rev-parse", "HEAD"))
+        with (patch.object(fanout_ci, "repository", return_value="example/repo"),
+              patch.object(fanout_ci, "advance") as handoff):
+            refuses(lambda: fanout.finish(root, state, path, finish_args()),
+                    "the settled revision is the reading base itself")
+            handoff.assert_not_called()
+        ensure(git(remote, "for-each-ref", "--format=%(refname)") == "",
+               "a revision Guest CI would refuse is never published")
+        ensure(state["ci"] is None, "no CI record exists for a refused revision")
+
+
 def _retirement_resume() -> None:
     with fixture() as (root, lane, _):
         state, path = init(root, lane)
@@ -125,6 +159,8 @@ def _remote_changes_during_ci() -> None:
 
 def cases() -> list[Case]:
     return [Case("publish, pending host, resume and retirement order", _publish_wait_resume),
+            Case("reading base reaches CI and needs a proper descendant",
+                 _reading_base_reaches_ci),
             Case("partial retirement resumes without checkout", _retirement_resume),
             Case("concurrent inputs prevent retirement", _inputs_change_during_ci),
             Case("main-only completion and publication without tags", _main_only),

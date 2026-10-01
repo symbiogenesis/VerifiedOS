@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 import time
@@ -10,11 +11,15 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import asdict
 from pathlib import Path
-from typing import TypedDict, cast
+from typing import NotRequired, TypedDict, cast
 
 from vos import fanout_ci, fanout_retire, receipts
 from vos.cli import worktree
 from vos.corpus import find_root
+
+# A reading base is a full lowercase commit SHA, the only form Guest CI's dispatch
+# check accepts.
+_COMMIT = re.compile(r"[0-9a-f]{40}")
 
 
 class FanoutError(ValueError):
@@ -22,7 +27,11 @@ class FanoutError(ValueError):
 
 
 class Batch(TypedDict):
-    """Local journal; CI records are evidence for one settled revision only."""
+    """Local journal; CI records are evidence for one settled revision only.
+
+    `reading_base` is fixed at init: the commit Guest CI's proofs lane reads beside
+    the settled revision, or None. A journal without the key names none.
+    """
 
     version: int
     batch: str
@@ -31,6 +40,7 @@ class Batch(TypedDict):
     branch: str
     remote: str
     cold: bool
+    reading_base: NotRequired[str | None]
     deferred: list[str]
     lanes: list[dict[str, object]]
     retired: dict[str, object]
@@ -116,6 +126,10 @@ def _load(path: Path, root: Path) -> Batch:
             raise ValueError(f"invalid batch {key}")
     if not isinstance(value.get("cold"), bool):
         raise FanoutError("invalid cold policy")
+    reading_base = value.get("reading_base")
+    if reading_base is not None and (not isinstance(reading_base, str)
+                                     or not _COMMIT.fullmatch(reading_base)):
+        raise FanoutError("invalid reading base")
     for key in ("deferred", "lanes"):
         if not isinstance(value.get(key), list):
             raise FanoutError(f"invalid batch {key}")
@@ -131,7 +145,44 @@ def _load(path: Path, root: Path) -> Batch:
         value["ci"] = fanout_ci.validate_state(value["ci"])
         if value["ci"]["cold"] != value["cold"]:
             raise ValueError("CI cold policy differs from the batch")
+        if value["ci"].get("reading_base") != reading_base:
+            raise ValueError("CI reading base differs from the batch")
     return cast("Batch", value)
+
+
+def _reading_base(root: Path, value: str | None) -> str | None:
+    """The reading base `init` fixes: a commit main's head descends from, or None.
+
+    Every revision the batch settles descends from main's head at init, so it descends
+    from this commit too; `finish` refuses to publish the commit itself.
+    """
+    if value is None:
+        return None
+    if not _COMMIT.fullmatch(value):
+        raise ValueError("--reading-base must be a full lowercase commit SHA")
+    named = worktree._git(root, "rev-parse", "--verify", "--quiet", f"{value}^{{commit}}",
+                          allowed=(0, 1)).decode("utf-8").strip()
+    if named != value:
+        raise ValueError(f"--reading-base names no commit in this checkout: {value}")
+    try:
+        _git(root, "merge-base", "--is-ancestor", value, "HEAD")
+    except worktree.WorktreeError as err:
+        raise ValueError(f"--reading-base is not an ancestor of main's head: {value}") from err
+    return value
+
+
+def _reading_settled(root: Path, state: Batch, revision: str) -> None:
+    """Refuse a revision Guest CI's dispatch check would refuse beside the reading base."""
+    base = state.get("reading_base")
+    if base is None:
+        return
+    if base == revision:
+        raise ValueError("the settled revision is the reading base itself; Guest CI reads "
+                         "only a proper ancestor, so land a change or initialize a new batch")
+    try:
+        _git(root, "merge-base", "--is-ancestor", base, revision)
+    except worktree.WorktreeError as err:
+        raise ValueError(f"the settled revision does not descend from the reading base {base}") from err
 
 
 def _checkout(root: Path, state: Batch) -> None:
@@ -168,7 +219,8 @@ def initialize(root: Path, args: argparse.Namespace) -> Batch:
         "version": 1, "batch": args.batch, "root": str(root),
         "base": _git(root, "rev-parse", "HEAD"),
         "branch": _git(root, "symbolic-ref", "--short", "HEAD"),
-        "remote": args.remote, "cold": args.cold, "deferred": args.defer,
+        "remote": args.remote, "cold": args.cold,
+        "reading_base": _reading_base(root, args.reading_base), "deferred": args.defer,
         "lanes": lanes, "retired": {}, "ci": None, "status": "initialized",
     }
     _save(path, state)
@@ -280,9 +332,11 @@ def finish(root: Path, state: Batch, path: Path, args: argparse.Namespace) -> bo
         _prepare(root, args.path, args.message)
     revision = _git(root, "rev-parse", "HEAD")
     if state["ci"] is None or state["ci"]["revision"] != revision:
+        _reading_settled(root, state, revision)
         ref = _publish(root, state, revision)
         state["ci"] = fanout_ci.new_state(fanout_ci.repository(root, state["remote"]),
-                                          ref, revision, state["cold"])
+                                          ref, revision, state["cold"],
+                                          state.get("reading_base"))
         state["status"] = "published"
         _save(path, state)
     deadline = time.monotonic() + args.wait_host
@@ -326,6 +380,10 @@ def main(argv: list[str] | None = None) -> int:
                       help="host-owned worktree to integrate and retain (repeatable)")
     init.add_argument("--remote", default="origin")
     init.add_argument("--cold", action="store_true", help="require cold Guest CI and fresh proofs")
+    init.add_argument("--reading-base", metavar="COMMIT",
+                      help="full lowercase SHA of a commit main's head descends from; "
+                           "Guest CI's proofs lane reads that commit's proofs and compares "
+                           "them with the settled revision's (default: no reading)")
     init.add_argument("--defer", action="append", default=[], help="acceptance check outside CI")
     joining = subs.add_parser("integrate", help="merge recorded worker commits, stopping on conflicts")
     finishing = subs.add_parser("finish", help="repair, publish, require Host CI, dispatch Guest CI, retire")

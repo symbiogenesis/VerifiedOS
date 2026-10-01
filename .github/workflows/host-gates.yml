@@ -2,7 +2,9 @@
 # Read-only host validation on Windows and Ubuntu. Sail, Rocq and Verilator
 # evidence runs in guest-gates.yml; see tools/README.md for the gate contracts.
 # Manual dispatch runs from main; its optional revision input pins checkout to a
-# commit already on main, verified before any checked-out code runs. Push and pull
+# commit already on main, verified before any checked-out code runs. A refused
+# dispatch runs no checked-out code afterwards: each later step that runs commands
+# after a failure also requires that check not to have failed. Push and pull
 # request runs keep GitHub's title: the commit subject or pull request title. A
 # dispatched run's title follows the workflow name with the title input, which
 # fanout fills with the commit subject, or else with the checked-out revision.
@@ -91,6 +93,7 @@ jobs:
           submodules: false
 
       - name: Verify dispatched revision belongs to main
+        id: dispatch
         if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: python
         env:
@@ -153,7 +156,7 @@ jobs:
       # environment; actionlint.sh verifies its pinned release archive. No pinned
       # shellcheck or pyflakes is provisioned, so actionlint runs without either.
       - name: Analyze workflows
-        if: ${{ !cancelled() && matrix.platform == 'Ubuntu' && matrix.shard == 1 }}
+        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' && matrix.platform == 'Ubuntu' && matrix.shard == 1 }}
         shell: bash
         env:
           UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/venv-workflows
@@ -179,7 +182,7 @@ jobs:
       # which also runs the checker, typecheck, repair path and workflow analysis, does
       # not lengthen.
       - name: Model hooks
-        if: ${{ !cancelled() && matrix.platform == 'Ubuntu' && matrix.shard == matrix.shards }}
+        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' && matrix.platform == 'Ubuntu' && matrix.shard == matrix.shards }}
         shell: bash
         env:
           UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/venv-model
@@ -195,7 +198,7 @@ jobs:
             --show-diff-on-failure --color=always
 
       - name: Report gate results
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' }}
         shell: python
         run: |
           import json
