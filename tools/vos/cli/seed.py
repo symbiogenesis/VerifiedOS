@@ -357,12 +357,14 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
             return Verdict(mutant, KILLED,
                            f"{accepted} and {len(refuted)} of {len(walked)} walked "
                            f"set(s) did not hold: {refuted[0]}", len(refuted))
-        # A set a draw refutes kills the mutant however the run ends after it. Short of
-        # one, a set whose program built and then ended on an exception nothing caught
-        # kills it too, the baseline's program having finished every set; a set whose
-        # program ended on what decides nothing about the mutant leaves it undecided; and
-        # a drawn harness that does not build is scored as the walk harness is: no draw
-        # ran against the mutant, so nothing was decided about it.
+        # A set a draw refutes kills the mutant however the program or the prover ends
+        # after it; a compile stopped at gallina's per-file limit is undecided before
+        # its output is read. Short of one, a set whose program built and then ended on
+        # an exception nothing caught kills it too, the baseline's program having
+        # finished every set; a set whose program ended on what decides nothing about
+        # the mutant leaves it undecided; and a drawn harness that does not build is
+        # scored as the walk harness is: no draw ran against the mutant, so nothing was
+        # decided about it.
         sets = gallina.properties(found, work, harness)
         if sets.failed:
             return Verdict(mutant, KILLED,
