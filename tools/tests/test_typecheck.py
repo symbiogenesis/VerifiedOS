@@ -1020,7 +1020,8 @@ def _file_suppressions_refused() -> None:
     # runs to the end of its block, and one spaced as ruff still reads it; and so are a
     # file-ignore and isort's skip_file and off, a trailing skip_file among them, which
     # ruff reads wherever it sits. A string spelling either, a spelling ruff does not
-    # read, and a suppression reaching one line are not refused.
+    # read, and a suppression reaching one statement or line and never a block are not
+    # refused.
     refused = {
         "codes.py": "# ruff: noqa: ANN001\n",
         "flake8.py": "# flake8: noqa: ANN001,ANN201\n",

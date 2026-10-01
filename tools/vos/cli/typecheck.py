@@ -86,8 +86,10 @@ a tracked module carrying ruff's file-level suppression, `# ruff: noqa` or
 against the file's name rather than a line of it; and one carrying
 `# ruff: file-ignore[...]`, a `# ruff: disable[...]` or `# ruff: enable[...]` range
 comment, whose `disable` with no matching `enable` runs to the end of its block, or
-isort's `skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` reaches one
-logical line, as `# noqa` does, and is not refused.
+isort's `skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` on a line of
+its own reaches the one statement or suite header beneath it, a multi-line one whole but
+never the block a header opens, and one ending a line reaches that line alone; it is not
+refused.
 
 `ruff.toml` lists the modules the interpreter lacks on one platform that ty resolves on
 both, and ruff's TID253 refuses an import of one only where it is unnested at module
@@ -238,8 +240,9 @@ FILE_SCOPED = frozenset({"N999"})
 # the other or, with no matching `enable`, to the end of the block the `disable` sits in,
 # the whole file at module level; and isort's `skip_file`, `off` and `on`, alone or after
 # `ruff:`, which switch import sorting off for the whole file or from `off` to `on` or
-# the file's end. `ruff: ignore[...]`, which reaches one logical line, and isort's
-# `skip`, which reaches one line, suppress no more than `# noqa` does and are not matched.
+# the file's end. `ruff: ignore[...]`, which reaches the one statement or suite header
+# beneath it or the line it ends and never a block, and isort's `skip`, which reaches one
+# line, are not matched.
 FILE_RANGE = re.compile(r"#\s*(?:ruff\s*:\s*(?:disable|enable|file-ignore)\b"
                         r"|(?:ruff\s*:\s*)?isort\s*:\s*(?:skip_file|off|on)\b)")
 
