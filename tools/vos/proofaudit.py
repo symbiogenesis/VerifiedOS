@@ -81,14 +81,33 @@ _PINNED = re.compile(CONTROL_PREFIXES + r"(?:Set|Unset)\s+(?:" + "|".join(
 # an allocation limit makes a verdict depend on the machine that ran it.
 _PINNED_ATTRIBUTE = re.compile(_ATTRIBUTE + r"\b(?:warnings?|bypass_check)\b")
 _TIMEOUT = re.compile(CONTROL_PREFIXES + r"(?:Timeout|AllocLimit)\s+\d")
+# Where a refused word stands as a token of its own (_TACTICAL, _COINDUCTIVE). Rocq's
+# lexer continues an identifier through letters, digits, `_` and `'`, so a word joined to
+# one of them is a token of its own only where a numeral, a quote or a token from the
+# lexer's keyword table ends. So a run of quotes, underscores and numerals before a word
+# is read apart from it. A numeral is read as the lexer reads one, fraction and exponent
+# included and possessively, so a hexadecimal one reads on through a word's leading
+# hexadecimal digits. A decimal one stops before a `0x` that may open a hexadecimal one,
+# since a token ending in a digit lets one start there. The possessive read keeps a long
+# run of digits linear. Rocq 9.3.0's Unicode table is older than Python's, and the two
+# class thousands of characters differently, so only ASCII letters, digits, `_` and `'`
+# continue a word here. Any other character beside one separates it, as `²` does in
+# Rocq's lexer, which refuses loudly an identifier such as `écofix` that Rocq reads whole.
+_WORD = r"A-Za-z0-9_'"
+_HEXADECIMAL = r"0[xX][0-9a-fA-F][0-9a-fA-F_]*(?:\.[0-9a-fA-F_]+)?(?:[pP][+-]?[0-9][0-9_]*)?"
+_DECIMAL = r"[0-9](?:(?!0[xX][0-9a-fA-F])[0-9_])*(?:\.[0-9_]+)?(?:[eE][+-]?[0-9][0-9_]*)?"
+_APART = rf"(?<![{_WORD}])(?:['_]|{_HEXADECIMAL}|{_DECIMAL})*+"
 # The Ltac tactical `timeout`, Rocq 9.3's `alloc_limit`, and Ltac2's `Control.timeout` and
 # its float twin `Control.timeoutf` bind a verdict to the machine in the same way, and
 # stand anywhere in a sentence. Ltac2's two are first-class values, which an alias, a
 # parenthesis or `Import Ltac2.Control` lets a proof apply with no argument beside the
-# word, so each word is refused wherever it stands as a whole identifier. A Gallina
-# identifier named exactly after one, a record field among them, is refused too, which is
-# loud and costs a rename; an identifier that only contains one is read whole.
-_TACTICAL = re.compile(r"(?<![\w'])(?:timeoutf?|alloc_limit)(?![\w'])")
+# word, so each word is refused wherever Rocq's lexer can read it as a token of its own:
+# the pinned Rocq 9.3.0 runs `do 1timeout 5 tac` and, once a notation declares `#_`,
+# `#_timeout 5 tac`. A Gallina identifier named exactly after one, a record field among
+# them, is refused too, which is loud and costs a rename, and so is one holding a word
+# after only quotes, underscores and numerals; any other identifier that contains one is
+# read whole.
+_TACTICAL = re.compile(_APART + rf"(?:timeoutf?|alloc_limit)(?![{_WORD}])")
 # Once comments are blanked, every remaining quote opens or closes a string literal, in
 # a source that declares no token holding one, which unreadable_tokens refuses.
 _STRING = re.compile(r'"[^"]*"')
@@ -308,26 +327,13 @@ def dynamic_sources(text: str) -> list[str]:
     return [sentence for sentence in sentences(text) if DYNAMIC_SOURCE.match(sentence)]
 
 
-# The words that write a coinductive type or a cofixpoint (coinductive_forms). Rocq's
-# lexer continues an identifier through letters, digits, `_` and `'`, so a word joined to
-# one of them is a token of its own only where a numeral, a quote or a token from the
-# lexer's keyword table ends: the pinned Rocq 9.3.0 runs `do 1cofix H` as the cofix
-# tactic, and `#_cofix H` too once a notation declares `#_`. So a run of quotes,
-# underscores and numerals before a word is read apart from it. A numeral is read as the
-# lexer reads one, fraction and exponent included and possessively: each word begins with
-# a hexadecimal digit, so `0x1cofix` is `0x1c` and then `ofix`. A decimal one stops before
-# a `0x` that may open a hexadecimal one, since a token ending in a digit lets one start
-# there: once a notation declares `#0`, the lexer reads `#00x1p5cofix` as `#0`, `0x1p5`
-# and `cofix`. The possessive read keeps a long run of digits linear. Rocq 9.3.0's
-# Unicode table is older than Python's, and the two class thousands of characters
-# differently, so only ASCII letters, digits, `_` and `'` continue a word here. Any other
-# character beside one separates it, as `²` does in Rocq's lexer, which refuses loudly an
-# identifier such as `écofix` that Rocq reads whole.
-_WORD = r"A-Za-z0-9_'"
-_HEXADECIMAL = r"0[xX][0-9a-fA-F][0-9a-fA-F_]*(?:\.[0-9a-fA-F_]+)?(?:[pP][+-]?[0-9][0-9_]*)?"
-_DECIMAL = r"[0-9](?:(?!0[xX][0-9a-fA-F])[0-9_])*(?:\.[0-9_]+)?(?:[eE][+-]?[0-9][0-9_]*)?"
-_COINDUCTIVE = re.compile(rf"(?<![{_WORD}])(?:['_]|{_HEXADECIMAL}|{_DECIMAL})*+"
-                          rf"(?:CoInductive|CoFixpoint|CoFix|cofix_|cofix)(?![{_WORD}])")
+# The words that write a coinductive type or a cofixpoint (coinductive_forms), each read
+# where it stands as a token of its own: the pinned Rocq 9.3.0 runs `do 1cofix H` as the
+# cofix tactic, and `#_cofix H` too once a notation declares `#_`. Each word begins with a
+# hexadecimal digit, so `0x1cofix` is `0x1c` and then `ofix`, and once a notation declares
+# `#0`, the lexer reads `#00x1p5cofix` as `#0`, `0x1p5` and `cofix`.
+_COINDUCTIVE = re.compile(_APART + r"(?:CoInductive|CoFixpoint|CoFix|cofix_|cofix)"
+                          rf"(?![{_WORD}])")
 # A declared token hides a word from that reading when Rocq's lexer reads the token through
 # its keyword table, not as an identifier, and its trailing ASCII letters, digits, quotes
 # and underscores hold a letter. The lexer ends such a token where the reading is still

@@ -364,6 +364,13 @@ def _machine_bound_tacticals_are_refused() -> None:
                # Rocq's lexer reads a comment as a separator on either side of the word.
                "Lemma a : True. Proof. timeout(* c *)5 (exact I). Qed.",
                "Lemma a : True. Proof. try(* c *)timeout 5 (exact I). Qed.",
+               # A numeral or a declared token ends where the word begins: the pinned
+               # Rocq 9.3.0 compiles both silently.
+               "Lemma a : True. Proof. do 1timeout 5 (exact I). Qed.",
+               'Tactic Notation "#_" tactic3(t) := t. '
+               "Lemma a : True. Proof. #_timeout 5 (exact I). Qed.",
+               'Tactic Notation "²" tactic3(t) := t. '
+               "Lemma a : True. Proof. ²timeout 5 (exact I). Qed.",
                # Gallina identifiers named exactly after a primitive: loud false refusals.
                "Definition wait := timeout 5.", "Record Budget := { timeout : nat }.",
                "Definition get (b : Budget) := b.(timeout).")
@@ -374,6 +381,9 @@ def _machine_bound_tacticals_are_refused() -> None:
                "Definition time := 1. Definition out := 2. "
                "Definition wait := Nat.add time(* c *)out.",
                "Definition cap := alloc_limit_words 1.", "Definition wait' := timeout' 5.",
+               # One identifier each, and `0x1a` then `lloc_limit`, as `0x1cofix` is read.
+               "Definition x1timeout := 5.", "Definition x'timeout := 5.",
+               "Definition wait := 0x1alloc_limit.",
                "Definition timeouts := 5.", "Definition timeoutf' := 5.",
                "(* timeout 5 (exact I) *) Definition x := 0.",
                'Definition label := "timeout 5".', 'Definition label := "a. timeout 5 b".',
