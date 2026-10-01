@@ -147,6 +147,35 @@ def _successful_handoff() -> None:
     ensure(not fake.calls, "completed handoff must not request a guest verdict")
 
 
+def _reading_base_forwarded() -> None:
+    base = "b" * 40
+    fake = FakeGitHub(ci.new_state(REPO, "main", REVISION, True, base))
+    fake.host_runs = []
+    ensure(not fake.advance(), "the fixture's host dispatch starts pending")
+    ensure(fake.advance(), "the passing host run dispatches guest")
+    ensure([payload for _, _, payload in fake.posts()] == [
+        {"ref": "main", "inputs": {"revision": REVISION, "title": SUBJECT}},
+        {"ref": "main", "inputs": {"revision": REVISION, "title": SUBJECT, "cold": True,
+                                   "reading_base": base}}],
+        "Guest CI's dispatch, and only it, carries the batch's reading base")
+    # A rejected guest dispatch, retried, carries the same reading base.
+    fake = FakeGitHub(ci.new_state(REPO, "main", REVISION, False, base))
+    fake.dispatch_error = ci.APIError(422)
+    _refuses(fake.advance, "a rejected dispatch must fail the handoff")
+    fake.dispatch_error = None
+    ensure(fake.advance(), "a rejected dispatch can retry")
+    guest = {"ref": "main", "inputs": {"revision": REVISION, "title": SUBJECT, "cold": False,
+                                       "reading_base": base}}
+    ensure([payload for _, _, payload in fake.posts()] == [guest, guest],
+           "a retried guest dispatch forwards the reading base it first sent")
+    # A record without the field sends none.
+    fake = FakeGitHub(_state())
+    ensure(fake.advance() and "reading_base" not in fake.state, "no reading base is recorded")
+    ensure([payload for _, _, payload in fake.posts()] == [
+        {"ref": "main", "inputs": {"revision": REVISION, "title": SUBJECT, "cold": True}}],
+        "a batch without a reading base sends no reading_base input")
+
+
 def _host_pending() -> None:
     state = _state()
     fake = FakeGitHub(state)
@@ -375,7 +404,11 @@ def _remote_validation() -> None:
 def _state_validation() -> None:
     for key, value in (("revision", "a" * 7), ("cold", "true"),
                        ("ref", "work/stranded"), ("ref", f"fanout/batch/{REVISION}"),
-                       ("repository", "github.com/example/repo")):
+                       ("repository", "github.com/example/repo"),
+                       # Guest CI's dispatch check refuses each of these reading bases.
+                       ("reading_base", "b" * 7), ("reading_base", "B" * 40),
+                       ("reading_base", REVISION), ("reading_base", None),
+                       ("reading_base", "")):
         state: dict[str, object] = dict(_state())
         state[key] = value
         _refuses(lambda state=state: ci.validate_state(state), f"invalid {key} must be refused")
@@ -1089,6 +1122,7 @@ def _workflow_reading_base_through_environment() -> None:
 
 def cases() -> list[Case]:
     return [Case("successful-handoff", _successful_handoff),
+            Case("reading-base-forwarded", _reading_base_forwarded),
             Case("host-pending", _host_pending), Case("host-failure", _host_failure),
             Case("host-aggregate-evidence", _host_aggregate_evidence),
             Case("host-revision-binding", _host_revision_binding),

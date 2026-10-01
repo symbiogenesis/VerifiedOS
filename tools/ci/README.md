@@ -10,7 +10,8 @@ require Host CI and dispatch both guest lanes without waiting for their verdicts
 The [`fanout` completion command](../fanout.md) runs from `main`, merges the selected
 local worktrees and publishes only `main`,
 requires Host CI on Windows and Ubuntu for that commit, then dispatches both guest
-lanes with the batch's `cold` policy. It records the dispatch response and returns
+lanes with the batch's `cold` policy and, for a batch initialized with
+`--reading-base`, its reading base. It records the dispatch response and returns
 without polling Guest CI. The optional `title` workflow input carries the commit
 subject into the run title, which also identifies an interrupted dispatch for
 recovery. The explicit `revision` input pins checkout

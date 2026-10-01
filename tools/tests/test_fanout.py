@@ -6,6 +6,7 @@ from pathlib import Path
 
 from tests.fanout_fixture import commit, fixture, git, init, refuses
 from tests.harness import Case, ensure
+from vos import fanout_ci
 from vos.cli import fanout
 
 
@@ -77,6 +78,43 @@ def _explicit_commit() -> None:
                "another session's work is not staged")
 
 
+def _reading_base_fixed_at_init() -> None:
+    with fixture() as (root, lane, _):
+        base = git(root, "rev-parse", "HEAD")
+        head = commit(root, "settled on main")
+        unmerged = commit(lane, "worker only")
+        tree = git(root, "rev-parse", f"{base}^{{tree}}")
+        # Guest CI's dispatch check takes only a full lowercase commit SHA.
+        for value, fragment in ((base[:7], "full lowercase"), ("A" * 40, "full lowercase"),
+                                ("", "full lowercase"), (f"{base}\n", "full lowercase"),
+                                ("f" * 40, "names no commit"), (tree, "names no commit"),
+                                (unmerged, "not an ancestor")):
+            refuses(lambda value=value: init(root, lane, value), fragment)
+            ensure(not (root / "out/fanout/example/state.json").exists(),
+                   f"a refused reading base {value!r} recorded a batch")
+        state, path = init(root, lane, base)
+        ensure(state["reading_base"] == base, "init fixes the reading base in the journal")
+        ensure(fanout._load(path, root) == state, "the reading base round-trips")
+        # A CI record must name the batch's reading base, or none where the batch has none.
+        state["ci"] = fanout_ci.new_state("example/repo", "main", head, True)
+        fanout._save(path, state)
+        refuses(lambda: fanout._load(path, root), "CI reading base differs")
+        state["ci"] = fanout_ci.new_state("example/repo", "main", head, True, base)
+        fanout._save(path, state)
+        ensure(fanout._load(path, root) == state, "an agreeing CI record loads")
+    with fixture() as (root, lane, _):
+        state, path = init(root, lane)
+        ensure(state["reading_base"] is None, "without the option a batch names no reading base")
+        # A journal without the field resumes with no reading base.
+        legacy = {key: value for key, value in state.items() if key != "reading_base"}
+        path.write_text(json.dumps(legacy), encoding="utf-8")
+        ensure(fanout._load(path, root).get("reading_base") is None,
+               "a journal without the field names no reading base")
+        for bad in ("A" * 40, "a" * 7, 5, ""):
+            path.write_text(json.dumps({**legacy, "reading_base": bad}), encoding="utf-8")
+            refuses(lambda: fanout._load(path, root), "invalid reading base")
+
+
 def _dirty_handoff() -> None:
     with fixture() as (root, lane, _):
         state, path = init(root, lane)
@@ -90,4 +128,6 @@ def cases() -> list[Case]:
             Case("conflict remains for integrator", _conflict),
             Case("paths, journal identity and exclusive mutation", _paths_and_journal),
             Case("only explicit paths enter commit", _explicit_commit),
+            Case("reading base fixed at init and resumable without it",
+                 _reading_base_fixed_at_init),
             Case("dirty handoff stops before integration", _dirty_handoff)]

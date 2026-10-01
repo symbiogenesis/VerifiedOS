@@ -42,6 +42,15 @@ list supports CI handoff for an integrator-only batch. `--remote` defaults to
 `origin`; publication always targets `main`. Use
 `--defer` repeatedly to retain acceptance checks outside the hosted workflows.
 
+`init --reading-base COMMIT` names a commit, by its full lowercase SHA, that `main`'s
+head descends from at init, such as a revision before the batch's changes. Guest CI's
+proofs lane then reads that commit's proofs and compares them with the settled
+revision's, as [the Guest CI contract](ci/README.md#inputs-and-execution) describes.
+The option is fixed at init; no later command changes it. `init` refuses any other
+value, and `finish` refuses to publish a revision that is the reading base itself,
+since Guest CI's dispatch check accepts only a proper ancestor. A journal without the
+field names no reading base.
+
 `integrate` makes ordinary merges so worker ancestry remains decidable. Each merge
 subject names the lane branch and its latest non-merge commit subject, because the
 published commit's subject titles its Host CI push run. Resolve
@@ -90,9 +99,9 @@ When a completed batch's integration revision changes, initialize a new batch.
 
 - A batch records its `main` checkout, base revision, publication remote and
   `main` branch, explicitly selected worker paths and heads, lifecycle ownership, cold
-  proof policy and deferred acceptance checks. State and evidence live under the
-  integration checkout's ignored `out/fanout/` directory. Unrelated worktrees are
-  never inferred to be stale from age or a branch name.
+  proof policy, reading base or none, and deferred acceptance checks. State and
+  evidence live under the integration checkout's ignored `out/fanout/` directory.
+  Unrelated worktrees are never inferred to be stale from age or a branch name.
 - Integration preserves worker ancestry with ordinary Git merges, refuses changed
   handoffs and dirty workers, and stops on conflicts without resetting anything.
   Repair uses the owning checker. Commits stage only explicitly named paths after
@@ -112,7 +121,9 @@ When a completed batch's integration revision changes, initialize a new batch.
   push run appears.
   Pending, failed, skipped or canceled checks supply no passing evidence.
 - After Host CI passes, dispatch Guest CI with both model and proofs lanes for the
-  same revision, forwarding the explicit cold policy. Record run identifiers or
+  same revision, forwarding the explicit cold policy and, when the batch names one,
+  its reading base as the `reading_base` input; a batch naming none sends no such
+  input, and Host CI's dispatch never carries it. Record run identifiers or
   URLs, revisions and available statuses. Never poll or wait for a guest verdict.
   Interrupted or ambiguous dispatches must not silently duplicate a guest run.
 - Retirement is limited to explicitly batch-owned, clean, integrated worktrees
@@ -130,7 +141,9 @@ When a completed batch's integration revision changes, initialize a new batch.
 Focused behavioral tests exercise real temporary Git repositories and mocked
 GitHub responses: successful integration and retirement, dirty and escaping paths,
 unmerged or moved branches, retained outputs, host-managed preservation, wrong
-revision or incomplete Host CI evidence, failed dispatch and interrupted resume.
+revision or incomplete Host CI evidence, failed dispatch and interrupted resume, and
+a reading base refused at init or at publication, forwarded with Guest CI's dispatch
+alone, and read as none from a journal without the field.
 Run focused tests and typecheck during implementation, then require hosted Host CI
 and dispatch both Guest CI lanes for the settled revision. Host CI analyzes workflow
 edits with zizmor and actionlint, as the tools guide's
