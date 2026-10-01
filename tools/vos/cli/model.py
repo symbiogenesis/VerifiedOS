@@ -234,6 +234,23 @@ class _CorpusEntry(NamedTuple):
     regular: bool  # whether the name, its final link not followed, is a regular file
 
 
+class _Hashed(NamedTuple):
+    """A regular file as one read of it found it."""
+
+    digest: str  # the SHA-256 of the bytes read
+    device: int  # the device and inode of the descriptor they were read through
+    inode: int
+    size: int  # how many bytes were read, to the end of the file
+
+
+class VerifiedSuite(NamedTuple):
+    """A suite as `verify_test_corpus` found it agreeing with its manifest."""
+
+    suite: Path
+    manifest: bytes  # the manifest's bytes, as they were read and compared
+    files: dict[str, _Hashed]  # each file by its listed path, in the listing's order
+
+
 def _corpus_entries(suite: Path) -> list[_CorpusEntry]:
     """Every entry of `suite` a listing has a line for, sorted by its relative path's
     bytes, as the walk finds them: a file, a symbolic link, or a node of another kind,
@@ -262,19 +279,25 @@ def _listing_head(suite: Path, tarball_sha256: str) -> str:
     return f"tarball {suite.name}.tar.gz sha256 {tarball_sha256}\n"
 
 
-def _hashed_listing(suite: Path, tarball_sha256: str, entries: list[_CorpusEntry]) -> bytes:
-    """The listing of `entries`, reading each file only through `_regular_digest`."""
+def _hashed_listing(suite: Path, tarball_sha256: str,
+                    entries: list[_CorpusEntry]) -> tuple[bytes, dict[str, _Hashed]]:
+    """The listing of `entries`, reading each file only through `_regular_digest`, and
+    what that read found of each file it hashed, by listed path."""
     lines = [_listing_head(suite, tarball_sha256)]
+    files: dict[str, _Hashed] = {}
     for entry in entries:
         hashed = _regular_digest(entry.path) if entry.regular else None
-        lines.append(f"unhashed {entry.relative}\n" if hashed is None
-                     else f"{hashed}  {entry.relative}\n")
-    return _listed("".join(lines))
+        if hashed is None:
+            lines.append(f"unhashed {entry.relative}\n")
+        else:
+            files[entry.relative] = hashed
+            lines.append(f"{hashed.digest}  {entry.relative}\n")
+    return _listed("".join(lines)), files
 
 
 def corpus_listing(suite: Path, tarball_sha256: str) -> bytes:
     """The listing `download_riscv_tests` records for `suite`, rendered from the tree."""
-    return _hashed_listing(suite, tarball_sha256, _corpus_entries(suite))
+    return _hashed_listing(suite, tarball_sha256, _corpus_entries(suite))[0]
 
 
 # How a corpus file is opened for reading once its name has been found to be a regular
@@ -321,15 +344,18 @@ def _open_regular(path: Path | str) -> int | None:
     return fd
 
 
-def _regular_digest(path: Path) -> str | None:
-    """The SHA-256 of `path`, read through a descriptor that is a regular file, and None
-    when `_open_regular` finds it is not one: an entry replaced after the listing's
-    check by name is listed unhashed rather than waited on or read without end."""
+def _regular_digest(path: Path) -> _Hashed | None:
+    """The SHA-256 of `path`, read through a descriptor that is a regular file, with that
+    descriptor's device and inode and the length read, and None when `_open_regular`
+    finds it is not one: an entry replaced after the listing's check by name is listed
+    unhashed rather than waited on or read without end."""
     fd = _open_regular(path)
     if fd is None:
         return None
     with os.fdopen(fd, "rb") as stream:
-        return hashlib.file_digest(stream, "sha256").hexdigest()
+        digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        held = os.fstat(stream.fileno())
+        return _Hashed(digest, held.st_dev, held.st_ino, stream.tell())
 
 
 # A hashed listing line, `<sha256>  <path>`, and the path it records.
@@ -366,8 +392,10 @@ def _disagreement(suite: Path, manifest: Path, held: list[bytes], kept: list[byt
                       "configure downloads it again")
 
 
-def verify_test_corpus(suite: Path, tarball_sha256: str) -> None:
-    """Refuse a suite unless it is what its manifest records for this tarball digest.
+def verify_test_corpus(suite: Path, tarball_sha256: str) -> VerifiedSuite:
+    """Refuse a suite unless it is what its manifest records for this tarball digest,
+    and answer what agreed: the manifest's bytes, and each file's SHA-256 with the
+    device and inode of the descriptor it was hashed through and the length hashed.
 
     The manifest is read only when its name and its opened descriptor are one regular
     file, which is what configure writes, so a manifest standing as a FIFO, a device
@@ -386,6 +414,11 @@ def verify_test_corpus(suite: Path, tarball_sha256: str) -> None:
     a sparse one among them, is read in full before it is found to disagree. That
     residual is the listing format's, which `riscv_tests_listing` in
     model/test/CMakeLists.txt owns.
+
+    The answer is what a reader after the verification goes by, rather than the tree's
+    names, which can change once it returns: the seeding copies only the files it
+    lists, each while it is still the file that verified, and writes their manifest
+    from the bytes that verified.
     """
     manifest = corpus_manifest(suite)
     if suite.is_symlink() or not suite.is_dir():
@@ -421,13 +454,14 @@ def verify_test_corpus(suite: Path, tarball_sha256: str) -> None:
     if kept != walked:
         raise _disagreement(suite, manifest, held, kept, walked, cut=len(recorded) > length)
     try:
-        rendered = _hashed_listing(suite, tarball_sha256, entries)
+        rendered, files = _hashed_listing(suite, tarball_sha256, entries)
     except OSError as err:
         raise ValueError(f"cannot list {suite}: {err}") from err
     if b"\nunhashed " in rendered:
         raise _non_regular(suite)
     if recorded != rendered:
         raise _disagreement(suite, manifest, held, held, rendered.splitlines())
+    return VerifiedSuite(suite, recorded, files)
 
 
 def _test_corpus(directory: Path, model_root: Path) -> Path:
@@ -457,11 +491,11 @@ def build_artifacts(directory: Path, model_root: Path) -> dict[str, str]:
     recorded = receipts.snapshot(directory, [directory / rel for rel in BUILD_ARTIFACTS])
     base = directory.resolve()
     for path in inputs:
-        digest = _regular_digest(path)
-        if digest is None:
+        hashed = _regular_digest(path)
+        if hashed is None:
             raise ValueError(f"{path} is not a regular file; the test corpus changed after "
                              "it verified")
-        recorded[path.resolve().relative_to(base).as_posix()] = digest
+        recorded[path.resolve().relative_to(base).as_posix()] = hashed.digest
     return dict(sorted(recorded.items()))
 
 
@@ -1001,13 +1035,13 @@ def _seed_test_data(donors: list[Path], target: Path, model_root: Path) -> None:
     `CMakeFiles` under it is being configured against a state it did not produce.
     Another release's suites stay behind, since nothing reads them.
 
-    The donor's suite is held to its manifest before it is copied, and the copy, made
-    beside its destination, is held to the manifest copied with it before it is moved
-    into place, so a donor whose suite has no manifest or one that is not a regular
-    file, disagrees with its manifest, holds an entry that is not a regular file, or
-    changes during the copy seeds nothing, and configure downloads that suite instead.
-    A suite the target already holds is left to configure, which keeps it only if it
-    matches its manifest.
+    The donor's suite is held to its manifest before it is copied, only what verified is
+    copied, and the copy, made beside its destination, is held to the manifest written
+    with it before it is moved into place, so a donor whose suite has no manifest or one
+    that is not a regular file, disagrees with its manifest, holds an entry that is not
+    a regular file, or has a verified file replaced or resized during the copy seeds
+    nothing, and configure downloads that suite instead. A suite the target already
+    holds is left to configure, which keeps it only if it matches its manifest.
     """
     try:
         version = test_corpus_version(model_root)
@@ -1039,17 +1073,24 @@ def _copy_verified_suite(suite: Path, into: Path, digest: str) -> None:
     a character device such as a `/dev/zero` node is read without end, so a donor
     holding either would stall the command standing the lane up; the listing the
     verification renders reads no non-regular entry and refuses a suite holding one.
-    The donor can still change between that verification and the copy, so every file,
-    the manifest among them, is copied by `_copy_regular_file`, which reads only what
-    opens as a regular file, and the copy is verified before it is published.
+    The donor can still change between that verification and the copy, so the copy is
+    made from what the verification answered rather than from the donor's names: its
+    manifest is written from the bytes that verified, and only the files that verified
+    are copied, each by `_copy_regular_file` and only while it is the file that
+    verified, so an entry added since is not copied and one replaced or grown since is
+    refused before more of it is read than verified. The copy is verified before it is
+    published.
     """
-    verify_test_corpus(suite, digest)
+    verified = verify_test_corpus(suite, digest)
     into.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{into.name}-seed-", dir=into.parent))
     try:
         copy = staging / into.name
-        shutil.copytree(suite, copy, symlinks=True, copy_function=_copy_regular_file)
-        _copy_regular_file(corpus_manifest(suite), corpus_manifest(copy))
+        copy.mkdir()
+        for relative, held in verified.files.items():
+            (copy / relative).parent.mkdir(parents=True, exist_ok=True)
+            _copy_regular_file(suite / relative, copy / relative, held)
+        corpus_manifest(copy).write_bytes(verified.manifest)
         verify_test_corpus(copy, digest)
         copy.rename(into)
         corpus_manifest(copy).replace(corpus_manifest(into))
@@ -1057,26 +1098,45 @@ def _copy_verified_suite(suite: Path, into: Path, digest: str) -> None:
         shutil.rmtree(staging, ignore_errors=True)
 
 
-def _copy_regular_file(source: Path | str, destination: Path | str) -> Path | str:
-    """`copy2` for a donor's suite, reading `source` only if it opens as a regular file.
+# How much of a donor's file one read of the seeding's copy asks for.
+_COPY_CHUNK = 1 << 20
 
-    `copytree` calls this for every entry that is neither a directory nor a link when
-    it lists the directory, and the entry can have been replaced since: the descriptor
-    this reads from is the one whose kind was checked, so a FIFO is not waited on and a
-    device is not read. What is refused raises `ValueError`, which `copytree` does not
-    collect and so ends the copy at the first such entry. Mode and times are kept from
-    that descriptor, as `copy2` keeps them.
+
+def _copy_regular_file(source: Path, destination: Path, verified: _Hashed) -> None:
+    """Copy `source` to the new file `destination` as `copy2` would, reading it only
+    while it is the regular file `verified` records.
+
+    The descriptor read from is the one whose kind `_open_regular` checked, so a FIFO is
+    not waited on and a device is not read. It must also be the very file that verified,
+    by device, inode and length, so a donor entry replaced or resized since is refused
+    before any of it is read, and the read stops one byte past the verified length, so
+    a file grown after its length was asked is refused rather than read to its end.
+    What is refused raises `ValueError` and leaves no destination. Mode and times are
+    kept from the descriptor, as `copy2` keeps them.
     """
     fd = _open_regular(source)
     if fd is None:
         raise ValueError(f"{source} is not a regular file; the donor changed after it "
                          "verified")
-    with os.fdopen(fd, "rb") as reader, Path(destination).open("xb") as writer:
-        shutil.copyfileobj(reader, writer)
+    with os.fdopen(fd, "rb", buffering=0) as reader:
         held = os.fstat(reader.fileno())
-    Path(destination).chmod(stat.S_IMODE(held.st_mode))
+        if (held.st_dev, held.st_ino, held.st_size) != (verified.device, verified.inode,
+                                                         verified.size):
+            raise ValueError(f"{source} is not the file that verified; the donor changed "
+                             "after it verified")
+        copied = 0
+        with destination.open("xb") as writer:
+            while copied <= verified.size and (
+                    chunk := reader.read(min(verified.size + 1 - copied, _COPY_CHUNK))):
+                writer.write(chunk)
+                copied += len(chunk)
+    if copied != verified.size:
+        destination.unlink()
+        raise ValueError(f"{source} is {'longer' if copied > verified.size else 'shorter'} "
+                         f"than the {verified.size} bytes that verified; the donor changed "
+                         "after it verified")
+    destination.chmod(stat.S_IMODE(held.st_mode))
     os.utime(destination, ns=(held.st_atime_ns, held.st_mtime_ns))
-    return destination
 
 
 def cmd_wait(e: env.Environment, args: argparse.Namespace) -> int:
