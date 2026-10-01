@@ -326,8 +326,9 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
                        len(failures))
     # The harness's own shared sources come after the proofs and their failure is a
     # different verdict: a mutation the shipped statements accept and the harness
-    # cannot be built over is a mutant no oracle ran against.
-    if gallina.compile_support(found, work, moved):
+    # cannot be built over is a mutant no oracle ran against. The randomized half's own
+    # support is among them only where that half decides.
+    if gallina.compile_support(found, work, moved, randomized=quickchick):
         return Verdict(mutant, STILLBORN,
                        "the harness would not build over the mutant")
     if quickchick:

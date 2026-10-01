@@ -27,7 +27,7 @@ from unittest.mock import Mock, patch
 from tests.harness import TOOLS, Case, ensure
 from vos import env, gallina, mutate
 from vos.cli import quickchick, seed
-from vos.seeded import SURVIVED
+from vos.seeded import STILLBORN, SURVIVED, Verdict
 
 _ROOT = TOOLS.parent
 
@@ -35,21 +35,21 @@ _ROOT = TOOLS.parent
 # Side over C, and fixes its seed; the walk harness beside it Requires B. Far Requires A
 # from outside that closure; Lone is support outside it, and Vectors is the enumerative
 # entry point, which Requires Far.
-_RIG = gallina.HARNESS_DIR
+_DIR = gallina.HARNESS_DIR
 _CLOSED: dict[str, str] = {
     "proofs/A.v": "Definition a : nat := 1.\n",
     "proofs/B.v": "Require Import A.\nDefinition b : nat := a.\n",
     "proofs/C.v": "Definition c : nat := 2.\n",
     "proofs/Far.v": "Require Import A.\nDefinition far : nat := a.\n",
-    f"{_RIG}/Probe.v": "Require Import A.\n",
-    f"{_RIG}/Side.v": "Require Import C.\n",
-    f"{_RIG}/Lone.v": "Require Import Far.\n",
-    f"{_RIG}/{gallina.ENUMERATIVE}": "Require Import Far Probe.\n",
-    f"{_RIG}/{gallina.RANDOMIZED}": "From QuickChick Require Import QuickChick.\n"
+    f"{_DIR}/Probe.v": "Require Import A.\n",
+    f"{_DIR}/Side.v": "Require Import C.\n",
+    f"{_DIR}/Lone.v": "Require Import Far.\n",
+    f"{_DIR}/{gallina.ENUMERATIVE}": "Require Import Far Probe.\n",
+    f"{_DIR}/{gallina.RANDOMIZED}": "From QuickChick Require Import QuickChick.\n"
                                     "Require Import B Probe Side.\n"
                                     'Extract Constant newRandomSeed => '
                                     '"(Random.State.make [|7|])".\n',
-    f"{_RIG}/{gallina.EXHAUSTIVE}": "Require Import B.\n",
+    f"{_DIR}/{gallina.EXHAUSTIVE}": "Require Import B.\n",
 }
 
 
@@ -79,6 +79,61 @@ def _stub_prover(compiled: list[str]) -> Iterator[gallina.Prover]:
 
     with patch.object(gallina, "compile_one", side_effect=compile_one):
         yield gallina.Prover("stub", ("rocq", "c"))
+
+# A checkout's proofs and harnesses in miniature: one proof, the shared probe, the
+# support only the randomized half Requires, and the three entry points `seed coq`
+# compiles, with what each prints when it builds.
+_RIG = {"proofs/A.v": "Definition a : nat := 1.\n",
+        "tools/quickchick/Probe.v": "Require Import A.\n",
+        "tools/quickchick/IPCProperties.v": "Require Import Probe.\n",
+        f"tools/quickchick/{gallina.ENUMERATIVE}": "Require Import Probe.\n",
+        f"tools/quickchick/{gallina.RANDOMIZED}":
+            "From QuickChick Require Import QuickChick.\n"
+            'Extract Constant newRandomSeed => "(Random.State.make [|7|])".\n'
+            "Require Import Probe IPCProperties.\n",
+        f"tools/quickchick/{gallina.EXHAUSTIVE}": "Require Import IPCProperties.\n"}
+_PRINTS = {gallina.ENUMERATIVE: '= ["v 1"] : list string\n',
+           gallina.EXHAUSTIVE: '= ["prop_w 9 9 0 -"] : list string\n',
+           gallina.RANDOMIZED: "+++ Passed 10000 tests\n" * 2}
+
+
+def _done(code: int, said: str = "") -> subprocess.CompletedProcess[str]:
+    return subprocess.CompletedProcess([], code, said,
+                                       "" if code == 0 else "Error: The reference x was not found")
+
+
+def _staged(rig: dict[str, str], work: Path) -> None:
+    """The rig written to a checkout and staged into `work` as a run stages it."""
+    with tempfile.TemporaryDirectory(prefix="vos-rig-") as td:
+        root = Path(td)
+        for rel, text in rig.items():
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_text(text, encoding="utf-8", newline="")
+        gallina.stage(root, work)
+
+
+def _verdict(quickchick: bool, answers: dict[str, subprocess.CompletedProcess[str]]
+             ) -> tuple[Verdict, list[str]]:
+    """One mutant of proofs/A.v put to `_coq_verdict` over the staged rig, each compile
+    answered from `answers` by file name, else as `_PRINTS` says the file prints; and
+    every file it compiled, in order."""
+    compiled: list[str] = []
+
+    def compile_one(found: gallina.Prover, work: Path, source: Path,
+                    timeout: int = 900) -> subprocess.CompletedProcess[str]:
+        del found, work, timeout
+        compiled.append(source.name)
+        return answers.get(source.name, _done(0, _PRINTS.get(source.name, "")))
+
+    with tempfile.TemporaryDirectory(prefix="vos-work-") as wd:
+        work = Path(wd) / "tree"
+        _staged(_RIG, work)
+        harness = work / "harness" / (gallina.RANDOMIZED if quickchick
+                                       else gallina.ENUMERATIVE)
+        with patch.object(gallina, "compile_one", side_effect=compile_one):
+            got = seed._coq_verdict(gallina.Prover("s", ("rocq", "c")), work, "proofs/A.v",
+                                    harness, Mock(), ["v 1"], quickchick)
+    return got, compiled
 
 
 def _run(command: str, *args: str) -> tuple[int, str]:
@@ -148,6 +203,23 @@ def _seed_coq_holds_the_installed_quickchick() -> None:
                    f"recipe={recipe}: the held QuickChick must run in {switch}: {said}")
 
 
+def _only_the_randomized_half_builds_its_support() -> None:
+    """IPCProperties.v states the sets the randomized half draws and walks, and no other
+    run reads it: an enumerative mutant over which it does not compile is decided by the
+    vectors, never compiling it, and a randomized mutant over which it does not compile
+    is one no oracle ran against."""
+    broken = {"IPCProperties.v": _done(1)}
+    vector, compiled = _verdict(False, broken)
+    ensure(vector.outcome == SURVIVED and "IPCProperties.v" not in compiled,
+           f"the vectors decide a mutant only the property support breaks: {vector}, "
+           f"having compiled {compiled}")
+    drawn, compiled = _verdict(True, broken)
+    ensure(drawn.outcome == STILLBORN and "IPCProperties.v" in compiled
+           and gallina.EXHAUSTIVE not in compiled,
+           f"the randomized half builds its support before either harness: {drawn}, "
+           f"having compiled {compiled}")
+
+
 def _oracle_list_runs() -> None:
     code, out = _run("oracle", "list")
     ensure(code == 0, f"the live specs do not parse: {out}")
@@ -195,7 +267,7 @@ def _the_randomized_mode_refuses_a_subject_outside_its_closure() -> None:
           patch.object(quickchick, "installed", side_effect=unheld)):
         ensure(seed.randomized_subjects(root) == ["proofs/A.v", "proofs/B.v", "proofs/C.v"],
                f"the closure's proof sources are A, B and C: {seed.randomized_subjects(root)}")
-        for rel in ("proofs/Far.v", f"{_RIG}/Probe.v"):
+        for rel in ("proofs/Far.v", f"{_DIR}/Probe.v"):
             with redirect_stdout(io.StringIO()) as said:
                 code = seed.cmd_coq(argparse.Namespace(file=rel, quickchick=True,
                                                        recipe=False))
@@ -364,6 +436,8 @@ def cases() -> list[Case]:
              _a_randomized_mutant_compiles_its_dependents_in_the_closure),
         Case("seed coq --quickchick holds the installed QuickChick",
              _seed_coq_holds_the_installed_quickchick),
+        Case("only the randomized half builds its support",
+             _only_the_randomized_half_builds_its_support),
         Case("mutation workspaces are held for the whole run",
              _mutation_workspaces_are_held_for_the_whole_run, lane="guest"),
         Case("oracle list runs over the live specs", _oracle_list_runs, lane="host"),

@@ -119,7 +119,8 @@ class Instrument:
 
     `selects` is the module that chooses its switch. `release` is None where the
     instrument states none. `harnesses` are the files it runs, `support` whether it
-    also compiles the rig's non-entry harnesses as `gallina.compile_support` does,
+    also compiles the rig's shared harnesses as `gallina.compile_support` does, the
+    randomized half's own support among them where it runs the drawn harness,
     `beside` a directory whose every tracked Gallina file it compiles, `whole`
     whether it compiles every proof source, and `subjects` the proof sources it names
     itself and compiles, each with its `Require` closure.
@@ -595,8 +596,9 @@ def _starts(root: Path, row: Instrument, tracked: set[str],
             findings.append(f"{row.name} compiles {rel!r}, which the git index does not "
                             "carry")
     if row.support:
+        randomized = f"{RIG}/{gallina.RANDOMIZED}" in row.harnesses
         files |= {rel for rel in _gallina_in(tracked, RIG)
-                  if rel.rsplit("/", 1)[1] not in gallina.ENTRY_POINTS}
+                  if gallina.is_support(rel.rsplit("/", 1)[1], randomized)}
     if row.beside:
         found = _gallina_in(tracked, row.beside)
         if not found:

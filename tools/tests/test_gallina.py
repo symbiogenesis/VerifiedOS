@@ -451,6 +451,43 @@ def _the_stdlib_harnesses_compile_in_the_proof_switch() -> None:
     ensure(asked == want, f"the instruments asked for {asked}, not {want}")
 
 
+def _the_randomized_support_is_built_for_that_half_alone() -> None:
+    """IPCProperties.v is support only Properties.v and Walks.v Require. The shared
+    sources a vector instrument compiles leave it out, so one it does not compile over
+    stops no vector run; asked for the randomized half, they build it after what it
+    Requires."""
+    files = {"proofs/A.v": _A, "tools/quickchick/Probe.v": "Require Import A.\n",
+             "tools/quickchick/IPCProperties.v": "Require Import Probe.\n",
+             f"tools/quickchick/{gallina.ENUMERATIVE}": "Require Import Probe.\n"}
+    compiled: list[str] = []
+
+    def compile_one(found: gallina.Prover, work: Path, source: Path,
+                    timeout: int = 900) -> subprocess.CompletedProcess[str]:
+        del found, work, timeout
+        compiled.append(source.stem)
+        if source.name == "IPCProperties.v":
+            return subprocess.CompletedProcess([], 1, "", "Error: broken")
+        return subprocess.CompletedProcess([], 0, '= ["v 1"] : list string\n', "")
+
+    found = gallina.Prover("s", ("rocq", "c"))
+    with (_tree(files) as td, tempfile.TemporaryDirectory(prefix="vos-work-") as wd,
+          patch.object(gallina, "compile_one", side_effect=compile_one),
+          patch.object(gallina, "prover", return_value=found)):
+        work = Path(wd) / "gallina"
+        said: list[str] = []
+        lines = gallina.emit(Path(td), work, said)
+        ensure(lines == ["v 1"] and "IPCProperties" not in compiled,
+               f"a vector run compiled the randomized half's support: {compiled} {said}")
+        ensure("IPCProperties.v" in gallina.RANDOMIZED_SUPPORT
+               and not gallina.compile_support(found, work),
+               "the shared sources a vector run compiles hold the randomized half's support")
+        compiled.clear()
+        failures = gallina.compile_support(found, work, randomized=True)
+    ensure([f.source for f in failures] == ["IPCProperties.v"]
+           and compiled == ["Probe", "IPCProperties"],
+           f"the randomized half's support is built after what it Requires: {compiled}")
+
+
 _SEEDED = ('From QuickChick Require Import QuickChick.\n'
            'Extract Constant newRandomSeed => "(Random.State.make [|7|])".\n')
 
@@ -461,9 +498,11 @@ def _the_randomized_harness_compiles_its_closure_alone() -> None:
     harnesses: never a proof outside that closure, nor another entry point."""
     files = {"proofs/A.v": _A, "proofs/B.v": _B, "proofs/C.v": _A, "proofs/Far.v": _A,
              "tools/quickchick/Probe.v": "Require Import A.\n",
+             "tools/quickchick/IPCProperties.v": "Require Import Probe.\n",
              "tools/quickchick/Vectors.v": "Require Import Far.\n",
-             f"tools/quickchick/{gallina.RANDOMIZED}": _SEEDED + "Require Import B Probe.\n",
-             f"tools/quickchick/{gallina.EXHAUSTIVE}": "Require Import C Probe.\n"}
+             f"tools/quickchick/{gallina.RANDOMIZED}":
+                 _SEEDED + "Require Import B Probe IPCProperties.\n",
+             f"tools/quickchick/{gallina.EXHAUSTIVE}": "Require Import C IPCProperties.\n"}
     compiled: list[str] = []
 
     def compile_one(found: gallina.Prover, work: Path, source: Path,
@@ -483,9 +522,10 @@ def _the_randomized_harness_compiles_its_closure_alone() -> None:
                                       Path(wd) / "gallina")
     ensure(code == 0, f"the closure run failed: {output.getvalue()}")
     ensure(compiled[-2:] == ["Properties", "Walks"]
-           and sorted(compiled[:-2]) == ["A", "B", "C", "Probe"],
+           and sorted(compiled[:-2]) == ["A", "B", "C", "IPCProperties", "Probe"],
            f"the run compiled {compiled}, not the harnesses' closure once and then each")
-    ensure(compiled.index("A") < min(compiled.index("B"), compiled.index("Probe")),
+    ensure(compiled.index("A") < min(compiled.index("B"), compiled.index("Probe"))
+           and compiled.index("Probe") < compiled.index("IPCProperties"),
            f"a Require was compiled after what reads it: {compiled}")
     ensure("from seed 7" in output.getvalue() and "1 walked set(s) held" in output.getvalue(),
            f"the report must carry the seed and the walks: {output.getvalue()}")
@@ -695,6 +735,8 @@ def cases() -> list[Case]:
              _the_oracle_candidates_build_from_released_packages),
         Case("the Stdlib harnesses compile in the proof switch",
              _the_stdlib_harnesses_compile_in_the_proof_switch),
+        Case("the randomized support is built for that half alone",
+             _the_randomized_support_is_built_for_that_half_alone),
         Case("the randomized harness compiles its closure alone",
              _the_randomized_harness_compiles_its_closure_alone),
         Case("the randomized half refuses what does not replay or hold",

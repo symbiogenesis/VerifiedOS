@@ -131,6 +131,13 @@ FREEZE_MODEL = "freeze-model.txt"
 ENTRY_POINTS: frozenset[str] = frozenset({ENUMERATIVE, RANDOMIZED, EXHAUSTIVE, FREEZE,
                                           KERNEL})
 
+# The support harnesses only the randomized half's two entry points Require:
+# IPCProperties.v states the property sets Properties.v draws and Walks.v walks.
+# `compile_support` leaves them alone unless it is asked for that half, by name for the
+# reason the entry points are: a vector run that compiled them would pay for statements
+# none of its harnesses reads, and would stop on one that did not compile.
+RANDOMIZED_SUPPORT: frozenset[str] = frozenset({"IPCProperties.v"})
+
 # The one line a harness's output is read back through. `Compute` on a `list string`
 # prints `= ["a"; "b"] : list string`, and the entries carry no quote and no backslash
 # by construction, so the quoted segments are the vectors.
@@ -380,10 +387,18 @@ def compile_closure(found: Prover, work: Path, *harnesses: Path) -> list[Failure
                                         for wave in closure(work, *harnesses)])
 
 
-def compile_support(found: Prover, work: Path,
-                    moved: list[list[Path]] | None = None) -> list[Failure]:
+def is_support(name: str, randomized: bool = False) -> bool:
+    """Whether `compile_support` compiles the harness of this name: never an entry
+    point, and the randomized half's own support only with `randomized`. One predicate
+    rather than a set difference spelled at each reader, K-117 reading it as well."""
+    return name not in ENTRY_POINTS and (randomized or name not in RANDOMIZED_SUPPORT)
+
+
+def compile_support(found: Prover, work: Path, moved: list[list[Path]] | None = None,
+                    randomized: bool = False) -> list[Failure]:
     """The harness directory's shared sources: everything there that is not an entry
-    point, which is what an entry point's `Require` resolves against.
+    point, which is what an entry point's `Require` resolves against, and is not the
+    randomized half's own support unless `randomized` asks for that half.
 
     The entry points are excluded by name rather than by their contents, and the reason
     is one per harness. The randomized half needs a library this repository installs in
@@ -393,17 +408,20 @@ def compile_support(found: Prover, work: Path,
     half's runs owe. The freeze model is a second subject with no reader here at all:
     compiling it as shared support would put a `Compute` over a hundred vectors inside
     every `quickchick vectors` run and inside every seeded mutant's baseline, which is a
-    price paid by loops that decide nothing about it.
+    price paid by loops that decide nothing about it. The randomized half's support is
+    that half's price too, and a mutant over which it alone does not compile is one the
+    vectors still decide rather than one their harness could not be built over.
 
     `moved`, where given, is what `closure_dependents` says a mutant moves inside the
-    harnesses' closure, and only the shared sources among it are compiled, in its order.
+    harnesses' closure, and only the shared sources among it are compiled, in its order,
+    `randomized` admitting the randomized half's own support as it does for the rest.
     """
     if moved is not None:
         return _compile_waves(found, work, [[s for s in wave if s.parent == work / "harness"
-                                             and s.name not in ENTRY_POINTS]
+                                             and is_support(s.name, randomized)]
                                             for wave in moved])
     shared = [p for p in sorted((work / "harness").glob("*.v"))
-              if p.name not in ENTRY_POINTS]
+              if is_support(p.name, randomized)]
     return _compile_all(found, work, shared)
 
 
