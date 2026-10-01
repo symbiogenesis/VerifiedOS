@@ -2629,7 +2629,7 @@ Qed.
 
 (* A committed generation read back: the hypothesis `H` equating two `Some`s
    is injected as `H2`, which replaces the generation in the goal. *)
-Local Ltac unpack_generation := injection H as H2; rewrite <- H2; simpl.
+Local Ltac unpack_generation H H2 := injection H as H2; rewrite <- H2; simpl.
 
 (* S11 (R-11-005, R-13-001a, R-13-001c): the specification is atomic. *)
 (*| discharges: R-11-005, R-13-001a, R-13-001c |*)
@@ -2648,7 +2648,7 @@ Theorem the_specification_commits_only_the_accepted :
 Proof.
   intros m D rd a r g H. unfold spec_compose in H.
   destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-  unpack_generation. exact E.
+  unpack_generation H H2. exact E.
 Qed.
 
 (* S12 (R-13-001c, R-13-010b): and it emits no stranger the roster does not
@@ -2660,7 +2660,7 @@ Theorem the_specification_emits_no_uncovered_stranger :
 Proof.
   intros m D rd a r g H. unfold spec_compose in H.
   destruct (admissible m D rd a r); [ | discriminate H ].
-  unpack_generation.
+  unpack_generation H H2.
   refine (all_of_mono _ _ _ _ _ (every_member_names_itself D r)).
   intros y Hy. rewrite Hy. reflexivity.
 Qed.
@@ -2698,7 +2698,7 @@ Qed.
 
 (* The successor case over a list with tail `s`: simplified, rewritten by the
    induction hypothesis `IH` at `s`, and closed. *)
-Local Ltac step_by_IH := simpl; rewrite (IH s); reflexivity.
+Local Ltac step_by_IH IH s := simpl; rewrite (IH s); reflexivity.
 
 Lemma all_of_insert :
   forall (A : Type) (q : A -> bool) (x : A) (l : list A) (n : nat),
@@ -2732,7 +2732,7 @@ Proof.
     destruct s as [ | b t ]; [ reflexivity | ].
     simpl. destruct (p a); destruct (p b); reflexivity.
   - destruct l as [ | a s ]; [ reflexivity | ].
-    step_by_IH.
+    step_by_IH IH s.
 Qed.
 
 Lemma all_of_dup :
@@ -2743,7 +2743,7 @@ Proof.
   - destruct l as [ | a s ]; [ reflexivity | ].
     simpl. destruct (p a); reflexivity.
   - destruct l as [ | a s ]; [ reflexivity | ].
-    step_by_IH.
+    step_by_IH IH s.
 Qed.
 
 Lemma count_of_insert :
@@ -2752,7 +2752,7 @@ Lemma count_of_insert :
 Proof.
   intros A x l n. revert l. induction n as [ | k IH ]; intros l.
   - reflexivity.
-  - destruct l as [ | y s ]; [ reflexivity | ]. step_by_IH.
+  - destruct l as [ | y s ]; [ reflexivity | ]. step_by_IH IH s.
 Qed.
 
 Lemma count_of_swap :
@@ -2761,7 +2761,7 @@ Proof.
   intros A l n. revert l. induction n as [ | k IH ]; intros l.
   - destruct l as [ | a s ]; [ reflexivity | ].
     destruct s as [ | b t ]; reflexivity.
-  - destruct l as [ | a s ]; [ reflexivity | ]. step_by_IH.
+  - destruct l as [ | a s ]; [ reflexivity | ]. step_by_IH IH s.
 Qed.
 
 Lemma count_of_drop :
@@ -3019,7 +3019,7 @@ Proof.
     destruct s as [ | b t ]; [ reflexivity | ].
     simpl. destruct (p a); destruct (p b); reflexivity.
   - destruct l as [ | a s ]; [ reflexivity | ].
-    step_by_IH.
+    step_by_IH IH s.
 Qed.
 
 Lemma any_of_dup :
@@ -3030,7 +3030,7 @@ Proof.
   - destruct l as [ | a s ]; [ reflexivity | ].
     simpl. destruct (p a); reflexivity.
   - destruct l as [ | a s ]; [ reflexivity | ].
-    step_by_IH.
+    step_by_IH IH s.
 Qed.
 
 Lemma first_undischarged_congruent :
@@ -5145,10 +5145,10 @@ Theorem the_filtering_composer_keeps_the_other_four :
     /\ CommitsEveryAccepted m D rd (filtering_composer m D rd).
 Proof.
   intros m D rd. unfold filtering_composer. split.
-  { intros a r g H. unpack_generation.
+  { intros a r g H. unpack_generation H H2.
     exact (all_of_filter (Package D) (fun p => accepts (spec_check m D rd a p)) r). }
   split.
-  { intros a r g H. unpack_generation.
+  { intros a r g H. unpack_generation H H2.
     refine (all_of_mono _ _ _ _ _
               (filter_of_within _ _ _ r (every_member_names_itself D r))).
     intros y Hy. rewrite Hy. reflexivity. }
@@ -5220,17 +5220,17 @@ Proof.
   { intros a r H. rewrite H. reflexivity. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    unpack_generation. apply andb_join; [ exact (Hx a) | exact E ]. }
+    unpack_generation H H2. apply andb_join; [ exact (Hx a) | exact E ]. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    unpack_generation. apply andb_join.
+    unpack_generation H H2. apply andb_join.
     - rewrite (mem_nat_here x.(pkg_id) nil).
       destruct (mem_nat x.(pkg_id) (image_ids D r)); reflexivity.
     - refine (all_of_mono _ _ _ _ _ (every_member_names_itself D r)).
       intros y Hy. rewrite Hy. reflexivity. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    unpack_generation. unfold mem_nat. unfold image_ids.
+    unpack_generation H H2. unfold mem_nat. unfold image_ids.
     simpl. rewrite (nat_eqb_refl x.(pkg_id)). reflexivity. }
   intros a r H. rewrite H.
   exists {| gen_image := cons x r; gen_synthesized := cons x.(pkg_id) nil |}.
@@ -5319,7 +5319,7 @@ Proof.
   { intros a r H. rewrite H. reflexivity. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    unpack_generation. apply andb_join; [ exact (Hx a) | exact E ]. }
+    unpack_generation H H2. apply andb_join; [ exact (Hx a) | exact E ]. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
     injection H as H2. rewrite <- H2. reflexivity. }
@@ -5376,10 +5376,10 @@ Proof.
   { intros a r H. rewrite H. reflexivity. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    unpack_generation. exact E. }
+    unpack_generation H H2. exact E. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    unpack_generation.
+    unpack_generation H H2.
     refine (all_of_mono _ _ _ _ _ (every_member_names_itself D r)).
     intros y Hy. rewrite Hy. reflexivity. }
   intros a r H. rewrite H.
