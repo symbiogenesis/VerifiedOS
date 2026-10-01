@@ -928,7 +928,8 @@ def _classes(ctx: Context, registered: set[str]) -> None:
         elif not classes and not unread and doc is not None:
             findings.append(f"{rule} is registered and named under no reach class")
 
-    rep.report("K-119", "rule(s) the reach classes do not place exactly once:", findings,
+    rep.report("K-119", "finding(s) in how the reach classes place the registry's rules:",
+               findings,
                f"each of the registry's {len(registered)} rules is named under exactly one "
                f"of the {figures.words(len(REACH_CLASSES))} reach classes ("
                + ", ".join(f"{name} {sizes.get(name, 0)}" for name in REACH_CLASSES) + ")")
