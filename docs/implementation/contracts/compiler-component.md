@@ -52,12 +52,14 @@ Acceptance requires the following evidence on one source-bound population:
   module after a source change cannot qualify the component.
 
 The [oracle environment](../../../tools/wasm-oracle/README.md#pinned-environment)
-remains the intended reproducible installation. The existing installed legacy
-environment may supply a separately identified comparison if its exact package
-export, tools, complete staged sources and fresh output identities are retained.
-This takes F-452's producer-binding alternative. It does not complete the intended
-environment's bootstrap, supply its missing lockfile, or qualify a portable
-installation. The report must distinguish those claims.
+is the switch imported from `tools/opam/certirocq.lock`, which `compare_component.py`
+uses unless `--switch` names another. Its receipt's scope says whether the run's
+switch was the declared one, by its name and by its export installing the snapshot's
+packages. Another installed environment, such as the legacy `certirocq-0.9.1` that
+M1.2f's recorded comparison used, may supply a separately identified comparison if
+its exact package export, tools, complete staged sources and fresh output identities
+are retained, which takes F-452's producer-binding alternative. The report must
+distinguish a run in the declared switch from one in another.
 
 ## Handoff and limits
 

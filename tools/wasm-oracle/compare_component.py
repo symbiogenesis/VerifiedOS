@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Fresh, source-bound reference IPC comparison on the legacy Wasm environment.
+"""Fresh, source-bound reference IPC comparison through the Wasm oracle's switch.
 
-Run in WSL with --out in the assigned native lane. This does not install or
-qualify the intended oracle bootstrap. See compiler-component.md for scope.
+Run in WSL with --out in the assigned native lane. The switch is the oracle's
+declared one, imported from tools/opam/certirocq.lock, unless --switch names
+another; this installs nothing. See compiler-component.md for scope.
 """
 
 import argparse
@@ -17,9 +18,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from vos import asm, env, image, receipts, trace
+from vos import asm, env, gallina, image, receipts, trace
 from vos import compiler_component as cc
 from vos.cli import compiler_diff as cd
+
+# The switch the Wasm side compiles in by default, the oracle's declared one, and the
+# Rocq release its prover must report. K-117 reads both here.
+SWITCH = gallina.ORACLE_SWITCH
+ROCQ_VERSION = gallina.ORACLE_ROCQ_VERSION
+# The declared switch's snapshot, whose installed packages a declared switch's are.
+SNAPSHOT = "tools/opam/certirocq.lock"
 
 
 def sha(path: Path) -> str:
@@ -40,7 +48,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("compiler", "compiler-config", "model-snapshot", "out"):
         parser.add_argument("--" + name, required=True, type=Path)
-    parser.add_argument("--switch", default="certirocq-0.9.1")
+    parser.add_argument("--switch", default=SWITCH)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     out = Path(args.out).resolve()
@@ -73,7 +81,8 @@ def main() -> int:
         "proofs/EndpointIPC.v", "tools/wasm-oracle/ipc_oracle.v", "tools/wasm-oracle/ipc_oracle.c",
         "tools/wasm-oracle/compare_component.py", "tools/wasm-oracle/run_vector.mjs",
         "tools/wasm-oracle/node.sh", "tools/vos/compiler_component.py", "tools/vos/cli/compiler_diff.py",
-        "tools/generated/dialect-table.json", "docs/implementation/contracts/compiler-component.md")]
+        "tools/generated/dialect-table.json", "docs/implementation/contracts/compiler-component.md",
+        SNAPSHOT)]
     selected += sorted((root / "tools/vos").rglob("*.py"))
     sources = {str(path): sha(path) for path in selected}
     compiler = Path(args.compiler).resolve()
@@ -109,7 +118,9 @@ def main() -> int:
     require(bool(libraries) and any("CertiRocq" in name for name in libraries), "missing Wasm producer libraries")
     save(producer / "libraries.json", libraries)
     tool_ids = {str(path): sha(path) for path in tool_paths}
-    execute("prover-version", ["opam", "exec", "--switch=" + args.switch, "--", str(coqc), "--version"], out)
+    version = execute("prover-version", ["opam", "exec", "--switch=" + args.switch, "--", str(coqc), "--version"], out)
+    require(cc.reports_release(version.stdout, ROCQ_VERSION),
+            f"the {args.switch} switch's prover is not Rocq {ROCQ_VERSION}")
     node_sh = root / "tools/wasm-oracle/node.sh"
     node_probe = execute("node-identity", ["sh", str(node_sh), "-p", "process.execPath"], out)
     node = Path(node_probe.stdout.strip())
@@ -117,13 +128,20 @@ def main() -> int:
                      str(config): sha(config), str(profile): sha(profile)})
     representation = prefix / "lib/coq/user-contrib/CertiRocq/CodegenWasm/LambdaANF_to_Wasm.v"
     shutil.copy2(representation, producer / "LambdaANF_to_Wasm.v")
+    # The declared switch by its name and by the packages it installs, the snapshot's own,
+    # so a switch of that name built some other way is not taken for it.
+    declared = args.switch == SWITCH and (
+        cc.installed((producer / "packages.export").read_text(encoding="utf-8"))
+        == cc.installed((root / SNAPSHOT).read_text(encoding="utf-8")))
     save(producer / "identity.json", {"switch": args.switch, "tools": tool_ids,
         "package_export_sha256": sha(producer / "packages.export"), "libraries_sha256": sha(producer / "libraries.json"),
-        "representation_sha256": sha(representation), "scope": "existing legacy environment; intended bootstrap remains open"})
-    gallina = (root / "tools/wasm-oracle/ipc_oracle.v").read_text(encoding="utf-8")
+        "representation_sha256": sha(representation),
+        "scope": "the declared oracle switch, installing its snapshot's packages" if declared
+                 else "a switch other than the declared oracle's, by its name or its packages"})
+    gallina_source = (root / "tools/wasm-oracle/ipc_oracle.v").read_text(encoding="utf-8")
     c_source = (root / "tools/wasm-oracle/ipc_oracle.c").read_text(encoding="utf-8")
     endpoint = (root / "proofs/EndpointIPC.v").read_bytes()
-    observed_g, observed_c, ids = cc.wrappers(gallina, c_source)
+    observed_g, observed_c, ids = cc.wrappers(gallina_source, c_source)
     save(out / "population.json", ids)
     observations: dict[str, tuple[cc.Observation, cc.Observation]] = {}
     rows: list[dict[str, object]] = []
@@ -227,7 +245,8 @@ def main() -> int:
         "coordinate_controls": len(ids), "model_source_identity": model["identity"],
         "model_receipt_sha256": model_receipt_sha256,
         "steps_sha256": sha(out / "steps.json"), "seconds": time.monotonic()-started,
-        "scope": "finite authored-C reference comparison; no extraction/refinement proof; legacy bootstrap not qualified"})
+        "scope": "finite authored-C reference comparison; no extraction/refinement proof"
+                 + ("" if declared else "; Wasm producer outside the declared oracle switch")})
     return 0
 
 

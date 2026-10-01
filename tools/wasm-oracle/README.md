@@ -6,12 +6,14 @@ This is the inner loop of the three-loop discipline ([implementation-checklist Â
 
 * **Compiler**: CertiRocq **0.9.1 for Rocq 9.1**, the released `rocq-certirocq.0.9.1+9.1` from the `rocq-released` opam repository, MIT. It is a release rather than a source pin because the release now carries both things a pin used to buy: the merged CertiCoq-Wasm backend (`theories/CodegenWasm`, mechanized against WasmCert-Coq, CPP 2025) that the `coq-certicoq` 0.9 release predated, and `rocq-metarocq-erasure-plugin` and `rocq-metarocq-safechecker-plugin` at `>= 1.5.1`, which is *released* MetaRocq rather than the unreleased 9.1 branch main tracked. There is therefore no clone, no checkout and no compatibility patch; the erasure inlining toggle a patch used to move already sits in `unsafe_passes` here.
 * **Prover**: Rocq 9.1.1. CertiRocq requires `rocq-core {>= "9.1" & < "9.2~"}`, and its `coq-wasm` dependency also requires Coq below 9.2. The [proof gate](../vos/cli/proofs.py) independently uses Rocq 9.3.0.
-* **OCaml**: 5.1.1 with ocamlfind 1.9.8. CertiRocq's unmodified bootstrap C wrapper fails with OCaml 5.4.1 because its `Hd_val` macro collides with the inline function introduced in OCaml 5.2. The wrapper compiles against 5.1.1, before that header change. The [package snapshot guide](../opam/README.md) records this boundary and the independent 5.4.1 switches. The container recipe selects the same oracle snapshot because its published Rocq 9.1 image still carries OCaml 4.14.2.
+* **OCaml**: 4.14.4 with ocamlfind 1.9.8. CertiRocq's unmodified native `certirocqc` bootstrap fails with OCaml 5.4.1 because its runtime's `Hd_val` macro collides with the inline function introduced in OCaml 5.2; OCaml 4.14.4 defines `Hd_val` as the same macro, token for token. The [package snapshot guide](../opam/README.md) records this boundary and the independent 5.4.1 switches. The container imports the same snapshot; its published Rocq 9.1 image's OCaml 4.14.2 only runs opam.
 * **Engine**: Node.js 26.10.0 through [node.sh](node.sh), which verifies the official archive checksum and installs into a versioned toolchain directory. It uses stock `WebAssembly.instantiate`; the emitted module is import-free. `wasmtime` works equally for modules that need no result pretty-printing.
 
 ## Build and run
 
-The CertiRocq bootstrap in the 5.1.1 switch remains incomplete, so `tools/opam/certirocq.lock` is not present. The wrapper compilation passes; it does not establish a working Wasm compiler. The Gallina vector harnesses compile in the proof gate's switch and exercise nothing in this one. The recipes below require the snapshot exported after the compiler build, positive smoke checks and seeded negative check pass. Until then, both snapshot imports and the Docker build are unavailable.
+[tools/opam/certirocq.lock](../opam/certirocq.lock) is the snapshot of the switch in which the unpatched release, its native `certirocqc` bootstrap included, built at OCaml 4.14.4, `demo.v` printed `true` through the compiled Wasm, and `ipc_oracle.v`'s 84 checks answered `true` while its seeded twin answered `false`. The native recipe's create-and-import steps imported it into a fresh opam root on the aarch64 development guest, where those three checks answered the same and emitted the same modules byte for byte, and `run.py provision`'s CertiRocq oracle row held with `OPAMROOT` naming that root. Both recipes below import it. The Docker build is unexercised: the image is published for `linux/amd64` alone, and that guest, where every check here ran, has not built it. The Gallina vector harnesses compile in the proof gate's switch and exercise nothing in this one.
+
+`run.py provision --apply` plans nothing for this switch, whose only route is the recipe here, a person's rather than a tool's, and `provision`'s oracle row holds only over a root that carries the declared switch.
 
 Two environments install the same opam package. The container is the portable one and the opam switch is the one that runs on an arm64 host, because `rocq/rocq-prover` publishes `linux/amd64` alone at every 9.1 tag.
 
@@ -25,11 +27,11 @@ true
 ```console
 $ opam repo add rocq-released https://rocq-prover.org/opam/released --dont-select
 $ opam update --all
-$ opam switch create verifiedos-certirocq-0.9.1-ocaml-5.1.1 \
+$ opam switch create verifiedos-certirocq-0.9.1-ocaml-4.14.4 \
     --repos=rocq-released,default --empty --no-switch
 $ opam switch import tools/opam/certirocq.lock \
-    --switch=verifiedos-certirocq-0.9.1-ocaml-5.1.1 -y
-$ eval $(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-5.1.1 --set-switch)
+    --switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4 -y
+$ eval $(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4 --set-switch)
 $ mkdir -p out/wasm-oracle
 $ cp tools/wasm-oracle/demo.v tools/wasm-oracle/run_demo.mjs tools/wasm-oracle/node.sh out/wasm-oracle/
 $ cd out/wasm-oracle
@@ -51,7 +53,7 @@ Run the native setup from the repository root. If an import fails after its swit
 $ mkdir -p /root/build/lane-<name>/wasm && cd /root/build/lane-<name>/wasm
 $ cp <repo>/proofs/EndpointIPC.v <repo>/tools/wasm-oracle/ipc_oracle.v \
      <repo>/tools/wasm-oracle/run_demo.mjs <repo>/tools/wasm-oracle/node.sh .
-$ eval $(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-5.1.1 --set-switch)
+$ eval $(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4 --set-switch)
 $ rocq c EndpointIPC.v && rocq c ipc_oracle.v
      = 84
      : nat
@@ -74,11 +76,10 @@ $ python3 tools/wasm-oracle/compare_component.py \
     --compiler /native/contained/ccomp \
     --compiler-config /native/compcert.ini \
     --model-snapshot /root/build/lane-<name>/model-snapshot \
-    --switch certirocq-0.9.1 \
     --out /root/build/lane-<name>/component-vector
 ```
 
-The model snapshot contains `sail_riscv_sim` and its successful `model-build.json` receipt. The command identifies the existing legacy Wasm environment, including its package export and installed libraries; this does not complete the intended bootstrap above. Missing or changed dependencies invalidate the evidence. Source or tool changes require this experiment to be reissued; Host CI and Guest CI do not execute it. The older `run.py compiler-diff component` aggregate-output mode remains a driver diagnostic and does not satisfy the complete-vector contract. Agreement is finite differential evidence, not a refinement proof.
+The model snapshot contains `sail_riscv_sim` and its successful `model-build.json` receipt. The Wasm side compiles in the declared switch above unless `--switch` names another, and the command refuses a switch whose prover is not the Rocq release [gallina.py](../vos/gallina.py) states for the oracle. It identifies that environment, including its package export and installed libraries, and its receipt says whether the switch was the declared one, by its name and by its export installing the snapshot's packages. M1.2f's recorded comparison named `--switch certirocq-0.9.1`, the undeclared legacy switch. Missing or changed dependencies invalidate the evidence. Source or tool changes require this experiment to be reissued; Host CI and Guest CI do not execute it. The older `run.py compiler-diff component` aggregate-output mode remains a driver diagnostic and does not satisfy the complete-vector contract. Agreement is finite differential evidence, not a refinement proof.
 
 ## Keeping the VM under a long build
 
