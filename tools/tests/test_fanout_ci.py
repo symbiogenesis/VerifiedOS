@@ -502,6 +502,18 @@ _GATE_COMMANDS = {
 _GATE_BRANCHES = sorted(_GATE_COMMANDS)
 # A job-level key of the shard job, whose keys sit at four spaces, bare or quoted.
 _JOB_CONTINUE_RE = re.compile(r"""(?m)^    (["']?)continue-on-error\1[ \t]*:""")
+# Each gate step's environment block, exactly as the workflow spells it for both: the
+# shard and the shard count, and nothing a shell or an interpreter would read first.
+_GATE_ENV = ["        env:",
+             "          SHARD: ${{ matrix.shard }}",
+             "          SHARDS: ${{ matrix.shards }}"]
+# A variable naming a file a shell sources before the command it runs: GitHub runs a
+# bash step as non-interactive bash, which sources the file BASH_ENV names, and sh
+# reads ENV where it is interactive. Either can install `trap 'exit 0' EXIT` and turn
+# a failing gate green, so the workflow may not name one anywhere: as a key, bare or
+# quoted, in any mapping style, or as a variable a run body sets, a GITHUB_ENV write
+# among them.
+_SHELL_STARTUP_RE = re.compile(r"(?<![A-Za-z0-9_])(BASH_ENV|ENV)(?![A-Za-z0-9_])")
 
 
 def _step_texts(job: str) -> list[str]:
@@ -523,6 +535,24 @@ def _step_values(step: str, key: str) -> list[str]:
     """Every value a step states for one of its own keys, on its dash line or beneath."""
     pattern = r"(?m)^(?:      - |        )" + re.escape(key) + r":[ \t]*(.*?)[ \t]*$"
     return [m[1] for m in re.finditer(pattern, step)]
+
+
+def _step_block(step: str, key: str) -> list[str]:
+    """A step's own `key:` line and every nonblank line indented beneath it, before the
+    step's next key, as the workflow spells them; empty where the step states none."""
+    lines = step.split("\n")
+    start = next((n for n, line in enumerate(lines)
+                  if re.match(r"(?:      - |        )" + re.escape(key) + ":", line)), None)
+    if start is None:
+        return []
+    block = [lines[start].rstrip()]
+    for line in lines[start + 1:]:
+        if not line.strip():
+            continue
+        if len(line) - len(line.lstrip()) <= 8:
+            break
+        block.append(line.rstrip())
+    return block
 
 
 def _continued(step: str) -> bool:
@@ -549,14 +579,23 @@ def _gate_faults(contents: str) -> list[str]:
     and the two steps' `if:` and `shell:` must be exactly the complementary pair. A gate
     that runs can still finish green without its verdict, so each step's `run:` must be
     exactly its branch's command with no continuation line folded into it, and neither a
-    gate step nor the shard job may state `continue-on-error`. Steps other than the
-    gate's are not read.
+    gate step nor the shard job may state `continue-on-error`. A shell can run code of
+    its own before the command, so each gate step's `env:` block must be exactly its
+    SHARD and SHARDS lines, and no line of the workflow outside a comment may name
+    BASH_ENV or ENV, whether a workflow, job or step sets it or a run body writes it.
+    Steps other than the gate's are read for that name alone.
     """
     shards = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)[0]
     gates = [step for step in _step_texts(shards)
              if any(value.startswith(_GATE) for value in _step_values(step, "run"))]
     text = "\n".join(line for line in shards.split("\n") if not line.lstrip().startswith("#"))
     faults: list[str] = []
+    uncommented = "\n".join(line for line in contents.split("\n")
+                            if not line.lstrip().startswith("#"))
+    if startup := sorted({m[1] for m in _SHELL_STARTUP_RE.finditer(uncommented)}):
+        faults.append(f"the workflow names {' and '.join(startup)}, which names a file a "
+                      "shell sources before the gate's command and can turn a failing "
+                      "gate green")
     if text.count(_GATE) != len(gates):
         faults.append("the gate command stands outside a step's own single-line run")
     if len(gates) != 2:
@@ -572,6 +611,11 @@ def _gate_faults(contents: str) -> list[str]:
         if _continued(step):
             faults.append("a gate step's run continues past its line, so the command it "
                           "runs is not the line read")
+        environments = _step_values(step, "env")
+        if len(environments) != 1 or _step_block(step, "env") != _GATE_ENV:
+            faults.append(f"a gate step states {len(environments)} env key(s) and the "
+                          f"block {_step_block(step, 'env')!r}, not exactly its SHARD and "
+                          "SHARDS lines, so its shell can read more than the shard")
         conditions, shells = _step_values(step, "if"), _step_values(step, "shell")
         runs = _step_values(step, "run")
         if len(conditions) != 1 or len(shells) != 1 or len(runs) != 1:
@@ -603,6 +647,9 @@ _GATE_JOB = """jobs:
       - name: Host gates and behavioral tests (Windows)
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ matrix.shards }}
         run: python tools/run.py --check --tests --shard "$env:SHARD/$env:SHARDS" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"
 
       - name: Host gates and behavioral tests (Ubuntu)
@@ -610,6 +657,7 @@ _GATE_JOB = """jobs:
         shell: bash
         env:
           SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ matrix.shards }}
         run: python tools/run.py --check --tests --shard "$SHARD/$SHARDS" --summary "$RUNNER_TEMP/$VERDICT_FILE"
 
       - name: Report gate results
@@ -631,6 +679,10 @@ def _workflow_gate_on_every_runner() -> None:
     missing = ubuntu[0] + "      - name: Report" + ubuntu[1].split("      - name: Report", 1)[1]
     verdict = '--summary "$RUNNER_TEMP/$VERDICT_FILE"'
     report = "\n      - name: Report gate results\n"
+    sharded = "          SHARDS: ${{ matrix.shards }}\n"
+    environment = "        env:\n          SHARD: ${{ matrix.shard }}\n" + sharded
+    job = "    runs-on: ${{ matrix.runner }}\n"
+    trap = "${{ runner.temp }}/trap.sh\n"
     for workflow, fragment in (
             (_GATE_JOB.replace("runner.os != 'Windows'", "runner.os == 'Linux'"),
              "not the complementary"),
@@ -665,18 +717,47 @@ def _workflow_gate_on_every_runner() -> None:
              "continues past its line"),
             (_GATE_JOB.replace(f"{verdict}\n{report}",
                                f"{verdict}\n        continue-on-error: true\n{report}"),
-             "a gate step states continue-on-error")):
+             "a gate step states continue-on-error"),
+            # A gate whose shell runs code of its own first: a step environment beyond
+            # the shard, or a startup file a shell sources, named at the step, the job
+            # or the workflow, bare, quoted or in a flow mapping, or written by a run.
+            (_GATE_JOB.replace(sharded, sharded + "          BASH_ENV: " + trap, 1),
+             "not exactly its SHARD and SHARDS lines"),
+            (_GATE_JOB.replace(sharded, sharded + "          BASH_ENV: " + trap, 1),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(sharded, sharded + "          PYTHONPATH: .\n"),
+             "not exactly its SHARD and SHARDS lines"),
+            (_GATE_JOB.replace("        shell: pwsh\n" + environment, "        shell: pwsh\n"),
+             "states 0 env key(s)"),
+            (_GATE_JOB.replace("        shell: bash\n" + environment,
+                               "        shell: bash\n        env: {SHARD: ${{ matrix.shard "
+                               "}}, SHARDS: ${{ matrix.shards }}}\n"),
+             "not exactly its SHARD and SHARDS lines"),
+            (_GATE_JOB.replace(job, job + "    env:\n      BASH_ENV: " + trap),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(job, job + '    env:\n      "BASH_ENV": ' + trap),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(job, job + "    env: {BASH_ENV: " + trap.rstrip() + "}\n"),
+             "the workflow names BASH_ENV"),
+            ("env:\n  'ENV': " + trap + _GATE_JOB, "the workflow names ENV"),
+            (_GATE_JOB.replace('"TMP=$env:RUNNER_TEMP"', '"BASH_ENV=$env:RUNNER_TEMP/trap.sh"'),
+             "the workflow names BASH_ENV")):
         ensure(workflow != _GATE_JOB, f"the fixture for {fragment!r} changed nothing")
         found = _gate_faults(workflow)
         ensure(any(fragment in fault for fault in found),
                f"a gate some runner would skip, or one that can pass without its verdict, "
                f"must be refused ({fragment!r}): {found!r}")
-    # A step other than the gate's is not read: one more step anywhere passes.
+    # A step other than the gate's is read for a startup file alone: one more step
+    # anywhere passes, and so does a comment line naming one.
     extra = _GATE_JOB.replace(report, "\n      - name: Another step\n        if: ${{ "
                                       "runner.os != 'Windows' }}\n        continue-on-error: "
                                       f"true\n        run: echo other\n{report}")
     ensure(extra != _GATE_JOB and not _gate_faults(extra),
            f"a step outside the gate's is not read: {_gate_faults(extra)!r}")
+    noted = _GATE_JOB.replace("      # The gate, once per platform.\n",
+                              "      # The gate, once per platform; no BASH_ENV or ENV.\n")
+    ensure(noted != _GATE_JOB and not _gate_faults(noted),
+           f"a comment line naming a startup file is not a setting: {_gate_faults(noted)!r}")
 
 
 def _key_values(text: str, key: str) -> list[str]:

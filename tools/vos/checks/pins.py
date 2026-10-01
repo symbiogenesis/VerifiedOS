@@ -157,11 +157,14 @@ runs with, and the record's development-tools table carries one row per action
 stating the release and the full commit its terms were read at. A tag moves under that
 row without any file here changing, so the rule first holds each line to the one form
 that cannot move, `owner/repo[/path]@<40 hex digits> # vX.Y.Z`, and then holds its
-commit and release to the action's own row. Membership is total in both directions: a
-line naming an action with no row runs code whose terms nobody read, and a row naming
-an action no workflow runs is a review of nothing. The two workflow analyzers Host CI
-runs are installed from a lock and a script rather than named by a workflow line, so
-K-118 holds their rows with the rest of the section's.
+commit and release to the action's own row. The row's licence link names the edition
+its terms were read at, so every link the row makes into the action's own repository
+is held to name the reviewed commit, never another commit, a tag or a branch that
+could move under it. Membership is total in both directions: a line naming an action
+with no row runs code whose terms nobody read, and a row naming an action no workflow
+runs is a review of nothing. The two workflow analyzers Host CI runs are installed from
+a lock and a script rather than named by a workflow line, so K-118 holds their rows
+with the rest of the section's.
 
 **The window is the git index's workflow directory**, every tracked `.yml` or `.yaml`
 file under `.github/workflows/`, and each reading fails closed: no workflow, no
@@ -173,33 +176,41 @@ reference is read only as a block mapping's bare `uses:` key opening its line, a
 after a sequence dash, while YAML also lets that key be quoted, tagged, anchored,
 written in a flow collection, spelled with an escape, reached through an alias or
 opened by an explicit `?` indicator. So the census splits each file at every YAML line
-break, 1.1's included, and on each non-comment line counts a `uses` key, bare or
-quoted, followed by its `:`; a double-quoted key holding an escape and an alias used as
-a key, whatever they spell; and every explicit-key `?` indicator, whatever key it
-opens. A line carrying any of them other than the key the reading took is one finding
-naming that line; otherwise a reference in another shape would run code the rule
-reported agreement about without having read it. The census errs toward a finding,
-counting a key inside a trailing comment or a block scalar's text and an escaped, alias
-or explicit key that names something else. The one shape it does not count is a flow
-mapping's key whose `:` stands on a later line, which the YAML 1.2.2 grammar admits and
-PyYAML refuses. While a reference stands unread, a row is not also reported as run by
-nothing, the unread line being what may run it. What it does not decide is whether the
-commit is the release the comment names; the row's reviewer read that, and zizmor's
-online audits are the instrument that asks GitHub. **Reported and never repaired**, on
-K-97's ground: moving a row's commit would claim a licence reading nobody took.
+break, 1.1's included, and on every line counts a `uses` key, bare or quoted, followed
+by its `:`; a double-quoted key holding an escape and an alias used as a key, whatever
+they spell; and every explicit-key `?` indicator, whatever key it opens. A comment's
+line is read too, since a line opening with `#` may continue a quoted scalar and a `#`
+after a no-break space, which YAML reads as content, opens no comment at all.
+PyYAML reads every `?` inside a flow collection as a key's indicator, whatever
+follows it, and a line does not say whether it stands in one, so a `?` opening its line
+after indentation alone or following `{`, `,` or `[` is counted whatever follows it,
+while one after a block indicator and a blank is counted only before a blank, as a
+block key's indicator is. A line carrying any of them other than the key the reading
+took is one finding naming that line; otherwise a reference in another shape would run
+code the rule reported agreement about without having read it. The census errs toward
+a finding, counting a key or a `?` inside a comment or a scalar's text, and an
+escaped, alias or explicit key that names something else. The one shape it does not
+count is a flow mapping's key whose `:` stands on a later line, which the YAML 1.2.2
+grammar admits and PyYAML refuses. While a reference stands unread, a row is not also
+reported as run by nothing, the unread line being what may run it. What it does not
+decide is whether the commit is the release the comment names; the row's reviewer read
+that, and zizmor's online audits are the instrument that asks GitHub.
+**Reported and never repaired**, on K-97's ground: moving a row's commit would claim a
+licence reading nobody took.
 
 K-116 is the third kind: **a commit a tool consumes rather than a sentence restates.**
 The width-transform registry binds the imported core's gitlink it was derived through,
 and K-81 does not read that binding, the registry's `"pin"` naming no upstream on its
 line. `rtl_width.stage` compares it with the populated imported core only when a guest
-elaboration runs, which no hosted gate does, so a gitlink moved without re-deriving the
-registry passed every hosted gate. This rule holds the recorded commit, whole, against
-the index's gitlink, which every checkout carries populated or not. The device-register
-package's recorded Mocha revision is the same kind of binding inside a generated
-artifact, so K-88's row for that package holds it, and the row keeps the package out of
-K-81's window. **The sites are enumerated in code and read fail-closed**: an artifact
-missing from the index, a record its owner's own reader refuses, and a gitlink the
-index does not carry are each a finding, so the rule owes the floors group no member.
+elaboration runs, which no hosted gate does, so without this rule a gitlink moved
+without re-deriving the registry passes every hosted gate. This rule holds the recorded
+commit, whole, against the index's gitlink, which every checkout carries populated or
+not. The device-register package's recorded Mocha revision is the same kind of binding
+inside a generated artifact, so K-88's row for that package holds it, and the row keeps
+the package out of K-81's window.
+**The sites are enumerated in code and read fail-closed**: an artifact missing from the
+index, a record its owner's own reader refuses, and a gitlink the index does not carry
+are each a finding, so the rule owes the floors group no member.
 **Reported and never repaired**: the repair re-derives the registry's source identities
 from a checkout at the gitlink and is never a token substitution.
 
@@ -238,10 +249,12 @@ residue that no longer stands or covers no numeral is a finding. A residue whose
 release no exported snapshot fixes yet names that owner, as its declared row does, and
 becomes a finding the day the index carries it. The window ends at the next heading, so
 the inference benchmark's subsection, the dependency review of a measured run, is
-outside it. A release is read whole, an opam identifier's after its name's dot and with
-any letter, `~`, `+` or dotted suffix it carries; a numeral joined to the word before
-it by a hyphen, a letter or `+`, as a licence identifier's version or a tag's prefix
-is, is not read by the census, and the sites read such a tag where it states a release.
+outside it. A release is read whole, with any letter, `~`, `+` or dotted suffix it
+carries, an opam identifier's after its name's dot, whether the name ends in a letter
+or in digits a letter leads, and one after an underscore too. A numeral joined to the
+word before it by a hyphen, a letter or `+`, as a licence identifier's version or a
+tag's prefix is, is not read by the census, nor is its continuation past its dot, and
+the sites read such a tag where it states a release.
 
 **Fail-closed at every reading**, on K-97's ground: a record without the section or its
 table, a table with no row, a site matching other than once, and an owner absent,
@@ -295,15 +308,19 @@ _USES_RE = re.compile(r"^[ \t]*(?:-[ \t]+)?(?P<key>uses):[ \t]*(.*?)[ \t]*$")
 # Every key on a line that can be `uses`, wider than the reading on purpose: a `uses`
 # key, bare or quoted, followed by its `:`; a double-quoted key holding an escape and
 # an alias used as a key, whatever they spell; and every explicit-key `?` indicator,
-# opening its line after indentation and block indicators or following `{`, `,` or
-# `[`, whatever key it opens. Each stands after a blank, a flow indicator or the line's
-# start, so a tag or an anchor before the key does not hide it. A key it finds that the
-# reading did not take is a finding rather than a reference nobody held against the
-# record.
+# whatever key it opens. Each key stands after a blank, a flow indicator or the line's
+# start, so a tag or an anchor before the key does not hide it. A `?` is counted where
+# PyYAML may read one: after a block indicator and a blank only when a blank or the
+# line's end follows, as a block key's indicator is, since a `?` flush against what
+# follows it there opens a plain scalar, and one in a flow collection there is a parse
+# error; and opening its line after indentation alone or following `{`, `,` or `[`
+# whatever follows it, since such a line may stand in a flow collection, where PyYAML
+# reads every `?` as a key's. A key it finds that the reading did not take is a finding
+# rather than a reference nobody held against the record.
 _USES_KEY_RE = re.compile(
     r"""(?:(?<=[\s{,\[])|^)"""
     r"""(?:(?P<q>["']?)uses(?P=q)|"[^"]*\\[^"]*"|\*[^\s,\[\]{}]+)(?=[ \t]*:)"""
-    r"""|^[ \t]*(?:[-?:][ \t]+)*\?(?=[ \t]|$)|(?<=[{,\[])[ \t]*\?(?=[ \t]|$)""")
+    r"""|^[ \t]*(?:\?|(?:[-?:][ \t]+)+\?(?=[ \t]|$))|(?<=[{,\[])[ \t]*\?""")
 # The line breaks YAML reads, 1.1's included, so a line here is a line to the parser.
 _YAML_BREAK_RE = re.compile(r"\r\n|[\r\n\x85\u2028\u2029]")
 _PINNED_USE_RE = re.compile(
@@ -325,12 +342,32 @@ _V = r"(\d[\w+~-]*(?:\.[\w+~-]+)*)"
 # optionally led by v or V, with any suffix a release takes attached, letters, `~` or
 # `+` (`1.2.3rc1`, `2.0~beta`) and further dotted parts carrying a digit (`1.0.post1`),
 # so a full stop or a file extension after it is not read as part of it. An opam
-# identifier's release after its name's dot (`coq-riscv.0.0.6`) is read; a numeral
-# joined to the word before it by a hyphen, a letter or `+` is not, being a licence
-# identifier's version (`LGPL-2.1`) or a tag's own prefix (`release-1.14`), which the
-# census leaves to the sites that read such a tag as the release it states.
-_RELEASE_RE = re.compile(r"(?<![\w+-])(?<!\d\.)[vV]?"
+# identifier's release after its name's dot is read, the name ending in a letter
+# (`coq-riscv.0.0.6`) or in digits a letter leads (`base64.3.5.1`, so `python3.14.7`
+# reads 14.7, erring toward a finding), and so is a numeral after an underscore
+# (`rocq_9.4.0`). A numeral joined to the word before it by a hyphen, a letter or `+`
+# is not, nor one continuing such a numeral past its dot, being a licence identifier's
+# version (`LGPL-2.1`) or a tag's own prefix (`release-1.14`), which the census leaves
+# to the sites that read such a tag as the release it states. `_releases` applies the
+# last rule, which no fixed-width lookbehind can state.
+_RELEASE_RE = re.compile(r"(?<![^\W_])(?<![+-])[vV]?"
                          r"(\d+(?:\.\d+)+(?:[A-Za-z~+][\w~+]*)?(?:\.(?=[\w~+]*\d)[\w~+]+)*)")
+
+
+def _releases(text: str) -> list[re.Match[str]]:
+    """The release numerals the census reads in the text: `_RELEASE_RE`'s matches, less
+    each whose dot follows digits no letter leads, the tail of the numeral before it."""
+    found: list[re.Match[str]] = []
+    for m in _RELEASE_RE.finditer(text):
+        dot = run = m.start() - 1
+        while run > 0 and text[run - 1] in "0123456789":
+            run -= 1
+        if dot >= 0 and text[dot] == "." and run < dot and not (
+                run > 0 and text[run - 1].isalpha()):
+            continue
+        found.append(m)
+    return found
+
 
 # A list of tags a licence file was read at, and the one form every tag in it takes.
 _TAGS_READ = r"byte-identical at the ((?:`[^`]*`(?:,? and |, ))*`[^`]*`) tags"
@@ -848,7 +885,22 @@ def _workflow_pins(ctx: Context) -> None:
                             "`<full commit>`` is read")
             actions[tool] = ("", "", where)
             continue
-        actions[tool] = (stated[0][0], stated[0][1], where)
+        release, commit = stated[0]
+        actions[tool] = (release, commit, where)
+        # The row's licence link names the edition its terms were read at, so every link
+        # into the action's own repository, owner and name in any case, names the
+        # reviewed commit rather than another commit, a tag or a branch.
+        for link in re.finditer(rf"https://github\.com/(?i:{re.escape(tool)})/blob/"
+                                r"([^/\s)\]>]+)/", row):
+            ref = link.group(1)
+            if ref != commit:
+                # quoted at twelve digits, or as far as they must run to tell the two apart
+                shown = max(12, next((i + 1 for i, (a, b) in
+                                      enumerate(zip(ref, commit, strict=False)) if a != b),
+                                     min(len(ref), len(commit)) + 1))
+                findings.append(f"{where} links {tool}'s licence at {ref[:shown]}, the row "
+                                f"reviewed {commit[:shown]}; the link names the edition the "
+                                "terms were read at, so the edit is a person's")
     if rows and not actions:
         findings.append(f"{record}'s development-tools table carries no action row, so the "
                         "workflows would be held against nothing")
@@ -869,13 +921,15 @@ def _workflow_pins(ctx: Context) -> None:
                             "unread")
             continue
         for number, text_line in enumerate(_YAML_BREAK_RE.split(source), start=1):
-            if text_line.lstrip().startswith("#"):
-                continue
             where = f"{rel}:{number}"
+            # The reading's shape never takes a comment line, `#` being no `uses` key.
             m = _USES_RE.match(text_line)
             # The census: a line carrying any key the reading did not take is one
             # finding, so a reference in a shape the reading does not parse is a finding
             # rather than one the rule reports agreement about without having read it.
+            # It reads every line, a comment's included: a line opening with `#` may
+            # continue a quoted scalar, and a `#` after a no-break space, which YAML
+            # reads as content rather than a blank, opens no comment at all.
             taken = m.start("key") if m else -1
             if any(key.start() != taken for key in _USES_KEY_RE.finditer(text_line)):
                 unread += 1
@@ -1196,13 +1250,13 @@ def _hold(where: Callable[[int], str], name: str, text: str, tool: DevTool,
             continue
         end = start + len(fragment)
         if not any(start <= m.start(1) and m.end(1) <= end
-                   for m in _RELEASE_RE.finditer(text)):
+                   for m in _releases(text)):
             findings.append(f"{declared} covers no release numeral, so it suppresses nothing")
             continue
         spans.append((start, end))
     if not complete:
         return compared, 0
-    numerals = list(_RELEASE_RE.finditer(text))
+    numerals = _releases(text)
     findings += [f"{where(m.start())} states {m.group()} in {subject}, which no K-118 site "
                  "reads and no residue declares; hold it against the artifact fixing it, or "
                  "declare why it states no release that one fixes"
@@ -1271,7 +1325,7 @@ def _dev_tools(ctx: Context) -> None:
                 why = DEV_TOOL_DECLARED[tool]
             # A declared row is still censused: it states the one release its terms were
             # read at, however often, or none where it is declared to state none.
-            stated = sorted({m.group(1) for m in _RELEASE_RE.finditer(line)})
+            stated = sorted({m.group(1) for m in _releases(line)})
             if not why.releases and stated:
                 findings.append(f"{where} is declared as stating no dotted release of {tool} "
                                 f"({why.why}), and it states {', '.join(stated)}")

@@ -218,9 +218,10 @@ def _root_gaps_name_what_a_root_lacks() -> None:
 
 
 def _resumable_roots_are_the_routes_own() -> None:
-    """A root reads as one `CREATE_ROOT` stopped partway through only where running the
-    route again finishes it: the reviewed client's format, the route's leading
-    repositories and no other, each at its owned URL with its stamp read."""
+    """A root reads as in the shape `CREATE_ROOT` leaves after its leading steps only
+    where running the route again completes it: the reviewed client's format, the
+    route's leading repositories and no other, each at its owned URL with its stamp
+    read."""
     (default, url), *others = opam_client.OPAM_REPOSITORIES
     leading = opam_client.OPAM_REPOSITORIES[:1]
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
@@ -252,13 +253,20 @@ def _resumable_roots_are_the_routes_own() -> None:
 def _newer_formats_are_ordered() -> None:
     """A stated format is newer than the reviewed client's only by its release numbers:
     an older format, the reviewed one and a prerelease of it are not, and none stated
-    is not a newer one."""
+    is not a newer one. Every other stated format is an older one."""
     reviewed = opam_client.OPAM_ROOT_FORMAT
     for fmt, newer in (("99.0", True), (f"{reviewed}.1", True), (reviewed, False),
                        (f"{reviewed}~alpha1", False), ("2.2", False), ("2.0", False),
                        ("", False)):
         ensure(opam_client.newer_than_reviewed(fmt) is newer,
                f"format {fmt!r} reads newer={opam_client.newer_than_reviewed(fmt)}")
+    # Every other stated format is older, a prerelease of the reviewed one among them,
+    # since opam orders a prerelease before its release.
+    for fmt, older in (("2.2", True), ("2.0", True), (f"{reviewed}~alpha1", True),
+                       (reviewed, False), (f"{reviewed}.1", False), ("99.0", False),
+                       ("", False)):
+        ensure(opam_client.older_than_reviewed(fmt) is older,
+               f"format {fmt!r} reads older={opam_client.older_than_reviewed(fmt)}")
     ensure(opam_client.format_key("2.10") > opam_client.format_key("2.9"),
            "formats are ordered by number, not by text")
 

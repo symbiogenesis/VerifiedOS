@@ -115,9 +115,8 @@ def _fresh(directory: Path) -> Path:
     artifacts the receipt hashes. dune install records its prefix in the executables
     it installs as libsail's site location, so a sibling prefix renamed into place
     would need `--relocatable` or a `--destdir` staging tree. Neither is worth it:
-    install proceeds only when the receipt is absent or from another recipe, which
-    status never reports as installed, so there is no usable installation to
-    preserve and the build happens in place.
+    install proceeds only when status does not report an installation, so there is
+    no usable installation to preserve and the build happens in place.
     """
     if directory.exists():
         shutil.rmtree(directory)
@@ -131,13 +130,18 @@ def status(e: env.Environment) -> dict[str, Any]:
                               "installed": False, "home": str(home(e))}
     if not receipt.exists():
         return result
-    raw = json.loads(receipt.read_text(encoding="utf-8"))
+    try:
+        raw = json.loads(receipt.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise ValueError(f"optional Sail LSP receipt is unreadable ({exc}); run sail-lsp install") from exc
     if raw.get("lock_sha256") != lock_identity(e.root):
         raise ValueError("optional Sail LSP installation is stale; run sail-lsp install")
     for relative, digest in raw["artifacts"].items():
         path = home(e) / relative
+        if not path.is_file():
+            raise ValueError(f"optional Sail LSP artifact missing: {relative}; run sail-lsp install")
         if not path.resolve().is_relative_to(home(e).resolve()) or sha256(path) != digest:
-            raise ValueError(f"optional Sail LSP artifact changed: {relative}")
+            raise ValueError(f"optional Sail LSP artifact changed: {relative}; run sail-lsp install")
     result.update(installed=True, lock_sha256=raw["lock_sha256"],
                   server_sha256=raw["artifacts"]["prefix/bin/sail_lsp"],
                   artifact_count=len(raw["artifacts"]), receipt=str(receipt),
@@ -152,10 +156,16 @@ def install(e: env.Environment) -> dict[str, Any]:
     with env.hold_lock(location / "install", "an optional Sail LSP install"):
         inventory = _base_inventory(e.root)
         receipt_file = location / "installation.json"
-        if receipt_file.exists():
-            previous = json.loads(receipt_file.read_text(encoding="utf-8"))
-            if previous.get("lock_sha256") == lock_identity(e.root):
-                return status(e)
+        # status stays fail-closed; install is the repair its refusals name, so an
+        # installation it refuses (stale recipe, unreadable receipt, missing or changed
+        # artifact) is rebuilt rather than refused again.
+        try:
+            current = status(e)
+        except (ValueError, OSError) as exc:
+            print(f"sail-lsp: rebuilding the refused installation: {exc}", file=sys.stderr)
+        else:
+            if current["installed"]:
+                return current
         specs = json.loads((e.root / LOCK).read_text(encoding="utf-8"))["sources"]
         sources = location / "sources"
         sources.mkdir(exist_ok=True)
