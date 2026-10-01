@@ -1825,6 +1825,43 @@ CASES: list[Case] = [
                              f"unreviewed-hooks, rev: {'d' * 40}, hooks: [{{id: unreviewed}}]}}\n"
                              f"{m[1]}  - *unreviewed\n"),
                   flags=re.MULTILINE | re.DOTALL)),
+    # A hook repository appended as a flow mapping whose keys follow its hook's quoted
+    # name continued onto a line opening with `#`: that line is the name's text and then
+    # the entry's keys rather than a comment, so pre-commit runs the entry, and only a
+    # census reading every line, a comment's included, sees it.
+    ("K-118", "a hook repository stated after a quoted scalar's line opening with #",
+     _first_match("model/.pre-commit-config.yaml", r"\Z",
+                  lambda _: '  - {hooks: [{id: unreviewed, name: "the unreviewed hook\n'
+                            '    # reviewed"}], repo: https://github.com/example/'
+                            f"unreviewed-hooks, rev: {'d' * 40}}}\n")),
+    # A hook repository appended as a flow mapping whose every key stands flush against
+    # its explicit-key `?`: PyYAML and libyaml read every `?` inside a flow collection as
+    # a key's indicator, so pre-commit runs the entry, and only a census counting a flow
+    # `?` whatever follows it, as K-115's does, sees it.
+    ("K-118", "a hook repository stated as a flow mapping of unspaced explicit keys",
+     _first_match("model/.pre-commit-config.yaml", r"\Z",
+                  lambda _: "  - {?repo: https://github.com/example/unreviewed-hooks, "
+                            f"?rev: {'d' * 40}, ?hooks: [{{?id: unreviewed}}]}}\n")),
+    # A hook repository appended as a flow mapping whose `repo` and `rev` keys each open
+    # their line flush against a byte-order mark: libyaml, whose loader pre-commit takes,
+    # skips a U+FEFF opening any line, so pre-commit runs the entry, and only a census
+    # reading a key after one as after a blank sees it.
+    ("K-118", "a hook repository whose keys follow a byte-order mark opening their lines",
+     _first_match("model/.pre-commit-config.yaml", r"\Z",
+                  lambda _: "  - {hooks: [{id: unreviewed}],\n"
+                            "\ufeffrepo: https://github.com/example/unreviewed-hooks,\n"
+                            f"\ufeffrev: {'d' * 40}}}\n")),
+    # The first entry's reviewed rev line moved inside a flow sequence, where it stands
+    # at the entry's key column and is no key of the entry, and a merge key supplying the
+    # rev YAML loads from a mapping anchored inside a `meta` entry put before it, whose
+    # lines no reading holds: pre-commit runs the moved rev, and only a census reporting
+    # every merge key sees the entry run a revision its row did not review.
+    ("K-118", "a hook repository's rev a merge key supplies from a meta entry's mapping",
+     _first_match("model/.pre-commit-config.yaml",
+                  r"^(repos:\n)(  - repo: \S+\n)([ \t]+)(rev: .*\n)",
+                  lambda m: (f"{m[1]}  - repo: meta\n{m[3]}x: &moved {{\n{m[3]}rev: {'d' * 40}\n"
+                             f"{m[3]}}}\n{m[3]}hooks: [{{id: check-useless-excludes}}]\n{m[2]}"
+                             f"{m[3]}<<: *moved\n{m[3]}x: [\n{m[3]}{m[4]}{m[3]}]\n"))),
     # The first entry stating a second rev, its commit's last digit changed, after a line
     # separator closing the entry's last line: YAML breaks the line there and keeps the
     # last rev, so only a reading splitting the file where YAML does sees two revs.
@@ -1856,6 +1893,13 @@ CASES: list[Case] = [
     ("K-118", "a hook dependency the pip constraints pin and no row reads",
      _first_match("tools/ci/model-hooks-constraints.txt", r"\Z",
                   lambda _: "unreviewed-dependency==1.0.0\n")),
+    # The first pin continued onto a line carrying a marker no platform meets: pip joins
+    # a line ending in `\` with the next, so the pin applies nowhere and pip installs
+    # whatever release the hook asks for, while the pin's own line still reads as the
+    # release its row states. Only a reading joining the lines as pip joins them sees it.
+    ("K-118", "a hook dependency pin a continued marker leaves applying nowhere",
+     _first_match("tools/ci/model-hooks-constraints.txt", r"^([A-Za-z0-9._-]+==[^\s\\]+)\n",
+                  lambda m: f"{m[1]} \\\n    ; sys_platform == \"never\"\n")),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row
