@@ -1452,6 +1452,16 @@ Theorem the_specification_executes_no_package_code :
   ExecutesNoPackageCode spec_compose.
 Proof. intros m s a r. reflexivity. Qed.
 
+(* The reading off the filter that six of the theorems below share, the
+   first within its first conjunct: simplify the emitted edges to the
+   specification's filter over machine `m` and roster `r`, weaken the
+   filter's admission to the property each reads, and introduce the edge
+   `e` and its admission `He` in the first goal that leaves, the second
+   being the filter's own admission. `m` and `r` are parameters because an
+   Ltac definition must bind every hypothesis name it reads. *)
+Local Ltac read_off_the_filter m r :=
+  simpl; apply (all_of_mono Edge (admissible_edge m r)); [ intros e He | .. ].
+
 (* O3 (R-12-024b). Finite and closed: every edge's two endpoints are nodes of
    the graph, and every node is a package the composed roster names. Stated
    over the emitted lists rather than over a membership relation, so no
@@ -1471,9 +1481,8 @@ Theorem the_specification_emits_a_finite_closed_graph :
     IsFiniteAndClosed r (spec_compose m a r).
 Proof.
   intros m a r. split.
-  - unfold endpoints_inside. simpl.
-    apply (all_of_mono Edge (admissible_edge m r)).
-    + intros e He. apply andb_join.
+  - unfold endpoints_inside. read_off_the_filter m r.
+    + apply andb_join.
       * exact (admissible_owner_on_roster m r e He).
       * exact (admissible_target_on_roster m r e He).
     + exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
@@ -1489,15 +1498,6 @@ Proof.
   intros m a r. simpl.
   exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
 Qed.
-
-(* The opening five theorems below share: simplify the emitted edges to the
-   specification's filter over machine `m` and roster `r`, weaken the
-   filter's admission to the property each reads, and introduce the edge
-   `e` and its admission `He` in the first goal that leaves, the second
-   being the filter's own admission. `m` and `r` are parameters because an
-   Ltac definition must bind every hypothesis name it reads. *)
-Local Ltac read_off_the_filter m r :=
-  simpl; apply (all_of_mono Edge (admissible_edge m r)); [ intros e He | .. ].
 
 (* O9a (R-12-013a), O10 (R-12-024e), O16 (R-12-024f, R-05-042) and O18
    (R-12-005) read off the same emitted list, each as the conjunct its entry
