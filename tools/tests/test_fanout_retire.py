@@ -1130,7 +1130,8 @@ def _c_unread_locks(text: str) -> int:
 def _campaign_lock(text: str) -> str | None:
     """The target, as source, of the `hold_lock` that a module's `run` holds across its
     whole body, or `None` unless every statement after its docstring sits inside one
-    `with ... hold_lock(<target>, ...)`."""
+    `with` whose first item is `hold_lock(<target>, ...)`: a `with` enters its items
+    left to right, so an item before the lock runs unheld."""
     tree = ast.parse(text)
     run = next((node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "run"), None)
     if run is None:
@@ -1142,11 +1143,10 @@ def _campaign_lock(text: str) -> str | None:
     block = body[0] if len(body) == 1 else None
     if not isinstance(block, ast.With):
         return None
-    for item in block.items:
-        held = item.context_expr
-        if (isinstance(held, ast.Call) and isinstance(held.func, ast.Attribute)
-                and held.func.attr == "hold_lock" and held.args):
-            return ast.unparse(held.args[0])
+    held = block.items[0].context_expr
+    if (isinstance(held, ast.Call) and isinstance(held.func, ast.Attribute)
+            and held.func.attr == "hold_lock" and held.args):
+        return ast.unparse(held.args[0])
     return None
 
 
@@ -1223,9 +1223,13 @@ def _producer_lock_scanners_fail_closed() -> None:
                           '    with env.hold_lock(output.parent / "persistence", "x"):\n'
                           '        launch(output)\n') == "output.parent / 'persistence'",
            "a run whose whole body sits inside its lock names the lock's target")
+    ensure(_campaign_lock('def run(root, output):\n    with env.hold_lock(output, "x"), open(output) as stream:\n'
+                          '        launch(stream)\n') == "output",
+           "an item after the lock enters with it held")
     for text in ('def run(root, output):\n    launch(output)\n'
                  '    with env.hold_lock(output, "x"):\n        launch(output)\n',
                  'def run(root, output):\n    with open(output) as stream:\n        launch(stream)\n',
+                 'def run(root, output):\n    with launch(output), env.hold_lock(output, "x"):\n        launch(output)\n',
                  'def other(root, output):\n    with env.hold_lock(output, "x"):\n        launch(output)\n'):
         ensure(_campaign_lock(text) is None, f"a run not wholly inside a lock holds none: {text!r}")
 
