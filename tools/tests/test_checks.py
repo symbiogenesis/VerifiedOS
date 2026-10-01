@@ -545,8 +545,11 @@ def _k119(name: str = _K119_NAME, computed: str = _K119_COMPUTED,
 
 def _k119_each_rule_in_one_class_passes() -> None:
     # an italic word between the lead and the bold name is crossed rather than read as
-    # the end of the lead's reach
-    for name in (_K119_NAME, _K119_NAME.replace("by **name**", "by *exact* **name**")):
+    # the end of the lead's reach, and a `which is what` naming no rule is prose rather
+    # than a membership sentence
+    for name in (_K119_NAME, _K119_NAME.replace("by **name**", "by *exact* **name**"),
+                 _K119_NAME.replace("it resolves,", "it resolves, which is what separates "
+                                                    "it from a pattern,")):
         found, out = _k119(name=name)
         ensure(not found, f"every active rule named once is clean: {found!r}")
         ensure("ok K-119: each of the registry's 7 rules is named under exactly one of the "
@@ -693,6 +696,48 @@ def _k119_every_class_lead_is_read() -> None:
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
         ensure(not any(line.startswith("ok K-119:") for line in out),
                "fail-closed: no ok line stands beside an unread lead")
+
+
+_K119_MEMBERS_FINDING = ("states a membership sentence in a form this rule does not read: "
+                         "'which is what' or 'that is what', either capitalized, "
+                         "single-spaced on one line apart from any underscore, a plain list "
+                         "of ids, then 'are'")
+
+
+def _k119_every_membership_sentence_is_read() -> None:
+    # A membership sentence in a form the reading does not take would leave the rules it
+    # names unread while its class reads as complete, so each is reported wherever it
+    # stands: inside a class's region, past the last class, or ahead of the first.
+    for kwargs in (
+            {"computed": _K119_COMPUTED + " The rest, _which is what K-05 are_, recompute."},
+            {"computed": _K119_COMPUTED + " The rest, which is\nwhat K-05 are, recompute."},
+            {"computed": _K119_COMPUTED + " The rest, which is what K-05\nare, recompute."},
+            {"computed": _K119_COMPUTED + " The rest, which is  what K-05 are, recompute."},
+            {"computed": _K119_COMPUTED + " The rest, which\u00a0is what K-05 are, recompute."},
+            {"computed": _K119_COMPUTED + " The rest, which is what `K-05` are, recompute."},
+            {"total": _K119_TOTAL + " The rest, which is what *K-07* are, narrow nothing."},
+            {"total": _K119_TOTAL + " The rest, which is what **K-07** are, narrow nothing."},
+            {"total": _K119_TOTAL + " The rest, which is what [K-07](#k-07) are, narrow "
+                                    "nothing."},
+            {"total": _K119_TOTAL + " WHICH IS WHAT K-07 ARE."},
+            {"heading": meta.REACH_HEADING
+             + "\n\nThe marker rules come first, _that is what K-05 are_."}):
+        found, out = _k119(**kwargs)
+        ensure(any(_K119_MEMBERS_FINDING in item for item in found),
+               f"a membership sentence no class reads must be reported: {found!r}")
+        ensure(not any("named under no reach class" in item for item in found),
+               f"an unread sentence is one finding, not one per rule beside it: {found!r}")
+        ensure(not any(line.startswith("ok K-119:") for line in out),
+               "fail-closed: no ok line stands beside an unread membership sentence")
+    # a sentence nested in a list the reading took is a word of that list, reported by the
+    # grammar rather than a second time as a form not read
+    found, _ = _k119(computed=_K119_COMPUTED.replace("K-05 are", "K-05, that is what K-05 are"))
+    ensure(any(item.endswith(": the 'computed value' class lists 'K-05, that is what K-05', "
+                             "which is not a list of rule ids and ranges this rule reads")
+               for item in found),
+           f"the list the reading took must be decided by its grammar: {found!r}")
+    ensure(not any(_K119_MEMBERS_FINDING in item for item in found),
+           f"a sentence inside a list already read is not reported as unread: {found!r}")
 
 
 def _k97_reviewed_pin_is_required_without_prose_copies() -> None:
@@ -1874,6 +1919,8 @@ def cases() -> list[Case]:
         Case("k119-unreadable-class-sentences-fail-closed",
              _k119_unreadable_class_sentences_fail_closed),
         Case("k119-every-class-lead-is-read", _k119_every_class_lead_is_read),
+        Case("k119-every-membership-sentence-is-read",
+             _k119_every_membership_sentence_is_read),
         Case("k97-reviewed-pin-is-required-without-prose-copies",
              _k97_reviewed_pin_is_required_without_prose_copies),
         Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),

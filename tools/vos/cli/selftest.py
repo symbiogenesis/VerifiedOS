@@ -1919,6 +1919,22 @@ CASES: list[Case] = [
      _literal(RULES, "Where the set is **total**,",
               "Where the set is made of rules which is what K-26 are, and **total**,")),
 
+    # A membership sentence set in underscore italics ahead of the first class. A reading
+    # that takes the strict form alone passes it over, the underscore standing where its
+    # word boundary should, so the section reads as agreeing with the registry while it
+    # names a list no class reads.
+    ("K-119", "a membership sentence in underscore italics ahead of the first class",
+     _literal(RULES, "and there are four answers.",
+              "and there are four answers, _which is what K-26 are_.")),
+
+    # The same inside the pattern class's region, its list in a code span. The class
+    # still reads its own sentence, so a reading that takes the strict form alone finds
+    # exactly one there and passes this second list over.
+    ("K-119", "a membership sentence listing its rule in a code span",
+     _literal(RULES, "Where the set is **total**,",
+              "The marker rules, which is what `K-26` are, come next. "
+              "Where the set is **total**,")),
+
     # Seeded on the plan's side, which is the direction the defect arrives from: a
     # completion note is edited far more often than the index over it. The word alone
     # moves and its bullets stay, which is exactly what a finding added to a note
