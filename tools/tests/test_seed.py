@@ -142,21 +142,23 @@ def _verdict(quickchick: bool, answers: dict[str, subprocess.CompletedProcess[st
     return got, compiled
 
 
-def _sharded(answers: dict[str, subprocess.CompletedProcess[str]]
+def _sharded(answers: dict[str, subprocess.CompletedProcess[str]], quickchick: bool = True
              ) -> tuple[list[Verdict], list[str]]:
-    """One mutant of proofs/A.v put to `_coq_shard` under QuickChick over the staged rig,
-    the prover answering from `answers`: its verdicts and its journal's lines."""
+    """One mutant of proofs/A.v put to `_coq_shard` over the staged rig, under QuickChick
+    or the enumerative harness, the prover answering from `answers`: its verdicts and its
+    journal's lines."""
     mutant = mutate.Mutant(ident="const-inc/0", operator="const-inc", path="proofs/A.v",
                            line=1, start=22, end=23, before="1", after="2")
     with (tempfile.TemporaryDirectory(prefix="vos-rig-") as td,
           tempfile.TemporaryDirectory(prefix="vos-work-") as wd):
         work = gallina.stage(_checkout(_RIG, Path(td)), Path(wd) / "tree")
-        book = Journal(Path(wd) / "quickchick.journal")
-        book.start("proofs/A.v", "prover-then-QuickChick", Scope(whole=1, ran=1))
+        book = Journal(Path(wd) / "seed.journal")
+        book.start("proofs/A.v", "seed", Scope(whole=1, ran=1))
         with patch.object(gallina, "compile_one", side_effect=_answered(answers, [])):
             got = seed._coq_shard(gallina.Prover("s", ("rocq", "c")), work, "proofs/A.v",
-                                  gallina.RANDOMIZED, [mutant], _RIG["proofs/A.v"], [],
-                                  True, book)
+                                  gallina.RANDOMIZED if quickchick else gallina.ENUMERATIVE,
+                                  [mutant], _RIG["proofs/A.v"], [] if quickchick else ["v 1"],
+                                  quickchick, book)
         lines = book.path.read_text(encoding="utf-8").splitlines()
     return got, lines
 
@@ -363,6 +365,53 @@ def _a_drawn_set_is_scored_by_how_its_program_ended() -> None:
                                       "decided about it")
            and "-- tree: mutant const-inc/0 is verdict 1" in lines,
            f"an undecided mutant is journalled with its reason: {lines}")
+
+
+def _a_compile_a_signal_ends_leaves_the_mutant_undecided() -> None:
+    """A compile a signal ends, a kill of the prover for want of memory among them,
+    leaves the mutant undecided, journalled with the file and the signal, whether it is
+    a proof's, a support harness's or a harness's, in either mode, never killed or
+    stillborn; a positive nonzero exit is still a refusal or a harness that did not
+    build; and a baseline compile a signal ends leaves the run with no baseline."""
+    signalled = _done(-9)
+    for randomized, name, source in (
+            (True, "A.v", "proofs/A.v"),
+            (True, "IPCProperties.v", "harness/IPCProperties.v"),
+            (True, gallina.EXHAUSTIVE, f"harness/{gallina.EXHAUSTIVE}"),
+            (False, "A.v", "proofs/A.v"),
+            (False, gallina.ENUMERATIVE, f"harness/{gallina.ENUMERATIVE}")):
+        verdicts, lines = _sharded({name: signalled}, randomized)
+        journalled = [line for line in lines if line[:5].strip() == "1"]
+        ensure([v.outcome for v in verdicts] == [UNDECIDED]
+               and verdicts[0].detail.startswith(f"the compile of {source} was ended by "
+                                                 "signal 9")
+               and verdicts[0].detail.endswith(", so nothing was decided about it")
+               and len(journalled) == 1 and journalled[0].split(None, 2)[1] == UNDECIDED,
+               f"randomized={randomized}: a compile of {source} a signal ended leaves the "
+               f"mutant undecided, journalled: {verdicts} {lines}")
+    drawn, _ = _sharded({gallina.RANDOMIZED: subprocess.CompletedProcess([], -9, "", "")})
+    ensure([v.outcome for v in drawn] == [UNDECIDED]
+           and drawn[0].detail.startswith("the drawn harness gave no answer over the mutant: "
+                                          "the prover compiling it was ended by signal 9"),
+           f"a drawn harness compile a signal ended leaves the mutant undecided: {drawn}")
+    for randomized, name, outcome, said in (
+            (True, "A.v", KILLED, "the prover refused A.v"),
+            (True, "IPCProperties.v", STILLBORN, "the harness would not build"),
+            (False, gallina.ENUMERATIVE, STILLBORN, "the harness did not run")):
+        verdicts, _ = _sharded({name: _done(1)}, randomized)
+        ensure([(v.outcome, v.detail.startswith(said)) for v in verdicts] == [(outcome, True)],
+               f"randomized={randomized}: a positive exit of {name} is still {outcome}: "
+               f"{verdicts}")
+    with (tempfile.TemporaryDirectory(prefix="vos-rig-") as td,
+          tempfile.TemporaryDirectory(prefix="vos-work-") as wd,
+          patch.object(gallina, "compile_one", side_effect=_answered({"A.v": signalled}, []))):
+        book = Journal(Path(wd) / "seed.journal")
+        book.start("proofs/A.v", "seed", Scope(whole=1, ran=1))
+        got, why = seed._stand_up(_checkout(_RIG, Path(td)), gallina.Prover("s", ("rocq", "c")),
+                                  [Path(wd) / "tree"], gallina.RANDOMIZED, True, book)
+    ensure(got is None and why.startswith("the compile of proofs/A.v was ended by signal 9")
+           and why.endswith(", so the unmutated tree has no baseline"),
+           f"a baseline compile a signal ended leaves no baseline: {why}")
 
 
 def _the_randomized_baseline_refuses_what_does_not_replay_or_hold() -> None:
@@ -720,6 +769,8 @@ def cases() -> list[Case]:
              _a_drawn_harness_that_does_not_build_is_stillborn),
         Case("a drawn set is scored by how its program ended",
              _a_drawn_set_is_scored_by_how_its_program_ended),
+        Case("a compile a signal ends leaves the mutant undecided",
+             _a_compile_a_signal_ends_leaves_the_mutant_undecided),
         Case("the randomized baseline refuses what does not replay or hold",
              _the_randomized_baseline_refuses_what_does_not_replay_or_hold),
         Case("a compile past the limit is undecided and the run goes on",

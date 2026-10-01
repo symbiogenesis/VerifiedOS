@@ -48,16 +48,16 @@ expected to produce the other's.
 ## The fifth, which is about the run
 
 **Undecided** is a mutant whose oracle was asked and gave no answer: a compile did not
-end inside the time the run gives one, so the run stopped it, or the oracle ended on
-something that decides nothing about the mutant, and the run went on to the next. It is
-a fact about neither the subject nor the case but about the run and the machine under
-it, and it is a finding, because a population with an unanswered member was not
-decided: a run reporting `ok` over it would quote a verdict nobody reached. It is never
-a kill, a stop being no answer, never a survivor, nothing having been seen to hold, and
-never stillborn, no compile having been seen to fail. The Gallina lane yields it, where
-a compile reaches gallina's per-file limit, and under QuickChick where a drawn set's
-program built and then ended on memory or stack running out, a signal, a program that
-could not run, or a status nobody can classify.
+end inside the time the run gives one, so the run stopped it, a signal ended one, or the
+oracle ended on something that decides nothing about the mutant, and the run went on to
+the next. It is a fact about neither the subject nor the case but about the run and the
+machine under it, and it is a finding, because a population with an unanswered member
+was not decided: a run reporting `ok` over it would quote a verdict nobody reached. It
+is never a kill, a stop being no answer, never a survivor, nothing having been seen to
+hold, and never stillborn, no compile having been seen to fail. The Gallina lane yields
+it, where a compile reaches gallina's per-file limit or a signal ends the prover, and
+under QuickChick where a drawn set's program built and then ended on memory or stack
+running out, a signal, a program that could not run, or a status nobody can classify.
 
 ## The report, and the second copy that survives the process
 

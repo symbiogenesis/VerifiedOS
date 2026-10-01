@@ -34,7 +34,9 @@ population order, and closing on the line that carries the run's scope. The Gall
 lane also journals the seed a randomized baseline draws from, which mutant each staged
 tree is on and each compile's file and wall seconds, and a compile that reaches
 gallina's per-file limit is stopped, its mutant journalled undecided with the file and
-the limit, and the run goes on to the next. Under `--quickchick` a drawn set whose
+the limit, and the run goes on to the next; a compile a signal ends, a kill for want of
+memory among them, leaves its mutant undecided the same way, with the file and the
+signal, and never killed or stillborn. Under `--quickchick` a drawn set whose
 program built and then ended on what decides nothing about the mutant, memory or stack
 running out, a signal, a program that could not run or a status the reader cannot
 classify, leaves the mutant undecided the same way, journalled with why, and one whose
@@ -401,8 +403,12 @@ def _accounted(book: Journal, tree: str) -> Callable[[gallina.Compiled], None]:
     return note
 
 
-def _stopped(stopped: gallina.CompileTimeout) -> str:
-    """A compile stopped at its limit, as the reason a verdict or a baseline names."""
+def _stopped(stopped: gallina.CompileTimeout | gallina.CompileSignalled) -> str:
+    """A compile stopped at its limit, or ended by a signal, as the reason a verdict or a
+    baseline names."""
+    if isinstance(stopped, gallina.CompileSignalled):
+        return (f"the compile of {stopped.source} was ended by "
+                f"{gallina.signal_named(stopped.signal)}")
     return (f"the compile of {stopped.source} reached gallina's per-file limit of "
             f"{stopped.timeout:g} s and was stopped")
 
@@ -424,9 +430,10 @@ def _coq_shard(found: gallina.Prover, work: Path, rel: str, harness_name: str,
 
     A compile that reaches gallina's per-file limit is stopped and decides nothing: its
     mutant is undecided, naming the file and the limit, and the shard goes on to the
-    next. What the stopped compile leaves in the tree is recompiled before it is read,
-    every mutant here mutating the one source and recompiling it and everything the run
-    reads that Requires it, the harnesses among them.
+    next. So is one a signal ends, a kill for want of memory among them, naming the file
+    and the signal. What the stopped compile leaves in the tree is recompiled before it
+    is read, every mutant here mutating the one source and recompiling it and everything
+    the run reads that Requires it, the harnesses among them.
     """
     staged = work / rel
     harness = work / "harness" / harness_name
@@ -440,7 +447,7 @@ def _coq_shard(found: gallina.Prover, work: Path, rel: str, harness_name: str,
                 try:
                     verdict = _coq_verdict(found, work, rel, harness, mutant, baseline,
                                            quickchick)
-                except gallina.CompileTimeout as stopped:
+                except (gallina.CompileTimeout, gallina.CompileSignalled) as stopped:
                     verdict = Verdict(mutant, UNDECIDED,
                                       f"{_stopped(stopped)}, so nothing was decided "
                                       "about it")
@@ -543,7 +550,8 @@ def _stand_up(root: Path, found: gallina.Prover, trees: list[Path], harness_name
     other way of seeing, and it is cheap to refuse here.
 
     Each tree's compiles are journalled as a shard's are, and one that reaches
-    gallina's per-file limit leaves that tree, and so the run, with no baseline.
+    gallina's per-file limit, or that a signal ends, leaves that tree, and so the run,
+    with no baseline.
     """
     def one(work: Path) -> tuple[list[str] | None, str]:
         # The emitter's own account of a failure is carried out rather than dropped
@@ -558,7 +566,7 @@ def _stand_up(root: Path, found: gallina.Prover, trees: list[Path], harness_name
                     return _quickchick_baseline(root, found, work, harness_name, book)
                 said: list[str] = []
                 return gallina.emit(root, work, said), "\n".join(said)
-            except gallina.CompileTimeout as stopped:
+            except (gallina.CompileTimeout, gallina.CompileSignalled) as stopped:
                 return None, f"{_stopped(stopped)}, so the unmutated tree has no baseline"
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(trees)) as pool:

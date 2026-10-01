@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Callable
 from contextlib import redirect_stdout, suppress
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -791,6 +792,66 @@ def _a_drawn_sets_program_is_read_by_how_it_ended() -> None:
            f"a refutation ahead of the program decides first: {read['refuted then crashed']}")
 
 
+def _a_compile_a_signal_ended_is_no_refusal() -> None:
+    """A prover run a signal ended, which POSIX reports as a negative return code, is
+    raised as `CompileSignalled` naming the source and the signal, by the waves and by a
+    harness read for its vectors, never read as a source the prover refused or a harness
+    that did not build; a positive nonzero exit is still a failure. The drawn harness's
+    reader reads a prover a signal ended as unanswered, a refutation printed ahead of it
+    still deciding first."""
+    files = {"proofs/A.v": _A, "proofs/B.v": _B,
+             f"tools/quickchick/{gallina.ENUMERATIVE}": "Require Import B.\n"}
+    codes: dict[str, int] = {}
+
+    def compile_one(found: gallina.Prover, work: Path, source: Path,
+                    timeout: int = 900) -> subprocess.CompletedProcess[str]:
+        del found, work, timeout
+        code = codes.get(source.name, 0)
+        return subprocess.CompletedProcess([], code, '= ["v 1"] : list string\n',
+                                           "Error: refused" if code else "")
+
+    def signalled(read: Callable[[], object]) -> gallina.CompileSignalled | None:
+        try:
+            read()
+        except gallina.CompileSignalled as raised:
+            return raised
+        return None
+
+    found = gallina.Prover("s", ("rocq", "c"))
+    with (_tree(files) as td, tempfile.TemporaryDirectory(prefix="vos-work-") as wd,
+          patch.object(gallina, "compile_one", side_effect=compile_one)):
+        work = gallina.stage(Path(td), Path(wd) / "tree")
+        harness = work / "harness" / gallina.ENUMERATIVE
+        codes.update({"A.v": -9})
+        proof = signalled(lambda: gallina.compile_proofs(found, work))
+        codes.clear()
+        codes.update({gallina.ENUMERATIVE: -9})
+        vector = signalled(lambda: gallina.vectors(found, work, harness))
+        codes.clear()
+        codes.update({"A.v": 1, gallina.ENUMERATIVE: 1})
+        refused = gallina.compile_proofs(found, work)
+        unbuilt = gallina.vectors(found, work, harness)
+    ensure(proof is not None and proof.source == "proofs/A.v" and proof.signal == 9
+           and str(proof).startswith("the compile of proofs/A.v was ended by signal 9"),
+           f"a proof compile a signal ended is raised by source and signal: {proof!r}")
+    ensure(vector is not None and vector.source == f"harness/{gallina.ENUMERATIVE}"
+           and vector.signal == 9,
+           f"a harness compile a signal ended is raised by source and signal: {vector!r}")
+    ensure([(f.source, f.said) for f in refused] == [("A.v", "Error: refused")]
+           and unbuilt == ([], "Error: refused"),
+           f"a positive nonzero exit is still a failure: {refused} {unbuilt}")
+    killed = gallina.drawn_sets(subprocess.CompletedProcess([], -9, "+++ Passed 10000 tests\n",
+                                                            ""))
+    ensure(killed.ended == gallina.DRAWN_UNANSWERED and (killed.passed, killed.failed) == (0, 0)
+           and killed.why.startswith("the prover compiling it was ended by signal 9")
+           and killed.why.endswith("which decides nothing about the subject"),
+           f"a drawn harness whose prover a signal ended is unanswered: {killed}")
+    refuted = gallina.drawn_sets(subprocess.CompletedProcess([], -9, "*** Failed after 3 tests\n",
+                                                             ""))
+    ensure(refuted == gallina.Drawn(0, 1, "*** Failed after 3 tests", gallina.DRAWN_DECIDED),
+           f"a refutation ahead of the signal decides first: {refuted}")
+
+
 def _quickchick_rejects_other_versions() -> None:
     """QuickChick's own switch is the one asked, and a version it does not pin is refused
     there before anything is staged, the refusal naming both versions."""
@@ -1037,6 +1098,7 @@ def cases() -> list[Case]:
              _a_drawn_harness_that_does_not_build_decides_nothing),
         Case("a drawn set's program is read by how it ended",
              _a_drawn_sets_program_is_read_by_how_it_ended),
+        Case("a compile a signal ended is no refusal", _a_compile_a_signal_ended_is_no_refusal),
         Case("QuickChick rejects other versions", _quickchick_rejects_other_versions),
         Case("the recipe pins whole commits and is asked by name",
              _the_recipe_pins_whole_commits_and_is_asked_by_name),

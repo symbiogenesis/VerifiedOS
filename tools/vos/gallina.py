@@ -208,6 +208,36 @@ class CompileTimeout(subprocess.TimeoutExpired):
         self.source = source
 
 
+def signal_named(number: int) -> str:
+    """A signal as a reason names it: its number, and its name where this platform's
+    `signal` module knows one."""
+    try:
+        return f"signal {number} ({signal.Signals(number).name})"
+    except ValueError:
+        return f"signal {number}"
+
+
+class CompileSignalled(subprocess.SubprocessError):
+    """A prover run a signal ended rather than an exit, a kill for want of memory among
+    them: the source as staged and the signal's number, `signal`. Raised where a compile
+    is read for an answer, by `_compile_waves` and `vectors`, so a run nothing decided is
+    never read as a source the prover refused or a harness that did not build."""
+
+    def __init__(self, source: str, number: int) -> None:
+        super().__init__(f"the compile of {source} was ended by {signal_named(number)}")
+        self.source = source
+        self.signal = number
+
+
+def _exited(work: Path, source: Path,
+            done: subprocess.CompletedProcess[str]) -> subprocess.CompletedProcess[str]:
+    """A prover run handed back where it ended on an exit, and `CompileSignalled` raised
+    where a signal ended it, which POSIX reports as a negative return code."""
+    if done.returncode < 0:
+        raise CompileSignalled(source.relative_to(work).as_posix(), -done.returncode)
+    return done
+
+
 @dataclass(frozen=True)
 class Walk:
     """One property set the exhaustive harness decided over its whole domain: how many
@@ -260,8 +290,8 @@ _LOCATED = re.compile(r'^File "[^"]*", line (?P<line>\d+)', re.MULTILINE)
 # never does over the unmutated tree, whose baseline finished every set. Unanswered: a
 # set's program ended on what decides nothing about the subject: memory or stack running
 # out, a signal, a program or `time` that could not run, or a status this reader cannot
-# classify. Nothing: the harness did not build, its Rocq or its extracted OCaml, or it
-# printed no verdict.
+# classify; or a signal ended the prover. Nothing: the harness did not build, its Rocq or
+# its extracted OCaml, or it printed no verdict.
 DRAWN_DECIDED = "decided"
 DRAWN_CRASHED = "crashed"
 DRAWN_UNANSWERED = "unanswered"
@@ -442,12 +472,14 @@ def _compile_waves(found: Prover, work: Path,
 
     Failures accumulate rather than stopping the run, because a mutation inside a
     definition several proofs read is refused by each of them and the reader wants to
-    know which.
+    know which. A failure is a nonzero exit; a run a signal ended raises
+    `CompileSignalled` instead and stops the waves, as a run stopped at its limit does,
+    since a prover killed for want of memory has said nothing about the source.
     """
     out: list[Failure] = []
     for wave in ordered:
         for source in wave:
-            done = compile_one(found, work, source)
+            done = _exited(work, source, compile_one(found, work, source))
             if done.returncode != 0:
                 out.append(Failure(source=source.name,
                                    said=(done.stderr or done.stdout).strip()))
@@ -587,8 +619,9 @@ def vectors(found: Prover, work: Path, harness: Path) -> tuple[list[str], str]:
     the artifact: every quoted segment is one vector, in the order the list holds them.
     A harness that printed nothing is an error rather than an empty run, an empty
     comparison being the failure mode every rule in this repository is written against.
+    A compile a signal ended raises `CompileSignalled`, as `_compile_waves` does.
     """
-    done = compile_one(found, work, harness)
+    done = _exited(work, harness, compile_one(found, work, harness))
     if done.returncode != 0:
         return [], (done.stderr or done.stdout).strip()
     lines = _quoted(done.stdout)
@@ -623,16 +656,21 @@ def drawn_sets(done: subprocess.CompletedProcess[str]) -> Drawn:
     or Stack_overflow. Memory or stack running out, a signal, read as `Killed (N)`,
     `Stopped (N)`, N of 128 and over or GNU time's `Command terminated by signal`, a
     program or `time` that could not run, N of 126 or 127, and any status this reader
-    cannot classify each decide nothing about the subject, and read as unanswered. A
-    harness that did not build, its Rocq or, reported as `Could not compile test
-    program`, its extracted OCaml, decided nothing: a mutant no draw ran against and a
-    baseline that is none, as the walk harness's is.
+    cannot classify each decide nothing about the subject, and read as unanswered, as
+    does a prover run a signal ended, which `_compile_waves` and `vectors` raise as
+    `CompileSignalled`. A harness that did not build, its Rocq or, reported as `Could
+    not compile test program`, its extracted OCaml, decided nothing: a mutant no draw ran
+    against and a baseline that is none, as the walk harness's is.
     """
     said = done.stdout + done.stderr
     passed = said.count("+++ Passed")
     failed = said.count("*** Failed")
     if failed:
         return Drawn(passed, failed, _first(said, ""), DRAWN_DECIDED)
+    if done.returncode < 0:
+        return Drawn(0, 0, f"the prover compiling it was ended by "
+                           f"{signal_named(-done.returncode)}, which decides nothing about "
+                           "the subject", DRAWN_UNANSWERED)
     if done.returncode != 0:
         unfinished = _UNFINISHED.search(said)
         if unfinished:
