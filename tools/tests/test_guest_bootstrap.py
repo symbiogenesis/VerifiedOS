@@ -91,12 +91,49 @@ def _failed_child_remains_failure() -> None:
             raise AssertionError("failed prerequisite was accepted")
 
 
+def _opam_reads_decline() -> None:
+    """The switch listing and a step marked declining read the private root with no
+    standard input and no answer from this process's environment, keeping the root and
+    the rest of the environment; any other step inherits both, its OPAMYES among them."""
+    answers = {"OPAMYES": "1", "OPAMCONFIRMLEVEL": "unsafe-yes", "OPAMROOT": "/private/opam"}
+
+    def declined(call: object) -> bool:
+        kwargs = getattr(call, "kwargs", {})
+        passed = kwargs.get("env") or {}
+        return (kwargs.get("stdin") is subprocess.DEVNULL
+                and not {key.upper() for key in passed} & set(bootstrap.env.OPAM_ANSWERS)
+                and passed.get("OPAMROOT") == "/private/opam")
+
+    listing = subprocess.CompletedProcess([], 0, stdout="")
+    with (patch.dict(os.environ, answers),
+          patch.object(bootstrap.subprocess, "run", return_value=listing) as query,
+          patch.object(bootstrap, "run")):
+        bootstrap.install_switch((("opam", "switch", "create", "private", "-y"),),
+                                 io.StringIO())
+    ensure(query.call_args.args[0] == ("opam", "switch", "list", "--short")
+           and declined(query.call_args),
+           f"the switch listing declines the client's questions: {query.call_args}")
+    finished = subprocess.CompletedProcess([], 0)
+    for declining in (True, False):
+        with (patch.dict(os.environ, answers),
+              patch.object(bootstrap.subprocess, "run", return_value=finished) as step,
+              redirect_stdout(io.StringIO())):
+            bootstrap.run(("opam", "exec", "--", "sail", "--version"), io.StringIO(),
+                          declining=declining)
+        kwargs = step.call_args.kwargs
+        ensure(declined(step.call_args) if declining
+               else kwargs.get("stdin") is None and kwargs.get("env") is None,
+               f"a step marked declining={declining} runs with {kwargs}")
+
+
 def _solver_available_before_sail() -> None:
     root = Path.home() / "guest-bootstrap-toolchain-fixture"
     solver_bin = str(root / "z3" / "bin")
     observed: list[str] = []
 
-    def run(argv: tuple[str, ...], log: IO[str]) -> None:
+    def run(argv: tuple[str, ...], log: IO[str], *, declining: bool = False) -> None:
+        ensure(declining is ("sail" in argv),
+               f"only the Sail probe, a read of the root, declines: {argv} {declining}")
         if argv[0] == "uv":
             ensure(argv == bootstrap.env.z3_install(root / "z3", sys.executable)[0]
                    and "--require-hashes" in argv and "--no-build" in argv,
@@ -137,7 +174,8 @@ def _selected_toolchains_only() -> None:
     for selected, wanted in expected.items():
         observed: list[str] = []
 
-        def run(argv: tuple[str, ...], log: IO[str], observed: list[str] = observed) -> None:
+        def run(argv: tuple[str, ...], log: IO[str], observed: list[str] = observed, *,
+                declining: bool = False) -> None:
             if argv[0] == "uv":
                 observed.append("solver-install")
             elif argv[0] == str(root / "z3" / "bin" / "z3"):
@@ -164,7 +202,7 @@ def _selected_toolchains_only() -> None:
 def _sail_probe_failure_stops_remaining_builds() -> None:
     root = Path.home() / "guest-bootstrap-toolchain-fixture"
 
-    def run(argv: tuple[str, ...], log: IO[str]) -> None:
+    def run(argv: tuple[str, ...], log: IO[str], *, declining: bool = False) -> None:
         if "sail" in argv:
             raise subprocess.CalledProcessError(2, argv)
 
@@ -623,6 +661,7 @@ def cases() -> list[Case]:
         Case("batched package query preserves missing and fatal outcomes", _package_query_is_batched),
         Case("unattended non-root package installation", _nonroot_system_install),
         Case("retry imports existing switch", _existing_switch_resumes_import),
+        Case("opam reads of the private root decline its questions", _opam_reads_decline),
         Case("failed process remains failure", _failed_child_remains_failure),
         Case("private solver precedes Sail startup", _solver_available_before_sail),
         Case("selected toolchains alone are installed", _selected_toolchains_only),
