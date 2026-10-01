@@ -450,8 +450,24 @@ def _reader_reproduces_and_compares() -> None:
         (artifacts / f"instrument-join-{tip}" / route.REPORT).write_text(
             json.dumps(tampered), encoding="utf-8")
         lines, held, _ = _read(root, run, jobs, artifacts, parent=tip)
-        ensure(not held and any("re-joining the artifacts gives" in line for line in lines),
-               f"a report the artifacts do not give is refused: {lines!r}")
+        ensure(not held and any("re-joining the artifacts gives" in line
+                                and line.endswith("they differ in verdict") for line in lines),
+               f"a report the artifacts do not give is refused, naming what differs: {lines!r}")
+        # A report whose step rows an earlier revision of the route gave, the sampler's
+        # peak alone, agrees on every verdict and is refused naming each row that differs.
+        earlier = route.as_object(json.loads(json.dumps(report)))
+        built = route.as_object(route.as_object(route.as_object(earlier["jobs"])["build"])["steps"])
+        for row in built.values():
+            for name in ("peak_from", "maxrss_kb", "sampled_rss_kb", "sampled_tree_rss_kb"):
+                route.as_object(row).pop(name)
+        (artifacts / f"instrument-join-{tip}" / route.REPORT).write_text(
+            json.dumps(earlier), encoding="utf-8")
+        lines, held, _ = _read(root, run, jobs, artifacts, parent=tip)
+        rows = ", ".join(f"job build's {step} step" for step in sorted(route.JOB_STEPS["build"]))
+        ensure(not held and "== verdict: passed" in lines
+               and f"FAIL re-joining the artifacts gives 'passed', the run's report 'passed', "
+                   f"and they differ in {rows}" in lines,
+               f"a report whose step rows alone differ names each of them: {lines!r}")
         # A member outside the allowlist refuses its artifact, and the earlier reading's
         # extraction of it does not stand in for it.
         (artifacts / f"instrument-join-{tip}" / route.REPORT).write_text(
