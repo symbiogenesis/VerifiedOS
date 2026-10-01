@@ -154,11 +154,6 @@ QUOTED = '"'
 # test can lower it for the run it makes.
 COMPILE_TIMEOUT = 900
 
-# How many draws QuickChick spends on one property set, its `stdArgs`' `maxSuccess`. A
-# set whose domain holds no more points than this is walked whole by the exhaustive
-# harness rather than drawn, a draw of that many covering no such domain.
-DRAWS = 10_000
-
 # The one sentence that fixes QuickChick's random state in the randomized harness.
 # QuickChick extracts `newRandomSeed` as `Random.State.make_self_init ()`, read from
 # system-dependent data, so a verdict it reaches need not replay; the harness states the
