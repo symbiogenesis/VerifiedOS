@@ -113,15 +113,83 @@ def _retain_nested_cache(interrupted: bool) -> None:
                and (saved / "tools" / ".ruff_cache" / ".gitignore").is_file()
                and (saved / "out" / "evidence.json").is_file(),
                f"the {'resumed' if interrupted else 'clean'} retention moves the directory with its entries")
+        recorded = [str(saved / "out"), str(saved / "tools" / ".ruff_cache")]
+        receipt = json.loads((Path(str(result["archive"])) / "retirement.json").read_text(encoding="utf-8"))
+        ensure(result["retained"] == recorded and receipt["retained"] == recorded,
+               f"the {'resumed' if interrupted else 'clean'} retention records each moved output once, "
+               f"got {result['retained']} and {receipt['retained']}")
 
 
 def _nested_ignored_directory() -> None:
     """Git lists a directory whose own `.gitignore` ignores `*`, as ruff's cache does,
     together with entries inside it: retention moves the directory once, with them; a
-    retention interrupted between two outputs resumes; and a target that existed
-    before the pass still refuses."""
+    retention interrupted between two outputs resumes, recording each output once,
+    those moved before the interruption among them; and a target that existed before
+    the pass still refuses."""
     for interrupted in (False, True):
         _retain_nested_cache(interrupted)
+
+
+def _output_gone_before_resume() -> None:
+    """An output named before a move the interruption prevented, and gone before the
+    resumed pass, is not recorded as retained."""
+    with (sandbox_tree({**FILES, "tools/keep.py": "# fixture\n"}) as root,
+          patch.object(retire, "_guest", return_value={})):
+        path, record, revision, archive = _worker(root)
+        cache = path / "tools" / ".ruff_cache"
+        cache.mkdir()
+        (cache / ".gitignore").write_text("*\n", encoding="utf-8")
+        receipt_path = retire._archive(root, record, archive)[0] / "retirement.json"
+        with patch.object(Path, "rename", _dies_moving_cache):
+            try:
+                retire.retire(root, record, revision, archive)
+            except OSError:
+                pass
+            else:
+                raise AssertionError("the interruption must occur")
+        target = str(receipt_path.parent / "checkout" / "tools" / ".ruff_cache")
+        saved = json.loads(receipt_path.read_text(encoding="utf-8"))
+        ensure(saved.get("retained") == [target] and cache.is_dir(),
+               f"precondition: the output is named before its move, got {saved}")
+        (cache / ".gitignore").unlink()
+        cache.rmdir()
+        result = retire.retire(root, record, revision, archive)
+        saved = json.loads(receipt_path.read_text(encoding="utf-8"))
+        ensure(result["status"] == "retired" and result["retained"] == [] and saved["retained"] == [],
+               f"an output gone before the resumed pass is not recorded, got {result['retained']}")
+
+
+def _native_receipt_survives_resume() -> None:
+    """A retirement interrupted after its native retention resumes with the native
+    outputs that pass moved still recorded: the resumed native pass no longer finds
+    them, so its own evidence is added after theirs, each output once, even one both
+    passes name, and the outputs it defers, which stay in place, are the ones it
+    reports."""
+    moved_to = "/native/fanout-retained/b/worker"
+    lane, log = f"{moved_to}/lane", f"{moved_to}/logs/model-build-worker.log"
+    first = {"archive": moved_to, "retained": [lane], "deferred": []}
+    later = {"archive": first["archive"], "retained": [log, lane],
+             "deferred": [{"path": "/native/logs/legacy-worker.log", "reason": "unrecognized output layout"}]}
+    with (sandbox_tree(FILES) as root,
+          patch.object(retire, "_guest", side_effect=[dict(first), dict(later)]) as native):
+        path, record, revision, archive = _worker(root)
+        receipt_path = retire._archive(root, record, archive)[0] / "retirement.json"
+        with patch.object(retire, "_retain_host", side_effect=OSError("simulated process death")):
+            try:
+                retire.retire(root, record, revision, archive)
+            except OSError:
+                pass
+            else:
+                raise AssertionError("the interruption must occur")
+        saved = json.loads(receipt_path.read_text(encoding="utf-8"))
+        ensure(path.exists() and saved["native"] == first,
+               f"precondition: the interrupted pass recorded its native outputs, got {saved}")
+        result = retire.retire(root, record, revision, archive)
+        saved = json.loads(receipt_path.read_text(encoding="utf-8"))
+        expected = {**later, "retained": [lane, log]}
+        ensure(native.call_count == 2 and result["status"] == "retired"
+               and result["native"] == expected and saved["native"] == expected,
+               f"the resumed receipt keeps the native outputs the first pass moved, got {result['native']}")
 
 
 def _dirty_and_unintegrated() -> None:
@@ -1344,6 +1412,8 @@ def cases() -> list[Case]:
             Case("changed-identity-and-locked", _changed_identity_and_locked),
             Case("host-owned-and-outside", _host_owned_and_outside),
             Case("nested-repository", _nested_repository),
+            Case("output-gone-before-resume", _output_gone_before_resume),
+            Case("native-receipt-survives-resume", _native_receipt_survives_resume),
             Case("interrupted-after-git-remove", _interrupted_after_git_remove),
             Case("branch-moved-after-removal", _branch_moved_after_removal),
             Case("missing-without-receipt", _missing_without_receipt),
