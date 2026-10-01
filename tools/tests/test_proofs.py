@@ -454,16 +454,16 @@ def _graph(folder: Path, texts: dict[str, str]) -> _Graph:
 
 def _schedule(graph: _Graph, check: Callable[[Path], gate.Checked], jobs: int, *,
               started: float = 0.0, quiet: frozenset[Path] = frozenset(),
-              clock: Callable[[], float] | None = None
+              by_wave: bool = False, clock: Callable[[], float] | None = None
               ) -> tuple[list[gate.Checked], dict[Path, gate.Span], str]:
     waves, needs, _ = graph
     with contextlib.redirect_stdout(io.StringIO()) as said:
         if clock is None:
             checked, spans = gate._schedule(waves, needs, check, jobs, started=started,
-                                            quiet=quiet)
+                                            quiet=quiet, by_wave=by_wave)
         else:
             checked, spans = gate._schedule(waves, needs, check, jobs, started=started,
-                                            quiet=quiet, clock=clock)
+                                            quiet=quiet, by_wave=by_wave, clock=clock)
     return checked, spans, said.getvalue()
 
 
@@ -536,35 +536,38 @@ def _wave_reading(graph: _Graph, failing: set[str]) -> dict[str, str]:
 
 
 def _a_failed_prerequisite_blocks_its_consumers() -> None:
+    """Under Requires alone and under `by_wave`, which a wrapped Require selects."""
     texts = {"Base": "", "Other": "", "Consumer": "Require Base.", "Deep": "Require Consumer.",
              "Mixed": "Require Base. Require Other.", "Fine": "Require Other."}
     for failing in (set(), {"Base"}, {"Base", "Other"}, {"Deep"}, {"Consumer"}):
-        with tempfile.TemporaryDirectory(prefix="vos-proof-blocked-") as temporary:
-            graph = _graph(Path(temporary), texts)
-            for name in texts:
-                (Path(temporary) / f"{name}.vo").write_bytes(b"previous run")
-            lock = threading.Lock()
-            called: list[str] = []
+        for by_wave in (False, True):
+            with tempfile.TemporaryDirectory(prefix="vos-proof-blocked-") as temporary:
+                graph = _graph(Path(temporary), texts)
+                for name in texts:
+                    (Path(temporary) / f"{name}.vo").write_bytes(b"previous run")
+                lock = threading.Lock()
+                called: list[str] = []
 
-            def check(source: Path, failing: set[str] = failing,
-                      called: list[str] = called, lock: threading.Lock = lock) -> gate.Checked:
-                with lock:
-                    called.append(source.stem)
-                return gate.Checked(source, error="seeded failure" if source.stem in failing else "")
+                def check(source: Path, failing: set[str] = failing, called: list[str] = called,
+                          lock: threading.Lock = lock) -> gate.Checked:
+                    with lock:
+                        called.append(source.stem)
+                    return gate.Checked(
+                        source, error="seeded failure" if source.stem in failing else "")
 
-            checked, spans, _ = _schedule(graph, check, 2)
-            expected = _wave_reading(graph, failing)
-            verdicts = {item.source.stem: item.error for item in checked}
-            ensure(verdicts == expected and len(checked) == len(texts),
-                   f"failing {failing}: verdicts {verdicts} differ from the wave schedule's "
-                   f"{expected}")
-            blocked = {stem for stem, error in expected.items() if error.startswith("blocked")}
-            ensure(sorted(called) == sorted(set(texts) - blocked)
-                   and {source.stem for source in spans} == set(texts) - blocked,
-                   f"failing {failing}: a blocked module was checked, or a ready one was not: "
-                   f"{called}")
-            stale = sorted(stem for stem in blocked if (Path(temporary) / f"{stem}.vo").exists())
-            ensure(not stale, f"failing {failing}: blocked modules kept stale objects: {stale}")
+                checked, spans, _ = _schedule(graph, check, 2, by_wave=by_wave)
+                case = f"failing {failing}, by_wave {by_wave}"
+                expected = _wave_reading(graph, failing)
+                verdicts = {item.source.stem: item.error for item in checked}
+                ensure(verdicts == expected and len(checked) == len(texts),
+                       f"{case}: verdicts {verdicts} differ from the wave schedule's {expected}")
+                blocked = {stem for stem, error in expected.items() if error.startswith("blocked")}
+                ensure(sorted(called) == sorted(set(texts) - blocked)
+                       and {source.stem for source in spans} == set(texts) - blocked,
+                       f"{case}: a blocked module was checked, or a ready one was not: {called}")
+                stale = sorted(stem for stem in blocked
+                               if (Path(temporary) / f"{stem}.vo").exists())
+                ensure(not stale, f"{case}: blocked modules kept stale objects: {stale}")
 
 
 def _each_module_logs_its_start_and_end() -> None:

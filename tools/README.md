@@ -1341,6 +1341,8 @@ log gives each compiled module's start and end in seconds from the phase's start
 Beside the phase's wall seconds it gives the makespan of a wave schedule, in which
 each dependency wave finishes before the next starts, replayed over those seconds at
 the same worker limit, so a run is read against that schedule on its own machine.
+A wrapped Require, which the dependency parse does not read, may name a module in
+any wave, so a source holding one runs the phase as that wave schedule.
 
 Without `--jobs`, each phase selects as many workers as the available logical CPUs
 and its memory planning budget permit. The guest samples `MemAvailable` immediately

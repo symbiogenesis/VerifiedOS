@@ -15,11 +15,12 @@ any other ready module within the worker limit, under one directory lock. The lo
 gives each compiled module's start and end in seconds from the phase's start, and the
 phase's line gives beside its wall seconds the makespan a wave schedule, each
 dependency wave finishing before the next starts, would take over those seconds at
-the same limit. Unchanged compiled products are reused from successful receipts;
-changed dependencies invalidate their consumers. Audits and kernel verdicts are
-reused for the same checked bytes. Independent dependency components are
-kernel-checked in bounded parallel batches, with one worker also checking the joint
-environment; --fresh disables reuse from prior runs.
+the same limit. A Require the dependency parse does not read, such as one under a
+control flag, runs the phase as that wave schedule. Unchanged compiled products are
+reused from successful receipts; changed dependencies invalidate their consumers.
+Audits and kernel verdicts are reused for the same checked bytes. Independent
+dependency components are kernel-checked in bounded parallel batches, with one
+worker also checking the joint environment; --fresh disables reuse from prior runs.
 Sources are staged into this checkout's native guest build lane; compiler
 outputs, audit scratch, the directory lock and full receipt stay there. Successful
 runs also publish a portable receipt in the checkout. `proofs status` uses the guest
@@ -40,7 +41,7 @@ import sys
 import tempfile
 import threading
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -768,7 +769,7 @@ def _blocked(source: Path, failed: frozenset[Path]) -> Checked:
 
 def _schedule(waves: Sequence[Sequence[Path]], needs: Mapping[Path, frozenset[Path]],
               check: Callable[[Path], Checked], jobs: int, *, started: float,
-              quiet: frozenset[Path] = frozenset(),
+              quiet: frozenset[Path] = frozenset(), by_wave: bool = False,
               clock: Callable[[], float] = time.perf_counter
               ) -> tuple[list[Checked], dict[Path, Span]]:
     """Compile and audit each module once every module it Requires has finished both.
@@ -777,6 +778,10 @@ def _schedule(waves: Sequence[Sequence[Path]], needs: Mapping[Path, frozenset[Pa
     Among ready modules the one heading the longest chain of dependents starts first,
     then dependency-wave and name order, so the longest chain is not queued behind
     modules nothing waits on. The waves fix only that tie order.
+
+    With `by_wave`, each module also waits for every module of the waves before its
+    own, which is the wave schedule itself. The gate asks for it when a source holds a
+    Require the dependency parse does not read, whose module could be in any wave.
 
     A module whose prerequisite failed, or was itself blocked, is reported blocked and
     never checked, and its stale compiled object is removed before any consumer could
@@ -793,17 +798,23 @@ def _schedule(waves: Sequence[Sequence[Path]], needs: Mapping[Path, frozenset[Pa
     if len(position) != len(order) or set(position) != set(needs) or any(
             not required <= position.keys() for required in needs.values()):
         raise ValueError("the compile schedule must cover every module and requirement once")
+    waits: dict[Path, frozenset[Path]] = {}
+    earlier: frozenset[Path] = frozenset()
+    for wave in waves:
+        for source in wave:
+            waits[source] = (needs[source] | earlier) if by_wave else needs[source]
+        earlier = earlier.union(wave)
     dependents: dict[Path, set[Path]] = {source: set() for source in order}
-    for source, required in needs.items():
-        for prerequisite in required:
+    for source, awaited in waits.items():
+        for prerequisite in awaited:
             dependents[prerequisite].add(source)
-    # The waves order every module after everything it Requires, so one reverse pass
+    # The waves order every module after everything it waits for, so one reverse pass
     # sizes the chain each module heads.
     height: dict[Path, int] = {}
     for source in reversed(order):
         height[source] = 1 + max((height[dependent] for dependent in dependents[source]),
                                  default=0)
-    unfinished = {source: len(needs[source]) for source in order}
+    unfinished = {source: len(waits[source]) for source in order}
     failed: set[Path] = set()
     checked: list[Checked] = []
     spans: dict[Path, Span] = {}
@@ -834,7 +845,7 @@ def _schedule(waves: Sequence[Sequence[Path]], needs: Mapping[Path, frozenset[Pa
         return result, Span(start, clock() - started)
 
     for source in order:
-        if not needs[source]:
+        if not waits[source]:
             release(source)
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         running: dict[Future[tuple[Checked, Span]], Path] = {}
@@ -1115,6 +1126,13 @@ def _shared_libraries(work: Path, objects: list[str]) -> dict[str, str] | None:
     return libraries or None
 
 
+def _unread_require(sentences: Iterable[str]) -> bool:
+    """Whether a sentence Requires in a form the dependency parse does not read, such
+    as one under a control flag, and so may load a module no parsed edge orders."""
+    return any("Require" in sentence and _REQUIRE_TOKEN.search(sentence)
+               and not proofs_mod.REQUIRE.fullmatch(sentence) for sentence in sentences)
+
+
 def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
     """Hash installed libraries and runtime files, including actual load paths.
 
@@ -1129,9 +1147,7 @@ def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
                         for sentence in _sentences(source.read_text(encoding="utf-8"))]
     # Dependency parsing intentionally supports only plain Require sentences.
     # A wrapped Require must not hide an edge from incremental invalidation.
-    if any("Require" in sentence and _REQUIRE_TOKEN.search(sentence)
-           and not proofs_mod.REQUIRE.fullmatch(sentence)
-           for sentence in source_sentences):
+    if _unread_require(source_sentences):
         return None
     if any(proofaudit.DYNAMIC_SOURCE.match(sentence) for sentence in source_sentences):
         return None
@@ -1368,7 +1384,8 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
     checked, spans = _schedule(
         analysis.index.ordered, analysis.index.needs, check, compile_jobs,
         started=compile_started,
-        quiet=frozenset(source for source in staged if source.stem in reusable))
+        quiet=frozenset(source for source in staged if source.stem in reusable),
+        by_wave=any(map(_unread_require, analysis.index.statements.values())))
     if any(item.error for item in checked):
         for item in sorted(checked, key=lambda item: item.source.name):
             if item.error:
