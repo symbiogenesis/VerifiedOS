@@ -17,8 +17,20 @@ matched terms that were never closed inhabitants and a non-vacuity gate that
 over-approximates goes false green. The last case reads the live tree: every shipped
 artifact names a witness for every record it quantifies over, which is the fact the
 gate's green line reports.
+
+**The compile and audit phase's schedule** is held here too, over stand-in checks: a
+module starts once every module it Requires has finished and waits for no module it
+does not Require, ready modules start by the chain they head, a failed prerequisite
+blocks its consumers with the verdicts a wave-by-wave reading gives, each module's
+start and end are logged from the phase's start, and the wave schedule's replay is a
+list schedule per wave in the wave's order.
 """
 
+import contextlib
+import io
+import tempfile
+import threading
+from collections.abc import Callable
 from pathlib import Path
 from unittest.mock import patch
 
@@ -428,6 +440,175 @@ def _delimiter_scan_preserves_lexical_boundaries() -> None:
            == ("(x := 1) : Machine ", " demo"), "a nested assignment became the body")
 
 
+type _Graph = tuple[tuple[tuple[Path, ...], ...], dict[Path, frozenset[Path]], dict[str, Path]]
+
+
+def _graph(folder: Path, texts: dict[str, str]) -> _Graph:
+    """The waves and requirements the gate reads from these sources, and each by stem."""
+    for name, text in texts.items():
+        (folder / f"{name}.v").write_text(text, encoding="utf-8")
+    sources = sorted(folder.glob("*.v"))
+    index = gate.proofs_mod.SourceIndex.read(sources)
+    return index.ordered, dict(index.needs), {source.stem: source for source in sources}
+
+
+def _schedule(graph: _Graph, check: Callable[[Path], gate.Checked], jobs: int, *,
+              started: float = 0.0, quiet: frozenset[Path] = frozenset(),
+              clock: Callable[[], float] | None = None
+              ) -> tuple[list[gate.Checked], dict[Path, gate.Span], str]:
+    waves, needs, _ = graph
+    with contextlib.redirect_stdout(io.StringIO()) as said:
+        if clock is None:
+            checked, spans = gate._schedule(waves, needs, check, jobs, started=started,
+                                            quiet=quiet)
+        else:
+            checked, spans = gate._schedule(waves, needs, check, jobs, started=started,
+                                            quiet=quiet, clock=clock)
+    return checked, spans, said.getvalue()
+
+
+def _a_module_starts_once_its_requirements_finish() -> None:
+    """Consumer waits for Base alone. Slow, in Base's wave, holds its worker until
+    Consumer has finished, which a wave schedule would never let happen."""
+    with tempfile.TemporaryDirectory(prefix="vos-proof-schedule-") as temporary:
+        graph = _graph(Path(temporary), {"Slow": "", "Base": "", "Consumer": "Require Base.",
+                                         "Tail": "Require Consumer. Require Slow."})
+        _, needs, _ = graph
+        lock = threading.Lock()
+        events: list[tuple[str, str]] = []
+        consumer_done = threading.Event()
+        waited: list[bool] = []
+
+        def check(source: Path) -> gate.Checked:
+            with lock:
+                events.append(("start", source.stem))
+            if source.stem == "Slow":
+                waited.append(consumer_done.wait(timeout=5))
+            with lock:
+                events.append(("end", source.stem))
+            if source.stem == "Consumer":
+                consumer_done.set()
+            return gate.Checked(source)
+
+        checked, spans, _ = _schedule(graph, check, 2)
+        ensure(waited == [True], "a ready module waited for a module it does not Require")
+        ensure(sorted(item.source.stem for item in checked) == ["Base", "Consumer", "Slow", "Tail"]
+               and not any(item.error for item in checked) and len(spans) == 4,
+               f"every module is checked once, got {checked!r}")
+        for source, required in needs.items():
+            for prerequisite in required:
+                ensure(events.index(("end", prerequisite.stem))
+                       < events.index(("start", source.stem)),
+                       f"{source.stem} started before {prerequisite.stem} finished: {events}")
+
+
+def _ready_modules_start_by_the_chain_they_head() -> None:
+    """Z heads the chain Z, B, C; A and M head nothing. The wave order would be A, M, Z."""
+    with tempfile.TemporaryDirectory(prefix="vos-proof-priority-") as temporary:
+        graph = _graph(Path(temporary), {"A": "", "M": "", "Z": "", "B": "Require Z.",
+                                         "C": "Require B."})
+        started: list[str] = []
+
+        def check(source: Path) -> gate.Checked:
+            started.append(source.stem)
+            return gate.Checked(source)
+
+        _schedule(graph, check, 1)
+        ensure(started == ["Z", "B", "A", "M", "C"],
+               f"ready modules started out of chain, wave and name order: {started}")
+
+
+def _wave_reading(graph: _Graph, failing: set[str]) -> dict[str, str]:
+    """The verdicts the wave schedule gave: each wave in turn, a module with a failed or
+    blocked requirement blocked by name, every other module checked."""
+    waves, needs, _ = graph
+    failed: set[str] = set()
+    verdicts: dict[str, str] = {}
+    for wave in waves:
+        for source in wave:
+            blocked = {required.stem for required in needs[source]} & failed
+            verdicts[source.stem] = ("blocked by failed dependencies: " + ", ".join(sorted(blocked))
+                                     if blocked else "seeded failure" if source.stem in failing
+                                     else "")
+            if verdicts[source.stem]:
+                failed.add(source.stem)
+    return verdicts
+
+
+def _a_failed_prerequisite_blocks_its_consumers() -> None:
+    texts = {"Base": "", "Other": "", "Consumer": "Require Base.", "Deep": "Require Consumer.",
+             "Mixed": "Require Base. Require Other.", "Fine": "Require Other."}
+    for failing in (set(), {"Base"}, {"Base", "Other"}, {"Deep"}, {"Consumer"}):
+        with tempfile.TemporaryDirectory(prefix="vos-proof-blocked-") as temporary:
+            graph = _graph(Path(temporary), texts)
+            for name in texts:
+                (Path(temporary) / f"{name}.vo").write_bytes(b"previous run")
+            lock = threading.Lock()
+            called: list[str] = []
+
+            def check(source: Path, failing: set[str] = failing,
+                      called: list[str] = called, lock: threading.Lock = lock) -> gate.Checked:
+                with lock:
+                    called.append(source.stem)
+                return gate.Checked(source, error="seeded failure" if source.stem in failing else "")
+
+            checked, spans, _ = _schedule(graph, check, 2)
+            expected = _wave_reading(graph, failing)
+            verdicts = {item.source.stem: item.error for item in checked}
+            ensure(verdicts == expected and len(checked) == len(texts),
+                   f"failing {failing}: verdicts {verdicts} differ from the wave schedule's "
+                   f"{expected}")
+            blocked = {stem for stem, error in expected.items() if error.startswith("blocked")}
+            ensure(sorted(called) == sorted(set(texts) - blocked)
+                   and {source.stem for source in spans} == set(texts) - blocked,
+                   f"failing {failing}: a blocked module was checked, or a ready one was not: "
+                   f"{called}")
+            stale = sorted(stem for stem in blocked if (Path(temporary) / f"{stem}.vo").exists())
+            ensure(not stale, f"failing {failing}: blocked modules kept stale objects: {stale}")
+
+
+def _each_module_logs_its_start_and_end() -> None:
+    """With one worker and a clock each check advances by its module's seconds, the
+    lines and spans are exact: A from 0.5 s, R reused and silent, then B."""
+    with tempfile.TemporaryDirectory(prefix="vos-proof-spans-") as temporary:
+        graph = _graph(Path(temporary), {"A": "", "R": "", "B": "Require A."})
+        _, _, by_stem = graph
+        now = [100.0]
+        seconds = {"A": 2.0, "R": 0.0, "B": 0.25}
+
+        def check(source: Path) -> gate.Checked:
+            now[0] += seconds[source.stem]
+            return gate.Checked(source)
+
+        _, spans, said = _schedule(graph, check, 1, started=99.5,
+                                   quiet=frozenset({by_stem["R"]}), clock=lambda: now[0])
+        ensure(said.splitlines() == ["  compile/audit A.v: 0.50s to 2.50s",
+                                     "  compile/audit B.v: 2.50s to 2.75s"],
+               f"wrong per-module timing lines: {said!r}")
+        ensure({source.stem: (span.start, span.end) for source, span in spans.items()}
+               == {"A": (0.5, 2.5), "R": (2.5, 2.5), "B": (2.5, 2.75)},
+               f"wrong per-module spans: {spans!r}")
+
+
+def _the_wave_makespan_replays_each_wave_in_order() -> None:
+    samples: tuple[tuple[list[list[float]], int, float], ...] = (
+        ([[3, 1, 1, 1], [2]], 2, 5.0), ([[3, 1, 1, 1], [2]], 1, 8.0),
+        ([[3, 1, 1, 1], [2]], 8, 5.0),
+        # The queue hands the third member to the first worker free, not to the
+        # packing that would finish at 3.
+        ([[1, 1, 3]], 2, 4.0), ([[2, 0, 0]], 2, 2.0), ([], 3, 0.0), ([[]], 3, 0.0))
+    for waves, jobs, expected in samples:
+        found = gate.wave_makespan(waves, jobs)
+        ensure(found == expected, f"wave_makespan({waves}, {jobs}) is {found}, not {expected}")
+    for waves, jobs in (([[1.0]], 0), ([[1.0, -0.5]], 2)):
+        try:
+            gate.wave_makespan(waves, jobs)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"wave_makespan({waves}, {jobs}) replayed an impossible schedule")
+
+
 def cases() -> list[Case]:
     return [
         Case("carrier-quantified-and-witnessed", _carrier_is_quantified_and_witnessed),
@@ -459,4 +640,13 @@ def cases() -> list[Case]:
         Case("shipped-artifacts-name-a-witness", _every_shipped_artifact_names_a_witness),
         Case("imports-follow-require-closure", _imports_follow_the_require_closure),
         Case("delimiter-scan-preserves-lexical-boundaries", _delimiter_scan_preserves_lexical_boundaries),
+        Case("module-starts-once-its-requirements-finish",
+             _a_module_starts_once_its_requirements_finish),
+        Case("ready-modules-start-by-the-chain-they-head",
+             _ready_modules_start_by_the_chain_they_head),
+        Case("failed-prerequisite-blocks-its-consumers",
+             _a_failed_prerequisite_blocks_its_consumers),
+        Case("each-module-logs-its-start-and-end", _each_module_logs_its_start_and_end),
+        Case("wave-makespan-replays-each-wave-in-order",
+             _the_wave_makespan_replays_each_wave_in_order),
     ]

@@ -10,7 +10,12 @@ Sources compile under STRICT and must print no diagnostic; rocqchk's own context
 summary must name no undeclared axiom and no unsafe assumption anywhere it loaded,
 except an admitted installed library's axioms, which the admitting evidence covers.
 
-Independent dependency-wave members run concurrently under one directory lock. Unchanged
+Each module compiles and is audited once every module it Requires has been, beside
+any other ready module within the worker limit, under one directory lock. The log
+gives each compiled module's start and end in seconds from the phase's start, and the
+phase's line gives beside its wall seconds the makespan a wave schedule, each
+dependency wave finishing before the next starts, would take over those seconds at
+the same limit. Unchanged
 compiled products are reused from successful receipts; changed dependencies invalidate
 their consumers. Audits and kernel verdicts are reused for the same checked bytes.
 Independent dependency components are kernel-checked in bounded parallel batches,
@@ -25,6 +30,7 @@ hop to hash native outputs; `proofs export` preserves an existing run without Ro
 import argparse
 import ast
 import hashlib
+import heapq
 import json
 import os
 import re
@@ -34,8 +40,8 @@ import sys
 import tempfile
 import threading
 import time
-from collections.abc import Callable, Mapping
-from concurrent.futures import ThreadPoolExecutor
+from collections.abc import Callable, Mapping, Sequence
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
@@ -747,6 +753,140 @@ def _check_source(root: Path, source: Path, sources: list[Path] | ProofAnalysis,
         return Checked(source, error=str(err))
 
 
+@dataclass(frozen=True)
+class Span:
+    """One module's compile and audit, in seconds from the phase's start."""
+
+    start: float
+    end: float
+
+
+def _blocked(source: Path, failed: frozenset[Path]) -> Checked:
+    return Checked(source, error="blocked by failed dependencies: "
+                   + ", ".join(sorted(required.stem for required in failed)))
+
+
+def _schedule(waves: Sequence[Sequence[Path]], needs: Mapping[Path, frozenset[Path]],
+              check: Callable[[Path], Checked], jobs: int, *, started: float,
+              quiet: frozenset[Path] = frozenset(),
+              clock: Callable[[], float] = time.perf_counter
+              ) -> tuple[list[Checked], dict[Path, Span]]:
+    """Compile and audit each module once every module it Requires has finished both.
+
+    A ready module waits for a free worker, never for a module it does not Require.
+    Among ready modules the one heading the longest chain of dependents starts first,
+    then dependency-wave and name order, so the longest chain is not queued behind
+    modules nothing waits on. The waves fix only that tie order.
+
+    A module whose prerequisite failed, or was itself blocked, is reported blocked and
+    never checked, and its stale compiled object is removed before any consumer could
+    load it. Every other module is checked exactly once, so the verdicts, outputs and
+    receipt are the ones a wave schedule gives.
+
+    Each module's start and end, in seconds from `started` on `clock`, is printed as it
+    finishes, unless it is in `quiet`, and returned for the wave schedule's replay.
+    """
+    if jobs < 1:
+        raise ValueError("compile/audit jobs must be positive")
+    order = [source for wave in waves for source in wave]
+    position = {source: index for index, source in enumerate(order)}
+    if len(position) != len(order) or set(position) != set(needs) or any(
+            not required <= position.keys() for required in needs.values()):
+        raise ValueError("the compile schedule must cover every module and requirement once")
+    dependents: dict[Path, set[Path]] = {source: set() for source in order}
+    for source, required in needs.items():
+        for prerequisite in required:
+            dependents[prerequisite].add(source)
+    # The waves order every module after everything it Requires, so one reverse pass
+    # sizes the chain each module heads.
+    height: dict[Path, int] = {}
+    for source in reversed(order):
+        height[source] = 1 + max((height[dependent] for dependent in dependents[source]),
+                                 default=0)
+    unfinished = {source: len(needs[source]) for source in order}
+    failed: set[Path] = set()
+    checked: list[Checked] = []
+    spans: dict[Path, Span] = {}
+    ready: list[tuple[int, int, Path]] = []
+
+    def release(source: Path) -> None:
+        heapq.heappush(ready, (-height[source], position[source], source))
+
+    def finish(done: Path) -> None:
+        settled = [done]
+        while settled:
+            for dependent in sorted(dependents[settled.pop()], key=position.__getitem__):
+                unfinished[dependent] -= 1
+                if unfinished[dependent]:
+                    continue
+                blocked = needs[dependent] & failed
+                if not blocked:
+                    release(dependent)
+                    continue
+                dependent.with_suffix(".vo").unlink(missing_ok=True)
+                failed.add(dependent)
+                checked.append(_blocked(dependent, frozenset(blocked)))
+                settled.append(dependent)
+
+    def run(source: Path) -> tuple[Checked, Span]:
+        start = clock() - started
+        result = check(source)
+        return result, Span(start, clock() - started)
+
+    for source in order:
+        if not needs[source]:
+            release(source)
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        running: dict[Future[tuple[Checked, Span]], Path] = {}
+        while ready or running:
+            while ready and len(running) < jobs:
+                source = heapq.heappop(ready)[2]
+                running[pool.submit(run, source)] = source
+            done, _ = wait(running, return_when=FIRST_COMPLETED)
+            for future in sorted(done, key=lambda future: position[running[future]]):
+                source = running.pop(future)
+                result, span = future.result()
+                checked.append(result)
+                spans[source] = span
+                if source not in quiet:
+                    print(f"  compile/audit {source.name}: {span.start:.2f}s to {span.end:.2f}s",
+                          flush=True)
+                if result.error:
+                    failed.add(source)
+                finish(source)
+    if len(checked) != len(order):
+        raise ValueError("the compile schedule left a module unchecked")
+    return checked, spans
+
+
+def wave_makespan(waves: Sequence[Sequence[float]], jobs: int) -> float:
+    """The seconds a wave schedule takes over these durations at this worker limit.
+
+    A wave schedule runs each dependency wave to completion before the next starts. A
+    thread pool's queue hands a wave's members, in the wave's order, each to the worker
+    that frees first, so a wave lasts until the latest end of that list schedule and
+    the schedule lasts the sum over its waves. The gate replays it over each module's
+    measured compile and audit seconds, so that a run's phase is read against the
+    schedule it replaced at the same worker limit, without comparing runs on machines
+    whose speed differs. The phase's wall seconds also carry the source analysis and
+    bookkeeping the replay leaves out.
+    """
+    if jobs < 1:
+        raise ValueError("the replayed worker limit must be positive")
+    total = 0.0
+    for wave in waves:
+        free = [0.0] * jobs
+        last = 0.0
+        for seconds in wave:
+            if seconds < 0:
+                raise ValueError("a module's compile and audit cannot take negative seconds")
+            end = heapq.heappop(free) + seconds
+            heapq.heappush(free, end)
+            last = max(last, end)
+        total += last
+    return total
+
+
 def _toolchain() -> dict[str, object]:
     compiler = Path(env.rocq_command()[0]).resolve()
     checker = Path(env.rocqchk_command()[0]).resolve()
@@ -1215,8 +1355,6 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
     analysis = ProofAnalysis.read(staged)
     needs = {source.stem: {required.stem for required in required_sources}
              for source, required_sources in analysis.index.needs.items()}
-    checked: list[Checked] = []
-    failed: set[str] = set()
     compile_jobs = env.proof_jobs() if jobs is None else jobs
     print(f"  compile/audit worker limit: {compile_jobs} "
           f"({'automatic' if jobs is None else 'explicit'})", flush=True)
@@ -1227,22 +1365,11 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
                            analysis.witnesses[source])
         return _check_source(work, source, analysis)
 
-    with ThreadPoolExecutor(max_workers=compile_jobs) as pool:
-        for wave in analysis.index.ordered:
-            ready: list[Path] = []
-            for source in wave:
-                blocked = needs[source.stem] & failed
-                if blocked:
-                    source.with_suffix(".vo").unlink(missing_ok=True)
-                    failed.add(source.stem)
-                    checked.append(Checked(source, error="blocked by failed dependencies: "
-                                           + ", ".join(sorted(blocked))))
-                else:
-                    ready.append(source)
-            results = list(pool.map(check, ready))
-            checked.extend(results)
-            failed.update(item.source.stem for item in results if item.error)
-    if failed:
+    checked, spans = _schedule(
+        analysis.index.ordered, analysis.index.needs, check, compile_jobs,
+        started=compile_started,
+        quiet=frozenset(source for source in staged if source.stem in reusable))
+    if any(item.error for item in checked):
         for item in sorted(checked, key=lambda item: item.source.name):
             if item.error:
                 print(f"FAIL: {item.source.name}: {item.error}")
@@ -1261,7 +1388,10 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
     # Same-run kernel admissions need the installed-library identity too. Unknown
     # contexts retain the single-process recursive check, even on a fresh run.
     kernel_jobs = 1 if context is None else (env.proof_jobs(kernel=True) if jobs is None else jobs)
-    print(f"  compile/audit: {compile_seconds:.2f}s; "
+    replayed = wave_makespan([[spans[source].end - spans[source].start for source in wave]
+                              for wave in analysis.index.ordered], compile_jobs)
+    print(f"  compile/audit: {compile_seconds:.2f}s; wave schedule replayed over these "
+          f"modules' seconds at worker limit {compile_jobs}: {replayed:.2f}s; "
           f"{len(reusable)}/{len(staged)} compiled objects and audits reused; "
           f"starting {'incremental' if reusable else 'full'} kernel recheck "
           f"with worker limit {kernel_jobs}", flush=True)
@@ -1341,10 +1471,12 @@ def main(argv: list[str] | None = None) -> int:
         return proofheaders.main(args[1:])
     parser = argparse.ArgumentParser(
         prog="run.py proofs",
-        description="Reuse content-matched proof evidence or compile dependency waves "
-                    "incrementally and concurrently; enumerate symbols, types "
-                    "and assumptions through Rocq; validate claims and witnesses; "
-                    "recheck with rocqchk and record content-bound evidence.")
+        description="Reuse content-matched proof evidence or compile each proof "
+                    "incrementally, concurrently and once every proof it Requires "
+                    "has compiled and been audited, logging each one's start and end "
+                    "and the wave schedule's makespan replayed over them; enumerate "
+                    "symbols, types and assumptions through Rocq; validate claims and "
+                    "witnesses; recheck with rocqchk and record content-bound evidence.")
     parser.add_argument("command", nargs="?", choices=("run", "status", "export", "identity"),
                         default="run",
                         help="identity prints the toolchain and installed-library context "
