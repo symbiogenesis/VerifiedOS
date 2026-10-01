@@ -1006,11 +1006,12 @@ def _json_nodes(value: object) -> Iterator[dict[str, object]]:
 
 # The memory arrays the provenance record's cache rows, A-09 and A-10, are stated over,
 # and the two caches that hold them. Each arm's inventory counts every one of these kinds'
-# expanded instances in the whole core and under each cache, so the record cites this
-# count rather than restating it.
+# expanded instances in the whole core, under each cache and outside every cache, so the
+# record cites this count rather than restating it.
 ARRAY_KINDS: tuple[str, ...] = ("prim_ram_1p", "sram_cache", "sram")
 ARRAY_SCOPES: tuple[str, ...] = ("wt_dcache", "cva6_icache")
 WHOLE_CORE = "whole core"
+OUTSIDE = "outside every cache"
 
 
 @dataclass(frozen=True)
@@ -1018,11 +1019,12 @@ class Inventory:
     """What one elaboration instantiated: its module kinds, its cells, its declared
     variables, and its memory arrays.
 
-    `arrays` holds one row per scope, the whole core first and then each of
-    `ARRAY_SCOPES`: the scope, how many instances of it the top reaches (one for the
-    whole core), and the expanded instance counts of `ARRAY_KINDS` in order. The reach
-    is what tells a cache present with no arrays from a cache the netlist lacks, whose
-    counts are zero too.
+    `arrays` holds one row per scope: the whole core first, then each of
+    `ARRAY_SCOPES`, then what lies outside every cache. A row is the scope, how many
+    instances of it the top reaches (one for the whole core and for the outside row,
+    both taken over the top's one instance), and the expanded instance counts of
+    `ARRAY_KINDS` in order. The reach is what tells a cache present with no arrays from
+    a cache the netlist lacks, whose counts are zero too.
     """
 
     kinds: set[str]
@@ -1043,7 +1045,12 @@ def _inventory(ast: Path) -> Inventory:
     to retain that meaning when one module template is instantiated more than once.
     The same expansion, kept per kind, gives the memory arrays: an instance is under a
     cache where it or an enclosing instance is of that cache's kind, and is counted
-    once however many such instances enclose it.
+    once however many such instances enclose it. Each cache's row is counted on its
+    own, so an array under two caches, one nested in the other, is in both rows and the
+    rows do not sum to the whole core. The outside row is the exact remainder instead:
+    one walk from the top that stops at an instance of any cache's kind counts what no
+    cache encloses, so the whole core's arrays lie under some cache exactly where that
+    row is zero.
     Variables are declarations, counted once per emitted module or package template.
     The internal constant-pool module under miscsp is not part of either inventory.
     """
@@ -1115,15 +1122,33 @@ def _inventory(ast: Path) -> Inventory:
 
         return walk(top)
 
+    def outside() -> Counter[str]:
+        """Each kind's instances under the top at or below no instance of a cache."""
+        seen: dict[str, Counter[str]] = {}
+
+        def walk(name: str) -> Counter[str]:
+            if name not in seen:
+                found: Counter[str] = Counter()
+                if _kind(name) not in ARRAY_SCOPES:
+                    found[_kind(name)] += 1
+                    for child in children[name]:
+                        found.update(walk(child))
+                seen[name] = found
+            return seen[name]
+
+        return walk(top)
+
     scopes = ((WHOLE_CORE, 1, below[top]),
-              *((scope, below[top][scope], within(scope)) for scope in ARRAY_SCOPES))
+              *((scope, below[top][scope], within(scope)) for scope in ARRAY_SCOPES),
+              (OUTSIDE, 1, outside()))
     arrays = tuple((scope, reached, tuple(found[kind] for kind in ARRAY_KINDS))
                    for scope, reached, found in scopes)
     return Inventory(kinds, sum(below[top].values()), variables, arrays)
 
 
 def _array_lines(inventories: dict[str, Inventory]) -> list[str]:
-    """Each arm's memory-array instances, in the whole core and under each cache.
+    """Each arm's memory-array instances, in the whole core, under each cache and
+    outside every cache.
 
     A cache's label carries how many instances of it the top reaches, and a cache it
     reaches none of is reported absent rather than as a row of zeros, which would read
@@ -1132,7 +1157,7 @@ def _array_lines(inventories: dict[str, Inventory]) -> list[str]:
     rows: list[tuple[str, str, str]] = []
     for arm in sorted(inventories):
         for scope, reached, found in inventories[arm].arrays:
-            if scope == WHOLE_CORE:
+            if scope in {WHOLE_CORE, OUTSIDE}:
                 label = scope
             else:
                 label = f"under {scope} ({reached})" if reached else f"under {scope}"
@@ -1246,8 +1271,8 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
     state-enumeration half. What it deliberately does not do is decide that the result
     is *right*: an absence is claimed by the contract and bound by the record, and this
     says what the elaborator built. That includes, per arm, the expanded instances of
-    each memory-array kind in the whole core and under each cache, which is the count
-    the record's cache rows cite.
+    each memory-array kind in the whole core, under each cache and outside every cache,
+    which is the count the record's cache rows cite.
 
     Every row of the difference is a deletion **or an authored replacement**, and the
     report is partitioned so that the two are never one figure. A module the curated

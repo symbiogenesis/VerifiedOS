@@ -483,7 +483,8 @@ def _json_inventory_preserves_hierarchy_and_declarations() -> None:
            f"module kinds, expanded cells and declaration counts differ: {actual!r}")
     none = (0,) * len(rtl.ARRAY_KINDS)
     ensure(actual.arrays == ((rtl.WHOLE_CORE, 1, none),
-                             *((scope, 0, none) for scope in rtl.ARRAY_SCOPES)),
+                             *((scope, 0, none) for scope in rtl.ARRAY_SCOPES),
+                             (rtl.OUTSIDE, 1, none)),
            f"a netlist without memory arrays or caches counts none in every scope and "
            f"reaches no cache: {actual.arrays!r}")
 
@@ -496,9 +497,10 @@ def _json_inventory_preserves_hierarchy_and_declarations() -> None:
 # one more SRAM wrapper, which is counted once. `icache=False` leaves the instruction
 # cache's template out of the netlist and its instance out of the top, and
 # `icache_arrays=False` keeps both and gives the template no cells, so the instruction
-# cache is reached and holds no array.
+# cache is reached and holds no array. `icache_in_dcache` moves the instruction cache's
+# instance from the top into the data cache, so the two cache rows overlap.
 def _array_netlist(*, nested: bool = False, icache: bool = True,
-                   icache_arrays: bool = True) -> str:
+                   icache_arrays: bool = True, icache_in_dcache: bool = False) -> str:
     def module(name: str, level: int, *cells: str) -> dict[str, object]:
         return {"type": "MODULE", "name": name, "level": level,
                 "stmtsp": [{"type": "CELL", "name": f"u{i}", "modName": target}
@@ -511,9 +513,12 @@ def _array_netlist(*, nested: bool = False, icache: bool = True,
                  module("sram__I", 3, "prim_ram_1p__W")]
     elif icache:
         fetch = [module("cva6_icache", 2)]
+    at_top = ["cva6_icache"] if icache and not icache_in_dcache else []
+    in_dcache = ["cva6_icache"] if icache and icache_in_dcache else []
     return json.dumps({"type": "NETLIST", "modulesp": [
-        module("cva6", 1, "wt_dcache", *(["cva6_icache"] if icache else []), "sram__S"),
-        module("wt_dcache", 2, "wt_dcache_mem", *(["wt_dcache__N"] if nested else [])),
+        module("cva6", 1, "wt_dcache", *at_top, "sram__S"),
+        module("wt_dcache", 2, "wt_dcache_mem", *(["wt_dcache__N"] if nested else []),
+               *in_dcache),
         *inner,
         module("wt_dcache_mem", 3, "sram_cache__T", "sram_cache__T", "sram__D"),
         module("sram_cache__T", 4, "prim_ram_1p__W"),
@@ -530,20 +535,31 @@ def _json_inventory_counts_memory_arrays_per_cache() -> None:
            and rtl.ARRAY_SCOPES == ("wt_dcache", "cva6_icache"),
            "the fixture's expectations are in the inventory's own order")
     expected = ((rtl.WHOLE_CORE, 1, (6, 2, 4)), ("wt_dcache", 1, (3, 2, 1)),
-                ("cva6_icache", 1, (2, 0, 2)))
+                ("cva6_icache", 1, (2, 0, 2)), (rtl.OUTSIDE, 1, (1, 0, 1)))
     ensure(actual.arrays == expected,
-           f"expanded array instances per scope differ: {actual.arrays!r}")
+           f"expanded array instances per scope differ, the spare SRAM alone outside "
+           f"every cache: {actual.arrays!r}")
     ensure(actual.cells == 16, f"the arrays are part of the expanded cells: {actual.cells}")
     lines = rtl._array_lines({"curated": actual, "baseline": actual})
     ensure(len(lines) == 2 + 2 * len(expected)
            and lines[2].split() == ["baseline", "whole", "core", "6", "2", "4"]
-           and lines[-1].split() == ["curated", "under", "cva6_icache", "(1)", "2", "0", "2"],
+           and lines[-2].split() == ["curated", "under", "cva6_icache", "(1)", "2", "0", "2"]
+           and lines[-1].split() == ["curated", "outside", "every", "cache", "1", "0", "1"],
            f"the report is one row per arm and scope, baseline first, each cache's label "
-           f"carrying the instances reached: {lines!r}")
+           f"carrying the instances reached and the outside row last: {lines!r}")
     with sandbox_tree({"inventory.json": _array_netlist(nested=True)}) as root:
         nested = rtl._inventory(root / "inventory.json")
-    ensure(nested.arrays[:2] == ((rtl.WHOLE_CORE, 1, (7, 2, 5)), ("wt_dcache", 2, (4, 2, 2))),
+    ensure(nested.arrays[:2] == ((rtl.WHOLE_CORE, 1, (7, 2, 5)), ("wt_dcache", 2, (4, 2, 2)))
+           and nested.arrays[-1] == (rtl.OUTSIDE, 1, (1, 0, 1)),
            f"an array inside two data-cache instances is counted once: {nested.arrays!r}")
+    # An instruction cache inside the data cache is in both cache rows, which then sum
+    # past the whole core; the outside row is still what no cache encloses.
+    with sandbox_tree({"inventory.json": _array_netlist(icache_in_dcache=True)}) as root:
+        overlap = rtl._inventory(root / "inventory.json")
+    ensure(overlap.arrays == ((rtl.WHOLE_CORE, 1, (6, 2, 4)), ("wt_dcache", 1, (5, 2, 3)),
+                              ("cva6_icache", 1, (2, 0, 2)), (rtl.OUTSIDE, 1, (1, 0, 1))),
+           f"the outside row is one walk, not the whole core less the cache rows: "
+           f"{overlap.arrays!r}")
 
 
 def _json_inventory_reports_an_absent_cache_as_absent() -> None:
@@ -552,11 +568,12 @@ def _json_inventory_reports_an_absent_cache_as_absent() -> None:
     with sandbox_tree({"inventory.json": _array_netlist(icache=False)}) as root:
         actual = rtl._inventory(root / "inventory.json")
     ensure(actual.arrays == ((rtl.WHOLE_CORE, 1, (4, 2, 2)), ("wt_dcache", 1, (3, 2, 1)),
-                             ("cva6_icache", 0, (0, 0, 0))),
+                             ("cva6_icache", 0, (0, 0, 0)), (rtl.OUTSIDE, 1, (1, 0, 1))),
            f"the instruction cache reaches no instance and holds no array: {actual.arrays!r}")
     lines = rtl._array_lines({"curated": actual})
-    ensure(lines[-2].split() == ["curated", "under", "wt_dcache", "(1)", "3", "2", "1"]
-           and lines[-1].split() == ["curated", "under", "cva6_icache", "absent"],
+    ensure(lines[-3].split() == ["curated", "under", "wt_dcache", "(1)", "3", "2", "1"]
+           and lines[-2].split() == ["curated", "under", "cva6_icache", "absent"]
+           and lines[-1].split() == ["curated", "outside", "every", "cache", "1", "0", "1"],
            f"a cache the netlist lacks is reported absent, not as zeros: {lines!r}")
 
 
@@ -566,10 +583,10 @@ def _json_inventory_reports_an_empty_cache_as_reached() -> None:
     with sandbox_tree({"inventory.json": _array_netlist(icache_arrays=False)}) as root:
         actual = rtl._inventory(root / "inventory.json")
     ensure(actual.arrays == ((rtl.WHOLE_CORE, 1, (4, 2, 2)), ("wt_dcache", 1, (3, 2, 1)),
-                             ("cva6_icache", 1, (0, 0, 0))),
+                             ("cva6_icache", 1, (0, 0, 0)), (rtl.OUTSIDE, 1, (1, 0, 1))),
            f"the instruction cache is reached once and holds no array: {actual.arrays!r}")
     lines = rtl._array_lines({"curated": actual})
-    ensure(lines[-1].split() == ["curated", "under", "cva6_icache", "(1)", "0", "0", "0"],
+    ensure(lines[-2].split() == ["curated", "under", "cva6_icache", "(1)", "0", "0", "0"],
            f"a reached cache with no arrays is reported as zeros, not absent: {lines!r}")
 
 
