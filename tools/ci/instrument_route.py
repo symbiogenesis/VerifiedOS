@@ -19,10 +19,11 @@ records why it ended. An exit of 124, or of 137 where the kernel recorded no OOM
 during the step, once the step has run for its limit, is the limit reached, and either
 exit sooner leaves its cause unread; a step the OOM killer acted on, or that ran short
 of disk, is the runner's want rather than the instrument's answer; and a compile that
-reached gallina's per-file timeout, read from an output line naming `TimeoutExpired`,
-met a limit and raised out of the run. Each of those is
-recorded `undecided`, never as a failure, because a failure moves a pin and a runner's
-limit is not evidence about one.
+reached gallina's per-file timeout and raised out of the step, as one does from
+`quickchick properties`, read from an output line naming `TimeoutExpired`, met a limit.
+Each of those is recorded `undecided`, never as a failure, because a failure moves a pin
+and a runner's limit is not evidence about one. `seed coq` prints no such line: it
+journals the mutant whose compile reached that timeout undecided and goes on.
 """
 
 import argparse
@@ -763,8 +764,8 @@ def classify(exit_code: int | None, limit: int, *, oom: Sequence[str] | None,
     """A step's verdict from how it ended.
 
     A limit reached, an OOM kill, a want of disk and a compile that reached gallina's
-    per-file timeout, read from an output line naming `TimeoutExpired`, are each
-    undecided, never a failure.
+    per-file timeout and raised out of the step, read from an output line naming
+    `TimeoutExpired`, are each undecided, never a failure.
     An exit of 124 or 137 is the limit reached once the step has run `seconds` up to its
     limit; sooner, `timeout` did not end it, and what did is unread, so it is undecided.
     `journal_complete` is given for a step a journal decides, a seed run, and such a step
@@ -793,8 +794,8 @@ def classify(exit_code: int | None, limit: int, *, oom: Sequence[str] | None,
                  else f"free disk fell to {lowest_free_disk} bytes, below {DISK_FLOOR}")
         return Outcome(UNDECIDED, f"the step ran short of disk: {shown}")
     if prover_timeout:
-        return Outcome(UNDECIDED, "a compile reached gallina's per-file timeout, which "
-                       "raises out of the run")
+        return Outcome(UNDECIDED, "a compile reached gallina's per-file timeout and "
+                       "raised out of the step")
     if journal_complete:
         return Outcome(COMPLETED, f"the run finished: its journal closes on every mutant "
                        f"it picked, and it exited {exit_code}")

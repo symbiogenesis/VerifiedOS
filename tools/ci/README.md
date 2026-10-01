@@ -467,10 +467,12 @@ the step, once the step has run for its limit, is the limit reached; either exit
 sooner is recorded undecided, its cause unread. A step that reaches its limit; that
 exits for want of disk or memory, as the sampler's free-disk figure, a line of its
 output reporting `No space left on device` or the kernel's OOM record shows; or that
-exits with a line of its output naming `TimeoutExpired`, read as a compile reaching
-gallina's per-file timeout, which raises out of the run, decides nothing and is
-recorded undecided, never as a failure. Each step's `timeout-minutes` is a backstop
-above its limit, and each job's is the sum of its step limits plus a 15-minute
+exits with a line of its output naming `TimeoutExpired` decides nothing and is
+recorded undecided, never as a failure. That line is read as a compile that reached
+gallina's per-file timeout and raised out of the step, as one does from
+`quickchick properties`; `seed coq` instead journals such a compile's mutant
+undecided and goes on to the next. Each step's `timeout-minutes` is a backstop above
+its limit, and each job's is the sum of its step limits plus a 15-minute
 staging-and-upload margin.
 
 **Staging.** Each job's staging and upload run under `always()`. As in Guest CI, a
