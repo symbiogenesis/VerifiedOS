@@ -924,16 +924,14 @@ Example the_entries_place_twenty_one_kinds_by_name :
    R-15-247s's two lists carries exactly the class that entry puts it on,
    read from the entry's own two lists and from no table over them. *)
 Example the_first_list_is_all_first_class :
-  all_of (fun k => match placed_by_name k with
-                   | Some c => class_eqb c FirstClass
-                   | None => false
-                   end) first_class_list = true := eq_refl.
+  all_of (fun k => if placed_by_name k is Some c
+                   then class_eqb c FirstClass
+                   else false) first_class_list = true := eq_refl.
 
 Example the_second_list_is_all_second_class :
-  all_of (fun k => match placed_by_name k with
-                   | Some c => class_eqb c SecondClass
-                   | None => false
-                   end) second_class_list = true := eq_refl.
+  all_of (fun k => if placed_by_name k is Some c
+                   then class_eqb c SecondClass
+                   else false) second_class_list = true := eq_refl.
 
 (* The three placements the register makes by name outside R-15-247s's own
    two lists, so that a rewrite of any one of the three moves a conversion
@@ -958,8 +956,7 @@ Example the_interpreter_body_is_in_neither_list :
    the register places by criterion, and it is the only such term here. *)
 Example one_kind_is_placed_by_criterion_and_not_by_name :
   any_of (fun k => kind_eqb k ApplicationPayload) named_kinds = false
-  /\ count_of (filter_of (fun k => match placed_by_name k with
-                                   | Some _ => false | None => true end)
+  /\ count_of (filter_of (fun k => if placed_by_name k is Some _ then false else true)
                          all_kinds) = 1 := conj eq_refl eq_refl.
 
 (* The entry's own sentence about where the criterion sends each half,
@@ -1052,10 +1049,8 @@ Record Plan : Type := {
 Definition Assignment : Type := nat -> MemClass.
 
 Definition register_place (p : Plan) (r : nat) : MemClass :=
-  match placed_by_name (p.(kind_of) r) with
-  | Some c => c
-  | None => criterion_class (p.(cycle_critical) r)
-  end.
+  if placed_by_name (p.(kind_of) r) is Some c then c
+  else criterion_class (p.(cycle_critical) r).
 
 Definition spec_assign (p : Plan) : Assignment := register_place p.
 
@@ -1221,10 +1216,7 @@ Qed.
    class whatever the criterion says. Ownership is no part of a latency
    criterion, and a placement by name is exactly the ownership reading. *)
 Definition by_name_payload_assign (c : MemClass) (p : Plan) : Assignment := fun r =>
-  match placed_by_name (p.(kind_of) r) with
-  | Some d => d
-  | None => c
-  end.
+  if placed_by_name (p.(kind_of) r) is Some d then d else c.
 
 (* Its twin: it agrees with the register on every kind the register names,
    so what refutes it is the criterion and not a mis-placement. *)
@@ -1284,10 +1276,7 @@ Definition demoting_placer (p : Plan) (threshold : nat) : Placer := fun o r =>
    ========================================================================= *)
 
 Definition fetch_constant (p : Plan) (c : MemClass) : nat :=
-  match c with
-  | FirstClass => p.(first_fetch)
-  | SecondClass => p.(second_fetch)
-  end.
+  if c is FirstClass then p.(first_fetch) else p.(second_fetch).
 
 Lemma fetch_constant_first :
   forall p : Plan, fetch_constant p FirstClass = p.(first_fetch).
@@ -4775,7 +4764,7 @@ Definition aggregate_demo_plan (latency second_slot : nat) (roster : list nat) :
      base_granules := fun r => r; length_granules_of := fun _ => 1;
      island_of := fun _ => 0; island_base := fun _ => 0; island_span := fun _ => 16;
      first_fetch := 10; second_fetch := latency; fetch_count := fun _ => 1;
-     slot_of := fun r => match r with 0 => 1 | S _ => second_slot end;
+     slot_of := fun r => if r is 0 then 1 else second_slot;
      placed := roster; origin_regions := nil; fixed_first_class := 0; first_budget := 0 |}.
 
 Definition aggregate_demo_frame : Frame bool :=
@@ -4899,16 +4888,16 @@ Record PowerVector : Type := {
 }.
 
 Definition session_derived (v : PowerVector) (d : nat) : bool :=
-  match v.(label_of) d with ImageDerived => false | SessionDerived => true end.
+  if v.(label_of) d is ImageDerived then false else true.
 
 Definition retained_here (v : PowerVector) (mode d : nat) : bool :=
-  match v.(power_of) mode d with DomainRetained => true | _ => false end.
+  if v.(power_of) mode d is DomainRetained then true else false.
 
 Definition on_here (v : PowerVector) (mode d : nat) : bool :=
-  match v.(power_of) mode d with DomainOn => true | _ => false end.
+  if v.(power_of) mode d is DomainOn then true else false.
 
 Definition off_here (v : PowerVector) (mode d : nat) : bool :=
-  match v.(power_of) mode d with DomainOff => true | _ => false end.
+  if v.(power_of) mode d is DomainOff then true else false.
 
 Definition resident_here (v : PowerVector) (mode d : nat) : bool :=
   v.(island_resident) mode (v.(domain_island) d).
@@ -5040,46 +5029,40 @@ Definition bound_labels (d : nat) : DomainLabel :=
   match d with 0 => ImageDerived | 1 => SessionDerived | _ => ImageDerived end.
 
 Definition bound_island_of_domain (d : nat) : nat :=
-  match d with 0 => 0 | _ => 1 end.
+  if d is 0 then 0 else 1.
 
 Definition resident_islands (mode island : nat) : bool :=
-  match mode with
-  | 0 => true
-  | _ => match island with 0 => true | _ => false end
-  end.
+  if mode is 0 then true
+  else if island is 0 then true else false.
 
 (* The vector composition emits: both image-derived domains kept, the one
    on the non-resident island RETAINED (R-15-190a's default on the second
    class), and the session-derived one ON where its island is resident and
    OFF where it is not (R-15-247t). *)
 Definition composed_vector_power (mode d : nat) : PowerState :=
-  match mode with
-  | 0 => DomainOn
-  | _ => match d with
-         | 0 => DomainOn
-         | 1 => DomainOff
-         | _ => DomainRetained
-         end
-  end.
+  if mode is 0 then DomainOn
+  else match d with
+       | 0 => DomainOn
+       | 1 => DomainOff
+       | _ => DomainRetained
+       end.
 
 (* The first seeded vector: the session-derived domain kept RETAINED in the
    mode that leaves its island non-resident, which is the plaintext KV
    cache riding a lock R-09-019 states as keys-not-resident. *)
 Definition retaining_vector_power (mode d : nat) : PowerState :=
-  match mode with 0 => DomainOn | _ => DomainRetained end.
+  if mode is 0 then DomainOn else DomainRetained.
 
 (* The second: the session-derived domain RETAINED in a mode its island
    *is* resident in, which the narrow check admits and the whole rule
    refuses (reading v3). *)
 Definition resident_retaining_vector_power (mode d : nat) : PowerState :=
-  match mode with
-  | 0 => match d with 1 => DomainRetained | _ => DomainOn end
-  | _ => match d with
-         | 0 => DomainOn
-         | 1 => DomainOff
-         | _ => DomainRetained
-         end
-  end.
+  if mode is 0 then (if d is 1 then DomainRetained else DomainOn)
+  else match d with
+       | 0 => DomainOn
+       | 1 => DomainOff
+       | _ => DomainRetained
+       end.
 
 Definition composed_vector : PowerVector := {|
   domain_count := 3;
@@ -5313,7 +5296,7 @@ Qed.
 
 (* Reading h5: the label's scope, read from the plan's own class field. *)
 Definition second_class_region (p : Plan) (r : nat) : bool :=
-  match p.(class_of) r with FirstClass => false | SecondClass => true end.
+  if p.(class_of) r is FirstClass then false else true.
 
 Definition second_class_domain (p : Plan) (h : DomainHoldings) (d : nat) : bool :=
   any_of (fun r => andb (held_by p h d r) (second_class_region p r))
@@ -5583,14 +5566,14 @@ Definition demo_holdings : DomainHoldings := {|
 Definition kv_cache_holdings : DomainHoldings := {|
   domain_lo := demo_domain_lo;
   domain_len := demo_domain_len;
-  from_image := fun r => match r with 7 => false | _ => demo_from_image r end;
+  from_image := fun r => if r is 7 then false else demo_from_image r;
   cap_store_granted := fun _ => false
 |}.
 
 Definition arenas_as_image_holdings : DomainHoldings := {|
   domain_lo := demo_domain_lo;
   domain_len := demo_domain_len;
-  from_image := fun r => match r with 1 => true | _ => demo_from_image r end;
+  from_image := fun r => if r is 1 then true else demo_from_image r;
   cap_store_granted := fun _ => false
 |}.
 
@@ -5598,14 +5581,14 @@ Definition cap_store_weights_holdings : DomainHoldings := {|
   domain_lo := demo_domain_lo;
   domain_len := demo_domain_len;
   from_image := demo_from_image;
-  cap_store_granted := fun r => match r with 5 => true | _ => false end
+  cap_store_granted := fun r => if r is 5 then true else false
 |}.
 
 (* And the holdings the coverage check reads: the arenas' domain declared
    with an empty extent, so that no domain holds the arenas (reading h6). *)
 Definition unheld_holdings : DomainHoldings := {|
   domain_lo := demo_domain_lo;
-  domain_len := fun d => match d with 1 => 0 | _ => demo_domain_len d end;
+  domain_len := fun d => if d is 1 then 0 else demo_domain_len d;
   from_image := demo_from_image;
   cap_store_granted := fun _ => false
 |}.
@@ -5614,7 +5597,7 @@ Definition unheld_holdings : DomainHoldings := {|
    leaves only first-class regions unheld (reading h5). *)
 Definition macro_unheld_holdings : DomainHoldings := {|
   domain_lo := demo_domain_lo;
-  domain_len := fun d => match d with 0 => 0 | _ => demo_domain_len d end;
+  domain_len := fun d => if d is 0 then 0 else demo_domain_len d;
   from_image := demo_from_image;
   cap_store_granted := fun _ => false
 |}.
@@ -5622,7 +5605,7 @@ Definition macro_unheld_holdings : DomainHoldings := {|
 (* An empty domain strictly inside the arenas still holds no byte of them.
    The ordinary endpoint inequalities alone would count it as a holding. *)
 Definition interior_empty_holdings : DomainHoldings := {|
-  domain_lo := fun d => match d with 1 => 2049 | _ => demo_domain_lo d end;
+  domain_lo := fun d => if d is 1 then 2049 else demo_domain_lo d;
   domain_len := unheld_holdings.(domain_len);
   from_image := demo_from_image;
   cap_store_granted := fun _ => false
@@ -5645,21 +5628,17 @@ Definition derived_demo_labels (d : nat) : DomainLabel :=
    arenas' domain OFF where island 1 is not resident, and the two
    image-derived domains RETAINED there (R-15-190a's default). *)
 Definition held_vector_power (mode d : nat) : PowerState :=
-  match mode with
-  | 0 => DomainOn
-  | _ => match d with 0 => DomainOn | 1 => DomainOff | _ => DomainRetained end
-  end.
+  if mode is 0 then DomainOn
+  else match d with 0 => DomainOn | 1 => DomainOff | _ => DomainRetained end.
 
 (* The arenas' domain declared image-derived and RETAINED where its island
    is not resident: the declaration a composition may get wrong. *)
 Definition mislabelled_labels (d : nat) : DomainLabel :=
-  match d with 0 => SessionDerived | _ => ImageDerived end.
+  if d is 0 then SessionDerived else ImageDerived.
 
 Definition all_retained_power (mode d : nat) : PowerState :=
-  match mode with
-  | 0 => DomainOn
-  | _ => match d with 0 => DomainOn | _ => DomainRetained end
-  end.
+  if mode is 0 then DomainOn
+  else if d is 0 then DomainOn else DomainRetained.
 
 Definition held_vector : PowerVector := {|
   domain_count := 4;
