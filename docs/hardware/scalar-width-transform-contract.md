@@ -378,20 +378,22 @@ each arm, and `7b2ae30d`'s removal of `perms_narrow`'s local `code` accounts for
 the curated arm's other. These counts are the tool's JSON inventory under 5.052
 and are not comparable with the XML figures R1 took under 5.032.
 
-The curated arm is not warning-free. Re-running the tool's own curated
-invocation over its own composed file list and staged sources keeps the output
-the tool discards on success: **277 lines beginning `%Warning`**, `WIDTHEXPAND`
-110, `SELRANGE` 79, `WIDTHTRUNC` 78, `UNSIGNED` 7, `CMPCONST` 2 and `ASCRANGE` 1.
-Of the `SELRANGE` lines, 77 select index 1 of a one-entry dimension in the issue,
-commit and realignment paths at one issue port, and 2 read 64 bits of the
-instruction cache's 4-bit user field; none reads `[127:64]` of the 65-bit
-memory form, the upper-half arms being deleted. The next
-layer's integer-view class has three elaborator predicates, each a floor of
-candidates: **20** selects of bits `[63:0]` or `[63:2]` of a 68-bit variable,
-at `branch_unit.sv` 8, `csr_regfile.sv` 5, `cva6.sv` 4, `ex_stage.sv` 2 and
-`issue_read_operands.sv` 1; **25**
-`WIDTHTRUNC` lines whose right side is 68 bits, and **33** `WIDTHEXPAND` lines
-whose target is 68 bits. The elaborator folds a select of a 68-bit member of a
-wider packed structure into a select of the structure, so reads such as the
-branch unit's `fu_data_i.operand_a[VLEN-1:0]` and the store unit's
-`lsu_ctrl_i.data[XLEN-1:0]` are found by reading and not by the first predicate.
+The curated arm at `a348c81e` was not warning-free. Re-running the tool's own
+curated invocation there over its own composed file list and staged sources kept
+the output the tool discards on success: **277 lines beginning `%Warning`**,
+`WIDTHEXPAND` 110, `SELRANGE` 79, `WIDTHTRUNC` 78, `UNSIGNED` 7, `CMPCONST` 2 and
+`ASCRANGE` 1. Of the `SELRANGE` lines, 77 selected index 1 of a one-entry
+dimension in the issue, commit and realignment paths at one issue port, and 2
+read 64 bits of the instruction cache's 4-bit user field; none read `[127:64]`
+of the 65-bit memory form, the upper-half arms being deleted. In that run the
+three elaborator predicates of the next layer's integer-view class, each a
+floor of candidates, found **20** selects of bits `[63:0]` or `[63:2]` of a
+68-bit variable, at `branch_unit.sv` 8, `csr_regfile.sv` 5, `cva6.sv` 4,
+`ex_stage.sv` 2 and `issue_read_operands.sv` 1; **25** `WIDTHTRUNC` lines whose
+right side is 68 bits, and **33** `WIDTHEXPAND` lines whose target is 68 bits.
+No recorded run has taken these counts again, at the refreshed pins or under
+Mocha's primitives, whose `prim_ram_1p` differs from the edition read there.
+The elaborator folds a select of a 68-bit member of a wider packed structure
+into a select of the structure, so reads such as the branch unit's
+`fu_data_i.operand_a[VLEN-1:0]` and the store unit's `lsu_ctrl_i.data[XLEN-1:0]`
+are found by reading and not by the first predicate.
