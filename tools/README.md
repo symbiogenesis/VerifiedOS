@@ -1122,11 +1122,15 @@ do: on one short of tkinter, which python.org's Windows installer makes optional
 Debian and Ubuntu ship apart, or of ensurepip, which Debian and Ubuntu ship apart too,
 it fails as short of that library rather than asking for a ban. ruff's TID253 refuses
 an import of a listed module only where it is unnested at module level, and with the
-module listed, PLC0415 no longer reports one in a class body. So the gate reads the same list and refuses an import of a
-listed module in a tracked module anywhere else outside a function body, in a class body
-or a module-level block such as `if __name__ == "__main__":`, unless an enclosing `if`
-reads `sys.platform`. Each is imported inside the function that uses it, behind a
-`sys.platform` check.
+module listed, PLC0415 no longer reports one in a class body. So the gate reads the
+same list and refuses an import of a listed module in a tracked module anywhere else
+outside a function body, in a class body or a module-level block such as
+`if __name__ == "__main__":`, unless an enclosing `if` compares `sys.platform` with
+string literals: by `==` or `!=` with one, by `in` or `not in` with a tuple, list or set
+of them, or through `startswith`, alone, under `not` or joined by `and` or `or`. An
+import beneath an `if` reading `sys.platform` any other way, which may take a branch on
+every platform, is refused naming its test. Each listed module the tools use is
+imported inside the function that uses it, behind a `sys.platform` check.
 
 The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
 addresses ty's recursive-JSON narrowing behavior, not

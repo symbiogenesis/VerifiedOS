@@ -96,7 +96,11 @@ both, and ruff's TID253 refuses an import of one only where it is unnested at mo
 level; with the module listed, PLC0415 no longer reports it in a class body. So the
 gate reads the same list and refuses an import of a listed module in any tracked module
 anywhere outside a function body, in a class body or a module-level block alike, unless
-an enclosing `if` reads `sys.platform`.
+an enclosing `if` compares `sys.platform` with string literals: by `==` or `!=` with
+one, by `in` or `not in` with a tuple, list or set of them, or through `startswith`,
+alone, under `not` or joined by `and` or `or`. An `if` reading `sys.platform` any other
+way may take a branch on every platform, and an import beneath it is refused naming
+its test.
 
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
@@ -837,41 +841,89 @@ def _banned_names(node: ast.Import | ast.ImportFrom, banned: frozenset[str]) -> 
             if alias.name != "*" and listed(member := f"{node.module}.{alias.name}")]
 
 
+def _is_platform(node: ast.AST) -> bool:
+    """Whether `node` is `sys.platform`, spelled as the attribute of the name `sys`. A
+    `platform` read from another object, or imported from `sys` and read bare, is not."""
+    return (isinstance(node, ast.Attribute) and node.attr == "platform"
+            and isinstance(node.value, ast.Name) and node.value.id == "sys")
+
+
 def _reads_platform(test: ast.expr) -> bool:
-    """Whether an `if` condition reads `sys.platform`, spelled as the attribute of the
-    name `sys`. A `platform` read from another object, or imported from `sys` and read
-    bare, is not that check."""
-    return any(isinstance(node, ast.Attribute) and node.attr == "platform"
-               and isinstance(node.value, ast.Name) and node.value.id == "sys"
-               for node in ast.walk(test))
+    """Whether an `if` condition reads `sys.platform` anywhere in it."""
+    return any(_is_platform(node) for node in ast.walk(test))
 
 
-def _platform_imports(tree: ast.Module, banned: frozenset[str]) -> list[tuple[int, list[str]]]:
-    """Each import of a module `banned` names, with its line and the modules it names,
-    that runs outside a function body with no enclosing `if` reading `sys.platform`.
+def _literal(node: ast.expr) -> bool:
+    """Whether `node` is a string literal."""
+    return isinstance(node, ast.Constant) and isinstance(node.value, str)
 
-    A function body runs only when the function is called, and an `if` that reads
-    `sys.platform` keeps both its branches off the platform its test excludes, so the
-    walk does not descend into either. Everything else it descends into: an unnested
-    module-level statement, a class body, and any module-level or class-level block."""
-    found: list[tuple[int, list[str]]] = []
-    stack: list[ast.AST] = [tree]
+
+def _literals(node: ast.expr, kinds: tuple[type[ast.Tuple | ast.List | ast.Set], ...]) -> bool:
+    """Whether `node` is a display of one of `kinds` holding string literals and nothing
+    else, at least one."""
+    return isinstance(node, kinds) and bool(node.elts) and all(map(_literal, node.elts))
+
+
+def _separates_platforms(test: ast.expr) -> bool:
+    """Whether an `if` condition is a check the scan admits as keeping each of its
+    branches to the platforms that take it: `sys.platform` compared by `==` or `!=` with
+    a string literal, or by `in` or `not in` with a tuple, list or set of them, or its
+    `startswith` called with a string literal or a tuple of them, alone, under `not`,
+    or joined by `and` or `or` with others of these. A test reading `sys.platform` any
+    other way, by truth value, through another call, or beside an operand that is not
+    such a check, may take a branch on every platform."""
+    match test:
+        case ast.UnaryOp(op=ast.Not(), operand=operand):
+            return _separates_platforms(operand)
+        case ast.BoolOp(values=values):
+            return all(_separates_platforms(value) for value in values)
+        case ast.Compare(left=left, ops=[ast.Eq() | ast.NotEq()], comparators=[right]):
+            return _is_platform(left) and _literal(right)
+        case ast.Compare(left=left, ops=[ast.In() | ast.NotIn()], comparators=[right]):
+            return _is_platform(left) and _literals(right, (ast.Tuple, ast.List, ast.Set))
+        case ast.Call(func=ast.Attribute(value=value, attr="startswith"), args=[prefix],
+                      keywords=[]):
+            return _is_platform(value) and (_literal(prefix) or _literals(prefix, (ast.Tuple,)))
+    return False
+
+
+def _platform_imports(tree: ast.Module, banned: frozenset[str]
+                      ) -> list[tuple[int, list[str], ast.expr | None]]:
+    """Each import of a module `banned` names that runs outside a function body with no
+    enclosing `if` whose test `_separates_platforms` admits, with its line, the modules
+    it names, and the nearest enclosing `if` test reading `sys.platform` another way, or
+    `None` where none does.
+
+    A function body runs only when the function is called, and an admitted test keeps
+    each of its branches to the platforms that take it, so the walk does not descend
+    into either. Everything else it descends into: an unnested module-level statement, a
+    class body, any module-level or class-level block, and both branches of an `if`
+    reading `sys.platform` in a form the scan does not admit, whose test it carries to
+    the imports beneath so their finding names the form."""
+    found: list[tuple[int, list[str], ast.expr | None]] = []
+    stack: list[tuple[ast.AST, ast.expr | None]] = [(tree, None)]
     while stack:
-        for child in ast.iter_child_nodes(stack.pop()):
-            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)) or (
-                    isinstance(child, ast.If) and _reads_platform(child.test)):
+        node, unadmitted = stack.pop()
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
                 continue
-            if isinstance(child, (ast.Import, ast.ImportFrom)):
+            if isinstance(child, ast.If) and _reads_platform(child.test):
+                if _separates_platforms(child.test):
+                    continue
+                stack.append((child, child.test))
+            elif isinstance(child, (ast.Import, ast.ImportFrom)):
                 if names := _banned_names(child, banned):
-                    found.append((child.lineno, names))
+                    found.append((child.lineno, names, unadmitted))
             else:
-                stack.append(child)
-    return sorted(found)
+                stack.append((child, unadmitted))
+    return sorted(found, key=lambda site: (site[0], site[1]))
 
 
 def _run_imports(rep: Reporter, root: Path, tracked: frozenset[str]) -> None:
     """Every tracked module, against an import of a module `ruff.toml` bans at module
-    level anywhere outside a function body with no enclosing `if` reading `sys.platform`.
+    level anywhere outside a function body with no enclosing `if` whose test
+    `_separates_platforms` admits. An import beneath a test that reads `sys.platform`
+    another way is refused naming that test.
 
     TID253 refuses such an import only where it is unnested at module level, and with
     the module banned PLC0415 no longer reports it in a class body; neither reads a
@@ -900,9 +952,12 @@ def _run_imports(rep: Reporter, root: Path, tracked: frozenset[str]) -> None:
         except (SyntaxError, ValueError) as err:
             findings.append(f"{module} cannot be parsed: {err}")
             continue
-        findings.extend(f"{module}:{line} imports {', '.join(names)} outside a function "
-                        "body, behind no sys.platform check"
-                        for line, names in _platform_imports(tree, banned))
+        findings.extend(
+            f"{module}:{line} imports {', '.join(names)} outside a function body, behind "
+            + ("no sys.platform check" if test is None else
+               f"`{ast.unparse(test)}`, a sys.platform test the scan does not admit as "
+               "separating platforms")
+            for line, names, test in _platform_imports(tree, banned))
     rep.report("imports", "import(s) of a module ruff.toml bans at module level outside a "
                "function body:", findings,
                "every import of a module ruff.toml bans at module level sits in a function "

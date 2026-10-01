@@ -117,7 +117,7 @@ mypy-init-return = false
 # Ubuntu ship apart too, it fails as short of that library rather than asking for a ban.
 # TID253 refuses an unnested module-level import of a listed module, and
 # `vos/cli/typecheck.py` reads this list and refuses one anywhere else outside a function
-# body unless an enclosing `if` reads `sys.platform`.
+# body unless an enclosing `if` compares `sys.platform` with string literals.
 banned-module-level-imports = [
     # Windows lacks these.
     "_curses", "_curses_panel", "_dbm", "_gdbm", "_posixsubprocess", "asyncio.unix_events",
