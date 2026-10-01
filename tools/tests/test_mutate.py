@@ -16,7 +16,7 @@ mutable under another name after a definition and not at all after a proof.
 import re
 
 from tests.harness import Case, ensure
-from vos import mutate, proofs
+from vos import mutate
 
 
 def _sites(text: str, lane: str, operator: str, **kw: object) -> list[mutate.Mutant]:
@@ -144,9 +144,14 @@ def _the_shared_decoration_grammar_keys_the_region() -> None:
 def _every_defining_keyword_opens_its_own_region() -> None:
     """A keyword missing from the region table left its sentence the tail of the region
     above: a `Variant` after a definition was mutable under the definition's name, and a
-    rewrite of an `Inductive` as a `Variant` moved a region with nothing said."""
+    rewrite of an `Inductive` as a `Variant` moved a region with nothing said. The
+    keywords are spelled here rather than read from the table under test, so one dropped
+    from the table is a case that fails rather than a case that goes with it."""
     first = "Definition f (n : nat) : nat := n + 1.\n"
-    for keyword in (*proofs.DECLARATIONS, "Let"):
+    for keyword in ("Definition", "Theorem", "Lemma", "Fact", "Remark", "Corollary",
+                    "Proposition", "Property", "Example", "Instance", "Fixpoint",
+                    "CoFixpoint", "Inductive", "CoInductive", "Variant", "Record",
+                    "Structure", "Let"):
         text = first + f"{keyword} g : nat := 2.\n"
         keyed = [(r.keyword, r.name) for r in mutate.regions(text, mutate.COQ)]
         ensure(keyed == [("Definition", "f"), (keyword, "g")],

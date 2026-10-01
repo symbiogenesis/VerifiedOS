@@ -164,6 +164,18 @@ def _names_read_the_shared_tables_and_decorations() -> None:
             "Fail Definition e := tt tt.\nSucceed#[local]Lemma s : True.\nProof. exact I. Qed.\n")
     got = proofcites.names(text)
     ensure(got == ["p", "q", "d", "f", "t", "l", "b"], f"the names read are {got!r}")
+    # every vernacular the shared table of declarations names, spelled here rather than
+    # read from the table under test, so one dropped from the table is a name that goes
+    # missing
+    got = proofcites.names("Variant v := A | B.\nStructure R := { a : nat }.\n"
+                           "CoInductive s := C : nat -> s -> s.\n"
+                           "CoFixpoint z : s := C 0 z.\nRecord Q := { q : nat }.\n"
+                           "Inductive I := J.\nFixpoint g (n : nat) : nat := n.\n"
+                           "Instance i : Inhabited nat := {}.\nExample e : True := I.\n"
+                           "Fact a : True.\nRemark r : True.\nCorollary c : True.\n"
+                           "Proposition o : True.\nTheorem h : True.\n")
+    ensure(got == ["v", "R", "s", "z", "Q", "I", "g", "i", "e", "a", "r", "c", "o", "h"],
+           f"the names every defining vernacular binds are {got!r}")
 
 
 def _a_claim_reads_the_shared_tables_and_decorations() -> None:
