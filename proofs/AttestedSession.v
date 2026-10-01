@@ -181,7 +181,7 @@ Definition issue_local (p : AttestationProfile) (cp : CredentialHandles.Credenti
       let alias := if challenge_unit_scope q
                    then aliases (context_origin c) (context_unit c) else None in
       if challenge_unit_scope q &&
-         match alias with None => true | Some _ => false end then None else
+         (if alias is None then true else false) then None else
       match CredentialHandles.authorize_and_charge cp credential server request with
       | None => None
       | Some charged => Some
@@ -204,8 +204,8 @@ Proof.
   destruct (profile_bounded p && context_usable c && local_request_matches p c q r); [|discriminate].
   destruct (measured (context_unit c)) as [generation|] eqn:Hg; [|discriminate].
   destruct (challenge_unit_scope q &&
-    match if challenge_unit_scope q then aliases (context_origin c) (context_unit c) else None
-    with None => true | Some _ => false end); [discriminate|].
+    (if (if challenge_unit_scope q then aliases (context_origin c) (context_unit c) else None)
+     is None then true else false)); [discriminate|].
   destruct (CredentialHandles.authorize_and_charge cp cr s r) as [next|] eqn:Ha;
     [|discriminate].
   inversion H; subst. repeat split; assumption || reflexivity.
@@ -234,26 +234,22 @@ Record Connection : Type := {
 }.
 
 Definition with_phase (c : Connection) (ph : Phase) : Connection :=
-  {| protected_context := protected_context c; phase := ph;
-     pending_challenge := pending_challenge c; pending_deadline := pending_deadline c;
-     used_nonces := used_nonces c; used_contexts := used_contexts c |}.
+  {| c with phase := ph |}.
 
 Definition begin_appraisal (profile : AttestationProfile) (policy : AppraisalPolicy)
     (c : Connection) (nonce now deadline : nat) : Connection :=
-  match phase c with
-  | Fresh =>
+  if phase c is Fresh then
     if profile_bounded profile && context_usable (protected_context c) && (0 <? nonce) && (now <? deadline) &&
        negb (existsb (Nat.eqb nonce) (used_nonces c)) &&
        negb (existsb (Nat.eqb (context_id (protected_context c))) (used_contexts c)) then
-    {| protected_context := protected_context c; phase := Waiting;
+    {| c with phase := Waiting;
        pending_challenge := {| challenge_nonce := nonce;
          challenge_origin := context_origin (protected_context c);
          challenge_unit_scope := unit_policy policy; challenge_domain := protocol_domain profile |};
        pending_deadline := deadline; used_nonces := nonce :: used_nonces c;
        used_contexts := context_id (protected_context c) :: used_contexts c |}
     else with_phase c Closed
-  | _ => c
-  end.
+  else c.
 
 Definition appraisal_checks (profile : AttestationProfile) (policy : AppraisalPolicy)
     (authentic : Evidence -> bool) (c : Connection) (now wire_bytes : nat) (q : Evidence) : bool :=
@@ -271,19 +267,16 @@ Definition appraisal_checks (profile : AttestationProfile) (policy : AppraisalPo
 Definition decide (profile : AttestationProfile) (policy : AppraisalPolicy)
     (authentic : Evidence -> bool) (c : Connection) (now wire_bytes : nat)
     (received : option Evidence) : Connection * bool :=
-  match phase c with
-  | Waiting =>
-    match received with
-    | Some q => if appraisal_checks profile policy authentic c now wire_bytes q
-                then (with_phase c Open, true) else (with_phase c Closed, false)
-    | None => (with_phase c Closed, false)
-    end
-  | _ => (with_phase c Closed, false)
-  end.
+  if phase c is Waiting then
+    if received is Some q then
+      if appraisal_checks profile policy authentic c now wire_bytes q
+      then (with_phase c Open, true) else (with_phase c Closed, false)
+    else (with_phase c Closed, false)
+  else (with_phase c Closed, false).
 
 Theorem absent_evidence_never_authenticates : forall p policy auth c now size,
   snd (decide p policy auth c now size None) = false.
-Proof. intros. unfold decide. destruct (phase c); reflexivity. Qed.
+Proof. intros p policy auth c now size. unfold decide. destruct (phase c); reflexivity. Qed.
 
 (* One bounded fetch follows authentication. The reference-manifest and
    object-identity verifiers are protected adapter results, not request
@@ -292,13 +285,11 @@ Definition fetch_one (profile : AttestationProfile) (c : Connection)
     (identity_bytes manifest_bytes object_bytes : nat)
     (manifest_authenticated object_matches : bool) : Connection * bool :=
   (with_phase c Closed,
-   match phase c with
-   | Open => profile_bounded profile &&
+   if phase c is Open then profile_bounded profile &&
       (identity_bytes <=? request_bound profile) &&
       (manifest_bytes <=? manifest_bound profile) &&
       (object_bytes <=? object_bound profile) && manifest_authenticated && object_matches
-   | _ => false
-   end).
+   else false).
 
 Theorem fetch_requires_authentication_bounds_and_verified_content :
   forall profile c id_bytes manifest_bytes object_bytes manifest_auth object_auth,
@@ -324,13 +315,11 @@ Proof. reflexivity. Qed.
 Definition reconnect (c : Connection) (new_context : ProtectedContext) : Connection :=
   if (context_id new_context =? context_id (protected_context c)) ||
      existsb (Nat.eqb (context_id new_context)) (used_contexts c) then with_phase c Closed
-  else {| protected_context := new_context; phase := Fresh;
-          pending_challenge := pending_challenge c; pending_deadline := 0;
-          used_nonces := used_nonces c; used_contexts := used_contexts c |}.
+  else {| c with protected_context := new_context; phase := Fresh; pending_deadline := 0 |}.
 
 Theorem reconnecting_keeps_challenge_history : forall c new_context,
   used_nonces (reconnect c new_context) = used_nonces c.
-Proof. intros. unfold reconnect. destruct ((context_id new_context =? context_id (protected_context c)) || existsb (Nat.eqb (context_id new_context)) (used_contexts c)); reflexivity. Qed.
+Proof. intros c new_context. unfold reconnect. destruct ((context_id new_context =? context_id (protected_context c)) || existsb (Nat.eqb (context_id new_context)) (used_contexts c)); reflexivity. Qed.
 
 Theorem reconnecting_the_same_session_cannot_reopen_it : forall c new_context,
   context_id new_context = context_id (protected_context c) ->
@@ -341,7 +330,7 @@ Theorem every_decision_consumes_the_waiting_attempt : forall p policy auth c now
   phase (fst (decide p policy auth c now size q)) <> Waiting /\
   phase (fst (decide p policy auth c now size q)) <> Fresh.
 Proof.
-  intros. unfold decide. destruct (phase c); try (cbn; split; discriminate).
+  intros p policy auth c now size q. unfold decide. destruct (phase c); try (cbn; split; discriminate).
   destruct q as [q|]; [|cbn; split; discriminate].
   destruct (appraisal_checks p policy auth c now size q); cbn; split; discriminate.
 Qed.
@@ -349,14 +338,14 @@ Qed.
 Theorem authentication_cannot_run_twice_on_one_connection : forall p policy auth c t n q t2 n2 q2,
   snd (decide p policy auth (fst (decide p policy auth c t n q)) t2 n2 q2) = false.
 Proof.
-  intros. unfold decide at 2. destruct (phase c); try reflexivity.
+  intros p policy auth c t n q t2 n2 q2. unfold decide at 2. destruct (phase c); try reflexivity.
   destruct q as [q|]; [|reflexivity].
   destruct (appraisal_checks p policy auth c t n q); reflexivity.
 Qed.
 
 Theorem a_used_context_cannot_begin_another_lifecycle : forall p policy c nonce now deadline,
   phase c <> Fresh -> begin_appraisal p policy c nonce now deadline = c.
-Proof. intros. unfold begin_appraisal. destruct (phase c); contradiction || reflexivity. Qed.
+Proof. intros p policy c nonce now deadline H. unfold begin_appraisal. destruct (phase c); contradiction || reflexivity. Qed.
 
 Theorem a_spent_context_is_refused_even_in_a_fresh_record : forall p policy c nonce now deadline,
   phase c = Fresh -> In (context_id (protected_context c)) (used_contexts c) ->
@@ -433,8 +422,8 @@ Proof.
   apply Nat.eqb_eq in Horigin.
   destruct (measured (context_unit c)) as [generation|] eqn:Hg; [|discriminate].
   destruct (challenge_unit_scope q &&
-    match if challenge_unit_scope q then aliases (context_origin c) (context_unit c) else None
-    with None => true | Some _ => false end); [discriminate|].
+    (if (if challenge_unit_scope q then aliases (context_origin c) (context_unit c) else None)
+     is None then true else false)); [discriminate|].
   destruct (CredentialHandles.authorize_and_charge cp credential server request) as [next|];
     [|discriminate].
   inversion H; subst event. cbn. repeat split; assumption || reflexivity.
@@ -555,7 +544,7 @@ Theorem forwarding_preserves_the_same_appraisal : forall route profile policy au
 Proof. reflexivity. Qed.
 
 Definition records_open (c : Connection) (holders : list nat) (sender : nat) : bool :=
-  match phase c with Open => existsb (Nat.eqb sender) holders | _ => false end.
+  if phase c is Open then existsb (Nat.eqb sender) holders else false.
 
 Theorem forwarding_does_not_grant_record_authority : forall c holders sender,
   ~ In sender holders -> records_open c holders sender = false.
@@ -754,7 +743,7 @@ Proof. repeat split; reflexivity. Qed.
 Theorem reconnecting_preserves_all_spent_contexts : forall c new_context,
   used_contexts (reconnect c new_context) = used_contexts c.
 Proof.
-  intros. unfold reconnect. destruct ((context_id new_context =? context_id (protected_context c)) ||
+  intros c new_context. unfold reconnect. destruct ((context_id new_context =? context_id (protected_context c)) ||
     existsb (Nat.eqb (context_id new_context)) (used_contexts c)); reflexivity.
 Qed.
 
@@ -796,7 +785,7 @@ Qed.
 (* A broken issuer taking a caller's exporter creates signed evidence from
    B that matches A's session. Such an event violates LocalContextIntegrity. *)
 Definition caller_exporter_event : Issuance :=
-  {| issued_evidence := issued_evidence event_a; issuer_context := context_b |}.
+  {| event_a with issuer_context := context_b |}.
 
 Example a_caller_supplied_exporter_would_accept_substitution :
   snd (decide example_profile software_policy (ledger_authentic [caller_exporter_event])
