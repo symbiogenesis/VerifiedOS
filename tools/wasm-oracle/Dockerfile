@@ -32,10 +32,10 @@ USER rocq
 # CPP 2025) and takes released MetaRocq 1.5.1, which is both halves of what a
 # source pin and a compat patch used to buy here. The release is the whole
 # environment: no clone, no checkout, no patch.
-# The snapshot is pending the full compiler build and Wasm smoke checks.
-# Once exported, it fixes OCaml 5.1.1 and every package version. These arguments
-# name the switch; changing the compiler also requires updating the snapshot.
-ARG OCAML_VERSION=5.1.1
+# The snapshot fixes OCaml 4.14.4 and every package version; the image's own OCaml
+# 4.14.2 only runs opam. These arguments name the switch; changing the compiler also
+# requires exporting the snapshot again.
+ARG OCAML_VERSION=4.14.4
 ARG TOOLCHAIN_SWITCH=verifiedos-certirocq-0.9.1-ocaml-${OCAML_VERSION}
 COPY --chown=rocq:rocq opam/certirocq.lock /tmp/certirocq.lock
 RUN opam repo list --all | grep -q rocq-released \

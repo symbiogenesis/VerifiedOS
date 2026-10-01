@@ -445,8 +445,11 @@ _GALLINA = "tools/vos/gallina.py"
 _ORACLE_ROCQ = Owner("assign", _GALLINA, "ORACLE_ROCQ_VERSION")
 _ORACLE_OCAML = Owner("assign", _GALLINA, "ORACLE_OCAML_VERSION")
 _FLOOR = Owner("assign", "tools/ty.toml", "python-version")
-_MENHIR = tuple(_snap(lock, package) for lock in ("sail", "quickchick")
+_MENHIR = tuple(_snap(lock, package) for lock in ("sail", "quickchick", "certirocq")
                 for package in ("menhir", "menhirLib", "menhirSdk", "menhirCST", "menhirGLR"))
+# The snapshots whose switches build on OCaml 5.4.1, every one but the CertiRocq oracle's.
+_OCAML_5 = tuple(_snap(lock, "ocaml-base-compiler")
+                 for lock in ("sail", "rocq", "quickchick", "rupicola"))
 
 # The rows K-118 holds, each release against the artifact fixing it. A lock's release
 # is the one that installs; ty's and ruff's manifest pins are K-67's, and uv's locked
@@ -512,14 +515,17 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
              (_snap("rupicola", "rocq-core"), _snap("rupicola", "rocq-runtime"))),
         Site("the QuickChick and oracle switches' edition",
              rf"{_V} in the QuickChick and CertiRocq oracle switches",
-             (_snap("quickchick", "rocq-core"), _snap("quickchick", "rocq-runtime"), _ORACLE_ROCQ)),
+             (_snap("quickchick", "rocq-core"), _snap("quickchick", "rocq-runtime"),
+              _snap("certirocq", "rocq-core"), _snap("certirocq", "rocq-runtime"),
+              _ORACLE_ROCQ)),
         Site("the tags read", _TAGS_READ, (Owner("opam-any", SNAPSHOTS, "rocq-core"), _ORACLE_ROCQ),
              each=_TAG)),
         residues=(Residue("the LGPL version 2.1 text", "the licence's own version"),)),
     DevTool("OCaml compiler", (
-        Site("the exported snapshots' compiler", rf"{_V} in the exported snapshots",
-             (Owner("opam-every", SNAPSHOTS, "ocaml-base-compiler"),)),
-        Site("the oracle switch's compiler", rf"{_V} in the CertiRocq oracle switch", (_ORACLE_OCAML,)),
+        Site("the 5.4.1 snapshots' compiler",
+             rf"{_V} in the Sail, proof, QuickChick and lowering snapshots", _OCAML_5),
+        Site("the oracle switch's compiler", rf"{_V} in the CertiRocq oracle switch",
+             (_ORACLE_OCAML, _snap("certirocq", "ocaml-base-compiler"))),
         Site("the tags read", _TAGS_READ,
              (Owner("opam-every", SNAPSHOTS, "ocaml-base-compiler"), _ORACLE_OCAML), each=_TAG)),
         residues=(Residue("under LGPL version 2.1", "the licence's own version"),
@@ -532,8 +538,11 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
         Site("the release in every switch", rf"{_V} in every switch",
              (Owner("opam-every", SNAPSHOTS, "zarith"),)),
         Site("the tag read", rf"The `release-{_V}` tag's", (Owner("opam-every", SNAPSHOTS, "zarith"),)))),
-    DevTool("Menhir", (Site("the Sail and QuickChick snapshots' release",
-                            rf"Sail and QuickChick snapshots at {_V},", _MENHIR),)),
+    DevTool("Menhir", (Site("the Sail, QuickChick and CertiRocq snapshots' release",
+                            rf"Sail, QuickChick and CertiRocq snapshots at {_V},", _MENHIR),)),
+    DevTool("CompCert, in the oracle's switch", (
+        Site("the CertiRocq snapshot's release", rf"version \*\*{_V}\*\* in \[the CertiRocq",
+             (_snap("certirocq", "coq-compcert"),)),)),
     DevTool("std++", (
         Site("the proof snapshot's release",
              rf"\[the proof snapshot\]\(tools/opam/rocq\.lock\) at {_V}\.",
@@ -543,10 +552,6 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
         Site("the Sail snapshot's release", rf"{_V} in \[the Sail snapshot\]", (_snap("sail", "sail"),)),)),
 )
 
-# The oracle switch's snapshot, whose export would own the CompCert release its row and
-# the paragraphs state.
-_ORACLE_SNAPSHOT = f"{SNAPSHOTS}certirocq.lock"
-
 # The rows K-118 does not hold, each with why; an action row, `owner/repo`, is K-115's
 # by its shape and needs no entry.
 DEV_TOOL_DECLARED: dict[str, Declared] = {
@@ -555,9 +560,6 @@ DEV_TOOL_DECLARED: dict[str, Declared] = {
     "Verilator": Declared("K-97 holds it against rtl.py's VERILATOR_PIN"),
     "GitHub CLI": Declared("the runner image supplies it, so no artifact here fixes its "
                            "release; the row names the reading a later image is compared with"),
-    "CompCert, in the oracle's switch": Declared(
-        "the oracle switch's snapshot is not exported, so no artifact here fixes the "
-        "release its solver chose", pending=_ORACLE_SNAPSHOT),
     "`ccache`": Declared("a distribution's build accelerator, stated with no release",
                          releases=False),
     "llama.cpp and `llama-bench`": Declared(
@@ -588,7 +590,12 @@ DEV_TOOL_PROSE = DevTool("the section's paragraphs", (
     Site("lowering snapshot's compiler", rf"fixes OCaml {_V}, Rocq",
          (_snap("rupicola", "ocaml-base-compiler"),)),
     Site("lowering snapshot's prover", rf"fixes OCaml [^,]+, Rocq {_V}, and",
-         (_snap("rupicola", "rocq-core"),))),
+         (_snap("rupicola", "rocq-core"),)),
+    Site("CompCert's release in the oracle snapshot",
+         rf"\(tools/opam/certirocq\.lock\) installs {_V} from",
+         (_snap("certirocq", "coq-compcert"),)),
+    Site("CompCert's reviewed licence release", rf"The reviewed {_V} `LICENSE`, blob",
+         (_snap("certirocq", "coq-compcert"),))),
     residues=(
         Residue("state LGPL version 2.1", "Stdlib's licence version"),
         Residue("the 0.20.2 release's read on",
@@ -599,12 +606,8 @@ DEV_TOOL_PROSE = DevTool("the section's paragraphs", (
                 "coq-simple-io's upper bound, a constraint and not a release"),
         Residue("`coq-compcert >= 3.17`",
                 "CertiRocq's lower bound, a constraint and not a release"),
-        Residue("the current resolution installs 3.18",
-                "the release the oracle switch's solver chose, which no exported snapshot "
-                "fixes yet", pending=_ORACLE_SNAPSHOT),
-        Residue("The reviewed 3.18 `LICENSE` is byte-identical to 3.17",
-                "that same unowned release's reading and the edition it was compared with",
-                pending=_ORACLE_SNAPSHOT),
+        Residue("is byte-identical to 3.17.",
+                "the earlier edition CompCert's licence was compared with"),
     ))
 
 # Every id this repository writes beside an upstream's name that is not that

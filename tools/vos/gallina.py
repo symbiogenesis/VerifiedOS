@@ -44,13 +44,14 @@ VECTOR_SWITCH = env.ROCQ_SWITCH
 VECTOR_ROCQ_VERSION = env.ROCQ_VERSION
 
 # The CertiRocq oracle's switch, where the Wasm oracle compiles: CertiRocq and its Wasm
-# library cap Rocq below 9.2.
+# library cap Rocq below 9.2. tools/opam/certirocq.lock is its snapshot.
 ORACLE_ROCQ_VERSION = "9.1.1"
 CERTIROCQ_VERSION = "0.9.1+9.1"
-# CertiRocq's bootstrap C wrapper collides with the inline Hd_val introduced in
-# OCaml 5.2; the wrapper compiles with the 5.1.1 headers.
-# The full CertiRocq bootstrap and Wasm smoke checks remain pending.
-ORACLE_OCAML_VERSION = "5.1.1"
+# The first candidate below, declared: CertiRocq's native certirocqc bootstrap includes
+# its runtime's Hd_val macro beside OCaml's runtime header, which at 4.14.4 defines the
+# same macro token for token, where OCaml 5.2 made it an inline function the macro
+# collides with. The release builds, bootstraps and passes the Wasm oracle's checks there.
+ORACLE_OCAML_VERSION = "4.14.4"
 ORACLE_SWITCH = f"verifiedos-certirocq-0.9.1-ocaml-{ORACLE_OCAML_VERSION}"
 
 # The candidates for that switch, in the order they are tried: the released CertiRocq,
