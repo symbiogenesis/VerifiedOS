@@ -601,9 +601,9 @@ def cmd_coq(args: argparse.Namespace) -> int:
     than its draws is walked whole by the walk harness beside it. A mutant both miss is
     a site neither the proofs nor either kind of generation decides anything about.
 
-    Under QuickChick the run compiles `Properties.v`'s `Require` closure and nothing
-    else, what the walk harness Requires lying inside it, for its baseline and for each
-    mutant's dependents, and refuses a subject that is not a proof source of that
+    Under QuickChick the run compiles `Properties.v`'s `Require` closure and the walk
+    harness, whose Requires lie inside it, and nothing else, for its baseline and for
+    each mutant's dependents, and refuses a subject that is not a proof source of that
     closure, whose mutation no property reads. The enumerative mode compiles every proof
     source and mutates any of them. A mutant only a proof outside that closure refuses
     is not killed by the prover in this mode; the enumerative mode, which compiles every

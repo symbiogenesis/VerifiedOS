@@ -11,10 +11,10 @@ Gallina mutant earns is this tool's, and is held here over a staged miniature of
 rig whose prover answers from a table: which harness decides it, in which order, and
 what a harness that will not build scores.
 
-Also pinned, with a stub prover, is what `seed coq --quickchick` compiles: `Properties.v`'s
-`Require` closure alone, what the walk harness Requires lying inside it, for its baseline
-and for each mutant's dependents, a subject outside that closure refused before any
-prover is asked.
+Also pinned, with a stub prover, is what `seed coq --quickchick` compiles:
+`Properties.v`'s `Require` closure and the walk harness, whose Requires lie inside it,
+and nothing else, for its baseline and for each mutant's dependents, a subject outside
+that closure refused before any prover is asked.
 """
 
 import argparse
