@@ -304,9 +304,10 @@ def _provision_uses_fresh_prefix() -> None:
 
 
 def _runner_answers_no_question() -> None:
-    """Every command the campaign runs through its runner, the baseline `opam list`,
-    `opam var` and the `opam exec` around each build among them, reads no standard input
-    and inherits no answer from the caller's environment, in any case the caller names
+    """Every command provisioning runs through the campaign's runner, and the baseline
+    listing qualification shares with it, the baseline `opam list`, `opam var` and the
+    `opam exec` around each build among them, reads no standard input and inherits no
+    answer from the caller's environment, in any case the caller names
     it, so a format upgrade opam would ask about is declined rather than left on a
     prompt the caller cannot see or answered by the caller's settings; the rest of the
     environment, the root among it, is passed on."""
