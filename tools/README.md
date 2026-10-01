@@ -1123,14 +1123,22 @@ Debian and Ubuntu ship apart, or of ensurepip, which Debian and Ubuntu ship apar
 it fails as short of that library rather than asking for a ban. ruff's TID253 refuses
 an import of a listed module only where it is unnested at module level, and with the
 module listed, PLC0415 no longer reports one in a class body. So the gate reads the
-same list and refuses an import of a listed module in a tracked module anywhere else
+same list and holds an import of a listed module in a tracked module anywhere else
 outside a function body, in a class body or a module-level block such as
-`if __name__ == "__main__":`, unless an enclosing `if` compares `sys.platform` with
-string literals: by `==` or `!=` with one, by `in` or `not in` with a tuple, list or set
-of them, or through `startswith`, alone, under `not` or joined by `and` or `or`. An
-import beneath an `if` reading `sys.platform` any other way, which may take a branch on
-every platform, is refused naming its test. Each listed module the tools use is
-imported inside the function that uses it, behind a `sys.platform` check.
+`if __name__ == "__main__":`, to the platforms, of linux and win32, that reach it. An
+enclosing `if` that compares `sys.platform` with string literals, by `==` or `!=` with
+one, by `in` or `not in` with a tuple, list or set of them, or through `startswith`,
+alone, under `not` or joined by `and` or `or`, sends its body the platforms on which its
+test holds and its `else` the rest; every other block, an `if` reading `sys.platform`
+any other way among them, passes on the platforms that reach it. An import both
+platforms reach is refused, naming the nearest enclosing test reading `sys.platform`.
+That holds that no listed module is imported on both platforms, not which one has it,
+so on each lane an import the running platform reaches is refused as well where the
+interpreter cannot find the top-level module it names, as Windows cannot find `fcntl`;
+a submodule of a package the interpreter finds, such as `asyncio.unix_events` on
+Windows, and a module it finds but cannot import, such as `pty` there, are not caught
+this way. Each listed module the tools use is imported inside the function that uses
+it, behind a `sys.platform` check.
 
 The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
 addresses ty's recursive-JSON narrowing behavior, not

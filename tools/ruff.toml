@@ -117,7 +117,12 @@ mypy-init-return = false
 # Ubuntu ship apart too, it fails as short of that library rather than asking for a ban.
 # TID253 refuses an unnested module-level import of a listed module, and
 # `vos/cli/typecheck.py` reads this list and refuses one anywhere else outside a function
-# body unless an enclosing `if` compares `sys.platform` with string literals.
+# body that both platforms reach, reading each enclosing `if` that compares `sys.platform`
+# with string literals for the platforms each branch takes. That holds that no listed
+# module is imported on both platforms, not which one has it, so on each lane it also
+# refuses one the running platform reaches whose top-level module the interpreter cannot
+# find, as Windows cannot find `fcntl`; a submodule such as `asyncio.unix_events` or a
+# module found that fails to import, such as `pty` on Windows, is not caught that way.
 banned-module-level-imports = [
     # Windows lacks these.
     "_curses", "_curses_panel", "_dbm", "_gdbm", "_posixsubprocess", "asyncio.unix_events",
