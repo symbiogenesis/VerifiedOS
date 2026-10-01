@@ -1490,6 +1490,25 @@ def _k116_consumed_bindings_are_held_whole_and_fail_closed() -> None:
            "K-116 holds no binding inside an artifact K-88 already holds")
 
 
+def _k116_moved_gitlink_is_quoted_apart_from_its_binding() -> None:
+    # A binding off its gitlink is quoted beside it at twelve digits, or as far as the
+    # two must run to differ, so a gitlink sharing the binding's first twelve digits and
+    # differing in its last prints two distinct ids.
+    core = _K115_SHA
+    registry = json.dumps({"schema": "vos.rtl-width-transforms/1", "pin": core})
+    last = f"{core[:-1]}8"
+    middle = f"{core[:19]}f{core[20:]}"
+    for moved, stated, carried in (
+            (last, core, last),
+            (middle, core[:20], middle[:20]),
+            ("f" * 40, "0123456789ab", "ffffffffffff")):
+        found = _k116({rtl_width.REGISTRY: registry}, {rtl_width.CORE: moved})
+        quoted = (f"width-transform registry pin is {stated} and the index carries "
+                  f"{rtl_width.CORE} at {carried};")
+        ensure(len(found) == 1 and quoted in found[0],
+               f"a moved gitlink is quoted apart from its binding ({quoted}): {found!r}")
+
+
 def _k88_device_regs(files: dict[str, str], gitlinks: dict[str, str],
                      edit: str | None = None) -> list[str]:
     """The device-register row's findings, its header edited after staging if asked."""
@@ -1557,6 +1576,25 @@ def _k88_device_register_stamp_is_held_whole_and_fail_closed() -> None:
         found = _k88_device_regs(changed, gitlinks, edit)
         ensure(len(found) == 1 and needle in found[0],
                f"each broken reading is one finding naming it: {found!r}")
+
+
+def _k88_device_register_moved_gitlink_is_quoted_apart_from_its_stamp() -> None:
+    # The stamp off its gitlink is quoted beside it at twelve digits, or as far as the
+    # two must run to differ, so a gitlink sharing the stamp's first twelve digits and
+    # differing in its last prints two distinct ids.
+    mocha = _K115_SHA
+    files = {**_K88_OWNERS, device_regs.ARTIFACT: _k88_device_header(mocha)}
+    last = f"{mocha[:-1]}8"
+    middle = f"{mocha[:19]}f{mocha[20:]}"
+    for moved, stated, carried in (
+            (last, mocha, last),
+            (middle, mocha[:20], middle[:20]),
+            ("f" * 40, "0123456789ab", "ffffffffffff")):
+        found = _k88_device_regs(files, {device_regs.UPSTREAM: moved})
+        quoted = (f"{device_regs.ARTIFACT} records its owners at {stated} and the index "
+                  f"carries {device_regs.UPSTREAM} at {carried};")
+        ensure(len(found) == 1 and quoted in found[0],
+               f"a moved gitlink is quoted apart from the stamp ({quoted}): {found!r}")
 
 
 def _k88_device_register_is_decided_on_the_host_but_its_uart_values() -> None:
@@ -1665,6 +1703,25 @@ def _k81_historical_residue_cannot_exempt_table() -> None:
            f"the current table is unconditionally held against the index: {found!r}")
     ensure(any("no site outside the pin table states it" in item for item in found),
            f"a table row cannot exercise a historical exception: {found!r}")
+
+
+def _k81_moved_gitlink_is_quoted_apart_from_its_row() -> None:
+    # A row's id off its gitlink is quoted beside it at twelve digits, or as far as the
+    # two must run to differ, so an id longer than twelve digits differing only in its
+    # last prints two distinct ids rather than a twelve-digit prefix of itself. An id the
+    # gitlink starts with, at any length, is the pin and no finding.
+    gitlink = "1234abcd" + "0" * 32
+    ensure(not _findings_under(_k81({}, {}, table_id=gitlink[:14]), "K-81"),
+           "a fourteen-digit id the gitlink starts with is the pin")
+    for table_id, stated, carried in (
+            ("1234abcd000001", "1234abcd000001", "1234abcd000000"),
+            (f"{gitlink[:-1]}1", f"{gitlink[:-1]}1", gitlink),
+            ("1234abce", "1234abce", "1234abcd0000")):
+        found = _findings_under(_k81({}, {}, table_id=table_id), "K-81")
+        quoted = (f"THIRD-PARTY.md:7 pins upstream/example-core at {stated} and the index "
+                  f"carries it at {carried};")
+        ensure(len(found) == 1 and quoted in found[0],
+               f"a moved gitlink is quoted apart from its row ({quoted}): {found!r}")
 
 
 def _k81_generated_device_package_is_outside_the_window() -> None:
@@ -1950,12 +2007,18 @@ def cases() -> list[Case]:
         Case("k81-historical-residue-cannot-exempt-table",
              _k81_historical_residue_cannot_exempt_table),
         Case("k81-historical-residue-requires-reason", _k81_historical_residue_requires_reason),
+        Case("k81-moved-gitlink-is-quoted-apart-from-its-row",
+             _k81_moved_gitlink_is_quoted_apart_from_its_row),
         Case("k81-generated-device-package-is-outside-the-window",
              _k81_generated_device_package_is_outside_the_window),
         Case("k116-consumed-bindings-are-held-whole-and-fail-closed",
              _k116_consumed_bindings_are_held_whole_and_fail_closed),
+        Case("k116-moved-gitlink-is-quoted-apart-from-its-binding",
+             _k116_moved_gitlink_is_quoted_apart_from_its_binding),
         Case("k88-device-register-stamp-is-held-whole-and-fail-closed",
              _k88_device_register_stamp_is_held_whole_and_fail_closed),
+        Case("k88-device-register-moved-gitlink-is-quoted-apart-from-its-stamp",
+             _k88_device_register_moved_gitlink_is_quoted_apart_from_its_stamp),
         Case("k88-device-register-is-decided-on-the-host-but-its-uart-values",
              _k88_device_register_is_decided_on_the_host_but_its_uart_values),
         Case("k88-foreign-library-is-a-finding", _k88_foreign_library_is_a_finding),
