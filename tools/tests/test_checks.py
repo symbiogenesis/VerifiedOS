@@ -990,6 +990,46 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
     ensure(not found, f"another repository's link is not this row's revision: {found!r}")
 
 
+def _k115_destination_and_autolink_keep_their_revision() -> None:
+    # A Markdown link's destination, angle-bracketed or not, and an autolink keep every
+    # character up to the bracket closing them, as GFM does, so a revision there runs to
+    # a blank or that bracket rather than stopping before trailing punctuation as a bare
+    # link's does: the reviewed commit followed by a character a ref name may hold,
+    # beside the reviewed link, names another ref and is one finding quoting it whole. A
+    # destination at the commit followed by a full stop, which no ref name ends with, is
+    # one finding too, which errs closed.
+    reviewed = f"[terms](https://github.com/example/action/blob/{_K115_SHA}/LICENSE)"
+    tree = f"https://github.com/example/action/tree/{_K115_SHA}"
+    for extra, ref in ((f"[x]({tree}_)", f"{_K115_SHA}_"),
+                       (f"<{tree}_>", f"{_K115_SHA}_"),
+                       (f"[x](<{tree}_>)", f"{_K115_SHA}_"),
+                       (f"[x]( {tree}' )", f"{_K115_SHA}'"),
+                       (f'[x]({tree}! "its tree")', f"{_K115_SHA}!"),
+                       (f"[x]({tree}])", f"{_K115_SHA}]"),
+                       (f"[x](<{tree})>)", f"{_K115_SHA})"),
+                       (f"<{tree})>", f"{_K115_SHA})"),
+                       (f"[x]({tree}.)", f"{_K115_SHA}.")):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(reviewed,
+                                                              f"{reviewed} beside {extra}")})
+        quoted = f"THIRD-PARTY.md:7 links example/action's licence at {ref}, the row reviewed "
+        ensure(len(found) == 1 and f"{quoted}{_K115_SHA};" in found[0],
+               f"a revision in a destination or autolink is read whole ({extra}): {found!r}")
+    # The controls: each form at the reviewed commit, closed by its bracket, a blank, a
+    # title or a fragment, agrees beside the reviewed link.
+    for extra in (f"<{tree}>", f"[x](<{tree}>)", f"[x]( {tree} )", f'[x]({tree} "its tree")',
+                  f"<{tree}#readme>", f"[x]( <{tree}> )"):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(reviewed,
+                                                              f"{reviewed} beside {extra}")})
+        ensure(not found, f"a destination or autolink at the reviewed commit agrees "
+                          f"({extra}): {found!r}")
+    # The licence link itself angle-bracketed or written as an autolink still links the
+    # file at the reviewed commit.
+    for edit in (f"[terms](<https://github.com/example/action/blob/{_K115_SHA}/LICENSE>)",
+                 f"<https://github.com/example/action/blob/{_K115_SHA}/LICENSE>"):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(reviewed, edit)})
+        ensure(not found, f"the licence link in another form agrees ({edit}): {found!r}")
+
+
 def _k115_leaves_the_analyzer_rows_to_k118() -> None:
     # The analyzers' rows are K-118's, held against the lock and the script that
     # install them; K-115 reads action rows alone, so a moved analyzer release is one
@@ -2231,6 +2271,8 @@ def cases() -> list[Case]:
         Case("k115-membership-is-held-both-ways", _k115_membership_is_held_both_ways),
         Case("k115-licence-link-names-the-reviewed-commit",
              _k115_licence_link_names_the_reviewed_commit),
+        Case("k115-destination-and-autolink-keep-their-revision",
+             _k115_destination_and_autolink_keep_their_revision),
         Case("k115-leaves-the-analyzer-rows-to-k118", _k115_leaves_the_analyzer_rows_to_k118),
         Case("k115-unreadable-readings-fail-closed", _k115_unreadable_readings_fail_closed),
         Case("k115-every-uses-key-is-read-or-reported", _k115_every_uses_key_is_read_or_reported),

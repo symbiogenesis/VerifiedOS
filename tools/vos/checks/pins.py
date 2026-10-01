@@ -162,13 +162,21 @@ its terms were read at, so the row links a file of the action's own repository, 
 `blob`, `tree`, `blame` or `raw` path on github.com or a path on
 raw.githubusercontent.com, its owner and name in any case, and every such link is held
 to name the reviewed commit, never another commit, a tag or a branch that could move
-under it. A `/`, `?` or `#` ends the revision, and so does a run of sentence
-punctuation or Markdown delimiters, `.`, `,`, `:`, `;`, `!`, `*`, `_`, `~`, a backtick,
-a quote or a pipe, standing just before the link's close at a blank, `)`, `]`, `>` or
-the row's end, so a bare link ending a sentence is read at its revision and a tag keeps
-its interior dots. A view naming no path after its revision, or only slashes and such a
-closing run, as the tree at a commit does, is held to the reviewed commit too but links
-no file, so it does not stand for the licence link. Membership is total
+under it. A `/`, `?` or `#` ends the revision. A Markdown link's destination,
+angle-bracketed or not, and an autolink keep every other character up to the bracket
+closing them, as GFM does, so where the link opens one of them its revision runs to a
+blank, which no ref name holds, or to that bracket, a destination's `)` or an angle
+bracket's `>`: the reviewed commit followed there by `_`, a quote or a bracket that
+does not close the link, any of which a ref name may hold, names another ref and is a
+finding, and one followed by a full stop, which no ref name ends with, is a finding
+too, which errs closed. Only a bare link, from whose end GFM strips trailing
+punctuation, also ends before a run of sentence punctuation or Markdown delimiters,
+`.`, `,`, `:`, `;`, `!`, `*`, `_`, `~`, a backtick, a quote or a pipe, standing just
+before its close at a blank, `)`, `]`, `>` or the row's end, so a bare link ending a
+sentence is read at its revision and a tag keeps its interior dots. A view naming no
+path after its revision, or only slashes and a closing run of that punctuation, as the
+tree at a commit does, is held to the reviewed commit too but links no file, so it
+does not stand for the licence link. Membership is total
 in both directions: a line naming an action with no row runs code whose terms nobody
 read, and a row naming an action no workflow runs is a review of nothing. The two
 workflow analyzers Host CI runs are installed from a lock and a script rather than
@@ -981,9 +989,15 @@ def _tool_rows(text: str, findings: list[str]) -> dict[str, tuple[int, str]]:
 
 # What closes a link in a row: a blank, a bracket closing Markdown's link or autolink
 # syntax, or the row's end. A run of sentence punctuation or Markdown delimiters
-# standing just before that close ends a bare link rather than belonging to it.
+# standing just before that close ends a bare link rather than belonging to it, and
+# GFM strips it there; a destination or an autolink keeps it, as GFM does.
 _LINK_CLOSE = r"(?:[\s)\]>]|$)"
 _LINK_TRAIL = r".,:;!*_~`'\"|"
+# What a revision runs through where its link opens a Markdown destination, and where
+# it opens an angle-bracketed destination or an autolink: every character but the
+# view's separators, a blank, which no ref name holds, and the bracket closing it.
+_DEST_REVISION = r"[^/#?\s)]+"
+_ANGLE_REVISION = r"[^/#?\s>]+"
 
 
 def _licence_links(tool: str) -> re.Pattern[str]:
@@ -991,20 +1005,29 @@ def _licence_links(tool: str) -> re.Pattern[str]:
 
     A `blob`, `tree`, `blame` or `raw` path on github.com, `www.` or not, or a path on
     raw.githubusercontent.com, with the scheme, host, owner and name in any case. Its
-    groups are the revision named and the path after it, empty for a view naming no
-    file, the tree at a revision among them. The revision is the segment after the view:
-    a `/`, `?` or `#` ends it, and so does a run of `_LINK_TRAIL`'s punctuation standing
-    just before the link's close, so a bare link ending a sentence or wrapped in a code
-    span is read at its revision, and a tag keeps its interior dots. The path ends at a
-    `?` or `#`, or before a run of slashes and that punctuation standing just before the
-    close, so a trailing slash or full stop names no file. Any other link into the
-    repository, its front page, a commit's or a release's, links no file and is not read.
+    `rev` group is the revision named and its `path` group the path after it, absent
+    for a view naming no file, the tree at a revision among them. The revision is the
+    segment after the view, and a `/`, `?` or `#` ends it. Where the link opens a
+    Markdown destination, after `](` and any blanks, the revision runs on to a blank or
+    the `)` closing the destination, and where it opens an angle-bracketed destination
+    or an autolink, to a blank or the `>` closing it, since GFM keeps every character
+    before those: the reviewed commit followed there by `_` names another ref, and one
+    followed by a full stop, which no ref name ends with, is read with it too and so
+    errs closed. Only a bare link also ends before a run of `_LINK_TRAIL`'s punctuation
+    standing just before its close, as GFM strips trailing punctuation from a bare
+    autolink, so one ending a sentence or wrapped in a code span is read at its
+    revision, and a tag keeps its interior dots. The path ends at a `?` or `#`, or
+    before a run of slashes and that punctuation standing just before the close, so a
+    trailing slash or full stop names no file. Any other link into the repository, its
+    front page, a commit's or a release's, links no file and is not read.
     """
     name = re.escape(tool)
-    return re.compile(rf"(?:(?i:https?://(?:www\.)?github\.com/{name})/(?:blob|tree|blame|raw)"
+    return re.compile(r"(?:(?P<angle>\]\(\s*<|<)|(?P<dest>\]\(\s*))?"
+                      rf"(?:(?i:https?://(?:www\.)?github\.com/{name})/(?:blob|tree|blame|raw)"
                       rf"|(?i:https?://raw\.githubusercontent\.com/{name}))"
-                      rf"/([^/\s)\]>#?]+?)(?=[/#?]|[{_LINK_TRAIL}]*{_LINK_CLOSE})"
-                      rf"(?:/([^\s)\]>#?]*?)(?=[#?]|[/{_LINK_TRAIL}]*{_LINK_CLOSE}))?")
+                      rf"/(?P<rev>(?(angle){_ANGLE_REVISION}|(?(dest){_DEST_REVISION}"
+                      rf"|[^/\s)\]>#?]+?(?=[/#?]|[{_LINK_TRAIL}]*{_LINK_CLOSE}))))"
+                      rf"(?:/(?P<path>[^\s)\]>#?]*?)(?=[#?]|[/{_LINK_TRAIL}]*{_LINK_CLOSE}))?")
 
 
 def _workflow_pins(ctx: Context) -> None:
@@ -1041,7 +1064,7 @@ def _workflow_pins(ctx: Context) -> None:
         # links a file of the action's own repository, and every view of that repository
         # at a revision, a file's or not, names the reviewed commit rather than another
         # commit, a tag or a branch. A view naming no file states a revision and no terms.
-        links = _licence_links(tool).findall(row)
+        links = [(m["rev"], m["path"] or "") for m in _licence_links(tool).finditer(row)]
         if not any(path for _, path in links):
             findings.append(f"{where} links no licence of {tool} at the reviewed commit; "
                             "the link names the edition the terms were read at")
