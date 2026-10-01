@@ -455,8 +455,9 @@ def _vouched_oracle(e: env.Environment) -> None:
 
 def _oracle_receipt_follows_a_passing_suite() -> None:
     """A run writes its receipt only once the suite passes on the simulator it built,
-    naming the tree's stamp, the simulator's bytes and the tally; every later run
-    removes it first, so a failed suite or a refused tree leaves none standing."""
+    naming the tree's stamp, the simulator's bytes and the tally; every later run that
+    holds the tree's lock removes it first, so a failed suite or a tree refused under
+    that lock leaves none standing."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         e = _environment(Path(td))
         _vouched_oracle(e)
