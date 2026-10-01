@@ -168,18 +168,18 @@ is inside it the day it is written; the classes are read off the page, each by t
 bold phrase after the `Where the set is`, in any letter case, opening it, whatever words
 or italics stand between short of a full stop or the line's end, any `.` counting as a
 full stop, and by one membership sentence standing anywhere from that lead to the next
-class's, `which is what` or `That is what`, a list of ids, then `are`. The four class
-names are fixed here rather than read, so a class retitled away and a fifth class
-opened that way are each a finding rather than a class this rule stops or never starts
-reading, and so is a `Where the set is` anywhere in the section, one wrapped across a
-line, spaced apart or set in underscore italics included, that opens no class in that
-form. What that reading does not reach is a class introduced in some other sentence
-form: it is read as part of the class before it, or as part of no class ahead of the
-first, and is caught only where it carries a membership sentence of its own, that
-sentence then being a class's second or one standing ahead of every class. A list is
-decided whole by a grammar of ids, `K-a through K-b` ranges, commas and `and`, and a
-range expands over the active rows whose numbers it spans, so a struck row inside one
-is skipped rather than placed.
+class's, `which is what` or `that is what`, either capitalized, a list of ids, then
+`are`. The four class names are fixed here rather than read, so a class retitled away
+and a fifth class opened that way are each a finding rather than a class this rule
+stops or never starts reading, and so is a `Where the set is` anywhere in the section,
+one wrapped across a line, spaced apart or set in underscore italics included, that
+opens no class in that form. What that reading does not reach is a class introduced in
+some other sentence form: it is read as part of the class before it, or as part of no
+class ahead of the first, and is caught only where it carries a membership sentence of
+its own, that sentence then being a class's second or one standing ahead of every
+class. A list is decided whole by a grammar of ids, `K-a through K-b` ranges, commas
+and `and`, and a range expands over the active rows whose numbers it spans, so a
+struck row inside one is skipped rather than placed.
 
 **Fail-closed at every reading.** A missing section, a `Where the set is` that opens no
 class, a membership sentence ahead of the first class, a class with no membership
@@ -261,13 +261,14 @@ _CLASS_LEAD_RE = re.compile(
 _CLASS_OPEN_RE = re.compile(
     r"\bWhere the set is (?:[^*.\r\n]|\*(?!\*))*?\*\*([^*\r\n]+)\*\*", re.IGNORECASE)
 
-# A class's membership sentence: `which is what` or `That is what`, the list, then `are`.
-# The capture admits only the characters a list is spelled in, so a sentence that merely
-# discusses a rule is not read as a list; what it captures is then decided whole by the
-# grammar below, so a word the grammar does not know is a finding rather than a list cut
-# short at it. Ids admit the letter suffix, so a suffixed id is named and resolved rather
-# than making the sentence unreadable.
-_MEMBERS_RE = re.compile(r"\b(?:which|That) is what (K-[\w ,-]*?) are\b")
+# A class's membership sentence: `which is what` or `that is what`, either capitalized,
+# so that one opening a sentence and one written mid-sentence are both read, the list,
+# then `are`. The capture admits only the characters a list is spelled in, so a sentence
+# that merely discusses a rule is not read as a list; what it captures is then decided
+# whole by the grammar below, so a word the grammar does not know is a finding rather
+# than a list cut short at it. Ids admit the letter suffix, so a suffixed id is named and
+# resolved rather than making the sentence unreadable.
+_MEMBERS_RE = re.compile(r"\b(?:[Ww]hich|[Tt]hat) is what (K-[\w ,-]*?) are\b")
 _CLASS_ID = r"K-\d{2,3}[a-z]?"
 _CLASS_ITEM = rf"{_CLASS_ID}(?: through {_CLASS_ID})?"
 _CLASS_ITEM_RE = re.compile(rf"({_CLASS_ID})(?: through ({_CLASS_ID}))?")
@@ -835,7 +836,8 @@ def _classes(ctx: Context, registered: set[str]) -> None:
                         f"{where}: the '{name}' class states "
                         f"{'no' if not clauses else figures.words(len(clauses))} "
                         "membership sentence(s) this rule reads, where it needs exactly "
-                        "one: 'which is what' or 'That is what', its rules, then 'are'")
+                        "one: 'which is what' or 'that is what', either capitalized, its "
+                        "rules, then 'are'")
                     unread = True
                     continue
                 listed = clauses[0].group(1)

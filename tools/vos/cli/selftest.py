@@ -1896,6 +1896,13 @@ CASES: list[Case] = [
      _literal(RULES, "and there are four answers.",
               "and there are four answers, which is what K-26 are.")),
 
+    # The same sentence with `that` in lower case, written mid-sentence. A membership
+    # sentence read in one capitalization of each word alone passes it over, so the
+    # section reads as agreeing with the registry just as above.
+    ("K-119", "a lower-case 'that is what' membership sentence ahead of the first class",
+     _literal(RULES, "and there are four answers.",
+              "and there are four answers; that is what K-26 are.")),
+
     # A membership sentence between a class's lead and its bold name. The class still
     # opens, so a region read from past the name alone passes over the sentence and the
     # rule it names stays placed once by its own class, the section reading as agreeing

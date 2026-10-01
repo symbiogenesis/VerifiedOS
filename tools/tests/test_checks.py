@@ -633,7 +633,16 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
             ({"heading": meta.REACH_HEADING
               + "\n\nWhen the set is found by **marker**, which is what K-05 are."},
              "states a membership sentence ahead of the first reach class, so no class "
-             "reads it")):
+             "reads it"),
+            # either word is read in either capitalization, so a lower-case `that` written
+            # mid-sentence and a capital `Which` opening a sentence are membership
+            # sentences too
+            ({"heading": meta.REACH_HEADING
+              + "\n\nThe marker rules come first; that is what K-05 are."},
+             "states a membership sentence ahead of the first reach class, so no class "
+             "reads it"),
+            ({"computed": _K119_COMPUTED + " Which is what K-05 are."},
+             "the 'computed value' class states two membership sentence(s) this rule reads")):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
         ensure(not any("named under no reach class" in item for item in found),
