@@ -340,6 +340,11 @@ def _reading_step() -> None:
                  'count=${count%" difference(s) between $base and $candidate"}',
                  f'"$first" == "{template}"'):
         ensure(line in run, f"the step decides the comparison by {line!r}")
+    # Once the comparison is decided, both readings' digests reach the log and summary.
+    digests = ('for reading in "$base" "$candidate"; do', 'digest=$(sha256sum -- "$reading")',
+               '| tee -a "$GITHUB_STEP_SUMMARY"')
+    ensure(all(line in run and run.index(line) > run.rindex("\n          fi\n")
+               for line in digests), "both readings' digests follow the comparison's verdict")
     with tempfile.TemporaryDirectory() as directory:
         folder = Path(directory)
         base, candidate = folder / READING_FILES[0], folder / READING_FILES[1]

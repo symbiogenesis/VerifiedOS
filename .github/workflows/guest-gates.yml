@@ -425,6 +425,11 @@ jobs:
             echo "::error::proof-reading compare refused the readings rather than comparing them"
             exit 1
           fi
+          # The digests outlast the artifact in the run's log and summary.
+          for reading in "$base" "$candidate"; do
+            digest=$(sha256sum -- "$reading")
+            echo "- \`${reading##*/}\` SHA-256 \`${digest%% *}\`" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
 
       - name: Check generated model bundle
         id: bundle

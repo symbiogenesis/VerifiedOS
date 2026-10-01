@@ -284,10 +284,11 @@ In the proofs lane:
   which `git archive` extracts from that commit into the runner's temporary
   directory, and `compare` compares the base's reading with the gate's. All three run
   in the gate's explicit environment. The step passes once both readings are recorded
-  and compared, whatever differences the comparison names: it logs every one, and its
-  summary line states their count. A refused reading, a comparison that refuses its
-  readings rather than comparing them, and a base whose sources cannot be extracted
-  each fail it. Both readings, as `proof-reading-base.json` and
+  and compared, whatever differences the comparison names: it logs every one, its
+  summary line states their count, and it then prints both readings' SHA-256 to its
+  log and the summary, which outlast the artifact. A refused reading, a comparison
+  that refuses its readings rather than comparing them, and a base whose sources
+  cannot be extracted each fail it. Both readings, as `proof-reading-base.json` and
   `proof-reading-candidate.json`, their console logs and the comparison's log,
   `proof-reading-compare.log`, stay in the lane's artifact. A reading accepts no proof.
 
