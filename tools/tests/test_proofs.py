@@ -503,19 +503,30 @@ def _a_module_starts_once_its_requirements_finish() -> None:
 
 
 def _ready_modules_start_by_the_chain_they_head() -> None:
-    """Z heads the chain Z, B, C; A and M head nothing. The wave order would be A, M, Z."""
-    with tempfile.TemporaryDirectory(prefix="vos-proof-priority-") as temporary:
-        graph = _graph(Path(temporary), {"A": "", "M": "", "Z": "", "B": "Require Z.",
-                                         "C": "Require B."})
-        started: list[str] = []
+    """Z heads the chain Z, B, C; A and M head nothing. The wave order would be A, M, Z.
 
-        def check(source: Path) -> gate.Checked:
-            started.append(source.stem)
-            return gate.Checked(source)
+    Then the chain's length, not its breadth: X has three direct dependents, P, Q and
+    R, and Y one, but Y heads the longer chain Y, Y1, Y2, so Y starts first although
+    X has more dependents and more descendants. X and Y1 then head chains of two and
+    tie on wave order."""
+    for texts, expected in (
+            ({"A": "", "M": "", "Z": "", "B": "Require Z.", "C": "Require B."},
+             ["Z", "B", "A", "M", "C"]),
+            ({"X": "", "Y": "", "P": "Require X.", "Q": "Require X.", "R": "Require X.",
+              "Y1": "Require Y.", "Y2": "Require Y1."},
+             ["Y", "X", "Y1", "P", "Q", "R", "Y2"])):
+        with tempfile.TemporaryDirectory(prefix="vos-proof-priority-") as temporary:
+            graph = _graph(Path(temporary), texts)
+            started: list[str] = []
 
-        _schedule(graph, check, 1)
-        ensure(started == ["Z", "B", "A", "M", "C"],
-               f"ready modules started out of chain, wave and name order: {started}")
+            def check(source: Path, started: list[str] = started) -> gate.Checked:
+                started.append(source.stem)
+                return gate.Checked(source)
+
+            _schedule(graph, check, 1)
+            ensure(started == expected,
+                   f"ready modules started out of chain, wave and name order: {started}, "
+                   f"expected {expected}")
 
 
 def _wave_reading(graph: _Graph, failing: set[str]) -> dict[str, str]:
