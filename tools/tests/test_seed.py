@@ -6,7 +6,10 @@ What is pinned here is that the loop **puts the tree back**: the `$[test]` oracl
 writes into `model/`, which is a `-text` tree where a newline-translating round trip
 rewrites every line of the file it touched. The verdict arithmetic this tool reports
 through is `vos/seeded.py`'s and is held in [test_seeded.py](test_seeded.py), beside
-the module that decides it and beside the loops that share it.
+the module that decides it and beside the loops that share it. Which verdict one
+Gallina mutant earns is this tool's, and is held here over a staged miniature of the
+rig whose prover answers from a table: which harness decides it, in which order, and
+what a harness that will not build scores.
 
 Also pinned, with a stub prover, is what `seed coq --quickchick` compiles: `Properties.v`'s
 `Require` closure alone, what the walk harness Requires lying inside it, for its baseline
@@ -19,7 +22,7 @@ import io
 import subprocess
 import sys
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -27,7 +30,7 @@ from unittest.mock import Mock, patch
 from tests.harness import TOOLS, Case, ensure
 from vos import env, gallina, mutate
 from vos.cli import quickchick, seed
-from vos.seeded import STILLBORN, SURVIVED, Verdict
+from vos.seeded import KILLED, STILLBORN, SURVIVED, Verdict
 
 _ROOT = TOOLS.parent
 
@@ -102,38 +105,57 @@ def _done(code: int, said: str = "") -> subprocess.CompletedProcess[str]:
                                        "" if code == 0 else "Error: The reference x was not found")
 
 
-def _staged(rig: dict[str, str], work: Path) -> None:
-    """The rig written to a checkout and staged into `work` as a run stages it."""
-    with tempfile.TemporaryDirectory(prefix="vos-rig-") as td:
-        root = Path(td)
-        for rel, text in rig.items():
-            (root / rel).parent.mkdir(parents=True, exist_ok=True)
-            (root / rel).write_text(text, encoding="utf-8", newline="")
-        gallina.stage(root, work)
+def _checkout(rig: dict[str, str], root: Path) -> Path:
+    """The rig written out as a checkout at `root`."""
+    for rel, text in rig.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text, encoding="utf-8", newline="")
+    return root
 
 
-def _verdict(quickchick: bool, answers: dict[str, subprocess.CompletedProcess[str]]
-             ) -> tuple[Verdict, list[str]]:
-    """One mutant of proofs/A.v put to `_coq_verdict` over the staged rig, each compile
-    answered from `answers` by file name, else as `_PRINTS` says the file prints; and
-    every file it compiled, in order."""
-    compiled: list[str] = []
-
+def _answered(answers: dict[str, subprocess.CompletedProcess[str]], compiled: list[str]
+              ) -> Callable[..., subprocess.CompletedProcess[str]]:
+    """A stand-in for the prover: each compile answered from `answers` by file name,
+    else as `_PRINTS` says the file prints, and every file it is handed kept in order."""
     def compile_one(found: gallina.Prover, work: Path, source: Path,
                     timeout: int = 900) -> subprocess.CompletedProcess[str]:
         del found, work, timeout
         compiled.append(source.name)
         return answers.get(source.name, _done(0, _PRINTS.get(source.name, "")))
+    return compile_one
 
-    with tempfile.TemporaryDirectory(prefix="vos-work-") as wd:
-        work = Path(wd) / "tree"
-        _staged(_RIG, work)
+
+def _verdict(quickchick: bool, answers: dict[str, subprocess.CompletedProcess[str]]
+             ) -> tuple[Verdict, list[str]]:
+    """One mutant of proofs/A.v put to `_coq_verdict` over the staged rig, and every file
+    it compiled."""
+    compiled: list[str] = []
+    with (tempfile.TemporaryDirectory(prefix="vos-rig-") as td,
+          tempfile.TemporaryDirectory(prefix="vos-work-") as wd):
+        work = gallina.stage(_checkout(_RIG, Path(td)), Path(wd) / "tree")
         harness = work / "harness" / (gallina.RANDOMIZED if quickchick
                                        else gallina.ENUMERATIVE)
-        with patch.object(gallina, "compile_one", side_effect=compile_one):
+        with patch.object(gallina, "compile_one", side_effect=_answered(answers, compiled)):
             got = seed._coq_verdict(gallina.Prover("s", ("rocq", "c")), work, "proofs/A.v",
                                     harness, Mock(), ["v 1"], quickchick)
     return got, compiled
+
+
+def _baseline(rig: dict[str, str], answers: dict[str, subprocess.CompletedProcess[str]]
+              ) -> tuple[list[str] | None, str, list[str]]:
+    """`_quickchick_baseline` over the rig as a checkout: what it handed back, and every
+    file it compiled."""
+    compiled: list[str] = []
+    with (tempfile.TemporaryDirectory(prefix="vos-rig-") as td,
+          tempfile.TemporaryDirectory(prefix="vos-work-") as wd,
+          patch.object(gallina, "compile_one", side_effect=_answered(answers, compiled))):
+        got, why = seed._quickchick_baseline(_checkout(rig, Path(td)),
+                                             gallina.Prover("s", ("rocq", "c")),
+                                             Path(wd) / "tree", gallina.RANDOMIZED)
+    return got, why, compiled
+
+
+_REFUTED = _done(0, '= ["prop_w 9 9 2 4"] : list string\n')
 
 
 def _run(command: str, *args: str) -> tuple[int, str]:
@@ -218,6 +240,46 @@ def _only_the_randomized_half_builds_its_support() -> None:
            and gallina.EXHAUSTIVE not in compiled,
            f"the randomized half builds its support before either harness: {drawn}, "
            f"having compiled {compiled}")
+
+
+def _the_walks_decide_a_mutant_before_the_draws() -> None:
+    """A randomized mutant the proofs accept is put to the walk harness first: one it
+    cannot be built over is stillborn, one a walk refutes is killed without a draw, and
+    one every walk and every draw holds survives."""
+    unbuilt, compiled = _verdict(True, {gallina.EXHAUSTIVE: _done(1)})
+    ensure(unbuilt.outcome == STILLBORN and gallina.RANDOMIZED not in compiled,
+           f"a walk harness that does not build decides nothing: {unbuilt} {compiled}")
+    refuted, compiled = _verdict(True, {gallina.EXHAUSTIVE: _REFUTED})
+    ensure(refuted.outcome == KILLED and refuted.moved == 1
+           and "prop_w: 2 of 9 point(s) refute it, the first at position 4" in refuted.detail
+           and gallina.RANDOMIZED not in compiled,
+           f"a refuted walk kills the mutant before a draw: {refuted} {compiled}")
+    held, compiled = _verdict(True, {})
+    ensure(held.outcome == SURVIVED
+           and "1 walked set(s) held and 2 drawn property set(s) passed" in held.detail
+           and compiled[-2:] == [gallina.EXHAUSTIVE, gallina.RANDOMIZED],
+           f"a mutant every walk and draw holds survives: {held} {compiled}")
+
+
+def _the_randomized_baseline_refuses_what_does_not_replay_or_hold() -> None:
+    """The baseline every randomized mutant is held to: a drawn harness fixing no seed
+    is refused before anything compiles, a walk harness that does not build or a walk a
+    point refutes is no baseline, and a green tree is one."""
+    unseeded = {**_RIG, f"tools/quickchick/{gallina.RANDOMIZED}":
+                "From QuickChick Require Import QuickChick.\n"
+                "Require Import Probe IPCProperties.\n"}
+    got, why, compiled = _baseline(unseeded, {})
+    ensure(got is None and "fixes QuickChick's random state other than once" in why
+           and not compiled, f"an unseeded harness is refused before compiling: {why}")
+    for label, walk in (("does not build", _done(1)), ("is refuted", _REFUTED)):
+        got, why, compiled = _baseline(_RIG, {gallina.EXHAUSTIVE: walk})
+        ensure(got is None and f"{gallina.EXHAUSTIVE} is not green" in why
+               and gallina.RANDOMIZED not in compiled,
+               f"a walk that {label} is no baseline: {why} {compiled}")
+    got, why, compiled = _baseline(_RIG, {})
+    ensure(got == [] and not why and "IPCProperties.v" in compiled
+           and compiled[-2:] == [gallina.EXHAUSTIVE, gallina.RANDOMIZED],
+           f"a green tree is the baseline: {got} {why} {compiled}")
 
 
 def _oracle_list_runs() -> None:
@@ -438,6 +500,10 @@ def cases() -> list[Case]:
              _seed_coq_holds_the_installed_quickchick),
         Case("only the randomized half builds its support",
              _only_the_randomized_half_builds_its_support),
+        Case("the walks decide a mutant before the draws",
+             _the_walks_decide_a_mutant_before_the_draws),
+        Case("the randomized baseline refuses what does not replay or hold",
+             _the_randomized_baseline_refuses_what_does_not_replay_or_hold),
         Case("mutation workspaces are held for the whole run",
              _mutation_workspaces_are_held_for_the_whole_run, lane="guest"),
         Case("oracle list runs over the live specs", _oracle_list_runs, lane="host"),
