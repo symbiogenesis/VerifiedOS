@@ -60,12 +60,13 @@ are reported and never planned, and neither is any other standing root with a ga
 writes, or an owned repository absent, at another URL or with its stamp unread. While a
 root stands in an older format, no switch row plans its recipe either, because the
 reviewed client rewrites that root one way at its first write, or at its first read
-where the upgrade cannot be made in memory, and where opam lists no switch without
-upgrading that root, a switch row reports one the root's config lists as unread rather
-than absent; nor does a switch row plan its recipe while a client at another release
-is on PATH, which would build the switch as a client this tree has not reviewed. Every
-figure any document states about this
-table is a count over `FACTS`, held by K-24 rather than by care.
+where the upgrade cannot be made in memory, and where no switch is listed over that
+root, a switch row reports one the root's config lists as unread rather than absent,
+saying whether no client is on PATH, the reviewed client declined that upgrade, or
+another listing came back empty; nor does a switch row plan its recipe while a client
+at another release is on PATH, which would build the switch as a client this tree has
+not reviewed. Every figure any document states about this table is a count over
+`FACTS`, held by K-24 rather than by care.
 
     python tools/run.py provision                # what is here and what is not
     python tools/run.py provision --apply        # and install what is not
@@ -84,7 +85,9 @@ import re
 import shutil
 import subprocess
 import sys
+import tarfile
 import threading
+import zlib
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -371,13 +374,14 @@ def _switch_at(switch: str, package: str, pin: str) -> Found:
     stays repairable, because the opam row ahead of it installs the reviewed client in
     the same pass."""
     older = _older_root()
-    found = _switch_found(switch, package, pin, older=bool(older))
+    client = _client()
+    found = _switch_found(switch, package, pin, older=bool(older), client=client)
     if found.present:
         return found
     if older:
         return Found(False, f"{found.saw}; {older}, so no switch is planned over it",
                      repairable=False)
-    where, version = _client()
+    where, version = client
     if where is not None and version != opam_client.OPAM_VERSION:
         return Found(False, f"{found.saw}; opam {version or 'answering no version'} at "
                             f"{where} would build it, and the reviewed client is "
@@ -386,23 +390,124 @@ def _switch_at(switch: str, package: str, pin: str) -> Found:
     return found
 
 
-def _switch_found(switch: str, package: str, pin: str, *, older: bool) -> Found:
+def _switch_found(switch: str, package: str, pin: str, *, older: bool,
+                  client: tuple[str | None, str]) -> Found:
     """One switch's package at the version opam answers for it.
 
-    Over a root in an older format, where `older` holds, opam lists no switch at all when
-    it would have to upgrade the root to read it and declines to. Where it lists none
-    there and the root's own config lists this switch, `opam_client.root_switches`, the
-    row says opam did not read the switch rather than that the switch is absent."""
+    Over a root in an older format, where `older` holds, an empty listing is not read as
+    the switch's absence where the root's own config lists this switch,
+    `opam_client.root_switches`: the row says who listed nothing, from `client`, the
+    client `_client` found, as `_unlisted` words it."""
     listed = switches()
     if switch not in listed:
-        if older and not listed and switch in opam_client.root_switches(env.opam_root()):
-            return Found(False, "opam listed no switches without upgrading the root, whose "
-                                f"config lists the {switch} switch")
+        root = env.opam_root()
+        if older and not listed and switch in opam_client.root_switches(root):
+            return Found(False, _unlisted(switch, root, client))
         return Found(False, f"opam has no {switch} switch")
     found = _installed(switch, package)
     if not found:
         return Found(False, f"the {switch} switch carries no {package}")
     return Found(found == pin, f"{package} {found} in {switch}")
+
+
+def _unlisted(switch: str, root: Path, client: tuple[str | None, str]) -> str:
+    """Why no switch was listed over the older root at `root`, whose config lists
+    `switch`, as a switch row reports it: no client on PATH lists any; the reviewed
+    client lists none without the upgrade `_upgrades_to_read` reads it must write first,
+    which it declines; and any other empty listing names the client that gave it and
+    the root's format."""
+    where, version = client
+    if where is None:
+        return f"no opam on PATH lists switches; the root's config lists the {switch} switch"
+    if version == opam_client.OPAM_VERSION and _upgrades_to_read(root):
+        return ("opam listed no switches without upgrading the root, whose config lists "
+                f"the {switch} switch")
+    return (f"opam {version or 'answering no version'} listed no switches over this root "
+            f"in format {opam_client.root_format(root)}, whose config lists the {switch} "
+            "switch")
+
+
+# What makes the reviewed client's upgrade of an older root a hard one, which it writes
+# before it reads the root, by the format the root states, as opam 2.6.0's
+# `OpamFormatUpgrade.upgrades` decides it: a format older than 2.0~beta5; 2.1~alpha or
+# 2.1~alpha2, each upgraded through 2.1~rc; and a format older than 2.6~alpha where
+# `cond_hard_upg_2_6_alpha` reads a configured repository's archive as nested. Every
+# other older root it upgrades in memory to read. Read from that release's source, so
+# the reading claims nothing of another reviewed client until its source is read.
+_UPGRADES_READ = "2.6.0"
+_HARD_BEFORE = "2.0~beta5"
+_HARD_FROM: tuple[str, ...] = ("2.1~alpha", "2.1~alpha2")
+_NESTED_BEFORE = "2.6~alpha"
+# The archive members that client's reader fails on rather than reads: hard and symbolic
+# links, character and block devices, and FIFOs.
+_UNREAD_MEMBERS = frozenset((tarfile.LNKTYPE, tarfile.SYMTYPE, tarfile.CHRTYPE,
+                             tarfile.BLKTYPE, tarfile.FIFOTYPE))
+
+
+def _upgrades_to_read(root: Path) -> bool:
+    """Whether the reviewed client must write the format upgrade of the root at `root`
+    before it reads that root, so that, declining it, it lists no switch there: a hard
+    upgrade, by the root's stated format and its repositories' archives, as
+    `_HARD_BEFORE`, `_HARD_FROM` and `_NESTED_BEFORE` say."""
+    fmt = opam_client.root_format(root)
+    if opam_client.OPAM_VERSION != _UPGRADES_READ or not opam_client.older_than_reviewed(fmt):
+        return False
+    if (opam_client.compare_versions(fmt, _HARD_BEFORE) < 0
+            or any(opam_client.compare_versions(fmt, hard) == 0 for hard in _HARD_FROM)):
+        return True
+    return opam_client.compare_versions(fmt, _NESTED_BEFORE) < 0 and _nested_repository(root)
+
+
+def _nested_repository(root: Path) -> bool:
+    """Whether `cond_hard_upg_2_6_alpha` holds of the root at `root`: some configured
+    repository's archive, `repo/<name>.tar.gz`, is nested, the archives read in the order
+    of their repositories' names, as the client's map holds them, until one the client
+    fails on stops the reading undecided."""
+    for name in sorted({repo["name"] for repo in opam_client.repositories(root)}):
+        nested = _archive_nested(root / "repo" / f"{name}.tar.gz")
+        if nested is None:
+            return False
+        if nested:
+            return True
+    return False
+
+
+def _archive_nested(archive: Path) -> bool | None:
+    """Whether the reviewed client reads one repository archive as nested under a
+    directory: true where its first regular file, named as `_named_nested` reads it, is
+    outside the repository's own layout; false where the archive is absent or holds no
+    regular file; and None where that client fails on it before deciding, at a member of
+    `_UNREAD_MEMBERS` or a name it refuses ahead of the first regular file, or over an
+    archive it cannot read. A directory, or a member whose name ends in a slash, is
+    passed over, as that client passes it."""
+    if not archive.is_file():
+        return False
+    try:
+        with tarfile.open(archive, "r:gz") as members:
+            for member in members:
+                if member.type in _UNREAD_MEMBERS:
+                    return None
+                if member.isdir() or member.name.endswith("/"):
+                    continue
+                return _named_nested(member.name)
+    except (OSError, EOFError, tarfile.TarError, zlib.error):
+        return None
+    return False
+
+
+def _named_nested(name: str) -> bool | None:
+    """Whether a regular file named `name` sits outside a repository archive's own
+    layout as `cond_hard_upg_2_6_alpha` reads it: neither `repo` nor under `packages/`
+    once its empty and `.` segments are dropped, as the client's
+    `to_relative_canonical` drops them; None where that function refuses the name as
+    absolute, empty, a directory's or climbing."""
+    segments = name.split("/")
+    if (segments[0] == "" and len(segments) > 1) or segments[-1] == "" or ".." in segments:
+        return None
+    kept = [segment for segment in segments if segment not in ("", ".")]
+    if not kept:
+        return None
+    return kept != ["repo"] and not (len(kept) > 1 and kept[0] == "packages")
 
 
 def _older_root() -> str:
