@@ -15,6 +15,7 @@ and a case that decides the overlay decides nothing about whether the configure 
 it: the defect this repository met lived at this call and not one module over.
 """
 
+import argparse
 import hashlib
 import importlib.util
 import io
@@ -28,16 +29,23 @@ import sys
 import tarfile
 import tempfile
 import threading
-from collections.abc import Callable
-from contextlib import ExitStack, redirect_stderr, redirect_stdout, suppress
+from collections.abc import Callable, Iterator
+from contextlib import (
+    ExitStack,
+    contextmanager,
+    nullcontext,
+    redirect_stderr,
+    redirect_stdout,
+    suppress,
+)
 from functools import partial
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
-from typing import cast
-from unittest.mock import patch
+from typing import IO, Self, cast
+from unittest.mock import Mock, patch
 
 from tests.harness import TOOLS, Case, ensure
-from vos import differential
+from vos import differential, env
 
 
 def _load_model() -> ModuleType:
@@ -420,31 +428,38 @@ def _seed_test_data_refuses_unverified() -> None:
         _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
 
 
+@contextmanager
+def _copies_spied() -> Iterator[Mock]:
+    """`_copy_regular_file` as it is, with the calls the seeding makes of it recorded."""
+    with patch.object(_MODEL, "_copy_regular_file",
+                      wraps=_MODEL._copy_regular_file) as copied:
+        yield copied
+
+
 def _seeded_without_copying(donor: Path, model_root: Path) -> None:
     """Seed from `donor`, which holds an entry that is not a regular file under a
     manifest crafted to list it, and hold that nothing is copied or seeded; then seed
-    from a clean donor, the positive control, whose suite `copytree` is called for."""
+    from a clean donor, the positive control, whose one file is copied."""
     ensure(_MODEL.corpus_manifest(donor / "test" / _RELEASE / "riscv-tests").is_file(),
            "precondition: the donor's manifest stands, so only the entry's kind decides "
            "the refusal")
     target = donor.parent / f"target-{donor.name}"
-    with (patch.object(shutil, "copytree", wraps=shutil.copytree) as copied,
-          redirect_stderr(io.StringIO()) as err):
+    with _copies_spied() as copied, redirect_stderr(io.StringIO()) as err:
         _MODEL._seed_test_data([donor], target, model_root)
     ensure(not copied.called,
-           f"a donor holding a non-regular entry is refused before copytree reads it, "
-           f"got {copied.call_args_list}")
+           f"a donor holding a non-regular entry is refused before any file of it is "
+           f"copied, got {copied.call_args_list}")
     ensure("non-regular" in err.getvalue() and str(donor) in err.getvalue(),
            f"the refusal names the donor and the entry's kind, got {err.getvalue()!r}")
     release = target / "test" / _RELEASE
     ensure(not release.exists() or not any(release.iterdir()), "and nothing is seeded")
     clean = donor.parent / f"clean-{donor.name}"
     _extracted(clean, {"rv64ui-p-add": b"\x7fELF"})
-    with patch.object(shutil, "copytree", wraps=shutil.copytree) as copied:
+    with _copies_spied() as copied:
         _MODEL._seed_test_data([clean], donor.parent / f"target-clean-{donor.name}",
                                model_root)
     ensure(copied.call_count == 1,
-           f"control: a clean donor's suite is copied, got {copied.call_args_list}")
+           f"control: a clean donor's file is copied, got {copied.call_args_list}")
 
 
 _DEVICE = "rv64ui-p-device"
@@ -521,19 +536,18 @@ def _end_of_file(fifo: Path) -> None:
 def _manifest_refused(donor: Path, model_root: Path,
                       unblock: Callable[[], None] | None = None) -> None:
     """Seed from `donor`, whose manifest is not a regular file, and hold that the seeding
-    returns, names the donor and the manifest's kind, never calls `copytree`, and seeds
+    returns, names the donor and the manifest's kind, copies no file, and seeds
     nothing."""
     manifest = _MODEL.corpus_manifest(donor / "test" / _RELEASE / "riscv-tests")
     target = donor.parent / f"target-{donor.name}"
-    with (patch.object(shutil, "copytree", wraps=shutil.copytree) as copied,
-          redirect_stderr(io.StringIO()) as err):
+    with _copies_spied() as copied, redirect_stderr(io.StringIO()) as err:
         _returns(lambda: _MODEL._seed_test_data([donor], target, model_root), unblock)
     said = err.getvalue()
     ensure(f"{manifest} is not a regular file" in said and str(donor) in said,
            f"the refusal names the donor and the manifest's kind, got {said!r}")
     ensure(not copied.called,
-           f"a donor whose manifest is not a regular file is refused before copytree, "
-           f"got {copied.call_args_list}")
+           f"a donor whose manifest is not a regular file is refused before any file is "
+           f"copied, got {copied.call_args_list}")
     release = target / "test" / _RELEASE
     ensure(not release.exists() or not any(release.iterdir()), "and nothing is seeded")
 
@@ -568,7 +582,8 @@ def _open_regular_asks_the_name_first() -> None:
     unprivileged, so the name's answer is simulated: a character device, which is never
     opened, and a regular file on another inode, a file replaced after its name was
     asked, which is opened and refused. The positive control is the same file asked as
-    it is, which opens; `O_NOCTTY` rides every open where the platform has it."""
+    it is, which opens. `O_NONBLOCK`, `O_NOFOLLOW`, `O_NOCTTY` and `O_BINARY` ride every
+    open where the platform defines them."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         path = Path(td) / "rv64ui-p-add"
         path.write_bytes(b"\x7fELF")
@@ -601,9 +616,61 @@ def _open_regular_asks_the_name_first() -> None:
                f"control: the file the name reported opens, got {fd} after {opened}")
         with os.fdopen(cast("int", fd), "rb") as stream:
             ensure(stream.read() == b"\x7fELF", "and reads as it is")
-        noctty = getattr(os, "O_NOCTTY", 0)
-        ensure(_MODEL._REGULAR_ONLY & noctty == noctty,
-               "no terminal a corpus open meets becomes the controlling one")
+        for name in ("O_NONBLOCK", "O_NOFOLLOW", "O_NOCTTY", "O_BINARY"):
+            flag = getattr(os, name, 0)
+            ensure(_MODEL._REGULAR_ONLY & flag == flag,
+                   f"{name} rides every corpus open on a platform that defines it")
+
+
+def _os_answering_regular() -> SimpleNamespace:
+    """`os` as model.py sees it, except that a name answers as a regular file: what the
+    name names, its final link followed, with its kind made regular. A FIFO keeps its
+    own inode, and a symbolic link answers as the regular file it names, so only the
+    open's flags and the opened descriptor stand between `_open_regular` and either."""
+
+    def lstat(named: str | Path) -> os.stat_result:
+        held = tuple(Path(named).stat())
+        return os.stat_result((stat.S_IFREG | stat.S_IMODE(held[0]), *held[1:]))
+
+    return SimpleNamespace(**{**vars(os), "lstat": lstat})
+
+
+def _open_regular_refuses_what_the_name_answered_as_a_file() -> None:
+    """A FIFO, and a symbolic link to a regular file, each under a name that answered as
+    a regular file, which is an entry replaced between that answer and the open, are
+    refused by the open itself: the FIFO is opened without waiting and refused by its
+    descriptor's kind, and the link is not followed. The name's answer is simulated by
+    `_os_answering_regular`, which gives the link the identity of the file it names, so
+    a followed link would be the very file the name reported and would open, and an
+    open that waits on the FIFO fails `_returns`'s deadline. The positive control is
+    that file, asked through the same answer, which opens. POSIX-only, so the case is
+    the guest's and win32 is refused before `os.mkfifo`."""
+    if sys.platform == "win32":
+        raise AssertionError("mkfifo is POSIX-only; the FIFO and link open case runs in "
+                             "the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        fifo, link, regular = root / "rv64ui-p-fifo", root / "rv64ui-p-link", root / "regular"
+        os.mkfifo(fifo)
+        regular.write_bytes(b"\x7fELF")
+        link.symlink_to(regular)
+
+        def opened(path: Path) -> int | None:
+            held: list[int | None] = []
+            with patch.object(_MODEL, "os", _os_answering_regular()):
+                _returns(lambda: held.append(_MODEL._open_regular(path)),
+                         partial(_end_of_file, fifo))
+            return held[0]
+
+        for path in (fifo, link):
+            fd = opened(path)
+            if fd is not None:
+                os.close(fd)
+            ensure(fd is None, f"{path.name} is refused by the open, got descriptor {fd}")
+        fd = opened(regular)
+        ensure(fd is not None, "control: the regular file the name answered for opens")
+        with os.fdopen(cast("int", fd), "rb") as stream:
+            ensure(stream.read() == b"\x7fELF", "and reads as it is")
 
 
 def _seed_refuses_a_device_manifest() -> None:
@@ -619,7 +686,7 @@ def _seed_refuses_a_device_manifest() -> None:
         with patch.object(_MODEL, "os", device):
             _manifest_refused(donor, model_root)
         target = root / "target-control"
-        with patch.object(shutil, "copytree", wraps=shutil.copytree) as copied:
+        with _copies_spied() as copied:
             _returns(lambda: _MODEL._seed_test_data([donor], target, model_root))
         ensure(copied.call_count == 1
                and (target / "test" / _RELEASE / "riscv-tests/rv64ui-p-add").is_file(),
@@ -664,21 +731,53 @@ def _seed_refuses_a_manifest_linked_to_a_fifo() -> None:
         _manifest_refused(donor, model_root, partial(_end_of_file, fifo))
 
 
+# `verify_test_corpus` over the suite and digest it is given, in a child whose address
+# space is held to a gibibyte once model.py is imported, printing the refusal. A read of
+# more than that fails with `MemoryError` there whatever the kernel's overcommit policy,
+# where a process allowed to overcommit would map the whole read and be killed for the
+# memory it touched. `resource` is POSIX-only, and the child runs only on a guest lane.
+_BOUNDED_VERIFY = """
+import resource
+import sys
+from pathlib import Path
+
+from vos.cli import model
+
+_, hard = resource.getrlimit(resource.RLIMIT_AS)
+limit = 1 << 30 if hard == resource.RLIM_INFINITY else min(1 << 30, hard)
+resource.setrlimit(resource.RLIMIT_AS, (limit, hard))
+try:
+    model.verify_test_corpus(Path(sys.argv[1]), sys.argv[2])
+except ValueError as err:
+    print(err)
+else:
+    sys.exit("the sparse manifest verified")
+"""
+
+
 def _verify_refuses_a_sparse_manifest() -> None:
     """A manifest that is a regular file, holding the suite's listing and then zeros to
-    a terabyte, disagrees with the suite within the deadline: no more of it is read
-    than the listing the tree renders and one byte, where a read of the whole would end
-    in the `MemoryError` that no refusal of `_seed_test_data` catches. The file is
-    sparse, so it allocates nothing; NTFS allocates an extended file, so the case is the
-    guest's and win32 is refused before the truncation."""
+    a terabyte, disagrees with the suite: no more of it is read than the listing the
+    tree renders and one byte, where a read of the whole would end in the `MemoryError`
+    that no refusal of `_seed_test_data` catches. The verification runs in a child whose
+    address space `_BOUNDED_VERIFY` holds to a gibibyte, so such a read fails there as
+    that `MemoryError` under any overcommit policy rather than having the child killed.
+    The file is sparse, so it allocates nothing; NTFS allocates an extended file, so
+    the case is the guest's and win32 is refused before the truncation."""
     if sys.platform == "win32":
         raise AssertionError("NTFS allocates an extended file; the sparse manifest case "
                              "runs in the guest")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF"})
         os.truncate(_MODEL.corpus_manifest(suite), 1 << 40)
-        said = _refused(partial(_MODEL.verify_test_corpus, suite, _CORPUS_DIGEST))
-        ensure("disagrees" in said, f"the sparse manifest disagrees, got {said!r}")
+        done = subprocess.run([sys.executable, "-c", _BOUNDED_VERIFY, str(suite),
+                               _CORPUS_DIGEST],
+                              capture_output=True, encoding="utf-8", errors="replace",
+                              check=False, timeout=120,
+                              env={**os.environ, "PYTHONPATH": str(TOOLS)})
+        ensure(done.returncode == 0 and "disagrees" in done.stdout,
+               f"the sparse manifest disagrees, got {done.returncode}, "
+               f"{done.stdout[-400:]!r} and {done.stderr[-400:]!r}")
 
 
 def _verify_reads_no_file_until_the_paths_agree() -> None:
@@ -732,29 +831,47 @@ def _refused(call: Callable[[], object], unblock: Callable[[], None] | None = No
 
 
 def _copy_regular_file() -> None:
-    """The copy `copytree` makes of each donor entry, and of the manifest, reads a
-    source only when the descriptor it opened is a regular file. A regular source is
-    copied byte for byte with its mode and modification time, as `copy2` copies it, and
-    the carriage return and 0x1A in it hold that a win32 read is not a text-mode one; a
-    device, simulated by `_os_with_a_device`, is refused naming it and leaves no
-    destination. Seeding a clean donor copies its entry and its manifest through it."""
+    """The copy the seeding makes of each file that verified reads a source only when
+    the descriptor it opened is a regular file and the very file that verified, by
+    device, inode and length. A regular source is copied byte for byte with its mode and
+    modification time, as `copy2` copies it, and the carriage return and 0x1A in it hold
+    that a win32 read is not a text-mode one; a device, simulated by
+    `_os_with_a_device`, another file holding the same bytes, and the same file grown
+    by a byte are each refused naming the source, and leave no destination. Seeding a
+    clean donor copies its entry through it and writes the manifest that verified."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
         source, copied = root / "rv64ui-p-add", root / "copied"
         source.write_bytes(b"\x7fELF\r\n\x1a after")
         source.chmod(0o640)
         os.utime(source, ns=(1_000_000_000, 2_000_000_000))
-        _MODEL._copy_regular_file(source, copied)
+        verified = _MODEL._regular_digest(source)
+        _MODEL._copy_regular_file(source, copied, verified)
         was, now = source.stat(), copied.stat()
         ensure(copied.read_bytes() == source.read_bytes()
                and stat.S_IMODE(now.st_mode) == stat.S_IMODE(was.st_mode)
                and now.st_mtime_ns == was.st_mtime_ns,
                "a regular source is copied byte for byte with its mode and time")
 
+        twin = root / "rv64ui-p-twin"
+        twin.write_bytes(source.read_bytes())
+        grown = root / "rv64ui-p-grown"
+        grown.write_bytes(source.read_bytes())
+        grown_verified = _MODEL._regular_digest(grown)
+        with grown.open("ab") as stream:
+            stream.write(b"!")
+        for path, held in ((twin, verified), (grown, grown_verified)):
+            kept = root / f"{path.name}-copy"
+            said = _refused(partial(_MODEL._copy_regular_file, path, kept, held))
+            ensure(f"{path} is not the file that verified" in said,
+                   f"the refusal names {path.name}, got {said!r}")
+            ensure(not kept.exists(), f"and nothing is written for {path.name}")
+
         device, kept = root / "rv64ui-p-device", root / "device-copy"
         device.write_bytes(b"")
+        blank = _MODEL._regular_digest(device)
         with patch.object(_MODEL, "os", _os_with_a_device(lambda path: path == str(device))):
-            said = _refused(partial(_MODEL._copy_regular_file, device, kept))
+            said = _refused(partial(_MODEL._copy_regular_file, device, kept, blank))
         ensure(f"{device} is not a regular file" in said,
                f"the refusal names the source, got {said!r}")
         ensure(not kept.exists(), "and nothing is written for it")
@@ -762,18 +879,76 @@ def _copy_regular_file() -> None:
         model_root = _corpus_model(root)
         donor = root / "clean"
         suite = _extracted(donor, {"rv64ui-p-add": b"\x7fELF"})
-        with patch.object(_MODEL, "_copy_regular_file",
-                          wraps=_MODEL._copy_regular_file) as copy:
+        with _copies_spied() as copy:
             _MODEL._seed_test_data([donor], root / "target", model_root)
         sources = {Path(call.args[0]) for call in copy.call_args_list}
-        ensure(sources == {suite / "rv64ui-p-add", _MODEL.corpus_manifest(suite)},
-               f"the entry and the manifest are copied through it, got {sources}")
+        ensure(sources == {suite / "rv64ui-p-add"},
+               f"the entry is copied through it, got {sources}")
+        seeded = _MODEL.corpus_manifest(root / "target" / "test" / _RELEASE / "riscv-tests")
+        ensure(seeded.read_bytes() == _MODEL.corpus_manifest(suite).read_bytes(),
+               "and the manifest that verified is written beside it")
+
+
+class _CountedReader:
+    """A binary reader that keeps a count of the bytes read through it."""
+
+    def __init__(self, stream: IO[bytes], counts: list[int]) -> None:
+        self._stream = stream
+        self._counts = counts
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *raised: object) -> None:
+        self._stream.close()
+
+    def fileno(self) -> int:
+        return self._stream.fileno()
+
+    def read(self, size: int = -1) -> bytes:
+        data = self._stream.read(size) or b""
+        self._counts.append(len(data))
+        return data
+
+
+def _copy_regular_file_reads_no_further_than_verified() -> None:
+    """A source that grows after the copy asked its length, which is the window the
+    descriptor's identity does not close, is refused having read no more of it than the
+    verified length and one byte, and leaves no destination: a donor file extended
+    then, a sparse terabyte among them, is not read to its end. The growth is
+    simulated: the descriptor's `fstat` answers the verified length of a file that is
+    longer. Reads are counted through the reader `os.fdopen` hands the copy."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        source, kept = root / "rv64ui-p-add", root / "copy"
+        source.write_bytes(b"\x7fELF")
+        verified = _MODEL._regular_digest(source)
+        with source.open("ab") as stream:
+            stream.write(bytes(1 << 16))
+        counts: list[int] = []
+
+        def fdopen(fd: int, mode: str = "r", buffering: int = -1) -> _CountedReader:
+            return _CountedReader(cast("IO[bytes]", os.fdopen(fd, mode, buffering)), counts)
+
+        def fstat(fd: int) -> os.stat_result:
+            held = tuple(os.fstat(fd))
+            return os.stat_result((*held[:6], verified.size, *held[7:]))
+
+        grown = SimpleNamespace(**{**vars(os), "fdopen": fdopen, "fstat": fstat})
+        with patch.object(_MODEL, "os", grown):
+            said = _refused(partial(_MODEL._copy_regular_file, source, kept, verified))
+        ensure(f"{source} is longer than the 4 bytes that verified" in said,
+               f"the refusal names the source, got {said!r}")
+        ensure(0 < sum(counts) <= verified.size + 1,
+               f"no more than the verified length and one byte is read, got {counts}")
+        ensure(not kept.exists(), "and nothing is written for it")
 
 
 def _copy_regular_file_refuses_a_fifo_and_a_link() -> None:
     """A real FIFO source is refused rather than waited on, and a symbolic link, here
-    to a regular file, rather than followed. POSIX-only, so the case is the guest's and
-    win32 is refused before `os.mkfifo`."""
+    to a regular file, rather than followed. Each is held to the identity of the file
+    the link names, so a followed link would be the file that verified. POSIX-only, so
+    the case is the guest's and win32 is refused before `os.mkfifo`."""
     if sys.platform == "win32":
         raise AssertionError("mkfifo is POSIX-only; the FIFO source case runs in the guest")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
@@ -781,22 +956,89 @@ def _copy_regular_file_refuses_a_fifo_and_a_link() -> None:
         fifo, link = root / "rv64ui-p-fifo", root / "rv64ui-p-link"
         os.mkfifo(fifo)
         (root / "regular").write_bytes(b"\x7fELF")
+        verified = _MODEL._regular_digest(root / "regular")
         link.symlink_to(root / "regular")
         for source in (fifo, link):
             kept = root / f"{source.name}-copy"
-            said = _refused(partial(_MODEL._copy_regular_file, source, kept),
+            said = _refused(partial(_MODEL._copy_regular_file, source, kept, verified),
                             partial(_end_of_file, fifo))
             ensure(f"{source} is not a regular file" in said,
                    f"the refusal names the source, got {said!r}")
             ensure(not kept.exists(), f"nothing is written for {source.name}")
 
 
+@contextmanager
+def _changed_after_verifying(change: Callable[[], object]) -> Iterator[None]:
+    """`verify_test_corpus` as it is, except that `change` runs once the first suite it
+    is asked about has verified, which is the window between a verification and its
+    reader that no check by name closes."""
+    verify = _MODEL.verify_test_corpus
+    pending = [change]
+
+    def verified_then_changed(suite: Path, digest: str) -> object:
+        found = verify(suite, digest)
+        while pending:
+            pending.pop()()
+        return found
+
+    with patch.object(_MODEL, "verify_test_corpus", verified_then_changed):
+        yield
+
+
+def _seed_copies_only_what_verified() -> None:
+    """The seeding copies what the donor's verification found, not what the donor holds
+    once it has verified: an entry added then is not copied, and the copy verifies and
+    is seeded without it; a manifest lengthened then is not read again, and the copy's
+    manifest is the one that verified; and an entry replaced then by another
+    file of the same bytes is refused as not the file that verified, which seeds
+    nothing. The control is the clean donor, which seeds."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        model_root = _corpus_model(root)
+        sealed = {"rv64ui-p-add": b"\x7fELF"}
+
+        def seeded(name: str, change: Callable[[Path], object]) -> tuple[Path, str]:
+            suite = _extracted(root / name, sealed)
+            target = root / f"target-{name}"
+            with (_changed_after_verifying(partial(change, suite)),
+                  redirect_stderr(io.StringIO()) as err):
+                _MODEL._seed_test_data([root / name], target, model_root)
+            return target / "test" / _RELEASE / "riscv-tests", err.getvalue()
+
+        def displaced(suite: Path) -> None:
+            # moved rather than removed, so its inode cannot be the replacement's
+            entry = suite / "rv64ui-p-add"
+            entry.replace(root / "original")
+            entry.write_bytes(sealed["rv64ui-p-add"])
+
+        def lengthened(suite: Path) -> None:
+            manifest = _MODEL.corpus_manifest(suite)
+            manifest.write_bytes(manifest.read_bytes() + bytes(1 << 16))
+
+        copy, said = seeded("clean", lambda suite: None)
+        ensure(said == "" and (copy / "rv64ui-p-add").read_bytes() == b"\x7fELF",
+               f"control: the clean donor seeds, got {said!r}")
+        copy, said = seeded("added", lambda suite: (suite / "rv64ui-p-late").write_bytes(
+            b"\x7fELF late"))
+        ensure(said == "" and sorted(p.name for p in copy.iterdir()) == ["rv64ui-p-add"],
+               f"an entry added once the donor verified is not copied, got {said!r}")
+        _MODEL.verify_test_corpus(copy, _CORPUS_DIGEST)
+        copy, said = seeded("lengthened", lengthened)
+        ensure(said == "" and _MODEL.corpus_manifest(copy).read_bytes()
+               == _MODEL.corpus_listing(copy, _CORPUS_DIGEST),
+               f"the copy's manifest is the one that verified, got {said!r}")
+        copy, said = seeded("displaced", displaced)
+        entry = root / "displaced" / "test" / _RELEASE / "riscv-tests" / "rv64ui-p-add"
+        ensure(f"{entry} is not the file that verified" in said and not copy.exists(),
+               f"an entry replaced once the donor verified is refused, got {said!r}")
+
+
 def _seed_refuses_an_entry_replaced_during_the_copy() -> None:
-    """A donor entry replaced by a FIFO after the donor verified and after `copytree`
-    listed its directory, the window a check by name does not close, is refused by the
-    copy rather than waited on: the seeding returns, names the donor and the entry, and
-    seeds nothing, and the staging copy is removed. POSIX-only, so the case is the
-    guest's and win32 is refused before `os.mkfifo`."""
+    """A donor entry replaced by a FIFO after the donor verified, just before the copy
+    opens it, the window a check by name does not close, is refused by the copy rather
+    than waited on: the seeding returns, names the donor and the entry, and seeds
+    nothing, and the staging copy is removed. POSIX-only, so the case is the guest's
+    and win32 is refused before `os.mkfifo`."""
     if sys.platform == "win32":
         raise AssertionError("mkfifo is POSIX-only; the replaced entry case runs in the guest")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
@@ -806,12 +1048,11 @@ def _seed_refuses_an_entry_replaced_during_the_copy() -> None:
         entry = _extracted(donor, {"rv64ui-p-add": b"\x7fELF"}) / "rv64ui-p-add"
         copy = _MODEL._copy_regular_file
 
-        def replacing(source: Path | str, destination: Path | str) -> Path | str:
-            if Path(source) == entry:
+        def replacing(source: Path, destination: Path, verified: object) -> None:
+            if source == entry:
                 entry.unlink()
                 os.mkfifo(entry)
-            # cast because a module loaded from a path answers `Any` for every attribute
-            return cast("Path | str", copy(source, destination))
+            copy(source, destination, verified)
 
         target = root / "target"
         with (patch.object(_MODEL, "_copy_regular_file", replacing),
@@ -845,11 +1086,14 @@ def _listing_hashes_only_regular_descriptors() -> None:
 
 
 def _listing_refuses_a_fifo_its_check_by_name_missed() -> None:
-    """A FIFO that the listing's check by name answers as a regular file, which is a
-    file replaced by a FIFO between that check and the read, is listed unhashed rather
+    """A FIFO that the listing's check by name, `Path.is_file`, answers as a regular file,
+    which is a file replaced by a FIFO between that check and the read, is refused by
+    `_open_regular`'s own check by name before any open: it is listed unhashed rather
     than waited on, and the suite is refused. The FIFO stands under a name the manifest
     lists, so the suite's paths agree with the manifest's and only the read meets it.
-    POSIX-only, so the case is the guest's and win32 is refused before `os.mkfifo`."""
+    A FIFO that both checks answer as a regular file is the open's to refuse, which
+    `_open_regular_refuses_what_the_name_answered_as_a_file` holds. POSIX-only, so the
+    case is the guest's and win32 is refused before `os.mkfifo`."""
     if sys.platform == "win32":
         raise AssertionError("mkfifo is POSIX-only; the FIFO listing case runs in the guest")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
@@ -868,10 +1112,18 @@ def _listing_refuses_a_fifo_its_check_by_name_missed() -> None:
         ensure("non-regular" in said, f"the suite is refused, got {said!r}")
 
 
+def _built_receipt() -> dict[str, str]:
+    """What the receipt records of `_built_tree`'s tree as it was built: every product,
+    and the one input under the name `receipts.snapshot` gives the products."""
+    product = hashlib.sha256(b"product").hexdigest()
+    return {**dict.fromkeys(_MODEL.BUILD_ARTIFACTS, product),
+            f"test/{_RELEASE}/riscv-tests/rv64ui-p-add": hashlib.sha256(b"\x7fELF").hexdigest()}
+
+
 def _built_tree(root: Path) -> tuple[Path, Path, Path]:
     """A build tree holding every build product and a sealed suite of one ELF input,
-    its model root, and the input; and the control on it: the receipt records the input
-    under the name `receipts.snapshot` gives the products."""
+    its model root, and the input; and the control on it: the receipt is
+    `_built_receipt`."""
     model_root = _corpus_model(root)
     build = root / "build"
     for rel in _MODEL.BUILD_ARTIFACTS:
@@ -879,50 +1131,52 @@ def _built_tree(root: Path) -> tuple[Path, Path, Path]:
         (build / rel).write_bytes(b"product")
     elf = _extracted(build, {"rv64ui-p-add": b"\x7fELF"}) / "rv64ui-p-add"
     recorded = _MODEL.build_artifacts(build, model_root)
-    product = hashlib.sha256(b"product").hexdigest()
-    ensure(recorded == {**dict.fromkeys(_MODEL.BUILD_ARTIFACTS, product),
-                        f"test/{_RELEASE}/riscv-tests/rv64ui-p-add":
-                            hashlib.sha256(b"\x7fELF").hexdigest()},
+    ensure(recorded == _built_receipt(),
            f"control: the receipt records every product and the input, got {recorded}")
     return build, model_root, elf
 
 
-def _receipt_after(build: Path, model_root: Path, replace: Callable[[], object],
-                   unblock: Callable[[], None] | None = None) -> str:
-    """The refusal `build_artifacts` gives when `replace` runs once `sweep_inputs` has
-    verified the suite and selected its inputs, which is the window a check by name
-    does not close."""
-    select = _MODEL.sweep_inputs
-
-    def selected_then_replaced(directory: Path, root: Path, xlen: str = "64") -> list[Path]:
-        # cast because a module loaded from a path answers `Any` for every attribute
-        elves = cast("list[Path]", select(directory, root, xlen))
-        replace()
-        return elves
-
-    with patch.object(_MODEL, "sweep_inputs", selected_then_replaced):
-        return _refused(partial(_MODEL.build_artifacts, build, model_root), unblock)
-
-
-def _receipt_reads_only_regular_sweep_inputs() -> None:
-    """The build receipt reads each sweep input, after its suite verified, only through
-    a descriptor that is a regular file: an input that opens as a device is refused
-    with a `ValueError` naming it, which the build records as its receipt's refusal.
-    The device is simulated by `_os_with_a_device`, from the moment the inputs are
-    selected; the positive control is `_built_tree`'s receipt of the same tree."""
-    with tempfile.TemporaryDirectory(prefix="vos-test-") as td, ExitStack() as later:
+def _receipt_records_what_verified() -> None:
+    """The sweep and its build receipt take their inputs from what the suite's
+    verification found, and the receipt records each with the SHA-256 that verification
+    read rather than reading it again. An ELF added beside the input once the suite has
+    verified is neither swept nor recorded; an input that would open as a device then,
+    simulated by `_os_with_a_device`, is recorded as it verified, and is read once, by
+    the verification. The next verification refuses the suite the added ELF changed.
+    The control is `_built_tree`'s receipt."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         build, model_root, elf = _built_tree(Path(td))
+        late = elf.with_name("rv64ui-p-late")
+        add_late = partial(late.write_bytes, b"\x7fELF late")
+        with _changed_after_verifying(add_late):
+            selected = _MODEL.sweep_inputs(build, model_root)
+        ensure(selected == [elf], f"an ELF added once the suite verified is not swept, "
+                                  f"got {selected}")
+        late.unlink()
         device = _os_with_a_device(lambda path: path == str(elf))
-        said = _receipt_after(build, model_root,
-                              lambda: later.enter_context(patch.object(_MODEL, "os", device)))
-        ensure(f"{elf} is not a regular file" in said,
-               f"the receipt refuses the input, got {said!r}")
+        with ExitStack() as later:
+
+            def change() -> None:
+                add_late()
+                later.enter_context(patch.object(_MODEL, "os", device))
+
+            with (patch.object(_MODEL, "_regular_digest",
+                               wraps=_MODEL._regular_digest) as hashed,
+                  _changed_after_verifying(change)):
+                recorded = _MODEL.build_artifacts(build, model_root)
+        ensure(recorded == _built_receipt(),
+               f"the receipt records what verified and nothing added since, got {recorded}")
+        read = [Path(call.args[0]) for call in hashed.call_args_list]
+        ensure(read == [elf], f"the input is read once, by the verification, got {read}")
+        said = _refused(partial(_MODEL.build_artifacts, build, model_root))
+        ensure("disagrees" in said, f"the next verification refuses the suite, got {said!r}")
 
 
-def _receipt_refuses_a_fifo_sweep_input() -> None:
-    """A sweep input replaced by a real FIFO after its suite verified is refused by the
-    build receipt rather than waited on. POSIX-only, so the case is the guest's and
-    win32 is refused before `os.mkfifo`."""
+def _receipt_opens_no_sweep_input_after_verifying() -> None:
+    """A sweep input replaced by a real FIFO once its suite has verified is not opened
+    by the build receipt, which returns within `_returns`'s deadline recording the
+    bytes that verified; the next verification refuses the suite holding the FIFO.
+    POSIX-only, so the case is the guest's and win32 is refused before `os.mkfifo`."""
     if sys.platform == "win32":
         raise AssertionError("mkfifo is POSIX-only; the FIFO input case runs in the guest")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
@@ -932,9 +1186,74 @@ def _receipt_refuses_a_fifo_sweep_input() -> None:
             elf.unlink()
             os.mkfifo(elf)
 
-        said = _receipt_after(build, model_root, replace, partial(_end_of_file, elf))
-        ensure(f"{elf} is not a regular file" in said,
-               f"the receipt refuses the input, got {said!r}")
+        recorded: list[object] = []
+        with _changed_after_verifying(replace):
+            _returns(lambda: recorded.append(_MODEL.build_artifacts(build, model_root)),
+                     partial(_end_of_file, elf))
+        ensure(recorded == [_built_receipt()],
+               f"the receipt records the bytes that verified, got {recorded}")
+        said = _refused(partial(_MODEL.build_artifacts, build, model_root),
+                        partial(_end_of_file, elf))
+        ensure("non-regular" in said, f"the next verification refuses the suite, got {said!r}")
+
+
+def _build_records_an_unreadable_product() -> None:
+    """A build whose stages pass and one of whose products is gone before its evidence is
+    recorded fails with the reason in its receipt, rather than with the `OSError`
+    escaping the command before any receipt is written. The stages, configure and the
+    build identity stand in; the control is the same build over `_built_tree`'s whole
+    tree, whose receipt records its products and input."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        build, model_root, _ = _built_tree(root)
+        e = env.Environment(root, model_root, root / "build-root", root / "logs", "", 4,
+                            4096, 2, 2)
+        log = e.log("model-build")
+        sail = subprocess.CompletedProcess([], 0, "Sail 9.9.9 (fixture)\n", "")
+
+        def built() -> tuple[int, dict[str, object]]:
+            with (patch.object(_MODEL, "build_identity", return_value={"inputs": {}}),
+                  patch.object(_MODEL, "_configure", return_value=0),
+                  patch.object(_MODEL, "env", SimpleNamespace(stage=Mock(return_value=0))),
+                  patch.object(_MODEL, "subprocess",
+                               SimpleNamespace(run=Mock(return_value=sail))),
+                  redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
+                code = cast("int", _MODEL._build_locked(e, build, log, []))
+            record = json.loads(log.with_suffix(".json").read_text(encoding="utf-8"))
+            return code, cast("dict[str, object]", record)
+
+        code, record = built()
+        ensure(code == 0 and record.get("artifacts") == _built_receipt(),
+               f"control: the whole tree's build records its evidence, got {code}, {record}")
+        product = build / _MODEL.BUILD_ARTIFACTS[-1]
+        product.unlink()
+        code, record = built()
+        refusal = str(record.get("refusal"))
+        ensure(code == 1 and record.get("exit_code") == 1
+               and "the build's evidence cannot be recorded" in refusal
+               and product.name in refusal,
+               f"the receipt records the unreadable product, got {code} and {record}")
+
+
+def _trace_diff_compares_what_verified() -> None:
+    """`trace-diff --corpus` compares the rv64ui programs its suite's verification
+    found, and not an ELF added beside them once the suite has verified. The oracle's
+    checks, its lock and the comparison stand in, so only the selection is decided."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        build, model_root, elf = _built_tree(Path(td))
+        late = elf.with_name("rv64ui-p-late")
+        e = SimpleNamespace(build_dir=build, model=model_root, oracle_root=Path(td) / "oracle")
+        unlocked = SimpleNamespace(hold_lock=lambda *_, **__: nullcontext())
+        with (patch.object(_MODEL, "_missing_simulator", return_value=None),
+              patch.object(_MODEL, "_missing_oracle", return_value=None),
+              patch.object(_MODEL, "_unvouched_oracle", return_value=None),
+              patch.object(_MODEL, "env", unlocked),
+              patch.object(_MODEL, "_adjudicate", return_value=0) as adjudicated,
+              _changed_after_verifying(partial(late.write_bytes, b"\x7fELF late"))):
+            code = _MODEL.cmd_trace_diff(e, argparse.Namespace(elf=[], corpus=True))
+        compared = adjudicated.call_args.args[2] if adjudicated.called else None
+        ensure(code == 0 and compared == [elf],
+               f"only the program that verified is compared, got {code} and {compared}")
 
 # The model's own declaration, whose two suite functions the case below cuts out and runs
 # under cmake, so what it holds is what configure runs rather than a copy of it.
@@ -1331,6 +1650,8 @@ def cases() -> list[Case]:
         Case("seed-refuses-a-device-donor", _seed_refuses_a_device_donor),
         Case("seed-refuses-a-fifo-donor", _seed_refuses_a_fifo_donor, lane="guest"),
         Case("open-regular-asks-the-name-first", _open_regular_asks_the_name_first),
+        Case("open-regular-refuses-what-the-name-answered-as-a-file",
+             _open_regular_refuses_what_the_name_answered_as_a_file, lane="guest"),
         Case("seed-refuses-a-device-manifest", _seed_refuses_a_device_manifest),
         Case("seed-refuses-a-fifo-manifest", _seed_refuses_a_fifo_manifest, lane="guest"),
         Case("seed-refuses-a-manifest-linked-to-a-fifo",
@@ -1340,6 +1661,9 @@ def cases() -> list[Case]:
         Case("verify-reads-no-file-until-the-paths-agree",
              _verify_reads_no_file_until_the_paths_agree),
         Case("copy-regular-file", _copy_regular_file),
+        Case("copy-regular-file-reads-no-further-than-verified",
+             _copy_regular_file_reads_no_further_than_verified),
+        Case("seed-copies-only-what-verified", _seed_copies_only_what_verified),
         Case("copy-regular-file-refuses-a-fifo-and-a-link",
              _copy_regular_file_refuses_a_fifo_and_a_link, lane="guest"),
         Case("seed-refuses-an-entry-replaced-during-the-copy",
@@ -1348,10 +1672,11 @@ def cases() -> list[Case]:
              _listing_hashes_only_regular_descriptors),
         Case("listing-refuses-a-fifo-its-check-by-name-missed",
              _listing_refuses_a_fifo_its_check_by_name_missed, lane="guest"),
-        Case("receipt-reads-only-regular-sweep-inputs",
-             _receipt_reads_only_regular_sweep_inputs),
-        Case("receipt-refuses-a-fifo-sweep-input", _receipt_refuses_a_fifo_sweep_input,
-             lane="guest"),
+        Case("receipt-records-what-verified", _receipt_records_what_verified),
+        Case("receipt-opens-no-sweep-input-after-verifying",
+             _receipt_opens_no_sweep_input_after_verifying, lane="guest"),
+        Case("trace-diff-compares-what-verified", _trace_diff_compares_what_verified),
+        Case("build-records-an-unreadable-product", _build_records_an_unreadable_product),
 
         # Only where cmake is on PATH: the runner has no skipped verdict, and a case
         # that returned without cmake would pass having decided nothing.

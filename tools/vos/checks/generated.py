@@ -124,6 +124,7 @@ from vos import (
     wire_formats,
 )
 from vos import corpus as corpus_mod
+from vos.report import apart
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -256,9 +257,10 @@ def _device_regs_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
         out.findings.append(f"{row.path} records its owners at {device_regs.UPSTREAM}, "
                             "which the index carries no gitlink for")
     elif oid != recorded:
+        stated, carried = apart(recorded, oid)
         out.findings.append(
-            f"{row.path} records its owners at {recorded[:12]} and the index carries "
-            f"{device_regs.UPSTREAM} at {oid[:12]}; regenerate it with `{row.generator}` "
+            f"{row.path} records its owners at {stated} and the index carries "
+            f"{device_regs.UPSTREAM} at {carried}; regenerate it with `{row.generator}` "
             "from a checkout at the gitlink, which re-derives what was read there and is "
             "never a token repair")
     if block is not None and uart is not None:

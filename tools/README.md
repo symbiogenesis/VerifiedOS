@@ -1063,12 +1063,19 @@ asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own li
 each for a reason that would hold in any project, and no group switched off to spare this
 code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and
 the sentence saying why; the `PGH` group refuses a blanket `# noqa` or `# type: ignore`.
-A suppression reaching a whole file is a ruff finding: a `per-file-ignores` or
-`extend-per-file-ignores` key in ruff.toml, in `[lint]` or at the top level; an `extend`
-key, which merges another file's settings beneath ruff.toml's; and a comment anywhere in
+A suppression reaching past a line, or a setting that may be one, is a ruff finding: a
+`per-file-ignores` or `extend-per-file-ignores` key in ruff.toml, in `[lint]` or at the
+top level; an `extend` key, which merges another file's settings beneath ruff.toml's;
+any other key outside the ones the gate has read, which are the ones ruff.toml carries,
+since a top-level `per-file-target-version` also switches rules off for the files a
+pattern matches and a key the gate has not read may do as much; a comment anywhere in
 a tracked module carrying ruff's file-level suppression, `# ruff: noqa` or
 `# flake8: noqa`, unless it names N999 and no other rule, since ruff reports N999
-against the file's name rather than a line of it. ruff's log names a file whose rules
+against the file's name rather than a line of it; and a comment carrying
+`# ruff: file-ignore[...]`, a `# ruff: disable[...]` or `# ruff: enable[...]` range,
+whose `disable` with no matching `enable` runs to the end of its block, or isort's
+`skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` reaches one logical
+line, as `# noqa` does, and is not refused. ruff's log names a file whose rules
 are switched off as checked, so the coverage floor below cannot see what such a
 suppression takes away.
 ruff also honors ignore files by default, so ruff.toml sets `respect-gitignore = false`
@@ -1102,7 +1109,12 @@ neither run sees an import of one fail on the other platform. ruff.toml's
 `banned-module-level-imports` lists each standard-library module the interpreter cannot
 import on Windows or on Linux that ty resolves under both platforms, a listed name
 covering its submodules; a module ty resolves under neither is ty's own
-`unresolved-import` finding. ruff's TID253 refuses an import of a listed module only
+`unresolved-import` finding, and a module a build leaves out for want of an optional
+library, which configure records as missing or disabled, is the build's and is not
+listed. [tests/test_typecheck.py](tests/test_typecheck.py) holds the list on each lane
+against every standard-library module and submodule the running interpreter cannot
+import, resolved by the gate's own ty runs, so Host CI's Windows and Ubuntu legs
+together hold both halves. ruff's TID253 refuses an import of a listed module only
 where it is unnested at module level, and with the module listed, PLC0415 no longer
 reports one in a class body. So the gate reads the same list and refuses an import of a
 listed module in a tracked module anywhere else outside a function body, in a class body

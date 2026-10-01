@@ -158,26 +158,28 @@ stating the release and the full commit its terms were read at. A tag moves unde
 row without any file here changing, so the rule first holds each line to the one form
 that cannot move, `owner/repo[/path]@<40 hex digits> # vX.Y.Z`, and then holds its
 commit and release to the action's own row. The row's licence link names the edition
-its terms were read at, so every link the row makes into the action's own repository
-is held to name the reviewed commit, never another commit, a tag or a branch that
-could move under it. Membership is total in both directions: a line naming an action
-with no row runs code whose terms nobody read, and a row naming an action no workflow
-runs is a review of nothing. The two workflow analyzers Host CI runs are installed from
-a lock and a script rather than named by a workflow line, so K-118 holds their rows
-with the rest of the section's.
+its terms were read at, so the row links a file of the action's own repository, a
+`blob`, `tree` or `raw` path on github.com or a path on raw.githubusercontent.com, its
+owner and name in any case, and every such link is held to name the reviewed commit,
+never another commit, a tag or a branch that could move under it. Membership is total
+in both directions: a line naming an action with no row runs code whose terms nobody
+read, and a row naming an action no workflow runs is a review of nothing. The two
+workflow analyzers Host CI runs are installed from a lock and a script rather than
+named by a workflow line, so K-118 holds their rows with the rest of the section's.
 
 **The window is the git index's workflow directory**, every tracked `.yml` or `.yaml`
 file under `.github/workflows/`, and each reading fails closed: no workflow, no
 `uses:` line at all, a record without its development-tools heading or with no action
-row under it, and a row stating its reviewed revision other than exactly once are each
-a finding rather than an agreement over nothing. That is why it owes the floors group
-no member. **The reading takes one shape and a census holds it to the rest**: a
-reference is read only as a block mapping's bare `uses:` key opening its line, alone or
-after a sequence dash, while YAML also lets that key be quoted, tagged, anchored,
-written in a flow collection, spelled with an escape, reached through an alias or
-opened by an explicit `?` indicator. So the census splits each file at every YAML line
-break, 1.1's included, and on every line counts a `uses` key, bare or quoted, followed
-by its `:`; a double-quoted key holding an escape and an alias used as a key, whatever
+row under it, and a row stating its reviewed revision other than exactly once or
+linking no file of its action's repository are each a finding rather than an
+agreement over nothing. That is why it owes the floors group no member. **The reading
+takes one shape and a census holds it to the rest**: a reference is read only as a
+block mapping's bare `uses:` key opening its line, alone or after a sequence dash,
+while YAML also lets that key be quoted, tagged, anchored, written in a flow collection,
+spelled with an escape, reached through an alias or opened by an explicit `?`
+indicator. So the census splits each file at every YAML line break, 1.1's included,
+and on every line counts a `uses` key, bare or quoted, followed by its `:`; a
+double-quoted key holding an escape and an alias used as a key, whatever
 they spell; and every explicit-key `?` indicator, whatever key it opens. A comment's
 line is read too, since a line opening with `#` may continue a quoted scalar and a `#`
 after a no-break space, which YAML reads as content, opens no comment at all.
@@ -254,8 +256,11 @@ outside it. A release is read whole, with any letter, `~`, `+` or dotted suffix 
 carries, an opam identifier's after its name's dot, whether the name ends in a letter
 or in digits a letter leads, and one after an underscore too. A numeral joined to the
 word before it by a hyphen, a letter or `+`, as a licence identifier's version or a
-tag's prefix is, is not read by the census, nor is its continuation past its dot, and
-the sites read such a tag where it states a release.
+tag's prefix is, is not read by the census, and the sites read such a tag where it
+states a release. Joined by a hyphen or `+`, a lone `v` or `V` between or not, its
+continuation past its dot is not read either; joined by a letter, its continuation past
+its first dot is read, a name's digits not being told from a release's, so
+`python3.14.7` reads 14.7, erring toward a finding.
 
 **The hook configuration is censused as K-115 censuses the workflows.** A hook row is
 held against its own entry, so a repository the configuration gained with no row would
@@ -295,6 +300,7 @@ from vos import corpus as corpus_mod
 from vos import pins as pins_mod
 from vos import rtl_width, toolenv
 from vos.checks import generated
+from vos.report import apart as _apart
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -366,24 +372,33 @@ _V = r"(\d[\w+~-]*(?:\.[\w+~-]+)*)"
 # (`coq-riscv.0.0.6`) or in digits a letter leads (`base64.3.5.1`, so `python3.14.7`
 # reads 14.7, erring toward a finding), and so is a numeral after an underscore
 # (`rocq_9.4.0`). A numeral joined to the word before it by a hyphen, a letter or `+`
-# is not, nor one continuing such a numeral past its dot, being a licence identifier's
-# version (`LGPL-2.1`) or a tag's own prefix (`release-1.14`), which the census leaves
-# to the sites that read such a tag as the release it states. `_releases` applies the
-# last rule, which no fixed-width lookbehind can state.
+# is not. Joined by a hyphen or `+`, a lone `v` or `V` between or not, it is a licence
+# identifier's version (`LGPL-2.1`) or a tag's own prefix (`release-1.14`,
+# `release-v1.14`), which the census leaves to the sites that read such a tag as the
+# release it states, and its continuation past its dot is not read either; joined by a
+# letter, its continuation past its first dot is read, as `python3.14.7`'s 14.7 is.
+# `_releases` applies the continuation rule, which no fixed-width lookbehind can state.
 _RELEASE_RE = re.compile(r"(?<![^\W_])(?<![+-])[vV]?"
                          r"(\d+(?:\.\d+)+(?:[A-Za-z~+][\w~+]*)?(?:\.(?=[\w~+]*\d)[\w~+]+)*)")
 
 
 def _releases(text: str) -> list[re.Match[str]]:
     """The release numerals the census reads in the text: `_RELEASE_RE`'s matches, less
-    each whose dot follows digits no letter leads, the tail of the numeral before it."""
+    each whose dot follows digits no letter leads, the tail of the numeral before it.
+
+    A lone `v` or `V` before those digits is a tag's prefix rather than a name's last
+    letter, so the tail of `LGPL-v2.1.3` or `release-v1.14.2` stays unread, while
+    `sexplib0.v0.17.0` and `python3.14.7` keep their reading.
+    """
     found: list[re.Match[str]] = []
     for m in _RELEASE_RE.finditer(text):
         dot = run = m.start() - 1
         while run > 0 and text[run - 1] in "0123456789":
             run -= 1
-        if dot >= 0 and text[dot] == "." and run < dot and not (
-                run > 0 and text[run - 1].isalpha()):
+        lead = text[run - 1] if run > 0 else ""
+        if lead in ("v", "V") and (run < 2 or not text[run - 2].isalpha()):
+            lead = ""
+        if dot >= 0 and text[dot] == "." and run < dot and not lead.isalpha():
             continue
         found.append(m)
     return found
@@ -807,9 +822,10 @@ def _bindings(ctx: Context) -> None:
             findings.append(f"{file}'s {label} names {path}, which the index carries no "
                             "gitlink for")
         elif oid != recorded:
+            stated, carried = _apart(recorded, oid)
             findings.append(
-                f"{file}'s {label} is {recorded[:12]} and the index carries {path} at "
-                f"{oid[:12]}; regenerate it from a checkout at the gitlink, which "
+                f"{file}'s {label} is {stated} and the index carries {path} at "
+                f"{carried}; regenerate it from a checkout at the gitlink, which "
                 "re-derives what was read there and is never a token repair")
     ctx.rep.report("K-116", "tool-consumed RTL binding(s) that disagree with the gitlink "
                    "they were derived through:", findings,
@@ -894,17 +910,18 @@ def _tool_rows(text: str, findings: list[str]) -> dict[str, tuple[int, str]]:
     return rows
 
 
-def _apart(ref: str, commit: str) -> tuple[str, str]:
-    """Two revisions quoted at twelve digits, or one past what two different ones share.
+def _licence_links(tool: str) -> re.Pattern[str]:
+    """Every link to a file of the action's own repository, its group the revision named.
 
-    A finding naming both then never prints one id for two different commits; equal ones
-    keep twelve, the finding then being about their releases.
+    A `blob`, `tree` or `raw` path on github.com, `www.` or not, or a path on
+    raw.githubusercontent.com, with the scheme, host, owner and name in any case. Any
+    other link into the repository, its front page, a commit's or a release's, links no
+    file and is not read.
     """
-    if ref == commit:
-        return ref[:12], commit[:12]
-    shown = max(12, next((i + 1 for i, (a, b) in enumerate(zip(ref, commit, strict=False))
-                          if a != b), min(len(ref), len(commit)) + 1))
-    return ref[:shown], commit[:shown]
+    name = re.escape(tool)
+    return re.compile(rf"(?:(?i:https?://(?:www\.)?github\.com/{name})/(?:blob|tree|raw)"
+                      rf"|(?i:https?://raw\.githubusercontent\.com/{name}))"
+                      r"/([^/\s)\]>]+)/")
 
 
 def _workflow_pins(ctx: Context) -> None:
@@ -937,12 +954,14 @@ def _workflow_pins(ctx: Context) -> None:
             continue
         release, commit = stated[0]
         actions[tool] = (release, commit, where)
-        # The row's licence link names the edition its terms were read at, so every link
-        # into the action's own repository, owner and name in any case, names the
+        # The row's licence link names the edition its terms were read at, so the row
+        # links a file of the action's own repository, and every such link names the
         # reviewed commit rather than another commit, a tag or a branch.
-        for link in re.finditer(rf"https://github\.com/(?i:{re.escape(tool)})/blob/"
-                                r"([^/\s)\]>]+)/", row):
-            ref = link.group(1)
+        links = _licence_links(tool).findall(row)
+        if not links:
+            findings.append(f"{where} links no licence of {tool} at the reviewed commit; "
+                            "the link names the edition the terms were read at")
+        for ref in links:
             if ref != commit:
                 linked, reviewed = _apart(ref, commit)
                 findings.append(f"{where} links {tool}'s licence at {linked}, the row "
@@ -1577,9 +1596,10 @@ def _pins(ctx: Context) -> None:
             findings.append(f"{where} pins {pin.path} and states no commit id, so the "
                             "edition its terms were read at is not recorded")
         elif not gitlinks[pin.path].startswith(pin.short):
+            stated, carried = _apart(pin.short, gitlinks[pin.path])
             findings.append(
-                f"{where} pins {pin.path} at {pin.short} and the index carries it at "
-                f"{gitlinks[pin.path][:12]}; the terms on that row were read at the "
+                f"{where} pins {pin.path} at {stated} and the index carries it at "
+                f"{carried}; the terms on that row were read at the "
                 "commit the row states, so the repair is a licence read and not a "
                 "transcription")
         else:

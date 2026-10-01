@@ -1663,21 +1663,25 @@ CASES: list[Case] = [
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^([ \t]*)- uses:( [^@\s]+@[0-9a-f]{40} # v\d+\.\d+\.\d+)$",
                   lambda m: f"{m[1]}- ? uses # the action\n{m[1]}  :{m[2]}")),
-    # The same line as a flow mapping whose explicit key stands flush against its `?`:
-    # PyYAML reads every `?` inside a flow collection as a key's indicator, so the step
-    # is unchanged, and only a census counting a flow `?` whatever follows it sees it.
+    # A step before that line runs the same action from a flow mapping whose explicit key
+    # stands flush against its `?`: PyYAML reads every `?` inside a flow collection as a
+    # key's indicator, so the workflow gains a step that runs the action, and only a
+    # census counting a flow `?` whatever follows it sees the step. The step is added
+    # rather than the line rewritten, a flow mapping being unable to take the `with:`
+    # block under that line, and a workflow YAML refuses would test nothing.
     ("K-115", "a workflow action stated as a flow mapping's unspaced explicit key",
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^([ \t]*)- uses: ([^@\s]+@[0-9a-f]{40})( # v\d+\.\d+\.\d+)$",
-                  lambda m: f"{m[1]}- {{?uses: {m[2]}}}{m[3]}")),
-    # The same line as a flow mapping whose `uses` key follows a quoted name continued
-    # onto a line opening with `#`: that line is the scalar's text rather than a comment,
-    # so only a census reading every line, a comment's included, counts the key.
+                  lambda m: f"{m[1]}- {{?uses: {m[2]}}}{m[3]}\n{m[0]}")),
+    # A step before that line runs the same action from a flow mapping whose `uses` key
+    # follows a quoted name continued onto a line opening with `#`: that line is the
+    # scalar's text rather than a comment, so the workflow gains a step that runs the
+    # action, and only a census reading every line, a comment's included, counts the key.
     ("K-115", "a workflow action stated after a quoted scalar's line opening with #",
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^([ \t]*)- uses: ([^@\s]+@[0-9a-f]{40})( # v\d+\.\d+\.\d+)$",
                   lambda m: f'{m[1]}- {{name: "the action\n{m[1]}  # pinned", '
-                            f"uses: {m[2]}}}{m[3]}")),
+                            f"uses: {m[2]}}}{m[3]}\n{m[0]}")),
     # The record's side: a row renamed away from the action it reviews leaves both a
     # workflow running code with no row and a row reviewing code nothing runs.
     ("K-115", "an action row that names no action a workflow runs",
@@ -1689,6 +1693,20 @@ CASES: list[Case] = [
     ("K-115", "an action row linking its licence at a commit other than the one it reviewed",
      _first_match(THIRD_PARTY, r"(github\.com/actions/checkout/blob/[0-9a-f]{39})([0-9a-f])",
                   lambda m: m[1] + ("1" if m[2] == "0" else "0"))),
+    # The same moved link spelled on GitHub's raw-content host, which serves the same file:
+    # only a reading taking every host a link to the action's files can name holds it.
+    ("K-115", "an action row linking its licence through another host at another commit",
+     _first_match(THIRD_PARTY, r"https://github\.com/(actions/checkout)/blob/"
+                               r"([0-9a-f]{39})([0-9a-f])/",
+                  lambda m: f"https://raw.githubusercontent.com/{m[1]}/{m[2]}"
+                            f"{'1' if m[3] == '0' else '0'}/")),
+    # The row's licence link dropped, its text kept: the row still states its reviewed
+    # revision and every workflow agrees with it, and only a rule requiring the link
+    # sees a row that no longer says where its terms were read.
+    ("K-115", "an action row linking no licence of its action",
+     _first_match(THIRD_PARTY, r"\[(MIT LICENSE)\]\(https://github\.com/actions/checkout/"
+                               r"blob/[0-9a-f]{40}/LICENSE\)",
+                  lambda m: m[1])),
     # A gitlink moved with an artifact derived through it left behind, seeded as the
     # recorded commit's first digit changed so the index, the licence record and every
     # restating sentence still agree. The registry's line names no upstream, so K-81
