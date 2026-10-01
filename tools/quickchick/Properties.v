@@ -124,7 +124,8 @@ Set Warnings "-extraction-opaque-accessed,-extraction".
 (* QuickChick draws from `Random.State.make_self_init ()`, seeded from
    system-dependent data. Every set here is drawn from this one seed
    instead, so a run replays; tools/vos/gallina.py reads it and refuses a
-   harness that fixes none. *)
+   harness that fixes none, or fixes it ahead of a Require of QuickChick,
+   whose loading states QuickChick's own seed over it. *)
 Extract Constant RandomQC.newRandomSeed => "(Random.State.make [|20260930|])".
 
 (* -------------------------------------------------------------------------

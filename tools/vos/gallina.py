@@ -155,6 +155,15 @@ DRAWS = 10_000
 _SEED = re.compile(r"\bExtract\s+Constant\s+(?:[\w']+\.)*newRandomSeed\s*=>\s*"
                    r'"\(\s*Random\.State\.make\s*\[\|\s*(\d+)\s*\|\]\s*\)"\s*\.')
 
+# A sentence that Requires QuickChick's library: `From QuickChick Require ...`, or a
+# `Require` naming QuickChick before its sentence ends. Loading the library replays
+# QuickChick's own `Extract Constant newRandomSeed`, so a seed stated ahead of the last
+# such sentence fixes nothing; a qualified name's dot is followed by a letter, which is
+# what keeps the scan inside one sentence.
+_REQUIRES_QUICKCHICK = re.compile(r"\bFrom\s+QuickChick\s+Require\b"
+                                  r"|\bRequire\b(?:(?!\.(?:\s|$)).)*?\bQuickChick\b",
+                                  re.DOTALL)
+
 
 @dataclass(frozen=True)
 class Failure:
@@ -477,7 +486,8 @@ def drawn_sets(done: subprocess.CompletedProcess[str]) -> tuple[int, int, str]:
 
 def seed(harness: Path) -> str | None:
     """The seed the randomized harness fixes QuickChick's random state at, or None where
-    it fixes none or fixes it other than once.
+    it fixes none, fixes it other than once, or fixes it ahead of a sentence that
+    Requires QuickChick, whose loading states QuickChick's own seed over it.
 
     Read with the comments blanked by the shared lexer, so a commented-out sentence
     fixes nothing."""
@@ -485,8 +495,11 @@ def seed(harness: Path) -> str | None:
         text = proofs.strip_comments(harness.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError):
         return None
-    found = [str(m.group(1)) for m in _SEED.finditer(text)]
-    return found[0] if len(found) == 1 else None
+    found = list(_SEED.finditer(text))
+    loads = [m.end() for m in _REQUIRES_QUICKCHICK.finditer(text)]
+    if len(found) != 1 or (loads and found[0].start() < loads[-1]):
+        return None
+    return str(found[0].group(1))
 
 
 def walks(found: Prover, work: Path, harness: Path) -> tuple[list[Walk], str]:

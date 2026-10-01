@@ -254,9 +254,10 @@ def _properties(args: argparse.Namespace, e: env.Environment, root: Path, work: 
             return 1
     seed = gallina.seed(drawn)
     if seed is None:
-        print(f"FAIL {gallina.RANDOMIZED} fixes QuickChick's random state other than once, "
-              "so no verdict it reaches replays; it states the seed in one "
-              '`Extract Constant newRandomSeed => "(Random.State.make [|N|])".`')
+        print(f"FAIL {gallina.RANDOMIZED} fixes QuickChick's random state other than once "
+              "after its last Require of QuickChick, so no verdict it reaches replays; it "
+              "states the seed in one "
+              '`Extract Constant newRandomSeed => "(Random.State.make [|N|])".` after it')
         return 1
     failures = gallina.compile_closure(found, work, drawn, walked)
     if failures:

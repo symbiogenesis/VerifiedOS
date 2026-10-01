@@ -455,8 +455,8 @@ def _quickchick_baseline(root: Path, found: gallina.Prover, work: Path,
     drawn = work / "harness" / harness_name
     walker = work / "harness" / gallina.EXHAUSTIVE
     if gallina.seed(drawn) is None:
-        return None, (f"{harness_name} fixes QuickChick's random state other than once, "
-                      "so no verdict over it replays")
+        return None, (f"{harness_name} fixes QuickChick's random state other than once "
+                      "after its last Require of QuickChick, so no verdict over it replays")
     if gallina.compile_closure(found, work, drawn, walker):
         return None, "the unmutated tree did not compile, so there is no baseline"
     walked, said = gallina.walks(found, work, walker)

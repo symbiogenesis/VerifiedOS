@@ -573,14 +573,25 @@ def _the_randomized_half_refuses_what_does_not_replay_or_hold() -> None:
 
 
 def _the_seed_and_the_walks_are_read() -> None:
+    # Requiring QuickChick replays its own `Extract Constant newRandomSeed`, so a seed
+    # stated ahead of a sentence that Requires it, however that sentence spells the
+    # library, fixes nothing.
+    stated = _SEEDED.splitlines(keepends=True)[1]
+    qualified = "Require Import Stdlib.List QuickChick.QuickChick.\n"
     with _tree({"P.v": _SEEDED, "Twice.v": _SEEDED * 2,
                 "Hidden.v": "(* " + _SEEDED.replace("(*", "").replace("*)", "") + " *)\n",
-                "Unseeded.v": "From QuickChick Require Import QuickChick.\n"}) as td:
+                "Unseeded.v": "From QuickChick Require Import QuickChick.\n",
+                "Early.v": stated + "From QuickChick Require Import QuickChick.\n",
+                "Between.v": _SEEDED + "From QuickChick Require Import Tactics.\n",
+                "Qualified.v": qualified + stated,
+                "QualifiedEarly.v": stated + qualified}) as td:
         root = Path(td)
         got = {name: gallina.seed(root / f"{name}.v")
-               for name in ("P", "Twice", "Hidden", "Unseeded", "Absent")}
+               for name in ("P", "Twice", "Hidden", "Unseeded", "Absent", "Early",
+                            "Between", "Qualified", "QualifiedEarly")}
     ensure(got == {"P": "7", "Twice": None, "Hidden": None, "Unseeded": None,
-                   "Absent": None}, f"the seed readings were {got}")
+                   "Absent": None, "Early": None, "Between": None, "Qualified": "7",
+                   "QualifiedEarly": None}, f"the seed readings were {got}")
     printed = {"held": '= ["prop_a 9 9 0 -"; "prop b, over c 392 81 0 -"] : list string\n',
                "refuted": '= ["prop_a 9 4 1 0"] : list string\n',
                "vacuous": '= ["prop_a 9 0 0 -"] : list string\n',
