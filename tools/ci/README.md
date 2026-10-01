@@ -236,8 +236,10 @@ The checked-out revision owns the Sail and Rocq package snapshots, solver and
 Verilator pins, Python lockfile, generated model bundle and gate commands. Bootstrap
 starts from a supported Ubuntu runner with Python and uv installed and initializes
 its own opam root without borrowing the developer's switches. Install only the
-toolchains consumed by this pipeline. The incomplete CertiRocq oracle, QuickChick
-campaigns, compiler experiments and imported-core elaboration remain separate loops.
+toolchains consumed by this pipeline. QuickChick's switch is built and checked only on
+the [instrument switch route](#instrument-switch-route), the incomplete CertiRocq oracle
+is built only locally, and compiler experiments and imported-core elaboration remain
+separate loops.
 
 Builds, toolchains and logs use explicit native Linux directories outside the source
 checkout. Local Windows runs keep them in their assigned guest lane. Bootstrap must
@@ -316,3 +318,125 @@ review checks their joined behavior and hidden machine assumptions. The integrat
 owns shared documentation, license records, merging and final validation. The
 [worktree and check procedures](../README.md#worktree-isolation-during-fan-out)
 apply to every lane.
+
+## Instrument switch route
+
+[instrument-switches.yml](../../.github/workflows/instrument-switches.yml) builds and
+checks QuickChick's switch on GitHub-hosted runners, and this section owns its contract.
+QuickChick's switch is built and checked only on this route: no QuickChick switch is
+built or checked in the local guest, and no QuickChick lock is tracked from a guest
+build. No CertiRocq switch is built, checked or dispatched on it, the user's ruling of
+2026-09-30 keeping CertiRocq's builds local. No switch or download cache is used, so
+every switch a run reports was built in that run from its recipe or lock in a fresh
+root; the uv cache Guest CI saves is read and never saved.
+
+**Dispatch and plan.** `run.py instrument-ci dispatch` sends one dispatch with the
+inputs `revision`, `base_revision`, `build` (`install` or `recipe`), `sample` (a whole
+number from 1 to 20, default 20) and `title`, at a `--ref` that defaults to `main`, and
+refuses nothing the plan refuses. It puts a per-dispatch nonce in the run title,
+journals its intent under `out/instrument-ci/dispatches/` before its one POST, and
+recovers an interrupted dispatch with `--resume NONCE` by the run whose title carries
+the nonce, never by posting again. `fanout` never runs it. The plan job runs
+[instrument_route.py](instrument_route.py) from the dispatching commit before any
+requested revision is checked out and uploads `plan.json`, each check's verdict and
+reason, under `always()`. It refuses a ref other than `main`; an empty `revision`, or
+one that is not a full lowercase commit on `main`; a `base_revision` that is not a
+proper ancestor of `revision`; a `sample` outside 1 to 20 or written with a sign or a
+leading zero; a `build` other than `install` or `recipe`; and `build` `recipe` at a
+revision whose quickchick.py declares no `RECIPE`, read from that revision's source
+without running it. A refused plan starts no later job. Inputs reach a step only
+through its environment, and later jobs read only the values the plan validated.
+
+**Jobs.** Every job runs the route's own files, the workflow,
+[bootstrap_instrument.py](bootstrap_instrument.py), instrument_route.py and
+[the opam client's owner](../vos/opam_client.py), from the dispatching commit's
+checkout, takes only the owner's declarations, the instruments, the harnesses and
+`proofs/` from its side's revision, and holds each checkout to `main` before any of its
+code runs. bootstrap_instrument.py installs its own distribution prerequisites,
+`PACKAGES`, the root's from the client's owner and the QuickChick build's, then the
+reviewed client and a fresh private root by the owner's route, and builds the side's
+switch: by `quickchick.RECIPE` into `gallina.QUICKCHICK_RECIPE_SWITCH` where `build` is
+`recipe`, by `quickchick.INSTALL` into `gallina.QUICKCHICK_SWITCH` where it is
+`install`, and on the base side always by its revision's `INSTALL`. It refuses a build
+after which the switch its recipe names does not stand, and the checks on a switch a
+`RECIPE` built run with `--recipe`.
+
+- The build job builds the candidate's switch, runs `quickchick check` and
+  `quickchick properties` and exports the switch, uploading the export only when every
+  check on its switch passed.
+- The import job, on another runner, takes that export only from the same run, at the
+  SHA-256 the build job recorded, imports it into a fresh root and the switch the
+  build's recipe names by [the lock guide's](../opam/README.md) create-and-import form,
+  runs `quickchick check` with the build's flag, and decides by its exit 0, the
+  installed closure and each pin's URL and commit. The byte difference of its re-export
+  is recorded as an observation.
+- Where `base_revision` is given, three seed jobs, the base run and two candidate runs,
+  each build their side's switch in a fresh root, list the sampled population with
+  `seed list`, the operator of each mutant the journal names, and run
+  `seed coq --quickchick --sample N` over seed's default subject. `--jobs` stays at 1
+  until the build job's recorded `quickchick properties` peak is the basis for more;
+  after a seed step reaches its limit, the next dispatch raises `--jobs` on that peak or
+  records the runner decision as owed to the user, and the sample stays 20.
+- The join job runs when the plan job passed and the run was not cancelled. It takes
+  one artifact per job, records a job its prerequisite's failure skipped as not run,
+  refuses an artifact missing from a job that ran, or a duplicate, and writes
+  `report.json` and a job summary naming each step's verdict, each sampled mutant's
+  verdict in every seed run by its identity, operator, site and rewrite, each mutant
+  whose verdict differs between the two candidate runs or between base and candidate,
+  or whose journalled verdict is other than killed, survived, stillborn or unseeded,
+  with the verdicts and reasons the journal records, and every pair of sides whose
+  opam client version or runner image differs.
+
+**Receipts and limits.** Each job's receipt records its effective inputs, side,
+revision, base revision, build, sample and subject, beside its `source_revision`, the
+dispatching commit and `GITHUB_RUN_ATTEMPT`; the recipe built, the switch and the flag
+its checks ran with, and that switch's installed closure with each pin's URL and
+commit; the runner image, `uname -m`, the opam client's version and the prerequisites
+installed; free disk before and after; and each step's limit, exit, GNU time figures
+and sampled peak. Each step runs under coreutils `timeout --kill-after` at the limit
+instrument_route.py states with its basis: the build's from Q38f's 4,402 s import,
+`quickchick properties`' from Q38e's 378 s, and each seed step's its job's limit,
+GitHub's 360-minute hosted maximum less a 5-minute margin, the build step's limit, the
+population listing's and the staging margin, marked unmeasured. A sampler appends the
+largest resident set, free disk and load average to the job's progress log every
+minute, so a step cut at its limit leaves its peak. An exit of 124, or of 137 where the
+receipt holds no kernel OOM record for the step, is the limit reached. A step that
+reaches its limit, or exits for want of disk or memory as the sampler's free-disk
+figure or the kernel's OOM record shows, decides nothing and is recorded undecided,
+never as a failure. Each step's `timeout-minutes` is a backstop above its limit, and
+each job's is the sum of its step limits plus a 15-minute staging-and-upload margin.
+
+**Staging.** Each job's staging and upload run under `always()`. Staging copies an
+allowlist of `.json`, `.log`, `.txt`, `.lock` and `.journal` files into an upload
+directory and leaves out any file carrying Wasm or ELF magic or a NUL byte, naming each
+in the receipt with its reason, so that no switch, build tree, `.vo`, executable, image
+or opam cache is uploaded. Each artifact is named for its job and revision with no
+attempt suffix, replaced on a rerun and retained 30 days.
+
+**Reading.** `run.py instrument-ci read --run ID` follows each artifact's redirect
+without credentials, saves it under `out/instrument-ci/<run id>/` and extracts it only
+there, refusing an archive with a member whose path is absolute or climbs out of its
+directory or whose members total more than 256 MiB. It holds each member to the
+allowlist and each recorded input to the run, reads the jobs' conclusions and the
+`plan.json` of a run the plan refused, re-joins the artifacts against the run's
+`report.json`, and prints the verdict with the run's URL, tested revisions, runner
+images and step durations. It prints whether
+`git diff --quiet R <closing parent> -- <route inputs>` holds for the candidate's
+`source_revision` R, and whether the same holds over the route's own files and their `vos` import closure for the dispatching
+commit; given the closing commit by `--closing` and the paths its owning item's closing
+landing names by `--closing-path`, it reads that commit's own diff over the route
+inputs and prints those paths. It refuses as closing evidence a run whose verdict is not
+passed or where a comparison does not hold, a closing commit that touches a route input
+other than the tracked lock, its SHA-256 equal to the artifact's export, and the named
+paths, and a run with a `base_revision` whose sample is not 20 or whose subject is not
+seed's default. The route inputs are the workflow, bootstrap_instrument.py,
+instrument_route.py, opam_client.py, gallina.py, quickchick.py, seed.py, provision.py,
+env.py, proofs.py, seeded.py and mutate.py, the transitive `vos` import closure at R of
+every module the route runs, which the reader computes from R's sources, tools/run.py,
+tools/pyproject.toml, tools/uv.lock, `tools/quickchick/`, `tools/opam/quickchick.lock`
+and `proofs/`.
+
+**Landing.** QuickChick's lock is tracked only in its owning item's closing landing,
+from a passing run's artifact, its SHA-256 equal to the artifact's. That landing copies
+`report.json` and any failing step's text log, at their `out/instrument-ci/` paths,
+under `docs/implementation/retained-evidence/`, each cited with its SHA-256.

@@ -44,7 +44,9 @@ repository stamps; it replaces no client and alters no other standing root. A cl
 rewrites a root older than its own format one way, and the owner records the reviewed
 client's format as `OPAM_ROOT_FORMAT`, so moving an existing root is a deliberate, recorded step,
 and `run.py provision --apply` plans no switch over a root in an older format. See [the CI guide](../ci/README.md)
-for invocation, placement and environment setup. The remaining experimental switches are installed
+for invocation, placement and environment setup. QuickChick's switch is built and checked only on
+[the instrument switch route](../ci/README.md#instrument-switch-route), on GitHub-hosted runners in
+a fresh root, and CertiRocq's only locally; the remaining experimental switches are installed
 separately into an initialized root.
 
 From the repository root in the guest, register the repositories and import a snapshot into its dedicated switch:
