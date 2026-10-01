@@ -1324,7 +1324,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-640** owed-act: the boot signature campaign's report step runs checked-out code under `!cancelled()` after its dispatch check refuses a revision, and neither of its dispatch checks carries an id
 · Raised: Q38h
-· Disposition: open, the repair held on the local branch `work/q38-bootguard-20261001` until the user decides when the five-runner campaign that a change to its workflow starts on push may run
+· Disposition: closed, both checking jobs identifying their dispatch check, the report step requiring that check not to have failed and `test_fanout_ci`'s refused-dispatch reading holding both jobs
 
 **F-641** method: Rocq 9.3 checks an `Ltac` definition's hypothesis names when it reads the definition, so a body naming a hypothesis it does not bind, such as one `injection … as` introduces, is refused
 · Raised: Q38h
