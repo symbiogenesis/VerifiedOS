@@ -194,7 +194,7 @@ def _probes_answer_no_question() -> None:
     passed = run.call_args.kwargs.get("env") or {}
     ensure(run.call_args.kwargs.get("stdin") is subprocess.DEVNULL,
            f"the probe's standard input is closed: {run.call_args}")
-    ensure(not {key.upper() for key in passed} & set(provision._ANSWERS)
+    ensure(not {key.upper() for key in passed} & set(env.OPAM_ANSWERS)
            and passed.get("OPAMROOT") == "/elsewhere",
            f"the probe passes on no answer and keeps the root: {sorted(passed)}")
 

@@ -169,11 +169,6 @@ class Fact:
     install: tuple[tuple[str, ...], ...] = ()
 
 
-# The variables through which the reviewed client takes an answer to an unnamed question
-# from the environment, OPAMYES answering yes and OPAMCONFIRMLEVEL any answer.
-_ANSWERS: tuple[str, ...] = ("OPAMYES", "OPAMCONFIRMLEVEL")
-
-
 def _say(argv: Sequence[str]) -> str:
     """One probe's subprocess, reduced to its standard output.
 
@@ -183,21 +178,17 @@ def _say(argv: Sequence[str]) -> str:
     command that is absent, that fails, or that does not answer inside the bound comes
     back empty and its caller reports it as absent.
 
-    No standard input either, so a probe never answers a question. opam asks before it
-    writes a root-format upgrade, yes by default, and a read such as `opam switch list`
-    writes one where the upgrade cannot be done in memory, as the reviewed client's
-    from a 2.2 root keeping a repository's archive under a directory named for it. A
-    probe reading the caller's terminal would wait there, its question captured out of
-    sight, and an empty line would answer yes. Nor does a probe pass on the variables
-    through which a caller's environment answers opam's questions, `_ANSWERS`, so opam
-    declines and exits.
+    No standard input either, and the environment `env.declining_environment` gives, so
+    a probe never answers a question. opam asks before it writes a root-format upgrade,
+    yes by default, and a read such as `opam switch list` writes one where the upgrade
+    cannot be done in memory. A probe reading the caller's terminal would wait there,
+    its question captured out of sight, and an empty line would answer yes, as would
+    the caller's own `env.OPAM_ANSWERS`; without either, opam declines and exits.
     """
     try:
         done = subprocess.run(list(argv), capture_output=True, encoding="utf-8",
                               errors="replace", check=False, timeout=TIMEOUT,
-                              stdin=subprocess.DEVNULL,
-                              env={key: value for key, value in os.environ.items()
-                                   if key.upper() not in _ANSWERS})
+                              stdin=subprocess.DEVNULL, env=env.declining_environment())
     except (OSError, subprocess.SubprocessError):
         return ""
     return done.stdout.strip() if done.returncode == 0 else ""
