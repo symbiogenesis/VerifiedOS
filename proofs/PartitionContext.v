@@ -555,10 +555,10 @@ Definition canonical_post (m : Machine) (succ : Context m) : State m :=
     (fun c => if m.(csr_zeroized) c then m.(zero_word) else ctx_csr succ c)
     (pending_written m succ).
 
-(* The opening of each step membership below whose register obligation holds
-   by reflexivity: split the step's three write obligations, close the
-   register one, and leave the CSR and pending obligations as two goals, each
-   under its own bullet. *)
+(* The opening that nine of the step memberships below share: split the
+   step's three write obligations, close the register one by reflexivity,
+   and leave the CSR and pending obligations as two goals, each under its own
+   bullet. *)
 Local Ltac split_closing_the_registers :=
   split; [ intros r _; reflexivity | split ].
 
