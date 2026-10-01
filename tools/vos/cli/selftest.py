@@ -1785,10 +1785,12 @@ CASES: list[Case] = [
     # A hook repository appended with no row, pinned as `autoupdate --freeze` writes a
     # reviewed one: every row still agrees with its own entry, so only a census of every
     # entry the configuration carries sees code pre-commit runs whose terms nobody read.
+    # Its commit is spelled in letters, which YAML 1.1 reads as the string pre-commit's
+    # schema requires, where forty zeros would load as the octal integer 0 it refuses.
     ("K-118", "a hook repository the model's hook configuration runs and no row reviews",
      _first_match("model/.pre-commit-config.yaml", r"\Z",
                   lambda _: "  - repo: https://github.com/example/unreviewed-hooks\n"
-                            f"    rev: {'0' * 40} # frozen: v1.0.0\n"
+                            f"    rev: {'d' * 40} # frozen: v1.0.0\n"
                             "    hooks:\n      - id: unreviewed\n")),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
