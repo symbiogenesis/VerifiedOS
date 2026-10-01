@@ -7,16 +7,18 @@ the defect the rule exists for, a proof source the Wasm oracle compiles rewritte
 Rocq 9.3's syntax. What only a fixture can pin is the rest: each of the four forms read
 where a comment, a string or a neighbouring construct does not hide it, each construct
 that resembles one passing, the set following the `Require` closure and the release, and
-each reading that cannot be made being a finding rather than a smaller set.
+each reading that cannot be made being a finding rather than a smaller set. The clean
+path does not say which proof sources the live set holds, so one case reads that too.
 """
 
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import replace
 from pathlib import Path
 
 from tests.harness import TOOLS, Case, ensure
-from vos import env, gallina
+from vos import corpus, env, gallina
 from vos.checks import instruments as k117
 
 IF, WITH, AMP, OF = k117.FORM_IF, k117.FORM_WITH, k117.FORM_AMP, k117.FORM_OF
@@ -321,6 +323,38 @@ def _the_live_rows_read_their_instruments() -> None:
            f"quickchick properties runs in either switch holding QuickChick: {properties}")
 
 
+def _the_live_reading_reaches_only_the_older_instruments_proofs() -> None:
+    """The proof sources K-117's reading of the live tree reaches: `Properties.v`'s
+    closure, which `seed coq --quickchick` compiles alone, with the Wasm oracle's
+    EndpointIPC.v and the lowering's RingContract.v while QuickChick's switch is older
+    than Rocq 9.3.0, and those two alone once it is not. The control restores that row
+    to every proof source and finds the reading reaching each of them."""
+    root = TOOLS.parent
+    files = corpus.read_index(root).files
+    proof_sources = sorted(rel for rel in files if rel.startswith(f"{k117.PROOFS}/")
+                           and rel.endswith(k117.SUFFIX) and rel.count("/") == 1)
+
+    def reached(rows: tuple[k117.Instrument, ...]) -> list[str]:
+        found, _, findings = k117.reach(root, files, rows)
+        ensure(not findings, f"the live table reads cleanly: {findings}")
+        return sorted(rel for rel in found if rel in proof_sources)
+
+    release = k117.release_of(gallina.QUICKCHICK_ROCQ_VERSION)
+    ensure(release is not None, f"QuickChick's release reads: {gallina.QUICKCHICK_ROCQ_VERSION}")
+    older = release is not None and release < k117.SINCE
+    names = (("BoundaryCost", "CyclicExecutive", "EndpointIPC", "PartitionContext",
+              "RingContract") if older else ("EndpointIPC", "RingContract"))
+    want = [f"{k117.PROOFS}/{name}{k117.SUFFIX}" for name in names]
+    got = reached(k117.INSTRUMENTS)
+    ensure(got == want, f"the reading reaches {got}, not {want}")
+    if older:
+        widened = tuple(replace(row, whole=True) if row.name == "seed coq --quickchick"
+                        else row for row in k117.INSTRUMENTS)
+        every = reached(widened)
+        ensure(every == proof_sources and len(every) > len(want),
+               f"a row compiling every proof source reaches each of them: {every}")
+
+
 def cases() -> list[Case]:
     return [Case(fn.__name__, fn) for fn in (
         _each_form_is_read,
@@ -333,4 +367,5 @@ def cases() -> list[Case]:
         _an_unlisted_prover_caller_is_a_finding,
         _each_rig_module_asks_for_its_rows_switches,
         _the_live_rows_read_their_instruments,
+        _the_live_reading_reaches_only_the_older_instruments_proofs,
     )]
