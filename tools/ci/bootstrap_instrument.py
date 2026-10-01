@@ -205,7 +205,7 @@ def _read(argv: Sequence[str]) -> str:
 
 def parse_closure(text: str) -> list[dict[str, str]]:
     """`opam list --columns=name,version,pin --short` as package records, the pin empty
-    where the package is not pinned."""
+    where the package is not pinned, whether opam leaves that column blank or dashes it."""
     found: list[dict[str, str]] = []
     for line in text.splitlines():
         fields = line.split()
@@ -213,7 +213,9 @@ def parse_closure(text: str) -> list[dict[str, str]]:
             continue
         if len(fields) < 2:
             raise ValueError(f"an installed package without a version: {line!r}")
-        found.append({"name": fields[0], "version": fields[1], "pin": " ".join(fields[2:])})
+        pin = " ".join(fields[2:])
+        found.append({"name": fields[0], "version": fields[1],
+                      "pin": "" if pin in ("-", "--") else pin})
     if not found:
         raise ValueError("the switch lists no installed package")
     return sorted(found, key=lambda package: package["name"])

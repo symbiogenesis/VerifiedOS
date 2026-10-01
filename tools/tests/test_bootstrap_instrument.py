@@ -114,7 +114,7 @@ def _declarations_are_the_sides() -> None:
 
 def _closure_and_reexport() -> None:
     text = ("coq-quickchick  dev  git+https://github.com/QuickChick/QuickChick.git#3d4d6c0e9f\n"
-            "ocaml  5.4.1\n\nrocq-core 9.3.0\n")
+            "ocaml  5.4.1  --\n\nrocq-core 9.3.0\n")
     found = bootstrap.parse_closure(text)
     ensure(found == [{"name": "coq-quickchick", "version": "dev",
                       "pin": "git+https://github.com/QuickChick/QuickChick.git#3d4d6c0e9f"},
