@@ -434,7 +434,7 @@ def _unlisted(switch: str, root: Path, client: tuple[str | None, str]) -> str:
 # `cond_hard_upg_2_6_alpha` reads a configured repository's archive as nested. Every
 # other older root it upgrades in memory to read. Read from that release's source, so
 # the reading claims nothing of another reviewed client until its source is read.
-_UPGRADES_READ = "2.6.0"
+_UPGRADES_READ: str = "2.6.0"
 _HARD_BEFORE = "2.0~beta5"
 _HARD_FROM: tuple[str, ...] = ("2.1~alpha", "2.1~alpha2")
 _NESTED_BEFORE = "2.6~alpha"
