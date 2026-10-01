@@ -60,7 +60,9 @@ ORACLE_SWITCH = f"verifiedos-certirocq-0.9.1-ocaml-{ORACLE_OCAML_VERSION}"
 # certirocqc bootstrap's C wrapper includes beside it; 5.1.1 defines another macro. A
 # candidate is declared only once it builds and the Wasm oracle's positive and seeded
 # negative checks pass in it: its export becomes tools/opam/certirocq.lock and
-# ORACLE_OCAML_VERSION names it.
+# ORACLE_OCAML_VERSION names it. Each is built in an opam root that does not already
+# hold its switch, such as a lane's private root, since the 5.1.1 candidate's name is
+# ORACLE_SWITCH's own.
 ORACLE_CANDIDATE_OCAML_VERSIONS: tuple[str, ...] = ("4.14.4", "5.1.1")
 
 
