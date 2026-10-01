@@ -176,7 +176,7 @@ caught by nothing, which is a residue the findings register carries.
 | `quickchick` | wsl | The Gallina front's input side, which the Wasm oracle has never had: `vectors` runs the enumerative half in the proof gate's switch, `properties` runs the randomized half under QuickChick in a switch of its own, and `check` says which switch holds what. |
 | `kernel` | wsl; `reader` on either lane | M4.4's host-side differential. `vectors` compiles [quickchick/KernelVectors.v](quickchick/KernelVectors.v) against its `Require` closure in the proof gate's switch; `check` holds the [kernel C](../kernel/README.md) and [trace reader](vos/kernelrun.py) against the generated lines and separately reports fixed release/consumer controls. `mutants` attributes executed kills to their deciding oracle. `restore` executes exact scalar restoration; `effects` executes merged-register trap save, scrub, retirement and fresh-entry defects. Both require `--simulator PATH --build-receipt FILE`. `protected` additionally consumes the accepted contained compiler/configuration and boundary runner to observe real nested frames and timer cuts. `target` supplies M4.4a's signed handoff and finite compiled composition. Use each subcommand's `--help` for its private output and compiler arguments. Broader service, restart and ownership joins remain open. |
 | `testrig` | wsl | The RVFI-DII rig: `protocol` reads the wire format off the codec on either lane; `handshake`, `run` and `bridge` drive the emulator over a socket in the guest. `run` generates a DII stream, adjudicates the emulator against itself under a seeded defect, and shrinks the counterexample; `bridge` holds one run's packets against the commit records the same run wrote. `adapt FRAME TRACE` answers on either lane: it decodes an RTL harness's retirement frame ([vos/rtltrace.py](vos/rtltrace.py)), refuses a malformed or partial one as a protocol failure, and adjudicates the rest against the golden commit trace through [trace.py](vos/trace.py), reporting agreement over a prefix as incomplete. `carry` runs the corpus on the golden emulator, re-encodes each trace as the frame an RTL would have to write, names the retirements no frame line holds, and requires every seeded field change to be reported; its producer is the golden model, so it measures the adapter and not a core. `framesim` builds the SystemVerilog frame writer under [rvfi-harness/](rvfi-harness/) behind its bench and requires its frames to decode as the stimulus stated, with `--controls` requiring that stimulus to report each seeded writer mutant and `--corpus` driving every member `carry` holds whole; the driver is a fixture. `bmc` prints the bounded model-checking smoke the harness owes, its instruction scope read out of the dialect table ([vos/bmc.py](vos/bmc.py)), and runs nothing. The [harness contract](../docs/assurance/rtl-cosimulation-harness.md) states the frame and what the co-simulation gate still owes. |
-| `proofs` | wsl / host | Stages sources and compiles independent proofs in bounded dependency waves in the native guest lane under pinned strictness settings, enumerates compiled constants with Rocq, audits their assumptions and claimed theorem types, and rechecks the compiled modules with `rocqchk`, whose own context summary must name no unsafe assumption and no undeclared axiom that an admission does not cover. Missing or unsupported enumeration fails. Successful runs publish a portable receipt in the checkout. `proofs export` publishes the completed native run without Rocq; `export --check` compares that export. `proofs status` takes the guest hop and checks the evidence against current source and compiled-file hashes without invoking Rocq. `proofs headers` checks compact requirement references and fingerprints on either OS; `--write` refreshes them and `--show FILE` reads the selected register entries as Markdown. |
+| `proofs` | wsl / host | Stages sources in the native guest lane and compiles each proof under pinned strictness settings once every proof it Requires has compiled and been audited, within a bounded worker limit, logging each one's start and end and the wave schedule's makespan replayed over them. It enumerates compiled constants with Rocq, audits their assumptions and claimed theorem types, and rechecks the compiled modules with `rocqchk`, whose own context summary must name no unsafe assumption and no undeclared axiom that an admission does not cover. Missing or unsupported enumeration fails. Successful runs publish a portable receipt in the checkout. `proofs export` publishes the completed native run without Rocq; `export --check` compares that export. `proofs status` takes the guest hop and checks the evidence against current source and compiled-file hashes without invoking Rocq. `proofs headers` checks compact requirement references and fingerprints on either OS; `--write` refreshes them and `--show FILE` reads the selected register entries as Markdown. |
 | `cic-corpus` | wsl | Reads the objects `proofs` compiled in this lane and writes what the corpus asks a CIC checker to decide: per enumerated symbol, its transitive dependency closure from `Print All Dependencies`, its kind, opacity and universe status from `About`, and the term features a declared lexical predicate finds in the declaration `Print` wrote under `Set Printing All`. `report` writes the report to the ignored `out/` directory with its source, exporter and prover identities and a freshness verdict; `check` re-decides that verdict against the live checkout. The report is evidence for M6.2b-0's profile decision and holds no acceptance verdict; a stale report is a finding rather than a figure to quote. |
 | `proof-reading` | wsl | `record` reads a passing compile of the proof sources: by default the proof gate's staged compile in this lane, held to its native receipt's digests before and after the read, or with `--sources DIR` a compile of the sources in DIR that it makes itself as the gate does. It writes each inventory constant's `Check`, its `About` less locations, and `Print` of each transparent constant and inductive, under `Set Printing All` and `Set Printing Universes`, as JSON the tracked [schema](proof-reading.schema.json) describes. `compare BASE CANDIDATE` exits 0 only when the readings are equal and otherwise names every differing module, constant and field. Readings compare only when taken against one installed library set, and a reading accepts no proof. |
 
@@ -1258,8 +1258,9 @@ silently become a requirement. Ordinary prose, tables and links remain Markdown.
 execution, journaling and output publication. Independent oracle workspaces can run
 concurrently. `seed properties` mutates the checkout and still requires exclusive access
 against every reader of that checkout.
-Proof compilation uses bounded workers within dependency waves, preserves report order,
-and does not compile a dependent against a failed prerequisite's stale output.
+Proof compilation starts each module, within a bounded worker limit, once every module
+it Requires has compiled and been audited, preserves report order, and does not compile
+a dependent against a failed prerequisite's stale output.
 
 Every source compiles under the gate's [pinned settings](vos/cli/proofs.py), and a
 successful compile prints no diagnostic. Default-enabled warnings are errors, except
@@ -1332,15 +1333,27 @@ an acceptable context; it authorizes nothing.
 workers. Per-phase wall times and reused-object/audit counts are recorded in the
 receipt and printed.
 
+A module's compile and audit start once every module it Requires has finished both,
+beside any other ready module within the worker limit. Among ready modules, the one
+heading the longest chain of dependents starts first, then dependency-wave and name
+order. A module whose prerequisite failed is reported blocked and never compiled. The
+log gives each compiled module's start and end in seconds from the phase's start.
+Beside the phase's wall seconds it gives the makespan of a wave schedule, in which
+each dependency wave finishes before the next starts, replayed over those seconds at
+the same worker limit, so a run is read against that schedule on its own machine.
+A wrapped Require, which the dependency parse does not read, may name a module in
+any wave, so a source holding one runs the phase as that wave schedule.
+
 Without `--jobs`, each phase selects as many workers as the available logical CPUs
 and its memory planning budget permit. The guest samples `MemAvailable` immediately
 before compilation/auditing and again before kernel checking, after acquiring the
 workspace lock. [The resource policy](vos/env.py) owns the headroom, per-worker budgets
-and conservative fallbacks when memory cannot be read. Kernel workers receive a larger
-budget because the [recorded prover measurements](../docs/performance/toolchain-residency.md#the-prover-and-which-of-its-two-acts-the-device-performs)
-show substantially higher memory use for a full recheck than for compilation.
-These are estimates, not measured limits for the current parallel batches. Guest CI's
-proof log records the gate's peak single-process resident memory
+and conservative fallbacks when memory cannot be read. The compile/audit budget is an
+estimate from the [recorded prover measurements](../docs/performance/toolchain-residency.md#the-prover-and-which-of-its-two-acts-the-device-performs).
+The kernel budget is set at or above the peak resident memory of the one kernel worker
+that checks every module on Guest CI's proofs runner, whose recorded runs and margin
+`proof_jobs` states, so that 16 GB runner runs one kernel worker. Guest CI's
+proof log records each run's peak single-process resident memory
 ([Guest CI contract](ci/README.md)). The selected limits are printed. An explicit
 `--jobs N` overrides automatic CPU/memory sizing for both phases; the single-process
 fallback for an unknown library identity still applies.

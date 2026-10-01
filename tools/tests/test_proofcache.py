@@ -1,14 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Proof cache invalidation follows bytes and prerequisite closures, not mtimes."""
+"""Proof cache invalidation follows bytes and prerequisite closures, not mtimes.
+
+A run's log gives each module it compiled a span and replays the wave schedule over
+those spans beside the phase's wall seconds. A source holding a Require the dependency
+parse does not read runs the phase as that wave schedule.
+"""
 
 import contextlib
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
 import threading
+import time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -251,6 +258,144 @@ def _incremental_run() -> None:
                 with patch.object(gate.env, "proof_jobs", return_value=8) as sizing:
                     run(set(texts), jobs=None, kernel_jobs=1, refusal=unbound)
                     sizing.assert_called_once_with()
+
+
+_SPAN_LINE = re.compile(r"^  compile/audit (\S+\.v): (\d+\.\d\d)s to (\d+\.\d\d)s$")
+_PHASE_LINE = re.compile(r"^  compile/audit: (\d+\.\d\d)s; wave schedule replayed over these "
+                         r"modules' seconds at worker limit (\d+): (\d+\.\d\d)s; ")
+
+
+def _the_phase_line_replays_the_wave_schedule() -> None:
+    """Each compiled module logs its span, a reused one none, and the phase's line gives
+    the replay `wave_makespan` computes over exactly those spans at the run's limit.
+
+    The automatic run sizes three compile workers and one kernel worker, so the replay
+    must use the compile limit. Reading the inputs takes 0.3 s before the phase starts,
+    so a span measured from the run's start rather than the phase's would begin late."""
+    with tempfile.TemporaryDirectory(prefix="vos-proof-replay-") as temporary:
+        root = Path(temporary) / "source"
+        folder = root / "proofs"
+        folder.mkdir(parents=True)
+        work = Path(temporary) / "output"
+        work.mkdir()
+        texts = {"ApexTheorem": "Require Consumer.", "Base": "Definition value := 0.",
+                 "Consumer": "Require Base.", "Side": "Definition value := 1."}
+        for name, text in texts.items():
+            (folder / f"{name}.v").write_text(text, encoding="utf-8")
+        toolchain = {"pin": gate.env.ROCQ_VERSION, "version": "fixture",
+                     "compiler": {"path": "/native/bin/rocq", "sha256": "compiler"},
+                     "checker": {"path": "/native/bin/rocqchk", "sha256": "checker"}}
+
+        def check(_root: Path, source: Path, _sources: object) -> gate.Checked:
+            source.with_suffix(".vo").write_bytes(source.read_bytes())
+            return gate.Checked(source, symbols=[{
+                "name": f"{source.stem}.sound", "type": "True", "claims": [], "assumptions": []}])
+
+        def inputs(base: Path, sources: list[Path]) -> dict[str, str]:
+            time.sleep(0.3)
+            return receipts.snapshot(base, sources)
+
+        def sizing(*, kernel: bool = False) -> int:
+            return 1 if kernel else 3
+
+        waves = [[source.stem for source in wave]
+                 for wave in gate.proofs_mod.SourceIndex.read(gate._sources(root)).ordered]
+        with patch.object(gate, "workspace", return_value=work), \
+                patch.object(gate, "_inputs", side_effect=inputs), \
+                patch.object(gate, "_toolchain", return_value=toolchain), \
+                patch.object(gate, "_cache_context", return_value={"library_hash": "fixed"}), \
+                patch.object(gate, "_check_source", side_effect=check), \
+                patch.object(gate, "_recheck", return_value=""), \
+                patch.object(gate.env, "proof_jobs", side_effect=sizing):
+            for jobs, edited, compiled in ((2, "", set(texts)),
+                                           (3, "Consumer", {"Consumer", "ApexTheorem"}),
+                                           (None, "Side", {"Side"})):
+                if edited:
+                    source = folder / f"{edited}.v"
+                    source.write_text(texts[edited] + "\n(* edited *)", encoding="utf-8")
+                with patch.object(gate, "wave_makespan", wraps=gate.wave_makespan) as replay, \
+                        contextlib.redirect_stdout(io.StringIO()) as output:
+                    ensure(gate._run_locked(root, jobs) == 0, "the replay fixture failed")
+                expected_limit = sizing() if jobs is None else jobs
+                lines = output.getvalue().splitlines()
+                spans = {match.group(1): (float(match.group(2)), float(match.group(3)))
+                         for match in map(_SPAN_LINE.match, lines) if match}
+                ensure(set(spans) == {f"{stem}.v" for stem in compiled},
+                       f"timing lines {sorted(spans)} do not name exactly the compiled modules")
+                ensure(all(0 <= start <= end for start, end in spans.values()),
+                       f"a span does not run forward from the phase's start: {spans}")
+                ensure(min(start for start, _ in spans.values()) < 0.3,
+                       f"the spans are not measured from the phase's start: {spans}")
+                phase = [match for match in map(_PHASE_LINE.match, lines) if match]
+                ensure(len(phase) == 1 and int(phase[0].group(2)) == expected_limit,
+                       f"no phase line names the replay at worker limit {expected_limit}: {lines}")
+                ensure(all(end <= float(phase[0].group(1)) for _, end in spans.values()),
+                       f"a span ends after the phase's {phase[0].group(1)}s: {spans}")
+                replay.assert_called_once()
+                durations, limit = replay.call_args.args
+                ensure(limit == expected_limit and [len(wave) for wave in durations]
+                       == [len(wave) for wave in waves],
+                       "the replay is not over the gate's waves at the run's worker limit")
+                for wave, measured in zip(waves, durations, strict=True):
+                    for stem, seconds in zip(wave, measured, strict=True):
+                        logged = spans.get(f"{stem}.v")
+                        ensure(logged is None or abs(logged[1] - logged[0] - seconds) <= 0.011,
+                               f"the replay's {seconds}s for {stem} is not its logged span")
+                expected = gate.wave_makespan(durations, limit)
+                ensure(phase[0].group(3) == f"{expected:.2f}",
+                       f"the phase line's replay {phase[0].group(3)} is not {expected:.2f}")
+
+
+def _a_wrapped_require_runs_the_wave_schedule() -> None:
+    """Apex Requires Facade plainly and Base under `Time`, which the dependency parse
+    does not read, so the waves are Base and Edge, then Facade, then Apex. With two
+    workers and a slow Base, only the wave schedule holds Facade and Apex until Base
+    has finished; Requires alone would start both beside it."""
+    with tempfile.TemporaryDirectory(prefix="vos-proof-wrapped-") as temporary:
+        root = Path(temporary) / "source"
+        folder = root / "proofs"
+        folder.mkdir(parents=True)
+        work = Path(temporary) / "output"
+        work.mkdir()
+        texts = {"Apex": "Require Facade.\nTime Require Import Base.",
+                 "Base": "Definition value := 0.", "Edge": "Definition value := 1.",
+                 "Facade": "Require Edge."}
+        for name, text in texts.items():
+            (folder / f"{name}.v").write_text(text, encoding="utf-8")
+        toolchain = {"pin": gate.env.ROCQ_VERSION, "version": "fixture",
+                     "compiler": {"path": "/native/bin/rocq", "sha256": "compiler"},
+                     "checker": {"path": "/native/bin/rocqchk", "sha256": "checker"}}
+        lock = threading.Lock()
+        events: list[tuple[str, str]] = []
+
+        def check(_root: Path, source: Path, _sources: object) -> gate.Checked:
+            with lock:
+                events.append(("start", source.stem))
+            if source.stem == "Base":
+                time.sleep(0.3)
+            source.with_suffix(".vo").write_bytes(source.read_bytes())
+            with lock:
+                events.append(("end", source.stem))
+            return gate.Checked(source, symbols=[{
+                "name": f"{source.stem}.sound", "type": "True", "claims": [], "assumptions": []}])
+
+        waves = [[source.stem for source in wave]
+                 for wave in gate.proofs_mod.SourceIndex.read(gate._sources(root)).ordered]
+        ensure(waves == [["Base", "Edge"], ["Facade"], ["Apex"]],
+               f"the fixture's waves are not the ones its docstring reads: {waves}")
+        with patch.object(gate, "workspace", return_value=work), \
+                patch.object(gate, "_inputs", side_effect=receipts.snapshot), \
+                patch.object(gate, "_toolchain", return_value=toolchain), \
+                patch.object(gate, "_cache_context", return_value=None), \
+                patch.object(gate, "_check_source", side_effect=check), \
+                patch.object(gate, "_recheck", return_value=""), \
+                contextlib.redirect_stdout(io.StringIO()):
+            ensure(gate._run_locked(root, 2) == 0, "the wrapped-Require fixture failed")
+        ensure(sorted(stem for kind, stem in events if kind == "end") == sorted(texts),
+               f"every module is checked once, got {events}")
+        for stem in ("Facade", "Apex"):
+            ensure(events.index(("end", "Base")) < events.index(("start", stem)),
+                   f"{stem} started before Base, an earlier wave's module, finished: {events}")
 
 
 def _gate_identity_follows_imports() -> None:
@@ -852,6 +997,9 @@ def _the_lock_follows_a_moved_workspace() -> None:
 
 def cases() -> list[Case]:
     return [Case("incremental-proof-cache-invalidation", _incremental_run),
+            Case("phase-line-replays-the-wave-schedule", _the_phase_line_replays_the_wave_schedule),
+            Case("wrapped-require-runs-the-wave-schedule",
+                 _a_wrapped_require_runs_the_wave_schedule),
             Case("gate-identity-follows-imports", _gate_identity_follows_imports),
             Case("proof-identity-binds-reuse-context", _identity_binds_what_reuse_compares),
             Case("proof-jobs-cli-defaults-to-auto",

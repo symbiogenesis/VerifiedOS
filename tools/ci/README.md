@@ -36,8 +36,9 @@ failed or canceled runs, absent history and failed history lookups run all gates
 reruns always execute them. The history job alone has `actions: read`; the gate lanes keep `contents: read`.
 They need no repository secrets or initialized submodules. The public repository's standard
 [runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
-has 16 GB of RAM; the proof kernel recheck has historically exceeded 8 GiB,
-so a smaller runner needs a separate resource measurement.
+has 16 GB of RAM; the proof gate's one kernel worker peaks just under its 10 GiB
+budget there, as the runs [vos/env.py](../vos/env.py)'s `proof_jobs` records
+measured, so a smaller runner needs a separate resource measurement.
 
 The gate job is a two-lane matrix, and each lane has its own runner. The `model` lane
 installs Z3, Sail and Verilator, then runs the model evidence sweep, bundle comparison,
