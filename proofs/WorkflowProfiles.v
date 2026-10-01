@@ -515,10 +515,10 @@ Example failed_commit_recovers_old_app :
   accepted reference initial [Request Painter; CommitFailed] = true.
 Proof. vm_reflexivity. Qed.
 Example failed_restore_keeps_quarantine :
-  match run reference initial [Request Painter; Commit (checkpoint Editor EditedDocument);
-    Release cleared; BeginRestore; RestoreFailed] with
-  | Some s => owns_arena (painter s) && match phase (painter s) with Retiring => true | _ => false end
-  | None => false end = true.
+  (if run reference initial [Request Painter; Commit (checkpoint Editor EditedDocument);
+    Release cleared; BeginRestore; RestoreFailed] is Some s
+   then owns_arena (painter s) && (if phase (painter s) is Retiring then true else false)
+   else false) = true.
 Proof. vm_reflexivity. Qed.
 
 (* Fault constructors generate one failed Q22a clause at a time. *)
@@ -585,10 +585,10 @@ Example lost_unsaved_document_refused :
   accepted reference initial [Request Painter; Commit (checkpoint Editor SavedDocument)] = false.
 Proof. vm_reflexivity. Qed.
 Example revoked_grant_and_old_session_not_restored :
-  match run reference initial (retirement_prefix ++
-    [Release cleared; BeginRestore; FinishRestore false]) with
-  | Some s => negb (document_grant (painter s)) && negb (session_authority (painter s))
-  | None => false end = true.
+  (if run reference initial (retirement_prefix ++
+    [Release cleared; BeginRestore; FinishRestore false]) is Some s
+   then negb (document_grant (painter s)) && negb (session_authority (painter s))
+   else false) = true.
 Proof. vm_reflexivity. Qed.
 
 Definition crash_prefixes : list (list Event) :=
@@ -597,8 +597,8 @@ Definition recovered (s : State) : bool :=
   negb (owns_arena (editor s)) && negb (owns_arena (painter s)) &&
   (if target s is None then true else false).
 Example every_crash_boundary_reaches_reserved_recovery :
-  forallb (fun es => match run reference initial es with
-    Some s => recovered s && state_ok reference s | None => false end) crash_prefixes = true.
+  forallb (fun es => if run reference initial es is Some s
+    then recovered s && state_ok reference s else false) crash_prefixes = true.
 Proof. vm_reflexivity. Qed.
 Example failed_restore_can_finish_retirement :
   accepted reference initial (retirement_prefix ++ [Release cleared; BeginRestore;
@@ -621,15 +621,15 @@ Example repeated_switch_endurance_is_finite :
 Proof. vm_compute; auto. Qed.
 
 Example exact_stage_and_storage_ledger :
-  map (fun n => match run reference initial (firstn n (switch_to Painter)) with
-    | Some s => (ram s, store s, elapsed s, dwell s)
-    | None => (0, 0, 0, 0) end) (seq 0 6) =
+  map (fun n => if run reference initial (firstn n (switch_to Painter)) is Some s
+    then (ram s, store s, elapsed s, dwell s)
+    else (0, 0, 0, 0)) (seq 0 6) =
   [(112, 32, 0, 2); (128, 48, 1, 0); (128, 48, 3, 0);
    (48, 48, 6, 0); (128, 48, 8, 0); (112, 32, 0, 0)].
 Proof. vm_reflexivity. Qed.
 Example failed_commit_resets_request_dwell :
-  match run reference initial [Request Painter; CommitFailed] with
-  | Some s => dwell s | None => 99 end = 0.
+  (if run reference initial [Request Painter; CommitFailed] is Some s
+   then dwell s else 99) = 0.
 Proof. vm_reflexivity. Qed.
 Example recovery_does_not_close_an_active_app :
   accepted reference initial [Recover cleared] = false.
@@ -673,8 +673,8 @@ Proof.
   now apply negb_true_iff in H.
 Qed.
 Example generated_traces_preserve_resource_and_ownership_checks :
-  forallb (fun es => match run reference initial es with
-    Some s => state_ok reference s | None => false end) generated_corpus = true.
+  forallb (fun es => if run reference initial es is Some s
+    then state_ok reference s else false) generated_corpus = true.
 Proof.
   apply forallb_forall; intros es H.
   pose proof (generated_reachable_is_accepted 5 es H) as HA. clear H.
