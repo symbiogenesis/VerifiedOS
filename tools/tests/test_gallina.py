@@ -242,8 +242,11 @@ def _the_decoration_grammar_is_one_reading() -> None:
             ("word", "Profile"), ("word", "Fail"),
             ("attributes", 'deprecated(note="x. ] y")'), ("word", "Local"),
             ("word", "Program")],
-        "- { 2: { [x]: { !: { Timeout 5AllocLimit 3 Mw Instructions Lemma l": [
-            ("bullet", "-"), ("bullet", "{"), ("bullet", "2: {"), ("bullet", "[x]: {"),
+        "- Lemma l": [("bullet", "-")], "+ Lemma l": [("bullet", "+")],
+        "* Lemma l": [("bullet", "*")], "{ Lemma l": [("bullet", "{")],
+        "} Lemma l": [("bullet", "}")], "2: { Lemma l": [("bullet", "2: {")],
+        "[x]: { Lemma l": [("bullet", "[x]: {")],
+        "!: { Timeout 5AllocLimit 3 Mw Instructions Lemma l": [
             ("bullet", "!: {"), ("word", "Timeout"), ("word", "AllocLimit"),
             ("word", "Instructions")],
         "Export Set Printing All": [("word", "Export")],
@@ -275,6 +278,37 @@ def _the_look_back_reads_only_decorations() -> None:
     for code, head, flag in fixtures:
         got = proofs.void_flag(code, code.index(head), proofs.sentence_ends(code))
         ensure(got == flag, f"the look-back from {head!r} in {code!r} read {got!r}")
+
+
+def _a_bullet_starts_the_run_again() -> None:
+    # A bullet, a brace or a goal selector is a command of its own, and the locked
+    # compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps the declaration
+    # after it. So the walk starts again at each, the last standing first in what it
+    # returns, while the run a head pattern opens with still reads past them all.
+    fixtures = {
+        "Fail } Definition g": [("bullet", "}")],
+        "Succeed { Time Definition g": [("bullet", "{"), ("word", "Time")],
+        "Succeed 1: {\nDefinition g": [("bullet", "1: {")],
+        "#[local] Fail }\nLocal Definition g": [("bullet", "}"), ("word", "Local")],
+        "- Succeed Definition g": [("bullet", "-"), ("word", "Succeed")],
+    }
+    for source, expected in fixtures.items():
+        found, at = proofs.decorations(source)
+        got = [next((kind, (value or "").strip()) for kind, value in decoration.groupdict()
+                    .items() if value is not None) for decoration in found]
+        ensure(got == expected and source[at:] == "Definition g",
+               f"the walk read {source!r} as {got!r}, the command at {at}")
+        run = re.match(proofs.CONTROL_PREFIXES, source)
+        ensure(run is not None and run.end() == at,
+               f"the run and the walk stop apart over {source!r}")
+    # and the look-back reads the flag a declaration stands under the same way
+    proof = "Lemma l : True.\nProof.\n"
+    for lead, flag in (("Fail }\n", None), ("Fail } ", None), ("Succeed { ", None),
+                       ("Succeed 1: {\n", None), ("Fail\n}\n", None),
+                       ("- Succeed ", "Succeed"), ("{ Succeed\n", "Succeed")):
+        code = proof + lead + "Definition g := 1.\n"
+        got = proofs.void_flag(code, code.index("Definition g"), proofs.sentence_ends(code))
+        ensure(got == flag, f"the look-back over {lead!r} read {got!r}")
 
 
 def _a_library_require_is_not_ordered() -> None:
@@ -383,6 +417,7 @@ def cases() -> list[Case]:
         Case("sentences end outside strings", _sentences_end_outside_strings),
         Case("the decoration grammar is one reading", _the_decoration_grammar_is_one_reading),
         Case("the look-back reads only decorations", _the_look_back_reads_only_decorations),
+        Case("a bullet starts the run again", _a_bullet_starts_the_run_again),
         Case("a library Require orders nothing", _a_library_require_is_not_ordered),
         Case("staging leaves compiled artifacts behind",
              _staging_leaves_the_compiled_artifacts_behind),

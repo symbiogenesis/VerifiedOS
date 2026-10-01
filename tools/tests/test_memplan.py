@@ -12,7 +12,8 @@ hand it shapes with a list missing, a chain malformed and a kind unknown and req
 `PlanError` each time. Every head reads a declaration under a decoration of the shared
 lexer's grammar as the bare one, while a variant or a list under `Fail`, indented,
 respaced, untyped or commented apart from its head, and a value completed from a base
-with `with` that assigns a field of `Plan`, are refused by name.
+with `with` that assigns a field of `Plan`, are refused by name. One after `Fail }` or
+`Succeed {` is read, the flag being the brace's.
 
 **The port agrees with the proof file on every plan the file decides.** The `.v` ships
 one admitted plan and fifteen variants each moving one declared quantity, and states in
@@ -241,6 +242,22 @@ def _a_declaration_under_the_shared_grammar_is_read() -> None:
            f"a variant after a bullet is read as itself: {src.plans}")
 
 
+def _a_flag_before_a_brace_is_the_braces() -> None:
+    # A bullet, a brace or a goal selector is a command of its own, and the locked
+    # compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps the declaration
+    # after it, so that declaration is carried as itself.
+    variant = (("toy_lengths", "toy_bases", "toy_base_granules", "toy_length_granules",
+                "toy_slots"), 13)
+    proof, tail = "Lemma l : True.\nProof.\n", "  exact I.\nQed.\n"
+    for lead in ("Fail }\n", "Fail } ", "Succeed { ", "Succeed 1: {\n", "Fail\n}\n"):
+        src = memplan.parse(_TOY + proof + lead + _VARIANT + tail)
+        ensure(src.plans.get("dear_plan") == variant,
+               f"after {lead!r} the variant was not carried: {src.plans}")
+    # the control: a flag after a bullet is the declaration's, which it keeps nothing of
+    _refused_saying(_TOY + proof + "- Succeed " + _VARIANT + tail,
+                    "states dear_plan under `Succeed`", "a variant after `- Succeed` was carried")
+
+
 def _a_declaration_the_reader_does_not_take_is_refused() -> None:
     # An indented head is in a `Module` or a `Section` the reader does not follow, and it
     # would leave the export a variant or a list short with nothing to notice it, so it
@@ -453,6 +470,7 @@ def cases() -> list[Case]:
         Case("a-prefixed-declaration-is-read", _a_prefixed_declaration_is_read),
         Case("a-declaration-under-the-shared-grammar-is-read",
              _a_declaration_under_the_shared_grammar_is_read),
+        Case("a-flag-before-a-brace-is-the-braces", _a_flag_before_a_brace_is_the_braces),
         Case("a-declaration-the-reader-does-not-take-is-refused",
              _a_declaration_the_reader_does_not_take_is_refused),
         Case("a-plan-completed-from-a-base-is-refused",

@@ -332,6 +332,24 @@ def _source_reading_reads_past_decorations() -> None:
     ensure(not any(void.values()), f"a sentence under a void flag was counted: {void}")
 
 
+def _source_reading_reads_a_flag_before_a_brace_as_the_braces() -> None:
+    # A bullet, a brace or a goal selector is a command of its own, and the locked
+    # compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps the declaration
+    # after it, so that declaration and the modifiers after the brace are counted; a flag
+    # after a bullet is the declaration's, which counts nothing.
+    counts = cic_corpus.source_declarations(
+        "Lemma l : True.\nProof.\n"
+        "Fail }\nFixpoint f (n : nat) : nat := n.\n"
+        "Succeed { Program Fixpoint g (n : nat) : nat := n.\n"
+        "Succeed 1: { Inductive I := C.\n"
+        "Fail } Polymorphic Inductive J := D.\n"
+        "- Succeed Inductive K := E.\n"
+        "  exact I.\nQed.\n")
+    want = {"Inductive": 2, "Fixpoint": 2, "Program": 1, "Polymorphic": 1}
+    ensure({key: value for key, value in counts.items() if value} == want,
+           f"the declarations after a brace's flag: {counts}")
+
+
 def _closure_names_split_by_ownership() -> None:
     local, foreign = cic_corpus.local_names(
         ["AdmissionPath.check_cert", "Corelib.Init.Nat.add"], {"AdmissionPath"})
@@ -368,6 +386,8 @@ def cases() -> list[Case]:
         Case("source-reading-counts-sentences", _source_reading_counts_sentences),
         Case("source-reading-reads-past-decorations",
              _source_reading_reads_past_decorations),
+        Case("source-reading-reads-a-flag-before-a-brace-as-the-braces",
+             _source_reading_reads_a_flag_before_a_brace_as_the_braces),
         Case("closure-names-split-by-ownership", _closure_names_split_by_ownership),
         Case("marker-goals-open-with-proof", _marker_goals_open_with_proof),
     ]

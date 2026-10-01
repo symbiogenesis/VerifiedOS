@@ -11,7 +11,8 @@ Three boundaries. A statement ends at its own full stop, as the shared lexer end
 so the proof after it adds nothing whether it opens `Proof.` or `Proof using`, and a
 numeral a comment inside it quotes is no byte. A statement under any decoration of the
 shared grammar is the statement and is read. And one under `Fail` or `Succeed` states
-nothing the file keeps and is refused by name.
+nothing the file keeps and is refused by name, while one after `Fail }` or `Succeed {`
+is read, the flag being the brace's.
 """
 
 from tests.harness import Case, ensure
@@ -71,10 +72,25 @@ def _a_void_statement_is_refused() -> None:
            f"a longer name answered for the row's: {got} ({why})")
 
 
+def _a_flag_before_a_brace_is_the_braces() -> None:
+    # A bullet, a brace or a goal selector is a command of its own, and the locked
+    # compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps the Example
+    # after it, so that Example is read.
+    proof, tail = "Lemma l : True.\nProof.\n", "exact I.\nQed.\n"
+    for lead in ("Fail }\n", "Fail } ", "Succeed { ", "Succeed 1: {\n", "Fail\n}\n"):
+        got, why = _lanes(proof + lead + _example() + tail)
+        ensure(got == _LANES and not why, f"after {lead!r} the Example read {got} ({why})")
+    # the control: a flag after a bullet is the Example's, which it keeps nothing of
+    got, why = _lanes(proof + "- Succeed " + _example() + tail)
+    ensure(got is None and "under `Succeed`" in why,
+           f"an Example after `- Succeed` was read as {got} ({why})")
+
+
 def cases() -> list[Case]:
     return [
         Case("a-statement-stops-at-its-own-full-stop",
              _a_statement_stops_at_its_own_full_stop),
         Case("a-decorated-statement-is-read", _a_decorated_statement_is_read),
         Case("a-void-statement-is-refused", _a_void_statement_is_refused),
+        Case("a-flag-before-a-brace-is-the-braces", _a_flag_before_a_brace_is_the_braces),
     ]

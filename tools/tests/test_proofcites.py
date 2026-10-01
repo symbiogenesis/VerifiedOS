@@ -187,6 +187,22 @@ def _a_claim_reads_the_shared_tables_and_decorations() -> None:
            in faults[0], f"a claim above a decorated term: {claims!r} {faults!r}")
 
 
+def _a_flag_before_a_brace_is_the_braces() -> None:
+    # A bullet, a brace or a goal selector is a command of its own, and the locked
+    # compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps what follows,
+    # so the definition after one defines its name and the statement after one is
+    # claimed; a flag after a bullet is the definition's, which defines nothing.
+    got = proofcites.names("Lemma l : True.\nProof.\n"
+                           "Fail }\nDefinition a := 0.\nFail } Definition b := 0.\n"
+                           "Succeed { Definition c := 0.\nSucceed 1: { Definition d := 0.\n"
+                           "- Succeed Definition e := 0.\n  exact I.\nQed.\n")
+    ensure(got == ["l", "a", "b", "c", "d"], f"the names after a brace's flag: {got!r}")
+    claims, faults = proofcites.discharges(
+        "(*| discharges: R-01-001 |*)\nFail } Theorem x : True.\n")
+    ensure(claims == [("x", ["R-01-001"])] and not faults,
+           f"a claim after a brace's flag: {claims!r} {faults!r}")
+
+
 # =====================================================================================
 # the rule: K-108 over a fixture corpus
 # =====================================================================================
@@ -313,6 +329,7 @@ def cases() -> list[Case]:
              _names_read_the_shared_tables_and_decorations),
         Case("a-claim-reads-the-shared-tables-and-decorations",
              _a_claim_reads_the_shared_tables_and_decorations),
+        Case("a-flag-before-a-brace-is-the-braces", _a_flag_before_a_brace_is_the_braces),
         Case("faithful-region-passes", _a_faithful_region_is_no_finding),
         Case("region-hiding-a-citation", _a_region_hiding_a_citation_is_the_finding),
         Case("vernacular-in-a-region", _a_vernacular_inside_a_region_is_the_finding),

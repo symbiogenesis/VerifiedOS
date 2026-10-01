@@ -77,7 +77,8 @@ CONTROL_FLAGS = (r"(?:Time|Instructions|Fail|Succeed)(?![\w'])\s*"
 ATTRIBUTE_OPEN = r"#\[" + _ATTRIBUTE_VALUES
 LEGACY_ATTRIBUTES = (r"(?:Local|Global|Export|Polymorphic|Monomorphic|Cumulative"
                      r"|NonCumulative|Private|Program)(?![\w'])\s*")
-# Any run of them, capturing nothing, for a head pattern to open with.
+# Any run of them, capturing nothing, for a head pattern to open with. Which of them
+# reach the command is `decorations`' to say, since a bullet starts the run again.
 CONTROL_PREFIXES = ("(?:" + BULLETS + "|" + CONTROL_FLAGS + "|" + ATTRIBUTE_OPEN + r"\]\s*|"
                     + LEGACY_ATTRIBUTES + ")*")
 # One of them, saying which: `bullet` a bullet, brace or goal selector, `word` a control
@@ -180,10 +181,19 @@ def sentence_ends(code: str) -> list[int]:
 
 
 def decorations(code: str, at: int = 0) -> tuple[list[re.Match[str]], int]:
-    """Every decoration standing at `at` in comment-free code, in order, and where the
-    command under them opens."""
+    """The decorations standing at `at` in comment-free code that reach the command under
+    them, in order, and where that command opens.
+
+    A bullet, a brace or a goal selector is a command of its own in Rocq 9.3's grammar,
+    which reads control flags and attributes only before a whole command: the locked
+    compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps the declaration
+    after it. So the run starts again at each of them, and the last one stands first in
+    what is returned, for a reader that asks whether one stood there.
+    """
     found: list[re.Match[str]] = []
     while (decoration := DECORATION.match(code, at)) is not None:
+        if decoration.group("bullet") is not None:
+            found.clear()
         found.append(decoration)
         at = decoration.end()
     return found, at
@@ -195,12 +205,13 @@ def void_flag(code: str, opened: int, ends: Sequence[int]) -> str | None:
     `sentence_ends(code)`.
 
     A flag may stand on the command's line or on lines of its own above it, so the walk
-    starts at the full stop ending the sentence before and reads every decoration from
-    there to the command's keyword. That full stop is found where the sentence split finds
-    it, so a string's full stop, an attribute's quoted note among them, ends no look-back
-    early. None where there is no such flag, or where something other than blank space and
-    decorations stands between that full stop and `opened`, the head then opening inside a
-    sentence rather than at one.
+    starts at the full stop ending the sentence before and reads the decorations from
+    there to the command's keyword, a flag before a bullet, a brace or a goal selector
+    being that one's (`decorations`). That full stop is found where the sentence split
+    finds it, so a string's full stop, an attribute's quoted note among them, ends no
+    look-back early. None where there is no such flag, or where something other than
+    blank space and decorations stands between that full stop and `opened`, the head then
+    opening inside a sentence rather than at one.
     """
     before = bisect_left(ends, opened)
     start = ends[before - 1] + 1 if before else 0

@@ -19,7 +19,8 @@ inventing a residue rather than reporting one.
 Three more hold the spellings Rocq admits around a definition: one under an attribute
 or a locality is read as itself, one under `Fail`, on its line or a line above it,
 defines nothing and is a residue, and a record value completed from a base with `with`
-is a residue while a `match`'s own `with` is read.
+is a residue while a `match`'s own `with` is read. One after `Fail }` or `Succeed {` is
+read as itself, the flag being the brace's.
 """
 
 import tempfile
@@ -228,6 +229,24 @@ def _a_flag_behind_a_quoted_full_stop_is_still_read() -> None:
            f"a deprecated definition is read: {rec.unread!r} {rec.def_fields!r}")
 
 
+def _a_flag_before_a_brace_is_the_braces() -> None:
+    # A bullet, a brace or a goal selector is a command of its own, and the locked
+    # compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps the definition
+    # after it, so that definition is read as itself.
+    proof = "\nLemma l : True.\nProof.\n"
+    body = "Definition inner (v : Vocabulary) : Prop := v.(gamma).\n  exact I.\nQed.\n"
+    for lead in ("Fail }\n", "Fail } ", "Succeed { ", "Succeed 1: {\n", "Fail\n}\n"):
+        rec = _read(_APEX + proof + lead + body)
+        ensure(rec.unread == [] and rec.consumers["gamma"] == ["seam_one", "inner"],
+               f"after {lead!r} the definition was not read: {rec.unread!r} "
+               f"{rec.consumers['gamma']!r}")
+    # the control: a flag after a bullet is the definition's, which it keeps nothing of
+    rec = _read(_APEX + proof + "- Succeed " + body)
+    ensure(any("spells 3 `Definition` sentences and this parse reads 2" in said
+               for said in rec.unread) and rec.consumers["gamma"] == ["seam_one"],
+           f"a definition after `- Succeed` was not a residue: {rec.unread!r}")
+
+
 def _record_completed_from_a_base_is_a_residue() -> None:
     # `{| v with alpha := v.(beta) |}` projects gamma out of v and spells it nowhere, so
     # both readings agree on beta alone; the `with` is what refuses it, and the beta it
@@ -274,6 +293,7 @@ def cases() -> list[Case]:
         Case("a-flag-behind-a-quoted-full-stop-is-still-read",
              _a_flag_behind_a_quoted_full_stop_is_still_read),
         Case("the-shared-decoration-grammar-is-read", _the_shared_decoration_grammar_is_read),
+        Case("a-flag-before-a-brace-is-the-braces", _a_flag_before_a_brace_is_the_braces),
         Case("record-completed-from-a-base-is-a-residue",
              _record_completed_from_a_base_is_a_residue),
     ]
