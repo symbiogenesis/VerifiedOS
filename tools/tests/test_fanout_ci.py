@@ -502,6 +502,74 @@ _GATE_COMMANDS = {
 _GATE_BRANCHES = sorted(_GATE_COMMANDS)
 # A job-level key of the shard job, whose keys sit at four spaces, bare or quoted.
 _JOB_CONTINUE_RE = re.compile(r"""(?m)^    (["']?)continue-on-error\1[ \t]*:""")
+# Each gate step's environment block, exactly as the workflow spells it for both: the
+# shard and the shard count, and nothing a shell or an interpreter would read first.
+_GATE_ENV = ["        env:",
+             "          SHARD: ${{ matrix.shard }}",
+             "          SHARDS: ${{ matrix.shards }}"]
+# A variable a shell reads before the command it runs: GitHub runs a bash step as
+# non-interactive bash, which sources the file BASH_ENV names and defines a function
+# for each BASH_FUNC_<name>%% variable holding a function body, and sh reads ENV where
+# it is interactive. Each can install `trap 'exit 0' EXIT` or replace `python`, and
+# turn a failing gate green. The reading is textual: such a name standing as a word on
+# an uncommented line of the workflow, in any of the spellings `_spellings` gives that
+# text. A name a step builds at run time is not read.
+_SHELL_STARTUP_RE = re.compile(
+    r"(?<![A-Za-z0-9_])(BASH_ENV|ENV|BASH_FUNC_[A-Za-z0-9_]+)(?![A-Za-z0-9_])")
+# The numeric escapes YAML's double-quoted scalars and bash's ANSI-C quoting decode, at
+# bash's widths, PowerShell 7's `u{...}, and an escaped line break with the indentation
+# after it, which YAML and bash both join. A single-character escape such as `\n` or
+# PowerShell's `` `n `` is not decoded here; `_spellings` reads it as a separator.
+_ESCAPE_RE = re.compile(
+    r"\\(?:x([0-9A-Fa-f]{1,2})|u([0-9A-Fa-f]{1,4})|U([0-9A-Fa-f]{1,8})|([0-7]{1,3})"
+    r"|\r?\n[ \t]*)|`u\{([0-9A-Fa-f]{1,6})\}")
+# How many passes `_decoded` takes at most: a pass can write a new escape, as YAML's
+# `\x5c` turns the text after it into a bash escape, and decoding stops sooner where a
+# pass changes nothing.
+_DECODINGS = 4
+
+
+def _unescaped(match: re.Match[str]) -> str:
+    """One escape `_ESCAPE_RE` matched, decoded, and an escaped line break joined."""
+    hexadecimal = match[1] or match[2] or match[3] or match[5]
+    if hexadecimal is None and match[4] is None:
+        return ""
+    point = int(hexadecimal, 16) if hexadecimal is not None else int(match[4], 8)
+    return chr(point) if point <= 0x10FFFF else match[0]
+
+
+def _decoded(text: str) -> str:
+    """`text` with `_ESCAPE_RE`'s escapes decoded until a pass changes nothing, or for
+    `_DECODINGS` passes, so an escape an earlier decoding wrote is decoded too."""
+    for _ in range(_DECODINGS):
+        decoded = _ESCAPE_RE.sub(_unescaped, text)
+        if decoded == text:
+            break
+        text = decoded
+    return text
+
+
+def _spellings(text: str) -> list[str]:
+    """A workflow's text as written; with its numeric escapes decoded and escaped line
+    breaks joined; that again with every quote, backtick and backslash dropped, as bash's
+    quote removal and PowerShell's backtick escapes leave a word; that decoded text with
+    each backslash or backtick and the character after it read as a separator, as a
+    single-character escape such as YAML's or bash's `\\n` or PowerShell's `` `n `` ends
+    the word before the name it writes; and that decoded text with each run of
+    backslashes and backticks and the character after the run read as one separator, as
+    a doubled backslash that bash's or YAML's double quotes reduce to one, before an
+    escape `printf` or `echo -e` then decodes, ends that word too."""
+    decoded = _decoded(text)
+    return [text, decoded, re.sub(r"[\"'`\\]", "", decoded), re.sub(r"[\\`].", " ", decoded),
+            re.sub(r"[\\`]+.", " ", decoded)]
+
+
+def _startup_names(contents: str) -> list[str]:
+    """Each `_SHELL_STARTUP_RE` name an uncommented line of a workflow spells."""
+    uncommented = "\n".join(line for line in contents.split("\n")
+                            if not line.lstrip().startswith("#"))
+    return sorted({m[1] for spelling in _spellings(uncommented)
+                   for m in _SHELL_STARTUP_RE.finditer(spelling)})
 
 
 def _step_texts(job: str) -> list[str]:
@@ -523,6 +591,24 @@ def _step_values(step: str, key: str) -> list[str]:
     """Every value a step states for one of its own keys, on its dash line or beneath."""
     pattern = r"(?m)^(?:      - |        )" + re.escape(key) + r":[ \t]*(.*?)[ \t]*$"
     return [m[1] for m in re.finditer(pattern, step)]
+
+
+def _step_block(step: str, key: str) -> list[str]:
+    """A step's own `key:` line and every nonblank line indented beneath it, before the
+    step's next key, as the workflow spells them; empty where the step states none."""
+    lines = step.split("\n")
+    start = next((n for n, line in enumerate(lines)
+                  if re.match(r"(?:      - |        )" + re.escape(key) + ":", line)), None)
+    if start is None:
+        return []
+    block = [lines[start].rstrip()]
+    for line in lines[start + 1:]:
+        if not line.strip():
+            continue
+        if len(line) - len(line.lstrip()) <= 8:
+            break
+        block.append(line.rstrip())
+    return block
 
 
 def _continued(step: str) -> bool:
@@ -549,14 +635,24 @@ def _gate_faults(contents: str) -> list[str]:
     and the two steps' `if:` and `shell:` must be exactly the complementary pair. A gate
     that runs can still finish green without its verdict, so each step's `run:` must be
     exactly its branch's command with no continuation line folded into it, and neither a
-    gate step nor the shard job may state `continue-on-error`. Steps other than the
-    gate's are not read.
+    gate step nor the shard job may state `continue-on-error`. A shell can run code of
+    its own before the command, so each gate step's `env:` block must be exactly its
+    SHARD and SHARDS lines, and no uncommented line of the workflow may spell BASH_ENV,
+    ENV or a BASH_FUNC_ variable as a word in any spelling `_spellings` gives it: as
+    written, with its numeric escapes decoded, with its quotes, backticks and
+    backslashes then dropped, with each backslash or backtick escape read as a
+    separator, or with each run of backslashes and backticks and the character after
+    the run read as one separator. Steps other than the gate's are read for those names
+    alone, and a name a step builds at run time is not read.
     """
     shards = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)[0]
     gates = [step for step in _step_texts(shards)
              if any(value.startswith(_GATE) for value in _step_values(step, "run"))]
     text = "\n".join(line for line in shards.split("\n") if not line.lstrip().startswith("#"))
     faults: list[str] = []
+    if startup := _startup_names(contents):
+        faults.append(f"the workflow names {' and '.join(startup)}, which a shell reads "
+                      "before the gate's command and which can turn a failing gate green")
     if text.count(_GATE) != len(gates):
         faults.append("the gate command stands outside a step's own single-line run")
     if len(gates) != 2:
@@ -572,6 +668,11 @@ def _gate_faults(contents: str) -> list[str]:
         if _continued(step):
             faults.append("a gate step's run continues past its line, so the command it "
                           "runs is not the line read")
+        environments = _step_values(step, "env")
+        if len(environments) != 1 or _step_block(step, "env") != _GATE_ENV:
+            faults.append(f"a gate step states {len(environments)} env key(s) and the "
+                          f"block {_step_block(step, 'env')!r}, not exactly its SHARD and "
+                          "SHARDS lines, so its shell can read more than the shard")
         conditions, shells = _step_values(step, "if"), _step_values(step, "shell")
         runs = _step_values(step, "run")
         if len(conditions) != 1 or len(shells) != 1 or len(runs) != 1:
@@ -603,6 +704,9 @@ _GATE_JOB = """jobs:
       - name: Host gates and behavioral tests (Windows)
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ matrix.shards }}
         run: python tools/run.py --check --tests --shard "$env:SHARD/$env:SHARDS" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"
 
       - name: Host gates and behavioral tests (Ubuntu)
@@ -610,6 +714,7 @@ _GATE_JOB = """jobs:
         shell: bash
         env:
           SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ matrix.shards }}
         run: python tools/run.py --check --tests --shard "$SHARD/$SHARDS" --summary "$RUNNER_TEMP/$VERDICT_FILE"
 
       - name: Report gate results
@@ -631,6 +736,12 @@ def _workflow_gate_on_every_runner() -> None:
     missing = ubuntu[0] + "      - name: Report" + ubuntu[1].split("      - name: Report", 1)[1]
     verdict = '--summary "$RUNNER_TEMP/$VERDICT_FILE"'
     report = "\n      - name: Report gate results\n"
+    sharded = "          SHARDS: ${{ matrix.shards }}\n"
+    environment = "        env:\n          SHARD: ${{ matrix.shard }}\n" + sharded
+    job = "    runs-on: ${{ matrix.runner }}\n"
+    trap = "${{ runner.temp }}/trap.sh\n"
+    export = ("\n      - name: Export\n        if: ${{ runner.os != 'Windows' }}\n"
+              "        shell: bash\n        run: ")
     for workflow, fragment in (
             (_GATE_JOB.replace("runner.os != 'Windows'", "runner.os == 'Linux'"),
              "not the complementary"),
@@ -665,18 +776,99 @@ def _workflow_gate_on_every_runner() -> None:
              "continues past its line"),
             (_GATE_JOB.replace(f"{verdict}\n{report}",
                                f"{verdict}\n        continue-on-error: true\n{report}"),
-             "a gate step states continue-on-error")):
+             "a gate step states continue-on-error"),
+            # A gate whose shell runs code of its own first: a step environment beyond
+            # the shard, or a startup file a shell sources, named at the step, the job
+            # or the workflow, bare, quoted or in a flow mapping, or written by a run.
+            (_GATE_JOB.replace(sharded, sharded + "          BASH_ENV: " + trap, 1),
+             "not exactly its SHARD and SHARDS lines"),
+            (_GATE_JOB.replace(sharded, sharded + "          BASH_ENV: " + trap, 1),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(sharded, sharded + "          PYTHONPATH: .\n"),
+             "not exactly its SHARD and SHARDS lines"),
+            (_GATE_JOB.replace("        shell: pwsh\n" + environment, "        shell: pwsh\n"),
+             "states 0 env key(s)"),
+            (_GATE_JOB.replace("        shell: bash\n" + environment,
+                               "        shell: bash\n        env: {SHARD: ${{ matrix.shard "
+                               "}}, SHARDS: ${{ matrix.shards }}}\n"),
+             "not exactly its SHARD and SHARDS lines"),
+            (_GATE_JOB.replace(job, job + "    env:\n      BASH_ENV: " + trap),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(job, job + '    env:\n      "BASH_ENV": ' + trap),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(job, job + "    env: {BASH_ENV: " + trap.rstrip() + "}\n"),
+             "the workflow names BASH_ENV"),
+            ("env:\n  'ENV': " + trap + _GATE_JOB, "the workflow names ENV"),
+            (_GATE_JOB.replace('"TMP=$env:RUNNER_TEMP"', '"BASH_ENV=$env:RUNNER_TEMP/trap.sh"'),
+             "the workflow names BASH_ENV"),
+            # The same names spelled through YAML's double-quoted escapes and escaped
+            # line break, bash's ANSI-C quoting and quote removal, or PowerShell's
+            # backtick, and a function bash defines in place of python.
+            (_GATE_JOB.replace(job, job + '    env:\n      "BASH\\x5fENV": ' + trap),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(job, job + '    env:\n      "BASH\\u005fENV": ' + trap),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(job, job + '    env:\n      "BASH\\\n        _ENV": ' + trap),
+             "the workflow names BASH_ENV"),
+            ('env:\n  "\\x45NV": ' + trap + _GATE_JOB, "the workflow names ENV"),
+            (_GATE_JOB.replace(report, export + "echo $'BASH\\x5fENV=/tmp/t' >> \"$GITHUB_ENV\"\n"
+                                       + report), "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(report, export + "echo $'BASH\\137ENV=/tmp/t' >> \"$GITHUB_ENV\"\n"
+                                       + report), "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(report, export + "echo \"BASH\"'_ENV=/tmp/t' >> \"$GITHUB_ENV\"\n"
+                                       + report), "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace('"TMP=$env:RUNNER_TEMP"', '"BASH`_ENV=$env:RUNNER_TEMP/trap.sh"'),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(job, job + '    env:\n      "BASH_FUNC_python%%": "() { exit 0; }"\n'),
+             "the workflow names BASH_FUNC_python"),
+            # A single-character escape ending the word before the name, in YAML's
+            # double quotes, bash's ANSI-C quoting and PowerShell's backtick;
+            # PowerShell 7's code-point escape; and a YAML escape writing a bash one.
+            (_GATE_JOB.replace(report, export + "\"printf 'x\\nBASH_ENV=/tmp/t' >> "
+                                       "$GITHUB_ENV\"\n" + report),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(report, export + "echo $'x\\nBASH_ENV=/tmp/t' >> \"$GITHUB_ENV\"\n"
+                                       + report), "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace('"TMP=$env:RUNNER_TEMP"',
+                               '"TMP=$env:RUNNER_TEMP`nBASH_ENV=$env:RUNNER_TEMP/trap.sh"'),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace('"TMP=$env:RUNNER_TEMP"',
+                               '"BASH`u{5f}ENV=$env:RUNNER_TEMP/trap.sh"'),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(report, export + "\"echo $'BASH\\x5cx5fENV=/tmp/t' >> "
+                                       "$GITHUB_ENV\"\n" + report),
+             "the workflow names BASH_ENV"),
+            # A doubled backslash, which bash's or YAML's double quotes reduce to one,
+            # before an escape printf then decodes into the break ending the word.
+            (_GATE_JOB.replace(report, export + "printf \"x\\\\nBASH_ENV=/tmp/t\" >> "
+                                       "\"$GITHUB_ENV\"\n" + report),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(report, export + "\"printf 'x\\\\nBASH_ENV=/tmp/t' >> "
+                                       "$GITHUB_ENV\"\n" + report),
+             "the workflow names BASH_ENV")):
         ensure(workflow != _GATE_JOB, f"the fixture for {fragment!r} changed nothing")
         found = _gate_faults(workflow)
         ensure(any(fragment in fault for fault in found),
                f"a gate some runner would skip, or one that can pass without its verdict, "
                f"must be refused ({fragment!r}): {found!r}")
-    # A step other than the gate's is not read: one more step anywhere passes.
+    # A step other than the gate's is read for a startup file alone: one more step
+    # anywhere passes, and so does a comment line naming one.
     extra = _GATE_JOB.replace(report, "\n      - name: Another step\n        if: ${{ "
                                       "runner.os != 'Windows' }}\n        continue-on-error: "
                                       f"true\n        run: echo other\n{report}")
     ensure(extra != _GATE_JOB and not _gate_faults(extra),
            f"a step outside the gate's is not read: {_gate_faults(extra)!r}")
+    noted = _GATE_JOB.replace("      # The gate, once per platform.\n",
+                              "      # The gate, once per platform; no BASH_ENV or ENV.\n")
+    ensure(noted != _GATE_JOB and not _gate_faults(noted),
+           f"a comment line naming a startup file is not a setting: {_gate_faults(noted)!r}")
+    # The positive control: every tracked workflow's escapes, quotes and backticks read
+    # clean in each spelling, so a refusal above is the name and not the decoding.
+    workflows = sorted((ROOT / ".github/workflows").glob("*.yml"))
+    ensure(bool(workflows), "the workflows directory holds the workflows")
+    for workflow in workflows:
+        named = _startup_names(workflow.read_text(encoding="utf-8"))
+        ensure(not named, f"{workflow.name} spells {named}")
 
 
 def _key_values(text: str, key: str) -> list[str]:

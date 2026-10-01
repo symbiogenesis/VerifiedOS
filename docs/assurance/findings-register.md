@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 843 of them across 146 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 895 of them across 152 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -207,6 +207,46 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-198d** method: a landed decline falsifies the forward claims other cells made about the act it declined, and those are present-tense sentences no gate reads
 · Raised: S14
 · Disposition: closed, eight such sentences repaired to what is true across the plan and this register, with the rerun returning to the item that owns it and that cell deliberately not re-priced here; two of the eight stood a commit longer than the rest, which is the class arriving inside the item that names it
+
+**F-526** owed-act: the host gate's shell-startup refusal reads the workflow's text, so a `BASH_ENV`, `ENV` or `BASH_FUNC_` name a step builds at run time, `PYTHONPATH`, `PYTHONHOME` or `LD_PRELOAD` set at the workflow or job level or by a `GITHUB_ENV` write, and a directory a `GITHUB_PATH` write puts ahead of `python` can each still change what a gate step runs while every host-gates reading passes
+· Raised: S14, in prose
+· Disposition: open, a reading of each gate step's effective environment and PATH: no workflow- or job-level `env` beyond a declared set, and no `GITHUB_ENV` or `GITHUB_PATH` write in a step ahead of the gate
+
+**F-527** measurement: `tools/vos/opam_client.py`'s version comparison was a structural translation of opam's `src/core/opamVersionCompare.ml`, which is LGPL-2.1 with the OCaml linking exception and itself a modified Dose3 `debian.ml`, so the published revisions from f0edea18 to the one merging 05130fa3 carry a fragment under the reciprocal terms THIRD-PARTY.md says no tracked file is governed by
+· Raised: S9, in prose
+· Disposition: closed at 05130fa3, the comparison written again from Debian Policy 5.6.12 and the opam manual's version ordering alone, its author having seen five call lines of the translation before writing and the translation then serving only as a black-box differential oracle
+
+**F-528** owed-act: K-115's licence-link reading still differs from GitHub's rendering in three spellings: a bare link's path runs on through an autolink placed directly after it, so the second link is never read; a scheme-less `www.` autolink is not read at all; and an HTML attribute value is read as a bare link, its trailing punctuation stripped; `_licence_links`'s docstring also calls the path group absent where it can be empty
+· Raised: S14, in prose
+· Disposition: open, `<` ending a bare link, a scheme-less `www.` host alternative and an attribute value read whole, each held by a case, or each named in the K-115 row and the module's account as outside the rule
+
+**F-529** owed-act: K-119's declared residue leaves out two kinds of membership sentence its finder also reads as prose: one with markup or an entity among its three words, and one with a `.` before its first id
+· Raised: S14, in prose
+· Disposition: open, the residue clause in the K-119 row, `meta.py`'s module docstring and its reader comment naming both, or the finder's gaps between the three words widened as its gap before the id is, with a case and the live reach count re-read
+
+**F-530** owed-act: the typecheck import scan's fail-closed branch for a finder that raises is held only for `ValueError`, not `ImportError`, and its wording for an own-line `# ruff: ignore` inside brackets omits that the line of code it reaches takes in the lines a backslash or a multi-line string joins to it, which the pinned ruff 0.16.9 suppresses
+· Raised: S14, in prose
+· Disposition: open, the finder-refusal control run over both exceptions, and a bracketed backslash-joined pair added to the reach case, with the module docstring and tools/README.md worded to match
+
+**F-531** owed-act: lane retirement's receipt and producer-lock scans claim more than they hold: a native output a guest pass moved before it died or timed out stays unrecorded while `retire`'s docstring says an interrupted retirement records each output once, the retained-target filter drops a target that does not exist rather than one whose output has gone, the record-lock regex's `64` spellings and the campaign lock read from its `with` body alone have no case, a block image is seen only as a string constant opening `--blkdev-image`, and an `fcntl` call naming its command by number takes a record lock neither scan reads
+· Raised: S14, in prose
+· Disposition: open, the docstring and comment narrowed to what the code holds, each untested reading given a case, block images found anywhere in a str or bytes constant, and numeric `fcntl` commands reported or the inventory's docstring narrowed to record locks spelled by name
+
+**F-532** owed-act: opam 2.6.0's `OpamGlobalState.load_config`, on a root whose config states `opam-version: "2.1"`, calls `hard_upgrade_from_2_1_intermediates`, which, read but not run, writes the config back as 2.0 before `as_necessary` asks its question, and it takes any root version strictly between 2.0 and 2.1 as 2.1~alpha2, while `run.py provision`'s hard-upgrade reading names only 2.1~alpha and 2.1~alpha2, so its reading that the reviewed client declines over such a root is unverified
+· Raised: S9, in prose
+· Disposition: open, the path read through in opam 2.6.0's `opamGlobalState.ml` and `opamFormatUpgrade.ml`, whether a 2.1~rc root states `opam-version: "2.1"` settled, and provision's unread-switch wording held to what the client does over such a root
+
+**F-533** owed-act: `run.py provision`'s hard-upgrade reading of a root's repository archives still differs from the reviewed client's in ways no case holds: a truncated gzip archive raises out of `opam_client._repo_file`, which catches neither `EOFError` nor `zlib.error`; Python's `tarfile` accepts headers ocaml-tar 3.5.0 refuses, base-256 numeric fields among them, so the reading answers where the client fails; the `_UPGRADES_READ` comment says a failing archive always fails the client although one visited after a nested archive does not; and no fixture holds the 2.0~beta5 boundary, a climbing member name, or a nested archive listed ahead of a failing one at the root of four repositories' tree
+· Raised: S9, in prose
+· Disposition: open, `_repo_file` catching the gzip errors, `_archive_nested` modelling ocaml-tar's header checks or its docstring narrowed to an archive `tarfile` cannot read, the comment qualified, and the three fixtures added
+
+**F-534** owed-act: K-118's hook census reads a `- repo: meta` line that YAML takes as scalar text, inside a multi-line quoted scalar or continuing a flow plain scalar, as a real `meta` entry whose range takes any `rev:` line at its key column unread, so such a line can end a held entry's range early and stand the rev pre-commit loads after it while the reviewed rev line stays behind as text, and reporting merge keys, tags and directives does not close that path as the module's docstring and the K-118 row imply
+· Raised: S14, in prose
+· Disposition: open, a `meta` entry's range taking no rev line, since pre-commit refuses a rev on a `meta` or `local` entry, `repo:` read as a key only before a blank, the double-quoted, single-quoted and flow-plain shapes held by cases and a selftest mutant, and the docstring and K-118 row reworded to match
+
+**F-535** owed-act: K-118's reading of the hook step's pip constraint files differs from pip 26.2.1's in two ways: it looks for a coding declaration in the first two lines of newline-translated text where pip splits the raw bytes at `\n` alone, so a bare CR can push a declaration pip honours out of the reading's view and leave the file read as UTF-8 where pip decodes it as latin-1; and `_PIP_PIN_RE` takes as one pin a line pip refuses, a tab before the first `--hash` or a release outside PEP 440, so "read as pip reads it" claims more than it holds
+· Raised: S14, in prose
+· Disposition: open, `_Owners._pip` deciding the declaration from the raw bytes as pip's `_decode_req_file` does, with a case and a selftest mutant, a space required before the first digest, and the release held to PEP 440 or the docstring saying a line pip refuses fails the install rather than being read
 
 **F-000t** upstream-defect: the model's documentation emitter writes the emitting checkout's commit and dirty flag into the artifact where git answers it, so a generated file held byte-for-byte would move on every commit and would differ between two lanes describing one model
 · Raised: S15
@@ -1055,23 +1095,23 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-507** owed-act: `strip_comments` drops a comment holding no newline and so joins its neighbours, so `Set(* c *)Kernel Conversion Dep Heuristic.` compiles with the flag on while no lexical reading sees it
 · Raised: Q38a
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, the shared lexer reading a comment as one separator
 
 **F-508** owed-act: `sentences` splits at a full stop inside a string literal, so a quoted attribute note hides the statement it decorates from the witness scan and a `warnings` attribute after it from the pinned reading
 · Raised: Q38a
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, a sentence ending only at a full stop outside string literals
 
 **F-509** owed-act: the witness scan's definer table lacks `Remark` and `Proposition`, which its statement table lists, and `Property`, so a statement under any of them never quantifies over a record
 · Raised: Q38a
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, every Rocq 9.3 theorem keyword read as a statement that quantifies
 
 **F-510** owed-act: `Load` of a file outside `proofs/` runs commands no lexical reading sees, and the gate only withdraws cache reuse for it
 · Raised: Q38a
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, Load, Cd, the load-path commands and Declare ML Module refused before compilation
 
 **F-511** owed-act: `Ltac2 @ external` binds a plugin primitive, the timeout tactical among them, under any name, which no lexical refusal can follow
 · Raised: Q38a
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, Ltac2 @ external refused before compilation
 
 **F-512** measurement: the memory-plan reader dropped a plan value completed from a base with `with` when its type was unwritten or a comment held a `match` or a full stop
 · Raised: Q38b
@@ -1091,19 +1131,19 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-516** owed-act: apex and memplan look back for a decoration over text whose strings are not blanked, so a string holding a full stop ends the look-back early
 · Raised: Q38b
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, the look-back starting at the full stop the string-aware split finds
 
 **F-517** owed-act: the decoration grammar is spelled once in each of five readers outside the gate beside the gate's `CONTROL_PREFIXES`, where a parse is written once
 · Raised: Q38b
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, the shared lexer writing the decoration grammar once for the gate and every reader the finding names
 
 **F-518** owed-act: mutate's region keywords omit `Variant`, `CoInductive`, `CoFixpoint`, `Structure` and `Let`, so such a line joins the region above it
 · Raised: Q38b
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, each opening a region of its own
 
 **F-519** owed-act: K-91's reader ends an `Example` at the next column-0 `Proof.`, so a `Proof using` line or a decorated `Example` fails K-91 for a wrong stated reason
 · Raised: Q38b
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, an Example ending at its own full stop
 
 **F-560** measurement: the proof reading's first `--objects` route certified an object older than a changed source as that source's meaning
 · Raised: Q38c
@@ -1125,6 +1165,54 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q38c
 · Disposition: standing
 
+**F-588** measurement: Q38d's first string-aware split let a declared token holding a quote or `(*` hide a later setting, Load or statement, which the base had refused
+· Raised: Q38d
+· Disposition: closed at Q38d, the shared lexer's unreadable declarations refused before compilation
+
+**F-589** measurement: the control prefixes needed a blank after a control word or a quoted target, so `Time#[local]Set`, `Redirect"out"Load` and `Profile "a""b" Set` compiled with the setting unread
+· Raised: Q38d
+· Disposition: closed at Q38d, a word prefix ending where its word does and a quoted one where its string does
+
+**F-590** measurement: the shared split ended a sentence at stdpp's `∀..` and at a declared token ending in a full stop, `.` and `...` among them, losing the witness demand after it
+· Raised: Q38d
+· Disposition: closed at Q38d, no sentence ending at `..` and each such declaration refused
+
+**F-591** measurement: the declared-token refusal reads only a source's own declarations, its soundness resting on an audit of the installed switch, and it refuses loudly a declaring string holding a word that ends in a full stop
+· Raised: Q38d
+· Disposition: standing, the audit recorded and the over-refusal loud
+
+**F-592** measurement: the shared decorations read a control flag before a bullet, brace or goal selector as the following declaration's, while the locked compiler runs `Fail }` and `Succeed {` as the brace's and keeps the declaration
+· Raised: Q38d
+· Disposition: closed at Q38d, the decoration run starting again at each bullet, brace or goal selector
+
+**F-593** measurement: Q38d's second round's first cases for F-516 and F-518 passed their own regressions, F-518's iterating the table under test and F-516's placing the flag in the head's own run
+· Raised: Q38d
+· Disposition: closed at Q38d, cases spelling the keywords and pinning both call sites
+
+**F-594** measurement: mutate's region keywords had no word boundary, so `Letter` opened a `Let` region, and it read heads line by line, misreading a decoration that reaches its command through a comment or a multi-line attribute
+· Raised: Q38d
+· Disposition: closed at Q38d, whole-word keywords and the decoration run read across lines
+
+**F-595** measurement: apex ended a definition's body at a string's full stop before a capital on the next line, silently dropping a consumer's read
+· Raised: Q38d
+· Disposition: closed at Q38d, the body running to the full stop the shared split ends it at
+
+**F-596** owed-act: mutate's definitional region ends at the next keyword line rather than its own full stop, so a definition inside a proof makes the proof's later literals mutable, and so does a following `Compute` line
+· Raised: Q38d
+· Disposition: open, reported and not closed, a region change that re-baselines every proof's mutant population
+
+**F-597** measurement: apex and memplan read a column-0 declaration spelled inside a multi-line string of a non-Definition sentence as a declaration
+· Raised: Q38d
+· Disposition: standing, the live tree holding none
+
+**F-598** owed-act: mutate's tables lag Rocq 9.3's grammar, its region keywords omitting `SubClass` and other defining vernaculars, `Module RingDma.` in RingContract.v among the live instances, its mutable set omitting `Variant`, `CoInductive`, `CoFixpoint`, `Structure` and `Let`, and `Export Set` read as `Set`
+· Raised: Q38d
+· Disposition: open, reported and not closed, a table change that re-baselines the mutant populations
+
+**F-599** measurement: `proofsearch`, an advisory navigation reader outside the five readers F-517 names, still spells its own decoration prefix
+· Raised: Q38d
+· Disposition: standing, the reader validating nothing
+
 **F-567** measurement: K-117's first head passed 16 `&` binders that Rocq 9.3.0 compiles and 9.1.1 rejects, inside record, class and instance braces and sigma bodies, and paired each rig module with its switch by hand
 · Raised: Q38e
 · Disposition: closed at Q38e, the brace and binder-list reading checked against 63 probes compiled under both releases, and each module's prover calls read from its syntax tree
@@ -1139,7 +1227,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-570** owed-act: `quickchick properties` and `quickchick check` fall back to the CertiRocq switch at Rocq 9.1.1, so K-117 carries a second 9.1.1 row over Properties.v's closure that Q38f's Check does not expect, and `seed coq --quickchick` still compiles every proof source at 9.1.1
 · Raised: Q38e
-· Disposition: open, Q38f
+· Disposition: open, Q38h for `seed coq --quickchick`'s compile of every proof source, and Q38f for the fallback to the CertiRocq switch
 
 **F-571** owed-act: Vectors.v's header says Properties.v needs an install this repository has not made, and Properties.v's header names the undeclared switch `quickchick-9.1.1`
 · Raised: Q38e
@@ -1149,13 +1237,133 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q38e
 · Disposition: standing, the live set holding none and the rule's docstring and registry row stating them
 
+**F-601** measurement: CertiRocq's `plugin/static/camlrocq.ml`, the copy `certirocq_plugin.cmxs` packs, offers `GPL-2.0-or-later` or the INRIA Non-Commercial License Agreement, not the `LGPL-2.1-or-later` the first reading gave every printer file
+· Raised: Q38g
+· Disposition: closed at Q38g, THIRD-PARTY.md naming each printer file's GNU option
+
+**F-602** measurement: Q38g's host case for the oracle's candidate recipes passed ten mutants its docstring excludes
+· Raised: Q38g
+· Disposition: closed at Q38g, the case holding each recipe to the released repository and the default alone and to installs of released versions into its own switch
+
+**F-603** owed-act: Q38g's conditional CertiRocq licence row repeats the LGPL reading of `camlrocq.ml` and names neither Coq's `theories/ExtractionVanilla/` files nor Rocq's `benchmarks/lib/Makefile`, both `LGPL-2.1`, beside the OCaml runtime headers it names
+· Raised: Q38g
+· Disposition: open, Q38g restating its CertiRocq row before its conditional commits land
+
+**F-604** measurement: the messages of Q38g's lane commits `e4c0a26b` and `6312d09c` describe a hosted run of the oracle's checks, a route the user's ruling withdrew before their merge
+· Raised: Q38g
+· Disposition: standing, the merge's message recording the withdrawal
+
+**F-605** measurement: CertiRocq's package compiles and installs `libraries/CpdtTactics.v` under `CC-BY-NC-ND-3.0`, whose text does not say whether a compilation to `.vo` is an Adaptation
+· Raised: Q38g
+· Disposition: standing, the user's ruling of 2026-09-30 accepting local builds for research use with nothing distributed
+
+**F-606** measurement: the guest's wall clock read about 20 h 06 m behind until about 21:10 on 2026-09-30 and then jumped forward
+· Raised: Q38g
+· Disposition: standing, guest durations taken from monotonic process times or stated as corrected for the jump
+
+**F-607** measurement: the 5.1.1 candidate's switch name is `ORACLE_SWITCH`'s own and an existing switch's in the guest's default root, so that candidate's recipe cannot create its switch there
+· Raised: Q38g
+· Disposition: standing, gallina.py's comment requiring a root that does not hold the switch
+
+**F-608** measurement: the default root's `verifiedos-certirocq-0.9.1-ocaml-5.1.1`, which `ORACLE_SWITCH` names, carries no `rocq-certirocq`, so `provision`'s CertiRocq fact cannot hold there
+· Raised: Q38g
+· Disposition: open, Q38g, until its declared switch moves or that legacy switch is retired
+
+**F-609** owed-act: Q38g's Wasm checks, fresh-root import and `provision` reading cannot be decided under the user's rulings
+· Raised: Q38g
+· Disposition: closed at Q38l, its contract deferring them in Q38g's Check until a check site the user permits
+
+**F-610** owed-act: K-117 holds every proof source while `seed coq --quickchick` compiles every one in QuickChick's Rocq 9.1.1 switch, so no authored source may take Rocq 9.3's syntax until that compile narrows or QuickChick's switch moves
+· Raised: Q38h
+· Disposition: open, Q38h holding that compile to `Properties.v`'s `Require` closure
+
+**F-611** method: Q38i's retired-instruction procedure has no permitted site while guest runs are excluded, and Guest CI's wall times over the same sources vary by up to 71% between runs
+· Raised: Q38h
+· Disposition: standing, a cost claim about a rewrite that leaves every statement and transparent body as elaborated and Q38i's evaluation sites untouched resting on that identity
+
+**F-578** measurement: Q38i's cast clause and its Check's compile fall cannot both hold in ArithmeticComposition.v, CredentialHandles.v, InferenceAdmission.v and TwoSourceExtractor.v, whose 16 such proofs evaluate goals too small for a fall beyond single-run noise, and the cast raised ArithmeticComposition.v's recheck by 2.8% in two single runs
+· Raised: Q38i
+· Disposition: standing, the four modules keeping their scripts
+
+**F-579** measurement: MlDsa.v's three single-evaluation candidates stay unmade, two retained-evidence copies and a dated benchmark binding its digest and no command regenerating a dated record
+· Raised: Q38i
+· Disposition: standing, the cast clause's own exemption
+
+**F-580** measurement: three proofs whose goals unfold to equalities, `Disciplined demo`, `Disciplined demo_pr` and `Admissible demo`, keep their scripts, the cast reading a goal's equality syntactically
+· Raised: Q38i
+· Disposition: standing, each script unchanged
+
+**F-581** measurement: HmacDrbg.v's `pr_true_run` and `first_draw` keep no literal, with which the module's recheck counted 2,042.8e9 retired instructions against 2,019.9e9 while its one-run peak was 8,125,480 KB against 9,312,124 KB
+· Raised: Q38i
+· Disposition: open, Q38j
+
+**F-582** measurement: values two Examples evaluate inside a `forallb` over a family, PqArith.v's ML-DSA-ring transforms of both probes and StorageBridge.v's decode and walk of the medium flipped at offsets 272 and 144, keep no literal, and three round-trip Examples over PqArith's probes are not rewritten through its lemmas
+· Raised: Q38i
+· Disposition: standing, the benefit unmeasured beside the two modules' recheck falls of 20.44% and 28.77%
+
+**F-583** measurement: a literal lemma closed by a cast of `eq_refl` of its folded constant cost the recheck 2.5 and 6.2 times what unfolding it first costs
+· Raised: Q38i
+· Disposition: open, Q38h
+
+**F-584** measurement: single-run retired-instruction figures of unchanged small modules moved by up to 0.75% in compile and 0.62% in recheck between two sets, so a 0.1% or 1% threshold is decidable for a module under about 10e9 instructions only by repeated interleaved runs
+· Raised: Q38i
+· Disposition: open, Q38j, Q38h taking no retired-instruction figure (F-611)
+
+**F-585** measurement: a rerun of the dated ML-KEM mutation campaign's definitions-only compile would evaluate Q38i's seven literals under every mutant and PqArith's proof oracle would kill through the literal lemmas, although all 17 recorded selections name the same mutants
+· Raised: Q38i
+· Disposition: standing, the campaign stays as recorded
+
+**F-586** measurement: the dated q19a render-cache campaign's review prefix of CopyRingService.v now carries the module's tactic and the cast, both of its anchors still resolving
+· Raised: Q38i
+· Disposition: standing, the campaign stays as recorded
+
+**F-587** measurement: `wait4` peaks of small `rocqchk` processes read 129 to 131 MiB in two sets and 46 MiB in a third for the same modules, and Sha256.v's rose from 1,458,428 KB to 1,626,180 KB at equal instructions
+· Raised: Q38i
+· Disposition: open, Q38j
+
+**F-612** measurement: three full rechecks of the same 57 sources on Guest CI's proofs runner took 152.67 to 246.83 s to compile and audit and 725.79 to 1,242.86 s to recheck
+· Raised: Q38j
+· Disposition: standing, Q38j holding each run to its own replay of the wave schedule
+
+**F-613** measurement: Guest CI's 16 GB proofs runner checks every module in one kernel worker, whose peak of 10,030,124 KiB sits 4.3% under the 10 GiB budget
+· Raised: Q38j
+· Disposition: standing, a per-component kernel budget, the one route to two workers there, owned by no item
+
+**F-614** measurement: a model weighted by Q38i's compile retired instructions puts a dependency schedule 11.3% below the wave schedule at the runner's 4 compile workers and 22.1% below at the profiling guest's 12
+· Raised: Q38j
+· Disposition: standing, the compile and audit phase being 16 to 17% of a full recheck's wall time on the runner
+
 **F-566** owed-act: no register entry owns the response to a known inconsistency of the locked prover; the lexical refusals covering #22287, #22387 and #22510, and Q38k's for #22386 and #22389, stand on the lock guide's prose and the audit's code, while R-05-018a's acceptance rests on the compile, the R-05-163 audit and `rocqchk`, which R-05-016a records as sharing the kernel's defects
 · Raised: Q38k
 · Disposition: open, reported and not closed, a register act at R-05-016a and R-05-018a rerunning the review gate
 
+**F-573** measurement: Q38k's first head passed a cofixpoint word joined to a token the source declares, `#_cofix`, `²cofix` and Ltac2's `Std.cofix_²sevens` among them, which the locked compiler compiles to guarded cofixpoints
+· Raised: Q38k
+· Disposition: closed at Q38k, words read through ASCII word characters alone and every declaration of a token able to hide one refused
+
+**F-574** measurement: Q38k's first numeral reading was held by no case, 13 of the review's 14 mutants surviving, and missed `#00x1p5cofix` once a notation declares `#0`
+· Raised: Q38k
+· Disposition: closed at Q38k, 15 probe-backed numeral cases and a decimal reading that stops before `0x`
+
+**F-575** measurement: a cofixpoint word joined to a token a dependency declares stays outside the lexical refusal, the locked compiler reading `+c1cofix` as `+c`, `1` and `cofix` after Stdlib's `+c`, one of 21 such tokens in the locked libraries
+· Raised: Q38k
+· Disposition: standing, the lock guide stating it as the refusal's residue
+
+**F-576** measurement: the machine-bound tactical refusal passed `do 1timeout 5 (exact I)`, and `#_timeout 5 (exact I)` once a notation declares `#_`, both of which the locked compiler compiles silently
+· Raised: Q38k
+· Disposition: closed at Q38k, the tactical reading sharing the coinductive reading's lexer model
+
+**F-577** measurement: `run.py proof-reading` repeated only two of the gate's five refusals before compiling, so it would compile a copy holding an unreadable token, a coinductive form, a hiding token or a dynamic source
+· Raised: Q38k
+· Disposition: closed at Q38k, the reading refusing all five before anything compiles
+
+**F-600** owed-act: Q38f's conditional commits restate a comment in tools/vos/env.py and the header of tools/quickchick/Properties.v, both inputs of Q38l's route, which Q38f's closing landing may not touch beyond its lock, gallina.py, quickchick.py and provision.py
+· Raised: Q38l
+· Disposition: open, Q38f rewording both to hold before and after its switch moves and landing them with its unconditional commits
+
 **F-565** upstream-defect: the locked proof switch's Rocq 9.3.0 carries the cofixpoint guard-checker inconsistencies #22386 and #22389, which Rocq's critical-bug list reports fixed in V9.3
 · Raised: Q39
-· Disposition: open, Q38k refusing coinductive definitions in the sources the gate compiles until a lock move takes a Rocq release carrying #22388 and #22392
+· Disposition: standing, the proof audit's refusal of coinductive types and cofixpoints in the sources the gate compiles covering the forms an authored source writes, a word joined to a token a dependency declares aside, until a move of the proof switch's lock to a Rocq release carrying #22388 and #22392
 
 **F-525** upstream-defect: the locked proof switch's Rocq 9.3.0 carries #22387, module subtyping of inductives whose constructor types differ in let-ins, which Rocq's critical-bug list reports fixed in 9.2.0 and 9.3
 · Raised: Q39

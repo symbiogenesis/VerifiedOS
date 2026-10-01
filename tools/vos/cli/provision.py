@@ -48,15 +48,25 @@ stands, so the switch recipes planned after it in one pass find a root. The rows
 of it probe and install the distribution packages that route needs,
 `opam_client.ROOT_PREREQUISITES`, and the command refuses, naming each one absent,
 rather than start a root `opam init` would refuse to create. It alters
-nothing that exists but a root that route stopped partway through, which
-`opam_client.root_resumable` recognizes and the route run again finishes by adding
-the owner's remaining repositories unselected. Replacing a developer's client can
-upgrade that root's format one way, which is a recorded step rather than a repair, so
-a client at another release is reported and never planned, and neither is any other
-standing root with a gap `opam_client.root_gaps` names: no stated format or one newer
-than the reviewed client writes, or an owned repository absent, at another URL or with
-its stamp unread. Every figure any document states about this
-table is a count over `FACTS`, held by K-24 rather than by care.
+nothing that exists but a root in the shape that route leaves after its leading steps,
+which `opam_client.root_resumable` recognizes and the route's remaining steps,
+`opam_client.remaining_route`, complete by adding the owner's remaining repositories
+unselected, without running `opam init` over it. Replacing a developer's client,
+or installing one where none stands over a root in a format older than the reviewed
+client writes, can upgrade that root's format one way, which is a recorded step rather
+than a repair, so a client at another release and a missing client over an older root
+are reported and never planned, and neither is any other standing root with a gap
+`opam_client.root_gaps` names: no stated format or one newer than the reviewed client
+writes, or an owned repository absent, at another URL or with its stamp unread. While a
+root stands in an older format, no switch row plans its recipe either, because the
+reviewed client rewrites that root one way at its first write, or at its first read
+where the upgrade cannot be made in memory, and where no switch is listed over that
+root, a switch row reports one the root's config lists as unread rather than absent,
+saying whether no client is on PATH, the reviewed client declined that upgrade, or
+another listing came back empty; nor does a switch row plan its recipe while a client
+at another release is on PATH, which would build the switch as a client this tree has
+not reviewed. Every figure any document states about this table is a count over
+`FACTS`, held by K-24 rather than by care.
 
     python tools/run.py provision                # what is here and what is not
     python tools/run.py provision --apply        # and install what is not
@@ -67,6 +77,7 @@ Exit 0 clean, 1 on any absent fact, which is the convention every tool here keep
 """
 
 import argparse
+import contextvars
 import importlib.util
 import os
 import platform
@@ -74,9 +85,12 @@ import re
 import shutil
 import subprocess
 import sys
+import tarfile
+import threading
+import zlib
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from importlib import metadata
 from pathlib import Path
@@ -137,8 +151,9 @@ class Found:
     probe that reports *present* on a wrong version is the other half of it.
 
     `repairable` is false where the row's command must not run over what the probe
-    found, as the opam row's installs a client only where none is on PATH and creates
-    a root only where none stands or finishes one its route stopped partway through.
+    found, as the opam row's installs a client only where none is on PATH and no root
+    stands in a format older than that client's, and creates a root only where none
+    stands or completes one in the shape its route leaves after its leading steps.
     """
 
     present: bool
@@ -171,10 +186,18 @@ def _say(argv: Sequence[str]) -> str:
     probe below would otherwise read that warning as an answer about a package. A
     command that is absent, that fails, or that does not answer inside the bound comes
     back empty and its caller reports it as absent.
+
+    No standard input either, and the environment `env.declining_environment` gives, so
+    a probe never answers a question. opam asks before it writes a root-format upgrade,
+    yes by default, and a read such as `opam switch list` writes one where the upgrade
+    cannot be done in memory. A probe reading the caller's terminal would wait there,
+    its question captured out of sight, and an empty line would answer yes, as would
+    the caller's own `env.OPAM_ANSWERS`; without either, opam declines and exits.
     """
     try:
         done = subprocess.run(list(argv), capture_output=True, encoding="utf-8",
-                              errors="replace", check=False, timeout=TIMEOUT)
+                              errors="replace", check=False, timeout=TIMEOUT,
+                              stdin=subprocess.DEVNULL, env=env.declining_environment())
     except (OSError, subprocess.SubprocessError):
         return ""
     return done.stdout.strip() if done.returncode == 0 else ""
@@ -189,12 +212,60 @@ _NUMBER_RE = re.compile(r"\d+(?:\.\d+)+")
 def _number(text: str) -> str:
     """The dotted version in a tool's own greeting, empty where it states none.
 
-    `Z3 version 5.1.0 - 64 bit`, `Verilator 5.032 2025-01-01 rev (Debian 5.032-1)` and
-    a bare `0.20.3` from opam are the three shapes this reads, and `0.9.1+9.1` reduces
-    to the part before opam's own build suffix.
+    `Z3 version 5.1.0 - 64 bit` and `Verilator 5.032 2025-01-01 rev (Debian 5.032-1)`
+    are shapes this reads, and `0.9.1+9.1` reduces to the dotted part before its build
+    suffix. An opam client's release is not read here but by `_release`, which keeps
+    such a suffix.
     """
     found = _NUMBER_RE.search(text)
     return found.group(0) if found else ""
+
+
+@dataclass
+class _Asked:
+    """What one `take` asks once for every row it probes: the opam client on PATH and
+    the release it answers, unasked until a row first wants it."""
+
+    lock: threading.Lock = field(default_factory=threading.Lock)
+    client: tuple[str | None, str] | None = None
+
+
+# The `_Asked` of the `take` this probe runs under, and none outside a `take`.
+_ASKED: contextvars.ContextVar[_Asked | None] = contextvars.ContextVar("provision_asked",
+                                                                      default=None)
+
+
+def _client() -> tuple[str | None, str]:
+    """Where the opam client on PATH is and the release `_release` reads from its
+    answer, empty where it answers none, or no path and no release where no client is on
+    PATH.
+
+    Asked once per `take`, so the opam row and every switch row read one answer and the
+    client is run once for all of them; a probe outside a `take` asks afresh."""
+    asked = _ASKED.get()
+    if asked is None:
+        return _ask_client()
+    with asked.lock:
+        if asked.client is None:
+            asked.client = _ask_client()
+        return asked.client
+
+
+def _ask_client() -> tuple[str | None, str]:
+    where = shutil.which("opam")
+    return where, _release(_say(("opam", "--version"))) if where else ""
+
+
+def _release(text: str) -> str:
+    """The release an opam client's `--version` answers, read exactly: its first
+    whitespace-separated word, empty where it answers nothing.
+
+    opam prints its release bare, and a prerelease or build suffix such as `~beta1` or
+    `+dev` is part of it, so a prerelease or a development build of the reviewed release
+    is another client than that release rather than the dotted number `_number` would
+    reduce it to."""
+    words = text.split()
+    return words[0] if words else ""
 
 
 def _floor() -> tuple[int, ...]:
@@ -292,8 +363,47 @@ def _installed(switch: str, package: str) -> str:
 
 
 def _switch_at(switch: str, package: str, pin: str) -> Found:
-    """A switch carrying one package at the version an owner in this tree fixes."""
-    if switch not in switches():
+    """A switch carrying one package at the version an owner in this tree fixes.
+
+    Not repairable where `--apply` would build the switch over a root the reviewed
+    client rewrites, or as a client this tree has not reviewed. While the opam root
+    stands in a format older than the reviewed client's, that client rewrites it one way
+    at its first write, or at its first read where the upgrade cannot be made in memory,
+    the deliberate, recorded step `_opam_client` reports. While a client at another
+    release is on PATH, that client would build the switch, and a Sail switch names the
+    client that built it in its version string. Where no client is on PATH the switch
+    stays repairable, because the opam row ahead of it installs the reviewed client in
+    the same pass."""
+    older = _older_root()
+    client = _client()
+    found = _switch_found(switch, package, pin, older=bool(older), client=client)
+    if found.present:
+        return found
+    if older:
+        return Found(False, f"{found.saw}; {older}, so no switch is planned over it",
+                     repairable=False)
+    where, version = client
+    if where is not None and version != opam_client.OPAM_VERSION:
+        return Found(False, f"{found.saw}; opam {version or 'answering no version'} at "
+                            f"{where} would build it, and the reviewed client is "
+                            f"{opam_client.OPAM_VERSION}, so no switch is planned",
+                     repairable=False)
+    return found
+
+
+def _switch_found(switch: str, package: str, pin: str, *, older: bool,
+                  client: tuple[str | None, str]) -> Found:
+    """One switch's package at the version opam answers for it.
+
+    Over a root in an older format, where `older` holds, an empty listing is not read as
+    the switch's absence where the root's own config lists this switch,
+    `opam_client.root_switches`: the row says who listed nothing, from `client`, the
+    client `_client` found, as `_unlisted` words it."""
+    listed = switches()
+    if switch not in listed:
+        root = env.opam_root()
+        if older and not listed and switch in opam_client.root_switches(root):
+            return Found(False, _unlisted(switch, root, client))
         return Found(False, f"opam has no {switch} switch")
     found = _installed(switch, package)
     if not found:
@@ -301,14 +411,164 @@ def _switch_at(switch: str, package: str, pin: str) -> Found:
     return Found(found == pin, f"{package} {found} in {switch}")
 
 
+def _unlisted(switch: str, root: Path, client: tuple[str | None, str]) -> str:
+    """Why no switch was listed over the older root at `root`, whose config lists
+    `switch`, as a switch row reports it: no client on PATH lists any; the reviewed
+    client lists none without the upgrade `_upgrades_to_read` reads it must write first,
+    which it declines; and any other empty listing names the client that gave it and
+    the root's format."""
+    where, version = client
+    if where is None:
+        return f"no opam on PATH lists switches; the root's config lists the {switch} switch"
+    if version == opam_client.OPAM_VERSION and _upgrades_to_read(root):
+        return ("opam listed no switches without upgrading the root, whose config lists "
+                f"the {switch} switch")
+    return (f"opam {version or 'answering no version'} listed no switches over this root "
+            f"in format {opam_client.root_format(root)}, whose config lists the {switch} "
+            "switch")
+
+
+# What makes the reviewed client's upgrade of an older root a hard one, which it writes
+# before it reads the root, as opam 2.6.0's `OpamFormatUpgrade.upgrades` decides it. For
+# every format older than 2.6~alpha it runs `cond_hard_upg_2_6_alpha` over the
+# configured repositories' archives while it gathers the hard upgrades, before the
+# format decides anything, and that condition catches nothing but its own answer, so an
+# archive the client fails on fails it before it asks. Where the archives are read, the
+# upgrade is hard for a format older than 2.0~beta5; for 2.1~alpha or 2.1~alpha2, each
+# upgraded through 2.1~rc; and for any format older than 2.6~alpha where the condition
+# reads a configured repository's archive as nested. Every other older root it upgrades
+# in memory to read. Read from that release's source, so the reading claims nothing of
+# another reviewed client until its source is read.
+_UPGRADES_READ: str = "2.6.0"
+_HARD_BEFORE = "2.0~beta5"
+_HARD_FROM: tuple[str, ...] = ("2.1~alpha", "2.1~alpha2")
+_NESTED_BEFORE = "2.6~alpha"
+# The archive members that client's reader fails on rather than reads: hard and symbolic
+# links, character and block devices, and FIFOs.
+_UNREAD_MEMBERS = frozenset((tarfile.LNKTYPE, tarfile.SYMTYPE, tarfile.CHRTYPE,
+                             tarfile.BLKTYPE, tarfile.FIFOTYPE))
+
+
+def _upgrades_to_read(root: Path) -> bool:
+    """Whether the reviewed client must write the format upgrade of the root at `root`
+    before it reads that root, so that, declining it, it lists no switch there: a hard
+    upgrade, by the root's repositories' archives and its stated format, as
+    `_HARD_BEFORE`, `_HARD_FROM` and `_NESTED_BEFORE` say.
+
+    The archives are read before the format decides, because that client reads them
+    first for every format older than `_NESTED_BEFORE`: where it may fail on them it
+    may fail before it asks, whatever the format, so such a root reads false,
+    undecided. A format at or above `_NESTED_BEFORE` leaves that client no hard
+    upgrade."""
+    fmt = opam_client.root_format(root)
+    if (opam_client.OPAM_VERSION != _UPGRADES_READ or not opam_client.older_than_reviewed(fmt)
+            or opam_client.compare_versions(fmt, _NESTED_BEFORE) >= 0):
+        return False
+    nested = _nested_repository(root)
+    if nested is None:
+        return False
+    return (nested or opam_client.compare_versions(fmt, _HARD_BEFORE) < 0
+            or any(opam_client.compare_versions(fmt, hard) == 0 for hard in _HARD_FROM))
+
+
+def _nested_repository(root: Path) -> bool | None:
+    """Whether `cond_hard_upg_2_6_alpha` holds of the root at `root`: some configured
+    repository's archive, `repo/<name>.tar.gz`, is nested; None where some archive is one
+    the client fails on, which may fail it before it decides.
+
+    Every configured archive is read. The client visits them as its map's balanced tree
+    holds their names, root first, the tree built by adding each name in the order
+    `repos-config` lists it, and stops at the first nested archive or fails at the first
+    it cannot read; that order is in general neither the names' nor the listing's, so
+    whether it reaches a nested archive before one it fails on is left undecided rather
+    than modelled."""
+    names = dict.fromkeys(repo["name"] for repo in opam_client.repositories(root))
+    read = [_archive_nested(root / "repo" / f"{name}.tar.gz") for name in names]
+    return None if None in read else any(read)
+
+
+def _archive_nested(archive: Path) -> bool | None:
+    """Whether the reviewed client reads one repository archive as nested under a
+    directory: true where its first regular file, named as `_named_nested` reads it, is
+    outside the repository's own layout; false where the archive is absent, or holds no
+    regular file and ends where `_ended` says that client's reading ends; and None where
+    that client fails on it before deciding, or may: at a member of `_UNREAD_MEMBERS` or
+    a name it refuses ahead of the first regular file, at that file's content cut short,
+    which it reads before it decides, or over an archive it cannot otherwise read.
+
+    A directory, or a member whose name ends in a slash, which that client reads as a
+    directory, is passed over as it passes one with no content. One carrying content is
+    None, because that client reads none of it and seeks only the padding past it, so it
+    reads its next header from within the blocks that content fills, a misreading this
+    reading does not follow."""
+    if not archive.is_file():
+        return False
+    try:
+        with tarfile.open(archive, "r:gz") as members:
+            for member in members:
+                if member.type in _UNREAD_MEMBERS:
+                    return None
+                if member.isdir() or member.name.endswith("/"):
+                    if member.size:
+                        return None
+                    continue
+                members.fileobj.seek(member.offset_data)
+                if len(members.fileobj.read(member.size)) != member.size:
+                    return None
+                return _named_nested(member.name)
+            return _ended(members)
+    except (OSError, EOFError, tarfile.TarError, zlib.error):
+        return None
+
+
+def _ended(members: tarfile.TarFile) -> bool | None:
+    """False where the archive `members` has iterated to its end stops at two zero
+    blocks, where the reviewed client's reader stops too; None where it stops otherwise.
+    tarfile stops at a single zero block, at a header it cannot read and at the stream's
+    end, and that client reads on past a single zero block and fails at the other two."""
+    members.fileobj.seek(members.offset)
+    end = bytes(2 * tarfile.BLOCKSIZE)
+    return False if members.fileobj.read(len(end)) == end else None
+
+
+def _named_nested(name: str) -> bool | None:
+    """Whether a regular file named `name` sits outside a repository archive's own
+    layout as `cond_hard_upg_2_6_alpha` reads it: neither `repo` nor under `packages/`
+    once its empty and `.` segments are dropped, as the client's
+    `to_relative_canonical` drops them; None where that function refuses the name as
+    absolute, empty, a directory's or climbing."""
+    segments = name.split("/")
+    if (segments[0] == "" and len(segments) > 1) or segments[-1] == "" or ".." in segments:
+        return None
+    kept = [segment for segment in segments if segment not in ("", ".")]
+    if not kept:
+        return None
+    return kept != ["repo"] and not (len(kept) > 1 and kept[0] == "packages")
+
+
+def _older_root() -> str:
+    """Where the opam root stands in a format older than the reviewed client's, what that
+    client does to it, as a clause; empty where no root stands or its format is not
+    older."""
+    root = env.opam_root()
+    fmt = opam_client.root_format(root)
+    if not (opam_client.root_exists(root) and opam_client.older_than_reviewed(fmt)):
+        return ""
+    return (f"the reviewed client {opam_client.OPAM_VERSION} rewrites the opam root at "
+            f"{root} from format {fmt} to {opam_client.OPAM_ROOT_FORMAT} one way at its "
+            "first write, or at its first read where the upgrade cannot be made in "
+            "memory, a deliberate, recorded step rather than a repair")
+
+
 def _moving_the_root(fmt: str) -> str:
     """What moving a root of format `fmt` to the reviewed client does to it, as a clause,
     empty where the root is already in that client's format, states none, or states a
     newer one, which the root's gaps already report."""
-    want = opam_client.OPAM_ROOT_FORMAT
-    if not fmt or fmt == want or opam_client.newer_than_reviewed(fmt):
+    if not opam_client.older_than_reviewed(fmt):
         return ""
-    return f", and moving to it upgrades this root's format from {fmt} to {want} one way"
+    return (f", and moving to it upgrades this root's format from {fmt} to "
+            f"{opam_client.OPAM_ROOT_FORMAT} one way, a deliberate, recorded step rather "
+            "than a repair")
 
 
 def _opam_client() -> Found:
@@ -327,15 +587,20 @@ def _opam_client() -> Found:
     root's format upgrades the root to answer.
 
     Repairable only where `install_opam` can make the row hold without altering what
-    exists: no client or the reviewed one, and no root, a complete one, or one the
-    root-creation route stopped partway through, which running it again finishes.
-    Moving a developer's root to another client can rewrite its format one way, which
-    the report says where the root's format is not the reviewed client's, so replacing
-    a client is a recorded step and not a repair; any other standing root the command
-    would leave incomplete is reported rather than planned.
+    exists: the reviewed client, or no client over no root or a root in a format no
+    older than the reviewed client's, and no root, a complete one, or one in the shape
+    the root-creation route leaves after its leading steps, which that route's
+    remaining steps complete. Moving a developer's root to another client can rewrite
+    its format one way, which the report says where the root's format is older than the
+    reviewed client's, so replacing a client, or installing one where none stands over a
+    root in an older format, is a recorded step and not a repair; any other standing
+    root the command would leave incomplete is reported rather than planned. The
+    reviewed client over a complete root in an older format holds the row, and the
+    report says that client rewrites the root one way at its first write, or at its
+    first read where the upgrade cannot be made in memory, which is why no switch row
+    plans a recipe over it.
     """
-    where = shutil.which("opam")
-    found = _number(_say(("opam", "--version"))) if where else ""
+    where, found = _client()
     client = f"opam {found or 'answering no version'} at {where}" if where else "no opam on PATH"
     reviewed = found == opam_client.OPAM_VERSION
     root = env.opam_root()
@@ -349,10 +614,17 @@ def _opam_client() -> Found:
         saw = f"{client}; no opam root at {root}"
     if gaps:
         saw += f"; the root {' and '.join(gaps)}, {_standing(resumable)}"
+    older = stands and opam_client.older_than_reviewed(fmt)
     if not reviewed:
         saw += f"; the reviewed client is {opam_client.OPAM_VERSION}{_moving_the_root(fmt)}"
+    elif older:
+        saw += (f"; that client rewrites this root from format {fmt} to "
+                f"{opam_client.OPAM_ROOT_FORMAT} one way at its first write, or at its "
+                "first read where the upgrade cannot be made in memory, a deliberate, "
+                "recorded step rather than a repair, so no switch is planned over it")
     return Found(reviewed and stands and not gaps, saw,
-                 repairable=(where is None or reviewed) and (not gaps or resumable))
+                 repairable=(reviewed or (where is None and not older))
+                 and (not gaps or resumable))
 
 
 def _listing(root: Path) -> str:
@@ -363,37 +635,43 @@ def _listing(root: Path) -> str:
 
 
 def _standing(resumable: bool) -> str:
-    """What becomes of a standing root with gaps, as a clause: finished where the
-    root-creation route stopped partway through it, and otherwise left as it is."""
+    """What becomes of a standing root with gaps, as a clause: completed where it is in
+    the shape the root-creation route leaves after its leading steps, and otherwise left
+    as it is."""
     if resumable:
-        return ("where the root-creation route stopped partway through it, and running "
-                "that route again finishes it")
-    return ("and a standing root is left as it is unless the root-creation route stopped "
-            "partway through it")
+        return ("in the shape the root-creation route leaves after its leading steps, "
+                "which that route's remaining steps complete")
+    return ("and a standing root is left as it is unless it is in the shape the "
+            "root-creation route leaves after its leading steps")
 
 
 def install_opam(destination: Path = OPAM_DESTINATION) -> int:
     """The opam row's command: the reviewed client where no client is on PATH, and a
-    root by `opam_client.CREATE_ROOT` where none stands or where that route stopped
-    partway through one.
+    root by `opam_client.CREATE_ROOT` where none stands or where one stands in the shape
+    that route leaves after its leading steps.
 
-    It installs only what is absent and alters nothing that exists but a root its
-    route left unfinished, and it decides every refusal about the root before it
-    installs anything, so a run it refuses leaves the machine as it found it. A
-    standing root is held to what the row reads: a complete one is left as it is, one
-    `opam_client.root_resumable` reads as the route's unfinished root is finished by
-    running the route again, and any other the row reads as incomplete is refused
-    whatever the client. Where it would run the route, it first holds the machine to
-    `opam_client.ROOT_PREREQUISITES` as the rows ahead of this one do, and refuses,
-    naming each package absent, because `opam init` refuses to create a root without
-    them. A client on PATH at another release is refused, because replacing one is the
-    recorded step `_opam_client` describes; a client is installed by
+    It installs only what is absent and alters nothing that exists but a root in that
+    shape, and it decides every refusal, about the root, the machine and where the
+    client would go, before it installs anything, so a run it refuses leaves the
+    machine as it found it. A standing root is held to what the row reads: a complete
+    one is left as it is, one `opam_client.root_resumable` reads in that shape is
+    completed by the route's remaining steps, `opam_client.remaining_route`, which leave
+    out `opam init`, and any other the row reads as incomplete is refused whatever the
+    client. Where it would run the route, it first holds the machine to
+    `opam_client.ROOT_PREREQUISITES` as the rows ahead of this one do, and
+    refuses, naming each package absent, because `opam init` refuses to create a root
+    without them. A client on PATH at another release is refused, because replacing one
+    is the recorded step `_opam_client` describes, and so is installing a client where
+    none stands over a root in a format older than the reviewed client's, which that
+    client would rewrite one way; a client is installed by
     `opam_client.install`, which verifies the download before publishing it and refuses
     to replace a different file at the destination. Every switch recipe runs `opam` by
-    name, so a destination this PATH does not reach is reported rather than left to
-    fail at the first switch. A root this command creates or finishes is held to what
-    guest bootstrap holds its own to, the reviewed client's format and exactly the
-    owner's repositories with every stamp read.
+    name, so a destination whose directory this PATH does not search is refused before
+    the client is installed rather than left to fail at the first switch; a client PATH
+    still does not find once installed is reported as that command's failure. A root
+    this command creates or completes is held to what guest bootstrap holds its own to,
+    the reviewed client's format and exactly the owner's repositories with every stamp
+    read.
     """
     root = env.opam_root()
     stands = opam_client.root_exists(root)
@@ -409,7 +687,20 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
               "them; the rows ahead of the opam row install them", file=sys.stderr)
         return 1
     present = shutil.which("opam")
+    fmt = opam_client.root_format(root)
+    if present is None and stands and opam_client.older_than_reviewed(fmt):
+        print(f"the opam root at {root} is in format {fmt}, which the reviewed client "
+              f"{opam_client.OPAM_VERSION} rewrites to {opam_client.OPAM_ROOT_FORMAT} one "
+              "way, after which an earlier client cannot read it; moving this root to the "
+              "reviewed client is a deliberate, recorded step, so this command installs no "
+              "client over it", file=sys.stderr)
+        return 1
     if present is None:
+        if not _searched(destination.parent):
+            print(f"opam {opam_client.OPAM_VERSION} would be at {destination}, which is not "
+                  "on PATH, so no switch recipe could run it; nothing was installed",
+                  file=sys.stderr)
+            return 1
         try:
             opam_client.install(destination, platform.machine())
         except (OSError, ValueError) as err:
@@ -422,7 +713,7 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
             return 1
         print(f"installed opam {opam_client.OPAM_VERSION} at {destination}")
     else:
-        found = _number(_say(("opam", "--version")))
+        _, found = _client()
         if found != opam_client.OPAM_VERSION:
             print(f"opam {found or 'answering no version'} is already on PATH at "
                   f"{present}; the reviewed client {opam_client.OPAM_VERSION} is "
@@ -434,6 +725,25 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
     return _create_root(root, resuming=resuming)
 
 
+def _searched(directory: Path) -> bool:
+    """Whether `directory` is one this process's PATH searches for an executable, read
+    as `os.get_exec_path` reads it, so a client installed there is one `opam` by name
+    finds where no other client stands ahead of it."""
+    try:
+        wanted = directory.resolve()
+    except OSError:
+        return False
+    for entry in os.get_exec_path():
+        if not entry:
+            continue
+        try:
+            if Path(entry).resolve() == wanted:
+                return True
+        except OSError:
+            continue
+    return False
+
+
 def _missing_root_prerequisites() -> list[str]:
     """Each of `opam_client.ROOT_PREREQUISITES` dpkg does not report installed, read by
     the probe the rows ahead of the opam row take, so the command and the table agree."""
@@ -442,20 +752,22 @@ def _missing_root_prerequisites() -> list[str]:
 
 
 def _create_root(root: Path, *, resuming: bool = False) -> int:
-    """Create the root at `root` by the owner's route, or finish one it stopped partway
-    through, streamed to the caller's terminal as `_apply` streams a switch, and hold
-    it to the reviewed client's format and the owner's repositories as guest bootstrap
-    holds its own.
+    """Create the root at `root` by the owner's route, or complete one in the shape the
+    route leaves after its leading steps by the steps `opam_client.remaining_route`
+    names, which never run `opam init` over it, streamed to the caller's terminal as
+    `_apply` streams a switch, and hold it to the reviewed client's format and the
+    owner's repositories as guest bootstrap holds its own.
 
     A step that fails stops the route, and the report says what then stands at `root`
     and what remains of the route: the first step can leave a root behind it, which a
-    later run finishes where `opam_client.root_resumable` reads it as the route's and
+    later run completes where `opam_client.root_resumable` reads it in that shape and
     otherwise leaves as it is.
     """
+    steps = opam_client.remaining_route(root)
     if resuming:
-        print(f"the opam root at {root} is one the root-creation route stopped partway "
-              "through; running the route again finishes it")
-    for index, argv in enumerate(opam_client.CREATE_ROOT):
+        print(f"the opam root at {root} is in the shape the root-creation route leaves "
+              "after its leading steps; the route's remaining steps complete it")
+    for index, argv in enumerate(steps):
         print(f"   {' '.join(argv)}", flush=True)
         try:
             code = subprocess.run(list(argv), check=False,
@@ -466,8 +778,7 @@ def _create_root(root: Path, *, resuming: bool = False) -> int:
             if code == 0:
                 continue
             failed = f"`{' '.join(argv)}` exited {code}"
-        print(f"{failed}, {_stopped(root, opam_client.CREATE_ROOT[index:])}",
-              file=sys.stderr)
+        print(f"{failed}, {_stopped(root, steps[index:])}", file=sys.stderr)
         return 1
     try:
         fmt = opam_client.initialized_format(root)
@@ -731,14 +1042,26 @@ def take(facts: Sequence[Fact]) -> list[tuple[Fact, Found]]:
     Concurrent because most of these are a subprocess waiting on a version banner and
     none of them reads another's answer; merged in table order because a report a
     person reads twice has to be the same report both times, and the order two probes
-    finish in is not a property of the machine being described.
+    finish in is not a property of the machine being described. What several rows read,
+    the opam client `_client` answers for, is asked once for the whole run, so every
+    row reads one answer, and afresh by the next run.
     """
     if not facts:
         return []
+    asked = _Asked()
     with ThreadPoolExecutor(max_workers=min(8, len(facts))) as pool:
-        pending = [pool.submit(_guarded, fact) for fact in facts]
+        pending = [pool.submit(_guarded_under, asked, fact) for fact in facts]
         return [(fact, done.result())
                 for fact, done in zip(facts, pending, strict=True)]
+
+
+def _guarded_under(asked: _Asked, fact: Fact) -> Found:
+    """`_guarded`, with what its run has already asked, `asked`, read by `_client`."""
+    token = _ASKED.set(asked)
+    try:
+        return _guarded(fact)
+    finally:
+        _ASKED.reset(token)
 
 
 def plan(results: Sequence[tuple[Fact, Found]]) -> list[tuple[Fact, tuple[tuple[str, ...], ...]]]:
@@ -866,8 +1189,9 @@ def main(argv: list[str] | None = None) -> int:
                       help="install every absent fact this tree states a command for")
     what.add_argument("--install-opam", action="store_true",
                       help="install the reviewed opam client where no client is on PATH "
-                           "and create its root where none stands, or finish one its "
-                           "route stopped partway through, the opam row's command")
+                           "and create its root where none stands, or complete one in "
+                           "the shape its route leaves after its leading steps, the opam "
+                           "row's command")
     parser.add_argument("--only", choices=GROUPS, default="", metavar="GROUP",
                         help=f"narrow to one group of rows: {' or '.join(GROUPS)}")
     args = parser.parse_args(argv)

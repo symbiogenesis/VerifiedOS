@@ -61,7 +61,9 @@ ORACLE_SWITCH = f"verifiedos-certirocq-0.9.1-ocaml-{ORACLE_OCAML_VERSION}"
 # certirocqc bootstrap's C wrapper includes beside it; 5.1.1 defines another macro. A
 # candidate is declared only once it builds and the Wasm oracle's positive and seeded
 # negative checks pass in it: its export becomes tools/opam/certirocq.lock and
-# ORACLE_OCAML_VERSION names it.
+# ORACLE_OCAML_VERSION names it. Each is built in an opam root that does not already
+# hold its switch, such as a lane's private root, since the 5.1.1 candidate's name is
+# ORACLE_SWITCH's own.
 ORACLE_CANDIDATE_OCAML_VERSIONS: tuple[str, ...] = ("4.14.4", "5.1.1")
 
 
@@ -154,8 +156,12 @@ def switch_env(switch: str) -> dict[str, str]:
     rather than replacing them: PATH, OCAMLPATH and the rest come from the switch that
     is about to be compiled in, and everything the parent set for other reasons stays.
     """
+    # Captured, so it reads no standard input and is passed no answer: over a root whose
+    # format upgrade cannot be made in memory, opam declines and the child runs without
+    # the switch's variables, as `env._apply_opam_env` does for the Sail switch.
     done = subprocess.run(["opam", "env", f"--switch={switch}", "--shell=sh"],
-                          capture_output=True, text=True, check=False)
+                          capture_output=True, text=True, check=False,
+                          stdin=subprocess.DEVNULL, env=env.declining_environment())
     if done.returncode != 0:
         return {}
     return {name: value.replace("'\\''", "'")

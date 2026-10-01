@@ -19,10 +19,19 @@ literal outside one is kept whole, and a sentence ends at a full stop outside bo
 that is the whole of what they are for. Nor do they know the tokens a source declares,
 which Rocq's lexer reads whole, so the proof gate refuses a declared token they would
 read as a string, a comment or a sentence end ([proofaudit.py](proofaudit.py)).
+
+The decoration grammar, what may stand before a command within its sentence, and the
+keywords whose sentence states a theorem are here on the same convention. The gate
+reads a head after the decorations in its pinned-setting, dynamic-source and witness
+readings, and the readers outside it, the apex, memory-plan, mutation, constant-table,
+corpus, citation and known-answer readers, each read one too; spelled beside each other
+they drifted, one reader missing a form another read, so each composes its anchor,
+capture or look-back from the pieces here.
 """
 
 import re
-from collections.abc import Mapping
+from bisect import bisect_left
+from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
 from graphlib import CycleError, TopologicalSorter
@@ -46,8 +55,59 @@ SENTENCE_END = re.compile(r"(?<!(?<!\.)\.)\.(?=\s|$)")
 _SENTENCE_TOKEN = re.compile(r'"[^"]*(?:"|\Z)|' + SENTENCE_END.pattern)
 _COMMENT_TOKEN = re.compile(r'\(\*|\*\)|"')
 
+# Everything that can precede a command within its sentence, each piece with the blank
+# after it. Bullets, braces and a focusing goal selector end without a full stop, so the
+# sentence split leaves them at the head of the next command, and the pinned Rocq 9.3.0
+# accepts a setting, a Timeout or a declaration after them, in effect beyond the proof.
+# Then everything Rocq 9.3's vernac_control grammar lets precede a command: control
+# flags, quoted attributes and legacy attributes, Program among them, plus the Export
+# locality of option commands. Rocq's lexer needs no blank after a word before `#[` or a
+# string, nor after a string: the pinned Rocq 9.3.0 compiles `Time#[local]Set` and, once
+# its output warning is silenced, `Redirect"out"Load`. So a word prefix ends where its
+# word does, and a quoted one where its string does, doubled quotes inside it. An
+# attribute's quoted value is read whole, since a bracket inside it closes nothing; an
+# unquoted bracket is Rocq's syntax error, and stopping there keeps each read linear.
+_QUOTED = r'"(?:[^"]|"")*"\s*'
+_ATTRIBUTE_VALUES = r'(?:[^\[\]"]|"[^"]*")*'
+BULLETS = r"[-+*{}]\s*|(?:\d+|\[[\w']+\]|!)\s*:\s*\{\s*"
+CONTROL_FLAGS = (r"(?:Time|Instructions|Fail|Succeed)(?![\w'])\s*"
+                 r"|Profile(?![\w'])\s*(?:" + _QUOTED + r")?|Redirect\s*" + _QUOTED
+                 + r"|Timeout\s+\d+\s*|AllocLimit\s+\d+\s*(?:Mw|kw)(?![\w'])\s*")
+# An attribute up to its closing bracket, for a reading that looks inside one.
+ATTRIBUTE_OPEN = r"#\[" + _ATTRIBUTE_VALUES
+LEGACY_ATTRIBUTES = (r"(?:Local|Global|Export|Polymorphic|Monomorphic|Cumulative"
+                     r"|NonCumulative|Private|Program)(?![\w'])\s*")
+# Any run of them, capturing nothing, for a head pattern to open with. Which of them
+# reach the command is `decorations`' to say, since a bullet starts the run again.
+CONTROL_PREFIXES = ("(?:" + BULLETS + "|" + CONTROL_FLAGS + "|" + ATTRIBUTE_OPEN + r"\]\s*|"
+                    + LEGACY_ATTRIBUTES + ")*")
+# The same run without the bullets, braces and goal selectors, each a command of its
+# own: what Rocq 9.3's vernac_control reads before a command within its sentence.
+VERNAC_CONTROL = ("(?:" + CONTROL_FLAGS + "|" + ATTRIBUTE_OPEN + r"\]\s*|" + LEGACY_ATTRIBUTES
+                  + ")*")
+# One of them, saying which: `bullet` a bullet, brace or goal selector, `word` a control
+# flag's or a legacy attribute's word, `attributes` what a quoted attribute holds.
+DECORATION = re.compile("(?P<bullet>" + BULLETS + r")|(?=(?P<word>[A-Za-z]+))(?:"
+                        + CONTROL_FLAGS + "|" + LEGACY_ATTRIBUTES + r")|#\[(?P<attributes>"
+                        + _ATTRIBUTE_VALUES + r")\]\s*")
+# The control flags that run their command and keep nothing it states.
+VOID = ("Fail", "Succeed")
+_BLANK = re.compile(r"\s*")
 
-def strip_comments(text: str) -> str:
+# The vernaculars whose sentence states a theorem: Rocq 9.3's seven theorem keywords, its
+# grammar's `thm_token`, and `Example`, which states and defines.
+STATEMENTS = ("Theorem", "Lemma", "Fact", "Remark", "Corollary", "Proposition", "Property",
+              "Example")
+# The vernaculars whose sentence binds a top-level name a file defines: a definition,
+# every statement, an instance, a recursive definition and every inductive type Rocq
+# 9.3's `inductive_token` and `finite_token` name but `Class`. It is wider than the
+# witness scan's definers (cli/proofs.py), the shape a closed definition typed at a
+# record takes, since a record declaration is as much a constant of the file as a lemma.
+DECLARATIONS = ("Definition", *STATEMENTS, "Instance", "Fixpoint", "CoFixpoint",
+                "Inductive", "CoInductive", "Variant", "Record", "Structure")
+
+
+def strip_comments(text: str, *, keep_offsets: bool = False) -> str:
     """The source with its comments blanked, where Rocq 9.3's lexer finds them in a source
     declaring no token that holds a quote or a comment opener. Rocq reads such a token
     whole, and the proof gate refuses its declaration (proofaudit.unreadable_tokens).
@@ -57,9 +117,12 @@ def strip_comments(text: str) -> str:
     string in a comment, and the locked compiler under the gate's flags refuses a quoted
     `*)` there outright. A comment is a token separator, so `Set(* c *)Kernel` is two
     words: each complete outer comment becomes its newlines, preserving source line
-    numbers, or one space when it holds none. The regex engine skips ordinary text;
-    Python visits only delimiters.
+    numbers, or one space when it holds none. With `keep_offsets` it becomes blank space
+    of its own length instead, its line breaks kept, so an offset into the result is one
+    into the source, for a reader that reports or cuts at source offsets. The regex engine
+    skips ordinary text; Python visits only delimiters.
     """
+    blank = _spaces if keep_offsets else _separator
     out: list[str] = []
     depth = start = quoted_until = 0
     for token in _COMMENT_TOKEN.finditer(text):
@@ -77,15 +140,21 @@ def strip_comments(text: str) -> str:
         elif depth:
             depth -= 1
             if not depth:
-                out.append(_separator(text, start, token.end()))
+                out.append(blank(text, start, token.end()))
                 start = token.end()
-    out.append(_separator(text, start, len(text)) if depth else text[start:])
+    out.append(blank(text, start, len(text)) if depth else text[start:])
     return "".join(out)
 
 
 def _separator(text: str, start: int, end: int) -> str:
     """What one comment leaves behind: its newlines, or one space if it holds none."""
     return "\n" * text.count("\n", start, end) or " "
+
+
+def _spaces(text: str, start: int, end: int) -> str:
+    """What one comment leaves behind at its own offsets: blank space of its length, its
+    line breaks kept."""
+    return "\n".join(" " * len(line) for line in text[start:end].split("\n"))
 
 
 def sentences(text: str) -> list[str]:
@@ -99,12 +168,65 @@ def sentences(text: str) -> list[str]:
         return [trimmed for s in SENTENCE_END.split(code) if (trimmed := s.strip())]
     found: list[str] = []
     start = 0
-    for token in _SENTENCE_TOKEN.finditer(code):
-        if token.group() == ".":
-            found.append(code[start:token.start()])
-            start = token.end()
+    for end in sentence_ends(code):
+        found.append(code[start:end])
+        start = end + 1
     found.append(code[start:])
     return [trimmed for s in found if (trimmed := s.strip())]
+
+
+def sentence_ends(code: str) -> list[int]:
+    """Where each sentence of comment-free code ends: the offset of every full stop the
+    sentence split ends one at, each string read whole first. Comments blanked to spaces
+    of their own length leave the offsets the source's."""
+    if '"' not in code:
+        return [end.start() for end in SENTENCE_END.finditer(code)]
+    return [token.start() for token in _SENTENCE_TOKEN.finditer(code) if token.group() == "."]
+
+
+def decorations(code: str, at: int = 0) -> tuple[list[re.Match[str]], int]:
+    """The decorations standing at `at` in comment-free code that reach the command under
+    them, in order, and where that command opens.
+
+    A bullet, a brace or a goal selector is a command of its own in Rocq 9.3's grammar,
+    which reads control flags and attributes only before a whole command: the locked
+    compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps the declaration
+    after it. So the run starts again at each of them, and the last one stands first in
+    what is returned, for a reader that asks whether one stood there.
+    """
+    found: list[re.Match[str]] = []
+    while (decoration := DECORATION.match(code, at)) is not None:
+        if decoration.group("bullet") is not None:
+            found.clear()
+        found.append(decoration)
+        at = decoration.end()
+    return found, at
+
+
+def void_flag(code: str, opened: int, ends: Sequence[int]) -> str | None:
+    """The control flag keeping nothing, `Fail` or `Succeed`, that a command stands under
+    in comment-free code, where `opened` is where its line's head opens and `ends` is
+    `sentence_ends(code)`.
+
+    A flag may stand on the command's line or on lines of its own above it, so the walk
+    starts at the full stop ending the sentence before and reads the decorations from
+    there to the command's keyword, a flag before a bullet, a brace or a goal selector
+    being that one's (`decorations`). That full stop is found where the sentence split
+    finds it, so a string's full stop, an attribute's quoted note among them, ends no
+    look-back early. None where there is no such flag, or where something other than
+    blank space and decorations stands between that full stop and `opened`, the head then
+    opening inside a sentence rather than at one.
+    """
+    before = bisect_left(ends, opened)
+    start = ends[before - 1] + 1 if before else 0
+    blank = _BLANK.match(code, start)
+    found, at = decorations(code, blank.end() if blank else start)
+    if at < opened:
+        return None
+    for decoration in found:
+        if decoration.group("word") in VOID:
+            return str(decoration.group("word"))
+    return None
 
 
 def local_requires(source: Path, stems: set[str]) -> set[str]:

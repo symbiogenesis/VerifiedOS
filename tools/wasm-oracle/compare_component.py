@@ -19,7 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from vos import asm, gallina, image, receipts, trace
+from vos import asm, env, gallina, image, receipts, trace
 from vos import compiler_component as cc
 from vos.cli import compiler_diff as cd
 
@@ -58,8 +58,14 @@ def main() -> int:
     steps: list[dict[str, object]] = []
 
     def execute(name: str, command: list[str], cwd: Path, timeout: int = 600) -> subprocess.CompletedProcess[str]:
+        # No step answers a question: each runs with no standard input and in the
+        # declining environment, so an opam read over a root whose format upgrade cannot
+        # be made in memory declines it and fails rather than waiting on a prompt its
+        # captured output hides or rewriting the root one way on the caller's OPAMYES.
         before = time.monotonic()
-        done = subprocess.run(command, cwd=cwd, text=True, capture_output=True, timeout=timeout, check=False)
+        done = subprocess.run(command, cwd=cwd, text=True, capture_output=True, timeout=timeout,
+                              check=False, stdin=subprocess.DEVNULL,
+                              env=env.declining_environment())
         (out / (name + ".stdout")).write_text(done.stdout, encoding="utf-8", newline="\n")
         (out / (name + ".stderr")).write_text(done.stderr, encoding="utf-8", newline="\n")
         steps.append({"name": name, "argv": command, "cwd": str(cwd), "exit": done.returncode,

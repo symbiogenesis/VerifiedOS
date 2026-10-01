@@ -107,7 +107,7 @@ different list on a concrete frame, differing in value and not only in length.
 The in-place model is a sequential state machine over a memory function that
 overwrites element `i` only after reading it, accumulates the checksum over the
 mapped value, and starts its XOR pass only after the reduction completes. A
-concrete frame has its outputs computed by `vm_compute` on every model, and a
+concrete frame has its outputs computed in Rocq's virtual machine on every model, and a
 variant whose XOR pass is replaced by a copy is refuted on it, mirroring the
 tests' mutant. The proof cites R-08-019e, without claiming it, for the
 recompute-rather-than-store lever the rematerialized variants exercise, since

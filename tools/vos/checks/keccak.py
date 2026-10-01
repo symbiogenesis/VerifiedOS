@@ -37,7 +37,8 @@ narrow by a document being edited.
 Fail-closed in five places on K-67's and K-75's ground. A file the index does not carry is
 outside this checker's corpus and every claim about it is vacuous; a file the working tree
 does not carry has no bytes to read; a literal or an `Example` this module cannot locate by
-name is a finding rather than a pair dropped out of the comparison; a literal that does not
+name, or finds only under a `Fail` or a `Succeed` that keeps nothing it states, is a
+finding rather than a pair dropped out of the comparison; a literal that does not
 decode to twenty-five lanes, or an `Example` to two hundred bytes, is the same; and the
 pair table reading empty would leave the rule agreeing with every one of no answers, so its
 size is a floor stated here rather than a count taken from a document.
@@ -50,6 +51,8 @@ repaired into agreement with itself.
 
 import re
 from typing import TYPE_CHECKING
+
+from vos.proofs import VOID, decorations, sentences
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 if TYPE_CHECKING:
@@ -88,11 +91,28 @@ def _gallina_state(raw: str, name: str) -> tuple[list[int] | None, str]:
     The statement's right-hand side is two hundred byte literals, eight per lane with the
     least significant first, so the lanes are recomposed here rather than compared as
     bytes: the Sail side has no bytes to compare against.
+
+    The statement is the sentence the shared lexer ends at its own full stop, comments
+    gone, so the proof after it adds nothing to it however that proof opens, `Proof
+    using` among the ways, and a numeral in a comment is no byte. It is read under any
+    decoration of the shared lexer's grammar, and under `Fail` or `Succeed`, which keep
+    nothing it states, it is refused by name rather than read as the answer.
     """
-    m = re.search(rf"(?s)^Example {re.escape(name)}\s*:(.*?)^Proof\.", raw, re.MULTILINE)
-    if m is None:
+    head = re.compile(rf"Example\s+{re.escape(name)}\s*:")
+    for sentence in sentences(raw):
+        found, at = decorations(sentence)
+        stated = head.match(sentence, at)
+        if stated is None:
+            continue
+        void = next((str(decoration.group("word")) for decoration in found
+                     if decoration.group("word") in VOID), None)
+        if void is not None:
+            return None, (f"{GALLINA} states Example {name} under `{void}`, which keeps "
+                          "nothing it states, so no answer is read out of it")
+        body = sentence[stated.end():]
+        break
+    else:
         return None, f"{GALLINA} states no Example named {name}"
-    body = m.group(1)
     eq = body.find("=")
     if eq < 0:
         return None, f"{GALLINA}'s {name} states no equation to read an answer out of"

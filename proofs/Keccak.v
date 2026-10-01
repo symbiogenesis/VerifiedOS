@@ -262,6 +262,13 @@
 
 Open Scope list_scope.
 
+(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
+   the goal in the tactic and again where the kernel checks its cast at Qed;
+   this casts eq_refl to the goal unevaluated, so only the check at Qed
+   evaluates it. *)
+Local Ltac vm_reflexivity :=
+  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
+
 (* -------------------------------------------------------------------------
    List helpers, authored rather than imported: the prelude carries the list
    type and not the library over it.
@@ -867,7 +874,7 @@ Example keccak_f1600_of_the_all_zero_state :
   0x3B :: 0xA1 :: 0x30 :: 0x7F :: 0xE9 :: 0x44 :: 0xF6 :: 0x75 ::
   0x49 :: 0xA2 :: 0xEC :: 0x5C :: 0x7B :: 0xFF :: 0xF1 :: 0xEA :: nil
 .
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example keccak_f1600_applied_twice_to_the_all_zero_state :
   bytes_of (bits_of_state (keccak_f1600 (keccak_f1600 zero_state))) =
@@ -897,7 +904,7 @@ Example keccak_f1600_applied_twice_to_the_all_zero_state :
   0x59 :: 0x10 :: 0x4C :: 0xA4 :: 0x62 :: 0x4E :: 0x9F :: 0x60 ::
   0x5C :: 0xBF :: 0x8F :: 0x6A :: 0xD2 :: 0x6C :: 0xD0 :: 0x20 :: nil
 .
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -916,7 +923,7 @@ Example sha3_224_of_the_empty_message :
   0xD4 :: 0x59 :: 0x7F :: 0x9A :: 0x1B :: 0x07 :: 0x8E :: 0x3F ::
   0x5B :: 0x5A :: 0x6B :: 0xC7 :: nil
 .
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example sha3_256_of_the_empty_message :
   bytes_of (sha3_256 nil) =
@@ -925,7 +932,7 @@ Example sha3_256_of_the_empty_message :
   0xF5 :: 0x80 :: 0xFF :: 0x4D :: 0xE4 :: 0x3B :: 0x49 :: 0xFA ::
   0x82 :: 0xD8 :: 0x0A :: 0x4B :: 0x80 :: 0xF8 :: 0x43 :: 0x4A :: nil
 .
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example sha3_384_of_the_empty_message :
   bytes_of (sha3_384 nil) =
@@ -936,7 +943,7 @@ Example sha3_384_of_the_empty_message :
   0xC3 :: 0x71 :: 0x38 :: 0x31 :: 0x26 :: 0x4A :: 0xDB :: 0x47 ::
   0xFB :: 0x6B :: 0xD1 :: 0xE0 :: 0x58 :: 0xD5 :: 0xF0 :: 0x04 :: nil
 .
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example sha3_512_of_the_empty_message :
   bytes_of (sha3_512 nil) =
@@ -949,7 +956,7 @@ Example sha3_512_of_the_empty_message :
   0xF5 :: 0x00 :: 0x19 :: 0x9D :: 0x95 :: 0xB6 :: 0xD3 :: 0xE3 ::
   0x01 :: 0x75 :: 0x85 :: 0x86 :: 0x28 :: 0x1D :: 0xCD :: 0x26 :: nil
 .
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* One byte of message, which is the first vector that puts two distinct
    non-zero lanes into the state and so the first that fixes where lane 16
@@ -961,7 +968,7 @@ Example sha3_256_of_the_one_byte_message :
   0x62 :: 0x52 :: 0xBB :: 0x7C :: 0xE1 :: 0x80 :: 0xB0 :: 0x0B ::
   0x58 :: 0x2D :: 0xD9 :: 0xB2 :: 0x0A :: 0xAA :: 0xD7 :: 0xF0 :: nil
 .
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Seventy-three bytes, which is 584 bits: two absorbed blocks at the
    SHA3-256 rate of 1088 bits and two at the SHA3-512 rate of 576, so the
@@ -984,7 +991,7 @@ Example sha3_256_of_a_message_spanning_two_blocks :
   0x46 :: 0x64 :: 0xBD :: 0xE1 :: 0x51 :: 0x68 :: 0xA5 :: 0x10 ::
   0x0B :: 0xF8 :: 0x81 :: 0xEC :: 0x7C :: 0x02 :: 0xB2 :: 0x58 :: nil
 .
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example sha3_512_of_a_message_spanning_two_blocks :
   bytes_of (sha3_512 (bits_of_bytes (
@@ -1008,7 +1015,7 @@ Example sha3_512_of_a_message_spanning_two_blocks :
   0xE4 :: 0x2C :: 0x3F :: 0xFC :: 0x9C :: 0x6E :: 0x3D :: 0x03 ::
   0xCE :: 0x28 :: 0x70 :: 0x44 :: 0x2F :: 0x29 :: 0x3A :: 0xB4 :: nil
 .
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* SHAKE128 and SHAKE256 at the output lengths their security strengths
    name, and SHAKE128 again past one rate, which is where the squeeze loop
@@ -1020,7 +1027,7 @@ Example shake128_of_the_empty_message_at_256_bits :
   0xD7 :: 0x3B :: 0x80 :: 0x93 :: 0xF6 :: 0xEF :: 0xBC :: 0x88 ::
   0xEB :: 0x1A :: 0x6E :: 0xAC :: 0xFA :: 0x66 :: 0xEF :: 0x26 :: nil
 .
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example shake256_of_the_empty_message_at_512_bits :
   bytes_of (shake256 512 nil) =
@@ -1033,7 +1040,7 @@ Example shake256_of_the_empty_message_at_512_bits :
   0xFC :: 0x82 :: 0x1C :: 0x49 :: 0x47 :: 0x9A :: 0xB4 :: 0x86 ::
   0x40 :: 0x29 :: 0x2E :: 0xAC :: 0xB3 :: 0xB7 :: 0xC4 :: 0xBE :: nil
 .
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example shake128_of_the_empty_message_across_two_squeezes :
   bytes_of (shake128 1360 nil) =
@@ -1060,7 +1067,7 @@ Example shake128_of_the_empty_message_across_two_squeezes :
   0xAE :: 0xE7 :: 0xEE :: 0xF4 :: 0x7C :: 0xB0 :: 0xFC :: 0xA9 ::
   0x76 :: 0x7B :: nil
 .
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -1131,12 +1138,12 @@ Proof. intros. reflexivity. Qed.
 Example the_exchanged_theta_is_a_different_step :
   let a := keccak_f1600 zero_state in
   bits_eqb (bits_of_state (theta a)) (bits_of_state (theta_swapped a)) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_permutation_on_the_exchanged_theta_misses_the_published_state :
   bits_eqb (bits_of_state (keccak_f1600_theta_swapped zero_state))
            (bits_of_state (keccak_f1600 zero_state)) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    pi. The step is a permutation of the twenty-five lanes and nothing else,
@@ -1222,7 +1229,7 @@ Example chi_is_the_row_map_at_every_row_and_bit_of_a_permuted_state :
   all_of (fun y => all_of (fun z => bits_eqb (row_at (chi a) y z) (chi_row (row_at a y z)))
                           (upto width))
          (upto side) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    iota is an involution, over an arbitrary round constant, an arbitrary lane
@@ -1337,17 +1344,17 @@ Example keccak_p1600_12_of_the_all_zero_state :
   0x7A :: 0x64 :: 0x30 :: 0x2C :: 0xDB :: 0x71 :: 0x36 :: 0xD4 ::
   0x1C :: 0xA0 :: 0x2C :: 0x22 :: 0x76 :: 0x0D :: 0xFD :: 0xCF :: nil
 .
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_first_twelve_rounds_are_not_the_last_twelve :
   bits_eqb (bits_of_state (keccak_prefix rounds_short zero_state))
            (bits_of_state (keccak_p1600_12 zero_state)) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_two_frozen_round_counts_are_two_permutations :
   bits_eqb (bits_of_state (keccak_p1600_12 zero_state))
            (bits_of_state (keccak_f1600 zero_state)) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The constant table is not its own reverse, which is why a table literal
    read in the wrong direction is a different permutation rather than a
@@ -1378,19 +1385,19 @@ Definition pad_probe_lengths (rate : nat) : list nat :=
 Example pad10star1_is_a_positive_multiple_of_the_rate_ending_in_one :
   all_of (fun r => all_of (pad_is_well_formed pad10star1 r) (pad_probe_lengths r))
          frozen_rates = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_pad_that_adds_nothing_to_an_aligned_message_is_refused :
   all_of (fun r => all_of (pad_is_well_formed pad_admitting_an_empty_block r)
                           (pad_probe_lengths r))
          frozen_rates = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_pad_without_its_final_one_is_refused :
   all_of (fun r => all_of (pad_is_well_formed pad_without_its_final_one r)
                           (pad_probe_lengths r))
          frozen_rates = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The domain separators. SHA3-256 and SHAKE256 take the same capacity from
@@ -1408,11 +1415,11 @@ Definition shake_unseparated (s d : nat) (m : list bool) : list bool :=
 
 Example the_domain_separator_decides :
   bits_eqb (sha3_256 nil) (shake256 256 nil) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example without_a_domain_separator_the_two_coincide :
   bits_eqb (sha3_unseparated 256 nil) (shake_unseparated 256 256 nil) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_two_suffixes_are_different :
   bits_eqb sha3_suffix shake_suffix = false := eq_refl.
@@ -1450,7 +1457,7 @@ Example pad10star1_never_yields_an_empty_string :
   all_of (fun r => all_of (fun m => Nat.ltb 0 (padded_length pad10star1 r m))
                           (pad_probe_lengths r))
          frozen_rates = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_pad_that_adds_nothing_yields_an_empty_string :
   Nat.ltb 0 (padded_length pad_admitting_an_empty_block
@@ -1464,7 +1471,7 @@ Example the_pad_that_adds_nothing_differs_only_where_the_message_is_aligned :
                                                              (pad10star1 r m))))
                           (pad_probe_lengths r))
          frozen_rates = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the pad without its final one is the right length and the wrong string
    at every probe, which is what separates it from a length defect. *)
@@ -1476,7 +1483,7 @@ Example the_pad_without_its_final_one_keeps_the_length_and_loses_the_bit :
                                         (length_of (pad_without_its_final_one r m) - 1))))
                           (pad_probe_lengths r))
          frozen_rates = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -1552,7 +1559,7 @@ Example the_pad_without_its_final_one_differs_only_in_its_last_bit :
                                        (pad10star1 r m)))
                           (pad_probe_lengths r))
          frozen_rates = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the unseparated construction is the separated one with the suffix taken
    out of the function and handed to it as message, which is what makes the
@@ -1561,11 +1568,11 @@ Proof. vm_compute. reflexivity. Qed.
    different rules that happen to agree at this pair of parameters. *)
 Example the_unseparated_sha3_is_sha3_with_its_suffix_handed_in :
   bits_eqb (sha3_unseparated 256 sha3_suffix) (sha3_256 nil) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_unseparated_shake_is_shake_with_its_suffix_handed_in :
   bits_eqb (shake_unseparated 256 512 shake_suffix) (shake256 512 nil) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    How much of R-15-056's word "permutation" is discharged here, stated over

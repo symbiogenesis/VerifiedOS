@@ -300,15 +300,24 @@ def _unlocked(*args: object, **kwargs: object) -> io.StringIO:
     return io.StringIO()
 
 
+_BUILT = b"built simulator"
+
+
 def _run_oracle(e: env.Environment, sail: str | None = _SAIL, *, resync: bool = False,
-                real_lock: bool = False, **stubs: object) -> tuple[int, list[list[str]], str]:
+                real_lock: bool = False, suite: tuple[int, int] = (3, 0),
+                **stubs: object) -> tuple[int, list[list[str]], str]:
     """`cmd_oracle` with its stages, source reading, copy and suite standing in, and
     its lock too unless `real_lock`, so what is held is the command line, the tree it
-    builds in and what it refuses."""
+    builds in and what it refuses. The build leaves `_BUILT` as the simulator and the
+    suite answers `suite`, as (passed, failed)."""
     staged: list[list[str]] = []
 
     def stage(name: str, argv: list[str], report_to: object = None, **kwargs: object) -> int:
         staged.append(argv)
+        cwd = kwargs.get("cwd")
+        if isinstance(cwd, Path):
+            (cwd / model.ORACLE_TARGET).parent.mkdir(parents=True, exist_ok=True)
+            (cwd / model.ORACLE_TARGET).write_bytes(_BUILT)
         return 0
 
     fake_env = SimpleNamespace(stage=stage, hold_lock=env.hold_lock if real_lock else _unlocked,
@@ -325,7 +334,7 @@ def _run_oracle(e: env.Environment, sail: str | None = _SAIL, *, resync: bool = 
         stack.enter_context(patch.object(model, "shutil", fake_shutil))
         stack.enter_context(patch.object(
             model, "subprocess", SimpleNamespace(run=Mock(return_value=version))))
-        stack.enter_context(patch.object(model, "_oracle_suite", return_value=0))
+        stack.enter_context(patch.object(model, "_oracle_suite", return_value=suite))
         for name, value in {**defaults, **stubs}.items():
             stack.enter_context(patch.object(model, name, value))
         stack.enter_context(redirect_stdout(io.StringIO()))
@@ -402,14 +411,16 @@ def _oracle_reuses_only_a_stamped_tree() -> None:
                "a tree stamped with the current pins is reused")
         moved = Mock(return_value=("c" * 40, _PINS[1]))
         code, staged, said = _run_oracle(e, _oracle_pins=moved, _sync_oracle_tree=synced)
-        ensure(code == 1 and not staged and not synced.called and "--resync" in said,
+        ensure(code == 1 and not staged and not synced.called
+               and "not these pins; rerun with --resync" in said,
                f"a tree stamped with other pins is refused, said {said!r}")
         stamp.write_text(f"{_PINS[0]}\n{_PINS[1]}\n", encoding="utf-8", newline="")
         code, staged, said = _run_oracle(e, _sync_oracle_tree=synced)
         ensure(code == 1 and not staged and not synced.called
-               and "not these pins; rerun with --resync" in said,
-               f"a stamp naming the pins without vouching for their bytes is refused, "
-               f"said {said!r}")
+               and "is stamped with these pins by a sync that did not restore their bytes; "
+                   "rerun with --resync" in said and "not these pins" not in said,
+               f"a stamp naming the pins without vouching for their bytes is refused as "
+               f"the pins' own stamp, said {said!r}")
         stamp.unlink()
         code, staged, _ = _run_oracle(e, _sync_oracle_tree=synced)
         ensure(code == 1 and not staged, "an unstamped standing tree is refused")
@@ -429,6 +440,142 @@ def _standing_oracle(e: env.Environment) -> None:
     """A simulator standing in the fixture's edition-keyed oracle tree."""
     e.oracle.parent.mkdir(parents=True, exist_ok=True)
     e.oracle.write_bytes(b"live simulator")
+
+
+def _vouched_oracle(e: env.Environment) -> None:
+    """The oracle tree a green `oracle` run leaves, stamp, simulator and receipt, in a
+    checkout whose index pins the oracle at the stamp's commit."""
+    _oracle_fixture(e.root)
+    _git(e.root, "init", "-q")
+    _pin(e.root, model.ORACLE_SRC, _PINS[0])
+    code, _, said = _run_oracle(e)
+    ensure(code == 0 and model.oracle_receipt(e.oracle_root).is_file(),
+           f"precondition: a green oracle run leaves its receipt, got {code} and {said!r}")
+
+
+def _oracle_receipt_follows_a_passing_suite() -> None:
+    """A run writes its receipt only once the suite passes on the simulator it built,
+    naming the tree's stamp, the simulator's bytes and the tally; every later run that
+    holds the tree's lock removes it first, so a failed suite or a tree refused under
+    that lock leaves none standing."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        e = _environment(Path(td))
+        _vouched_oracle(e)
+        receipt = model.oracle_receipt(e.oracle_root)
+        ensure(receipt.parent == e.oracle_root.parent,
+               f"the receipt stands beside the tree, got {receipt}")
+        record = json.loads(receipt.read_text(encoding="utf-8"))
+        want = {"schema": 1, "stamp": [*_PINS, model.ORACLE_STAMP_CLAIM],
+                "simulator": model.ORACLE_TARGET,
+                "simulator_sha256": receipts.digest(e.oracle_root / model.ORACLE_TARGET),
+                "suite": {"pass": 3, "fail": 0}}
+        ensure(record == want, f"the receipt names the stamp, the simulator and the "
+                               f"tally, got {record}")
+        code, _, _ = _run_oracle(e, suite=(2, 1))
+        ensure(code == 1 and not receipt.exists(), "a failed suite leaves no receipt")
+        code, _, _ = _run_oracle(e, suite=(0, 0))
+        ensure(code == 1 and not receipt.exists(), "a suite that ran nothing leaves none")
+        code, _, _ = _run_oracle(e)
+        ensure(code == 0 and receipt.is_file(), "control: a passing suite writes it again")
+        moved = Mock(return_value=("c" * 40, _PINS[1]))
+        code, staged, _ = _run_oracle(e, _oracle_pins=moved)
+        ensure(code == 1 and not staged and not receipt.exists(),
+               "a run refusing the standing tree removes its receipt as well")
+
+
+def _oracle_suite_runs_the_built_simulator() -> None:
+    """The suite runs the simulator the build linked in the tree, whatever `VOS_ORACLE`
+    names, since that is the simulator the receipt vouches for."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        e = _environment(root)
+        tree = e.oracle_root
+        elf = tree / "sail-riscv/test/riscv-tests/rv64ui-p-add.elf"
+        elf.parent.mkdir(parents=True)
+        elf.write_bytes(b"program")
+        ran: list[str] = []
+
+        def run(argv: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+            ran.append(argv[0])
+            return subprocess.CompletedProcess(argv, 0, "SUCCESS\n", "")
+
+        fake = SimpleNamespace(run=run, TimeoutExpired=subprocess.TimeoutExpired)
+        with (patch.dict(os.environ, {"VOS_ORACLE": str(root / "elsewhere")}),
+              patch.object(model, "subprocess", fake)):
+            tally = model._oracle_suite(e, tree / model.ORACLE_TARGET, tree,
+                                        io.StringIO(), 1)
+        ensure(tally == (1, 0) and ran == [str(tree / model.ORACLE_TARGET)],
+               f"the suite runs the tree's simulator, got {tally} and {ran}")
+
+
+def _trace_diff_needs_a_vouched_oracle() -> None:
+    """A comparison runs the oracle only where a passing `oracle` run vouches for it:
+    the stamp vouches for the pinned bytes at this checkout's pin, the receipt names that
+    stamp and a passing tally, and the simulator is the bytes the suite passed on.
+    Each defect is refused before either executor runs; the control is the same
+    comparison over the tree the green run left."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        e = _environment(root)
+        _vouched_oracle(e)
+        elf = _corpus_fixture(e) / "rv64ui-p-add"
+        elf.write_bytes(b"program")
+        _seal(elf.parent)
+        args = argparse.Namespace(elf=[], corpus=True, limit=1, timeout=1)
+        stamp = e.oracle_root / model.ORACLE_STAMP
+        receipt = model.oracle_receipt(e.oracle_root)
+
+        def traced() -> tuple[int, bool, str]:
+            with (patch.object(model, "_missing_simulator", return_value=None),
+                  patch.object(model, "_run_trace", return_value=[]) as runner,
+                  patch.object(env, "hold_lock", side_effect=_unlocked),
+                  redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()) as err):
+                code = model.cmd_trace_diff(e, args)
+            return code, runner.called, err.getvalue()
+
+        def refused(what: str, why: str) -> None:
+            code, ran, said = traced()
+            ensure(code == 1 and not ran and why in said,
+                   f"{what} must be refused before either executor runs, naming "
+                   f"{why!r}; got {code}, ran={ran}, said {said!r}")
+
+        code, ran, said = traced()
+        ensure(code == 0 and ran, f"control: a vouched oracle is compared, said {said!r}")
+
+        held = stamp.read_bytes()
+        stamp.write_text(f"{_PINS[0]}\n{_PINS[1]}\n", encoding="utf-8", newline="")
+        refused("a stamp naming the pins without the claim", "does not vouch for")
+        stamp.write_bytes(held)
+
+        _pin(root, model.ORACLE_SRC, "c" * 40)
+        refused("a tree stamped for a pin this checkout has moved from",
+                f"not at this checkout's pin {'c' * 40}")
+        _pin(root, model.ORACLE_SRC, _PINS[0])
+
+        written = receipt.read_bytes()
+        receipt.unlink()
+        refused("a tree with no receipt", "no readable receipt")
+        record = json.loads(written)
+        for change in ({"stamp": ["c" * 40, _PINS[1], model.ORACLE_STAMP_CLAIM]},
+                       {"suite": {"pass": 3, "fail": 1}}, {"suite": {"pass": 0, "fail": 0}}):
+            receipt.write_text(json.dumps({**record, **change}), encoding="utf-8")
+            refused(f"a receipt with {change}", "does not record a passing suite")
+        receipt.write_bytes(written)
+
+        e.oracle.write_bytes(b"relinked since the suite ran")
+        refused("a simulator whose bytes the suite did not pass on", "is not the simulator")
+        e.oracle.write_bytes(_BUILT)
+
+        elsewhere = root / "elsewhere-sim"
+        elsewhere.write_bytes(b"another build")
+        with patch.dict(os.environ, {"VOS_ORACLE": str(elsewhere)}):
+            refused("a VOS_ORACLE simulator of other bytes", "is not the simulator")
+            elsewhere.write_bytes(_BUILT)
+            code, ran, said = traced()
+            ensure(code == 0 and ran,
+                   f"a VOS_ORACLE copy of the bytes that passed is compared, said {said!r}")
+        code, ran, _ = traced()
+        ensure(code == 0 and ran, "control: the restored tree is compared again")
 
 
 def _oracle_sync_refuses_a_live_trace_diff() -> None:
@@ -468,7 +615,7 @@ def _trace_diff_holds_the_oracle_tree() -> None:
     runs."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         e = _environment(Path(td))
-        _standing_oracle(e)
+        _vouched_oracle(e)
         elf = _corpus_fixture(e) / "rv64ui-p-add"
         elf.write_bytes(b"program")
         _seal(elf.parent)
@@ -657,8 +804,7 @@ def _warm_test_corpus() -> None:
             stale.write_bytes(b"different release")
         ensure(model.sweep_inputs(e.build_dir, e.model) == [current],
                "sweep must select the declaration, regardless of donor cache sort order")
-        e.oracle.parent.mkdir(parents=True, exist_ok=True)
-        e.oracle.write_bytes(b"unused oracle")
+        _vouched_oracle(e)
         args = argparse.Namespace(elf=[], corpus=True, limit=1, timeout=1)
         with (patch.object(model, "_missing_simulator", return_value=None),
               patch.object(model, "_run_trace", return_value=[]) as runner,
@@ -774,6 +920,10 @@ def cases() -> list[Case]:
                  lane="guest"),
             Case("trace-diff-holds-the-oracle-tree", _trace_diff_holds_the_oracle_tree,
                  lane="guest"),
+            Case("oracle-receipt-follows-a-passing-suite",
+                 _oracle_receipt_follows_a_passing_suite),
+            Case("oracle-suite-runs-the-built-simulator", _oracle_suite_runs_the_built_simulator),
+            Case("trace-diff-needs-a-vouched-oracle", _trace_diff_needs_a_vouched_oracle),
             Case("oracle-pins-hold-both-checkouts", _oracle_pins_hold_both_checkouts),
             Case("oracle-copy-is-the-pinned-commits", _oracle_copy_is_the_pinned_commits),
             Case("empty-sweep-refused", _empty_sweep_is_refused),

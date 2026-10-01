@@ -50,7 +50,9 @@ from vos.corpus import find_root
 # is unchanged by the move. `a parse two tools make is written once` is that module's
 # own convention and this is it applied to itself. `strip_comments` came back with it and
 # is no longer imported here: its one consumer was the anywhere-matching witness search,
-# which retired when the prover took the inhabitation judgement over.
+# which retired when the prover took the inhabitation judgement over. The statement
+# keywords followed when the citation and mutation readers needed the same table.
+from vos.proofs import STATEMENTS
 from vos.proofs import sentences as _sentences
 
 PROOFS = "proofs"
@@ -100,15 +102,14 @@ WITNESS_CONVENTION = (f"a closed top-level `Definition {WITNESS_PREFIX}<Record> 
                       "term is the artifact's own reference instance where it has one")
 
 # The vernaculars whose sentence states a theorem, and so whose binders are the
-# quantifiers this gate reads: Rocq 9.3's seven theorem keywords, its grammar's
-# `thm_token`, and `Example`, which states and defines. Beside them, every vernacular
-# whose sentence carries a name and an ascription at all, which is the shape this parse
-# walks. Every statement is a definer, so the second list is built from the first and
-# cannot again lack a keyword the first reads. Only `Definition` can be a witness, which
-# the witness lookup requires of the keyword rather than of this table, so that
-# widening the parse cannot widen what counts as an inhabitant.
-STATEMENTS = ("Theorem", "Lemma", "Fact", "Remark", "Corollary", "Proposition", "Property",
-              "Example")
+# quantifiers this gate reads, are the shared lexer's `STATEMENTS`: Rocq 9.3's seven
+# theorem keywords, its grammar's `thm_token`, and `Example`, which states and defines.
+# Beside them, every vernacular whose sentence carries a name and an ascription at all,
+# which is the shape this parse walks. Every statement is a definer, so the second list
+# is built from the first and cannot again lack a keyword the first reads. Only
+# `Definition` can be a witness, which the witness lookup requires of the keyword rather
+# than of this table, so that widening the parse cannot widen what counts as an
+# inhabitant.
 DEFINERS = ("Definition", *STATEMENTS, "Instance")
 # A section binder quantifies every statement in its section, so it is a quantifier too.
 SECTION_BINDERS = ("Variable", "Variables", "Context", "Hypothesis", "Hypotheses")
@@ -344,16 +345,29 @@ def _hold(proofs: Path) -> int:
     native directory without touching the original checkout. The descriptor
     stays open, and locked, until the process exits.
 
+    Lane retirement moves a workspace aside while it holds this lock, so a gate that
+    was blocked here would then hold the moved directory and work at a path another
+    gate may have recreated. The lock counts only while the workspace's path still
+    names the directory locked; otherwise it is released and taken again there.
+
     POSIX-only, and this file is typed on the host as well as run in the guest, so
     win32 is refused and the import deferred the way `vos.env` does both.
     """
     if sys.platform == "win32":
         raise RuntimeError("the proof workspace is held in the guest")
     import fcntl
-    proofs.mkdir(parents=True, exist_ok=True)
-    fd = os.open(str(proofs), os.O_RDONLY)
-    fcntl.flock(fd, fcntl.LOCK_EX)
-    return fd
+    while True:
+        proofs.mkdir(parents=True, exist_ok=True)
+        fd = os.open(str(proofs), os.O_RDONLY)
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        held = os.fstat(fd)
+        try:
+            named = proofs.stat()
+        except FileNotFoundError:
+            named = None
+        if named is not None and (named.st_dev, named.st_ino) == (held.st_dev, held.st_ino):
+            return fd
+        os.close(fd)
 
 
 def _compile(root: Path, source: Path) -> subprocess.CompletedProcess[str]:
@@ -682,6 +696,13 @@ def _check_source(root: Path, source: Path, sources: list[Path] | ProofAnalysis,
             raise proofaudit.AuditError(
                 "sources may not declare tokens the gate's lexer cannot follow: "
                 + "; ".join(tokens))
+        coinductive = proofaudit.coinductive_forms(text)
+        if coinductive:
+            raise proofaudit.AuditError(
+                "sources may not write coinductive types or cofixpoints, or declare a token "
+                "that would hide one from the gate, while the locked Rocq lacks the guard "
+                "fixes for rocq#22386 and rocq#22389: "
+                + "; ".join(coinductive))
         loads = proofaudit.dynamic_sources(text)
         if loads:
             raise proofaudit.AuditError(

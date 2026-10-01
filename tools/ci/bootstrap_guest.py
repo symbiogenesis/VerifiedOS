@@ -94,13 +94,23 @@ def environment(root: Path, jobs: int) -> dict[str, str]:
     }
 
 
-def run(argv: tuple[str, ...], log: IO[str]) -> None:
+def run(argv: tuple[str, ...], log: IO[str], *, declining: bool = False) -> None:
+    """Run one step into the log, failing where it fails.
+
+    A step inherits this process's input and environment, whose `OPAMYES` answers the
+    questions the installing steps ask. One marked `declining` is a read of the private
+    root and answers none: it runs with no standard input and in
+    `env.declining_environment`. The root stands in the reviewed client's format before
+    any read, so a read asks nothing; one that did, such as a root-format upgrade, is
+    declined and fails the step rather than being answered yes out of sight."""
     command = shlex.join(argv)
     print(f"== {command}", flush=True)
     log.write(f"\n== {command}\n")
     log.flush()
     started = time.monotonic()
-    done = subprocess.run(argv, stdout=log, stderr=log, check=False)
+    done = subprocess.run(argv, stdout=log, stderr=log, check=False,
+                          stdin=subprocess.DEVNULL if declining else None,
+                          env=env.declining_environment() if declining else None)
     log.write(f"exit={done.returncode}, seconds={time.monotonic() - started:.1f}\n")
     log.flush()
     done.check_returncode()
@@ -141,21 +151,62 @@ def system_packages(install: bool, log: IO[str]) -> None:
 
 
 def install_switch(steps: tuple[tuple[str, ...], ...], log: IO[str]) -> None:
+    """Run a switch's steps, skipping the creation of a switch the root already lists,
+    which a failed import left registered. The listing is a read, and declines any
+    question as `run`'s declining steps do."""
     existing = subprocess.run(("opam", "switch", "list", "--short"),
                               stdout=subprocess.PIPE, stderr=log, text=True,
-                              check=True, timeout=60).stdout.splitlines()
+                              check=True, timeout=60, stdin=subprocess.DEVNULL,
+                              env=env.declining_environment()).stdout.splitlines()
     for argv in steps:
         if argv[:3] == ("opam", "switch", "create") and argv[3] in existing:
             continue
         run(argv, log)
 
 
-def initialize_repositories(log: IO[str]) -> None:
-    """Create the private root by the opam client owner's one route, `CREATE_ROOT`:
+def initialize_repositories(opam: Path, log: IO[str]) -> str:
+    """Leave the private root at `opam` standing on the opam client owner's repositories,
+    and say how: `created` by the owner's one route, `CREATE_ROOT`, where no root stands,
     initialized on its default repository with the rest added unselected, each switch
-    naming the repositories it resolves from."""
-    for argv in opam_client.CREATE_ROOT:
+    naming the repositories it resolves from; `finished` by the route's remaining steps,
+    `opam_client.remaining_route`, never `opam init` over it, where `root_resumable`
+    reads a root in the shape the route's leading steps leave, one whose last addition
+    was stopped during its fetch among them; and `kept` where
+    a root stands complete, the reviewed client's format with exactly the owner's
+    repositories at their URLs and every stamp read, as one the route made.
+
+    The route is not run over a complete root, such as the one Guest CI restores with
+    its installed switches: the reviewed client's `repository add` of a repository the
+    root already carries at that URL fetches it again, so the root would carry a stamp
+    the restored switches were not resolved against, and removes that repository where
+    the fetch fails. Any other standing root is refused and left as it is, and the
+    refusal names, beside the first check the root fails, each further gap
+    `opam_client.root_gaps` reads that the failure does not already state, such as an
+    unread stamp of the first repository behind a missing later one.
+    """
+    if not opam_client.root_exists(opam):
+        how = "created"
+    elif opam_client.root_resumable(opam):
+        how = "finished"
+    else:
+        try:
+            opam_client.initialized_format(opam)
+            opam_client.initialized_repositories(opam)
+        except ValueError as error:
+            gaps = [gap for gap in opam_client.root_gaps(opam) if gap not in str(error)]
+            further = f"; the root {' and '.join(gaps)}" if gaps else ""
+            raise ValueError(f"{error}{further}; bootstrap creates a root where none stands "
+                             "and finishes one only in the shape the root-creation route "
+                             "leaves after its leading steps, so this root is left as it "
+                             "is") from error
+        kept = f"the opam root at {opam} stands complete; the root-creation route is not run"
+        print(f"== {kept}", flush=True)
+        log.write(f"\n== {kept}\n")
+        log.flush()
+        return "kept"
+    for argv in opam_client.remaining_route(opam):
         run(argv, log)
+    return how
 
 
 def install_toolchains(root: Path, jobs: int, log: IO[str],
@@ -171,7 +222,7 @@ def install_toolchains(root: Path, jobs: int, log: IO[str],
         run((str(solver_bin / "z3"), "--version"), log)
         install_switch(env.SAIL_INSTALL, log)
         run((str(root / "bin" / "opam"), "exec", f"--switch={env.SAIL_SWITCH}",
-             "--", "sail", "--version"), log)
+             "--", "sail", "--version"), log, declining=True)
     if "rocq" in selected:
         install_switch(env.ROCQ_INSTALL, log)
         run((str(root / "opam" / env.ROCQ_SWITCH / "bin" / "rocq"), "--version"), log)
@@ -274,7 +325,7 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
                 text=True, check=True, timeout=60,
                 env=os.environ | env.git_env(TOOLS.parent)).stdout.strip()
             opam_client.install(binary_dir / "opam", platform.machine())
-            initialize_repositories(log)
+            record["opam_root_action"] = initialize_repositories(root / "opam", log)
             # The metadata the snapshots are resolved against, which the locks do not fix,
             # refused rather than recorded where the root's own files cannot say it.
             record["opam_repositories"] = opam_client.initialized_repositories(root / "opam")

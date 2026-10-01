@@ -544,11 +544,18 @@ def _k119(name: str = _K119_NAME, computed: str = _K119_COMPUTED,
 
 
 def _k119_each_rule_in_one_class_passes() -> None:
-    found, out = _k119()
-    ensure(not found, f"every active rule named once is clean: {found!r}")
-    ensure("ok K-119: each of the registry's 7 rules is named under exactly one of the four "
-           "reach classes (name 3, computed value 1, pattern 1, total 2)" in out,
-           f"the range places K-01, K-02 and K-04 and skips the struck row: {out!r}")
+    # an italic word between the lead and the bold name is crossed rather than read as
+    # the end of the lead's reach, and a `which is what` naming no rule before a word or
+    # a full stop is prose rather than a membership sentence
+    for name in (_K119_NAME, _K119_NAME.replace("by **name**", "by *exact* **name**"),
+                 _K119_NAME.replace("it resolves,", "it resolves, which is what separates "
+                                                    "it from a pattern,"),
+                 _K119_NAME.replace("it resolves,", "it says which is what. K-02 resolves,")):
+        found, out = _k119(name=name)
+        ensure(not found, f"every active rule named once is clean: {found!r}")
+        ensure("ok K-119: each of the registry's 7 rules is named under exactly one of the "
+               "four reach classes (name 3, computed value 1, pattern 1, total 2)" in out,
+               f"the range places K-01, K-02 and K-04 and skips the struck row: {out!r}")
 
 
 def _k119_unnamed_and_doubly_named_rules_are_findings() -> None:
@@ -613,19 +620,50 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
              "the 'computed value' class states no membership sentence(s) this rule reads"),
             ({"computed": _K119_COMPUTED + " That is what K-05 are."},
              "the 'computed value' class states two membership sentence(s) this rule reads"),
+            # a class's region starts at its lead, so a membership sentence between the
+            # lead and the bold name is the class's own second rather than read by none
+            ({"computed": "Where the set is made of rules which is what K-01 are, and a "
+                          "**computed value**, it is recomputed, which is what K-05 are."},
+             "the 'computed value' class states two membership sentence(s)"),
             ({"total": _K119_TOTAL.replace("**total**", "**whole**")},
              "opens a reach class '**whole**' that is not one of the four this rule reads"),
             ({"total": _K119_TOTAL.replace("**total**", "**whole**")},
              "tools/check-rules.md opens no 'total' class in a form this rule reads"),
+            # the lead is matched in any letter case and the class name exactly, so a name
+            # differing in case alone is a fifth class
+            ({"total": _K119_TOTAL.replace("**total**", "**Total**")},
+             "opens a reach class '**Total**' that is not one of the four this rule reads"),
             ({"heading": "## What a run decides"},
              "tools/check-rules.md carries no '## What a passing run does not decide' "
-             "section")):
+             "section"),
+            # ahead of the first class no class's region reaches, so a class introduced
+            # there in other words is caught by its membership sentence alone
+            ({"heading": meta.REACH_HEADING
+              + "\n\nWhen the set is found by **marker**, which is what K-05 are."},
+             "states a membership sentence ahead of the first reach class, so no class "
+             "reads it"),
+            # either word is read in either capitalization, so a lower-case `that` written
+            # mid-sentence and a capital `Which` opening a sentence are membership
+            # sentences too
+            ({"heading": meta.REACH_HEADING
+              + "\n\nThe marker rules come first; that is what K-05 are."},
+             "states a membership sentence ahead of the first reach class, so no class "
+             "reads it"),
+            ({"computed": _K119_COMPUTED + " Which is what K-05 are."},
+             "the 'computed value' class states two membership sentence(s) this rule reads")):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
         ensure(not any("named under no reach class" in item for item in found),
                f"an unread class is one finding, not one per rule it held: {found!r}")
         ensure(not any(line.startswith("ok K-119:") for line in out),
                "fail-closed: no ok line stands beside an unread class")
+
+
+_K119_LEAD_FINDING = "states 'Where the set is' in a form that opens no reach class"
+_K119_LEAD_FORM = (_K119_LEAD_FINDING + " this rule reads: the four words single-spaced with "
+                   "plain spaces on one line, with no underscore before the first and a "
+                   "plain space after the last, then the class in `**` bold with no third "
+                   "`*` beside either pair before a full stop or the line's end")
 
 
 def _k119_every_class_lead_is_read() -> None:
@@ -635,14 +673,111 @@ def _k119_every_class_lead_is_read() -> None:
             ({"total": "Where the set is located by **marker**, nothing narrows. "
                        + _K119_TOTAL},
              "opens a reach class '**marker**' that is not one of the four this rule reads"),
+            # the lead is read in any letter case, so a class opened mid-sentence is read
+            ({"computed": _K119_COMPUTED
+              + " Past it, where the set is located by **marker**, nothing narrows."},
+             "opens a reach class '**marker**' that is not one of the four this rule reads"),
             ({"computed": _K119_COMPUTED
               + " Where the set is located by a marker, nothing narrows."},
-             "states 'Where the set is' and names no class in bold before its sentence "
-             "ends")):
+             _K119_LEAD_FINDING),
+            # any `.` ends the lead's reach, a code span's included, so the bold name past
+            # it opens nothing
+            ({"computed": _K119_COMPUTED
+              + " Where the set is located by `a.b` **marker**, nothing narrows."},
+             _K119_LEAD_FINDING),
+            # the lead is found in underscore italics, wrapped across a line or spaced
+            # apart, none of which opens a class, so each is reported rather than read
+            # as part of the class before it
+            ({"computed": _K119_COMPUTED
+              + " _Where the set is_ located by **marker**, nothing narrows."},
+             _K119_LEAD_FINDING),
+            ({"computed": _K119_COMPUTED
+              + " Where the set\nis located by **marker**, nothing narrows."},
+             _K119_LEAD_FINDING),
+            ({"computed": _K119_COMPUTED
+              + " Where the set  is located by **marker**, nothing narrows."},
+             _K119_LEAD_FINDING),
+            # the opener needs a space right after `is`, so markup or punctuation there
+            # opens nothing, and the finding states the form that space belongs to
+            ({"name": _K119_NAME.replace("Where the set is found",
+                                         "*Where the set is* found")},
+             _K119_LEAD_FORM),
+            ({"computed": _K119_COMPUTED
+              + " **Where the set is** found by **marker**, nothing narrows."},
+             _K119_LEAD_FORM),
+            ({"computed": _K119_COMPUTED
+              + " Where the set is, as said, **marker**, nothing narrows."},
+             _K119_LEAD_FORM),
+            ({"computed": _K119_COMPUTED
+              + " Where the set is: found by **name**, nothing narrows."},
+             _K119_LEAD_FORM),
+            # the space after `is` is a plain one, so a no-break space there opens nothing,
+            # and the class is named in `**` bold, so underscore bold opens nothing either
+            ({"total": _K119_TOTAL.replace("is **total**", "is\u00a0**total**")},
+             _K119_LEAD_FORM),
+            ({"total": _K119_TOTAL.replace("**total**", "__total__")},
+             _K119_LEAD_FORM),
+            # nor does a name with a third `*` beside either pair, in bold italics or
+            # trailed by a stray `*` past the closing pair
+            ({"total": _K119_TOTAL.replace("**total**", "***total***")},
+             _K119_LEAD_FORM),
+            ({"total": _K119_TOTAL.replace("**total**", "**total***")},
+             _K119_LEAD_FORM)):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
         ensure(not any(line.startswith("ok K-119:") for line in out),
                "fail-closed: no ok line stands beside an unread lead")
+
+
+_K119_MEMBERS_FINDING = ("states 'which is what' or 'that is what' before a rule id, which "
+                         "this rule reads as a membership sentence and cannot take: either "
+                         "rewrite it as one ('which is what' or 'that is what', with only "
+                         "the first letter of the first word in either case, single-spaced "
+                         "with plain spaces on one line apart from any underscore, a plain "
+                         "list of ids, then 'are') or reword the prose so no id follows "
+                         "'is what'")
+
+
+def _k119_every_membership_sentence_is_read() -> None:
+    # A membership sentence in a form the reading does not take would leave the rules it
+    # names unread while its class reads as complete, so each is reported wherever it
+    # stands: inside a class's region, past the last class, or ahead of the first. Prose
+    # naming a rule past `is what` cannot be told from one, so it is reported in the
+    # same words, which offer both repairs.
+    for kwargs in (
+            {"computed": _K119_COMPUTED + " That is what K-05 holds."},
+            {"computed": _K119_COMPUTED + " The rest, _which is what K-05 are_, recompute."},
+            {"computed": _K119_COMPUTED + " The rest, which is\nwhat K-05 are, recompute."},
+            {"computed": _K119_COMPUTED + " The rest, which is what K-05\nare, recompute."},
+            {"computed": _K119_COMPUTED + " The rest, which is  what K-05 are, recompute."},
+            {"computed": _K119_COMPUTED + " The rest, which\u00a0is what K-05 are, recompute."},
+            {"computed": _K119_COMPUTED + " The rest, which is what `K-05` are, recompute."},
+            {"total": _K119_TOTAL + " The rest, which is what *K-07* are, narrow nothing."},
+            {"total": _K119_TOTAL + " The rest, which is what **K-07** are, narrow nothing."},
+            {"total": _K119_TOTAL + " The rest, which is what [K-07](#k-07) are, narrow "
+                                    "nothing."},
+            {"total": _K119_TOTAL + " The rest, which is what ~~K-07~~ are, narrow nothing."},
+            {"total": _K119_TOTAL + " The rest, which is what (K-07) are, narrow nothing."},
+            {"total": _K119_TOTAL + " The rest, which is what _K-07_ are, narrow nothing."},
+            {"total": _K119_TOTAL + " WHICH IS WHAT K-07 ARE."},
+            {"heading": meta.REACH_HEADING
+             + "\n\nThe marker rules come first, _that is what K-05 are_."}):
+        found, out = _k119(**kwargs)
+        ensure(any(_K119_MEMBERS_FINDING in item for item in found),
+               f"a membership sentence no class reads must be reported: {found!r}")
+        ensure(not any("named under no reach class" in item for item in found),
+               f"an unread sentence is one finding, not one per rule beside it: {found!r}")
+        ensure(not any(line.startswith("ok K-119:") for line in out),
+               "fail-closed: no ok line stands beside an unread membership sentence")
+    # a sentence nested in a list the reading took is a word of that list, reported by the
+    # grammar rather than a second time as a form not read
+    found, _ = _k119(computed=_K119_COMPUTED.replace("K-05 are", "K-05, that is what K-05 are"))
+    ensure(any(item.endswith(": the 'computed value' class lists 'K-05, that is what K-05', "
+                             "which is not a list of rule ids and ranges this rule reads")
+               for item in found),
+           f"the list the reading took must be decided by its grammar: {found!r}")
+    ensure(not any(_K119_MEMBERS_FINDING in item for item in found),
+           f"a sentence inside a list already read is not reported as unread: {found!r}")
 
 
 def _k97_reviewed_pin_is_required_without_prose_copies() -> None:
@@ -669,7 +804,8 @@ _K115_SHA = "0123456789abcdef0123456789abcdef01234567"
 _K115_RECORD = (
     "# Components\n\n### Development tools, contained by use\n\n"
     "| Tool | License | Standing |\n| --- | --- | --- |\n"
-    f"| example/action | `MIT` | The reviewed v1.2.3 revision `{_K115_SHA}` has terms. |\n"
+    f"| example/action | `MIT` | The reviewed v1.2.3 revision `{_K115_SHA}` has "
+    f"[terms](https://github.com/example/action/blob/{_K115_SHA}/LICENSE). |\n"
     "| zizmor | `MIT` | The reviewed **9.8.7** release's terms. |\n"
     "| actionlint | `MIT` | The reviewed **6.5.4** release's terms. |\n\n## Next\n")
 _K115_WORKFLOW = (f"steps:\n  - uses: example/action@{_K115_SHA} # v1.2.3\n"
@@ -708,6 +844,25 @@ def _k115_moved_or_movable_references_fail() -> None:
                f"a moved or movable reference must report {fragment!r}: {found!r}")
 
 
+def _k115_moved_reference_is_quoted_apart_from_its_row() -> None:
+    # A reference off its row's commit is quoted beside that commit at twelve digits, or
+    # as far as the two must run to differ, so a change in the last digit prints two
+    # distinct ids; a reference at the row's commit under another release keeps twelve.
+    last = f"{_K115_SHA[:-1]}8"
+    middle = f"{_K115_SHA[:19]}f{_K115_SHA[20:]}"
+    for sha, version, shown, reviewed in (
+            (last, "v1.2.3", last, _K115_SHA),
+            (middle, "v1.2.3", middle[:20], _K115_SHA[:20]),
+            ("f" * 40, "v1.2.3", "ffffffffffff", "0123456789ab"),
+            (_K115_SHA, "v1.2.4", "0123456789ab", "0123456789ab")):
+        workflow = _K115_WORKFLOW.replace(f"{_K115_SHA} # v1.2.3\n  -", f"{sha} # {version}\n  -")
+        found = _k115({".github/workflows/a.yml": workflow})
+        quoted = (f"a.yml:2 runs example/action at {shown} ({version}), THIRD-PARTY.md:7 "
+                  f"reviewed {reviewed} (v1.2.3);")
+        ensure(len(found) == 1 and quoted in found[0],
+               f"a moved reference is quoted apart from its row's commit ({quoted}): {found!r}")
+
+
 def _k115_membership_is_held_both_ways() -> None:
     found = _k115({".github/workflows/b.yaml":
                    f"steps:\n  - uses: other/action@{_K115_SHA} # v1.2.3\n"})
@@ -716,9 +871,163 @@ def _k115_membership_is_held_both_ways() -> None:
     found = _k115({".github/workflows/a.yml": f"steps:\n  - uses: other/action@{_K115_SHA} # v1.2.3\n",
                    "THIRD-PARTY.md": _K115_RECORD.replace(
                        "| zizmor |", f"| other/action | `MIT` | The reviewed v1.2.3 revision "
-                                     f"`{_K115_SHA}`. |\n| zizmor |")})
-    ensure(any("reviews example/action, which no workflow runs" in item for item in found),
-           f"a row no workflow runs must report: {found!r}")
+                                     f"`{_K115_SHA}` has [terms](https://github.com/other/"
+                                     f"action/blob/{_K115_SHA}/LICENSE). |\n| zizmor |")})
+    ensure(len(found) == 1
+           and "reviews example/action, which no workflow runs" in found[0],
+           f"a row no workflow runs is one finding: {found!r}")
+
+
+def _k115_licence_link_names_the_reviewed_commit() -> None:
+    # The row's licence link is the edition its terms were read at: every link to a file
+    # of the action's own repository, a `blob`, `tree`, `blame` or `raw` path on
+    # github.com, `www.` or not, or a raw.githubusercontent.com path, whatever the case of
+    # its host, owner and name, names the reviewed commit, and one at another commit, a
+    # tag or a branch is one finding, a tree view naming no path after its revision
+    # included. Such a view links no file, so it stands beside the reviewed link. The
+    # finding quotes both at twelve digits, or as far as they must run to differ.
+    link = f"example/action/blob/{_K115_SHA}/LICENSE"
+    url = f"https://github.com/{link}"
+    last = f"{_K115_SHA[:-1]}8"
+    moved = f"example/action/blob/{last}/LICENSE"
+    tree = "example/action/tree"
+    for edit, quoted in (
+            (moved, f"{last}, the row reviewed {_K115_SHA}"),
+            (f"example/action/blob/{_K115_SHA[:12]}/LICENSE",
+             f"{_K115_SHA[:12]}, the row reviewed {_K115_SHA[:13]}"),
+            ("example/action/blob/v1.2.3/LICENSE", "v1.2.3, the row reviewed 0123456789ab"),
+            ("example/action/blob/main/LICENSE", "main, the row reviewed 0123456789ab"),
+            (f"Example/Action/blob/{'f' * 40}/LICENSE",
+             "ffffffffffff, the row reviewed 0123456789ab"),
+            (f"{link}) and [a copy](https://github.com/{moved}",
+             f"{last}, the row reviewed {_K115_SHA}"),
+            (f"example/action/tree/{last}/LICENSE", f"{last}, the row reviewed {_K115_SHA}"),
+            (f"{link}) and [its tree](https://github.com/{tree}/main",
+             "main, the row reviewed 0123456789ab"),
+            (f"{link}) and [its tree](https://github.com/{tree}/v1.2.3",
+             "v1.2.3, the row reviewed 0123456789ab"),
+            (f"{link}) and [its tree](https://github.com/{tree}/main#readme",
+             "main, the row reviewed 0123456789ab"),
+            (f"example/action/blame/{last}/LICENSE", f"{last}, the row reviewed {_K115_SHA}"),
+            ("example/action/raw/main/LICENSE", "main, the row reviewed 0123456789ab")):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(link, edit)})
+        ensure(len(found) == 1
+               and f"THIRD-PARTY.md:7 links example/action's licence at {quoted}" in found[0],
+               f"a licence link off the reviewed commit is one finding ({edit}): {found!r}")
+    # The same links on another host's spelling, each read as the github.com one is.
+    for edit, quoted in (
+            (f"https://www.github.com/{moved}", f"{last}, the row reviewed {_K115_SHA}"),
+            ("https://raw.githubusercontent.com/example/action/v1.2.3/LICENSE",
+             "v1.2.3, the row reviewed 0123456789ab"),
+            (f"HTTPS://Raw.GitHubUserContent.com/Example/Action/{last}/LICENSE",
+             f"{last}, the row reviewed {_K115_SHA}"),
+            (f"http://GitHub.com/example/action/blob/{'f' * 40}/LICENSE",
+             "ffffffffffff, the row reviewed 0123456789ab")):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(url, edit)})
+        ensure(len(found) == 1
+               and f"THIRD-PARTY.md:7 links example/action's licence at {quoted}" in found[0],
+               f"a licence link off the reviewed commit is one finding ({edit}): {found!r}")
+    # The controls: every spelling at the reviewed commit agrees.
+    for edit in (f"https://www.github.com/{link}",
+                 f"https://github.com/example/action/tree/{_K115_SHA}/LICENSE",
+                 f"https://github.com/example/action/blame/{_K115_SHA}/LICENSE",
+                 f"https://github.com/example/action/raw/{_K115_SHA}/LICENSE",
+                 f"https://raw.githubusercontent.com/example/action/{_K115_SHA}/LICENSE",
+                 f"https://raw.githubusercontent.com/Example/Action/{_K115_SHA}/LICENSE"):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(url, edit)})
+        ensure(not found, f"a link at the reviewed commit agrees ({edit}): {found!r}")
+    # A view naming no file at the reviewed commit agrees beside the reviewed link.
+    for view in (f"https://github.com/{tree}/{_K115_SHA}",
+                 f"https://github.com/{tree}/{_K115_SHA}?tab=readme-ov-file",
+                 f"https://github.com/{tree}/{_K115_SHA}#readme",
+                 f"https://github.com/example/action/blob/{_K115_SHA}",
+                 f"https://raw.githubusercontent.com/example/action/{_K115_SHA}"):
+        beside = _K115_RECORD.replace(link, f"{link}) and [a view]({view}")
+        found = _k115({"THIRD-PARTY.md": beside})
+        ensure(not found, f"a view at the reviewed commit agrees ({view}): {found!r}")
+    # Punctuation closing a bare link ends it rather than belonging to it: a link at the
+    # reviewed commit ending a sentence, set off by a comma, or wrapped in a code span or
+    # emphasis agrees, and one at a tag ending a sentence is quoted at the tag, its
+    # interior dots kept.
+    sentence = f"[terms]({url})."
+    at_tree = f"https://github.com/{tree}/{_K115_SHA}"
+    for bare in (f"terms at {url}.",
+                 f"terms at `{url}`.",
+                 f"[terms]({url}), read beside {at_tree}.",
+                 f"[terms]({url}), read beside {at_tree}, its tree.",
+                 f"[terms]({url}), read beside `{at_tree}`.",
+                 f"[terms]({url}), read beside **{at_tree}**."):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(sentence, bare)})
+        ensure(not found, f"a bare link at the reviewed commit agrees ({bare}): {found!r}")
+    found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(
+        sentence, f"[terms]({url}), read beside https://github.com/{tree}/v1.2.3.")})
+    ensure(len(found) == 1
+           and "THIRD-PARTY.md:7 links example/action's licence at v1.2.3, the row" in found[0],
+           f"a bare link at a tag ending a sentence is quoted at the tag: {found!r}")
+    # A row linking no file of its action's repository says nothing about the edition
+    # its terms were read at, and is one finding: the link dropped, or a link into
+    # another repository, or one naming the repository and no file, alone in its place,
+    # a view at the reviewed commit naming no path after it among them, and one naming
+    # only a slash closed by a full stop or a code span.
+    dropped = "THIRD-PARTY.md:7 links no licence of example/action at the reviewed commit"
+    for old, new in ((f"[terms]({url})", "terms"),
+                     (url, f"https://github.com/other/dep/blob/{_K115_SHA}/LICENSE"),
+                     (url, f"https://github.com/example/action/commit/{_K115_SHA}"),
+                     (url, "https://github.com/example/action"),
+                     (url, f"https://github.com/{tree}/{_K115_SHA}"),
+                     (url, f"https://github.com/{tree}/{_K115_SHA}?tab=readme-ov-file"),
+                     (url, f"https://github.com/{tree}/{_K115_SHA}#readme"),
+                     (url, f"https://github.com/example/action/blob/{_K115_SHA}"),
+                     (url, f"https://raw.githubusercontent.com/example/action/{_K115_SHA}"),
+                     (f"[terms]({url})", f"terms at {at_tree}/"),
+                     (f"[terms]({url})", f"terms at `{at_tree}/`")):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(old, new)})
+        ensure(len(found) == 1 and dropped in found[0],
+               f"a row linking no licence file is one finding ({new}): {found!r}")
+    # A link into another repository beside the row's own states no revision of this action.
+    found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(
+        link, f"{link}) and [its dependency](https://github.com/other/dep/blob/{'f' * 40}/LICENSE")})
+    ensure(not found, f"another repository's link is not this row's revision: {found!r}")
+
+
+def _k115_destination_and_autolink_keep_their_revision() -> None:
+    # A Markdown link's destination, angle-bracketed or not, and an autolink keep every
+    # character up to the bracket closing them, as GFM does, so a revision there runs to
+    # a blank or that bracket rather than stopping before trailing punctuation as a bare
+    # link's does: the reviewed commit followed by a character a ref name may hold,
+    # beside the reviewed link, names another ref and is one finding quoting it whole. A
+    # destination at the commit followed by a full stop, which no ref name ends with, is
+    # one finding too, which errs closed.
+    reviewed = f"[terms](https://github.com/example/action/blob/{_K115_SHA}/LICENSE)"
+    tree = f"https://github.com/example/action/tree/{_K115_SHA}"
+    for extra, ref in ((f"[x]({tree}_)", f"{_K115_SHA}_"),
+                       (f"<{tree}_>", f"{_K115_SHA}_"),
+                       (f"[x](<{tree}_>)", f"{_K115_SHA}_"),
+                       (f"[x]( {tree}' )", f"{_K115_SHA}'"),
+                       (f'[x]({tree}! "its tree")', f"{_K115_SHA}!"),
+                       (f"[x]({tree}])", f"{_K115_SHA}]"),
+                       (f"[x](<{tree})>)", f"{_K115_SHA})"),
+                       (f"<{tree})>", f"{_K115_SHA})"),
+                       (f"[x]({tree}.)", f"{_K115_SHA}.")):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(reviewed,
+                                                              f"{reviewed} beside {extra}")})
+        quoted = f"THIRD-PARTY.md:7 links example/action's licence at {ref}, the row reviewed "
+        ensure(len(found) == 1 and f"{quoted}{_K115_SHA};" in found[0],
+               f"a revision in a destination or autolink is read whole ({extra}): {found!r}")
+    # The controls: each form at the reviewed commit, closed by its bracket, a blank, a
+    # title or a fragment, agrees beside the reviewed link.
+    for extra in (f"<{tree}>", f"[x](<{tree}>)", f"[x]( {tree} )", f'[x]({tree} "its tree")',
+                  f"<{tree}#readme>", f"[x]( <{tree}> )"):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(reviewed,
+                                                              f"{reviewed} beside {extra}")})
+        ensure(not found, f"a destination or autolink at the reviewed commit agrees "
+                          f"({extra}): {found!r}")
+    # The licence link itself angle-bracketed or written as an autolink still links the
+    # file at the reviewed commit.
+    for edit in (f"[terms](<https://github.com/example/action/blob/{_K115_SHA}/LICENSE>)",
+                 f"<https://github.com/example/action/blob/{_K115_SHA}/LICENSE>"):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(reviewed, edit)})
+        ensure(not found, f"the licence link in another form agrees ({edit}): {found!r}")
 
 
 def _k115_leaves_the_analyzer_rows_to_k118() -> None:
@@ -776,7 +1085,25 @@ def _k115_every_uses_key_is_read_or_reported() -> None:
               # a double-quoted key spelled with an escape
               ('  - "u\\x73es": {ref} # v1.2.3\n', 0),
               # an explicit key inside a flow mapping, two census hits on one line
-              ("  - {{? uses : {ref}}}\n", 0))
+              ("  - {{? uses : {ref}}}\n", 0),
+              # an explicit key flush against its `?` in a flow collection, which PyYAML
+              # reads as a key's indicator whatever follows it: after `{`, a blank, an
+              # entry's `,` or `[`, quoted, escaped or an alias, and opening a line that
+              # continues a flow mapping
+              ("  - {{?uses: {ref}}}\n", 0),
+              ("  - {{ ?uses : {ref}}}\n", 0),
+              ("  - [?uses: {ref}]\n", 0),
+              ("  - {{name: a, ?uses: {ref}}}\n", 0),
+              ('  - {{?"uses": {ref}}}\n', 0),
+              ('  - {{?"u\\x73es": {ref}}}\n', 0),
+              ("  - name: step\n    id: &k uses\n  - {{?*k : {ref}}}\n", 2),
+              ("  - {{name: step,\n    ?uses : {ref}}}\n", 1),
+              # a key on a line opening with `#` that continues a quoted scalar, and on
+              # one whose `#` follows a no-break or ideographic space, which YAML reads
+              # as content rather than a blank
+              ('  - {{name: "a\n    # b", uses: {ref}}}\n', 1),
+              ("  - {{name: x,\n  \u00a0#x, uses: {ref}}}\n", 1),
+              ("  - {{name: x,\n  \u3000#x, uses: {ref}}}\n", 1))
     refs = (f"example/action@{_K115_SHA}",   # the reviewed commit
             f"other/action@{_K115_SHA}",     # an action with no row
             f"example/action@{'f' * 40}")    # a commit the row never reviewed
@@ -800,17 +1127,29 @@ def _k115_every_uses_key_is_read_or_reported() -> None:
 
 def _k115_census_counts_the_read_key_once() -> None:
     # The controls: a key the reading took is not counted again, a flow mapping whose
-    # `uses:` opens its own line is read and held, and neither a comment nor a word
-    # ending in the key's letters is a key.
-    control = (_K115_WORKFLOW + "  # - {uses: other/action@v1}\n"
+    # `uses:` opens its own line is read and held, and neither a comment's prose nor a
+    # word ending in the key's letters is a key.
+    control = (_K115_WORKFLOW + "  # every step uses a reviewed action\n"
                "  - run: echo reuses: nothing\n")
     found = _k115({".github/workflows/a.yml": control})
-    ensure(not found, f"comments and other words are not keys: {found!r}")
+    ensure(not found, f"prose and other words are not keys: {found!r}")
+    # A comment line is read like any other, so a key's shape in one is counted, as one
+    # in a trailing comment is: the census errs toward a finding.
+    found = _k115({".github/workflows/a.yml": _K115_WORKFLOW + "  # - {uses: other/action@v1}\n"})
+    ensure(len(found) == 1 and f"a.yml:4 {_K115_UNREAD}" in found[0],
+           f"a key's shape in a comment line is counted: {found!r}")
+    # After a block indicator, a `?` flush against what follows opens a plain scalar,
+    # `?uses`, which PyYAML reads as no `uses` key.
+    found = _k115({".github/workflows/a.yml": _K115_WORKFLOW
+                   + f"  - ?uses: other/action@{_K115_SHA}\n"})
+    ensure(not found, f"a block plain scalar opening with ? is not a key: {found!r}")
     flow = (_K115_WORKFLOW + "  - {\n      name: step,\n"
             f"      uses: example/action@{'f' * 40} # v1.2.3\n    }}\n")
     found = _k115({".github/workflows/a.yml": flow})
     ensure(len(found) == 1 and "a.yml:6 runs example/action at ffffffffffff" in found[0],
            f"a read key is held against its row and not also counted unread: {found!r}")
+
+
 # K-118's fixture: a section with a paragraph, a table of five rows, and a later
 # subsection whose numerals lie outside the window. Each held release has an owner of
 # its own kind: a uv lock package, one snapshot's package, the snapshots every lock
@@ -829,7 +1168,11 @@ _K118_OWNERS = {
     "tools/uv.lock": '[[package]]\nname = "alpha"\nversion = "1.2.3"\n',
     "tools/opam/x.lock": 'opam-version: "2.0"\ninstalled: ["beta.4.5.6" "lib.2.0.0"]\n',
     "tools/opam/y.lock": 'opam-version: "2.0"\ninstalled: [\n  "lib.2.0.0"\n]\n',
-    "tools/vos/x.py": 'BETA = "7.8.9"\n'}
+    "tools/vos/x.py": 'BETA = "7.8.9"\n',
+    # a hook configuration carrying no repository, which the census reads as none, and
+    # pip constraint files carrying no pin
+    pins.HOOK_CONFIG: "repos: []\n",
+    pins.HOOK_CONSTRAINTS: "# no pin\n", pins.HOOK_BUILD_CONSTRAINTS: "# no pin\n"}
 _K118_ROWS = (
     pins.DevTool("alpha", (pins.Site("the reviewed release", rf"The reviewed `v{pins._V}` tag's",
                                      (pins.Owner("uv", "tools/uv.lock", "alpha"),)),),
@@ -976,20 +1319,31 @@ def _k118_census_reads_every_numeral() -> None:
         "the snapshots' own.", "the snapshots' own, and v8.1 before it.")})
     ensure(len(found) == 1 and "THIRD-PARTY.md:5 states v8.1 in the paragraphs" in found[0],
            f"an unread numeral in a paragraph must report on its line: {found!r}")
-    # an opam identifier's release after its name's dot, a release carrying a letter
-    # suffix and one continuing past it are each read, whole
-    for written, numeral in (("`coq-extra.6.6.6`", "6.6.6"), ("6.6.6rc1", "6.6.6rc1"),
-                             ("v6.6.6a1.dev2", "v6.6.6a1.dev2")):
+    # an opam identifier's release after its name's dot, whether the name ends in a
+    # letter or in digits a letter leads, its release led by `v` or not, one after an
+    # underscore, a release carrying a letter suffix and one continuing past it are each
+    # read, whole; a name's digits are not told from a release's, so `python3.6.6` reads
+    # 6.6, erring toward a finding, and so does `x86v6.6.6`, its `v` joined to a digit
+    # rather than to a hyphen or `+`
+    for written, numeral in (("`coq-extra.6.6.6`", "6.6.6"), ("`base64.6.6.6`", "6.6.6"),
+                             ("`x509.6.6.6`", "6.6.6"), ("`iso8601.6.6.6`", "6.6.6"),
+                             ("`sexplib0.v6.6.6`", "v6.6.6"),
+                             ("`rocq_6.6.6`", "6.6.6"), ("`python3.6.6`", "6.6"),
+                             ("`x86v6.6.6`", "6.6"),
+                             ("6.6.6rc1", "6.6.6rc1"), ("v6.6.6a1.dev2", "v6.6.6a1.dev2")):
         found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace(
             "constant 7.8.9.", f"constant 7.8.9. Bundled {written}.")})
         ensure(len(found) == 1
                and f"THIRD-PARTY.md:10 states {numeral} in beta's row, which no" in found[0],
                f"a release written as {written} must be read: {found!r}")
-    # a numeral joined to the word before it is a licence identifier's version or a
-    # tag's prefix, left to the sites
+    # a numeral joined to the word before it by a hyphen or `+`, a lone `v` or `V`
+    # between or not, is a licence identifier's version or a tag's prefix, left to the
+    # sites, and so is its continuation past its dot
     found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace(
-        "constant 7.8.9.", "constant 7.8.9. Under GPL-6.6 at tag release-6.6.")})
-    ensure(not found, f"a hyphen-joined numeral is not a release the census reads: {found!r}")
+        "constant 7.8.9.", "constant 7.8.9. Under GPL-6.6, LGPL-6.6.6 or LGPL-v6.6.6 at tag "
+                           "release-6.6.6, release-v6.6.6 or build+V6.6.6.")})
+    ensure(not found, "a numeral a hyphen or `+` joins, and its continuation, are not "
+                      f"releases the census reads: {found!r}")
     # a residue that no longer stands, or covers no numeral, suppresses nothing
     found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace("licence version 2.1",
                                                              "the licence")})
@@ -1102,6 +1456,12 @@ _K118_KINDS: dict[str, tuple[pins.Owner, dict[str, str | None], dict[str, str | 
                {"tools/vos/x.py": 'KAPPA = "1.2.3"\n'}, {"tools/vos/x.py": 'KAPPA = "1.2.4"\n'}),
     "shell": (pins.Owner("shell", "tools/x.sh", "kappa_version"),
               {"tools/x.sh": "kappa_version=1.2.3\n"}, {"tools/x.sh": "kappa_version=1.2.4\n"}),
+    # a constraints file's pin, its name spelled as pip normalizes it, with a hash line
+    "pip": (pins.Owner("pip", "tools/ci/c.txt", "kappa"),
+            {"tools/ci/c.txt": f"# the pins\nKappa==1.2.3 \\\n    --hash=sha256:{'0' * 64}\n"
+                               "other==1.2.4\n"},
+            {"tools/ci/c.txt": f"# the pins\nKappa==1.2.4 \\\n    --hash=sha256:{'0' * 64}\n"
+                               "other==1.2.4\n"}),
 }
 _K118_KAPPA = (_K118_TOOLS + "| Tool | License | Standing |\n| --- | --- | --- |\n"
                "| kappa | `MIT` | Reviewed at 1.2.3. |\n\n## Next\n")
@@ -1134,11 +1494,112 @@ def _k118_every_owner_kind_detects_drift() -> None:
     loose: tuple[tuple[str, dict[str, str | None], str], ...] = (
         ("uv-required", {"tools/pyproject.toml": '[tool.uv]\nrequired-version = ">=1.2.3"\n'},
          "is '>=1.2.3', which requires no one exact release"),
-        ("shell", {"tools/x.sh": 'kappa_version="1.2.3"\n'}, "kappa_version is stated 0 times"))
+        ("shell", {"tools/x.sh": 'kappa_version="1.2.3"\n'}, "kappa_version is stated 0 times"),
+        ("pip", {"tools/ci/c.txt": "kappa>=1.2.3\n"},
+         "tools/ci/c.txt's kappa is constrained other than to one `==` release"),
+        ("pip", {"tools/ci/c.txt": "kappa==1.2.3 ; python_version < '3.15'\n"},
+         "tools/ci/c.txt's kappa is constrained other than to one `==` release"),
+        ("pip", {"tools/ci/c.txt": "kappa==1.2.3\nKAPPA==1.2.3\n"},
+         "tools/ci/c.txt's kappa is stated 2 times"),
+        ("pip", {"tools/ci/c.txt": "# kappa==1.2.3\n"}, "tools/ci/c.txt's kappa is stated 0 times"))
     for kind, edit, fragment in loose:
         found = _k118_kappa(kind, edit)
         ensure(len(found) == 1 and fragment in found[0],
                f"an owner not stating one exact release must report ({fragment!r}): {found!r}")
+
+
+def _k118_pip_census_reads_every_pin() -> None:
+    # Each project the hook step's pip constraint files pin is one a held row reads in
+    # that file, so a pin added with no row's reading is a finding at its line, and both
+    # files are read whether or not a row holds a pin in them.
+    row = pins.DevTool("kappa", (pins.Site("the release", rf"Reviewed at {pins._V}\.", (
+        pins.Owner("pip", pins.HOOK_CONSTRAINTS, "kappa"),)),))
+
+    def run(files: dict[str, str | None]) -> tuple[list[str], list[str]]:
+        return _k118({"THIRD-PARTY.md": _K118_KAPPA,
+                      pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3\n", **files},
+                     rows=(row,), declared={}, prose=pins.DevTool("the paragraphs"))
+
+    found, out = run({})
+    ensure(not found and any("each of the 1 pins its pip constraint files carry" in line
+                             for line in out), f"a pin a held row reads agrees: {found!r}")
+    digest = f"--hash=sha256:{'0' * 64}"
+    unread: tuple[tuple[dict[str, str | None], str, str], ...] = (
+        ({pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3\nextra==1.0.0\n"},
+         f"{pins.HOOK_CONSTRAINTS}:3", "extra"),
+        ({pins.HOOK_BUILD_CONSTRAINTS: f"backend==1.0.0 \\\n    {digest}\n"},
+         f"{pins.HOOK_BUILD_CONSTRAINTS}:1", "backend"),
+        # a project a row reads in one file is not read in the other
+        ({pins.HOOK_BUILD_CONSTRAINTS: "kappa==1.2.3\n"},
+         f"{pins.HOOK_BUILD_CONSTRAINTS}:1", "kappa"),
+        # pip breaks a line wherever `str.splitlines` does, so a pin after a form feed, a
+        # vertical tab, a record separator or a next-line or line separator inside a
+        # comment is a line of its own, numbered as pip numbers it
+        *(({pins.HOOK_CONSTRAINTS: f"# the pins{brk}extra==1.0.0\nkappa==1.2.3\n"},
+           f"{pins.HOOK_CONSTRAINTS}:2", "extra")
+          for brk in ("\x0c", "\x0b", "\x1e", "\x85", "\u2028")))
+    for files, where, name in unread:
+        found, _ = run(files)
+        ensure(len(found) == 1 and f"{where} pins {name}, which no development-tools row "
+               "K-118 holds reads there" in found[0],
+               f"a pin no held row reads is one finding at its line ({files!r}): {found!r}")
+    # Every logical line, its continuations joined and its comment stripped as pip does,
+    # is one pin or a finding at its first line: an option pip follows into another file
+    # or index, a marker, extras, a URL and a looser constraint are none, and a marker
+    # continued onto the next line is the pin's line, which pip skips where it is false.
+    shapes: tuple[tuple[str, int, str], ...] = (
+        ("-c other.txt\n", 3, "-c other.txt"),
+        ("--index-url https://example.com/simple\n", 3, "--index-url https://example.com/simple"),
+        ("extra==1.0.0 ; python_version < '3.15'\n", 3, "extra==1.0.0 ; python_version"),
+        ("extra[more]==1.0.0\n", 3, "extra[more]==1.0.0"),
+        ("https://example.com/x.whl\n", 3, "https://example.com/x.whl"),
+        ("extra==1.*\n", 3, "extra==1.*"),
+        ("extra==${EXTRA}\n", 3, "extra==${EXTRA}"),
+        (f"extra==1.0.0 \\\n    {digest} \\\n    ; sys_platform == 'never'\n", 3,
+         f"extra==1.0.0     {digest}     ; sys_platform"))
+    for written, line, stated in shapes:
+        found, out = run({pins.HOOK_CONSTRAINTS: f"# the pins\nkappa==1.2.3\n{written}"})
+        ensure(len(found) == 1 and f"{pins.HOOK_CONSTRAINTS}:{line} states `{stated}" in found[0]
+               and "which K-118 does not read as one pin" in found[0]
+               and not any(item.startswith("ok K-118:") for item in out),
+               f"a logical line that is no pin is a finding at its line ({written!r}): {found!r}")
+    found, _ = run({pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3 \\\n    ; sys_platform "
+                                           "== 'never'\n"})
+    ensure(len(found) == 2 and f"{pins.HOOK_CONSTRAINTS}:2 states `kappa==1.2.3" in found[0]
+           and "kappa is constrained other than to one `==` release" in found[1],
+           f"a held pin a continued marker makes conditional is no pin: {found!r}")
+    # A line pip joins into a comment, the line before it ending in `\` after one, is no
+    # line pip reads, a stream's byte-order mark is stripped, as pip strips it, and a
+    # coding declaration naming UTF-8 changes nothing.
+    for text in ("# the pins\nkappa==1.2.3 # reviewed \\\nextra==1.0.0\n",
+                 "\ufeff# the pins\nkappa==1.2.3\n",
+                 "# -*- coding: utf-8 -*-\nkappa==1.2.3\n"):
+        found, _ = run({pins.HOOK_CONSTRAINTS: text})
+        ensure(not found, f"pip reads no other pin in {text!r}: {found!r}")
+    # A coding declaration naming another encoding is what pip decodes the file by.
+    found, out = run({pins.HOOK_CONSTRAINTS: "# -*- coding: utf-7 -*-\nkappa==1.2.3\n"})
+    ensure(any(f"{pins.HOOK_CONSTRAINTS} declares the utf-7 encoding" in item for item in found)
+           and not any(line.startswith("ok K-118:") for line in out),
+           f"a file pip decodes as another encoding is unread: {found!r}")
+    found, out = run({pins.HOOK_BUILD_CONSTRAINTS: None})
+    ensure(len(found) == 1 and f"{pins.HOOK_BUILD_CONSTRAINTS} is not in the repository"
+           in found[0] and not any(line.startswith("ok K-118:") for line in out),
+           f"an absent constraint file fails closed with no row holding it: {found!r}")
+
+
+def _k118_pip_lines_are_read_as_pip_reads_them() -> None:
+    # The constraint files are split where `str.splitlines` splits, which pip splits at.
+    breaks = "a\nb\rc\r\nd\x0be\x0cf\x1cg\x1dh\x1ei\x85j\u2028k\u2029l"
+    ensure([line for _, line in pins._pip_lines(breaks)] == breaks.splitlines(),
+           "every break str.splitlines takes is a break to the reading")
+    # A continuation keeps the number of its first line, its backslashes stripped at both
+    # ends; a comment line ends it and carries its comment, which is then stripped.
+    joined = pins._pip_lines("a==1 \\\n\\  --x \\\n# c\nb==2\n")
+    ensure(joined == [(1, "a==1   --x"), (4, "b==2")],
+           f"continuations join as pip joins them: {joined!r}")
+    stripped = pins._pip_lines("a==1\xa0# c\n  # d\n")
+    ensure(stripped == [(1, "a==1")],
+           f"a `#` after any whitespace Python's `\\s` takes opens pip's comment: {stripped!r}")
 
 
 def _k118_a_row_named_by_its_release_stays_one_row() -> None:
@@ -1212,13 +1673,170 @@ def _k118_hook_revisions_are_held() -> None:
          f"{owner}'s repository is stated 2 times"),
         (_K118_HOOKS.replace("    hooks:\n      - id: first\n",
                              f"    rev: {'a' * 40}\n    hooks:\n"), f"{owner} states its rev 2 times"),
-        (_K118_HOOKS.replace(" # frozen: v1.0.0", " # a comment"), f"{owner} states its rev 0 times"))
+        (_K118_HOOKS.replace(" # frozen: v1.0.0", " # a comment"),
+         f"{owner} states its rev as `rev: {'a' * 40} # a comment`, which is not"))
     for config, fragment in unreadable:
         found, out = _k118_hook(config)
         ensure(any(fragment in item for item in found),
                f"an unreadable hook configuration must report ({fragment!r}): {found!r}")
         ensure(not any(line.startswith("ok K-118:") for line in out),
                "fail-closed: no ok line stands beside an unread hook configuration")
+    # A next-line, line or paragraph separator breaks a line to YAML, so a second rev
+    # for the entry or a second entry for the repository after one, each of which YAML
+    # loads, the rev it keeps being the last, is stated a second time to the reading too.
+    for brk in ("\x85", "\u2028", "\u2029"):
+        second_rev = f"      - id: first{brk}    rev: {'d' * 40}\n"
+        second_entry = (f"      - id: second{brk}  - repo: https://github.com/example/hooks\n"
+                        "    rev: v0.0.1\n    hooks: []\n")
+        for config, fragment in (
+                (_K118_HOOKS.replace("      - id: first\n", second_rev),
+                 f"{owner} states its rev 2 times"),
+                (_K118_HOOKS.replace("      - id: second\n", second_entry),
+                 f"{owner}'s repository is stated 2 times")):
+            found, _ = _k118_hook(config)
+            ensure(len(found) == 1 and fragment in found[0],
+                   f"a {brk!r} breaks the line the reading reads ({fragment!r}): {found!r}")
+
+
+_K118_HOOK_UNREAD = "states a hook repository's `repo` or `rev` key in a form K-118 does not read"
+
+
+def _k118_hook_census_reads_every_entry() -> None:
+    # Every repository entry the configuration carries is read at its line, so code
+    # pre-commit installs from a repository no row names is a finding however it is
+    # pinned, and the configuration is read with no hook row to hold as well.
+    _, out = _k118_hook()
+    ensure(any("each of the 2 repository entries" in line for line in out),
+           f"the ok line counts the entries the census read: {out!r}")
+    found, out = _k118({pins.HOOK_CONFIG: None})
+    ensure(len(found) == 1 and f"{pins.HOOK_CONFIG} is not in the repository" in found[0]
+           and not any(line.startswith("ok K-118:") for line in out),
+           f"an absent configuration fails closed with no hook row: {found!r}")
+    extra = ("  - repo: https://github.com/example/extra\n"
+             f"    rev: {'d' * 40} # frozen: v3.0.0\n    hooks:\n      - id: third\n")
+    where = f"{pins.HOOK_CONFIG}:10"
+    found, _ = _k118_hook(_K118_HOOKS + extra)
+    ensure(len(found) == 1 and f"{where} runs hooks from https://github.com/example/extra, "
+           "which no development-tools row K-118 holds names" in found[0]
+           and ", at `" not in found[0], f"an entry no row names is one finding: {found!r}")
+    for old, new, rev in ((f"{'d' * 40} # frozen: v3.0.0", "v3.0.0", "v3.0.0"),
+                          (" # frozen: v3.0.0", "", "d" * 40)):
+        found, _ = _k118_hook(_K118_HOOKS + extra.replace(old, new))
+        ensure(len(found) == 1 and "https://github.com/example/extra" in found[0]
+               and f", at `{rev}`, which is not a full commit with the `# frozen:` tag"
+               in found[0], f"an unnamed entry's movable rev is in its finding: {found!r}")
+    # pre-commit's own meta hooks need no row; a local repository runs code none reviews
+    found, out = _k118_hook(_K118_HOOKS + "  - repo: meta\n    hooks:\n"
+                            "      - id: check-useless-excludes\n")
+    ensure(not found and any("each of the 3 repository entries" in line for line in out),
+           f"a meta entry is read and needs no row: {found!r}")
+    found, _ = _k118_hook(_K118_HOOKS + "  - repo: local\n    hooks:\n      - id: mine\n"
+                          "        entry: mine\n        language: system\n")
+    ensure(len(found) == 1 and f"{where} is a local hook repository" in found[0],
+           f"a local entry is a finding: {found!r}")
+    # an entry in a shape the reading does not take is a finding at each line holding a
+    # key it did not take, whatever the entry names
+    for written, lines in ((f"  - {{repo: https://github.com/example/flow, rev: {'e' * 40}}}\n",
+                            (10,)),
+                           ('  - "repo": https://github.com/example/quoted\n', (10,)),
+                           ("  - &k repo: https://github.com/example/anchored\n", (10,)),
+                           (f"  - rev: {'e' * 40}\n    repo: https://github.com/example/late\n",
+                            (10, 11)),
+                           # PyYAML and libyaml read every `?` inside a flow collection as a
+                           # key's indicator whatever follows it, so a `?` flush against its
+                           # key after `{`, `,` or `[`, or opening its line, is counted
+                           (f"  - {{?repo: https://github.com/example/flush, ?rev: {'e' * 40}, "
+                            "hooks: [{?id: x}]}\n", (10,)),
+                           ("  - {\n    ?repo: https://github.com/example/opening,\n"
+                            f"    ?rev: {'e' * 40}}}\n", (11, 12))):
+        found, _ = _k118_hook(_K118_HOOKS + written)
+        ensure(len(found) == len(lines) and all(
+            f"{pins.HOOK_CONFIG}:{line} states a hook repository's `repo` or `rev` key in a "
+            "form K-118 does not read" in item for line, item in zip(lines, found, strict=True)),
+               f"an entry K-118 cannot read is a finding at its line ({written!r}): {found!r}")
+    # after a block indicator, a `?` flush against what follows it opens a plain scalar
+    found, _ = _k118_hook(_K118_HOOKS.replace("      - id: first\n",
+                                              "      - id: first\n        args:\n          - ?x\n"))
+    ensure(not found, f"a block sequence's `?x` item is no key: {found!r}")
+    # A `#` after a no-break or ideographic space opens no comment, YAML's blanks being
+    # the space and the tab alone: the line is a key, so an entry anchored there and
+    # aliased into `repos` is read at that line rather than passed over as a comment.
+    for space in ("\u00a0", "\u3000"):
+        anchored = f"{space}#x: &e {{repo: https://github.com/example/evil, rev: v1}}\n"
+        found, _ = _k118_hook(anchored + _K118_HOOKS + "  - *e\n")
+        ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:1 {_K118_HOOK_UNREAD}" in found[0],
+               f"a key after a {space!r} and a `#` is read at its line: {found!r}")
+    # A line opening with `#` may continue a hook's quoted name opened on the line
+    # before, the scalar closing there and the line going on to carry the entry's keys,
+    # which YAML loads as an entry: the line is read rather than passed over as a comment.
+    for quote in ('"', "'"):
+        written = (f"  - {{hooks: [{{id: evil, name: {quote}the hook\n    # reviewed{quote}}}], "
+                   "repo: https://github.com/example/evil, rev: v1}\n")
+        found, _ = _k118_hook(_K118_HOOKS + written)
+        ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:11 {_K118_HOOK_UNREAD}" in found[0],
+               f"keys after a quoted scalar closed on a `#` line are read there: {found!r}")
+    # libyaml, whose loader pre-commit takes, skips a byte-order mark opening any line,
+    # so a key, or a `?` and its key, flush against one is read at that line.
+    written = ("  - {hooks: [{id: evil}],\n\ufeffrepo: https://github.com/example/evil,\n"
+               "\ufeff?rev: v1}\n")
+    found, _ = _k118_hook(_K118_HOOKS + written)
+    ensure(len(found) == 2 and all(f"{pins.HOOK_CONFIG}:{line} {_K118_HOOK_UNREAD}" in item
+                                   for line, item in zip((11, 12), found, strict=True)),
+           f"a key after a line-opening byte-order mark is read at its line: {found!r}")
+
+
+def _k118_hook_rev_is_read_at_its_entry_column() -> None:
+    # An entry's rev is the `rev` key at its `repo` key's column, read whole as
+    # `rev: <value>` with at most its `# frozen:` tag. A rev there carrying another
+    # comment, a tag or an anchor is unread, and a line of the row's commit and tag
+    # standing deeper, as a hook's key or a block scalar's text, is not the entry's rev
+    # though YAML loads the entry with the moved one: each is a finding at its line, and
+    # the entry's owner fixes no revision rather than the stand-in's.
+    owner = f"{pins.HOOK_CONFIG}'s https://github.com/example/hooks"
+    entry = f"    rev: {'a' * 40} # frozen: v1.0.0\n    hooks:\n      - id: first\n"
+    reviewed = f"rev: {'a' * 40} # frozen: v1.0.0"
+    moved = "    rev: v9.9.9 # moved\n    hooks:\n      - id: first\n"
+    for written, lines, stated in (
+            (entry.replace("frozen: v1.0.0", "pinned"), (3,), f"rev: {'a' * 40} # pinned"),
+            (entry.replace("rev: ", "rev: !!str "), (3,), f"rev: !!str {reviewed[5:]}"),
+            (entry.replace("rev: ", "rev: &r "), (3,), f"rev: &r {reviewed[5:]}"),
+            (f"{moved}        {reviewed}\n", (3, 6), "rev: v9.9.9 # moved"),
+            (f"{moved}        description: |\n          {reviewed}\n", (3, 7),
+             "rev: v9.9.9 # moved")):
+        found, out = _k118_hook(_K118_HOOKS.replace(entry, written))
+        ensure(len(found) == len(lines) + 1 and all(
+            f"{pins.HOOK_CONFIG}:{line} {_K118_HOOK_UNREAD}" in item
+            for line, item in zip(lines, found, strict=False))
+               and f"{owner} states its rev as `{stated}`, which is not" in found[-1]
+               and not any(line.startswith("ok K-118:") for line in out),
+               f"a rev K-118 does not read at its entry's column is reported ({written!r}): "
+               f"{found!r}")
+    # A comment line stating a rev under the entry is read too, a line opening with `#`
+    # possibly continuing a quoted scalar, so the census errs toward a finding at it,
+    # while the entry's own rev is still the one read at its column.
+    found, _ = _k118_hook(_K118_HOOKS.replace(entry, f"{entry}        # rev: v0.0.1\n"))
+    ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:6 {_K118_HOOK_UNREAD}" in found[0],
+           f"a comment stating a rev is a finding at its line, not the entry's rev: {found!r}")
+    # The reading holds a rev line at the entry's column even inside a flow sequence,
+    # where it is no key of the entry, so a merge key, or a key a tag makes one, can
+    # supply the rev YAML loads from a mapping anchored inside a `meta` entry, which no
+    # reading holds: each is a finding at its line, and so is a directive, the
+    # configuration needing none of them, while a `%` or a `!` inside a value is not.
+    meta = (f"  - repo: meta\n    x: &m {{\n    rev: {'d' * 40}\n    }}\n"
+            "    hooks: [{id: check-useless-excludes}]\n")
+    staged = _K118_HOOKS.replace("repos:\n", f"repos:\n{meta}")
+    for merge in ("<<: *m", "!!merge y: *m"):
+        decoy = f"    {merge}\n    x: [\n    {reviewed}\n    ]\n    hooks:\n      - id: first\n"
+        found, _ = _k118_hook(staged.replace(entry, decoy))
+        ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:8 {_K118_HOOK_UNREAD}" in found[0],
+               f"a merge staging the rev YAML loads is a finding at its line ({merge!r}): "
+               f"{found!r}")
+    for prefix in ("%YAML 1.1\n---\n", "\ufeff%YAML 1.1\n---\n"):
+        found, _ = _k118_hook(prefix + _K118_HOOKS)
+        ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:1 {_K118_HOOK_UNREAD}" in found[0],
+               f"a directive is a finding at its line ({prefix!r}): {found!r}")
+    found, _ = _k118_hook(_K118_HOOKS.replace(entry, f"{entry}        args: [--x=%s, y!]\n"))
+    ensure(not found, f"a `%` or a `!` inside a value is no directive or tag: {found!r}")
 
 
 def _k118_shipped_readings_are_declared() -> None:
@@ -1262,6 +1880,25 @@ def _k116_consumed_bindings_are_held_whole_and_fail_closed() -> None:
     # row; holding it here too would price one moved gitlink as two findings.
     ensure(all(file not in generated.paths() for _, file, _, _ in pins.BINDINGS),
            "K-116 holds no binding inside an artifact K-88 already holds")
+
+
+def _k116_moved_gitlink_is_quoted_apart_from_its_binding() -> None:
+    # A binding off its gitlink is quoted beside it at twelve digits, or as far as the
+    # two must run to differ, so a gitlink sharing the binding's first twelve digits and
+    # differing in its last prints two distinct ids.
+    core = _K115_SHA
+    registry = json.dumps({"schema": "vos.rtl-width-transforms/1", "pin": core})
+    last = f"{core[:-1]}8"
+    middle = f"{core[:19]}f{core[20:]}"
+    for moved, stated, carried in (
+            (last, core, last),
+            (middle, core[:20], middle[:20]),
+            ("f" * 40, "0123456789ab", "ffffffffffff")):
+        found = _k116({rtl_width.REGISTRY: registry}, {rtl_width.CORE: moved})
+        quoted = (f"width-transform registry pin is {stated} and the index carries "
+                  f"{rtl_width.CORE} at {carried};")
+        ensure(len(found) == 1 and quoted in found[0],
+               f"a moved gitlink is quoted apart from its binding ({quoted}): {found!r}")
 
 
 def _k88_device_regs(files: dict[str, str], gitlinks: dict[str, str],
@@ -1331,6 +1968,25 @@ def _k88_device_register_stamp_is_held_whole_and_fail_closed() -> None:
         found = _k88_device_regs(changed, gitlinks, edit)
         ensure(len(found) == 1 and needle in found[0],
                f"each broken reading is one finding naming it: {found!r}")
+
+
+def _k88_device_register_moved_gitlink_is_quoted_apart_from_its_stamp() -> None:
+    # The stamp off its gitlink is quoted beside it at twelve digits, or as far as the
+    # two must run to differ, so a gitlink sharing the stamp's first twelve digits and
+    # differing in its last prints two distinct ids.
+    mocha = _K115_SHA
+    files = {**_K88_OWNERS, device_regs.ARTIFACT: _k88_device_header(mocha)}
+    last = f"{mocha[:-1]}8"
+    middle = f"{mocha[:19]}f{mocha[20:]}"
+    for moved, stated, carried in (
+            (last, mocha, last),
+            (middle, mocha[:20], middle[:20]),
+            ("f" * 40, "0123456789ab", "ffffffffffff")):
+        found = _k88_device_regs(files, {device_regs.UPSTREAM: moved})
+        quoted = (f"{device_regs.ARTIFACT} records its owners at {stated} and the index "
+                  f"carries {device_regs.UPSTREAM} at {carried};")
+        ensure(len(found) == 1 and quoted in found[0],
+               f"a moved gitlink is quoted apart from the stamp ({quoted}): {found!r}")
 
 
 def _k88_device_register_is_decided_on_the_host_but_its_uart_values() -> None:
@@ -1439,6 +2095,27 @@ def _k81_historical_residue_cannot_exempt_table() -> None:
            f"the current table is unconditionally held against the index: {found!r}")
     ensure(any("no site outside the pin table states it" in item for item in found),
            f"a table row cannot exercise a historical exception: {found!r}")
+
+
+def _k81_moved_gitlink_is_quoted_apart_from_its_row() -> None:
+    # A row's id off its gitlink is quoted whole, as the record spells it, and the gitlink
+    # beside it at twelve digits or as far as the two must run to differ, so an id longer
+    # than twelve digits differing only in its last prints two distinct ids rather than a
+    # twelve-digit prefix of itself, and one differing before its twelfth digit is not
+    # cut. An id the gitlink starts with, at any length, is the pin and no finding.
+    gitlink = "1234abcd" + "0" * 32
+    ensure(not _findings_under(_k81({}, {}, table_id=gitlink[:14]), "K-81"),
+           "a fourteen-digit id the gitlink starts with is the pin")
+    for table_id, stated, carried in (
+            ("1234abcd000001", "1234abcd000001", "1234abcd000000"),
+            (f"{gitlink[:-1]}1", f"{gitlink[:-1]}1", gitlink),
+            ("1234abce", "1234abce", "1234abcd0000"),
+            ("1234abce000000", "1234abce000000", "1234abcd0000")):
+        found = _findings_under(_k81({}, {}, table_id=table_id), "K-81")
+        quoted = (f"THIRD-PARTY.md:7 pins upstream/example-core at {stated} and the index "
+                  f"carries it at {carried};")
+        ensure(len(found) == 1 and quoted in found[0],
+               f"a moved gitlink is quoted apart from its row ({quoted}): {found!r}")
 
 
 def _k81_generated_device_package_is_outside_the_window() -> None:
@@ -1692,11 +2369,19 @@ def cases() -> list[Case]:
         Case("k119-unreadable-class-sentences-fail-closed",
              _k119_unreadable_class_sentences_fail_closed),
         Case("k119-every-class-lead-is-read", _k119_every_class_lead_is_read),
+        Case("k119-every-membership-sentence-is-read",
+             _k119_every_membership_sentence_is_read),
         Case("k97-reviewed-pin-is-required-without-prose-copies",
              _k97_reviewed_pin_is_required_without_prose_copies),
         Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),
         Case("k115-moved-or-movable-references-fail", _k115_moved_or_movable_references_fail),
+        Case("k115-moved-reference-is-quoted-apart-from-its-row",
+             _k115_moved_reference_is_quoted_apart_from_its_row),
         Case("k115-membership-is-held-both-ways", _k115_membership_is_held_both_ways),
+        Case("k115-licence-link-names-the-reviewed-commit",
+             _k115_licence_link_names_the_reviewed_commit),
+        Case("k115-destination-and-autolink-keep-their-revision",
+             _k115_destination_and_autolink_keep_their_revision),
         Case("k115-leaves-the-analyzer-rows-to-k118", _k115_leaves_the_analyzer_rows_to_k118),
         Case("k115-unreadable-readings-fail-closed", _k115_unreadable_readings_fail_closed),
         Case("k115-every-uses-key-is-read-or-reported", _k115_every_uses_key_is_read_or_reported),
@@ -1710,21 +2395,33 @@ def cases() -> list[Case]:
         Case("k118-each-tag-is-read-or-reported", _k118_each_tag_is_read_or_reported),
         Case("k118-declarations-are-held", _k118_declarations_are_held),
         Case("k118-every-owner-kind-detects-drift", _k118_every_owner_kind_detects_drift),
+        Case("k118-pip-census-reads-every-pin", _k118_pip_census_reads_every_pin),
+        Case("k118-pip-lines-are-read-as-pip-reads-them",
+             _k118_pip_lines_are_read_as_pip_reads_them),
         Case("k118-a-row-named-by-its-release-stays-one-row",
              _k118_a_row_named_by_its_release_stays_one_row),
         Case("k118-hook-revisions-are-held", _k118_hook_revisions_are_held),
+        Case("k118-hook-census-reads-every-entry", _k118_hook_census_reads_every_entry),
+        Case("k118-hook-rev-is-read-at-its-entry-column",
+             _k118_hook_rev_is_read_at_its_entry_column),
         Case("k118-shipped-readings-are-declared", _k118_shipped_readings_are_declared),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),
         Case("k81-unused-historical-residue-fails", _k81_unused_historical_residue_fails),
         Case("k81-historical-residue-cannot-exempt-table",
              _k81_historical_residue_cannot_exempt_table),
         Case("k81-historical-residue-requires-reason", _k81_historical_residue_requires_reason),
+        Case("k81-moved-gitlink-is-quoted-apart-from-its-row",
+             _k81_moved_gitlink_is_quoted_apart_from_its_row),
         Case("k81-generated-device-package-is-outside-the-window",
              _k81_generated_device_package_is_outside_the_window),
         Case("k116-consumed-bindings-are-held-whole-and-fail-closed",
              _k116_consumed_bindings_are_held_whole_and_fail_closed),
+        Case("k116-moved-gitlink-is-quoted-apart-from-its-binding",
+             _k116_moved_gitlink_is_quoted_apart_from_its_binding),
         Case("k88-device-register-stamp-is-held-whole-and-fail-closed",
              _k88_device_register_stamp_is_held_whole_and_fail_closed),
+        Case("k88-device-register-moved-gitlink-is-quoted-apart-from-its-stamp",
+             _k88_device_register_moved_gitlink_is_quoted_apart_from_its_stamp),
         Case("k88-device-register-is-decided-on-the-host-but-its-uart-values",
              _k88_device_register_is_decided_on_the_host_but_its_uart_values),
         Case("k88-foreign-library-is-a-finding", _k88_foreign_library_is_a_finding),

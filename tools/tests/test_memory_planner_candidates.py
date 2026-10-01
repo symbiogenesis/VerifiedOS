@@ -8,6 +8,8 @@ import json
 import subprocess
 import tarfile
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager, nullcontext, redirect_stdout
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -176,19 +178,97 @@ def rust_component_digest_mismatch_is_refused() -> None:
         ensure(not list((output / "rust-dist").glob("*.tar.xz*")), "a mismatched archive was kept")
 
 
-def setup_failure_preserves_cli_baseline() -> None:
+def _plan_arguments(output: Path) -> tuple[argparse.Namespace, planner.Placement]:
+    """A `plan` invocation over the fixture model and its separate baseline."""
     instance = model()
     baseline = candidates.separate_baseline(instance)
+    source, standing = output / "instance.json", output / "baseline.json"
+    source.write_text(json.dumps(asdict(instance)), encoding="utf-8")
+    standing.write_text(json.dumps(baseline), encoding="utf-8")
+    return argparse.Namespace(action="plan", instance=source, baseline=standing, timeout=30, iterations=1), baseline
+
+
+def setup_failure_preserves_cli_baseline() -> None:
     with tempfile.TemporaryDirectory() as temporary:
         output = Path(temporary)
-        source, standing = output / "instance.json", output / "baseline.json"
-        source.write_text(json.dumps(asdict(instance)), encoding="utf-8")
-        standing.write_text(json.dumps(baseline), encoding="utf-8")
-        args = argparse.Namespace(action="plan", instance=source, baseline=standing, timeout=30, iterations=1)
-        with patch.object(candidates, "build_idealloc", side_effect=ValueError("fixture setup failure")):
-            result = cli.run(args, Path(__file__).resolve().parents[2], output)
+        args, baseline = _plan_arguments(output)
+        with (patch.object(candidates, "native_output", side_effect=lambda _, path: path),
+              patch.object(candidates.env, "hold_lock", return_value=nullcontext()),
+              patch.object(candidates, "build_idealloc", side_effect=ValueError("fixture setup failure"))):
+            result = cli.run(args, TOOLS.parent, output)
         ensure(result["placement"] == baseline, "optional setup failure lost checked CLI baseline")
         ensure(result["candidate"]["reason"] == "fixture setup failure", "setup failure diagnostic lost")
+        recorded = json.loads((output / "latest-evidence.json").read_text(encoding="utf-8"))
+        ensure(recorded["placement"] == baseline and recorded["candidate"] == result["candidate"],
+               "a run holding its output's lock records its result")
+
+
+def lock_spans_build_search_and_evidence() -> None:
+    """The lock a lane retirement takes is taken once and held from the build through
+    the candidate search and the evidence write. A stand-in records it, since a
+    Windows host has no `flock`."""
+    with tempfile.TemporaryDirectory() as temporary:
+        output = Path(temporary)
+        args, baseline = _plan_arguments(output)
+        events: list[str] = []
+
+        @contextmanager
+        def held(target: Path, what: str) -> Iterator[None]:
+            events.append(f"{what} holds {target.name}")
+            try:
+                yield
+            finally:
+                recorded = (output / "latest-evidence.json").is_file()
+                events.append(f"released {'after' if recorded else 'before'} the evidence")
+
+        def build(*_: object) -> dict[str, str]:
+            events.append("build")
+            return {"executable": str(output / "fixture-binary"), "executable_sha256": "0" * 64}
+
+        def search(self: candidates.IdeallocCandidate, instance: planner.Instance) -> planner.Placement:
+            events.append("search")
+            self.last_evidence = {"status": "fixture"}
+            return candidates.separate_baseline(instance)
+
+        with (patch.object(candidates, "native_output", side_effect=lambda _, path: path),
+              patch.object(candidates.env, "hold_lock", side_effect=held) as lock,
+              patch.object(candidates, "build_idealloc", side_effect=build),
+              patch.object(candidates.IdeallocCandidate, "__call__", search)):
+            result = cli.run(args, TOOLS.parent, output)
+        ensure(result["placement"] == baseline and result["candidate"] == {"status": "fixture"},
+               f"precondition: the stand-in search ran, got {result.get('candidate')}")
+        ensure(lock.call_count == 1 and events == [
+            f"an idealloc candidate run holds {output.name}", "build", "search", "released after the evidence"],
+            f"the run holds its output's lock once, across build, search and evidence, got {events}")
+
+
+_HOLDER = "an idealloc candidate run already holds /root/build/memory-planner-idealloc (pid 4242)"
+
+
+def held_output_retains_cli_baseline() -> None:
+    """`env.hold_lock` refuses a held lock with `SystemExit`: a `plan` keeps its checked
+    baseline, naming the holder and recording nothing in the held directory, and a
+    `demo` fails as the command's own JSON verdict."""
+    with tempfile.TemporaryDirectory() as temporary:
+        output = Path(temporary)
+        args, baseline = _plan_arguments(output)
+        with (patch.object(candidates, "native_output", side_effect=lambda _, path: path),
+              patch.object(candidates.env, "hold_lock", side_effect=SystemExit(_HOLDER)),
+              patch.object(candidates, "build_idealloc") as build):
+            result = cli.run(args, TOOLS.parent, output)
+            ensure(result["placement"] == baseline and result["candidate"]["status"] == "rejected/unsupported"
+                   and "(pid 4242)" in result["candidate"]["reason"],
+                   f"a held output retains the checked baseline, naming its holder, got {result.get('candidate')}")
+            ensure(not build.called and not (output / "latest-evidence.json").exists(),
+                   "a run refused the lock neither builds nor records evidence")
+            with (patch.object(cli, "find_root", return_value=TOOLS.parent),
+                  patch.object(cli.env, "lane_of", return_value="worker"),
+                  patch.object(cli.env, "lane_root", return_value=output),
+                  redirect_stdout(io.StringIO()) as printed):
+                status = cli.main(["demo", "--json"])
+        verdict = json.loads(printed.getvalue())
+        ensure(status == 1 and verdict["status"] == "failed" and "(pid 4242)" in verdict["reason"],
+               f"a held output fails the demo as its JSON verdict, got {status}, {verdict}")
 
 
 def cases() -> list[Case]:
@@ -201,4 +281,6 @@ def cases() -> list[Case]:
             Case("dependency archive and unpacked-source tampering refused", dependency_archive_and_source_identity),
             Case("idealloc pin manifest schema leaves Rust to its owner", pin_manifest_schema_is_current),
             Case("Rust component digest mismatch refused before install", rust_component_digest_mismatch_is_refused),
-            Case("optional setup failure preserves CLI baseline", setup_failure_preserves_cli_baseline)]
+            Case("optional setup failure preserves CLI baseline", setup_failure_preserves_cli_baseline),
+            Case("output lock spans build, search and evidence", lock_spans_build_search_and_evidence),
+            Case("held output lock preserves CLI baseline", held_output_retains_cli_baseline)]

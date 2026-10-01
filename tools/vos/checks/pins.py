@@ -157,49 +157,77 @@ runs with, and the record's development-tools table carries one row per action
 stating the release and the full commit its terms were read at. A tag moves under that
 row without any file here changing, so the rule first holds each line to the one form
 that cannot move, `owner/repo[/path]@<40 hex digits> # vX.Y.Z`, and then holds its
-commit and release to the action's own row. Membership is total in both directions: a
-line naming an action with no row runs code whose terms nobody read, and a row naming
-an action no workflow runs is a review of nothing. The two workflow analyzers Host CI
-runs are installed from a lock and a script rather than named by a workflow line, so
-K-118 holds their rows with the rest of the section's.
+commit and release to the action's own row. The row's licence link names the edition
+its terms were read at, so the row links a file of the action's own repository, a
+`blob`, `tree`, `blame` or `raw` path on github.com or a path on
+raw.githubusercontent.com, its owner and name in any case, and every such link is held
+to name the reviewed commit, never another commit, a tag or a branch that could move
+under it. A `/`, `?` or `#` ends the revision. A Markdown link's destination,
+angle-bracketed or not, and an autolink keep every other character up to the bracket
+closing them, as GFM does, so where the link opens one of them its revision runs to a
+blank, which no ref name holds, or to that bracket, a destination's `)` or an angle
+bracket's `>`: the reviewed commit followed there by `_`, a quote or a bracket that
+does not close the link, any of which a ref name may hold, names another ref and is a
+finding, and one followed by a full stop, which no ref name ends with, is a finding
+too, which errs closed. Only a bare link, from whose end GFM strips trailing
+punctuation, also ends before a run of sentence punctuation or Markdown delimiters,
+`.`, `,`, `:`, `;`, `!`, `*`, `_`, `~`, a backtick, a quote or a pipe, standing just
+before its close at a blank, `)`, `]`, `>` or the row's end, so a bare link ending a
+sentence is read at its revision and a tag keeps its interior dots. A view naming no
+path after its revision, or only slashes and a closing run of that punctuation, as the
+tree at a commit does, is held to the reviewed commit too but links no file, so it
+does not stand for the licence link. Membership is total
+in both directions: a line naming an action with no row runs code whose terms nobody
+read, and a row naming an action no workflow runs is a review of nothing. The two
+workflow analyzers Host CI runs are installed from a lock and a script rather than
+named by a workflow line, so K-118 holds their rows with the rest of the section's.
 
 **The window is the git index's workflow directory**, every tracked `.yml` or `.yaml`
 file under `.github/workflows/`, and each reading fails closed: no workflow, no
 `uses:` line at all, a record without its development-tools heading or with no action
-row under it, and a row stating its reviewed revision other than exactly once are each
-a finding rather than an agreement over nothing. That is why it owes the floors group
-no member. **The reading takes one shape and a census holds it to the rest**: a
-reference is read only as a block mapping's bare `uses:` key opening its line, alone or
-after a sequence dash, while YAML also lets that key be quoted, tagged, anchored,
-written in a flow collection, spelled with an escape, reached through an alias or
-opened by an explicit `?` indicator. So the census splits each file at every YAML line
-break, 1.1's included, and on each non-comment line counts a `uses` key, bare or
-quoted, followed by its `:`; a double-quoted key holding an escape and an alias used as
-a key, whatever they spell; and every explicit-key `?` indicator, whatever key it
-opens. A line carrying any of them other than the key the reading took is one finding
-naming that line; otherwise a reference in another shape would run code the rule
-reported agreement about without having read it. The census errs toward a finding,
-counting a key inside a trailing comment or a block scalar's text and an escaped, alias
-or explicit key that names something else. The one shape it does not count is a flow
-mapping's key whose `:` stands on a later line, which the YAML 1.2.2 grammar admits and
-PyYAML refuses. While a reference stands unread, a row is not also reported as run by
-nothing, the unread line being what may run it. What it does not decide is whether the
-commit is the release the comment names; the row's reviewer read that, and zizmor's
-online audits are the instrument that asks GitHub. **Reported and never repaired**, on
-K-97's ground: moving a row's commit would claim a licence reading nobody took.
+row under it, and a row stating its reviewed revision other than exactly once or
+linking no file of its action's repository are each a finding rather than an
+agreement over nothing. That is why it owes the floors group no member. **The reading
+takes one shape and a census holds it to the rest**: a reference is read only as a
+block mapping's bare `uses:` key opening its line, alone or after a sequence dash,
+while YAML also lets that key be quoted, tagged, anchored, written in a flow collection,
+spelled with an escape, reached through an alias or opened by an explicit `?`
+indicator. So the census splits each file at every YAML line break, 1.1's included,
+and on every line counts a `uses` key, bare or quoted, followed by its `:`; a
+double-quoted key holding an escape and an alias used as a key, whatever
+they spell; and every explicit-key `?` indicator, whatever key it opens. A comment's
+line is read too, since a line opening with `#` may continue a quoted scalar and a `#`
+after a no-break space, which YAML reads as content, opens no comment at all.
+PyYAML reads every `?` inside a flow collection as a key's indicator, whatever
+follows it, and a line does not say whether it stands in one, so a `?` opening its line
+after indentation alone or following `{`, `,` or `[` is counted whatever follows it,
+while one after a block indicator and a blank is counted only before a blank, as a
+block key's indicator is. A line carrying any of them other than the key the reading
+took is one finding naming that line; otherwise a reference in another shape would run
+code the rule reported agreement about without having read it. The census errs toward
+a finding, counting a key or a `?` inside a comment or a scalar's text, and an
+escaped, alias or explicit key that names something else. The one shape it does not
+count is a flow mapping's key whose `:` stands on a later line, which the YAML 1.2.2
+grammar admits and PyYAML refuses. While a reference stands unread, a row is not also
+reported as run by nothing, the unread line being what may run it. What it does not
+decide is whether the commit is the release the comment names; the row's reviewer read
+that, and zizmor's online audits are the instrument that asks GitHub.
+**Reported and never repaired**, on K-97's ground: moving a row's commit would claim a
+licence reading nobody took.
 
 K-116 is the third kind: **a commit a tool consumes rather than a sentence restates.**
 The width-transform registry binds the imported core's gitlink it was derived through,
 and K-81 does not read that binding, the registry's `"pin"` naming no upstream on its
 line. `rtl_width.stage` compares it with the populated imported core only when a guest
-elaboration runs, which no hosted gate does, so a gitlink moved without re-deriving the
-registry passed every hosted gate. This rule holds the recorded commit, whole, against
-the index's gitlink, which every checkout carries populated or not. The device-register
-package's recorded Mocha revision is the same kind of binding inside a generated
-artifact, so K-88's row for that package holds it, and the row keeps the package out of
-K-81's window. **The sites are enumerated in code and read fail-closed**: an artifact
-missing from the index, a record its owner's own reader refuses, and a gitlink the
-index does not carry are each a finding, so the rule owes the floors group no member.
+elaboration runs, which no hosted gate does, so without this rule a gitlink moved
+without re-deriving the registry passes every hosted gate. This rule holds the recorded
+commit, whole, against the index's gitlink, which every checkout carries populated or
+not. The device-register package's recorded Mocha revision is the same kind of binding
+inside a generated artifact, so K-88's row for that package holds it, and the row keeps
+the package out of K-81's window.
+**The sites are enumerated in code and read fail-closed**: an artifact missing from the
+index, a record its owner's own reader refuses, and a gitlink the index does not carry
+are each a finding, so the rule owes the floors group no member.
 **Reported and never repaired**: the repair re-derives the registry's source identities
 from a checkout at the gitlink and is never a token substitution.
 
@@ -212,8 +240,11 @@ setting where a tool installs its own release, [actionlint.sh](../../ci/actionli
 among them for the workflow linter Host CI runs, and the model's
 [hook configuration](../../../model/.pre-commit-config.yaml) for the hook
 repositories pre-commit installs, whose rows it holds to each rev's commit as well as
-to the release its `# frozen:` comment names. A dependency bump moves the owner and
-leaves the row, so a row names a release its owner has left unless something holds it.
+to the release its `# frozen:` comment names, and whose every entry it censuses, beside
+the [pip constraint files](../../ci/model-hooks-constraints.txt) Host CI's Model hooks
+step names for the PyPI packages pip installs beside those hooks and builds them with. A
+dependency bump moves the owner and leaves the row, so a row names a release its owner
+has left unless something holds it.
 
 **The rows are a table this rule declares, held total in both directions.** A row is
 either held here, site by site, or declared with why nothing here holds it. A site is a
@@ -238,20 +269,73 @@ residue that no longer stands or covers no numeral is a finding. A residue whose
 release no exported snapshot fixes yet names that owner, as its declared row does, and
 becomes a finding the day the index carries it. The window ends at the next heading, so
 the inference benchmark's subsection, the dependency review of a measured run, is
-outside it. A release is read whole, an opam identifier's after its name's dot and with
-any letter, `~`, `+` or dotted suffix it carries; a numeral joined to the word before
-it by a hyphen, a letter or `+`, as a licence identifier's version or a tag's prefix
-is, is not read by the census, and the sites read such a tag where it states a release.
+outside it. A release is read whole, with any letter, `~`, `+` or dotted suffix it
+carries, an opam identifier's after its name's dot, whether the name ends in a letter
+or in digits a letter leads, and one after an underscore too. A numeral joined to the
+word before it by a hyphen, a letter or `+`, as a licence identifier's version or a
+tag's prefix is, is not read by the census, and the sites read such a tag where it
+states a release. Joined by a hyphen or `+`, a lone `v` or `V` between or not, its
+continuation past its dot is not read either; joined by a letter, its continuation past
+its first dot is read, a name's digits not being told from a release's, so
+`python3.14.7` reads 14.7, erring toward a finding.
+
+**The hook configuration is censused as K-115 censuses the workflows.** A hook row is
+held against its own entry, so a repository the configuration gained with no row would
+run code whose terms nobody read while every row agreed. So every entry the
+configuration carries is read at its block `- repo:` line. An entry a held row names is
+held by that row's two sites to a full commit and the release its `# frozen:` comment
+names, its rev read at the one line whose `rev` key stands at the column of the entry's
+`repo` key, where YAML reads the entry's own, and read whole as `rev: <value>` with at
+most that comment. pre-commit's own `meta` hooks run its `pre_commit.meta_hooks`
+modules under the runner the pre-commit row holds, and its configuration schema refuses
+to override their entry, so a `meta` entry needs no row. Any other entry is a finding:
+a `local` one, because its hooks run an entry on `PATH` or in this repository and
+install their additional dependencies from a registry, which no row reviews and no rev
+pins, and an entry no row names, with its rev when that is not a full commit carrying
+the tag it was frozen at. The reading takes one shape, so every line carrying a `repo`
+or `rev` key the reading did not take, bare or quoted, or any key K-115's census counts
+whatever it spells, is a finding at that line: an entry written as a flow mapping,
+behind an anchor or with its rev first, and a rev carrying another comment, a tag, an
+anchor or an alias, or standing deeper or shallower than its entry's keys, a hook's key
+or a block scalar's text among them, is reported rather than run unread. So is every
+merge key, tag property and directive, none of which the configuration needs: the
+reading holds a `rev:` line at the entry's key column even where it stands inside a flow
+collection or a quoted scalar opened earlier, where it is no key of the entry, and a
+merge key can then supply the rev pre-commit runs from an anchored mapping no reading
+holds. Every line is read, a comment's included, as K-115 reads the workflows: a line
+opening with `#` may continue a quoted scalar opened earlier, which can close there and
+leave the line carrying an entry's keys. A key or a `?` is read after a byte-order mark
+as after a blank: libyaml, whose loader pre-commit takes where PyYAML carries it, skips
+a U+FEFF opening any line. K-115's census does not, the YAML readers GitHub publishes,
+the runner's YamlDotNet and the workflow language services' `yaml`, skipping one only
+where a document may begin. The configuration is read whether or not any hook row is
+held, so its absence is a finding on its own. The step's two pip constraint files are
+censused the same way, each read as the pip the locked virtualenv embeds reads it: split
+at every break `str.splitlines` takes, a form feed, a vertical tab, a file, group or
+record separator and a next-line, line or paragraph separator among them, a line ending
+in `\\` that opens with no comment joined with the next, and pip's comment, a `#` at
+the line's start or after whitespace and the rest of the line, stripped once the lines
+are joined. Every logical line left is one `<name>==<release>` pin, with at most its
+`--hash=sha256:` digests, of a project a held row's site reads in that file, or it is a
+finding at its first line: a pin added for a package a hook gained until a row reads its
+licence, and an option such as `-c`, `-r` or `--index-url`, which pip follows into
+another file or index, a marker, extras, a URL or a looser constraint, which no reading
+here takes. A file declaring an encoding other than UTF-8 among its first two lines,
+which pip decodes it by, is unread, and both files are read whether or not a row holds
+a pin in them.
 
 **Fail-closed at every reading**, on K-97's ground: a record without the section or its
 table, a table with no row, a site matching other than once, and an owner absent,
 unparsable or stating its release other than once are each a finding, reported once per
 owner, so the rule owes the floors group no member. What it does not decide is whether
-the licence at the stated release was read; the row's reviewer did that. **Reported and
-never repaired**, on K-97's ground: moving a row's release would claim a licence reading
-nobody took.
+the licence at the stated release was read; the row's reviewer did that. Nor does it
+decide whether a hook rev's commit is the tag its `# frozen:` comment names: the row's
+two sites hold the row against the configuration, and whether the commit is the tag's
+is read at review with `git ls-remote`. **Reported and never repaired**, on K-97's
+ground: moving a row's release would claim a licence reading nobody took.
 """
 
+import codecs
 import re
 import tomllib
 from collections.abc import Callable
@@ -262,6 +346,7 @@ from vos import corpus as corpus_mod
 from vos import pins as pins_mod
 from vos import rtl_width, toolenv
 from vos.checks import generated
+from vos.report import apart
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -295,15 +380,19 @@ _USES_RE = re.compile(r"^[ \t]*(?:-[ \t]+)?(?P<key>uses):[ \t]*(.*?)[ \t]*$")
 # Every key on a line that can be `uses`, wider than the reading on purpose: a `uses`
 # key, bare or quoted, followed by its `:`; a double-quoted key holding an escape and
 # an alias used as a key, whatever they spell; and every explicit-key `?` indicator,
-# opening its line after indentation and block indicators or following `{`, `,` or
-# `[`, whatever key it opens. Each stands after a blank, a flow indicator or the line's
-# start, so a tag or an anchor before the key does not hide it. A key it finds that the
-# reading did not take is a finding rather than a reference nobody held against the
-# record.
+# whatever key it opens. Each key stands after a blank, a flow indicator or the line's
+# start, so a tag or an anchor before the key does not hide it. A `?` is counted where
+# PyYAML may read one: after a block indicator and a blank only when a blank or the
+# line's end follows, as a block key's indicator is, since a `?` flush against what
+# follows it there opens a plain scalar, and one in a flow collection there is a parse
+# error; and opening its line after indentation alone or following `{`, `,` or `[`
+# whatever follows it, since such a line may stand in a flow collection, where PyYAML
+# reads every `?` as a key's. A key it finds that the reading did not take is a finding
+# rather than a reference nobody held against the record.
 _USES_KEY_RE = re.compile(
     r"""(?:(?<=[\s{,\[])|^)"""
     r"""(?:(?P<q>["']?)uses(?P=q)|"[^"]*\\[^"]*"|\*[^\s,\[\]{}]+)(?=[ \t]*:)"""
-    r"""|^[ \t]*(?:[-?:][ \t]+)*\?(?=[ \t]|$)|(?<=[{,\[])[ \t]*\?(?=[ \t]|$)""")
+    r"""|^[ \t]*(?:\?|(?:[-?:][ \t]+)+\?(?=[ \t]|$))|(?<=[{,\[])[ \t]*\?""")
 # The line breaks YAML reads, 1.1's included, so a line here is a line to the parser.
 _YAML_BREAK_RE = re.compile(r"\r\n|[\r\n\x85\u2028\u2029]")
 _PINNED_USE_RE = re.compile(
@@ -325,12 +414,41 @@ _V = r"(\d[\w+~-]*(?:\.[\w+~-]+)*)"
 # optionally led by v or V, with any suffix a release takes attached, letters, `~` or
 # `+` (`1.2.3rc1`, `2.0~beta`) and further dotted parts carrying a digit (`1.0.post1`),
 # so a full stop or a file extension after it is not read as part of it. An opam
-# identifier's release after its name's dot (`coq-riscv.0.0.6`) is read; a numeral
-# joined to the word before it by a hyphen, a letter or `+` is not, being a licence
-# identifier's version (`LGPL-2.1`) or a tag's own prefix (`release-1.14`), which the
-# census leaves to the sites that read such a tag as the release it states.
-_RELEASE_RE = re.compile(r"(?<![\w+-])(?<!\d\.)[vV]?"
+# identifier's release after its name's dot is read, the name ending in a letter
+# (`coq-riscv.0.0.6`) or in digits a letter leads (`base64.3.5.1`, so `python3.14.7`
+# reads 14.7, erring toward a finding), and so is a numeral after an underscore
+# (`rocq_9.4.0`). A numeral joined to the word before it by a hyphen, a letter or `+`
+# is not. Joined by a hyphen or `+`, a lone `v` or `V` between or not, it is a licence
+# identifier's version (`LGPL-2.1`) or a tag's own prefix (`release-1.14`,
+# `release-v1.14`), which the census leaves to the sites that read such a tag as the
+# release it states, and its continuation past its dot is not read either; joined by a
+# letter, its continuation past its first dot is read, as `python3.14.7`'s 14.7 is.
+# `_releases` applies the continuation rule, which no fixed-width lookbehind can state.
+_RELEASE_RE = re.compile(r"(?<![^\W_])(?<![+-])[vV]?"
                          r"(\d+(?:\.\d+)+(?:[A-Za-z~+][\w~+]*)?(?:\.(?=[\w~+]*\d)[\w~+]+)*)")
+
+
+def _releases(text: str) -> list[re.Match[str]]:
+    """The release numerals the census reads in the text: `_RELEASE_RE`'s matches, less
+    each whose dot follows digits no letter leads, the tail of the numeral before it.
+
+    A lone `v` or `V` between those digits and a hyphen or `+` is a tag's prefix rather
+    than a name's last letter, so the tail of `LGPL-v2.1.3` or `release-v1.14.2` stays
+    unread, while `sexplib0.v0.17.0`, `python3.14.7` and `x86v6.6.6` keep their reading.
+    """
+    found: list[re.Match[str]] = []
+    for m in _RELEASE_RE.finditer(text):
+        dot = run = m.start() - 1
+        while run > 0 and text[run - 1] in "0123456789":
+            run -= 1
+        lead = text[run - 1] if run > 0 else ""
+        if lead in ("v", "V") and run >= 2 and text[run - 2] in "+-":
+            lead = ""
+        if dot >= 0 and text[dot] == "." and run < dot and not lead.isalpha():
+            continue
+        found.append(m)
+    return found
+
 
 # A list of tags a licence file was read at, and the one form every tag in it takes.
 _TAGS_READ = r"byte-identical at the ((?:`[^`]*`(?:,? and |, ))*`[^`]*`) tags"
@@ -345,9 +463,11 @@ class Owner:
     `uv` is a package of a uv lock, `uv-required` the uv release a project requires,
     `opam` a package of one exported snapshot, `opam-every` a package every snapshot
     under a directory installs and `opam-any` one some of them do, `assign` a quoted
-    top-level assignment, `shell` an unquoted shell variable, and `pre-commit` and
+    top-level assignment, `shell` an unquoted shell variable, `pre-commit` and
     `pre-commit-rev` the release a hook configuration's repository entry names after
-    `# frozen:` (its rev when there is no such comment) and that entry's rev itself.
+    `# frozen:` (its rev when there is no such comment) and that entry's rev itself, and
+    `pip` the release a pip requirements or constraints file, read as pip reads it, pins
+    a project to with `==`.
     """
 
     kind: str
@@ -428,16 +548,142 @@ def _locked(display: str, package: str) -> Site:
 
 
 HOOK_CONFIG = "model/.pre-commit-config.yaml"
+# The pip constraint files Host CI's Model hooks step names: the releases pip installs
+# from PyPI beside the model's Python hooks, and the build backends it builds them with.
+HOOK_CONSTRAINTS = "tools/ci/model-hooks-constraints.txt"
+HOOK_BUILD_CONSTRAINTS = "tools/ci/model-hooks-build-constraints.txt"
 
 
-def _hook(cell: str, repo: str) -> DevTool:
-    """A hook repository's row: the release its rev was frozen at, and the rev's commit."""
+def _hook(cell: str, repo: str, *wheels: Owner) -> DevTool:
+    """A hook repository's row: the release its rev was frozen at, with any package of
+    that release it installs, and the rev's commit."""
     url = f"https://github.com/{repo}"
     return DevTool(cell, (
         Site("the reviewed release", rf"The reviewed `v{_V}` revision",
-             (Owner("pre-commit", HOOK_CONFIG, url),)),
+             (Owner("pre-commit", HOOK_CONFIG, url), *wheels)),
         Site("the reviewed commit", r"revision `([0-9a-f]{40})`",
              (Owner("pre-commit-rev", HOOK_CONFIG, url),))))
+
+
+def _pinned(display: str, path: str, tag: str = "") -> tuple[Site, ...]:
+    """A release a pip constraints file pins, stated as its name and a backticked tag,
+    and with `tag` the monorepo tag `<tag>-v<release>` its licence was read at too."""
+    owner = Owner("pip", path, display)
+    pinned = Site(f"{display}'s pinned release", rf"(?<![\w-]){re.escape(display)} `v?{_V}`",
+                  (owner,))
+    if not tag:
+        return (pinned,)
+    return pinned, Site(f"{display}'s tag read", rf"`{re.escape(tag)}-v{_V}` tag", (owner,))
+
+
+# How pip reads a requirements or constraints file, after `pip._internal.req.req_file`
+# in the pip the locked virtualenv embeds: the comment it strips from a logical line once
+# that line's continuations are joined, a `#` at the line's start or after any whitespace
+# Python's `\s` takes, and the coding declaration it decodes the file by when one of the
+# file's first two lines opens with `#` and carries one.
+_PIP_COMMENT_RE = re.compile(r"(^|\s+)#.*$")
+_PIP_CODING_RE = re.compile(r"coding[:=]\s*([-\w.]+)", re.ASCII)
+# A project's name as a requirement line opens with it.
+_PIP_NAME = r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?"
+_PIP_NAME_RE = re.compile(_PIP_NAME)
+# The one shape a logical line is read in, whole: a project, `==` and one release, with
+# at most the SHA-256 digests pip checks the release's file against. An option, a
+# marker, extras, a URL, a wildcard or an environment variable is no pin.
+_PIP_PIN_RE = re.compile(
+    rf"(?P<name>{_PIP_NAME})[ \t]*==[ \t]*"
+    r"(?P<version>[A-Za-z0-9](?:[A-Za-z0-9._+!-]*[A-Za-z0-9])?)"
+    r"(?:[ \t]+--hash=sha256:[0-9a-f]{64})*[ \t]*")
+
+
+def _project(name: str) -> str:
+    """A project's name as pip compares it, in PEP 503's normalized form."""
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _pip_lines(text: str) -> list[tuple[int, str]]:
+    """A pip requirements or constraints file's logical lines as pip reads them, each
+    with the number pip gives its first line.
+
+    The text is split at every break `str.splitlines` takes, a form feed, a vertical tab,
+    a file, group or record separator and a next-line, line or paragraph separator among
+    them. A line ending in `\\` that the comment pattern does not open is joined with the
+    next, its backslashes at either end stripped; a comment line ends a join and carries
+    its comment into the joined line; the comment is then stripped, and a line left empty
+    is no line.
+    """
+    joined: list[tuple[int, str]] = []
+    parts: list[str] = []
+    first = 0
+    for number, line in enumerate(text.splitlines(), start=1):
+        comment = _PIP_COMMENT_RE.match(line) is not None
+        if line.endswith("\\") and not comment:
+            if not parts:
+                first = number
+            parts.append(line.strip("\\"))
+            continue
+        spelled = f" {line}" if comment else line
+        if parts:
+            joined.append((first, "".join([*parts, spelled])))
+            parts = []
+        else:
+            joined.append((number, spelled))
+    if parts:
+        joined.append((first, "".join(parts)))
+    return [(number, logical) for number, line in joined
+            if (logical := _PIP_COMMENT_RE.sub("", line).strip())]
+
+
+def _utf8(encoding: str) -> bool:
+    """Whether an encoding's name names UTF-8, as Python's codec registry resolves it."""
+    try:
+        return codecs.lookup(encoding).name == "utf-8"
+    except LookupError:
+        return False
+
+
+# K-118's census of the hook configuration. An entry is read where `_Owners._hook_rev`
+# reads one, at a block `- repo:` line, and its rev at a line `_HOOK_REV_LINE_RE` reads
+# whole whose `rev` key stands at the column of the entry's `repo` key; every other
+# `repo` or `rev` key, bare or quoted, and every key K-115's census counts whatever it
+# spells, a double-quoted key holding an escape, an alias used as a key and an
+# explicit-key `?` indicator, is a line the census reports. A `?` is counted where
+# K-115's census counts one: opening its line after indentation alone or following `{`,
+# `,` or `[` whatever follows it, since PyYAML and libyaml read every `?` inside a flow
+# collection as a key's indicator and a line does not say whether it stands in one, and
+# after a block indicator and a blank only before a blank, as a block key's indicator is.
+# A byte-order mark is read as a blank wherever a key or a `?` may follow one: libyaml,
+# whose loader pre-commit takes where PyYAML carries it, as the locked wheels do, skips a
+# U+FEFF opening any line, so a key flush against one is a key to pre-commit.
+#
+# The census also reports every merge key, a bare `<<` followed by its `:`, every tag
+# property, a `!` after a blank, a flow indicator or the line's start, and every
+# directive, a `%` opening the line, the stream's byte-order mark before it or not. The
+# configuration needs none of them, and each is a way for YAML to load an entry's rev
+# from somewhere other than the line the reading took: the reading holds a `rev:` line
+# at the entry's key column even where it stands inside a flow collection or a quoted
+# scalar opened earlier, where it is no key of the entry, and a merge key, or one a tag
+# makes a merge, can then supply the rev pre-commit runs from an anchored mapping that
+# no reading holds, a `meta` entry's or the `ci` mapping's among them.
+_HOOK_REPO_RE = re.compile(r"^[ \t]*-[ \t]+(?P<key>repo):[ \t]*(?P<url>.*?)[ \t]*$")
+# The one shape an entry's rev is read in: a bare `rev` key, a plain or quoted value no
+# tag, anchor, alias, escape or other indicator opens, and at most the `# frozen:`
+# comment naming its tag, so a line carrying another comment or a rev YAML reads
+# otherwise is not one the rule reports agreement about.
+_HOOK_REV_LINE_RE = re.compile(
+    r"""(?P<indent>[ \t]+)(?P<key>rev):[ \t]*(?P<q>["']?)"""
+    r"""(?P<rev>[^\s"'#\\&*!|>%@`{}\[\],?:-][^\s"'#\\]*)(?P=q)"""
+    r"""(?:[ \t]+#[ \t]*frozen:[ \t]*(?P<frozen>\S+))?[ \t]*""")
+# A `rev` key, bare or quoted, after indentation alone: at an entry's key column, one
+# `_hook_rev` counts as that entry's rev whatever shape the rest of its line takes.
+_HOOK_REV_KEY_RE = re.compile(r"""^(?P<indent>[ \t]*)(?P<q>["']?)rev(?P=q)(?=[ \t]*:)""")
+_HOOK_KEY_RE = re.compile(
+    r"""(?:(?<=[\s{,\[\ufeff])|^)"""
+    r"""(?:(?:(?P<q>["']?)re(?:po|v)(?P=q)|"[^"]*\\[^"]*"|\*[^\s,\[\]{}]+|<<)(?=[ \t]*:)|!)"""
+    r"""|^[ \t\ufeff]*(?:\?|(?:[-?:][ \t]+)+\?(?=[ \t]|$))|(?<=[{,\[])[ \t]*\?|^\ufeff?%""")
+_FULL_COMMIT_RE = re.compile(r"[0-9a-f]{40}")
+# pre-commit's own hooks, which run its `pre_commit.meta_hooks` modules under the
+# interpreter running it and whose entry its configuration schema refuses to override.
+_HOOK_META = "meta"
 
 
 _ENV = "tools/vos/env.py"
@@ -516,11 +762,20 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
         ("filelock", "filelock"), ("platformdirs", "platformdirs"),
         ("python-discovery", "python-discovery"), ("packaging", "packaging")))),
     _hook("pre-commit-hooks", "pre-commit/pre-commit-hooks"),
-    _hook("clang-format", "pre-commit/mirrors-clang-format"),
+    # the mirror installs PyPI's clang-format wheel of its own release, which the
+    # constraints fix beside the rev
+    _hook("clang-format", "pre-commit/mirrors-clang-format",
+          Owner("pip", HOOK_CONSTRAINTS, "clang-format")),
     _hook("Lucas-C pre-commit-hooks", "Lucas-C/pre-commit-hooks"),
     _hook("prettier", "rbubley/mirrors-prettier"),
     _hook("codespell", "codespell-project/codespell"),
     _hook("markdown-link-check", "tcort/markdown-link-check"),
+    DevTool("The model hooks' PyPI dependencies", (
+        *_pinned("ruamel.yaml", HOOK_CONSTRAINTS), *_pinned("rapidfuzz", HOOK_CONSTRAINTS),
+        *_pinned("setuptools", HOOK_BUILD_CONSTRAINTS),
+        *_pinned("setuptools-scm", HOOK_BUILD_CONSTRAINTS, "setuptools-scm"),
+        *_pinned("vcs-versioning", HOOK_BUILD_CONSTRAINTS, "vcs-versioning"),
+        *_pinned("packaging", HOOK_BUILD_CONSTRAINTS))),
     DevTool("Rocq prover: `rocq-core`, `rocq-runtime` and `rocqchk`", (
         Site("the proof switch's edition", rf"{_V} in the proof switch",
              (_snap("rocq", "rocq-core"), _snap("rocq", "rocq-runtime"))),
@@ -774,9 +1029,10 @@ def _bindings(ctx: Context) -> None:
             findings.append(f"{file}'s {label} names {path}, which the index carries no "
                             "gitlink for")
         elif oid != recorded:
+            stated, carried = apart(recorded, oid)
             findings.append(
-                f"{file}'s {label} is {recorded[:12]} and the index carries {path} at "
-                f"{oid[:12]}; regenerate it from a checkout at the gitlink, which "
+                f"{file}'s {label} is {stated} and the index carries {path} at "
+                f"{carried}; regenerate it from a checkout at the gitlink, which "
                 "re-derives what was read there and is never a token repair")
     ctx.rep.report("K-116", "tool-consumed RTL binding(s) that disagree with the gitlink "
                    "they were derived through:", findings,
@@ -861,6 +1117,49 @@ def _tool_rows(text: str, findings: list[str]) -> dict[str, tuple[int, str]]:
     return rows
 
 
+# What closes a link in a row: a blank, a bracket closing Markdown's link or autolink
+# syntax, or the row's end. A run of sentence punctuation or Markdown delimiters
+# standing just before that close ends a bare link rather than belonging to it, and
+# GFM strips it there; a destination or an autolink keeps it, as GFM does.
+_LINK_CLOSE = r"(?:[\s)\]>]|$)"
+_LINK_TRAIL = r".,:;!*_~`'\"|"
+# What a revision runs through where its link opens a Markdown destination, and where
+# it opens an angle-bracketed destination or an autolink: every character but the
+# view's separators, a blank, which no ref name holds, and the bracket closing it.
+_DEST_REVISION = r"[^/#?\s)]+"
+_ANGLE_REVISION = r"[^/#?\s>]+"
+
+
+def _licence_links(tool: str) -> re.Pattern[str]:
+    """Every view of the action's own repository at a revision, and the file it names.
+
+    A `blob`, `tree`, `blame` or `raw` path on github.com, `www.` or not, or a path on
+    raw.githubusercontent.com, with the scheme, host, owner and name in any case. Its
+    `rev` group is the revision named and its `path` group the path after it, absent
+    for a view naming no file, the tree at a revision among them. The revision is the
+    segment after the view, and a `/`, `?` or `#` ends it. Where the link opens a
+    Markdown destination, after `](` and any blanks, the revision runs on to a blank or
+    the `)` closing the destination, and where it opens an angle-bracketed destination
+    or an autolink, to a blank or the `>` closing it, since GFM keeps every character
+    before those: the reviewed commit followed there by `_` names another ref, and one
+    followed by a full stop, which no ref name ends with, is read with it too and so
+    errs closed. Only a bare link also ends before a run of `_LINK_TRAIL`'s punctuation
+    standing just before its close, as GFM strips trailing punctuation from a bare
+    autolink, so one ending a sentence or wrapped in a code span is read at its
+    revision, and a tag keeps its interior dots. The path ends at a `?` or `#`, or
+    before a run of slashes and that punctuation standing just before the close, so a
+    trailing slash or full stop names no file. Any other link into the repository, its
+    front page, a commit's or a release's, links no file and is not read.
+    """
+    name = re.escape(tool)
+    return re.compile(r"(?:(?P<angle>\]\(\s*<|<)|(?P<dest>\]\(\s*))?"
+                      rf"(?:(?i:https?://(?:www\.)?github\.com/{name})/(?:blob|tree|blame|raw)"
+                      rf"|(?i:https?://raw\.githubusercontent\.com/{name}))"
+                      rf"/(?P<rev>(?(angle){_ANGLE_REVISION}|(?(dest){_DEST_REVISION}"
+                      rf"|[^/\s)\]>#?]+?(?=[/#?]|[{_LINK_TRAIL}]*{_LINK_CLOSE}))))"
+                      rf"(?:/(?P<path>[^\s)\]>#?]*?)(?=[#?]|[/{_LINK_TRAIL}]*{_LINK_CLOSE}))?")
+
+
 def _workflow_pins(ctx: Context) -> None:
     """K-115: every action a workflow runs is the commit and release its row reviewed.
 
@@ -889,7 +1188,22 @@ def _workflow_pins(ctx: Context) -> None:
                             "`<full commit>`` is read")
             actions[tool] = ("", "", where)
             continue
-        actions[tool] = (stated[0][0], stated[0][1], where)
+        release, commit = stated[0]
+        actions[tool] = (release, commit, where)
+        # The row's licence link names the edition its terms were read at, so the row
+        # links a file of the action's own repository, and every view of that repository
+        # at a revision, a file's or not, names the reviewed commit rather than another
+        # commit, a tag or a branch. A view naming no file states a revision and no terms.
+        links = [(m["rev"], m["path"] or "") for m in _licence_links(tool).finditer(row)]
+        if not any(path for _, path in links):
+            findings.append(f"{where} links no licence of {tool} at the reviewed commit; "
+                            "the link names the edition the terms were read at")
+        for ref, _ in links:
+            if ref != commit:
+                linked, reviewed = apart(ref, commit)
+                findings.append(f"{where} links {tool}'s licence at {linked}, the row "
+                                f"reviewed {reviewed}; the link names the edition the "
+                                "terms were read at, so the edit is a person's")
     if rows and not actions:
         findings.append(f"{record}'s development-tools table carries no action row, so the "
                         "workflows would be held against nothing")
@@ -910,13 +1224,15 @@ def _workflow_pins(ctx: Context) -> None:
                             "unread")
             continue
         for number, text_line in enumerate(_YAML_BREAK_RE.split(source), start=1):
-            if text_line.lstrip().startswith("#"):
-                continue
             where = f"{rel}:{number}"
+            # The reading's shape never takes a comment line, `#` being no `uses` key.
             m = _USES_RE.match(text_line)
             # The census: a line carrying any key the reading did not take is one
             # finding, so a reference in a shape the reading does not parse is a finding
             # rather than one the rule reports agreement about without having read it.
+            # It reads every line, a comment's included: a line opening with `#` may
+            # continue a quoted scalar, and a `#` after a no-break space, which YAML
+            # reads as content rather than a blank, opens no comment at all.
             taken = m.start("key") if m else -1
             if any(key.start() != taken for key in _USES_KEY_RE.finditer(text_line)):
                 unread += 1
@@ -942,9 +1258,10 @@ def _workflow_pins(ctx: Context) -> None:
                 continue
             want_version, want_sha, row = actions[action]
             if want_sha and (sha, version) != (want_sha, want_version):
+                ran, reviewed = apart(sha, want_sha)
                 findings.append(
-                    f"{where} runs {action} at {sha[:12]} ({version}), {row} reviewed "
-                    f"{want_sha[:12]} ({want_version}); the row's terms were read at the "
+                    f"{where} runs {action} at {ran} ({version}), {row} reviewed "
+                    f"{reviewed} ({want_version}); the row's terms were read at the "
                     "revision it states, so the edit is a person's")
     if files and not references and not unread:
         findings.append(f"no workflow under {WORKFLOWS} states an action reference, so the "
@@ -993,6 +1310,7 @@ class _Owners:
         self._texts: dict[str, str | None] = {}
         self._uv: dict[str, dict[str, list[str]]] = {}
         self._opam: dict[str, dict[str, list[str]]] = {}
+        self._pips: dict[str, list[tuple[int, str, re.Match[str] | None]]] = {}
 
     def _fault(self, key: str, message: str) -> _UnreadError:
         self.faults.setdefault(key, message)
@@ -1039,6 +1357,29 @@ class _Owners:
                 table.setdefault(name, []).append(version)
             self._opam[path] = table
         return self._opam[path]
+
+    def _pip(self, path: str) -> list[tuple[int, str, re.Match[str] | None]]:
+        """A pip constraints file's logical lines as `_pip_lines` reads them, each with its
+        line's number and its reading as one pin, or None where it is no pin.
+
+        pip decodes the file by its byte-order mark, which it strips, or failing one by a
+        coding declaration among its first two lines; the text here is read as UTF-8, so
+        a declaration naming another encoding leaves the file unread.
+        """
+        if path not in self._pips:
+            text = self._text(path)
+            if text.startswith("\ufeff"):
+                text = text[1:]
+            else:
+                for line in text.split("\n")[:2]:
+                    declared = _PIP_CODING_RE.search(line) if line.startswith("#") else None
+                    if declared is not None and not _utf8(declared.group(1)):
+                        raise self._fault(path, f"{path} declares the {declared.group(1)} "
+                                          "encoding, which pip decodes it by, so the pins "
+                                          "read here as UTF-8 are not the ones pip reads")
+            self._pips[path] = [(number, logical, _PIP_PIN_RE.fullmatch(logical))
+                                for number, logical in _pip_lines(text)]
+        return self._pips[path]
 
     def _snapshots(self) -> list[str]:
         found = sorted(rel for rel in self.ctx.corpus.indexed
@@ -1088,6 +1429,20 @@ class _Owners:
             spelled = (rf'(?m)^{key} = "([^"\r\n]*)"' if owner.kind == "assign"
                        else rf"(?m)^{key}=([^\s'\"#;]+)[ \t]*$")
             return self._one(owner, re.findall(spelled, self._text(owner.path)))
+        if owner.kind == "pip":
+            # Every logical line opening with the project's name, however it is spelled,
+            # is read, so a second pin or a line constraining it other than to one release
+            # is a fault rather than a release read loosely.
+            versions: list[str] = []
+            for _, logical, pin in self._pip(owner.path):
+                lead = _PIP_NAME_RE.match(logical)
+                if lead is None or _project(lead.group()) != _project(owner.key):
+                    continue
+                if pin is None:
+                    raise self._fault(owner.label(), f"{owner.label()} is constrained other "
+                                      "than to one `==` release, so it fixes no one release")
+                versions.append(str(pin.group("version")))
+            return self._one(owner, versions)
         if owner.kind in ("pre-commit", "pre-commit-rev"):
             rev, frozen = self._hook_rev(owner)
             if owner.kind == "pre-commit-rev":
@@ -1100,23 +1455,42 @@ class _Owners:
         """The rev a hook configuration pins for the repository `owner.key` names, and
         the release its `# frozen:` comment states (empty without one).
 
-        The file is read as the lines pre-commit's own `autoupdate` rewrites: a
-        repository entry runs from its `- repo:` line to the next, and holds one `rev:`
-        line. A repository stated other than once, or an entry whose rev is stated
-        other than once, fixes nothing and is a fault.
+        The file is read as the lines pre-commit's own `autoupdate` rewrites, split as
+        the census splits it at every line break YAML reads, a next-line, line or
+        paragraph separator included: a repository entry runs from its block `- repo:`
+        line to the next, and its rev is every `rev` key opening a line at the column of
+        the entry's `repo` key, the one place YAML reads the entry's own. A repository
+        stated other than once, an entry whose rev is stated other than once, or a rev
+        in a shape `_HOOK_REV_LINE_RE` does not read whole, fixes nothing and is a fault.
         """
-        entries = re.split(r"(?m)^[ \t]*-[ \t]+repo:[ \t]*", self._text(owner.path))[1:]
-        named = [entry for entry in entries
-                 if entry.split("\n", 1)[0].strip().strip("'\"") == owner.key]
+        named: list[list[str]] = []
+        revs: list[str] | None = None
+        column = -1
+        for line in _YAML_BREAK_RE.split(self._text(owner.path)):
+            entry = _HOOK_REPO_RE.match(line)
+            if entry is not None:
+                revs = None
+                if entry.group("url").strip("'\"") == owner.key:
+                    fresh: list[str] = []
+                    column, revs = entry.start("key"), fresh
+                    named.append(fresh)
+                continue
+            key = _HOOK_REV_KEY_RE.match(line)
+            if revs is not None and key is not None and key.end("indent") == column:
+                revs.append(line)
         if len(named) != 1:
             raise self._fault(owner.label(), f"{owner.label()}'s repository is stated "
                               f"{len(named)} times, so it fixes no one revision")
-        revs = list(re.finditer(r"(?m)^[ \t]+rev:[ \t]*([\"']?)([^\s\"'#]+)\1"
-                                r"(?:[ \t]+#[ \t]*frozen:[ \t]*(\S+))?[ \t]*\r?$", named[0]))
-        if len(revs) != 1:
+        if len(named[0]) != 1:
             raise self._fault(owner.label(), f"{owner.label()} states its rev "
-                              f"{len(revs)} times, so it fixes no one revision")
-        return str(revs[0].group(2)), str(revs[0].group(3) or "")
+                              f"{len(named[0])} times, so it fixes no one revision")
+        read = _HOOK_REV_LINE_RE.fullmatch(named[0][0])
+        if read is None:
+            stated = named[0][0].strip(" \t")
+            raise self._fault(owner.label(), f"{owner.label()} states its rev as `{stated}`, "
+                              "which is not `rev: <value>` with at most its `# frozen:` tag, "
+                              "so it fixes no one revision")
+        return str(read.group("rev")), str(read.group("frozen") or "")
 
 
 def _dev_section(text: str, findings: list[str]) -> tuple[int, list[str]] | None:
@@ -1237,19 +1611,127 @@ def _hold(where: Callable[[int], str], name: str, text: str, tool: DevTool,
             continue
         end = start + len(fragment)
         if not any(start <= m.start(1) and m.end(1) <= end
-                   for m in _RELEASE_RE.finditer(text)):
+                   for m in _releases(text)):
             findings.append(f"{declared} covers no release numeral, so it suppresses nothing")
             continue
         spans.append((start, end))
     if not complete:
         return compared, 0
-    numerals = list(_RELEASE_RE.finditer(text))
+    numerals = _releases(text)
     findings += [f"{where(m.start())} states {m.group()} in {subject}, which no K-118 site "
                  "reads and no residue declares; hold it against the artifact fixing it, or "
                  "declare why it states no release that one fixes"
                  for m in numerals
                  if not any(s < m.end(1) and m.start(1) < e for s, e in spans)]
     return compared, len(numerals)
+
+
+def _hook_census(owners: _Owners, findings: list[str]) -> int:
+    """K-118's census of the hook configuration, returning how many repository entries
+    it read: each, read at its line, is pre-commit's own `meta` hooks or a repository a
+    held row names.
+
+    A row holds its entry's rev to the full commit and the `# frozen:` release it states,
+    so an entry no row names is the one finding naming it, with its rev when that is not
+    a full commit carrying the tag it was frozen at. A `local` entry runs an entry on
+    `PATH` or in this repository and installs its additional dependencies from a
+    registry, which no row reviews and no rev pins, so it is a finding as well.
+    """
+    try:
+        text = owners._text(HOOK_CONFIG)
+    except _UnreadError:
+        return 0
+    named = {owner.key for tool in DEV_TOOL_ROWS for site in tool.sites for owner in site.owners
+             if owner.kind in ("pre-commit", "pre-commit-rev") and owner.path == HOOK_CONFIG}
+    entries = 0
+    # The column of the last entry's `repo` key, where its rev key is read and nowhere
+    # else: a deeper or shallower `rev`, one in a block scalar's text among them, is the
+    # census's to report rather than the entry's rev.
+    column = -1
+    for number, line in enumerate(_YAML_BREAK_RE.split(text), start=1):
+        # Every line is read, a comment's included, as K-115 reads the workflows: a line
+        # opening with `#` may continue a quoted scalar opened earlier, which can close
+        # there and leave the line carrying an entry's keys, and a `#` after a no-break
+        # or ideographic space, which YAML reads as content, opens no comment at all.
+        where = f"{HOOK_CONFIG}:{number}"
+        entry = _HOOK_REPO_RE.match(line)
+        if entry is not None:
+            column = entry.start("key")
+        rev = _HOOK_REV_LINE_RE.fullmatch(line)
+        taken = (column if entry is not None or (rev is not None and rev.start("key") == column)
+                 else -1)
+        if any(key.start() != taken for key in _HOOK_KEY_RE.finditer(line)):
+            findings.append(f"{where} states a hook repository's `repo` or `rev` key in a "
+                            "form K-118 does not read; write each entry as a block `- repo:` "
+                            "line and a `rev:` line at its `repo` key's column, carrying at "
+                            "most its `# frozen:` tag, so it is held against its row")
+        if entry is None:
+            continue
+        entries += 1
+        url = entry.group("url").strip("'\"")
+        if url == _HOOK_META or url in named:
+            continue
+        if not url:
+            findings.append(f"{where} opens a hook repository entry with no URL on its line, "
+                            "where K-118 reads it")
+            continue
+        if url == "local":
+            findings.append(f"{where} is a local hook repository, whose hooks run an entry on "
+                            "PATH or in this repository and install their additional "
+                            "dependencies from a registry, which no row reviews and no rev pins")
+            continue
+        try:
+            rev, frozen = owners._hook_rev(Owner("pre-commit-rev", HOOK_CONFIG, url))
+        except _UnreadError:
+            continue
+        unpinned = ("" if _FULL_COMMIT_RE.fullmatch(rev) and frozen else
+                    f", at `{rev}`, which is not a full commit with the `# frozen:` tag it "
+                    "was read at either")
+        findings.append(f"{where} runs hooks from {url}, which no development-tools row K-118 "
+                        f"holds names, so nobody read the terms of the code it installs"
+                        f"{unpinned}")
+    return entries
+
+
+def _pip_census(owners: _Owners, findings: list[str]) -> int:
+    """K-118's census of the hook step's pip constraint files, returning how many pins it
+    read: each file is read as pip reads it, and each of its logical lines is one pin of a
+    project a held row's site reads in that file.
+
+    A row holds the releases it read against these pins, so a pin added for a package a
+    hook gained installs a release whose terms nobody read while every row agrees, and a
+    line in any other form, an option such as `-c`, `-r` or `--index-url`, a marker,
+    extras, a URL or a looser constraint, changes what pip installs while no reading
+    here takes it; each is a finding at its first line. Both files are read whether or
+    not any row holds a pin in them.
+    """
+    held: dict[str, set[str]] = {HOOK_CONSTRAINTS: set(), HOOK_BUILD_CONSTRAINTS: set()}
+    for tool in DEV_TOOL_ROWS:
+        for site in tool.sites:
+            for owner in site.owners:
+                if owner.kind == "pip" and owner.path in held:
+                    held[owner.path].add(_project(owner.key))
+    pinned = 0
+    for path, projects in held.items():
+        try:
+            lines = owners._pip(path)
+        except _UnreadError:
+            continue
+        for number, logical, pin in lines:
+            where = f"{path}:{number}"
+            if pin is None:
+                findings.append(f"{where} states `{logical}`, which K-118 does not read as "
+                                "one pin; write each line as `<name>==<release>` with at "
+                                "most its `--hash=sha256:` digests, since an option, a "
+                                "marker, extras, a URL or a looser constraint changes what "
+                                "pip installs unread")
+                continue
+            pinned += 1
+            if _project(pin.group("name")) not in projects:
+                findings.append(f"{where} pins {pin.group('name')}, which no "
+                                "development-tools row K-118 holds reads there, so nobody "
+                                "read the terms of the release pip installs")
+    return pinned
 
 
 def _dev_tools(ctx: Context) -> None:
@@ -1312,7 +1794,7 @@ def _dev_tools(ctx: Context) -> None:
                 why = DEV_TOOL_DECLARED[tool]
             # A declared row is still censused: it states the one release its terms were
             # read at, however often, or none where it is declared to state none.
-            stated = sorted({m.group(1) for m in _RELEASE_RE.finditer(line)})
+            stated = sorted({m.group(1) for m in _releases(line)})
             if not why.releases and stated:
                 findings.append(f"{where} is declared as stating no dotted release of {tool} "
                                 f"({why.why}), and it states {', '.join(stated)}")
@@ -1337,15 +1819,19 @@ def _dev_tools(ctx: Context) -> None:
 
         sites, read = _hold(in_prose, "", prose, DEV_TOOL_PROSE, owners, findings)
         compared, numerals = compared + sites, numerals + read
+    hooks = _hook_census(owners, findings)
+    pinned = _pip_census(owners, findings)
     findings += list(owners.faults.values())
 
     rep.report("K-118", "development-tool release(s) the record states and the owner does "
                "not fix:", findings,
                f"the {compared} release statements in {record}'s development-tools section "
                f"are the releases their owners fix, each of the {numerals} release numerals "
-               f"its held rows and paragraphs state is read or declared, and the table's "
+               f"its held rows and paragraphs state is read or declared, the table's "
                f"{declared} other rows are declared, each stating the one release, or "
-               "none, its declaration allows")
+               f"none, its declaration allows, each of the {hooks} repository entries "
+               f"{HOOK_CONFIG} carries is a held row's or pre-commit's own meta hooks, and "
+               f"each of the {pinned} pins its pip constraint files carry is a held row's")
 
 
 def _sources(ctx: Context) -> list[tuple[str, str, list[bool]]]:
@@ -1456,9 +1942,12 @@ def _pins(ctx: Context) -> None:
             findings.append(f"{where} pins {pin.path} and states no commit id, so the "
                             "edition its terms were read at is not recorded")
         elif not gitlinks[pin.path].startswith(pin.short):
+            # The row is quoted whole, as the record spells it, and the gitlink at
+            # twelve digits or as far as the two must run to differ.
+            _, carried = apart(pin.short, gitlinks[pin.path])
             findings.append(
                 f"{where} pins {pin.path} at {pin.short} and the index carries it at "
-                f"{gitlinks[pin.path][:12]}; the terms on that row were read at the "
+                f"{carried}; the terms on that row were read at the "
                 "commit the row states, so the repair is a licence read and not a "
                 "transcription")
         else:

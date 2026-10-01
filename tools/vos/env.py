@@ -711,14 +711,43 @@ def rocqchk_command() -> list[str]:
                      f"rocqchk on PATH. {install_line(ROCQ_INSTALL)}")
 
 
+# The variables through which an opam client takes the answer to a question it asks from
+# the environment, OPAMYES answering yes and OPAMCONFIRMLEVEL any answer.
+OPAM_ANSWERS: tuple[str, ...] = ("OPAMYES", "OPAMCONFIRMLEVEL")
+
+
+def declining_environment() -> dict[str, str]:
+    """This process's environment less `OPAM_ANSWERS`, named in any case, for an opam
+    command that reads and must not answer a question.
+
+    opam asks before it writes a root-format upgrade, yes by default, and a read writes
+    one where the upgrade cannot be made in memory, as the reviewed client's from a 2.2
+    root keeping a repository's archive under a directory named for it. Run with no
+    standard input and this environment, opam answers its own question no and exits, so
+    a read neither rewrites the root one way nor waits on a question the caller cannot
+    see. `_apply_opam_env`, `run.py provision`'s probes, the Gallina, Sail LSP and Isla
+    rigs, guest bootstrap's reads of its root, the Rupicola lowering and the component
+    comparison take their opam reads' environment from it, so they keep one rule.
+    """
+    return {key: value for key, value in os.environ.items()
+            if key.upper() not in OPAM_ANSWERS}
+
+
 def _apply_opam_env() -> None:
     """Guarded, because the container lanes load this module too and have no opam.
     Nothing is masked by the guard: a Sail loop without the switch fails loudly at
-    `sail --version`."""
+    `sail --version`.
+
+    `opam env` runs with no standard input and in `declining_environment`, because its
+    output is captured: over a root whose upgrade cannot be made in memory it would
+    otherwise wait on a prompt the caller cannot see, and an empty line or the caller's
+    OPAMYES would rewrite the root one way. It declines instead, exits nonzero, and the
+    loop runs without the switch's environment."""
     if not shutil.which("opam"):
         return
     proc = subprocess.run(["opam", "env", f"--switch={SAIL_SWITCH}", "--shell=sh"],
-                          capture_output=True, text=True, check=False)
+                          capture_output=True, text=True, check=False,
+                          stdin=subprocess.DEVNULL, env=declining_environment())
     if proc.returncode != 0:
         return
     for name, value in re.findall(r"^(\w+)='(.*)';\s*export", proc.stdout, re.MULTILINE):

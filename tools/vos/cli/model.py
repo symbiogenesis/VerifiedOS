@@ -40,6 +40,7 @@ into it, and `wait` blocks on that lock rather than on a marker or on a sleep.
 
 import argparse
 import errno
+import fnmatch
 import hashlib
 import json
 import os
@@ -53,8 +54,8 @@ import time
 import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
-from typing import IO, cast
+from pathlib import Path, PurePosixPath
+from typing import IO, NamedTuple, cast
 
 from vos import (
     asm,
@@ -199,15 +200,15 @@ def test_corpus_digests(model_root: Path, version: str) -> dict[str, str]:
 # suite it has just extracted from a tarball whose SHA-256 it verified, and holds that
 # suite to on every configure, downloading again a suite that disagrees. The listing is
 # the tarball's recorded digest, then each file's SHA-256 and path relative to the
-# suite, sorted by the path's bytes; a symbolic link, or a name a CMake list cannot
-# carry, is listed unhashed, and no written manifest holds one. `corpus_listing`
-# renders that listing for the readers that do not configure: the seeding that copies a
-# suite into a new lane, and the sweep and trace-diff that read one. It walks the tree
-# rather than globbing it and lists every non-regular entry unhashed without reading
-# it, hashing a file only through a descriptor that is a regular file, so the sweep and
-# trace-diff also refuse what configure does not tell apart: a FIFO or device node,
-# which the verified tarball does not contain, and a name holding `\` beside the file
-# its `/` spelling names, which configure's glob folds into that file.
+# suite, sorted by the path's bytes; a symbolic link is listed unhashed, every name
+# holding `;` or `\` leaves at least one unhashed line, and no written manifest holds
+# an unhashed line. `corpus_listing` renders that listing for the readers that do not
+# configure: the seeding that copies a suite into a new lane, and the sweep and
+# trace-diff that read one. It walks the tree rather than globbing it and lists every
+# non-regular entry unhashed without reading it, hashing a file only through a
+# descriptor that is a regular file, so the sweep and trace-diff also refuse what
+# configure does not tell apart: a FIFO or device node, which the verified tarball
+# does not contain.
 # A build's receipt reads the corpus through `_test_corpus` too, so a disagreement
 # between the two renderings fails the first build that records its evidence rather
 # than passing unseen.
@@ -225,9 +226,36 @@ def _unreadable(err: OSError) -> None:
     raise err
 
 
-def corpus_listing(suite: Path, tarball_sha256: str) -> bytes:
-    """The listing `download_riscv_tests` records for `suite`, rendered from the tree."""
-    entries: list[tuple[bytes, str]] = []
+class _CorpusEntry(NamedTuple):
+    """One entry of a suite as the walk finds it, before any file is read."""
+
+    relative: str  # the path relative to the suite, as a listing line spells it
+    path: Path
+    regular: bool  # whether the name, its final link not followed, is a regular file
+
+
+class _Hashed(NamedTuple):
+    """A regular file as one read of it found it."""
+
+    digest: str  # the SHA-256 of the bytes read
+    device: int  # the device and inode of the descriptor they were read through
+    inode: int
+    size: int  # how many bytes were read, to the end of the file
+
+
+class VerifiedSuite(NamedTuple):
+    """A suite as `verify_test_corpus` found it agreeing with its manifest."""
+
+    suite: Path
+    manifest: bytes  # the manifest's bytes, as they were read and compared
+    files: dict[str, _Hashed]  # each file by its listed path, in the listing's order
+
+
+def _corpus_entries(suite: Path) -> list[_CorpusEntry]:
+    """Every entry of `suite` a listing has a line for, sorted by its relative path's
+    bytes, as the walk finds them: a file, a symbolic link, or a node of another kind,
+    and no file opened."""
+    entries: list[tuple[bytes, _CorpusEntry]] = []
     for directory, dirs, files in os.walk(suite, onerror=_unreadable):
         for name in (*dirs, *files):
             path = Path(directory, name)
@@ -236,32 +264,68 @@ def corpus_listing(suite: Path, tarball_sha256: str) -> bytes:
             relative = path.relative_to(suite).as_posix()
             if "\n" in relative or "\r" in relative:
                 raise ValueError(f"{path}: a path a manifest line cannot hold")
-            hashed = (None if path.is_symlink() or not path.is_file()
-                      else _regular_digest(path))
-            line = f"unhashed {relative}\n" if hashed is None else f"{hashed}  {relative}\n"
-            entries.append((relative.encode("utf-8", "surrogateescape"), line))
-    head = f"tarball {suite.name}.tar.gz sha256 {tarball_sha256}\n"
-    return (head + "".join(line for _, line in sorted(entries))).encode(
-        "utf-8", "surrogateescape")
+            entries.append((_listed(relative), _CorpusEntry(
+                relative, path, not path.is_symlink() and path.is_file())))
+    return [entry for _, entry in sorted(entries, key=lambda pair: pair[0])]
 
 
-# How a corpus file is opened for reading: without waiting and without following a
-# final link, so what the descriptor is decides whether it is read. Opening a FIFO for
-# reading otherwise waits for a writer that never comes, and a character device such as
-# `/dev/zero`, or a link to one, is read without end. win32 has neither flag, so there
-# the opened descriptor's kind decides alone; `O_BINARY` keeps its reads byte-exact.
+def _listed(text: str) -> bytes:
+    """A listing's text as its bytes: a name that is not UTF-8 keeps the bytes it has."""
+    return text.encode("utf-8", "surrogateescape")
+
+
+def _listing_head(suite: Path, tarball_sha256: str) -> str:
+    """The first line of `suite`'s listing, which records its tarball's digest."""
+    return f"tarball {suite.name}.tar.gz sha256 {tarball_sha256}\n"
+
+
+def _hashed_listing(suite: Path, tarball_sha256: str,
+                    entries: list[_CorpusEntry]) -> tuple[bytes, dict[str, _Hashed]]:
+    """The listing of `entries`, reading each file only through `_regular_digest`, and
+    what that read found of each file it hashed, by listed path."""
+    lines = [_listing_head(suite, tarball_sha256)]
+    files: dict[str, _Hashed] = {}
+    for entry in entries:
+        hashed = _regular_digest(entry.path) if entry.regular else None
+        if hashed is None:
+            lines.append(f"unhashed {entry.relative}\n")
+        else:
+            files[entry.relative] = hashed
+            lines.append(f"{hashed.digest}  {entry.relative}\n")
+    return _listed("".join(lines)), files
+
+
+def corpus_listing(suite: Path, tarball_sha256: str) -> bytes:
+    """The listing `download_riscv_tests` records for `suite`, rendered from the tree."""
+    return _hashed_listing(suite, tarball_sha256, _corpus_entries(suite))[0]
+
+
+# How a corpus file is opened for reading once its name has been found to be a regular
+# file: without waiting, without following a final link and without taking a terminal
+# as the controlling one, so an entry replaced by another kind since is neither waited
+# on nor followed nor made this process's terminal, and its descriptor refuses it.
+# Opening a FIFO for reading otherwise waits for a writer that never comes, and a
+# character device such as `/dev/zero`, or a link to one, is read without end. What
+# opening a device node does to the device the flags do not prevent, so the name is
+# asked first, and only a device put in its place between that answer and the open is
+# opened at all. win32 has none of these flags, so there the name's and the opened
+# descriptor's kinds decide alone; `O_BINARY` keeps its reads byte-exact.
 _REGULAR_ONLY = (os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
-                 | getattr(os, "O_BINARY", 0))
+                 | getattr(os, "O_NOCTTY", 0) | getattr(os, "O_BINARY", 0))
 
 
 def _open_regular(path: Path | str) -> int | None:
     """A read descriptor on `path` when it is a regular file, and None when it is not.
 
-    The kind is the opened descriptor's, not the name's, so an entry replaced between a
-    check by name and the read is still refused. A final symbolic link is refused where
-    the platform refuses to open one; an `OSError` from the open is otherwise the
-    caller's.
+    The name is asked first, without following a final link, and nothing it reports as
+    another kind is opened, since opening a device node can act on the device. The
+    opened descriptor must then be a regular file and the very file the name reported,
+    by device and inode, so an entry replaced between the two is refused as well. An
+    `OSError` from either question, `FileNotFoundError` among them, is the caller's.
     """
+    named = os.lstat(path)
+    if not stat.S_ISREG(named.st_mode):
+        return None
     try:
         fd = os.open(path, _REGULAR_ONLY)
     except OSError as err:
@@ -269,35 +333,93 @@ def _open_regular(path: Path | str) -> int | None:
             return None
         raise
     try:
-        regular = stat.S_ISREG(os.fstat(fd).st_mode)
+        held = os.fstat(fd)
     except BaseException:
         os.close(fd)
         raise
-    if not regular:
+    if (not stat.S_ISREG(held.st_mode)
+            or (held.st_dev, held.st_ino) != (named.st_dev, named.st_ino)):
         os.close(fd)
         return None
     return fd
 
 
-def _regular_digest(path: Path) -> str | None:
-    """The SHA-256 of `path`, read through a descriptor that is a regular file, and None
-    when it does not open as one: the listing's check by name comes first, and an entry
-    replaced after it is listed unhashed rather than waited on or read without end."""
+def _regular_digest(path: Path) -> _Hashed | None:
+    """The SHA-256 of `path`, read through a descriptor that is a regular file, with that
+    descriptor's device and inode and the length read, and None when `_open_regular`
+    finds it is not one: an entry replaced after the listing's check by name is listed
+    unhashed rather than waited on or read without end."""
     fd = _open_regular(path)
     if fd is None:
         return None
     with os.fdopen(fd, "rb") as stream:
-        return hashlib.file_digest(stream, "sha256").hexdigest()
+        digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        held = os.fstat(stream.fileno())
+        return _Hashed(digest, held.st_dev, held.st_ino, stream.tell())
 
 
-def verify_test_corpus(suite: Path, tarball_sha256: str) -> None:
-    """Refuse a suite unless it is what its manifest records for this tarball digest.
+# A hashed listing line, `<sha256>  <path>`, and the path it records.
+_HASHED_LINE = re.compile(rb"[0-9a-f]{64}  (.*)", re.DOTALL)
 
-    The manifest is read only when its opened descriptor is a regular file, which is
-    what configure writes, so a manifest standing as a FIFO or a device node, or as a
-    link where the platform refuses to open one, is refused rather than waited on or
-    read without end, whichever reader asks: the donor seeding, the sweep, trace-diff
-    and the build receipt.
+
+def _recorded_path(line: bytes) -> bytes:
+    """The path a manifest's hashed line records, and a line of any other shape whole,
+    which then names no entry of the tree."""
+    found = _HASHED_LINE.fullmatch(line)
+    return line if found is None else cast("bytes", found.group(1))
+
+
+def _non_regular(suite: Path) -> ValueError:
+    """The refusal of a suite holding an entry that is not a regular file."""
+    return ValueError(f"{suite} holds a symbolic link or other non-regular entry, which "
+                      "no manifest configure writes holds; configure downloads it again")
+
+
+def _disagreement(suite: Path, manifest: Path, held: list[bytes], kept: list[bytes],
+                  found: list[bytes], *, cut: bool = False) -> ValueError:
+    """The refusal at the first line where `kept`, the manifest's lines `held` as they
+    are compared, differs from `found`, the tree's. `cut` says the read stopped at its
+    bound rather than at the manifest's end, so the last line held is only as much of
+    that line as was read."""
+    where = next((i for i, (a, b) in enumerate(zip(kept, found, strict=False)) if a != b),
+                 min(len(kept), len(found)))
+    manifest_line, tree_line = (
+        lines[where].decode("utf-8", "replace") if where < len(lines) else "<end>"
+        for lines in (held, found))
+    unread = ", read no further," if cut and where == len(held) - 1 else ""
+    return ValueError(f"{suite} disagrees with {manifest.name} at line {where + 1}: the "
+                      f"manifest has {manifest_line!r}{unread} and the tree {tree_line!r}; "
+                      "configure downloads it again")
+
+
+def verify_test_corpus(suite: Path, tarball_sha256: str) -> VerifiedSuite:
+    """Refuse a suite unless it is what its manifest records for this tarball digest,
+    and answer what agreed: the manifest's bytes, and each file's SHA-256 with the
+    device and inode of the descriptor it was hashed through and the length hashed.
+
+    The manifest is read only when its name and its opened descriptor are one regular
+    file, which is what configure writes, so a manifest standing as a FIFO, a device
+    node or a symbolic link is refused rather than waited on or read without end,
+    whichever reader asks: the donor seeding, the sweep, trace-diff and the build
+    receipt.
+
+    The tree is walked before any file of it is read. An entry that is not a regular
+    file is refused, and then the walked paths are held to the ones the manifest
+    records, so an entry it does not list, or a listed one that is gone, is refused
+    before a file is hashed. No more of the manifest is read than the listing of those
+    paths is long and one byte, so a regular manifest longer than that, a sparse one
+    among them, disagrees rather than being read until memory runs out. Only then is
+    each file hashed and the whole listing compared. A file under a listed name is
+    hashed whatever its length, since the listing records no sizes: an oversized one,
+    a sparse one among them, is read in full before it is found to disagree. That
+    residual is the listing format's, which `riscv_tests_listing` in
+    model/test/CMakeLists.txt owns.
+
+    The answer is what a reader after the verification goes by, rather than the tree's
+    names, which can change once it returns: the seeding copies only the files it
+    lists, each while it is still the file that verified, and writes their manifest
+    from the bytes that verified; the sweep, trace-diff and the build receipt choose
+    their inputs from the files it lists, and the receipt records the digests it read.
     """
     manifest = corpus_manifest(suite)
     if suite.is_symlink() or not suite.is_dir():
@@ -312,34 +434,40 @@ def verify_test_corpus(suite: Path, tarball_sha256: str) -> None:
     if fd is None:
         raise ValueError(f"{manifest} is not a regular file, which no configure writes; "
                          f"configure downloads {suite.name} again")
+    with os.fdopen(fd, "rb") as handle:
+        try:
+            entries = _corpus_entries(suite)
+        except OSError as err:
+            raise ValueError(f"cannot list {suite}: {err}") from err
+        if not all(entry.regular for entry in entries):
+            raise _non_regular(suite)
+        head = _listed(_listing_head(suite, tarball_sha256))
+        paths = [_listed(entry.relative) for entry in entries]
+        # each file's line is its digest in hex, two spaces, its path and a newline
+        length = len(head) + sum(64 + 2 + len(path) + 1 for path in paths)
+        try:
+            recorded = handle.read(length + 1)
+        except OSError as err:
+            raise ValueError(f"cannot read {manifest}: {err}") from err
+    held = recorded.splitlines()
+    kept = [*held[:1], *(_recorded_path(line) for line in held[1:])]
+    walked = [head.rstrip(b"\n"), *paths]
+    if kept != walked:
+        raise _disagreement(suite, manifest, held, kept, walked, cut=len(recorded) > length)
     try:
-        with os.fdopen(fd, "rb") as handle:
-            recorded = handle.read()
-    except OSError as err:
-        raise ValueError(f"cannot read {manifest}: {err}") from err
-    try:
-        rendered = corpus_listing(suite, tarball_sha256)
+        rendered, files = _hashed_listing(suite, tarball_sha256, entries)
     except OSError as err:
         raise ValueError(f"cannot list {suite}: {err}") from err
     if b"\nunhashed " in rendered:
-        raise ValueError(f"{suite} holds a symbolic link or other non-regular entry, which "
-                         "no manifest configure writes holds; configure downloads it again")
-    if recorded == rendered:
-        return
-    held, found = recorded.splitlines(), rendered.splitlines()
-    where = next((i for i, (a, b) in enumerate(zip(held, found, strict=False)) if a != b),
-                 min(len(held), len(found)))
-    manifest_line, tree_line = (
-        lines[where].decode("utf-8", "replace") if where < len(lines) else "<end>"
-        for lines in (held, found))
-    raise ValueError(f"{suite} disagrees with {manifest.name} at line {where + 1}: the "
-                     f"manifest has {manifest_line!r} and the tree {tree_line!r}; "
-                     "configure downloads it again")
+        raise _non_regular(suite)
+    if recorded != rendered:
+        raise _disagreement(suite, manifest, held, held, rendered.splitlines())
+    return VerifiedSuite(suite, recorded, files)
 
 
-def _test_corpus(directory: Path, model_root: Path) -> Path:
+def _test_corpus(directory: Path, model_root: Path) -> VerifiedSuite:
     """Select the declared release even when older or newer donor caches coexist, and
-    only a suite that is the verified extraction its manifest records."""
+    only a suite that is the verified extraction its manifest records, as it verified."""
     version = test_corpus_version(model_root)
     suite = directory / "test" / version / "riscv-tests"
     if not suite.is_dir():
@@ -347,24 +475,52 @@ def _test_corpus(directory: Path, model_root: Path) -> Path:
     digest = test_corpus_digests(model_root, version).get("riscv-tests")
     if digest is None:
         raise ValueError(f"the model records no riscv-tests digest at release {version}")
-    verify_test_corpus(suite, digest)
-    return suite
+    return verify_test_corpus(suite, digest)
+
+
+def _verified_inputs(verified: VerifiedSuite, pattern: str) -> dict[Path, str]:
+    """The files at the top of `verified`'s suite whose names match the glob `pattern`,
+    other than the `.dump` disassemblies beside them, in path order, each with the
+    SHA-256 its verification read. They are chosen from what verified rather than from
+    the tree as it stands, so an entry added after the verification is not among them,
+    and none is read again to choose it."""
+    chosen = {verified.suite / relative: hashed.digest
+              for relative, hashed in verified.files.items()
+              if "/" not in relative and fnmatch.fnmatchcase(relative, pattern)
+              and PurePosixPath(relative).suffix != ".dump"}
+    return dict(sorted(chosen.items()))
+
+
+def _sweep_corpus(directory: Path, model_root: Path, xlen: str = "64") -> dict[Path, str]:
+    """The nonempty physical-variant suite selected by both the runner and its receipt,
+    each input with the SHA-256 its suite's verification read."""
+    verified = _test_corpus(directory, model_root)
+    elves = _verified_inputs(verified, f"rv{xlen}*-p-*")
+    if not elves:
+        raise ValueError(f"no rv{xlen} physical-variant ELF inputs under {verified.suite}")
+    return elves
 
 
 def build_artifacts(directory: Path, model_root: Path) -> dict[str, str]:
-    """Build products and the exact downloaded ELF inputs the profile sweep consumes."""
-    return receipts.snapshot(directory, [*(directory / rel for rel in BUILD_ARTIFACTS),
-                                          *sweep_inputs(directory, model_root)])
+    """Build products and the exact downloaded ELF inputs the profile sweep consumes.
+
+    Each input is recorded, under the name `receipts.snapshot` gives the products, with
+    the SHA-256 its suite's verification read through a descriptor that is a regular
+    file, and is not read again: an input replaced or added once the suite verified
+    changes nothing recorded here, and the next verification, `verified_build`'s among
+    them, refuses the suite.
+    """
+    inputs = _sweep_corpus(directory, model_root)
+    recorded = receipts.snapshot(directory, [directory / rel for rel in BUILD_ARTIFACTS])
+    base = directory.resolve()
+    for path, digest in inputs.items():
+        recorded[(path.parent.resolve() / path.name).relative_to(base).as_posix()] = digest
+    return dict(sorted(recorded.items()))
 
 
 def sweep_inputs(directory: Path, model_root: Path, xlen: str = "64") -> list[Path]:
     """The nonempty physical-variant suite selected by both the runner and its receipt."""
-    suite = _test_corpus(directory, model_root)
-    elves = [path for path in sorted(suite.glob(f"rv{xlen}*-p-*"))
-             if path.is_file() and path.suffix != ".dump"]
-    if not elves:
-        raise ValueError(f"no rv{xlen} physical-variant ELF inputs under {suite}")
-    return elves
+    return list(_sweep_corpus(directory, model_root, xlen))
 
 
 def verified_build(e: env.Environment, *, fast: bool = False) -> dict[str, object]:
@@ -403,6 +559,20 @@ ORACLE_INIT = f"git submodule update --init --recursive {ORACLE_SRC}"
 # is refused like a stamp naming other commits.
 ORACLE_STAMP = ".verifiedos-oracle-source"
 ORACLE_STAMP_CLAIM = "bytes"
+
+# Written beside the tree once the bundled suite has passed on the simulator a run just
+# built there, and read back by `trace-diff` before it runs a simulator as the oracle:
+# the stamp the tree carried, the simulator's SHA-256 and the suite's tally. `oracle`
+# removes it as soon as it holds the tree's lock, so it stands only while the latest
+# `oracle` run to hold that lock passed.
+ORACLE_RECEIPT_SUFFIX = ".receipt.json"
+
+
+def oracle_receipt(tree: Path) -> Path:
+    """Where the receipt of `tree`'s latest passing suite lives: beside the tree, as its
+    lock is."""
+    return tree.with_name(tree.name + ORACLE_RECEIPT_SUFFIX)
+
 
 # The C standard the oracle's tree is built to. gcc 15 defaults to C23, in which an
 # empty parameter list declares *no* parameters rather than an unspecified one; Sail's
@@ -720,10 +890,13 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
     artifacts: dict[str, str] = {}
     if code == 0 and not refusal:
         # The sweep's inputs are read through `_test_corpus`, which holds the suite to
-        # the manifest configure wrote, so an unverified corpus fails the build here.
+        # the manifest configure wrote, so an unverified corpus fails the build here,
+        # and so does a product that cannot be read: its `OSError` is the refusal the
+        # receipt records rather than an exception that ends the run before one is
+        # written.
         try:
             artifacts = build_artifacts(build_dir, e.model)
-        except ValueError as err:
+        except (OSError, ValueError) as err:
             refusal = f"the build's evidence cannot be recorded: {err}"
     if refusal:
         print(refusal, file=sys.stderr)
@@ -880,12 +1053,13 @@ def _seed_test_data(donors: list[Path], target: Path, model_root: Path) -> None:
     `CMakeFiles` under it is being configured against a state it did not produce.
     Another release's suites stay behind, since nothing reads them.
 
-    The donor's suite is held to its manifest before it is copied, and the copy, made
-    beside its destination, is held to the manifest copied with it before it is moved
-    into place, so a donor whose suite has no manifest or one that is not a regular
-    file, disagrees with its manifest, holds an entry that is not a regular file, or
-    changes during the copy seeds nothing, and configure downloads that suite instead. A suite the target already holds is left
-    to configure, which keeps it only if it matches its manifest.
+    The donor's suite is held to its manifest before it is copied, only what verified is
+    copied, and the copy, made beside its destination, is held to the manifest written
+    with it before it is moved into place, so a donor whose suite has no manifest or one
+    that is not a regular file, disagrees with its manifest, holds an entry that is not
+    a regular file, or has a verified file replaced or resized during the copy seeds
+    nothing, and configure downloads that suite instead. A suite the target already
+    holds is left to configure, which keeps it only if it matches its manifest.
     """
     try:
         version = test_corpus_version(model_root)
@@ -917,17 +1091,24 @@ def _copy_verified_suite(suite: Path, into: Path, digest: str) -> None:
     a character device such as a `/dev/zero` node is read without end, so a donor
     holding either would stall the command standing the lane up; the listing the
     verification renders reads no non-regular entry and refuses a suite holding one.
-    The donor can still change between that verification and the copy, so every file,
-    the manifest among them, is copied by `_copy_regular_file`, which reads only what
-    opens as a regular file, and the copy is verified before it is published.
+    The donor can still change between that verification and the copy, so the copy is
+    made from what the verification answered rather than from the donor's names: its
+    manifest is written from the bytes that verified, and only the files that verified
+    are copied, each by `_copy_regular_file` and only while it is the file that
+    verified, so an entry added since is not copied and one replaced or grown since is
+    refused before more of it is read than verified. The copy is verified before it is
+    published.
     """
-    verify_test_corpus(suite, digest)
+    verified = verify_test_corpus(suite, digest)
     into.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{into.name}-seed-", dir=into.parent))
     try:
         copy = staging / into.name
-        shutil.copytree(suite, copy, symlinks=True, copy_function=_copy_regular_file)
-        _copy_regular_file(corpus_manifest(suite), corpus_manifest(copy))
+        copy.mkdir()
+        for relative, held in verified.files.items():
+            (copy / relative).parent.mkdir(parents=True, exist_ok=True)
+            _copy_regular_file(suite / relative, copy / relative, held)
+        corpus_manifest(copy).write_bytes(verified.manifest)
         verify_test_corpus(copy, digest)
         copy.rename(into)
         corpus_manifest(copy).replace(corpus_manifest(into))
@@ -935,26 +1116,45 @@ def _copy_verified_suite(suite: Path, into: Path, digest: str) -> None:
         shutil.rmtree(staging, ignore_errors=True)
 
 
-def _copy_regular_file(source: Path | str, destination: Path | str) -> Path | str:
-    """`copy2` for a donor's suite, reading `source` only if it opens as a regular file.
+# How much of a donor's file one read of the seeding's copy asks for.
+_COPY_CHUNK = 1 << 20
 
-    `copytree` calls this for every entry that is neither a directory nor a link when
-    it lists the directory, and the entry can have been replaced since: the descriptor
-    this reads from is the one whose kind was checked, so a FIFO is not waited on and a
-    device is not read. What is refused raises `ValueError`, which `copytree` does not
-    collect and so ends the copy at the first such entry. Mode and times are kept from
-    that descriptor, as `copy2` keeps them.
+
+def _copy_regular_file(source: Path, destination: Path, verified: _Hashed) -> None:
+    """Copy `source` to the new file `destination` as `copy2` would, reading it only
+    while it is the regular file `verified` records.
+
+    The descriptor read from is the one whose kind `_open_regular` checked, so a FIFO is
+    not waited on and a device is not read. It must also be the very file that verified,
+    by device, inode and length, so a donor entry replaced or resized since is refused
+    before any of it is read, and the read stops one byte past the verified length, so
+    a file grown after its length was asked is refused rather than read to its end.
+    What is refused raises `ValueError` and leaves no destination. Mode and times are
+    kept from the descriptor, as `copy2` keeps them.
     """
     fd = _open_regular(source)
     if fd is None:
         raise ValueError(f"{source} is not a regular file; the donor changed after it "
                          "verified")
-    with os.fdopen(fd, "rb") as reader, Path(destination).open("xb") as writer:
-        shutil.copyfileobj(reader, writer)
+    with os.fdopen(fd, "rb", buffering=0) as reader:
         held = os.fstat(reader.fileno())
-    Path(destination).chmod(stat.S_IMODE(held.st_mode))
+        if (held.st_dev, held.st_ino, held.st_size) != (verified.device, verified.inode,
+                                                         verified.size):
+            raise ValueError(f"{source} is not the file that verified; the donor changed "
+                             "after it verified")
+        copied = 0
+        with destination.open("xb") as writer:
+            while copied <= verified.size and (
+                    chunk := reader.read(min(verified.size + 1 - copied, _COPY_CHUNK))):
+                writer.write(chunk)
+                copied += len(chunk)
+    if copied != verified.size:
+        destination.unlink()
+        raise ValueError(f"{source} is {'longer' if copied > verified.size else 'shorter'} "
+                         f"than the {verified.size} bytes that verified; the donor changed "
+                         "after it verified")
+    destination.chmod(stat.S_IMODE(held.st_mode))
     os.utime(destination, ns=(held.st_atime_ns, held.st_mtime_ns))
-    return destination
 
 
 def cmd_wait(e: env.Environment, args: argparse.Namespace) -> int:
@@ -1326,7 +1526,13 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
 
     The suite it then runs is the oracle's own acceptance and not the transplant's: it
     says the reference is a working machine before `trace-diff` is allowed to treat it
-    as evidence.
+    as evidence. It runs the simulator the build just linked in the tree, whatever
+    `VOS_ORACLE` names, and only once it passes is `oracle_receipt` written beside the
+    tree, naming the tree's stamp, that simulator's SHA-256 and the tally, which
+    `trace-diff` requires. The receipt is removed as soon as the run holds the tree's
+    lock, so a run that holds it and then stops short of a passing suite, refused,
+    failed or killed, leaves none; a run refused before it holds the lock leaves the
+    tree and its receipt as they were.
 
     The compiler is this environment's `sail`, bound twice. The tree sits under the
     edition that builds it (`env.Environment.oracle_root`), because the Makefile's
@@ -1367,6 +1573,7 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
     # rather than deleting the executor under a live comparison. Taken before the log
     # is opened, so a refused run cannot truncate the log of the one it lost to.
     with env.hold_lock(tree, "an oracle build"):
+        oracle_receipt(tree).unlink(missing_ok=True)
         print(f"== log: {log}", flush=True)
         with log.open("w", encoding="utf-8") as handle:
             handle.write(f"== sail: {version.stdout.strip()} at {sail}\n")
@@ -1387,7 +1594,7 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
             handle.write(f"BUILD_EXIT={code}\n")
             handle.flush()
             if code == 0:
-                code = _oracle_suite(e, tree, handle, args.timeout)
+                code = _vouch_for_oracle(e, tree, handle, args.timeout)
             handle.write("ALL_DONE\n")
 
     print(f"== {'green' if code == 0 else 'failed'}: {log}")
@@ -1409,6 +1616,9 @@ def _stand_oracle_tree(src: Path, tree: Path, pins: tuple[str, str], handle: IO[
     if not resync and (tree / "Makefile").is_file():
         recorded = stamp.read_text(encoding="utf-8").split() if stamp.is_file() else []
         if recorded != claim:
+            if recorded[:2] == list(pins):
+                return (f"{tree} is stamped with these pins by a sync that did not "
+                        "restore their bytes; rerun with --resync")
             return (f"{tree} is stamped {' '.join(recorded) or 'with nothing'}, not "
                     f"{' '.join(claim)}: not these pins; rerun with --resync")
         handle.write("SYNC skipped: the tree is already present at these pins\n")
@@ -1456,6 +1666,13 @@ def _gitlink(listing: bytes, path: str, where: str) -> str:
     raise ValueError(f"{where} records no gitlink for {path}; run `{ORACLE_INIT}`")
 
 
+def _indexed_oracle_pin(root: Path) -> str:
+    """The commit this checkout's index pins `ORACLE_SRC` at, which is readable whether
+    or not the submodule is checked out."""
+    return _gitlink(_plain_git(["ls-files", "--stage", "--", ORACLE_SRC], root,
+                               env.git_env(root) or None), ORACLE_SRC, "this checkout's index")
+
+
 def _oracle_pins(root: Path, src: Path) -> tuple[str, str]:
     """The oracle's two pins, with both checkouts shown to be at them.
 
@@ -1465,8 +1682,7 @@ def _oracle_pins(root: Path, src: Path) -> tuple[str, str]:
     leaves a populated submodule at the old commit, and the tree's name would then
     claim a pin its bytes are not.
     """
-    outer = _gitlink(_plain_git(["ls-files", "--stage", "--", ORACLE_SRC], root,
-                                env.git_env(root) or None), ORACLE_SRC, "this checkout's index")
+    outer = _indexed_oracle_pin(root)
     head = _plain_git(["rev-parse", "HEAD"], src).decode().strip()
     if head != outer:
         raise ValueError(f"{ORACLE_SRC} is checked out at {head}, not at its pin {outer}; "
@@ -1577,18 +1793,44 @@ def _sync_oracle_tree(src: Path, tree: Path) -> None:
     shutil.copytree(src, tree, ignore=shutil.ignore_patterns(".git"), symlinks=True)
 
 
-def _oracle_suite(e: env.Environment, tree: Path, handle: IO[str], timeout: int) -> int:
+def _vouch_for_oracle(e: env.Environment, tree: Path, handle: IO[str], timeout: int) -> int:
+    """Run the bundled suite on the simulator just built in `tree` and, once it passes,
+    write the receipt `trace-diff` requires; 0 is a passing suite with its receipt.
+
+    The simulator is hashed before the suite runs, so the receipt names the bytes the
+    suite ran rather than whatever stands there after it.
+    """
+    simulator = tree / ORACLE_TARGET
+    try:
+        simulator_sha256 = receipts.digest(simulator)
+        stamp = (tree / ORACLE_STAMP).read_text(encoding="utf-8").split()
+    except OSError as err:
+        handle.write(f"cannot read the built simulator and its stamp: {err}\n")
+        return 1
+    passed, failed = _oracle_suite(e, simulator, tree, handle, timeout)
+    if failed or not passed:
+        return 1
+    receipt = oracle_receipt(tree)
+    receipts.write(receipt, {"schema": 1, "stamp": stamp, "simulator": ORACLE_TARGET,
+                             "simulator_sha256": simulator_sha256,
+                             "suite": {"pass": passed, "fail": failed}})
+    handle.write(f"RECEIPT {receipt}\n")
+    return 0
+
+
+def _oracle_suite(e: env.Environment, simulator: Path, tree: Path, handle: IO[str],
+                  timeout: int) -> tuple[int, int]:
     """The RV64 programs bundled with the oracle's own embedded sail-riscv, run against
-    the simulator just built. Each is one short single-threaded process sharing nothing,
-    so the width is the core count for the same reason `sweep`'s is."""
+    `simulator`, as (passed, failed). Each is one short single-threaded process sharing
+    nothing, so the width is the core count for the same reason `sweep`'s is."""
     elves = sorted((tree / "sail-riscv" / "test" / "riscv-tests").glob("rv64*.elf"))
     if not elves:
         handle.write("no bundled rv64 ELFs found under sail-riscv/test/riscv-tests\n")
-        return 1
+        return 0, 0
 
     def passed(elf: Path) -> bool:
         try:
-            done = subprocess.run([str(e.oracle), "-p", str(elf)], capture_output=True,
+            done = subprocess.run([str(simulator), "-p", str(elf)], capture_output=True,
                                   text=True, errors="replace", timeout=timeout, check=False)
         except subprocess.TimeoutExpired:
             return False
@@ -1601,7 +1843,7 @@ def _oracle_suite(e: env.Environment, tree: Path, handle: IO[str], timeout: int)
                 failed += 1
                 handle.write(f"FAILED: {elf.name}\n")
     handle.write(f"TESTS pass={len(elves) - failed} fail={failed}\n")
-    return 1 if failed else 0
+    return len(elves) - failed, failed
 
 
 def cmd_sweep(e: env.Environment, args: argparse.Namespace) -> int:
@@ -1681,7 +1923,8 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
     `--resync` and can relink its simulator on any build, so the comparison holds the
     tree shared for as long as it runs the oracle: such a run from any lane is refused
     rather than removing the executor under a live comparison, and a comparison is
-    refused while such a run holds the tree.
+    refused while such a run holds the tree. Under that lock it runs the oracle only
+    where the latest `oracle` run vouches for it (`_unvouched_oracle`).
     """
     if (missing := _missing_simulator(e)) is not None:
         print(missing, file=sys.stderr)
@@ -1693,20 +1936,20 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
     elves = [Path(p) for p in args.elf]
     if args.corpus:
         try:
-            suite = _test_corpus(e.build_dir, e.model)
+            verified = _test_corpus(e.build_dir, e.model)
         except ValueError as err:
             print(str(err), file=sys.stderr)
             return 1
-        elves = sorted(p for p in suite.glob("rv64ui-p-*")
-                       if p.is_file() and p.suffix != ".dump")
+        elves = list(_verified_inputs(verified, "rv64ui-p-*"))
     if not elves:
         print("nothing to compare: pass one or more ELFs, or --corpus", file=sys.stderr)
         return 1
 
     with env.hold_lock(e.oracle_root, "a trace-diff", shared=True):
         # Asked again under the lock: a sync that ran after the first asking and failed
-        # its verification or its build left no simulator behind.
-        if (missing := _missing_oracle(e)) is not None:
+        # its verification or its build left no simulator behind, and one that passed
+        # replaced the receipt.
+        if (missing := _missing_oracle(e) or _unvouched_oracle(e)) is not None:
             print(missing, file=sys.stderr)
             return 1
         return _adjudicate(e, args, elves)
@@ -1717,6 +1960,57 @@ def _missing_oracle(e: env.Environment) -> str | None:
     if e.oracle.exists():
         return None
     return f"no M0.4 oracle at {e.oracle}; run `run.py model oracle` first"
+
+
+def _unvouched_oracle(e: env.Environment) -> str | None:
+    """`trace-diff`'s refusal of a simulator no passing `oracle` run vouches for.
+
+    Three things must hold, each read while the tree is held. The tree's stamp vouches
+    for the pinned sources' bytes and names the commit this checkout's index pins
+    `ORACLE_SRC` at, which fixes the nested pin too, since `oracle` reads that out of
+    the same commit. The receipt beside the tree names that stamp and a passing tally.
+    And the simulator is the bytes the receipt records the suite passing on.
+
+    `VOS_ORACLE` may name a simulator outside the tree, and it is held to the tree's
+    receipt all the same: it runs only as a copy of the bytes that passed there, and is
+    refused otherwise.
+    """
+    tree = e.oracle_root
+    resync = "run `run.py model oracle --resync`"
+    try:
+        recorded = (tree / ORACLE_STAMP).read_text(encoding="utf-8").split()
+    except OSError:
+        recorded = []
+    if len(recorded) != 3 or recorded[-1] != ORACLE_STAMP_CLAIM:
+        return (f"{tree} is stamped {' '.join(recorded) or 'with nothing'}, which does "
+                f"not vouch for the pinned sources' bytes; {resync}")
+    try:
+        pin = _indexed_oracle_pin(e.root)
+    except ValueError as err:
+        return str(err)
+    if recorded[0] != pin:
+        return (f"{tree} is stamped for {ORACLE_SRC} at {recorded[0]}, not at this "
+                f"checkout's pin {pin}; {resync}")
+    receipt = oracle_receipt(tree)
+    rerun = f"run `run.py model oracle`, whose suite writes {receipt.name} once it passes"
+    try:
+        raw: object = json.loads(receipt.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return f"no readable receipt of a passing oracle suite at {receipt}; {rerun}"
+    record = cast("dict[str, object]", raw) if isinstance(raw, dict) else {}
+    suite = record.get("suite")
+    tally = cast("dict[str, object]", suite) if isinstance(suite, dict) else {}
+    passed = tally.get("pass")
+    if (record.get("stamp") != recorded or tally.get("fail") != 0
+            or not isinstance(passed, int) or passed < 1):
+        return f"{receipt} does not record a passing suite under {tree}'s stamp; {rerun}"
+    try:
+        held = receipts.digest(e.oracle)
+    except OSError as err:
+        return f"cannot read {e.oracle}: {err}"
+    if record.get("simulator_sha256") != held:
+        return f"{e.oracle} is not the simulator {receipt} records the suite passing on; {rerun}"
+    return None
 
 
 def _adjudicate(e: env.Environment, args: argparse.Namespace, elves: list[Path]) -> int:
@@ -1812,7 +2106,13 @@ def _run_trace(argv: list[str], timeout: int) -> list[str] | None:
 
 
 def _corpus_persistence(e: env.Environment, out: Path, timeout: int) -> int:
-    """Include architectural reopen evidence in the corpus command's verdict."""
+    """Include architectural reopen evidence in the corpus command's verdict.
+
+    The campaign holds its own lock, the one a lane retirement takes, so this takes
+    none: held here as well, it would refuse the campaign's own hold, a second open
+    of the same file, because `flock` belongs to the open file description rather
+    than to the process.
+    """
     output = out / f"persistence-{uuid.uuid4().hex}"
     try:
         report = block_persistence.run(e.root, e.simulator, e.profile, output, timeout)

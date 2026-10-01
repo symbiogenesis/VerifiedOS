@@ -15,6 +15,9 @@ leave that rule green over nothing.
 What the rule half holds is that the region cannot be used to hide a citation, that
 a region carrying code or prose is a finding, and that the probe reports when the
 exclusion itself moves.
+
+Between them, the names a file defines and the statements a discharge claims are read
+with the shared lexer's keyword tables and decoration grammar, the proof gate's own.
 """
 
 from pathlib import Path
@@ -144,6 +147,95 @@ def _two_regions_in_one_file_are_both_skipped() -> None:
 
 
 # =====================================================================================
+# the names and the discharge claims: the shared keyword tables and decoration grammar
+# =====================================================================================
+
+
+def _names_read_the_shared_tables_and_decorations() -> None:
+    # `Property` is a Rocq 9.3 theorem keyword the gate's statement table names, and a
+    # definition is read under any decoration of the shared lexer's grammar, spelled as
+    # Rocq's lexer reads it, except under `Fail` or `Succeed`, which keep nothing.
+    text = ("Property p : True.\nProof. exact I. Qed.\n"
+            "Time#[local]Lemma q : True.\nProof. exact I. Qed.\n"
+            'Redirect "a""b" Local Definition d := 0.\n'
+            "#[local] #[program] Fixpoint f (n : nat) : nat := n.\n"
+            "Local(* c *)Theorem t : True.\nProof. exact I. Qed.\n"
+            "Lemma l : True.\nProof.\n- Definition b := 1.\n  exact I.\nQed.\n"
+            "Fail Definition e := tt tt.\nSucceed#[local]Lemma s : True.\nProof. exact I. Qed.\n")
+    got = proofcites.names(text)
+    ensure(got == ["p", "q", "d", "f", "t", "l", "b"], f"the names read are {got!r}")
+    # every vernacular the shared table of declarations names, spelled here rather than
+    # read from the table under test, so one dropped from the table is a name that goes
+    # missing
+    got = proofcites.names("Variant v := A | B.\nStructure R := { a : nat }.\n"
+                           "CoInductive s := C : nat -> s -> s.\n"
+                           "CoFixpoint z : s := C 0 z.\nRecord Q := { q : nat }.\n"
+                           "Inductive I := J.\nFixpoint g (n : nat) : nat := n.\n"
+                           "Instance i : Inhabited nat := {}.\nExample e : True := I.\n"
+                           "Fact a : True.\nRemark r : True.\nCorollary c : True.\n"
+                           "Proposition o : True.\nTheorem h : True.\n")
+    ensure(got == ["v", "R", "s", "z", "Q", "I", "g", "i", "e", "a", "r", "c", "o", "h"],
+           f"the names every defining vernacular binds are {got!r}")
+
+
+def _a_claim_reads_the_shared_tables_and_decorations() -> None:
+    claims, faults = proofcites.discharges(
+        "(*| discharges: R-01-001 |*)\nProperty p : True.\n"
+        "(*| discharges: R-02-002 |*)\nTime#[local]Lemma q : True.\n"
+        '(*| discharges: R-03-003 |*)\n#[local] #[deprecated(note="a""b")] Theorem r : True.\n')
+    ensure(claims == [("p", ["R-01-001"]), ("q", ["R-02-002"]), ("r", ["R-03-003"])]
+           and not faults, f"the claims read are {claims!r}, the faults {faults!r}")
+    # a statement a void flag keeps nothing of is no statement to claim against
+    for lead, flag in (("Fail ", "Fail"), ("Succeed#[local]", "Succeed"),
+                       ("Time Fail ", "Fail")):
+        claims, faults = proofcites.discharges(
+            f"(*| discharges: R-01-001 |*)\n{lead}Theorem x : True.\n")
+        ensure(not claims and len(faults) == 1 and f"under `{flag}`" in faults[0],
+               f"a claim above {lead!r} was read as {claims!r}: {faults!r}")
+    # and a decorated definition is still a term
+    claims, faults = proofcites.discharges(
+        "(*| discharges: R-01-001 |*)\nTime Definition d := 0.\n")
+    ensure(not claims and len(faults) == 1 and "`Definition d`, which states nothing"
+           in faults[0], f"a claim above a decorated term: {claims!r} {faults!r}")
+
+
+def _a_claim_reads_its_statement_as_rocq_does() -> None:
+    # The annotation is a comment and separates nothing, so a flag above it is the
+    # statement's, and a comment between a decoration and the vernacular is a separator
+    # as Rocq's lexer reads it; a flag that ends the sentence before is no flag of this one.
+    for lead, flag in (("Fail\n", "Fail"), ("Succeed\n(* why. *)\n", "Succeed"),
+                       ("Fail }\nSucceed\n", "Succeed")):
+        claims, faults = proofcites.discharges(
+            f"Check I.\n{lead}(*| discharges: R-01-001 |*)\nTheorem x : True.\n")
+        ensure(not claims and len(faults) == 1 and f"under `{flag}`" in faults[0],
+               f"a claim below {lead!r} was read as {claims!r}: {faults!r}")
+    for text, name in (("(*| discharges: R-01-001 |*)\nLocal(* c *)Lemma p : True.\n", "p"),
+                       ("(*| discharges: R-01-001 |*)\nLemma(* c *)q : True.\n", "q"),
+                       ("Fail Check I.\n(*| discharges: R-01-001 |*)\nTheorem r : True.\n",
+                        "r"),
+                       ("Fail\n}\n(*| discharges: R-01-001 |*)\nTheorem s : True.\n", "s")):
+        claims, faults = proofcites.discharges(text)
+        ensure(claims == [(name, ["R-01-001"])] and not faults,
+               f"the claim in {text!r} was read as {claims!r}: {faults!r}")
+
+
+def _a_flag_before_a_brace_is_the_braces() -> None:
+    # A bullet, a brace or a goal selector is a command of its own, and the locked
+    # compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps what follows,
+    # so the definition after one defines its name and the statement after one is
+    # claimed; a flag after a bullet is the definition's, which defines nothing.
+    got = proofcites.names("Lemma l : True.\nProof.\n"
+                           "Fail }\nDefinition a := 0.\nFail } Definition b := 0.\n"
+                           "Succeed { Definition c := 0.\nSucceed 1: { Definition d := 0.\n"
+                           "- Succeed Definition e := 0.\n  exact I.\nQed.\n")
+    ensure(got == ["l", "a", "b", "c", "d"], f"the names after a brace's flag: {got!r}")
+    claims, faults = proofcites.discharges(
+        "(*| discharges: R-01-001 |*)\nFail } Theorem x : True.\n")
+    ensure(claims == [("x", ["R-01-001"])] and not faults,
+           f"a claim after a brace's flag: {claims!r} {faults!r}")
+
+
+# =====================================================================================
 # the rule: K-108 over a fixture corpus
 # =====================================================================================
 
@@ -198,6 +290,22 @@ def _a_vernacular_inside_a_region_is_the_finding() -> None:
                   f"{END}\n")
     ensure(any("opens a vernacular" in f for f in found),
            f"a region that has swallowed code is the finding: {found!r}")
+
+
+def _a_bulleted_continuation_is_prose() -> None:
+    # A transcription wraps an entry's list as bulleted, indented lines, and an item may
+    # open with a word that is also a vernacular. A bullet is a command of its own rather
+    # than a decoration of the one after it, so such a line is the entry's prose; a
+    # vernacular under a control flag or an attribute is still code.
+    found = _k108(f"(* cites R-01-001\n{BEGIN}\n{_TRANSCRIPT}"
+                  "      - Record each value it names.\n      * Export the ledger.\n"
+                  f"{END} *)\n")
+    ensure(found == [], f"a bulleted continuation was read as code: {found!r}")
+    found = _k108(f"(* cites R-01-001 *)\n{BEGIN}\n{_TRANSCRIPT}"
+                  "Time #[local] Definition d := 0.\n"
+                  f"{END}\n")
+    ensure(any("opens a vernacular" in f for f in found),
+           f"a decorated vernacular in a region is the finding: {found!r}")
 
 
 def _prose_inside_a_region_is_the_finding() -> None:
@@ -265,9 +373,17 @@ def cases() -> list[Case]:
         Case("nested-begins-are-a-fault", _nested_begins_are_a_fault),
         Case("stray-marker-is-a-fault", _a_marker_that_is_neither_delimiter_is_a_fault),
         Case("two-regions-are-both-skipped", _two_regions_in_one_file_are_both_skipped),
+        Case("names-read-the-shared-tables-and-decorations",
+             _names_read_the_shared_tables_and_decorations),
+        Case("a-claim-reads-the-shared-tables-and-decorations",
+             _a_claim_reads_the_shared_tables_and_decorations),
+        Case("a-claim-reads-its-statement-as-rocq-does",
+             _a_claim_reads_its_statement_as_rocq_does),
+        Case("a-flag-before-a-brace-is-the-braces", _a_flag_before_a_brace_is_the_braces),
         Case("faithful-region-passes", _a_faithful_region_is_no_finding),
         Case("region-hiding-a-citation", _a_region_hiding_a_citation_is_the_finding),
         Case("vernacular-in-a-region", _a_vernacular_inside_a_region_is_the_finding),
+        Case("bulleted-continuation-is-prose", _a_bulleted_continuation_is_prose),
         Case("prose-in-a-region", _prose_inside_a_region_is_the_finding),
         Case("wrapped-transcription-admitted", _a_wrapped_transcription_is_admitted),
         Case("unbalanced-region-is-the-finding", _an_unbalanced_region_is_the_finding),

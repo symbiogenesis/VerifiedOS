@@ -16,30 +16,59 @@ set(TEST_DOWNLOAD_SHA256_2026-08-20_riscv-vector-tests-v512x64 "a968025ffd35fa9c
 # The listing an extracted suite is held to, which download_riscv_tests records
 # as <suite>.manifest beside a suite it has just extracted from a verified
 # tarball: the tarball's recorded SHA-256, then the SHA-256 and relative path of
-# every file in the suite, sorted by path. A symbolic link, or a name holding ";"
-# or "\" that the glob cannot hand back intact, is listed unhashed, and no
-# manifest is written holding one. Configure does not tell a FIFO or device node
-# from a file, and reading one can stall it, nor see a name holding "\" whose "/"
-# spelling names a file, since the glob folds the two together. The verified
-# riscv-tests tarball contains none of these, and the listing
-# tools/vos/cli/model.py renders for the readers that do not configure refuses
-# each.
+# every file in the suite, sorted by path. A symbolic link is listed unhashed,
+# and every name holding ";" or "\" leaves at least one unhashed line (see the
+# check before the sort and the loop below). No manifest is written holding an
+# unhashed line. Configure does not tell a FIFO or device node from a file, and
+# reading one can stall it. The verified riscv-tests tarball contains neither,
+# and the listing tools/vos/cli/model.py renders for the readers that do not
+# configure refuses both.
 function(riscv_tests_listing SUITE TARBALL_NAME EXPECTED_SHA256 OUT_VAR)
     set(listing "tarball ${TARBALL_NAME}.tar.gz sha256 ${EXPECTED_SHA256}\n")
-    file(GLOB_RECURSE entries LIST_DIRECTORIES false RELATIVE "${SUITE}" "${SUITE}/*")
-    list(SORT entries)
-    foreach(entry IN LISTS entries)
-        # A name holding ";" arrives split at it, or whole where brackets
-        # enclose it, and one holding "\" arrives with "/" in its place, so an
-        # entry naming no file, or holding either character, is listed unhashed
-        # rather than read.
-        if(IS_SYMLINK "${SUITE}/${entry}" OR IS_DIRECTORY "${SUITE}/${entry}"
-                OR NOT EXISTS "${SUITE}/${entry}" OR entry MATCHES "[;\\]")
+    file(GLOB_RECURSE paths LIST_DIRECTORIES false "${SUITE}/*")
+    # CMake's list splitting takes a "\" before a ";" as escaping that ";".
+    # A name ending in "\", whose path the glob joins to the next with ";",
+    # or holding "\;" therefore reaches the sort inside one element, its "\"
+    # dropped, and the sort writes that element back with a bare ";". The
+    # loop then splits it into paths that can each name a listed file, none
+    # of them the name that held the "\", so any "\;" in the glob's list is
+    # listed as this one unhashed line instead.
+    string(FIND "${paths}" "\\;" escaped)
+    if(NOT escaped EQUAL -1)
+        string(APPEND listing "unhashed a name holding \\ before a semicolon\n")
+    endif()
+    list(SORT paths)
+    string(LENGTH "${SUITE}/" prefix_length)
+    set(previous "")
+    foreach(path IN LISTS paths)
+        # The glob returns each path as it found it, where paths relative to
+        # the suite would have "\" turned into "/" and ".." steps collapsed, so
+        # that a name could arrive as another file's. A name holding ";"
+        # arrives split at it, or whole where brackets enclose it. A "\" that
+        # escaped a ";" in the glob's list is gone by here, and the check
+        # before the sort has listed it; one that escapes a ";" the sort joined
+        # is gone too, and leaves that ";" in its path. The piece before a
+        # name's first ";" is cut from a path under directories the glob
+        # walked, so it names nothing, a directory, or an entry the glob also
+        # lists, which sorting puts beside it. A path not under the suite's
+        # own, naming no file, holding ";" or "\", or repeating the one before
+        # it is therefore listed unhashed rather than read, and every name
+        # holding either character leaves at least one such line, here or
+        # before the sort.
+        string(SUBSTRING "${path}" 0 ${prefix_length} prefix)
+        set(entry "${path}")
+        if(prefix STREQUAL "${SUITE}/")
+            string(SUBSTRING "${path}" ${prefix_length} -1 entry)
+        endif()
+        if(NOT prefix STREQUAL "${SUITE}/" OR IS_SYMLINK "${path}"
+                OR IS_DIRECTORY "${path}" OR NOT EXISTS "${path}"
+                OR entry MATCHES "[;\\]" OR path STREQUAL previous)
             string(APPEND listing "unhashed ${entry}\n")
         else()
-            file(SHA256 "${SUITE}/${entry}" digest)
+            file(SHA256 "${path}" digest)
             string(APPEND listing "${digest}  ${entry}\n")
         endif()
+        set(previous "${path}")
     endforeach()
     set(${OUT_VAR} "${listing}" PARENT_SCOPE)
 endfunction()
@@ -59,13 +88,15 @@ function(download_riscv_tests DOWNLOAD_PATH TARBALL_NAME DOWNLOAD_URL)
     endif()
 
     # riscv_tests_listing finds the suite's files with a glob, which would read
-    # these characters in the suite's own path as a pattern and list files of
-    # another tree, or none.
-    if(DOWNLOAD_PATH MATCHES "[][*?]")
+    # [, ], * or ? in the suite's own path as a pattern and list files of
+    # another tree, or none, and returns a list that would split every path
+    # under the suite at a ";" in it.
+    if(DOWNLOAD_PATH MATCHES "[][*?;]")
         message(FATAL_ERROR
-            "The test download path ${DOWNLOAD_PATH} holds [, ], * or ?, which "
-            "the glob listing its suites would read as a pattern: configure in a "
-            "build directory whose path has none of them")
+            "The test download path ${DOWNLOAD_PATH} holds [, ], *, ? or ;, "
+            "which the glob listing its suites would read as a pattern or split "
+            "its paths at: configure in a build directory whose path has none "
+            "of them")
     endif()
 
     # An extracted suite is kept only while its files are the ones its manifest

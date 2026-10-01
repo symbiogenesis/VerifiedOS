@@ -69,21 +69,65 @@ directories such as `dist/` and `venv/` by default, and `ruff.toml`'s `exclude`,
 run logs each file it checks, and each module the index tracks under `tools/` that
 a run's log does not name is a finding under that run's checker. The log is the
 pinned version's verbose output: a log of another shape names no file, and every
-tracked module then reads as unchecked.
+tracked module then reads as unchecked. ty takes its log filter from `TY_LOG` ahead of
+its verbosity flag, so each ty run is made without that variable, and without
+`TY_LOG_PROFILE`, which has it write a profile into `tools/`; neither changes what ty
+checks or reports.
+
+ruff's log names a file whose rules are switched off as checked, so the floor cannot
+see a suppression, and the gate refuses each reaching past a line as a ruff finding: a
+`per-file-ignores` or `extend-per-file-ignores` key in `ruff.toml`, in `[lint]` or at
+the top level; an `extend` key, which merges another file's settings beneath it; any
+other key outside the ones the gate has read, which are the ones `ruff.toml` carries,
+since a top-level `per-file-target-version` also switches rules off for the files a
+pattern matches and a key the gate has not read may do as much; a comment anywhere in
+a tracked module carrying ruff's file-level suppression, `# ruff: noqa` or
+`# flake8: noqa`, unless it names N999 and no other rule, since ruff reports N999
+against the file's name rather than a line of it; and one carrying
+`# ruff: file-ignore[...]`, a `# ruff: disable[...]` or `# ruff: enable[...]` range
+comment, whose `disable` with no matching `enable` runs to the end of its block, or
+isort's `skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` on a line of
+its own reaches the one logical line beneath it, a multi-line one whole, or, inside
+brackets, the one line of code beneath it, past blank and comment lines, and one ending
+a line reaches that line alone, a line taking in the lines a backslash or a multi-line
+string joins to it; it is not refused.
+
+`ruff.toml` lists the modules the interpreter lacks on one platform that ty resolves on
+both, and ruff's TID253 refuses an import of one only where it is unnested at module
+level; with the module listed, PLC0415 no longer reports it in a class body. So the
+gate reads the same list and holds an import of a listed module in any tracked module
+anywhere outside a function body, in a class body or a module-level block alike, to
+the platforms, of linux and win32, that reach it. An enclosing `if` that compares
+`sys.platform` with string literals, by `==` or `!=` with one, by `in` or `not in` with
+a tuple, list or set of them, or through `startswith`, alone, under `not` or joined by
+`and` or `or`, sends its body the platforms on which its test holds and its `else` the
+rest; every other block, an `if` reading `sys.platform` any other way among them,
+passes on the platforms that reach it. An import both platforms reach is refused,
+naming the nearest enclosing test reading `sys.platform`. That holds that no listed
+module is imported on both platforms, not which one has it, so on each of the two an
+import the running platform reaches is refused as well where the interpreter cannot
+find the top-level module it names, as Windows cannot find `fcntl`. A submodule of a
+package the interpreter finds, such as `asyncio.unix_events` on Windows, and a module
+it finds but cannot import, such as `pty` there, are not caught this way.
 
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
 """
 
 import argparse
+import ast
+import importlib.util
+import io
 import os
 import re
 import subprocess
 import sys
 import sysconfig
+import tokenize
 import tomllib
+import unicodedata
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import NamedTuple
@@ -152,6 +196,12 @@ TIMEOUT = 120
 # matches the one line naming a file the run checked, with its path in group 1. A
 # warning or an error the log carries stays with the checker's output.
 TY_VERBOSE = ["-vv"]
+# The variables every ty run is made without. ty takes its log filter from `TY_LOG` ahead
+# of `-vv`, so under `TY_LOG=info` a run logs no checked file and every tracked module
+# reads as unchecked, and `TY_LOG_PROFILE` has a run write a profile into its working
+# directory, `tools/`. Neither changes what ty checks or reports, so they are removed
+# rather than reported as `PYTHONPATH` is.
+TY_UNSET = frozenset({"TY_LOG", "TY_LOG_PROFILE"})
 TY_LOG = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)? +(?:TRACE|DEBUG|INFO) ")
 TY_CHECKED = re.compile(r" DEBUG Checking file '(.+)'$")
 RUFF_VERBOSE = ["--verbose"]
@@ -163,6 +213,51 @@ RUFF_CHECKED = re.compile(r"\[ruff::diagnostics\]\[DEBUG\] Checking: (.+)$")
 # under `tools/`, where both checkers run.
 TOOLS = "tools/"
 MODULE_SUFFIXES = (".py", ".pyi")
+
+# Where `ruff.toml` lists the modules TID253 refuses an unnested module-level import of,
+# the list the gate holds every import outside a function body to.
+BANNED = ("lint", "flake8-tidy-imports", "banned-module-level-imports")
+
+# The `ruff.toml` keys that switch rules off for the files a pattern matches, which ruff
+# reads in `[lint]` and, deprecated, at the top level. ruff's log still names a file
+# whose rules are off as checked, so the coverage floor cannot see what they take away.
+RUFF_PER_FILE = ("per-file-ignores", "extend-per-file-ignores")
+
+# The `ruff.toml` keys the gate has read, as dotted paths: the ones the committed file
+# carries and the tables holding them. Any other key is refused, as a key ty.toml's held
+# tables carry beyond the ones the gate admits is: a top-level `per-file-target-version`
+# switches the rules gated on a newer version off for the files a pattern matches, which
+# ruff's log still names as checked, and a key the gate has not read may do as much.
+RUFF_KEYS = frozenset({
+    "target-version", "line-length", "respect-gitignore", "lint",
+    "lint.select", "lint.ignore", "lint.allowed-confusables",
+    "lint.flake8-annotations", "lint.flake8-annotations.suppress-none-returning",
+    "lint.flake8-annotations.suppress-dummy-args",
+    "lint.flake8-annotations.allow-star-arg-any",
+    "lint.flake8-annotations.mypy-init-return",
+    "lint.flake8-tidy-imports", "lint.flake8-tidy-imports.banned-module-level-imports",
+})
+
+# A comment ruff reads as a file-level suppression, matched as ruff's lexer matches it:
+# `ruff` or `flake8`, a colon and `noqa` in any case, after any `#` in the comment. It
+# switches off the rules it names, or every rule, for the whole file.
+FILE_NOQA = re.compile(r"#\s*(?:ruff|flake8)\s*:\s*(?i:noqa)")
+# The rules a file-level suppression may name. ruff reports N999 against the file's name
+# rather than any line of it, so exempting a file from it leaves every line of the file
+# under every rule.
+FILE_SCOPED = frozenset({"N999"})
+# A comment carrying one of ruff's other suppressions that reach past their own line,
+# matched in ruff's case and more loosely than ruff parses it, after any `#` in the
+# comment: `ruff: file-ignore[...]`, which switches the rules it names off for the whole
+# file; `ruff: disable[...]` and `ruff: enable[...]`, whose range runs from the one to
+# the other or, with no matching `enable`, to the end of the block the `disable` sits in,
+# the whole file at module level; and isort's `skip_file`, `off` and `on`, alone or after
+# `ruff:`, which switch import sorting off for the whole file or from `off` to `on` or
+# the file's end. `ruff: ignore[...]`, which reaches the one logical line beneath it, the
+# one line of code beneath it inside brackets, or the line it ends, and isort's `skip`,
+# which reaches one line, are not matched.
+FILE_RANGE = re.compile(r"#\s*(?:ruff\s*:\s*(?:disable|enable|file-ignore)\b"
+                        r"|(?:ruff\s*:\s*)?isort\s*:\s*(?:skip_file|off|on)\b)")
 
 
 def _tool(name: str) -> str | None:
@@ -279,13 +374,15 @@ class Coverage(NamedTuple):
 
 class Pass(NamedTuple):
     """One run of a pinned checker: its arguments, the name its failures are reported
-    under, the verdict its findings or its clean exit read as, and, for a run whose
-    arguments turn its log on, the modules that log must name."""
+    under, the verdict its findings or its clean exit read as, for a run whose
+    arguments turn its log on, the modules that log must name, and the environment
+    variables the run is made without."""
     args: list[str]
     who: str
     label: str
     ok: str
     coverage: Coverage | None = None
+    unset: frozenset[str] = frozenset[str]()
 
 
 def _read_log(stderr: str, coverage: Coverage, cwd: Path) -> tuple[str, set[str]]:
@@ -363,10 +460,16 @@ def _run_pass(rep: Reporter, name: str, exe: str, run: Pass, cwd: Path,
     else reads it, and once the run has given its verdict, each tracked module the
     log does not name is a finding beside that verdict. A crash is not held to it,
     having already been reported as not clearing what it never reached.
+
+    A pass naming variables in `unset` runs in this process's environment without
+    them, and otherwise inherits it whole.
     """
+    env = None if not run.unset else {
+        key: value for key, value in os.environ.items() if key not in run.unset}
     try:
         done = subprocess.run([exe, *run.args], capture_output=True, encoding="utf-8",
-                              errors="replace", cwd=cwd, check=False, timeout=TIMEOUT)
+                              errors="replace", cwd=cwd, env=env, check=False,
+                              timeout=TIMEOUT)
     except subprocess.TimeoutExpired:
         rep.report(name, "checker error(s):",
                    [f"{run.who} gave no verdict within {TIMEOUT}s"])
@@ -547,7 +650,8 @@ def _run_ty(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
     `extra-paths` entry are refused for; an editor's ty server inherits the variable
     as this run does, so removing it here alone would pass what the editor resolves
     differently. The variable is reported whenever it is present, an empty value
-    included, because ty reads it whenever it is present."""
+    included, because ty reads it whenever it is present. `TY_UNSET` is removed
+    instead, since neither of its variables changes what ty checks or reports."""
     tools = root / "tools"
     held = ", all rules at error"
     if refused := _ty_settings(tools / "ty.toml"):
@@ -572,9 +676,99 @@ def _run_ty(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
               f"ty under python-platform {platform}",
               f"type error(s) under python-platform {platform}:",
               f"every expression reachable under python-platform {platform} typechecks "
-              f"under ty {TY_VERSION}{held}", coverage)
+              f"under ty {TY_VERSION}{held}", coverage, TY_UNSET)
          for platform in TY_PLATFORMS],
         tools, with_stderr=True, parse=_parse_ty)
+
+
+def _ruff_settings(config: Path) -> list[str]:
+    """The `ruff.toml` settings the gate refuses, as findings, one per key in the file's
+    order: a `RUFF_PER_FILE` key in `[lint]` or at the top level; an `extend` key, which
+    merges the settings of a file the gate does not read beneath this one's; and any
+    other key outside `RUFF_KEYS`, at any depth of the tables `RUFF_KEYS` admits. Each is
+    refused whatever it says, an empty table included, as ty.toml's `[src]` is held by
+    shape, and a table outside `RUFF_KEYS` is one finding, not one per key in it.
+
+    Fail-closed: a file that cannot be read or parsed is a finding, and a key the gate has
+    not read is refused, never assumed harmless. A value whose shape ruff does not accept
+    for its key, such as a `lint` that is not a table, is ruff's to refuse, which it does
+    as an invalid configuration before it checks anything, and the gate's run reports as
+    a checker error."""
+    name = f"tools/{config.name}"
+    try:
+        settings = tomllib.loads(config.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as err:
+        return [f"{name} cannot be read: {err}"]
+    per_file = {f"{prefix}{key}" for prefix in ("", "lint.") for key in RUFF_PER_FILE}
+    findings: list[str] = []
+    for path, value in _ruff_keys(settings, ""):
+        if path in per_file:
+            findings.append(f"{name} sets {path} to {value!r}; a rule switched off for the "
+                            "files a pattern matches is refused, since ruff's log names a "
+                            "file whose rules are off as checked")
+        elif path == "extend":
+            findings.append(f"{name} sets extend to {value!r}; the gate reads only this "
+                            "file, and extend merges another file's settings beneath it")
+        elif path not in RUFF_KEYS:
+            findings.append(f"{name} sets {path} to {value!r}, a key the gate has not read; "
+                            "it admits only the keys in RUFF_KEYS, since a key such as "
+                            "per-file-target-version switches rules off for files ruff's "
+                            "log still names as checked")
+    return findings
+
+
+def _ruff_keys(table: dict[str, object], prefix: str) -> Iterator[tuple[str, object]]:
+    """Each key in `table`, as a dotted path under `prefix` with its value, in the file's
+    order, each key of a table `RUFF_KEYS` admits followed by the keys beneath it."""
+    for key, value in table.items():
+        path = prefix + key
+        yield path, value
+        if path in RUFF_KEYS and isinstance(value, dict):
+            yield from _ruff_keys(value, path + ".")
+
+
+def _file_suppressions(tools: Path, tracked: frozenset[str]) -> list[str]:
+    """Each comment in a tracked module carrying a suppression that reaches past its own
+    line: a file-level `noqa` naming a rule outside `FILE_SCOPED`, or naming none, which
+    suppresses every rule, and any comment `FILE_RANGE` matches.
+
+    Comments are read with the tokenizer, so a string that spells a directive is not
+    one, and only a module whose text matches `FILE_NOQA` or `FILE_RANGE` is tokenized.
+    A directive ruff would ignore, for trailing code or another comment before it on its
+    line or for sitting in a class or function body, is refused all the same.
+    Fail-closed: a module that cannot be read or tokenized is a finding."""
+    findings: list[str] = []
+    for module in sorted(tracked):
+        try:
+            text = (tools / module).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as err:
+            findings.append(f"{module} cannot be read: {err}")
+            continue
+        if not (FILE_NOQA.search(text) or FILE_RANGE.search(text)):
+            continue
+        try:
+            comments = [(token.start[0], token.string)
+                        for token in tokenize.generate_tokens(io.StringIO(text).readline)
+                        if token.type == tokenize.COMMENT]
+        except (tokenize.TokenError, SyntaxError) as err:
+            findings.append(f"{module} cannot be tokenized: {err}")
+            continue
+        findings.extend(f"{module}:{line} {comment}" for line, comment in comments
+                        if FILE_RANGE.search(comment)
+                        or any(not _names_file_scoped(comment[found.end():])
+                               for found in FILE_NOQA.finditer(comment)))
+    return findings
+
+
+def _names_file_scoped(rest: str) -> bool:
+    """Whether the text after a directive's `noqa` names rules, each in `FILE_SCOPED`.
+
+    Every code in the run of capitals, digits, commas and whitespace after the colon is
+    read, which is each code ruff reads and possibly more; a directive naming none
+    suppresses every rule."""
+    named = re.match(r"\s*:([A-Z0-9,\s]*)", rest)
+    codes = set(re.findall(r"[A-Z]+[0-9]+", named.group(1))) if named else set()
+    return bool(codes) and codes <= FILE_SCOPED
 
 
 def _run_ruff(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
@@ -586,8 +780,22 @@ def _run_ruff(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None
     this run: ruff otherwise skips whatever an ignore file matches, and a tracked
     module an ignore pattern matched would leave the run with nothing reported. The
     run's log is what holds the rest, `lint.exclude` among them, which drops a file
-    from the lint but not from what `--show-files` lists."""
+    from the lint but not from what `--show-files` lists.
+
+    The log still names a file whose rules are switched off, so the suppressions that
+    switch rules off past a line are held first: the `ruff.toml` keys `_ruff_settings`
+    refuses, and the file-level and range directives `_file_suppressions` finds in the
+    tracked modules. The checker runs regardless, and a clean run beside a refused
+    suppression claims no more than the run showed."""
     tools = root / "tools"
+    held = ""
+    if refused := _ruff_settings(tools / "ruff.toml"):
+        rep.report("ruff", "ruff.toml setting(s) the gate refuses:", refused)
+        held = " under the suppressions refused above"
+    if tracked is not None and (suppressed := _file_suppressions(tools, tracked)):
+        rep.report("ruff", "file-level or range suppression(s) the gate refuses:",
+                   suppressed)
+        held = " under the suppressions refused above"
     coverage = None if tracked is None else Coverage(RUFF_LOG, RUFF_CHECKED, tracked)
     verbose = [] if coverage is None else RUFF_VERBOSE
     _run_checker(
@@ -596,8 +804,238 @@ def _run_ruff(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None
                "--no-respect-gitignore",
                "--output-format", "concise", "--no-fix", *verbose, "."],
               "ruff", "lint finding(s):",
-              f"every function is annotated and ruff {RUFF_VERSION} is clean", coverage)],
+              f"every function is annotated and ruff {RUFF_VERSION} is clean{held}",
+              coverage)],
         tools, with_stderr=False, parse=_parse_ruff)
+
+
+def _banned(config: Path) -> tuple[frozenset[str], list[str]]:
+    """The modules `ruff.toml` bans at module level, or none and why, as findings.
+
+    Fail-closed: a file that cannot be read or parsed, and a list that is absent, empty
+    or holds anything but module names, is a finding, since the scan would then hold no
+    import to anything."""
+    name = f"tools/{config.name}"
+    none = frozenset[str]()
+    try:
+        settings = tomllib.loads(config.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as err:
+        return none, [f"{name} cannot be read: {err}"]
+    listed: object = settings
+    for key in BANNED:
+        listed = listed.get(key) if isinstance(listed, dict) else None
+    modules = [module for module in listed if isinstance(module, str) and module] \
+        if isinstance(listed, list) else []
+    if not modules or not isinstance(listed, list) or len(modules) != len(listed):
+        return none, [f"{name} sets {'.'.join(BANNED)} to {listed!r}; the gate holds "
+                      "imports to a non-empty list of module names"]
+    return frozenset(modules), []
+
+
+def _banned_names(node: ast.Import | ast.ImportFrom, banned: frozenset[str]) -> list[str]:
+    """The modules `node` imports that `banned` names or is a parent of, matched as
+    TID253 matches them: each name an `import` gives, and a `from` import's module or,
+    where that is not banned, each member it names, since a member can be a submodule.
+    A relative import names the tools' own packages and never a banned module."""
+    def listed(module: str) -> bool:
+        return any(module == ban or module.startswith(ban + ".") for ban in banned)
+
+    if isinstance(node, ast.Import):
+        return [alias.name for alias in node.names if listed(alias.name)]
+    if node.level or node.module is None:
+        return []
+    if listed(node.module):
+        return [node.module]
+    return [member for alias in node.names
+            if alias.name != "*" and listed(member := f"{node.module}.{alias.name}")]
+
+
+def _is_platform(node: ast.AST) -> bool:
+    """Whether `node` is `sys.platform`, spelled as the attribute of the name `sys`. A
+    `platform` read from another object, or imported from `sys` and read bare, is not."""
+    return (isinstance(node, ast.Attribute) and node.attr == "platform"
+            and isinstance(node.value, ast.Name) and node.value.id == "sys")
+
+
+def _reads_platform(test: ast.expr) -> bool:
+    """Whether an `if` condition reads `sys.platform` anywhere in it."""
+    return any(_is_platform(node) for node in ast.walk(test))
+
+
+def _literal(node: ast.expr) -> str | None:
+    """The string `node` spells, where it is a string literal, or `None`."""
+    return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) \
+        else None
+
+
+def _literals(node: ast.expr, kinds: tuple[type[ast.Tuple | ast.List | ast.Set], ...]
+              ) -> list[str] | None:
+    """The strings a display of one of `kinds` holds, where it holds string literals and
+    nothing else, or `None`."""
+    if not isinstance(node, kinds):
+        return None
+    values = [element.value for element in node.elts
+              if isinstance(element, ast.Constant) and isinstance(element.value, str)]
+    return values if len(values) == len(node.elts) else None
+
+
+def _platform_value(test: ast.expr, platform: str) -> bool | None:
+    """The value an `if` condition takes where `sys.platform` is `platform`, for a test
+    the scan reads, or `None` for one it does not: `sys.platform` compared by `==` or
+    `!=` with a string literal, or by `in` or `not in` with a tuple, list or set display
+    of them, or its `startswith` called with a string literal or a tuple of them, alone,
+    under `not`, or joined by `and` or `or` with others of these. Such a test compares
+    `sys.platform` with literals and nothing else, so its value on each platform is
+    decided here. A test reading `sys.platform` any other way, by truth value, through
+    another call, or beside an operand that is not such a check, is not read."""
+    match test:
+        case ast.UnaryOp(op=ast.Not(), operand=operand):
+            value = _platform_value(operand, platform)
+            return None if value is None else not value
+        case ast.BoolOp(op=op, values=operands):
+            values = [_platform_value(operand, platform) for operand in operands]
+            if None in values:
+                return None
+            return all(values) if isinstance(op, ast.And) else any(values)
+        case ast.Compare(left=left, ops=[ast.Eq() | ast.NotEq() as op],
+                         comparators=[right]) if _is_platform(left):
+            literal = _literal(right)
+            return None if literal is None else (platform == literal) == isinstance(op, ast.Eq)
+        case ast.Compare(left=left, ops=[ast.In() | ast.NotIn() as op],
+                         comparators=[right]) if _is_platform(left):
+            listed = _literals(right, (ast.Tuple, ast.List, ast.Set))
+            return None if listed is None else (platform in listed) == isinstance(op, ast.In)
+        case ast.Call(func=ast.Attribute(value=value, attr="startswith"), args=[prefix],
+                      keywords=[]) if _is_platform(value):
+            literal = _literal(prefix)
+            prefixes = [literal] if literal is not None else _literals(prefix, (ast.Tuple,))
+            return None if prefixes is None else platform.startswith(tuple(prefixes))
+    return None
+
+
+class Site(NamedTuple):
+    """An import of a banned module that runs outside a function body: its line, the
+    modules it names, the platforms of `TY_PLATFORMS` that reach it, and the nearest
+    enclosing `if` test reading `sys.platform`, or `None` where none does."""
+    line: int
+    names: list[str]
+    reach: frozenset[str]
+    test: ast.expr | None
+
+
+def _platform_imports(tree: ast.Module, banned: frozenset[str]) -> list[Site]:
+    """Each import of a module `banned` names that runs outside a function body on one
+    platform of `TY_PLATFORMS` or more, in line order.
+
+    A function body runs only when the function is called, so the walk does not descend
+    into one. Everything else it descends into, carrying the platforms that reach each
+    statement, every platform at module level: an `if` whose test `_platform_value` reads
+    sends its body the platforms on which the test holds and its `else` the rest, and a
+    branch no platform reaches is not read; every other block, an unnested module-level
+    statement, a class body, and both branches of an `if` reading `sys.platform` in a
+    form the scan does not read among them, passes on the platforms that reach it. Each
+    `if` reading `sys.platform` becomes the nearest test of the imports beneath it."""
+    found: list[Site] = []
+    stack: list[tuple[ast.AST, frozenset[str], ast.expr | None]] = [
+        (tree, frozenset(TY_PLATFORMS), None)]
+    while stack:
+        node, reach, nearest = stack.pop()
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                continue
+            if isinstance(child, ast.If) and _reads_platform(child.test):
+                values = {platform: _platform_value(child.test, platform)
+                          for platform in reach}
+                if None in values.values():
+                    stack.append((child, reach, child.test))
+                    continue
+                taken = frozenset(platform for platform, value in values.items() if value)
+                for branch, platforms in ((child.body, taken), (child.orelse, reach - taken)):
+                    if platforms:
+                        stack.append((ast.Module(body=branch, type_ignores=[]), platforms,
+                                      child.test))
+            elif isinstance(child, (ast.Import, ast.ImportFrom)):
+                if names := _banned_names(child, banned):
+                    found.append(Site(child.lineno, names, reach, nearest))
+            else:
+                stack.append((child, reach, nearest))
+    return sorted(found, key=lambda site: (site.line, site.names))
+
+
+def _unfound(names: list[str]) -> list[str]:
+    """Each of `names` whose top-level module the running interpreter cannot find.
+
+    Finding a top-level module imports nothing. A submodule is read by its package, which
+    the interpreter may find although the submodule cannot be imported on this platform,
+    and so may a module whose import fails; neither is named. A name the finder refuses
+    is named, fail-closed."""
+    unfound: list[str] = []
+    for name in names:
+        try:
+            found = importlib.util.find_spec(name.partition(".")[0]) is not None
+        except (ImportError, ValueError):
+            found = False
+        if not found:
+            unfound.append(name)
+    return unfound
+
+
+def _run_imports(rep: Reporter, root: Path, tracked: frozenset[str]) -> None:
+    """Every tracked module, against an import of a module `ruff.toml` bans at module
+    level anywhere outside a function body that every platform of `TY_PLATFORMS`
+    reaches, as `_platform_imports` reads each enclosing `if`, refused naming its nearest
+    test reading `sys.platform`. That holds that no such import runs on both platforms,
+    not which platform has the module, and an import kept to the platform lacking it can
+    be seen only on that platform: so where the running platform is one of
+    `TY_PLATFORMS`, an import it reaches is refused as well when `_unfound` names a
+    module it imports.
+
+    TID253 refuses such an import only where it is unnested at module level, and with
+    the module banned PLC0415 no longer reports it in a class body; neither reads a
+    module-level block. A module whose NFKC-normalized text never spells the last
+    component of a banned name as a word cannot import it, since Python normalizes each
+    identifier so before it binds or imports it, so only the rest are parsed.
+    Fail-closed: a module that cannot be read or parsed is a finding."""
+    tools = root / "tools"
+    banned, unread = _banned(tools / "ruff.toml")
+    if unread:
+        rep.report("imports", "ruff.toml list(s) the gate cannot read:", unread)
+        return
+    spelled = re.compile(r"\b(?:" + "|".join(sorted(re.escape(ban.rpartition(".")[2])
+                                                    for ban in banned)) + r")\b")
+    every, running = frozenset(TY_PLATFORMS), sys.platform
+    findings: list[str] = []
+    for module in sorted(tracked):
+        try:
+            text = (tools / module).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as err:
+            findings.append(f"{module} cannot be read: {err}")
+            continue
+        if not spelled.search(unicodedata.normalize("NFKC", text)):
+            continue
+        try:
+            tree = ast.parse(text, module)
+        except (SyntaxError, ValueError) as err:
+            findings.append(f"{module} cannot be parsed: {err}")
+            continue
+        for site in _platform_imports(tree, banned):
+            behind = "no sys.platform check" if site.test is None else \
+                f"`{ast.unparse(site.test)}`"
+            if site.reach == every:
+                findings.append(
+                    f"{module}:{site.line} imports {', '.join(site.names)} outside a function "
+                    f"body, behind {behind}"
+                    + ("" if site.test is None else ", a sys.platform test the scan does not "
+                       "admit as separating platforms"))
+            elif running in site.reach and (unfound := _unfound(site.names)):
+                findings.append(
+                    f"{module}:{site.line} imports {', '.join(unfound)} outside a function "
+                    f"body, behind {behind}, on a branch {running} takes, where this "
+                    "interpreter cannot find it")
+    rep.report("imports", "import(s) of a module ruff.toml bans at module level outside a "
+               "function body:", findings,
+               "every import of a module ruff.toml bans at module level sits in a function "
+               "body or where a sys.platform check keeps a platform from it")
 
 
 def run(root: Path) -> Reporter:
@@ -605,13 +1043,13 @@ def run(root: Path) -> Reporter:
     what to do with the verdict rather than parsing what was printed.
 
     The two checkers are separate processes over the same tree and neither reads the
-    other's result, so they run concurrently. Each accumulates onto its own slate and
-    the slates are merged ty-then-ruff, so the report reads the same however the two
-    finished.
+    other's result, so they run concurrently, and the import scan beside them. Each
+    accumulates onto its own slate and the slates are merged ty, ruff, then the scan,
+    so the report reads the same however they finished.
 
-    The tracked modules are read once for both. An index that cannot be read is a
+    The tracked modules are read once for all three. An index that cannot be read is a
     finding, and the runs then go ahead held to nothing, since no floor can be
-    decided without it."""
+    decided without it, and the scan, which has no modules to read, does not run."""
     rep = Reporter()
     rep.line("=== tools ===")
 
@@ -623,12 +1061,15 @@ def run(root: Path) -> Reporter:
                    [f"the index cannot be read, so no run is held to the modules it "
                     f"tracks: {err}"])
 
-    ty_rep, ruff_rep = Reporter(), Reporter()
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        for done in (pool.submit(_run_ty, ty_rep, root, tracked),
-                     pool.submit(_run_ruff, ruff_rep, root, tracked)):
+    ty_rep, ruff_rep, imports_rep = Reporter(), Reporter(), Reporter()
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        tasks = [pool.submit(_run_ty, ty_rep, root, tracked),
+                 pool.submit(_run_ruff, ruff_rep, root, tracked)]
+        if tracked is not None:
+            tasks.append(pool.submit(_run_imports, imports_rep, root, tracked))
+        for done in tasks:
             done.result()
-    for part in (ty_rep, ruff_rep):
+    for part in (ty_rep, ruff_rep, imports_rep):
         rep.out.extend(part.out)
         rep.findings += part.findings
 

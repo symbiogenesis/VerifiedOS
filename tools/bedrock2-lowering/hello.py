@@ -43,8 +43,9 @@ def json_write(path: Path, value: object) -> None:
 
 def lowering_identity() -> dict[str, str]:
     """Bind the installed prover and its complete installed Rocq library trees."""
-    found = subprocess.run(["opam", "var", f"--switch={regenerate.SWITCH}", "prefix"],
-                           capture_output=True, text=True, check=True, timeout=30)
+    found = regenerate._run(["opam", "var", f"--switch={regenerate.SWITCH}", "prefix"],
+                            timeout=30)
+    found.check_returncode()
     prefix = Path(found.stdout.strip())
     files = [prefix / "bin" / name for name in ("coqc", "coqchk", "rocq")]
     for name in ("coq", "coq-core"):
@@ -201,8 +202,8 @@ def native(args: argparse.Namespace) -> int:
     derived = regenerate.coqc(derivation, "HelloWorld.v")
     if derived.code or derived.assumptions != "Closed under the global context":
         raise ValueError(f"derivation refused: {derived}")
-    kernel = subprocess.run(regenerate._in_switch(["coqchk", "-silent", "HelloWorld"]),
-                            cwd=derivation, capture_output=True, text=True, check=False, timeout=900)
+    kernel = regenerate._run(regenerate._in_switch(["coqchk", "-silent", "HelloWorld"]),
+                             cwd=derivation, timeout=900)
     (stage / "kernel.log").write_text(kernel.stdout + kernel.stderr, encoding="utf-8")
     if kernel.returncode:
         raise ValueError("Rupicola client kernel check failed")

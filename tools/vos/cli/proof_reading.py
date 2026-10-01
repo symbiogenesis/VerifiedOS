@@ -187,9 +187,11 @@ def gate_objects(root: Path) -> tuple[Path, dict[str, str]]:
 def compile_sources(sources: Path, objects: Path, jobs: int) -> dict[str, str]:
     """Copy a directory's proof sources into `objects` and compile them as the gate does.
 
-    Only the sources are copied, so an object beside them is never read. A copy that
-    resets a setting the gate pins, or holds a module body the native inventory cannot
-    enumerate, refuses before anything compiles, as it does in the gate. The copies
+    Only the sources are copied, so an object beside them is never read. A copy holding
+    anything the gate refuses before compiling refuses here before anything compiles: a
+    token the shared lexer cannot follow, a coinductive form or a token hiding one, a
+    loaded file or plugin, a module body the native inventory cannot enumerate, or a
+    reset of a setting the gate pins. The copies
     then compile under the gate's flags in its dependency waves, and a compile that
     exits nonzero or prints anything refuses. The result is the digest of every copy
     and object, which is the compile `record` may read.
@@ -203,7 +205,9 @@ def compile_sources(sources: Path, objects: Path, jobs: int) -> dict[str, str]:
     copies = sorted(objects.glob("*.v"))
     for copy in copies:
         text = copy.read_text(encoding="utf-8")
-        refused = [*proofaudit.unsupported_abstractions(text), *proofaudit.pinned_overrides(text)]
+        refused = [*proofaudit.unreadable_tokens(text), *proofaudit.coinductive_forms(text),
+                   *proofaudit.dynamic_sources(text), *proofaudit.unsupported_abstractions(text),
+                   *proofaudit.pinned_overrides(text)]
         if refused:
             raise proofreading.ReadingError(
                 f"{copy.name} holds what the proof gate refuses before compiling: "

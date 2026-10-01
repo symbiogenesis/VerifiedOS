@@ -2247,6 +2247,56 @@ Calibration: original estimate 8 h, range 5–11, class I; 3.7 h actual on the a
 
 Landed: Tier A. The integrator's read covers the command's and the reading's whole code against the cell, and the review's findings with the repair's dispositions. It checked that the default route's binding matches what the gate's receipt records: `.vo` outputs and top-level `.v` inputs under `proofs/`. It also covers the documentation rows it added. No checker rule holds the reading; the host tests and native controls hold it.
 
+### Q38d · Close the lexical bypasses the Q38a and Q38b reviews routed
+
+Q38d ran in two rounds. The first ran in the worker lane `q38d-impl-20260929`, from base `0e484b6c` to `399a3d44`. An adversarial review found two blocking bypasses, three to fix and two nits, and a repair brought the lane to `904e178b`. The integration branch `q38-integ-d-20260929` published it at `643459e2` while the item stayed open for F-516 to F-519. The second round ran in `q38d-follow-20260929` from `643459e2`. Thirteen commits took it to `14a77dda`. A review in `q38d-follow-review-20260929` accepted that head with five repairs to make and six nits, and nine repair commits brought it to `ee67ecda`. The integration branch `q38-integ-d2-20260930` merged `ee67ecda` onto `main`'s `5857a2d5`. The workers compiled each probe alone with the locked Rocq 9.3.0 under the gate's flags in their lanes' guest directories, and read the readers on the Windows host, comparing the base's tools, taken by `git archive`, with the head's over the same tree.
+
+* **Comments and strings.** The shared lexer in [proofs.py](../../tools/vos/proofs.py) reads a comment as one separator, as Rocq's lexer does, and a string inside a comment whole. Comments are blanked at their own offsets, so memplan's copy of that lexer is retired. A sentence ends only at a full stop outside string literals, and never at the second of exactly two, since Rocq reads `..` as a token that ends nothing. With stdpp's telescopes open, the locked compiler accepts `∀..` in a statement whose witness demand the old split lost. F-507 and F-508.
+* **Declared tokens.** `proofaudit.unreadable_tokens` refuses, before compilation and ahead of every other lexical refusal, a declaration the shared lexer cannot follow. It reads Notation, Reserved Notation, Infix, Reserved Infix, Tactic Notation and Ltac2 Notation, and refuses a token holding a quote or `(*`, or a full stop at which the split would end a sentence, `.` and `...` included. Rocq matches such a token whole, so after `Notation "a ^"" b"`, or a notation declaring `...`, a following setting, Load or statement was hidden from every lexical reading. An audit of the installed switch found no library token holding a quote, a usable `(*` or a single final full stop.
+* **Statements and dynamic sources.** `Remark`, `Proposition` and `Property` quantify. `Load`, `Cd`, the load-path commands, `Declare ML Module` and `Ltac2 @ external` are refused before compilation, line-split and prefixed spellings included. F-509, F-510 and F-511.
+* **One decoration grammar.** The shared lexer writes the decoration grammar once: bullets and goal selectors, control flags, quoted attributes and legacy attributes. `CONTROL_PREFIXES` is composed from them into the pattern string the gate read before, and every pattern [proofaudit.py](../../tools/vos/proofaudit.py) and [cli/proofs.py](../../tools/vos/cli/proofs.py) build from it, with `STATEMENTS` and the witness scan's `DEFINERS`, is the base's string for string.
+  * A word prefix ends where its word does and a quoted one where its string does, so `Time#[local]Set` and `Redirect"out"Load` are read.
+  * `decorations` reads the run, starting again at each bullet, brace or goal selector. Each of those is a whole command in Rocq 9.3's grammar, and the locked compiler runs `Fail }` and `Succeed {` as the brace's flags and keeps the declaration after it.
+  * `VERNAC_CONTROL` is the run without them.
+  * apex, memplan, mutate, consttab, the corpus exporter, `proofcites` and K-91's reader each read their decorations here, and each reads or refuses a decorated declaration by name. F-517.
+* **Look-back.** apex and memplan look back for a flag from the full stop `sentence_ends` finds, so a string's full stop ends no look-back early. Host cases hold this at both call sites. apex's definition body and memplan's value audit end at the same full stop. F-516.
+* **Region keywords.** mutate's region keywords are `DECLARATIONS`, `Let` and its own commands, each a whole word, with the plural assumption commands and Ltac2's definitions spelled as their own. `Variant`, `CoInductive`, `CoFixpoint`, `Structure`, `Let` and `Property` each open a region, and the mutable set is unchanged. A head's decorations are read as the run Rocq's lexer reads, across lines, comments and an attribute spanning lines, and the region opens where the run does. F-518.
+* **K-91 and proofcites.** An `Example` is the sentence the shared split ends at its own full stop, read after any decoration and refused by name under `Fail` or `Succeed`. F-519. `proofcites` takes the gate's `STATEMENTS`, `Property` among them, and `DECLARATIONS` as its definers. `MODIFIERS`, which the citations check composes, is `VERNAC_CONTROL`, so a bulleted line of transcription prose reads as prose. A discharge's statement is read with comments as separators, and a discharge is refused by the flag its statement stands under, above the annotation included. This closes the first round's routed nit.
+* **Probes.** The first round compiled each bypass with its effect, and positive controls (`^^`, `^.^`, a recursive `..`, a deprecation note ending in a full stop, a Tactic Notation body string) compiling and reading as before. The second round compiled eleven probes and ten controls, and its review's repair forty probes and fourteen controls. Each probe is misread by the base reader and read or refused by name by the head's, and each control reads the same.
+* **Consumers.** The consumer script reads every consumer of the shared lexer: the gate's readings, `proofcites`, `proofsearch`, the corpus exporter, `admission`, `composer`, `wire_formats`, Q38b's readers, K-91's states, every proof's mutants and K-108's regions. It reads the live tree identically at each round's base and head: 31 readings at `f89e7351…` in the first round, and 34 at `e5853495…` in the second. At integration it reads `main`'s `5857a2d5` with `main`'s tools and with the merge's identically: 34 readings over 57 sources, digest `88bbfa80dc43473fef02fbe69cc0a0eb69be57c11b77c4c680d9b584ff46de26`, no errors.
+* **Unchanged readings.** At `ee67ecda`, apex reads 37 Prop fields, 61 declarations and 12 definitions with reads, and no residue. The memory-plan export regenerated to scratch is byte-identical to the tracked artifact. All 57 proofs' 11,813 mutants and every region boundary are equal. So are the six K-107 tables of 329 values, `source_declarations`, `proofcites`' 11,207 names and 808 claims, and K-91's three 25-lane states.
+* **Tests and mutants.** At the integration merge, `run.py test --only` passes on the host for `gallina` (23 cases), `apex` (15), `memplan` (12), `mutate` (25), `consttab` (5), `cic_corpus` (12), `proofcites` (21), `keccak` (4), `proofaudit` (28), `proofs` (24) with `proofsearch` (12), `proofreading` (16) and `checks` (71). `run.py typecheck` is clean. `selftest --rule` kills every mutant for K-42, K-43, K-44, K-88 (20), K-91, K-103, K-105, K-106, K-107 (two), K-108 and K-109, with none survived or unseeded. In the lanes, each new case failed against the reader before its commit. The first round killed every hand mutant but one equivalent, and the second all 58.
+* **Cost.** Interleaved host medians rose for memplan's `emit`, from 18.4 ms to 26.9 ms, and for K-91's three readings, from 1.4 ms to 4.6 ms. The other readers are unchanged or faster.
+* **Integration.** The merge's one conflict was `test_gallina.py`'s imports: Q38e's landing added `subprocess` and this item `re`, and the resolution keeps both.
+* **Gate identity.** `proofs.py`, `proofaudit.py`, `cli/proofs.py` and `proofcites.py` are in the gate's implementation identity, so the next proofs run in every lane compiles and kernel-checks everything afresh. `proofs.py` and `cic_corpus.py` are in the corpus exporter's identity, so an earlier corpus report reads stale.
+* Twelve findings.
+  * **The first round's string-aware split let a declared token holding a quote or `(*` hide a later setting, Load or statement, which the base had refused.** Closed here by the declared-token refusal. F-588.
+  * **The control prefixes needed a blank after a control word or a quoted target.** So `Time#[local]Set`, `Redirect"out"Load` and `Profile "a""b" Set` compiled with the setting unread. Closed here. F-589.
+  * **The shared split ended a sentence at stdpp's `∀..`, and at a declared token ending in a full stop, `.` and `...` among them, losing the witness demand after it.** Closed here. F-590.
+  * **The token refusal reads only a source's own declarations.** Its soundness rests on the audit of the installed switch, and it refuses loudly a declaring string holding a word that ends in a full stop. The audit is recorded, and the over-refusal is loud. F-591.
+  * **The shared decorations read a control flag before a bullet, brace or goal selector as the following declaration's.** The locked compiler runs it as the brace's. Closed here. F-592.
+  * **The second round's first cases for F-516 and F-518 passed their own regressions.** F-518's iterated the table under test, and F-516's put the flag in the head's own run. Closed here by cases that spell the keywords and pin both call sites. F-593.
+  * **mutate's region keywords had no word boundary, and it read heads line by line.** So `Letter` opened a `Let` region, and a decoration reaching its command through a comment or a multi-line attribute was misread. Closed here. F-594.
+  * **apex ended a definition's body at a string's full stop before a capital on the next line.** It silently dropped a consumer's read. Closed here. F-595.
+  * **mutate's definitional region ends at the next keyword line rather than at its own full stop.** So a definition inside a proof makes the proof's later literals mutable, and so does a following `Compute` line. Ending regions at their sentence would re-baseline every proof's mutant population. Open: reported and not closed. F-596.
+  * **apex and memplan read a column-0 declaration spelled inside a multi-line string of a non-Definition sentence as a declaration.** The live tree holds none. F-597.
+  * **mutate's tables lag Rocq 9.3's grammar.**
+    * Its region keywords omit `SubClass` and other defining vernaculars, among them `Module RingDma.` in RingContract.v, a live instance.
+    * Its mutable set omits `Variant`, `CoInductive`, `CoFixpoint`, `Structure` and `Let`.
+    * It reads `Export Set` as `Set`.
+
+    Changing either table re-baselines the mutant populations. Open: reported and not closed. F-598.
+  * **`proofsearch`, an advisory navigation reader outside the five readers F-517 names, still spells its own decoration prefix.** It validates nothing. F-599.
+
+Calibration: original estimate 6.5 h, range 4–9, class I; 6.6 h actual on the agent-parallel clock: 23,403 seconds rounded upward, from each transcript's first and last records:
+* the first round's implementation 2,956 s, review 1,528 s and repair 4,131 s;
+* the second round's implementation 5,958 s and review 3,909 s, the review less 72,669 s without a record while the session was suspended overnight, from 2026-09-30T05:57:31Z to 2026-10-01T02:08:40Z;
+* the second round's repair 4,921 s.
+
+Hosted validation is outside it.
+
+Landed: Tier A. The integrator's read covers both rounds' whole diffs against the cell: the shared lexer and its refusals, the decoration grammar and every reader that now composes it, the keyword tables, the tests and cases, and both reviews' findings with their repairs' dispositions. It also covers the round-1 publication and this integration's merge and consumer comparison. Every consumer of the shared lexer reads the live tree as it did, and each finding the cell names is closed by a reading the host tests hold.
+
 ### Q38e · Compile the Stdlib-only Gallina instruments in the proof switch
 
 The worker lane `q38e-impl-20260929` started from base `59cc31c3` and reached `e7a11114`. An adversarial review in `q38e-review-20260929` accepted that head with four repairs to make and five nits. A repair in the worker lane brought it to `ff6ffbd4`, which the integration branch `q38-integ-e-20260929` merged onto `main`'s `ca8d7a2e` at `4192a24e`, and the integrator's repair `ab90626a` followed. The guest comparisons ran each side's tools from a `git archive` export under the lane directory: the base `59cc31c3` in the CertiRocq switch at Rocq 9.1.1, and the head at `f80f9677` and `fd67b6b7` in the switches it selects.
@@ -2268,6 +2318,169 @@ The worker lane `q38e-impl-20260929` started from base `59cc31c3` and reached `e
 Calibration: original estimate 6 h, range 4–8, class I; 3.4 h actual on the agent-parallel clock: the implementation session 7,463 s, the review 1,516 s and the repair 3,252 s, from each transcript's first and last records, 12,231 seconds rounded upward. Hosted validation is outside it.
 
 Landed: Tier A. The integrator's read covers the whole diff against the cell: the switch move, the narrowed closure, K-117's module, registry row, selftest cases and tests, the restatements, the review's findings with the repair's dispositions, and the merge's resolution and repair. K-117 holds what the instruments older than Rocq 9.3.0 compile, and the host tests hold the switch each instrument asks for.
+
+### Q38i · Make the proofs cheaper to compile and recheck without moving a statement
+
+The worker lane `q38i-impl-20260929` started from base `59cc31c3` and ended at `c559db3c` in six commits:
+* the single-evaluation cast at `a6e02267`;
+* the WorkflowProfiles clears at `aadb9126`;
+* the literal lemmas of PqArith at `260076a4`, MlKem at `b50c5985`, HmacDrbg at `f2eab890` and StorageBridge at `c559db3c`.
+
+Readings, measurements and the gate run were taken in the lane's guest with the locked Rocq 9.3.0, on the WSL2 aarch64 guest that other lanes shared. An adversarial review in `q38i-review-20260929` was interrupted when that guest stopped responding. Guest tests now run on GitHub only, so a second review of the same head ran on the host and reused the first one's guest outputs as data. It accepted the head with repairs to this note and its findings, and found no statement, body, opacity or assumption moved. The integration branch `q38-integ-i-20260930` merged `c559db3c` onto `main`'s `b392c2b1`, and the integrator's repair `aa3d4b9d` followed. No proof source changed on `main` between `59cc31c3` and `b392c2b1`, so the lane's gate run covers the merged sources, and the repair changes only comments in two of them.
+
+* **The retired-instruction procedure.** A source set is copied into lane scratch outside the proof gate's workspace. It is compiled in its dependency waves, two at once, by `rocq c -q -w +default,-abstract-large-number -set "Default Goal Selector=!" -disallow-sprop -Q . "" -profile`. Each module is then checked, two at once, by `rocqchk -silent -o -norec -profile` with its closure admitted. A module's figure is the retired-instruction count on the profile's `process` end event. A set is refused when a counter is absent or not positive, an exit is nonzero, or a compile prints anything. Peak memory is the process's maximum resident set from `wait4`, and each module's `-o` summary is hashed and compared. Single runs of unchanged small modules moved by up to 0.75% in compile and 0.62% in recheck between the base set and the candidate's. The table's changes are computed from the raw counts, and Q38h and Q38j remeasure their own base with this procedure.
+* **The cast.** At `a6e02267`, 539 opaque proofs in 13 authored modules read `Proof. vm_reflexivity. Qed.`. Each script was `vm_compute` then `reflexivity` of an equality, optionally after a bare `intros`. Each module defines `Local Ltac vm_reflexivity := intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.` after its opening Require, Import and Open Scope lines, so the kernel's check of the cast at `Qed` is the one evaluation. 31 of those proofs are then rewritten through the literal lemmas, and the 14 lemmas themselves read `unfold <literal>. vm_reflexivity.`.
+  * The tactic has no fallback. Three statements whose goals are `Disciplined` or `Admissible` propositions, each unfolding to an equality, refused it and keep their scripts.
+  * MlDsa.v's three such proofs are left unmade, since retained evidence and a dated benchmark bind its digest.
+  * ArithmeticComposition.v, CredentialHandles.v, InferenceAdmission.v and TwoSourceExtractor.v keep their 16 such proofs. The cast measured no compile fall there beyond single-run noise, and in two single runs it raised ArithmeticComposition.v's recheck by 2.78% and 2.80%.
+  * The generated modules are untouched. At `a6e02267` alone, the corpus's compile retired instructions fall 21.21%.
+* **The literals.** Fourteen `Eval vm_compute` definitions, each with a lemma equating it to its source, are shared by 31 rewritten Examples:
+  * MlKem.v has seven: `demo_ek`, `demo_dk`, `demo_ct`, `demo_key`, `demo_tampered`, and `kem_decaps` of `demo_ct` and of `demo_tampered`. Their lemmas are chained so the recheck runs each computation once.
+  * PqArith.v has five: `ntt` and `ntt_other_order` at ML-KEM's ring of `ramp_poly 256` and `stride_poly 256`, and their `negacyclic 3329 256` product.
+  * HmacDrbg.v has one, `no_reseed_run`.
+  * StorageBridge.v has one, the walk of `bridge_medium` under `bridge_open` at `bridge_generation`, which two Examples' six decodes run.
+
+  Each lemma unfolds its literal before the cast. Casting `eq_refl` of the folded constant made the recheck cost 1,217.9e9 retired instructions against 479.5e9 for ML-KEM's honest decapsulation, and 524.9e9 against 84.4e9 for the walk. Two kinds of value are left without a literal:
+  * values whose evaluation was measured costlier with one: HmacDrbg.v's `pr_true_run` and `first_draw`;
+  * values whose evaluation sits inside a `forallb` over a family. These are PqArith.v's ML-DSA-ring transforms of both probes, StorageBridge.v's decode of the medium flipped at offset 272, and the walk of the one flipped at 144. Two Examples evaluate each. Three round-trip Examples over PqArith's probes are not rewritten through the lemmas.
+
+  Only the `8380417` product is evaluated by a single Example.
+* **The clears.** In `WorkflowProfiles.v`, `H` is cleared before the `destruct … eqn:E`. `apply in_flat_map in H` becomes a `destruct` of `in_flat_map`'s forward direction applied to `H`, followed by `clear H`. The module's compile falls 70.48%; the cast alone moved it 0.02%.
+* **Readings.** The base reading of the 57 sources at `59cc31c3` is byte-identical to Q38c's: 36,772,540 bytes, SHA-256 `b2573834ae42bc1229a6cc7f06d52bec7a6546744bec1e32064d49bdd15df2a6`. The candidate reading at `c559db3c` holds 13,826 constants over 57 modules, 8,744 of them printed, in 38,040,362 bytes, SHA-256 `16f7a4cb4fca861a90abad7392ee7feb87e3fcdae36354630e28759eefa1ae2b`. `proof-reading compare` names 28 differences, each an added constant: the 14 literals and their 14 lemmas.
+* **Gate.** `run.py proofs --jobs 2` over `c559db3c` in the lane passes, reusing nothing. It closes 13,826 constants under the global context, records 128 witnesses, and finds no undeclared axiom in rocqchk's summary. Compile and audit took 243.53 s and the kernel recheck 862.89 s at a worker limit of 2, 1,140.82 s in all. The portable receipt it published differs from the tracked one only in the four literal modules' constant counts (+2, +14, +10 and +2) and inventory digests, with every module's witnesses identical. The tracked receipt was restored, since it records the last successful run and is no claim about the current checkout. Guest CI's proofs lane rechecks the landed revision.
+* **Readers.** Between `59cc31c3` and `c559db3c`:
+  * The witness facts are equal: 128 quantified record-file pairs, 128 witnessed, none unbuilt.
+  * So are apex's reading, the six K-107 tables of 329 values, and K-91's three answers.
+  * The memory-plan export regenerated to scratch is byte-identical to the tracked artifact, at SHA-256 `b9b670f2940dc10f92b070527d3b07b299e8ec4abe90eb8954c9bebd1658bc9b`.
+  * `proofcites`' citations, claims and identifiers are equal, and its constant index differs only by the 28 added names.
+  * The corpus exporter's `source_declarations` are equal for all 57 sources.
+  * The dated crypto campaign's 17 selections name the same mutants, and every selftest literal seed occurs as often as before.
+  * `tools/check.py` reports every derived fact in agreement.
+  * All 57 candidate sources compile under the CertiRocq switch's Rocq 9.1.1, as `gallina.compile_one` spells the compile.
+* **Mutants.** At `c559db3c`, `selftest --rule` kills every mutant for K-91, K-103, K-105, K-107 (two), K-108 and K-109, with none survived or unseeded, and K-109's repair path holds. No tool changed.
+* **Integration.** The host review's corrections are applied in this note:
+  * the cast's count of 539 proofs is restated;
+  * the reading behind each value left without a literal is now stated, where the draft said each was evaluated by one Example;
+  * ArithmeticComposition.v's recheck rise under the cast is now stated;
+  * five-run compile figures with no retained record are dropped.
+
+  `aa3d4b9d` restates the static-memory notes' and two modules' header comments that named the `vm_compute` tactic.
+* **Figures.** Retired instructions are in units of 10^9, rounded to 0.01, and each change is computed from the raw counts. The base is `59cc31c3`, measured from 02:32 to 03:10Z at one-minute guest loads of about 3 to 12. The candidate is `c559db3c`, measured from 04:40 to 05:01Z at loads of about 2 to 5. A star marks a changed module. Every module's `-o` summary is byte-identical between the two sets. HmacDrbg.v's recheck peak is 9,311,012 KB at base and 9,312,124 KB at the candidate.
+
+| Module | Compile, base | Compile, candidate | Change | Recheck, base | Recheck, candidate | Change | Compile peak MiB, base / candidate | Recheck peak MiB, base / candidate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `MlKem.v` * | 380.44 | 191.27 | -49.73% | 9,360.24 | 2,986.49 | -68.09% | 531 / 496 | 1,346 / 767 |
+| `HmacDrbg.v` * | 213.64 | 123.35 | -42.26% | 2,605.50 | 2,019.85 | -22.48% | 336 / 334 | 9,092 / 9,093 |
+| `PqArith.v` * | 192.31 | 88.72 | -53.87% | 2,526.97 | 2,010.37 | -20.44% | 436 / 432 | 858 / 864 |
+| `StorageBridge.v` * | 103.69 | 54.25 | -47.69% | 1,467.20 | 1,045.01 | -28.77% | 441 / 440 | 377 / 363 |
+| `Sha256.v` * | 95.17 | 58.18 | -38.86% | 1,395.11 | 1,393.88 | -0.09% | 365 / 360 | 1,424 / 1,588 |
+| `AesGcm.v` * | 147.41 | 104.69 | -28.98% | 1,095.05 | 1,094.92 | -0.01% | 453 / 450 | 129 / 131 |
+| `CopyRingService.v` * | 240.60 | 125.25 | -47.94% | 842.62 | 842.73 | +0.01% | 391 / 372 | 129 / 131 |
+| `MemoryPlan.v` | 810.87 | 810.88 | +0.00% | 409.07 | 409.03 | -0.01% | 698 / 701 | 158 / 158 |
+| `Keccak.v` * | 28.42 | 20.47 | -27.95% | 219.67 | 219.71 | +0.02% | 370 / 356 | 642 / 707 |
+| `RomVerifier.v` * | 13.28 | 5.76 | -56.58% | 107.70 | 103.86 | -3.56% | 440 / 327 | 727 / 568 |
+| `ElasticDomain.v` | 67.85 | 67.86 | +0.00% | 26.50 | 26.52 | +0.06% | 480 / 478 | 234 / 233 |
+| `RingContract.v` | 7.33 | 7.33 | +0.00% | 23.46 | 23.46 | +0.01% | 328 / 330 | 129 / 131 |
+| `WorkflowProfiles.v` * | 244.63 | 72.22 | -70.48% | 17.90 | 17.91 | +0.02% | 440 / 440 | 169 / 168 |
+| `StaticMemoryLaminar.v` * | 20.78 | 14.75 | -29.00% | 17.00 | 16.99 | -0.04% | 433 / 430 | 210 / 210 |
+| `StaticMemoryService.v` * | 5.63 | 5.35 | -5.10% | 15.43 | 15.54 | +0.68% | 406 / 404 | 215 / 212 |
+| `KernelInstance.v` | 22.74 | 22.74 | +0.00% | 11.40 | 11.38 | -0.13% | 359 / 359 | 129 / 131 |
+| `WitnessContinuity.v` | 16.28 | 16.28 | -0.00% | 10.28 | 10.29 | +0.14% | 425 / 425 | 217 / 217 |
+| `ElasticPoolCampaign.v` | 34.74 | 34.74 | -0.00% | 9.17 | 9.17 | -0.02% | 412 / 412 | 150 / 150 |
+| `ExecutableIndex.v` | 21.09 | 21.09 | -0.00% | 6.18 | 6.18 | +0.01% | 460 / 461 | 144 / 143 |
+| `AdmissionPath.v` | 19.07 | 19.08 | +0.04% | 4.60 | 4.60 | -0.02% | 340 / 341 | 129 / 131 |
+| `InferenceAdmission.v` | 9.90 | 9.91 | +0.06% | 4.50 | 4.50 | -0.03% | 414 / 412 | 129 / 131 |
+| `TwoSourceExtractor.v` | 9.75 | 9.72 | -0.30% | 3.58 | 3.57 | -0.23% | 427 / 426 | 129 / 131 |
+| `MlDsa.v` | 5.71 | 5.71 | +0.01% | 3.42 | 3.43 | +0.36% | 419 / 419 | 129 / 131 |
+| `ProbingModel.v` | 9.06 | 9.06 | -0.00% | 3.34 | 3.36 | +0.33% | 414 / 413 | 129 / 131 |
+| `MemoryPlannerResources.v` | 3.63 | 3.63 | +0.00% | 3.28 | 3.28 | -0.00% | 398 / 399 | 129 / 131 |
+| `KeyspaceDomains.v` | 11.88 | 11.88 | -0.00% | 3.23 | 3.25 | +0.39% | 329 / 329 | 129 / 131 |
+| `ModuleFormats.v` | 7.04 | 7.04 | -0.00% | 2.99 | 2.99 | +0.01% | 412 / 411 | 129 / 131 |
+| `AttestedSession.v` | 6.09 | 6.09 | +0.00% | 2.99 | 2.99 | +0.02% | 410 / 410 | 129 / 131 |
+| `ArithmeticComposition.v` | 6.29 | 6.25 | -0.75% | 2.90 | 2.91 | +0.23% | 410 / 411 | 129 / 131 |
+| `HandlerGraph.v` | 11.42 | 11.41 | -0.07% | 2.79 | 2.77 | -0.57% | 329 / 329 | 129 / 131 |
+| `JournalIndex.v` | 12.17 | 12.16 | -0.07% | 2.78 | 2.77 | -0.43% | 329 / 329 | 129 / 131 |
+| `RotFirmware.v` | 11.62 | 11.62 | +0.00% | 2.69 | 2.69 | +0.03% | 332 / 331 | 129 / 131 |
+| `ElasticPool.v` * | 3.59 | 3.57 | -0.50% | 2.68 | 2.68 | -0.09% | 411 / 411 | 129 / 131 |
+| `SecurityPolicyModel.v` | 5.49 | 5.49 | -0.00% | 2.66 | 2.66 | -0.01% | 399 / 400 | 129 / 131 |
+| `DeviceRegisters.v` | 3.90 | 3.90 | -0.00% | 2.27 | 2.26 | -0.31% | 391 / 393 | 129 / 131 |
+| `ObjectTransactor.v` | 8.48 | 8.48 | +0.01% | 2.21 | 2.22 | +0.38% | 323 / 323 | 129 / 131 |
+| `StorageRecovery.v` | 2.57 | 2.57 | -0.00% | 2.17 | 2.17 | +0.16% | 400 / 401 | 129 / 131 |
+| `MemoryPlannerContracts.v` | 3.10 | 3.10 | +0.00% | 2.16 | 2.16 | +0.19% | 398 / 397 | 129 / 131 |
+| `EndpointIPC.v` | 8.96 | 8.96 | +0.00% | 2.02 | 2.02 | +0.05% | 329 / 328 | 129 / 131 |
+| `EnsembleSchedule.v` | 6.10 | 6.10 | +0.00% | 1.98 | 1.98 | +0.01% | 319 / 322 | 129 / 131 |
+| `MemoryPlannerCertificates.v` | 2.02 | 2.02 | +0.01% | 1.98 | 1.98 | +0.12% | 392 / 392 | 129 / 131 |
+| `ResetTable.v` | 3.37 | 3.37 | -0.00% | 1.70 | 1.71 | +0.23% | 354 / 353 | 129 / 131 |
+| `ObjectRouter.v` | 6.65 | 6.64 | -0.15% | 1.56 | 1.56 | +0.03% | 323 / 324 | 129 / 131 |
+| `DischargeSequence.v` | 6.79 | 6.79 | +0.00% | 1.36 | 1.36 | +0.01% | 322 / 322 | 129 / 131 |
+| `ModuleAdmission.v` | 4.15 | 4.15 | -0.00% | 1.24 | 1.24 | +0.07% | 317 / 315 | 129 / 131 |
+| `SupervisionTree.v` | 3.89 | 3.89 | -0.18% | 1.03 | 1.03 | -0.02% | 320 / 318 | 129 / 131 |
+| `MModeFirmware.v` | 4.09 | 4.09 | -0.01% | 0.98 | 0.98 | -0.09% | 320 / 319 | 129 / 131 |
+| `CyclicExecutive.v` | 3.26 | 3.26 | -0.00% | 0.90 | 0.90 | +0.03% | 315 / 316 | 129 / 131 |
+| `ScheduleRecord.v` | 2.03 | 2.03 | -0.01% | 0.82 | 0.81 | -0.49% | 309 / 310 | 129 / 131 |
+| `CredentialHandles.v` | 2.07 | 2.07 | -0.00% | 0.70 | 0.70 | +0.62% | 309 / 309 | 129 / 131 |
+| `PartitionContext.v` | 2.00 | 2.00 | +0.00% | 0.53 | 0.53 | +0.01% | 309 / 309 | 129 / 131 |
+| `MModeFirmwareSealing.v` | 1.53 | 1.53 | -0.00% | 0.48 | 0.48 | -0.09% | 310 / 310 | 129 / 131 |
+| `ApexTheorem.v` | 0.79 | 0.79 | +0.01% | 0.46 | 0.46 | -0.06% | 229 / 230 | 129 / 131 |
+| `BoundaryCost.v` | 1.02 | 1.02 | +0.00% | 0.32 | 0.32 | -0.42% | 297 / 299 | 129 / 131 |
+| `ComposedNonInterference.v` | 0.75 | 0.75 | +0.01% | 0.31 | 0.31 | -0.05% | 227 / 227 | 129 / 131 |
+| `SeamWitnesses.v` | 0.51 | 0.51 | +0.01% | 0.22 | 0.22 | +0.01% | 156 / 153 | 129 / 131 |
+| `OracleInstantiation.v` | 0.29 | 0.29 | -0.07% | 0.18 | 0.18 | +0.07% | 97 / 99 | 129 / 131 |
+| All 57 | 2,877.93 | 2,056.08 | -28.56% | 20,242.45 | 12,339.32 | -39.04% | n/a | n/a |
+
+* Ten findings.
+  * **The cast clause and the Check's compile fall of more than 0.1% cannot both hold for ArithmeticComposition.v, CredentialHandles.v, InferenceAdmission.v and TwoSourceExtractor.v.** Their 16 such proofs evaluate goals too small for a fall beyond single-run noise. The cast also raised ArithmeticComposition.v's recheck by 2.78% and 2.80% in two single runs, past the 1% bound. The four modules keep their scripts. F-578.
+  * **MlDsa.v's three such proofs stay unmade.** Two retained-evidence copies and a dated benchmark bind its digest, and no command regenerates a dated record. This is the clause's own exemption. F-579.
+  * **Three proofs whose goals unfold to equalities keep their scripts.** These are `Disciplined demo`, `Disciplined demo_pr` and `Admissible demo`; the cast reads a goal's equality syntactically. F-580.
+  * **HmacDrbg.v's `pr_true_run` and `first_draw` keep no literal.** With literals, the module's recheck counted 2,042.8e9 retired instructions against 2,019.9e9, but its one-run peak was 8,125,480 KB against 9,312,124 KB. Open: Q38j weighs the peak. F-581.
+  * **Values that two Examples evaluate inside a `forallb` over a family keep no literal.** These are PqArith.v's ML-DSA-ring transforms of both probes, and StorageBridge.v's decode and walk of the medium flipped at offsets 272 and 144. Three round-trip Examples over the probes are not rewritten through the lemmas. Their benefit is unmeasured, beside the two modules' recheck falls of 20.44% and 28.77%. F-582.
+  * **A literal lemma closed by a cast of `eq_refl` of its folded constant cost the recheck 2.5 and 6.2 times what unfolding it first costs.** Open: Q38h keeps the unfolded form. F-583.
+  * **The 0.1% and 1% thresholds are decidable for modules under about 10e9 instructions only by repeated interleaved runs.** Single-run figures of unchanged small modules moved by up to 0.75% in compile and 0.62% in recheck between two sets. Open: Q38h and Q38j. F-584.
+  * **A rerun of the dated ML-KEM mutation campaign's definitions-only compile would evaluate the seven literals under every mutant.** PqArith's proof oracle would then kill through the literal lemmas, although all 17 recorded selections name the same mutants. The campaign stays as recorded. F-585.
+  * **The dated q19a render-cache campaign's review prefix of CopyRingService.v now carries the module's tactic and the cast.** Both of its anchors still resolve, and the campaign stays as recorded. F-586.
+  * **`wait4` peaks of small `rocqchk` processes are unstable.** They read 129 to 131 MiB in two sets and 46 MiB in a third for the same modules. Sha256.v's rose from 1,458,428 KB to 1,626,180 KB at equal instructions. Open: Q38j repeats peaks before sizing workers. F-587.
+
+Calibration: original estimate 10 h, range 7–13, class I; 5.3 h actual on the agent-parallel clock: 18,819 seconds rounded upward, from each transcript's first and last records:
+* the implementation session, 12,831 s;
+* the interrupted first review, 3,651 s, less 72,396 s without a record while the session was suspended overnight, from 2026-09-30T06:02:04Z to 2026-10-01T02:08:40Z;
+* its restarted copy, stopped after 587 s;
+* the host review, 1,750 s.
+
+Hosted validation is outside it.
+
+Landed: Tier A. The integrator's read covers the whole diff against the cell: every rewritten proof against the clause's shape, the literals and their lemmas, the clears, the reading comparison, the gate run, the reader invariants and the figures. It also covers the review's findings with their corrections, and the integration's prose repair. The narrowings this note names leave the cast and literal clauses partly met. Each is a finding with its disposition, and nothing here claims the cell's unnarrowed Owns. No statement, body, opacity or assumption moved.
+
+### Q38k · Refuse coinductive definitions while the locked kernel lacks the cofixpoint guard fixes
+
+The worker lane `q38k-impl-20260929` started from base `30f9f95b` and reached `492a0cec`: `47ff1567` adds the refusal and its tests, and `492a0cec` restates the lock guide. An adversarial review in `q38k-review-20260929` rejected that head with one blocking finding, three to fix and two nits. A repair in the worker lane brought it to `eb7abf2a` in four commits, `a4fb19be`, `99c4f64c`, `7ec3ac2c` and `eb7abf2a`. The integration branch `q38-integ-k-20260930` merged `492a0cec` onto `main`'s `ddd8a7dd`, then `main`'s `58af7924`, then `eb7abf2a`, and the integrator's repairs `e554c96e` and `82bf994d` followed. Each guest probe compiled one file alone with the locked Rocq 9.3.0 under the gate's flags in its lane's directory. Every probed cofixpoint is guarded, and no reproduction of rocq#22386 or rocq#22389 was written or compiled.
+
+* **Refusal.** `coinductive_forms` in [proofaudit.py](../../tools/vos/proofaudit.py) reports every sentence holding `CoInductive`, `CoFixpoint`, `cofix`, `cofix_` or `CoFix` where Rocq's lexer can read it as a token of its own. Comments are read as separators and string literals are emptied first. `_check_source` in [cli/proofs.py](../../tools/vos/cli/proofs.py) refuses such a source right after the unreadable-token check and before every other refusal and the compile, under a diagnostic naming rocq#22386 and rocq#22389. The locked compiler accepts each refused spelling probed:
+  * a coinductive type and a coinductive record, `CoFixpoint`, and `Let CoFixpoint` in a section;
+  * the `cofix` binder, `let cofix`, the `cofix` tactic, and `cbv` and `lazy` with the `cofix` flag;
+  * `Search is:CoFixpoint`, and `CoFixpoint` under `Time`, `Local`, `#[local]`, `Program`, `Fail` and `Succeed`;
+  * Ltac2's `Std.cofix_` and bare `cofix_`, and `Constr.Unsafe.CoFix` qualified and bare.
+* **Where a word stands.** The lexer continues an identifier through letters, digits, `_` and `'`, and ends a numeral, a quote or a token from its keyword table where a word may begin. Under the gate's flags it compiles `do 1cofix H`, `do 1_cofix H` and 15 numeral spellings such as `1E5cofix` and `0x1.ap5cofix`. Once a notation declares the token before it, it also compiles `#_cofix`, `²cofix`, `٣cofix`, `₀cofix`, `#a1cofix`, `#a'cofix`, Ltac2's `Std.cofix_²sevens`, and `#00x1p5cofix` after `#0`. So the reading reads a run of quotes, underscores and numerals apart from a word. It reads each numeral possessively as `interp/numTok.ml` does, a hexadecimal one first and a decimal one stopping before a `0x`. `0x1cofix`, which the compiler reads as `0x1c` then `ofix`, passes, as does `1ecofix`. Rocq 9.3.0's Unicode table and Python 3.14's `unicodedata` class about 26,000 characters differently, so only ASCII letters, digits, `_` and `'` continue a word. That refuses loudly `écofix`, `cofixé` and `x٣cofix`, which Rocq reads whole, and `_cofix`.
+* **Hiding tokens.** A token from the keyword table can end inside what the reading takes for one word. So every source's declaration of a terminal that is not an ASCII identifier and whose trailing ASCII letters, digits, quotes and underscores hold a letter is refused, whether or not that source writes a word, since another source may Require it. The locked compiler runs `#a1cofix H` as `cofix H` once a tactic notation declares `#a1`, and as `do 1 (cofix H)` once one declares `#a` with a count. Tactic and Ltac2 notations take each string as one terminal, its blanks removed. Every other notation command declares its terminals in its first string's blank-separated parts. The locked libraries declare 21 such tokens, among them Stdlib's `+c`, after which the compiler reads `+c1cofix` as three tokens. They stay outside the reading as residue.
+* **Controls.** `cofix'`, `is_cofix`, `CoFixed`, `tCoFix`, `CoInductive_lemma`, `rCofix`, `x'cofix`, `x1cofix` and Ltac2's field `Std.rCofix` compile and pass. The compiler reads `co(* c *)fix` as two words, and so does the reading. `cofix` and `CoFixpoint` are reserved words, while `CoInductive`, `CoFix` and `cofix_` are legal identifiers the refusal rejects loudly.
+* **Lock guide.** In [the lock guide](../../tools/opam/README.md), the F-565 sentence is unchanged and the next one names the refusal of words and of hiding declarations. It names three residues: dependency sources, cofixpoints taken through a dependency's definitions, notations, abbreviations, tactics or hints, and a word joined to a token a dependency declares. The retirement sentence quotes `let check_one_cofix ?evars env nbfix def vlra =` and `raise (CoFixGuardError (env, RecCallInNonMainMutual c))`, and names `test-suite/bugs/bug_22386.v` and `test-suite/bugs/bug_22389.v`. The #22387 sentence is unchanged. The sources were read from raw.githubusercontent.com on 2026-09-30:
+  * `V9.3.0`'s `kernel/inductive.ml` has SHA-256 `9d8dac1b6374d4a51839ea626c27904a121d54550087e0fbc6af49e0c3d7a823`, equal to the locked switch's source. With whitespace ignored it holds neither line and still holds `... def deftype =`, and both test files return 404.
+  * `master`'s file, at SHA-256 `3e60deed73d58d43abbaf6592a5d327942be1b735147303c8773839b4f0352aa` when read, holds both lines, and both test files are present.
+* **Live reading.** The live-tree case reads the 57 tracked `.v` files under `proofs/` and the campaign template `proofs/campaigns/mlkem_extract.v.in`, and the refusal names no sentence. When a coinductive declaration and a hiding declaration are appended after the first source, the refusal names each of them alone.
+* **Integration.** Both merges were clean. The integrator's read found the tactical refusal open to the same token boundaries, and `e554c96e` repairs it: the lexer model stands once, beside the tactical pattern, and both readings share it. It also found that `run.py proof-reading` repeated only two of the gate's five refusals before compiling. With proof-source edits landing on a host reading comparison and Guest CI verifying after publication, `82bf994d` makes the reading refuse all five. Each repair carries a case that fails before it.
+* **Tests and mutants.** At `eb7abf2a`, 19 new refused cases pass the previous reading. 38 of 40 in-process mutants are killed. The two survivors narrow an exponent's sign to `+`, and an exhaustive differential over 76,938,501 strings of up to six characters before `cofix` finds no text that tells them apart. Its positive controls find witnesses for the killed underscore mutants. At `82bf994d`, `run.py test --only` passes on the host for `proofaudit` (28 cases), `test_proofs` (24) with `proofsearch` (12), `gallina` (20), `proofcites` (16), `cic_corpus` (11), `proofcache` (10) and `proofreading` (16). `run.py typecheck` is clean, and `tools/check.py` reports every derived fact in agreement. No checker rule changed, and no selftest mutant seeds these modules.
+* **Gate identity.** `proofaudit.py` and `cli/proofs.py` belong to the gate's implementation identity and to the CIC corpus exporter's. So the next proofs run in every lane compiles and kernel-checks everything afresh, and an earlier corpus report reads stale. `proof_reading.py` is outside the gate's identity, and a reading's reader block, which comparison holds, names no tool bytes.
+* **Dispositions.** F-565 stands on the refusal. Its disposition names the dependency-token residue that the planned text left out, since the review showed that the forms a source writes are covered and a word joined to a dependency's token is not. Q39's F-565 bullet now names the refusal.
+* Six findings.
+  * **No requirements-register entry owns the response to a known inconsistency of the locked prover.** The audit's lexical refusals covering #22287, #22387 and #22510, and this item's for #22386 and #22389, stand on the lock guide's prose and the audit's code. R-05-018a's acceptance rests on the compile, the R-05-163 audit and `rocqchk`, which R-05-016a records as sharing the kernel's defects. Open: a register act at R-05-016a and R-05-018a rerunning the review gate. F-566.
+  * **The first head passed a cofixpoint word joined to a token the source declares.** The locked compiler compiles `#_cofix`, `²cofix`, `٣cofix`, `₀cofix`, `#a1cofix`, `#a'cofix` and Ltac2's `Std.cofix_²sevens` to guarded cofixpoints, and Python's word boundaries read each as one identifier. Closed here by the ASCII word reading and the refusal of hiding declarations. F-573.
+  * **The first head's numeral reading was held by no case.** 13 of the review's 14 mutants survived, and the reading missed `#00x1p5cofix` once a notation declares `#0`. Closed here by 15 probe-backed numeral cases and a decimal reading that stops before `0x`. F-574.
+  * **A word joined to a token a dependency declares stays outside the reading.** After Stdlib's `+c`, the locked compiler reads `+c1cofix` as `+c`, `1` and `cofix`. The locked libraries declare 21 such tokens. The lock guide states it as the refusal's residue. F-575.
+  * **The machine-bound tactical refusal passed `do 1timeout 5 (exact I)`, and `#_timeout 5 (exact I)` once a notation declares `#_`.** The locked compiler compiles both silently, so F-505's whole-identifier reading missed where the lexer ends a token. Closed at integration by `e554c96e`. F-576.
+  * **`run.py proof-reading` repeated only the abstraction and pinned-setting refusals before compiling.** It would compile a copy holding an unreadable token, a coinductive form or a hiding token, or a loaded file, plugin or Ltac2 external. Closed at integration by `82bf994d`. F-577.
+
+Calibration: original estimate 3 h, range 2–4, class I; 2.2 h actual on the agent-parallel clock: the implementation session 1,765 s, the review 1,738 s and the repair 4,150 s, from each transcript's first and last records less the review's 72,486 s without a record while the session was suspended overnight, from 2026-09-30T06:00:35Z to 2026-10-01T02:08:41Z, 7,653 seconds rounded upward. Hosted validation is outside it.
+
+Landed: Tier A. The integrator's read covers the whole diff against the cell: the refusal and its call site, the lexer model and the hiding-declaration reading, the tests and their cases, the lock guide's restated sentences, the review's findings with the repair's dispositions, and the integration's two repairs. The refusal holds every coinductive form an authored source writes or lets a declared token hide, the host tests hold each spelling the locked compiler was probed to accept, and the lock guide holds the residue and the retirement condition.
 
 ## M0 · Hardware reference
 

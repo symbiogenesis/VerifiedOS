@@ -3,15 +3,19 @@
 
 import argparse
 import io
+import subprocess
 import tempfile
-from contextlib import redirect_stderr, redirect_stdout
+from collections.abc import Iterator
+from contextlib import contextmanager, nullcontext, redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from tests.harness import Case, ensure
+from tests.harness import TOOLS, Case, ensure
 from vos import env
 from vos.cli import model
+
+ROOT = TOOLS.parent
 
 
 def _environment(root: Path) -> env.Environment:
@@ -77,11 +81,14 @@ def _incomplete_or_crashed_campaign_fails() -> None:
         outputs = []
         for report, expected in (({"passed": True}, 0), ({"passed": False}, 1),
                                  ({}, 1), ({"passed": "true"}, 1)):
-            run = Mock(return_value=report)
+            run, lock = Mock(return_value=report), Mock(return_value=nullcontext())
             with (patch.object(model.block_persistence, "run", run),
+                  patch.object(model.env, "hold_lock", lock),
                   redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
                 result = model._corpus_persistence(e, e.lane_root / "corpus", 30)
             ensure(result == expected, "only an explicit passing campaign supplies acceptance")
+            ensure(not lock.called, "the caller leaves the campaign's lock to the campaign, "
+                                    "whose own hold a second one would refuse")
             outputs.append(run.call_args.args[3])
         ensure(len(set(outputs)) == len(outputs), "reruns must use fresh persistent image directories")
         with (patch.object(model.block_persistence, "run", side_effect=OSError("image unavailable")),
@@ -90,7 +97,46 @@ def _incomplete_or_crashed_campaign_fails() -> None:
                    "an unavailable backing image must fail the hosted command")
 
 
+def _campaign_holds_its_directory_lock() -> None:
+    """Every caller is covered because the campaign holds the lock itself: one stable
+    `persistence.lock` in its output's directory, taken before the output exists and
+    released once the receipt is written, around every emulator launch. A stand-in
+    records the lock, since a Windows host has no `flock`."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        e = env.Environment(ROOT, ROOT / "model", Path(td) / "build", Path(td) / "logs",
+                            "worker", 4, 4096, 2, 2)
+        out = e.lane_root / "corpus"
+        events: list[str] = []
+
+        @contextmanager
+        def held(target: Path, what: str) -> Iterator[None]:
+            events.append(f"{what} holds {target.relative_to(out).as_posix()}, "
+                          f"{'after' if any(out.glob('persistence-*')) else 'before'} its output")
+            try:
+                yield
+            finally:
+                receipts = list(out.glob("persistence-*/results.json"))
+                events.append(f"released {'after' if receipts else 'before'} the receipt")
+
+        def emulator(argv: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+            events.append(f"emulator {'with' if '--blkdev-image-create' in argv else 'without'} an image")
+            return subprocess.CompletedProcess(argv, 1, "", "")
+
+        with (patch.object(model.env, "hold_lock", side_effect=held) as lock,
+              patch.object(model.block_persistence, "producer_identity", return_value={}),
+              patch.object(model.block_persistence, "subprocess",
+                           SimpleNamespace(run=emulator, TimeoutExpired=subprocess.TimeoutExpired)),
+              redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
+            result = model._corpus_persistence(e, out, 30)
+        ensure(result == 1, "the stand-in emulator's missing verdict fails the campaign")
+        ensure(lock.call_count == 1 and events == [
+            "a block persistence campaign holds persistence, before its output",
+            "emulator with an image", "released after the receipt"],
+            f"the campaign holds its directory's stable lock around its whole run, got {events}")
+
+
 def cases() -> list[Case]:
     return [Case("full-corpus-combines-verdicts", _full_corpus_combines_verdicts),
             Case("explicit-scope-and-conflicts", _explicit_scope_and_conflicts),
-            Case("incomplete-or-crashed-campaign-fails", _incomplete_or_crashed_campaign_fails)]
+            Case("incomplete-or-crashed-campaign-fails", _incomplete_or_crashed_campaign_fails),
+            Case("campaign-holds-its-directory-lock", _campaign_holds_its_directory_lock)]

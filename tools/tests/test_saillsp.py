@@ -4,11 +4,12 @@
 import hashlib
 import io
 import json
+import os
 import re
 import subprocess
 import tarfile
-from collections.abc import Callable
-from contextlib import nullcontext
+from collections.abc import Callable, Mapping
+from contextlib import nullcontext, redirect_stderr
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import patch
@@ -158,12 +159,42 @@ def _superseded_archive() -> None:
         ensure((root / "marker").read_text() == "unchanged", "a refused directory must not be removed")
 
 
+_BUILD_SPECS = [{"name": "lsp", "directory": "lsp-1", "license_file": "LICENSE"},
+                {"name": "sail", "directory": "sail-1", "license_file": "LICENSE"}]
+_BUILD_RECIPE = {saillsp.LOCK: json.dumps({"sources": _BUILD_SPECS}),
+                 "tools/opam/sail.lock": 'installed: ["ocaml.5.4.1"]',
+                 "tools/vos/saillsp.py": "recipe", "tools/sail-lsp/dependency-refresh.patch": "patch"}
+
+
+def _mock_source(spec: dict[str, Any], directory: Path) -> Path:
+    target = directory / str(spec["directory"])
+    (target / "lib").mkdir(parents=True, exist_ok=True)
+    (target / spec["license_file"]).write_text("license", encoding="utf-8")
+    (target / "lib/prelude.sail").write_text("prelude", encoding="utf-8")
+    return target
+
+
+def _mock_build(argv: list[str], cwd: Path, environ: dict[str, str], log: Path) -> None:
+    if argv[:2] == ["dune", "install"]:
+        prefix = Path(argv[argv.index("--prefix") + 1])
+        installed = prefix / ("bin/sail_lsp" if cwd.name == "sail_lsp" else f"lib/{cwd.name}/META")
+        installed.parent.mkdir(parents=True, exist_ok=True)
+        installed.write_text("current", encoding="utf-8")
+
+
+def _mock_install(environment: env.Environment, build: Callable[..., None] = _mock_build,
+                  stderr: io.StringIO | None = None) -> dict[str, Any]:
+    """install with the switch inventory, source fetches and build commands mocked."""
+    with (patch.object(saillsp.env, "hold_lock", side_effect=lambda *_: nullcontext()),
+          patch.object(saillsp, "_base_inventory", return_value=["ocaml.5.4.1"]),
+          patch.object(saillsp, "_source", side_effect=_mock_source),
+          patch.object(saillsp, "_run", side_effect=build),
+          redirect_stderr(io.StringIO() if stderr is None else stderr)):
+        return saillsp.install(environment)
+
+
 def _rebuild_uses_fresh_prefix() -> None:
-    specs = [{"name": "lsp", "directory": "lsp-1", "license_file": "LICENSE"},
-             {"name": "sail", "directory": "sail-1", "license_file": "LICENSE"}]
-    files = {saillsp.LOCK: json.dumps({"sources": specs}), "tools/opam/sail.lock": 'installed: ["ocaml.5.4.1"]',
-             "tools/vos/saillsp.py": "recipe", "tools/sail-lsp/dependency-refresh.patch": "patch"}
-    with sandbox_tree(files) as root:
+    with sandbox_tree(_BUILD_RECIPE) as root:
         environment = _environment(root)
         location = saillsp.home(environment)
         stale_library = location / "prefix/lib/superseded/META"
@@ -175,26 +206,10 @@ def _rebuild_uses_fresh_prefix() -> None:
                 path.write_text("superseded", encoding="utf-8")
             (location / "installation.json").write_text(json.dumps({"lock_sha256": "0" * 64}), encoding="utf-8")
 
-        def source(spec: dict[str, Any], directory: Path) -> Path:
-            target = directory / str(spec["directory"])
-            (target / "lib").mkdir(parents=True, exist_ok=True)
-            (target / spec["license_file"]).write_text("license", encoding="utf-8")
-            (target / "lib/prelude.sail").write_text("prelude", encoding="utf-8")
-            return target
-
-        def run(argv: list[str], cwd: Path, environ: dict[str, str], log: Path) -> None:
-            if argv[:2] == ["dune", "install"]:
-                prefix = Path(argv[argv.index("--prefix") + 1])
-                installed = prefix / ("bin/sail_lsp" if cwd.name == "sail_lsp" else f"lib/{cwd.name}/META")
-                installed.parent.mkdir(parents=True, exist_ok=True)
-                installed.write_text("current", encoding="utf-8")
+        run = _mock_build
 
         def install(build: Callable[..., None] = run) -> dict[str, Any]:
-            with (patch.object(saillsp.env, "hold_lock", side_effect=lambda *_: nullcontext()),
-                  patch.object(saillsp, "_base_inventory", return_value=["ocaml.5.4.1"]),
-                  patch.object(saillsp, "_source", side_effect=source),
-                  patch.object(saillsp, "_run", side_effect=build)):
-                return saillsp.install(environment)
+            return _mock_install(environment, build)
 
         def artifacts() -> dict[str, str]:
             receipt = json.loads((location / "installation.json").read_text(encoding="utf-8"))
@@ -236,6 +251,145 @@ def _rebuild_uses_fresh_prefix() -> None:
                "an interrupted rebuild must leave no receipt describing a removed prefix")
 
 
+def _refused_installation_rebuilt() -> None:
+    """status refuses an installation of the current recipe whose receipt or artifacts
+    changed, and names install as the repair; install then rebuilds instead of repeating
+    the refusal."""
+    with sandbox_tree(_BUILD_RECIPE) as root:
+        environment = _environment(root)
+        location = saillsp.home(environment)
+        binary = location / "prefix/bin/sail_lsp"
+        receipt = location / "installation.json"
+        builds: list[list[str]] = []
+
+        def counted(argv: list[str], cwd: Path, environ: dict[str, str], log: Path) -> None:
+            builds.append(argv)
+            _mock_build(argv, cwd, environ, log)
+
+        ensure(_mock_install(environment)["installed"] is True, "the first build must be usable")
+        good: dict[str, Any] = json.loads(receipt.read_text(encoding="utf-8"))
+        ensure(_mock_install(environment, counted)["installed"] is True and not builds,
+               "control: an installation status accepts must be returned without a rebuild")
+
+        def rewritten(fields: Mapping[str, object]) -> Callable[[], object]:
+            """The first build's receipt, of the current recipe, with `fields` replaced."""
+            return lambda: receipt.write_text(json.dumps({**good, **fields}), encoding="utf-8")
+
+        damages: tuple[tuple[str, Callable[[], object]], ...] = (
+            ("changed", lambda: binary.write_text("edited", encoding="utf-8")),
+            ("missing", binary.unlink),
+            ("unreadable", lambda: receipt.write_text(receipt.read_text(encoding="utf-8")[:40],
+                                                      encoding="utf-8")),
+            # JSON of the current recipe that lacks the fields status reports.
+            ("unreadable", lambda: receipt.write_text(
+                json.dumps({"lock_sha256": saillsp.lock_identity(root)}), encoding="utf-8")),
+            ("unreadable", lambda: receipt.write_text("[]", encoding="utf-8")),
+            # A field status reports, present with the wrong shape: an artifacts object
+            # without the server, artifacts as a list, an elapsed time that is negative
+            # or a boolean, and a log that is not a path.
+            *(("unreadable", rewritten(fields)) for fields in (
+                {"artifacts": {}}, {"artifacts": ["prefix/bin/sail_lsp"]},
+                {"elapsed_seconds": -1}, {"elapsed_seconds": True}, {"log": None})))
+        for problem, damage in damages:
+            damage()
+            try:
+                saillsp.status(environment)
+            except ValueError as exc:
+                ensure(problem in str(exc) and str(exc).endswith("run sail-lsp install"),
+                       f"status must refuse a {problem} installation and name its repair: {exc}")
+            else:
+                raise AssertionError(f"status accepted a {problem} installation")
+            builds.clear()
+            report = io.StringIO()
+            result = _mock_install(environment, counted, report)
+            ensure(bool(builds) and result["installed"] is True
+                   and binary.read_text(encoding="utf-8") == "current",
+                   f"install must rebuild an installation status refuses as {problem}")
+            ensure(problem in report.getvalue(), f"install must report why it rebuilt: {report.getvalue()!r}")
+
+
+def _unreadable_recipe_keeps_installation() -> None:
+    """An OSError reading the checkout's recipe inputs is not a refused installation:
+    install stops before removing the receipt or prefix, even when status would refuse
+    the receipt, and status accepts the installation again once the checkout is
+    restored. A receipt or an artifact status cannot read remains a refusal install
+    repairs."""
+    with sandbox_tree(_BUILD_RECIPE) as root:
+        environment = _environment(root)
+        location = saillsp.home(environment)
+        binary = location / "prefix/bin/sail_lsp"
+        receipt = location / "installation.json"
+        builds: list[list[str]] = []
+
+        def counted(argv: list[str], cwd: Path, environ: dict[str, str], log: Path) -> None:
+            builds.append(argv)
+            _mock_build(argv, cwd, environ, log)
+
+        ensure(_mock_install(environment)["installed"] is True, "the first build must be usable")
+        recorded = receipt.read_bytes()
+        refresh = root / "tools/sail-lsp/dependency-refresh.patch"
+        refresh.unlink()
+        try:
+            _mock_install(environment, counted)
+        except OSError:
+            pass
+        else:
+            raise AssertionError("install proceeded without a recipe input it could read")
+        ensure(not builds and receipt.is_file() and receipt.read_bytes() == recorded and binary.is_file(),
+               "an unreadable recipe input must leave the receipt and prefix in place")
+        refresh.write_text(_BUILD_RECIPE["tools/sail-lsp/dependency-refresh.patch"], encoding="utf-8")
+        ensure(saillsp.status(environment)["installed"] is True,
+               "restoring the checkout must restore the installation without a rebuild")
+        read_text = Path.read_text
+
+        def denied(path: Path, encoding: str | None = None, errors: str | None = None,
+                   newline: str | None = None) -> str:
+            if path == receipt:
+                raise PermissionError(13, "Permission denied", str(path))
+            return read_text(path, encoding, errors, newline)
+
+        with patch.object(Path, "read_text", denied):
+            try:
+                saillsp.status(environment)
+            except ValueError as exc:
+                ensure("unreadable" in str(exc) and str(exc).endswith("run sail-lsp install"),
+                       f"a receipt status cannot read must be refused with its repair: {exc}")
+            else:
+                raise AssertionError("status accepted a receipt it could not read")
+
+        def unreadable(path: Path) -> str:
+            if path == binary:
+                raise PermissionError(13, "Permission denied", str(path))
+            return hashlib.sha256(path.read_bytes()).hexdigest()
+
+        with patch.object(saillsp, "sha256", side_effect=unreadable):
+            try:
+                saillsp.status(environment)
+            except ValueError as exc:
+                ensure("changed" in str(exc) and str(exc).endswith("run sail-lsp install"),
+                       f"an artifact status cannot read must be refused with its repair: {exc}")
+            else:
+                raise AssertionError("status accepted an artifact it could not read")
+
+        # install reads the recipe before it asks status, so a receipt status refuses
+        # does not carry it past an unreadable input into removing the installation,
+        # nor into reporting a repair it never starts.
+        receipt.write_text("{", encoding="utf-8")
+        refresh.unlink()
+        builds.clear()
+        report = io.StringIO()
+        try:
+            _mock_install(environment, counted, report)
+        except OSError:
+            pass
+        else:
+            raise AssertionError("install proceeded without a recipe input it could read")
+        ensure(not builds and not report.getvalue()
+               and receipt.read_text(encoding="utf-8") == "{" and binary.is_file(),
+               "an unreadable recipe input must stop install before it asks status or "
+               f"repairs a refused receipt: {report.getvalue()!r}")
+
+
 def _base_lock() -> None:
     files = {"tools/opam/sail.lock": 'installed: ["ocaml.5.4.1" "dune.3.24.2" "sail.0.20.3"]',
              saillsp.LOCK: json.dumps({"sources": [{"name": "lsp", "version": "1.27.0"},
@@ -264,6 +418,28 @@ def _base_lock() -> None:
             ensure(not run.called, "the Sail pin must be refused before the switch is inspected")
 
 
+def _base_listing_answers_no_question() -> None:
+    """The base switch's `opam list`, its output captured, reads no standard input and
+    inherits no answer from the caller's environment, in any case the caller names it,
+    so a format upgrade it would ask about is declined rather than left on a prompt the
+    caller cannot see or answered by the caller's settings; the rest of the environment,
+    the root among it, is passed on."""
+    files = {"tools/opam/sail.lock": 'installed: ["sail.0.20.3"]',
+             saillsp.LOCK: json.dumps({"sources": [{"name": "sail", "version": "0.20.3"}]})}
+    answers = {"OPAMYES": "1", "OpamConfirmLevel": "unsafe-yes", "OPAMROOT": "/elsewhere"}
+    with (sandbox_tree(files) as root, patch.dict(os.environ, answers),
+          patch.object(saillsp.subprocess, "run",
+                       return_value=subprocess.CompletedProcess([], 0, "sail 0.20.3\n")) as run):
+        ensure(saillsp._base_inventory(root) == ["sail.0.20.3"], "the base lock must match")
+    passed = run.call_args.kwargs.get("env") or {}
+    ensure(run.call_args.args[0][:2] == ["opam", "list"]
+           and run.call_args.kwargs.get("stdin") is subprocess.DEVNULL,
+           f"opam list's standard input is closed: {run.call_args}")
+    ensure(not {key.upper() for key in passed} & set(env.OPAM_ANSWERS)
+           and passed.get("OPAMROOT") == "/elsewhere",
+           f"opam list is passed no answer and keeps the root: {sorted(passed)}")
+
+
 def _tool_sail_pins_agree() -> None:
     lsp = next(spec for spec in json.loads((TOOLS / "sail-lsp/sources.lock.json").read_text(encoding="utf-8"))
                ["sources"] if spec["name"] == "sail")
@@ -284,5 +460,8 @@ def cases() -> list[Case]:
             Case("archive-extraction-confinement", _archive_confinement),
             Case("superseded-archive-fetched-verified-and-replaced", _superseded_archive),
             Case("rebuild-installs-into-a-fresh-prefix", _rebuild_uses_fresh_prefix),
+            Case("refused-installation-is-rebuilt", _refused_installation_rebuilt),
+            Case("unreadable-recipe-input-keeps-the-installation", _unreadable_recipe_keeps_installation),
             Case("locked-base-dependency-closure", _base_lock),
+            Case("base-listing-answers-no-question", _base_listing_answers_no_question),
             Case("tool-sail-pins-are-the-locked-release", _tool_sail_pins_agree)]

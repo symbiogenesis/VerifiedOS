@@ -165,7 +165,7 @@ caught by nothing, which is a residue the findings register carries.
 | `compiler-diff` | host | M1.2f's two acceptance loops over the contained purecap backend. `program --ccomp PATH` feeds C, given or `--generate`d, through a contained `ccomp -S` in a fresh directory, then the in-tree assembler, the image composer and the golden emulator under the corpus's two questions, reporting each mnemonic, directive and section the dialect refuses by name and line; `--interp` adds the compiler's reference interpreter as the source-side reading and `--perturb` the campaign's negative control. `component` holds a Gallina component's Wasm-oracle run against its purecap run under one declared output encoding, lowering the component's C itself with `--c`, and names the first disagreement; `generate` writes the deterministic FP-free campaign. Every report says a run decides no milestone alone. |
 | `block-authority` | host | `emit` generates the block-device capability-refusal corpus from composition and profile owners; `check` rejects drift. `test --only block_authority` checks regeneration, while the guest slow case runs HTIF negative controls against the built model. |
 | `boot-handoff` | wsl; layout on either lane | M3.5's measured release under the [boot-handoff contract](../docs/implementation/contracts/boot-handoff.md). `run` executes the host stage with both sanitizers and either the explicit fixture verifier or `--signature-scheme slh256s`, then boots released bytes on the golden emulator. `release-target` compares compiled RoT preparation and its captured placement with the host stage, then boots the accepted capture; its finite checkpoint leaves the remaining boot-chain joins open. `signature-target` isolates the bounded SLH callback trial. `layout` checks the contract's tables and assembled image against `vos_boot.h`. |
-| `provision` | wsl | The lane this repository builds in, as a table of facts a machine can act on: one row per switch, pin, checker and prerequisite, each naming the loop that wants it, the artifact that owns it, and what a probe actually found. The default reports and changes nothing; `--apply` runs the command each absent row states and re-probes, installing the distribution packages `opam init` needs before the opam row, the reviewed opam client only where no client is on `PATH`, and an opam root only where none stands or where the root-creation route stopped partway through one; `--only` narrows to the gate's rows or the toolchain's and says which rows it did not decide about. Its layout rows probe where a lane's outputs land, so a build root or a log root on the Windows mount or on tmpfs fails the lane. |
+| `provision` | wsl | The lane this repository builds in, as a table of facts a machine can act on: one row per switch, pin, checker and prerequisite, each naming the loop that wants it, the artifact that owns it, and what a probe actually found. The default reports and changes nothing; `--apply` runs the command each absent row states and re-probes, installing the distribution packages `opam init` needs before the opam row, the reviewed opam client only where no client is on `PATH` and no root stands in a format older than that client writes, and an opam root only where none stands or where one stands in the shape the root-creation route leaves after its leading steps; `--only` narrows to the gate's rows or the toolchain's and says which rows it did not decide about. Its layout rows probe where a lane's outputs land, so a build root or a log root on the Windows mount or on tmpfs fails the lane. |
 | `model` | wsl | Every loop over the curated Sail model: `typecheck`, `bundle`, `emit`, `build`, `wait`, `lane`, `smt`, `oracle`, `sweep`, `corpus`, `asm`, `freeze-emit`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config`, `keepalive`. `bundle` regenerates the machine-readable view of the model the host lane reads it through, and `bundle --check` holds the tracked one against what Sail writes now, which is the half of K-88 a host with no Sail cannot take. `smt` runs the capability-helper property suite ([model/model/unit_tests/cap_properties.sail](../model/model/unit_tests/cap_properties.sail), a transcription of the pinned `sail-cheri-riscv-verif` properties at the frozen widths) through Sail's SMT target with one verdict and one time per property, proved, counterexample or undecided, the last being its own verdict and never a pass; the suite sits behind the project file's `smt_properties` variable so that no build's ctest waits on a solver, and every verdict is evidence about the Sail functions rather than R-15-007a's proof. `lane` prints where this checkout builds and logs, each path beside the filesystem under it. |
 | `evidence` | wsl | Builds the model, verifies its receipt, and runs the reference, profile sweep, differential corpus, devicetree and proof gate. Proofs overlap the model consumers in a separate process. Each run writes a JSON execution record with input identities, process results and measurements. `--no-build` requires a current successful build receipt; stale logs cannot supply its test evidence. `--no-proofs` leaves the proof gate to a separate run, as guest CI's proofs lane does; the record lists it as excluded and claims no proof measurement. |
 | `rtl` | wsl | The RTL lane: `provenance` parses the synthesis record and `filelist` composes the curated arm's elaboration file list, both on either lane; `lint`, `vectors`, `crosscheck`, `elaborate` and `wait` need the guest. `elaborate` elaborates the imported core at the curated configuration and at a baseline and names every structure the disabling parameters remove, and `wait` reports the verdict of a backgrounded one; `vectors` compiles the model's capability format with a generator that prints what its functions return, and `crosscheck` requires the authored SystemVerilog to reproduce every line. **A curation replaces imported sources as well as re-valuing parameters**, so `rtl.py`'s `SUBSTITUTIONS` declares which authored source stands where the imported manifest names imported ones, that declaration reaches the curated arm alone, and the diff is partitioned rather than signed: a kind the curated arm instantiates and the baseline does not is an introduction where an authored source in its file list declares that module and a finding where none does, and a kind the baseline instantiates and the curated arm does not is the parameters' own only where no replaced source declared it. |
@@ -356,7 +356,7 @@ instrument waits on and what un-quarantines it.
 
 The shared machinery is [vos/](vos/), and it holds parses, never decisions: [corpus.py](vos/corpus.py) reads the documents, [register.py](vos/register.py) the register and the tables other documents count, [apex.py](vos/apex.py) the statement's Vocabulary record, [figures.py](vos/figures.py) how a derived figure is spelled and repaired, [trace.py](vos/trace.py) the executors' trace dialects, [jsonc.py](vos/jsonc.py) the model's configuration dialect with [config.py](vos/config.py) the one decoder over it, [coread.py](vos/coread.py) the pairing between a register entry and the prose it cites, [proofcites.py](vos/proofcites.py) what each shipped proof artifact cites and what it defines, read lexically so that the host wave decides it with no prover in reach, and named for the citation half rather than for the evidence it is because `vos/<name>.py` beside `vos/cli/<name>.py` is this directory's word for *the machinery behind that command*, [provenance.py](vos/provenance.py) the synthesis record binding each claimed absence to a build, [pins.py](vos/pins.py) the licence record's table of upstream pins and the shape a restatement of one takes, [fieldbindings.py](vos/fieldbindings.py) the field-bindings table the bindings group and [run.py blast](vos/cli/blast.py) both read, [env.py](vos/env.py) the build environment, [report.py](vos/report.py) the one verdict line every check prints, and [seeded.py](vos/seeded.py) the verdicts a mutation run reports, the exit code they imply and the journal a run that does not finish leaves behind, shared by every loop that seeds a defect so that five accountings cannot drift into five measurements. One more is the *model's own* and is the newest: [sailbundle.py](vos/sailbundle.py) reads the bundle Sail emits about the model it typechecked, every definition indexed by the name the model gives it, and it is the owner the four parses below used to each write a regex for. Three sit on top of it and are read together: [sailexpr.py](vos/sailexpr.py) is the model's own expressions read as expressions rather than matched as text, [encdec.py](vos/encdec.py) joins each `encdec` clause to the `assembly` clause that names it and hands back every form the model spells with the bits it spells it at, and [freezeschema.py](vos/freezeschema.py) owns the freeze contract's §4 record shapes so that the producer writing a stream and the analyzer reading it cannot be two statements of one schema. Four read the *model*, which the document corpus excludes by name: [geometry.py](vos/geometry.py) the welded block size, [capformat.py](vos/capformat.py) the frozen capability format's widths and both packings of it, [coreclass.py](vos/coreclass.py) the core-class table and the extension registry, and [decode.py](vos/decode.py) the assembly clauses the model spells its mnemonics with. **What each of the four takes from the bundle is a *definition* and what it still takes from a file is everything else**, which is the line the emitter itself draws: a `type`, a `let`, a `mapping` or a `function` is indexed by name, so a rename is a lookup that misses instead of a pattern that quietly matches nothing, while a comment, a configuration key, an `assert` inside a test body and a SystemVerilog `localparam` are not definitions at all and keep the patterns that read the artifacts writing them. `--doc-format identity` drops unanchored comments, so a regex whose fact the bundle does not carry is kept rather than deleted. Two of the four read outside the model as well as inside it, and by path in both directions: geometry.py takes the block size the authored capability package writes, and capformat.py takes every site that restates a format width, in `rtl/` and in five documents the corpus does carry. The checks themselves live in [vos/checks/](vos/checks/), one module per rule group, each carrying its group's reasoning beside its code. The `counts` group is the one that outgrew that: [counts.py](vos/checks/counts.py) holds its claim table and the run, and its families sit in the `counts_*.py` modules beside it, one per artifact its rules read. The group is still one heading, one entry in `GROUPS`, and one column of [check-rules.md](check-rules.md), because a rule is registered by its id and its group and never by the file carrying it.
 
-Those four and K-63's citation scan are where the checker reaches past its own corpus, and the reach is declared rather than habitual. It is a good deal narrower than it was: what is left under `model/` is the two comments capformat.py reads, the configurations, the harness assert, the requirement citations, the hook configuration whose revisions K-118 holds the hook rows of [THIRD-PARTY.md](../THIRD-PARTY.md) against, and the three platform files K-94 pairs against each other, the definitions having moved to the bundle. That last reach is the one that is a *pairing* rather than a value: what it takes from each of the three is which call the file makes about a window, and no bundle entry carries that, a call inside a body being what the definition index deliberately does not hold. `model/` is excluded from the document corpus by name, and [run.py selftest](vos/cli/selftest.py) stands the whole tree up as empty files to save copying what no rule opens, so a model path a rule reads has to be admitted by one of two declarations in [corpus.py](vos/corpus.py) or it passes on the host and fails every sandbox's baseline.
+Those four and K-63's citation scan are where the checker reaches past its own corpus, and the reach is declared rather than habitual. It is a good deal narrower than it was: what is left under `model/` is the two comments capformat.py reads, the configurations, the harness assert, the requirement citations, the hook configuration whose entries K-118 censuses and whose revisions it holds the hook rows of [THIRD-PARTY.md](../THIRD-PARTY.md) against, and the three platform files K-94 pairs against each other, the definitions having moved to the bundle. That last reach is the one that is a *pairing* rather than a value: what it takes from each of the three is which call the file makes about a window, and no bundle entry carries that, a call inside a body being what the definition index deliberately does not hold. `model/` is excluded from the document corpus by name, and [run.py selftest](vos/cli/selftest.py) stands the whole tree up as empty files to save copying what no rule opens, so a model path a rule reads has to be admitted by one of two declarations in [corpus.py](vos/corpus.py) or it passes on the host and fails every sandbox's baseline.
 
 **The two declarations are narrow for opposite reasons and are deliberately not one list.** `MODEL_FACTS` explicitly names the files in the value window by path: it is the *value* window, and a rule reading a number out of the model should name the file it reads, so adding one is a decision somebody makes. `is_model_citation_path` admits by kind instead, because the rule behind it holds a construct that occurs wherever the model argues from the register, and a window sized for the other purpose left it reporting `ok` about a quarter of its subject. Merging them would make the audited list quietly mean two things.
 
@@ -617,7 +617,7 @@ The rules that follow from the table, each a thing a worker or a brief gets wron
 
 [run.py provision](vos/cli/provision.py) is that machine written down. Its probes cover the opam switches declared in `FACTS`, a pinned solver ahead of the distribution's, two pinned checkers, an interpreter floor, a handful of distribution packages, and the lane's layout: one memo cache per lane, and every guest output on the guest's own filesystem. The tool is one table: a row per fact, each naming the loop that wants it, the artifact that owns it, a probe that reports what is actually there, and, where this tree states one, the command that would put it there. **Versions and switch names come from their owners**; the interpreter floor is an explicit restatement held by K-75. The fact table owns current membership; historical completion notes retain their recorded measurements. [The opam snapshots](opam/README.md) record complete package resolutions, including the lowering experiment's separate switch, which has its own [installation recipe](bedrock2-lowering/README.md).
 
-It is native rather than containerized: the prover and model toolchains are built on the guest. WSL Containers (`wslc`) are declined for these loops without a revisit condition: a container still reads the Windows checkout across the VM boundary that [the placement table](#where-a-file-lives-and-which-lane-touches-it) prices, and Guest CI installs the same toolchains natively, so a container lane would be an environment no gate runs. [The M1.5 note](../docs/implementation/completion-log.md#m15-run-the-certicoq-to-wasm-oracle) records the review. Python and uv are bootstrap prerequisites. The runner synchronizes the locked Python packages before the provisioner probes them, so those rows have no separate install recipes. `--apply` handles only rows with declared commands. The opam row's command, `run.py provision --install-opam`, installs the reviewed client through [its owner](vos/opam_client.py)'s verified route where no client is on `PATH`, and creates a root by the owner's root-creation route where none stands, so the switch recipes `--apply` runs after it find one. The rows ahead of it install the distribution packages that route needs, which the owner names because `opam init` refuses to create a root without them, and the command refuses, naming each still absent, before it installs anything. It replaces no client and alters no standing root but one that route stopped partway through, in the reviewed client's format with only the route's leading repositories, which running the route again finishes: a client at another release, and any other root that states no format, states one newer than the reviewed client writes, lacks one of the owner's repositories at its URL, or lacks that repository's metadata stamp, are reported and never planned. [Guest CI bootstrap](ci/README.md) creates an isolated opam root by the same route and installs the Sail and proof snapshots plus their native prerequisites. It does not install the experimental CertiRocq oracle switch; that switch's manual recipe is in [wasm-oracle/README.md](wasm-oracle/README.md). The interpreter cannot replace itself, and the cache invariant needs separate copies rather than deletion of a warm cache.
+It is native rather than containerized: the prover and model toolchains are built on the guest. WSL Containers (`wslc`) are declined for these loops without a revisit condition: a container still reads the Windows checkout across the VM boundary that [the placement table](#where-a-file-lives-and-which-lane-touches-it) prices, and Guest CI installs the same toolchains natively, so a container lane would be an environment no gate runs. [The M1.5 note](../docs/implementation/completion-log.md#m15-run-the-certicoq-to-wasm-oracle) records the review. Python and uv are bootstrap prerequisites. The runner synchronizes the locked Python packages before the provisioner probes them, so those rows have no separate install recipes. `--apply` handles only rows with declared commands. The opam row's command, `run.py provision --install-opam`, installs the reviewed client through [its owner](vos/opam_client.py)'s verified route where no client is on `PATH` and no root stands in a format older than that client writes, which it would rewrite one way, and creates a root by the owner's root-creation route where none stands, so the switch recipes `--apply` runs after it find one. The rows ahead of it install the distribution packages that route needs, which the owner names because `opam init` refuses to create a root without them, and where it would run that route the command refuses, naming each still absent, before it installs anything. It replaces no client and alters no standing root but one in the shape that route leaves after its leading steps, in the reviewed client's format with only the route's leading repositories, the first with its metadata stamp read and at least one of the owner's repositories not yet fetched, which the route's remaining steps complete, leaving out the `opam init` that would rewrite that root's shell setup: a client at another release, a missing client over a root in an older format, and any other root that states no format, states one newer than the reviewed client writes, lacks one of the owner's repositories at its URL, or lacks that repository's metadata stamp, are reported and never planned. While a root stands in a format older than the reviewed client writes, no switch row plans its recipe either, since the reviewed client rewrites that root one way at its first write, or at its first read where the upgrade cannot be made in memory, and none does while a client at another release is on `PATH`, which would build the switch as a client this tree has not reviewed. [Guest CI bootstrap](ci/README.md) creates an isolated opam root by the same route and installs the Sail and proof snapshots plus their native prerequisites. It does not install the experimental CertiRocq oracle switch; that switch's manual recipe is in [wasm-oracle/README.md](wasm-oracle/README.md). The interpreter cannot replace itself, and the cache invariant needs separate copies rather than deletion of a warm cache.
 
 **What it does not reach it prints rather than absorbs.** Two settings decide how this lane behaves and neither is in this tree: WSL2's memory reclamation, which lives in a per-user file global to every distribution, and whether a person edits from the host or from inside the guest. Both are printed at the end of a run as not reached and neither is counted into the verdict, which is the same boundary [vos/env.py](vos/env.py) draws around the idle timer.
 
@@ -968,16 +968,21 @@ confines every hook to paths under `model/`, the exclusion names
 `model/.codespellrc` and `model/.markdown-link-check.config`. Each hook repository is
 pinned by the full commit of the tag its `# frozen:` comment names, and its
 [THIRD-PARTY.md](../THIRD-PARTY.md) development-tools row states both, which K-118
-holds. clang-format stays at the release upstream's own hooks pin, because a later
-release lays out upstream's code differently and would ask for rewrites of upstream
-bytes. The last Ubuntu shard of [Host CI](../.github/workflows/host-gates.yml) runs
-the set with `--all-files`, which selects the tracked files under `model/` outside
-`model/dependencies/` and nothing else, and with `SKIP=markdown-link-check`, because
-that hook fetches every external link the model's Markdown names; a finding or a
-rewrite from any other hook fails the job, and `--show-diff-on-failure` prints the
-rewrite. The hooks' own dependencies install unlocked when pre-commit sets a hook up,
-as their rows say. To run the same set from the checkout root with the environment
-above, set `SKIP=markdown-link-check` and run
+holds against the configuration; whether the commit is the tag's is read at review
+with `git ls-remote`. clang-format stays at the release upstream's own hooks pin,
+because a later release lays out upstream's code differently and would ask for
+rewrites of upstream bytes. The last Ubuntu shard of
+[Host CI](../.github/workflows/host-gates.yml) runs the set with `--all-files`, which
+selects the tracked files under `model/` outside `model/dependencies/` and nothing
+else, and with `SKIP=markdown-link-check`, because that hook fetches every external
+link the model's Markdown names; a finding or a rewrite from any other hook fails the
+job, and `--show-diff-on-failure` prints the rewrite. check-added-large-files acts
+only on staged additions, as at commit time, so the CI run, which stages nothing,
+decides nothing for it. What the hooks install beside their own code is pinned as
+[their dependencies' paragraph](#model-hook-dependencies) says. To run the same set
+from the checkout root with the environment above, set `SKIP=markdown-link-check` and
+the step's pip and virtualenv variables, naming the constraint files by absolute path,
+and run
 `uv run --project tools --locked --group model pre-commit run --config model/.pre-commit-config.yaml --all-files`,
 or name paths with `--files <paths>`. The fixing hooks (trailing-whitespace,
 end-of-file-fixer, clang-format and prettier) rewrite the files they select, so read
@@ -991,6 +996,51 @@ other side of the WSL boundary cannot execute, so that side's commits are refuse
 unless its own `pre-commit` is on `PATH`. On a commit touching `model/`, a fixing hook
 that rewrites a staged file fails the commit, and markdown-link-check fetches the
 links of every staged Markdown file.
+
+<a id="model-hook-dependencies"></a>**The hooks' dependencies are pinned wherever pip
+can pin them.** pre-commit installs each Python hook with `pip install .` in its clone,
+inside a virtualenv of its own.
+[model-hooks-constraints.txt](ci/model-hooks-constraints.txt) fixes the release of
+every package pip installs there beside the hook: ruamel.yaml for pre-commit-hooks,
+rapidfuzz for Lucas-C's hooks and the clang-format wheel the mirror requires. Host CI
+names it as `PIP_CONSTRAINT`. It lists no hash, because a hash in a constraints file
+puts pip in hash-checking mode, which refuses the directory pre-commit installs from,
+and a dependency a hook gains installs unpinned, at the newest release the cooldown
+below admits, until the file names it. From pip 26.2 an isolated build ignores the
+regular constraints it inherits, so
+[model-hooks-build-constraints.txt](ci/model-hooks-build-constraints.txt) fixes the
+build backends, setuptools for every hook package and setuptools-scm with its
+vcs-versioning and packaging for codespell's, each with its wheel's SHA-256, and Host
+CI names it as `PIP_BUILD_CONSTRAINT`. Its hashes put each build in hash-checking mode,
+so a build requirement it does not list fails the step. pip runs in each hook's clone,
+so the step names both files by absolute path, and its `PIP_UPLOADED_PRIOR_TO=P3D`
+admits no file uploaded within the [release cooldown](#running-them). Each
+environment's pip is the one the locked virtualenv embeds: the step gives virtualenv an
+empty app-data directory, and virtualenv takes a wheel its periodic update fetched only
+once an hour has passed. prettier is the release the mirror's hook names to npm, which
+installs it on the runner's Node.js and npm and checks it against the registry's
+integrity hash; it declares no dependency, and nothing here fixes Node.js, npm or that
+hash. **The two files are reviewed whenever a hook's rev or the locked virtualenv
+moves**, and no rule holds them to the hooks' requirements or to PyPI's upload times,
+neither of which the checker reads. Run the step's command over a throwaway copy with
+an empty `PRE_COMMIT_HOME`, an empty `VIRTUALENV_OVERRIDE_APP_DATA`, so each
+environment's pip is the embedded one the step runs, `PIP_LOG` naming a file,
+`PIP_UPLOADED_PRIOR_TO=P3D` and neither constraint variable set, compare `pip list` in
+each `py_env-*` environment and the build installs the log records with the files,
+move each pin to the release that run installed, with the SHA-256 PyPI states for its
+wheel where the build file pins one, and run the step's command again with both files
+and an empty `PRE_COMMIT_HOME` and `VIRTUALENV_OVERRIDE_APP_DATA`.
+K-118 holds every pin in the two files to the release
+[THIRD-PARTY.md](../THIRD-PARTY.md)'s development-tools section read its licence at,
+the clang-format wheel's to its mirror's row and the rest to the model hooks' PyPI
+dependencies row, so a moved pin is a finding until its licence is read at the new
+release and the row states it, and a pin no row reads, such as one added for a package
+a hook gained, is a finding until a row reads its licence. It reads each file as pip
+does, split at every break `str.splitlines` takes, a line ending in `\` that is no
+comment joined with the next and comments stripped after the join, so every line left
+must be one `<name>==<release>` pin with at most its `--hash=sha256:` digests: an
+option such as `-c`, `-r` or `--index-url`, a marker, extras or a URL is a finding at
+its line, and a file declaring an encoding other than UTF-8 is unread.
 
 [ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
 carries, including the ones it ships as warnings or switched off, and that is deliberate:
@@ -1026,6 +1076,23 @@ asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own li
 each for a reason that would hold in any project, and no group switched off to spare this
 code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and
 the sentence saying why; the `PGH` group refuses a blanket `# noqa` or `# type: ignore`.
+A suppression reaching past a line, or a setting that may be one, is a ruff finding: a
+`per-file-ignores` or `extend-per-file-ignores` key in ruff.toml, in `[lint]` or at the
+top level; an `extend` key, which merges another file's settings beneath ruff.toml's;
+any other key outside the ones the gate has read, which are the ones ruff.toml carries,
+since a top-level `per-file-target-version` also switches rules off for the files a
+pattern matches and a key the gate has not read may do as much; a comment anywhere in
+a tracked module carrying ruff's file-level suppression, `# ruff: noqa` or
+`# flake8: noqa`, unless it names N999 and no other rule, since ruff reports N999
+against the file's name rather than a line of it; and a comment carrying
+`# ruff: file-ignore[...]`, a `# ruff: disable[...]` or `# ruff: enable[...]` range,
+whose `disable` with no matching `enable` runs to the end of its block, or isort's
+`skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` on a line of its own
+reaches the one logical line beneath it, a multi-line one whole, or, inside brackets,
+the one line of code beneath it, past blank and comment lines, and one ending a line
+reaches that line alone, a line taking in the lines a backslash or a multi-line string
+joins to it; it is not refused. ruff's log names a file whose rules are switched off as
+checked, so the coverage floor below cannot see what such a suppression takes away.
 ruff also honors ignore files by default, so ruff.toml sets `respect-gitignore = false`
 and the gate passes `--no-respect-gitignore`: a pattern matching a tracked module would
 otherwise take it out of the lint and annotation run with nothing reported. The settings
@@ -1036,7 +1103,9 @@ the gate reports each module the index tracks under `tools/` that a run's log do
 name as a finding under that run's checker. It reads ruff's log rather than
 `ruff check --show-files`, which still lists what `lint.exclude` drops. The log is the
 pinned version's verbose output, so a version whose log has another shape reports
-every tracked module as unchecked.
+every tracked module as unchecked. ty takes its log filter from `TY_LOG` ahead of `-vv`,
+so the gate runs ty without that variable, and without `TY_LOG_PROFILE`, which has ty
+write a profile into `tools/`; neither changes what ty checks or reports.
 
 The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml). ruff finds its file
 from each checked path, but the ty CLI discovers configuration from its working directory
@@ -1050,10 +1119,41 @@ Linux. ty reports nothing in a branch the target makes unreachable, so the gate 
 under `--python-platform linux` and again under `win32`, each run its own verdict. The
 second run types the branches taken only when `sys.platform` is `win32`, and holds every
 call typeshed declares absent on Windows behind a `sys.platform` check. typeshed stubs
-each module one platform lacks, such as `fcntl` or `msvcrt`, for both platforms, so
-neither run sees a module-level import of one fail on the other platform; ruff.toml's
-`banned-module-level-imports` refuses those imports, and each module is imported inside
-the function that uses it, behind a `sys.platform` check.
+most modules one platform lacks, such as `fcntl` or `msvcrt`, for both platforms, so
+neither run sees an import of one fail on the other platform. ruff.toml's
+`banned-module-level-imports` lists each standard-library module the interpreter cannot
+import on Windows or on Linux that ty resolves under both platforms, a listed name
+covering its submodules; a module ty resolves under neither is ty's own
+`unresolved-import` finding, and a module whose import fails for want of one that did
+not load and that configure records as built, missing or disabled, any state but
+`n/a`, one a build leaves out for want of an optional library or whose shared library
+is absent at run time, is the build's and is not listed.
+[tests/test_typecheck.py](tests/test_typecheck.py) holds the list on each lane against
+every standard-library module and submodule the running interpreter cannot import,
+resolved by the gate's own ty runs, so Host CI's Windows and Ubuntu legs together hold
+both halves. The case decides the list only on an interpreter carrying
+its build's whole standard library, as the interpreters Host CI's setup-python installs
+do: on one short of tkinter, which python.org's Windows installer makes optional and
+Debian and Ubuntu ship apart, or of ensurepip, which Debian and Ubuntu ship apart too,
+it fails as short of that library rather than asking for a ban. ruff's TID253 refuses
+an import of a listed module only where it is unnested at module level, and with the
+module listed, PLC0415 no longer reports one in a class body. So the gate reads the
+same list and holds an import of a listed module in a tracked module anywhere else
+outside a function body, in a class body or a module-level block such as
+`if __name__ == "__main__":`, to the platforms, of linux and win32, that reach it. An
+enclosing `if` that compares `sys.platform` with string literals, by `==` or `!=` with
+one, by `in` or `not in` with a tuple, list or set of them, or through `startswith`,
+alone, under `not` or joined by `and` or `or`, sends its body the platforms on which its
+test holds and its `else` the rest; every other block, an `if` reading `sys.platform`
+any other way among them, passes on the platforms that reach it. An import both
+platforms reach is refused, naming the nearest enclosing test reading `sys.platform`.
+That holds that no listed module is imported on both platforms, not which one has it,
+so on each lane an import the running platform reaches is refused as well where the
+interpreter cannot find the top-level module it names, as Windows cannot find `fcntl`;
+a submodule of a package the interpreter finds, such as `asyncio.unix_events` on
+Windows, and a module it finds but cannot import, such as `pty` there, are not caught
+this way. Each listed module the tools use is imported inside the function that uses
+it, behind a `sys.platform` check.
 
 The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
 addresses ty's recursive-JSON narrowing behavior, not

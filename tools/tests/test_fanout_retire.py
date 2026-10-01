@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """Retirement checks ownership, ancestry, retention and interrupted removal in real Git."""
 
+import argparse
 import ast
 import errno
+import io
 import json
 import os
 import re
@@ -10,13 +12,18 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Callable
+from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import asdict, replace
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from tests.test_worktree import _commit, _git
 from vos import fanout_retire as retire
+from vos import memory_planner_candidates as candidates
+from vos.cli import memory_planner_candidates as candidates_cli
+from vos.cli import model as model_cli
 from vos.cli import proofs as proofs_cli
 from vos.cli import worktree
 
@@ -57,6 +64,132 @@ def _retains_outputs_and_repeats() -> None:
         ensure(retained.read_text(encoding="utf-8") == "important evidence\n", "ignored evidence survives")
         ensure(not _git(root, "branch", "--list", "work/worker"), "merged unchanged branch is removed")
         ensure(retire.retire(root, record, revision, archive) == result, "completed receipt resumes safely")
+
+
+_RENAME = Path.rename
+
+
+def _dies_moving_cache(source: Path, target: Path) -> Path:
+    """`Path.rename`, except that the process dies as it would move `.ruff_cache`."""
+    if source.name == ".ruff_cache":
+        raise OSError("simulated process death between two retained outputs")
+    return _RENAME(source, target)
+
+
+def _retain_nested_cache(interrupted: bool) -> None:
+    with (sandbox_tree({**FILES, "tools/keep.py": "# fixture\n"}) as root,
+          patch.object(retire, "_guest", return_value={})):
+        path, record, revision, archive = _worker(root)
+        cache = path / "tools" / ".ruff_cache"
+        (cache / "0.16.9").mkdir(parents=True)
+        (cache / ".gitignore").write_text("*\n", encoding="utf-8")
+        (cache / "CACHEDIR.TAG").write_text("Signature: fixture\n", encoding="utf-8")
+        (cache / "0.16.9" / "entry").write_bytes(b"cached")
+        (path / "out").mkdir()
+        (path / "out" / "evidence.json").write_text("evidence\n", encoding="utf-8")
+        listed = _git(path, "ls-files", "--others", "--ignored", "--exclude-standard",
+                      "--directory").splitlines()
+        ensure({"tools/.ruff_cache/", "tools/.ruff_cache/.gitignore"} <= set(listed),
+               f"precondition: Git lists the directory and entries inside it, got {listed}")
+        if interrupted:
+            with patch.object(Path, "rename", _dies_moving_cache):
+                try:
+                    retire.retire(root, record, revision, archive)
+                except OSError:
+                    pass
+                else:
+                    raise AssertionError("the interruption must occur")
+            ensure(cache.is_dir() and not (path / "out").exists(),
+                   "precondition: one output moved before the interruption")
+            planted = retire._archive(root, record, archive)[0] / "checkout" / "tools" / ".ruff_cache"
+            planted.mkdir(parents=True)
+            _refused(lambda: retire.retire(root, record, revision, archive), "retained output already exists")
+            ensure(cache.is_dir(), "a target that existed before the pass leaves its output in place")
+            planted.rmdir()
+        result = retire.retire(root, record, revision, archive)
+        saved = Path(str(result["archive"])) / "checkout"
+        ensure(result["status"] == "retired" and not path.exists()
+               and (saved / "tools" / ".ruff_cache" / "0.16.9" / "entry").read_bytes() == b"cached"
+               and (saved / "tools" / ".ruff_cache" / ".gitignore").is_file()
+               and (saved / "out" / "evidence.json").is_file(),
+               f"the {'resumed' if interrupted else 'clean'} retention moves the directory with its entries")
+        recorded = [str(saved / "out"), str(saved / "tools" / ".ruff_cache")]
+        receipt = json.loads((Path(str(result["archive"])) / "retirement.json").read_text(encoding="utf-8"))
+        ensure(result["retained"] == recorded and receipt["retained"] == recorded,
+               f"the {'resumed' if interrupted else 'clean'} retention records each moved output once, "
+               f"got {result['retained']} and {receipt['retained']}")
+
+
+def _nested_ignored_directory() -> None:
+    """Git lists a directory whose own `.gitignore` ignores `*`, as ruff's cache does,
+    together with entries inside it: retention moves the directory once, with them; a
+    retention interrupted between two outputs resumes, recording each output once,
+    those moved before the interruption among them; and a target that existed before
+    the pass still refuses."""
+    for interrupted in (False, True):
+        _retain_nested_cache(interrupted)
+
+
+def _output_gone_before_resume() -> None:
+    """An output named before a move the interruption prevented, and gone before the
+    resumed pass, is not recorded as retained."""
+    with (sandbox_tree({**FILES, "tools/keep.py": "# fixture\n"}) as root,
+          patch.object(retire, "_guest", return_value={})):
+        path, record, revision, archive = _worker(root)
+        cache = path / "tools" / ".ruff_cache"
+        cache.mkdir()
+        (cache / ".gitignore").write_text("*\n", encoding="utf-8")
+        receipt_path = retire._archive(root, record, archive)[0] / "retirement.json"
+        with patch.object(Path, "rename", _dies_moving_cache):
+            try:
+                retire.retire(root, record, revision, archive)
+            except OSError:
+                pass
+            else:
+                raise AssertionError("the interruption must occur")
+        target = str(receipt_path.parent / "checkout" / "tools" / ".ruff_cache")
+        saved = json.loads(receipt_path.read_text(encoding="utf-8"))
+        ensure(saved.get("retained") == [target] and cache.is_dir(),
+               f"precondition: the output is named before its move, got {saved}")
+        (cache / ".gitignore").unlink()
+        cache.rmdir()
+        result = retire.retire(root, record, revision, archive)
+        saved = json.loads(receipt_path.read_text(encoding="utf-8"))
+        ensure(result["status"] == "retired" and result["retained"] == [] and saved["retained"] == [],
+               f"an output gone before the resumed pass is not recorded, got {result['retained']}")
+
+
+def _native_receipt_survives_resume() -> None:
+    """A retirement interrupted after its native retention resumes with the native
+    outputs that pass moved still recorded: the resumed native pass no longer finds
+    them, so its own evidence is added after theirs, each output once, even one both
+    passes name, and the outputs it defers, which stay in place, are the ones it
+    reports."""
+    moved_to = "/native/fanout-retained/b/worker"
+    lane, log = f"{moved_to}/lane", f"{moved_to}/logs/model-build-worker.log"
+    first = {"archive": moved_to, "retained": [lane], "deferred": []}
+    later = {"archive": first["archive"], "retained": [log, lane],
+             "deferred": [{"path": "/native/logs/legacy-worker.log", "reason": "unrecognized output layout"}]}
+    with (sandbox_tree(FILES) as root,
+          patch.object(retire, "_guest", side_effect=[dict(first), dict(later)]) as native):
+        path, record, revision, archive = _worker(root)
+        receipt_path = retire._archive(root, record, archive)[0] / "retirement.json"
+        with patch.object(retire, "_retain_host", side_effect=OSError("simulated process death")):
+            try:
+                retire.retire(root, record, revision, archive)
+            except OSError:
+                pass
+            else:
+                raise AssertionError("the interruption must occur")
+        saved = json.loads(receipt_path.read_text(encoding="utf-8"))
+        ensure(path.exists() and saved["native"] == first,
+               f"precondition: the interrupted pass recorded its native outputs, got {saved}")
+        result = retire.retire(root, record, revision, archive)
+        saved = json.loads(receipt_path.read_text(encoding="utf-8"))
+        expected = {**later, "retained": [lane, log]}
+        ensure(native.call_count == 2 and result["status"] == "retired"
+               and result["native"] == expected and saved["native"] == expected,
+               f"the resumed receipt keeps the native outputs the first pass moved, got {result['native']}")
 
 
 def _dirty_and_unintegrated() -> None:
@@ -230,6 +363,271 @@ def _native_directory_lock() -> None:
         ensure(proofs.exists(), "proof directory lock protects native outputs")
 
 
+def _native_linked_proof_workspace() -> None:
+    """`proofs.workspace` resolves the lane's `proof-gate`, so through a relative link
+    the gate flocks a directory whose name retirement does not hold: the link itself
+    is selected and refused, idle or held."""
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        lane = root / "build" / "lane-worker"
+        target = lane / "proof-gate-real"
+        target.mkdir(parents=True)
+        (lane / "proof-gate").symlink_to("proof-gate-real", target_is_directory=True)
+        held = (lane / "proof-gate").resolve()
+        ensure(held == target, "precondition: the gate's resolved workspace is the link's target")
+        fd = os.open(held, os.O_RDONLY)
+        try:
+            _hold(fd)
+            _refused(lambda: retire.retain_native("worker", str(lane), str(root / "logs"), "5" * 20),
+                     "redirects")
+        finally:
+            os.close(fd)
+        _refused(lambda: retire.retain_native("worker", str(lane), str(root / "logs"), "5" * 20),
+                 "redirects")
+        ensure(target.is_dir() and (lane / "proof-gate").is_symlink(), "a linked workspace stays in place")
+
+
+def _lock_taken_late(name: str) -> None:
+    """Create and take the lane's `name` just after the selection first walks the lane."""
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        lane = root / "build" / "lane-worker"
+        lane.mkdir(parents=True)
+        (lane / "result.bin").write_bytes(b"proof")
+        late, walk = lane / name, retire._tree_safe
+        held: list[int] = []
+
+        def racing(path: Path, *, checkout: bool = False) -> list[Path]:
+            found = walk(path, checkout=checkout)
+            if path == lane and not held:
+                if late.suffix == ".lock":
+                    late.write_text("", encoding="utf-8")
+                else:
+                    late.mkdir()
+                held.append(os.open(late, os.O_RDONLY))
+                _hold(held[-1])
+            return found
+
+        try:
+            with patch.object(retire, "_tree_safe", side_effect=racing):
+                _refused(lambda: retire.retain_native("worker", str(lane), str(root / "logs"), "6" * 20),
+                         f"native output locks changed while retirement took them: {late}")
+        finally:
+            for fd in held:
+                os.close(fd)
+        ensure((lane / "result.bin").exists(), f"a lane whose {name} was taken late stays in place")
+
+
+def _native_locks_taken_late() -> None:
+    """A producer that creates and takes a lock once the selection has walked the lane,
+    a `*.lock` file or the proof workspace, is seen by the selection repeated under the
+    held locks, and the lane stays in place."""
+    for name in ("late.lock", "proof-gate"):
+        _lock_taken_late(name)
+
+
+def _native_hard_linked_locks() -> None:
+    """A lane-local uv cache hard-links the files it installs, `*.lock` files among
+    them, so two selected paths can name one file: retirement locks it once and the
+    idle lane retires, while a producer holding it through either link refuses it. The
+    oracle family's locks, selected outside the lane, are held once the same way."""
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        lane = root / "build" / "lane-worker"
+        cached = lane / "uv-cache" / "archive-v0" / "entry" / "empty_template_renv.lock"
+        installed = lane / "venv-model" / "lib" / "pre_commit" / "empty_template_renv.lock"
+        for folder in (cached.parent, installed.parent):
+            folder.mkdir(parents=True)
+        cached.write_text("", encoding="utf-8")
+        os.link(cached, installed)
+        ensure(cached.stat().st_ino == installed.stat().st_ino, "precondition: the two links name one file")
+        # Positive control: flock belongs to the open file description, so a lock
+        # taken through one link excludes a second description through the other,
+        # even within one process.
+        with cached.open() as first, installed.open() as second:
+            _hold(first.fileno())
+            try:
+                _hold(second.fileno())
+            except BlockingIOError:
+                pass
+            else:
+                raise AssertionError("precondition: two descriptions of one file exclude each other")
+        for link in (cached, installed):
+            with link.open() as handle:
+                _hold(handle.fileno())
+                _refused(lambda: retire.retain_native("worker", str(lane), str(root / "logs"), "7" * 20),
+                         "native output lock is active")
+            ensure(cached.exists() and installed.exists(), f"a lock held through {link} keeps the lane in place")
+        result = retire.retain_native("worker", str(lane), str(root / "logs"), "7" * 20)
+        saved = Path(str(result["archive"])) / "lane"
+        ensure(not lane.exists() and (saved / cached.relative_to(lane)).stat().st_ino
+               == (saved / installed.relative_to(lane)).stat().st_ino,
+               "the idle lane retires with both links to its lock")
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        build, logs = root / "build", root / "logs"
+        lane = build / "lane-worker"
+        lane.mkdir(parents=True)
+        logs.mkdir()
+        log = logs / "oracle-build-worker.log"
+        log.write_text("oracle", encoding="utf-8")
+        unkeyed = retire.env._lock_path(build / retire.env.ORACLE_TREE)
+        edition = retire.env._lock_path(build / f"sail-{retire.env.SAIL_VERSION}" / retire.env.ORACLE_TREE)
+        edition.parent.mkdir()
+        unkeyed.write_text("", encoding="utf-8")
+        os.link(unkeyed, edition)
+        ensure({unkeyed, edition} <= retire._native_locks([], lane, oracle=True),
+               "precondition: the oracle family's selection names both links")
+        result = retire.retain_native("worker", str(lane), str(logs), "7b" * 10)
+        ensure((Path(str(result["archive"])) / "logs" / log.name).exists() and not log.exists()
+               and unkeyed.exists() and edition.exists(),
+               "an oracle lock reached through two links does not refuse its own retirement")
+
+
+def _native_lock_replaced_late() -> None:
+    """A producer that replaces a lock retirement holds and takes the new file is not
+    excluded by retirement's descriptor on the old one: the repeated selection compares
+    the file each lock names, not only its path, and the lane stays in place."""
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        lane = root / "build" / "lane-worker"
+        lane.mkdir(parents=True)
+        (lane / "result.bin").write_bytes(b"proof")
+        lock, walk = lane / "model.lock", retire._tree_safe
+        lock.write_text("", encoding="utf-8")
+        walks: list[Path] = []
+        held: list[int] = []
+
+        def racing(path: Path, *, checkout: bool = False) -> list[Path]:
+            walks.append(path)
+            if walks.count(lane) == 2:
+                lock.unlink()
+                lock.write_text("", encoding="utf-8")
+                held.append(os.open(lock, os.O_RDONLY))
+                _hold(held[-1])
+            return walk(path, checkout=checkout)
+
+        try:
+            with patch.object(retire, "_tree_safe", side_effect=racing):
+                _refused(lambda: retire.retain_native("worker", str(lane), str(root / "logs"), "9" * 20),
+                         f"native output locks changed while retirement took them: {lock}")
+        finally:
+            for fd in held:
+                os.close(fd)
+        ensure(len(held) == 1, "precondition: the lock was replaced as the selection was repeated")
+        ensure((lane / "result.bin").exists(), "a lane whose lock was replaced late stays in place")
+
+
+# Root lists any directory through CAP_DAC_OVERRIDE and CAP_DAC_READ_SEARCH, bits 1 and
+# 2, so the child first drops both from its effective set with capget and capset under
+# _LINUX_CAPABILITY_VERSION_3, whose data is two (effective, permitted, inheritable)
+# triples of 32-bit words, capabilities 0 to 31 first; an unprivileged runner holds
+# neither bit. The child then seals a lane directory holding a producer's held lock and
+# reports the checkout walk's and retirement's verdicts, then seals an oracle edition
+# directory holding an oracle build's held lock and reports retirement's verdict on a
+# lane whose oracle log would move.
+_UNLISTABLE_PROBE = """
+import ctypes
+import fcntl
+import json
+import os
+import sys
+from pathlib import Path
+from unittest.mock import patch
+
+from vos import fanout_retire as retire
+
+libc = ctypes.CDLL(None, use_errno=True)
+header, data = (ctypes.c_uint32 * 2)(0x20080522, 0), (ctypes.c_uint32 * 6)()
+if libc.capget(header, data) != 0:
+    raise OSError(ctypes.get_errno(), "capget")
+data[0] &= ~0b110
+if libc.capset(header, data) != 0:
+    raise OSError(ctypes.get_errno(), "capset")
+work = Path(sys.argv[1]).resolve()
+build, logs = work / "build", work / "logs"
+lane = build / "lane-worker"
+sealed = lane / "sealed"
+sealed.mkdir(parents=True)
+logs.mkdir()
+lock = sealed / "producer.lock"
+lock.write_text("", encoding="utf-8")
+producer = os.open(lock, os.O_RDONLY)
+fcntl.flock(producer, fcntl.LOCK_EX | fcntl.LOCK_NB)
+sealed.chmod(0)
+found = {}
+try:
+    os.listdir(sealed)
+    found["control"] = "listed"
+except PermissionError:
+    found["control"] = "unlistable"
+
+
+def outcome(action):
+    try:
+        action()
+    except retire.RetirementError as exc:
+        return f"refused: {exc}"
+    return "accepted"
+
+
+try:
+    found["checkout"] = outcome(lambda: retire._tree_safe(lane, checkout=True))
+    with patch.object(retire.env, "filesystem", return_value="ext4"):
+        found["native"] = outcome(lambda: retire.retain_native("worker", str(lane), str(logs), "8" * 20))
+    found["in-place"] = lane.is_dir()
+finally:
+    for path in (sealed, build / "fanout-retained" / ("8" * 20) / "worker" / "lane" / "sealed"):
+        if path.is_dir():
+            path.chmod(0o755)
+    os.close(producer)
+edition = build / f"sail-{retire.env.SAIL_VERSION}"
+edition.mkdir()
+log = logs / "oracle-build-oracle.log"
+log.write_text("oracle", encoding="utf-8")
+lock = retire.env._lock_path(edition / retire.env.ORACLE_TREE)
+lock.write_text("", encoding="utf-8")
+builder = os.open(lock, os.O_RDONLY)
+fcntl.flock(builder, fcntl.LOCK_EX | fcntl.LOCK_NB)
+edition.chmod(0)
+try:
+    try:
+        os.listdir(edition)
+        found["edition-control"] = "listed"
+    except PermissionError:
+        found["edition-control"] = "unlistable"
+    with patch.object(retire.env, "filesystem", return_value="ext4"):
+        found["oracle"] = outcome(lambda: retire.retain_native("oracle", str(build / "lane-oracle"),
+                                                               str(logs), "9" * 20))
+    found["oracle-log-in-place"] = log.is_file()
+finally:
+    edition.chmod(0o755)
+    os.close(builder)
+print(json.dumps(found))
+"""
+
+
+def _native_unlistable_directory() -> None:
+    """A directory the walk cannot list may hold a nested repository or a producer's
+    lock, so the checkout walk and the native selection refuse it, naming it, rather
+    than passing over it and moving a lane whose lock is held; an oracle edition
+    directory the family's selection cannot list refuses the same way, and the lane's
+    oracle log stays in place."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as work:
+        done = subprocess.run([sys.executable, "-c", _UNLISTABLE_PROBE, work],
+                              capture_output=True, encoding="utf-8", errors="replace",
+                              check=False, timeout=120, env={**os.environ, "PYTHONPATH": str(TOOLS)})
+    ensure(done.returncode == 0, f"the unlistable-directory probe must answer: {done.stderr[-800:]!r}")
+    found = json.loads(done.stdout)
+    ensure(found["control"] == "unlistable", f"precondition: the probe cannot list the sealed directory, got {found}")
+    for key in ("checkout", "native"):
+        ensure(str(found[key]).startswith("refused: directory cannot be listed: ")
+               and str(found[key]).endswith("/lane-worker/sealed (Permission denied)"),
+               f"the {key} walk refuses naming the unlistable directory, got {found[key]}")
+    ensure(found["in-place"], f"a lane with an unlistable directory stays in place, got {found}")
+    ensure(found["edition-control"] == "unlistable",
+           f"precondition: the probe cannot list the oracle edition directory, got {found}")
+    ensure(str(found["oracle"]).startswith("refused: directory cannot be listed: ")
+           and str(found["oracle"]).endswith(f"/build/sail-{retire.env.SAIL_VERSION} (Permission denied)")
+           and found["oracle-log-in-place"],
+           f"the oracle family's selection refuses naming the unlistable edition, got {found}")
+
+
 def _venv_links_and_target_locks() -> None:
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
         lane = root / "build" / "lane-worker"
@@ -377,10 +775,91 @@ def _native_oracle_locks_of_every_edition() -> None:
                "with no oracle build running, the lane's oracle log travels with it")
 
 
+def _persistence_campaign_lock() -> None:
+    """The emulator flocks its block images inside the campaign's output, which the
+    retirement does not open; the corpus command's live campaign is seen through the
+    `persistence.lock` the campaign holds in its corpus directory, and a finished one
+    retires with its images and that lock. The stand-in emulator writes its image,
+    attempts the retirement and returns no verdict, which ends the campaign."""
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        e = retire.env.Environment(TOOLS.parent, TOOLS.parent / "model", root / "build", root / "logs",
+                                   "worker", 4, 4096, 2, 2)
+        seen: list[str] = []
+
+        def emulator(argv: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+            Path(argv[argv.index("--blkdev-image-create") + 1]).write_bytes(b"image")
+            try:
+                retire.retain_native("worker", str(e.lane_root), str(root / "logs"), "3" * 20)
+            except retire.RetirementError as exc:
+                seen.append(str(exc))
+            return subprocess.CompletedProcess(argv, 1, "", "")
+
+        with (patch.object(model_cli.block_persistence, "producer_identity", return_value={}),
+              patch.object(model_cli.block_persistence, "subprocess",
+                           SimpleNamespace(run=emulator, TimeoutExpired=subprocess.TimeoutExpired)),
+              redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
+            ensure(model_cli._corpus_persistence(e, e.lane_root / "corpus", 30) == 1,
+                   "the stand-in emulator's missing verdict ends the campaign")
+        ensure(seen == [f"native output lock is active: {e.lane_root / 'corpus' / 'persistence.lock'}"],
+               f"a retirement during the campaign refuses on its directory's lock, got {seen}")
+        result = retire.retain_native("worker", str(e.lane_root), str(root / "logs"), "3" * 20)
+        saved = Path(str(result["archive"])) / "lane" / "corpus"
+        ensure(len(list(saved.glob("persistence-*/durable.img"))) == 1
+               and (saved / "persistence.lock").is_file() and not e.lane_root.exists(),
+               "after the campaign the lane retires with its images and its lock")
+
+
+def _idealloc_build_lock() -> None:
+    """Cargo flocks `.cargo-lock` and `.package-cache` inside the idealloc build's
+    output, names the retirement does not select; a live candidate run is seen through
+    the `<output>.lock` it holds beside that output from its build through its
+    evidence, and a finished one retires."""
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        lane = root / "build" / "lane-worker"
+        output = lane / "memory-planner-idealloc"
+        checkout = root / "checkout"
+        (checkout / candidates.BRIDGE_PATH).parent.mkdir(parents=True)
+        (checkout / candidates.PIN_PATH).write_text(json.dumps(
+            {"schema": candidates.PIN_SCHEMA, "files": [], "commit": "0" * 40, "license": "fixture"}),
+            encoding="utf-8")
+        (checkout / candidates.BRIDGE_PATH).write_text("// bridge\n", encoding="utf-8")
+        (output / "upstream" / "coreba" / "src" / "bin").mkdir(parents=True)
+        seen: list[str] = []
+
+        def cargo(*_: object) -> tuple[str, dict[str, str], dict[str, str]]:
+            lock = output / "target" / "release" / ".cargo-lock"
+            lock.parent.mkdir(parents=True)
+            lock.write_text("", encoding="utf-8")
+            with lock.open() as handle:
+                _hold(handle.fileno())
+                try:
+                    retire.retain_native("worker", str(lane), str(root / "logs"), "4" * 20)
+                except retire.RetirementError as exc:
+                    seen.append(str(exc))
+            raise ValueError("the stand-in toolchain stops the build")
+
+        demo = argparse.Namespace(action="demo", instance=None, baseline=None, timeout=30, iterations=1)
+        with (patch.object(candidates, "native_output", side_effect=lambda _, path: path),
+              patch.object(candidates, "rust_environment", side_effect=cargo)):
+            stopped = False
+            try:
+                candidates_cli.run(demo, checkout, output)
+            except ValueError as exc:
+                stopped = "stand-in" in str(exc)
+            ensure(stopped, "the stand-in toolchain ends the build")
+        ensure(seen == [f"native output lock is active: {lane / 'memory-planner-idealloc.lock'}"],
+               f"a retirement during the build refuses on its output lock, got {seen}")
+        result = retire.retain_native("worker", str(lane), str(root / "logs"), "4" * 20)
+        saved = Path(str(result["archive"])) / "lane" / "memory-planner-idealloc"
+        ensure((saved / "target" / "release" / ".cargo-lock").exists() and not lane.exists(),
+               "after the build the lane retires with its outputs")
+
+
 # The descriptor limit is process-wide, so it is lowered in a child: lowered here, it
 # would bind every module the runner's worker process takes next. The child builds a
-# lane with four directories per descriptor and a second lane with two lock files per
-# descriptor, then reports each outcome as a string, an OSError by its errno.
+# lane with four directories per descriptor, a second lane with two lock files per
+# descriptor and a third whose root and lock files take every free descriptor, then
+# reports each outcome as a string, an OSError by its errno.
 _DESCRIPTOR_PROBE = """
 import fcntl
 import json
@@ -418,7 +897,13 @@ def outcome(name, batch):
     return "retired"
 
 
-# Positive control: the selection that held every directory, opened as it opened it.
+def free():
+    # The descriptors below the limit not yet open; the listing's own is about to close.
+    names = os.listdir("/proc/self/fd")
+    return limit - (sum(int(name) < limit for name in names) - 1)
+
+
+# Positive control: a descriptor held on every directory of this lane exceeds the lowered limit.
 held = []
 try:
     for path in [lane, *(path for path in retire._tree_safe(lane)
@@ -442,6 +927,14 @@ with patch.object(retire.env, "filesystem", return_value="ext4"):
     found["retired"] = outcome("worker", "1" * 20)
     found["crowded"] = outcome("crowded", "2" * 20)
     found["crowded-in-place"] = len(list(crowded.glob("*.lock")))
+    tight = build / "lane-tight"
+    tight.mkdir()
+    for index in range(free() - 1):
+        (tight / f"run-{index:04}.lock").write_text("", encoding="utf-8")
+    found["tight-locks"] = len(list(tight.glob("*.lock")))
+    found["tight-free"] = free()
+    found["tight"] = outcome("tight", "3" * 20)
+    found["tight-in-place"] = tight.is_dir()
 archive = build / "fanout-retained" / ("1" * 20) / "worker" / "lane" / "opam"
 found["archived"] = len(list(archive.iterdir())) if archive.is_dir() else 0
 print(json.dumps(found))
@@ -449,10 +942,12 @@ print(json.dumps(found))
 
 
 def _native_locks_fit_descriptor_limit() -> None:
-    """Retirement opens only the locks a producer can hold, so a lane with more
-    directories than descriptors retires, a held nested lock still refuses it, and
-    more lock files than descriptors refuse as a verdict naming the path, never as an
-    uncaught OSError."""
+    """Retirement opens only the locks it selects, never every directory, so a lane
+    with more directories than descriptors retires, a held nested lock still refuses
+    it, and more lock files than descriptors refuse as a verdict naming the path,
+    never as an uncaught OSError. A lane whose root and locks take every free
+    descriptor leaves none for the repeated selection's listing, which refuses naming
+    the directory and the exhaustion rather than reporting the locks as changed."""
     limit = 64
     with tempfile.TemporaryDirectory(prefix="vos-test-") as work:
         done = subprocess.run([sys.executable, "-c", _DESCRIPTOR_PROBE, work, str(limit)],
@@ -474,6 +969,12 @@ def _native_locks_fit_descriptor_limit() -> None:
            and "run-" in str(found["crowded"]) and f"{2 * limit + 1} locks needed" in str(found["crowded"])
            and found["crowded-in-place"] == 2 * limit,
            f"more lock files than descriptors refuse naming the path and move nothing, got {found}")
+    ensure(found["tight-free"] == found["tight-locks"] + 1,
+           f"precondition: the tight lane's root and locks take every free descriptor, got {found}")
+    ensure(str(found["tight"]).startswith("refused: directory cannot be listed: ")
+           and str(found["tight"]).endswith(f"/lane-tight ({os.strerror(errno.EMFILE)})")
+           and found["tight-in-place"],
+           f"exhausted descriptors refuse the repeated selection naming the cause, got {found}")
 
 
 def _tool_sources(pattern: str) -> list[Path]:
@@ -483,35 +984,396 @@ def _tool_sources(pattern: str) -> list[Path]:
             and not any(part.startswith(".") for part in path.relative_to(TOOLS).parts)]
 
 
-def _flock_sites(path: Path) -> set[tuple[str, str]]:
-    """Each (module, innermost function) that calls `flock` in one source file."""
-    name = path.relative_to(TOOLS).as_posix()
+def _checkout_sources(suffixes: tuple[str, ...]) -> list[Path]:
+    """This checkout's own sources by suffix: pinned upstreams, peer worktrees, outputs
+    and dot-directories hold none of its producers."""
+    found: list[Path] = []
+    for directory, dirs, files in os.walk(TOOLS.parent):
+        dirs[:] = [name for name in dirs if not name.startswith(".")
+                   and name not in {"upstream", "out", "node_modules", "site-packages", "__pycache__"}]
+        found.extend(Path(directory) / name for name in files if name.endswith(suffixes))
+    return found
+
+
+_FLOCK = re.compile(r"\bflock\b")
+
+
+def _docstrings(tree: ast.Module) -> set[int]:
+    """The identities of a source's docstring constants: the bare string a module,
+    class or function body opens with."""
+    found: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef) and node.body:
+            first = node.body[0]
+            if (isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant)
+                    and isinstance(first.value.value, str)):
+                found.add(id(first.value))
+    return found
+
+
+def _python_flock_sites(name: str, text: str) -> set[tuple[str, str]]:
+    """Each (module, innermost function) that reaches `flock` in one Python source: an
+    attribute named `flock`, a name `from fcntl import flock [as x]` or `*` binds, or a
+    string other than a docstring that names it, wherever the string sits, so that an
+    argv built before it is run, a constant spread into a call and a lookup by name
+    such as `vars(fcntl)['flock']` are sites."""
+    tree = ast.parse(text)
+    imported = {alias.asname or alias.name for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom) and node.module == "fcntl"
+                for alias in node.names if alias.name in {"flock", "*"}}
+    bound = (imported - {"*"}) | ({"flock"} if "*" in imported else set())
+    docstrings = _docstrings(tree)
     sites: set[tuple[str, str]] = set()
+
+    def reaches(node: ast.AST) -> bool:
+        if isinstance(node, ast.Attribute):
+            return node.attr == "flock"
+        if isinstance(node, ast.Name):
+            return node.id in bound
+        if not isinstance(node, ast.Constant) or id(node) in docstrings:
+            return False
+        value = node.value.decode("latin-1") if isinstance(node.value, bytes) else node.value
+        return isinstance(value, str) and _FLOCK.search(value) is not None
 
     def visit(node: ast.AST, owner: str) -> None:
         for child in ast.iter_child_nodes(node):
             inner = child.name if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef) else owner
-            if (isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute)
-                    and child.func.attr == "flock"):
+            if reaches(child):
                 sites.add((name, owner))
             visit(child, inner)
 
-    visit(ast.parse(path.read_text(encoding="utf-8")), "<module>")
+    visit(tree, "<module>")
     return sites
 
 
+# POSIX record locks: `lockf` and `fcntl`'s `F_SETLK` family, with the large-file
+# spellings glibc declares, `lockf64`, `F_SETLK64` and `F_SETLKW64`, the last two of
+# which Python's `fcntl` also exports; `F_OFD_SETLK` and `F_OFD_SETLKW` have none. A
+# record lock and a `flock` on one file neither exclude each other nor are taken by
+# the retirement.
+_RECORD_LOCKS = frozenset({"lockf", "lockf64", "F_SETLK", "F_SETLKW", "F_SETLK64", "F_SETLKW64",
+                           "F_OFD_SETLK", "F_OFD_SETLKW"})
+_RECORD_LOCK = re.compile(r"\b(?:lockf(?:64)?|F_(?:OFD_)?SETLKW?(?:64)?)\b")
+
+
+def _python_record_locks(name: str, text: str) -> list[str]:
+    """Each reference to a POSIX record lock in one Python source: an attribute or a
+    name spelled as one, an import of one from any module, reported at the import
+    whatever name it binds, or a string other than a docstring that names one."""
+    tree = ast.parse(text)
+    docstrings = _docstrings(tree)
+    found: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute):
+            spelled = node.attr in _RECORD_LOCKS
+        elif isinstance(node, ast.Name):
+            spelled = node.id in _RECORD_LOCKS
+        elif isinstance(node, ast.alias):
+            spelled = node.name in _RECORD_LOCKS
+        elif isinstance(node, ast.Constant) and id(node) not in docstrings:
+            value = node.value.decode("latin-1") if isinstance(node.value, bytes) else node.value
+            spelled = isinstance(value, str) and _RECORD_LOCK.search(value) is not None
+        else:
+            continue
+        if spelled:
+            found.append(f"{name}:{node.lineno}: a POSIX record lock")
+    return found
+
+
+# The one recognized shell form: `flock` with option flags and a numeric descriptor,
+# ending its command.
+_SHELL_FLOCK = re.compile(r"flock(?:[ \t]+(?:-[A-Za-z]+|--[a-z][a-z-]*))+[ \t]+(\d+)[ \t]*(?:$|[;&|)])",
+                          re.MULTILINE)
+
+
+def _shell_code(text: str) -> str:
+    """A script with each comment blanked: a `#` opening a word outside quotes runs to
+    the end of its line."""
+    kept: list[str] = []
+    quote, comment, escaped = "", False, False
+    for index, char in enumerate(text):
+        if comment:
+            comment = char != "\n"
+            kept.append(char if char == "\n" else " ")
+            continue
+        if escaped:
+            escaped = False
+        elif char == "\\" and quote != "'":
+            escaped = True
+        elif quote:
+            quote = "" if char == quote else quote
+        elif char in "'\"":
+            quote = char
+        elif char == "#" and (index == 0 or text[index - 1] in " \t\n;&|()"):
+            comment = True
+            kept.append(" ")
+            continue
+        kept.append(char)
+    return "".join(kept)
+
+
+# The redirects of a descriptor the scan reads, each with its operator, here-document,
+# clobbering and duplicating ones among them, and its whole target word, quoted parts
+# and the bare text joined to them; `_SHELL_DESCRIPTOR` counts every redirect of the
+# descriptor, among them one whose word this cannot match, such as a process
+# substitution's `9< <(cmd)`.
+_SHELL_REDIRECT = r"(?<![\w&$]){fd}(<<<|<<-|<<|>>|>\||<>|>&|<&|>|<)[ \t]*((?:\"[^\"]*\"|'[^']*'|[^\s;&|)<>\"'])+)"
+_SHELL_DESCRIPTOR = r"(?<![\w&$]){fd}[<>]"
+
+
+def _shell_flock_sites(text: str) -> tuple[set[str], list[str]]:
+    """The descriptors a script flocks in the recognized form, each opened only by `>`,
+    `>>`, `<` or `<>` on a word that is one double-quoted `*.lock` path, and, unclassified,
+    every other `flock` outside comments, among them one whose descriptor has a redirect
+    the scan cannot read."""
+    code = _shell_code(text)
+    descriptors: set[str] = set()
+    unclassified: list[str] = []
+    for token in _FLOCK.finditer(code):
+        line = code.count("\n", 0, token.start()) + 1
+        form = _SHELL_FLOCK.match(code, token.start())
+        if form is None:
+            unclassified.append(f"line {line}: flock outside the recognized form")
+            continue
+        fd = form.group(1)
+        redirects = [(found.group(1), found.group(2))
+                     for found in re.finditer(_SHELL_REDIRECT.format(fd=fd), code)]
+        if len(re.findall(_SHELL_DESCRIPTOR.format(fd=fd), code)) != len(redirects):
+            unclassified.append(f"line {line}: descriptor {fd} has a redirect the scan cannot read")
+            continue
+        other = sorted({operator for operator, _ in redirects} - {">", ">>", "<", "<>"})
+        if other:
+            unclassified.append(f"line {line}: descriptor {fd} is redirected by {', '.join(other)}")
+            continue
+        if not redirects or not all(re.fullmatch(r'"[^"]*\.lock"', word) for _, word in redirects):
+            unclassified.append(f"line {line}: descriptor {fd} is not redirected only to one quoted *.lock path")
+            continue
+        descriptors.add(fd)
+    return descriptors, unclassified
+
+
+def _c_code(text: str) -> str:
+    """A C or C++ source with its comments blanked and its literals kept."""
+    kept: list[str] = []
+    state, index = "", 0
+    while index < len(text):
+        char, pair = text[index], text[index:index + 2]
+        if state == "line":
+            state = "" if char == "\n" else state
+            kept.append(char if char == "\n" else " ")
+            index += 1
+        elif state == "block":
+            state, step = ("", 2) if pair == "*/" else (state, 1)
+            kept.append("\n" if char == "\n" else " ")
+            index += step
+        elif state:
+            step = 2 if char == "\\" else 1
+            kept.append(text[index:index + step])
+            state = "" if char == state else state
+            index += step
+        elif pair in {"//", "/*"}:
+            state = "line" if pair == "//" else "block"
+            kept.append("  ")
+            index += 2
+        else:
+            state = char if char in "'\"" else ""
+            kept.append(char)
+            index += 1
+    return "".join(kept)
+
+
+def _c_flock_calls(text: str) -> int | None:
+    """How many `flock(` calls one C or C++ source makes, or `None` when `flock` also
+    occurs outside comments as anything but a call."""
+    code = _c_code(text)
+    calls = len(re.findall(r"\bflock\s*\(", code))
+    return calls if calls == len(_FLOCK.findall(code)) else None
+
+
+# What a `flock(` count cannot read: a POSIX record lock, in its large-file spelling
+# too, and the `flock` system call reached by its number, which `\bflock\b` does not
+# match.
+_C_UNREAD_LOCK = re.compile(r"\blockf(?:64)?\b|\bF_(?:OFD_)?SETLKW?(?:64)?\b|\b(?:SYS|__NR)_flock\b")
+
+
+def _c_unread_locks(text: str) -> int:
+    """How many record locks and numbered `flock` system calls one C or C++ source
+    names outside comments."""
+    return len(_C_UNREAD_LOCK.findall(_c_code(text)))
+
+
+def _campaign_lock(text: str) -> str | None:
+    """The target, as source, of the `hold_lock` that a module's `run` holds across its
+    whole body, or `None` unless every statement after its docstring sits inside one
+    `with` whose first item is `hold_lock(<target>, ...)`, and every `--blkdev-image*`
+    string the module spells sits in that `with`'s body: a `with` enters its items left
+    to right, so an item before the lock runs unheld, and a block image passed from
+    anywhere else can be launched without the lock."""
+    tree = ast.parse(text)
+    run = next((node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "run"), None)
+    if run is None:
+        return None
+    body, first = run.body, run.body[0] if run.body else None
+    if (isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant)
+            and isinstance(first.value.value, str)):
+        body = body[1:]
+    block = body[0] if len(body) == 1 else None
+    if not isinstance(block, ast.With):
+        return None
+    held = block.items[0].context_expr
+    if not (isinstance(held, ast.Call) and isinstance(held.func, ast.Attribute)
+            and held.func.attr == "hold_lock" and held.args):
+        return None
+    inside = {id(node) for statement in block.body for node in ast.walk(statement)}
+    if any(isinstance(node, ast.Constant) and isinstance(node.value, str)
+           and node.value.startswith("--blkdev-image") and id(node) not in inside
+           for node in ast.walk(tree)):
+        return None
+    return ast.unparse(held.args[0])
+
+
+def _producer_lock_scanners_fail_closed() -> None:
+    """A Python `flock` bound by import or named by any string but a docstring is a
+    site, a shell or C `flock` outside the one recognized form is reported rather than
+    passed over, and so is a POSIX record lock, in its large-file spelling too, or a
+    numbered `flock` system call."""
+    for text, owner in (("from fcntl import flock as grab\ndef take(fd):\n    grab(fd, 2)\n", "take"),
+                        ("from fcntl import *\ndef take(fd):\n    flock(fd, 2)\n", "take"),
+                        ("import subprocess\ndef run(path):\n"
+                         "    subprocess.run(['flock', '-x', path, 'true'])\n", "run"),
+                        ("import subprocess\ndef run():\n"
+                         "    subprocess.run('flock -x 9 true', shell=True)\n", "run"),
+                        ("import subprocess\ndef run(path):\n"
+                         "    command = ['flock', '-x', path, 'true']\n    subprocess.run(command)\n", "run"),
+                        ("import subprocess\nLOCK = ('flock', '-x')\ndef run(path):\n"
+                         "    subprocess.run([*LOCK, path, 'true'])\n", "<module>"),
+                        ("import fcntl\ndef take(fd):\n    vars(fcntl)['flock'](fd, 2)\n", "take"),
+                        ('X = 1\n"""flock, after a statement, is no docstring."""\n', "<module>"),
+                        ("import fcntl\ntake = fcntl.flock\n", "<module>")):
+        found = _python_flock_sites("probe.py", text)
+        ensure(found == {("probe.py", owner)}, f"the Python scan must find {text!r}, got {found}")
+    ensure(_python_flock_sites("probe.py", '"""flock is described, not called."""\n'
+                                           'class C:\n    """Nor is flock here."""\n'
+                                           'def f():\n    """Nor here: flock."""\n') == set(),
+           "a docstring naming flock is not a site")
+    for text in ('flock -x "$dir/work.lock" true\n',
+                 '(\n    flock --exclusive 9\n) 9>"$dir/state.json"\n',
+                 '(\n    flock 9\n) 9>"$dir/work.lock"\n',
+                 '(\n    flock -w 10 9\n) 9>"$dir/work.lock"\n',
+                 '(\n    flock -x 9\n) 9>"$dir.lock"/state.json\n',
+                 '(\n    flock -x 9\n) 9>"$d/work.lock"\n: 9>|"$d/state.json"\n',
+                 '(\n    flock -x 9\n) 9>"$d/work.lock" 9>&3\n',
+                 '(\n    flock -x 9\n) 9>"$d/work.lock" 9<<END\nEND\n',
+                 '(\n    flock -x 9\n) 9>"$d/work.lock" 9< <(cat "$d/state.json")\n',
+                 'command -v flock >/dev/null\n'):
+        descriptors, unclassified = _shell_flock_sites(text)
+        ensure(len(unclassified) == 1 and not descriptors,
+               f"the shell scan must report {text!r}, got {descriptors}, {unclassified}")
+    ensure(_shell_flock_sites('# flock -x 9 is how\n(\n    flock -x 9\n) 9>"$d/.x.lock"\n') == ({"9"}, []),
+           "the recognized form classifies, and a comment is not an occurrence")
+    ensure(_c_flock_calls("/* flock(fd) */ int f(int fd) { return flock(fd, 2); } // flock(fd)\n") == 1,
+           "the C scan counts a call and skips comments")
+    ensure(_c_flock_calls('auto take = flock; const char *s = "flock";\n') is None,
+           "the C scan reports a flock it cannot read as a call")
+    for text, line in (("import fcntl\ndef take(fd):\n    fcntl.lockf(fd, fcntl.LOCK_EX)\n", 3),
+                       ("import os\ndef take(fd):\n    os.lockf(fd, os.F_LOCK, 0)\n", 3),
+                       ("import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLK, record)\n", 3),
+                       ("import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLKW, record)\n", 3),
+                       ("from fcntl import F_OFD_SETLK as SET, fcntl\ndef take(fd, record):\n"
+                        "    fcntl(fd, SET, record)\n", 1),
+                       ("from fcntl import *\ndef take(fd, record):\n    fcntl(fd, F_OFD_SETLKW, record)\n", 3),
+                       ("import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLK64, record)\n", 3),
+                       ("from fcntl import F_SETLKW64 as WAIT, fcntl\ndef take(fd, record):\n"
+                        "    fcntl(fd, WAIT, record)\n", 1),
+                       ("from posix import lockf as grab\ndef take(fd):\n    grab(fd, 1, 0)\n", 1),
+                       ("import ctypes\ndef take(fd):\n    getattr(ctypes.CDLL(None), 'lockf')(fd, 1, 0)\n", 3),
+                       ("import ctypes\ndef take(fd):\n    ctypes.CDLL(None).lockf64(fd, 1, 0)\n", 3)):
+        found = _python_record_locks("probe.py", text)
+        ensure(found == [f"probe.py:{line}: a POSIX record lock"],
+               f"the Python scan must report the record lock in {text!r} at line {line}, got {found}")
+    ensure(_python_record_locks("probe.py", '"""lockf and F_SETLK are described."""\n'
+                                            "import fcntl\ndef take(fd):\n    fcntl.flock(fd, 2)\n") == [],
+           "a docstring naming a record lock, and a flock, are no record locks")
+    for text, count in (("int f(int fd) { return lockf(fd, F_LOCK, 0); }\n", 1),
+                        ("int f(int fd) { return lockf64(fd, F_LOCK, 0); }\n", 1),
+                        ("fcntl(fd, F_SETLK, &l); fcntl(fd, F_SETLKW, &l);\n", 2),
+                        ("struct flock64 l; fcntl(fd, F_SETLK64, &l); fcntl(fd, F_SETLKW64, &l);\n", 2),
+                        ("fcntl(fd, F_OFD_SETLK, &l); fcntl(fd, F_OFD_SETLKW, &l);\n", 2),
+                        ("syscall(SYS_flock, fd, 2); syscall(__NR_flock, fd, 8);\n", 2),
+                        ("/* lockf(fd), F_SETLK */ int fd; // syscall(SYS_flock, fd, 2)\n", 0)):
+        ensure(_c_unread_locks(text) == count, f"the C scan must count {count} in {text!r}")
+    ensure(_campaign_lock('def run(root, output):\n    """Held throughout."""\n'
+                          '    with env.hold_lock(output.parent / "persistence", "x"):\n'
+                          '        launch(output)\n') == "output.parent / 'persistence'",
+           "a run whose whole body sits inside its lock names the lock's target")
+    ensure(_campaign_lock('def run(root, output):\n    with env.hold_lock(output, "x"), open(output) as stream:\n'
+                          '        launch(stream)\n') == "output",
+           "an item after the lock enters with it held")
+    ensure(_campaign_lock('def run(root, output):\n    with env.hold_lock(output, "x"):\n'
+                          '        def execute(image):\n            emulate(["--blkdev-image", image])\n'
+                          '        execute(output)\n') == "output",
+           "a block image passed from inside the lock is held")
+    for text in ('def run(root, output):\n    launch(output)\n'
+                 '    with env.hold_lock(output, "x"):\n        launch(output)\n',
+                 'def run(root, output):\n    with open(output) as stream:\n        launch(stream)\n',
+                 'def run(root, output):\n    with launch(output), env.hold_lock(output, "x"):\n        launch(output)\n',
+                 'def other(root, output):\n    with env.hold_lock(output, "x"):\n        launch(output)\n',
+                 'def launch(output):\n    emulate(["--blkdev-image-create", output])\n'
+                 'def run(root, output):\n    with env.hold_lock(output, "x"):\n        launch(output)\n',
+                 'IMAGE = "--blkdev-image"\ndef run(root, output):\n'
+                 '    with env.hold_lock(output, "x"):\n        emulate([IMAGE, output])\n'):
+        ensure(_campaign_lock(text) is None,
+               f"a run not wholly inside a lock, or a block image outside it, holds none: {text!r}")
+
+
 def _producer_lock_inventory() -> None:
-    """The retirement's lock rule holds only while every producer lock is a `*.lock`
-    file or a directory in `_DIRECTORY_LOCKS`: each `flock` site is classified here."""
+    """Retirement's lock selection covers a producer only while its lock is a `*.lock`
+    file, a directory in `_DIRECTORY_LOCKS`, or a lock of its own inside an output
+    beside which its launcher holds a `*.lock`: each `flock` site in the tools' Python
+    and in the checkout's shell and C and C++ sources is classified here, and an
+    occurrence the scans cannot classify fails, as does any POSIX record lock, which a
+    `flock` neither excludes nor is excluded by."""
     lock_files = {("vos/env.py", "_flock"), ("vos/env.py", "_unlock"),  # env._lock_path
                   ("vos/cli/fanout.py", "_exclusive"),  # out/fanout/.lock, host side
                   ("vos/fanout_retire.py", "retain_native")}  # the retirement itself
     directories = {("vos/cli/proofs.py", "_hold")}
     sources = _tool_sources("*.py")
-    sites = set().union(*(_flock_sites(path) for path in sources))
+    sites = set().union(*(_python_flock_sites(path.relative_to(TOOLS).as_posix(),
+                                              path.read_text(encoding="utf-8")) for path in sources))
     ensure(directories | {("vos/env.py", "_flock")} <= sites,
            f"precondition: the scan finds the known flock sites, got {sites}")
     ensure(sites <= lock_files | directories, f"unclassified flock sites: {sites - lock_files - directories}")
+    records = [found for path in sources
+               for found in _python_record_locks(path.relative_to(TOOLS).as_posix(), path.read_text(encoding="utf-8"))]
+    ensure(not records, f"unclassified POSIX record locks: {records}")
+    # Native producers' own locks, by file. The emulator flocks a `--blkdev-image`,
+    # which the tools pass only from `block_persistence.run`, under the
+    # `persistence.lock` that `run` holds in its output's directory across its whole
+    # body; the unit test and the emulator it launches lock images in its scratch in
+    # the build tree, under the lock ctest's caller holds beside that tree.
+    native = {"model/c_emulator/blkdev_image.cpp": 1, "model/test/unit_tests/block_image.cpp": 1}
+    counts: dict[str, int | None] = {}
+    unread: dict[str, int] = {}
+    for path in _checkout_sources((".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp")):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if _FLOCK.search(text) is not None:
+            counts[path.relative_to(TOOLS.parent).as_posix()] = _c_flock_calls(text)
+        if _C_UNREAD_LOCK.search(text) is not None:
+            unread[path.relative_to(TOOLS.parent).as_posix()] = _c_unread_locks(text)
+    ensure({name: count for name, count in counts.items() if count != 0} == native,
+           f"unclassified native flock sites (file: calls, None where one is not a call): {counts}")
+    ensure(not any(unread.values()),
+           f"unclassified native record locks and numbered flock system calls (file: count): {unread}")
+    launchers = {path.relative_to(TOOLS).as_posix() for path in sources
+                 if any(isinstance(node, ast.Constant) and isinstance(node.value, str)
+                        and node.value.startswith("--blkdev-image")
+                        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))))}
+    ensure(launchers == {"vos/block_persistence.py"},
+           f"only the persistence campaign passes the emulator a block image, got {launchers}")
+    held = _campaign_lock((TOOLS / "vos" / "block_persistence.py").read_text(encoding="utf-8"))
+    ensure(held == "output.parent / 'persistence'",
+           "block_persistence.run must hold its output directory's persistence.lock across its whole body, "
+           f"and spell every block image inside it, got {held}")
     callers = 0
     for path in sources:
         tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -535,34 +1397,42 @@ def _producer_lock_inventory() -> None:
         held = proofs_cli.workspace(Path("/nonexistent/checkout").resolve())
     ensure(held.parent == lane and held.name in retire._DIRECTORY_LOCKS,
            f"the proof workspace {held} must be a directory lock retirement holds")
-    scripts = _tool_sources("*.sh")
-    ensure(any("flock" in script.read_text(encoding="utf-8") for script in scripts),
-           "precondition: the toolchain installer scripts' locks are found")
-    for script in scripts:
-        text = script.read_text(encoding="utf-8")
-        for fd in re.findall(r"flock\s+-\w+\s+(\d+)", text):
-            targets = re.findall(rf'\)\s*{fd}>"([^"]+)"', text)
-            ensure(bool(targets) and all(target.endswith(".lock") for target in targets),
-                   f"{script.name} flocks descriptor {fd} on something other than a *.lock file")
+    installers = 0
+    for script in _checkout_sources((".sh",)):
+        descriptors, unclassified = _shell_flock_sites(script.read_text(encoding="utf-8"))
+        installers += bool(descriptors)
+        ensure(not unclassified, f"{script.name}: {unclassified}")
+    ensure(installers > 0, "precondition: the toolchain installer scripts' locks are found")
 
 
 def cases() -> list[Case]:
     return [Case("retains-outputs-and-repeats", _retains_outputs_and_repeats),
+            Case("nested-ignored-directory", _nested_ignored_directory),
             Case("dirty-and-unintegrated", _dirty_and_unintegrated),
             Case("changed-identity-and-locked", _changed_identity_and_locked),
             Case("host-owned-and-outside", _host_owned_and_outside),
             Case("nested-repository", _nested_repository),
+            Case("output-gone-before-resume", _output_gone_before_resume),
+            Case("native-receipt-survives-resume", _native_receipt_survives_resume),
             Case("interrupted-after-git-remove", _interrupted_after_git_remove),
             Case("branch-moved-after-removal", _branch_moved_after_removal),
             Case("missing-without-receipt", _missing_without_receipt),
             Case("records", _records), Case("log-inventory-covers-callers", _log_inventory_covers_callers),
             Case("producer-lock-inventory", _producer_lock_inventory),
+            Case("producer-lock-scanners-fail-closed", _producer_lock_scanners_fail_closed),
             Case("symlink-escape", _symlink_escape, lane="guest"),
             Case("native-outputs-and-lock", _native_outputs_and_lock, lane="guest"),
             Case("native-directory-lock", _native_directory_lock, lane="guest"),
+            Case("native-linked-proof-workspace", _native_linked_proof_workspace, lane="guest"),
+            Case("native-locks-taken-late", _native_locks_taken_late, lane="guest"),
+            Case("native-hard-linked-locks", _native_hard_linked_locks, lane="guest"),
+            Case("native-lock-replaced-late", _native_lock_replaced_late, lane="guest"),
+            Case("native-unlistable-directory", _native_unlistable_directory, lane="guest"),
             Case("venv-links-and-target-locks", _venv_links_and_target_locks, lane="guest"),
             Case("native-exact-log-ownership", _native_exact_log_ownership, lane="guest"),
             Case("native-log-directories-and-companions", _native_log_directories_and_companions, lane="guest"),
             Case("native-log-locks-and-peer-directories", _native_log_locks_and_peer_directories, lane="guest"),
             Case("native-oracle-locks-of-every-edition", _native_oracle_locks_of_every_edition, lane="guest"),
+            Case("persistence-campaign-lock", _persistence_campaign_lock, lane="guest"),
+            Case("idealloc-build-lock", _idealloc_build_lock, lane="guest"),
             Case("native-locks-fit-descriptor-limit", _native_locks_fit_descriptor_limit, lane="guest")]

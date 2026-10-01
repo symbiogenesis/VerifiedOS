@@ -13,6 +13,7 @@ last entry would compare two files that agree on everything they carry.
 import argparse
 import io
 import os
+import re
 import subprocess
 import tempfile
 from contextlib import redirect_stdout
@@ -193,6 +194,14 @@ def _comment_lexing_preserves_source_and_newlines() -> None:
     for source, expected in fixtures.items():
         ensure(proofs.strip_comments(source) == expected,
                f"comment boundaries changed for {source!r}")
+        # the same reading at the source's own offsets: each comment is blank space of
+        # its length, its line breaks where the source has them
+        kept = proofs.strip_comments(source, keep_offsets=True)
+        ensure(len(kept) == len(source)
+               and [i for i, c in enumerate(kept) if c == "\n"]
+               == [i for i, c in enumerate(source) if c == "\n"]
+               and kept.split() == expected.split(),
+               f"the offset-keeping reading of {source!r} is {kept!r}")
 
 
 def _sentences_end_outside_strings() -> None:
@@ -221,6 +230,87 @@ def _sentences_end_outside_strings() -> None:
     for source, expected in fixtures.items():
         got = proofs.sentences(source)
         ensure(got == expected, f"sentence boundaries changed for {source!r}: {got!r}")
+
+
+def _the_decoration_grammar_is_one_reading() -> None:
+    # The run a head pattern opens with and the walk a reader takes one decoration at a
+    # time are one grammar: each stops where the other does, a comment already read as a
+    # separator, and the walk says which decoration it read.
+    fixtures = {
+        "Time#[local]Lemma l": [("word", "Time"), ("attributes", "local")],
+        'Redirect"a""b"Succeed Lemma l': [("word", "Redirect"), ("word", "Succeed")],
+        'Profile "p" Fail\n#[deprecated(note="x. ] y")]\nLocal Program Definition d': [
+            ("word", "Profile"), ("word", "Fail"),
+            ("attributes", 'deprecated(note="x. ] y")'), ("word", "Local"),
+            ("word", "Program")],
+        "- Lemma l": [("bullet", "-")], "+ Lemma l": [("bullet", "+")],
+        "* Lemma l": [("bullet", "*")], "{ Lemma l": [("bullet", "{")],
+        "} Lemma l": [("bullet", "}")], "2: { Lemma l": [("bullet", "2: {")],
+        "[x]: { Lemma l": [("bullet", "[x]: {")],
+        "!: { Timeout 5AllocLimit 3 Mw Instructions Lemma l": [
+            ("bullet", "!: {"), ("word", "Timeout"), ("word", "AllocLimit"),
+            ("word", "Instructions")],
+        "AllocLimit 2 kw Lemma l": [("word", "AllocLimit")],
+        "Export Set Printing All": [("word", "Export")],
+        "TimeLemma l": [], "Local' l": [], "Timeout l": [], "Lemma l": [],
+    }
+    for source, expected in fixtures.items():
+        found, at = proofs.decorations(source)
+        got = [next((kind, (value or "").strip()) for kind, value in decoration.groupdict()
+                    .items() if value is not None) for decoration in found]
+        ensure(got == expected, f"the walk read {source!r} as {got!r}")
+        run = re.match(proofs.CONTROL_PREFIXES, source)
+        ensure(run is not None and run.end() == at,
+               f"the run and the walk stop apart over {source!r}")
+
+
+def _the_look_back_reads_only_decorations() -> None:
+    # The flag a command stands under is read from the full stop ending the sentence
+    # before, a string's aside, through the command's own line; a head with anything
+    # else between it and that full stop opens inside a sentence and is under no flag.
+    fixtures = (
+        ('Definition a := 0.\nFail #[deprecated(note="x. y")]\nDefinition b := 1.\n',
+         "Definition b", "Fail"),
+        ("Fail\nTime Definition b := 1.\n", "Time", "Fail"),
+        ("Definition a := 0. Succeed#[local]\nDefinition b := 1.\n", "Definition b",
+         "Succeed"),
+        ("Definition a := 0. Time\nDefinition b := 1.\n", "Definition b", None),
+        ("Definition a := 0.\nFail Check x\nDefinition b := 1.\n", "Definition b", None),
+    )
+    for code, head, flag in fixtures:
+        got = proofs.void_flag(code, code.index(head), proofs.sentence_ends(code))
+        ensure(got == flag, f"the look-back from {head!r} in {code!r} read {got!r}")
+
+
+def _a_bullet_starts_the_run_again() -> None:
+    # A bullet, a brace or a goal selector is a command of its own, and the locked
+    # compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps the declaration
+    # after it. So the walk starts again at each, the last standing first in what it
+    # returns, while the run a head pattern opens with still reads past them all.
+    fixtures = {
+        "Fail } Definition g": [("bullet", "}")],
+        "Succeed { Time Definition g": [("bullet", "{"), ("word", "Time")],
+        "Succeed 1: {\nDefinition g": [("bullet", "1: {")],
+        "#[local] Fail }\nLocal Definition g": [("bullet", "}"), ("word", "Local")],
+        "- Succeed Definition g": [("bullet", "-"), ("word", "Succeed")],
+    }
+    for source, expected in fixtures.items():
+        found, at = proofs.decorations(source)
+        got = [next((kind, (value or "").strip()) for kind, value in decoration.groupdict()
+                    .items() if value is not None) for decoration in found]
+        ensure(got == expected and source[at:] == "Definition g",
+               f"the walk read {source!r} as {got!r}, the command at {at}")
+        run = re.match(proofs.CONTROL_PREFIXES, source)
+        ensure(run is not None and run.end() == at,
+               f"the run and the walk stop apart over {source!r}")
+    # and the look-back reads the flag a declaration stands under the same way
+    proof = "Lemma l : True.\nProof.\n"
+    for lead, flag in (("Fail }\n", None), ("Fail } ", None), ("Succeed { ", None),
+                       ("Succeed 1: {\n", None), ("Fail\n}\n", None),
+                       ("- Succeed ", "Succeed"), ("{ Succeed\n", "Succeed")):
+        code = proof + lead + "Definition g := 1.\n"
+        got = proofs.void_flag(code, code.index("Definition g"), proofs.sentence_ends(code))
+        ensure(got == flag, f"the look-back over {lead!r} read {got!r}")
 
 
 def _a_library_require_is_not_ordered() -> None:
@@ -302,16 +392,26 @@ def _the_oracle_candidates_build_from_released_packages() -> None:
            == gallina.ORACLE_SWITCH
            and gallina.ORACLE_OCAML_VERSION in gallina.ORACLE_CANDIDATE_OCAML_VERSIONS,
            "the declared oracle switch is not one a candidate recipe builds")
+    released = re.compile(r"[a-z][a-z0-9-]*\.[0-9][0-9A-Za-z.+~-]*")
     for ocaml in gallina.ORACLE_CANDIDATE_OCAML_VERSIONS:
         steps = gallina.oracle_candidate_build(ocaml)
+        switch = gallina.oracle_candidate_switch(ocaml)
         words = [word for step in steps for word in step]
-        ensure(all(step[0] == "opam" and step[1] != "pin" for step in steps),
-               f"{ocaml}: every step is an opam command and none pins: {steps}")
-        ensure(not any("/" in word or "://" in word for word in words),
+        ensure(steps[0][:4] == ("opam", "switch", "create", switch)
+               and all(step[:2] == ("opam", "install") and f"--switch={switch}" in step
+                       for step in steps[1:]),
+               f"{ocaml}: the recipe creates the candidate's switch, then only installs "
+               f"into it: {steps}")
+        ensure([word for word in words if word.startswith("--repos=")]
+               == ["--repos=rocq-released,default"],
+               f"{ocaml}: the switch reads the released repository and the default "
+               f"alone: {steps}")
+        ensure(not any("/" in word or word.startswith((".", "~")) for word in words),
                f"{ocaml}: a candidate reads no path and no URL: {words}")
-        ensure(steps[0][:4] == ("opam", "switch", "create",
-                                gallina.oracle_candidate_switch(ocaml))
-               and f"--packages=ocaml-base-compiler.{ocaml}" in steps[0]
+        ensure(all(released.fullmatch(word)
+                   for step in steps[1:] for word in step[2:] if not word.startswith("-")),
+               f"{ocaml}: every package installed is a released version: {steps}")
+        ensure(f"--packages=ocaml-base-compiler.{ocaml}" in steps[0]
                and f"rocq-certirocq.{gallina.CERTIROCQ_VERSION}" in steps[-1]
                and f"ocamlfind.{env.OCAMLFIND_VERSION}" in steps[-1],
                f"{ocaml}: the recipe builds the rig's CertiRocq at that compiler: {steps}")
@@ -399,6 +499,28 @@ def _quickchick_rejects_other_versions() -> None:
                "the configured QuickChick release must pass the check")
 
 
+def _a_switch_environment_answers_no_question() -> None:
+    """`opam env` for a prover's switch, its output captured, reads no standard input and
+    inherits no answer from the caller's environment, in any case the caller names it,
+    so a format upgrade it would ask about is declined rather than left on a prompt the
+    caller cannot see or answered by the caller's settings; the rest of the environment,
+    the root among it, is passed on, and what it prints is read back."""
+    answers = {"OPAMYES": "1", "OpamConfirmLevel": "unsafe-yes", "OPAMROOT": "/elsewhere"}
+    printed = "OPAMSWITCH='s'; export OPAMSWITCH;\n"
+    with (patch.dict(os.environ, answers),
+          patch.object(gallina.subprocess, "run",
+                       return_value=subprocess.CompletedProcess(["opam"], 0, printed)) as run):
+        read = gallina.switch_env("s")
+    passed = run.call_args.kwargs.get("env") or {}
+    ensure(run.call_args.args[0][:2] == ["opam", "env"]
+           and run.call_args.kwargs.get("stdin") is subprocess.DEVNULL,
+           f"opam env's standard input is closed: {run.call_args}")
+    ensure(not {key.upper() for key in passed} & set(env.OPAM_ANSWERS)
+           and passed.get("OPAMROOT") == "/elsewhere",
+           f"opam env is passed no answer and keeps the root: {sorted(passed)}")
+    ensure(read == {"OPAMSWITCH": "s"}, f"what opam env prints is read back: {read}")
+
+
 def cases() -> list[Case]:
     return [
         Case("the waves follow the Requires", _waves_follow_requires),
@@ -414,6 +536,9 @@ def cases() -> list[Case]:
         Case("source index is one immutable snapshot", _source_index_is_one_immutable_snapshot),
         Case("comment lexing preserves source and newlines", _comment_lexing_preserves_source_and_newlines),
         Case("sentences end outside strings", _sentences_end_outside_strings),
+        Case("the decoration grammar is one reading", _the_decoration_grammar_is_one_reading),
+        Case("the look-back reads only decorations", _the_look_back_reads_only_decorations),
+        Case("a bullet starts the run again", _a_bullet_starts_the_run_again),
         Case("a library Require orders nothing", _a_library_require_is_not_ordered),
         Case("staging leaves compiled artifacts behind",
              _staging_leaves_the_compiled_artifacts_behind),
@@ -430,4 +555,6 @@ def cases() -> list[Case]:
         Case("the randomized harness compiles its closure alone",
              _the_randomized_harness_compiles_its_closure_alone),
         Case("QuickChick rejects other versions", _quickchick_rejects_other_versions),
+        Case("a switch's opam environment answers no question",
+             _a_switch_environment_answers_no_question),
     ]

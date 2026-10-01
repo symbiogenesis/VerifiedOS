@@ -209,8 +209,9 @@ plan's own `base_of`.
 
 The witnesses follow the [proof-artifact discipline](../../../README.md#the-proof-artifacts-themselves).
 The constructor's `equal-nested-disjoint` family, with numeric identities in the
-receipt's identity order, has its bases, span and load computed by `vm_compute` and
-checked by reflexivity, and the general theorem is instantiated at it; a two-object
+receipt's identity order, has its bases, span and load computed in Rocq's virtual
+machine where the kernel checks each equality at `Qed`, and the general theorem is
+instantiated at it; a two-object
 crossing family is refused by the laminar predicate and collides under the construction;
 a padded placement of the laminar family is feasible with span above its load; and the
 memory plan's own reference plan is checked to satisfy the bridge's hypotheses, its

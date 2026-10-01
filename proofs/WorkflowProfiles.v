@@ -18,6 +18,13 @@
 From Stdlib Require Import Bool List Arith Lia.
 Import ListNotations.
 
+(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
+   the goal in the tactic and again where the kernel checks its cast at Qed;
+   this casts eq_refl to the goal unevaluated, so only the check at Qed
+   evaluates it. *)
+Local Ltac vm_reflexivity :=
+  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
+
 Inductive App := Editor | Painter.
 Definition appeqb (a b : App) : bool :=
   match a, b with Editor, Editor | Painter, Painter => true | _, _ => false end.
@@ -495,29 +502,29 @@ Definition switch_to (a : App) : list Event :=
 Definition accepted (c : Edge) (s : State) (es : list Event) : bool :=
   match run c s es with Some _ => true | None => false end.
 Example successful_switch : accepted reference initial (switch_to Painter) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example immediate_repeated_switch_refused :
   accepted reference initial (switch_to Painter ++ switch_to Editor) = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example dwell_permits_repeated_switch :
   accepted reference initial (switch_to Painter ++ [Tick; Tick] ++ switch_to Editor) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example overlap_candidate_refused :
   state_ok reference (put initial Painter (appstate Restoring true
                 (durable (painter initial)) SavedDocument false false)) = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example restore_before_reuse_refused :
   accepted reference initial [Request Painter; Commit (checkpoint Editor EditedDocument); BeginRestore] = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example failed_commit_recovers_old_app :
   accepted reference initial [Request Painter; CommitFailed] = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example failed_restore_keeps_quarantine :
   match run reference initial [Request Painter; Commit (checkpoint Editor EditedDocument);
     Release cleared; BeginRestore; RestoreFailed] with
   | Some s => owns_arena (painter s) && match phase (painter s) with Retiring => true | _ => false end
   | None => false end = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Fault constructors generate one failed Q22a clause at a time. *)
 Definition missing_root_clause (n : nat) : Roots :=
@@ -533,7 +540,7 @@ Definition retirement_prefix : list Event :=
 Example every_incomplete_reuse_clause_refuses :
   forallb (fun n => negb (accepted reference initial
     (retirement_prefix ++ [Release (missing_root_clause n)]))) (seq 0 13) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Each altered certificate is otherwise the actual accepted pilot. *)
 Definition budgets (memory disk gap budget cp_cost : nat) : Edge :=
@@ -556,16 +563,16 @@ Example endpoint_safe_transition_store_overload :
 Proof. vm_compute; auto. Qed.
 Example continuing_service_gap_refused :
   accepted (budgets 128 48 5 12 2) initial [Request Painter] = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example work_overload_refused :
   accepted (budgets 128 48 4 11 2) initial [Request Painter] = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example unpriced_checkpoint_work_refused :
   accepted (budgets 128 48 4 12 0) initial [Request Painter] = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example pending_request_has_bounded_refusal :
   accepted reference initial [Request Painter; Request Editor] = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition invalid_checkpoint (n : nat) : Checkpoint :=
   {| cp_app := if n =? 0 then Painter else Editor; cp_data := EditedDocument;
@@ -578,16 +585,16 @@ Definition invalid_checkpoint (n : nat) : Checkpoint :=
 Example checkpoint_binding_and_authority_neighbors_refused :
   forallb (fun n => negb (accepted reference initial
     [Request Painter; Commit (invalid_checkpoint n)])) (seq 0 10) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example lost_unsaved_document_refused :
   accepted reference initial [Request Painter; Commit (checkpoint Editor SavedDocument)] = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example revoked_grant_and_old_session_not_restored :
   match run reference initial (retirement_prefix ++
     [Release cleared; BeginRestore; FinishRestore false]) with
   | Some s => negb (document_grant (painter s)) && negb (session_authority (painter s))
   | None => false end = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition crash_prefixes : list (list Event) :=
   map (fun n => firstn n (switch_to Painter) ++ [Crash; Recover cleared]) (seq 0 6).
@@ -597,19 +604,19 @@ Definition recovered (s : State) : bool :=
 Example every_crash_boundary_reaches_reserved_recovery :
   forallb (fun es => match run reference initial es with
     Some s => recovered s && state_ok reference s | None => false end) crash_prefixes = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example failed_restore_can_finish_retirement :
   accepted reference initial (retirement_prefix ++ [Release cleared; BeginRestore;
      RestoreFailed; Recover cleared]) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example recovery_is_not_successful_hibernation :
   accepted reference initial [Crash; Release cleared] = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example recovery_can_resume_durable_document :
   accepted reference initial (retirement_prefix ++ [Release cleared; BeginRestore;
      RestoreFailed; Recover cleared; Tick; Tick; Request Editor;
      BeginRestore; FinishRestore false]) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition round_trip : list Event :=
   switch_to Painter ++ [Tick; Tick] ++ switch_to Editor ++ [Tick; Tick].
@@ -624,18 +631,18 @@ Example exact_stage_and_storage_ledger :
     | None => (0, 0, 0, 0) end) (seq 0 6) =
   [(112, 32, 0, 2); (128, 48, 1, 0); (128, 48, 3, 0);
    (48, 48, 6, 0); (128, 48, 8, 0); (112, 32, 0, 0)].
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example failed_commit_resets_request_dwell :
   match run reference initial [Request Painter; CommitFailed] with
   | Some s => dwell s | None => 99 end = 0.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example recovery_does_not_close_an_active_app :
   accepted reference initial [Recover cleared] = false.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 Example every_incomplete_recovery_clause_refuses :
   forallb (fun n => negb (accepted reference initial
     [Crash; Recover (missing_root_clause n)])) (seq 0 13) = true.
-Proof. vm_compute; reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition alphabet : list Event :=
   [Request Editor; Request Painter; Freeze; ServeBackground;
@@ -675,13 +682,14 @@ Example generated_traces_preserve_resource_and_ownership_checks :
     Some s => state_ok reference s | None => false end) generated_corpus = true.
 Proof.
   apply forallb_forall; intros es H.
-  pose proof (generated_reachable_is_accepted 5 es H) as HA.
+  pose proof (generated_reachable_is_accepted 5 es H) as HA. clear H.
   unfold accepted in HA. destruct (run reference initial es) as [s|] eqn:E;
     try discriminate. exact (run_preserves_admission es reference initial s eq_refl E).
 Qed.
 Example generated_neighbors_are_refused :
   forallb (fun es => negb (accepted reference initial es)) generated_refusals = true.
 Proof.
-  apply forallb_forall; intros es H. apply in_flat_map in H as [prefix [_ H]].
-  apply negb_true_iff. now apply (generated_neighbor_is_refused prefix es).
+  apply forallb_forall; intros es H.
+  destruct (proj1 (in_flat_map refuted_neighbors generated_corpus es) H) as [prefix [_ Hn]].
+  clear H. apply negb_true_iff. now apply (generated_neighbor_is_refused prefix es).
 Qed.

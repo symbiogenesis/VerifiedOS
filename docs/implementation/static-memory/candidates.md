@@ -60,7 +60,9 @@ they are not compiler-correctness or source-to-model theorems.
 validates the baseline before building or invoking optional search. It returns
 the selected ordinary placement with the portable evidence, upstream diagnostic
 record and build identities. `latest-evidence.json` and `build-evidence.json`
-record the latest successful command and build in the guest directory. `logs`
+record the latest successful command and build in the guest directory, written
+only while the command holds that directory's lock; a `plan` refused the lock by
+a concurrent run returns its checked baseline unrecorded, naming the holder. `logs`
 reads bounded tails of setup and compilation logs through the guest command.
 Malformed or invalid baselines are refused; an optional generator failure can
 still return a successful checked plan by retaining its valid baseline.

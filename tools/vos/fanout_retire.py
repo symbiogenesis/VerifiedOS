@@ -2,15 +2,17 @@
 """Retire explicitly handed-off lanes, retaining outputs before non-forced removal."""
 
 import contextlib
+import fnmatch
 import hashlib
 import json
 import os
 import re
 import subprocess
 import sys
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
-from typing import cast
+from typing import NoReturn, cast
 
 from vos import env, receipts
 from vos.cli import worktree
@@ -87,13 +89,35 @@ def _clean(path: Path) -> None:
         raise RetirementError(f"worker is dirty, including untracked files: {path}")
 
 
+def _unlistable(error: OSError) -> NoReturn:
+    raise RetirementError(f"directory cannot be listed: {error.filename} "
+                          f"({error.strerror or error})") from error
+
+
+def _entries(directory: Path) -> list[str]:
+    """The names `directory` holds: none when it is absent or not a directory, which
+    holds no lock, and a refusal naming it and the cause when it cannot be listed."""
+    try:
+        with os.scandir(directory) as found:
+            return [entry.name for entry in found]
+    except (FileNotFoundError, NotADirectoryError):
+        return []
+    except OSError as error:
+        _unlistable(error)
+
+
 def _tree_safe(path: Path, *, checkout: bool = False) -> list[Path]:
-    """Do not traverse links; retain relative internal links with their real targets."""
+    """Do not traverse links; retain relative internal links with their real targets.
+
+    A directory that cannot be listed, whether for its permissions or for want of a
+    descriptor, refuses naming it and the cause: what it holds, a nested repository or
+    a producer's `*.lock`, is unknown, so passing over it would vouch for it.
+    """
     found: list[Path] = []
     if not path.exists():
         return found
     _plain(path)
-    for directory, dirs, files in os.walk(path, followlinks=False):
+    for directory, dirs, files in os.walk(path, onerror=_unlistable, followlinks=False):
         current = Path(directory)
         for name in dirs[:]:
             child = current / name
@@ -215,16 +239,28 @@ def _branch_safe(root: Path, record: LaneRecord, revision: str, *, removing: boo
     return True
 
 
-def _retain_host(path: Path, destination: Path) -> list[str]:
+def _retain_host(path: Path, destination: Path, retaining: Callable[[str], None]) -> None:
+    """Move each ignored output Git lists beneath `destination`, ancestors first,
+    passing each target to `retaining` before its move.
+
+    Git lists a directory whose own `.gitignore` ignores `*`, as ruff's cache does,
+    together with entries inside it, which travel with the directory: an entry beneath
+    one this pass moved is passed over, and any other target that exists refuses.
+    """
     ignored = _git(path, "ls-files", "--others", "--ignored", "--exclude-standard",
                    "--directory", "-z")
-    retained: list[str] = []
+    entries: list[Path] = []
     for raw in ignored.split(b"\0"):
         if not raw:
             continue
         relative = Path(os.fsdecode(raw).rstrip("/"))
         if relative.is_absolute() or ".." in relative.parts:
             raise RetirementError("Git returned an escaping ignored output")
+        entries.append(relative)
+    moved: set[Path] = set()
+    for relative in sorted(entries, key=lambda entry: entry.parts):
+        if not moved.isdisjoint(relative.parents):
+            continue
         source, target = path / relative, destination / "checkout" / relative
         _plain(source.parent)
         _plain(target)
@@ -233,9 +269,9 @@ def _retain_host(path: Path, destination: Path) -> list[str]:
         if target.exists() or target.is_symlink():
             raise RetirementError(f"retained output already exists; review before resuming: {target}")
         target.parent.mkdir(parents=True, exist_ok=True)
+        retaining(str(target))
         source.rename(target)
-        retained.append(str(target))
-    return retained
+        moved.add(relative)
 
 
 def _guest(record: LaneRecord, batch: str, root: Path) -> dict[str, object]:
@@ -313,11 +349,70 @@ def _owned_logs(logs: Path, lane: str, peers: list[str]) -> tuple[list[Path], li
 
 
 # The directories a producer flocks through their own descriptor, relative to the lane
-# root: the proof workspace (`vos.cli.proofs._hold`). Every other producer lock is a
-# `*.lock` file: `env.hold_lock` and `env.build_lock` lock `<target>.lock` beside their
-# target, and the toolchain installer scripts `.<name>.lock`. The tests hold this list
-# against every `flock` call site in the tools' Python and shell sources.
+# root: the proof workspace (`vos.cli.proofs._hold`). The other locks the tools' own
+# Python and shell producers take are `*.lock` files: `env.hold_lock` and
+# `env.build_lock` lock `<target>.lock` beside their target, and the toolchain
+# installer scripts `.<name>.lock`. A producer the tools run can lock files of its own
+# inside its output, and those are covered only through a `*.lock` its launcher holds
+# beside that output, and only while the launcher holds it: the curated emulator's
+# block-image lock through the `persistence.lock` a block persistence campaign holds
+# in its corpus directory, or under ctest through the lock its caller holds beside the
+# build tree or a directory containing it, and Cargo's `.cargo-lock` and
+# `.package-cache` through the locks an idealloc candidate run and Isla provisioning
+# hold. The tests classify every `flock` site in the tools' Python and in the
+# checkout's shell, C and C++ sources against this list, and fail on a POSIX record
+# lock, which a `flock` neither excludes nor is excluded by.
 _DIRECTORY_LOCKS = ("proof-gate",)
+
+
+def _native_locks(targets: list[tuple[Path, Path]], source: Path, *, oracle: bool) -> set[Path]:
+    """The locks `retain_native` holds through the move of `targets`, selected afresh."""
+    lock_paths: set[Path] = set()
+    for before, _ in targets:
+        # A root's own descriptor: the lane root, a log directory, or a log file.
+        lock_paths.add(before)
+        if before == source:
+            # Named rather than walked: the walk drops an internal link, and the proof
+            # gate flocks the link's resolved target under a name not in this list, so
+            # the link itself is selected, and refused as a redirecting lock.
+            lock_paths.update(source / name for name in _DIRECTORY_LOCKS
+                              if (source / name).exists() or (source / name).is_symlink())
+        if before.is_dir():
+            lock_paths.update(path for path in _tree_safe(before) if path.name.endswith(".lock"))
+        adjacent = env._lock_path(before)
+        if adjacent.exists() or adjacent.is_symlink():
+            lock_paths.add(adjacent)
+    # The oracle is shared across lanes; its owner locks the shared build tree,
+    # whereas its lane-specific log must travel with this lane. The tree is named for
+    # the oracle pin under a directory keyed by the Sail edition, and the log's name
+    # carries neither, so a log another checkout wrote is covered only by holding the
+    # lock of every tree of the family, under every edition and at the unkeyed
+    # spelling earlier checkouts locked, whichever pin it names. Names match
+    # case-sensitively, and a linked edition is listed through its link, whose locks
+    # `_plain` then refuses. `Path.glob` passes over a directory it cannot list, and
+    # the locks in it, so each directory is listed by `_entries`, which refuses.
+    if oracle:
+        family, build = env.ORACLE_TREE.rsplit("-", 1)[0], source.parent
+        names = _entries(build)
+        listed = [(build, names)]
+        listed.extend((build / name, _entries(build / name)) for name in names
+                      if fnmatch.fnmatchcase(name, "sail-*"))
+        for directory, found in listed:
+            for name in found:
+                oracle_lock = directory / name
+                if fnmatch.fnmatchcase(name, f"{family}-*.lock") and (
+                        oracle_lock.exists() or oracle_lock.is_symlink()):
+                    lock_paths.add(oracle_lock)
+    return lock_paths
+
+
+def _names_now(path: Path) -> tuple[int, int] | None:
+    """The file a selected lock path names now, or None once it is gone."""
+    try:
+        status = path.lstat()
+    except (FileNotFoundError, NotADirectoryError):
+        return None
+    return status.st_dev, status.st_ino
 
 
 def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
@@ -325,17 +420,33 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
     """Run only on the native guest; retain outputs while holding their live locks.
 
     Symlink files are renamed as links, never followed. Relative internal directory
-    links are retained with their targets; external links and mounted subtrees
-    refuse. The locks held non-blockingly through the move are exactly those a
-    producer can hold: each moved root's own descriptor and its `<name>.lock` beside it,
-    every `*.lock` entry beneath a moved directory, the lane's `_DIRECTORY_LOCKS`,
-    and the oracle family's tree locks when this lane's oracle log moves. No other
-    directory is opened, so the size of a tree (a private opam root holds tens of
-    thousands of directories) never meets the descriptor limit. A lock that cannot be
-    opened or taken, including for want of descriptors, and a move the filesystem
-    rejects refuse naming the path. Exact peer-colliding and unknown log layouts
-    remain in place with explicit deferred evidence. No source path is recursively
-    deleted.
+    links are retained with their targets; external links, mounted subtrees and a
+    `_DIRECTORY_LOCKS` entry that is a link refuse. The locks held non-blockingly
+    through the move are the locks the tools' own Python and shell producers take,
+    among them the `*.lock` a launcher holds beside the output of a tool-run producer
+    that locks files of its own: each moved root's own descriptor and its `<name>.lock`
+    beside it, every `*.lock` entry beneath a moved directory, the lane's
+    `_DIRECTORY_LOCKS`, and the oracle family's tree locks when this lane's oracle log
+    moves. Such a producer's own locks inside its output, such as the curated
+    emulator's block-image lock and Cargo's `.cargo-lock` and `.package-cache`, are
+    covered only through its launcher's lock. No other directory is opened, so the
+    number of directories in a tree (a private opam root holds tens of thousands)
+    never meets the descriptor limit; more `*.lock` entries than descriptors refuse,
+    naming the path. A file several selected paths name, such as a `*.lock` file a
+    lane's uv cache hard-links into an environment it installs, is locked once. Any
+    other lock that cannot be opened or taken, a directory the selection cannot list
+    (also for want of a descriptor once the locks are held) and a move the filesystem
+    rejects refuse, naming the path and the cause. With every selected lock held the
+    selection is repeated, and a lock that appeared, vanished or names another file
+    since refuses. Exact peer-colliding and unknown log layouts remain in place with
+    explicit deferred evidence. No source path is recursively deleted.
+
+    Residual: a producer that takes no lock, such as the corpus command's member
+    assembly and emulation, is not seen, nor is a tool-run producer that outlives the
+    process holding its launcher's lock. A producer that takes a new lock after the
+    repeated selection and before the rename is not seen, and one that opens its lock
+    after the rename recreates the lane root, because `env._open_lock` and
+    `proofs._hold` create missing parents.
     """
     if sys.platform == "win32":
         raise RetirementError("native output retention must run through the guest")
@@ -363,32 +474,21 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
     selected_logs, deferred = _owned_logs(logs, lane, peers)
     targets = [(source, destination / "lane")] if source.exists() else []
     targets.extend((path, destination / "logs" / path.relative_to(logs)) for path in selected_logs)
-    lock_paths: set[Path] = set()
     for before, after in targets:
         _plain(before)
         if before.is_mount() or after.exists() or after.is_symlink():
             raise RetirementError(f"native output or retained destination needs review: {before}, {after}")
-        # A root's own descriptor: the lane root, a log directory, or a log file.
-        lock_paths.add(before)
-        if before.is_dir():
-            lock_paths.update(path for path in _tree_safe(before) if path.name.endswith(".lock") or (
-                path.parent == source and path.name in _DIRECTORY_LOCKS))
-        adjacent = env._lock_path(before)
-        if adjacent.exists() or adjacent.is_symlink():
-            lock_paths.add(adjacent)
-    # The oracle is shared across lanes; its owner locks the shared build tree,
-    # whereas its lane-specific log must travel with this lane. The tree is named for
-    # the oracle pin under a directory keyed by the Sail edition, and the log's name
-    # carries neither, so a log another checkout wrote is covered only by holding the
-    # lock of every tree of the family, under every edition and at the unkeyed
-    # spelling earlier checkouts locked, whichever pin it names.
-    if logs / f"oracle-build-{lane}.log" in selected_logs:
-        family = env.ORACLE_TREE.rsplit("-", 1)[0]
-        for oracle_lock in (*source.parent.glob(f"sail-*/{family}-*.lock"),
-                            *source.parent.glob(f"{family}-*.lock")):
-            if oracle_lock.exists() or oracle_lock.is_symlink():
-                lock_paths.add(oracle_lock)
+    oracle = logs / f"oracle-build-{lane}.log" in selected_logs
+    lock_paths = _native_locks(targets, source, oracle=oracle)
     with contextlib.ExitStack() as stack:
+        # A lane-local uv cache hard-links the files it installs, `*.lock` files among
+        # them, so two paths can name one file, and flock treats each open file
+        # description on it independently: a second would be refused by retirement's
+        # own first, so each file is locked once, through the first path that opens
+        # it, and every descriptor stays open. `opened` records the file each path's
+        # descriptor opened.
+        opened: dict[Path, tuple[int, int]] = {}
+        held: set[tuple[int, int]] = set()
         for path in sorted(lock_paths):
             _plain(path)
             if path.is_symlink() or path.is_junction():
@@ -398,12 +498,26 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
             try:
                 fd = os.open(path, os.O_RDONLY)
                 stack.callback(os.close, fd)
-                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                status = os.fstat(fd)
+                opened[path] = status.st_dev, status.st_ino
+                if opened[path] not in held:
+                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    held.add(opened[path])
             except BlockingIOError as exc:
                 raise RetirementError(f"native output lock is active: {path}") from exc
             except OSError as exc:
                 raise RetirementError(f"native output lock cannot be taken: {path} "
                                       f"({exc.strerror or exc}; {len(lock_paths)} locks needed)") from exc
+        # A producer that created and took a lock after the first selection is not
+        # among those held, nor is one that replaced a selected lock with a new file
+        # and took that: with every selected lock held, the selection is repeated, and
+        # a lock that appeared, vanished or names another file meanwhile refuses.
+        again = _native_locks(targets, source, oracle=oracle)
+        changed = (lock_paths ^ again) | {path for path in lock_paths & again
+                                          if _names_now(path) != opened[path]}
+        if changed:
+            raise RetirementError("native output locks changed while retirement took them: "
+                                  + ", ".join(str(path) for path in sorted(changed)))
         for before, after in targets:
             _plain(before)
             _plain(after)
@@ -422,7 +536,10 @@ def retire(root: Path, record: LaneRecord, revision: str, archive_root: Path) ->
 
     A durable receipt precedes removal. If interrupted after Git removes the checkout,
     a retry recognizes that receipt and still checks branch identity and ancestry.
-    Refusals preserve everything that has not already been safely archived.
+    The receipt names each host output before it moves, and a retry keeps the native
+    outputs an earlier pass moved, so a retirement interrupted while retaining still
+    records each output once. Refusals preserve everything that has not already been
+    safely archived.
     """
     validate_record(asdict(record))
     if not record.owned:
@@ -444,11 +561,28 @@ def retire(root: Path, record: LaneRecord, revision: str, archive_root: Path) ->
     destination.mkdir(parents=True, exist_ok=True)
     if present:
         _write(receipt_path, receipt)
-        receipt["native"] = _guest(record, batch, root)
+        # A resumed native pass no longer finds the outputs an earlier one moved: they
+        # stay recorded, ahead of those this pass moves, each once.
+        earlier = receipt.get("native")
+        native = _guest(record, batch, root)
+        if isinstance(earlier, dict) and earlier.get("retained"):
+            kept = cast(list[str], earlier["retained"])
+            added = [target for target in cast(list[str], native.get("retained", [])) if target not in kept]
+            native = {**native, "retained": kept + added}
+        receipt["native"] = native
         _write(receipt_path, receipt)
-        retained = list(cast(list[str], receipt.get("retained", [])))
-        retained.extend(_retain_host(Path(record.path), destination))
-        receipt["retained"] = retained
+        # Each host output is recorded once, before it moves, so a pass interrupted on
+        # either side of a rename resumes with its target named, and an output still in
+        # place moves to that target then; a target whose output had gone is dropped.
+        retained = cast(list[str], receipt.setdefault("retained", []))
+
+        def retaining(target: str) -> None:
+            if target not in retained:
+                retained.append(target)
+                _write(receipt_path, receipt)
+
+        _retain_host(Path(record.path), destination, retaining)
+        receipt["retained"] = [target for target in retained if os.path.lexists(target)]
         _check_identity(root, record, revision)
         _branch_safe(root, record, revision, removing=True)
         receipt["phase"] = "removing"

@@ -305,13 +305,16 @@ is open.
 ## Acceptance evidence
 
 Every set below is the lines beginning `%Error` in the curated arm's output of
-`python tools/run.py rtl elaborate`, under Verilator 5.052 in the lane derived
-from this checkout, with `upstream/cva6-cheri` at the registry's pin and
-`upstream/opentitan` at its gitlink populated under a cone sparse checkout of
-`hw/ip/prim` and `hw/ip/prim_generic`. The elaborator's own
-`Exiting due to N error(s)` summary line is not one of them. The first two sets
-are name-resolution diagnostics, the elaborator stopping at that stage before
-any member read, and the third is the member layer behind them.
+`python tools/run.py rtl elaborate` under Verilator 5.052, taken in a lane
+derived from this checkout with `upstream/cva6-cheri` at the pin the registry
+then stated and the primitives read from `upstream/opentitan` at the gitlink
+then recorded, populated under a cone sparse checkout of `hw/ip/prim` and
+`hw/ip/prim_generic`. The elaborator's own `Exiting due to N error(s)` summary
+line is not one of them. The first two sets are name-resolution diagnostics,
+the elaborator stopping at that stage before any member read, and the third is
+the member layer behind them. The fourth, after seam 4, is empty; its paragraph
+names the commit it was taken at and the primitive source `rtl elaborate` reads
+now.
 
 **Before seam 3**, at the seam-2 registry: **44 diagnostics** over eight files,
 `branch_unit.sv` 11, `cheri_unit.sv` 11, `issue_read_operands.sv` 9,
@@ -353,32 +356,44 @@ delta deletion row and is resolved by the seam 4 decisions; the load/store
 unit's store-level read is the one whose model reading is a trap rather than a
 deletion.
 
-**After seam 4**: **0 diagnostics**. The registry stages fourteen sources at 120
+**After seam 4**, at `a348c81e` with `upstream/cva6-cheri` and
+`upstream/opentitan` at the gitlinks that commit records, the latter supplying
+the primitives: **0 diagnostics**. The registry stages fourteen sources at 120
 edits and 126 guarded replacements, the edits' match counts summing to more than
 the edits because one root rename matches seven reset sites. `rtl elaborate`
-completes both arms and reports the curated arm at
+completed both arms and reported the curated arm at
 52 module kinds, 275 cells and 4,584 declared variables against the baseline's
 63, 416 and 5,325, eleven structures the disabling parameters remove
 (`amo_buffer`, `bht`, `btb`, `compressed_decoder`, `cva6_mmu`, `cva6_ptw`,
 `cva6_shared_tlb`, `cva6_tlb`, `perf_counters`, `pmp_entry`, `ras`), none
-displaced, introduced, unexplained or inert. These counts are the tool's JSON
-inventory under 5.052 and are not comparable with the XML figures R1 took under
-5.032.
+displaced, introduced, unexplained or inert. `rtl elaborate` reads its
+primitives from the tree `upstream/mocha` vendors under
+`hw/vendor/lowrisc_ip/ip`, and the runs recorded in `152762ab` and `d3f0737a`,
+with `upstream/cva6-cheri` and `upstream/mocha` at the gitlinks both commits
+record, report the same kinds, cells and removed structures at 4,582 and 5,324
+declared variables. The reviewed-pin refresh in `9e6e78d7` left both counts
+unchanged, its recorded runs reporting 4,584 and 5,325. `13a1b8a6` replaced the
+OpenTitan primitive edition with Mocha's, which accounts for one variable in
+each arm, and `7b2ae30d`'s removal of `perms_narrow`'s local `code` accounts for
+the curated arm's other. These counts are the tool's JSON inventory under 5.052
+and are not comparable with the XML figures R1 took under 5.032.
 
-The curated arm is not warning-free. Re-running the tool's own curated
-invocation over its own composed file list and staged sources keeps the output
-the tool discards on success: **277 lines beginning `%Warning`**, `WIDTHEXPAND`
-110, `SELRANGE` 79, `WIDTHTRUNC` 78, `UNSIGNED` 7, `CMPCONST` 2 and `ASCRANGE` 1.
-Of the `SELRANGE` lines, 77 select index 1 of a one-entry dimension in the issue,
-commit and realignment paths at one issue port, and 2 read 64 bits of the
-instruction cache's 4-bit user field; none reads `[127:64]` of the 65-bit
-memory form, the upper-half arms being deleted. The next
-layer's integer-view class has three elaborator predicates, each a floor of
-candidates: **20** selects of bits `[63:0]` or `[63:2]` of a 68-bit variable,
-at `branch_unit.sv` 8, `csr_regfile.sv` 5, `cva6.sv` 4, `ex_stage.sv` 2 and
-`issue_read_operands.sv` 1; **25**
-`WIDTHTRUNC` lines whose right side is 68 bits, and **33** `WIDTHEXPAND` lines
-whose target is 68 bits. The elaborator folds a select of a 68-bit member of a
-wider packed structure into a select of the structure, so reads such as the
-branch unit's `fu_data_i.operand_a[VLEN-1:0]` and the store unit's
-`lsu_ctrl_i.data[XLEN-1:0]` are found by reading and not by the first predicate.
+The curated arm at `a348c81e` was not warning-free. Re-running the tool's own
+curated invocation there over its own composed file list and staged sources kept
+the output the tool discards on success: **277 lines beginning `%Warning`**,
+`WIDTHEXPAND` 110, `SELRANGE` 79, `WIDTHTRUNC` 78, `UNSIGNED` 7, `CMPCONST` 2 and
+`ASCRANGE` 1. Of the `SELRANGE` lines, 77 selected index 1 of a one-entry
+dimension in the issue, commit and realignment paths at one issue port, and 2
+read 64 bits of the instruction cache's 4-bit user field; none read `[127:64]`
+of the 65-bit memory form, the upper-half arms being deleted. In that run the
+three elaborator predicates of the next layer's integer-view class, each a
+floor of candidates, found **20** selects of bits `[63:0]` or `[63:2]` of a
+68-bit variable, at `branch_unit.sv` 8, `csr_regfile.sv` 5, `cva6.sv` 4,
+`ex_stage.sv` 2 and `issue_read_operands.sv` 1; **25** `WIDTHTRUNC` lines whose
+right side is 68 bits, and **33** `WIDTHEXPAND` lines whose target is 68 bits.
+No recorded run has taken these counts again, at the refreshed pins or under
+Mocha's primitives, whose `prim_ram_1p` differs from the edition read there.
+The elaborator folds a select of a 68-bit member of a wider packed structure
+into a select of the structure, so reads such as the branch unit's
+`fu_data_i.operand_a[VLEN-1:0]` and the store unit's `lsu_ctrl_i.data[XLEN-1:0]`
+are found by reading and not by the first predicate.

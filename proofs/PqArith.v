@@ -52,6 +52,13 @@ From Stdlib Require Import ZArith List Arith Lia.
 
 Open Scope Z_scope.
 
+(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
+   the goal in the tactic and again where the kernel checks its cast at Qed;
+   this casts eq_refl to the goal unevaluated, so only the check at Qed
+   evaluates it. *)
+Local Ltac vm_reflexivity :=
+  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
+
 (* -------------------------------------------------------------------------
    Helpers over the standard list library, in the idiom the sibling
    artifacts use: a boolean where a Prop would need extensionality, and a
@@ -424,21 +431,21 @@ Definition round_trips (r : Ring) (a : list Z) : bool :=
    ------------------------------------------------------------------------- *)
 
 Example the_mlkem_ring_is_well_formed : ring_wf mlkem_ring = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_mldsa_ring_is_well_formed : ring_wf mldsa_ring = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the two are different rings rather than one written twice: the moduli
    differ, the layer counts differ, and the residue rings the transform
    leaves have different degrees. *)
 Example the_two_rings_leave_residue_rings_of_different_degree :
   (ring_leaf_degree mlkem_ring, ring_leaf_degree mldsa_ring) = (2, 1).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_two_rings_split_into_different_numbers_of_residues :
   (ring_split mlkem_ring, ring_split mldsa_ring) = (128, 256).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* A root of the wrong order fails the well-formedness check, which is what
    keeps that check from holding of everything. *)
@@ -448,7 +455,7 @@ Definition mlkem_ring_with_a_square_root : Ring :=
 
 Example a_root_of_half_the_order_is_refused :
   ring_wf mlkem_ring_with_a_square_root = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition mlkem_ring_with_a_wrong_inverse_scale : Ring :=
   {| ring_degree := 256; ring_layers := 7; ring_modulus := 3329;
@@ -456,7 +463,7 @@ Definition mlkem_ring_with_a_wrong_inverse_scale : Ring :=
 
 Example a_scaling_that_does_not_invert_the_layer_count_is_refused :
   ring_wf mlkem_ring_with_a_wrong_inverse_scale = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -514,11 +521,11 @@ Qed.
 
 Example the_transform_round_trips_at_the_mlkem_ring :
   forallb (round_trips mlkem_ring) (probes (ring_degree mlkem_ring)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_transform_round_trips_at_the_mldsa_ring :
   forallb (round_trips mldsa_ring) (probes (ring_degree mldsa_ring)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The probes are pinned by their own contents and their order, so a
    weakening inside one of them moves a statement here rather than leaving a
@@ -526,12 +533,35 @@ Proof. vm_compute. reflexivity. Qed.
 Example the_probe_polynomials_are_these :
   map (digest_of 3329) (probes 256)
   = 2970 :: 631 :: 3300 :: 3080 :: 939 :: 2971 :: 527 :: 2244 :: 1530 :: 3130 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example there_are_ten_probe_polynomials_of_the_full_degree :
   (length (probes 256),
    forallb (fun p => Nat.eqb (length p) 256) (probes 256)) = (10%nat, true).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
+
+(* The transforms and the product several examples below read at ML-KEM's
+   ring, each evaluated once into a literal and equated to its source. The
+   compiling machine keeps a constant's value from one example to the next,
+   and the kernel's recheck does not: each example rewritten through these
+   lemmas reads the literal where it would otherwise transform or multiply
+   the probes again. Each lemma unfolds its literal before the cast: the
+   recheck compares a computation with an unfolded literal several times
+   faster than with the constant that names it. *)
+Definition ramp_ntt_literal : list Z := Eval vm_compute in ntt mlkem_ring (ramp_poly 256).
+Definition stride_ntt_literal : list Z := Eval vm_compute in ntt mlkem_ring (stride_poly 256).
+Definition ramp_stride_product_literal : list Z :=
+  Eval vm_compute in negacyclic 3329 256 (ramp_poly 256) (stride_poly 256).
+
+Lemma ramp_ntt_is_its_literal : ntt mlkem_ring (ramp_poly 256) = ramp_ntt_literal.
+Proof. unfold ramp_ntt_literal. vm_reflexivity. Qed.
+
+Lemma stride_ntt_is_its_literal : ntt mlkem_ring (stride_poly 256) = stride_ntt_literal.
+Proof. unfold stride_ntt_literal. vm_reflexivity. Qed.
+
+Lemma ramp_stride_product_is_its_literal :
+  negacyclic 3329 256 (ramp_poly 256) (stride_poly 256) = ramp_stride_product_literal.
+Proof. unfold ramp_stride_product_literal. vm_reflexivity. Qed.
 
 (* An inverse with no final scaling is not an inverse: it returns 2^L times
    the input, which is the input only where the input is zero. *)
@@ -542,7 +572,7 @@ Definition intt_without_the_final_scale (r : Ring) (a : list Z) : list Z :=
 Example an_inverse_with_no_final_scaling_is_not_an_inverse :
   poly_eqb (intt_without_the_final_scale mlkem_ring
               (ntt mlkem_ring (ramp_poly 256))) (ramp_poly 256) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. rewrite ramp_ntt_is_its_literal. vm_reflexivity. Qed.
 
 (* And it is exactly the scaling it is missing, which is what holds it to the
    single difference it exists to exhibit. *)
@@ -550,7 +580,7 @@ Example the_missing_scaling_is_the_layer_count :
   poly_eqb (vscale 3329 (ring_split mlkem_ring) (ramp_poly 256))
            (intt_without_the_final_scale mlkem_ring
               (ntt mlkem_ring (ramp_poly 256))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. rewrite ramp_ntt_is_its_literal. vm_reflexivity. Qed.
 
 (* An inverse using the forward root at each layer instead of its inverse. It
    is the same recursion, the same scaling and the same splits. *)
@@ -573,7 +603,7 @@ Definition intt_forward_root (r : Ring) (a : list Z) : list Z :=
 Example an_inverse_using_the_forward_root_is_not_an_inverse :
   poly_eqb (intt_forward_root mlkem_ring (ntt mlkem_ring (ramp_poly 256)))
            (ramp_poly 256) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. rewrite ramp_ntt_is_its_literal. vm_reflexivity. Qed.
 
 (* It agrees with the inverse wherever the root is its own inverse, which is
    the first layer's exponent alone at the top of the recursion; what
@@ -581,7 +611,7 @@ Proof. vm_compute. reflexivity. Qed.
 Example the_forward_root_inverse_agrees_at_the_zero_polynomial :
   poly_eqb (intt_forward_root mlkem_ring (ntt mlkem_ring (zero_poly 256)))
            (zero_poly 256) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* A transform whose two children both add, which is the defect a butterfly
    written once and reused invites. *)
@@ -604,7 +634,7 @@ Definition ntt_both_children_add (r : Ring) (a : list Z) : list Z :=
 Example a_transform_whose_children_both_add_is_not_invertible :
   poly_eqb (intt mlkem_ring (ntt_both_children_add mlkem_ring (ramp_poly 256)))
            (ramp_poly 256) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -664,11 +694,26 @@ Definition leaf_roots_other_order (r : Ring) : list Z :=
 Definition mul_ntt_quadratic_other_order (r : Ring) (a b : list Z) : list Z :=
   basemul_quadratic (ring_modulus r) (leaf_roots_other_order r) a b.
 
+(* The other order's transforms of the same two probes, shared as the ones
+   above are. *)
+Definition ramp_ntt_other_order_literal : list Z :=
+  Eval vm_compute in ntt_other_order mlkem_ring (ramp_poly 256).
+Definition stride_ntt_other_order_literal : list Z :=
+  Eval vm_compute in ntt_other_order mlkem_ring (stride_poly 256).
+
+Lemma ramp_ntt_other_order_is_its_literal :
+  ntt_other_order mlkem_ring (ramp_poly 256) = ramp_ntt_other_order_literal.
+Proof. unfold ramp_ntt_other_order_literal. vm_reflexivity. Qed.
+
+Lemma stride_ntt_other_order_is_its_literal :
+  ntt_other_order mlkem_ring (stride_poly 256) = stride_ntt_other_order_literal.
+Proof. unfold stride_ntt_other_order_literal. vm_reflexivity. Qed.
+
 Example the_other_residue_order_round_trips_too :
   forallb (fun a => poly_eqb (intt_other_order mlkem_ring
                                 (ntt_other_order mlkem_ring a)) a)
           (probes 256) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_other_residue_order_computes_the_same_product :
   poly_eqb (intt_other_order mlkem_ring
@@ -676,12 +721,19 @@ Example the_other_residue_order_computes_the_same_product :
                  (ntt_other_order mlkem_ring (ramp_poly 256))
                  (ntt_other_order mlkem_ring (stride_poly 256))))
            (negacyclic 3329 256 (ramp_poly 256) (stride_poly 256)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof.
+  rewrite ramp_ntt_other_order_is_its_literal, stride_ntt_other_order_is_its_literal,
+    ramp_stride_product_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 Example the_two_residue_orders_are_different_transforms :
   poly_eqb (ntt mlkem_ring (ramp_poly 256))
            (ntt_other_order mlkem_ring (ramp_poly 256)) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof.
+  rewrite ramp_ntt_is_its_literal, ramp_ntt_other_order_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 (* And mixing them is wrong, which is what makes the order a contract between
    two implementations rather than a presentation detail: this file's leaf
@@ -692,7 +744,11 @@ Example one_order_s_leaf_roots_against_the_other_order_s_transform_is_wrong :
                  (ntt_other_order mlkem_ring (ramp_poly 256))
                  (ntt_other_order mlkem_ring (stride_poly 256))))
            (negacyclic 3329 256 (ramp_poly 256) (stride_poly 256)) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof.
+  rewrite ramp_ntt_other_order_is_its_literal, stride_ntt_other_order_is_its_literal,
+    ramp_stride_product_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -727,14 +783,19 @@ Example the_two_rings_multiply_under_two_different_contracts :
                                 (ntt mldsa_ring f) (ntt mldsa_ring g)))
             dsa_product)
   = (true, false, true, false).
-Proof. vm_compute. reflexivity. Qed.
+Proof.
+  intros f g kem_product dsa_product. unfold kem_product. unfold f, g.
+  rewrite ramp_ntt_is_its_literal, stride_ntt_is_its_literal,
+    ramp_stride_product_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 (* Each ring has one leaf root per residue ring, and that count is what
    decides which contract applies. *)
 Example each_ring_has_one_leaf_root_per_residue_ring :
   (length (leaf_roots mlkem_ring), length (leaf_roots mldsa_ring))
   = (128%nat, 256%nat).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Every leaf root is of odd exponent, which is what makes a leaf's modulus
    irreducible over the residues above it and the split stop where it does. *)
@@ -742,7 +803,7 @@ Example every_leaf_exponent_is_odd :
   forallb (fun e => Z.eqb (e mod 2) 1)
           (leaf_exponents (ring_split mlkem_ring) (ring_layers mlkem_ring)
                           (ring_top_exponent mlkem_ring)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The defining polynomial is X^n + 1 and not X^n - 1, which the transform
    decides: the cyclic convolution is a different product and the transform
@@ -756,7 +817,12 @@ Example the_ring_is_negacyclic_and_the_transform_computes_that_product :
                                 (ntt mlkem_ring f) (ntt mlkem_ring g)))
             wrapped)
   = (false, false).
-Proof. vm_compute. reflexivity. Qed.
+Proof.
+  intros f g wrapped. unfold f, g.
+  rewrite ramp_ntt_is_its_literal, stride_ntt_is_its_literal,
+    ramp_stride_product_is_its_literal.
+  vm_reflexivity.
+Qed.
 
 (* And the two products agree wherever nothing wraps, which holds the cyclic
    construction to the single difference it exists to exhibit: at two
@@ -767,7 +833,7 @@ Example the_two_convolutions_agree_where_nothing_wraps :
                               (4 :: 5 :: 0 :: 0 :: 0 :: 0 :: 0 :: 0 :: nil))
            (cyclic 3329 8 (1 :: 2 :: 3 :: 0 :: 0 :: 0 :: 0 :: 0 :: nil)
                           (4 :: 5 :: 0 :: 0 :: 0 :: 0 :: 0 :: 0 :: nil)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -788,20 +854,20 @@ Definition bounded_poly (d : nat) (a : list Z) : list Z :=
 Example packing_and_unpacking_are_inverse_at_every_width :
   forallb (fun d => encodes_and_decodes d (bounded_poly d (ramp_poly 256)))
           packing_widths = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_packed_length_is_the_width_times_the_degree_over_eight :
   map (fun d => length (byte_encode d (bounded_poly d (ramp_poly 256))))
       packing_widths
   = map (encoded_bytes mlkem_ring) packing_widths.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* An encoder one bit narrow round trips against nothing: its own decoder at
    the declared width reads the fields back misaligned. *)
 Example an_encoder_one_bit_narrow_is_refused :
   poly_eqb (byte_decode 12 (byte_encode_short 12 (bounded_poly 12 (ramp_poly 256))))
            (bounded_poly 12 (ramp_poly 256)) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And it is the top bit it drops, which is what holds it to that single
    difference: at coefficients below half the width the two encoders would
@@ -811,7 +877,7 @@ Example the_narrow_encoder_packs_fewer_bytes :
   (length (byte_encode 12 (bounded_poly 12 (ramp_poly 256))),
    length (byte_encode_short 12 (bounded_poly 12 (ramp_poly 256))))
   = (384%nat, 352%nat).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The other bit order round trips exactly as well, which is the whole of why
    no check here decides between them. *)
@@ -820,14 +886,14 @@ Example the_other_bit_order_round_trips_too :
                                 (byte_encode_be d (bounded_poly d (ramp_poly 256))))
                              (bounded_poly d (ramp_poly 256)))
           packing_widths = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the two arms produce different bytes, so the choice is observable on
    the wire and unobservable in this file. *)
 Example the_two_bit_orders_produce_different_bytes :
   poly_eqb (byte_encode 12 (bounded_poly 12 (ramp_poly 256)))
            (byte_encode_be 12 (bounded_poly 12 (ramp_poly 256))) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -846,13 +912,13 @@ Example compression_error_is_inside_half_a_step_at_every_residue :
                                             (compression_bound 3329 d))
                             (residues 3329))
           compression_widths = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_truncating_compression_leaves_the_bound :
   forallb (fun x => Z.leb (truncation_error 3329 11 x)
                           (compression_bound 3329 11))
           (residues 3329) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And truncation agrees with rounding at most residues and not at all of
    them, which is what makes it the weakening it is rather than a different
@@ -866,7 +932,7 @@ Example truncation_agrees_at_most_residues_and_not_at_all_of_them :
   forallb (fun d => andb (Z.ltb 0 (truncation_agreement 3329 d))
                          (Z.ltb (truncation_agreement 3329 d) 3329))
           compression_widths = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The one-bit compression is the message encoding, and what it decides is
    the sign of the centred representative against a quarter of the modulus.
@@ -876,11 +942,11 @@ Example one_bit_compression_is_the_quarter_modulus_test :
   forallb (fun x => Z.eqb (compress 3329 1 x)
                           (if Z.leb (Z.abs (centred 3329 x)) 832 then 0 else 1))
           (residues 3329) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example decompressing_one_bit_gives_zero_or_half_the_modulus :
   (decompress 3329 1 0, decompress 3329 1 1) = (0, 1665).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -891,25 +957,25 @@ Proof. vm_compute. reflexivity. Qed.
 
 Example the_centred_representative_is_symmetric_about_zero :
   forallb (fun x => Z.leb (2 * Z.abs (centred 3329 x)) 3328) (residues 3329) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_centred_representative_agrees_with_its_residue :
   forallb (fun x => Z.eqb ((centred 3329 x) mod 3329) x) (residues 3329) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_centred_representative_at_the_mldsa_interval_ends :
   (centred 8380417 0, centred 8380417 4190208, centred 8380417 4190209,
    centred 8380417 8380416)
   = (0, 4190208, -4190208, -1).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_infinity_norm_reads_the_largest_centred_magnitude :
   norm_inf 8380417 (0 :: 5 :: 8380416 :: 4190208 :: nil) = 4190208.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_infinity_norm_of_a_zero_polynomial_is_zero :
   norm_inf 8380417 (zero_poly 256) = 0.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
@@ -934,20 +1000,20 @@ Example a_polynomial_is_not_equal_to_a_longer_one :
 Proof. reflexivity. Qed.
 
 Example the_empty_exponent_is_one : pow_mod 3329 17 0 = 1.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_first_power_is_the_base : pow_mod 3329 17 1 = 17.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example squaring_and_multiplying_agrees_with_repeated_multiplication :
   map (pow_mod 3329 17) (0 :: 1 :: 2 :: 3 :: 4 :: 5 :: nil)
   = 1 :: 17 :: 289 :: 1584 :: 296 :: 1703 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_root_has_order_exactly_twice_the_split :
   (pow_mod 3329 17 (ring_order mlkem_ring), pow_mod 8380417 1753 (ring_order mldsa_ring))
   = (1, 1).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_chunking_of_an_empty_string_is_empty :
   chunk_of 8 8 (nil : list bool) = nil.
@@ -959,35 +1025,35 @@ Proof. reflexivity. Qed.
 
 Example the_power_of_two_is_the_width :
   map two_pow ((0 :: 1 :: 8 :: 12 :: nil)%nat) = 1 :: 2 :: 256 :: 4096 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_widths_the_checks_run_at :
   (packing_widths, compression_widths)
   = ((1 :: 4 :: 5 :: 6 :: 10 :: 11 :: 12 :: 13 :: nil)%nat,
      (1 :: 4 :: 5 :: 10 :: 11 :: nil)%nat).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_negacyclic_shift_moves_the_top_coefficient_down_with_its_sign :
   (shift_negacyclic 3329 (1 :: 2 :: 3 :: nil),
    shift_cyclic 3329 (1 :: 2 :: 3 :: nil))
   = (3326 :: 1 :: 2 :: nil, 3 :: 1 :: 2 :: nil).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_compression_bounds_at_those_widths :
   map (compression_bound 3329) compression_widths
   = 833 :: 105 :: 53 :: 2 :: 1 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_negation_of_zero_is_zero : vneg 3329 (0 :: nil) = 0 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_vector_norm_reads_the_largest_of_its_polynomials :
   norm_inf_vec 8380417 ((0 :: 5 :: nil) :: (8380416 :: 9 :: nil) :: nil) = 9.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_residue_enumeration_is_the_whole_modulus :
   length (residues 3329) = 3329%nat.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
