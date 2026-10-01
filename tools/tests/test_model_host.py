@@ -917,10 +917,13 @@ def _copy_regular_file_reads_no_further_than_verified() -> None:
     verified length and one byte, and leaves no destination: a donor file extended
     then, a sparse terabyte among them, is not read to its end. The growth is
     simulated: the descriptor's `fstat` answers the verified length of a file that is
-    longer. Reads are counted through the reader `os.fdopen` hands the copy."""
+    longer. Reads are counted through the reader `os.fdopen` hands the copy. A second run
+    reads in chunks of the verified length, so the verified bytes end at a chunk's
+    boundary and the one byte past them takes a read of its own, which the copy must
+    still make to find the growth."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
-        source, kept = root / "rv64ui-p-add", root / "copy"
+        source = root / "rv64ui-p-add"
         source.write_bytes(b"\x7fELF")
         verified = _MODEL._regular_digest(source)
         with source.open("ab") as stream:
@@ -931,17 +934,26 @@ def _copy_regular_file_reads_no_further_than_verified() -> None:
             return _CountedReader(cast("IO[bytes]", os.fdopen(fd, mode, buffering)), counts)
 
         def fstat(fd: int) -> os.stat_result:
-            held = tuple(os.fstat(fd))
-            return os.stat_result((*held[:6], verified.size, *held[7:]))
+            # with its times to the nanosecond, so a copy that misses the growth returns
+            # as it would over a real file, rather than failing as it keeps them
+            found = os.fstat(fd)
+            held = tuple(found)
+            return os.stat_result((*held[:6], verified.size, *held[7:]),
+                                  {"st_atime_ns": found.st_atime_ns,
+                                   "st_mtime_ns": found.st_mtime_ns})
 
         grown = SimpleNamespace(**{**vars(os), "fdopen": fdopen, "fstat": fstat})
-        with patch.object(_MODEL, "os", grown):
-            said = _refused(partial(_MODEL._copy_regular_file, source, kept, verified))
-        ensure(f"{source} is longer than the 4 bytes that verified" in said,
-               f"the refusal names the source, got {said!r}")
-        ensure(0 < sum(counts) <= verified.size + 1,
-               f"no more than the verified length and one byte is read, got {counts}")
-        ensure(not kept.exists(), "and nothing is written for it")
+        for chunk in (_MODEL._COPY_CHUNK, verified.size):
+            counts.clear()
+            kept = root / f"copy-{chunk}"
+            with patch.object(_MODEL, "os", grown), patch.object(_MODEL, "_COPY_CHUNK", chunk):
+                said = _refused(partial(_MODEL._copy_regular_file, source, kept, verified))
+            ensure(f"{source} is longer than the 4 bytes that verified" in said,
+                   f"the refusal names the source in {chunk}-byte reads, got {said!r}")
+            ensure(sum(counts) == verified.size + 1,
+                   f"the verified length and one byte are read, and no more, in {chunk}-byte "
+                   f"reads, got {counts}")
+            ensure(not kept.exists(), f"and nothing is written for it in {chunk}-byte reads")
 
 
 def _copy_regular_file_refuses_a_fifo_and_a_link() -> None:
