@@ -26,11 +26,11 @@ another, a member that cannot be read or an archive larger than the route's boun
 refusing it; each member is held to the staging allowlist and each
 recorded input to the run. It re-joins the artifacts and holds the result to the run's
 own report, prints the verdict with the run's URL, tested revisions, runner images and
-step durations, and says whether the run is closing evidence: whether the route inputs
-at the candidate's tested revision, and the route's own files at the dispatching
-commit, are unchanged at the closing parent, and, given the closing commit, whether its
-own diff touches only the tracked lock at the export's SHA-256 and the paths the
-owning item's closing landing names.
+step durations and peaks, and says whether the run is closing evidence: whether the
+route inputs at the candidate's tested revision, and the route's own files at the
+dispatching commit, are unchanged at the closing parent, and, given the closing commit,
+whether its own diff touches only the tracked lock at the export's SHA-256 and the paths
+the owning item's closing landing names.
 """
 
 import argparse
@@ -574,7 +574,7 @@ def _durations(report: dict[str, object]) -> list[str]:
         for step, rows in route.as_object(job.get("steps", {})).items():
             row = route.as_object(rows)
             lines.append(f"     {step:<11} {row.get('verdict')}: {row.get('seconds')} s of "
-                         f"{row.get('limit_s')}, peak {row.get('peak_rss_kb')} kB")
+                         f"{row.get('limit_s')}, peak {route.peak_text(row)}")
     return lines
 
 

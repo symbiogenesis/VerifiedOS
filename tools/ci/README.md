@@ -450,22 +450,28 @@ dispatching commit and `GITHUB_RUN_ATTEMPT`; the recipe built, the switch and th
 its checks ran with, and that switch's installed closure with each pin's URL and
 commit; the runner image, `uname -m`, the opam client's version and the prerequisites
 installed; free disk before and after; and each step's limit, exit, GNU time figures
-and sampled peak. Each step runs under coreutils `timeout --kill-after` at the limit
-instrument_route.py states with its basis: the build's from Q38f's 4,402 s import,
-`quickchick properties`' from Q38e's 378 s, and each seed step's its job's limit,
-GitHub's 360-minute hosted maximum less a 5-minute margin, the build step's limit, the
-population listing's and the staging margin, marked unmeasured. A sampler appends the
-largest resident set, free disk and load average to the job's progress log every
-minute, so a step cut at its limit leaves its peak. An exit of 124, or of 137 where the
-receipt holds no kernel OOM record for the step, once the step has run for its limit,
-is the limit reached; either exit sooner is recorded undecided, its cause unread. A
-step that reaches its limit; that exits for want of disk or memory, as the sampler's
-free-disk figure, a line of its output reporting `No space left on device` or the
-kernel's OOM record shows; or that exits with a line of its output naming
-`TimeoutExpired`, read as a compile reaching gallina's per-file timeout, which raises
-out of the run, decides nothing and is recorded undecided, never as a failure. Each
-step's `timeout-minutes` is a backstop above its limit, and each job's is the sum of its
-step limits plus a 15-minute staging-and-upload margin.
+and the sampler's peaks. Each step runs under coreutils `timeout --kill-after` at the
+limit instrument_route.py states with its basis: the build's from Q38f's 4,402 s
+import, `quickchick properties`' from Q38e's 378 s, and each seed step's its job's
+limit, GitHub's 360-minute hosted maximum less a 5-minute margin, the build step's
+limit, the population listing's and the staging margin, marked unmeasured. A sampler
+appends the largest resident set, its process tree's total, free disk and load average
+to the job's progress log every minute, so a step cut at its limit leaves its peak.
+`report.json`, the job summary and `instrument-ci read` give a step's peak as the
+larger of GNU time's `maxrss_kb` and the sampler's largest resident set, each the
+step's largest single process, name which gave it, and give both figures and the
+sampler's tree total beside it. A step for which neither recorded a figure, as one GNU
+time did not wrap that ended before the first sample, is said to have none, never a
+peak of 0. An exit of 124, or of 137 where the receipt holds no kernel OOM record for
+the step, once the step has run for its limit, is the limit reached; either exit
+sooner is recorded undecided, its cause unread. A step that reaches its limit; that
+exits for want of disk or memory, as the sampler's free-disk figure, a line of its
+output reporting `No space left on device` or the kernel's OOM record shows; or that
+exits with a line of its output naming `TimeoutExpired`, read as a compile reaching
+gallina's per-file timeout, which raises out of the run, decides nothing and is
+recorded undecided, never as a failure. Each step's `timeout-minutes` is a backstop
+above its limit, and each job's is the sum of its step limits plus a 15-minute
+staging-and-upload margin.
 
 **Staging.** Each job's staging and upload run under `always()`. As in Guest CI, a
 refused check runs no requested revision's code afterwards: each later step that runs a
@@ -493,7 +499,7 @@ or whose members total more than 256 MiB, and moving an extraction into place on
 whole. It holds each member to the allowlist and each recorded input to the run, reads
 the jobs' conclusions and the `plan.json` of a run the plan refused, re-joins the
 artifacts against the run's `report.json`, and prints the verdict with the run's URL,
-tested revisions, runner images and step durations. It prints whether
+tested revisions, runner images and step durations and peaks. It prints whether
 `git diff --quiet R <closing parent> -- <route inputs>` holds for the candidate's
 `source_revision` R, and whether the same holds over the route's own files and their
 `vos` import closure for the dispatching commit; given the closing commit by

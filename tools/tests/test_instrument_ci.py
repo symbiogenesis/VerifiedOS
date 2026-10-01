@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 from ci import instrument_route as route
 from tests.harness import Case, ensure, sandbox_tree
-from tests.test_instrument_route import _artifacts, _commit, _git
+from tests.test_instrument_route import _artifacts, _commit, _git, _peaked_steps
 from vos import fanout_ci
 from vos.cli import instrument_ci as reader
 
@@ -464,6 +464,30 @@ def _reader_reproduces_and_compares() -> None:
                f"a refused artifact is missing from the re-join: {lines!r}")
 
 
+def _reader_prints_each_peak() -> None:
+    with tempfile.TemporaryDirectory() as scratch:
+        artifacts = Path(scratch)
+        _artifacts(artifacts, seed=False, edits={"build": {"steps": _peaked_steps()}})
+        report = route.join(artifacts, {name: {"result": "success"} for name in
+                                        ("plan", "build", "import")}, "4242")
+    lines = reader._durations(report)
+    build = lines[lines.index(next(line for line in lines if line.startswith("   build:"))):]
+    shown: dict[str, str] = {}
+    for line in build[1:]:
+        if not line.startswith("     "):
+            break
+        shown[line.split()[0]] = line
+    ensure("peak 543612 kB from GNU time; GNU time 543612 kB, sampler none" in
+           shown["properties"]
+           and "peak 1772936 kB from GNU time; GNU time 1772936 kB, sampler 1383676 kB, "
+               "sampled tree 2050476 kB" in shown["provision"]
+           and "peak 155064 kB from the sampler" in shown["check"]
+           and shown["export"].endswith("peak none: neither GNU time nor the sampler "
+                                        "recorded one")
+           and not any(line.endswith("peak 0 kB") or "peak None" in line for line in lines),
+           f"the reader prints each step's peak and where it came from, never 0: {lines!r}")
+
+
 def _fanout_never_runs_the_route() -> None:
     # Every module of the fanout command, wherever under vos it lives, so a dispatch of
     # the route added to any of them fails here; the three known ones keep it non-vacuous.
@@ -493,4 +517,5 @@ def cases() -> list[Case]:
             Case("input-refusals", _input_refusals),
             Case("reader-decides-a-refused-plan", _reader_decides_a_refused_plan),
             Case("reader-reproduces-and-compares", _reader_reproduces_and_compares),
+            Case("reader-prints-each-peak", _reader_prints_each_peak),
             Case("fanout-never-runs-the-route", _fanout_never_runs_the_route)]

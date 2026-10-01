@@ -1537,6 +1537,63 @@ def _seed_report(journals: dict[str, Journal],
     }
 
 
+# Where a step's peak comes from: GNU time's `maxrss_kb`, written as the step's command
+# ends, or the per-minute sampler, which has no reading of a step that ends before its
+# first sample and keeps its last of one cut at its limit. Each is the step's largest
+# single process; the sampler's tree total is a third figure, never the peak.
+PEAK_FROM_TIME = "GNU time"
+PEAK_FROM_SAMPLER = "sampler"
+
+
+def _figure(value: object) -> int | None:
+    """A recorded memory figure in kB, None where there is none: the sampler's zero is
+    no reading, of a step it never sampled or of a process gone before it read one."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+        return None
+    return int(value)
+
+
+def step_peak(step: dict[str, object]) -> dict[str, object]:
+    """A step's peak from its receipt: the larger of GNU time's `maxrss_kb` and the
+    sampler's largest resident set and which gave it, GNU time's where they agree, both
+    figures, and the sampler's tree total, each None where nothing recorded it."""
+    figures = step.get("time")
+    timed = _figure(as_object(figures).get("maxrss_kb")) if isinstance(figures, dict) else None
+    sampled = _figure(step.get("peak_rss_kb"))
+    peak: int | None = None
+    source: str | None = None
+    if timed is not None and (sampled is None or timed >= sampled):
+        peak, source = timed, PEAK_FROM_TIME
+    elif sampled is not None:
+        peak, source = sampled, PEAK_FROM_SAMPLER
+    return {"peak_rss_kb": peak, "peak_from": source, "maxrss_kb": timed,
+            "sampled_rss_kb": sampled,
+            "sampled_tree_rss_kb": _figure(step.get("peak_tree_rss_kb"))}
+
+
+def _step_row(step: dict[str, object]) -> dict[str, object]:
+    """One step as the report gives it: how it ended, its limit and duration, and its
+    peak with where it came from."""
+    return {**{name: step.get(name) for name in ("verdict", "reason", "exit", "limit_s",
+                                                 "seconds")}, **step_peak(step)}
+
+
+def peak_text(row: dict[str, object]) -> str:
+    """A report step's peak as the job summary and `instrument-ci read` print it, saying
+    so where neither GNU time nor the sampler recorded one rather than printing 0."""
+    peak, source = row.get("peak_rss_kb"), row.get("peak_from")
+    if peak is None or source not in (PEAK_FROM_TIME, PEAK_FROM_SAMPLER):
+        return "none: neither GNU time nor the sampler recorded one"
+
+    def shown(name: str) -> str:
+        value = row.get(name)
+        return f"{value} kB" if value is not None else "none"
+
+    named = "GNU time" if source == PEAK_FROM_TIME else "the sampler"
+    return (f"{peak} kB from {named}; GNU time {shown('maxrss_kb')}, sampler "
+            f"{shown('sampled_rss_kb')}, sampled tree {shown('sampled_tree_rss_kb')}")
+
+
 def _earlier_attempt(directory: Path, run_attempt: str) -> str | None:
     """The attempt an artifact's receipt names where it is earlier than this one, None
     otherwise: a rerun keeps the artifacts of jobs it does not run again."""
@@ -1614,8 +1671,7 @@ def join(artifacts: Path, needs: dict[str, object], run_id: str,
             "runner_image": receipt.get("runner_image"), "uname_m": receipt.get("uname_m"),
             "opam_client": receipt.get("opam_client"), "switch": receipt.get("switch"),
             "flag": receipt.get("flag"), "recipe": receipt.get("recipe"),
-            "steps": {step: {name: as_object(steps.get(step, {})).get(name) for name in
-                             ("verdict", "reason", "exit", "limit_s", "seconds", "peak_rss_kb")}
+            "steps": {step: _step_row(as_object(steps.get(step, {})))
                       for step in JOB_STEPS[_job_of(key)]},
         }
         if key == "build":
@@ -1663,8 +1719,9 @@ def _cell(value: object) -> str:
 
 
 def summary(report: dict[str, object]) -> str:
-    """The job summary: each step's verdict, each sampled mutant's verdict in every seed
-    run, each difference, and each pair of sides whose client or image differs."""
+    """The job summary: each step's verdict and peak, each sampled mutant's verdict in
+    every seed run, each difference, and each pair of sides whose client or image
+    differs."""
     request = as_object(report.get("request", {}))
     lines = [f"### Instrument switch route: {report.get('verdict')}", "",
              f"Revision `{request.get('revision')}`, base "
@@ -1678,10 +1735,11 @@ def summary(report: dict[str, object]) -> str:
     if earlier:
         lines += ["", "Passed over:", *(f"- {_cell(item.get('artifact'))}: "
                                         f"{_cell(item.get('reason'))}" for item in earlier)]
-    lines += ["", "| Job | Step | Verdict | Limit s | Seconds | Peak RSS kB | Reason |",
+    lines += ["", "| Job | Step | Verdict | Limit s | Seconds | Peak resident set | Reason |",
               "| --- | --- | --- | --- | --- | --- | --- |"]
     limited: list[str] = []
-    for key, raw in as_object(report.get("jobs", {})).items():
+    jobs = as_object(report.get("jobs", {}))
+    for key, raw in jobs.items():
         job = as_object(raw)
         steps = as_object(job.get("steps", {}))
         if not steps or job.get("reason"):
@@ -1690,15 +1748,18 @@ def summary(report: dict[str, object]) -> str:
         for step, rows in steps.items():
             row = as_object(rows)
             lines.append(f"| {key} | {step} | {row.get('verdict')} | {row.get('limit_s')} | "
-                         f"{row.get('seconds')} | {row.get('peak_rss_kb')} | "
+                         f"{row.get('seconds')} | {_cell(peak_text(row))} | "
                          f"{_cell(row.get('reason') or '')} |")
             if step == "seed" and "reached its limit" in str(row.get("reason") or ""):
                 limited.append(key)
     if limited:
+        build = as_object(jobs.get("build", {})) if isinstance(jobs.get("build"), dict) else {}
+        built = as_object(build.get("steps", {})) if isinstance(build.get("steps"), dict) else {}
+        properties = as_object(built.get("properties", {}))
         lines += ["", f"A seed step reached its limit ({', '.join(limited)}): the next "
                   "dispatch raises `--jobs` on the build job's recorded `quickchick "
-                  "properties` peak or records the runner decision as owed to the user, "
-                  "the sample staying 20."]
+                  f"properties` peak, {_cell(peak_text(properties))}, or records the runner "
+                  "decision as owed to the user, the sample staying 20."]
     seed = as_object(report.get("seed", {}))
     if seed:
         runs = list(as_object(seed.get("runs", {})))

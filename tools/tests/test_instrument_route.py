@@ -764,6 +764,72 @@ def _join_lists_differences() -> None:
            f"each pair of sides whose client or image differs: {pairs!r}")
 
 
+def _peaked_steps() -> dict[str, object]:
+    """A build job's steps as run_step records them: one GNU time and the sampler both
+    read, one shorter than the first sample that only GNU time read, one GNU time did
+    not wrap that the sampler read, and one neither read."""
+    def step(time: dict[str, float] | None, sampled: int, tree: int, samples: int
+             ) -> dict[str, object]:
+        return {"verdict": route.PASSED, "reason": "exit 0", "exit": 0, "limit_s": 600,
+                "seconds": 1.0, "time": time, "peak_rss_kb": sampled,
+                "peak_tree_rss_kb": tree, "samples": samples}
+    return {"provision": step({"real": 572.5, "maxrss_kb": 1772936.0}, 1383676, 2050476, 9),
+            "properties": step({"real": 23.8, "maxrss_kb": 543612.0}, 0, 0, 0),
+            "check": step(None, 155064, 160000, 1),
+            "export": step(None, 0, 0, 0)}
+
+
+def _join_gives_each_step_peak() -> None:
+    cases: list[tuple[dict[str, object], tuple[object, ...]]] = [
+        ({"time": {"maxrss_kb": 1772936.0}, "peak_rss_kb": 1383676, "peak_tree_rss_kb": 2050476},
+         (1772936, route.PEAK_FROM_TIME, 1772936, 1383676, 2050476)),
+        ({"time": {"maxrss_kb": 543612.0}, "peak_rss_kb": 0, "peak_tree_rss_kb": 0,
+          "samples": 0}, (543612, route.PEAK_FROM_TIME, 543612, None, None)),
+        ({"time": {"maxrss_kb": 800.0}, "peak_rss_kb": 900, "peak_tree_rss_kb": 950},
+         (900, route.PEAK_FROM_SAMPLER, 800, 900, 950)),
+        ({"time": {"maxrss_kb": 900.0}, "peak_rss_kb": 900},
+         (900, route.PEAK_FROM_TIME, 900, 900, None)),
+        ({"time": None, "peak_rss_kb": 155064, "peak_tree_rss_kb": 160000},
+         (155064, route.PEAK_FROM_SAMPLER, None, 155064, 160000)),
+        ({"time": {"real": 0.1}, "peak_rss_kb": 0, "peak_tree_rss_kb": 0, "samples": 0},
+         (None, None, None, None, None)),
+        ({"verdict": route.NOT_RUN, "reason": "the job ended before this step"},
+         (None, None, None, None, None)),
+    ]
+    for receipted, expected in cases:
+        found = route.step_peak(receipted)
+        got = tuple(found[name] for name in ("peak_rss_kb", "peak_from", "maxrss_kb",
+                                             "sampled_rss_kb", "sampled_tree_rss_kb"))
+        ensure(got == expected, f"a step's peak is the larger figure, from where it came, "
+               f"and none where neither recorded one: {receipted!r} gave {got!r}")
+    report = _joined(lambda root: _artifacts(root, edits={"build": {"steps": _peaked_steps()}}))
+    steps = route.as_object(route.as_object(route.as_object(report["jobs"])["build"])["steps"])
+    rows = {name: route.as_object(steps[name]) for name in steps}
+    ensure(rows["properties"]["peak_rss_kb"] == 543612
+           and rows["properties"]["peak_from"] == route.PEAK_FROM_TIME
+           and rows["properties"]["sampled_rss_kb"] is None
+           and rows["provision"]["peak_rss_kb"] == 1772936
+           and rows["provision"]["sampled_rss_kb"] == 1383676
+           and rows["provision"]["sampled_tree_rss_kb"] == 2050476
+           and rows["check"]["peak_from"] == route.PEAK_FROM_SAMPLER
+           and rows["export"]["peak_rss_kb"] is None and rows["export"]["peak_from"] is None,
+           f"report.json gives each step's peak and both figures: {rows!r}")
+    text = route.summary(report)
+    ensure("543612 kB from GNU time; GNU time 543612 kB, sampler none, sampled tree none" in text
+           and "155064 kB from the sampler; GNU time none, sampler 155064 kB, sampled tree "
+               "160000 kB" in text
+           and "| none: neither GNU time nor the sampler recorded one |" in text
+           and not re.search(r"\| 0 \|", text),
+           f"the job summary gives each step's peak and where it came from, never 0: {text!r}")
+    limited = dict(report, jobs=dict(route.as_object(report["jobs"]), **{"seed-base": {
+        "verdict": route.UNDECIDED, "steps": {"seed": {
+            "verdict": route.UNDECIDED, "reason": "the step reached its limit of 60 s and "
+                                                  "timeout ended it"}}}}))
+    ensure("recorded `quickchick properties` peak, 543612 kB from GNU time" in
+           route.summary(limited),
+           "a seed step at its limit names the properties peak the next dispatch stands on")
+
+
 def _join_records_not_run_and_refusals() -> None:
     skipped = dict(_SUCCESS, build={"result": "failure"}, **{"import": {"result": "skipped"}})
 
@@ -1019,6 +1085,7 @@ def cases() -> list[Case]:
             Case("staging-refuses-a-symlink", _staging_refuses_a_symlink, lane="guest"),
             Case("join-passes-and-lists-mutants", _join_passes_and_lists_mutants),
             Case("join-lists-differences", _join_lists_differences),
+            Case("join-gives-each-step-peak", _join_gives_each_step_peak),
             Case("join-records-not-run-and-refusals", _join_records_not_run_and_refusals),
             Case("join-reads-failures-outside-wrapped-steps",
                  _join_reads_failures_outside_wrapped_steps),
