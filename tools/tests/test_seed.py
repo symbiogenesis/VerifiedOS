@@ -435,6 +435,19 @@ def _the_randomized_baseline_refuses_what_does_not_replay_or_hold() -> None:
            f"a green tree is the baseline: {got} {why} {compiled}")
 
 
+def _a_missing_harness_is_refused_before_the_seed() -> None:
+    """A checkout holding no drawn harness, or no walk harness, is refused by name before
+    its seed is read and before anything compiles, rather than read as a harness fixing
+    no seed or met as a closure reading a harness that is not there."""
+    for name in (gallina.RANDOMIZED, gallina.EXHAUSTIVE):
+        rig = {rel: text for rel, text in _RIG.items() if rel != f"tools/quickchick/{name}"}
+        got, why, compiled = _baseline(rig, {})
+        ensure(got is None and why == f"there is no harness at {gallina.HARNESS_DIR}/{name}"
+               and not compiled,
+               f"a checkout without {name} is refused by name before compiling: {why} "
+               f"{compiled}")
+
+
 # A prover that answers as `_PRINTS` says each file prints, and outlasts any limit a
 # case lowers to on a source holding the marker: the subtraction one mutant of
 # `_TIMED_SOURCE` writes. A real process, so the limit stops a real prover run.
@@ -773,6 +786,8 @@ def cases() -> list[Case]:
              _a_compile_a_signal_ends_leaves_the_mutant_undecided),
         Case("the randomized baseline refuses what does not replay or hold",
              _the_randomized_baseline_refuses_what_does_not_replay_or_hold),
+        Case("a missing harness is refused before the seed",
+             _a_missing_harness_is_refused_before_the_seed),
         Case("a compile past the limit is undecided and the run goes on",
              _a_compile_past_the_limit_is_undecided_and_the_run_goes_on),
         Case("a baseline compile past the limit leaves no baseline",

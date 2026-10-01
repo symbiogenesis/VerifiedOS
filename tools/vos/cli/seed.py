@@ -512,12 +512,16 @@ def _quickchick_baseline(root: Path, found: gallina.Prover, work: Path,
     """One tree stood up for the randomized harness and the walk harness beside it,
     whose baseline is green property sets rather than a vector file, so the list it
     hands back is empty. It compiles the two harnesses' `Require` closure and nothing
-    else, as `quickchick properties` does. A drawn harness that fixes no seed is refused
-    here, since a verdict its mutants reach would not replay; the seed one fixes is
-    journalled in `book`, where one is given, before anything compiles."""
+    else, as `quickchick properties` does. A harness the staged tree does not hold is
+    refused first, as `quickchick properties` refuses it, and a drawn harness that fixes
+    no seed next, since a verdict its mutants reach would not replay; the seed one fixes
+    is journalled in `book`, where one is given, before anything compiles."""
     gallina.stage(root, work)
     drawn = work / "harness" / harness_name
     walker = work / "harness" / gallina.EXHAUSTIVE
+    for harness in (drawn, walker):
+        if not harness.is_file():
+            return None, f"there is no harness at {gallina.HARNESS_DIR}/{harness.name}"
     seed = gallina.seed(drawn)
     if seed is None:
         return None, (f"{harness_name} fixes QuickChick's random state other than once "
