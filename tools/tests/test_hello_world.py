@@ -1,12 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
-"""M1.7 client evidence controls, especially frame-save false positives."""
+"""M1.7 client evidence controls, especially frame-save false positives, and the
+lowering's opam reads, which answer no question."""
 
 import importlib.util
+import os
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from types import ModuleType
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
+from vos import env
 
 
 def _module() -> ModuleType:
@@ -75,6 +81,43 @@ def _preamble_exclusion() -> None:
             raise AssertionError("unqualified client extraction accepted")
 
 
+def _opam_reads_decline() -> None:
+    """Every opam command of the lowering runs through `regenerate._run`, with no
+    standard input and no answer from the caller's environment, keeping the root it
+    reads: the installed prover's prefix the recipe binds, the switch's prover and
+    listing, its library, and a derivation compiled in the switch."""
+    recipe = _module()
+    lowering = recipe.regenerate
+    answers = {"OPAMYES": "1", "OPAMCONFIRMLEVEL": "unsafe-yes", "OPAMROOT": "/elsewhere"}
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        prefix = Path(td)
+        for name in ("bin/coqc", "bin/coqchk", "bin/rocq", "lib/coq/A.vo",
+                     "lib/coq-core/b.cmxs"):
+            (prefix / name).parent.mkdir(parents=True, exist_ok=True)
+            (prefix / name).write_bytes(name.encode())
+        answer = subprocess.CompletedProcess([], 0, stdout=f"{prefix}\n", stderr="")
+        with (patch.dict(os.environ, answers),
+              patch.object(subprocess, "run", return_value=answer) as launched):
+            identity = recipe.lowering_identity()
+            lowering.environment()
+            lowering.shipped_source()
+            lowering.coqc(prefix, "Derived.v")
+    commands = [list(call.args[0]) for call in launched.call_args_list]
+    ensure(len(identity) == 5 and len(commands) == 5
+           and all("opam" in argv for argv in commands)
+           and commands[0] == ["opam", "var", f"--switch={lowering.SWITCH}", "prefix"]
+           and launched.call_args_list[0].kwargs.get("timeout") == 30,
+           f"the recipe and the lowering ran their opam commands: {commands}")
+    for call in launched.call_args_list:
+        passed = call.kwargs.get("env") or {}
+        ensure(call.kwargs.get("stdin") is subprocess.DEVNULL
+               and not {key.upper() for key in passed} & set(env.OPAM_ANSWERS)
+               and passed.get("OPAMROOT") == "/elsewhere",
+               f"{call.args[0]} answers no question and keeps the root: {sorted(passed)}")
+
+
 def cases() -> list[Case]:
     return [Case("client slots exclude frame saves and invalidated values", _client_slots),
-            Case("client extraction excludes the external preamble", _preamble_exclusion)]
+            Case("client extraction excludes the external preamble", _preamble_exclusion),
+            Case("the lowering's opam reads decline the client's questions",
+                 _opam_reads_decline)]

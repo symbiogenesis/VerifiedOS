@@ -725,8 +725,9 @@ def declining_environment() -> dict[str, str]:
     root keeping a repository's archive under a directory named for it. Run with no
     standard input and this environment, opam answers its own question no and exits, so
     a read neither rewrites the root one way nor waits on a question the caller cannot
-    see. `_apply_opam_env`, `run.py provision`'s probes, and the Gallina, Sail LSP and
-    Isla rigs' opam reads take their environment from it, so they keep one rule.
+    see. `_apply_opam_env`, `run.py provision`'s probes, the Gallina, Sail LSP and Isla
+    rigs, guest bootstrap's reads of its root, the Rupicola lowering and the component
+    comparison take their opam reads' environment from it, so they keep one rule.
     """
     return {key: value for key, value in os.environ.items()
             if key.upper() not in OPAM_ANSWERS}

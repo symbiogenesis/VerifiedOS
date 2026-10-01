@@ -662,8 +662,8 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
 _K119_LEAD_FINDING = "states 'Where the set is' in a form that opens no reach class"
 _K119_LEAD_FORM = (_K119_LEAD_FINDING + " this rule reads: the four words single-spaced with "
                    "plain spaces on one line, with no underscore before the first and a "
-                   "plain space after the last, then the class in `**` bold before a full "
-                   "stop or the line's end")
+                   "plain space after the last, then the class in `**` bold with no third "
+                   "`*` beside either pair before a full stop or the line's end")
 
 
 def _k119_every_class_lead_is_read() -> None:
@@ -716,6 +716,12 @@ def _k119_every_class_lead_is_read() -> None:
             ({"total": _K119_TOTAL.replace("is **total**", "is\u00a0**total**")},
              _K119_LEAD_FORM),
             ({"total": _K119_TOTAL.replace("**total**", "__total__")},
+             _K119_LEAD_FORM),
+            # nor does a name with a third `*` beside either pair, in bold italics or
+            # trailed by a stray `*` past the closing pair
+            ({"total": _K119_TOTAL.replace("**total**", "***total***")},
+             _K119_LEAD_FORM),
+            ({"total": _K119_TOTAL.replace("**total**", "**total***")},
              _K119_LEAD_FORM)):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
@@ -752,6 +758,7 @@ def _k119_every_membership_sentence_is_read() -> None:
                                     "nothing."},
             {"total": _K119_TOTAL + " The rest, which is what ~~K-07~~ are, narrow nothing."},
             {"total": _K119_TOTAL + " The rest, which is what (K-07) are, narrow nothing."},
+            {"total": _K119_TOTAL + " The rest, which is what _K-07_ are, narrow nothing."},
             {"total": _K119_TOTAL + " WHICH IS WHAT K-07 ARE."},
             {"heading": meta.REACH_HEADING
              + "\n\nThe marker rules come first, _that is what K-05 are_."}):
@@ -877,12 +884,13 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
     # github.com, `www.` or not, or a raw.githubusercontent.com path, whatever the case of
     # its host, owner and name, names the reviewed commit, and one at another commit, a
     # tag or a branch is one finding, a tree view naming no path after its revision
-    # included. The finding quotes both at twelve digits, or as far as they must run to
-    # differ.
+    # included. Such a view links no file, so it stands beside the reviewed link. The
+    # finding quotes both at twelve digits, or as far as they must run to differ.
     link = f"example/action/blob/{_K115_SHA}/LICENSE"
     url = f"https://github.com/{link}"
     last = f"{_K115_SHA[:-1]}8"
     moved = f"example/action/blob/{last}/LICENSE"
+    tree = "example/action/tree"
     for edit, quoted in (
             (moved, f"{last}, the row reviewed {_K115_SHA}"),
             (f"example/action/blob/{_K115_SHA[:12]}/LICENSE",
@@ -894,9 +902,12 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
             (f"{link}) and [a copy](https://github.com/{moved}",
              f"{last}, the row reviewed {_K115_SHA}"),
             (f"example/action/tree/{last}/LICENSE", f"{last}, the row reviewed {_K115_SHA}"),
-            ("example/action/tree/main", "main, the row reviewed 0123456789ab"),
-            ("example/action/tree/v1.2.3", "v1.2.3, the row reviewed 0123456789ab"),
-            ("example/action/tree/main#readme", "main, the row reviewed 0123456789ab"),
+            (f"{link}) and [its tree](https://github.com/{tree}/main",
+             "main, the row reviewed 0123456789ab"),
+            (f"{link}) and [its tree](https://github.com/{tree}/v1.2.3",
+             "v1.2.3, the row reviewed 0123456789ab"),
+            (f"{link}) and [its tree](https://github.com/{tree}/main#readme",
+             "main, the row reviewed 0123456789ab"),
             (f"example/action/blame/{last}/LICENSE", f"{last}, the row reviewed {_K115_SHA}"),
             ("example/action/raw/main/LICENSE", "main, the row reviewed 0123456789ab")):
         found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(link, edit)})
@@ -919,22 +930,57 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
     # The controls: every spelling at the reviewed commit agrees.
     for edit in (f"https://www.github.com/{link}",
                  f"https://github.com/example/action/tree/{_K115_SHA}/LICENSE",
-                 f"https://github.com/example/action/tree/{_K115_SHA}",
                  f"https://github.com/example/action/blame/{_K115_SHA}/LICENSE",
-                 f"https://github.com/example/action/tree/{_K115_SHA}?tab=readme-ov-file",
                  f"https://github.com/example/action/raw/{_K115_SHA}/LICENSE",
                  f"https://raw.githubusercontent.com/example/action/{_K115_SHA}/LICENSE",
                  f"https://raw.githubusercontent.com/Example/Action/{_K115_SHA}/LICENSE"):
         found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(url, edit)})
         ensure(not found, f"a link at the reviewed commit agrees ({edit}): {found!r}")
+    # A view naming no file at the reviewed commit agrees beside the reviewed link.
+    for view in (f"https://github.com/{tree}/{_K115_SHA}",
+                 f"https://github.com/{tree}/{_K115_SHA}?tab=readme-ov-file",
+                 f"https://github.com/{tree}/{_K115_SHA}#readme",
+                 f"https://github.com/example/action/blob/{_K115_SHA}",
+                 f"https://raw.githubusercontent.com/example/action/{_K115_SHA}"):
+        beside = _K115_RECORD.replace(link, f"{link}) and [a view]({view}")
+        found = _k115({"THIRD-PARTY.md": beside})
+        ensure(not found, f"a view at the reviewed commit agrees ({view}): {found!r}")
+    # Punctuation closing a bare link ends it rather than belonging to it: a link at the
+    # reviewed commit ending a sentence, set off by a comma, or wrapped in a code span or
+    # emphasis agrees, and one at a tag ending a sentence is quoted at the tag, its
+    # interior dots kept.
+    sentence = f"[terms]({url})."
+    at_tree = f"https://github.com/{tree}/{_K115_SHA}"
+    for bare in (f"terms at {url}.",
+                 f"terms at `{url}`.",
+                 f"[terms]({url}), read beside {at_tree}.",
+                 f"[terms]({url}), read beside {at_tree}, its tree.",
+                 f"[terms]({url}), read beside `{at_tree}`.",
+                 f"[terms]({url}), read beside **{at_tree}**."):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(sentence, bare)})
+        ensure(not found, f"a bare link at the reviewed commit agrees ({bare}): {found!r}")
+    found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(
+        sentence, f"[terms]({url}), read beside https://github.com/{tree}/v1.2.3.")})
+    ensure(len(found) == 1
+           and "THIRD-PARTY.md:7 links example/action's licence at v1.2.3, the row" in found[0],
+           f"a bare link at a tag ending a sentence is quoted at the tag: {found!r}")
     # A row linking no file of its action's repository says nothing about the edition
     # its terms were read at, and is one finding: the link dropped, or a link into
-    # another repository, or one naming the repository and no file, alone in its place.
+    # another repository, or one naming the repository and no file, alone in its place,
+    # a view at the reviewed commit naming no path after it among them, and one naming
+    # only a slash closed by a full stop or a code span.
     dropped = "THIRD-PARTY.md:7 links no licence of example/action at the reviewed commit"
     for old, new in ((f"[terms]({url})", "terms"),
                      (url, f"https://github.com/other/dep/blob/{_K115_SHA}/LICENSE"),
                      (url, f"https://github.com/example/action/commit/{_K115_SHA}"),
-                     (url, "https://github.com/example/action")):
+                     (url, "https://github.com/example/action"),
+                     (url, f"https://github.com/{tree}/{_K115_SHA}"),
+                     (url, f"https://github.com/{tree}/{_K115_SHA}?tab=readme-ov-file"),
+                     (url, f"https://github.com/{tree}/{_K115_SHA}#readme"),
+                     (url, f"https://github.com/example/action/blob/{_K115_SHA}"),
+                     (url, f"https://raw.githubusercontent.com/example/action/{_K115_SHA}"),
+                     (f"[terms]({url})", f"terms at {at_tree}/"),
+                     (f"[terms]({url})", f"terms at `{at_tree}/`")):
         found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(old, new)})
         ensure(len(found) == 1 and dropped in found[0],
                f"a row linking no licence file is one finding ({new}): {found!r}")
@@ -942,6 +988,46 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
     found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(
         link, f"{link}) and [its dependency](https://github.com/other/dep/blob/{'f' * 40}/LICENSE")})
     ensure(not found, f"another repository's link is not this row's revision: {found!r}")
+
+
+def _k115_destination_and_autolink_keep_their_revision() -> None:
+    # A Markdown link's destination, angle-bracketed or not, and an autolink keep every
+    # character up to the bracket closing them, as GFM does, so a revision there runs to
+    # a blank or that bracket rather than stopping before trailing punctuation as a bare
+    # link's does: the reviewed commit followed by a character a ref name may hold,
+    # beside the reviewed link, names another ref and is one finding quoting it whole. A
+    # destination at the commit followed by a full stop, which no ref name ends with, is
+    # one finding too, which errs closed.
+    reviewed = f"[terms](https://github.com/example/action/blob/{_K115_SHA}/LICENSE)"
+    tree = f"https://github.com/example/action/tree/{_K115_SHA}"
+    for extra, ref in ((f"[x]({tree}_)", f"{_K115_SHA}_"),
+                       (f"<{tree}_>", f"{_K115_SHA}_"),
+                       (f"[x](<{tree}_>)", f"{_K115_SHA}_"),
+                       (f"[x]( {tree}' )", f"{_K115_SHA}'"),
+                       (f'[x]({tree}! "its tree")', f"{_K115_SHA}!"),
+                       (f"[x]({tree}])", f"{_K115_SHA}]"),
+                       (f"[x](<{tree})>)", f"{_K115_SHA})"),
+                       (f"<{tree})>", f"{_K115_SHA})"),
+                       (f"[x]({tree}.)", f"{_K115_SHA}.")):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(reviewed,
+                                                              f"{reviewed} beside {extra}")})
+        quoted = f"THIRD-PARTY.md:7 links example/action's licence at {ref}, the row reviewed "
+        ensure(len(found) == 1 and f"{quoted}{_K115_SHA};" in found[0],
+               f"a revision in a destination or autolink is read whole ({extra}): {found!r}")
+    # The controls: each form at the reviewed commit, closed by its bracket, a blank, a
+    # title or a fragment, agrees beside the reviewed link.
+    for extra in (f"<{tree}>", f"[x](<{tree}>)", f"[x]( {tree} )", f'[x]({tree} "its tree")',
+                  f"<{tree}#readme>", f"[x]( <{tree}> )"):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(reviewed,
+                                                              f"{reviewed} beside {extra}")})
+        ensure(not found, f"a destination or autolink at the reviewed commit agrees "
+                          f"({extra}): {found!r}")
+    # The licence link itself angle-bracketed or written as an autolink still links the
+    # file at the reviewed commit.
+    for edit in (f"[terms](<https://github.com/example/action/blob/{_K115_SHA}/LICENSE>)",
+                 f"<https://github.com/example/action/blob/{_K115_SHA}/LICENSE>"):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(reviewed, edit)})
+        ensure(not found, f"the licence link in another form agrees ({edit}): {found!r}")
 
 
 def _k115_leaves_the_analyzer_rows_to_k118() -> None:
@@ -1372,8 +1458,10 @@ _K118_KINDS: dict[str, tuple[pins.Owner, dict[str, str | None], dict[str, str | 
               {"tools/x.sh": "kappa_version=1.2.3\n"}, {"tools/x.sh": "kappa_version=1.2.4\n"}),
     # a constraints file's pin, its name spelled as pip normalizes it, with a hash line
     "pip": (pins.Owner("pip", "tools/ci/c.txt", "kappa"),
-            {"tools/ci/c.txt": "# the pins\nKappa==1.2.3 \\\n    --hash=sha256:00\nother==1.2.4\n"},
-            {"tools/ci/c.txt": "# the pins\nKappa==1.2.4 \\\n    --hash=sha256:00\nother==1.2.4\n"}),
+            {"tools/ci/c.txt": f"# the pins\nKappa==1.2.3 \\\n    --hash=sha256:{'0' * 64}\n"
+                               "other==1.2.4\n"},
+            {"tools/ci/c.txt": f"# the pins\nKappa==1.2.4 \\\n    --hash=sha256:{'0' * 64}\n"
+                               "other==1.2.4\n"}),
 }
 _K118_KAPPA = (_K118_TOOLS + "| Tool | License | Standing |\n| --- | --- | --- |\n"
                "| kappa | `MIT` | Reviewed at 1.2.3. |\n\n## Next\n")
@@ -1422,9 +1510,8 @@ def _k118_every_owner_kind_detects_drift() -> None:
 
 def _k118_pip_census_reads_every_pin() -> None:
     # Each project the hook step's pip constraint files pin is one a held row reads in
-    # that file, so a pin added with no row's reading, or a line naming a project in a
-    # form a pin does not take, is a finding at its line, and both files are read
-    # whether or not a row holds a pin in them.
+    # that file, so a pin added with no row's reading is a finding at its line, and both
+    # files are read whether or not a row holds a pin in them.
     row = pins.DevTool("kappa", (pins.Site("the release", rf"Reviewed at {pins._V}\.", (
         pins.Owner("pip", pins.HOOK_CONSTRAINTS, "kappa"),)),))
 
@@ -1436,25 +1523,83 @@ def _k118_pip_census_reads_every_pin() -> None:
     found, out = run({})
     ensure(not found and any("each of the 1 pins its pip constraint files carry" in line
                              for line in out), f"a pin a held row reads agrees: {found!r}")
+    digest = f"--hash=sha256:{'0' * 64}"
     unread: tuple[tuple[dict[str, str | None], str, str], ...] = (
         ({pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3\nextra==1.0.0\n"},
          f"{pins.HOOK_CONSTRAINTS}:3", "extra"),
-        ({pins.HOOK_BUILD_CONSTRAINTS: "backend==1.0.0 \\\n    --hash=sha256:00\n"},
+        ({pins.HOOK_BUILD_CONSTRAINTS: f"backend==1.0.0 \\\n    {digest}\n"},
          f"{pins.HOOK_BUILD_CONSTRAINTS}:1", "backend"),
-        ({pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3\nhttps://example.com/x.whl\n"},
-         f"{pins.HOOK_CONSTRAINTS}:3", "https"),
         # a project a row reads in one file is not read in the other
         ({pins.HOOK_BUILD_CONSTRAINTS: "kappa==1.2.3\n"},
-         f"{pins.HOOK_BUILD_CONSTRAINTS}:1", "kappa"))
+         f"{pins.HOOK_BUILD_CONSTRAINTS}:1", "kappa"),
+        # pip breaks a line wherever `str.splitlines` does, so a pin after a form feed, a
+        # vertical tab, a record separator or a next-line or line separator inside a
+        # comment is a line of its own, numbered as pip numbers it
+        *(({pins.HOOK_CONSTRAINTS: f"# the pins{brk}extra==1.0.0\nkappa==1.2.3\n"},
+           f"{pins.HOOK_CONSTRAINTS}:2", "extra")
+          for brk in ("\x0c", "\x0b", "\x1e", "\x85", "\u2028")))
     for files, where, name in unread:
         found, _ = run(files)
         ensure(len(found) == 1 and f"{where} pins {name}, which no development-tools row "
                "K-118 holds reads there" in found[0],
                f"a pin no held row reads is one finding at its line ({files!r}): {found!r}")
+    # Every logical line, its continuations joined and its comment stripped as pip does,
+    # is one pin or a finding at its first line: an option pip follows into another file
+    # or index, a marker, extras, a URL and a looser constraint are none, and a marker
+    # continued onto the next line is the pin's line, which pip skips where it is false.
+    shapes: tuple[tuple[str, int, str], ...] = (
+        ("-c other.txt\n", 3, "-c other.txt"),
+        ("--index-url https://example.com/simple\n", 3, "--index-url https://example.com/simple"),
+        ("extra==1.0.0 ; python_version < '3.15'\n", 3, "extra==1.0.0 ; python_version"),
+        ("extra[more]==1.0.0\n", 3, "extra[more]==1.0.0"),
+        ("https://example.com/x.whl\n", 3, "https://example.com/x.whl"),
+        ("extra==1.*\n", 3, "extra==1.*"),
+        ("extra==${EXTRA}\n", 3, "extra==${EXTRA}"),
+        (f"extra==1.0.0 \\\n    {digest} \\\n    ; sys_platform == 'never'\n", 3,
+         f"extra==1.0.0     {digest}     ; sys_platform"))
+    for written, line, stated in shapes:
+        found, out = run({pins.HOOK_CONSTRAINTS: f"# the pins\nkappa==1.2.3\n{written}"})
+        ensure(len(found) == 1 and f"{pins.HOOK_CONSTRAINTS}:{line} states `{stated}" in found[0]
+               and "which K-118 does not read as one pin" in found[0]
+               and not any(item.startswith("ok K-118:") for item in out),
+               f"a logical line that is no pin is a finding at its line ({written!r}): {found!r}")
+    found, _ = run({pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3 \\\n    ; sys_platform "
+                                           "== 'never'\n"})
+    ensure(len(found) == 2 and f"{pins.HOOK_CONSTRAINTS}:2 states `kappa==1.2.3" in found[0]
+           and "kappa is constrained other than to one `==` release" in found[1],
+           f"a held pin a continued marker makes conditional is no pin: {found!r}")
+    # A line pip joins into a comment, the line before it ending in `\` after one, is no
+    # line pip reads, a stream's byte-order mark is stripped, as pip strips it, and a
+    # coding declaration naming UTF-8 changes nothing.
+    for text in ("# the pins\nkappa==1.2.3 # reviewed \\\nextra==1.0.0\n",
+                 "\ufeff# the pins\nkappa==1.2.3\n",
+                 "# -*- coding: utf-8 -*-\nkappa==1.2.3\n"):
+        found, _ = run({pins.HOOK_CONSTRAINTS: text})
+        ensure(not found, f"pip reads no other pin in {text!r}: {found!r}")
+    # A coding declaration naming another encoding is what pip decodes the file by.
+    found, out = run({pins.HOOK_CONSTRAINTS: "# -*- coding: utf-7 -*-\nkappa==1.2.3\n"})
+    ensure(any(f"{pins.HOOK_CONSTRAINTS} declares the utf-7 encoding" in item for item in found)
+           and not any(line.startswith("ok K-118:") for line in out),
+           f"a file pip decodes as another encoding is unread: {found!r}")
     found, out = run({pins.HOOK_BUILD_CONSTRAINTS: None})
     ensure(len(found) == 1 and f"{pins.HOOK_BUILD_CONSTRAINTS} is not in the repository"
            in found[0] and not any(line.startswith("ok K-118:") for line in out),
            f"an absent constraint file fails closed with no row holding it: {found!r}")
+
+
+def _k118_pip_lines_are_read_as_pip_reads_them() -> None:
+    # The constraint files are split where `str.splitlines` splits, which pip splits at.
+    breaks = "a\nb\rc\r\nd\x0be\x0cf\x1cg\x1dh\x1ei\x85j\u2028k\u2029l"
+    ensure([line for _, line in pins._pip_lines(breaks)] == breaks.splitlines(),
+           "every break str.splitlines takes is a break to the reading")
+    # A continuation keeps the number of its first line, its backslashes stripped at both
+    # ends; a comment line ends it and carries its comment, which is then stripped.
+    joined = pins._pip_lines("a==1 \\\n\\  --x \\\n# c\nb==2\n")
+    ensure(joined == [(1, "a==1   --x"), (4, "b==2")],
+           f"continuations join as pip joins them: {joined!r}")
+    stripped = pins._pip_lines("a==1\xa0# c\n  # d\n")
+    ensure(stripped == [(1, "a==1")],
+           f"a `#` after any whitespace Python's `\\s` takes opens pip's comment: {stripped!r}")
 
 
 def _k118_a_row_named_by_its_release_stays_one_row() -> None:
@@ -1596,12 +1741,23 @@ def _k118_hook_census_reads_every_entry() -> None:
                            ('  - "repo": https://github.com/example/quoted\n', (10,)),
                            ("  - &k repo: https://github.com/example/anchored\n", (10,)),
                            (f"  - rev: {'e' * 40}\n    repo: https://github.com/example/late\n",
-                            (10, 11))):
+                            (10, 11)),
+                           # PyYAML and libyaml read every `?` inside a flow collection as a
+                           # key's indicator whatever follows it, so a `?` flush against its
+                           # key after `{`, `,` or `[`, or opening its line, is counted
+                           (f"  - {{?repo: https://github.com/example/flush, ?rev: {'e' * 40}, "
+                            "hooks: [{?id: x}]}\n", (10,)),
+                           ("  - {\n    ?repo: https://github.com/example/opening,\n"
+                            f"    ?rev: {'e' * 40}}}\n", (11, 12))):
         found, _ = _k118_hook(_K118_HOOKS + written)
         ensure(len(found) == len(lines) and all(
             f"{pins.HOOK_CONFIG}:{line} states a hook repository's `repo` or `rev` key in a "
             "form K-118 does not read" in item for line, item in zip(lines, found, strict=True)),
                f"an entry K-118 cannot read is a finding at its line ({written!r}): {found!r}")
+    # after a block indicator, a `?` flush against what follows it opens a plain scalar
+    found, _ = _k118_hook(_K118_HOOKS.replace("      - id: first\n",
+                                              "      - id: first\n        args:\n          - ?x\n"))
+    ensure(not found, f"a block sequence's `?x` item is no key: {found!r}")
     # A `#` after a no-break or ideographic space opens no comment, YAML's blanks being
     # the space and the tab alone: the line is a key, so an entry anchored there and
     # aliased into `repos` is read at that line rather than passed over as a comment.
@@ -1610,6 +1766,23 @@ def _k118_hook_census_reads_every_entry() -> None:
         found, _ = _k118_hook(anchored + _K118_HOOKS + "  - *e\n")
         ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:1 {_K118_HOOK_UNREAD}" in found[0],
                f"a key after a {space!r} and a `#` is read at its line: {found!r}")
+    # A line opening with `#` may continue a hook's quoted name opened on the line
+    # before, the scalar closing there and the line going on to carry the entry's keys,
+    # which YAML loads as an entry: the line is read rather than passed over as a comment.
+    for quote in ('"', "'"):
+        written = (f"  - {{hooks: [{{id: evil, name: {quote}the hook\n    # reviewed{quote}}}], "
+                   "repo: https://github.com/example/evil, rev: v1}\n")
+        found, _ = _k118_hook(_K118_HOOKS + written)
+        ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:11 {_K118_HOOK_UNREAD}" in found[0],
+               f"keys after a quoted scalar closed on a `#` line are read there: {found!r}")
+    # libyaml, whose loader pre-commit takes, skips a byte-order mark opening any line,
+    # so a key, or a `?` and its key, flush against one is read at that line.
+    written = ("  - {hooks: [{id: evil}],\n\ufeffrepo: https://github.com/example/evil,\n"
+               "\ufeff?rev: v1}\n")
+    found, _ = _k118_hook(_K118_HOOKS + written)
+    ensure(len(found) == 2 and all(f"{pins.HOOK_CONFIG}:{line} {_K118_HOOK_UNREAD}" in item
+                                   for line, item in zip((11, 12), found, strict=True)),
+           f"a key after a line-opening byte-order mark is read at its line: {found!r}")
 
 
 def _k118_hook_rev_is_read_at_its_entry_column() -> None:
@@ -1638,10 +1811,32 @@ def _k118_hook_rev_is_read_at_its_entry_column() -> None:
                and not any(line.startswith("ok K-118:") for line in out),
                f"a rev K-118 does not read at its entry's column is reported ({written!r}): "
                f"{found!r}")
-    # A comment line stating a rev under the entry is no key; the fixture's quoted rev
-    # at the column is read whole, as the agreement case shows.
+    # A comment line stating a rev under the entry is read too, a line opening with `#`
+    # possibly continuing a quoted scalar, so the census errs toward a finding at it,
+    # while the entry's own rev is still the one read at its column.
     found, _ = _k118_hook(_K118_HOOKS.replace(entry, f"{entry}        # rev: v0.0.1\n"))
-    ensure(not found, f"a comment stating a rev is not the entry's rev: {found!r}")
+    ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:6 {_K118_HOOK_UNREAD}" in found[0],
+           f"a comment stating a rev is a finding at its line, not the entry's rev: {found!r}")
+    # The reading holds a rev line at the entry's column even inside a flow sequence,
+    # where it is no key of the entry, so a merge key, or a key a tag makes one, can
+    # supply the rev YAML loads from a mapping anchored inside a `meta` entry, which no
+    # reading holds: each is a finding at its line, and so is a directive, the
+    # configuration needing none of them, while a `%` or a `!` inside a value is not.
+    meta = (f"  - repo: meta\n    x: &m {{\n    rev: {'d' * 40}\n    }}\n"
+            "    hooks: [{id: check-useless-excludes}]\n")
+    staged = _K118_HOOKS.replace("repos:\n", f"repos:\n{meta}")
+    for merge in ("<<: *m", "!!merge y: *m"):
+        decoy = f"    {merge}\n    x: [\n    {reviewed}\n    ]\n    hooks:\n      - id: first\n"
+        found, _ = _k118_hook(staged.replace(entry, decoy))
+        ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:8 {_K118_HOOK_UNREAD}" in found[0],
+               f"a merge staging the rev YAML loads is a finding at its line ({merge!r}): "
+               f"{found!r}")
+    for prefix in ("%YAML 1.1\n---\n", "\ufeff%YAML 1.1\n---\n"):
+        found, _ = _k118_hook(prefix + _K118_HOOKS)
+        ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:1 {_K118_HOOK_UNREAD}" in found[0],
+               f"a directive is a finding at its line ({prefix!r}): {found!r}")
+    found, _ = _k118_hook(_K118_HOOKS.replace(entry, f"{entry}        args: [--x=%s, y!]\n"))
+    ensure(not found, f"a `%` or a `!` inside a value is no directive or tag: {found!r}")
 
 
 def _k118_shipped_readings_are_declared() -> None:
@@ -2185,6 +2380,8 @@ def cases() -> list[Case]:
         Case("k115-membership-is-held-both-ways", _k115_membership_is_held_both_ways),
         Case("k115-licence-link-names-the-reviewed-commit",
              _k115_licence_link_names_the_reviewed_commit),
+        Case("k115-destination-and-autolink-keep-their-revision",
+             _k115_destination_and_autolink_keep_their_revision),
         Case("k115-leaves-the-analyzer-rows-to-k118", _k115_leaves_the_analyzer_rows_to_k118),
         Case("k115-unreadable-readings-fail-closed", _k115_unreadable_readings_fail_closed),
         Case("k115-every-uses-key-is-read-or-reported", _k115_every_uses_key_is_read_or_reported),
@@ -2199,6 +2396,8 @@ def cases() -> list[Case]:
         Case("k118-declarations-are-held", _k118_declarations_are_held),
         Case("k118-every-owner-kind-detects-drift", _k118_every_owner_kind_detects_drift),
         Case("k118-pip-census-reads-every-pin", _k118_pip_census_reads_every_pin),
+        Case("k118-pip-lines-are-read-as-pip-reads-them",
+             _k118_pip_lines_are_read_as_pip_reads_them),
         Case("k118-a-row-named-by-its-release-stays-one-row",
              _k118_a_row_named_by_its_release_stays_one_row),
         Case("k118-hook-revisions-are-held", _k118_hook_revisions_are_held),

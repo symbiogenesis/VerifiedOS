@@ -1035,7 +1035,12 @@ K-118 holds every pin in the two files to the release
 the clang-format wheel's to its mirror's row and the rest to the model hooks' PyPI
 dependencies row, so a moved pin is a finding until its licence is read at the new
 release and the row states it, and a pin no row reads, such as one added for a package
-a hook gained, is a finding until a row reads its licence.
+a hook gained, is a finding until a row reads its licence. It reads each file as pip
+does, split at every break `str.splitlines` takes, a line ending in `\` that is no
+comment joined with the next and comments stripped after the join, so every line left
+must be one `<name>==<release>` pin with at most its `--hash=sha256:` digests: an
+option such as `-c`, `-r` or `--index-url`, a marker, extras or a URL is a finding at
+its line, and a file declaring an encoding other than UTF-8 is unread.
 
 [ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
 carries, including the ones it ships as warnings or switched off, and that is deliberate:
@@ -1083,10 +1088,11 @@ against the file's name rather than a line of it; and a comment carrying
 `# ruff: file-ignore[...]`, a `# ruff: disable[...]` or `# ruff: enable[...]` range,
 whose `disable` with no matching `enable` runs to the end of its block, or isort's
 `skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` on a line of its own
-reaches the one statement or suite header beneath it, a multi-line one whole but never
-the block a header opens, and one ending a line reaches that line alone; it is not
-refused. ruff's log names a file whose rules are switched off as checked, so the
-coverage floor below cannot see what such a suppression takes away.
+reaches the one logical line beneath it, a multi-line one whole, or, inside brackets,
+the one line of code beneath it, past blank and comment lines, and one ending a line
+reaches that line alone, a line taking in the lines a backslash or a multi-line string
+joins to it; it is not refused. ruff's log names a file whose rules are switched off as
+checked, so the coverage floor below cannot see what such a suppression takes away.
 ruff also honors ignore files by default, so ruff.toml sets `respect-gitignore = false`
 and the gate passes `--no-respect-gitignore`: a pattern matching a tracked module would
 otherwise take it out of the lint and annotation run with nothing reported. The settings
@@ -1118,27 +1124,36 @@ neither run sees an import of one fail on the other platform. ruff.toml's
 `banned-module-level-imports` lists each standard-library module the interpreter cannot
 import on Windows or on Linux that ty resolves under both platforms, a listed name
 covering its submodules; a module ty resolves under neither is ty's own
-`unresolved-import` finding, and a module whose import fails for want of one configure
-records as built, missing or disabled, any state but `n/a`, one a build leaves out for
-want of an optional library or whose shared library is absent at run time, is the
-build's and is not listed. [tests/test_typecheck.py](tests/test_typecheck.py) holds the list on each lane
-against every standard-library module and submodule the running interpreter cannot
-import, resolved by the gate's own ty runs, so Host CI's Windows and Ubuntu legs
-together hold both halves. The case decides the list only on an interpreter carrying
+`unresolved-import` finding, and a module whose import fails for want of one that did
+not load and that configure records as built, missing or disabled, any state but
+`n/a`, one a build leaves out for want of an optional library or whose shared library
+is absent at run time, is the build's and is not listed.
+[tests/test_typecheck.py](tests/test_typecheck.py) holds the list on each lane against
+every standard-library module and submodule the running interpreter cannot import,
+resolved by the gate's own ty runs, so Host CI's Windows and Ubuntu legs together hold
+both halves. The case decides the list only on an interpreter carrying
 its build's whole standard library, as the interpreters Host CI's setup-python installs
 do: on one short of tkinter, which python.org's Windows installer makes optional and
 Debian and Ubuntu ship apart, or of ensurepip, which Debian and Ubuntu ship apart too,
 it fails as short of that library rather than asking for a ban. ruff's TID253 refuses
 an import of a listed module only where it is unnested at module level, and with the
 module listed, PLC0415 no longer reports one in a class body. So the gate reads the
-same list and refuses an import of a listed module in a tracked module anywhere else
+same list and holds an import of a listed module in a tracked module anywhere else
 outside a function body, in a class body or a module-level block such as
-`if __name__ == "__main__":`, unless an enclosing `if` compares `sys.platform` with
-string literals: by `==` or `!=` with one, by `in` or `not in` with a tuple, list or set
-of them, or through `startswith`, alone, under `not` or joined by `and` or `or`. An
-import beneath an `if` reading `sys.platform` any other way, which may take a branch on
-every platform, is refused naming its test. Each listed module the tools use is
-imported inside the function that uses it, behind a `sys.platform` check.
+`if __name__ == "__main__":`, to the platforms, of linux and win32, that reach it. An
+enclosing `if` that compares `sys.platform` with string literals, by `==` or `!=` with
+one, by `in` or `not in` with a tuple, list or set of them, or through `startswith`,
+alone, under `not` or joined by `and` or `or`, sends its body the platforms on which its
+test holds and its `else` the rest; every other block, an `if` reading `sys.platform`
+any other way among them, passes on the platforms that reach it. An import both
+platforms reach is refused, naming the nearest enclosing test reading `sys.platform`.
+That holds that no listed module is imported on both platforms, not which one has it,
+so on each lane an import the running platform reaches is refused as well where the
+interpreter cannot find the top-level module it names, as Windows cannot find `fcntl`;
+a submodule of a package the interpreter finds, such as `asyncio.unix_events` on
+Windows, and a module it finds but cannot import, such as `pty` there, are not caught
+this way. Each listed module the tools use is imported inside the function that uses
+it, behind a `sys.platform` check.
 
 The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
 addresses ty's recursive-JSON narrowing behavior, not
