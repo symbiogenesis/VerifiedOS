@@ -472,14 +472,18 @@ def _upgrades_to_read(root: Path) -> bool:
 
 def _nested_repository(root: Path) -> bool | None:
     """Whether `cond_hard_upg_2_6_alpha` holds of the root at `root`: some configured
-    repository's archive, `repo/<name>.tar.gz`, is nested, the archives read in the order
-    of their repositories' names, as the client's map holds them; None where an archive
-    the client fails on comes first, which fails the client before it decides."""
-    for name in sorted({repo["name"] for repo in opam_client.repositories(root)}):
-        nested = _archive_nested(root / "repo" / f"{name}.tar.gz")
-        if nested is None or nested:
-            return nested
-    return False
+    repository's archive, `repo/<name>.tar.gz`, is nested; None where some archive is one
+    the client fails on, which may fail it before it decides.
+
+    Every configured archive is read. The client visits them as its map's balanced tree
+    holds their names, root first, the tree built by adding each name in the order
+    `repos-config` lists it, and stops at the first nested archive or fails at the first
+    it cannot read; that order is in general neither the names' nor the listing's, so
+    whether it reaches a nested archive before one it fails on is left undecided rather
+    than modelled."""
+    names = dict.fromkeys(repo["name"] for repo in opam_client.repositories(root))
+    read = [_archive_nested(root / "repo" / f"{name}.tar.gz") for name in names]
+    return None if None in read else any(read)
 
 
 def _archive_nested(archive: Path) -> bool | None:

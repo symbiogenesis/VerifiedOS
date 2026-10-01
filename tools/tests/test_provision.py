@@ -514,12 +514,12 @@ def _unread_switch_is_not_absent() -> None:
 
 def _hard_upgrade_is_read_from_the_root() -> None:
     """Whether the reviewed client must write an older root's upgrade before it reads it
-    is read as opam 2.6.0 decides it, below 2.6~alpha alone and from the configured
-    repositories' archives before the format: an archive the client fails on first stops
-    the reading undecided whatever the format; otherwise the upgrade is hard below
-    2.0~beta5, at 2.1~alpha and 2.1~alpha2, and wherever the first regular file of an
-    archive, read in name order, is neither `repo` nor under `packages/`. Another
-    reviewed release claims nothing until its own source is read."""
+    is read as opam 2.6.0 decides it, below 2.6~alpha alone and from every configured
+    repository's archive before the format: an archive the client fails on leaves the
+    reading undecided whatever the format and wherever its repository is listed;
+    otherwise the upgrade is hard below 2.0~beta5, at 2.1~alpha and 2.1~alpha2, and
+    wherever the first regular file of an archive is neither `repo` nor under
+    `packages/`. Another reviewed release claims nothing until its own source is read."""
     regular, folder, link = tarfile.REGTYPE, tarfile.DIRTYPE, tarfile.SYMTYPE
 
     def root_at(at: Path, fmt: str,
@@ -578,7 +578,10 @@ def _hard_upgrade_is_read_from_the_root() -> None:
          False),
         ("a flat archive, then a nested one", "2.2", {"a": flat, "b": nested}, True),
         ("a link-led archive, then a nested one", "2.2",
-         {"a": (("x", link),), "b": nested}, False))
+         {"a": (("x", link),), "b": nested}, False),
+        # listed first, so the client's map visits it first, though it sorts last
+        ("a link-led archive listed before a nested one", "2.2",
+         {"b": (("x", link),), "a": nested}, False))
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         for index, (what, fmt, archives, hard) in enumerate(cases):
             root = root_at(Path(td) / str(index), fmt, archives)
