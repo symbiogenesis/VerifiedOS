@@ -431,6 +431,15 @@ def _reader_reproduces_and_compares() -> None:
         ensure(not held and any("touches the route input tools/vos/env.py" in line
                                 for line in lines),
                f"given the closing commit, a touched input it does not name refuses: {lines!r}")
+        lines, held, _ = _read(root, run, jobs, artifacts, parent=moved, closing=moved,
+                               paths=("tools/vos/env.py",))
+        ensure(not held and any("is not the closing commit's first parent" in line
+                                for line in lines),
+               f"a closing parent other than the closing commit's first is refused: {lines!r}")
+        lines, held, _ = _read(root, run, jobs, artifacts, parent=tip, closing=moved,
+                               paths=("tools/vos/env.py",))
+        ensure(held and "== closing evidence: holds" in lines,
+               f"the closing commit's first parent named as the parent holds: {lines!r}")
         tampered = dict(report, verdict="failed")
         (artifacts / f"instrument-join-{tip}" / route.REPORT).write_text(
             json.dumps(tampered), encoding="utf-8")

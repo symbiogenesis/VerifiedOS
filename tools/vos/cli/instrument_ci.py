@@ -525,6 +525,13 @@ def closing_refusals(checkout: Path, closing: str, inputs: Sequence[str],
     return refusals
 
 
+def _commit_of(checkout: Path, revision: str) -> str | None:
+    """The commit a revision names in the checkout, None where it names none."""
+    done = _git(checkout, "rev-parse", "--verify", "--quiet", f"{revision}^{{commit}}")
+    found = done.stdout.decode("utf-8", "replace").strip()
+    return found if done.returncode == 0 and found else None
+
+
 def _receipt(directory: Path | None) -> dict[str, object] | None:
     return route.load_json(directory / route.RECEIPT) if directory is not None else None
 
@@ -679,6 +686,11 @@ def closing_evidence(checkout: Path, report: dict[str, object], plan: dict[str, 
     tested = build.get("source_revision") if build is not None else None
     dispatching = str(plan.get("dispatching_commit") or "")
     target = parent or (f"{closing}^1" if closing else "main")
+    if parent is not None and closing is not None:
+        named, first = _commit_of(checkout, parent), _commit_of(checkout, f"{closing}^1")
+        if named is None or named != first:
+            refusals.append(f"the closing parent {parent} is not the closing commit's first "
+                            f"parent {first}")
     if not isinstance(tested, str) or not route.FULL_COMMIT.fullmatch(tested):
         refusals.append("the build job recorded no tested revision")
         return refusals, lines
