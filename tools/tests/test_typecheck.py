@@ -30,9 +30,10 @@ read for the tracked modules, and each live-tree run giving a verdict and reachi
 every module the tree tracks, a missing or another installed checker refused. The
 import cases hold the scan beside the checkers: an import of a module ruff.toml bans at
 module level refused outside a function body, in a class body, a module-level block or
-the main guard, and admitted in a function body or behind a `sys.platform` check, a
-ruff.toml or module the scan cannot read refused, and the real ruff leaving open what
-the scan refuses; and the list itself covering, on each lane, every standard-library
+the main guard, or behind an `if` reading a `platform` other than `sys.platform`, and
+admitted in a function body or behind a `sys.platform` check, a ruff.toml or module the
+scan cannot read refused, the whole run carrying the scan's refusal, and the real ruff
+leaving open what the scan refuses; and the list itself covering, on each lane, every standard-library
 module the running interpreter cannot import that the gate's ty resolves under both
 platforms.
 """
@@ -1012,7 +1013,9 @@ def _ruff_settings_refuse_per_file_suppressions() -> None:
 def _file_suppressions_refused() -> None:
     # Each comment ruff reads as a file-level suppression, in any of ruff's spellings
     # and wherever it sits, is refused unless it names only N999, and so is one after
-    # trailing code, which ruff ignores. Each comment of a range is refused too: both
+    # trailing code, which ruff ignores. A code with no colon before it names nothing,
+    # and ruff reads that directive as switching every rule off. Each comment of a range
+    # is refused too: both
     # ends of a pair at module level or in a class body, a disable with no enable, which
     # runs to the end of its block, and one spaced as ruff still reads it; and so are a
     # file-ignore and isort's skip_file and off, a trailing skip_file among them, which
@@ -1029,6 +1032,7 @@ def _file_suppressions_refused() -> None:
         "beside.py": "# ruff: noqa: N999, ANN001\n",
         "joined.py": "# ruff: noqa:N999ANN001\n",
         "twice.py": "# ruff: noqa: N999 # ruff: noqa: ANN001\n",
+        "nocolon.py": "# ruff: noqa N999\n",
         "pair.py": "# ruff: disable[ANN001]\nx = 1\n# ruff: enable[ANN001]\n",
         "unmatched.py": "# ruff: disable[ANN001]\ndef f(x):\n    return x\n",
         "spaced.py": "#  ruff :  disable [ANN001]\n",
@@ -1062,7 +1066,7 @@ def _file_suppressions_refused() -> None:
                      "fileignore.py:2 # ruff: file-ignore[ANN001]",
                      "flake8.py:1 # flake8: noqa: ANN001,ANN201",
                      "indented.py:3 # ruff: noqa: ANN001", "isortoff.py:1 # ruff: isort: off",
-                     "joined.py:1 # ruff: noqa:N999ANN001",
+                     "joined.py:1 # ruff: noqa:N999ANN001", "nocolon.py:1 # ruff: noqa N999",
                      "pair.py:1 # ruff: disable[ANN001]", "pair.py:3 # ruff: enable[ANN001]",
                      "second.py:1 # a note # ruff: noqa: ANN001",
                      "skipfile.py:1 # isort: skip_file", "spaced.py:1 #  ruff :  disable [ANN001]",
@@ -1189,8 +1193,12 @@ def _imports_refused_outside_functions() -> None:
     # outside a function body is refused wherever it sits: unnested at module level, in
     # a class body at any depth, and in a module-level block such as the main guard. A
     # name spelled with a fullwidth letter is the banned module, since Python
-    # NFKC-normalizes identifiers, though the text never spells it in ASCII.
+    # NFKC-normalizes identifiers, though the text never spells it in ASCII. An `if`
+    # reading a `platform` other than `sys.platform`, another object's or one imported
+    # from sys and read bare, is not the check the scan admits.
     refused = {
+        "receiver.py": "if args.platform == 'linux':\n    import fcntl\n",
+        "fromsys.py": "from sys import platform\n\nif platform == 'linux':\n    import fcntl\n",
         "toplevel.py": "import os, fcntl\n",
         "classbody.py": "class Locks:\n    import fcntl\n",
         "nested.py": "class Outer:\n    class Inner:\n        import fcntl\n",
@@ -1205,10 +1213,25 @@ def _imports_refused_outside_functions() -> None:
     ensure(rep.findings == len(refused) and rep.out == [
         f"FAIL imports: {len(refused)} {_SCAN_FAIL}",
         _refused("classbody.py:2"), _refused("dotted.py:2", "asyncio.unix_events"),
-        _refused("mainblock.py:2"), _refused("member.py:2", "asyncio.unix_events"),
-        _refused("moduleif.py:4"), _refused("nested.py:3"), _refused("nfkc.py:2"),
+        _refused("fromsys.py:4"), _refused("mainblock.py:2"),
+        _refused("member.py:2", "asyncio.unix_events"), _refused("moduleif.py:4"),
+        _refused("nested.py:3"), _refused("nfkc.py:2"), _refused("receiver.py:2"),
         _refused("toplevel.py:1"), _refused("tryblock.py:2")],
         f"each import outside a function body must be refused: {rep.out!r}")
+
+
+def _run_wires_in_the_scan() -> None:
+    # The whole run, with the index fixed and both checkers' runs replaced by no-ops,
+    # over a tree whose one module imports a banned module in a class body: the scan
+    # runs beside the checkers, and its refusal is in the run's report and its count.
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        _write_tools(Path(td), {"classbody.py": "class Locks:\n    import fcntl\n"}, _BANNING)
+        with patch.object(typecheck, "_tracked", return_value=frozenset({"classbody.py"})), \
+                patch.object(typecheck, "_run_ty"), patch.object(typecheck, "_run_ruff"):
+            rep = typecheck.run(Path(td))
+    ensure(rep.findings == 1 and rep.out == ["=== tools ===", f"FAIL imports: 1 {_SCAN_FAIL}",
+                                             _refused("classbody.py:2"), "1 finding(s)."],
+           f"the run must carry the scan's refusal: {rep.out!r}")
 
 
 def _imports_admitted_in_functions_and_platform_blocks() -> None:
@@ -1522,6 +1545,7 @@ def cases() -> list[Case]:
         Case("suppressions-reported-beside-the-run", _suppressions_reported_beside_the_run),
         Case("ty-log-variables-removed", _ty_log_variables_removed),
         Case("imports-refused-outside-functions", _imports_refused_outside_functions),
+        Case("run-wires-in-the-scan", _run_wires_in_the_scan),
         Case("imports-admitted-in-functions-and-platform-blocks",
              _imports_admitted_in_functions_and_platform_blocks),
         Case("imports-fail-closed", _imports_fail_closed),

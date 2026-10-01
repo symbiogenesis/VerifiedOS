@@ -835,7 +835,9 @@ def _banned_names(node: ast.Import | ast.ImportFrom, banned: frozenset[str]) -> 
 
 
 def _reads_platform(test: ast.expr) -> bool:
-    """Whether an `if` condition reads `sys.platform`."""
+    """Whether an `if` condition reads `sys.platform`, spelled as the attribute of the
+    name `sys`. A `platform` read from another object, or imported from `sys` and read
+    bare, is not that check."""
     return any(isinstance(node, ast.Attribute) and node.attr == "platform"
                and isinstance(node.value, ast.Name) and node.value.id == "sys"
                for node in ast.walk(test))
