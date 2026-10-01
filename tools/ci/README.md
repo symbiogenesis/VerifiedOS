@@ -410,13 +410,19 @@ after which the switch its recipe names does not stand, and the checks on a swit
 - Where `base_revision` is given, three seed jobs, the base run and two candidate runs,
   each build their side's switch in a fresh root, list the sampled population with
   `seed list`, the operator of each mutant the journal names, and run
-  `seed coq --quickchick --sample N` over seed's default subject. A seed run is complete
-  when its journal's closing line counts every mutant its head picked, at seed's exit 0
-  or 1; a journal that closes on fewer, as one whose baseline did not stand closes on
-  none, fails the step. `--jobs` stays at 1 until the build job's recorded
-  `quickchick properties` peak is the basis for more; after a seed step reaches its
-  limit, the next dispatch raises `--jobs` on that peak or records the runner decision
-  as owed to the user, and the sample stays 20.
+  `seed coq --quickchick --sample N` over seed's default subject. The route reads the
+  journal as [seed's `Journal`](../vos/seeded.py) writes it: the scope its head states,
+  one line per verdict, any reason running on over the lines after its verdict, and a
+  closing line counting the decided verdicts and, where there is one, the undecided
+  ones apart. A note, a line opening `-- `, is no verdict and no part of one's reason,
+  and the route reads nothing from it. `seed coq` journals a mutant whose compile
+  reaches gallina's per-file timeout as undecided and goes on to the next. A seed run is
+  complete when its journal's closing line counts every mutant its head picked, decided
+  and undecided together, at seed's exit 0 or 1; a journal that closes on fewer, as one
+  whose baseline did not stand closes on none, fails the step. `--jobs` stays at 1 until
+  the build job's recorded `quickchick properties` peak is the basis for more; after a
+  seed step reaches its limit, the next dispatch raises `--jobs` on that peak or records
+  the runner decision as owed to the user, and the sample stays 20.
 - The join job runs when the plan job passed and the run was not cancelled. It takes
   one artifact per job, records a job its prerequisite's failure skipped as not run,
   records as failed a job whose result is failure though none of its wrapped steps
@@ -432,9 +438,9 @@ after which the switch its recipe names does not stand, and the checks on a swit
   each step's verdict, each sampled mutant's verdict in every seed run by its identity,
   operator, site and rewrite, each mutant whose verdict differs between the two
   candidate runs or between base and candidate, or whose journalled verdict is other
-  than killed, survived, stillborn or unseeded, with the verdicts and reasons the
-  journal records, and every pair of sides whose opam client version or runner image
-  differs.
+  than killed, survived, stillborn or unseeded, an undecided one among them, with the
+  verdicts and reasons the journal records, and every pair of sides whose opam client
+  version or runner image differs.
 
 **Receipts and limits.** Each job's receipt records its effective inputs, side,
 revision, base revision, build, sample and subject, the subject being the one the plan

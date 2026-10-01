@@ -113,8 +113,9 @@ SEED_JOBS = 1
 FULL_SAMPLE = 20
 
 # The verdicts a step and a job carry. `completed` is a seed run whose journal closes
-# on every mutant its head picked, at seed's exit 0 or 1, whatever the step exited:
-# seed exits 1 on a survivor, which is the measurement and not a failure of the step.
+# on every mutant its head picked, decided and undecided together, at seed's exit 0 or
+# 1, whatever the step exited: seed exits 1 on a survivor or an undecided mutant, which
+# is the measurement and not a failure of the step.
 # A journal that closes on fewer, as one whose baseline did not stand closes on none,
 # records a run that measured nothing, and its step fails.
 PASSED = "passed"
@@ -1240,14 +1241,15 @@ class Entry:
 
 @dataclass(frozen=True)
 class Journal:
-    """A seed journal: its verdicts, whether it closes and on how many verdicts at what
-    exit, and the scope its head states."""
+    """A seed journal: its verdicts, whether it closes, on how many decided and how many
+    undecided verdicts at what exit, and the scope its head states."""
 
     entries: list[Entry] = field(default_factory=list)
     complete: bool = False
     exit: int | None = None
     scope: str | None = None
     decided: int | None = None
+    undecided: int | None = None
 
     @property
     def picked(self) -> int | None:
@@ -1265,7 +1267,19 @@ _SCOPE_RE = re.compile(r"over (?:the whole population of (?P<whole>\d+)|(?P<ran>
 _ENTRY_RE = re.compile(r"^\s*(\d+)  (\S+)\s+(.*)$")
 _MUTANT_RE = re.compile(r"^(?P<site>\S+:\d+) `(?P<before>.*?)` -> `(?P<after>.*?)`: "
                         r"(?P<detail>.*)$", re.DOTALL)
-_CLOSE_RE = re.compile(r"^== complete: (\d+) verdict\(s\) decided, exit (-?\d+)$")
+# The closing line as seed's `Journal.close` words it: the decided verdicts, the
+# undecided ones apart where there is one, and seed's exit.
+_CLOSE_RE = re.compile(r"^== complete: (?P<decided>\d+) verdict\(s\) decided"
+                       r"(?:, (?P<undecided>\d+) undecided)?, exit (?P<exit>-?\d+)$")
+# A note's lines open `-- `, as `Journal.note` writes every line of one and
+# `Journal.record` the line naming a verdict's number: what a compile cost, which mutant
+# a tree is on, the seed a harness draws from, or why there is no baseline. A note is no
+# verdict and no part of one.
+_NOTE = "--"
+
+
+def _is_note(line: str) -> bool:
+    return line == _NOTE or line.startswith(f"{_NOTE} ")
 
 
 def _entry(index: int, outcome: str, text: str) -> Entry:
@@ -1279,18 +1293,27 @@ def _entry(index: int, outcome: str, text: str) -> Entry:
 
 def parse_journal(text: str) -> Journal:
     """A seed journal: its verdicts in the order written, whether its closing line is
-    there, and its scope. A line that opens no verdict continues the one before it."""
+    there, the decided and undecided verdicts that line counts, and its scope.
+
+    A line that opens no verdict, no note and no `== ` line continues the verdict before
+    it, since `Journal.record` writes a reason running over several lines in the one
+    write that journals its verdict. A note ends the verdict before it and is passed
+    over: no note enters any verdict's reason, and the join reads nothing from one."""
     entries: list[Entry] = []
     pending: tuple[int, str, list[str]] | None = None
-    complete, code, scope, decided = False, None, None, None
+    complete, code, scope, decided, undecided = False, None, None, None, None
     for line in text.splitlines():
         closing = _CLOSE_RE.match(line)
         opened = _ENTRY_RE.match(line)
-        if (closing or opened or line.startswith("==")) and pending is not None:
+        note = _is_note(line)
+        if (closing or opened or note or line.startswith("==")) and pending is not None:
             entries.append(_entry(pending[0], pending[1], "\n".join(pending[2])))
             pending = None
+        if note:
+            continue
         if closing:
-            complete, decided, code = True, int(closing.group(1)), int(closing.group(2))
+            complete, code = True, int(closing["exit"])
+            decided, undecided = int(closing["decided"]), int(closing["undecided"] or 0)
         elif opened:
             pending = (int(opened.group(1)), str(opened.group(2)), [str(opened.group(3))])
         elif line.lstrip().startswith("scope:") and not entries and pending is None:
@@ -1299,13 +1322,15 @@ def parse_journal(text: str) -> Journal:
             pending[2].append(line)
     if pending is not None:
         entries.append(_entry(pending[0], pending[1], "\n".join(pending[2])))
-    return Journal(entries, complete, code, scope, decided)
+    return Journal(entries, complete, code, scope, decided, undecided)
 
 
 def journal_shortfall(journal: Journal) -> str | None:
     """Why a seed journal records no finished run, None where it does: a finished run's
-    closing line counts every mutant its head picked, at seed's exit 0 or 1. A run whose
-    baseline did not stand closes on none of them, and is no measurement."""
+    closing line counts every mutant its head picked, its decided and undecided verdicts
+    together, at seed's exit 0 or 1, an undecided mutant being one the run reached and
+    decided nothing about. A run whose baseline did not stand closes on none of them,
+    and is no measurement."""
     if not journal.complete:
         return "its journal has no closing line"
     picked = journal.picked
@@ -1313,8 +1338,11 @@ def journal_shortfall(journal: Journal) -> str | None:
         return "its journal's head states no scope"
     if picked < 1:
         return "its journal's head picks no mutant"
-    if journal.decided != picked:
-        return f"its journal closes on {journal.decided} of the {picked} mutant(s) it picked"
+    undecided = journal.undecided or 0
+    counted = (journal.decided or 0) + undecided
+    if counted != picked:
+        apart = f", {undecided} of them undecided" if undecided else ""
+        return f"its journal closes on {counted} of the {picked} mutant(s) it picked{apart}"
     if journal.exit not in (0, 1):
         return f"its journal closes at exit {journal.exit}"
     return None
@@ -1494,7 +1522,8 @@ def _seed_report(journals: dict[str, Journal],
     return {
         "runs": {run: {"complete": journal.complete, "exit": journal.exit,
                        "scope": journal.scope, "picked": journal.picked,
-                       "decided": journal.decided, "verdicts": len(journal.entries),
+                       "decided": journal.decided, "undecided": journal.undecided,
+                       "verdicts": len(journal.entries),
                        "shortfall": journal_shortfall(journal)}
                  for run, journal in journals.items()},
         "mutants": mutants,
