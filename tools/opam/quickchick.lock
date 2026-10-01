@@ -16,6 +16,7 @@ roots: [
   "coq-ext-lib.dev"
   "coq-quickchick.dev"
   "coq-simple-io.dev"
+  "dune.3.23.1"
   "ocaml-base-compiler.5.4.1"
   "ocamlfind.1.9.8"
   "rocq-core.9.3.0"
