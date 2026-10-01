@@ -341,10 +341,9 @@ Definition base (f : list Obj) (i : Obj) : nat :=
 
 (* The constructed placement, read by identity. *)
 Definition build (f : list Obj) : nat -> nat :=
-  fun id => match find (fun o => Nat.eqb (oid o) id) f with
-            | Some i => base f i
-            | None => 0
-            end.
+  fun id => if find (fun o => Nat.eqb (oid o) id) f is Some i
+            then base f i
+            else 0.
 
 Lemma lexlt_irrefl : forall i, ~ LexLt i i.
 Proof. unfold LexLt. intros i. lia. Qed.
