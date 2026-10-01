@@ -39,7 +39,8 @@ the running platform reaches refused where the interpreter cannot find its modul
 ruff.toml or module the scan cannot read refused, the whole run carrying the scan's
 refusal, and the real ruff leaving open what the scan refuses; and the list itself
 covering, on each lane, every standard-library module the running interpreter cannot
-import that the gate's ty resolves under both platforms.
+import that the gate's ty resolves under both platforms, the probe finding them naming
+the module a failure wants only where that module did not load.
 """
 
 import json
@@ -1487,10 +1488,11 @@ def _imports_close_what_ruff_leaves_open() -> None:
 # The program `_import_failures` runs in a child of the running interpreter: each module
 # the interpreter lists as its standard library, and each submodule of a package among
 # them that imports, imported in turn, then one line after `_PROBED`, a JSON object
-# naming each that fails with the module its ImportError names, or null where it names
-# none or the failure is another exception. The marker keeps the line apart from
-# anything a module prints as it imports. A `__main__` submodule runs a program, and the
-# trees left out run one or open a browser when imported.
+# naming each that fails with the module its ImportError names, where that module did not
+# load, or null where it names none, names one that loaded, as `cannot import name` does,
+# or the failure is another exception. The marker keeps the line apart from anything a
+# module prints as it imports. A `__main__` submodule runs a program, and the trees left
+# out run one or open a browser when imported.
 _PROBED = "vos-import-probe: "
 _IMPORT_PROBE = """\
 import importlib, json, pkgutil, sys
@@ -1508,7 +1510,8 @@ while queue:
     try:
         module = importlib.import_module(name)
     except BaseException as err:
-        failed[name] = err.name if isinstance(err, ImportError) else None
+        missing = err.name if isinstance(err, ImportError) else None
+        failed[name] = None if missing in sys.modules else missing
         continue
     queue.extend(info.name for info in pkgutil.iter_modules(getattr(module, "__path__", []),
                                                             name + ".")
@@ -1516,11 +1519,12 @@ while queue:
 """ + f"print({_PROBED!r} + json.dumps(failed))\n"
 
 
-def _import_failures() -> dict[str, str | None]:
+def _import_failures(program: str = _IMPORT_PROBE) -> dict[str, str | None]:
     """Each standard-library module or submodule the running interpreter cannot import,
-    with the module its ImportError names, or `None` where it names none or the failure
-    is another exception."""
-    done = subprocess.run([sys.executable, "-B", "-I", "-c", _IMPORT_PROBE],
+    with the module its ImportError names, where that module did not load, or `None`
+    where it names none, names one that loaded, or the failure is another exception, as
+    `program`, the probe unless a case gives another, reports them."""
+    done = subprocess.run([sys.executable, "-B", "-I", "-c", program],
                           stdin=subprocess.DEVNULL, capture_output=True, encoding="utf-8",
                           errors="replace", check=False, timeout=typecheck.TIMEOUT)
     lines = [line.removeprefix(_PROBED) for line in done.stdout.splitlines()
@@ -1528,6 +1532,25 @@ def _import_failures() -> dict[str, str | None]:
     ensure(done.returncode == 0 and len(lines) == 1,
            f"the import probe exited {done.returncode}: {done.stderr.strip()[-400:]!r}")
     return cast("dict[str, str | None]", json.loads(lines[0]))
+
+
+def _import_probe_names_modules_that_did_not_load() -> None:
+    # The probe over modules of its own in place of the standard library: one failing for
+    # want of a module that is nowhere names it; one failing to import a name from a
+    # module that loaded, as `cannot import name` does, and one raising another exception
+    # name nothing; and one that imports is not recorded.
+    modules = {"vosprobeloaded": "VALUE = 1\n", "vosprobeabsent": "import vosprobenowhere\n",
+               "vosprobename": "from vosprobeloaded import MISSING\n",
+               "vosprobeerror": "raise RuntimeError('refused')\n"}
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        for name, text in modules.items():
+            (Path(td) / f"{name}.py").write_text(text, encoding="utf-8", newline="")
+        program = f"import sys\nsys.path.insert(0, {td!r})\n" + _IMPORT_PROBE.replace(
+            "sys.stdlib_module_names", repr(sorted(modules)), 1)
+        found = _import_failures(program)
+    ensure(found == {"vosprobeabsent": "vosprobenowhere", "vosprobename": None,
+                     "vosprobeerror": None},
+           f"the probe must name only a module that did not load: {found!r}")
 
 
 def _ty_unresolved(modules: list[str]) -> set[str]:
@@ -1564,17 +1587,19 @@ _SEPARABLE = {"_tkinter": _TCL_TK, "tkinter": _TCL_TK,
 def _banned_list_covers_what_cannot_be_imported() -> None:
     # The list's claim, held on this lane: each standard-library module the running
     # interpreter cannot import, that the gate's ty resolves under both of its platforms,
-    # is covered by a listed name, itself or a parent. A module whose failure names one
-    # configure records as built, missing or disabled, any state but n/a, is the build's
-    # rather than the platform's: one a build left out for want of an optional library,
-    # or one it built whose shared library is absent at run time. The Windows
-    # lane holds the half Windows lacks and the Linux lane the other. The control is that
-    # the search finds the best-known module this lane's platform lacks, so an empty
-    # search cannot pass for a clean one. The case decides the list only on an interpreter
-    # carrying its build's whole standard library, as the interpreters Host CI's
-    # setup-python installs do: a Windows build records no state, and a distribution
-    # ships some pure-Python packages apart, so an interpreter short of a package
-    # `_SEPARABLE` names fails the case as short of its library rather than asked to ban it.
+    # is covered by a listed name, itself or a parent. A module whose import fails for want
+    # of one that did not load and that configure records as built, missing or disabled,
+    # any state but n/a, is the build's rather than the platform's: one a build left out
+    # for want of an optional library, or one it built whose shared library is absent at
+    # run time. A failure naming a module that loaded, as `cannot import name` does, is not
+    # read as the build's. The Windows lane holds the half Windows lacks and the Linux lane
+    # the other. The control is that the search finds the best-known module this lane's
+    # platform lacks, so an empty search cannot pass for a clean one. The case decides the
+    # list only on an interpreter carrying its build's whole standard library, as the
+    # interpreters Host CI's setup-python installs do: a Windows build records no state,
+    # and a distribution ships some pure-Python packages apart, so an interpreter short of
+    # a package `_SEPARABLE` names fails the case as short of its library rather than
+    # asked to ban it.
     def omitted(missing: str | None) -> bool:
         return missing is not None and sysconfig.get_config_var(
             f"MODULE_{missing.upper()}_STATE") not in {None, "n/a"}
@@ -1738,6 +1763,8 @@ def cases() -> list[Case]:
              _imports_refused_where_the_running_platform_lacks_them),
         Case("imports-fail-closed", _imports_fail_closed),
         Case("imports-close-what-ruff-leaves-open", _imports_close_what_ruff_leaves_open),
+        Case("import-probe-names-modules-that-did-not-load",
+             _import_probe_names_modules_that_did_not_load),
         Case("banned-list-covers-what-cannot-be-imported",
              _banned_list_covers_what_cannot_be_imported),
         Case("tracked-reads-the-index", _tracked_reads_the_index),
