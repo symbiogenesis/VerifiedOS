@@ -444,22 +444,35 @@ def vectors(found: Prover, work: Path, harness: Path) -> tuple[list[str], str]:
 
 
 def properties(found: Prover, work: Path, harness: Path) -> tuple[int, int, str]:
-    """Run the randomized harness: how many property sets passed, how many failed, and
-    the first counterexample where one did.
+    """Run the randomized harness, and read what it decided as `drawn_sets` does."""
+    return drawn_sets(compile_one(found, work, harness))
+
+
+def drawn_sets(done: subprocess.CompletedProcess[str]) -> tuple[int, int, str]:
+    """What one compile of the randomized harness decided: how many property sets
+    passed, how many failed, and the first counterexample where one did; or, where it
+    decided none, no set passed or failed and the reason why.
 
     QuickChick runs a property at compile time and prints its verdict, so the prover's
     own stdout is the result: `+++ Passed` per set, `*** Failed` with the drawn
-    counterexample under it, unshrunk, `forAll` shrinking nothing. A compile that did
-    not run at all is reported as a failure of every set rather than as none, an empty
-    run being the vacuous pass every floor in this repository exists to catch.
+    counterexample under it, unshrunk, `forAll` shrinking nothing. A compile that failed
+    and refuted no set decided nothing, even where sets ahead of the failure passed, the
+    sets after it never having run, and neither did one that printed no verdict. Neither
+    is read as a set that passed, an empty run being the vacuous pass every floor in this
+    repository exists to catch, nor as sets a draw refuted: a harness that did not build
+    is a mutant no draw ran against and a baseline that is none, as the walk harness's is.
     """
-    done = compile_one(found, work, harness)
     said = done.stdout + done.stderr
     passed = said.count("+++ Passed")
     failed = said.count("*** Failed")
-    if done.returncode != 0 and not failed:
-        return 0, max(1, passed + failed), _first(said, "the harness did not compile")
-    return passed, failed, _first(said, "") if failed else ""
+    if failed:
+        return passed, failed, _first(said, "")
+    if done.returncode != 0:
+        error = _first(said, "")
+        return 0, 0, f"it did not build: {error}" if error else "it did not build"
+    if not passed:
+        return 0, 0, "it compiled and printed no verdict line"
+    return passed, 0, ""
 
 
 def seed(harness: Path) -> str | None:

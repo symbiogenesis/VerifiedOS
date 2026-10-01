@@ -265,11 +265,11 @@ def _properties(args: argparse.Namespace, e: env.Environment, root: Path, work: 
         return 1
     done = gallina.compile_one(found, work, drawn)
     print(done.stdout + done.stderr)
-    if done.returncode != 0:
-        print(f"FAIL {gallina.RANDOMIZED} did not run under {PACKAGE} in {switch}")
+    passed, failed, why = gallina.drawn_sets(done)
+    if not (passed or failed):
+        print(f"FAIL {gallina.RANDOMIZED} decided no property set under {PACKAGE} in "
+              f"{switch}: {why}")
         return 1
-    passed = done.stdout.count("+++ Passed")
-    failed = done.stdout.count("*** Failed")
     found_walks, said = gallina.walks(found, work, walked)
     if said:
         print(f"FAIL {gallina.EXHAUSTIVE} did not run in {switch}:\n{said}")
@@ -277,7 +277,7 @@ def _properties(args: argparse.Namespace, e: env.Environment, root: Path, work: 
     print("\n".join(f"walked {w.name}: {w.points} point(s), {w.premise} meeting its "
                     f"premise, {w.refuted} refuting it" for w in found_walks))
     refuted = gallina.walk_failures(found_walks)
-    if failed or not passed or refuted:
+    if failed or refuted:
         print("\n".join([f"FAIL {gallina.RANDOMIZED}: {failed} drawn property set(s) "
                          f"failed and {passed} passed; {gallina.EXHAUSTIVE}: "
                          f"{len(refuted)} of {len(found_walks)} walked set(s) did not hold",

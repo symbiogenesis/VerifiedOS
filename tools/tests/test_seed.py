@@ -261,6 +261,23 @@ def _the_walks_decide_a_mutant_before_the_draws() -> None:
            f"a mutant every walk and draw holds survives: {held} {compiled}")
 
 
+def _a_drawn_harness_that_does_not_build_is_stillborn() -> None:
+    """The drawn harness's build failure is scored as the walk harness's is: a mutant
+    over which it does not build is one no draw ran against, never a kill, and a baseline
+    over which it does not build is none; a set a draw refutes is still a kill."""
+    unbuilt, _ = _verdict(True, {gallina.RANDOMIZED: _done(1)})
+    ensure(unbuilt.outcome == STILLBORN and "it did not build: Error:" in unbuilt.detail,
+           f"a drawn harness that does not build decides nothing: {unbuilt}")
+    refuted, _ = _verdict(True, {gallina.RANDOMIZED:
+                                 _done(0, "+++ Passed 10000 tests\n*** Failed after 3 tests\n")})
+    ensure(refuted.outcome == KILLED and refuted.moved == 1
+           and "QuickChick refuted 1 of 2 property set(s)" in refuted.detail,
+           f"a refuted draw kills the mutant: {refuted}")
+    got, why, _ = _baseline(_RIG, {gallina.RANDOMIZED: _done(1)})
+    ensure(got is None and "decided nothing: it did not build" in why,
+           f"a drawn harness that does not build is no baseline: {why}")
+
+
 def _the_randomized_baseline_refuses_what_does_not_replay_or_hold() -> None:
     """The baseline every randomized mutant is held to: a drawn harness fixing no seed
     is refused before anything compiles, a walk harness that does not build or a walk a
@@ -502,6 +519,8 @@ def cases() -> list[Case]:
              _only_the_randomized_half_builds_its_support),
         Case("the walks decide a mutant before the draws",
              _the_walks_decide_a_mutant_before_the_draws),
+        Case("a drawn harness that does not build is stillborn",
+             _a_drawn_harness_that_does_not_build_is_stillborn),
         Case("the randomized baseline refuses what does not replay or hold",
              _the_randomized_baseline_refuses_what_does_not_replay_or_hold),
         Case("mutation workspaces are held for the whole run",

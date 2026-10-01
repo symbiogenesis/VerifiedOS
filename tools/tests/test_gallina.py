@@ -532,8 +532,9 @@ def _the_randomized_harness_compiles_its_closure_alone() -> None:
 
 
 def _the_randomized_half_refuses_what_does_not_replay_or_hold() -> None:
-    """A drawn harness fixing no seed is refused before anything compiles, and a walk a
-    point refutes fails the run whatever the draws said."""
+    """A drawn harness fixing no seed is refused before anything compiles, a drawn
+    harness that does not build is a build failure rather than sets that failed, and a
+    walk a point refutes fails the run whatever the draws said."""
     files = {"proofs/A.v": _A,
              f"tools/quickchick/{gallina.RANDOMIZED}":
                  "From QuickChick Require Import QuickChick.\nRequire Import A.\n",
@@ -542,12 +543,19 @@ def _the_randomized_half_refuses_what_does_not_replay_or_hold() -> None:
     def compile_one(found: gallina.Prover, work: Path, source: Path,
                     timeout: int = 900) -> subprocess.CompletedProcess[str]:
         del found, work, timeout
-        said = ('= ["prop_w 9 3 2 4"] : list string\n' if source.name == gallina.EXHAUSTIVE
-                else "+++ Passed 10000 tests\n")
-        return subprocess.CompletedProcess([], 0, said, "")
+        if source.name == gallina.EXHAUSTIVE:
+            return subprocess.CompletedProcess([], 0, '= ["prop_w 9 3 2 4"] : list string\n',
+                                               "")
+        if broken and source.name == gallina.RANDOMIZED:
+            return subprocess.CompletedProcess([], 1, "", "Error: The reference x was not found")
+        return subprocess.CompletedProcess([], 0, "+++ Passed 10000 tests\n", "")
 
-    for seeded, want in ((False, "fixes QuickChick's random state other than once"),
-                         (True, "2 of 9 point(s) refute it, the first at position 4")):
+    for seeded, broken, want in (
+            (False, False, "fixes QuickChick's random state other than once"),
+            (True, True, f"FAIL {gallina.RANDOMIZED} decided no property set under "
+                         f"{quickchick.PACKAGE} in {gallina.QUICKCHICK_SWITCH}: it did not "
+                         "build: Error: The reference x was not found"),
+            (True, False, "2 of 9 point(s) refute it, the first at position 4")):
         if seeded:
             files[f"tools/quickchick/{gallina.RANDOMIZED}"] = _SEEDED + "Require Import A.\n"
         with (_tree(files) as td, tempfile.TemporaryDirectory(prefix="vos-work-") as wd,
@@ -559,7 +567,7 @@ def _the_randomized_half_refuses_what_does_not_replay_or_hold() -> None:
             code = quickchick._properties(argparse.Namespace(recipe=False), Mock(), Path(td),
                                           Path(wd) / "gallina")
         ensure(code == 1 and want in output.getvalue(),
-               f"seeded={seeded}: the run said {output.getvalue()}")
+               f"seeded={seeded}, broken={broken}: the run said {output.getvalue()}")
         ensure(seeded or compiled.call_count == 0,
                "a harness that cannot replay must be refused before compiling")
 
@@ -603,6 +611,31 @@ def _the_seed_and_the_walks_are_read() -> None:
     ensure(gallina.walk_failures([gallina.Walk("none", 0, 0, 0, None)])
            == ["none: its domain holds no point, so it decides nothing"],
            "an empty domain decides nothing")
+
+
+def _a_drawn_harness_that_does_not_build_decides_nothing() -> None:
+    """A compile of the drawn harness that failed and refuted no set decided nothing,
+    the sets after the failure never having run, and neither did one that printed no
+    verdict: each is read as no set passed or failed, with why, never as sets a draw
+    refuted. A refuted set is read as one whether or not the compile failed after it."""
+    error = "Error: The reference foo was not found"
+    printed = {"broken": (1, "", error),
+               "broken after a pass": (1, "+++ Passed 10000 tests\n", error),
+               "silent": (0, "", ""),
+               "refuted": (0, "+++ Passed 10000 tests\n*** Failed after 3 tests\n", ""),
+               "refuted then broken": (1, "*** Failed after 3 tests\n", error),
+               "passed": (0, "+++ Passed 10000 tests\n" * 2, "")}
+    read = {label: gallina.drawn_sets(subprocess.CompletedProcess([], code, out, err))
+            for label, (code, out, err) in printed.items()}
+    for label in ("broken", "broken after a pass"):
+        ensure(read[label] == (0, 0, f"it did not build: {error}"),
+               f"a {label} harness is a build failure: {read[label]}")
+    ensure(read["silent"] == (0, 0, "it compiled and printed no verdict line"),
+           f"a harness printing no verdict decided nothing: {read['silent']}")
+    ensure(read["refuted"] == (1, 1, "*** Failed after 3 tests")
+           and read["refuted then broken"] == (0, 1, "*** Failed after 3 tests"),
+           f"a refuted set is read as refuted: {read}")
+    ensure(read["passed"] == (2, 0, ""), f"two passing sets: {read['passed']}")
 
 
 def _quickchick_rejects_other_versions() -> None:
@@ -742,6 +775,8 @@ def cases() -> list[Case]:
         Case("the randomized half refuses what does not replay or hold",
              _the_randomized_half_refuses_what_does_not_replay_or_hold),
         Case("the seed and the walks are read", _the_seed_and_the_walks_are_read),
+        Case("a drawn harness that does not build decides nothing",
+             _a_drawn_harness_that_does_not_build_decides_nothing),
         Case("QuickChick rejects other versions", _quickchick_rejects_other_versions),
         Case("a switch's opam environment answers no question",
              _a_switch_environment_answers_no_question),

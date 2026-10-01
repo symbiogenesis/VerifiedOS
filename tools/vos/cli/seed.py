@@ -345,14 +345,16 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
             return Verdict(mutant, KILLED,
                            f"{accepted} and {len(refuted)} of {len(walked)} walked "
                            f"set(s) did not hold: {refuted[0]}", len(refuted))
+        # A drawn harness that does not build is scored as the walk harness is: no
+        # draw ran against the mutant, so nothing was decided about it.
         passed, failed, why = gallina.properties(found, work, harness)
+        if not (passed or failed):
+            return Verdict(mutant, STILLBORN,
+                           f"the drawn harness decided nothing over the mutant: {why}")
         if failed:
             return Verdict(mutant, KILLED,
                            f"{accepted} and QuickChick refuted {failed} of "
                            f"{failed + passed} property set(s): {why}", failed)
-        if not passed:
-            return Verdict(mutant, STILLBORN,
-                           "the harness did not run over the mutant")
         return Verdict(mutant, SURVIVED,
                        f"{accepted}, {len(walked)} walked set(s) held and {passed} "
                        "drawn property set(s) passed")
@@ -461,10 +463,12 @@ def _quickchick_baseline(root: Path, found: gallina.Prover, work: Path,
     if said or gallina.walk_failures(walked):
         return None, (f"the unmutated tree's {gallina.EXHAUSTIVE} is not green: "
                       f"{said or '; '.join(gallina.walk_failures(walked))}")
-    passed, failed, _ = gallina.properties(found, work, drawn)
-    if failed or not passed:
+    passed, failed, why = gallina.properties(found, work, drawn)
+    if not (passed or failed):
+        return None, f"the unmutated tree's {harness_name} decided nothing: {why}"
+    if failed:
         return None, (f"the unmutated tree's {harness_name} is not green: {failed} "
-                      f"property set(s) failed and {passed} passed")
+                      f"property set(s) failed and {passed} passed: {why}")
     return [], ""
 
 
