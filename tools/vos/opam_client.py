@@ -174,34 +174,30 @@ def _compare_part(x: str, y: str) -> int:
     return 0
 
 
-def _components(version: str) -> tuple[str, str, str]:
-    """A version's epoch, the text before its first `:`, its revision, the text after the
-    last `-` that follows the epoch, and its upstream version between them, the epoch and
-    the revision empty where the version has none."""
-    epoch, colon, rest = version.partition(":")
-    if not colon:
-        epoch, rest = "", version
-    upstream, hyphen, revision = rest.rpartition("-")
-    return (epoch, upstream, revision) if hyphen else (epoch, rest, "")
+def _components(version: str) -> tuple[str, str]:
+    """A version's upstream version and its revision, the text after its last `-`, the
+    revision empty where the version has none."""
+    upstream, hyphen, revision = version.rpartition("-")
+    return (upstream, revision) if hyphen else (version, "")
 
 
 def compare_versions(x: str, y: str) -> int:
     """-1, 0 or 1 as version `x` orders before, with or after version `y`.
 
     Implements Debian's version ordering (Debian Policy 5.6.12), which opam applies to
-    version strings. The epochs are compared, then the upstream versions on a tie, then
-    the revisions, an absent epoch or revision comparing as `0`. Each component reads as
+    version strings. The upstream versions are compared, then the revisions on a tie, an
+    absent revision comparing as `0`. Each component reads as
     alternating runs of non-digits and of ASCII digits: digit runs compare by value, an
     empty run as zero, and non-digit runs character by character, `~` before everything,
     even the run's end, then the run's end, then the ASCII letters, then every other
     character, letters and the rest each in ASCII order.
 
-    The opam manual defers the ordering's details to Debian's definition, and two cases
-    it leaves open are read here as Debian Policy reads them: the revision is what
-    follows the last `-`, so `1.0-a` orders before `1.0a`, and the epoch is what
-    precedes the first `:`, a character opam's version grammar admits in no version. A
-    character outside ASCII, which neither document admits in a version, orders as a
-    non-letter by its code point.
+    The opam manual defers the ordering's details to Debian's definition. The revision
+    is what follows the last `-`, as Debian Policy reads it, so `1.0-a` orders before
+    `1.0a`. No epoch is read: the manual slices the whole version string into runs, and
+    the reviewed client orders `:`, which opam's version grammar admits in no version,
+    as any other non-letter, so this does too. A character outside ASCII, which neither
+    document admits in a version, orders as a non-letter by its code point.
     """
     for x_part, y_part in zip(_components(x), _components(y), strict=True):
         if order := _compare_part(x_part, y_part):

@@ -288,8 +288,8 @@ def _versions_are_ordered_as_opam_orders_them() -> None:
     """`compare_versions` answers Debian's version ordering (Debian Policy 5.6.12), which
     opam applies to versions: numbers by value, whatever their length or leading zeros,
     an empty number as zero, `~` before everything, even before the end of a part, ASCII
-    letters before other characters, the epoch before the first `:` first, and the
-    revision after the last `-` only on a tie, an absent epoch or revision as `0`. The
+    letters before other characters, `:` as any other non-letter with no epoch read,
+    and the revision after the last `-` only on a tie, an absent revision as `0`. The
     examples the opam manual and Debian Policy list in order are in that order."""
     ordered = (
         # The opam manual's "Version Ordering" example.
@@ -316,8 +316,9 @@ def _versions_are_ordered_as_opam_orders_them() -> None:
                           # The revision after the last `-`, only on a tie.
                           ("1.0-a", "1.0a"), ("1-2.3", "1-2-1"), ("1.0-test-9", "1.0-test-10"),
                           ("1.0-9", "1.0.0-1"),
-                          # The epoch first.
-                          ("9.9", "1:0.1"), ("2:9", "10:0"), ("1:1.0-9", "1:1.0.1-1"),
+                          # `:` as any other non-letter, no epoch read.
+                          ("1:9", "2.6"), ("1:0.1", "9.9"), ("1.0.", "1.0:"),
+                          ("1.0z", "1.0:"),
                           *(pair for sequence in ordered
                             for pair in itertools.combinations(sequence, 2))):
         ensure(opam_client.compare_versions(lower, higher) == -1
@@ -329,7 +330,7 @@ def _versions_are_ordered_as_opam_orders_them() -> None:
                         # Leading zeros, and empty parts counting as zero.
                         ("1.007", "1.7"), ("0010", "10"), ("1.000", "1.0"), ("a", "a0"),
                         ("1.0-", "1.0"), ("1.0-0", "1.0"), ("1.0-00", "1.0-"),
-                        ("0:1.0", "1.0"), ("00:1.0-0", "1.0")):
+                        ("1:0", "01:00")):
         ensure(opam_client.compare_versions(left, right) == 0
                and opam_client.compare_versions(right, left) == 0,
                f"{left!r} and {right!r} order as one version")
