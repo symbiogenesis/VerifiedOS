@@ -371,18 +371,22 @@ def _unreadable_recipe_keeps_installation() -> None:
                 raise AssertionError("status accepted an artifact it could not read")
 
         # install reads the recipe before it asks status, so a receipt status refuses
-        # does not carry it past an unreadable input into removing the installation.
+        # does not carry it past an unreadable input into removing the installation,
+        # nor into reporting a repair it never starts.
         receipt.write_text("{", encoding="utf-8")
         refresh.unlink()
         builds.clear()
+        report = io.StringIO()
         try:
-            _mock_install(environment, counted)
+            _mock_install(environment, counted, report)
         except OSError:
             pass
         else:
             raise AssertionError("install proceeded without a recipe input it could read")
-        ensure(not builds and receipt.read_text(encoding="utf-8") == "{" and binary.is_file(),
-               "an unreadable recipe input must stop install before it repairs a refused receipt")
+        ensure(not builds and not report.getvalue()
+               and receipt.read_text(encoding="utf-8") == "{" and binary.is_file(),
+               "an unreadable recipe input must stop install before it asks status or "
+               f"repairs a refused receipt: {report.getvalue()!r}")
 
 
 def _base_lock() -> None:
