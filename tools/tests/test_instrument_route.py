@@ -300,6 +300,19 @@ def _workflow_contract_shape() -> None:
         ensure(f"stage --job {job}" in block, f"{job} stages under its own name")
     ensure("actions/cache" not in body and "save-cache: false" in body,
            "no cache but the read-only uv cache")
+    # What starts each later job: a refused plan starts none, the import only a build
+    # that exported, the seed jobs only a base revision, and the join any run the plan
+    # accepted and nobody cancelled.
+    gates = {job: re.findall(r"(?m)^    if: (.+)$", block)
+             for job, block in _workflow_jobs().items()}
+    ensure(gates == {
+        "plan": [],
+        "build": ["${{ needs.plan.outputs.accepted == 'true' }}"],
+        "import": ["${{ needs.build.result == 'success' "
+                   "&& needs.build.outputs.export_sha256 != '' }}"],
+        "seed": ["${{ needs.plan.outputs.seed == 'true' }}"],
+        "join": ["${{ !cancelled() && needs.plan.result == 'success' }}"]},
+           f"each later job starts only where the plan lets it: {gates!r}")
 
 
 def _classify_records_undecided() -> None:
