@@ -10,7 +10,7 @@ import subprocess
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
-from typing import cast
+from typing import NoReturn, cast
 
 from vos import env, receipts
 from vos.cli import worktree
@@ -87,13 +87,23 @@ def _clean(path: Path) -> None:
         raise RetirementError(f"worker is dirty, including untracked files: {path}")
 
 
+def _unlistable(error: OSError) -> NoReturn:
+    raise RetirementError(f"directory cannot be listed: {error.filename} "
+                          f"({error.strerror or error})") from error
+
+
 def _tree_safe(path: Path, *, checkout: bool = False) -> list[Path]:
-    """Do not traverse links; retain relative internal links with their real targets."""
+    """Do not traverse links; retain relative internal links with their real targets.
+
+    A directory that cannot be listed, whether for its permissions or for want of a
+    descriptor, refuses naming it and the cause: what it holds, a nested repository or
+    a producer's `*.lock`, is unknown, so passing over it would vouch for it.
+    """
     found: list[Path] = []
     if not path.exists():
         return found
     _plain(path)
-    for directory, dirs, files in os.walk(path, followlinks=False):
+    for directory, dirs, files in os.walk(path, onerror=_unlistable, followlinks=False):
         current = Path(directory)
         for name in dirs[:]:
             child = current / name
@@ -385,14 +395,16 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
     holds tens of thousands) never meets the descriptor limit; more `*.lock` entries
     than descriptors refuse, naming the path. A file several selected paths name, such
     as a `*.lock` file a lane's uv cache hard-links into an environment it installs, is
-    locked once. Any other lock that cannot be opened or taken, and a move the
-    filesystem rejects, refuse naming the path. With every selected lock held the
-    selection is repeated, and a lock that appeared, vanished or names another file
-    since refuses. Residual: a producer that takes a new lock after that repetition
-    and before the rename is not seen, and one that opens its lock after the rename
-    recreates the lane root, because `env._open_lock` and `proofs._hold` create
-    missing parents. Exact peer-colliding and unknown log layouts remain in place with
-    explicit deferred evidence. No source path is recursively deleted.
+    locked once. Any other lock that cannot be opened or taken, a directory the
+    selection cannot list (also for want of a descriptor once the locks are held) and
+    a move the filesystem rejects refuse, naming the path and the cause. With every
+    selected lock held the selection is repeated, and a lock that appeared, vanished
+    or names another file since refuses. Residual: a producer that takes a new lock
+    after that repetition and before the rename is not seen, and one that opens its
+    lock after the rename recreates the lane root, because `env._open_lock` and
+    `proofs._hold` create missing parents. Exact peer-colliding and unknown log
+    layouts remain in place with explicit deferred evidence. No source path is
+    recursively deleted.
     """
     if sys.platform == "win32":
         raise RetirementError("native output retention must run through the guest")

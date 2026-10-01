@@ -384,6 +384,89 @@ def _native_lock_replaced_late() -> None:
         ensure((lane / "result.bin").exists(), "a lane whose lock was replaced late stays in place")
 
 
+# Root lists any directory through CAP_DAC_OVERRIDE and CAP_DAC_READ_SEARCH, bits 1 and
+# 2, so the child first drops both from its effective set with capget and capset under
+# _LINUX_CAPABILITY_VERSION_3, whose data is two (effective, permitted, inheritable)
+# triples of 32-bit words, capabilities 0 to 31 first; an unprivileged runner holds
+# neither bit. The child then seals a lane directory holding a producer's held lock and
+# reports the checkout walk's and retirement's verdicts.
+_UNLISTABLE_PROBE = """
+import ctypes
+import fcntl
+import json
+import os
+import sys
+from pathlib import Path
+from unittest.mock import patch
+
+from vos import fanout_retire as retire
+
+libc = ctypes.CDLL(None, use_errno=True)
+header, data = (ctypes.c_uint32 * 2)(0x20080522, 0), (ctypes.c_uint32 * 6)()
+if libc.capget(header, data) != 0:
+    raise OSError(ctypes.get_errno(), "capget")
+data[0] &= ~0b110
+if libc.capset(header, data) != 0:
+    raise OSError(ctypes.get_errno(), "capset")
+work = Path(sys.argv[1]).resolve()
+build, logs = work / "build", work / "logs"
+lane = build / "lane-worker"
+sealed = lane / "sealed"
+sealed.mkdir(parents=True)
+logs.mkdir()
+lock = sealed / "producer.lock"
+lock.write_text("", encoding="utf-8")
+producer = os.open(lock, os.O_RDONLY)
+fcntl.flock(producer, fcntl.LOCK_EX | fcntl.LOCK_NB)
+sealed.chmod(0)
+found = {}
+try:
+    os.listdir(sealed)
+    found["control"] = "listed"
+except PermissionError:
+    found["control"] = "unlistable"
+
+
+def outcome(action):
+    try:
+        action()
+    except retire.RetirementError as exc:
+        return f"refused: {exc}"
+    return "accepted"
+
+
+try:
+    found["checkout"] = outcome(lambda: retire._tree_safe(lane, checkout=True))
+    with patch.object(retire.env, "filesystem", return_value="ext4"):
+        found["native"] = outcome(lambda: retire.retain_native("worker", str(lane), str(logs), "8" * 20))
+    found["in-place"] = lane.is_dir()
+finally:
+    for path in (sealed, build / "fanout-retained" / ("8" * 20) / "worker" / "lane" / "sealed"):
+        if path.is_dir():
+            path.chmod(0o755)
+    os.close(producer)
+print(json.dumps(found))
+"""
+
+
+def _native_unlistable_directory() -> None:
+    """A directory the walk cannot list may hold a nested repository or a producer's
+    lock, so the checkout walk and the native selection refuse it, naming it, rather
+    than passing over it and moving a lane whose lock is held."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as work:
+        done = subprocess.run([sys.executable, "-c", _UNLISTABLE_PROBE, work],
+                              capture_output=True, encoding="utf-8", errors="replace",
+                              check=False, timeout=120, env={**os.environ, "PYTHONPATH": str(TOOLS)})
+    ensure(done.returncode == 0, f"the unlistable-directory probe must answer: {done.stderr[-800:]!r}")
+    found = json.loads(done.stdout)
+    ensure(found["control"] == "unlistable", f"precondition: the probe cannot list the sealed directory, got {found}")
+    for key in ("checkout", "native"):
+        ensure(str(found[key]).startswith("refused: directory cannot be listed: ")
+               and str(found[key]).endswith("/lane-worker/sealed (Permission denied)"),
+               f"the {key} walk refuses naming the unlistable directory, got {found[key]}")
+    ensure(found["in-place"], f"a lane with an unlistable directory stays in place, got {found}")
+
+
 def _venv_links_and_target_locks() -> None:
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
         lane = root / "build" / "lane-worker"
@@ -609,8 +692,9 @@ def _idealloc_build_lock() -> None:
 
 # The descriptor limit is process-wide, so it is lowered in a child: lowered here, it
 # would bind every module the runner's worker process takes next. The child builds a
-# lane with four directories per descriptor and a second lane with two lock files per
-# descriptor, then reports each outcome as a string, an OSError by its errno.
+# lane with four directories per descriptor, a second lane with two lock files per
+# descriptor and a third whose root and lock files take every free descriptor, then
+# reports each outcome as a string, an OSError by its errno.
 _DESCRIPTOR_PROBE = """
 import fcntl
 import json
@@ -648,6 +732,12 @@ def outcome(name, batch):
     return "retired"
 
 
+def free():
+    # The descriptors below the limit not yet open; the listing's own is about to close.
+    names = os.listdir("/proc/self/fd")
+    return limit - (sum(int(name) < limit for name in names) - 1)
+
+
 # Positive control: a descriptor held on every directory of this lane exceeds the lowered limit.
 held = []
 try:
@@ -672,6 +762,14 @@ with patch.object(retire.env, "filesystem", return_value="ext4"):
     found["retired"] = outcome("worker", "1" * 20)
     found["crowded"] = outcome("crowded", "2" * 20)
     found["crowded-in-place"] = len(list(crowded.glob("*.lock")))
+    tight = build / "lane-tight"
+    tight.mkdir()
+    for index in range(free() - 1):
+        (tight / f"run-{index:04}.lock").write_text("", encoding="utf-8")
+    found["tight-locks"] = len(list(tight.glob("*.lock")))
+    found["tight-free"] = free()
+    found["tight"] = outcome("tight", "3" * 20)
+    found["tight-in-place"] = tight.is_dir()
 archive = build / "fanout-retained" / ("1" * 20) / "worker" / "lane" / "opam"
 found["archived"] = len(list(archive.iterdir())) if archive.is_dir() else 0
 print(json.dumps(found))
@@ -682,7 +780,9 @@ def _native_locks_fit_descriptor_limit() -> None:
     """Retirement opens only the locks it selects, never every directory, so a lane
     with more directories than descriptors retires, a held nested lock still refuses
     it, and more lock files than descriptors refuse as a verdict naming the path,
-    never as an uncaught OSError."""
+    never as an uncaught OSError. A lane whose root and locks take every free
+    descriptor leaves none for the repeated selection's listing, which refuses naming
+    the directory and the exhaustion rather than reporting the locks as changed."""
     limit = 64
     with tempfile.TemporaryDirectory(prefix="vos-test-") as work:
         done = subprocess.run([sys.executable, "-c", _DESCRIPTOR_PROBE, work, str(limit)],
@@ -704,6 +804,12 @@ def _native_locks_fit_descriptor_limit() -> None:
            and "run-" in str(found["crowded"]) and f"{2 * limit + 1} locks needed" in str(found["crowded"])
            and found["crowded-in-place"] == 2 * limit,
            f"more lock files than descriptors refuse naming the path and move nothing, got {found}")
+    ensure(found["tight-free"] == found["tight-locks"] + 1,
+           f"precondition: the tight lane's root and locks take every free descriptor, got {found}")
+    ensure(str(found["tight"]).startswith("refused: directory cannot be listed: ")
+           and str(found["tight"]).endswith(f"/lane-tight ({os.strerror(errno.EMFILE)})")
+           and found["tight-in-place"],
+           f"exhausted descriptors refuse the repeated selection naming the cause, got {found}")
 
 
 def _tool_sources(pattern: str) -> list[Path]:
@@ -997,6 +1103,7 @@ def cases() -> list[Case]:
             Case("native-locks-taken-late", _native_locks_taken_late, lane="guest"),
             Case("native-hard-linked-locks", _native_hard_linked_locks, lane="guest"),
             Case("native-lock-replaced-late", _native_lock_replaced_late, lane="guest"),
+            Case("native-unlistable-directory", _native_unlistable_directory, lane="guest"),
             Case("venv-links-and-target-locks", _venv_links_and_target_locks, lane="guest"),
             Case("native-exact-log-ownership", _native_exact_log_ownership, lane="guest"),
             Case("native-log-directories-and-companions", _native_log_directories_and_companions, lane="guest"),
