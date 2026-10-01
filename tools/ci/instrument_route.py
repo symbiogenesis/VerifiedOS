@@ -985,11 +985,19 @@ def content_refusal(data: bytes) -> str | None:
     return None
 
 
-def select(sources: Iterable[tuple[Path, str]]) -> tuple[list[tuple[Path, str]],
+def _read_regular(path: Path) -> bytes:
+    """A file's bytes, never through a symbolic link where the platform can refuse one."""
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+                         | getattr(os, "O_BINARY", 0))
+    with os.fdopen(descriptor, "rb") as stream:
+        return stream.read(FILE_LIMIT + 1)
+
+
+def select(sources: Iterable[tuple[Path, str]]) -> tuple[list[tuple[str, bytes]],
                                                          list[dict[str, str]]]:
-    """Which files staging uploads, each under its name in the artifact, and every one
-    it leaves out with the reason."""
-    staged: list[tuple[Path, str]] = []
+    """Which files staging uploads, each under its name in the artifact with the bytes
+    that were checked, and every one it leaves out with the reason."""
+    staged: list[tuple[str, bytes]] = []
     excluded: list[dict[str, str]] = []
     total = 0
     for path, name in sorted(sources, key=lambda item: item[1]):
@@ -997,15 +1005,22 @@ def select(sources: Iterable[tuple[Path, str]]) -> tuple[list[tuple[Path, str]],
         if reason is None and (path.is_symlink() or not path.is_file()):
             reason = "it is not a regular file"
         size = path.stat().st_size if reason is None else 0
+        data = b""
+        if reason is None and size <= FILE_LIMIT:
+            try:
+                data = _read_regular(path)
+            except OSError as error:
+                reason = f"it could not be read as a regular file: {error}"
+            size = len(data)
         if reason is None and size > FILE_LIMIT:
             reason = f"it holds {size} bytes, over the {FILE_LIMIT}-byte limit for one file"
         if reason is None:
-            reason = content_refusal(path.read_bytes())
+            reason = content_refusal(data)
         if reason is None and total + size > ARCHIVE_LIMIT:
             reason = f"it would take the artifact past its {ARCHIVE_LIMIT}-byte limit"
         if reason is None:
             total += size
-            staged.append((path, name))
+            staged.append((name, data))
         else:
             excluded.append({"path": name, "reason": reason})
     return staged, excluded
@@ -1060,16 +1075,17 @@ def stage(root: Path, job: str) -> list[dict[str, str]]:
     staged, excluded = select(sources)
     excluded = [*held_out, *excluded]
     receipt["staging"] = {"allowlist": list(ALLOWED_SUFFIXES),
-                          "staged": [*(name for _, name in staged), RECEIPT],
+                          "staged": [*(name for name, _ in staged), RECEIPT],
                           "excluded": excluded}
     save_receipt(root, receipt)
     upload = root / UPLOAD
     if upload.exists():
         shutil.rmtree(upload)
-    for path, name in [*staged, (receipt_path(root), RECEIPT)]:
+    # The bytes staging checked, never a second read of a file that could have moved.
+    for name, data in [*staged, (RECEIPT, receipt_path(root).read_bytes())]:
         target = upload / name
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(path, target)
+        target.write_bytes(data)
     for item in excluded:
         print(f"left out {item['path']}: {item['reason']}")
     print(f"staged {len(staged) + 1} file(s) into {upload}")

@@ -522,6 +522,26 @@ def _staging_refuses_and_records() -> None:
                "the artifact stays within its bound")
 
 
+def _staging_refuses_a_symlink() -> None:
+    # Linux alone: a Windows host needs a privilege to create a symbolic link.
+    with tempfile.TemporaryDirectory() as scratch:
+        root = Path(scratch)
+        logs = root / route.LOGS
+        logs.mkdir(parents=True)
+        outside = root / "outside.log"
+        outside.write_bytes(b"not the job's\n")
+        (logs / "link.log").symlink_to(outside)
+        (logs / "check.log").write_bytes(b"ok\n")
+        with redirect_stdout(StringIO()):
+            excluded = route.stage(root, "build")
+        left = {item["path"]: item["reason"] for item in excluded}
+        uploaded = {path.relative_to(root / route.UPLOAD).as_posix()
+                    for path in (root / route.UPLOAD).rglob("*") if path.is_file()}
+        ensure("not a regular file" in left.get("link.log", "")
+               and uploaded == {"check.log", route.RECEIPT},
+               f"a symbolic link is left out, never followed: {left!r}, {sorted(uploaded)}")
+
+
 # ---------------------------------------------------------------------------- the join
 
 
@@ -838,6 +858,7 @@ def cases() -> list[Case]:
                  lane="guest"),
             Case("side-commands", _side_commands),
             Case("staging-refuses-and-records", _staging_refuses_and_records),
+            Case("staging-refuses-a-symlink", _staging_refuses_a_symlink, lane="guest"),
             Case("join-passes-and-lists-mutants", _join_passes_and_lists_mutants),
             Case("join-lists-differences", _join_lists_differences),
             Case("join-records-not-run-and-refusals", _join_records_not_run_and_refusals),
