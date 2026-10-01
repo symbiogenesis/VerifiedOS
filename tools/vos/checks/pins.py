@@ -223,7 +223,9 @@ setting where a tool installs its own release, [actionlint.sh](../../ci/actionli
 among them for the workflow linter Host CI runs, and the model's
 [hook configuration](../../../model/.pre-commit-config.yaml) for the hook
 repositories pre-commit installs, whose rows it holds to each rev's commit as well as
-to the release its `# frozen:` comment names, and whose every entry it censuses. A
+to the release its `# frozen:` comment names, and whose every entry it censuses, beside
+the [pip constraint files](../../ci/model-hooks-constraints.txt) Host CI's Model hooks
+step names for the PyPI packages pip installs beside those hooks and builds them with. A
 dependency bump moves the owner and leaves the row, so a row names a release its owner
 has left unless something holds it.
 
@@ -278,7 +280,11 @@ anchor or an alias, or standing deeper or shallower than its entry's keys, a hoo
 or a block scalar's text among them, is reported rather than run unread. A line passes
 as a comment only where its `#` follows spaces and tabs alone, YAML's only blanks, since
 after a no-break or ideographic space it opens a key. The configuration is read whether
-or not any hook row is held, so its absence is a finding on its own.
+or not any hook row is held, so its absence is a finding on its own. The step's two pip
+constraint files are censused the same way: every project either pins is one a held
+row's site reads in that file, so a pin added for a package a hook gained is a finding
+at its line until a row reads its licence, and both files are read whether or not a row
+holds a pin in them.
 
 **Fail-closed at every reading**, on K-97's ground: a record without the section or its
 table, a table with no row, a site matching other than once, and an owner absent,
@@ -408,9 +414,10 @@ class Owner:
     `uv` is a package of a uv lock, `uv-required` the uv release a project requires,
     `opam` a package of one exported snapshot, `opam-every` a package every snapshot
     under a directory installs and `opam-any` one some of them do, `assign` a quoted
-    top-level assignment, `shell` an unquoted shell variable, and `pre-commit` and
+    top-level assignment, `shell` an unquoted shell variable, `pre-commit` and
     `pre-commit-rev` the release a hook configuration's repository entry names after
-    `# frozen:` (its rev when there is no such comment) and that entry's rev itself.
+    `# frozen:` (its rev when there is no such comment) and that entry's rev itself, and
+    `pip` the release a pip requirements or constraints file pins a project to with `==`.
     """
 
     kind: str
@@ -491,16 +498,45 @@ def _locked(display: str, package: str) -> Site:
 
 
 HOOK_CONFIG = "model/.pre-commit-config.yaml"
+# The pip constraint files Host CI's Model hooks step names: the releases pip installs
+# from PyPI beside the model's Python hooks, and the build backends it builds them with.
+HOOK_CONSTRAINTS = "tools/ci/model-hooks-constraints.txt"
+HOOK_BUILD_CONSTRAINTS = "tools/ci/model-hooks-build-constraints.txt"
 
 
-def _hook(cell: str, repo: str) -> DevTool:
-    """A hook repository's row: the release its rev was frozen at, and the rev's commit."""
+def _hook(cell: str, repo: str, *wheels: Owner) -> DevTool:
+    """A hook repository's row: the release its rev was frozen at, with any package of
+    that release it installs, and the rev's commit."""
     url = f"https://github.com/{repo}"
     return DevTool(cell, (
         Site("the reviewed release", rf"The reviewed `v{_V}` revision",
-             (Owner("pre-commit", HOOK_CONFIG, url),)),
+             (Owner("pre-commit", HOOK_CONFIG, url), *wheels)),
         Site("the reviewed commit", r"revision `([0-9a-f]{40})`",
              (Owner("pre-commit-rev", HOOK_CONFIG, url),))))
+
+
+def _pinned(display: str, path: str, tag: str = "") -> tuple[Site, ...]:
+    """A release a pip constraints file pins, stated as its name and a backticked tag,
+    and with `tag` the monorepo tag `<tag>-v<release>` its licence was read at too."""
+    owner = Owner("pip", path, display)
+    pinned = Site(f"{display}'s pinned release", rf"(?<![\w-]){re.escape(display)} `v?{_V}`",
+                  (owner,))
+    if not tag:
+        return (pinned,)
+    return pinned, Site(f"{display}'s tag read", rf"`{re.escape(tag)}-v{_V}` tag", (owner,))
+
+
+# One requirement line of a pip requirements or constraints file: the project it names
+# and, where it pins one with `==`, the release, followed by no more than a hash
+# continuation or a comment. Comments and option lines, `--hash` among them, name none.
+_PIP_LINE_RE = re.compile(
+    r"(?m)^[ \t]*(?P<name>[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)"
+    r"(?:[ \t]*==[ \t]*(?P<version>[^\s;,\\#]+)(?=[ \t]*(?:\\|#|\r?$)))?")
+
+
+def _project(name: str) -> str:
+    """A project's name as pip compares it, in PEP 503's normalized form."""
+    return re.sub(r"[-_.]+", "-", name).lower()
 
 
 # K-118's census of the hook configuration. An entry is read where `_Owners._hook_rev`
@@ -591,11 +627,20 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
         ("filelock", "filelock"), ("platformdirs", "platformdirs"),
         ("python-discovery", "python-discovery"), ("packaging", "packaging")))),
     _hook("pre-commit-hooks", "pre-commit/pre-commit-hooks"),
-    _hook("clang-format", "pre-commit/mirrors-clang-format"),
+    # the mirror installs PyPI's clang-format wheel of its own release, which the
+    # constraints fix beside the rev
+    _hook("clang-format", "pre-commit/mirrors-clang-format",
+          Owner("pip", HOOK_CONSTRAINTS, "clang-format")),
     _hook("Lucas-C pre-commit-hooks", "Lucas-C/pre-commit-hooks"),
     _hook("prettier", "rbubley/mirrors-prettier"),
     _hook("codespell", "codespell-project/codespell"),
     _hook("markdown-link-check", "tcort/markdown-link-check"),
+    DevTool("The model hooks' PyPI dependencies", (
+        *_pinned("ruamel.yaml", HOOK_CONSTRAINTS), *_pinned("rapidfuzz", HOOK_CONSTRAINTS),
+        *_pinned("setuptools", HOOK_BUILD_CONSTRAINTS),
+        *_pinned("setuptools-scm", HOOK_BUILD_CONSTRAINTS, "setuptools-scm"),
+        *_pinned("vcs-versioning", HOOK_BUILD_CONSTRAINTS, "vcs-versioning"),
+        *_pinned("packaging", HOOK_BUILD_CONSTRAINTS))),
     DevTool("Rocq prover: `rocq-core`, `rocq-runtime` and `rocqchk`", (
         Site("the proof switch's edition", rf"{_V} in the proof switch",
              (_snap("rocq", "rocq-core"), _snap("rocq", "rocq-runtime"))),
@@ -1166,6 +1211,16 @@ class _Owners:
             spelled = (rf'(?m)^{key} = "([^"\r\n]*)"' if owner.kind == "assign"
                        else rf"(?m)^{key}=([^\s'\"#;]+)[ \t]*$")
             return self._one(owner, re.findall(spelled, self._text(owner.path)))
+        if owner.kind == "pip":
+            # Every line naming the project, however its name is spelled, is read, so a
+            # second line or one constraining it other than to one release is a fault
+            # rather than a release read loosely.
+            lines = [m for m in _PIP_LINE_RE.finditer(self._text(owner.path))
+                     if _project(m.group("name")) == _project(owner.key)]
+            if any(m.group("version") is None for m in lines):
+                raise self._fault(owner.label(), f"{owner.label()} is constrained other than "
+                                  "to one `==` release, so it fixes no one release")
+            return self._one(owner, [str(m.group("version")) for m in lines])
         if owner.kind in ("pre-commit", "pre-commit-rev"):
             rev, frozen = self._hook_rev(owner)
             if owner.kind == "pre-commit-rev":
@@ -1416,6 +1471,37 @@ def _hook_census(owners: _Owners, findings: list[str]) -> int:
     return entries
 
 
+def _pip_census(owners: _Owners, findings: list[str]) -> int:
+    """K-118's census of the hook step's pip constraint files, returning how many pins it
+    read: each project a file pins is one a held row's site reads in that file.
+
+    A row holds the releases it read against these pins, so a pin added for a package a
+    hook gained, or a line naming a project in another form, installs a release whose
+    terms nobody read while every row agrees; each is a finding at its line. Both files
+    are read whether or not any row holds a pin in them.
+    """
+    held: dict[str, set[str]] = {HOOK_CONSTRAINTS: set(), HOOK_BUILD_CONSTRAINTS: set()}
+    for tool in DEV_TOOL_ROWS:
+        for site in tool.sites:
+            for owner in site.owners:
+                if owner.kind == "pip" and owner.path in held:
+                    held[owner.path].add(_project(owner.key))
+    pinned = 0
+    for path, projects in held.items():
+        try:
+            text = owners._text(path)
+        except _UnreadError:
+            continue
+        for m in _PIP_LINE_RE.finditer(text):
+            pinned += 1
+            if _project(m.group("name")) not in projects:
+                line = text.count("\n", 0, m.start()) + 1
+                findings.append(f"{path}:{line} pins {m.group('name')}, which no "
+                                "development-tools row K-118 holds reads there, so nobody "
+                                "read the terms of the release pip installs")
+    return pinned
+
+
 def _dev_tools(ctx: Context) -> None:
     """K-118: every release the development-tools section states is its owner's.
 
@@ -1502,6 +1588,7 @@ def _dev_tools(ctx: Context) -> None:
         sites, read = _hold(in_prose, "", prose, DEV_TOOL_PROSE, owners, findings)
         compared, numerals = compared + sites, numerals + read
     hooks = _hook_census(owners, findings)
+    pinned = _pip_census(owners, findings)
     findings += list(owners.faults.values())
 
     rep.report("K-118", "development-tool release(s) the record states and the owner does "
@@ -1510,8 +1597,9 @@ def _dev_tools(ctx: Context) -> None:
                f"are the releases their owners fix, each of the {numerals} release numerals "
                f"its held rows and paragraphs state is read or declared, the table's "
                f"{declared} other rows are declared, each stating the one release, or "
-               f"none, its declaration allows, and each of the {hooks} repository entries "
-               f"{HOOK_CONFIG} carries is a held row's or pre-commit's own meta hooks")
+               f"none, its declaration allows, each of the {hooks} repository entries "
+               f"{HOOK_CONFIG} carries is a held row's or pre-commit's own meta hooks, and "
+               f"each of the {pinned} pins its pip constraint files carry is a held row's")
 
 
 def _sources(ctx: Context) -> list[tuple[str, str, list[bool]]]:

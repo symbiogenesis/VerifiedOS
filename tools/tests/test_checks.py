@@ -958,8 +958,10 @@ _K118_OWNERS = {
     "tools/opam/x.lock": 'opam-version: "2.0"\ninstalled: ["beta.4.5.6" "lib.2.0.0"]\n',
     "tools/opam/y.lock": 'opam-version: "2.0"\ninstalled: [\n  "lib.2.0.0"\n]\n',
     "tools/vos/x.py": 'BETA = "7.8.9"\n',
-    # a hook configuration carrying no repository, which the census reads as none
-    pins.HOOK_CONFIG: "repos: []\n"}
+    # a hook configuration carrying no repository, which the census reads as none, and
+    # pip constraint files carrying no pin
+    pins.HOOK_CONFIG: "repos: []\n",
+    pins.HOOK_CONSTRAINTS: "# no pin\n", pins.HOOK_BUILD_CONSTRAINTS: "# no pin\n"}
 _K118_ROWS = (
     pins.DevTool("alpha", (pins.Site("the reviewed release", rf"The reviewed `v{pins._V}` tag's",
                                      (pins.Owner("uv", "tools/uv.lock", "alpha"),)),),
@@ -1236,6 +1238,10 @@ _K118_KINDS: dict[str, tuple[pins.Owner, dict[str, str | None], dict[str, str | 
                {"tools/vos/x.py": 'KAPPA = "1.2.3"\n'}, {"tools/vos/x.py": 'KAPPA = "1.2.4"\n'}),
     "shell": (pins.Owner("shell", "tools/x.sh", "kappa_version"),
               {"tools/x.sh": "kappa_version=1.2.3\n"}, {"tools/x.sh": "kappa_version=1.2.4\n"}),
+    # a constraints file's pin, its name spelled as pip normalizes it, with a hash line
+    "pip": (pins.Owner("pip", "tools/ci/c.txt", "kappa"),
+            {"tools/ci/c.txt": "# the pins\nKappa==1.2.3 \\\n    --hash=sha256:00\nother==1.2.4\n"},
+            {"tools/ci/c.txt": "# the pins\nKappa==1.2.4 \\\n    --hash=sha256:00\nother==1.2.4\n"}),
 }
 _K118_KAPPA = (_K118_TOOLS + "| Tool | License | Standing |\n| --- | --- | --- |\n"
                "| kappa | `MIT` | Reviewed at 1.2.3. |\n\n## Next\n")
@@ -1268,11 +1274,55 @@ def _k118_every_owner_kind_detects_drift() -> None:
     loose: tuple[tuple[str, dict[str, str | None], str], ...] = (
         ("uv-required", {"tools/pyproject.toml": '[tool.uv]\nrequired-version = ">=1.2.3"\n'},
          "is '>=1.2.3', which requires no one exact release"),
-        ("shell", {"tools/x.sh": 'kappa_version="1.2.3"\n'}, "kappa_version is stated 0 times"))
+        ("shell", {"tools/x.sh": 'kappa_version="1.2.3"\n'}, "kappa_version is stated 0 times"),
+        ("pip", {"tools/ci/c.txt": "kappa>=1.2.3\n"},
+         "tools/ci/c.txt's kappa is constrained other than to one `==` release"),
+        ("pip", {"tools/ci/c.txt": "kappa==1.2.3 ; python_version < '3.15'\n"},
+         "tools/ci/c.txt's kappa is constrained other than to one `==` release"),
+        ("pip", {"tools/ci/c.txt": "kappa==1.2.3\nKAPPA==1.2.3\n"},
+         "tools/ci/c.txt's kappa is stated 2 times"),
+        ("pip", {"tools/ci/c.txt": "# kappa==1.2.3\n"}, "tools/ci/c.txt's kappa is stated 0 times"))
     for kind, edit, fragment in loose:
         found = _k118_kappa(kind, edit)
         ensure(len(found) == 1 and fragment in found[0],
                f"an owner not stating one exact release must report ({fragment!r}): {found!r}")
+
+
+def _k118_pip_census_reads_every_pin() -> None:
+    # Each project the hook step's pip constraint files pin is one a held row reads in
+    # that file, so a pin added with no row's reading, or a line naming a project in a
+    # form a pin does not take, is a finding at its line, and both files are read
+    # whether or not a row holds a pin in them.
+    row = pins.DevTool("kappa", (pins.Site("the release", rf"Reviewed at {pins._V}\.", (
+        pins.Owner("pip", pins.HOOK_CONSTRAINTS, "kappa"),)),))
+
+    def run(files: dict[str, str | None]) -> tuple[list[str], list[str]]:
+        return _k118({"THIRD-PARTY.md": _K118_KAPPA,
+                      pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3\n", **files},
+                     rows=(row,), declared={}, prose=pins.DevTool("the paragraphs"))
+
+    found, out = run({})
+    ensure(not found and any("each of the 1 pins its pip constraint files carry" in line
+                             for line in out), f"a pin a held row reads agrees: {found!r}")
+    unread: tuple[tuple[dict[str, str | None], str, str], ...] = (
+        ({pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3\nextra==1.0.0\n"},
+         f"{pins.HOOK_CONSTRAINTS}:3", "extra"),
+        ({pins.HOOK_BUILD_CONSTRAINTS: "backend==1.0.0 \\\n    --hash=sha256:00\n"},
+         f"{pins.HOOK_BUILD_CONSTRAINTS}:1", "backend"),
+        ({pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3\nhttps://example.com/x.whl\n"},
+         f"{pins.HOOK_CONSTRAINTS}:3", "https"),
+        # a project a row reads in one file is not read in the other
+        ({pins.HOOK_BUILD_CONSTRAINTS: "kappa==1.2.3\n"},
+         f"{pins.HOOK_BUILD_CONSTRAINTS}:1", "kappa"))
+    for files, where, name in unread:
+        found, _ = run(files)
+        ensure(len(found) == 1 and f"{where} pins {name}, which no development-tools row "
+               "K-118 holds reads there" in found[0],
+               f"a pin no held row reads is one finding at its line ({files!r}): {found!r}")
+    found, out = run({pins.HOOK_BUILD_CONSTRAINTS: None})
+    ensure(len(found) == 1 and f"{pins.HOOK_BUILD_CONSTRAINTS} is not in the repository"
+           in found[0] and not any(line.startswith("ok K-118:") for line in out),
+           f"an absent constraint file fails closed with no row holding it: {found!r}")
 
 
 def _k118_a_row_named_by_its_release_stays_one_row() -> None:
@@ -1955,6 +2005,7 @@ def cases() -> list[Case]:
         Case("k118-each-tag-is-read-or-reported", _k118_each_tag_is_read_or_reported),
         Case("k118-declarations-are-held", _k118_declarations_are_held),
         Case("k118-every-owner-kind-detects-drift", _k118_every_owner_kind_detects_drift),
+        Case("k118-pip-census-reads-every-pin", _k118_pip_census_reads_every_pin),
         Case("k118-a-row-named-by-its-release-stays-one-row",
              _k118_a_row_named_by_its_release_stays_one_row),
         Case("k118-hook-revisions-are-held", _k118_hook_revisions_are_held),

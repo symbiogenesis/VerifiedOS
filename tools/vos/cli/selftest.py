@@ -1792,6 +1792,19 @@ CASES: list[Case] = [
                   lambda _: "  - repo: https://github.com/example/unreviewed-hooks\n"
                             f"    rev: {'d' * 40} # frozen: v1.0.0\n"
                             "    hooks:\n      - id: unreviewed\n")),
+    # The build constraints move setuptools, every hook package's build backend, while
+    # its development-tools row stays: the release is extended rather than spelled, so a
+    # reviewed bump leaves the case seeded, and only a reading of the pip constraint
+    # files the model's hook step installs from sees a backend whose terms nobody read.
+    ("K-118", "a hook build backend the pip constraints pin and its row does not state",
+     _first_match("tools/ci/model-hooks-build-constraints.txt", r"^(setuptools==)([^\s\\]+)",
+                  lambda m: f"{m[1]}{m[2]}.1")),
+    # A pin appended for a package no row reads, as a dependency a hook gained would be
+    # pinned: every row still agrees with the pins it reads, so only a census of every
+    # pin the constraint files carry sees a release pip installs whose terms nobody read.
+    ("K-118", "a hook dependency the pip constraints pin and no row reads",
+     _first_match("tools/ci/model-hooks-constraints.txt", r"\Z",
+                  lambda _: "unreviewed-dependency==1.0.0\n")),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row

@@ -1028,6 +1028,12 @@ neither constraint variable set, compare `pip list` in each `py_env-*` environme
 the build installs the log records with the files, move each pin to the release that
 run installed, with the SHA-256 PyPI states for its wheel where the build file pins
 one, and run the step's command again with both files and an empty `PRE_COMMIT_HOME`.
+K-118 holds every pin in the two files to the release
+[THIRD-PARTY.md](../THIRD-PARTY.md)'s development-tools section read its licence at,
+the clang-format wheel's to its mirror's row and the rest to the model hooks' PyPI
+dependencies row, so a moved pin is a finding until its licence is read at the new
+release and the row states it, and a pin no row reads, such as one added for a package
+a hook gained, is a finding until a row reads its licence.
 
 [ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
 carries, including the ones it ships as warnings or switched off, and that is deliberate:
