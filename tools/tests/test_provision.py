@@ -404,34 +404,79 @@ def _opam_row_plans_only_what_is_absent() -> None:
 
 def _switch_rows_wait_on_an_older_root() -> None:
     """An absent switch is planned over no root or one in the reviewed client's format,
-    and never over a root in an older format, which the reviewed client rewrites one way
-    at its first write and any other client would build as a client this tree has not
-    reviewed; a switch already there still reads present."""
+    with the reviewed client or no client on PATH, since the opam row installs the
+    reviewed one in the same pass; never over a root in an older format, which the
+    reviewed client rewrites one way at its first write, nor while a client at another
+    release is on PATH, which would build it as a client this tree has not reviewed. A
+    switch already there still reads present."""
     row = next(fact for fact in provision.FACTS if fact.name == "the Sail switch")
+    reviewed = ("/usr/bin/opam", opam_client.OPAM_VERSION)
+    other: tuple[str | None, str] = ("/usr/bin/opam", "2.5.0")
+    nothing: tuple[str | None, str] = (None, "")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        absent = Path(td) / "absent"
         current, older = Path(td) / "current", Path(td) / "older"
         opam_root(current, "flat")
         opam_root(older, "nested")
-        for root, carried, present, planned in (
-                (Path(td) / "absent", (), False, True), (current, (), False, True),
-                (older, (), False, False), (older, (env.SAIL_SWITCH,), True, False),
-                (current, (env.SAIL_SWITCH,), True, False)):
+        for root, carried, client, present, planned in (
+                (absent, (), nothing, False, True), (absent, (), reviewed, False, True),
+                (absent, (), other, False, False), (current, (), nothing, False, True),
+                (current, (), reviewed, False, True), (current, (), other, False, False),
+                (older, (), reviewed, False, False), (older, (), nothing, False, False),
+                (older, (env.SAIL_SWITCH,), reviewed, True, False),
+                (current, (env.SAIL_SWITCH,), reviewed, True, False),
+                (current, (env.SAIL_SWITCH,), other, True, False)):
             with (patch.object(provision.env, "opam_root", return_value=root),
                   patch.object(provision, "switches", return_value=carried),
+                  patch.object(provision, "_client", return_value=client),
                   patch.object(provision, "_installed", return_value=env.SAIL_VERSION)):
                 results = provision.take((row,))
                 report = provision.run((row,))
             found = results[0][1]
-            case = f"with the switches {carried} over the {root.name} root"
+            case = f"with the switches {carried} and the client {client} over the {root.name} root"
             ensure(found.present is present and bool(provision.plan(results)) is planned,
                    f"{case}, the row reads {found} and plans {provision.plan(results)}")
             said = "\n".join(report.out)
             older_clause = (f"rewrites the opam root at {older} from format 2.2 to "
                             f"{opam_client.OPAM_ROOT_FORMAT} one way at its first write")
+            other_clause = ("opam 2.5.0 at /usr/bin/opam would build it, and the reviewed "
+                            f"client is {opam_client.OPAM_VERSION}, so no switch is planned")
             ensure((older_clause in said) is (root == older and not present)
+                   and (other_clause in said) is (client == other and not present)
                    and (present or planned or "does not run over what is there" in said),
-                   f"{case}, the report names the rewrite only where it holds back a "
-                   f"recipe: {said}")
+                   f"{case}, the report names the rewrite or the client only where it holds "
+                   f"back a recipe: {said}")
+
+
+def _client_is_asked_once_per_run() -> None:
+    """One run asks the opam client its release once, and the opam row and every switch
+    row read that one answer, a client at another release holding back each of their
+    commands; the next run asks again, and so does a probe taken outside a run."""
+    names = ("opam", "the Sail switch", "the prover switch", "the QuickChick switch")
+    rows = tuple(fact for fact in provision.FACTS if fact.name in names)
+    version = ("opam", "--version")
+    asked: list[tuple[str, ...]] = []
+
+    def say(argv: tuple[str, ...]) -> str:
+        asked.append(tuple(argv))
+        return "2.5.0" if tuple(argv) == version else ""
+
+    with (tempfile.TemporaryDirectory(prefix="vos-test-") as td,
+          patch.object(provision, "shutil", SimpleNamespace(which=lambda name: "/usr/bin/opam")),
+          patch.object(provision.env, "opam_root", return_value=Path(td) / "absent"),
+          patch.object(provision, "_say", side_effect=say)):
+        results = provision.take(rows)
+        once = asked.count(version)
+        provision.take(rows)
+        again = asked.count(version)
+        outside = provision._client()
+    ensure(len(rows) == len(names) and once == 1 and again == 2,
+           f"each run asks the client once for {len(rows)} rows: {once} then {again}")
+    ensure(all(not found.present and not found.repairable for _, found in results)
+           and not provision.plan(results),
+           f"a client at another release holds back every row's command: {results}")
+    ensure(outside == ("/usr/bin/opam", "2.5.0") and asked.count(version) == 3,
+           f"a probe outside a run asks afresh: {outside} after {asked.count(version)}")
 
 
 def _dpkg_reports(*absent: str) -> Callable[[str], provision.Found]:
@@ -947,6 +992,7 @@ def cases() -> list[Case]:
         Case("opam-probe-holds-the-root", _opam_probe_holds_the_root),
         Case("opam-row-plans-only-what-is-absent", _opam_row_plans_only_what_is_absent),
         Case("switch-rows-wait-on-an-older-root", _switch_rows_wait_on_an_older_root),
+        Case("client-is-asked-once-per-run", _client_is_asked_once_per_run),
         Case("root-prerequisites-precede-the-opam-row",
              _root_prerequisites_precede_the_opam_row),
         Case("install-opam-refuses-without-root-prerequisites",

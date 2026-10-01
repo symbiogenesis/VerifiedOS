@@ -59,7 +59,9 @@ are reported and never planned, and neither is any other standing root with a ga
 `opam_client.root_gaps` names: no stated format or one newer than the reviewed client
 writes, or an owned repository absent, at another URL or with its stamp unread. While a
 root stands in an older format, no switch row plans its recipe either, because the
-reviewed client's first write rewrites that root one way. Every
+reviewed client's first write rewrites that root one way; nor does one while a client
+at another release is on PATH, which would build the switch as a client this tree has
+not reviewed. Every
 figure any document states about this
 table is a count over `FACTS`, held by K-24 rather than by care.
 
@@ -72,6 +74,7 @@ Exit 0 clean, 1 on any absent fact, which is the convention every tool here keep
 """
 
 import argparse
+import contextvars
 import importlib.util
 import os
 import platform
@@ -79,9 +82,10 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from importlib import metadata
 from pathlib import Path
@@ -211,6 +215,40 @@ def _number(text: str) -> str:
     return found.group(0) if found else ""
 
 
+@dataclass
+class _Asked:
+    """What one `take` asks once for every row it probes: the opam client on PATH and
+    the release it answers, unasked until a row first wants it."""
+
+    lock: threading.Lock = field(default_factory=threading.Lock)
+    client: tuple[str | None, str] | None = None
+
+
+# The `_Asked` of the `take` this probe runs under, and none outside a `take`.
+_ASKED: contextvars.ContextVar[_Asked | None] = contextvars.ContextVar("provision_asked",
+                                                                      default=None)
+
+
+def _client() -> tuple[str | None, str]:
+    """Where the opam client on PATH is and the dotted release it answers, empty where
+    it answers none, or no path and no release where no client is on PATH.
+
+    Asked once per `take`, so the opam row and every switch row read one answer and the
+    client is run once for all of them; a probe outside a `take` asks afresh."""
+    asked = _ASKED.get()
+    if asked is None:
+        return _ask_client()
+    with asked.lock:
+        if asked.client is None:
+            asked.client = _ask_client()
+        return asked.client
+
+
+def _ask_client() -> tuple[str | None, str]:
+    where = shutil.which("opam")
+    return where, _number(_say(("opam", "--version"))) if where else ""
+
+
 def _floor() -> tuple[int, ...]:
     return tuple(int(part) for part in INTERPRETER_FLOOR.split("."))
 
@@ -308,16 +346,28 @@ def _installed(switch: str, package: str) -> str:
 def _switch_at(switch: str, package: str, pin: str) -> Found:
     """A switch carrying one package at the version an owner in this tree fixes.
 
-    Not repairable while the opam root stands in a format older than the reviewed
-    client's, so `--apply` plans no switch recipe over that root: the reviewed client
-    rewrites it one way at its first write, the deliberate, recorded step `_opam_client`
-    reports, and any other client would build the switch as a client this tree has not
-    reviewed."""
+    Not repairable where `--apply` would build the switch over a root the reviewed
+    client rewrites, or as a client this tree has not reviewed. While the opam root
+    stands in a format older than the reviewed client's, that client rewrites it one way
+    at its first write, the deliberate, recorded step `_opam_client` reports. While a
+    client at another release is on PATH, that client would build the switch, and a
+    Sail switch names the client that built it in its version string. Where no client is
+    on PATH the switch stays repairable, because the opam row ahead of it installs the
+    reviewed client in the same pass."""
+    older = _older_root()
     found = _switch_found(switch, package, pin)
-    if found.present or not (older := _older_root()):
+    if found.present:
         return found
-    return Found(False, f"{found.saw}; {older}, so no switch is planned over it",
-                 repairable=False)
+    if older:
+        return Found(False, f"{found.saw}; {older}, so no switch is planned over it",
+                     repairable=False)
+    where, version = _client()
+    if where is not None and version != opam_client.OPAM_VERSION:
+        return Found(False, f"{found.saw}; opam {version or 'answering no version'} at "
+                            f"{where} would build it, and the reviewed client is "
+                            f"{opam_client.OPAM_VERSION}, so no switch is planned",
+                     repairable=False)
+    return found
 
 
 def _switch_found(switch: str, package: str, pin: str) -> Found:
@@ -381,8 +431,7 @@ def _opam_client() -> Found:
     report says that client rewrites the root one way at its first write, which is why
     no switch row plans a recipe over it.
     """
-    where = shutil.which("opam")
-    found = _number(_say(("opam", "--version"))) if where else ""
+    where, found = _client()
     client = f"opam {found or 'answering no version'} at {where}" if where else "no opam on PATH"
     reviewed = found == opam_client.OPAM_VERSION
     root = env.opam_root()
@@ -822,14 +871,26 @@ def take(facts: Sequence[Fact]) -> list[tuple[Fact, Found]]:
     Concurrent because most of these are a subprocess waiting on a version banner and
     none of them reads another's answer; merged in table order because a report a
     person reads twice has to be the same report both times, and the order two probes
-    finish in is not a property of the machine being described.
+    finish in is not a property of the machine being described. What several rows read,
+    the opam client `_client` answers for, is asked once for the whole run, so every
+    row reads one answer, and afresh by the next run.
     """
     if not facts:
         return []
+    asked = _Asked()
     with ThreadPoolExecutor(max_workers=min(8, len(facts))) as pool:
-        pending = [pool.submit(_guarded, fact) for fact in facts]
+        pending = [pool.submit(_guarded_under, asked, fact) for fact in facts]
         return [(fact, done.result())
                 for fact, done in zip(facts, pending, strict=True)]
+
+
+def _guarded_under(asked: _Asked, fact: Fact) -> Found:
+    """`_guarded`, with what its run has already asked, `asked`, read by `_client`."""
+    token = _ASKED.set(asked)
+    try:
+        return _guarded(fact)
+    finally:
+        _ASKED.reset(token)
 
 
 def plan(results: Sequence[tuple[Fact, Found]]) -> list[tuple[Fact, tuple[tuple[str, ...], ...]]]:
