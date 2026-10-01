@@ -861,12 +861,13 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
     # github.com, `www.` or not, or a raw.githubusercontent.com path, whatever the case of
     # its host, owner and name, names the reviewed commit, and one at another commit, a
     # tag or a branch is one finding, a tree view naming no path after its revision
-    # included. The finding quotes both at twelve digits, or as far as they must run to
-    # differ.
+    # included. Such a view links no file, so it stands beside the reviewed link. The
+    # finding quotes both at twelve digits, or as far as they must run to differ.
     link = f"example/action/blob/{_K115_SHA}/LICENSE"
     url = f"https://github.com/{link}"
     last = f"{_K115_SHA[:-1]}8"
     moved = f"example/action/blob/{last}/LICENSE"
+    tree = "example/action/tree"
     for edit, quoted in (
             (moved, f"{last}, the row reviewed {_K115_SHA}"),
             (f"example/action/blob/{_K115_SHA[:12]}/LICENSE",
@@ -878,9 +879,12 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
             (f"{link}) and [a copy](https://github.com/{moved}",
              f"{last}, the row reviewed {_K115_SHA}"),
             (f"example/action/tree/{last}/LICENSE", f"{last}, the row reviewed {_K115_SHA}"),
-            ("example/action/tree/main", "main, the row reviewed 0123456789ab"),
-            ("example/action/tree/v1.2.3", "v1.2.3, the row reviewed 0123456789ab"),
-            ("example/action/tree/main#readme", "main, the row reviewed 0123456789ab"),
+            (f"{link}) and [its tree](https://github.com/{tree}/main",
+             "main, the row reviewed 0123456789ab"),
+            (f"{link}) and [its tree](https://github.com/{tree}/v1.2.3",
+             "v1.2.3, the row reviewed 0123456789ab"),
+            (f"{link}) and [its tree](https://github.com/{tree}/main#readme",
+             "main, the row reviewed 0123456789ab"),
             (f"example/action/blame/{last}/LICENSE", f"{last}, the row reviewed {_K115_SHA}"),
             ("example/action/raw/main/LICENSE", "main, the row reviewed 0123456789ab")):
         found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(link, edit)})
@@ -903,22 +907,35 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
     # The controls: every spelling at the reviewed commit agrees.
     for edit in (f"https://www.github.com/{link}",
                  f"https://github.com/example/action/tree/{_K115_SHA}/LICENSE",
-                 f"https://github.com/example/action/tree/{_K115_SHA}",
                  f"https://github.com/example/action/blame/{_K115_SHA}/LICENSE",
-                 f"https://github.com/example/action/tree/{_K115_SHA}?tab=readme-ov-file",
                  f"https://github.com/example/action/raw/{_K115_SHA}/LICENSE",
                  f"https://raw.githubusercontent.com/example/action/{_K115_SHA}/LICENSE",
                  f"https://raw.githubusercontent.com/Example/Action/{_K115_SHA}/LICENSE"):
         found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(url, edit)})
         ensure(not found, f"a link at the reviewed commit agrees ({edit}): {found!r}")
+    # A view naming no file at the reviewed commit agrees beside the reviewed link.
+    for view in (f"https://github.com/{tree}/{_K115_SHA}",
+                 f"https://github.com/{tree}/{_K115_SHA}?tab=readme-ov-file",
+                 f"https://github.com/{tree}/{_K115_SHA}#readme",
+                 f"https://github.com/example/action/blob/{_K115_SHA}",
+                 f"https://raw.githubusercontent.com/example/action/{_K115_SHA}"):
+        beside = _K115_RECORD.replace(link, f"{link}) and [a view]({view}")
+        found = _k115({"THIRD-PARTY.md": beside})
+        ensure(not found, f"a view at the reviewed commit agrees ({view}): {found!r}")
     # A row linking no file of its action's repository says nothing about the edition
     # its terms were read at, and is one finding: the link dropped, or a link into
-    # another repository, or one naming the repository and no file, alone in its place.
+    # another repository, or one naming the repository and no file, alone in its place,
+    # a view at the reviewed commit naming no path after it among them.
     dropped = "THIRD-PARTY.md:7 links no licence of example/action at the reviewed commit"
     for old, new in ((f"[terms]({url})", "terms"),
                      (url, f"https://github.com/other/dep/blob/{_K115_SHA}/LICENSE"),
                      (url, f"https://github.com/example/action/commit/{_K115_SHA}"),
-                     (url, "https://github.com/example/action")):
+                     (url, "https://github.com/example/action"),
+                     (url, f"https://github.com/{tree}/{_K115_SHA}"),
+                     (url, f"https://github.com/{tree}/{_K115_SHA}?tab=readme-ov-file"),
+                     (url, f"https://github.com/{tree}/{_K115_SHA}#readme"),
+                     (url, f"https://github.com/example/action/blob/{_K115_SHA}"),
+                     (url, f"https://raw.githubusercontent.com/example/action/{_K115_SHA}")):
         found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(old, new)})
         ensure(len(found) == 1 and dropped in found[0],
                f"a row linking no licence file is one finding ({new}): {found!r}")

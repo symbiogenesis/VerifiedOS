@@ -162,7 +162,9 @@ its terms were read at, so the row links a file of the action's own repository, 
 `blob`, `tree`, `blame` or `raw` path on github.com or a path on
 raw.githubusercontent.com, its owner and name in any case, and every such link is held
 to name the reviewed commit, never another commit, a tag or a branch that could move
-under it, the revision read up to a `/`, `?`, `#` or the link's end. Membership is total
+under it, the revision read up to a `/`, `?`, `#` or the link's end. A view naming no
+path after its revision, such as the tree at a commit, is held to the reviewed commit
+too but links no file, so it does not stand for the licence link. Membership is total
 in both directions: a line naming an action with no row runs code whose terms nobody
 read, and a row naming an action no workflow runs is a review of nothing. The two
 workflow analyzers Host CI runs are installed from a lock and a script rather than
@@ -912,19 +914,21 @@ def _tool_rows(text: str, findings: list[str]) -> dict[str, tuple[int, str]]:
 
 
 def _licence_links(tool: str) -> re.Pattern[str]:
-    """Every link to a file of the action's own repository, its group the revision named.
+    """Every view of the action's own repository at a revision, and the file it names.
 
     A `blob`, `tree`, `blame` or `raw` path on github.com, `www.` or not, or a path on
-    raw.githubusercontent.com, with the scheme, host, owner and name in any case. The
-    revision is the segment after the view, ending at a `/`, `?`, `#` or the link's end,
-    so a view of the tree at a tag or branch with no path after it is read too. Any
-    other link into the repository, its front page, a commit's or a release's, links no
-    file and is not read.
+    raw.githubusercontent.com, with the scheme, host, owner and name in any case. Its
+    groups are the revision named and the path after it, empty for a view naming no
+    file, the tree at a revision among them. The revision is the segment after the view,
+    ending at a `/`, `?`, `#` or the link's end, so a view of the tree at a tag or branch
+    with no path after it is read too. Any other link into the repository, its front
+    page, a commit's or a release's, links no file and is not read.
     """
     name = re.escape(tool)
     return re.compile(rf"(?:(?i:https?://(?:www\.)?github\.com/{name})/(?:blob|tree|blame|raw)"
                       rf"|(?i:https?://raw\.githubusercontent\.com/{name}))"
-                      r"/([^/\s)\]>#?]+)(?=[/#?\s)\]>]|$)")
+                      r"/([^/\s)\]>#?]+)(?=[/#?\s)\]>]|$)"
+                      r"(?:/([^/\s)\]>#?][^\s)\]>#?]*))?")
 
 
 def _workflow_pins(ctx: Context) -> None:
@@ -958,13 +962,14 @@ def _workflow_pins(ctx: Context) -> None:
         release, commit = stated[0]
         actions[tool] = (release, commit, where)
         # The row's licence link names the edition its terms were read at, so the row
-        # links a file of the action's own repository, and every such link names the
-        # reviewed commit rather than another commit, a tag or a branch.
+        # links a file of the action's own repository, and every view of that repository
+        # at a revision, a file's or not, names the reviewed commit rather than another
+        # commit, a tag or a branch. A view naming no file states a revision and no terms.
         links = _licence_links(tool).findall(row)
-        if not links:
+        if not any(path for _, path in links):
             findings.append(f"{where} links no licence of {tool} at the reviewed commit; "
                             "the link names the edition the terms were read at")
-        for ref in links:
+        for ref, _ in links:
             if ref != commit:
                 linked, reviewed = apart(ref, commit)
                 findings.append(f"{where} links {tool}'s licence at {linked}, the row "
