@@ -57,6 +57,7 @@ answered from the fields it happens to spell.
 """
 
 import re
+from bisect import bisect_left
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -96,16 +97,15 @@ _WORD_RE = re.compile(r"\w+")
 # nothing defined: the pattern below reads such a definition and the shared look-back
 # (proofs.void_flag) drops it, so the count makes it a residue.
 
-# A `Definition` sentence and its body. The body ends at a period that a sentence head
-# follows, which is what a Gallina sentence boundary is, so no list of vernacular
-# keywords stands between this and a file that grows one: the terminator this replaces
-# named four of them, and a `Theorem` written between two definitions was swallowed by
-# the definition above it and reported as that definition's own field reads. A sentence
-# head is a capital after any decorations, or the definition under one would be
-# swallowed the same way.
-_DEFINITION_RE = re.compile(
-    r"(?sm)^" + CONTROL_PREFIXES + r"Definition\s+(\w+)(.*?\.)\s*(?=^" + CONTROL_PREFIXES
-    + r"[A-Z]\w*\b|\Z)")
+# A `Definition` sentence's head. Its body ends at its own full stop, where the shared
+# sentence split ends it (proofs.sentence_ends), which is what a Gallina sentence
+# boundary is, so no list of vernacular keywords stands between this and a file that
+# grows one: the terminator this replaced first named four of them, and a `Theorem`
+# written between two definitions was swallowed by the definition above it and reported
+# as that definition's own field reads. The split reads a string whole, so a string's
+# full stop before a capital on the next line ends no body early and leaves no field
+# read after it unseen.
+_DEFINITION_RE = re.compile(r"(?m)^" + CONTROL_PREFIXES + r"Definition\s+(\w+)")
 
 # Every `Definition` the file spells, for the count that says whether the pattern above
 # read all of them. The keyword is counted wherever it stands and read only at column 0
@@ -241,10 +241,17 @@ def read(path: Path) -> ApexRecord:
                 rec.consumers[word].append(name)
 
     # every Definition consuming a field through the record value, in body order, and
-    # none that a control flag on its line or above it keeps nothing of
-    definitions = [(found.group(1), found.group(2))
-                   for found in _DEFINITION_RE.finditer(raw)
-                   if void_flag(raw, found.start(), ends) is None]
+    # none that a control flag on its line or above it keeps nothing of; a head opening
+    # inside the body above, on a line of a string there, is no head
+    definitions: list[tuple[str, str]] = []
+    read_to = 0
+    for found in _DEFINITION_RE.finditer(raw):
+        if found.start() < read_to:
+            continue
+        stop = bisect_left(ends, found.end())
+        read_to = ends[stop] + 1 if stop < len(ends) else len(raw)
+        if void_flag(raw, found.start(), ends) is None:
+            definitions.append((found.group(1), raw[found.end():read_to]))
     spelled = len(_DEFINITION_HEAD_RE.findall(raw))
     if len(definitions) < spelled:
         rec.unread.append(

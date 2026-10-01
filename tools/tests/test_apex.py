@@ -20,7 +20,8 @@ Three more hold the spellings Rocq admits around a definition: one under an attr
 or a locality is read as itself, one under `Fail`, on its line or a line above it,
 defines nothing and is a residue, and a record value completed from a base with `with`
 is a residue while a `match`'s own `with` is read. One after `Fail }` or `Succeed {` is
-read as itself, the flag being the brace's.
+read as itself, the flag being the brace's, and a body runs to its own full stop, a
+string's aside.
 """
 
 import tempfile
@@ -260,6 +261,24 @@ def _a_flag_before_a_brace_is_the_braces() -> None:
            f"a definition after `- Succeed` was not a residue: {rec.unread!r}")
 
 
+def _a_string_ends_no_body() -> None:
+    # A definition's body ends at its own full stop, where the shared sentence split ends
+    # it, so a string's full stop before a capital on the next line ends nothing and the
+    # field read after it is read; ended there, the body lost the read with no residue.
+    rec = _read(_APEX + 'Definition inner (v : Vocabulary) : Prop :=\n'
+                        '  let _ := "x.\nY"%string in v.(gamma).\n')
+    ensure(rec.unread == [] and rec.def_fields.get("inner") == ["gamma"]
+           and rec.consumers["gamma"] == ["seam_one", "inner"],
+           f"a string's full stop ended the body: {rec.unread!r} {rec.def_fields!r}")
+    # a definition a line of that string spells opens nothing, and the count says so
+    rec = _read(_APEX + 'Definition inner (v : Vocabulary) : Prop :=\n  let _ := "x.\n'
+                        'Definition fake (v : Vocabulary) : Prop := v.(beta).\n'
+                        '"%string in v.(gamma).\n')
+    ensure("fake" not in rec.def_fields and any(
+        "spells 4 `Definition` sentences and this parse reads 3" in said for said in rec.unread),
+           f"a definition a string spells was read: {rec.unread!r} {rec.def_fields!r}")
+
+
 def _record_completed_from_a_base_is_a_residue() -> None:
     # `{| v with alpha := v.(beta) |}` projects gamma out of v and spells it nowhere, so
     # both readings agree on beta alone; the `with` is what refuses it, and the beta it
@@ -307,6 +326,7 @@ def cases() -> list[Case]:
              _a_flag_behind_a_quoted_full_stop_is_still_read),
         Case("the-shared-decoration-grammar-is-read", _the_shared_decoration_grammar_is_read),
         Case("a-flag-before-a-brace-is-the-braces", _a_flag_before_a_brace_is_the_braces),
+        Case("a-string-ends-no-body", _a_string_ends_no_body),
         Case("record-completed-from-a-base-is-a-residue",
              _record_completed_from_a_base_is_a_residue),
     ]
