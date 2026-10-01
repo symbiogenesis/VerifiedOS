@@ -212,6 +212,13 @@ def _a_rig_constant_the_instrument_binds_is_read() -> None:
         "a module named gallina outside vos": ("import gallina", "gallina.ORACLE_ROCQ_VERSION"),
         "a constant the rig does not hold": ("from vos import gallina", "gallina.ABSENT"),
         "a constant that is no string": ("from vos import gallina", "gallina.ENTRY_POINTS"),
+        "a rig name the module rebinds": ("from vos import gallina\ngallina = None",
+                                          "gallina.ORACLE_ROCQ_VERSION"),
+        "a rig name defined again": ("from vos import gallina\ndef gallina() -> None: ...",
+                                     "gallina.ORACLE_ROCQ_VERSION"),
+        "a rig imported only in a function": (
+            "def load() -> object:\n    from vos import gallina\n    return gallina",
+            "gallina.ORACLE_ROCQ_VERSION"),
     }
     for label, (imports, value) in unread.items():
         files = {"tools/c.py": head.format(imports=imports) + f"RELEASE = {value}\n"}

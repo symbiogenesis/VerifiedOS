@@ -22,15 +22,15 @@ harness's closure alone and refuses a subject outside it, so its row holds that 
 and the rig's support harnesses, each with its closure, which today lie inside the
 harness's. Each switch and release is the instrument's own constant,
 imported, or, where it has none to import, the literal in its own file or the rig's
-constant that file binds under a name of its own, read by name out of that file's syntax
-tree, and so is a proof source the instrument names. The rows older than 9.3.0 decide
-the set, and each harness or named source brings its `Require` closure, read by
-[vos/proofs.py](../proofs.py)'s own reader over the proofs directory and the harness's
-directory as one namespace, because that is how every row stages them: the rig roots
-both at the empty logical path, and the recipes copy the proof beside the harness. The
-dated campaigns under `proofs/campaigns/` are not rows. A row that states no release is
-held older than 9.3.0, since a release nobody states is one nobody can say admits the
-forms.
+constant that file's top-level import binds under a name nothing else there binds, read
+by name out of that file's syntax tree, and so is a proof source the instrument names.
+The rows older than 9.3.0 decide the set, and each harness or named source brings its
+`Require` closure, read by [vos/proofs.py](../proofs.py)'s own reader over the proofs
+directory and the harness's directory as one namespace, because that is how every row
+stages them: the rig roots both at the empty logical path, and the recipes copy the
+proof beside the harness. The dated campaigns under `proofs/campaigns/` are not rows. A
+row that states no release is held older than 9.3.0, since a release nobody states is
+one nobody can say admits the forms.
 
 **The table's own membership is held too.** Every module under `tools/vos/` that resolves
 a prover through `gallina.prover` has to be some row's `selects`, so an instrument added
@@ -432,8 +432,9 @@ def _evaluate(tree: ast.Module, expr: ast.expr, here: str,
     """A value one instrument states, as a string, or as the parts of a path under the
     checkout while it is still being built; None for anything else, a path leaving the
     checkout or a name bound other than once among them. A constant of the rig or of
-    `vos.env` that the file names through its own import is the value that constant
-    holds, the instrument stating it by taking it."""
+    `vos.env` that the file names through its own top-level import, under a name nothing
+    else at its top level binds, is the value that constant holds, the instrument stating
+    it by taking it."""
     if depth > 16:
         return None
     step = depth + 1
@@ -796,9 +797,35 @@ def _imported(node: ast.AST) -> dict[str, object]:
 
 
 def _modules(tree: ast.Module) -> dict[str, object]:
-    """Every name one module's imports bind to the rig or to `vos.env`."""
-    return {name: module for node in ast.walk(tree)
-            for name, module in _imported(node).items()}
+    """Every name one module's top-level imports bind to the rig or to `vos.env` and
+    nothing else at its top level binds, so the name holds that module wherever the
+    module's own top level reads it. An import made only inside a function binds nothing
+    there, and a name also assigned, defined or imported again is not read."""
+    return {name: module for node in tree.body
+            for name, module in _imported(node).items() if _bindings(tree, name) == 1}
+
+
+def _bindings(tree: ast.Module, name: str) -> int:
+    """How many of a module's top-level statements bind one name: an import, a
+    definition, an assignment, or a loop's or `with`'s target."""
+    count = 0
+    for node in tree.body:
+        if isinstance(node, ast.Import | ast.ImportFrom):
+            count += sum((a.asname or a.name.split(".")[0]) == name for a in node.names)
+            continue
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+            count += node.name == name
+            continue
+        targets: list[ast.expr] = []
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign | ast.AugAssign | ast.For | ast.AsyncFor):
+            targets = [node.target]
+        elif isinstance(node, ast.With | ast.AsyncWith):
+            targets = [item.optional_vars for item in node.items if item.optional_vars]
+        count += sum(isinstance(n, ast.Name) and n.id == name
+                     for target in targets for n in ast.walk(target))
+    return count
 
 
 def _calls_prover(func: ast.expr, callees: set[str], modules: dict[str, object]) -> bool:
