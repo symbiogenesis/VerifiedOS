@@ -1945,7 +1945,7 @@ Definition spec_select : Selector :=
 Definition with_run (q : Request) (n : nat) : Request := {| q with req_run := n |}.
 
 Definition with_name (q : Request) (n : nat) : Request :=
-  {| q with req_intent := {| int_index := q.(req_intent).(int_index); int_name := n |} |}.
+  {| q with req_intent := {| q.(req_intent) with int_name := n |} |}.
 
 Definition with_bound (q : Request) (b : nat) : Request := {| q with req_bound := b |}.
 
