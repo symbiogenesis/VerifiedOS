@@ -755,17 +755,22 @@ def _k115_membership_is_held_both_ways() -> None:
     found = _k115({".github/workflows/a.yml": f"steps:\n  - uses: other/action@{_K115_SHA} # v1.2.3\n",
                    "THIRD-PARTY.md": _K115_RECORD.replace(
                        "| zizmor |", f"| other/action | `MIT` | The reviewed v1.2.3 revision "
-                                     f"`{_K115_SHA}`. |\n| zizmor |")})
-    ensure(any("reviews example/action, which no workflow runs" in item for item in found),
-           f"a row no workflow runs must report: {found!r}")
+                                     f"`{_K115_SHA}` has [terms](https://github.com/other/"
+                                     f"action/blob/{_K115_SHA}/LICENSE). |\n| zizmor |")})
+    ensure(len(found) == 1
+           and "reviews example/action, which no workflow runs" in found[0],
+           f"a row no workflow runs is one finding: {found!r}")
 
 
 def _k115_licence_link_names_the_reviewed_commit() -> None:
-    # The row's licence link is the edition its terms were read at: every link into the
-    # action's own repository, whatever the case of its owner and name, names the
-    # reviewed commit, and one at another commit, a tag or a branch is one finding. The
-    # finding quotes both at twelve digits, or as far as they must run to differ.
+    # The row's licence link is the edition its terms were read at: every link to a file
+    # of the action's own repository, a `blob`, `tree` or `raw` path on github.com, `www.`
+    # or not, or a raw.githubusercontent.com path, whatever the case of its host, owner
+    # and name, names the reviewed commit, and one at another commit, a tag or a branch
+    # is one finding. The finding quotes both at twelve digits, or as far as they must
+    # run to differ.
     link = f"example/action/blob/{_K115_SHA}/LICENSE"
+    url = f"https://github.com/{link}"
     last = f"{_K115_SHA[:-1]}8"
     moved = f"example/action/blob/{last}/LICENSE"
     for edit, quoted in (
@@ -777,12 +782,46 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
             (f"Example/Action/blob/{'f' * 40}/LICENSE",
              "ffffffffffff, the row reviewed 0123456789ab"),
             (f"{link}) and [a copy](https://github.com/{moved}",
-             f"{last}, the row reviewed {_K115_SHA}")):
+             f"{last}, the row reviewed {_K115_SHA}"),
+            (f"example/action/tree/{last}/LICENSE", f"{last}, the row reviewed {_K115_SHA}"),
+            ("example/action/raw/main/LICENSE", "main, the row reviewed 0123456789ab")):
         found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(link, edit)})
         ensure(len(found) == 1
                and f"THIRD-PARTY.md:7 links example/action's licence at {quoted}" in found[0],
                f"a licence link off the reviewed commit is one finding ({edit}): {found!r}")
-    # A link into another repository states no revision of this action.
+    # The same links on another host's spelling, each read as the github.com one is.
+    for edit, quoted in (
+            (f"https://www.github.com/{moved}", f"{last}, the row reviewed {_K115_SHA}"),
+            ("https://raw.githubusercontent.com/example/action/v1.2.3/LICENSE",
+             "v1.2.3, the row reviewed 0123456789ab"),
+            (f"HTTPS://Raw.GitHubUserContent.com/Example/Action/{last}/LICENSE",
+             f"{last}, the row reviewed {_K115_SHA}"),
+            (f"http://GitHub.com/example/action/blob/{'f' * 40}/LICENSE",
+             "ffffffffffff, the row reviewed 0123456789ab")):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(url, edit)})
+        ensure(len(found) == 1
+               and f"THIRD-PARTY.md:7 links example/action's licence at {quoted}" in found[0],
+               f"a licence link off the reviewed commit is one finding ({edit}): {found!r}")
+    # The controls: every spelling at the reviewed commit agrees.
+    for edit in (f"https://www.github.com/{link}",
+                 f"https://github.com/example/action/tree/{_K115_SHA}/LICENSE",
+                 f"https://github.com/example/action/raw/{_K115_SHA}/LICENSE",
+                 f"https://raw.githubusercontent.com/example/action/{_K115_SHA}/LICENSE",
+                 f"https://raw.githubusercontent.com/Example/Action/{_K115_SHA}/LICENSE"):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(url, edit)})
+        ensure(not found, f"a link at the reviewed commit agrees ({edit}): {found!r}")
+    # A row linking no file of its action's repository says nothing about the edition
+    # its terms were read at, and is one finding: the link dropped, or a link into
+    # another repository, or one naming the repository and no file, alone in its place.
+    dropped = "THIRD-PARTY.md:7 links no licence of example/action at the reviewed commit"
+    for old, new in ((f"[terms]({url})", "terms"),
+                     (url, f"https://github.com/other/dep/blob/{_K115_SHA}/LICENSE"),
+                     (url, f"https://github.com/example/action/commit/{_K115_SHA}"),
+                     (url, "https://github.com/example/action")):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(old, new)})
+        ensure(len(found) == 1 and dropped in found[0],
+               f"a row linking no licence file is one finding ({new}): {found!r}")
+    # A link into another repository beside the row's own states no revision of this action.
     found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(
         link, f"{link}) and [its dependency](https://github.com/other/dep/blob/{'f' * 40}/LICENSE")})
     ensure(not found, f"another repository's link is not this row's revision: {found!r}")

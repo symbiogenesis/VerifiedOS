@@ -158,26 +158,28 @@ stating the release and the full commit its terms were read at. A tag moves unde
 row without any file here changing, so the rule first holds each line to the one form
 that cannot move, `owner/repo[/path]@<40 hex digits> # vX.Y.Z`, and then holds its
 commit and release to the action's own row. The row's licence link names the edition
-its terms were read at, so every link the row makes into the action's own repository
-is held to name the reviewed commit, never another commit, a tag or a branch that
-could move under it. Membership is total in both directions: a line naming an action
-with no row runs code whose terms nobody read, and a row naming an action no workflow
-runs is a review of nothing. The two workflow analyzers Host CI runs are installed from
-a lock and a script rather than named by a workflow line, so K-118 holds their rows
-with the rest of the section's.
+its terms were read at, so the row links a file of the action's own repository, a
+`blob`, `tree` or `raw` path on github.com or a path on raw.githubusercontent.com, its
+owner and name in any case, and every such link is held to name the reviewed commit,
+never another commit, a tag or a branch that could move under it. Membership is total
+in both directions: a line naming an action with no row runs code whose terms nobody
+read, and a row naming an action no workflow runs is a review of nothing. The two
+workflow analyzers Host CI runs are installed from a lock and a script rather than
+named by a workflow line, so K-118 holds their rows with the rest of the section's.
 
 **The window is the git index's workflow directory**, every tracked `.yml` or `.yaml`
 file under `.github/workflows/`, and each reading fails closed: no workflow, no
 `uses:` line at all, a record without its development-tools heading or with no action
-row under it, and a row stating its reviewed revision other than exactly once are each
-a finding rather than an agreement over nothing. That is why it owes the floors group
-no member. **The reading takes one shape and a census holds it to the rest**: a
-reference is read only as a block mapping's bare `uses:` key opening its line, alone or
-after a sequence dash, while YAML also lets that key be quoted, tagged, anchored,
-written in a flow collection, spelled with an escape, reached through an alias or
-opened by an explicit `?` indicator. So the census splits each file at every YAML line
-break, 1.1's included, and on every line counts a `uses` key, bare or quoted, followed
-by its `:`; a double-quoted key holding an escape and an alias used as a key, whatever
+row under it, and a row stating its reviewed revision other than exactly once or
+linking no file of its action's repository are each a finding rather than an
+agreement over nothing. That is why it owes the floors group no member. **The reading
+takes one shape and a census holds it to the rest**: a reference is read only as a
+block mapping's bare `uses:` key opening its line, alone or after a sequence dash,
+while YAML also lets that key be quoted, tagged, anchored, written in a flow collection,
+spelled with an escape, reached through an alias or opened by an explicit `?`
+indicator. So the census splits each file at every YAML line break, 1.1's included,
+and on every line counts a `uses` key, bare or quoted, followed by its `:`; a
+double-quoted key holding an escape and an alias used as a key, whatever
 they spell; and every explicit-key `?` indicator, whatever key it opens. A comment's
 line is read too, since a line opening with `#` may continue a quoted scalar and a `#`
 after a no-break space, which YAML reads as content, opens no comment at all.
@@ -870,6 +872,20 @@ def _apart(ref: str, commit: str) -> tuple[str, str]:
     return ref[:shown], commit[:shown]
 
 
+def _licence_links(tool: str) -> re.Pattern[str]:
+    """Every link to a file of the action's own repository, its group the revision named.
+
+    A `blob`, `tree` or `raw` path on github.com, `www.` or not, or a path on
+    raw.githubusercontent.com, with the scheme, host, owner and name in any case. Any
+    other link into the repository, its front page, a commit's or a release's, links no
+    file and is not read.
+    """
+    name = re.escape(tool)
+    return re.compile(rf"(?:(?i:https?://(?:www\.)?github\.com/{name})/(?:blob|tree|raw)"
+                      rf"|(?i:https?://raw\.githubusercontent\.com/{name}))"
+                      r"/([^/\s)\]>]+)/")
+
+
 def _workflow_pins(ctx: Context) -> None:
     """K-115: every action a workflow runs is the commit and release its row reviewed.
 
@@ -900,12 +916,14 @@ def _workflow_pins(ctx: Context) -> None:
             continue
         release, commit = stated[0]
         actions[tool] = (release, commit, where)
-        # The row's licence link names the edition its terms were read at, so every link
-        # into the action's own repository, owner and name in any case, names the
+        # The row's licence link names the edition its terms were read at, so the row
+        # links a file of the action's own repository, and every such link names the
         # reviewed commit rather than another commit, a tag or a branch.
-        for link in re.finditer(rf"https://github\.com/(?i:{re.escape(tool)})/blob/"
-                                r"([^/\s)\]>]+)/", row):
-            ref = link.group(1)
+        links = _licence_links(tool).findall(row)
+        if not links:
+            findings.append(f"{where} links no licence of {tool} at the reviewed commit; "
+                            "the link names the edition the terms were read at")
+        for ref in links:
             if ref != commit:
                 linked, reviewed = _apart(ref, commit)
                 findings.append(f"{where} links {tool}'s licence at {linked}, the row "
