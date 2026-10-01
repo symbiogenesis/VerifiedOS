@@ -465,10 +465,18 @@ def _reader_reproduces_and_compares() -> None:
 
 
 def _fanout_never_runs_the_route() -> None:
-    source = Path(fanout_ci.__file__).read_text(encoding="utf-8")
-    ensure("instrument" not in source and fanout_ci.HOST == "host-gates.yml"
+    # Every module of the fanout command, wherever under vos it lives, so a dispatch of
+    # the route added to any of them fails here; the three known ones keep it non-vacuous.
+    package = Path(fanout_ci.__file__).resolve().parent
+    modules = sorted(package.rglob("*fanout*.py"))
+    named = {path.relative_to(package).as_posix() for path in modules}
+    ensure({"fanout_ci.py", "fanout_retire.py", "cli/fanout.py"} <= named,
+           f"the fanout command's modules are all read: {sorted(named)!r}")
+    mentions = [path.relative_to(package).as_posix() for path in modules
+                if "instrument" in path.read_text(encoding="utf-8")]
+    ensure(not mentions and fanout_ci.HOST == "host-gates.yml"
            and fanout_ci.GUEST == "guest-gates.yml",
-           "fanout dispatches Host and Guest CI alone and never this route")
+           f"fanout dispatches Host and Guest CI alone and never this route: {mentions!r}")
 
 
 def cases() -> list[Case]:
