@@ -5604,9 +5604,8 @@ Definition macro_unheld_holdings : DomainHoldings := {|
 
 (* An empty domain strictly inside the arenas still holds no byte of them.
    The ordinary endpoint inequalities alone would count it as a holding. *)
-Definition interior_empty_holdings : DomainHoldings := {|
+Definition interior_empty_holdings : DomainHoldings := {| unheld_holdings with
   domain_lo := fun d => if d is 1 then 2049 else demo_domain_lo d;
-  domain_len := unheld_holdings.(domain_len);
   from_image := demo_from_image;
   cap_store_granted := fun _ => false
 |}.

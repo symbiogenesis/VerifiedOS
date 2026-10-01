@@ -1253,24 +1253,11 @@ Proof.
 Qed.
 
 Definition leaks_termination : Execution :=
-  fun i => {| received := (confining reference i).(received);
-              observed_at := (confining reference i).(observed_at);
-              slot := (confining reference i).(slot);
-              reached := (confining reference i).(reached);
-              raised := (confining reference i).(raised);
-              restarts := (confining reference i).(restarts);
-              width := (confining reference i).(width);
+  fun i => {| (confining reference i) with
               finished := fun _ => Nat.eqb (i.(delivers) 1) O |}.
 
 Definition leaks_restart : Execution :=
-  fun i => {| received := (confining reference i).(received);
-              observed_at := (confining reference i).(observed_at);
-              slot := (confining reference i).(slot);
-              reached := (confining reference i).(reached);
-              raised := (confining reference i).(raised);
-              restarts := fun _ => i.(delivers) 1;
-              width := (confining reference i).(width);
-              finished := (confining reference i).(finished) |}.
+  fun i => {| (confining reference i) with restarts := fun _ => i.(delivers) 1 |}.
 
 (*| discharges: R-05-166, R-08-027a |*)
 Theorem a_leaked_termination_is_refused :
@@ -1525,16 +1512,10 @@ Qed.
    reads the named secret object. Other sites, arrival instants, progress and
    faults retain the confining execution's observations. *)
 Definition releases_named_object : Execution :=
-  fun i => {| received := fun c s =>
+  fun i => {| (confining reference i) with
+              received := fun c s =>
                 if andb (Nat.eqb c O) (Nat.eqb s 1)
-                then i.(delivers) 1 else (confining reference i).(received) c s;
-              observed_at := (confining reference i).(observed_at);
-              slot := (confining reference i).(slot);
-              reached := (confining reference i).(reached);
-              raised := (confining reference i).(raised);
-              restarts := (confining reference i).(restarts);
-              width := (confining reference i).(width);
-              finished := (confining reference i).(finished) |}.
+                then i.(delivers) 1 else (confining reference i).(received) c s |}.
 
 Theorem the_named_release_satisfies_its_flow_target :
   released_flow_target reference inside_scope releases_named_object.
@@ -1566,16 +1547,10 @@ Qed.
 (* The rejected construction puts object 3's secret into the output slot
    consent named for object 1. Output-slot erasure would hide this conduit. *)
 Definition smuggles_another_object : Execution :=
-  fun i => {| received := fun c s =>
+  fun i => {| (confining reference i) with
+              received := fun c s =>
                 if andb (Nat.eqb c O) (Nat.eqb s 1)
-                then i.(delivers) 3 else (confining reference i).(received) c s;
-              observed_at := (confining reference i).(observed_at);
-              slot := (confining reference i).(slot);
-              reached := (confining reference i).(reached);
-              raised := (confining reference i).(raised);
-              restarts := (confining reference i).(restarts);
-              width := (confining reference i).(width);
-              finished := (confining reference i).(finished) |}.
+                then i.(delivers) 3 else (confining reference i).(received) c s |}.
 
 Lemma other_object_variation_stays_inside_the_release_relation :
   release_indistinguishable reference inside_scope victim quiet port_content.
