@@ -178,8 +178,9 @@ def cmd_check(args: argparse.Namespace) -> int:
     out.extend(f"     {line}" for line in why)
     out.append("")
     if not why:
+        recipe = " --recipe" if args.recipe else ""
         out.append(f"ok {PACKAGE} {wanted} is installed in {switch} under {said}; "
-                   "`run.py quickchick properties` runs the randomized half")
+                   f"`run.py quickchick properties{recipe}` runs the randomized half")
         print("\n".join(out))
         return 0
     out.append(f"FAIL {PACKAGE} {wanted} is not installed in {switch}, so the randomized "

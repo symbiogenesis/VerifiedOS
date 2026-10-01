@@ -706,9 +706,11 @@ def _quickchick_rejects_other_versions() -> None:
     with (patch.object(quickchick, "installed", return_value=quickchick.VERSION),
           patch.object(gallina, "prover", return_value=["rocq", "c"]),
           patch.object(gallina, "version", return_value="9.1.1"),
-          redirect_stdout(io.StringIO())):
-        ensure(quickchick.cmd_check(argparse.Namespace(recipe=False)) == 0,
-               "the configured QuickChick release must pass the check")
+          redirect_stdout(io.StringIO()) as output):
+        ensure(quickchick.cmd_check(argparse.Namespace(recipe=False)) == 0
+               and "`run.py quickchick properties` runs" in output.getvalue(),
+               f"the configured QuickChick release must pass the check, naming the run in "
+               f"its switch: {output.getvalue()}")
 
 
 def _the_recipe_pins_whole_commits_and_is_asked_by_name() -> None:
@@ -754,6 +756,10 @@ def _the_recipe_pins_whole_commits_and_is_asked_by_name() -> None:
               redirect_stdout(io.StringIO()) as output):
             ensure(quickchick.cmd_check(argparse.Namespace(recipe=True)) == code,
                    f"a recipe switch holding {source} must exit {code}: {output.getvalue()}")
+        ensure(code != 0
+               or "`run.py quickchick properties --recipe` runs" in output.getvalue(),
+               f"a passing `check --recipe` names the run in the recipe's switch: "
+               f"{output.getvalue()}")
     ensure(set(asked) == {switch}, f"`check --recipe` asked other switches: {asked}")
 
 

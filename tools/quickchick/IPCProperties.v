@@ -10,8 +10,8 @@
    transposition property over a freely drawn invocation sequence, and a
    statement that differed between the drawn half and the walked half would
    make the two answer different questions while reading as one instrument.
-   Each property is the statement Properties.v drew before its set was
-   walked, unchanged, with the theorem it shadows named beside it.
+   Each property is stated here once, for whichever half decides it, with
+   the theorem it shadows named beside it.
 
    **Each guarded property names its premise, and the walk counts it.** A
    guarded property whose premise no point of its domain meets holds

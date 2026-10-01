@@ -23,11 +23,11 @@ source that compiles under the gate compiles under them. The randomized harness 
 QuickChick and the Wasm oracle loads CertiRocq, and no release of either admits a Rocq
 newer than 9.1, so each keeps a switch of its own at Rocq 9.1.1; the walk harness that
 decides the property sets small enough to enumerate compiles beside the randomized one.
-QuickChick's commit-pinned recipe builds a second QuickChick switch, at the gate's
-release, which a run asks for by name while that recipe's lock awaits its hosted
-checks. K-117 holds what each instrument older than Rocq 9.3.0 compiles, these two and the
-Rupicola lowering among them, free of the syntax only Rocq 9.3 reads. Every switch is
-**read** here and never written.
+QuickChick's commit-pinned recipe builds a second QuickChick switch, at Rocq 9.3.0,
+which a run asks for by name while that recipe's lock awaits its hosted checks. K-117
+holds what each instrument older than Rocq 9.3.0 compiles, these two and the Rupicola
+lowering among them, free of the syntax only Rocq 9.3 reads. Every switch is **read**
+here and never written.
 """
 
 import os
