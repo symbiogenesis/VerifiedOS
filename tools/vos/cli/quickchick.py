@@ -117,12 +117,19 @@ def installed(switch: str) -> str | None:
 
     Asked of opam rather than of the filesystem, because the question is which source a
     run would compile against and that is the switch's answer, not a directory's.
+
+    Asked with no standard input and in `env.declining_environment`, because the answer
+    is captured: over a root whose format upgrade cannot be made in memory, opam declines
+    the upgrade and exits rather than rewriting the root one way or waiting on a question
+    the caller cannot see. A list that did not exit 0 lists nothing, so the switch reads
+    as holding none.
     """
     done = subprocess.run(["opam", "list", "--switch", switch, "--installed",
                            "--short", "--columns=version,pin", PACKAGE],
                           capture_output=True, encoding="utf-8", errors="replace",
-                          check=False)
-    fields = done.stdout.split()
+                          check=False, stdin=subprocess.DEVNULL,
+                          env=env.declining_environment())
+    fields = done.stdout.split() if done.returncode == 0 else []
     return fields[-1] if fields else None
 
 
@@ -142,7 +149,7 @@ def _held(recipe: bool) -> tuple[str, str | None, gallina.Prover | None, list[st
     found = gallina.prover(switch)
     why: list[str] = []
     if held is None:
-        why.append(f"the {switch} switch carries no {PACKAGE}")
+        why.append(f"opam lists no {PACKAGE} in the {switch} switch")
     elif held != wanted:
         why.append(f"requires {PACKAGE} {wanted}; the {switch} switch holds {held}")
     if found is None:

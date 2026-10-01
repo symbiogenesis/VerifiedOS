@@ -691,28 +691,6 @@ def _quickchick_rejects_other_versions() -> None:
                "the configured QuickChick release must pass the check")
 
 
-def _a_switch_environment_answers_no_question() -> None:
-    """`opam env` for a prover's switch, its output captured, reads no standard input and
-    inherits no answer from the caller's environment, in any case the caller names it,
-    so a format upgrade it would ask about is declined rather than left on a prompt the
-    caller cannot see or answered by the caller's settings; the rest of the environment,
-    the root among it, is passed on, and what it prints is read back."""
-    answers = {"OPAMYES": "1", "OpamConfirmLevel": "unsafe-yes", "OPAMROOT": "/elsewhere"}
-    printed = "OPAMSWITCH='s'; export OPAMSWITCH;\n"
-    with (patch.dict(os.environ, answers),
-          patch.object(gallina.subprocess, "run",
-                       return_value=subprocess.CompletedProcess(["opam"], 0, printed)) as run):
-        read = gallina.switch_env("s")
-    passed = run.call_args.kwargs.get("env") or {}
-    ensure(run.call_args.args[0][:2] == ["opam", "env"]
-           and run.call_args.kwargs.get("stdin") is subprocess.DEVNULL,
-           f"opam env's standard input is closed: {run.call_args}")
-    ensure(not {key.upper() for key in passed} & set(env.OPAM_ANSWERS)
-           and passed.get("OPAMROOT") == "/elsewhere",
-           f"opam env is passed no answer and keeps the root: {sorted(passed)}")
-    ensure(read == {"OPAMSWITCH": "s"}, f"what opam env prints is read back: {read}")
-
-
 def _the_recipe_pins_whole_commits_and_is_asked_by_name() -> None:
     """QuickChick's recipe pins each upstream to one whole commit, creates the switch the
     recipe's constants name at the repository's OCaml, pins before it installs, and
@@ -759,6 +737,56 @@ def _the_recipe_pins_whole_commits_and_is_asked_by_name() -> None:
     ensure(set(asked) == {switch}, f"`check --recipe` asked other switches: {asked}")
 
 
+def _the_installed_quickchick_is_read_without_answering() -> None:
+    """The QuickChick a switch holds is asked of opam with no standard input and no
+    answer inherited from the caller's environment, in any case the caller names it, so
+    a format upgrade the list would ask about is declined; the root is passed on. What
+    opam prints is read as the pinned source or the release, and a list that did not
+    exit 0 reads as holding none."""
+    answers = {"OPAMYES": "1", "OpamConfirmLevel": "unsafe-yes", "OPAMROOT": "/elsewhere"}
+    printed = {"pinned": (0, f"dev {quickchick.RECIPE_PIN}\n", quickchick.RECIPE_PIN),
+               "released": (0, f"{quickchick.VERSION}\n", quickchick.VERSION),
+               "absent": (0, "", None),
+               "declined": (1, f"{quickchick.VERSION}\n", None)}
+    for label, (code, out, want) in printed.items():
+        with (patch.dict(os.environ, answers),
+              patch.object(quickchick.subprocess, "run",
+                           return_value=subprocess.CompletedProcess(["opam"], code, out,
+                                                                    "")) as run):
+            read = quickchick.installed("s")
+        passed = run.call_args.kwargs.get("env") or {}
+        ensure(run.call_args.args[0][:4] == ["opam", "list", "--switch", "s"]
+               and run.call_args.kwargs.get("stdin") is subprocess.DEVNULL,
+               f"{label}: opam list's standard input is closed: {run.call_args.args} "
+               f"stdin={run.call_args.kwargs.get('stdin')!r}")
+        ensure(not {key.upper() for key in passed} & set(env.OPAM_ANSWERS)
+               and passed.get("OPAMROOT") == "/elsewhere",
+               f"{label}: opam list is passed no answer and keeps the root: {sorted(passed)}")
+        ensure(read == want, f"{label}: opam's list reads as {read!r}, not {want!r}")
+
+
+def _a_switch_environment_answers_no_question() -> None:
+    """`opam env` for a prover's switch, its output captured, reads no standard input and
+    inherits no answer from the caller's environment, in any case the caller names it,
+    so a format upgrade it would ask about is declined rather than left on a prompt the
+    caller cannot see or answered by the caller's settings; the rest of the environment,
+    the root among it, is passed on, and what it prints is read back."""
+    answers = {"OPAMYES": "1", "OpamConfirmLevel": "unsafe-yes", "OPAMROOT": "/elsewhere"}
+    printed = "OPAMSWITCH='s'; export OPAMSWITCH;\n"
+    with (patch.dict(os.environ, answers),
+          patch.object(gallina.subprocess, "run",
+                       return_value=subprocess.CompletedProcess(["opam"], 0, printed)) as run):
+        read = gallina.switch_env("s")
+    passed = run.call_args.kwargs.get("env") or {}
+    ensure(run.call_args.args[0][:2] == ["opam", "env"]
+           and run.call_args.kwargs.get("stdin") is subprocess.DEVNULL,
+           f"opam env's standard input is closed: {run.call_args}")
+    ensure(not {key.upper() for key in passed} & set(env.OPAM_ANSWERS)
+           and passed.get("OPAMROOT") == "/elsewhere",
+           f"opam env is passed no answer and keeps the root: {sorted(passed)}")
+    ensure(read == {"OPAMSWITCH": "s"}, f"what opam env prints is read back: {read}")
+
+
 def cases() -> list[Case]:
     return [
         Case("the waves follow the Requires", _waves_follow_requires),
@@ -800,8 +828,10 @@ def cases() -> list[Case]:
         Case("a drawn harness that does not build decides nothing",
              _a_drawn_harness_that_does_not_build_decides_nothing),
         Case("QuickChick rejects other versions", _quickchick_rejects_other_versions),
-        Case("a switch's opam environment answers no question",
-             _a_switch_environment_answers_no_question),
         Case("the recipe pins whole commits and is asked by name",
              _the_recipe_pins_whole_commits_and_is_asked_by_name),
+        Case("the installed QuickChick is read without answering",
+             _the_installed_quickchick_is_read_without_answering),
+        Case("a switch's opam environment answers no question",
+             _a_switch_environment_answers_no_question),
     ]
