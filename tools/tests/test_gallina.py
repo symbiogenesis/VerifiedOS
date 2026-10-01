@@ -725,7 +725,7 @@ def _a_drawn_sets_program_is_read_by_how_it_ended() -> None:
         "memory": _unfinished("Exited with status 2", "Fatal error: exception Out_of_memory\n",
                               own_line=False),
         "signal by status": _unfinished("Exited with status 137", "\nreal\t0m1.20s\n"),
-        "signal by time": _unfinished("Exited with status 137",
+        "signal by time": _unfinished("Exited with status 2",
                                       "Command terminated by signal 9\n0.00user\n"),
         "not run": _unfinished("Exited with status 127",
                                "time: cannot run /tmp/QuickChick1/_build/Properties.native: "
@@ -771,7 +771,7 @@ def _a_drawn_sets_program_is_read_by_how_it_ended() -> None:
            "unexplained status": "exited with status 0, which this reader cannot classify"}
     reports = {"stack": "Exited with status 2", "memory": "Exited with status 2",
                "signal by status": "Exited with status 137",
-               "signal by time": "Exited with status 137",
+               "signal by time": "Exited with status 2",
                "not run": "Exited with status 127", "not executable": "Exited with status 126",
                "killed": "Killed (-7)", "stopped": "Stopped (-10)",
                "unexplained": "Exited with status 2", "unexplained status": "Exited with status 0"}
