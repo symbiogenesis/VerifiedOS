@@ -555,12 +555,18 @@ Definition canonical_post (m : Machine) (succ : Context m) : State m :=
     (fun c => if m.(csr_zeroized) c then m.(zero_word) else ctx_csr succ c)
     (pending_written m succ).
 
+(* The opening that nine of the step memberships below share: split the
+   step's three write obligations, close the register one by reflexivity,
+   and leave the CSR and pending obligations as two goals, each under its own
+   bullet. *)
+Local Ltac split_closing_the_registers :=
+  split; [ intros r _; reflexivity | split ].
+
 Theorem switch_is_satisfiable :
   forall (m : Machine) (succ : Context m) (pre : State m),
     Switch m succ pre (canonical_post m succ).
 Proof.
-  intros m succ pre. split; [ | split ].
-  - intros r _. reflexivity.
+  intros m succ pre. split_closing_the_registers.
   - intros c _. reflexivity.
   - reflexivity.
 Qed.
@@ -615,8 +621,7 @@ Definition demo_post : State demo_rotation_swaps :=
 Theorem demo_switch_holds :
   Switch demo_rotation_swaps demo_succ demo_succ demo_post.
 Proof.
-  split; [ | split ].
-  - intros r _. reflexivity.
+  split_closing_the_registers.
   - intros c _. destruct c; reflexivity.
   - reflexivity.
 Qed.
@@ -726,8 +731,7 @@ Theorem tag_dropping_switch_refutes_register_totality :
 Proof.
   assert (Hstep : tag_dropping_switch demo_rotation_swaps
                     demo_succ demo_succ tag_dropped_post).
-  { split; [ | split ].
-    - intros r _. reflexivity.
+  { split_closing_the_registers.
     - intros c _. destruct c; reflexivity.
     - reflexivity. }
   split; [ exact Hstep | ].
@@ -758,8 +762,7 @@ Theorem partial_switch_refutes_csr_totality :
 Proof.
   assert (Hstep : partial_switch demo_rotation_swaps negb
                     demo_succ demo_succ partial_post).
-  { split; [ | split ].
-    - intros r _. reflexivity.
+  { split_closing_the_registers.
     - intros c _ Hex. destruct c; [ reflexivity | discriminate Hex ].
     - reflexivity. }
   split; [ exact Hstep | ].
@@ -810,14 +813,12 @@ Theorem residue_switch_refutes_no_residue :
 Proof.
   assert (Hlow : residue_switch demo_rotation_swaps negb
                    demo_succ residue_pre_low residue_post_low).
-  { split; [ | split ].
-    - intros r _. reflexivity.
+  { split_closing_the_registers.
     - intros c _. destruct c; reflexivity.
     - reflexivity. }
   assert (Hhigh : residue_switch demo_rotation_swaps negb
                     demo_succ residue_pre_high residue_post_high).
-  { split; [ | split ].
-    - intros r _. reflexivity.
+  { split_closing_the_registers.
     - intros c _. destruct c; reflexivity.
     - reflexivity. }
   split; [ exact Hlow | ]. split; [ exact Hhigh | ].
@@ -894,8 +895,7 @@ Theorem rotation_omits_the_zeroize_at_state_level :
   /\ ~ RestoresNameableCsrs demo_rotation_swaps (Rotation demo_rotation_swaps).
 Proof.
   assert (Hrot : Rotation demo_rotation_swaps demo_succ demo_succ unzeroed_post).
-  { split; [ | split ].
-    - intros r _. reflexivity.
+  { split_closing_the_registers.
     - intros c _ Hz. destruct c; [ discriminate Hz | reflexivity ].
     - reflexivity. }
   split; [ exact Hrot | ]. split.
@@ -944,13 +944,11 @@ Theorem rotation_pending_arm_is_observable :
   /\ ctx_pending rot_post_low <> ctx_pending rot_post_high.
 Proof.
   assert (Hlow : Rotation demo_rotation_keeps rot_succ rot_succ rot_post_low).
-  { split; [ | split ].
-    - intros r _. reflexivity.
+  { split_closing_the_registers.
     - intros c _ Hz. destruct c; [ discriminate Hz | reflexivity ].
     - exact I. }
   assert (Hhigh : Rotation demo_rotation_keeps rot_succ rot_succ rot_post_high).
-  { split; [ | split ].
-    - intros r _. reflexivity.
+  { split_closing_the_registers.
     - intros c _ Hz. destruct c; [ discriminate Hz | reflexivity ].
     - exact I. }
   split; [ exact Hlow | ]. split; [ exact Hhigh | ].
