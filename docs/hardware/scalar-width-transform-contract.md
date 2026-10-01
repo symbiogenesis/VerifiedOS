@@ -368,10 +368,12 @@ primitives from the tree `upstream/mocha` vendors under
 `hw/vendor/lowrisc_ip/ip`, and the runs recorded in `152762ab` and `d3f0737a`,
 with `upstream/cva6-cheri` and `upstream/mocha` at the gitlinks both commits
 record, report the same kinds, cells and removed structures at 4,582 and 5,324
-declared variables: the primitive edition accounts for one variable in each
-arm, and `7b2ae30d`'s removal of `perms_narrow`'s local `code` for the curated
-arm's other. These counts are the tool's JSON inventory under 5.052 and are not
-comparable with the XML figures R1 took under 5.032.
+declared variables. The reviewed-pin refresh in `9e6e78d7` left both counts
+unchanged, its recorded runs reporting 4,584 and 5,325. `13a1b8a6` replaced the
+OpenTitan primitive edition with Mocha's, which accounts for one variable in
+each arm, and `7b2ae30d`'s removal of `perms_narrow`'s local `code` accounts for
+the curated arm's other. These counts are the tool's JSON inventory under 5.052
+and are not comparable with the XML figures R1 took under 5.032.
 
 The curated arm is not warning-free. Re-running the tool's own curated
 invocation over its own composed file list and staged sources keeps the output
