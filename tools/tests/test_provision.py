@@ -181,14 +181,22 @@ def _number_reads_the_banners() -> None:
 
 
 def _probes_answer_no_question() -> None:
-    """A probe's subprocess reads no standard input, so a question opam asks before an
-    upgrade it would write is declined rather than left to the caller's terminal."""
-    with patch.object(provision.subprocess, "run",
-                      return_value=subprocess.CompletedProcess(["opam"], 0, "2.6.0\n")) as run:
+    """A probe's subprocess reads no standard input and inherits no answer from the
+    caller's environment, so a question opam asks before an upgrade it would write is
+    declined rather than left to the caller's terminal or settings; the rest of the
+    environment, the root a probe reads among it, is passed on."""
+    answers = {"OPAMYES": "1", "OPAMCONFIRMLEVEL": "unsafe-yes", "OPAMROOT": "/elsewhere"}
+    with (patch.dict(os.environ, answers),
+          patch.object(provision.subprocess, "run",
+                       return_value=subprocess.CompletedProcess(["opam"], 0, "2.6.0\n")) as run):
         ensure(provision._say(("opam", "switch", "list", "--short")) == "2.6.0",
                "the probe still reads the command's standard output")
+    passed = run.call_args.kwargs.get("env") or {}
     ensure(run.call_args.kwargs.get("stdin") is subprocess.DEVNULL,
            f"the probe's standard input is closed: {run.call_args}")
+    ensure(not {key.upper() for key in passed} & set(provision._ANSWERS)
+           and passed.get("OPAMROOT") == "/elsewhere",
+           f"the probe passes on no answer and keeps the root: {sorted(passed)}")
 
 
 def _opam_probe_preserves_build_suffix() -> None:

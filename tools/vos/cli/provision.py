@@ -169,6 +169,11 @@ class Fact:
     install: tuple[tuple[str, ...], ...] = ()
 
 
+# The variables through which the reviewed client takes an answer to an unnamed question
+# from the environment, OPAMYES answering yes and OPAMCONFIRMLEVEL any answer.
+_ANSWERS: tuple[str, ...] = ("OPAMYES", "OPAMCONFIRMLEVEL")
+
+
 def _say(argv: Sequence[str]) -> str:
     """One probe's subprocess, reduced to its standard output.
 
@@ -183,13 +188,16 @@ def _say(argv: Sequence[str]) -> str:
     writes one where the upgrade cannot be done in memory, as the reviewed client's
     from a 2.2 root keeping a repository's archive under a directory named for it. A
     probe reading the caller's terminal would wait there, its question captured out of
-    sight, and an empty line would answer yes; with no input and no answer set in the
-    caller's environment, opam declines and exits.
+    sight, and an empty line would answer yes. Nor does a probe pass on the variables
+    through which a caller's environment answers opam's questions, `_ANSWERS`, so opam
+    declines and exits.
     """
     try:
         done = subprocess.run(list(argv), capture_output=True, encoding="utf-8",
                               errors="replace", check=False, timeout=TIMEOUT,
-                              stdin=subprocess.DEVNULL)
+                              stdin=subprocess.DEVNULL,
+                              env={key: value for key, value in os.environ.items()
+                                   if key.upper() not in _ANSWERS})
     except (OSError, subprocess.SubprocessError):
         return ""
     return done.stdout.strip() if done.returncode == 0 else ""
