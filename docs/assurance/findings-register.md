@@ -1401,6 +1401,50 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q38l
 · Disposition: open, Q38f rewording both to hold before and after its switch moves and landing them with its unconditional commits
 
+**F-615** owed-act: seed's journal records no mutant's operator, which Q38l's join was to read from it, so the join reads each one from a `seed list` listing of the same sample at the same revision
+· Raised: Q38l
+· Disposition: closed at Q38l, the seed jobs listing their population and the Owns naming the listing
+
+**F-616** owed-act: `run.py provision --apply` imports the QuickChick snapshot wherever its switch is missing, the local guest among them, where Q38l's route builds and checks no QuickChick switch, and provision.py lies outside Q38l's Owns
+· Raised: Q38l
+· Disposition: open, Q38f, which restates `provision`'s QuickChick recipe, the guides stating the import's exclusion from the local guest as the user's ruling meanwhile
+
+**F-617** measurement: K-75 reads a workflow job's interpreter only where the job installs one, so a job that installs none lies outside its sites
+· Raised: Q38l
+· Disposition: standing, K-75's registry row stating the residue
+
+**F-618** owed-act: Q38l's plan refuses more than its Owns listed: a sample with a sign or a leading zero, a recipe or `INSTALL` not declared as a non-empty literal, a base that is not a full commit and a checkout other than the dispatching commit
+· Raised: Q38l
+· Disposition: closed at Q38l, the Owns' plan clause naming each
+
+**F-619** owed-act: Q38l's import comparison and seed population listing are steps its Owns did not name, each under an unmeasured 300 s limit that the seed step's limit subtracts
+· Raised: Q38l
+· Disposition: closed at Q38l, the Owns' limit clause naming both
+
+**F-620** owed-act: `instrument-ci read` refuses as closing evidence more than Q38l's Owns listed: a run not completed or not passed, a build artifact with no export, a closing parent that is not the closing commit's first parent, and a route input only the closing commit's tree reaches
+· Raised: Q38l
+· Disposition: closed at Q38l, the Owns' reader clause naming each
+
+**F-621** measurement: GitHub may answer a dispatch of the instrument route whose `build` lies outside the input's choice before the plan runs
+· Raised: Q38l
+· Disposition: standing, the plan's build refusal held by its host test as its ref refusal is
+
+**F-622** owed-act: the instrument route's build job exports its switch with a plain `opam switch export`, so whether a `RECIPE` switch's export keeps the pins the import job compares is undecided
+· Raised: Q38l
+· Disposition: open, Q38f's first `recipe` dispatch, an export that loses them moving to `--freeze` under Q38l's contract
+
+**F-631** owed-act: Q38l's control precondition named gallina.py's later edits as the oracle's candidate switches and its opam environment alone, while `34c6595c` changed the closure readers `seed coq --quickchick` compiles through and Q38g moves the oracle's own switch
+· Raised: Q38l
+· Disposition: closed at Q38l, the Check naming both, neither changing what the control runs
+
+**F-632** measurement: Q38l's import comparison ran under `!cancelled()` without its side guard as a conjunct, which F-637's rule refuses
+· Raised: Q38l
+· Disposition: closed at Q38l, the comparison carrying the guard, staging alone running after a refused guard and `test_fanout_ci`'s refused-dispatch reading holding the route
+
+**F-633** owed-act: the instrument route records a step undecided for a no-space report or gallina's per-file timeout, bounds staged files and artifacts, refuses a non-regular file, records a job failed outside its wrapped steps, passes over an earlier attempt's artifact and refuses a receipt that disagrees with the plan, none of which Q38l's Owns named
+· Raised: Q38l
+· Disposition: closed at Q38l, the Owns naming each
+
 **F-565** upstream-defect: the locked proof switch's Rocq 9.3.0 carries the cofixpoint guard-checker inconsistencies #22386 and #22389, which Rocq's critical-bug list reports fixed in V9.3
 · Raised: Q39
 · Disposition: standing, the proof audit's refusal of coinductive types and cofixpoints in the sources the gate compiles covering the forms an authored source writes, a word joined to a token a dependency declares aside, until a move of the proof switch's lock to a Rocq release carrying #22388 and #22392
