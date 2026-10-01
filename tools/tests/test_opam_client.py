@@ -250,6 +250,39 @@ def _resumable_roots_are_the_routes_own() -> None:
                    f"the {name} root reads resumable={not resumable}")
 
 
+def _remaining_route_never_reinitializes() -> None:
+    """Where no root stands the remaining route is the whole route; over a root that
+    stands it is each repository the root does not configure at its owned URL, added
+    unselected, and never `opam init`, so a root in the shape the route leaves after its
+    leading steps is completed without its shell setup being rewritten."""
+    route = opam_client.CREATE_ROOT
+    leading = opam_client.OPAM_REPOSITORIES[:1]
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        absent = Path(td) / "absent"
+        ensure(opam_client.remaining_route(absent) == route,
+               "with no root the whole route remains")
+        absent.mkdir()
+        ensure(opam_client.remaining_route(absent) == route,
+               "a directory without config is no root, so the whole route remains")
+        first_step = Path(td) / "first-step"
+        opam_root(first_step, "flat", configured=leading)
+        ensure(opam_client.root_resumable(first_step)
+               and opam_client.remaining_route(first_step) == route[1:],
+               f"a resumable root lacks the adds alone: "
+               f"{opam_client.remaining_route(first_step)}")
+        foreign = Path(td) / "foreign"
+        opam_root(foreign, "flat", configured=(*leading, ("mine", "https://example.invalid")))
+        ensure(opam_client.remaining_route(foreign) == route[1:],
+               "a repository the owner does not name changes nothing that remains")
+        complete = Path(td) / "complete"
+        opam_root(complete, "nested")
+        ensure(opam_client.remaining_route(complete) == (),
+               "a root configuring every owned repository has nothing left to run")
+        for root in (first_step, foreign, complete):
+            ensure(route[0] not in opam_client.remaining_route(root),
+                   f"opam init never runs over the standing {root.name} root")
+
+
 def _versions_are_ordered_as_opam_orders_them() -> None:
     """The port of `OpamVersionCompare.compare` answers its Debian ordering: numbers by
     value, `~` before everything, even before the end of a part, letters before other
@@ -338,5 +371,6 @@ def cases() -> list[Case]:
              _versions_are_ordered_as_opam_orders_them),
         Case("newer-formats-are-ordered", _newer_formats_are_ordered),
         Case("resumable-roots-are-the-routes-own", _resumable_roots_are_the_routes_own),
+        Case("remaining-route-never-reinitializes", _remaining_route_never_reinitializes),
         Case("install-verifies-and-never-replaces", _install_verifies_and_never_replaces),
     ]

@@ -49,8 +49,9 @@ of it probe and install the distribution packages that route needs,
 `opam_client.ROOT_PREREQUISITES`, and the command refuses, naming each one absent,
 rather than start a root `opam init` would refuse to create. It alters
 nothing that exists but a root in the shape that route leaves after its leading steps,
-which `opam_client.root_resumable` recognizes and the route run again completes by
-adding the owner's remaining repositories unselected. Replacing a developer's client,
+which `opam_client.root_resumable` recognizes and the route's remaining steps,
+`opam_client.remaining_route`, complete by adding the owner's remaining repositories
+unselected, without running `opam init` over it. Replacing a developer's client,
 or installing one where none stands over a root in a format older than the reviewed
 client writes, can upgrade that root's format one way, which is a recorded step rather
 than a repair, so a client at another release and a missing client over an older root
@@ -333,12 +334,12 @@ def _opam_client() -> Found:
     Repairable only where `install_opam` can make the row hold without altering what
     exists: the reviewed client, or no client over no root or a root in a format no
     older than the reviewed client's, and no root, a complete one, or one in the shape
-    the root-creation route leaves after its leading steps, which running that route
-    again completes. Moving a developer's root to another client can rewrite its format
-    one way, which the report says where the root's format is older than the reviewed
-    client's, so replacing a client, or installing one where none stands over a root in
-    an older format, is a recorded step and not a repair; any other standing root the
-    command would leave incomplete is reported rather than planned.
+    the root-creation route leaves after its leading steps, which that route's
+    remaining steps complete. Moving a developer's root to another client can rewrite
+    its format one way, which the report says where the root's format is older than the
+    reviewed client's, so replacing a client, or installing one where none stands over a
+    root in an older format, is a recorded step and not a repair; any other standing
+    root the command would leave incomplete is reported rather than planned.
     """
     where = shutil.which("opam")
     found = _number(_say(("opam", "--version"))) if where else ""
@@ -376,7 +377,7 @@ def _standing(resumable: bool) -> str:
     as it is."""
     if resumable:
         return ("in the shape the root-creation route leaves after its leading steps, "
-                "which running that route again completes")
+                "which that route's remaining steps complete")
     return ("and a standing root is left as it is unless it is in the shape the "
             "root-creation route leaves after its leading steps")
 
@@ -391,9 +392,10 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
     client would go, before it installs anything, so a run it refuses leaves the
     machine as it found it. A standing root is held to what the row reads: a complete
     one is left as it is, one `opam_client.root_resumable` reads in that shape is
-    completed by running the route again, and any other the row reads as incomplete is
-    refused whatever the client. Where it would run the route, it first holds the
-    machine to `opam_client.ROOT_PREREQUISITES` as the rows ahead of this one do, and
+    completed by the route's remaining steps, `opam_client.remaining_route`, which leave
+    out `opam init`, and any other the row reads as incomplete is refused whatever the
+    client. Where it would run the route, it first holds the machine to
+    `opam_client.ROOT_PREREQUISITES` as the rows ahead of this one do, and
     refuses, naming each package absent, because `opam init` refuses to create a root
     without them. A client on PATH at another release is refused, because replacing one
     is the recorded step `_opam_client` describes, and so is installing a client where
@@ -488,19 +490,21 @@ def _missing_root_prerequisites() -> list[str]:
 
 def _create_root(root: Path, *, resuming: bool = False) -> int:
     """Create the root at `root` by the owner's route, or complete one in the shape the
-    route leaves after its leading steps, streamed to the caller's terminal as `_apply`
-    streams a switch, and hold it to the reviewed client's format and the owner's
-    repositories as guest bootstrap holds its own.
+    route leaves after its leading steps by the steps `opam_client.remaining_route`
+    names, which never run `opam init` over it, streamed to the caller's terminal as
+    `_apply` streams a switch, and hold it to the reviewed client's format and the
+    owner's repositories as guest bootstrap holds its own.
 
     A step that fails stops the route, and the report says what then stands at `root`
     and what remains of the route: the first step can leave a root behind it, which a
     later run completes where `opam_client.root_resumable` reads it in that shape and
     otherwise leaves as it is.
     """
+    steps = opam_client.remaining_route(root)
     if resuming:
         print(f"the opam root at {root} is in the shape the root-creation route leaves "
-              "after its leading steps; running the route again completes it")
-    for index, argv in enumerate(opam_client.CREATE_ROOT):
+              "after its leading steps; the route's remaining steps complete it")
+    for index, argv in enumerate(steps):
         print(f"   {' '.join(argv)}", flush=True)
         try:
             code = subprocess.run(list(argv), check=False,
@@ -511,8 +515,7 @@ def _create_root(root: Path, *, resuming: bool = False) -> int:
             if code == 0:
                 continue
             failed = f"`{' '.join(argv)}` exited {code}"
-        print(f"{failed}, {_stopped(root, opam_client.CREATE_ROOT[index:])}",
-              file=sys.stderr)
+        print(f"{failed}, {_stopped(root, steps[index:])}", file=sys.stderr)
         return 1
     try:
         fmt = opam_client.initialized_format(root)

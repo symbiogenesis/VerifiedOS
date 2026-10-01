@@ -62,13 +62,15 @@ OPAM_REPOSITORIES: tuple[tuple[str, str], ...] = (
 # on the first repository, with no shell setup and no opamrc, then every other
 # repository added unselected, each switch naming the repositories it resolves from.
 # Guest bootstrap runs it in its private root, and `run.py provision --install-opam`
-# where no root stands or where `root_resumable` reads one in the shape the route
-# leaves after its leading steps. Repeating the route over a root it made finishes that
-# root, and it is not inert over a finished one: `opam init` over a root that stands
-# reports it already initialized, fetches nothing and exits 0, while adding a
-# repository the root already carries at that URL keeps its configuration but fetches
-# it again, refreshing its metadata and stamp, and removes that repository from the
-# root, its configuration and its metadata, where the fetch fails.
+# where no root stands. Over a root in the shape `root_resumable` reads, the route's
+# remaining steps, `remaining_route`, complete that root, and the route's first step
+# never runs over it: `opam init` over a root that stands reports it already
+# initialized, fetches nothing and exits 0, but rewrites the root's `opam-init` scripts
+# and, since `--no-setup` implies `--disable-shell-hook`, removes any shell-hook
+# scripts there. Nor is the route inert over a finished root: adding a repository the
+# root already carries at that URL keeps its configuration but fetches it again,
+# refreshing its metadata and stamp, and removes that repository from the root, its
+# configuration and its metadata, where the fetch fails.
 CREATE_ROOT: tuple[tuple[str, ...], ...] = (
     ("opam", "init", "--bare", "--no-setup", "--no-opamrc", "-y", *OPAM_REPOSITORIES[0]),
     *(("opam", "repository", "add", name, url, "--dont-select", "-y")
@@ -241,17 +243,21 @@ def root_gaps(root: Path) -> list[str]:
 
 def root_resumable(root: Path) -> bool:
     """Whether a standing root is in the shape `CREATE_ROOT` leaves after its leading
-    steps, which running the route again completes: in `OPAM_ROOT_FORMAT`, configured
-    with exactly the route's leading repositories, at least the one `opam init` fetched
-    and not every one, each at its owned URL and with its stamp read.
+    steps, which the route's remaining steps, `remaining_route`, complete: in
+    `OPAM_ROOT_FORMAT`, configured with exactly the route's leading repositories, at
+    least the one `opam init` fetched and not every one, each at its owned URL and with
+    its stamp read.
 
     The shape is what is read, not how the root came to be: a root a developer
-    initialized by hand on the first repository alone is in it too, and the route
-    completes that root the same way.
+    initialized by hand on the first repository alone is in it too, and the remaining
+    steps complete that root the same way, leaving its shell setup as it stands.
 
-    A root whose first repository's stamp is unread is not one: `opam init` over a
-    root that stands reports it initialized without fetching anything, so the route run
-    again would leave that repository unread and the root as incomplete as it found it.
+    A root whose first repository's stamp is unread is not one, though the route's first
+    step can leave one: `opam init` writes the root's configuration before its first
+    fetch and removes the root on a failed fetch only where its directory was absent or
+    empty when it started. No remaining step fetches a repository the root already
+    configures, and `opam init` over a root that stands fetches nothing, so that
+    repository would stay unread and the root as incomplete as it was found.
     """
     if not root_exists(root) or root_format(root) != OPAM_ROOT_FORMAT:
         return False
@@ -261,6 +267,18 @@ def root_resumable(root: Path) -> bool:
     configured = {(repo["name"], repo["url"]) for repo in found}
     return any(configured == set(OPAM_REPOSITORIES[:count])
                for count in range(1, len(OPAM_REPOSITORIES)))
+
+
+def remaining_route(root: Path) -> tuple[tuple[str, ...], ...]:
+    """The steps of `CREATE_ROOT` a root at `root` still lacks: the whole route where no
+    root stands, and otherwise each `opam repository add` whose name and URL the root
+    does not already configure, never `opam init`, which over a standing root rewrites
+    its `opam-init` scripts and removes any shell-hook scripts there. Over a root in the
+    shape `root_resumable` reads, these steps complete it."""
+    if not root_exists(root):
+        return CREATE_ROOT
+    configured = {(repo["name"], repo["url"]) for repo in repositories(root)}
+    return tuple(argv for argv in CREATE_ROOT[1:] if (argv[3], argv[4]) not in configured)
 
 
 def initialized_format(root: Path) -> str:

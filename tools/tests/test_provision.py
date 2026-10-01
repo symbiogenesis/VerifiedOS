@@ -283,8 +283,8 @@ def _opam_probe_holds_the_root() -> None:
             found = _opam_probe(partial, where, version)
             ensure(not found.present and found.repairable
                    and f"the root lacks {missing}, in the shape the root-creation route "
-                       "leaves after its leading steps, which running that route again "
-                       "completes" in found.saw,
+                       "leaves after its leading steps, which that route's remaining "
+                       "steps complete" in found.saw,
                    f"a root in the shape the route leaves after its leading steps is "
                    f"repairable, with the client at {where}: {found.saw}")
         unformatted = Path(td) / "unformatted"
@@ -622,9 +622,9 @@ def _creation_failures(scratch: Path, target: Path) -> None:
 
 def _stopped_route_is_finished() -> None:
     """A route that fails after `opam init` made the root reports what stands and what
-    remains of the route, and the next run finishes that root by running the route
-    again over it: `opam init` over a root that stands reports it already initialized,
-    fetches nothing and exits 0, and adding each remaining repository fetches it."""
+    remains of the route, and the next run finishes that root by the route's remaining
+    steps alone, adding and fetching each repository the root lacks, and never runs
+    `opam init` over the root that stands."""
     (default, url), *_ = opam_client.OPAM_REPOSITORIES
     reviewed = opam_client.OPAM_VERSION
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
@@ -680,12 +680,68 @@ def _stopped_route_is_finished() -> None:
         ran.clear()
         with machine(finishing), redirect_stdout(io.StringIO()) as out:
             code = provision.install_opam(target)
-        ensure(code == 0 and ran == list(opam_client.CREATE_ROOT)
+        ensure(code == 0 and ran == list(opam_client.CREATE_ROOT[1:])
+               and opam_client.CREATE_ROOT[0] not in ran
                and f"finished the opam root at {root} in format "
                    f"{opam_client.OPAM_ROOT_FORMAT}" in out.getvalue(),
-               f"the next run finishes the root by the whole route: {ran} {out.getvalue()}")
+               f"the next run finishes the root by the remaining steps alone: {ran} "
+               f"{out.getvalue()}")
         ensure(_opam_probe(root, "/usr/bin/opam", reviewed).present,
                "the finished root holds the row")
+
+
+# The shell-hook scripts opam 2.6.0 writes under a root's `opam-init` directory, one
+# per shell it supports a hook for.
+_HOOKS = ("env_hook.sh", "env_hook.zsh", "env_hook.csh", "env_hook.fish")
+
+
+def _resume_keeps_the_shell_hook() -> None:
+    """A developer's root made by an interactive `opam init` on the first repository
+    alone, its shell hook enabled, is in the shape the route leaves after its leading
+    steps, and completing it leaves its shell setup as it stands. The fake client here
+    does to a standing root what 2.6.0's `opam init --no-setup` does, rewriting its
+    init scripts and removing its hook scripts, so a resume that ran it would fail."""
+    reviewed = opam_client.OPAM_VERSION
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        target, root = Path(td) / "bin" / "opam", Path(td) / "opam"
+        opam_root(root, "flat", configured=opam_client.OPAM_REPOSITORIES[:1])
+        scripts = root / "opam-init"
+        scripts.mkdir()
+        for name in ("init.sh", *_HOOKS):
+            (scripts / name).write_text(f"# the developer's {name}\n", encoding="utf-8")
+        before = {path.name: path.read_bytes() for path in scripts.iterdir()}
+        ran: list[tuple[str, ...]] = []
+
+        def run(argv: list[str], *, check: bool,
+                env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+            del check, env
+            ran.append(tuple(argv))
+            if tuple(argv) == opam_client.CREATE_ROOT[0]:
+                (scripts / "init.sh").write_text("# rewritten\n", encoding="utf-8")
+                for name in _HOOKS:
+                    (scripts / name).unlink(missing_ok=True)
+            elif tuple(argv) == opam_client.CREATE_ROOT[-1]:
+                shutil.rmtree(root / "repo")
+                (root / "config").unlink()
+                opam_root(root, "flat")
+            return subprocess.CompletedProcess(argv, 0)
+
+        ensure(opam_client.root_resumable(root),
+               "a stock developer root on the first repository is resumable")
+        with (patch.object(provision, "shutil",
+                           SimpleNamespace(which=lambda name: "/usr/bin/opam")),
+              patch.object(provision, "env", SimpleNamespace(opam_root=lambda: root)),
+              patch.object(provision, "_say", return_value=reviewed),
+              patch.object(provision, "_dpkg", side_effect=_dpkg_reports()),
+              patch.object(provision.subprocess, "run", side_effect=run),
+              redirect_stdout(io.StringIO()) as out, redirect_stderr(io.StringIO()) as said):
+            code = provision.install_opam(target)
+        after = {path.name: path.read_bytes() for path in scripts.iterdir()}
+        ensure(code == 0 and ran == list(opam_client.CREATE_ROOT[1:]),
+               f"the resume runs the remaining steps alone: {ran} {out.getvalue()} "
+               f"{said.getvalue()}")
+        ensure(after == before,
+               f"the developer's init and hook scripts stand as they were: {sorted(after)}")
 
 
 def _failed_import_can_retry() -> None:
@@ -838,6 +894,7 @@ def cases() -> list[Case]:
         Case("install-opam-installs-only-what-is-absent",
              _install_opam_installs_only_what_is_absent),
         Case("stopped-route-is-finished", _stopped_route_is_finished),
+        Case("resume-keeps-the-shell-hook", _resume_keeps_the_shell_hook),
         Case("failed-import-can-retry", _failed_import_can_retry),
         Case("placement-probe-decides-by-filesystem",
              _placement_probe_decides_by_filesystem),
