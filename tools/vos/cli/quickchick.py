@@ -235,10 +235,9 @@ def cmd_properties(args: argparse.Namespace) -> int:
     It runs both harnesses of the half in QuickChick's switch, or with `--recipe` in the
     switch the recipe builds: Properties.v, whose sets QuickChick draws from the seed the
     harness fixes, and Walks.v, which decides each set small enough to enumerate at every
-    point of its domain. It compiles their
-    `Require` closure and nothing else, the proofs they read and the support harnesses
-    they Require, as `kernel vectors` does for its harness. A proof outside that closure
-    is compile time no verdict here can depend on.
+    point of its domain. It compiles their `Require` closure and nothing else, the proofs
+    they read and the support harnesses they Require, as `kernel vectors` does for its
+    harness. A proof outside that closure is compile time no verdict here can depend on.
     """
     return _with_workspace(args, _properties)
 
