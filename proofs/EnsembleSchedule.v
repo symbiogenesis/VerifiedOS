@@ -323,7 +323,7 @@ Qed.
 Inductive Direction : Type := Transmit | Receive.
 
 Definition opposite (d : Direction) : Direction :=
-  match d with Transmit => Receive | Receive => Transmit end.
+  if d is Transmit then Receive else Transmit.
 
 Definition dir_eqb (d1 d2 : Direction) : bool :=
   match d1, d2 with
@@ -415,16 +415,10 @@ Arguments em_declared_skew {T} _.
    ------------------------------------------------------------------------- *)
 
 Definition tolerance_of {T : Type} (e : Emission T) (i : nat) : nat :=
-  match nth_of (em_members e) i with
-  | Some m => ms_tolerance m
-  | None => 0
-  end.
+  if nth_of (em_members e) i is Some m then ms_tolerance m else 0.
 
 Definition member_named {T : Type} (e : Emission T) (i : nat) : bool :=
-  match nth_of (em_members e) i with
-  | Some _ => true
-  | None => false
-  end.
+  if nth_of (em_members e) i is Some _ then true else false.
 
 Definition link_members_named {T : Type} (e : Emission T) (t : LinkTable) : bool :=
   andb (member_named e (lt_near_member t)) (member_named e (lt_far_member t)).
@@ -637,10 +631,7 @@ Proof. reflexivity. Qed.
 Fixpoint roots_of {T : Type} (ms : list (MemberSchedule T)) : nat :=
   match ms with
   | nil => 0
-  | cons m r => match ms_role m with
-                | Root => S (roots_of r)
-                | Follower _ _ => roots_of r
-                end
+  | cons m r => if ms_role m is Root then S (roots_of r) else roots_of r
   end.
 
 Definition emission_admits (c : Composition) (scope : GuardScope)
@@ -1847,9 +1838,8 @@ Definition witness_Emission : Emission bool := demo_emission.
 (* The normative qualification wrapper keeps the derived bound and the physical
    qualification observation separate. R-15-196a requires both; its measured
    acceptance clause does not authorize replacement of the derived operand. *)
-Definition with_derived_bound {T : Type} (e : Emission T) : Emission T := {|
-  em_members := em_members e; em_links := em_links e; em_leaps := em_leaps e;
-  em_declared_skew := skew_derived e |}.
+Definition with_derived_bound {T : Type} (e : Emission T) : Emission T :=
+  {| e with em_declared_skew := skew_derived e |}.
 Definition qualified_emission_admits (c : Composition) (dg : LinkTable -> nat)
     (e : Emission (Tenant c)) (measured_skew : nat) : bool :=
   andb (Nat.eqb (em_declared_skew e) (skew_derived e))
