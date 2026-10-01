@@ -184,10 +184,11 @@ def z3_install(target: Path, python: str = sys.executable) -> tuple[tuple[str, .
 Z3_INSTALL = z3_install(Z3_PREFIX)
 
 # The proof gate uses the newest prover its own libraries admit, independently of oracle
-# libraries; tools/opam/README.md records what holds it there. CertiRocq and QuickChick
-# retain their own 9.1 compatibility constraints in gallina.py; neither limits proofs
-# compiled in this switch. The prover and Sail keep separate dependency resolutions, so
-# a release of either moves without re-solving the other.
+# libraries; tools/opam/README.md records what holds it there. The CertiRocq oracle and
+# QuickChick each keep a switch of their own, under the constraints gallina.py and
+# quickchick.py state, so neither limits proofs compiled in this switch. The prover and
+# Sail keep separate dependency resolutions, so a release of either moves without
+# re-solving the other.
 ROCQ_VERSION = "9.3.0"
 ROCQ_SWITCH = f"verifiedos-rocq-{ROCQ_VERSION}-ocaml-{OCAML_VERSION}"
 

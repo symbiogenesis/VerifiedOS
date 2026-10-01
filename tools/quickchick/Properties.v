@@ -34,8 +34,9 @@
    It needs `coq-quickchick`, which this repository installs in a switch of
    its own, the one tools/vos/gallina.py's QUICKCHICK_SWITCH names, from the
    snapshot tools/opam/quickchick.lock fixes. `run.py quickchick check` says
-   what that switch holds, and tools/opam/README.md states why the switch is
-   separate from the proof gate's.
+   which QuickChick that switch holds, by its release or, for a build from a
+   commit pin, by the commit, and tools/opam/README.md states why the switch
+   is separate from the proof gate's and what the snapshot installs.
 
    The properties are the computable shadows of theorems the shipped proofs
    prove, and that is the point of stating them here rather than only there. A
