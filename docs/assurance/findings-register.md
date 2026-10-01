@@ -1480,7 +1480,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-706** owed-act: the instrument route's join report and summary and `instrument-ci read` give a step's peak as the per-minute sampler's figure, which reads 0 KB for a step that ends before the first sample, as the control's `quickchick properties` did at 543,612 KB by GNU time, while Q38l's Owns makes that step's recorded peak the basis for raising seed's `--jobs`
 · Raised: Q38l
-· Disposition: open, a repair of the report under Q38l's contract landing before Q38f's first comparison dispatch, each receipt's GNU time peak standing meanwhile
+· Disposition: open, Q38f, which routes it, repairing the report under Q38l's contract before its first comparison dispatch, each receipt's GNU time peak standing meanwhile
 
 **F-707** measurement: the instrument route's plan accepts a `base_revision` dispatch whose side's seed.py binds no subject it can read, and that side's seed job builds its switch before its population listing refuses for want of a subject
 · Raised: Q38l
