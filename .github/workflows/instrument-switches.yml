@@ -1,0 +1,581 @@
+# SPDX-License-Identifier: Apache-2.0
+# The instrument switch route: QuickChick's switch built and checked on hosted Linux;
+# tools/ci/README.md#instrument-switch-route owns its contract. No CertiRocq switch is
+# built, checked or dispatched here. Manual dispatch runs from main alone. The plan job
+# runs tools/ci/instrument_route.py from the dispatching commit and refuses the
+# dispatch before any requested revision is checked out; every later job runs the
+# route's own files from that commit and takes only the side's declarations,
+# instruments, harnesses and proofs from the revision it tests, checking each checkout
+# against main before any of its code runs. Inputs reach a step only through its
+# environment, and a later job reads only the values the plan validated. No switch or
+# download cache is used: every switch a run reports is built in that run in a fresh
+# root. tools/ci/instrument_route.py owns each step's limit; each job's
+# timeout-minutes is the sum of its step limits plus the staging margin, and each
+# step's is a backstop above its limit. `run.py instrument-ci` dispatches and reads it.
+
+name: instrument-switches
+run-name: ${{ format('{0}:{1}', github.workflow, inputs.title || inputs.revision || github.sha) }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full lowercase commit SHA on main whose switch the route builds and checks
+        type: string
+        default: ""
+      base_revision:
+        description: Optional proper ancestor of revision; given, the three seed jobs run
+        type: string
+        default: ""
+      build:
+        description: Build the candidate's switch by quickchick.INSTALL or quickchick.RECIPE
+        type: choice
+        options:
+          - install
+          - recipe
+        default: install
+      sample:
+        description: Mutants each seed run samples, a whole number from 1 to 20
+        type: string
+        default: "20"
+      title:
+        description: Run title text after the workflow name; instrument-ci puts its nonce here
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  # Every dispatch keeps its run: none is replaced while queued or cut while running.
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+env:
+  PYTHONUTF8: "1"
+  PYTHONUNBUFFERED: "1"
+
+defaults:
+  run:
+    # Explicit bash enables pipefail.
+    shell: bash
+
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    outputs:
+      accepted: ${{ steps.plan.outputs.accepted }}
+      label: ${{ steps.plan.outputs.label }}
+      revision: ${{ steps.plan.outputs.revision }}
+      base_revision: ${{ steps.plan.outputs.base_revision }}
+      build: ${{ steps.plan.outputs.build }}
+      sample: ${{ steps.plan.outputs.sample }}
+      seed: ${{ steps.plan.outputs.seed }}
+    env:
+      INSTRUMENT_JOB: plan
+    steps:
+      # The dispatching commit alone; no requested revision is checked out here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: route
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Plan the dispatch
+        id: plan
+        timeout-minutes: 8
+        env:
+          PLAN_REVISION: ${{ inputs.revision }}
+          PLAN_BASE_REVISION: ${{ inputs.base_revision }}
+          PLAN_BUILD: ${{ inputs.build }}
+          PLAN_SAMPLE: ${{ inputs.sample }}
+          PLAN_TITLE: ${{ inputs.title }}
+        run: |
+          python3 route/tools/ci/instrument_route.py step plan -- \
+            python3 route/tools/ci/instrument_route.py plan --checkout route
+
+      - name: Stage the plan
+        if: ${{ always() }}
+        run: python3 route/tools/ci/instrument_route.py stage --job plan
+
+      - name: Preserve the plan
+        # always(): a refused or timed-out plan still keeps plan.json and its log.
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: instrument-plan-${{ steps.plan.outputs.label || 'unnamed' }}
+          path: ~/verifiedos-instrument/upload/
+          if-no-files-found: warn
+          overwrite: true
+          retention-days: 30
+
+  build:
+    name: build
+    needs: plan
+    if: ${{ needs.plan.outputs.accepted == 'true' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 230
+    outputs:
+      export_sha256: ${{ steps.export.outputs.sha256 }}
+    env:
+      INSTRUMENT_JOB: build
+      INSTRUMENT_RUN: candidate
+      INSTRUMENT_SIDE: candidate
+      INSTRUMENT_REVISION: ${{ needs.plan.outputs.revision }}
+      INSTRUMENT_BASE_REVISION: ${{ needs.plan.outputs.base_revision }}
+      INSTRUMENT_BUILD: ${{ needs.plan.outputs.build }}
+      INSTRUMENT_SAMPLE: ${{ needs.plan.outputs.sample }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: route
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main (route)
+        shell: python
+        working-directory: route
+        env:
+          REQUESTED_REVISION: ${{ github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.plan.outputs.revision }}
+          path: side
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main (side)
+        shell: python
+        working-directory: side
+        env:
+          REQUESTED_REVISION: ${{ needs.plan.outputs.revision }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      # The side's run.py enters its locked tool environment, so uv comes first. Guest
+      # CI owns the saved cache this reads; nothing here saves one.
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version-file: side/tools/pyproject.toml
+          enable-cache: true
+          save-cache: false
+          cache-suffix: guest-gates
+          cache-dependency-glob: |
+            side/tools/pyproject.toml
+            side/tools/uv.lock
+
+      - name: Build the candidate's switch
+        id: provision
+        timeout-minutes: 163
+        run: |
+          python3 route/tools/ci/instrument_route.py step provision -- \
+            python3 route/tools/ci/bootstrap_instrument.py provision --side side \
+            --build "$INSTRUMENT_BUILD" --install-system \
+            --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
+
+      - name: Check the switch
+        id: check
+        timeout-minutes: 13
+        run: python3 route/tools/ci/instrument_route.py instrument check --side side
+
+      - name: Run the property sets
+        id: properties
+        timeout-minutes: 38
+        run: python3 route/tools/ci/instrument_route.py instrument properties --side side
+
+      - name: Export the switch
+        id: export
+        timeout-minutes: 13
+        run: |
+          python3 route/tools/ci/instrument_route.py step export -- \
+            python3 route/tools/ci/bootstrap_instrument.py export --github-output "$GITHUB_OUTPUT"
+
+      - name: Stage the build's records
+        if: ${{ always() }}
+        run: python3 route/tools/ci/instrument_route.py stage --job build
+
+      - name: Preserve the build's records
+        # always(): a job cut at its time limit still keeps its progress and logs. The
+        # export is staged only where every check on its switch passed.
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: instrument-build-${{ needs.plan.outputs.revision }}
+          path: ~/verifiedos-instrument/upload/
+          if-no-files-found: warn
+          overwrite: true
+          retention-days: 30
+
+  import:
+    name: import
+    needs: [plan, build]
+    if: ${{ needs.build.result == 'success' && needs.build.outputs.export_sha256 != '' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 190
+    env:
+      INSTRUMENT_JOB: import
+      INSTRUMENT_RUN: candidate
+      INSTRUMENT_SIDE: candidate
+      INSTRUMENT_REVISION: ${{ needs.plan.outputs.revision }}
+      INSTRUMENT_BASE_REVISION: ${{ needs.plan.outputs.base_revision }}
+      INSTRUMENT_BUILD: ${{ needs.plan.outputs.build }}
+      INSTRUMENT_SAMPLE: ${{ needs.plan.outputs.sample }}
+      EXPORT_SHA256: ${{ needs.build.outputs.export_sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: route
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main (route)
+        shell: python
+        working-directory: route
+        env:
+          REQUESTED_REVISION: ${{ github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.plan.outputs.revision }}
+          path: side
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main (side)
+        shell: python
+        working-directory: side
+        env:
+          REQUESTED_REVISION: ${{ needs.plan.outputs.revision }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version-file: side/tools/pyproject.toml
+          enable-cache: true
+          save-cache: false
+          cache-suffix: guest-gates
+          cache-dependency-glob: |
+            side/tools/pyproject.toml
+            side/tools/uv.lock
+
+      - name: Collect the build's export
+        # From this run alone; the import step takes it only at the build's SHA-256.
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: instrument-build-${{ needs.plan.outputs.revision }}
+          path: ${{ runner.temp }}/build
+
+      - name: Import the export into a fresh root
+        id: import
+        timeout-minutes: 163
+        run: |
+          python3 route/tools/ci/instrument_route.py step import -- \
+            python3 route/tools/ci/bootstrap_instrument.py provision --side side \
+            --build "$INSTRUMENT_BUILD" --import "$RUNNER_TEMP/build/export/quickchick.lock" \
+            --expect-sha256 "$EXPORT_SHA256" --install-system \
+            --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
+
+      - name: Check the imported switch
+        id: check
+        timeout-minutes: 13
+        run: python3 route/tools/ci/instrument_route.py instrument check --side side
+
+      - name: Compare the imported switch with the build's
+        id: compare
+        # The closure is compared whatever the check said; the check's exit is one of
+        # the comparison's three grounds.
+        if: ${{ !cancelled() && steps.import.outcome == 'success' }}
+        timeout-minutes: 8
+        run: |
+          python3 route/tools/ci/instrument_route.py step compare -- \
+            python3 route/tools/ci/instrument_route.py compare \
+            --build-receipt "$RUNNER_TEMP/build/receipt.json"
+
+      - name: Stage the import's records
+        if: ${{ always() }}
+        run: python3 route/tools/ci/instrument_route.py stage --job import
+
+      - name: Preserve the import's records
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: instrument-import-${{ needs.plan.outputs.revision }}
+          path: ~/verifiedos-instrument/upload/
+          if-no-files-found: warn
+          overwrite: true
+          retention-days: 30
+
+  seed:
+    name: seed (${{ matrix.run }})
+    needs: plan
+    if: ${{ needs.plan.outputs.seed == 'true' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 355
+    strategy:
+      # Each run keeps its own verdict when another fails.
+      fail-fast: false
+      matrix:
+        run: [base, candidate-1, candidate-2]
+    env:
+      INSTRUMENT_JOB: seed
+      INSTRUMENT_RUN: ${{ matrix.run }}
+      INSTRUMENT_SIDE: ${{ matrix.run == 'base' && 'base' || 'candidate' }}
+      INSTRUMENT_REVISION: ${{ needs.plan.outputs.revision }}
+      INSTRUMENT_BASE_REVISION: ${{ needs.plan.outputs.base_revision }}
+      INSTRUMENT_BUILD: ${{ needs.plan.outputs.build }}
+      INSTRUMENT_SAMPLE: ${{ needs.plan.outputs.sample }}
+      # The base side always builds its revision's INSTALL.
+      SIDE_BUILD: ${{ matrix.run == 'base' && 'install' || needs.plan.outputs.build }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: route
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main (route)
+        shell: python
+        working-directory: route
+        env:
+          REQUESTED_REVISION: ${{ github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ matrix.run == 'base' && needs.plan.outputs.base_revision || needs.plan.outputs.revision }}
+          path: side
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main (side)
+        shell: python
+        working-directory: side
+        env:
+          REQUESTED_REVISION: ${{ matrix.run == 'base' && needs.plan.outputs.base_revision || needs.plan.outputs.revision }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version-file: side/tools/pyproject.toml
+          enable-cache: true
+          save-cache: false
+          cache-suffix: guest-gates
+          cache-dependency-glob: |
+            side/tools/pyproject.toml
+            side/tools/uv.lock
+
+      - name: Build the side's switch
+        id: provision
+        timeout-minutes: 163
+        run: |
+          python3 route/tools/ci/instrument_route.py step provision -- \
+            python3 route/tools/ci/bootstrap_instrument.py provision --side side \
+            --build "$SIDE_BUILD" --install-system \
+            --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
+
+      - name: List the sampled population
+        id: population
+        timeout-minutes: 8
+        run: python3 route/tools/ci/instrument_route.py instrument population --side side
+
+      - name: Run the seeded population
+        id: seed
+        timeout-minutes: 178
+        run: python3 route/tools/ci/instrument_route.py instrument seed --side side
+
+      - name: Stage the seed run's records
+        if: ${{ always() }}
+        run: python3 route/tools/ci/instrument_route.py stage --job seed
+
+      - name: Preserve the seed run's records
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: instrument-seed-${{ matrix.run }}-${{ matrix.run == 'base' && needs.plan.outputs.base_revision || needs.plan.outputs.revision }}
+          path: ~/verifiedos-instrument/upload/
+          if-no-files-found: warn
+          overwrite: true
+          retention-days: 30
+
+  join:
+    name: join
+    needs: [plan, build, import, seed]
+    # A job that failed still leaves its receipt; the join records or refuses it.
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    env:
+      INSTRUMENT_JOB: join
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: route
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main (route)
+        shell: python
+        working-directory: route
+        env:
+          REQUESTED_REVISION: ${{ github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Collect the jobs' records
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: instrument-*
+          path: ${{ runner.temp }}/artifacts
+
+      - name: Join the run
+        id: join
+        timeout-minutes: 8
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          python3 route/tools/ci/instrument_route.py step join -- \
+            python3 route/tools/ci/instrument_route.py join --artifacts "$RUNNER_TEMP/artifacts"
+
+      - name: Stage the report
+        if: ${{ always() }}
+        run: python3 route/tools/ci/instrument_route.py stage --job join
+
+      - name: Preserve the report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: instrument-join-${{ needs.plan.outputs.revision }}
+          path: ~/verifiedos-instrument/upload/
+          if-no-files-found: warn
+          overwrite: true
+          retention-days: 30

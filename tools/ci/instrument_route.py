@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""The instrument switch route's plan, step limits, staging and join.
+"""The instrument switch route's plan, step limits, staging, comparison and join.
 
 [instrument-switches.yml](../../.github/workflows/instrument-switches.yml) builds and
 checks QuickChick's switch on GitHub-hosted runners, and every one of its jobs runs
 this file from the dispatching commit's checkout, never from the revision a side
 tests. The plan refuses a dispatch before any requested revision is checked out; each
 instrument step runs under the limit wrapper and its sampler; each job's staging
-decides what leaves its runner; and the join reads one artifact per job into
+decides what leaves its runner; the import job's comparison holds a re-imported switch
+to the one the build job exported; and the join reads one artifact per job into
 `report.json`. [`run.py instrument-ci read`](../vos/cli/instrument_ci.py) reads the
 same records back on the host. [The route's contract](README.md#instrument-switch-route)
 states what a run decides and what it leaves to the item that owns the switch.
@@ -63,9 +64,16 @@ SIDE_INPUTS: tuple[str, ...] = (
     "tools/vos/seeded.py", "tools/vos/mutate.py", "tools/run.py", "tools/pyproject.toml",
     "tools/uv.lock", "tools/quickchick/", "tools/opam/quickchick.lock", "proofs/",
 )
+# Every route input the contract names, before the import closure is added.
+ROUTE_INPUTS: tuple[str, ...] = (*ROUTE_FILES, *SIDE_INPUTS)
 LOCK = "tools/opam/quickchick.lock"
 QUICKCHICK = "tools/vos/cli/quickchick.py"
 SEED = "tools/vos/cli/seed.py"
+# The modules whose import closure the reader computes at the side's revision: the
+# entry point, the two instruments it dispatches to, and every Python route input.
+SIDE_ROOTS: tuple[str, ...] = tuple(path for path in SIDE_INPUTS if path.endswith(".py"))
+# And at the dispatching commit: the route's own Python.
+ROUTE_ROOTS: tuple[str, ...] = tuple(path for path in ROUTE_FILES if path.endswith(".py"))
 
 # Where a job keeps everything it may upload. One root per job on a runner of its own,
 # so a side's switch is always built in a root no earlier run touched.
@@ -76,18 +84,20 @@ RECEIPT = "receipt.json"
 PLAN = "plan.json"
 REPORT = "report.json"
 PROGRESS = "progress.log"
-# The build job's export, where it is staged once every check on its switch passed.
+# The build job's export, staged once every check on its switch passed, and the import
+# job's re-export, an observation beside it.
 EXPORT = "export/quickchick.lock"
+REEXPORT = "export/reexport.lock"
 # Where `seed coq --quickchick` journals its verdicts under the root's build tree: the
 # lane root's `seed` directory, in the journal seed.py names for the QuickChick oracle.
 JOURNAL = "build/seed/quickchick.journal"
 
-# The jobs and the instrument steps each runs under the limit wrapper, in order.
+# The jobs and the steps each runs under the limit wrapper, in order.
 JOB_STEPS: dict[str, tuple[str, ...]] = {
     "plan": ("plan",),
     "build": ("provision", "check", "properties", "export"),
-    "import": ("import", "check"),
-    "seed": ("provision", "seed"),
+    "import": ("import", "check", "compare"),
+    "seed": ("provision", "population", "seed"),
     "join": ("join",),
 }
 # The three seed runs: the base side and two runs of the candidate's population.
@@ -96,6 +106,8 @@ SEED_RUNS: tuple[str, ...] = ("base", "candidate-1", "candidate-2")
 # the basis for more; a seed step that reaches its limit raises it in the next dispatch
 # on that peak, or leaves the runner decision to the user, and never lowers the sample.
 SEED_JOBS = 1
+# The sample a comparison dispatch takes, which the reader holds closing evidence to.
+FULL_SAMPLE = 20
 
 # The verdicts a step and a job carry. `completed` is a seed run that reached its
 # journal's closing line, whatever its exit: seed exits 1 on a survivor, which is the
@@ -105,6 +117,8 @@ COMPLETED = "completed"
 FAILED = "failed"
 UNDECIDED = "undecided"
 NOT_RUN = "not run"
+# A run in which a job the plan expected never ran although nothing failed.
+INCOMPLETE = "incomplete"
 
 
 @dataclass(frozen=True)
@@ -114,6 +128,10 @@ class Limit:
     seconds: int
     basis: str
     measured: bool
+
+
+def _ceil_to(seconds: int, unit: int) -> int:
+    return math.ceil(seconds / unit) * unit
 
 
 # GitHub's hosted maximum for a job, in minutes, the margin kept below it, and the
@@ -126,11 +144,19 @@ KILL_AFTER = 60
 # A step's `timeout-minutes` is its limit plus that grace plus this, so the backstop
 # fires only where the wrapper itself has stopped.
 BACKSTOP_MARGIN = 2
+# The measurements the limits stand on: Q38f's lane imported its candidate lock into a
+# fresh root on the aarch64 guest in this many seconds at OPAMJOBS=2 under opam 2.5.0,
+# and Q38e's `quickchick properties` run took this many.
+IMPORT_MEASURED = 4_402
+PROPERTIES_MEASURED = 378
 
 _PROVISION = Limit(
-    9_600, "twice Q38f's 4,402 s import of the candidate lock into a fresh root on the "
-    "aarch64 guest at OPAMJOBS=2, plus ten minutes for the distribution packages, the "
-    "client and the root, in whole minutes", measured=True)
+    _ceil_to(2 * IMPORT_MEASURED + 600, 600),
+    f"twice Q38f's {IMPORT_MEASURED:,} s import of its candidate lock into a fresh root on "
+    "the aarch64 guest at OPAMJOBS=2, plus ten minutes for the distribution packages, the "
+    "client and the root, rounded up to ten whole minutes", measured=True)
+_POPULATION = Limit(300, "unmeasured: a text walk of one source, allowed five minutes",
+                    measured=False)
 LIMITS: dict[str, Limit] = {
     "plan": Limit(300, "unmeasured: reads of the dispatching checkout's history, allowed "
                   "five minutes", measured=False),
@@ -139,16 +165,22 @@ LIMITS: dict[str, Limit] = {
                     "export installs the closure the build installed", measured=True),
     "check": Limit(600, "unmeasured: two opam reads and a prover version query, allowed "
                    "ten minutes", measured=False),
-    "properties": Limit(1_800, "about five times Q38e's 378 s run of the 33 property sets "
-                        "on the guest at load 3.3 to 15.5", measured=True),
+    "properties": Limit(
+        _ceil_to(5 * PROPERTIES_MEASURED, 300),
+        f"five times Q38e's {PROPERTIES_MEASURED} s run of the 33 property sets on the "
+        "guest at load 3.3 to 15.5, rounded up to five whole minutes", measured=True),
     "export": Limit(600, "unmeasured: one opam read of the switch, allowed ten minutes",
                     measured=False),
+    "compare": Limit(300, "unmeasured: a reading of two receipts, allowed five minutes",
+                     measured=False),
+    "population": _POPULATION,
     "seed": Limit(
-        (HOSTED_MAXIMUM - HOSTED_MARGIN - STAGING_MARGIN) * 60 - _PROVISION.seconds,
-        f"its job's limit, GitHub's {HOSTED_MAXIMUM}-minute hosted maximum less a "
-        f"{HOSTED_MARGIN}-minute margin, less the provisioning limit and the "
-        f"{STAGING_MARGIN}-minute staging margin; unmeasured, no `seed coq --quickchick` "
-        "run having a recorded duration", measured=False),
+        (HOSTED_MAXIMUM - HOSTED_MARGIN - STAGING_MARGIN) * 60 - _PROVISION.seconds
+        - _POPULATION.seconds,
+        f"its job's limit: GitHub's {HOSTED_MAXIMUM}-minute hosted maximum less a "
+        f"{HOSTED_MARGIN}-minute margin, less the provisioning limit, the population "
+        f"listing's and the {STAGING_MARGIN}-minute staging margin; unmeasured, no "
+        "`seed coq --quickchick` run having a recorded duration", measured=False),
     "join": Limit(300, "unmeasured: reads of the run's receipts and journals, allowed "
                   "five minutes", measured=False),
 }
@@ -182,10 +214,13 @@ FILE_LIMIT = 64 << 20
 ARCHIVE_LIMIT = 256 << 20
 
 FULL_COMMIT = re.compile(r"[0-9a-f]{40}")
+SHA256 = re.compile(r"[0-9a-f]{64}")
 MAIN = "refs/heads/main"
+# Where a dispatch from another ref finds main among the refs its checkout fetched.
+REMOTE_MAIN = "refs/remotes/origin/main"
 BUILDS: tuple[str, ...] = ("install", "recipe")
 SAMPLES = range(1, 21)
-PASS = "pass"
+HOLDS = "pass"
 REFUSED = "refused"
 NOT_DECIDED = "not decided"
 
@@ -194,10 +229,14 @@ def _now() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _object(value: object) -> dict[str, object]:
+def as_object(value: object) -> dict[str, object]:
     if not isinstance(value, dict) or not all(isinstance(key, str) for key in value):
         raise TypeError("expected a JSON object")
     return cast("dict[str, object]", value)
+
+
+def as_list(value: object) -> list[object]:
+    return cast("list[object]", value) if isinstance(value, list) else []
 
 
 def _read(path: Path) -> str | None:
@@ -205,6 +244,17 @@ def _read(path: Path) -> str | None:
     try:
         return path.read_text(encoding="utf-8", errors="replace")
     except OSError:
+        return None
+
+
+def load_json(path: Path) -> dict[str, object] | None:
+    """A JSON object from a file, None where there is none or it is not an object."""
+    text = _read(path)
+    if text is None:
+        return None
+    try:
+        return as_object(json.loads(text))
+    except (ValueError, TypeError):
         return None
 
 
@@ -294,7 +344,17 @@ def _recipe_check(checkout: Path, revision: str, name: str, check: str) -> Check
     if not found:
         return Check(check, REFUSED, f"{QUICKCHICK} at {revision} declares no `{name}`, read "
                      "from its source without running it")
-    return Check(check, PASS, f"{QUICKCHICK} at {revision} declares `{name}`")
+    return Check(check, HOLDS, f"{QUICKCHICK} at {revision} declares `{name}`")
+
+
+def _main_tip(checkout: Path, asked: Request) -> str | None:
+    """The commit main stands at for this dispatch: the dispatching commit where the
+    dispatch is from main, and otherwise main as the checkout fetched it."""
+    if asked.ref == MAIN:
+        return asked.dispatching_commit
+    found = _git(checkout, "rev-parse", "--verify", "--quiet", f"{REMOTE_MAIN}^{{commit}}")
+    tip = found.stdout.strip()
+    return tip if found.returncode == 0 and FULL_COMMIT.fullmatch(tip) else None
 
 
 def plan(checkout: Path, asked: Request) -> list[Check]:
@@ -303,17 +363,18 @@ def plan(checkout: Path, asked: Request) -> list[Check]:
     checks: list[Check] = []
     head = _git(checkout, "rev-parse", "HEAD").stdout.strip()
     if head == asked.dispatching_commit and FULL_COMMIT.fullmatch(head):
-        checks.append(Check("route", PASS, f"the plan runs from the dispatching commit {head}"))
+        checks.append(Check("route", HOLDS, f"the plan runs from the dispatching commit {head}"))
     else:
         checks.append(Check("route", REFUSED, f"the plan runs from {head or 'no commit'}, not "
                             f"the dispatching commit {asked.dispatching_commit!r}"))
     if asked.ref == MAIN:
-        checks.append(Check("ref", PASS, f"dispatched from {MAIN}"))
+        checks.append(Check("ref", HOLDS, f"dispatched from {MAIN}"))
     else:
         checks.append(Check("ref", REFUSED, f"dispatched from {asked.ref!r}; the route runs "
                             f"only from {MAIN}"))
 
     revision = asked.revision
+    main = _main_tip(checkout, asked)
     on_main = False
     if not revision:
         checks.append(Check("revision", REFUSED, "no revision was requested; a run names the "
@@ -324,44 +385,48 @@ def plan(checkout: Path, asked: Request) -> list[Check]:
     elif not _is_commit(checkout, revision):
         checks.append(Check("revision", REFUSED, f"{revision} is no commit the dispatching "
                             "checkout reaches, so it is not on main"))
-    elif not _is_ancestor(checkout, revision, asked.dispatching_commit):
+    elif main is None:
+        checks.append(Check("revision", NOT_DECIDED, "the checkout fetched no main to hold "
+                            "the revision against"))
+    elif not _is_ancestor(checkout, revision, main):
         checks.append(Check("revision", REFUSED, f"{revision} is not on main: it is no "
-                            f"ancestor of the dispatching commit {asked.dispatching_commit}"))
+                            f"ancestor of main's {main}"))
     else:
         on_main = True
-        checks.append(Check("revision", PASS, f"{revision} is on main"))
+        checks.append(Check("revision", HOLDS, f"{revision} is on main"))
 
     build_ok = asked.build in BUILDS
-    checks.append(Check("build", PASS, f"build {asked.build}") if build_ok else Check(
+    checks.append(Check("build", HOLDS, f"build {asked.build}") if build_ok else Check(
         "build", REFUSED, f"build {asked.build!r} is neither {' nor '.join(BUILDS)}"))
 
-    whole = re.fullmatch(r"[0-9]+", asked.sample)
-    if whole and int(asked.sample) in SAMPLES:
-        checks.append(Check("sample", PASS, f"sample {int(asked.sample)}"))
+    # The canonical spelling alone, so the sample every job records is the request's.
+    if re.fullmatch(r"[1-9][0-9]*", asked.sample) and int(asked.sample) in SAMPLES:
+        checks.append(Check("sample", HOLDS, f"sample {asked.sample}"))
     else:
         checks.append(Check("sample", REFUSED, f"sample {asked.sample!r} is not a whole "
-                            f"number from {SAMPLES.start} to {SAMPLES.stop - 1}"))
+                            f"number from {SAMPLES.start} to {SAMPLES.stop - 1}, written "
+                            "without a sign or leading zero"))
 
     base = asked.base_revision
     base_ok = False
     if not base:
-        checks.append(Check("base_revision", PASS, "no base revision was requested, so the "
+        checks.append(Check("base_revision", HOLDS, "no base revision was requested, so the "
                             "seed jobs do not run"))
     elif not FULL_COMMIT.fullmatch(base):
         checks.append(Check("base_revision", REFUSED, f"{base!r} is not a full lowercase "
                             "commit SHA"))
-    elif not on_main:
-        checks.append(Check("base_revision", NOT_DECIDED, "the revision it must precede was "
-                            "refused"))
     elif base == revision:
         checks.append(Check("base_revision", REFUSED, f"{base} is the revision itself, not a "
                             "proper ancestor of it"))
+    elif not on_main:
+        checks.append(Check("base_revision", NOT_DECIDED, "the revision it must precede was "
+                            "refused"))
     elif not _is_commit(checkout, base) or not _is_ancestor(checkout, base, revision):
         checks.append(Check("base_revision", REFUSED, f"{base} is not an ancestor of "
                             f"{revision}"))
     else:
         base_ok = True
-        checks.append(Check("base_revision", PASS, f"{base} is a proper ancestor of "
+        checks.append(Check("base_revision", HOLDS, f"{base} is a proper ancestor of "
                             f"{revision}"))
 
     if not on_main or not build_ok:
@@ -376,12 +441,12 @@ def plan(checkout: Path, asked: Request) -> list[Check]:
 
 
 def accepted(checks: Sequence[Check]) -> bool:
-    return all(check.verdict == PASS for check in checks)
+    return all(check.verdict == HOLDS for check in checks)
 
 
 def plan_record(checkout: Path, asked: Request, checks: Sequence[Check]) -> dict[str, object]:
     """plan.json: the request as it arrived, each check's verdict and reason, and what
-    the accepted run runs."""
+    the accepted run runs, with seed's default subject at each side read from source."""
     ok = accepted(checks)
     subjects: dict[str, str | None] = {}
     if ok:
@@ -411,34 +476,39 @@ def plan_outputs(asked: Request, ok: bool) -> dict[str, str]:
     found = {"accepted": "true" if ok else "false", "label": label}
     if ok:
         found |= {"revision": asked.revision, "base_revision": asked.base_revision,
-                  "build": asked.build, "sample": str(int(asked.sample)),
+                  "build": asked.build, "sample": asked.sample,
                   "seed": "true" if asked.base_revision else "false"}
     return found
 
 
-def _github_output(values: dict[str, str]) -> None:
-    target = os.environ.get("GITHUB_OUTPUT")
+def github_output(values: dict[str, str], target: Path | str | None = None) -> None:
+    """Append job outputs, each one line, to the file GitHub reads them from."""
+    target = target or os.environ.get("GITHUB_OUTPUT")
     if not target:
         return
     if any(c in value for value in values.values() for c in "\r\n"):
-        raise ValueError("a plan output must be one line")
+        raise ValueError("a job output must be one line")
     with Path(target).open("a", encoding="utf-8", newline="") as stream:
         stream.writelines(f"{key}={value}\n" for key, value in values.items())
 
 
-def cmd_plan(args: argparse.Namespace) -> int:
+def request_from_environment() -> Request:
     environ = os.environ
-    asked = Request(
+    return Request(
         ref=environ.get("GITHUB_REF", ""), dispatching_commit=environ.get("GITHUB_SHA", ""),
         revision=environ.get("PLAN_REVISION", ""),
         base_revision=environ.get("PLAN_BASE_REVISION", ""),
         build=environ.get("PLAN_BUILD", ""), sample=environ.get("PLAN_SAMPLE", ""),
         title=environ.get("PLAN_TITLE", ""))
+
+
+def cmd_plan(args: argparse.Namespace) -> int:
+    asked = request_from_environment()
     checkout = args.checkout
     checks = plan(checkout, asked)
     ok = accepted(checks)
     receipts.write(args.root / LOGS / PLAN, plan_record(checkout, asked, checks))
-    _github_output(plan_outputs(asked, ok))
+    github_output(plan_outputs(asked, ok))
     for check in checks:
         print(f"{check.verdict:<11} {check.check}: {check.reason}")
     print("ok the plan accepts the dispatch" if ok else "FAIL the plan refuses the dispatch; "
@@ -466,7 +536,8 @@ def free_disk(path: Path) -> int | None:
 
 def base_receipt(root: Path) -> dict[str, object]:
     """What every job's receipt records before its first step: the job, its side and the
-    dispatch's effective inputs, as the workflow states them, beside the run."""
+    dispatch's effective inputs, as the workflow states them, beside the run. The side's
+    subject, source revision, recipe, switch and closure are the provisioning's to add."""
     environ = os.environ
     return {
         "schema": 1, "job": environ.get("INSTRUMENT_JOB", ""),
@@ -475,7 +546,8 @@ def base_receipt(root: Path) -> dict[str, object]:
                    "revision": environ.get("INSTRUMENT_REVISION", ""),
                    "base_revision": environ.get("INSTRUMENT_BASE_REVISION", ""),
                    "build": environ.get("INSTRUMENT_BUILD", ""),
-                   "sample": environ.get("INSTRUMENT_SAMPLE", "")},
+                   "sample": environ.get("INSTRUMENT_SAMPLE", ""),
+                   "subject": ""},
         "dispatching_commit": environ.get("GITHUB_SHA", ""),
         "run_id": environ.get("GITHUB_RUN_ID", ""),
         "run_attempt": environ.get("GITHUB_RUN_ATTEMPT", ""),
@@ -488,13 +560,8 @@ def base_receipt(root: Path) -> dict[str, object]:
 
 
 def load_receipt(root: Path) -> dict[str, object]:
-    text = _read(receipt_path(root))
-    if text is not None:
-        try:
-            return _object(json.loads(text))
-        except (ValueError, TypeError):
-            pass
-    return base_receipt(root)
+    found = load_json(receipt_path(root))
+    return found if found is not None else base_receipt(root)
 
 
 def save_receipt(root: Path, receipt: dict[str, object]) -> None:
@@ -505,6 +572,16 @@ def update_receipt(root: Path, **fields: object) -> dict[str, object]:
     """Merge fields into a job's receipt, as each step that knows one adds it."""
     receipt = load_receipt(root)
     receipt.update(fields)
+    save_receipt(root, receipt)
+    return receipt
+
+
+def update_inputs(root: Path, **fields: str) -> dict[str, object]:
+    """Merge fields into the receipt's effective inputs."""
+    receipt = load_receipt(root)
+    inputs = as_object(receipt.get("inputs", {}))
+    inputs.update(fields)
+    receipt["inputs"] = inputs
     save_receipt(root, receipt)
     return receipt
 
@@ -535,7 +612,11 @@ def _rss_kb(pid: int) -> int:
 def _tree(pid: int) -> set[int]:
     """`pid` and every process descended from it, read from /proc."""
     children: dict[int, list[int]] = {}
-    for entry in Path("/proc").iterdir():
+    try:
+        entries = list(Path("/proc").iterdir())
+    except OSError:
+        entries = []
+    for entry in entries:
         if not entry.name.isdigit():
             continue
         stat = _read(entry / "stat")
@@ -544,7 +625,8 @@ def _tree(pid: int) -> set[int]:
         fields = stat[stat.rindex(")") + 2:].split()
         if len(fields) > 1 and fields[1].isdigit():
             children.setdefault(int(fields[1]), []).append(int(entry.name))
-    found, pending = set(), [pid]
+    found: set[int] = set()
+    pending = [pid]
     while pending:
         current = pending.pop()
         if current not in found:
@@ -594,7 +676,10 @@ class Sampler:
 
     def _loop(self) -> None:
         while not self._stop.wait(self.interval):
-            self.sample()
+            try:
+                self.sample()
+            except OSError:
+                continue
 
     def start(self) -> None:
         self._thread.start()
@@ -616,7 +701,8 @@ def kernel_oom() -> list[str] | None:
     prefix = () if os.geteuid() == 0 else ("sudo", "-n")
     try:
         done = subprocess.run((*prefix, "dmesg"), capture_output=True, text=True,
-                              errors="replace", check=False, timeout=60)
+                              errors="replace", check=False, timeout=60,
+                              stdin=subprocess.DEVNULL)
     except (OSError, subprocess.SubprocessError):
         return None
     if done.returncode != 0:
@@ -682,9 +768,19 @@ def time_figures(text: str | None) -> dict[str, float] | None:
     """GNU time's figures from its output file, None where it wrote none."""
     if not text:
         return None
-    found = {key: float(value) for key, value in
-             re.findall(r"(?m)^(real|user|sys|maxrss_kb) ([0-9.]+)$", text)}
+    found: dict[str, float] = {str(key): float(value) for key, value in
+                               re.findall(r"(?m)^(real|user|sys|maxrss_kb) ([0-9.]+)$", text)}
     return found or None
+
+
+def step_command(limit: Limit, argv: Sequence[str], time_path: Path,
+                 gnu_time: str | None = GNU_TIME) -> list[str]:
+    """The argv a step runs: its command under coreutils `timeout` at its limit, with
+    KILL after the grace, under GNU time writing its figures to `time_path`."""
+    limited = ["timeout", f"--kill-after={KILL_AFTER}s", f"{limit.seconds}s", *argv]
+    if gnu_time is None:
+        return limited
+    return [gnu_time, "-f", TIME_FORMAT, "-o", str(time_path), *limited]
 
 
 def _echo(line: bytes) -> None:
@@ -696,35 +792,48 @@ def _echo(line: bytes) -> None:
         print(line.decode("utf-8", errors="replace"), end="")
 
 
+@dataclass
+class Hooks:
+    """What a step reads of the machine, replaceable so a test can stand in for it."""
+
+    oom: Callable[[], list[str] | None] = kernel_oom
+    sample: Callable[[int, Path], Sample] = linux_sample
+    gnu_time: str | None = GNU_TIME
+    interval: float = SAMPLE_INTERVAL
+
+
 def run_step(name: str, argv: Sequence[str], *, root: Path = ROOT, limit: Limit | None = None,
-             journal: Path | None = None, interval: float = SAMPLE_INTERVAL) -> int:
+             journal: Path | None = None, hooks: Hooks | None = None) -> int:
     """Run one step under `timeout` at its limit and GNU time, sampling it every
     interval, and record how it ended in the job's receipt."""
     chosen = limit or LIMITS[name]
+    found = hooks or Hooks()
     logs = root / LOGS
     logs.mkdir(parents=True, exist_ok=True)
     log_path = logs / f"{name}.log"
     time_path = logs / f"{name}.time.txt"
+    time_path.unlink(missing_ok=True)
     if not receipt_path(root).is_file():
         save_receipt(root, base_receipt(root))
-    oom_before = kernel_oom()
+    oom_before = found.oom()
     disk_before = free_disk(root)
     began = _now()
     started = time.monotonic()
-    command = (GNU_TIME, "-f", TIME_FORMAT, "-o", str(time_path), "timeout",
-               f"--kill-after={KILL_AFTER}s", f"{chosen.seconds}s", *argv)
+    command = step_command(chosen, argv, time_path, found.gnu_time)
     no_space = prover_timeout = False
     exit_code: int | None = None
     sampler: Sampler | None = None
     with log_path.open("wb") as log:
         log.write(f"== {name}: limit {chosen.seconds} s ({chosen.basis})\n".encode())
+        log.flush()
         try:
-            child = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            child = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                     stdin=subprocess.DEVNULL)
         except OSError as error:
             log.write(f"FAIL the step did not start: {error}\n".encode())
         else:
             sampler = Sampler(logs / PROGRESS, name,
-                              lambda: linux_sample(child.pid, root), interval)
+                              lambda: found.sample(child.pid, root), found.interval)
             sampler.start()
             stream = child.stdout
             if stream is not None:
@@ -736,7 +845,7 @@ def run_step(name: str, argv: Sequence[str], *, root: Path = ROOT, limit: Limit 
             exit_code = child.wait()
             sampler.stop()
     seconds = round(time.monotonic() - started, 1)
-    oom = new_oom(oom_before, kernel_oom())
+    oom = new_oom(oom_before, found.oom())
     disk_after = free_disk(root)
     lows = [value for value in (disk_before, disk_after,
                                 sampler.lowest_free_disk if sampler else None)
@@ -749,7 +858,7 @@ def run_step(name: str, argv: Sequence[str], *, root: Path = ROOT, limit: Limit 
                        no_space=no_space, prover_timeout=prover_timeout,
                        journal_complete=complete)
     receipt = load_receipt(root)
-    steps = _object(receipt.get("steps", {}))
+    steps = as_object(receipt.get("steps", {}))
     steps[name] = {
         "limit_s": chosen.seconds, "limit_basis": chosen.basis, "measured": chosen.measured,
         "kill_after_s": KILL_AFTER, "started_utc": began, "seconds": seconds,
@@ -776,6 +885,47 @@ def cmd_step(args: argparse.Namespace) -> int:
         print("FAIL a step names the command it runs after `--`", file=sys.stderr)
         return 2
     journal = args.root / JOURNAL if args.journal else None
+    return run_step(args.step, argv, root=args.root, journal=journal)
+
+
+# The instrument steps, each the side's own command at its revision.
+INSTRUMENTS: tuple[str, ...] = ("check", "properties", "population", "seed")
+
+
+def side_command(step: str, side: Path, receipt: dict[str, object],
+                 python: str = sys.executable) -> list[str]:
+    """The side's command one instrument step runs, with the flag its build calls for:
+    `--recipe` after a `RECIPE` build, read from the receipt the provisioning wrote,
+    the sample the plan accepted, and seed's default subject, which the seed run takes
+    by naming none."""
+    inputs = as_object(receipt.get("inputs", {}))
+    flag = receipt.get("flag")
+    if flag not in ("", "--recipe"):
+        raise ValueError(f"the receipt records no flag the provisioning sets: {flag!r}")
+    flags = [flag] if flag else []
+    entry = [python, str(side / "tools" / "run.py")]
+    sample = str(inputs.get("sample", ""))
+    if step in ("population", "seed") and not re.fullmatch(r"[1-9][0-9]*", sample):
+        raise ValueError(f"the receipt records no sample: {sample!r}")
+    if step == "check":
+        return [*entry, "quickchick", "check", *flags]
+    if step == "properties":
+        return [*entry, "quickchick", "properties", *flags]
+    if step == "population":
+        subject = str(inputs.get("subject", ""))
+        if not subject:
+            raise ValueError("the receipt records no subject to list")
+        return [*entry, "seed", "list", "--file", subject, "--sample", sample]
+    if step == "seed":
+        return [*entry, "seed", "coq", "--quickchick", "--sample", sample,
+                "--jobs", str(SEED_JOBS), *flags]
+    raise ValueError(f"no instrument step {step!r}")
+
+
+def cmd_instrument(args: argparse.Namespace) -> int:
+    receipt = load_receipt(args.root)
+    argv = side_command(args.step, args.side, receipt)
+    journal = args.root / JOURNAL if args.step == "seed" else None
     return run_step(args.step, argv, root=args.root, journal=journal)
 
 
@@ -827,12 +977,13 @@ def select(sources: Iterable[tuple[Path, str]]) -> tuple[list[tuple[Path, str]],
 
 def _sources(root: Path) -> list[tuple[Path, str]]:
     """Every file a job may upload, under its name in the artifact: its logs, seed's
-    journals, and opam's own diagnostic text for a failed package, as `.log` copies."""
+    journals, and opam's own diagnostic text for a failed package, as `.log` copies.
+    The export is not among them: `stage` adds it where every check passed."""
     found: list[tuple[Path, str]] = []
     logs = root / LOGS
     if logs.is_dir():
         found += [(path, path.relative_to(logs).as_posix()) for path in logs.rglob("*")
-                  if path.name != RECEIPT and not path.is_dir()]
+                  if path.relative_to(logs).as_posix() != RECEIPT and not path.is_dir()]
     seed = (root / JOURNAL).parent
     if seed.is_dir():
         found += [(path, f"seed/{path.name}") for path in seed.glob("*.journal")]
@@ -840,21 +991,38 @@ def _sources(root: Path) -> list[tuple[Path, str]]:
     if opam_log.is_dir():
         found += [(path, f"opam-log/{path.name}.log") for path in opam_log.iterdir()
                   if path.suffix in {".out", ".info"}]
+    reexport = root / REEXPORT
+    if reexport.is_file():
+        found.append((reexport, REEXPORT))
     return found
+
+
+def _passed(steps: dict[str, object], names: Iterable[str]) -> bool:
+    return all(as_object(steps.get(name, {})).get("verdict") == PASSED for name in names)
 
 
 def stage(root: Path, job: str) -> list[dict[str, str]]:
     """Copy what a job may upload into its upload directory, recording in the receipt
     every step that never ran and every file left out with its reason."""
     receipt = load_receipt(root)
-    steps = _object(receipt.get("steps", {}))
+    steps = as_object(receipt.get("steps", {}))
     for step in JOB_STEPS.get(job, ()):
         if step not in steps:
             steps[step] = {"verdict": NOT_RUN, "reason": "an earlier step of the job did not "
                            "pass, or the job ended before this step"}
     receipt["steps"] = steps
     receipt["free_disk_after"] = free_disk(root)
-    staged, excluded = select(_sources(root))
+    sources = _sources(root)
+    export = root / EXPORT
+    held_out: list[dict[str, str]] = []
+    if export.is_file():
+        if job == "build" and _passed(steps, JOB_STEPS["build"]):
+            sources.append((export, EXPORT))
+        else:
+            held_out.append({"path": EXPORT, "reason": "not every check on its switch "
+                             "passed, so the switch's export is not uploaded"})
+    staged, excluded = select(sources)
+    excluded = [*held_out, *excluded]
     receipt["staging"] = {"allowlist": list(ALLOWED_SUFFIXES),
                           "staged": [*(name for _, name in staged), RECEIPT],
                           "excluded": excluded}
@@ -875,6 +1043,117 @@ def stage(root: Path, job: str) -> list[dict[str, str]]:
 def cmd_stage(args: argparse.Namespace) -> int:
     stage(args.root, args.job)
     return 0
+
+
+# ----------------------------------------------------------------- the import comparison
+
+
+@dataclass(frozen=True)
+class Package:
+    """One installed package of a switch's closure, with the source a pin names."""
+
+    name: str
+    version: str
+    pin: str
+
+
+_PIN_RE = re.compile(r"(?P<url>[a-z0-9+]+://\S+?)#(?P<commit>[0-9a-f]{7,40})")
+
+
+def closure_of(receipt: dict[str, object]) -> list[Package] | None:
+    """The installed closure a receipt records, None where it records none."""
+    raw = receipt.get("closure")
+    if not isinstance(raw, list) or not raw:
+        return None
+    found: list[Package] = []
+    for item in cast("list[object]", raw):
+        if not isinstance(item, dict):
+            return None
+        entry = as_object(item)
+        name, version, pin = entry.get("name"), entry.get("version"), entry.get("pin", "")
+        if not (isinstance(name, str) and isinstance(version, str) and isinstance(pin, str)):
+            return None
+        found.append(Package(name, version, pin))
+    return sorted(found, key=lambda package: package.name)
+
+
+def pins_of(closure: Sequence[Package]) -> dict[str, tuple[str, str]]:
+    """Each pinned package's upstream URL and commit, as its pin names them."""
+    found: dict[str, tuple[str, str]] = {}
+    for package in closure:
+        matched = _PIN_RE.fullmatch(package.pin) if package.pin else None
+        if matched is not None:
+            found[package.name] = (matched["url"], matched["commit"])
+        elif package.pin:
+            found[package.name] = (package.pin, "")
+    return found
+
+
+def compare_import(build: dict[str, object], imported: dict[str, object],
+                   run_id: str) -> dict[str, object]:
+    """Whether the import job's switch is the build's: decided by `quickchick check`'s
+    exit 0 on it, the installed closure and each pin's URL and commit, with the byte
+    difference of its re-export recorded as an observation and nothing more."""
+    reasons: list[str] = []
+    if build.get("job") != "build":
+        reasons.append(f"the build receipt names job {build.get('job')!r}")
+    if build.get("run_id") != run_id:
+        reasons.append(f"the build receipt names run {build.get('run_id')!r}, not {run_id}")
+    exported = as_object(build.get("export", {})) if isinstance(build.get("export"), dict) else {}
+    source = (as_object(imported.get("import_source", {}))
+              if isinstance(imported.get("import_source"), dict) else {})
+    if not exported.get("sha256") or exported.get("sha256") != source.get("sha256"):
+        reasons.append(f"the build recorded export SHA-256 {exported.get('sha256')!r} and the "
+                       f"import read {source.get('sha256')!r}")
+    steps = as_object(imported.get("steps", {}))
+    check = as_object(steps.get("check", {})).get("verdict", NOT_RUN)
+    if check != PASSED:
+        reasons.append(f"`quickchick check` on the imported switch is {check}, not exit 0")
+    for side, receipt in (("build", build), ("import", imported)):
+        if receipt.get("switch") in (None, ""):
+            reasons.append(f"the {side} receipt names no switch")
+    if build.get("switch") != imported.get("switch"):
+        reasons.append(f"the build's switch is {build.get('switch')!r} and the import's "
+                       f"{imported.get('switch')!r}")
+    built, taken = closure_of(build), closure_of(imported)
+    closure_equal = built is not None and built == taken
+    if built is None or taken is None:
+        reasons.append("a receipt records no installed closure")
+    elif not closure_equal:
+        only_build = sorted(f"{p.name}.{p.version}" for p in set(built) - set(taken))
+        only_import = sorted(f"{p.name}.{p.version}" for p in set(taken) - set(built))
+        reasons.append(f"the installed closures differ: the build's alone holds "
+                       f"{only_build or 'nothing'}, the import's alone {only_import or 'nothing'}")
+    pins_equal = built is not None and taken is not None and pins_of(built) == pins_of(taken)
+    if built is not None and taken is not None and not pins_equal:
+        reasons.append(f"the pins differ: the build's {pins_of(built)}, the import's "
+                       f"{pins_of(taken)}")
+    observed = imported.get("reexport")
+    return {"verdict": PASSED if not reasons else FAILED, "reasons": reasons,
+            "check": check, "closure_equal": closure_equal, "pins_equal": pins_equal,
+            "pins": {name: {"url": url, "commit": commit}
+                     for name, (url, commit) in pins_of(taken or []).items()},
+            "reexport": observed if isinstance(observed, dict) else None}
+
+
+def cmd_compare(args: argparse.Namespace) -> int:
+    build = load_json(args.build_receipt)
+    if build is None:
+        print(f"FAIL {args.build_receipt} holds no build receipt", file=sys.stderr)
+        return 1
+    imported = load_receipt(args.root)
+    found = compare_import(build, imported, os.environ.get("GITHUB_RUN_ID", ""))
+    update_receipt(args.root, comparison=found)
+    for reason in cast("list[str]", found["reasons"]):
+        print(f"   {reason}")
+    observed = found.get("reexport")
+    if isinstance(observed, dict):
+        print(f"   observation: the re-export is "
+              f"{'byte-identical to' if observed.get('identical') else 'not byte-identical to'}"
+              " the build's export")
+    print(f"{found['verdict']} the imported switch "
+          f"{'is' if found['verdict'] == PASSED else 'is not'} the build's")
+    return 0 if found["verdict"] == PASSED else 1
 
 
 # ------------------------------------------------------------------------- the journal
@@ -931,14 +1210,13 @@ def parse_journal(text: str) -> Journal:
     for line in text.splitlines():
         closing = _CLOSE_RE.match(line)
         opened = _ENTRY_RE.match(line)
-        if closing or opened or line.startswith("=="):
-            if pending is not None:
-                entries.append(_entry(pending[0], pending[1], "\n".join(pending[2])))
-                pending = None
+        if (closing or opened or line.startswith("==")) and pending is not None:
+            entries.append(_entry(pending[0], pending[1], "\n".join(pending[2])))
+            pending = None
         if closing:
             complete, code = True, int(closing.group(2))
         elif opened:
-            pending = (int(opened.group(1)), opened.group(2), [opened.group(3)])
+            pending = (int(opened.group(1)), str(opened.group(2)), [str(opened.group(3))])
         elif line.lstrip().startswith("scope:") and not entries and pending is None:
             scope = line.split("scope:", 1)[1].strip()
         elif pending is not None and not line.startswith("=="):
@@ -948,10 +1226,28 @@ def parse_journal(text: str) -> Journal:
     return Journal(entries, complete, code, scope)
 
 
+# One sampled mutant as `seed list` prints it: its identifier, which leads with its
+# operator, then its site and rewrite exactly as the journal writes them.
+_LISTED_RE = re.compile(r"^ {5}(?P<ident>[\w.+-]+/\d+)\s+(?P<what>\S+:\d+ `.*` -> `.*`)$")
+
+
+def parse_population(text: str) -> dict[str, list[str]]:
+    """Each listed mutant's operator by its site and rewrite, the journal's identity;
+    one site and rewrite two operators share lists both."""
+    found: dict[str, list[str]] = {}
+    for line in text.splitlines():
+        matched = _LISTED_RE.match(line)
+        if matched is not None:
+            operator = matched["ident"].rsplit("/", 1)[0]
+            found.setdefault(matched["what"], []).append(operator)
+    return found
+
+
 # ---------------------------------------------------------------------------- the join
 
 # One artifact per job, named for its job and its side's revision; the plan's carries
-# the requested revision where it was a full commit and `unnamed` otherwise.
+# the requested revision where it was a full commit and `unnamed` otherwise. The join's
+# own, from an earlier attempt of this run, is not one the join reads.
 ARTIFACT_RE = re.compile(r"instrument-(plan|build|import|join|seed-base|seed-candidate-1"
                          r"|seed-candidate-2)-([0-9a-f]{40}|unnamed)")
 KNOWN_OUTCOMES: frozenset[str] = frozenset({"killed", "survived", "stillborn", "unseeded"})
@@ -966,7 +1262,7 @@ def _job_of(key: str) -> str:
 
 
 def _verdict_of(steps: dict[str, object], job: str) -> str:
-    verdicts = [str(_object(steps.get(step, {})).get("verdict", NOT_RUN))
+    verdicts = [str(as_object(steps.get(step, {})).get("verdict", NOT_RUN))
                 for step in JOB_STEPS[job]]
     if FAILED in verdicts:
         return FAILED
@@ -984,6 +1280,10 @@ def _expected(plan_json: dict[str, object]) -> list[str]:
     return keys
 
 
+def _side_of(key: str) -> str:
+    return "base" if key == "seed-base" else "candidate"
+
+
 def _side_revision(key: str, request: dict[str, object]) -> str:
     field_name = "base_revision" if key == "seed-base" else "revision"
     return str(request.get(field_name, ""))
@@ -992,7 +1292,9 @@ def _side_revision(key: str, request: dict[str, object]) -> str:
 def _receipt_refusals(key: str, receipt: dict[str, object], plan_json: dict[str, object],
                       run_id: str, revision: str) -> list[str]:
     """What makes a job's receipt disagree with the plan and the run it claims."""
-    request = _object(plan_json.get("request", {}))
+    request = as_object(plan_json.get("request", {}))
+    subjects = (as_object(plan_json.get("subjects", {}))
+                if isinstance(plan_json.get("subjects"), dict) else {})
     refusals: list[str] = []
     job = _job_of(key)
     if receipt.get("job") != job:
@@ -1003,17 +1305,31 @@ def _receipt_refusals(key: str, receipt: dict[str, object], plan_json: dict[str,
         refusals.append(f"{key}'s receipt names run {receipt.get('run_id')!r}, not {run_id}")
     if receipt.get("dispatching_commit") != plan_json.get("dispatching_commit"):
         refusals.append(f"{key}'s receipt names another dispatching commit")
-    inputs = _object(receipt.get("inputs", {}))
-    side = "base" if key == "seed-base" else "candidate"
-    wanted = {"side": side, "revision": _side_revision(key, request),
-              "base_revision": request.get("base_revision"), "build": request.get("build"),
-              "sample": str(request.get("sample", ""))}
+    inputs = as_object(receipt.get("inputs", {})) if isinstance(receipt.get("inputs"), dict) else {}
+    side = _side_of(key)
+    wanted: dict[str, object] = {
+        "side": side, "revision": request.get("revision"),
+        "base_revision": request.get("base_revision"), "build": request.get("build"),
+        "sample": request.get("sample")}
+    if job == "seed":
+        wanted["subject"] = subjects.get(side)
     refusals += [f"{key}'s receipt records {name} {inputs.get(name)!r}, the plan {value!r}"
                  for name, value in wanted.items() if inputs.get(name) != value]
-    if receipt.get("source_revision") not in (None, revision):
-        refusals.append(f"{key}'s receipt tested {receipt.get('source_revision')!r}, not "
-                        f"{revision}")
+    tested = receipt.get("source_revision")
+    steps = as_object(receipt.get("steps", {})) if isinstance(receipt.get("steps"), dict) else {}
+    provisioned = as_object(steps.get("provision", steps.get("import", {}))).get("verdict")
+    if tested is None and provisioned not in (None, NOT_RUN):
+        refusals.append(f"{key}'s receipt records no tested revision")
+    elif tested is not None and tested != revision:
+        refusals.append(f"{key}'s receipt tested {tested!r}, not {revision}")
     return refusals
+
+
+def _by_identity(journal: Journal) -> dict[str, list[Entry]]:
+    grouped: dict[str, list[Entry]] = {}
+    for entry in journal.entries:
+        grouped.setdefault(entry.identity, []).append(entry)
+    return grouped
 
 
 def _differences(runs: dict[str, Journal], left: str, right: str) -> list[dict[str, object]]:
@@ -1032,45 +1348,81 @@ def _differences(runs: dict[str, Journal], left: str, right: str) -> list[dict[s
     return found
 
 
-def _by_identity(journal: Journal) -> dict[str, list[Entry]]:
-    grouped: dict[str, list[Entry]] = {}
-    for entry in journal.entries:
-        grouped.setdefault(entry.identity, []).append(entry)
-    return grouped
+def _artifacts(artifacts: Path, refusals: list[str]) -> dict[str, Path]:
+    """One artifact directory per job key, refusing a name the route does not give and a
+    second artifact for one job; the join's own is passed over."""
+    found: dict[str, Path] = {}
+    names = (sorted(path.name for path in artifacts.iterdir() if path.is_dir())
+             if artifacts.is_dir() else [])
+    for name in names:
+        matched = ARTIFACT_RE.fullmatch(name)
+        if matched is None:
+            refusals.append(f"an artifact this route does not name: {name}")
+            continue
+        key = matched.group(1)
+        if key == "join":
+            continue
+        if key in found:
+            refusals.append(f"duplicate artifacts for the {key} job: {found[key].name} and {name}")
+            continue
+        found[key] = artifacts / name
+    return found
+
+
+def _seed_report(journals: dict[str, Journal],
+                 operators: dict[str, list[str]]) -> dict[str, object]:
+    identities = sorted({entry.identity for journal in journals.values()
+                         for entry in journal.entries})
+    mutants: list[dict[str, object]] = []
+    for identity in identities:
+        first = next(entry for journal in journals.values() for entry in journal.entries
+                     if entry.identity == identity)
+        mutants.append({
+            "mutant": identity, "site": first.site, "rewrite": (
+                None if first.site is None else f"`{first.before}` -> `{first.after}`"),
+            "operator": sorted(set(operators.get(identity, []))) or None,
+            **{run: [entry.outcome for entry in _by_identity(journal).get(identity, [])]
+               for run, journal in journals.items()}})
+    return {
+        "runs": {run: {"complete": journal.complete, "exit": journal.exit,
+                       "scope": journal.scope, "verdicts": len(journal.entries)}
+                 for run, journal in journals.items()},
+        "mutants": mutants,
+        "candidate_differences": _differences(journals, "candidate-1", "candidate-2"),
+        "base_differences": [*_differences(journals, "base", "candidate-1"),
+                             *_differences(journals, "base", "candidate-2")],
+        "other_verdicts": [{"run": run, "mutant": entry.identity, "verdict": entry.outcome,
+                            "reason": entry.detail}
+                           for run, journal in journals.items() for entry in journal.entries
+                           if entry.outcome not in KNOWN_OUTCOMES],
+    }
 
 
 def join(artifacts: Path, needs: dict[str, object], run_id: str) -> dict[str, object]:
     """The run's report from one artifact per job: each job's verdict or why it did not
     run, each seed run's verdicts, and every disagreement a reader acts on."""
     refusals: list[str] = []
-    found: dict[str, Path] = {}
-    names = sorted(path.name for path in artifacts.iterdir() if path.is_dir()) if (
-        artifacts.is_dir()) else []
-    for name in names:
-        matched = ARTIFACT_RE.fullmatch(name)
-        if matched is None or matched.group(1) == "join":
-            refusals.append(f"an artifact this route does not name: {name}")
-            continue
-        key = matched.group(1)
-        if key in found:
-            refusals.append(f"duplicate artifacts for the {key} job: {found[key].name} and {name}")
-            continue
-        found[key] = artifacts / name
+    found = _artifacts(artifacts, refusals)
     plan_json: dict[str, object] = {}
     if "plan" not in found:
         refusals.append("no plan artifact, so the run's inputs are unknown")
     else:
-        text = _read(found["plan"] / PLAN)
-        try:
-            plan_json = _object(json.loads(text or ""))
-        except (ValueError, TypeError):
+        loaded = load_json(found["plan"] / PLAN)
+        if loaded is None:
             refusals.append("the plan artifact holds no readable plan.json")
-    request = _object(plan_json.get("request", {})) if plan_json else {}
+        else:
+            plan_json = loaded
+            if plan_json.get("run_id") != run_id:
+                refusals.append(f"the plan names run {plan_json.get('run_id')!r}, not {run_id}")
+    request = (as_object(plan_json.get("request", {}))
+               if isinstance(plan_json.get("request"), dict) else {})
     jobs: dict[str, dict[str, object]] = {}
     receipts_by_key: dict[str, dict[str, object]] = {}
     journals: dict[str, Journal] = {}
+    operators: dict[str, list[str]] = {}
     for key in _expected(plan_json) if plan_json else []:
-        result = str(_object(needs.get(_job_of(key), {})).get("result", "skipped"))
+        need = needs.get(_job_of(key), {})
+        result = str(as_object(need).get("result", "skipped")) if isinstance(need, dict) else "skipped"
         ran = result in {"success", "failure", "cancelled"}
         revision = _side_revision(key, request)
         if not ran:
@@ -1086,48 +1438,38 @@ def join(artifacts: Path, needs: dict[str, object], run_id: str) -> dict[str, ob
         if found[key].name != artifact_name(key, revision):
             refusals.append(f"the {key} job's artifact {found[key].name} is not named for "
                             f"its side's revision {revision}")
-        try:
-            receipt = _object(json.loads(_read(found[key] / RECEIPT) or ""))
-        except (ValueError, TypeError):
+        receipt = load_json(found[key] / RECEIPT)
+        if receipt is None:
             refusals.append(f"the {key} job's artifact holds no readable receipt")
             continue
         refusals += _receipt_refusals(key, receipt, plan_json, run_id, revision)
         receipts_by_key[key] = receipt
-        steps = _object(receipt.get("steps", {}))
+        steps = as_object(receipt.get("steps", {})) if isinstance(receipt.get("steps"), dict) else {}
         jobs[key] = {
             "verdict": _verdict_of(steps, _job_of(key)), "result": result,
             "artifact": found[key].name, "source_revision": receipt.get("source_revision"),
             "runner_image": receipt.get("runner_image"), "uname_m": receipt.get("uname_m"),
             "opam_client": receipt.get("opam_client"), "switch": receipt.get("switch"),
             "flag": receipt.get("flag"), "recipe": receipt.get("recipe"),
-            "steps": {step: {name: _object(steps.get(step, {})).get(name) for name in
+            "steps": {step: {name: as_object(steps.get(step, {})).get(name) for name in
                              ("verdict", "reason", "exit", "limit_s", "seconds", "peak_rss_kb")}
                       for step in JOB_STEPS[_job_of(key)]},
         }
+        if key == "build":
+            exported = receipt.get("export")
+            jobs[key]["export"] = exported if isinstance(exported, dict) else None
+        if key == "import":
+            compared = receipt.get("comparison")
+            jobs[key]["comparison"] = compared if isinstance(compared, dict) else None
         if _job_of(key) == "seed":
             text = _read(found[key] / "seed" / Path(JOURNAL).name)
             if text is not None:
                 journals[key.removeprefix("seed-")] = parse_journal(text)
-    seed: dict[str, object] = {}
-    if journals:
-        identities = sorted({entry.identity for journal in journals.values()
-                             for entry in journal.entries})
-        seed = {
-            "runs": {run: {"complete": journal.complete, "exit": journal.exit,
-                           "scope": journal.scope, "verdicts": len(journal.entries)}
-                     for run, journal in journals.items()},
-            "mutants": [{"mutant": identity, "operator": None,
-                         **{run: [entry.outcome for entry in _by_identity(journal).get(identity, [])]
-                            for run, journal in journals.items()}}
-                        for identity in identities],
-            "candidate_differences": _differences(journals, "candidate-1", "candidate-2"),
-            "base_differences": [*_differences(journals, "base", "candidate-1"),
-                                 *_differences(journals, "base", "candidate-2")],
-            "other_verdicts": [{"run": run, "mutant": entry.identity, "verdict": entry.outcome,
-                                "reason": entry.detail}
-                               for run, journal in journals.items() for entry in journal.entries
-                               if entry.outcome not in KNOWN_OUTCOMES],
-        }
+            listed = _read(found[key] / "population.log")
+            if listed is not None:
+                for identity, names in parse_population(listed).items():
+                    operators.setdefault(identity, []).extend(names)
+    seed = _seed_report(journals, operators) if journals else {}
     pairs: list[dict[str, object]] = []
     keys = sorted(receipts_by_key)
     for index, left in enumerate(keys):
@@ -1137,8 +1479,16 @@ def join(artifacts: Path, needs: dict[str, object], run_id: str) -> dict[str, ob
                 if a != b:
                     pairs.append({"sides": [left, right], "field": name, left: a, right: b})
     verdicts = {str(job.get("verdict")) for job in jobs.values()}
-    verdict = (REFUSED if refusals else FAILED if FAILED in verdicts
-               else UNDECIDED if UNDECIDED in verdicts else PASSED)
+    if refusals:
+        verdict = REFUSED
+    elif FAILED in verdicts:
+        verdict = FAILED
+    elif UNDECIDED in verdicts:
+        verdict = UNDECIDED
+    elif NOT_RUN in verdicts:
+        verdict = INCOMPLETE
+    else:
+        verdict = PASSED
     return {"schema": 1, "run_id": run_id, "verdict": verdict, "refusals": refusals,
             "request": request, "dispatching_commit": plan_json.get("dispatching_commit"),
             "jobs": jobs, "seed": seed, "differing_sides": pairs}
@@ -1151,44 +1501,57 @@ def _cell(value: object) -> str:
 def summary(report: dict[str, object]) -> str:
     """The job summary: each step's verdict, each sampled mutant's verdict in every seed
     run, each difference, and each pair of sides whose client or image differs."""
-    request = _object(report.get("request", {}))
+    request = as_object(report.get("request", {}))
     lines = [f"### Instrument switch route: {report.get('verdict')}", "",
-             f"Revision `{request.get('revision')}`, base `{request.get('base_revision') or 'none'}`, "
-             f"build `{request.get('build')}`, sample {request.get('sample')}; dispatched "
-             f"from `{report.get('dispatching_commit')}`."]
+             f"Revision `{request.get('revision')}`, base "
+             f"`{request.get('base_revision') or 'none'}`, build `{request.get('build')}`, "
+             f"sample {request.get('sample')}; dispatched from "
+             f"`{report.get('dispatching_commit')}`."]
     refusals = cast("list[str]", report.get("refusals", []))
     if refusals:
         lines += ["", "Refused:", *(f"- {_cell(item)}" for item in refusals)]
     lines += ["", "| Job | Step | Verdict | Limit s | Seconds | Peak RSS kB | Reason |",
               "| --- | --- | --- | --- | --- | --- | --- |"]
-    for key, raw in _object(report.get("jobs", {})).items():
-        job = _object(raw)
-        steps = _object(job.get("steps", {}))
+    limited: list[str] = []
+    for key, raw in as_object(report.get("jobs", {})).items():
+        job = as_object(raw)
+        steps = as_object(job.get("steps", {}))
         if not steps:
-            lines.append(f"| {key} | | {job.get('verdict')} | | | | {_cell(job.get('reason', ''))} |")
+            lines.append(f"| {key} | | {job.get('verdict')} | | | | "
+                         f"{_cell(job.get('reason', ''))} |")
         for step, rows in steps.items():
-            row = _object(rows)
+            row = as_object(rows)
             lines.append(f"| {key} | {step} | {row.get('verdict')} | {row.get('limit_s')} | "
                          f"{row.get('seconds')} | {row.get('peak_rss_kb')} | "
                          f"{_cell(row.get('reason') or '')} |")
-    seed = _object(report.get("seed", {}))
+            if step == "seed" and row.get("exit") in (124, 137):
+                limited.append(key)
+    if limited:
+        lines += ["", f"A seed step reached its limit ({', '.join(limited)}): the next "
+                  "dispatch raises `--jobs` on the build job's recorded `quickchick "
+                  "properties` peak or records the runner decision as owed to the user, "
+                  "the sample staying 20."]
+    seed = as_object(report.get("seed", {}))
     if seed:
-        runs = list(_object(seed.get("runs", {})))
+        runs = list(as_object(seed.get("runs", {})))
         lines += ["", "| Mutant (site and rewrite) | Operator | " + " | ".join(runs) + " |",
                   "| --- | --- | " + " | ".join("---" for _ in runs) + " |"]
-        for raw in cast("list[object]", seed.get("mutants", [])):
-            mutant = _object(raw)
+        for raw in as_list(seed.get("mutants", [])):
+            mutant = as_object(raw)
             cells = [", ".join(cast("list[str]", mutant.get(run, []))) or "absent" for run in runs]
-            lines.append(f"| {_cell(mutant.get('mutant'))} | not journalled | "
+            operator = mutant.get("operator")
+            named = ", ".join(cast("list[str]", operator)) if isinstance(operator, list) else (
+                "not listed")
+            lines.append(f"| {_cell(mutant.get('mutant'))} | {_cell(named)} | "
                          + " | ".join(cells) + " |")
         for title, name in (("Differing between the candidate runs", "candidate_differences"),
                             ("Differing between base and candidate", "base_differences"),
                             ("Journalled with another verdict", "other_verdicts")):
-            items = cast("list[object]", seed.get(name, []))
+            items = as_list(seed.get(name, []))
             if items:
                 lines += ["", f"{title}:", *(f"- {_cell(json.dumps(item, sort_keys=True))}"
                                              for item in items)]
-    pairs = cast("list[object]", report.get("differing_sides", []))
+    pairs = as_list(report.get("differing_sides", []))
     if pairs:
         lines += ["", "Sides whose opam client or runner image differ:",
                   *(f"- {_cell(json.dumps(item, sort_keys=True))}" for item in pairs)]
@@ -1196,7 +1559,7 @@ def summary(report: dict[str, object]) -> str:
 
 
 def cmd_join(args: argparse.Namespace) -> int:
-    needs = _object(json.loads(os.environ.get("NEEDS", "{}") or "{}"))
+    needs = as_object(json.loads(os.environ.get("NEEDS", "{}") or "{}"))
     report = join(args.artifacts, needs, os.environ.get("GITHUB_RUN_ID", ""))
     receipts.write(args.root / LOGS / REPORT, report)
     text = summary(report)
@@ -1209,7 +1572,7 @@ def cmd_join(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
     parser.add_argument("--root", type=Path, default=ROOT,
                         help="the job's private root (default: ~/verifiedos-instrument)")
     subs = parser.add_subparsers(dest="command", required=True)
@@ -1221,13 +1584,21 @@ def main(argv: list[str] | None = None) -> int:
     stepping.add_argument("--journal", action="store_true",
                           help="the step is decided by seed's journal under the root")
     stepping.add_argument("argv", nargs=argparse.REMAINDER)
+    instrumenting = subs.add_parser("instrument", help="run one of the side's instruments "
+                                    "under its limit, with the flag its build calls for")
+    instrumenting.add_argument("step", choices=INSTRUMENTS)
+    instrumenting.add_argument("--side", type=Path, required=True,
+                               help="the side revision's checkout")
     staging = subs.add_parser("stage", help="stage the allowlist for upload")
     staging.add_argument("--job", required=True, choices=sorted(JOB_STEPS))
+    comparing = subs.add_parser("compare", help="hold the imported switch to the build's")
+    comparing.add_argument("--build-receipt", type=Path, required=True)
     joining = subs.add_parser("join", help="join one artifact per job into report.json")
     joining.add_argument("--artifacts", type=Path, required=True)
     args = parser.parse_args(argv)
     handlers: dict[str, Callable[[argparse.Namespace], int]] = {
-        "plan": cmd_plan, "step": cmd_step, "stage": cmd_stage, "join": cmd_join}
+        "plan": cmd_plan, "step": cmd_step, "instrument": cmd_instrument, "stage": cmd_stage,
+        "compare": cmd_compare, "join": cmd_join}
     try:
         return handlers[args.command](args)
     except (OSError, ValueError, TypeError, subprocess.SubprocessError) as error:

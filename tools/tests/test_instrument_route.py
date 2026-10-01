@@ -1,0 +1,734 @@
+# SPDX-License-Identifier: Apache-2.0
+"""The instrument switch route's plan, limits, wrapper, sampler, staging, comparison
+and join, each held to its refusals on fixtures, and the workflow to the module."""
+
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager, redirect_stdout
+from io import StringIO
+from pathlib import Path
+from unittest.mock import patch
+
+from ci import instrument_route as route
+from tests.harness import Case, ensure, sandbox_tree
+
+ROOT = Path(__file__).resolve().parents[2]
+WORKFLOW = ROOT / route.WORKFLOW
+RUN_ID = "4242"
+DISPATCH = "d" * 40
+REVISION = "a" * 40
+BASE = "b" * 40
+
+_INSTALL = 'INSTALL = (("opam", "switch", "create", "s"),)\n'
+_RECIPE = 'RECIPE = (("opam", "switch", "create", "r"),)\n'
+_SEED = 'COQ_SUBJECT = "proofs/CyclicExecutive.v"\n'
+
+
+def _git(root: Path, *args: str) -> str:
+    done = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True,
+                          check=False, timeout=60)
+    if done.returncode != 0:
+        raise RuntimeError(f"git {' '.join(args)}: {done.stderr.strip()}")
+    return done.stdout.strip()
+
+
+def _commit(root: Path, files: dict[str, str], message: str) -> str:
+    for rel, text in files.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8", newline="")
+        _git(root, "add", rel)
+    _git(root, "commit", "--allow-empty", "-qm", message)
+    return _git(root, "rev-parse", "HEAD")
+
+
+@contextmanager
+def _history() -> Iterator[tuple[Path, dict[str, str]]]:
+    """main at base then tip, the tip declaring RECIPE, and a sibling never on main."""
+    with sandbox_tree({"README.md": "fixture\n"}) as root:
+        for key, value in (("user.name", "Fixture"), ("user.email", "fixture@example.invalid"),
+                           ("commit.gpgsign", "false")):
+            _git(root, "config", key, value)
+        base = _commit(root, {route.QUICKCHICK: _INSTALL, route.SEED: _SEED}, "base")
+        tip = _commit(root, {route.QUICKCHICK: _INSTALL + _RECIPE}, "tip")
+        _git(root, "checkout", "-q", "--detach", base)
+        sibling = _commit(root, {"README.md": "sibling\n"}, "sibling")
+        nested = _commit(root, {route.QUICKCHICK: _INSTALL + "if True:\n    " + _RECIPE},
+                         "recipe nested")
+        _git(root, "checkout", "-q", "--detach", tip)
+        yield root, {"base": base, "tip": tip, "sibling": sibling, "nested": nested}
+
+
+def _request(commits: dict[str, str], **changes: str) -> route.Request:
+    fields = {"ref": route.MAIN, "dispatching_commit": commits["tip"],
+              "revision": commits["tip"], "base_revision": "", "build": "install",
+              "sample": "20", "title": ""}
+    return route.Request(**(fields | changes))
+
+
+def _verdicts(checks: list[route.Check]) -> dict[str, str]:
+    return {check.check: check.verdict for check in checks}
+
+
+def _plan_accepts_main_revisions() -> None:
+    with _history() as (root, commits):
+        for asked in (_request(commits),
+                      _request(commits, build="recipe"),
+                      _request(commits, base_revision=commits["base"], sample="1")):
+            checks = route.plan(root, asked)
+            ensure(route.accepted(checks), f"a main revision is accepted: {checks!r}")
+        record = route.plan_record(root, _request(commits, base_revision=commits["base"]),
+                                   route.plan(root, _request(commits,
+                                                             base_revision=commits["base"])))
+        ensure(record["seed"] is True and record["subjects"] == {
+            "candidate": "proofs/CyclicExecutive.v", "base": "proofs/CyclicExecutive.v"},
+               f"the plan reads each side's subject from source: {record!r}")
+
+
+def _plan_refuses_each_bad_request() -> None:
+    with _history() as (root, commits):
+        tip, base = commits["tip"], commits["base"]
+        cases: list[tuple[route.Request, str, str]] = [
+            (_request(commits, ref="refs/heads/work/lane"), "ref", "only from"),
+            (_request(commits, revision=""), "revision", "no revision"),
+            (_request(commits, revision=tip[:12]), "revision", "not a full lowercase"),
+            (_request(commits, revision=tip.upper()), "revision", "not a full lowercase"),
+            (_request(commits, revision="e" * 40), "revision", "no commit the dispatching"),
+            (_request(commits, revision=commits["sibling"]), "revision", "not on main"),
+            (_request(commits, base_revision=tip), "base_revision", "the revision itself"),
+            (_request(commits, revision=base, base_revision=tip), "base_revision",
+             "not an ancestor"),
+            (_request(commits, base_revision=commits["sibling"]), "base_revision",
+             "not an ancestor"),
+            (_request(commits, base_revision=base[:7]), "base_revision", "not a full"),
+            (_request(commits, build="certirocq"), "build", "neither install nor recipe"),
+            (_request(commits, revision=base, build="recipe"), "recipe", "declares no `RECIPE`"),
+            (_request(commits, dispatching_commit=base), "route", "not the dispatching commit"),
+        ]
+        cases += [(_request(commits, sample=sample), "sample", "not a whole number")
+                  for sample in ("21", "0", "020", "-1", "+5", "1.0", "", "twenty")]
+        for asked, check, fragment in cases:
+            checks = route.plan(root, asked)
+            found = [c for c in checks if c.check == check]
+            ensure(not route.accepted(checks) and bool(found) and found[0].verdict == route.REFUSED
+                   and fragment in found[0].reason,
+                   f"{asked!r} must be refused at {check} ({fragment!r}): {checks!r}")
+        # A RECIPE bound only inside a block is not declared at the module's top level.
+        _git(root, "update-ref", "refs/heads/main", commits["nested"])
+        nested = route.plan(root, _request(commits, dispatching_commit=commits["nested"],
+                                           revision=commits["nested"], build="recipe"))
+        ensure(_verdicts(nested).get("route") == route.REFUSED
+               and _verdicts(nested).get("recipe") == route.REFUSED,
+               f"a nested RECIPE is no declaration: {nested!r}")
+
+
+def _plan_ref_reads_fetched_main() -> None:
+    # A dispatch from another ref is refused, and its revision is still held to main as
+    # the checkout fetched it rather than to the other ref's tip.
+    with _history() as (root, commits):
+        _git(root, "update-ref", route.REMOTE_MAIN, commits["tip"])
+        checks = route.plan(root, _request(commits, ref="refs/heads/other"))
+        verdicts = _verdicts(checks)
+        ensure(verdicts["ref"] == route.REFUSED and verdicts["revision"] == route.HOLDS,
+               f"the ref is refused and the revision read against main: {checks!r}")
+        checks = route.plan(root, _request(commits, ref="refs/heads/other",
+                                           revision=commits["sibling"]))
+        ensure(_verdicts(checks)["revision"] == route.REFUSED,
+               f"a sibling is not on main from another ref either: {checks!r}")
+
+
+def _plan_outputs_only_validated_values() -> None:
+    with _history() as (root, commits):
+        refused = _request(commits, revision="x; rm -rf /", sample="21")
+        outputs = route.plan_outputs(refused, route.accepted(route.plan(root, refused)))
+        ensure(outputs == {"accepted": "false", "label": "unnamed"},
+               f"a refused plan hands later jobs nothing it read: {outputs!r}")
+        asked = _request(commits, base_revision=commits["base"])
+        outputs = route.plan_outputs(asked, True)
+        ensure(outputs["seed"] == "true" and outputs["sample"] == "20"
+               and outputs["revision"] == commits["tip"], f"accepted outputs: {outputs!r}")
+        with tempfile.TemporaryDirectory() as scratch:
+            target = Path(scratch) / "out"
+            try:
+                route.github_output({"label": "a\nb"}, target)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("a two-line output must be refused")
+
+
+def _plan_command_records_and_exits() -> None:
+    with _history() as (root, commits), tempfile.TemporaryDirectory() as scratch:
+        for revision, code in ((commits["tip"], 0), (commits["sibling"], 1)):
+            output = Path(scratch) / f"output-{code}"
+            environment = {"GITHUB_REF": route.MAIN, "GITHUB_SHA": commits["tip"],
+                           "PLAN_REVISION": revision, "PLAN_BASE_REVISION": "",
+                           "PLAN_BUILD": "install", "PLAN_SAMPLE": "20", "PLAN_TITLE": "t",
+                           "GITHUB_OUTPUT": str(output), "GITHUB_RUN_ID": RUN_ID}
+            job_root = Path(scratch) / f"root-{code}"
+            with patch.dict(os.environ, environment), redirect_stdout(StringIO()):
+                found = route.main(["--root", str(job_root), "plan", "--checkout", str(root)])
+            record = route.load_json(job_root / route.LOGS / route.PLAN)
+            ensure(found == code and record is not None and record["accepted"] is (code == 0)
+                   and record["run_id"] == RUN_ID,
+                   f"the plan writes plan.json and exits {code}: {found}, {record!r}")
+            written = output.read_text(encoding="utf-8")
+            ensure(f"accepted={'true' if code == 0 else 'false'}" in written,
+                   f"the plan's outputs reach GITHUB_OUTPUT: {written!r}")
+
+
+def _limits_and_minutes() -> None:
+    for name, limit in route.LIMITS.items():
+        ensure(limit.seconds > 0 and bool(limit.basis), f"{name} states a limit and its basis")
+    ensure(not route.LIMITS["seed"].measured and route.LIMITS["provision"].measured
+           and "4,402" in route.LIMITS["provision"].basis
+           and "378" in route.LIMITS["properties"].basis
+           and "unmeasured" in route.LIMITS["seed"].basis,
+           "the build's limit stands on Q38f's import, properties' on Q38e's run, and the "
+           "seed step's is marked unmeasured")
+    for job in route.JOB_STEPS:
+        ensure(route.job_minutes(job) <= route.HOSTED_MAXIMUM - route.HOSTED_MARGIN,
+               f"{job} fits GitHub's hosted maximum less the margin")
+        steps = sum(route.LIMITS[step].seconds for step in route.JOB_STEPS[job])
+        ensure(route.job_minutes(job) * 60 >= steps + route.STAGING_MARGIN * 60,
+               f"{job}'s minutes hold its step limits and the staging margin")
+    ensure(route.job_minutes("seed") == route.HOSTED_MAXIMUM - route.HOSTED_MARGIN,
+           "the seed job is its own limit")
+    for step, limit in route.LIMITS.items():
+        ensure(route.backstop_minutes(step) * 60 > limit.seconds + route.KILL_AFTER,
+               f"{step}'s backstop stands above its limit and timeout's grace")
+
+
+def _workflow_jobs() -> dict[str, str]:
+    text = WORKFLOW.read_text(encoding="utf-8")
+    body = text.split("\njobs:\n", 1)[1]
+    names = re.findall(r"(?m)^  ([a-z][\w-]*):\n", body)
+    blocks = re.split(r"(?m)^  [a-z][\w-]*:\n", body)[1:]
+    return dict(zip(names, blocks, strict=True))
+
+
+def _workflow_holds_the_module_limits() -> None:
+    jobs = _workflow_jobs()
+    ensure(set(jobs) == set(route.JOB_STEPS), f"the workflow's jobs are the module's: {set(jobs)}")
+    step_ids = {"import": {"import": "import", "check": "check", "compare": "compare"}}
+    for job, block in jobs.items():
+        minutes = re.search(r"(?m)^    timeout-minutes: (\d+)$", block)
+        ensure(minutes is not None and int(minutes[1]) == route.job_minutes(job),
+               f"{job}'s timeout-minutes is the module's {route.job_minutes(job)}")
+        found = dict(re.findall(r"(?m)^        id: ([\w-]+)\n(?:        (?!timeout)[^\n]*\n)*?"
+                                r"        timeout-minutes: (\d+)$", block))
+        for step in route.JOB_STEPS[job]:
+            name = step_ids.get(job, {}).get(step, step)
+            ensure(name in found and int(found[name]) == route.backstop_minutes(step),
+                   f"{job}'s {step} step backstops at {route.backstop_minutes(step)} "
+                   f"minutes: {found!r}")
+        ensure(re.search(r"(?m)^    runs-on: ubuntu-26\.04$", block) is not None,
+               f"{job} runs on ubuntu-26.04")
+
+
+def _workflow_contract_shape() -> None:
+    text = WORKFLOW.read_text(encoding="utf-8")
+    lines = [line for line in text.splitlines() if not line.lstrip().startswith("#")]
+    body = "\n".join(lines)
+    triggers = text.split("\non:\n", 1)[1].split("\npermissions:", 1)[0]
+    ensure(re.findall(r"(?m)^  ([a-z_]+):", triggers) == ["workflow_dispatch"],
+           "dispatch is the only trigger: no push or schedule")
+    ensure("\npermissions:\n  contents: read\n" in text and not re.search(r":\s*write\b", body),
+           "the workflow reads contents and writes nothing")
+    ensure("group: ${{ github.workflow }}-${{ github.run_id }}\n  cancel-in-progress: false"
+           in text, "one concurrency group per run, cancelling nothing")
+    ensure("certirocq" not in body.lower(), "no CertiRocq input, job or step")
+    for line in lines:
+        if "inputs." in line:
+            ensure(re.match(r"\s+PLAN_[A-Z_]+: \$\{\{ inputs\.\w+ \}\}$", line) is not None
+                   or line.startswith("run-name:"),
+                   f"an input reaches a step only through its environment: {line!r}")
+    inputs = re.findall(r"(?m)^      ([a-z_]+):\n        description:", text)
+    ensure(inputs == ["revision", "base_revision", "build", "sample", "title"],
+           f"the inputs are the contract's: {inputs!r}")
+    ensure('default: "20"' in text and "          - install\n          - recipe\n" in text,
+           "sample defaults to 20 and build is a choice of install or recipe")
+    uploads = re.findall(r"(?m)uses: actions/upload-artifact@[0-9a-f]{40} # v[\d.]+\n"
+                         r"        with:\n          name: (instrument-[^\n]+)$", text)
+    ensure(len(uploads) == 5 and not any("attempt" in name for name in uploads),
+           f"each job's artifact is named for its job and revision alone: {uploads!r}")
+    ensure(body.count("retention-days: 30") == 5 and body.count("overwrite: true") == 5,
+           "each artifact is replaced on a rerun and kept 30 days")
+    for job, block in _workflow_jobs().items():
+        staged = re.search(r"- name: Stage[^\n]*\n        if: \$\{\{ always\(\) \}\}", block)
+        kept = re.search(r"- name: Preserve[^\n]*\n(?:        #[^\n]*\n)*"
+                         r"        if: \$\{\{ always\(\) \}\}", block)
+        ensure(staged is not None and kept is not None,
+               f"{job} stages and uploads under always()")
+        ensure(f"stage --job {job}" in block, f"{job} stages under its own name")
+    ensure("actions/cache" not in body and "save-cache: false" in body,
+           "no cache but the read-only uv cache")
+
+
+def _classify_records_undecided() -> None:
+    limit = 60
+    cases = [
+        (route.classify(124, limit, oom=[], lowest_free_disk=None), route.UNDECIDED, "limit"),
+        (route.classify(137, limit, oom=[], lowest_free_disk=None), route.UNDECIDED,
+         "recorded no OOM"),
+        (route.classify(137, limit, oom=None, lowest_free_disk=None), route.UNDECIDED,
+         "could not be read"),
+        (route.classify(1, limit, oom=["Out of memory: Killed process 7"],
+                        lowest_free_disk=None), route.UNDECIDED, "OOM killer"),
+        (route.classify(2, limit, oom=[], lowest_free_disk=1024), route.UNDECIDED,
+         "short of disk"),
+        (route.classify(2, limit, oom=[], lowest_free_disk=None, no_space=True),
+         route.UNDECIDED, "no space left"),
+        (route.classify(1, limit, oom=[], lowest_free_disk=None, prover_timeout=True),
+         route.UNDECIDED, "per-file timeout"),
+        (route.classify(1, limit, oom=[], lowest_free_disk=None, journal_complete=True),
+         route.COMPLETED, "journal closes"),
+        (route.classify(124, limit, oom=[], lowest_free_disk=None, journal_complete=True),
+         route.UNDECIDED, "limit"),
+        (route.classify(0, limit, oom=[], lowest_free_disk=None, journal_complete=False),
+         route.FAILED, "no closing line"),
+        (route.classify(3, limit, oom=[], lowest_free_disk=None), route.FAILED, "exit 3"),
+        (route.classify(None, limit, oom=[], lowest_free_disk=None), route.FAILED,
+         "did not start"),
+        (route.classify(0, limit, oom=["Killed process"], lowest_free_disk=1), route.PASSED,
+         "exit 0"),
+    ]
+    for outcome, verdict, fragment in cases:
+        ensure(outcome.verdict == verdict and fragment in outcome.reason,
+               f"{outcome!r} should be {verdict} ({fragment!r})")
+
+
+def _sampler_keeps_peaks() -> None:
+    readings = iter([route.Sample(100, 300, 5 << 30, (1.0, 2.0, 3.0)),
+                     route.Sample(900, 950, 2 << 30, None),
+                     route.Sample(50, 60, None, (0.5, 0.5, 0.5))])
+    with tempfile.TemporaryDirectory() as scratch:
+        progress = Path(scratch) / "logs" / route.PROGRESS
+        sampler = route.Sampler(progress, "seed", lambda: next(readings), interval=3600)
+        for _ in range(3):
+            sampler.sample()
+        lines = progress.read_text(encoding="utf-8").splitlines()
+        ensure(len(lines) == 3 and all(" seed rss_max_kb=" in line for line in lines)
+               and "load=1.00,2.00,3.00" in lines[0] and "free_disk_bytes=unread" in lines[2],
+               f"one progress line per reading: {lines!r}")
+        ensure(sampler.peak_rss_kb == 900 and sampler.peak_tree_kb == 950
+               and sampler.lowest_free_disk == 2 << 30 and sampler.samples == 3,
+               "the sampler keeps each peak and the lowest free disk")
+    ensure(route.new_oom(["a"], ["a", "b"]) == ["b"] and route.new_oom(["a"], None) is None
+           and route.new_oom(None, ["a"]) == ["a"],
+           "a step's OOM records are the ones it added; unread before errs toward undecided")
+    ensure(route.time_figures("real 1.5\nuser 1\nsys 0.2\nmaxrss_kb 2048\n")
+           == {"real": 1.5, "user": 1.0, "sys": 0.2, "maxrss_kb": 2048.0}
+           and route.time_figures("") is None, "GNU time's figures are read")
+    command = route.step_command(route.LIMITS["check"], ["echo", "x"], Path("t.txt"))
+    ensure(command[:5] == [route.GNU_TIME, "-f", route.TIME_FORMAT, "-o", "t.txt"]
+           and command[5:9] == ["timeout", f"--kill-after={route.KILL_AFTER}s", "600s", "echo"],
+           f"a step runs under GNU time and timeout at its limit: {command!r}")
+
+
+def _hooks() -> route.Hooks:
+    return route.Hooks(oom=list, sample=lambda pid, root: route.Sample(1, 1, 1 << 40, None),
+                       gnu_time=None, interval=0.05)
+
+
+def _run_step_records_how_it_ended() -> None:
+    # Linux alone: the wrapper runs coreutils timeout, which Windows does not carry.
+    python = sys.executable
+    with tempfile.TemporaryDirectory() as scratch:
+        root = Path(scratch)
+        quiet = redirect_stdout(StringIO())
+        with quiet:
+            passed = route.run_step("check", [python, "-c", "print('ok')"], root=root,
+                                    hooks=_hooks())
+            limited = route.run_step("check", [python, "-c", "import time; time.sleep(30)"],
+                                     root=root, hooks=_hooks(),
+                                     limit=route.Limit(1, "a test", measured=False))
+        receipt = route.load_receipt(root)
+        steps = route.as_object(receipt["steps"])
+        check = route.as_object(steps["check"])
+        ensure(passed == 0 and limited == 1 and check["verdict"] == route.UNDECIDED
+               and check["exit"] == 124 and check["limit_s"] == 1,
+               f"a step cut at its limit is undecided, never failed: {check!r}")
+        with quiet:
+            failed = route.run_step("properties", [python, "-c", "raise SystemExit(3)"],
+                                    root=root, hooks=_hooks())
+        steps = route.as_object(route.load_receipt(root)["steps"])
+        ensure(failed == 1 and route.as_object(steps["properties"])["verdict"] == route.FAILED,
+               "a step that exits nonzero within its limit fails")
+        journal = root / route.JOURNAL
+        journal.parent.mkdir(parents=True, exist_ok=True)
+        journal.write_text("== s against the o oracle\n    1  survived  p:1 `a` -> `b`: x\n"
+                           "== complete: 1 verdict(s) decided, exit 1\n", encoding="utf-8")
+        with quiet:
+            done = route.run_step("seed", [python, "-c", "raise SystemExit(1)"], root=root,
+                                  hooks=_hooks(), journal=journal)
+        steps = route.as_object(route.load_receipt(root)["steps"])
+        ensure(done == 0 and route.as_object(steps["seed"])["verdict"] == route.COMPLETED,
+               "a seed run whose journal closes is completed whatever it exited")
+        oom = route.Hooks(oom=iter([[], ["Out of memory: Killed process 9"]]).__next__,
+                          sample=_hooks().sample, gnu_time=None, interval=0.05)
+        with quiet:
+            route.run_step("export", [python, "-c", "raise SystemExit(137)"], root=root,
+                           hooks=oom)
+        export = route.as_object(route.as_object(route.load_receipt(root)["steps"])["export"])
+        ensure(export["verdict"] == route.UNDECIDED and bool(export["oom_records"])
+               and "OOM killer" in str(export["reason"]),
+               f"an OOM kill the kernel recorded is undecided: {export!r}")
+
+
+def _side_commands() -> None:
+    receipt: dict[str, object] = {"flag": "--recipe", "inputs": {
+        "sample": "20", "subject": "proofs/CyclicExecutive.v"}}
+    side = Path("side")
+    run = [sys.executable, str(side / "tools" / "run.py")]
+    ensure(route.side_command("check", side, receipt) == [*run, "quickchick", "check",
+                                                          "--recipe"]
+           and route.side_command("seed", side, receipt) == [
+               *run, "seed", "coq", "--quickchick", "--sample", "20", "--jobs", "1", "--recipe"]
+           and route.side_command("population", side, receipt) == [
+               *run, "seed", "list", "--file", "proofs/CyclicExecutive.v", "--sample", "20"],
+           "a recipe build's checks and seed run take --recipe; the seed run names no file")
+    receipt["flag"] = ""
+    ensure(route.side_command("properties", side, receipt) == [*run, "quickchick",
+                                                               "properties"],
+           "an install build's checks take no flag")
+    bads: list[dict[str, object]] = [{"flag": "--other", "inputs": {"sample": "20"}},
+                                     {"flag": "", "inputs": {"sample": "020"}},
+                                     {"inputs": {}}]
+    for bad in bads:
+        try:
+            route.side_command("seed", side, bad)
+        except ValueError:
+            continue
+        raise AssertionError(f"a receipt without a flag or sample is refused: {bad!r}")
+
+
+def _staging_refuses_and_records() -> None:
+    with tempfile.TemporaryDirectory() as scratch:
+        root = Path(scratch)
+        logs = root / route.LOGS
+        (logs / "side").mkdir(parents=True)
+        files = {"check.log": b"ok\n", "progress.log": b"t\n", "side/proofs.txt": b"x\n",
+                 "Module.vo": b"Coq", "rocq.log": b"\x7fELF\x02", "demo.wasm.log": b"\0asm\x01",
+                 "nul.txt": b"a\0b", "big.json": b"{}"}
+        for name, data in files.items():
+            (logs / name).write_bytes(data)
+        journal = root / route.JOURNAL
+        journal.parent.mkdir(parents=True)
+        journal.write_text("== j\n", encoding="utf-8")
+        (root / route.EXPORT).parent.mkdir(parents=True)
+        (root / route.EXPORT).write_text("opam-version: \"2.0\"\n", encoding="utf-8")
+        route.save_receipt(root, {"steps": {"provision": {"verdict": route.PASSED},
+                                            "check": {"verdict": route.PASSED},
+                                            "properties": {"verdict": route.FAILED}}})
+        with redirect_stdout(StringIO()):
+            excluded = route.stage(root, "build")
+        left = {item["path"]: item["reason"] for item in excluded}
+        ensure(set(left) >= {"Module.vo", "rocq.log", "demo.wasm.log", "nul.txt", route.EXPORT},
+               f"staging leaves out each refused file: {left!r}")
+        ensure("ELF magic" in left["rocq.log"] and "Wasm magic" in left["demo.wasm.log"]
+               and "NUL" in left["nul.txt"] and "allowlist" in left["Module.vo"]
+               and "not every check" in left[route.EXPORT],
+               f"each with its reason: {left!r}")
+        uploaded = {path.relative_to(root / route.UPLOAD).as_posix()
+                    for path in (root / route.UPLOAD).rglob("*") if path.is_file()}
+        ensure(uploaded == {"check.log", "progress.log", "side/proofs.txt", "big.json",
+                            "seed/quickchick.journal", route.RECEIPT},
+               f"only allowlisted text is uploaded: {sorted(uploaded)}")
+        receipt = route.load_json(root / route.UPLOAD / route.RECEIPT) or {}
+        steps = route.as_object(receipt["steps"])
+        ensure(route.as_object(steps["export"])["verdict"] == route.NOT_RUN
+               and bool(route.as_object(receipt["staging"])["excluded"]),
+               "a step that never ran is recorded not run, and the exclusions are receipted")
+        route.save_receipt(root, {"steps": {name: {"verdict": route.PASSED}
+                                            for name in route.JOB_STEPS["build"]}})
+        with redirect_stdout(StringIO()):
+            route.stage(root, "build")
+        ensure((root / route.UPLOAD / route.EXPORT).is_file(),
+               "the export is uploaded where every check on its switch passed")
+        with redirect_stdout(StringIO()):
+            excluded = route.stage(root, "import")
+        ensure(any(item["path"] == route.EXPORT for item in excluded),
+               "no job but the build uploads an export")
+        with patch.object(route, "FILE_LIMIT", 1):
+            staged, left_out = route.select([(logs / "check.log", "check.log")])
+        ensure(not staged and "limit for one file" in left_out[0]["reason"],
+               "a file over its limit is left out")
+        with patch.object(route, "ARCHIVE_LIMIT", 4):
+            staged, left_out = route.select([(logs / "check.log", "a.log"),
+                                             (logs / "progress.log", "b.log")])
+        ensure(len(staged) == 1 and "past its" in left_out[0]["reason"],
+               "the artifact stays within its bound")
+
+
+# ---------------------------------------------------------------------------- the join
+
+
+def _receipt(key: str, revision: str, *, candidate: str = REVISION, base: str = BASE,
+             dispatch: str = DISPATCH, run_id: str = RUN_ID,
+             **changes: object) -> dict[str, object]:
+    job = "seed" if key.startswith("seed-") else key
+    side = "base" if key == "seed-base" else "candidate"
+    steps = {step: {"verdict": route.COMPLETED if step == "seed" else route.PASSED,
+                    "seconds": 1.0, "limit_s": 9, "exit": 0, "peak_rss_kb": 10}
+             for step in route.JOB_STEPS[job]}
+    receipt: dict[str, object] = {
+        "job": job, "run": key.removeprefix("seed-") if job == "seed" else "candidate",
+        "run_id": run_id, "dispatching_commit": dispatch, "source_revision": revision,
+        "inputs": {"side": side, "revision": candidate, "base_revision": base,
+                   "build": "recipe", "sample": "20",
+                   "subject": "proofs/CyclicExecutive.v"},
+        "runner_image": "ubuntu26-1", "uname_m": "x86_64", "opam_client": "2.6.0",
+        "switch": "s", "flag": "--recipe", "recipe": "RECIPE", "steps": steps}
+    receipt.update(changes)
+    return receipt
+
+
+def _journal(*lines: str) -> str:
+    body = [f"{n:>5}  {line}" for n, line in enumerate(lines, 1)]
+    return "\n".join(["== proofs/CyclicExecutive.v against the prover-then-QuickChick oracle",
+                      "   scope: over 2 of 9 mutant(s)", *body,
+                      f"== complete: {len(lines)} verdict(s) decided, exit 1"]) + "\n"
+
+
+_KILLED = "killed    proofs/C.v:3 `<=` -> `<`: refuted 1 of 33"
+_SURVIVED = "survived  proofs/C.v:9 `S n` -> `n`: 33 held"
+_LISTING = ("== proofs/C.v: 9 mutant(s) over 2 operator(s)\n"
+            "     relational/1       proofs/C.v:3 `<=` -> `<`\n"
+            "     successor/4        proofs/C.v:9 `S n` -> `n`\n")
+
+
+def _artifacts(root: Path, *, seed: bool = True,
+               edits: dict[str, dict[str, object]] | None = None,
+               journals: dict[str, str] | None = None, candidate: str = REVISION,
+               base: str = BASE, dispatch: str = DISPATCH, run_id: str = RUN_ID) -> None:
+    plan = {"run_id": run_id, "dispatching_commit": dispatch, "accepted": True, "seed": seed,
+            "request": {"ref": route.MAIN, "revision": candidate,
+                        "base_revision": base if seed else "", "build": "recipe",
+                        "sample": "20", "title": ""},
+            "subjects": {"candidate": "proofs/CyclicExecutive.v",
+                         "base": "proofs/CyclicExecutive.v"}}
+    keys = ["build", "import", *([f"seed-{run}" for run in route.SEED_RUNS] if seed else [])]
+    (root / f"instrument-plan-{candidate}").mkdir(parents=True)
+    (root / f"instrument-plan-{candidate}" / route.PLAN).write_text(json.dumps(plan),
+                                                                      encoding="utf-8")
+    for key in keys:
+        revision = base if key == "seed-base" else candidate
+        directory = root / route.artifact_name(key, revision)
+        directory.mkdir()
+        receipt = _receipt(key, revision, candidate=candidate, base=base, dispatch=dispatch,
+                           run_id=run_id)
+        if not seed:
+            route.as_object(receipt["inputs"])["base_revision"] = ""
+        receipt.update((edits or {}).get(key, {}))
+        (directory / route.RECEIPT).write_text(json.dumps(receipt), encoding="utf-8")
+        if key.startswith("seed-"):
+            (directory / "seed").mkdir()
+            text = (journals or {}).get(key, _journal(_KILLED, _SURVIVED))
+            (directory / "seed" / "quickchick.journal").write_text(text, encoding="utf-8")
+            (directory / "population.log").write_text(_LISTING, encoding="utf-8")
+
+
+_SUCCESS: dict[str, object] = {name: {"result": "success"} for name in ("plan", "build",
+                                                                         "import", "seed")}
+
+
+def _joined(setup: Callable[[Path], object], needs: dict[str, object] | None = None
+            ) -> dict[str, object]:
+    with tempfile.TemporaryDirectory() as scratch:
+        root = Path(scratch)
+        setup(root)
+        return route.join(root, needs if needs is not None else _SUCCESS, RUN_ID)
+
+
+def _join_passes_and_lists_mutants() -> None:
+    report = _joined(_artifacts)
+    ensure(report["verdict"] == route.PASSED and not report["refusals"],
+           f"every job passed: {report['refusals']!r}")
+    seed = route.as_object(report["seed"])
+    mutants = [route.as_object(item) for item in route.as_list(seed["mutants"])]
+    ensure([m["operator"] for m in mutants] == [["relational"], ["successor"]]
+           and mutants[0]["site"] == "proofs/C.v:3" and mutants[0]["rewrite"] == "`<=` -> `<`"
+           and mutants[0]["base"] == ["killed"] and mutants[1]["candidate-2"] == ["survived"],
+           f"each mutant by identity, operator, site and rewrite in every run: {mutants!r}")
+    ensure(not seed["candidate_differences"] and not seed["base_differences"]
+           and not seed["other_verdicts"], "agreeing runs list no difference")
+    text = route.summary(report)
+    ensure("| relational |" in text and "Instrument switch route: passed" in text,
+           f"the summary names each mutant's operator: {text!r}")
+
+
+def _join_lists_differences() -> None:
+    journals = {"seed-candidate-2": _journal(_KILLED.replace("killed  ", "survived"),
+                                             _SURVIVED),
+                "seed-base": _journal(_KILLED, "undecided proofs/C.v:9 `S n` -> `n`: "
+                                               "Mutant.v reached the 900 s limit")}
+    edits: dict[str, dict[str, object]] = {"seed-base": {"opam_client": "2.5.0",
+                                                         "runner_image": "ubuntu26-2"}}
+    report = _joined(lambda root: _artifacts(root, journals=journals, edits=edits))
+    seed = route.as_object(report["seed"])
+    ensure(len(route.as_list(seed["candidate_differences"])) == 1
+           and len(route.as_list(seed["base_differences"])) == 3,
+           f"each mutant whose verdict moves is listed with both runs': {seed!r}")
+    other = [route.as_object(item) for item in route.as_list(seed["other_verdicts"])]
+    ensure(len(other) == 1 and other[0]["verdict"] == "undecided"
+           and "900 s" in str(other[0]["reason"]),
+           f"a verdict other than the four is listed with its reason: {other!r}")
+    pairs = route.as_list(report["differing_sides"])
+    ensure({route.as_object(item)["field"] for item in pairs} == {"opam_client",
+                                                                   "runner_image"},
+           f"each pair of sides whose client or image differs: {pairs!r}")
+
+
+def _join_records_not_run_and_refusals() -> None:
+    skipped = dict(_SUCCESS, build={"result": "failure"}, **{"import": {"result": "skipped"}})
+
+    def without_import(root: Path) -> None:
+        _artifacts(root, seed=False)
+        for path in root.glob("instrument-import-*"):
+            for item in path.iterdir():
+                item.unlink()
+            path.rmdir()
+
+    failed = dict(_receipt("build", REVISION))
+    route.as_object(failed["steps"])["properties"] = {"verdict": route.FAILED}
+    report = _joined(lambda root: (without_import(root),
+                                   (root / f"instrument-build-{REVISION}" / route.RECEIPT)
+                                   .write_text(json.dumps(dict(
+                                       failed, inputs=dict(route.as_object(failed["inputs"]),
+                                                           base_revision=""))),
+                                       encoding="utf-8")),
+                     skipped)
+    jobs = route.as_object(report["jobs"])
+    ensure(route.as_object(jobs["import"])["verdict"] == route.NOT_RUN
+           and "exported no switch" in str(route.as_object(jobs["import"])["reason"])
+           and report["verdict"] == route.FAILED and not report["refusals"],
+           f"a job its prerequisite's failure skipped is recorded not run: {report!r}")
+    cases: list[tuple[Callable[[Path], object], dict[str, object], str]] = [
+        (without_import, _SUCCESS, "the import job ran (success) and left no artifact"),
+        (lambda root: (_artifacts(root),
+                       (root / f"instrument-build-{'c' * 40}").mkdir()),
+         _SUCCESS, "duplicate artifacts for the build job"),
+        (lambda root: (_artifacts(root), (root / "someone-else").mkdir()), _SUCCESS,
+         "an artifact this route does not name"),
+        (_artifacts, dict(_SUCCESS, **{"import": {"result": "skipped"}}),
+         "an artifact from the import job, which did not run"),
+        (lambda root: _artifacts(root, edits={"build": {"run_id": "1"}}), _SUCCESS,
+         "names run '1'"),
+        (lambda root: _artifacts(root, edits={"build": {"source_revision": BASE}}), _SUCCESS,
+         "tested"),
+        (lambda root: _artifacts(root, edits={"seed-candidate-1": {"inputs": {
+            "side": "candidate", "revision": REVISION, "base_revision": BASE,
+            "build": "recipe", "sample": "19", "subject": "proofs/CyclicExecutive.v"}}}),
+         _SUCCESS, "records sample '19'"),
+        (lambda root: _artifacts(root, edits={"seed-base": {"inputs": {
+            "side": "base", "revision": REVISION, "base_revision": BASE, "build": "recipe",
+            "sample": "20", "subject": "proofs/Other.v"}}}), _SUCCESS, "records subject"),
+        (lambda root: _artifacts(root, edits={"import": {"dispatching_commit": "e" * 40}}),
+         _SUCCESS, "another dispatching commit"),
+        (lambda root: None, _SUCCESS, "no plan artifact"),
+    ]
+    for setup, needs, fragment in cases:
+        report = _joined(setup, needs)
+        ensure(report["verdict"] == route.REFUSED
+               and any(fragment in item for item in cast_list(report["refusals"])),
+               f"the join refuses ({fragment!r}): {report['refusals']!r}")
+    # The join's own artifact, from an earlier attempt, is not one it reads.
+    report = _joined(lambda root: (_artifacts(root),
+                                   (root / f"instrument-join-{REVISION}").mkdir()))
+    ensure(report["verdict"] == route.PASSED, f"an earlier join's artifact is passed over: "
+           f"{report['refusals']!r}")
+
+
+def cast_list(value: object) -> list[str]:
+    return [str(item) for item in route.as_list(value)]
+
+
+def _journal_and_population_readers() -> None:
+    text = (_journal(_KILLED, "stillborn proofs/C.v:4 `a` -> `b`: did not compile\n"
+                              "  with a second line")
+            + "")
+    journal = route.parse_journal(text)
+    ensure(journal.complete and journal.exit == 1 and journal.scope == "over 2 of 9 mutant(s)"
+           and [e.outcome for e in journal.entries] == ["killed", "stillborn"]
+           and journal.entries[1].detail.endswith("a second line")
+           and journal.entries[0].identity == "proofs/C.v:3 `<=` -> `<`",
+           f"the journal reads verdicts, scope and close: {journal!r}")
+    truncated = route.parse_journal(text.rsplit("== complete", 1)[0])
+    ensure(not truncated.complete and len(truncated.entries) == 2,
+           "a journal with no closing line is incomplete")
+    listed = route.parse_population(_LISTING + "     successor/5        proofs/C.v:9 "
+                                               "`S n` -> `n`\nok proofs/C.v yields 9\n")
+    ensure(listed == {"proofs/C.v:3 `<=` -> `<`": ["relational"],
+                      "proofs/C.v:9 `S n` -> `n`": ["successor", "successor"]},
+           f"the listing maps each site and rewrite to its operators: {listed!r}")
+
+
+# ----------------------------------------------------------------- the import comparison
+
+
+def _closure(pin: str = "git+https://github.com/QuickChick/QuickChick.git#3d4d6c0e9f") -> list[
+        dict[str, str]]:
+    return [{"name": "coq-quickchick", "version": "dev", "pin": pin},
+            {"name": "rocq-core", "version": "9.3.0", "pin": ""}]
+
+
+def _import_comparison() -> None:
+    build: dict[str, object] = {"job": "build", "run_id": RUN_ID, "switch": "s",
+                                "closure": _closure(), "export": {"sha256": "f" * 64}}
+    imported: dict[str, object] = {
+        "job": "import", "switch": "s", "closure": list(reversed(_closure())),
+        "import_source": {"sha256": "f" * 64},
+        "steps": {"check": {"verdict": route.PASSED}},
+        "reexport": {"identical": False, "difference": ["-a", "+b"]}}
+    found = route.compare_import(build, imported, RUN_ID)
+    ensure(found["verdict"] == route.PASSED and found["closure_equal"] is True
+           and found["pins_equal"] is True
+           and route.as_object(found["pins"])["coq-quickchick"] == {
+               "url": "git+https://github.com/QuickChick/QuickChick.git",
+               "commit": "3d4d6c0e9f"},
+           f"an equal closure, pins and a passing check decide; a re-export that differs "
+           f"is an observation: {found!r}")
+    cases: list[tuple[dict[str, object], dict[str, object], str]] = [
+        ({}, {"steps": {"check": {"verdict": route.FAILED}}}, "not exit 0"),
+        ({}, {"closure": [*_closure(), {"name": "extra", "version": "1", "pin": ""}]},
+         "closures differ"),
+        ({}, {"closure": _closure("git+https://github.com/QuickChick/QuickChick.git#0123456")},
+         "pins differ"),
+        ({}, {"import_source": {"sha256": "e" * 64}}, "export SHA-256"),
+        ({"run_id": "1"}, {}, "names run '1'"),
+        ({}, {"switch": "other"}, "the import's 'other'"),
+        ({"closure": []}, {}, "records no installed closure"),
+    ]
+    for build_edit, import_edit, fragment in cases:
+        found = route.compare_import(build | build_edit, imported | import_edit, RUN_ID)
+        ensure(found["verdict"] == route.FAILED
+               and any(fragment in item for item in cast_list(found["reasons"])),
+               f"the comparison refuses ({fragment!r}): {found['reasons']!r}")
+
+
+def cases() -> list[Case]:
+    return [Case("plan-accepts-main-revisions", _plan_accepts_main_revisions),
+            Case("plan-refuses-each-bad-request", _plan_refuses_each_bad_request),
+            Case("plan-ref-reads-fetched-main", _plan_ref_reads_fetched_main),
+            Case("plan-outputs-only-validated-values", _plan_outputs_only_validated_values),
+            Case("plan-command-records-and-exits", _plan_command_records_and_exits),
+            Case("limits-and-minutes", _limits_and_minutes),
+            Case("workflow-holds-the-module-limits", _workflow_holds_the_module_limits),
+            Case("workflow-contract-shape", _workflow_contract_shape),
+            Case("classify-records-undecided", _classify_records_undecided),
+            Case("sampler-keeps-peaks", _sampler_keeps_peaks),
+            Case("run-step-records-how-it-ended", _run_step_records_how_it_ended,
+                 lane="guest"),
+            Case("side-commands", _side_commands),
+            Case("staging-refuses-and-records", _staging_refuses_and_records),
+            Case("join-passes-and-lists-mutants", _join_passes_and_lists_mutants),
+            Case("join-lists-differences", _join_lists_differences),
+            Case("join-records-not-run-and-refusals", _join_records_not_run_and_refusals),
+            Case("journal-and-population-readers", _journal_and_population_readers),
+            Case("import-comparison", _import_comparison)]
