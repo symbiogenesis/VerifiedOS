@@ -999,6 +999,19 @@ def _k117_switch(box: Sandbox) -> bool:
         box.read(importer), "regenerate.SWITCH", "regenerate.LOWERING_SWITCH"))
 
 
+def _k117_release(box: Sandbox) -> bool:
+    """compare_component.py's release constant renamed wherever it is spelled.
+
+    The comparison still holds its prover to the rig's release under the new name, so
+    only the instrument table's reading of the file's own name finds nothing, which is to
+    be a finding rather than the row falling back to no stated release unremarked.
+    """
+    path = "tools/wasm-oracle/compare_component.py"
+    text = box.read(path)
+    renamed = re.sub(r"\bROCQ_VERSION\b", "PROVER_RELEASE", text)
+    return renamed != text and box.write(path, renamed)
+
+
 def _keep_own_id(entry_line: str) -> str:
     head = re.match(rf"^\*\*{REQ_ID_PATTERN}\*\* ", entry_line)
     if head is None:
@@ -1766,6 +1779,14 @@ CASES: list[Case] = [
     ("K-118", "an opam snapshot release its development-tool row does not state",
      _first_match("tools/opam/sail.lock", r'"zarith\.([^"]+)"',
                   lambda m: f'"zarith.{m[1]}.1"')),
+    # Both directions through the CertiRocq snapshot's rows, which read each package's
+    # backticked release by its name: an OCaml library moves in the lock while its row
+    # stays, and the row's release moves while the lock stays.
+    ("K-118", "a CertiRocq snapshot release its development-tool row does not state",
+     _first_match("tools/opam/certirocq.lock", r'"yojson\.([^"]+)"',
+                  lambda m: f'"yojson.{m[1]}.1"')),
+    ("K-118", "a CertiRocq snapshot row stating a release its lock does not fix",
+     _first_match(THIRD_PARTY, r"yojson `(\d[^`]*)`", lambda m: f"yojson `{m[1]}.1`")),
     # A licence reading's tag list gains a tag in a form the list's reading cannot take:
     # every other tag still agrees with the switches, so only a list read item by item,
     # with an unreadable item a finding, keeps the row from passing over it unread.
@@ -2449,6 +2470,8 @@ CASES: list[Case] = [
               "  if l is cons x _ then x else d.")),
     ("K-117", "the Rupicola lowering's switch constant renamed out from under the "
               "instrument table", _k117_switch),
+    ("K-117", "compare_component.py's release constant renamed out from under the "
+              "instrument table", _k117_release),
     # An instrument moved to an older switch while its row still states the gate's: the
     # kernel's vectors asked of the CertiRocq switch at Rocq 9.1.1. Nothing its harness
     # compiles writes a 9.3 form today, so only the reading of what kernel.py asks for

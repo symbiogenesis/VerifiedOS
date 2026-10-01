@@ -73,6 +73,27 @@ def decode(text: str, ids: tuple[str, ...]) -> Observation:
     return Observation(tuple(values), first)
 
 
+def installed(export: str) -> tuple[str, ...]:
+    """The packages an opam switch export's `installed:` list names, sorted.
+
+    A switch imported from a snapshot re-exports without the snapshot's `compiler:`
+    section until its invariant is set (F-496), so the installed list, which both keep,
+    is what a switch and a snapshot are compared by."""
+    listed = re.search(r"^installed:\s*\[(.*?)^\]", export, re.MULTILINE | re.DOTALL)
+    if listed is None:
+        raise ValueError("the switch export has no installed list")
+    names = [str(found) for found in re.findall(r'"([^"]+)"', listed.group(1))]
+    if not names or len(names) != len(set(names)):
+        raise ValueError("the switch export's installed list is empty or repeats a package")
+    return tuple(sorted(names))
+
+
+def reports_release(version: str, release: str) -> bool:
+    """Whether a prover's `--version` output reports exactly that release, not a later
+    one it prefixes or a development build of it."""
+    return re.search(rf"\bversion {re.escape(release)}(?![\w+~-]|\.\w)", version) is not None
+
+
 def compare(left: Observation, right: Observation) -> None:
     if len(left.values) != len(right.values):
         raise ValueError("component vector lengths differ")

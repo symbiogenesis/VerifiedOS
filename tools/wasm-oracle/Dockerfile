@@ -9,7 +9,8 @@
 #
 # The image is published for linux/amd64 only, at every 9.1 tag, so on an arm64
 # host this path wants emulation and the native recipe in README.md is the one
-# that runs.
+# that runs. No run has built this image: the snapshot's checks ran through the
+# native recipe on the aarch64 development guest.
 #
 # The image is pinned by digest, so a tag pushed again cannot move it. Docker Hub
 # gave this digest for both 9.1.1-ocaml-4.14.2-flambda and the floating
@@ -32,10 +33,10 @@ USER rocq
 # CPP 2025) and takes released MetaRocq 1.5.1, which is both halves of what a
 # source pin and a compat patch used to buy here. The release is the whole
 # environment: no clone, no checkout, no patch.
-# The snapshot is pending the full compiler build and Wasm smoke checks.
-# Once exported, it fixes OCaml 5.1.1 and every package version. These arguments
-# name the switch; changing the compiler also requires updating the snapshot.
-ARG OCAML_VERSION=5.1.1
+# The snapshot fixes OCaml 4.14.4 and every package version; the image's own OCaml
+# 4.14.2 only runs opam. These arguments name the switch; changing the compiler also
+# requires exporting the snapshot again.
+ARG OCAML_VERSION=4.14.4
 ARG TOOLCHAIN_SWITCH=verifiedos-certirocq-0.9.1-ocaml-${OCAML_VERSION}
 COPY --chown=rocq:rocq opam/certirocq.lock /tmp/certirocq.lock
 RUN opam repo list --all | grep -q rocq-released \
