@@ -12,8 +12,8 @@ import threading
 from pathlib import Path
 from unittest.mock import patch
 
-from tests.harness import Case, ensure
-from vos import proofaudit, proofcites, proofs, receipts
+from tests.harness import TOOLS, Case, ensure
+from vos import corpus, proofaudit, proofcites, proofs, receipts
 from vos.cli import evidence
 from vos.cli import proofs as gate
 
@@ -364,6 +364,13 @@ def _machine_bound_tacticals_are_refused() -> None:
                # Rocq's lexer reads a comment as a separator on either side of the word.
                "Lemma a : True. Proof. timeout(* c *)5 (exact I). Qed.",
                "Lemma a : True. Proof. try(* c *)timeout 5 (exact I). Qed.",
+               # A numeral or a declared token ends where the word begins: the pinned
+               # Rocq 9.3.0 compiles both silently.
+               "Lemma a : True. Proof. do 1timeout 5 (exact I). Qed.",
+               'Tactic Notation "#_" tactic3(t) := t. '
+               "Lemma a : True. Proof. #_timeout 5 (exact I). Qed.",
+               'Tactic Notation "²" tactic3(t) := t. '
+               "Lemma a : True. Proof. ²timeout 5 (exact I). Qed.",
                # Gallina identifiers named exactly after a primitive: loud false refusals.
                "Definition wait := timeout 5.", "Record Budget := { timeout : nat }.",
                "Definition get (b : Budget) := b.(timeout).")
@@ -374,6 +381,9 @@ def _machine_bound_tacticals_are_refused() -> None:
                "Definition time := 1. Definition out := 2. "
                "Definition wait := Nat.add time(* c *)out.",
                "Definition cap := alloc_limit_words 1.", "Definition wait' := timeout' 5.",
+               # One identifier each, and `0x1a` then `lloc_limit`, as `0x1cofix` is read.
+               "Definition x1timeout := 5.", "Definition x'timeout := 5.",
+               "Definition wait := 0x1alloc_limit.",
                "Definition timeouts := 5.", "Definition timeoutf' := 5.",
                "(* timeout 5 (exact I) *) Definition x := 0.",
                'Definition label := "timeout 5".', 'Definition label := "a. timeout 5 b".',
@@ -491,6 +501,206 @@ def _unreadable_tokens_are_refused_before_compiling() -> None:
             checked = gate._check_source(root, source, [source])
         ensure(checked.error.startswith("sources may not change the gate's pinned settings: "),
                f"the setting after a readable token was not refused: {checked.error!r}")
+
+
+_COINDUCTIVE = ("sources may not write coinductive types or cofixpoints, or declare a token "
+                "that would hide one from the gate, while the locked Rocq lacks the guard "
+                "fixes for rocq#22386 and rocq#22389: ")
+_STREAM = "CoInductive stream : Type := Cons : nat -> stream -> stream."
+# A word joined to a declared token. Under the gate's flags the pinned Rocq 9.3.0 compiles
+# each, every cofixpoint guarded, and prints it as a `cofix` term: the lexer ends `#_`,
+# `²`, `٣`, `#a1`, `#a'` and `₀` before the word, a count after `#a`, and `cofix_` before
+# `²`. Each source holds one sentence the refusal reports, a word or the declaration.
+_ONES = ("From Stdlib Require Import Streams.\n{}\nDefinition ones : Stream nat.\n"
+         "Proof. {}cofix ones. exact (Cons 1 ones). Defined.\nPrint ones.\n")
+_ADJACENT = (*(_ONES.format(f'Tactic Notation "{token}" tactic3(t) := t.', token)
+               for token in ("#_", "\u00b2", "\u0663", "#a1", "#a'", "\u2080")),
+             _ONES.format('Tactic Notation "#a" int_or_var(n) tactic3(t) := do n t.', "#a1"),
+             "From Stdlib Require Import Streams.\n"
+             'Notation "#_ x" := x (at level 10, x at level 200).\n'
+             "Definition sixes : Stream nat := #_cofix sixes := Cons 6 sixes.\nPrint sixes.\n",
+             "From Stdlib Require Import Streams.\nFrom Ltac2 Require Import Ltac2.\n"
+             'Ltac2 Notation "\u00b2" x(ident) : 0 := x.\nDefinition sevens : Stream nat.\n'
+             "Proof. Std.cofix_\u00b2sevens. exact (Cons 7 sevens). Defined.\nPrint sevens.\n")
+# Everything the control prefixes read, one spelling of each alternative.
+_PREFIXES = ("- ", "+ ", "* ", "{ ", "} ", "1: { ", "[a]: { ", "!: { ", "Time ",
+             "Instructions ", "Fail ", "Succeed ", "Profile ", 'Profile "p" ',
+             'Redirect "out" ', "Timeout 5 ", "AllocLimit 1 Mw ", "#[local] ", "Local ",
+             "Global ", "Export ", "Polymorphic ", "Monomorphic ", "Cumulative ",
+             "NonCumulative ", "Private ", "Program ")
+
+
+def _coinductive_forms_are_refused_before_compiling() -> None:
+    # Under the gate's flags the pinned Rocq 9.3.0 compiles each whole and each inner
+    # form here after the stream, `CoInductive trivial : Prop := keep : trivial -> trivial`,
+    # a Section around `Let`, and Ltac2 with its `Std` or `Constr.Unsafe` imported as each
+    # needs, every cofixpoint guarded; the Gallina identifiers are refused loudly. Its
+    # lexer ends a numeral before a letter, running `do 1cofix H` as the cofix tactic, so
+    # the lexical cases read each numeral, the lone quote and a token Rocq's lexer ends
+    # before the word apart from it, as they read each control prefix before a command.
+    whole = (_STREAM, "CoInductive conat : Type := { pred : option conat }.",
+             "CoFixpoint zeros : stream := Cons 0 zeros.",
+             "Let CoFixpoint threes : stream := Cons 3 threes.",
+             "Definition ones : stream := cofix ones : stream := Cons 1 ones.",
+             "Definition twos : stream := let cofix twos := Cons 2 twos in twos.",
+             "Definition h := Eval cbv cofix in 0.", "Search is:CoFixpoint.",
+             "Fail CoFixpoint zeros : stream := Cons true zeros.",
+             "Succeed CoFixpoint fours : stream := Cons 4 fours.",
+             "Ltac2 go () := Std.cofix_ @H.", "Ltac2 go () := cofix_ @H.",
+             "Ltac2 is_cofix_term (c : constr) := match Constr.Unsafe.kind c with "
+             "Constr.Unsafe.CoFix _ _ _ => true | _ => false end.",
+             "Ltac2 is_cofix_term (c : constr) := match kind c with "
+             "CoFix _ _ _ => true | _ => false end.",
+             "Definition CoInductive := 0.", "Definition CoFix := 0.",
+             "Definition cofix_ := 0.",
+             # Rocq reads each of these whole, its Unicode table classing `é` a letter and
+             # `٣` a digit; the reading continues a word through ASCII alone, so they are
+             # refused loudly.
+             "Definition \u00e9cofix := 0.", "Definition cofix\u00e9 := 0.",
+             "Definition x\u0663cofix := 0.")
+    # The pinned Rocq 9.3.0 reports a syntax error at `cofix` itself after each numeral,
+    # reading every letter case, sign, fraction and underscore as interp/numTok.ml does.
+    lexical = (*(f"Check {numeral}cofix." for numeral in ("1", "1_", "1e5", "1e+5", "1.5",
+                                                          "0x1p5", "0x1cp5", "0x1'", "'")),
+               *(f"Check {numeral}cofix." for numeral in (
+                   "1E5", "1E+5", "1e-5", "1._5", "1._e5", "1_.5", "1_e5", "1e5_", "0X1p5",
+                   "0x1P5", "0x1p-5", "0x1.5p5", "0x1.ap5", "0x1_p5", "0x1p5_")),
+               *(f"Check {joined}." for joined in ("#_cofix", "x\u00b2cofix", "\u0663cofix",
+                                                  "\u2080cofix", "#00x1p5cofix")),
+               *(prefix + word for prefix in _PREFIXES
+                 for word in (_STREAM, "CoFixpoint zeros : stream := Cons 0 zeros.")))
+    for text in (*whole, *lexical):
+        ensure(proofaudit.coinductive_forms(text) == [text.removesuffix(".")],
+               f"a coinductive form passed: {text!r}")
+    for text in _ADJACENT:
+        ensure(len(proofaudit.coinductive_forms(text)) == 1,
+               f"a word joined to a declared token passed: {text!r}")
+    # One sentence of several, and a comment holding no newline beside the word.
+    proof = "Lemma always : trivial. Proof. {} Qed."
+    within = (proof.format("cofix H. exact (keep H)."),
+              proof.format("do 1cofix H. exact (keep H)."),
+              proof.format("do 1_cofix H. exact (keep H)."),
+              proof.format("Std.cofix_ @H. apply keep. assumption."),
+              "Lemma reduced : True. Proof. cbv cofix. exact I. Qed.",
+              "CoFixpoint(* c *)zeros : stream := Cons 0 zeros.",
+              "Definition ones : stream :=(* c *)cofix ones : stream := Cons 1 ones.",
+              "Time(* c *)CoInductive s : Type := c : s -> s.",
+              '(* "(*" *)Let CoFixpoint z : stream := Cons 0 z.')
+    for text in within:
+        ensure(len(proofaudit.coinductive_forms(text)) == 1,
+               f"a coinductive form within its source passed: {text!r}")
+    with tempfile.TemporaryDirectory(prefix="vos-coinductive-") as temporary:
+        root = Path(temporary)
+        source = root / "proofs" / "M.v"
+        source.parent.mkdir()
+        for text in (*whole, *lexical, *within, *_ADJACENT):
+            source.write_text(text, encoding="utf-8")
+            with patch.object(gate, "_compile", side_effect=AssertionError("compiled")):
+                checked = gate._check_source(root, source, [source])
+            ensure(checked.error.startswith(_COINDUCTIVE),
+                   f"a coinductive form was not refused by name: {text!r}: {checked.error!r}")
+
+
+def _hiding_tokens_are_refused_before_compiling() -> None:
+    # Each declares a token whose trailing ASCII letters, digits, quotes and underscores
+    # hold a letter, ending where a word joined to it would still read as one identifier,
+    # and each is refused although its source writes no word: another may Require it.
+    refused = ('Tactic Notation "#a" tactic3(t) := t.',
+               'Tactic Notation "# a1" tactic3(t) := t.',
+               "Ltac2 Notation \"#a'\" t(tactic) := t.",
+               'Infix "+c" := Nat.add (at level 50).',
+               'Notation "x \\in y" := (x = y) (at level 70).',
+               'Notation "x \'#a1\' y" := (Nat.add x y) (at level 50).',
+               'Reserved Notation "x =_D y" (at level 70).',
+               '#[local] Notation "x ^Z y" := (Nat.add x y) (at level 30).')
+    for text in refused:
+        ensure(proofaudit.coinductive_forms(text) == [text.removesuffix(".")],
+               f"a token that hides a word was declared: {text!r}")
+    with tempfile.TemporaryDirectory(prefix="vos-hiding-token-") as temporary:
+        root = Path(temporary)
+        source = root / "proofs" / "M.v"
+        source.parent.mkdir()
+        for text in refused:
+            source.write_text(text, encoding="utf-8")
+            with patch.object(gate, "_compile", side_effect=AssertionError("compiled")):
+                checked = gate._check_source(root, source, [source])
+            ensure(checked.error.startswith(_COINDUCTIVE),
+                   f"a hiding token was not refused by name: {text!r}: {checked.error!r}")
+
+
+def _coinductive_controls_reach_the_compiler() -> None:
+    # The pinned Rocq 9.3.0 compiles each identifier here, and reads `co(* c *)fix` as two
+    # words, refusing the definition as a syntax error. A letter that continues a numeral
+    # leaves no word: its lexer reads `0x1c` then `ofix`, and `1` then `ecofix`.
+    allowed = ("Definition cofix' := 0.", "Definition is_cofix := 0.",
+               "Definition CoFixed := 0.", "Definition tCoFix := 0.",
+               "Definition CoInductive_lemma := 0.", "Definition rCofix := 0.",
+               "Ltac2 get (f : Std.red_flags) := f.(Std.rCofix).",
+               "Definition x'cofix := 0.", "Definition x1cofix := 0.", "Check 0x1cofix.",
+               "Check 1ecofix.", "Check #acofix.",
+               # An exponent's underscore continues its digits, so the pinned Rocq 9.3.0
+               # reads `1e5_0` and `0x1p5_0` whole, leaving the identifier `x1p5cofix`.
+               "Check 1e5_0x1p5cofix.", "Check 0x1p5_0x1p5cofix.",
+               # Tokens that end in a symbol, or whose trailing letters, digits, quotes and
+               # underscores hold no letter, hide no word from the reading, and neither do
+               # identifiers or a format string's boxes.
+               'Notation "x +_ y" := (Nat.add x y) (at level 50).',
+               'Notation "x #1 y" := (Nat.add x y) (at level 50).',
+               "Notation \"x ++' y\" := (Nat.add x y) (at level 50).",
+               'Infix "==" := eq (at level 70).',
+               "Notation \"'IF' c 'then' a 'else' b\" := (if c then a else b) (at level 200).",
+               'Reserved Notation "x <+> y" '
+               '(at level 50, format "\'[hv\' x  <+>  \'/\' y \']\'").',
+               'Tactic Notation "foo" "bar" tactic(t) := t.',
+               "Definition ones : stream := co(* c *)fix ones : stream := Cons 1 ones.",
+               "(* CoInductive s : Type := c : s -> s. CoFixpoint z : s := c z. *) "
+               "Definition x := 0.",
+               "Lemma a : True. Proof. (* cofix H. Std.cofix_ @H. Constr.Unsafe.CoFix *) "
+               "exact I. Qed.",
+               'Definition label := "cofix".', 'Definition label := "a. CoFixpoint z. b".',
+               'Lemma a : True. Proof. idtac "cofix_ CoFix CoInductive". exact I. Qed.',
+               '#[deprecated(since="1", note="see CoFixpoint and cofix")] Definition old := 0.',
+               "Definition double := fix double (n : nat) : nat := "
+               "match n with 0 => 0 | S m => S (S (double m)) end.",
+               "Inductive tree : Type := leaf | node : tree -> tree -> tree.",
+               "Variant color : Type := red | green.",
+               "Record point : Type := { px : nat; py : nat }.",
+               "Structure box : Type := { content : nat }.",
+               "Class Sized (A : Type) := { size : A -> nat }.",
+               "Fixpoint depth (t : tree) : nat := "
+               "match t with leaf => 0 | node l r => S (Nat.max (depth l) (depth r)) end.")
+    # The compile each control reaches stops the audit there, under its own diagnostic.
+    stopped = subprocess.CompletedProcess([], 1, stdout="", stderr="stopped here")
+    with tempfile.TemporaryDirectory(prefix="vos-coinductive-control-") as temporary:
+        root = Path(temporary)
+        source = root / "proofs" / "M.v"
+        source.parent.mkdir()
+        for text in allowed:
+            ensure(not proofaudit.coinductive_forms(text),
+                   f"a source writing no coinductive form was refused: {text!r}")
+            source.write_text(text, encoding="utf-8")
+            with patch.object(gate, "_compile", return_value=stopped) as compiled:
+                checked = gate._check_source(root, source, [source])
+            ensure(compiled.called and checked.error == "compile exited 1: stopped here",
+                   f"a control did not reach the compiler: {text!r}: {checked.error!r}")
+
+
+def _shipped_sources_write_no_coinductive_form() -> None:
+    """Every tracked proof source, a generated module's template among them, passes the
+    coinductive refusal, which still reads them: a declaration appended to one is the one
+    sentence it reports."""
+    root = TOOLS.parent
+    names = sorted(name for name in corpus.read_index(root).indexed
+                   if name.startswith(f"{gate.PROOFS}/") and name.endswith((".v", ".v.in")))
+    ensure(bool(names), f"no tracked proof source under {gate.PROOFS}/")
+    texts = {name: (root / name).read_text(encoding="utf-8") for name in names}
+    found = [f"{name}: {sentence}" for name, text in texts.items()
+             for sentence in proofaudit.coinductive_forms(text)]
+    ensure(not found, f"a tracked proof source writes a coinductive form: {found!r}")
+    for declaration in (_STREAM, 'Tactic Notation "#a" tactic3(t) := t.'):
+        seeded = f"{texts[names[0]]}\n{declaration}\n"
+        ensure(proofaudit.coinductive_forms(seeded) == [declaration.removesuffix(".")],
+               f"a declaration appended to {names[0]} was not the one sentence refused")
 
 
 def _nested_sources_cannot_be_omitted() -> None:
@@ -749,6 +959,14 @@ def cases() -> list[Case]:
                  _dynamic_sources_are_refused_before_compiling),
             Case("unreadable-tokens-are-refused-before-compiling",
                  _unreadable_tokens_are_refused_before_compiling),
+            Case("coinductive-forms-are-refused-before-compiling",
+                 _coinductive_forms_are_refused_before_compiling),
+            Case("hiding-tokens-are-refused-before-compiling",
+                 _hiding_tokens_are_refused_before_compiling),
+            Case("coinductive-controls-reach-the-compiler",
+                 _coinductive_controls_reach_the_compiler),
+            Case("shipped-sources-write-no-coinductive-form",
+                 _shipped_sources_write_no_coinductive_form),
             Case("nested-sources-cannot-be-omitted", _nested_sources_cannot_be_omitted),
             Case("parallel-wave-blocks-stale-dependents", _parallel_wave_blocks_stale_dependents),
             Case("staged-run-binds-original-inputs", _staged_run_binds_original_inputs),

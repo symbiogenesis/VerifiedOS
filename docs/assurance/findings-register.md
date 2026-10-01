@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 844 of them across 146 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 849 of them across 146 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1157,9 +1157,29 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q38k
 · Disposition: open, reported and not closed, a register act at R-05-016a and R-05-018a rerunning the review gate
 
+**F-573** measurement: Q38k's first head passed a cofixpoint word joined to a token the source declares, `#_cofix`, `²cofix` and Ltac2's `Std.cofix_²sevens` among them, which the locked compiler compiles to guarded cofixpoints
+· Raised: Q38k
+· Disposition: closed at Q38k, words read through ASCII word characters alone and every declaration of a token able to hide one refused
+
+**F-574** measurement: Q38k's first numeral reading was held by no case, 13 of the review's 14 mutants surviving, and missed `#00x1p5cofix` once a notation declares `#0`
+· Raised: Q38k
+· Disposition: closed at Q38k, 15 probe-backed numeral cases and a decimal reading that stops before `0x`
+
+**F-575** measurement: a cofixpoint word joined to a token a dependency declares stays outside the lexical refusal, the locked compiler reading `+c1cofix` as `+c`, `1` and `cofix` after Stdlib's `+c`, one of 21 such tokens in the locked libraries
+· Raised: Q38k
+· Disposition: standing, the lock guide stating it as the refusal's residue
+
+**F-576** measurement: the machine-bound tactical refusal passed `do 1timeout 5 (exact I)`, and `#_timeout 5 (exact I)` once a notation declares `#_`, both of which the locked compiler compiles silently
+· Raised: Q38k
+· Disposition: closed at Q38k, the tactical reading sharing the coinductive reading's lexer model
+
+**F-577** measurement: `run.py proof-reading` repeated only two of the gate's five refusals before compiling, so it would compile a copy holding an unreadable token, a coinductive form, a hiding token or a dynamic source
+· Raised: Q38k
+· Disposition: closed at Q38k, the reading refusing all five before anything compiles
+
 **F-565** upstream-defect: the locked proof switch's Rocq 9.3.0 carries the cofixpoint guard-checker inconsistencies #22386 and #22389, which Rocq's critical-bug list reports fixed in V9.3
 · Raised: Q39
-· Disposition: open, Q38k refusing coinductive definitions in the sources the gate compiles until a lock move takes a Rocq release carrying #22388 and #22392
+· Disposition: standing, the proof audit's refusal of coinductive types and cofixpoints in the sources the gate compiles covering the forms an authored source writes, a word joined to a token a dependency declares aside, until a move of the proof switch's lock to a Rocq release carrying #22388 and #22392
 
 **F-525** upstream-defect: the locked proof switch's Rocq 9.3.0 carries #22387, module subtyping of inductives whose constructor types differ in let-ins, which Rocq's critical-bug list reports fixed in 9.2.0 and 9.3
 · Raised: Q39
