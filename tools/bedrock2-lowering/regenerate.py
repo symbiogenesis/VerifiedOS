@@ -44,6 +44,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parent))
+
+from vos import env  # noqa: E402  (run by hand, outside run.py's environment)
+
 SWITCH = "verifiedos-rupicola-9.2.0-ocaml-5.4.1"
 SOURCE = HERE / "DescriptorCheck.v"
 BASELINE = HERE / "IpChecksumBaseline.v"
@@ -95,8 +99,17 @@ class Derivation:
     assumptions: str
 
 
-def _run(argv: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(argv, cwd=cwd, capture_output=True, text=True, check=False)
+def _run(argv: list[str], cwd: Path | None = None,
+         timeout: float | None = None) -> subprocess.CompletedProcess[str]:
+    """One child of the lowering, captured, and answering no question: it runs with no
+    standard input and in `env.declining_environment`, so an opam command over a root
+    whose format upgrade cannot be made in memory declines that upgrade and fails,
+    rather than waiting on a prompt its captured output hides or rewriting the root one
+    way on the caller's OPAMYES. Every opam command of the lowering and of
+    [hello.py](hello.py) runs here."""
+    return subprocess.run(argv, cwd=cwd, capture_output=True, text=True, check=False,
+                          timeout=timeout, stdin=subprocess.DEVNULL,
+                          env=env.declining_environment())
 
 
 def _in_switch(argv: list[str]) -> list[str]:
