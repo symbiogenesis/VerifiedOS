@@ -236,6 +236,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S9, in prose
 · Disposition: open, the path read through in opam 2.6.0's `opamGlobalState.ml` and `opamFormatUpgrade.ml`, whether a 2.1~rc root states `opam-version: "2.1"` settled, and provision's unread-switch wording held to what the client does over such a root
 
+**F-533** owed-act: `run.py provision`'s hard-upgrade reading of a root's repository archives still differs from the reviewed client's in ways no case holds: a truncated gzip archive raises out of `opam_client._repo_file`, which catches neither `EOFError` nor `zlib.error`; Python's `tarfile` accepts headers ocaml-tar 3.5.0 refuses, base-256 numeric fields among them, so the reading answers where the client fails; the `_UPGRADES_READ` comment says a failing archive always fails the client although one visited after a nested archive does not; and no fixture holds the 2.0~beta5 boundary, a climbing member name, or a nested archive listed ahead of a failing one at the root of four repositories' tree
+· Raised: S9, in prose
+· Disposition: open, `_repo_file` catching the gzip errors, `_archive_nested` modelling ocaml-tar's header checks or its docstring narrowed to an archive `tarfile` cannot read, the comment qualified, and the three fixtures added
+
 **F-000t** upstream-defect: the model's documentation emitter writes the emitting checkout's commit and dirty flag into the artifact where git answers it, so a generated file held byte-for-byte would move on every commit and would differ between two lanes describing one model
 · Raised: S15
 · Disposition: open, the fact met twice carrying the first site's disposition: this site's emitter no longer answers the git question, and the configure child F-000o names is still owed its work tree
