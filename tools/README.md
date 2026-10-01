@@ -35,9 +35,9 @@ the crypto README owns.
 [instrument-switches.yml](../.github/workflows/instrument-switches.yml) builds and
 checks QuickChick's switch on manual dispatch from `main` alone, the one place the
 user's rulings let it be built and checked, so `run.py provision --apply`'s local
-QuickChick import is not run; [the instrument switch route](ci/README.md#instrument-switch-route)
-in the Guest CI contract owns it, and `run.py instrument-ci` dispatches it and reads its
-runs back.
+QuickChick import is not run;
+[the instrument switch route](ci/README.md#instrument-switch-route) in the Guest CI
+contract owns it, and `run.py instrument-ci` dispatches it and reads its runs back.
 
 **A red host CI run has to name which member went red, to a reader who cannot open its
 log.** One invocation is four members and one exit code, which reaches the run page and

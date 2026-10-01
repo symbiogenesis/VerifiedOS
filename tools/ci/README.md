@@ -326,10 +326,11 @@ checks QuickChick's switch on GitHub-hosted runners, and this section owns its c
 QuickChick's switch is built and checked only on this route: no QuickChick switch is
 built or checked in the local guest, so `run.py provision --apply`'s QuickChick import,
 which [the lock guide](../opam/README.md) names, is not run there, and no QuickChick
-lock is tracked from a guest build. No CertiRocq switch is built, checked or dispatched on it, the user's ruling of
-2026-09-30 keeping CertiRocq's builds local. No switch or download cache is used, so
-every switch a run reports was built in that run from its recipe or lock in a fresh
-root; the uv cache Guest CI saves is read and never saved.
+lock is tracked from a guest build. No CertiRocq switch is built, checked or
+dispatched on it, the user's ruling of 2026-09-30 keeping CertiRocq's builds local. No
+switch or download cache is used, so every switch a run reports was built in that run
+from its recipe or lock in a fresh root; the uv cache Guest CI saves is read and never
+saved.
 
 **Dispatch and plan.** `run.py instrument-ci dispatch` sends one dispatch with the
 inputs `revision`, `base_revision`, `build` (`install` or `recipe`), `sample` (a whole
@@ -345,8 +346,9 @@ one that is not a full lowercase commit on `main`; a `base_revision` that is not
 proper ancestor of `revision`; a `sample` outside 1 to 20 or written with a sign or a
 leading zero; a `build` other than `install` or `recipe`; and `build` `recipe` at a
 revision whose quickchick.py declares no `RECIPE` as a non-empty tuple or list of
-steps, read from that revision's source without running it. A refused plan starts no later job. Inputs reach a step only
-through its environment, and later jobs read only the values the plan validated.
+steps, read from that revision's source without running it. A refused plan starts no
+later job. Inputs reach a step only through its environment, and later jobs read only
+the values the plan validated.
 
 **Jobs.** Every job runs the route's own files, the workflow,
 [bootstrap_instrument.py](bootstrap_instrument.py), instrument_route.py and
@@ -377,23 +379,23 @@ after which the switch its recipe names does not stand, and the checks on a swit
   `seed coq --quickchick --sample N` over seed's default subject. A seed run is complete
   when its journal's closing line counts every mutant its head picked, at seed's exit 0
   or 1; a journal that closes on fewer, as one whose baseline did not stand closes on
-  none, fails the step. `--jobs` stays at 1
-  until the build job's recorded `quickchick properties` peak is the basis for more;
-  after a seed step reaches its limit, the next dispatch raises `--jobs` on that peak or
-  records the runner decision as owed to the user, and the sample stays 20.
+  none, fails the step. `--jobs` stays at 1 until the build job's recorded
+  `quickchick properties` peak is the basis for more; after a seed step reaches its
+  limit, the next dispatch raises `--jobs` on that peak or records the runner decision
+  as owed to the user, and the sample stays 20.
 - The join job runs when the plan job passed and the run was not cancelled. It takes
   one artifact per job, records a job its prerequisite's failure skipped as not run,
   records as failed a job whose result is failure though none of its wrapped steps
   failed or was undecided, a seed run only where a step of its own never ran, since a
   seed run's result is its matrix's, passes over and records an artifact an earlier
   attempt of the run left for a job this attempt did not run, refuses an artifact
-  missing from a job that ran, or a duplicate, and writes
-  `report.json` and a job summary naming each step's verdict, each sampled mutant's
-  verdict in every seed run by its identity, operator, site and rewrite, each mutant
-  whose verdict differs between the two candidate runs or between base and candidate,
-  or whose journalled verdict is other than killed, survived, stillborn or unseeded,
-  with the verdicts and reasons the journal records, and every pair of sides whose
-  opam client version or runner image differs.
+  missing from a job that ran, or a duplicate, and writes `report.json` and a job
+  summary naming each step's verdict, each sampled mutant's verdict in every seed run
+  by its identity, operator, site and rewrite, each mutant whose verdict differs
+  between the two candidate runs or between base and candidate, or whose journalled
+  verdict is other than killed, survived, stillborn or unseeded, with the verdicts and
+  reasons the journal records, and every pair of sides whose opam client version or
+  runner image differs.
 
 **Receipts and limits.** Each job's receipt records its effective inputs, side,
 revision, base revision, build, sample and subject, the subject being the one the plan
@@ -414,8 +416,9 @@ receipt holds no kernel OOM record for the step, once the step has run for its l
 is the limit reached; either exit sooner is recorded undecided, its cause unread. A
 step that reaches its limit, or exits for want of disk or memory as the sampler's
 free-disk figure or the kernel's OOM record shows, decides nothing and is recorded
-undecided, never as a failure. Each step's `timeout-minutes` is a backstop above its limit, and
-each job's is the sum of its step limits plus a 15-minute staging-and-upload margin.
+undecided, never as a failure. Each step's `timeout-minutes` is a backstop above its
+limit, and each job's is the sum of its step limits plus a 15-minute staging-and-upload
+margin.
 
 **Staging.** Each job's staging and upload run under `always()`. Staging copies an
 allowlist of `.json`, `.log`, `.txt`, `.lock` and `.journal` files into an upload
@@ -429,23 +432,22 @@ without credentials, saves it under `out/instrument-ci/<run id>/` and extracts i
 there, refusing an archive with a member whose path is absolute or climbs out of its
 directory, two members that would land on one another, a member that cannot be read,
 or whose members total more than 256 MiB, and moving an extraction into place only
-whole. It holds each member to the
-allowlist and each recorded input to the run, reads the jobs' conclusions and the
-`plan.json` of a run the plan refused, re-joins the artifacts against the run's
-`report.json`, and prints the verdict with the run's URL, tested revisions, runner
-images and step durations. It prints whether
+whole. It holds each member to the allowlist and each recorded input to the run, reads
+the jobs' conclusions and the `plan.json` of a run the plan refused, re-joins the
+artifacts against the run's `report.json`, and prints the verdict with the run's URL,
+tested revisions, runner images and step durations. It prints whether
 `git diff --quiet R <closing parent> -- <route inputs>` holds for the candidate's
-`source_revision` R, and whether the same holds over the route's own files and their `vos` import closure for the dispatching
-commit; given the closing commit by `--closing` and the paths its owning item's closing
-landing names by `--closing-path`, it reads that commit's own diff over the route
-inputs at R and at the closing commit, so a module a named path newly imports is one,
-and prints those paths. It refuses as closing evidence a run whose verdict is not
-passed or where a comparison does not hold, a build artifact holding no export, a
-closing parent given beside the closing commit that is not that commit's first parent,
-a closing commit that touches a route input
-other than the tracked lock, its SHA-256 equal to the artifact's export, and the named
-paths, and a run with a `base_revision` whose sample is not 20 or whose subject is not
-seed's default. The route inputs are the workflow, bootstrap_instrument.py,
+`source_revision` R, and whether the same holds over the route's own files and their
+`vos` import closure for the dispatching commit; given the closing commit by
+`--closing` and the paths its owning item's closing landing names by `--closing-path`,
+it reads that commit's own diff over the route inputs at R and at the closing commit,
+so a module a named path newly imports is one, and prints those paths. It refuses as
+closing evidence a run whose verdict is not passed or where a comparison does not
+hold, a build artifact holding no export, a closing parent given beside the closing
+commit that is not that commit's first parent, a closing commit that touches a route
+input other than the tracked lock, its SHA-256 equal to the artifact's export, and the
+named paths, and a run with a `base_revision` whose sample is not 20 or whose subject
+is not seed's default. The route inputs are the workflow, bootstrap_instrument.py,
 instrument_route.py, opam_client.py, gallina.py, quickchick.py, seed.py, provision.py,
 env.py, proofs.py, seeded.py and mutate.py, the transitive `vos` import closure at R of
 every module the route runs, which the reader computes from R's sources, tools/run.py,
