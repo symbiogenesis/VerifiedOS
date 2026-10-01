@@ -752,6 +752,7 @@ def _k119_every_membership_sentence_is_read() -> None:
                                     "nothing."},
             {"total": _K119_TOTAL + " The rest, which is what ~~K-07~~ are, narrow nothing."},
             {"total": _K119_TOTAL + " The rest, which is what (K-07) are, narrow nothing."},
+            {"total": _K119_TOTAL + " The rest, which is what _K-07_ are, narrow nothing."},
             {"total": _K119_TOTAL + " WHICH IS WHAT K-07 ARE."},
             {"heading": meta.REACH_HEADING
              + "\n\nThe marker rules come first, _that is what K-05 are_."}):
