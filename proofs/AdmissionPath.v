@@ -402,7 +402,7 @@ Definition bool_eqb (a b : bool) : bool :=
   end.
 
 Definition is_some {A : Type} (o : option A) : bool :=
-  match o with Some _ => true | None => false end.
+  if o is Some _ then true else false.
 
 Definition map_option {A B : Type} (f : A -> B) (o : option A) : option B :=
   match o with None => None | Some x => Some (f x) end.
@@ -974,7 +974,7 @@ Proof.
 Qed.
 
 Definition accepts (v : Verdict) : bool :=
-  match v with Accepted => true | Refused _ _ => false end.
+  if v is Accepted then true else false.
 
 Definition rule_of (v : Verdict) : option RuleId :=
   match v with Accepted => None | Refused r _ => Some r end.
@@ -1452,9 +1452,7 @@ Record Cert : Type := {
 Definition Reading (D : Type) : Type := D -> Cert.
 
 Definition with_steps (c : Cert) (l : list Step) : Cert :=
-  {| cert_versions := c.(cert_versions);
-     cert_binds := c.(cert_binds);
-     cert_steps := l |}.
+  {| c with cert_steps := l |}.
 
 (* A package as the composition-time act sees it: its content-addressed name,
    the tier it claims, the producer that emitted it and whatever attestation
@@ -1753,10 +1751,8 @@ Qed.
 Lemma first_undischarged_app :
   forall (c : Cert) (x y : list Facet),
     first_undischarged c (app x y)
-    = match first_undischarged c x with
-      | Some g => Some g
-      | None => first_undischarged c y
-      end.
+    = (if first_undischarged c x is Some g then Some g
+       else first_undischarged c y).
 Proof.
   intros c x y. induction x as [ | a s IH ].
   - reflexivity.
@@ -1860,14 +1856,11 @@ Definition check_cert (m : Machine) (id : nat) (tc : nat) (c : Cert) : Verdict :
   else match tier_of_code tc with
        | None => Refused TierUnrecognised id
        | Some t =>
-           match first_unrecognised c.(cert_steps) with
-           | Some s => Refused FormUnrecognised s.(st_site)
-           | None =>
-               match first_undischarged c (in_phase_order (m.(required) t)) with
-               | Some f => Refused (rule_of_move (move_of f)) (code_of_facet f)
-               | None => Accepted
-               end
-           end
+           if first_unrecognised c.(cert_steps) is Some s
+           then Refused FormUnrecognised s.(st_site)
+           else if first_undischarged c (in_phase_order (m.(required) t)) is Some f
+           then Refused (rule_of_move (move_of f)) (code_of_facet f)
+           else Accepted
        end.
 
 (* The specification's checker. The `Ambient` argument is taken and not read,
@@ -1967,7 +1960,7 @@ Theorem the_two_halves_compose :
     IsAFunctionOfThePackage D chk.
 Proof.
   intros D chk Hstate Hrun a1 a2 p.
-  transitivity (chk {| amb_run := a1.(amb_run); amb_state := a2.(amb_state) |} p).
+  transitivity (chk {| a1 with amb_state := a2.(amb_state) |} p).
   - apply Hstate. reflexivity.
   - apply Hrun. reflexivity.
 Qed.
@@ -2525,9 +2518,7 @@ Theorem admission_does_not_move_with_the_producer :
   forall (m : Machine) (D : Type) (rd : Reading D) (a : Ambient)
          (p : Package D) (who : nat) (att : bool),
     spec_check m D rd a p
-    = spec_check m D rd a {| pkg_id := p.(pkg_id); pkg_tier := p.(pkg_tier);
-                             pkg_producer := who; pkg_attested := att;
-                             pkg_cert := p.(pkg_cert) |}.
+    = spec_check m D rd a {| p with pkg_producer := who; pkg_attested := att |}.
 Proof.
   intros m D rd a p who att.
   apply (the_specification_reads_no_pedigree m D rd a). repeat split; reflexivity.
@@ -2636,6 +2627,10 @@ Proof.
       intros y Hy. exact (mem_nat_cons _ _ _ Hy).
 Qed.
 
+(* A committed generation read back: the hypothesis `H` equating two `Some`s
+   is injected as `H2`, which replaces the generation in the goal. *)
+Local Ltac unpack_generation := injection H as H2; rewrite <- H2; simpl.
+
 (* S11 (R-11-005, R-13-001a, R-13-001c): the specification is atomic. *)
 (*| discharges: R-11-005, R-13-001a, R-13-001c |*)
 Theorem the_specification_is_all_or_nothing :
@@ -2653,7 +2648,7 @@ Theorem the_specification_commits_only_the_accepted :
 Proof.
   intros m D rd a r g H. unfold spec_compose in H.
   destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-  injection H as H2. rewrite <- H2. simpl. exact E.
+  unpack_generation. exact E.
 Qed.
 
 (* S12 (R-13-001c, R-13-010b): and it emits no stranger the roster does not
@@ -2665,7 +2660,7 @@ Theorem the_specification_emits_no_uncovered_stranger :
 Proof.
   intros m D rd a r g H. unfold spec_compose in H.
   destruct (admissible m D rd a r); [ | discriminate H ].
-  injection H as H2. rewrite <- H2. simpl.
+  unpack_generation.
   refine (all_of_mono _ _ _ _ _ (every_member_names_itself D r)).
   intros y Hy. rewrite Hy. reflexivity.
 Qed.
@@ -2701,6 +2696,10 @@ Qed.
    non-vacuous; these are what makes each a reason.
    ========================================================================= *)
 
+(* The successor case over a list with tail `s`: simplified, rewritten by the
+   induction hypothesis `IH` at `s`, and closed. *)
+Local Ltac step_by_IH := simpl; rewrite (IH s); reflexivity.
+
 Lemma all_of_insert :
   forall (A : Type) (q : A -> bool) (x : A) (l : list A) (n : nat),
     all_of q (insert_at n x l) = andb (q x) (all_of q l).
@@ -2733,7 +2732,7 @@ Proof.
     destruct s as [ | b t ]; [ reflexivity | ].
     simpl. destruct (p a); destruct (p b); reflexivity.
   - destruct l as [ | a s ]; [ reflexivity | ].
-    simpl. rewrite (IH s). reflexivity.
+    step_by_IH.
 Qed.
 
 Lemma all_of_dup :
@@ -2744,7 +2743,7 @@ Proof.
   - destruct l as [ | a s ]; [ reflexivity | ].
     simpl. destruct (p a); reflexivity.
   - destruct l as [ | a s ]; [ reflexivity | ].
-    simpl. rewrite (IH s). reflexivity.
+    step_by_IH.
 Qed.
 
 Lemma count_of_insert :
@@ -2753,7 +2752,7 @@ Lemma count_of_insert :
 Proof.
   intros A x l n. revert l. induction n as [ | k IH ]; intros l.
   - reflexivity.
-  - destruct l as [ | y s ]; [ reflexivity | ]. simpl. rewrite (IH s). reflexivity.
+  - destruct l as [ | y s ]; [ reflexivity | ]. step_by_IH.
 Qed.
 
 Lemma count_of_swap :
@@ -2762,7 +2761,7 @@ Proof.
   intros A l n. revert l. induction n as [ | k IH ]; intros l.
   - destruct l as [ | a s ]; [ reflexivity | ].
     destruct s as [ | b t ]; reflexivity.
-  - destruct l as [ | a s ]; [ reflexivity | ]. simpl. rewrite (IH s). reflexivity.
+  - destruct l as [ | a s ]; [ reflexivity | ]. step_by_IH.
 Qed.
 
 Lemma count_of_drop :
@@ -2863,22 +2862,13 @@ Definition roster_duplications (D : Type) (r : Roster D) : list (Roster D) :=
    enumeration, which is derived rather than written so the corruption stays
    one when the enumeration grows. *)
 Definition unknown_form (s : Step) : Step :=
-  {| st_judgment := past_the_judgments;
-     st_move := s.(st_move);
-     st_facet := s.(st_facet);
-     st_site := s.(st_site) |}.
+  {| s with st_judgment := past_the_judgments |}.
 
 Definition unknown_move (s : Step) : Step :=
-  {| st_judgment := s.(st_judgment);
-     st_move := past_the_moves;
-     st_facet := s.(st_facet);
-     st_site := s.(st_site) |}.
+  {| s with st_move := past_the_moves |}.
 
 Definition unknown_facet (s : Step) : Step :=
-  {| st_judgment := s.(st_judgment);
-     st_move := s.(st_move);
-     st_facet := past_the_facets;
-     st_site := s.(st_site) |}.
+  {| s with st_facet := past_the_facets |}.
 
 (* Rewrite one record's move to an attribute. This is the misrouting the move
    table forbids and nothing else does: the record stays recognised, names the
@@ -2886,19 +2876,13 @@ Definition unknown_facet (s : Step) : Step :=
    to none of them, so it discharges its facet exactly when that facet was an
    attributed one already. *)
 Definition attributed (s : Step) : Step :=
-  {| st_judgment := s.(st_judgment);
-     st_move := code_of_move EvaluateAnAttribute;
-     st_facet := s.(st_facet);
-     st_site := s.(st_site) |}.
+  {| s with st_move := code_of_move EvaluateAnAttribute |}.
 
 (* Rewrite every record to one judgment form. Gap c is that no entry pairs a
    form with the facet it discharges, so this family is the weakest reading
    made checkable rather than asserted. *)
 Definition retag (j : Judgment) (c : Cert) : Cert :=
-  with_steps c (map_over (fun s => {| st_judgment := code_of_judgment j;
-                                      st_move := s.(st_move);
-                                      st_facet := s.(st_facet);
-                                      st_site := s.(st_site) |})
+  with_steps c (map_over (fun s => {| s with st_judgment := code_of_judgment j |})
                          c.(cert_steps)).
 
 Definition step_deletions (c : Cert) : list Cert :=
@@ -3035,7 +3019,7 @@ Proof.
     destruct s as [ | b t ]; [ reflexivity | ].
     simpl. destruct (p a); destruct (p b); reflexivity.
   - destruct l as [ | a s ]; [ reflexivity | ].
-    simpl. rewrite (IH s). reflexivity.
+    step_by_IH.
 Qed.
 
 Lemma any_of_dup :
@@ -3046,7 +3030,7 @@ Proof.
   - destruct l as [ | a s ]; [ reflexivity | ].
     simpl. destruct (p a); reflexivity.
   - destruct l as [ | a s ]; [ reflexivity | ].
-    simpl. rewrite (IH s). reflexivity.
+    step_by_IH.
 Qed.
 
 Lemma first_undischarged_congruent :
@@ -3335,20 +3319,16 @@ Definition thin_cert (id : nat) : Cert :=
    proofs generation-scoped, so revving the Sail model leaves the derivation
    intact and makes it no longer a verdict for this generation. *)
 Definition with_sail_model (v : nat) (c : Cert) : Cert :=
-  {| cert_versions := {| ver_spec_set := c.(cert_versions).(ver_spec_set);
-                         ver_sail_model := v;
-                         ver_language := c.(cert_versions).(ver_language);
-                         ver_profile := c.(cert_versions).(ver_profile) |};
-     cert_binds := c.(cert_binds);
-     cert_steps := c.(cert_steps) |}.
+  {| c with cert_versions := {| ver_spec_set := c.(cert_versions).(ver_spec_set);
+                                ver_sail_model := v;
+                                ver_language := c.(cert_versions).(ver_language);
+                                ver_profile := c.(cert_versions).(ver_profile) |} |}.
 
 Definition with_profile (v : nat) (c : Cert) : Cert :=
-  {| cert_versions := {| ver_spec_set := c.(cert_versions).(ver_spec_set);
-                         ver_sail_model := c.(cert_versions).(ver_sail_model);
-                         ver_language := c.(cert_versions).(ver_language);
-                         ver_profile := v |};
-     cert_binds := c.(cert_binds);
-     cert_steps := c.(cert_steps) |}.
+  {| c with cert_versions := {| ver_spec_set := c.(cert_versions).(ver_spec_set);
+                                ver_sail_model := c.(cert_versions).(ver_sail_model);
+                                ver_language := c.(cert_versions).(ver_language);
+                                ver_profile := v |} |}.
 
 (* R-11-005's two versions and R-05-135b's two are four obligations and not
    one: a derivation agreeing on three of them is refused on the fourth, and
@@ -3694,19 +3674,17 @@ Example the_witness_verdicts :
   eq_refl.
 
 Example every_refusal_rule_fires_on_a_witness :
-  all_of (fun r => any_of (fun p => match rule_of (demo_check p) with
-                                    | Some r2 => rule_eqb r r2
-                                    | None => false
-                                    end) refusal_witnesses) all_rules = true
+  all_of (fun r => any_of (fun p => if rule_of (demo_check p) is Some r2
+                                    then rule_eqb r r2
+                                    else false) refusal_witnesses) all_rules = true
   := eq_refl.
 
 (* And every one of TAL-074's six phases is reached by one of them, so the
    phase enumeration is exercised and not only mapped. *)
 Example every_phase_is_reached_by_a_witness :
-  all_of (fun q => any_of (fun p => match rule_of (demo_check p) with
-                                    | Some r => phase_eqb q (phase_of_rule r)
-                                    | None => false
-                                    end) refusal_witnesses) all_phases = true
+  all_of (fun q => any_of (fun p => if rule_of (demo_check p) is Some r
+                                    then phase_eqb q (phase_of_rule r)
+                                    else false) refusal_witnesses) all_phases = true
   := eq_refl.
 
 (* Reading 6 as a computation, twice. A package failing recognition and
@@ -3897,10 +3875,9 @@ Example the_state_reading_check_agrees_away_from_the_composer :
    which is TAL-001's own criterion read backwards. It reads no composer
    state at all. *)
 Definition flaky_check (m : Machine) (D : Type) (rd : Reading D) : Checker D :=
-  fun a p => match a.(amb_run) with
-             | 0 => spec_check m D rd a p
-             | S _ => Accepted
-             end.
+  fun a p => if a.(amb_run) is 0
+             then spec_check m D rd a p
+             else Accepted.
 
 Theorem the_flaky_check_answers_differently_on_a_second_run :
   ~ IsRunIndependent Cert (flaky_check demo Cert full_reading).
@@ -3962,12 +3939,11 @@ Example the_two_tagged_packages_read_alike :
    is exactly why carrier-abstraction is an obligation of its own rather than
    a corollary of fail-closed. *)
 Definition tag_peeking_check (m : Machine) : Checker Tagged :=
-  fun a p => match p.(pkg_cert) with
-             | Some x => if Nat.eqb (fst x) 0
-                         then spec_check m Tagged tag_reading a p
-                         else Refused BindingMismatch p.(pkg_id)
-             | None => spec_check m Tagged tag_reading a p
-             end.
+  fun a p => if p.(pkg_cert) is Some x
+             then (if Nat.eqb (fst x) 0
+                   then spec_check m Tagged tag_reading a p
+                   else Refused BindingMismatch p.(pkg_id))
+             else spec_check m Tagged tag_reading a p.
 
 Theorem the_tag_peeking_check_reads_the_carrier :
   ~ IsAFunctionOfTheReading Tagged tag_reading (tag_peeking_check demo).
@@ -4222,10 +4198,9 @@ Definition wandering_site_check (D : Type) : Checker D :=
   fun a p => Refused AttributeMissing a.(amb_run).
 
 Definition wandering_rule_check (D : Type) : Checker D :=
-  fun a p => match a.(amb_run) with
-             | 0 => Refused CitationMissing p.(pkg_id)
-             | S _ => Refused AttributeMissing p.(pkg_id)
-             end.
+  fun a p => if a.(amb_run) is 0
+             then Refused CitationMissing p.(pkg_id)
+             else Refused AttributeMissing p.(pkg_id).
 
 Theorem the_wandering_site_check_names_a_stable_rule :
   forall D : Type, NamesAStableRule D (wandering_site_check D).
@@ -4300,14 +4275,13 @@ Example the_two_wandering_checks_move_different_halves :
 
 Definition nothing_to_check (m : Machine) (D : Type) (rd : Reading D) : Checker D :=
   fun _ p =>
-    match tier_of_code p.(pkg_tier) with
-    | None => Refused TierUnrecognised p.(pkg_id)
-    | Some _ =>
+    if tier_of_code p.(pkg_tier) is None
+    then Refused TierUnrecognised p.(pkg_id)
+    else
         match p.(pkg_cert) with
         | None => Accepted
         | Some d => check_cert m p.(pkg_id) p.(pkg_tier) (rd d)
-        end
-    end.
+        end.
 
 Theorem the_vacuous_check_admits_an_absent_derivation :
   ~ RefusesAnAbsentDerivation Cert (nothing_to_check demo Cert full_reading).
@@ -4532,10 +4506,7 @@ Example the_permissive_check_is_invisible_until_a_record_is_unreadable :
 
 Definition reroute (s : Step) : Step :=
   match facet_of_code s.(st_facet), move_of_code s.(st_move) with
-  | Some f, Some _ => {| st_judgment := s.(st_judgment);
-                         st_move := code_of_move (move_of f);
-                         st_facet := s.(st_facet);
-                         st_site := s.(st_site) |}
+  | Some f, Some _ => {| s with st_move := code_of_move (move_of f) |}
   | _, _ => s
   end.
 
@@ -4570,7 +4541,7 @@ Qed.
    change it, so a facet no record names is undischarged for the blind checker
    too: what it loses is the move assignment and not the facet assignment. *)
 Definition names_facet (f : Facet) (s : Step) : bool :=
-  match facet_of_code s.(st_facet) with Some g => facet_eqb f g | None => false end.
+  if facet_of_code s.(st_facet) is Some g then facet_eqb f g else false.
 
 Lemma a_discharge_names_its_facet :
   forall (s : Step) (f : Facet), discharges s f = true -> names_facet f s = true.
@@ -4697,14 +4668,11 @@ Definition check_in_declared_order (m : Machine) (id tc : nat) (c : Cert) : Verd
   else match tier_of_code tc with
        | None => Refused TierUnrecognised id
        | Some t =>
-           match first_unrecognised c.(cert_steps) with
-           | Some s => Refused FormUnrecognised s.(st_site)
-           | None =>
-               match first_undischarged c (m.(required) t) with
-               | Some f => Refused (rule_of_move (move_of f)) (code_of_facet f)
-               | None => Accepted
-               end
-           end
+           if first_unrecognised c.(cert_steps) is Some s
+           then Refused FormUnrecognised s.(st_site)
+           else if first_undischarged c (m.(required) t) is Some f
+           then Refused (rule_of_move (move_of f)) (code_of_facet f)
+           else Accepted
        end.
 
 Definition declared_order_check (m : Machine) (D : Type) (rd : Reading D)
@@ -4813,10 +4781,9 @@ Definition tier_before_binding_check (m : Machine) (D : Type) (rd : Reading D)
     | Some d =>
         if negb (versions_eqb (rd d).(cert_versions) m.(admitted_versions))
         then Refused VersionMismatch p.(pkg_id)
-        else match tier_of_code p.(pkg_tier) with
-             | None => Refused TierUnrecognised p.(pkg_id)
-             | Some _ => check_cert m p.(pkg_id) p.(pkg_tier) (rd d)
-             end
+        else if tier_of_code p.(pkg_tier) is None
+        then Refused TierUnrecognised p.(pkg_id)
+        else check_cert m p.(pkg_id) p.(pkg_tier) (rd d)
     end.
 
 (* Phase 2's record recognition hoisted above phase 1's tier lookup. *)
@@ -4830,10 +4797,9 @@ Definition form_first_check (m : Machine) (D : Type) (rd : Reading D)
         then Refused VersionMismatch p.(pkg_id)
         else if negb (Nat.eqb (rd d).(cert_binds) p.(pkg_id))
         then Refused BindingMismatch p.(pkg_id)
-        else match first_unrecognised (rd d).(cert_steps) with
-             | Some s => Refused FormUnrecognised s.(st_site)
-             | None => check_cert m p.(pkg_id) p.(pkg_tier) (rd d)
-             end
+        else if first_unrecognised (rd d).(cert_steps) is Some s
+        then Refused FormUnrecognised s.(st_site)
+        else check_cert m p.(pkg_id) p.(pkg_tier) (rd d)
     end.
 
 Theorem the_binding_first_check_accepts_where_the_specification_does :
@@ -5047,13 +5013,10 @@ Example the_reordered_checkers_agree_on_the_golden_roster :
    ------------------------------------------------------------------------- *)
 
 Definition with_versions (v : Versions) (c : Cert) : Cert :=
-  {| cert_versions := v; cert_binds := c.(cert_binds); cert_steps := c.(cert_steps) |}.
+  {| c with cert_versions := v |}.
 
 Definition only_the_spec_set (v w : Versions) : Versions :=
-  {| ver_spec_set := v.(ver_spec_set);
-     ver_sail_model := w.(ver_sail_model);
-     ver_language := w.(ver_language);
-     ver_profile := w.(ver_profile) |}.
+  {| w with ver_spec_set := v.(ver_spec_set) |}.
 
 Definition partial_version_check (m : Machine) (D : Type) (rd : Reading D)
     : Checker D :=
@@ -5182,10 +5145,10 @@ Theorem the_filtering_composer_keeps_the_other_four :
     /\ CommitsEveryAccepted m D rd (filtering_composer m D rd).
 Proof.
   intros m D rd. unfold filtering_composer. split.
-  { intros a r g H. injection H as H2. rewrite <- H2. simpl.
+  { intros a r g H. unpack_generation.
     exact (all_of_filter (Package D) (fun p => accepts (spec_check m D rd a p)) r). }
   split.
-  { intros a r g H. injection H as H2. rewrite <- H2. simpl.
+  { intros a r g H. unpack_generation.
     refine (all_of_mono _ _ _ _ _
               (filter_of_within _ _ _ r (every_member_names_itself D r))).
     intros y Hy. rewrite Hy. reflexivity. }
@@ -5229,19 +5192,17 @@ Example no_position_of_a_refused_component_composes :
 
 Definition merging_composer (m : Machine) (D : Type) (rd : Reading D)
     (x : Package D) : Composer D :=
-  fun a r => match spec_compose m D rd a r with
-             | Some g => Some {| gen_image := cons x g.(gen_image);
-                                 gen_synthesized := cons x.(pkg_id) nil |}
-             | None => None
-             end.
+  fun a r => if spec_compose m D rd a r is Some g
+             then Some {| gen_image := cons x g.(gen_image);
+                          gen_synthesized := cons x.(pkg_id) nil |}
+             else None.
 
 Definition substituting_composer (m : Machine) (D : Type) (rd : Reading D)
     (x : Package D) : Composer D :=
-  fun a r => match spec_compose m D rd a r with
-             | Some g => Some {| gen_image := cons x g.(gen_image);
-                                 gen_synthesized := nil |}
-             | None => None
-             end.
+  fun a r => if spec_compose m D rd a r is Some g
+             then Some {| gen_image := cons x g.(gen_image);
+                          gen_synthesized := nil |}
+             else None.
 
 (* The pass that does what R-13-010b requires satisfies all five, and the
    package it adds is one the roster does not name, which is the point: the
@@ -5259,17 +5220,17 @@ Proof.
   { intros a r H. rewrite H. reflexivity. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    injection H as H2. rewrite <- H2. simpl. apply andb_join; [ exact (Hx a) | exact E ]. }
+    unpack_generation. apply andb_join; [ exact (Hx a) | exact E ]. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    injection H as H2. rewrite <- H2. simpl. apply andb_join.
+    unpack_generation. apply andb_join.
     - rewrite (mem_nat_here x.(pkg_id) nil).
       destruct (mem_nat x.(pkg_id) (image_ids D r)); reflexivity.
     - refine (all_of_mono _ _ _ _ _ (every_member_names_itself D r)).
       intros y Hy. rewrite Hy. reflexivity. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    injection H as H2. rewrite <- H2. simpl. unfold mem_nat. unfold image_ids.
+    unpack_generation. unfold mem_nat. unfold image_ids.
     simpl. rewrite (nat_eqb_refl x.(pkg_id)). reflexivity. }
   intros a r H. rewrite H.
   exists {| gen_image := cons x r; gen_synthesized := cons x.(pkg_id) nil |}.
@@ -5358,7 +5319,7 @@ Proof.
   { intros a r H. rewrite H. reflexivity. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    injection H as H2. rewrite <- H2. simpl. apply andb_join; [ exact (Hx a) | exact E ]. }
+    unpack_generation. apply andb_join; [ exact (Hx a) | exact E ]. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
     injection H as H2. rewrite <- H2. reflexivity. }
@@ -5392,11 +5353,9 @@ Qed.
    requires covers nothing in the image. *)
 Definition phantom_merge_composer (m : Machine) (D : Type) (rd : Reading D)
     (i : nat) : Composer D :=
-  fun a r => match spec_compose m D rd a r with
-             | Some g => Some {| gen_image := g.(gen_image);
-                                 gen_synthesized := cons i nil |}
-             | None => None
-             end.
+  fun a r => if spec_compose m D rd a r is Some g
+             then Some {| g with gen_synthesized := cons i nil |}
+             else None.
 
 Theorem the_phantom_merge_covers_nothing_it_declared :
   ~ CoversWhatItSynthesized Cert
@@ -5417,10 +5376,10 @@ Proof.
   { intros a r H. rewrite H. reflexivity. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    injection H as H2. rewrite <- H2. simpl. exact E. }
+    unpack_generation. exact E. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    injection H as H2. rewrite <- H2. simpl.
+    unpack_generation.
     refine (all_of_mono _ _ _ _ _ (every_member_names_itself D r)).
     intros y Hy. rewrite Hy. reflexivity. }
   intros a r H. rewrite H.
@@ -5488,10 +5447,9 @@ Example each_waived_rule_admits_exactly_what_it_waives :
   all_of (fun r =>
     all_of (fun p => bool_eqb (accepts (waived r amb_first p))
                               (orb (accepts (demo_check p))
-                                   (match rule_of (demo_check p) with
-                                    | Some r2 => rule_eqb r r2
-                                    | None => false
-                                    end)))
+                                   (if rule_of (demo_check p) is Some r2
+                                    then rule_eqb r r2
+                                    else false)))
            refusal_witnesses)
     all_rules = true := eq_refl.
 
