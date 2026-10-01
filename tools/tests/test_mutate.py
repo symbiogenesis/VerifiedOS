@@ -95,6 +95,93 @@ def _a_decorated_command_opens_its_own_region() -> None:
                f"under {decoration!r} the definition's sites were {found}")
 
 
+def _the_shared_decoration_grammar_keys_the_region() -> None:
+    """The decorations are the shared lexer's, spelled as Rocq's lexer reads them: no
+    blank after a word or a string, a doubled quote in a quoted target, a comment as a
+    separator, and a bullet before a definition inside a proof. Read as no keyword, each
+    left the definition the tail of the proof above it, or keyed it by `Local`."""
+    for decoration in ("Time#[local]", "Local(* c *)", 'Redirect "a""b" ', 'Profile"p"',
+                       "Polymorphic(* a *)Program(* b *)", "Timeout 5Local "):
+        text = ("Lemma l : 1 = 1.\n"
+                "Proof. reflexivity. Qed.\n"
+                f"{decoration}Definition f (n : nat) : nat := n + 2.\n")
+        found = _sites(text, mutate.COQ, "const-inc", named=("f",))
+        ensure([m.before for m in found] == ["2"],
+               f"under {decoration!r} the definition's sites were {found}")
+    text = ("Lemma l : True.\nProof.\n- Definition f (n : nat) : nat := n + 2.\n"
+            "  exact I.\nQed.\n")
+    keyed = [(r.keyword, r.name) for r in mutate.regions(text, mutate.COQ)]
+    ensure(keyed == [("Lemma", "l"), ("Proof", "."), ("Definition", "f"), ("Qed", ".")],
+           f"a definition after a bullet opened no region of its own: {keyed}")
+    ensure([m.before for m in _sites(text, mutate.COQ, "const-inc")] == ["2"],
+           "the definition after a bullet lost its sites")
+    # a void flag spelled so is still the flag, and its region takes no mutation
+    first = "Definition f (n : nat) : nat := n + 1.\n"
+    for lead, flag in (("Succeed#[local]", "Succeed"), ("Fail(* c *)", "Fail"),
+                       ('Profile"p"Fail ', "Fail")):
+        text = first + f"{lead}Definition g (n : nat) : nat := n + 2.\n"
+        found = _sites(text, mutate.COQ, "const-inc")
+        ensure([m.before for m in found] == ["1"],
+               f"under {lead!r} the sites were {[m.before for m in found]}")
+        keys = [r.keyword for r in mutate.regions(text, mutate.COQ)]
+        ensure(keys == ["Definition", flag], f"under {lead!r} the regions were {keys}")
+    # a bullet, a brace or `Export` names only a command keyword: a term continuing on a
+    # line of its own, or a module exported, is read as it was
+    for continued in ("  n\n+ S 2.\n", "  n\n- Nat.pred 2.\n", "  n\n* S 2.\n"):
+        text = "Definition f (n : nat) : nat :=\n" + continued
+        found = _sites(text, mutate.COQ, "const-inc")
+        ensure([m.before for m in found] == ["2"],
+               f"a term continued by {continued!r} lost its sites: {found}")
+        keys = [r.keyword for r in mutate.regions(text, mutate.COQ)]
+        ensure(keys == ["Definition"], f"a term continued by {continued!r} opened {keys}")
+    keyed = [(r.keyword, r.name) for r in mutate.regions(
+        "Definition T : Type :=\n{ n : nat | n = 2 }.\nExport Foo.\nExport Set Printing All.\n",
+        mutate.COQ)]
+    ensure(keyed == [("Definition", "T"), ("Export", "Foo."), ("Set", "Printing")],
+           f"a brace or an exported module was read as a decoration: {keyed}")
+
+
+def _every_defining_keyword_opens_its_own_region() -> None:
+    """A keyword missing from the region table left its sentence the tail of the region
+    above: a `Variant` after a definition was mutable under the definition's name, and a
+    rewrite of an `Inductive` as a `Variant` moved a region with nothing said. The
+    keywords are spelled here rather than read from the table under test, so one dropped
+    from the table is a case that fails rather than a case that goes with it."""
+    first = "Definition f (n : nat) : nat := n + 1.\n"
+    for keyword in ("Definition", "Theorem", "Lemma", "Fact", "Remark", "Corollary",
+                    "Proposition", "Property", "Example", "Instance", "Fixpoint",
+                    "CoFixpoint", "Inductive", "CoInductive", "Variant", "Record",
+                    "Structure", "Let"):
+        text = first + f"{keyword} g : nat := 2.\n"
+        keyed = [(r.keyword, r.name) for r in mutate.regions(text, mutate.COQ)]
+        ensure(keyed == [("Definition", "f"), (keyword, "g")],
+               f"a line opening with {keyword} opened {keyed}")
+        found = _sites(text, mutate.COQ, "const-inc", named=("f",))
+        ensure([m.before for m in found] == ["1"],
+               f"the definition above swallowed the {keyword}'s sites: {found}")
+
+
+def _a_keyword_is_a_whole_word() -> None:
+    """A column-0 identifier that begins with a region keyword is the term it continues.
+    Read as a prefix, `Letter 4` continuing a definition opened a region keyed `Let` that
+    nothing mutates, and the definition lost its site."""
+    for continued in ("Letter 4.\n", "Settings 4.\n", "Printing 4.\n", "Ending 4.\n",
+                      "Proofs 4.\n", "Lemmas 4.\n"):
+        text = "Definition t : nat :=\n" + continued
+        keyed = [(r.keyword, r.name) for r in mutate.regions(text, mutate.COQ)]
+        ensure(keyed == [("Definition", "t")], f"a term continued by {continued!r}: {keyed}")
+        found = _sites(text, mutate.COQ, "const-inc")
+        ensure([m.before for m in found] == ["4"],
+               f"a term continued by {continued!r} lost its site: {found}")
+    # the plural assumption commands and Ltac2's definitions are keywords of their own
+    text = ("Section S.\nVariables a b : nat.\nDefinition f (n : nat) : nat := n + 1.\n"
+            "End S.\nAxioms x y : nat.\nParameters p q : nat.\nLtac2 t () := ().\n")
+    keyed = [(r.keyword, r.name) for r in mutate.regions(text, mutate.COQ)]
+    ensure(keyed == [("Section", "S."), ("Variables", "a"), ("Definition", "f"),
+                     ("End", "S."), ("Axioms", "x"), ("Parameters", "p"), ("Ltac2", "t")],
+           f"the plural commands opened {keyed}")
+
+
 def _a_decorated_proof_ends_the_definition_above() -> None:
     # The other direction of the same defect: `#[local] Lemma` read as no keyword was
     # the tail of the definition above it, and its statement's literals were mutable.
@@ -133,6 +220,63 @@ def _a_void_command_defines_nothing_to_mutate() -> None:
     keys = [r.keyword for r in mutate.regions(text, mutate.COQ)]
     ensure(keys == ["Lemma", "Proof", "Qed", "Definition"],
            f"a tactic's flag waited past it: {keys}")
+
+
+def _a_decoration_reaches_its_command_across_lines() -> None:
+    """Rocq's lexer reads a decoration run across lines: a comment spanning lines is a
+    separator, an attribute may span lines, and the command may be indented under its
+    flag. Read a line at a time, each lost the command: `Succeed (* a` newline `b *)
+    Definition g` left g's literal mutable in the region above, and a multi-line
+    attribute under `Succeed` keyed g as a mutable definition."""
+    first = "Definition f (n : nat) : nat := n + 1.\n"
+    second = "Definition g (n : nat) : nat := n + 2.\n"
+    for lead, keyword, sites in (("Succeed (* a\n b *) ", "Succeed", ["1"]),
+                                 ("Local (* a\n*)", "Definition", ["1", "2"]),
+                                 ('Succeed #[deprecated(since="1",\n  note="x")]\n',
+                                  "Succeed", ["1"]),
+                                 ("Succeed\n  ", "Succeed", ["1"]),
+                                 ("Local\n(* why *)\n  ", "Definition", ["1", "2"]),
+                                 ("Succeed (* a *) ", "Succeed", ["1"])):
+        text = first + lead + second
+        keyed = [(r.keyword, r.name, r.start) for r in mutate.regions(text, mutate.COQ)]
+        ensure(keyed == [("Definition", "f", 0), (keyword, "g", len(first))],
+               f"under {lead!r} the regions were {keyed}")
+        found = _sites(text, mutate.COQ, "const-inc")
+        ensure([m.before for m in found] == sites,
+               f"under {lead!r} the sites were {[m.before for m in found]}")
+
+
+def _a_flag_before_a_brace_is_the_braces() -> None:
+    """A bullet, a brace or a goal selector is a command of its own, and the locked
+    compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps the definition
+    after it, so that definition's region is keyed by its own command, opens after the
+    brace and is mutable; a flag after a bullet is the definition's, which keeps nothing
+    to mutate."""
+    first = "Definition f (n : nat) : nat := n + 1.\nLemma l : True.\nProof.\n"
+    second = "Definition g (n : nat) : nat := n + 2.\n"
+    tail = "  exact I.\nQed.\n"
+    for lead, keyword, sites, opens in (("Fail } ", "Definition", ["1", "2"], "Definition g"),
+                                        ("Succeed { ", "Definition", ["1", "2"], "Definition g"),
+                                        ("Succeed 1: { ", "Definition", ["1", "2"],
+                                         "Definition g"),
+                                        ("Fail }\n", "Definition", ["1", "2"], "Definition g"),
+                                        ("Succeed\n{ ", "Definition", ["1", "2"],
+                                         "Definition g"),
+                                        ("Fail\n}\n#[local]\n", "Definition", ["1", "2"],
+                                         "#[local]"),
+                                        ("- Succeed ", "Succeed", ["1"], "Succeed"),
+                                        ("{ Succeed\n", "Succeed", ["1"], "Succeed")):
+        text = first + lead + second + tail
+        keyed = [(r.keyword, r.name) for r in mutate.regions(text, mutate.COQ)]
+        ensure(keyed == [("Definition", "f"), ("Lemma", "l"), ("Proof", "."),
+                         (keyword, "g"), ("Qed", ".")],
+               f"after {lead!r} the regions were {keyed}")
+        starts = [r.start for r in mutate.regions(text, mutate.COQ) if r.name == "g"]
+        ensure(starts == [text.index(opens, len(first))],
+               f"after {lead!r} g's region opened at {starts}")
+        found = _sites(text, mutate.COQ, "const-inc")
+        ensure([m.before for m in found] == sites,
+               f"after {lead!r} the sites were {[m.before for m in found]}")
 
 
 def _a_line_inside_a_comment_opens_no_region() -> None:
@@ -300,8 +444,16 @@ def cases() -> list[Case]:
              _a_decorated_command_opens_its_own_region),
         Case("a decorated proof ends the definition above",
              _a_decorated_proof_ends_the_definition_above),
+        Case("the shared decoration grammar keys the region",
+             _the_shared_decoration_grammar_keys_the_region),
+        Case("every defining keyword opens its own region",
+             _every_defining_keyword_opens_its_own_region),
+        Case("a keyword is a whole word", _a_keyword_is_a_whole_word),
         Case("a void command defines nothing to mutate",
              _a_void_command_defines_nothing_to_mutate),
+        Case("a decoration reaches its command across lines",
+             _a_decoration_reaches_its_command_across_lines),
+        Case("a flag before a brace is the brace's", _a_flag_before_a_brace_is_the_braces),
         Case("a line inside a comment opens no region",
              _a_line_inside_a_comment_opens_no_region),
         Case("a record completed from a base is mutable",

@@ -7,13 +7,14 @@ loud about a table that grew or shrank, and silent about one whose extra numeral
 happen not to arrive: what has to be pinned here is that the reading takes the
 statement, the whole statement and nothing but the statement.
 
-Four boundaries, one case each. A statement under an attribute or a locality is the
+Five boundaries, one case each. A statement under an attribute or a locality is the
 statement and is read; one under `Fail` or `Succeed`, on its line or above it past blank
-lines and comments, states nothing the file keeps and is refused by name; and one a
-comment quotes is no statement at all. And a statement stops at its own full stop, so
-the `Proof using` line, the decorated declaration or the comment around its table adds
-no value to it, where the list of next constructs this replaces read the first two as
-more table.
+lines and comments, states nothing the file keeps and is refused by name, while one
+after `Fail }` or `Succeed {` is read, the flag being the brace's; and one a comment
+quotes is no statement at all. And a statement stops at its own full stop, so the
+`Proof using` line, the decorated declaration or the comment around its table adds no
+value to it, where the list of next constructs this replaces read the first two as more
+table.
 """
 
 from tests.harness import Case, ensure
@@ -43,6 +44,13 @@ def _a_decorated_statement_is_read() -> None:
     got, why = _values("#[local] Example table : map id l = 3 :: 5 :: 7 :: nil.\n"
                        "Proof. reflexivity. Qed.\n", "example")
     ensure(got == [3, 5, 7], f"a decorated Example read {got} ({why})")
+    # the shared lexer's grammar, spelled as Rocq's lexer reads it: no blank after a word
+    # or a string, a doubled quote in a quoted target, and a bullet inside a proof
+    for decoration in ("Time#[local]", 'Profile"p"', 'Redirect "a""b" ', "Timeout 5Local ",
+                       "Lemma l : True.\nProof.\n- "):
+        got, why = _values(decoration + _TABLE)
+        ensure(got == [3, 5, 7] and not why,
+               f"under {decoration!r} the table read {got} ({why})")
 
 
 def _a_void_statement_is_refused() -> None:
@@ -52,7 +60,9 @@ def _a_void_statement_is_refused() -> None:
                        ("#[local] Fail ", "Fail"), ("Fail\n", "Fail"),
                        ("Fail\n\n", "Fail"), ("Fail (* why. *)\n", "Fail"),
                        ("Fail\n(* a note\n   spanning lines *)\n", "Fail"),
-                       ('Succeed\n#[deprecated(note="a. b")]\n', "Succeed")):
+                       ('Succeed\n#[deprecated(note="a. b")]\n', "Succeed"),
+                       ("Succeed#[local]", "Succeed"), ("Succeed#[local]\n", "Succeed"),
+                       ('Redirect "a""b" Fail\n', "Fail"), ('Profile"p"Fail ', "Fail")):
         got, why = _values(lead + _TABLE)
         ensure(got is None and f"under `{flag}`" in why,
                f"a table under {lead!r} was read as {got} ({why})")
@@ -62,6 +72,21 @@ def _a_void_statement_is_refused() -> None:
     # a flag that ends the sentence before is no flag of this one
     got, why = _values("Check Fail.\n" + _TABLE)
     ensure(got == [3, 5, 7], f"a word of the sentence before voided the table: {got} ({why})")
+
+
+def _a_flag_before_a_brace_is_the_braces() -> None:
+    # A bullet, a brace or a goal selector is a command of its own, and the locked
+    # compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps the statement
+    # after it, on the brace's line or below it, so that statement is read.
+    proof = "Lemma l : True.\nProof.\n"
+    for lead in ("Fail }\n", "Fail } ", "Succeed { ", "Succeed 1: {\n", "Fail\n} "):
+        got, why = _values(proof + lead + _TABLE)
+        ensure(got == [3, 5, 7] and not why, f"after {lead!r} the table read {got} ({why})")
+    # the control: a flag after a bullet, on its line or below it, is the statement's
+    for lead in ("- Succeed ", "{ Succeed\n"):
+        got, why = _values(proof + lead + _TABLE)
+        ensure(got is None and "under `Succeed`" in why,
+               f"a table after {lead!r} was read as {got} ({why})")
 
 
 def _a_statement_inside_a_comment_is_none() -> None:
@@ -106,6 +131,7 @@ def cases() -> list[Case]:
     return [
         Case("a-decorated-statement-is-read", _a_decorated_statement_is_read),
         Case("a-void-statement-is-refused", _a_void_statement_is_refused),
+        Case("a-flag-before-a-brace-is-the-braces", _a_flag_before_a_brace_is_the_braces),
         Case("a-statement-inside-a-comment-is-none", _a_statement_inside_a_comment_is_none),
         Case("a-statement-stops-at-its-own-full-stop",
              _a_statement_stops_at_its_own_full_stop),

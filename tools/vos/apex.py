@@ -45,26 +45,28 @@ whichever is longer. Both callers refuse on a non-empty `unread`, which is the o
 answer available: a parse that cannot say what a body consumes cannot narrow the
 answer to what it happened to see.
 
-**Two spellings Rocq admits are read or refused, never skipped.** A definition under an
-attribute or a locality, `#[local] Definition`, is the same body and is read as one; a
-count taken wider than the reading makes any other decoration a residue rather than a
-definition nobody saw, and a definition under `Fail` or `Succeed` on a line of its own
-above it is one too, the flag keeping nothing it states. A record value completed from
-a base, `{| v with f := x |}`, consumes by projection every field it does not assign and
-names none of them, so a body that may carry one is `unread` rather than answered from
-the fields it happens to spell.
+**Two spellings Rocq admits are read or refused, never skipped.** A definition under a
+decoration, `#[local] Definition` or `Time Definition`, is the same body and is read as
+one, over the decoration grammar and the comment lexing the shared lexer writes once
+for every reader ([proofs.py](proofs.py)); a count taken wider than the reading makes a
+definition under `Fail` or `Succeed`, on its line or on one above it, a residue rather
+than a definition nobody saw, the flag keeping nothing it states. A record value
+completed from a base, `{| v with f := x |}`, consumes by projection every field it does
+not assign and names none of them, so a body that may carry one is `unread` rather than
+answered from the fields it happens to spell.
 """
 
 import re
+from bisect import bisect_left
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from vos.proofs import CONTROL_PREFIXES, sentence_ends, strip_comments, void_flag
 
 APEX = "proofs/ApexTheorem.v"
 
 # The type that makes a declaration one of the checklist's obligations.
 PROP = "Prop"
-
-_COMMENT_RE = re.compile(r"(?s)\(\*(?:(?!\(\*|\*\)).)*\*\)")
 
 # The record's opening, and then its body by brace depth. The lazy `\{(.*?)\}\.` this
 # replaces ended at the first `}.` after the header, so a record that ever gained a
@@ -88,35 +90,22 @@ _DECL_RE = re.compile(r"(?s)^\s*(\w+)\s*:\s*(\S.*?)\s*$")
 # it carries.
 _WORD_RE = re.compile(r"\w+")
 
-# What may stand before a `Definition` and leave it the definition it decorates: quoted
-# attributes, `#[local]` and the rest, and the legacy attributes Rocq's grammar admits in
-# their place. None of them moves a token of the body, so a definition under one is read
-# as if it stood bare. A control prefix is not among them: `Fail` and `Succeed` leave
-# nothing defined, so a sentence under one is counted below and read by nothing.
-_PREFIX = (r'(?:#\[(?:[^\]"]|"[^"]*")*\]\s*|(?:Local|Global|Program|Polymorphic'
-           r'|Monomorphic|Cumulative|NonCumulative|Private)\s+)*')
+# What may stand before a `Definition` is the shared lexer's decoration grammar: bullets
+# and goal selectors, control flags, and quoted and legacy attributes. None of them moves
+# a token of the body, so a definition under one is read as if it stood bare, except
+# under `Fail` or `Succeed`, on its line or on a line of its own above it, which leaves
+# nothing defined: the pattern below reads such a definition and the shared look-back
+# (proofs.void_flag) drops it, so the count makes it a residue.
 
-# What may stand between one sentence's full stop and the next sentence's head besides
-# blank space: the attributes above and the control flags, on the head's line or on lines
-# of their own. A `Definition` the pattern below reads under `Fail` or `Succeed` so
-# written defines nothing, so it is read by nothing and the count makes it a residue.
-_LEAD_RE = re.compile(
-    r'\s*(?:#\[(?:[^\]"]|"[^"]*")*\]'
-    r"|(Local|Global|Program|Polymorphic|Monomorphic|Cumulative|NonCumulative|Private"
-    r"|Time|Instructions|Fail|Succeed)(?![\w'])"
-    r'|Profile(?:\s+"[^"]*")?(?![\w\'])|Redirect\s+"[^"]*"|Timeout\s+\d+'
-    r"|AllocLimit\s+\d+\s*(?:Mw|kw))")
-_VOID = ("Fail", "Succeed")
-
-# A `Definition` sentence and its body. The body ends at a period that a sentence head
-# follows, which is what a Gallina sentence boundary is, so no list of vernacular
-# keywords stands between this and a file that grows one: the terminator this replaces
-# named four of them, and a `Theorem` written between two definitions was swallowed by
-# the definition above it and reported as that definition's own field reads. An
-# attribute opens a sentence as a capital does, or the definition under it would be
-# swallowed the same way.
-_DEFINITION_RE = re.compile(
-    r"(?sm)^" + _PREFIX + r"Definition\s+(\w+)(.*?\.)\s*(?=^(?:#\[|[A-Z]\w*\b)|\Z)")
+# A `Definition` sentence's head. Its body ends at its own full stop, where the shared
+# sentence split ends it (proofs.sentence_ends), which is what a Gallina sentence
+# boundary is, so no list of vernacular keywords stands between this and a file that
+# grows one: the terminator this replaced first named four of them, and a `Theorem`
+# written between two definitions was swallowed by the definition above it and reported
+# as that definition's own field reads. The split reads a string whole, so a string's
+# full stop before a capital on the next line ends no body early and leaves no field
+# read after it unseen.
+_DEFINITION_RE = re.compile(r"(?m)^" + CONTROL_PREFIXES + r"Definition\s+(\w+)")
 
 # Every `Definition` the file spells, for the count that says whether the pattern above
 # read all of them. The keyword is counted wherever it stands and read only at column 0
@@ -171,19 +160,6 @@ class ApexRecord:
     unread: list[str] = field(default_factory=list)
 
 
-def _strip_comments(raw: str) -> str:
-    """The source with its comments gone, nesting and all.
-
-    Innermost-first, so nesting unwinds: each pass removes at least one balanced
-    comment until none is left to match.
-    """
-    while True:
-        stripped = _COMMENT_RE.sub("", raw)
-        if stripped == raw:
-            return raw
-        raw = stripped
-
-
 def _body(raw: str) -> str | None:
     """The Vocabulary record's body, or None where the record is not there to read.
 
@@ -228,26 +204,11 @@ def _quote(piece: str) -> str:
     return flat if len(flat) <= 60 else flat[:57] + "..."
 
 
-def _void(raw: str, opened: int) -> str | None:
-    """The control flag, `Fail` or `Succeed`, among the decorations standing between the
-    previous sentence's full stop and the head opening at `opened`, or None where there
-    is none or something other than a decoration stands there."""
-    stop = raw.rfind(".", 0, opened)
-    while stop >= 0 and not raw[stop + 1:stop + 2].isspace():
-        stop = raw.rfind(".", 0, stop)
-    lead = raw[stop + 1:opened]
-    at = 0
-    flags: list[str] = []
-    while (found := _LEAD_RE.match(lead, at)) is not None:
-        flags.append(found.group(1) or "")
-        at = found.end()
-    if lead[at:].strip():
-        return None
-    return next((flag for flag in flags if flag in _VOID), None)
-
-
 def read(path: Path) -> ApexRecord:
-    raw = _strip_comments(path.read_text(encoding="utf-8"))
+    # Comments as Rocq's lexer reads them: nested, a string inside one read whole, and
+    # each a separator, so `Local(* c *)Definition` is the decorated definition it is.
+    raw = strip_comments(path.read_text(encoding="utf-8"))
+    ends = sentence_ends(raw)
 
     rec = ApexRecord()
     inner = _body(raw)
@@ -280,10 +241,17 @@ def read(path: Path) -> ApexRecord:
                 rec.consumers[word].append(name)
 
     # every Definition consuming a field through the record value, in body order, and
-    # none that a control flag above its line keeps nothing of
-    definitions = [(found.group(1), found.group(2))
-                   for found in _DEFINITION_RE.finditer(raw)
-                   if _void(raw, found.start()) is None]
+    # none that a control flag on its line or above it keeps nothing of; a head opening
+    # inside the body above, on a line of a string there, is no head
+    definitions: list[tuple[str, str]] = []
+    read_to = 0
+    for found in _DEFINITION_RE.finditer(raw):
+        if found.start() < read_to:
+            continue
+        stop = bisect_left(ends, found.end())
+        read_to = ends[stop] + 1 if stop < len(ends) else len(raw)
+        if void_flag(raw, found.start(), ends) is None:
+            definitions.append((found.group(1), raw[found.end():read_to]))
     spelled = len(_DEFINITION_HEAD_RE.findall(raw))
     if len(definitions) < spelled:
         rec.unread.append(

@@ -14,14 +14,15 @@ on two rules the plan states.
 the `RegionKind` constructors. A list this reader cannot find or cannot read is
 `PlanError` and never an empty roster, on the fail-closed ground the generated group
 states (K-67, K-75): a regex that stops matching would otherwise yield zero regions and
-a green report about nothing. A declaration under an attribute or a locality is read as
-the bare one, and a list or an application of `build_plan` to bare words spelled where
-no head reads it, or a value of any written type completed from a base with `with` that
-assigns a field of `Plan`, is `PlanError` too, since the export would otherwise lack it
-with only a floor on its plan count to notice. So is a declaration a head reads under
-`Fail` or `Succeed` written on a line above it, the file keeping nothing it states.
-Those audits read the file with its comments blanked, so a comment's `match` or full
-stop hides nothing from them.
+a green report about nothing. A declaration under a decoration, in the grammar the
+shared lexer writes once for every reader ([proofs.py](proofs.py)), is read as the bare
+one, and a list or an application of `build_plan` to bare words spelled where no head
+reads it, or a value of any written type completed from a base with `with` that assigns
+a field of `Plan`, is `PlanError` too, since the export would otherwise lack it with only
+a floor on its plan count to notice. So is a declaration a head reads under `Fail` or
+`Succeed`, on its line or above it, the file keeping nothing it states. Those audits read
+the file with its comments blanked, so a comment's `match` or full stop hides nothing
+from them.
 
 **What the export does not carry, knowingly.** A variant is carried by the lists it
 names, so an application of `build_plan` to an inline term names no list to carry it
@@ -63,10 +64,13 @@ import hashlib
 import json
 import math
 import re
+from bisect import bisect_left
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from vos.proofs import CONTROL_PREFIXES, sentence_ends, strip_comments, void_flag
 
 # The one owner, the artifact it is exported to, and the command that rewrites it.
 SOURCE = "proofs/MemoryPlan.v"
@@ -133,55 +137,44 @@ class PlanError(ValueError):
 # the reader
 # ---------------------------------------------------------------------------------
 
-# What may stand before a declaration this reader reads and leave it the declaration it
-# decorates: quoted attributes, `#[local]` and the rest, and the legacy attributes Rocq's
-# grammar admits in their place. None of them moves a value, so each head below reads a
-# declaration under one as if it stood bare. A control prefix is not among them, `Fail`
-# and `Succeed` leaving nothing defined; the audits below refuse what that leaves out.
-_PREFIX = (r'(?:#\[(?:[^\]"]|"[^"]*")*\]\s*|(?:Local|Global|Program|Polymorphic'
-           r'|Monomorphic|Cumulative|NonCumulative|Private)\s+)*')
-
-# What may stand between one sentence's full stop and the next sentence's head besides
-# blank space: the attributes above and the control flags, on the head's line or on lines
-# of their own. A head standing under `Fail` or `Succeed` so written reads a declaration
-# the file keeps nothing of, and it is refused rather than carried.
-_LEAD_RE = re.compile(
-    r'\s*(?:#\[(?:[^\]"]|"[^"]*")*\]'
-    r"|(Local|Global|Program|Polymorphic|Monomorphic|Cumulative|NonCumulative|Private"
-    r"|Time|Instructions|Fail|Succeed)(?![\w'])"
-    r'|Profile(?:\s+"[^"]*")?(?![\w\'])|Redirect\s+"[^"]*"|Timeout\s+\d+'
-    r"|AllocLimit\s+\d+\s*(?:Mw|kw))")
-_VOID = ("Fail", "Succeed")
+# What may stand before a declaration this reader reads is the shared lexer's decoration
+# grammar: bullets and goal selectors, control flags, and quoted and legacy attributes.
+# None of them moves a value, so each head below reads a declaration under one as if it
+# stood bare. A head standing under `Fail` or `Succeed`, on its line or on a line of its
+# own above it, reads a declaration the file keeps nothing of, and it is refused rather
+# than carried: which flag a head stands under is the shared lexer's look-back
+# (proofs.void_flag), over the same grammar and back to the full stop the sentence split
+# ends the sentence before at, outside every string.
 
 _LIST_RE = re.compile(
-    r"^" + _PREFIX + r"Definition (?P<name>\w+) : "
+    r"^" + CONTROL_PREFIXES + r"Definition (?P<name>\w+) : "
     r"list (?P<kind>nat|bool|RegionKind) :=\s*(?P<body>[^.]*)\.", re.MULTILINE)
 _INDUCTIVE_RE = re.compile(
-    r"^" + _PREFIX + r"Inductive RegionKind : Type :=\s*(?P<body>.*?)\.\s*$",
+    r"^" + CONTROL_PREFIXES + r"Inductive RegionKind : Type :=\s*(?P<body>.*?)\.\s*$",
     re.MULTILINE | re.DOTALL)
 _ARM_RE = re.compile(r"^\| (\w+)", re.MULTILINE)
 _PLACED_RE = re.compile(
-    r"^" + _PREFIX + r"Definition placed_by_name \(k : RegionKind\) : "
+    r"^" + CONTROL_PREFIXES + r"Definition placed_by_name \(k : RegionKind\) : "
     r"option MemClass :=\s*match k with\s*(?P<body>.*?)\s*end\.", re.MULTILINE | re.DOTALL)
 _PLACED_ARM_RE = re.compile(r"\| (\w+) => (Some (\w+)|None)")
 _CRITERION_RE = re.compile(
-    r"^" + _PREFIX + r"Definition criterion_class \(critical : bool\) : MemClass :=\s*"
-    r"if critical then (\w+) else (\w+)\.", re.MULTILINE)
+    r"^" + CONTROL_PREFIXES + r"Definition criterion_class \(critical : bool\) : "
+    r"MemClass :=\s*if critical then (\w+) else (\w+)\.", re.MULTILINE)
 _BUILD_RE = re.compile(
-    r"^" + _PREFIX + r"Definition build_plan \((?P<params>[\w ]+) : list nat\)\s*"
-    r"\((?P<second>\w+) : nat\) : Plan := \{\|(?P<body>.*?)\|\}\.",
+    r"^" + CONTROL_PREFIXES + r"Definition build_plan \((?P<params>[\w ]+) : list nat\)"
+    r"\s*\((?P<second>\w+) : nat\) : Plan := \{\|(?P<body>.*?)\|\}\.",
     re.MULTILINE | re.DOTALL)
 _FIELD_RE = re.compile(r"(\w+) := ([^;]+?)\s*(?:;|$)", re.DOTALL)
 _AT_LIST_RE = re.compile(r"^fun (\w+) => at_list (\w+) \1 (\w+)$")
 _OF_RE = re.compile(
-    r"^" + _PREFIX + r"Definition (?P<name>\w+) \(r : nat\) : (?P<kind>\w+) := "
+    r"^" + CONTROL_PREFIXES + r"Definition (?P<name>\w+) \(r : nat\) : (?P<kind>\w+) := "
     r"at_list (?P<list>\w+) r (?P<default>\w+)\.", re.MULTILINE)
 _CLASS_OF_RE = re.compile(
-    r"^" + _PREFIX + r"Definition (?P<name>\w+) \(r : nat\) : MemClass :=\s*"
+    r"^" + CONTROL_PREFIXES + r"Definition (?P<name>\w+) \(r : nat\) : MemClass :=\s*"
     r"match placed_by_name \((?P<kind>\w+) r\) with\s*\| Some c => c\s*"
     r"\| None => criterion_class \((?P<critical>\w+) r\)\s*end\.", re.MULTILINE)
 _PLAN_RE = re.compile(
-    r"^" + _PREFIX + r"Definition (?P<name>\w+) : Plan :=\s*"
+    r"^" + CONTROL_PREFIXES + r"Definition (?P<name>\w+) : Plan :=\s*"
     r"build_plan (?P<args>[\w\s]+?)\.", re.MULTILINE)
 
 # The typed lists and the values as the file spells them, at any column, under any
@@ -194,16 +187,13 @@ _PLAN_RE = re.compile(
 # export. `Example` is `Definition` by another name and `Let` is one inside a section, so
 # each is read as one. The keyword's own boundary is checked on the hits rather than
 # written into the pattern, a leading lookbehind being re-decided at every position of a
-# file this size.
+# file this size. A value's body runs to the full stop the shared sentence split ends it
+# at, so a string's full stop ends none early.
 _LIST_SPELLED_RE = re.compile(
     r"(?:Definition|Example)\s+(\w+)\s*:\s*list\s+(?:nat|bool|RegionKind)\s*:=")
 _VALUE_SPELLED_RE = re.compile(r"(?:Definition|Example|Let)\s+(\w+)")
 _CONTINUES_RE = re.compile(r"[\w']")
-_SENTENCE_END_RE = re.compile(r"\.(?=\s|$)")
 _APPLIED_RE = re.compile(r"\s*build_plan\s+[\w\s]+")
-
-# A comment's delimiters and a string's, for the blanked text the audits read.
-_LEXEME_RE = re.compile(r'\(\*|\*\)|"')
 
 # A record value completed from a base, `{| demo_plan with second_fetch := 16 |}`, copies
 # every field it does not assign and names none of them, so a plan spelled that way is
@@ -229,70 +219,21 @@ def _completed(body: str) -> bool:
     return "with" in body and len(_WITH_RE.findall(body)) > len(_MATCH_RE.findall(body))
 
 
-def _blanked(text: str) -> str:
-    """The text with every comment blanked to spaces, nesting and all, its line breaks
-    and so its offsets kept, so an audit reads no word, `with` or full stop a comment
-    spells. A string is read whole, inside a comment as outside one, as Rocq's lexer
-    reads it, so a delimiter inside one opens or closes nothing."""
-    pieces: list[str] = []
-    at = depth = 0
-    quoted = False
-    for token in _LEXEME_RE.finditer(text):
-        mark = token.group()
-        if quoted:
-            quoted = mark != '"'
-        elif mark == '"':
-            quoted = True
-        elif mark == "(*":
-            if not depth:
-                pieces.append(text[at:token.start()])
-                at = token.start()
-            depth += 1
-        elif depth:
-            depth -= 1
-            if not depth:
-                pieces.append(_spaces(text[at:token.end()]))
-                at = token.end()
-    pieces.append(_spaces(text[at:]) if depth else text[at:])
-    return "".join(pieces)
-
-
-def _spaces(span: str) -> str:
-    """A span as blank space of its own length, its line breaks kept."""
-    return "\n".join(" " * len(line) for line in span.split("\n"))
-
-
-def _void(blank: str, opened: int) -> str | None:
-    """The control flag, `Fail` or `Succeed`, among the decorations standing between the
-    previous sentence's full stop and the head opening at `opened`, or None where there
-    is none or something other than a decoration stands there."""
-    stop = blank.rfind(".", 0, opened)
-    while stop >= 0 and not blank[stop + 1:stop + 2].isspace():
-        stop = blank.rfind(".", 0, stop)
-    lead = blank[stop + 1:opened]
-    at = 0
-    flags: list[str] = []
-    while (found := _LEAD_RE.match(lead, at)) is not None:
-        flags.append(found.group(1) or "")
-        at = found.end()
-    if lead[at:].strip():
-        return None
-    return next((flag for flag in flags if flag in _VOID), None)
-
-
-def _kept(found: re.Match[str] | None, blank: str, what: str) -> re.Match[str] | None:
+def _kept(found: re.Match[str] | None, blank: str, ends: list[int],
+          what: str) -> re.Match[str] | None:
     """A head's match, refused where the declaration it reads stands under a control flag
-    that keeps nothing it states."""
-    if found is not None and (flag := _void(blank, found.start())) is not None:
+    that keeps nothing it states. `ends` is where the blanked text's sentences end."""
+    if found is not None and (flag := void_flag(blank, found.start(), ends)) is not None:
         raise PlanError(f"{SOURCE} states {what} under `{flag}`, which keeps nothing it "
                         f"states, so it is no declaration the export can carry")
     return found
 
 
-def _heads(head: re.Pattern[str], text: str, blank: str) -> Iterator[re.Match[str]]:
+def _heads(head: re.Pattern[str], text: str, blank: str,
+           ends: list[int]) -> Iterator[re.Match[str]]:
     """Every match of a head over the text, each held to `_kept`."""
     for found in head.finditer(text):
-        _kept(found, blank, found.group("name"))
+        _kept(found, blank, ends, found.group("name"))
         yield found
 
 
@@ -368,8 +309,11 @@ def read(root: Path) -> Source:
 def parse(text: str, md5: str = "") -> Source:
     """`read` over text already in hand, so a test can hand it a shape and watch it
     refuse."""
-    blank = _blanked(text)
-    inductive = _kept(_INDUCTIVE_RE.search(text), blank, "`RegionKind`")
+    # every comment blanked to spaces, offsets kept, and every string read whole, inside a
+    # comment as outside one, so an audit reads no word, `with` or full stop a comment spells
+    blank = strip_comments(text, keep_offsets=True)
+    ends = sentence_ends(blank)
+    inductive = _kept(_INDUCTIVE_RE.search(text), blank, ends, "`RegionKind`")
     if inductive is None:
         raise PlanError(f"{SOURCE} no longer states `RegionKind` as an inductive this "
                         f"reader can read")
@@ -377,7 +321,7 @@ def parse(text: str, md5: str = "") -> Source:
     if not kinds:
         raise PlanError(f"{SOURCE}'s `RegionKind` carries no constructor")
 
-    placed = _kept(_PLACED_RE.search(text), blank, "`placed_by_name`")
+    placed = _kept(_PLACED_RE.search(text), blank, ends, "`placed_by_name`")
     if placed is None:
         raise PlanError(f"{SOURCE} no longer states `placed_by_name` as a match over "
                         f"`RegionKind`")
@@ -394,7 +338,7 @@ def parse(text: str, md5: str = "") -> Source:
         raise PlanError(f"{SOURCE}'s `placed_by_name` decides "
                         f"{len(placement)} of {len(kinds)} region kinds")
 
-    criterion = _kept(_CRITERION_RE.search(text), blank, "`criterion_class`")
+    criterion = _kept(_CRITERION_RE.search(text), blank, ends, "`criterion_class`")
     if criterion is None:
         raise PlanError(f"{SOURCE} no longer states `criterion_class` as one `if`")
     if {criterion.group(1), criterion.group(2)} != {FIRST, SECOND}:
@@ -405,7 +349,7 @@ def parse(text: str, md5: str = "") -> Source:
     bool_lists: dict[str, tuple[bool, ...]] = {}
     kind_lists: dict[str, tuple[str, ...]] = {}
     unread: list[str] = []
-    for m in _heads(_LIST_RE, text, blank):
+    for m in _heads(_LIST_RE, text, blank, ends):
         name, kind = m.group("name"), m.group("kind")
         members = _cons(m.group("body"), name)
         if members is None:
@@ -429,7 +373,7 @@ def parse(text: str, md5: str = "") -> Source:
                         f"take, indented, or spaced or commented apart from the head it "
                         f"reads")
 
-    build = _kept(_BUILD_RE.search(text), blank, "build_plan")
+    build = _kept(_BUILD_RE.search(text), blank, ends, "build_plan")
     if build is None:
         raise PlanError(f"{SOURCE} no longer states `build_plan` as a record literal "
                         f"over list parameters and one constant")
@@ -439,9 +383,9 @@ def parse(text: str, md5: str = "") -> Source:
     params = tuple(build.group("params").split())
     second = build.group("second")
     ofs = {m.group("name"): (m.group("kind"), m.group("list"), m.group("default"))
-           for m in _heads(_OF_RE, text, blank)}
+           for m in _heads(_OF_RE, text, blank, ends)}
     class_ofs = {m.group("name"): (m.group("kind"), m.group("critical"))
-                 for m in _heads(_CLASS_OF_RE, text, blank)}
+                 for m in _heads(_CLASS_OF_RE, text, blank, ends)}
 
     literals: dict[str, int] = {}
     fields: dict[str, tuple[str, str, str]] = {}
@@ -485,7 +429,7 @@ def parse(text: str, md5: str = "") -> Source:
                             f"which is neither a parameter nor a list this reader found")
 
     plans: dict[str, tuple[tuple[str, ...], int]] = {}
-    for m in _heads(_PLAN_RE, text, blank):
+    for m in _heads(_PLAN_RE, text, blank, ends):
         args = m.group("args").split()
         if len(args) != len(params) + 1:
             raise PlanError(f"{SOURCE}'s {m.group('name')} applies build_plan to "
@@ -502,8 +446,8 @@ def parse(text: str, md5: str = "") -> Source:
     record = {name for name, _ in _FIELD_RE.findall(build.group("body"))}
     unbuilt: set[str] = set()
     for m in _spelled(_VALUE_SPELLED_RE, blank):
-        end = _SENTENCE_END_RE.search(blank, m.end())
-        sentence = blank[m.end():end.start() if end else len(blank)]
+        after = bisect_left(ends, m.end())
+        sentence = blank[m.end():ends[after] if after < len(ends) else len(blank)]
         _, defined, body = sentence.partition(":=")
         if not defined:
             continue

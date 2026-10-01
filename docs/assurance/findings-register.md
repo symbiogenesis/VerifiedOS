@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 860 of them across 147 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 872 of them across 148 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1063,23 +1063,23 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-507** owed-act: `strip_comments` drops a comment holding no newline and so joins its neighbours, so `Set(* c *)Kernel Conversion Dep Heuristic.` compiles with the flag on while no lexical reading sees it
 · Raised: Q38a
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, the shared lexer reading a comment as one separator
 
 **F-508** owed-act: `sentences` splits at a full stop inside a string literal, so a quoted attribute note hides the statement it decorates from the witness scan and a `warnings` attribute after it from the pinned reading
 · Raised: Q38a
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, a sentence ending only at a full stop outside string literals
 
 **F-509** owed-act: the witness scan's definer table lacks `Remark` and `Proposition`, which its statement table lists, and `Property`, so a statement under any of them never quantifies over a record
 · Raised: Q38a
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, every Rocq 9.3 theorem keyword read as a statement that quantifies
 
 **F-510** owed-act: `Load` of a file outside `proofs/` runs commands no lexical reading sees, and the gate only withdraws cache reuse for it
 · Raised: Q38a
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, Load, Cd, the load-path commands and Declare ML Module refused before compilation
 
 **F-511** owed-act: `Ltac2 @ external` binds a plugin primitive, the timeout tactical among them, under any name, which no lexical refusal can follow
 · Raised: Q38a
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, Ltac2 @ external refused before compilation
 
 **F-512** measurement: the memory-plan reader dropped a plan value completed from a base with `with` when its type was unwritten or a comment held a `match` or a full stop
 · Raised: Q38b
@@ -1099,19 +1099,19 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-516** owed-act: apex and memplan look back for a decoration over text whose strings are not blanked, so a string holding a full stop ends the look-back early
 · Raised: Q38b
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, the look-back starting at the full stop the string-aware split finds
 
 **F-517** owed-act: the decoration grammar is spelled once in each of five readers outside the gate beside the gate's `CONTROL_PREFIXES`, where a parse is written once
 · Raised: Q38b
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, the shared lexer writing the decoration grammar once for the gate and every reader the finding names
 
 **F-518** owed-act: mutate's region keywords omit `Variant`, `CoInductive`, `CoFixpoint`, `Structure` and `Let`, so such a line joins the region above it
 · Raised: Q38b
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, each opening a region of its own
 
 **F-519** owed-act: K-91's reader ends an `Example` at the next column-0 `Proof.`, so a `Proof using` line or a decorated `Example` fails K-91 for a wrong stated reason
 · Raised: Q38b
-· Disposition: open, Q38d
+· Disposition: closed at Q38d, an Example ending at its own full stop
 
 **F-560** measurement: the proof reading's first `--objects` route certified an object older than a changed source as that source's meaning
 · Raised: Q38c
@@ -1132,6 +1132,54 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-564** measurement: two compiles of identical sources with identical flags gave different `ElasticDomain.vo` and `MemoryPlan.vo`, so an object digest is no reproducibility identity for those modules
 · Raised: Q38c
 · Disposition: standing
+
+**F-588** measurement: Q38d's first string-aware split let a declared token holding a quote or `(*` hide a later setting, Load or statement, which the base had refused
+· Raised: Q38d
+· Disposition: closed at Q38d, the shared lexer's unreadable declarations refused before compilation
+
+**F-589** measurement: the control prefixes needed a blank after a control word or a quoted target, so `Time#[local]Set`, `Redirect"out"Load` and `Profile "a""b" Set` compiled with the setting unread
+· Raised: Q38d
+· Disposition: closed at Q38d, a word prefix ending where its word does and a quoted one where its string does
+
+**F-590** measurement: the shared split ended a sentence at stdpp's `∀..` and at a declared token ending in a full stop, `.` and `...` among them, losing the witness demand after it
+· Raised: Q38d
+· Disposition: closed at Q38d, no sentence ending at `..` and each such declaration refused
+
+**F-591** measurement: the declared-token refusal reads only a source's own declarations, its soundness resting on an audit of the installed switch, and it refuses loudly a declaring string holding a word that ends in a full stop
+· Raised: Q38d
+· Disposition: standing, the audit recorded and the over-refusal loud
+
+**F-592** measurement: the shared decorations read a control flag before a bullet, brace or goal selector as the following declaration's, while the locked compiler runs `Fail }` and `Succeed {` as the brace's and keeps the declaration
+· Raised: Q38d
+· Disposition: closed at Q38d, the decoration run starting again at each bullet, brace or goal selector
+
+**F-593** measurement: Q38d's second round's first cases for F-516 and F-518 passed their own regressions, F-518's iterating the table under test and F-516's placing the flag in the head's own run
+· Raised: Q38d
+· Disposition: closed at Q38d, cases spelling the keywords and pinning both call sites
+
+**F-594** measurement: mutate's region keywords had no word boundary, so `Letter` opened a `Let` region, and it read heads line by line, misreading a decoration that reaches its command through a comment or a multi-line attribute
+· Raised: Q38d
+· Disposition: closed at Q38d, whole-word keywords and the decoration run read across lines
+
+**F-595** measurement: apex ended a definition's body at a string's full stop before a capital on the next line, silently dropping a consumer's read
+· Raised: Q38d
+· Disposition: closed at Q38d, the body running to the full stop the shared split ends it at
+
+**F-596** owed-act: mutate's definitional region ends at the next keyword line rather than its own full stop, so a definition inside a proof makes the proof's later literals mutable, and so does a following `Compute` line
+· Raised: Q38d
+· Disposition: open, reported and not closed, a region change that re-baselines every proof's mutant population
+
+**F-597** measurement: apex and memplan read a column-0 declaration spelled inside a multi-line string of a non-Definition sentence as a declaration
+· Raised: Q38d
+· Disposition: standing, the live tree holding none
+
+**F-598** owed-act: mutate's tables lag Rocq 9.3's grammar, its region keywords omitting `SubClass` and other defining vernaculars, `Module RingDma.` in RingContract.v among the live instances, its mutable set omitting `Variant`, `CoInductive`, `CoFixpoint`, `Structure` and `Let`, and `Export Set` read as `Set`
+· Raised: Q38d
+· Disposition: open, reported and not closed, a table change that re-baselines the mutant populations
+
+**F-599** measurement: `proofsearch`, an advisory navigation reader outside the five readers F-517 names, still spells its own decoration prefix
+· Raised: Q38d
+· Disposition: standing, the reader validating nothing
 
 **F-567** measurement: K-117's first head passed 16 `&` binders that Rocq 9.3.0 compiles and 9.1.1 rejects, inside record, class and instance braces and sigma bodies, and paired each rig module with its switch by hand
 · Raised: Q38e
