@@ -1113,11 +1113,13 @@ def _k118_census_reads_every_numeral() -> None:
     ensure(len(found) == 1 and "THIRD-PARTY.md:5 states v8.1 in the paragraphs" in found[0],
            f"an unread numeral in a paragraph must report on its line: {found!r}")
     # an opam identifier's release after its name's dot, whether the name ends in a
-    # letter or in digits a letter leads, one after an underscore, a release carrying a
-    # letter suffix and one continuing past it are each read, whole; a name's digits are
-    # not told from a release's, so `python3.6.6` reads 6.6, erring toward a finding
+    # letter or in digits a letter leads, its release led by `v` or not, one after an
+    # underscore, a release carrying a letter suffix and one continuing past it are each
+    # read, whole; a name's digits are not told from a release's, so `python3.6.6` reads
+    # 6.6, erring toward a finding
     for written, numeral in (("`coq-extra.6.6.6`", "6.6.6"), ("`base64.6.6.6`", "6.6.6"),
                              ("`x509.6.6.6`", "6.6.6"), ("`iso8601.6.6.6`", "6.6.6"),
+                             ("`sexplib0.v6.6.6`", "v6.6.6"),
                              ("`rocq_6.6.6`", "6.6.6"), ("`python3.6.6`", "6.6"),
                              ("6.6.6rc1", "6.6.6rc1"), ("v6.6.6a1.dev2", "v6.6.6a1.dev2")):
         found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace(
@@ -1125,11 +1127,14 @@ def _k118_census_reads_every_numeral() -> None:
         ensure(len(found) == 1
                and f"THIRD-PARTY.md:10 states {numeral} in beta's row, which no" in found[0],
                f"a release written as {written} must be read: {found!r}")
-    # a numeral joined to the word before it is a licence identifier's version or a
-    # tag's prefix, left to the sites, and so is its continuation past its dot
+    # a numeral joined to the word before it by a hyphen or `+`, a lone `v` or `V`
+    # between or not, is a licence identifier's version or a tag's prefix, left to the
+    # sites, and so is its continuation past its dot
     found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace(
-        "constant 7.8.9.", "constant 7.8.9. Under GPL-6.6 or LGPL-6.6.6 at tag release-6.6.6.")})
-    ensure(not found, f"a hyphen-joined numeral is not a release the census reads: {found!r}")
+        "constant 7.8.9.", "constant 7.8.9. Under GPL-6.6, LGPL-6.6.6 or LGPL-v6.6.6 at tag "
+                           "release-6.6.6, release-v6.6.6 or build+V6.6.6.")})
+    ensure(not found, "a numeral a hyphen or `+` joins, and its continuation, are not "
+                      f"releases the census reads: {found!r}")
     # a residue that no longer stands, or covers no numeral, suppresses nothing
     found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace("licence version 2.1",
                                                              "the licence")})

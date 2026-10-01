@@ -255,8 +255,11 @@ outside it. A release is read whole, with any letter, `~`, `+` or dotted suffix 
 carries, an opam identifier's after its name's dot, whether the name ends in a letter
 or in digits a letter leads, and one after an underscore too. A numeral joined to the
 word before it by a hyphen, a letter or `+`, as a licence identifier's version or a
-tag's prefix is, is not read by the census, nor is its continuation past its dot, and
-the sites read such a tag where it states a release.
+tag's prefix is, is not read by the census, and the sites read such a tag where it
+states a release. Joined by a hyphen or `+`, a lone `v` or `V` between or not, its
+continuation past its dot is not read either; joined by a letter, its continuation past
+its first dot is read, a name's digits not being told from a release's, so
+`python3.14.7` reads 14.7, erring toward a finding.
 
 **Fail-closed at every reading**, on K-97's ground: a record without the section or its
 table, a table with no row, a site matching other than once, and an owner absent,
@@ -348,24 +351,33 @@ _V = r"(\d[\w+~-]*(?:\.[\w+~-]+)*)"
 # (`coq-riscv.0.0.6`) or in digits a letter leads (`base64.3.5.1`, so `python3.14.7`
 # reads 14.7, erring toward a finding), and so is a numeral after an underscore
 # (`rocq_9.4.0`). A numeral joined to the word before it by a hyphen, a letter or `+`
-# is not, nor one continuing such a numeral past its dot, being a licence identifier's
-# version (`LGPL-2.1`) or a tag's own prefix (`release-1.14`), which the census leaves
-# to the sites that read such a tag as the release it states. `_releases` applies the
-# last rule, which no fixed-width lookbehind can state.
+# is not. Joined by a hyphen or `+`, a lone `v` or `V` between or not, it is a licence
+# identifier's version (`LGPL-2.1`) or a tag's own prefix (`release-1.14`,
+# `release-v1.14`), which the census leaves to the sites that read such a tag as the
+# release it states, and its continuation past its dot is not read either; joined by a
+# letter, its continuation past its first dot is read, as `python3.14.7`'s 14.7 is.
+# `_releases` applies the continuation rule, which no fixed-width lookbehind can state.
 _RELEASE_RE = re.compile(r"(?<![^\W_])(?<![+-])[vV]?"
                          r"(\d+(?:\.\d+)+(?:[A-Za-z~+][\w~+]*)?(?:\.(?=[\w~+]*\d)[\w~+]+)*)")
 
 
 def _releases(text: str) -> list[re.Match[str]]:
     """The release numerals the census reads in the text: `_RELEASE_RE`'s matches, less
-    each whose dot follows digits no letter leads, the tail of the numeral before it."""
+    each whose dot follows digits no letter leads, the tail of the numeral before it.
+
+    A lone `v` or `V` before those digits is a tag's prefix rather than a name's last
+    letter, so the tail of `LGPL-v2.1.3` or `release-v1.14.2` stays unread, while
+    `sexplib0.v0.17.0` and `python3.14.7` keep their reading.
+    """
     found: list[re.Match[str]] = []
     for m in _RELEASE_RE.finditer(text):
         dot = run = m.start() - 1
         while run > 0 and text[run - 1] in "0123456789":
             run -= 1
-        if dot >= 0 and text[dot] == "." and run < dot and not (
-                run > 0 and text[run - 1].isalpha()):
+        lead = text[run - 1] if run > 0 else ""
+        if lead in ("v", "V") and (run < 2 or not text[run - 2].isalpha()):
+            lead = ""
+        if dot >= 0 and text[dot] == "." and run < dot and not lead.isalpha():
             continue
         found.append(m)
     return found
