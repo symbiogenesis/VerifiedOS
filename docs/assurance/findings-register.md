@@ -1372,7 +1372,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-610** owed-act: K-117 holds every proof source while `seed coq --quickchick` compiles every one in QuickChick's Rocq 9.1.1 switch, so no authored source may take Rocq 9.3's syntax until that compile narrows or QuickChick's switch moves
 · Raised: Q38h
-· Disposition: closed at landing, Q38h holding that compile to `Properties.v`'s `Require` closure, within which Rocq 9.3's syntax waits on Q38f
+· Disposition: closed at Q38h, which held that compile to `Properties.v`'s `Require` closure and, once Q38f had moved QuickChick's switch to Rocq 9.3.0, wrote that closure's three sources in Rocq 9.3's syntax, K-117 then reaching no proof source but `EndpointIPC.v` and `RingContract.v`
 
 **F-611** method: Q38i's retired-instruction procedure has no permitted site while guest runs are excluded, and Guest CI's wall times over the same sources vary by up to 71% between runs
 · Raised: Q38h
@@ -1414,6 +1414,18 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q38h
 · Disposition: standing, the population unchanged at 679 and a later mutation run deciding that mutant instead of counting it stillborn
 
+**F-646** measurement: six forms meet a clause of Q38h's Owns by its letter where the clause's target cannot be written in place: two `(_ : nat)` binders a named binder follows, which `&` would read as an application, and four repeated sequences reaching a goal a bullet or brace focused before they began, which no `Local Ltac` called where they start can reach
+· Raised: Q38h
+· Disposition: standing, each form named among Q38h's unwritten rewrites and kept as the base writes it
+
+**F-647** owed-act: Q38h's rewrite lanes left twenty sites that met a clause by its letter for reasons the Owns does not give: bases that are projections, constants or applications, or-pattern first branches, and sequences whose bullet focuses the first goal their own tactic creates
+· Raised: Q38h
+· Disposition: closed at Q38h, `q38h-rw9-20261001` writing nineteen and `q38h-rw8-20261001` the twentieth under the integrator's rulings
+
+**F-648** method: the Fixpoint exception in Q38h's Owns, unless an enclosing `Fixpoint` recurses on its scrutinee, admits a narrower and a broader reading, and the broader would return to `match` 28 matches the batch wrote as `if … is`
+· Raised: Q38h
+· Disposition: standing, Q38h's note stating the batch's reading: a match is left only where its scrutinee is the enclosing `Fixpoint`'s decreasing argument or what a recursive call receives as that argument
+
 **F-578** measurement: Q38i's cast clause and its Check's compile fall cannot both hold in ArithmeticComposition.v, CredentialHandles.v, InferenceAdmission.v and TwoSourceExtractor.v, whose 16 such proofs evaluate goals too small for a fall beyond single-run noise, and the cast raised ArithmeticComposition.v's recheck by 2.8% in two single runs
 · Raised: Q38i
 · Disposition: standing, the four modules keeping their scripts
@@ -1436,7 +1448,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-583** measurement: a literal lemma closed by a cast of `eq_refl` of its folded constant cost the recheck 2.5 and 6.2 times what unfolding it first costs
 · Raised: Q38i
-· Disposition: open, Q38h
+· Disposition: closed at Q38h, every literal, literal lemma and `vm_reflexivity` definition Q38i wrote byte-identical to the base's, each lemma keeping its unfolded form
 
 **F-584** measurement: single-run retired-instruction figures of unchanged small modules moved by up to 0.75% in compile and 0.62% in recheck between two sets, so a 0.1% or 1% threshold is decidable for a module under about 10e9 instructions only by repeated interleaved runs
 · Raised: Q38i
