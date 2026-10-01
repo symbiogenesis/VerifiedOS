@@ -110,6 +110,7 @@ import sys
 import sysconfig
 import tokenize
 import tomllib
+import unicodedata
 from collections import defaultdict
 from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
@@ -869,9 +870,10 @@ def _run_imports(rep: Reporter, root: Path, tracked: frozenset[str]) -> None:
 
     TID253 refuses such an import only where it is unnested at module level, and with
     the module banned PLC0415 no longer reports it in a class body; neither reads a
-    module-level block. A module whose text never spells the last component of a banned
-    name as a word cannot import it, so only the rest are parsed. Fail-closed: a module
-    that cannot be read or parsed is a finding."""
+    module-level block. A module whose NFKC-normalized text never spells the last
+    component of a banned name as a word cannot import it, since Python normalizes each
+    identifier so before it binds or imports it, so only the rest are parsed.
+    Fail-closed: a module that cannot be read or parsed is a finding."""
     tools = root / "tools"
     banned, unread = _banned(tools / "ruff.toml")
     if unread:
@@ -886,7 +888,7 @@ def _run_imports(rep: Reporter, root: Path, tracked: frozenset[str]) -> None:
         except (OSError, UnicodeDecodeError) as err:
             findings.append(f"{module} cannot be read: {err}")
             continue
-        if not spelled.search(text):
+        if not spelled.search(unicodedata.normalize("NFKC", text)):
             continue
         try:
             tree = ast.parse(text, module)

@@ -1183,11 +1183,14 @@ def _refused(site: str, names: str = "fcntl") -> str:
 def _imports_refused_outside_functions() -> None:
     # An import of a banned module, or of a banned submodule by its parent, that runs
     # outside a function body is refused wherever it sits: unnested at module level, in
-    # a class body at any depth, and in a module-level block such as the main guard.
+    # a class body at any depth, and in a module-level block such as the main guard. A
+    # name spelled with a fullwidth letter is the banned module, since Python
+    # NFKC-normalizes identifiers, though the text never spells it in ASCII.
     refused = {
         "toplevel.py": "import os, fcntl\n",
         "classbody.py": "class Locks:\n    import fcntl\n",
         "nested.py": "class Outer:\n    class Inner:\n        import fcntl\n",
+        "nfkc.py": "class Locks:\n    import \uff46cntl\n",
         "moduleif.py": "import os\n\nif os.name == 'posix':\n    import fcntl\n",
         "mainblock.py": "if __name__ == '__main__':\n    import fcntl\n",
         "tryblock.py": "try:\n    from fcntl import flock\nexcept ImportError:\n    pass\n",
@@ -1199,9 +1202,9 @@ def _imports_refused_outside_functions() -> None:
         f"FAIL imports: {len(refused)} {_SCAN_FAIL}",
         _refused("classbody.py:2"), _refused("dotted.py:2", "asyncio.unix_events"),
         _refused("mainblock.py:2"), _refused("member.py:2", "asyncio.unix_events"),
-        _refused("moduleif.py:4"), _refused("nested.py:3"), _refused("toplevel.py:1"),
-        _refused("tryblock.py:2")], f"each import outside a function body must be refused: "
-                                    f"{rep.out!r}")
+        _refused("moduleif.py:4"), _refused("nested.py:3"), _refused("nfkc.py:2"),
+        _refused("toplevel.py:1"), _refused("tryblock.py:2")],
+        f"each import outside a function body must be refused: {rep.out!r}")
 
 
 def _imports_admitted_in_functions_and_platform_blocks() -> None:
