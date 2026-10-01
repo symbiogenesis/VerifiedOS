@@ -323,9 +323,12 @@ def _top_level(source: str, name: str) -> ast.expr | None:
 
 
 def declares(source: str, name: str) -> bool:
-    """Whether a module's source binds `name` at its top level. A name bound inside a
-    function, a class or a conditional block, or only mentioned, is not declared."""
-    return _top_level(source, name) is not None
+    """Whether a module's source binds `name` at its top level to a recipe's steps: a
+    tuple or list literal with at least one element. A name bound inside a function, a
+    class or a conditional block, or only mentioned, is not declared, and neither is one
+    bound to `None`, an empty sequence or anything but such a literal."""
+    value = _top_level(source, name)
+    return isinstance(value, (ast.Tuple, ast.List)) and bool(value.elts)
 
 
 def string_constant(source: str, name: str) -> str | None:
@@ -348,8 +351,9 @@ def _recipe_check(checkout: Path, revision: str, name: str, check: str) -> Check
     except SyntaxError as error:
         return Check(check, REFUSED, f"{QUICKCHICK} at {revision} does not parse: {error}")
     if not found:
-        return Check(check, REFUSED, f"{QUICKCHICK} at {revision} declares no `{name}`, read "
-                     "from its source without running it")
+        return Check(check, REFUSED, f"{QUICKCHICK} at {revision} declares no `{name}` as a "
+                     "non-empty tuple or list of steps, read from its source without "
+                     "running it")
     return Check(check, HOLDS, f"{QUICKCHICK} at {revision} declares `{name}`")
 
 

@@ -343,8 +343,8 @@ reason, under `always()`. It refuses a ref other than `main`; an empty `revision
 one that is not a full lowercase commit on `main`; a `base_revision` that is not a
 proper ancestor of `revision`; a `sample` outside 1 to 20 or written with a sign or a
 leading zero; a `build` other than `install` or `recipe`; and `build` `recipe` at a
-revision whose quickchick.py declares no `RECIPE`, read from that revision's source
-without running it. A refused plan starts no later job. Inputs reach a step only
+revision whose quickchick.py declares no `RECIPE` as a non-empty tuple or list of
+steps, read from that revision's source without running it. A refused plan starts no later job. Inputs reach a step only
 through its environment, and later jobs read only the values the plan validated.
 
 **Jobs.** Every job runs the route's own files, the workflow,

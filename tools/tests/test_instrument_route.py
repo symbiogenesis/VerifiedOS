@@ -135,6 +135,15 @@ def _plan_refuses_each_bad_request() -> None:
         ensure(_verdicts(nested).get("route") == route.REFUSED
                and _verdicts(nested).get("recipe") == route.REFUSED,
                f"a nested RECIPE is no declaration: {nested!r}")
+    for source, expected in (
+            ('RECIPE = (("opam", "switch"),)\n', True),
+            ('RECIPE: tuple[tuple[str, ...], ...] = (("opam",), *((s,) for s in X))\n', True),
+            ('RECIPE = [("opam",)]\n', True),
+            ("RECIPE = None\n", False), ("RECIPE = ()\n", False), ("RECIPE = []\n", False),
+            ("RECIPE = make()\n", False), ("RECIPE: tuple[str, ...]\n", False),
+            ("if True:\n    RECIPE = (('opam',),)\n", False), ("print(RECIPE)\n", False)):
+        ensure(route.declares(source, "RECIPE") is expected,
+               f"a recipe is declared only as a non-empty tuple or list literal: {source!r}")
 
 
 def _plan_ref_reads_fetched_main() -> None:
