@@ -34,6 +34,10 @@ import os
 import re
 import shutil
 import subprocess
+import time
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -143,6 +147,11 @@ RANDOMIZED_SUPPORT: frozenset[str] = frozenset({"IPCProperties.v"})
 # by construction, so the quoted segments are the vectors.
 QUOTED = '"'
 
+# The wall-clock seconds one prover run is given before it is stopped, unless its caller
+# names another limit. Read when a compile starts rather than bound as a default, so a
+# test can lower it for the run it makes.
+COMPILE_TIMEOUT = 900
+
 # How many draws QuickChick spends on one property set, its `stdArgs`' `maxSuccess`. A
 # set whose domain holds no more points than this is walked whole by the exhaustive
 # harness rather than drawn, a draw of that many covering no such domain.
@@ -179,6 +188,25 @@ class Prover:
 
     switch: str
     argv: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class Compiled:
+    """One prover run: the source as staged, relative to the tree it compiled in, its
+    wall seconds, and its exit, None where it reached its limit and was stopped."""
+
+    source: str
+    seconds: float
+    exit: int | None
+
+
+class CompileTimeout(subprocess.TimeoutExpired):
+    """A prover run that reached its limit and was stopped: the source as staged and the
+    limit, `timeout`. A `TimeoutExpired`, so a caller catching that still catches it."""
+
+    def __init__(self, source: str, timeout: float, cmd: list[str]) -> None:
+        super().__init__(cmd, timeout)
+        self.source = source
 
 
 @dataclass(frozen=True)
@@ -279,19 +307,54 @@ def stage(root: Path, work: Path) -> Path:
     return work
 
 
+# Who is told of each prover run in this context: one callback, set by `observed` around
+# the compiles a caller wants accounted, and none elsewhere. A context variable rather
+# than an argument threaded through every reader that compiles, and per thread, so the
+# shards of one run each report into their own account.
+_OBSERVER: ContextVar[Callable[[Compiled], None] | None] = ContextVar("gallina_observer",
+                                                                     default=None)
+
+
+@contextmanager
+def observed(callback: Callable[[Compiled], None]) -> Iterator[None]:
+    """Tell `callback` of each prover run this thread makes inside the block, as it ends,
+    the one that reaches its limit among them."""
+    token = _OBSERVER.set(callback)
+    try:
+        yield
+    finally:
+        _OBSERVER.reset(token)
+
+
 def compile_one(found: Prover, work: Path, source: Path,
-                timeout: int = 900) -> subprocess.CompletedProcess[str]:
+                timeout: float | None = None) -> subprocess.CompletedProcess[str]:
     """One source, with the proofs directory rooted at the empty logical path.
 
     `-Q proofs ""` is the proof gate's own spelling, so a companion's `Require Import`
     resolves to the `.vo` built here and never to an installed one.
+
+    Stopped at `timeout` seconds, `COMPILE_TIMEOUT` where none is named, and then raises
+    `CompileTimeout` naming the source and the limit. The prover run alone is timed, the
+    switch environment being read ahead of it, and an observer `observed` set is told of
+    it either way.
     """
-    return subprocess.run(
-        [*found.argv, "-q", "-Q", PROOFS, "", "-Q", "harness", "",
-         source.relative_to(work).as_posix()],
-        cwd=work, capture_output=True, text=True, encoding="utf-8", errors="replace",
-        timeout=timeout, check=False,
-        env={**os.environ, **switch_env(found.switch)})
+    rel = source.relative_to(work).as_posix()
+    limit = COMPILE_TIMEOUT if timeout is None else timeout
+    argv = [*found.argv, "-q", "-Q", PROOFS, "", "-Q", "harness", "", rel]
+    environment = {**os.environ, **switch_env(found.switch)}
+    observer = _OBSERVER.get()
+    began = time.monotonic()
+    try:
+        done = subprocess.run(argv, cwd=work, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=limit,
+                              check=False, env=environment)
+    except subprocess.TimeoutExpired as expired:
+        if observer is not None:
+            observer(Compiled(rel, time.monotonic() - began, None))
+        raise CompileTimeout(rel, limit, argv) from expired
+    if observer is not None:
+        observer(Compiled(rel, time.monotonic() - began, done.returncode))
+    return done
 
 
 def _compile_waves(found: Prover, work: Path,

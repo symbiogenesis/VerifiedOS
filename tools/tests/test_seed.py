@@ -22,6 +22,7 @@ import io
 import subprocess
 import sys
 import tempfile
+import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager, redirect_stdout
 from pathlib import Path
@@ -299,6 +300,105 @@ def _the_randomized_baseline_refuses_what_does_not_replay_or_hold() -> None:
            f"a green tree is the baseline: {got} {why} {compiled}")
 
 
+# A prover that answers as `_PRINTS` says each file prints, and outlasts any limit a
+# case lowers to on a source holding the marker: the subtraction one mutant of
+# `_TIMED_SOURCE` writes. A real process, so the limit stops a real prover run.
+_SLOW_PROVER = """\
+import sys
+import time
+from pathlib import Path
+
+source = Path(sys.argv[-1])
+if {marker!r} in source.read_text(encoding="utf-8"):
+    time.sleep({sleep})
+sys.stdout.write({prints!r}.get(source.name, ""))
+"""
+_TIMED_SOURCE = "Definition a : nat := 1 + 2.\n"
+_LIMIT = 5
+_SLEEP = 120
+
+
+def _timed_run(source: str) -> tuple[int, str, list[str], float]:
+    """`seed coq --quickchick` over the rig with proofs/A.v holding `source`, the stub
+    prover answering and gallina's per-file limit lowered to `_LIMIT`: its exit, what it
+    printed, its journal's lines, and its wall seconds."""
+    with (tempfile.TemporaryDirectory(prefix="vos-rig-") as td,
+          tempfile.TemporaryDirectory(prefix="vos-lane-") as ld):
+        root, lane = _checkout({**_RIG, "proofs/A.v": source}, Path(td)), Path(ld)
+        stub = lane / "prover.py"
+        stub.write_text(_SLOW_PROVER.format(marker=" - ", sleep=_SLEEP, prints=_PRINTS),
+                        encoding="utf-8")
+        args = argparse.Namespace(file="proofs/A.v", quickchick=True, recipe=False, jobs=1,
+                                  region=[], operator=[], limit=0, sample=0)
+        began = time.monotonic()
+        with (patch.object(gallina, "COMPILE_TIMEOUT", _LIMIT),
+              patch.object(gallina, "switch_env", return_value={}),
+              redirect_stdout(io.StringIO()) as output):
+            code = seed._coq_run(args, Mock(lane_root=lane), root, "proofs/A.v",
+                                 gallina.Prover("stub", (sys.executable, str(stub))),
+                                 lane / seed.WORK / "quickchick")
+        spent = time.monotonic() - began
+        journal = (lane / seed.WORK / "quickchick.journal").read_text(encoding="utf-8")
+    return code, output.getvalue(), journal.splitlines(), spent
+
+
+def _a_compile_past_the_limit_is_undecided_and_the_run_goes_on() -> None:
+    """`seed coq --quickchick` journals the mutant each tree is on and each compile's
+    file and wall seconds; a compile that reaches gallina's per-file limit, here a stub
+    prover outlasting a lowered one, is stopped, its mutant journalled undecided naming
+    the file and the limit, and the run goes on to the next mutant and closes its journal,
+    the undecided mutant failing the run as a finding rather than counting as a kill."""
+    code, said, lines, spent = _timed_run(_TIMED_SOURCE)
+    journal = "\n".join(lines)
+    verdicts = [line.split(None, 2) for line in lines if line[:5].strip().isdigit()]
+    ensure([v[1] for v in verdicts] == ["undecided", "survived", "survived"]
+           and verdicts[0][2].startswith("proofs/A.v:1 ` + ` -> ` - `: the compile of "
+                                         f"proofs/A.v reached gallina's per-file limit of "
+                                         f"{_LIMIT} s"),
+           f"the stopped mutant is undecided by file and limit, and the next two are "
+           f"decided: {journal}")
+    stopped = [line for line in lines if line.startswith("-- quickchick: compiled proofs/A.v")
+               and line.endswith("stopped at gallina's per-file limit")]
+    ensure(len(stopped) == 1 and _LIMIT <= float(stopped[0].split(" in ")[1].split()[0])
+           < _SLEEP and spent < _SLEEP,
+           f"the prover run is stopped at the limit and journalled with its seconds: "
+           f"{stopped}, the run taking {spent:.1f} s")
+    compiled = [line.split()[3] for line in lines
+                if line.startswith("-- quickchick: compiled ") and line.endswith("exit 0")]
+    baseline = ["proofs/A.v", "harness/IPCProperties.v", "harness/Probe.v",
+                f"harness/{gallina.EXHAUSTIVE}", f"harness/{gallina.RANDOMIZED}"]
+    ensure(sorted(compiled[:5]) == sorted(baseline) and len(compiled) == 3 * len(baseline),
+           f"each compile of the baseline and of the two decided mutants is journalled: "
+           f"{compiled}")
+    marks = [line for line in lines if line.startswith("-- quickchick: ")
+             and " compiled " not in line]
+    ensure(marks == ["-- quickchick: baseline",
+                     "-- quickchick: mutant plus-to-minus/0 (plus-to-minus) "
+                     "proofs/A.v:1 ` + ` -> ` - `",
+                     "-- quickchick: mutant const-inc/0 (const-inc) proofs/A.v:1 `1` -> `2`",
+                     "-- quickchick: mutant const-inc/1 (const-inc) proofs/A.v:1 `2` -> `3`"],
+           f"the journal says which mutant the tree is on as it starts: {marks}")
+    ensure(code == 1 and lines[-1] == "== complete: 3 verdict(s) decided, exit 1"
+           and "1 undecided" in said and "FAIL 1 of 3 mutant(s) went undecided" in said,
+           f"the run reports the undecided mutant as a finding and closes: {said}")
+
+
+def _a_baseline_compile_past_the_limit_leaves_no_baseline() -> None:
+    """A compile of the unmutated tree that reaches the limit is stopped and leaves the
+    run with no baseline, which it says by file and limit, and the journal closes on no
+    verdict after the stopped compile."""
+    code, said, lines, spent = _timed_run(_TIMED_SOURCE.replace(" + ", " - "))
+    ensure(code == 1 and spent < _SLEEP
+           and f"FAIL the compile of proofs/A.v reached gallina's per-file limit of {_LIMIT} "
+               "s and was stopped, so the unmutated tree has no baseline" in said,
+           f"a stopped baseline compile is no baseline, named by file and limit: {said}")
+    ensure(lines[3:] == ["-- quickchick: baseline", lines[4],
+                         "== complete: 0 verdict(s) decided, exit 1"]
+           and lines[4].startswith("-- quickchick: compiled proofs/A.v in ")
+           and lines[4].endswith("stopped at gallina's per-file limit"),
+           f"the journal records the stopped baseline compile and closes: {lines}")
+
+
 def _oracle_list_runs() -> None:
     code, out = _run("oracle", "list")
     ensure(code == 0, f"the live specs do not parse: {out}")
@@ -523,6 +623,10 @@ def cases() -> list[Case]:
              _a_drawn_harness_that_does_not_build_is_stillborn),
         Case("the randomized baseline refuses what does not replay or hold",
              _the_randomized_baseline_refuses_what_does_not_replay_or_hold),
+        Case("a compile past the limit is undecided and the run goes on",
+             _a_compile_past_the_limit_is_undecided_and_the_run_goes_on),
+        Case("a baseline compile past the limit leaves no baseline",
+             _a_baseline_compile_past_the_limit_leaves_no_baseline),
         Case("mutation workspaces are held for the whole run",
              _mutation_workspaces_are_held_for_the_whole_run, lane="guest"),
         Case("oracle list runs over the live specs", _oracle_list_runs, lane="host"),

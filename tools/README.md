@@ -653,7 +653,12 @@ did not compile, and nothing was decided about the oracle because the oracle nev
 **Killed** is one that compiled and moved the oracle's answer. **Survived** is one that
 compiled and did not, and it is the finding: the oracle does not reach that site.
 Counting stillborn mutants as kills is the standard way a mutation score is inflated,
-so a run scores over the live population and reports the three apart.
+so a run scores over the live population and reports the three apart. A Gallina
+compile that reaches gallina's per-file limit is stopped and leaves its mutant
+**undecided**, journalled with the file and the limit beside each compile's wall
+seconds, and the run goes on to the next mutant. An undecided mutant is never a kill or
+a survivor, and it is a finding, since a population with an unanswered member is one
+the run did not decide.
 
 **A killed population is a result about the statements and never about the
 definitions.** Every mutant killed says some theorem moved when a definition did, which

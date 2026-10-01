@@ -29,7 +29,10 @@ under a population that costs a compiler or a prover per member, and each writes
 verdict to a journal beside the lane's staged trees as it is decided, so a run that is
 killed anyway still says what it had decided rather than losing the lot at the report
 it never printed. The report itself is unmoved: accumulated, printed whole, in
-population order, and closing on the line that carries the run's scope.
+population order, and closing on the line that carries the run's scope. The Gallina
+lane also journals which mutant each staged tree is on and each compile's file and wall
+seconds, and a compile that reaches gallina's per-file limit is stopped, its mutant
+journalled undecided with the file and the limit, and the run goes on to the next.
 
 The Coq lane runs **two** oracles in sequence and the second is the one worth the
 item. A mutation the prover refuses is killed by the artifact's own statements, which
@@ -64,7 +67,7 @@ import argparse
 import concurrent.futures
 import shutil
 import subprocess
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 
 from vos import cli, env, gallina, mutate, sailrig
@@ -75,6 +78,7 @@ from vos.seeded import (
     KILLED,
     STILLBORN,
     SURVIVED,
+    UNDECIDED,
     Journal,
     Scope,
     Verdict,
@@ -370,6 +374,22 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
                    "the proofs accepted it and every vector reproduced")
 
 
+def _accounted(book: Journal, tree: str) -> Callable[[gallina.Compiled], None]:
+    """How one staged tree's compiles are journalled as they end: the tree, the source,
+    its wall seconds and how the prover run ended."""
+    def note(done: gallina.Compiled) -> None:
+        ended = ("stopped at gallina's per-file limit" if done.exit is None
+                 else f"exit {done.exit}")
+        book.note(f"{tree}: compiled {done.source} in {done.seconds:.2f} s, {ended}")
+    return note
+
+
+def _stopped(stopped: gallina.CompileTimeout) -> str:
+    """A compile stopped at its limit, as the reason a verdict or a baseline names."""
+    return (f"the compile of {stopped.source} reached gallina's per-file limit of "
+            f"{stopped.timeout:g} s and was stopped")
+
+
 def _coq_shard(found: gallina.Prover, work: Path, rel: str, harness_name: str,
                mutants: list[mutate.Mutant], original: str, baseline: list[str],
                quickchick: bool, book: Journal) -> list[Verdict]:
@@ -381,18 +401,34 @@ def _coq_shard(found: gallina.Prover, work: Path, rel: str, harness_name: str,
 
     Every verdict is journalled where it is decided rather than where the shards are
     joined, which is the whole of what makes the record survive: a run torn down never
-    reaches the join.
+    reaches the join. So is the mutant the tree is on, as it starts, and each compile's
+    file and wall seconds, as it ends.
+
+    A compile that reaches gallina's per-file limit is stopped and decides nothing: its
+    mutant is undecided, naming the file and the limit, and the shard goes on to the
+    next. What the stopped compile leaves in the tree is recompiled before it is read,
+    every mutant here mutating the one source and recompiling it and everything the run
+    reads that Requires it, the harnesses among them.
     """
     staged = work / rel
     harness = work / "harness" / harness_name
     verdicts: list[Verdict] = []
-    for mutant in mutants:
-        write_source(staged, mutant.apply(original))
-        try:
-            verdicts.append(book.record(
-                _coq_verdict(found, work, rel, harness, mutant, baseline, quickchick)))
-        finally:
-            write_source(staged, original)
+    with gallina.observed(_accounted(book, work.name)):
+        for mutant in mutants:
+            book.note(f"{work.name}: mutant {mutant.ident} ({mutant.operator}) "
+                      f"{mutant.what}")
+            write_source(staged, mutant.apply(original))
+            try:
+                try:
+                    verdict = _coq_verdict(found, work, rel, harness, mutant, baseline,
+                                           quickchick)
+                except gallina.CompileTimeout as stopped:
+                    verdict = Verdict(mutant, UNDECIDED,
+                                      f"{_stopped(stopped)}, so nothing was decided "
+                                      "about it")
+                verdicts.append(book.record(verdict))
+            finally:
+                write_source(staged, original)
     return verdicts
 
 
@@ -473,7 +509,7 @@ def _quickchick_baseline(root: Path, found: gallina.Prover, work: Path,
 
 
 def _stand_up(root: Path, found: gallina.Prover, trees: list[Path], harness_name: str,
-              quickchick: bool) -> tuple[list[str] | None, str]:
+              quickchick: bool, book: Journal) -> tuple[list[str] | None, str]:
     """Stage and compile every tree, and take the baseline they are all held to.
 
     They are stood up together for the same reason the shards run together, and then
@@ -481,6 +517,9 @@ def _stand_up(root: Path, found: gallina.Prover, trees: list[Path], harness_name
     mutants are compared against, so trees that differed unmutated would make a verdict
     depend on which shard happened to draw the mutant. That is a defect this rig has no
     other way of seeing, and it is cheap to refuse here.
+
+    Each tree's compiles are journalled as a shard's are, and one that reaches
+    gallina's per-file limit leaves that tree, and so the run, with no baseline.
     """
     def one(work: Path) -> tuple[list[str] | None, str]:
         # The emitter's own account of a failure is carried out rather than dropped
@@ -488,10 +527,15 @@ def _stand_up(root: Path, found: gallina.Prover, trees: list[Path], harness_name
         # in this loop where the reader has nothing else to go on, and "the unmutated
         # tree did not run" costs a whole second run to turn into which proof refused
         # and what the prover said about it.
-        if quickchick:
-            return _quickchick_baseline(root, found, work, harness_name)
-        said: list[str] = []
-        return gallina.emit(root, work, said), "\n".join(said)
+        with gallina.observed(_accounted(book, work.name)):
+            book.note(f"{work.name}: baseline")
+            try:
+                if quickchick:
+                    return _quickchick_baseline(root, found, work, harness_name)
+                said: list[str] = []
+                return gallina.emit(root, work, said), "\n".join(said)
+            except gallina.CompileTimeout as stopped:
+                return None, f"{_stopped(stopped)}, so the unmutated tree has no baseline"
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(trees)) as pool:
         got = list(pool.map(one, trees))
@@ -596,7 +640,7 @@ def _coq_run(args: argparse.Namespace, e: env.Environment, root: Path, rel: str,
     # a run that asked for no concurrency stages exactly where it staged before.
     jobs = max(1, args.jobs)
     trees = [work] if jobs == 1 else [work / f"j{n}" for n in range(jobs)]
-    baseline, why = _stand_up(root, found, trees, harness_name, args.quickchick)
+    baseline, why = _stand_up(root, found, trees, harness_name, args.quickchick, book)
     if baseline is None:
         out.append(f"FAIL {why}")
         book.close(1)
