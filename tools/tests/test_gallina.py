@@ -758,9 +758,12 @@ def _the_installed_quickchick_is_read_without_answering() -> None:
                                                                     "")) as run):
             read = quickchick.installed("s")
         passed = run.call_args.kwargs.get("env") or {}
-        ensure(run.call_args.args[0][:4] == ["opam", "list", "--switch", "s"]
+        ensure(run.call_args.args[0] == ["opam", "list", "--switch", "s", "--installed",
+                                         "--short", "--columns=version,pin",
+                                         quickchick.PACKAGE]
                and run.call_args.kwargs.get("stdin") is subprocess.DEVNULL,
-               f"{label}: opam list's standard input is closed: {run.call_args.args} "
+               f"{label}: opam lists the switch's installed QuickChick with its version "
+               f"and pin, its standard input closed: {run.call_args.args} "
                f"stdin={run.call_args.kwargs.get('stdin')!r}")
         ensure(not {key.upper() for key in passed} & set(env.OPAM_ANSWERS)
                and passed.get("OPAMROOT") == "/elsewhere",
