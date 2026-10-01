@@ -731,21 +731,53 @@ def _seed_refuses_a_manifest_linked_to_a_fifo() -> None:
         _manifest_refused(donor, model_root, partial(_end_of_file, fifo))
 
 
+# `verify_test_corpus` over the suite and digest it is given, in a child whose address
+# space is held to a gibibyte once model.py is imported, printing the refusal. A read of
+# more than that fails with `MemoryError` there whatever the kernel's overcommit policy,
+# where a process allowed to overcommit would map the whole read and be killed for the
+# memory it touched. `resource` is POSIX-only, and the child runs only on a guest lane.
+_BOUNDED_VERIFY = """
+import resource
+import sys
+from pathlib import Path
+
+from vos.cli import model
+
+_, hard = resource.getrlimit(resource.RLIMIT_AS)
+limit = 1 << 30 if hard == resource.RLIM_INFINITY else min(1 << 30, hard)
+resource.setrlimit(resource.RLIMIT_AS, (limit, hard))
+try:
+    model.verify_test_corpus(Path(sys.argv[1]), sys.argv[2])
+except ValueError as err:
+    print(err)
+else:
+    sys.exit("the sparse manifest verified")
+"""
+
+
 def _verify_refuses_a_sparse_manifest() -> None:
     """A manifest that is a regular file, holding the suite's listing and then zeros to
-    a terabyte, disagrees with the suite within the deadline: no more of it is read
-    than the listing the tree renders and one byte, where a read of the whole would end
-    in the `MemoryError` that no refusal of `_seed_test_data` catches. The file is
-    sparse, so it allocates nothing; NTFS allocates an extended file, so the case is the
-    guest's and win32 is refused before the truncation."""
+    a terabyte, disagrees with the suite: no more of it is read than the listing the
+    tree renders and one byte, where a read of the whole would end in the `MemoryError`
+    that no refusal of `_seed_test_data` catches. The verification runs in a child whose
+    address space `_BOUNDED_VERIFY` holds to a gibibyte, so such a read fails there as
+    that `MemoryError` under any overcommit policy rather than having the child killed.
+    The file is sparse, so it allocates nothing; NTFS allocates an extended file, so
+    the case is the guest's and win32 is refused before the truncation."""
     if sys.platform == "win32":
         raise AssertionError("NTFS allocates an extended file; the sparse manifest case "
                              "runs in the guest")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF"})
         os.truncate(_MODEL.corpus_manifest(suite), 1 << 40)
-        said = _refused(partial(_MODEL.verify_test_corpus, suite, _CORPUS_DIGEST))
-        ensure("disagrees" in said, f"the sparse manifest disagrees, got {said!r}")
+        done = subprocess.run([sys.executable, "-c", _BOUNDED_VERIFY, str(suite),
+                               _CORPUS_DIGEST],
+                              capture_output=True, encoding="utf-8", errors="replace",
+                              check=False, timeout=120,
+                              env={**os.environ, "PYTHONPATH": str(TOOLS)})
+        ensure(done.returncode == 0 and "disagrees" in done.stdout,
+               f"the sparse manifest disagrees, got {done.returncode}, "
+               f"{done.stdout[-400:]!r} and {done.stderr[-400:]!r}")
 
 
 def _verify_reads_no_file_until_the_paths_agree() -> None:
