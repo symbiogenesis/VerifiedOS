@@ -477,7 +477,7 @@ Definition sample_ntt_bounded (p : Params) (rho : list Z) (i j : nat)
 
 Definition shake_oracles (p : Params) : Oracles :=
   {| kem_matrix := fun rho i j =>
-       match sample_ntt_bounded p rho i j with Some a => a | None => nil end;
+       if sample_ntt_bounded p rho i j is Some a then a else nil;
      kem_noise := fun eta seed tag =>
        sample_cbd_bytes p eta
            (shake_bytes 256 (64*eta) (seed ++ (Z.of_nat tag :: nil)));

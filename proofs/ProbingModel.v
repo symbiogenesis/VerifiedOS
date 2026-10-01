@@ -201,8 +201,8 @@ Qed.
 
 Lemma leb_drop_left : forall a b, Nat.leb (S a) b = true -> Nat.leb a b = true.
 Proof.
-  induction a; intros b H; [reflexivity|].
-  destruct b; [discriminate H|]. simpl in *. exact (IHa b H).
+  induction a as [|a IHa]; intros b H; [reflexivity|].
+  destruct b as [|b]; [discriminate H|]. simpl in *. exact (IHa b H).
 Qed.
 
 Lemma leb_add_mono_r_nat :
@@ -755,10 +755,8 @@ Fixpoint eval_wire (m : Sharing) (ops : nat -> list (Val m) -> Val m)
 
 Definition step_regs (m : Sharing) (ops : nat -> list (Val m) -> Val m)
     (c : Circuit) (regs : nat -> Val m) (ins : nat -> Val m) : nat -> Val m :=
-  fun w => match gate_at c w with
-           | g_reg s => eval_wire m ops c regs ins (wire_count c) s
-           | _ => regs w
-           end.
+  fun w => if gate_at c w is g_reg s then eval_wire m ops c regs ins (wire_count c) s
+           else regs w.
 
 Fixpoint regs_at (m : Sharing) (ops : nat -> list (Val m) -> Val m)
     (c : Circuit) (init : nat -> Val m) (ins : nat -> nat -> Val m)
@@ -947,10 +945,7 @@ Qed.
 
 Definition stable_value (m : Sharing) (c : Circuit)
     (regs : nat -> Val m) (ins : nat -> Val m) (s : nat) : Val m :=
-  match gate_at c s with
-  | g_in i => ins i
-  | _ => regs s
-  end.
+  if gate_at c s is g_in i then ins i else regs s.
 
 (*| discharges: R-15-053a |*)
 Theorem stable_sources_determine_the_probed_value :
@@ -1116,7 +1111,7 @@ Definition value_tapes (m : Sharing) : Probability :=
   counting (Val m) (v_enum m).
 
 Definition two_share (m : Sharing) (s r : Val m) (k : nat) : Val m :=
-  match k with 0 => r | _ => v_sub m s r end.
+  if k is 0 then r else v_sub m s r.
 
 (*| discharges: R-15-053a |*)
 Theorem two_share_encoding_hides_the_secret :
@@ -1362,10 +1357,7 @@ Fixpoint xor_fold (l : list bool) : bool :=
    of the gate's arguments. Which operations the alphabet carries is a
    field of the model (reading 1); these two are what the witnesses need. *)
 Definition gf2_ops (o : nat) (args : list bool) : bool :=
-  match o with
-  | 0 => false
-  | _ => xor_fold args
-  end.
+  if o is 0 then false else xor_fold args.
 
 (* Tapes as bit vectors, so a demo's randomness is enumerated and every
    distribution below is decided by conversion. *)
@@ -1597,10 +1589,7 @@ Definition reused_register_experiment : Experiment := {|
   x_ops := gf2_ops;
   x_secret := bool;
   x_in := fun s tape t _ =>
-            match t with
-            | 0 => bit_at tape 0
-            | _ => xorb s (bit_at tape 0)
-            end;
+            if t is 0 then bit_at tape 0 else xorb s (bit_at tape 0);
   x_init := fun _ _ _ => false;
   x_order := 1
 |}.
@@ -1958,7 +1947,7 @@ Qed.
 Lemma perm_flat_map_std : forall {A B} (f : A -> list B) a b,
   Perm a b -> Perm (flat_map f a) (flat_map f b).
 Proof.
-  intros A B f a b H. induction H; simpl.
+  intros A B f a b H. induction H as [ | x l l' H IHPerm | | ]; simpl.
   - apply perm_refl.
   - apply perm_append_left. exact IHPerm.
   - repeat rewrite app_assoc. apply perm_append_right. apply perm_app_comm.
@@ -1969,7 +1958,7 @@ Lemma perm_flat_map_pointwise : forall {A B} (f g : A -> list B) a,
   (forall x, In x a -> Perm (f x) (g x)) ->
   Perm (flat_map f a) (flat_map g a).
 Proof.
-  intros A B f g a. induction a; intros H; simpl.
+  intros A B f g a. induction a as [ | x r IHa ]; intros H; simpl.
   - apply perm_refl.
   - eapply perm_trans.
     + apply perm_append_right. apply H. left. reflexivity.
@@ -1978,7 +1967,7 @@ Qed.
 
 Lemma map_flatten : forall {A B C} (f : B -> C) (g : A -> list B) a,
   map f (flat_map g a) = flat_map (fun x => map f (g x)) a.
-Proof. intros A B C f g a. induction a; simpl; auto. rewrite map_app, IHa. reflexivity. Qed.
+Proof. intros A B C f g a. induction a as [ | x r IHa ]; simpl; auto. rewrite map_app, IHa. reflexivity. Qed.
 
 Lemma flat_map_mapped : forall {A B C} (f : B -> list C) (g : A -> B) a,
   flat_map f (map g a) = flat_map (fun x => f (g x)) a.
@@ -2008,7 +1997,7 @@ Lemma shift_mask_sum : forall m i delta xs,
   i < length xs ->
   sum_of m (shift_mask m i delta xs) = v_add m delta (sum_of m xs).
 Proof.
-  intros m i delta xs. revert i. induction xs; intros [|i] H; simpl in *; try lia.
+  intros m i delta xs. revert i. induction xs as [ | a xs IHxs ]; intros [|i] H; simpl in *; try lia.
   - symmetry. apply v_add_assoc.
   - rewrite IHxs by lia. rewrite (v_add_assoc m a delta (sum_of m xs)).
     rewrite (v_add_comm m a delta). symmetry. apply v_add_assoc.
@@ -2018,14 +2007,14 @@ Lemma shift_mask_other : forall m i j delta xs,
   i <> j -> nth j (shift_mask m i delta xs) (v_zero m) = nth j xs (v_zero m).
 Proof.
   intros m i j delta xs. revert i j.
-  induction xs; intros [|i] [|j] H; simpl; try reflexivity; try congruence.
+  induction xs as [ | a xs IHxs ]; intros [|i] [|j] H; simpl; try reflexivity; try congruence.
   apply IHxs. congruence.
 Qed.
 
 Lemma mask_tuples_length : forall m n xs,
   In xs (mask_tuples m n) -> length xs = n.
 Proof.
-  intros m n. induction n; intros xs H.
+  intros m n. induction n as [ | n IHn ]; intros xs H.
   - simpl in H. destruct H as [<-|H]; [reflexivity|contradiction].
   - apply in_flat_map in H. destruct H as [x [Hx H]].
     apply in_map_iff in H. destruct H as [r [<- Hr]]. simpl. f_equal. apply IHn. exact Hr.
@@ -2034,7 +2023,7 @@ Qed.
 Lemma shift_mask_permutation : forall m n i delta,
   i < n -> Perm (map (shift_mask m i delta) (mask_tuples m n)) (mask_tuples m n).
 Proof.
-  intros m n. induction n; intros [|i] delta H; try lia;
+  intros m n. induction n as [ | n IHn ]; intros [|i] delta H; try lia;
     cbn [mask_tuples]; rewrite map_flatten.
   - replace (flat_map
       (fun x => map (shift_mask m 0 delta) (map (cons x) (mask_tuples m n))) (v_enum m))
@@ -2153,7 +2142,7 @@ Record FiniteMassQualification (p : Probability) : Type := {
 Lemma counting_total : forall T enum,
   pr (counting T enum) (fun _ => true) = length enum.
 Proof.
-  intros. rewrite counting_pr. induction enum; simpl; auto.
+  intros T enum. rewrite counting_pr. induction enum; simpl; auto.
 Qed.
 
 Definition qualify_counting (T : Type) (enum : list T) (H : enum <> nil)
@@ -2196,7 +2185,7 @@ Theorem d_share_normalized_observations_agree :
       (fun xs => share_view m idxs (encode m s2 xs)) o /\
   0 < length (mask_tuples m n).
 Proof.
-  intros. split.
+  intros m n idxs s1 s2 o H H0. split.
   - unfold normalized_counting_observation. f_equal.
     apply d_share_encoding_hides_from_d_minus_one_probes; assumption.
   - destruct (mask_tuples_nonempty m n) as [xs Hxs].
@@ -2228,7 +2217,7 @@ Theorem adaptive_view_respects_its_physical_probe_budget :
   forall fuel x E strategy s tape,
   length (adaptive_view fuel x E strategy s tape) <= fuel.
 Proof.
-  induction fuel; intros; [reflexivity|].
+  induction fuel as [ | fuel IHfuel ]; intros x E strategy s tape; [reflexivity|].
   destruct strategy as [|p next]; cbn [adaptive_view length]; [lia|].
   specialize (IHfuel x E (next (x_view x E (p :: nil) s tape)) s tape). lia.
 Qed.

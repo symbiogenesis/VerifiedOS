@@ -119,10 +119,10 @@ Qed.
 Theorem admitted_assumptions_allowed : forall b e m bytes allowed c p r,
   admit_design b e m bytes allowed c p r = true ->
   included (checked_assumptions r) allowed = true.
-Proof. intros. exact (every_at _ 7 H). Qed.
+Proof. intros b e m bytes allowed c p r H. exact (every_at _ 7 H). Qed.
 Theorem admitted_receipt_exact : forall b e m bytes allowed c p r,
   admit_design b e m bytes allowed c p r = true -> checked_evidence r = bytes.
-Proof. intros. apply same_equal. exact (every_at _ 6 H). Qed.
+Proof. intros b e m bytes allowed c p r H. apply same_equal. exact (every_at _ 6 H). Qed.
 
 Record SessionContext := {
   host_role : nat; unit_role : nat; endpoint : nat; unit_key : nat;
@@ -167,19 +167,17 @@ Definition insert_unit cache expected (reply : option AuthenticatedReply) :=
 Theorem insertion_binds_authenticated_context : forall cache c r,
   insert_unit cache c (Some r) = true ->
   context_identity (issued_context r) = context_identity c.
-Proof. intros. apply same_equal. exact (every_at _ 1 H). Qed.
+Proof. intros cache c r H. apply same_equal. exact (every_at _ 1 H). Qed.
 Theorem trusted_reply_binds_key_field : forall cache c r,
   insert_unit cache c (Some r) = true -> actual_signing_key r = unit_key c.
-Proof. intros. apply eqb_equal. exact (every_at _ 2 H). Qed.
+Proof. intros cache c r H. apply eqb_equal. exact (every_at _ 2 H). Qed.
 Theorem insertion_uses_finite_set : forall cache c r,
   insert_unit cache c (Some r) = true -> member (unit_key c) (admitted_units cache) = true.
-Proof. intros. exact (every_at _ 3 H). Qed.
+Proof. intros cache c r H. exact (every_at _ 3 H). Qed.
 Theorem copied_identifier_without_key : forall cache c, insert_unit cache c None = false.
 Proof. reflexivity. Qed.
 Definition record_insertion (cache : AdmissionCache) (c : SessionContext) : AdmissionCache :=
-  {| cached_design:=cached_design cache; cached_model:=cached_model cache;
-     admitted_units:=admitted_units cache; production_lifecycle:=production_lifecycle cache;
-     design_checked:=design_checked cache;
+  {| cache with
      prior_nonces:=host_nonce c :: unit_nonce c :: prior_nonces cache;
      prior_ephemerals:=host_ephemeral c :: unit_ephemeral c :: prior_ephemerals cache |}.
 Definition accept_and_record cache c reply : option AdmissionCache :=
@@ -189,7 +187,7 @@ Proof. induction n; simpl; auto. Qed.
 Theorem decided_insertion_cannot_reopen : forall cache c reply,
   insert_unit (record_insertion cache c) c reply = false.
 Proof.
-  intros. destruct reply as [r|]; try reflexivity.
+  intros cache c reply. destruct reply as [r|]; try reflexivity.
   destruct (insert_unit (record_insertion cache c) c (Some r)) eqn:E; try reflexivity.
   pose proof (every_at _ 10 E) as H.
   cbn [bool_at insertion_checks record_insertion prior_nonces member] in H.
@@ -291,14 +289,14 @@ Definition route_allowed c (grant : option Grant) q now consent :=
   match grant with None => false | Some g => every (grant_checks c g q now consent) end.
 Theorem route_has_consent : forall c g q now consent,
   route_allowed c (Some g) q now consent = true -> consent g q = true.
-Proof. intros. exact (every_at _ 0 H). Qed.
+Proof. intros c g q now consent H. exact (every_at _ 0 H). Qed.
 Theorem route_binds_principal : forall c g q now consent,
   route_allowed c (Some g) q now consent = true -> grant_principal g = request_principal q.
-Proof. intros. apply eqb_equal. exact (every_at _ 1 H). Qed.
+Proof. intros c g q now consent H. apply eqb_equal. exact (every_at _ 1 H). Qed.
 Theorem route_excludes_secrets : forall c g q now consent,
   route_allowed c (Some g) q now consent = true -> request_secret q = false.
 Proof.
-  intros. pose proof (every_at _ 13 H) as E.
+  intros c g q now consent H. pose proof (every_at _ 13 H) as E.
   change (negb (request_secret q) = true) in E.
   destruct (request_secret q); simpl in E; try discriminate; reflexivity.
 Qed.
@@ -324,7 +322,7 @@ Record Frame := {
    supply every Frame value; all guards below still apply. *)
 Definition frame_checks (s : HostState) (f : Frame) : list bool :=
   admitting_state (frame_operation f) (socket_state s) ::
-  (match frame_operation f with InfOutput => true | _ => false end) ::
+  (if frame_operation f is InfOutput then true else false) ::
   Nat.eqb (frame_session f) (session_epoch (current_context s)) ::
   Nat.eqb (frame_activation f) (activation_epoch (current_context s)) ::
   Nat.eqb (frame_sequence f) (next_sequence s) ::
@@ -333,7 +331,7 @@ Definition frame_checks (s : HostState) (f : Frame) : list bool :=
   Nat.eqb (frame_count f) (count (frame_payload f)) ::
   Nat.leb (frame_count f) (per_frame_ceiling (composition s)) ::
   Nat.leb (output_used s + frame_count f) (output_ceiling (composition s)) ::
-  (match forbidden_destination f with None => true | Some _ => false end) ::
+  (if forbidden_destination f is None then true else false) ::
   below 256 (frame_payload f) :: nil.
 Definition deliverable (s : HostState) (f : Frame) consent :=
   match outstanding s with
@@ -350,25 +348,15 @@ Definition receive (s : HostState) (wire : option Frame) consent : Effect :=
   | _, _ => NoDelivery
   end.
 Definition fail_stop (s : HostState) : HostState :=
-  {| composition := composition s;
-     socket_state := match socket_state s with Absent => Absent | _ => Isolated end;
-     current_context := current_context s; host_grant := None; outstanding := None;
-     next_sequence := next_sequence s; output_used := output_used s;
-     host_slot := host_slot s; host_now := host_now s;
-     mover_barrier_complete := mover_barrier_complete s |}.
+  {| s with
+     socket_state := if socket_state s is Absent then Absent else Isolated;
+     host_grant := None; outstanding := None |}.
 Definition finish_output (s : HostState) (f : Frame) : HostState :=
-  {| composition := composition s; socket_state := socket_state s;
-     current_context := current_context s; host_grant := host_grant s;
+  {| s with
      outstanding := None; next_sequence := S (next_sequence s);
-     output_used := output_used s + frame_count f;
-     host_slot := host_slot s; host_now := host_now s;
-     mover_barrier_complete := mover_barrier_complete s |}.
+     output_used := output_used s + frame_count f |}.
 Definition disable_route (s : HostState) : HostState :=
-  {| composition := composition s; socket_state := socket_state s;
-     current_context := current_context s; host_grant := None; outstanding := None;
-     next_sequence := next_sequence s; output_used := output_used s;
-     host_slot := host_slot s; host_now := host_now s;
-     mover_barrier_complete := mover_barrier_complete s |}.
+  {| s with host_grant := None; outstanding := None |}.
 Definition socket_step (s : HostState) (wire : option Frame) consent : HostState :=
   match wire with
   | None => fail_stop s
@@ -386,7 +374,7 @@ Fixpoint run_frames (s : HostState) (frames : list (option Frame)) consent : Hos
 Theorem arbitrary_card_preserves_composition : forall s wire consent,
   composition (socket_step s wire consent) = composition s.
 Proof.
-  intros. unfold socket_step. destruct wire as [f|]; try reflexivity.
+  intros s wire consent. unfold socket_step. destruct wire as [f|]; try reflexivity.
   destruct (every (frame_checks s f)); try reflexivity.
   destruct (outstanding s) as [q|]; try reflexivity.
   destruct (route_allowed (current_context s) (host_grant s) q (host_now s) consent); try reflexivity.
@@ -413,10 +401,10 @@ Proof. intros; split; reflexivity. Qed.
 Theorem fail_stop_respects_lifecycle : forall s,
   socket_state (fail_stop s) = socket_state s \/
   transition (socket_state s) (socket_state (fail_stop s)) = true.
-Proof. intros. unfold fail_stop. destruct (socket_state s); simpl; auto. Qed.
+Proof. intros s. unfold fail_stop. destruct (socket_state s); simpl; auto. Qed.
 Theorem isolated_route_never_delivers : forall s wire consent,
   receive (fail_stop s) wire consent = NoDelivery.
-Proof. intros. destruct wire; reflexivity. Qed.
+Proof. intros s wire consent. destruct wire; reflexivity. Qed.
 Theorem delivery_respects_all_frame_guards : forall s f consent n,
   deliverable s f consent = true -> bool_at n (frame_checks s f) = true.
 Proof.
@@ -430,11 +418,11 @@ Qed.
 Theorem delivery_cannot_extend_quota : forall s f consent,
   deliverable s f consent = true ->
   Nat.leb (output_used s + frame_count f) (output_ceiling (composition s)) = true.
-Proof. intros. exact (delivery_respects_all_frame_guards _ _ _ 9 H). Qed.
+Proof. intros s f consent H. exact (delivery_respects_all_frame_guards _ _ _ 9 H). Qed.
 Theorem delivery_is_only_output : forall s f consent,
   deliverable s f consent = true -> frame_operation f = InfOutput.
 Proof.
-  intros. pose proof (delivery_respects_all_frame_guards _ _ _ 1 H) as E.
+  intros s f consent H. pose proof (delivery_respects_all_frame_guards _ _ _ 1 H) as E.
   cbn [bool_at frame_checks] in E.
   destruct (frame_operation f); try discriminate; reflexivity.
 Qed.
@@ -444,12 +432,12 @@ Proof. reflexivity. Qed.
 Theorem delivery_cannot_name_address : forall s f consent,
   deliverable s f consent = true -> forbidden_destination f = None.
 Proof.
-  intros. pose proof (delivery_respects_all_frame_guards _ _ _ 10 H) as E.
+  intros s f consent H. pose proof (delivery_respects_all_frame_guards _ _ _ 10 H) as E.
   cbn [bool_at frame_checks] in E.
   destruct (forbidden_destination f); try discriminate; reflexivity.
 Qed.
 Definition reclaim_buffers (s : HostState) : bool :=
-  match socket_state s with Isolated => mover_barrier_complete s | _ => false end.
+  if socket_state s is Isolated then mover_barrier_complete s else false.
 Theorem reclamation_requires_host_barrier : forall s,
   reclaim_buffers s = true -> mover_barrier_complete s = true.
 Proof. intros s H. unfold reclaim_buffers in H. destruct (socket_state s); try discriminate; exact H. Qed.
@@ -595,8 +583,8 @@ Definition request_fixture principal input dest operation secret : Request :=
   {| request_principal:=principal; request_input:=input; request_destination:=dest;
      request_operation:=operation; request_secret:=secret; request_drawn:=2 |}.
 Definition request_witness : Request := request_fixture 19 20 21 1 false.
-Definition consent_yes (_ : Grant) (_ : Request) := true.
-Definition consent_no (_ : Grant) (_ : Request) := false.
+Definition consent_yes & Grant & Request := true.
+Definition consent_no & Grant & Request := false.
 Example positive_grant : route_allowed context_witness (Some grant_witness)
   request_witness 5 consent_yes = true.
 Proof. reflexivity. Qed.

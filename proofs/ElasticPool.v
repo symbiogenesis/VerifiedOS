@@ -27,7 +27,7 @@ Local Ltac vm_reflexivity :=
 
 Lemma pool_upto_in : forall n k, In k (upto n) -> k < n.
 Proof.
-  induction n; intros k H; simpl in H; [contradiction|].
+  induction n as [|n IHn]; intros k H; simpl in H; [contradiction|].
   apply in_app_or in H. destruct H as [H|[H|H]].
   - specialize (IHn k H). lia.
   - subst. lia.
@@ -37,7 +37,7 @@ Qed.
 Lemma pool_all_ext : forall (A : Type) (l : list A) f g,
   (forall x, In x l -> f x = g x) -> all_of f l = all_of g l.
 Proof.
-  intros A l; induction l; intros f g H; simpl; auto.
+  intros A l; induction l as [|a l IHl]; intros f g H; simpl; auto.
   rewrite (H a (or_introl eq_refl)). f_equal. apply IHl.
   intros x Hx. apply H. now right.
 Qed.
@@ -45,7 +45,7 @@ Qed.
 Lemma pool_any_ext : forall (A : Type) (l : list A) f g,
   (forall x, In x l -> f x = g x) -> any_of f l = any_of g l.
 Proof.
-  intros A l; induction l; intros f g H; simpl; auto.
+  intros A l; induction l as [|a l IHl]; intros f g H; simpl; auto.
   rewrite (H a (or_introl eq_refl)). f_equal. apply IHl.
   intros x Hx. apply H. now right.
 Qed.
@@ -155,7 +155,7 @@ Proof.
   intros a events.
   assert (H : forall events h, PoolGuarantees a h ->
       PoolGuarantees a (pool_run a h events)).
-  { induction events0 as [|e rest IH]; intros h Hh; simpl; auto.
+  { intro events0. induction events0 as [|e rest IH]; intros h Hh; simpl; auto.
     apply IH. now apply pool_event_preserves_guarantees. }
   apply H. apply (proj2 (pool_guarantees_points a [])).
   intros q Hq. simpl in Hq. lia.
@@ -164,7 +164,7 @@ Qed.
 Theorem heap_run_narrows : forall chunk events,
   HeapNarrows chunk (pool_run chunk [] events).
 Proof.
-  intros. destruct (pool_run_refines_four_guarantees chunk events)
+  intros chunk events. destruct (pool_run_refines_four_guarantees chunk events)
     as [Hd [He [Hz Hr]]]. exact (conj He (conj Hd Hr)).
 Qed.
 

@@ -1297,6 +1297,22 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q38h
 · Disposition: open, the repair held on the local branch `work/q38-bootguard-20261001` until the user decides when the five-runner campaign that a change to its workflow starts on push may run
 
+**F-641** method: Rocq 9.3 checks an `Ltac` definition's hypothesis names when it reads the definition, so a body naming a hypothesis it does not bind, such as one `injection … as` introduces, is refused
+· Raised: Q38h
+· Disposition: standing, each `Local Ltac` Q38h adds binding the names it reads by its own intro patterns or taking them as parameters
+
+**F-642** owed-act: Q38h's Owns let a lane rewrite `MemoryPlan.v` by regenerating the memory-plan export, while its Check held that export byte for byte, although the export records the source's MD5
+· Raised: Q38h
+· Disposition: closed at landing, the Check excepting the `source_md5` the export's generator writes for a rewritten `MemoryPlan.v`
+
+**F-643** owed-act: K-117's table does not read the dated Q19a review replay, `proofs/campaigns/q19a-render-cache.py`, which compiles `CopyRingService.v`'s prefix in a Rocq 9.2.0 switch it names at run time
+· Raised: Q38h
+· Disposition: standing, Q38h leaving that prefix as the base writes it as a campaign anchor
+
+**F-644** measurement: in `Keccak.v`'s `squeeze`, the constant-increment mutant of the `0` pattern compiles under `if … is` where the explicit match's mutant did not
+· Raised: Q38h
+· Disposition: standing, the population unchanged and a later mutation run deciding that mutant instead of counting it stillborn
+
 **F-578** measurement: Q38i's cast clause and its Check's compile fall cannot both hold in ArithmeticComposition.v, CredentialHandles.v, InferenceAdmission.v and TwoSourceExtractor.v, whose 16 such proofs evaluate goals too small for a fall beyond single-run noise, and the cast raised ArithmeticComposition.v's recheck by 2.8% in two single runs
 · Raised: Q38i
 · Disposition: standing, the four modules keeping their scripts
