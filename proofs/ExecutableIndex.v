@@ -398,27 +398,22 @@ Fixpoint spans (ka : KeyAlgebra) (ar : Arena ka) (fuel b : nat) : bool :=
   match nth_error ar b with
   | None => false
   | Some nd =>
-      match en_kids nd with
-      | nil => true
-      | cons _ _ =>
-          match fuel with
-          | 0 => false
-          | S f => all_of (spans ka ar f) (en_kids nd)
-          end
-      end
+      if en_kids nd is nil then true
+      else match fuel with
+           | 0 => false
+           | S f => all_of (spans ka ar f) (en_kids nd)
+           end
   end.
 
 (* The occupancy shape R-10-003 leaves to composition: a ceiling and no
    floor, one separator fewer than children, and no node that is both. *)
 Definition node_fits (ka : KeyAlgebra) (g : Geometry) (nd : ENode ka) : bool :=
-  match en_kids nd with
-  | nil => andb (Nat.leb (length (en_entries nd)) (fan g))
-                (Nat.eqb (length (en_seps nd)) 0)
-  | cons _ _ =>
-      andb (Nat.leb (length (en_kids nd)) (fan g))
-      (andb (Nat.eqb (length (en_kids nd)) (S (length (en_seps nd))))
-            (Nat.eqb (length (en_entries nd)) 0))
-  end.
+  if en_kids nd is nil
+  then andb (Nat.leb (length (en_entries nd)) (fan g))
+            (Nat.eqb (length (en_seps nd)) 0)
+  else andb (Nat.leb (length (en_kids nd)) (fan g))
+       (andb (Nat.eqb (length (en_kids nd)) (S (length (en_seps nd))))
+             (Nat.eqb (length (en_entries nd)) 0)).
 
 (* The separators of one node, read as the chain of bounds they cut the
    node's range into: each is inside the node's own range and no earlier one
@@ -453,18 +448,16 @@ Fixpoint admitted (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
   | None => false
   | Some nd =>
       andb (node_fits ka g nd)
-        (match en_kids nd with
-         | nil => andb (sorted ka (en_entries nd))
-                       (entries_within ka lo hi (en_entries nd))
-         | cons _ _ =>
-             match fuel with
-             | 0 => false
-             | S f =>
-                 andb (rising ka lo (en_seps nd) hi)
-                      (chain ka (admitted ka g ar f) lo (en_seps nd)
-                             (en_kids nd) hi)
-             end
-         end)
+        (if en_kids nd is nil
+         then andb (sorted ka (en_entries nd))
+                   (entries_within ka lo hi (en_entries nd))
+         else match fuel with
+              | 0 => false
+              | S f =>
+                  andb (rising ka lo (en_seps nd) hi)
+                       (chain ka (admitted ka g ar f) lo (en_seps nd)
+                              (en_kids nd) hi)
+              end)
   end.
 
 (* The arena's own ceiling, which `alloc` keeps and nothing else may break. *)
@@ -480,18 +473,15 @@ Fixpoint lookup (ka : KeyAlgebra) (ar : Arena ka) (fuel b : nat)
   match nth_error ar b with
   | None => None
   | Some nd =>
-      match en_kids nd with
-      | nil => look ka k (en_entries nd)
-      | cons _ _ =>
-          match fuel with
-          | 0 => None
-          | S f =>
-              match nth_error (en_kids nd) (route ka k (en_seps nd)) with
-              | None => None
-              | Some c => lookup ka ar f c k
-              end
-          end
-      end
+      if en_kids nd is nil then look ka k (en_entries nd)
+      else match fuel with
+           | 0 => None
+           | S f =>
+               match nth_error (en_kids nd) (route ka k (en_seps nd)) with
+               | None => None
+               | Some c => lookup ka ar f c k
+               end
+           end
   end.
 
 (* The logical map the subtree represents: its entries in key order, read as
@@ -503,14 +493,11 @@ Fixpoint flatten (ka : KeyAlgebra) (ar : Arena ka) (fuel b : nat)
   match nth_error ar b with
   | None => nil
   | Some nd =>
-      match en_kids nd with
-      | nil => en_entries nd
-      | cons _ _ =>
-          match fuel with
-          | 0 => nil
-          | S f => flat_map (flatten ka ar f) (en_kids nd)
-          end
-      end
+      if en_kids nd is nil then en_entries nd
+      else match fuel with
+           | 0 => nil
+           | S f => flat_map (flatten ka ar f) (en_kids nd)
+           end
   end.
 
 (* =========================================================================
@@ -597,26 +584,23 @@ Fixpoint insert (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
   match nth_error ar b with
   | None => None
   | Some nd =>
-      match en_kids nd with
-      | nil => publish_leaf ka g ar (ins ka k v (en_entries nd))
-      | cons _ _ =>
-          match fuel with
-          | 0 => None
-          | S f =>
-              let j := route ka k (en_seps nd) in
-              match nth_error (en_kids nd) j with
-              | None => None
-              | Some c =>
-                  match insert ka g ar f c k v with
-                  | None => None
-                  | Some (pair ar1 (pair a sp)) =>
-                      match splice ka j a sp (en_seps nd) (en_kids nd) with
-                      | pair ss' cs' => publish_branch ka g ar1 ss' cs'
-                      end
-                  end
-              end
-          end
-      end
+      if en_kids nd is nil then publish_leaf ka g ar (ins ka k v (en_entries nd))
+      else match fuel with
+           | 0 => None
+           | S f =>
+               let j := route ka k (en_seps nd) in
+               match nth_error (en_kids nd) j with
+               | None => None
+               | Some c =>
+                   match insert ka g ar f c k v with
+                   | None => None
+                   | Some (pair ar1 (pair a sp)) =>
+                       match splice ka j a sp (en_seps nd) (en_kids nd) with
+                       | pair ss' cs' => publish_branch ka g ar1 ss' cs'
+                       end
+                   end
+               end
+           end
   end.
 
 (* What a grown result represents and answers, read as the concatenation of
@@ -786,18 +770,21 @@ Proof.
              (cons c cs) lo hi (fun l h x Hx => IH ar l h x Hx) H).
 Qed.
 
+(* The opening the five frame lemmas below share: read node `b` of `ar` in `H`
+   and in the goal, refuse an address outside the arena, and read the goal's
+   node past the appended `ext`. *)
+Local Ltac read_the_framed_node :=
+  simpl in H |- *; destruct (nth_error ar b) as [ nd | ] eqn:E; [ | discriminate H ];
+  rewrite (nth_error_app_l _ ar ext b nd E).
+
 Lemma spans_frame :
   forall (ka : KeyAlgebra) (fuel : nat) (ar ext : Arena ka) (b : nat),
     spans ka ar fuel b = true -> spans ka (app ar ext) fuel b = true.
 Proof.
   intros ka fuel. induction fuel as [ | f IH ]; intros ar ext b H.
-  - simpl in H |- *. destruct (nth_error ar b) as [ nd | ] eqn:E;
-      [ | discriminate H ].
-    rewrite (nth_error_app_l _ ar ext b nd E).
+  - read_the_framed_node.
     destruct (en_kids nd); [ reflexivity | discriminate H ].
-  - simpl in H |- *. destruct (nth_error ar b) as [ nd | ] eqn:E;
-      [ | discriminate H ].
-    rewrite (nth_error_app_l _ ar ext b nd E).
+  - read_the_framed_node.
     destruct (en_kids nd) as [ | c cs ]; [ reflexivity | ].
     apply (all_of_mono nat (spans ka ar f) (spans ka (app ar ext) f));
       [ intros x Hx; exact (IH ar ext x Hx) | exact H ].
@@ -809,13 +796,9 @@ Lemma flatten_frame :
     flatten ka (app ar ext) fuel b = flatten ka ar fuel b.
 Proof.
   intros ka fuel. induction fuel as [ | f IH ]; intros ar ext b H.
-  - simpl in H |- *. destruct (nth_error ar b) as [ nd | ] eqn:E;
-      [ | discriminate H ].
-    rewrite (nth_error_app_l _ ar ext b nd E).
+  - read_the_framed_node.
     destruct (en_kids nd); [ reflexivity | discriminate H ].
-  - simpl in H |- *. destruct (nth_error ar b) as [ nd | ] eqn:E;
-      [ | discriminate H ].
-    rewrite (nth_error_app_l _ ar ext b nd E).
+  - read_the_framed_node.
     destruct (en_kids nd) as [ | c cs ]; [ reflexivity | ].
     exact (flat_map_agree nat (prod (Key ka) nat)
              (flatten ka (app ar ext) f) (flatten ka ar f)
@@ -830,13 +813,9 @@ Lemma lookup_frame :
     lookup ka (app ar ext) fuel b k = lookup ka ar fuel b k.
 Proof.
   intros ka fuel. induction fuel as [ | f IH ]; intros ar ext b k H.
-  - simpl in H |- *. destruct (nth_error ar b) as [ nd | ] eqn:E;
-      [ | discriminate H ].
-    rewrite (nth_error_app_l _ ar ext b nd E).
+  - read_the_framed_node.
     destruct (en_kids nd); [ reflexivity | discriminate H ].
-  - simpl in H |- *. destruct (nth_error ar b) as [ nd | ] eqn:E;
-      [ | discriminate H ].
-    rewrite (nth_error_app_l _ ar ext b nd E).
+  - read_the_framed_node.
     destruct (en_kids nd) as [ | c cs ]; [ reflexivity | ].
     destruct (nth_error (cons c cs) (route ka k (en_seps nd))) as [ x | ] eqn:Ec;
       [ | reflexivity ].
@@ -852,12 +831,8 @@ Lemma admitted_frame :
     admitted ka g (app ar ext) fuel lo hi b = true.
 Proof.
   intros ka g fuel. induction fuel as [ | f IH ]; intros ar ext lo hi b H.
-  - simpl in H |- *. destruct (nth_error ar b) as [ nd | ] eqn:E;
-      [ | discriminate H ].
-    rewrite (nth_error_app_l _ ar ext b nd E). exact H.
-  - simpl in H |- *. destruct (nth_error ar b) as [ nd | ] eqn:E;
-      [ | discriminate H ].
-    rewrite (nth_error_app_l _ ar ext b nd E).
+  - read_the_framed_node. exact H.
+  - read_the_framed_node.
     apply andb_true_iff in H as [ Hf H ]. apply andb_true_iff. split;
       [ exact Hf | ].
     destruct (en_kids nd) as [ | c cs ]; [ exact H | ].
@@ -1129,7 +1104,7 @@ Qed.
 Lemma look_app :
   forall (ka : KeyAlgebra) (k : Key ka) (l r : Index ka),
     look ka k (app l r)
-      = match look ka k l with Some v => Some v | None => look ka k r end.
+      = (if look ka k l is Some v then Some v else look ka k r).
 Proof.
   intros ka k l. induction l as [ | e s IH ]; intros r; simpl.
   - reflexivity.
@@ -1998,14 +1973,11 @@ Fixpoint at_depth (ka : KeyAlgebra) (ar : Arena ka) (d b : nat) : bool :=
   match nth_error ar b with
   | None => false
   | Some nd =>
-      match en_kids nd with
-      | nil => match d with 0 => true | S _ => false end
-      | cons _ _ =>
-          match d with
-          | 0 => false
-          | S e => all_of (at_depth ka ar e) (en_kids nd)
-          end
-      end
+      if en_kids nd is nil then match d with 0 => true | S _ => false end
+      else match d with
+           | 0 => false
+           | S e => all_of (at_depth ka ar e) (en_kids nd)
+           end
   end.
 
 (* The same question without naming the depth: is there one, at most `bound`
@@ -2423,18 +2395,16 @@ Fixpoint well_formed (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
   | None => false
   | Some nd =>
       andb (node_fits ka g nd)
-        (match en_kids nd with
-         | nil => andb (sorted ka (en_entries nd))
-                       (entries_within ka lo hi (en_entries nd))
-         | cons _ _ =>
-             match fuel with
-             | 0 => false
-             | S f =>
-                 andb (rising_strict ka lo (en_seps nd) hi)
-                      (chain ka (well_formed ka g ar f) lo (en_seps nd)
-                             (en_kids nd) hi)
-             end
-         end)
+        (if en_kids nd is nil
+         then andb (sorted ka (en_entries nd))
+                   (entries_within ka lo hi (en_entries nd))
+         else match fuel with
+              | 0 => false
+              | S f =>
+                  andb (rising_strict ka lo (en_seps nd) hi)
+                       (chain ka (well_formed ka g ar f) lo (en_seps nd)
+                              (en_kids nd) hi)
+              end)
   end.
 
 Definition well_formed_grown (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
@@ -2556,12 +2526,8 @@ Lemma well_formed_frame :
     well_formed ka g (app ar ext) fuel lo hi b = true.
 Proof.
   intros ka g fuel. induction fuel as [ | f IH ]; intros ar ext lo hi b H.
-  - simpl in H |- *. destruct (nth_error ar b) as [ nd | ] eqn:E;
-      [ | discriminate H ].
-    rewrite (nth_error_app_l _ ar ext b nd E). exact H.
-  - simpl in H |- *. destruct (nth_error ar b) as [ nd | ] eqn:E;
-      [ | discriminate H ].
-    rewrite (nth_error_app_l _ ar ext b nd E).
+  - read_the_framed_node. exact H.
+  - read_the_framed_node.
     apply andb_true_iff in H as [ Hf H ]. apply andb_true_iff. split;
       [ exact Hf | ].
     destruct (en_kids nd) as [ | c cs ]; [ exact H | ].
@@ -3935,18 +3901,15 @@ Fixpoint seek (ka : KeyAlgebra) (ar : Arena ka) (fuel b : nat) (k : Key ka)
   match nth_error ar b with
   | None => None
   | Some nd =>
-      match en_kids nd with
-      | nil => Some (look ka k (en_entries nd))
-      | cons _ _ =>
-          match fuel with
-          | 0 => None
-          | S f =>
-              match nth_error (en_kids nd) (route ka k (en_seps nd)) with
-              | None => None
-              | Some c => seek ka ar f c k
-              end
-          end
-      end
+      if en_kids nd is nil then Some (look ka k (en_entries nd))
+      else match fuel with
+           | 0 => None
+           | S f =>
+               match nth_error (en_kids nd) (route ka k (en_seps nd)) with
+               | None => None
+               | Some c => seek ka ar f c k
+               end
+           end
   end.
 
 Definition read_gate (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h root : nat)
@@ -3956,7 +3919,7 @@ Definition read_gate (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h root : 
 Lemma lookup_forgets_a_refusal :
   forall (ka : KeyAlgebra) (ar : Arena ka) (fuel b : nat) (k : Key ka),
     lookup ka ar fuel b k
-      = match seek ka ar fuel b k with Some r => r | None => None end.
+      = (if seek ka ar fuel b k is Some r then r else None).
 Proof.
   intros ka ar fuel. induction fuel as [ | f IH ]; intros b k;
     cbn [lookup seek]; destruct (nth_error ar b) as [ nd | ]; try reflexivity;
@@ -4257,7 +4220,7 @@ Example the_occupancy_walk_refuses_what_the_structural_walk_refuses :
 (* Whether an operation answered at all, so that a witness can state that a
    write was published without spelling out the arena it published. *)
 Definition answers {A : Type} (o : option A) : bool :=
-  match o with Some _ => true | None => false end.
+  if o is Some _ then true else false.
 
 (* The counterexample to completeness over `admitted`. Two equal separators
    at 5 bound an empty child at address 1; the leaf at address 2 is full at
