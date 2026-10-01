@@ -1474,6 +1474,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q38l
 · Disposition: closed at Q38l, the Owns naming each
 
+**F-706** owed-act: the instrument route's join report and summary and `instrument-ci read` give a step's peak as the per-minute sampler's figure, which reads 0 KB for a step that ends before the first sample, as the control's `quickchick properties` did at 543,612 KB by GNU time, while Q38l's Owns makes that step's recorded peak the basis for raising seed's `--jobs`
+· Raised: Q38l
+· Disposition: open, a repair of the report under Q38l's contract landing before Q38f's first comparison dispatch, each receipt's GNU time peak standing meanwhile
+
+**F-707** measurement: the instrument route's plan accepts a `base_revision` dispatch whose side's seed.py binds no subject it can read, and that side's seed job builds its switch before its population listing refuses for want of a subject
+· Raised: Q38l
+· Disposition: standing, such a run deciding no verdict and costing only runner time
+
 **F-565** upstream-defect: the locked proof switch's Rocq 9.3.0 carries the cofixpoint guard-checker inconsistencies #22386 and #22389, which Rocq's critical-bug list reports fixed in V9.3
 · Raised: Q39
 · Disposition: standing, the proof audit's refusal of coinductive types and cofixpoints in the sources the gate compiles covering the forms an authored source writes, a word joined to a token a dependency declares aside, until a move of the proof switch's lock to a Rocq release carrying #22388 and #22392
