@@ -401,19 +401,19 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,232.2 |
-| Total estimate range h | 2,694.1–5,770.3 |
-| Completed scope h | 722.7 |
+| Total estimate midpoint h | 4,228 |
+| Total estimate range h | 2,691.4–5,764.6 |
+| Completed scope h | 723.5 |
 | Complete by estimate % | 17.1 |
-| Remaining h | 3,509.5 |
-| Open class I h | 771 |
+| Remaining h | 3,504.5 |
+| Open class I h | 766 |
 | Open class X h | 2,738.5 |
 | Retained completion estimate h | 164.5 |
 | Unmeasured completed items | 20 |
-| Calibrated total h | 5,158.8 |
+| Calibrated total h | 5,156 |
 | Committed M8a open h | 94.5 |
 | Committed M8b open h | 90.5 |
-| Other committed open h | 2,099 |
+| Other committed open h | 2,094 |
 | Conditional open h | 811.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1134,16 +1134,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
       * **In `Keccak.v`'s `squeeze`, the constant-increment mutant of the `0` pattern, `if d - rate is 1`, compiles where the explicit match's mutant did not.** The population is unchanged; a later mutation run decides that mutant instead of counting it stillborn.
   * [x] **Q38i · Make the proofs cheaper to compile and recheck without moving a statement** · 5.3 h actual · agent-parallel
     * Literal lemmas share the costliest repeated evaluations, a VM cast closes the single-evaluation proofs where it measured cheaper, and two clears trim a search, cutting the corpus's compile retired instructions 28.56% and its kernel recheck 39.04% with no statement, body or assumption moved. ([note](completion-log.md#q38i-make-the-proofs-cheaper-to-compile-and-recheck-without-moving-a-statement))
-  * [ ] **Q38j · Schedule the proof gate by dependency and size its kernel workers from measured peaks** · 5 h, range 3.5–6.5 · I
-    * **Dispatch. Start:** Q38i's landing, with F-581, F-584 and F-587, which it routes here; the user's ruling of 2026-09-30 that guest tests run on GitHub only, under which no proof gate runs in the local guest and Guest CI's proofs lane, one x86_64 `ubuntu-26.04` runner of 4 vCPUs and 16 GB a run, is the gate's one site; the compile and audit phase in [cli/proofs.py](../../tools/vos/cli/proofs.py), which runs each dependency wave to completion before the next starts, so at `2c08d4b6` its waves' longest members, by serial compile time, summed to 148 s on the profiling guest against a 75 s longest dependency chain, and on the runner as this cell's first and third findings record; and the kernel phase, which [env.py](../../tools/vos/env.py) budgets at 10 GiB a worker and which checks each dependency component in one worker, `MlKem.v`'s five-module component holding 1,024 of the 1,708 s per-module sum on the profiling guest, and which checks every module in one worker on the runner, as this cell's second finding records. **Owns:** each module's compile and audit starting once every module it requires has finished its compile and audit, with the verdicts, outputs and receipt fields other than timings that a wave schedule gives, and a module whose prerequisite failed reported blocked as now; the gate's log stating each module's compile and audit start and end, in seconds from the phase's start, and the phase's line stating beside its wall seconds the makespan the wave schedule would take over those seconds at the same worker limit, computed by a function the host tests hold; the kernel worker's peak resident memory on Guest CI's proofs runner, read from GNU time's `maxrss_kb` in the three full rechecks this cell's first finding names and recorded with their identifiers in env.py's `proof_jobs` docstring beside Q38i's per-module recheck peaks on the profiling guest; the kernel worker budget set at or above the largest of those peaks, its margin stated, with the worker count it gives that runner stated; F-581 decided by whether two kernel workers at that peak less the 1,186,644 KB HmacDrbg.v's literals saved on the profiling guest, with env.py's 2 GiB reserve, would fit the runner's 16 GB; every current-state statement outside the completion log of the wave schedule or the budget's basis restated, among them cli/proofs.py's module docstring and `--help` description and the tool guide's `proofs` row, proof-compilation sentence and resource paragraph; and host tests of the schedule's order, its refusal on a failed prerequisite, the per-module timing lines and the replayed makespan. It changes the gate's identity and the CIC corpus exporter's, so the next run in every lane rechecks everything and an earlier corpus report reads stale. It owns no proof source. **Check:** `run.py test --only` passes for the proofs, proofcache and env modules; Host CI passes; Guest CI is dispatched for both lanes at the landed revision; two Guest CI runs that recheck every module, the landed revision's own and a later `cold: true` dispatch, each pass and log a compile and audit phase below the wave makespan replayed beside it, each run's identifier, revision, runner image, both phases' wall seconds, the replayed makespan and `maxrss_kb` recorded and each peak at or below the budget; and the first of them gives in its portable receipt the same per-module constants, `inventory_sha256`, `requires` and witnesses, the same declared assumptions and a passed kernel recheck as the last passing Guest CI receipt before this item landed whose proof sources equal its own, read within the artifact's 14-day retention and that run's identifier recorded. **Join:** n/a.
-    * **Estimate basis:** the dependency schedule with its tests 1.5–2.5 h, the per-module timing lines and the replayed wave makespan with their tests 0.5–1 h, the worker peak and budget read from the three recorded Guest CI runs 0.5–1 h, the restatements 0.5–1 h, review and reading the hosted runs 0.5–1 h, runner time unattended.
-    * **Partial: the schedule and the budget's basis are landed.** Each module's compile and audit starts once its prerequisites finish, the log states each module's span and the wave schedule's makespan replayed over them, and env.py records the runner's three peaks, Q38i's per-module peaks, the 445 MiB margin and F-581's decision. The two Guest CI rechecks, their peaks and the receipt comparison wait for the landed revision's run and a later `cold: true` dispatch.
-    * Five findings.
-      * **Three full rechecks of the same 57 sources on Guest CI's proofs runner, runs 36812890026, 36814984495 and 36819172207 at `1045acb9`, `2728d4a6` and `ae25ee8f`, took 152.67 to 246.83 s to compile and audit, 725.79 to 1,242.86 s to recheck and 1,032 to 1,745 s of user time.** A wall-time comparison between dispatches cannot decide a schedule change of about a tenth of a phase, so the Check holds each run to its own replay.
-      * **On that runner the kernel checks every module in one worker, whose GNU time peak read 10,029,668, 10,030,124 and 10,029,820 KiB in those runs, 4.3% under the 10 GiB budget.** A uniform budget at or above that peak admits one worker on 16 GB, and only a per-component budget, which no item owns, could run two.
-      * **A model weighting each module by Q38i's compile retired instructions puts a dependency schedule's compile phase 11.3% below the wave schedule's at the runner's 4 compile workers, and 22.1% below at the profiling guest's 12.** The compile and audit phase is 16 to 17% of a full recheck's wall time on the runner.
-      * **The comparison of each run's compile and audit phase with the wave schedule replayed over its own spans leans both ways.** The phase carries the source analysis the replay leaves out, under a second, which disfavours the dependency schedule, while each span is measured with the workers more fully occupied than at a wave's end, which lengthens the replay and favours it; `wave_makespan`'s docstring states both.
-      * **With the priority this item ships, the longest chain of dependents first, the same model puts the dependency schedule at the 923.3e9 longest weighted chain, 28.9% below the wave schedule at 4 compile workers and 24.1% below at 12.** The third finding's figures are a wave-then-name priority's.
+  * [x] **Q38j · Schedule the proof gate by dependency and size its kernel workers from measured peaks** · 0.8 h actual · agent-parallel
+    * Each module's compile and audit starts once the modules it requires have finished, the gate's log replays the wave schedule over each run's own spans, and the kernel worker budget rests on the proofs runner's repeated peak; two full Guest CI rechecks compiled and audited in 174.42 s and 170.21 s against replayed wave makespans of 308.58 s and 303.29 s, every receipt field but the timings unchanged. ([note](completion-log.md#q38j-schedule-the-proof-gate-by-dependency-and-size-its-kernel-workers-from-measured-peaks))
   * [x] **Q38k · Refuse coinductive definitions while the locked kernel lacks the cofixpoint guard fixes** · 2.2 h actual · agent-parallel
     * The proof audit refuses, before compiling, every source the gate compiles that writes a coinductive type or a cofixpoint, reading the words beside numerals, quotes and declared tokens as Rocq's lexer reads them, and the lock guide states the refusal's residue and the lock move that retires it. ([note](completion-log.md#q38k-refuse-coinductive-definitions-while-the-locked-kernel-lacks-the-cofixpoint-guard-fixes))
   * [ ] **Q38l · Build and check the QuickChick switch on GitHub-hosted runners** · 9.5 h, range 7–12 · I
@@ -1170,7 +1162,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,425.9 h · 57% · 132.9 h complete · open range 1,304–3,282 h.
+**Q subtotal:** 2,421.7 h · 57% · 133.7 h complete · open range 1,300.5–3,275.5 h.
 
 ### M0 · Hardware reference
 
@@ -2055,10 +2047,10 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 | attended | X-read | 14 | 45.5 | 26.9 | 0.59 |
 | attended | X-authored | 3 | 18 | 25.5 | 1.42 |
 | attended | All | 63 | 323.9 | 238.4 | 0.74 |
-| agent-parallel | I | 34 | 272.5 | 91.3 | 0.34 |
+| agent-parallel | I | 35 | 277.5 | 92.1 | 0.33 |
 | agent-parallel | X-read | 10 | 101.5 | 34.7 | 0.34 |
 | agent-parallel | X-authored | 22 | 267 | 39.6 | 0.15 |
-| agent-parallel | All | 66 | 641 | 165.6 | 0.26 |
+| agent-parallel | All | 67 | 646 | 166.4 | 0.26 |
 <!-- calibration-results:end -->
 
 ### Calibration record
@@ -2233,6 +2225,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q38d | I | 6.5 |
 | Q38e | I | 6 |
 | Q38i | I | 10 |
+| Q38j | I | 5 |
 | Q38k | I | 3 |
 | M0.20 | n/a | n/a |
 | M1.2a | X-read | 4 |
