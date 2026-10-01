@@ -1707,6 +1707,14 @@ CASES: list[Case] = [
     ("K-118", "a hook commit the model's hook configuration pins and its row does not state",
      _first_match("model/.pre-commit-config.yaml", r"^([ \t]+rev: \"?)([0-9a-f])",
                   lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
+    # A hook repository appended with no row, pinned as `autoupdate --freeze` writes a
+    # reviewed one: every row still agrees with its own entry, so only a census of every
+    # entry the configuration carries sees code pre-commit runs whose terms nobody read.
+    ("K-118", "a hook repository the model's hook configuration runs and no row reviews",
+     _first_match("model/.pre-commit-config.yaml", r"\Z",
+                  lambda _: "  - repo: https://github.com/example/unreviewed-hooks\n"
+                            f"    rev: {'0' * 40} # frozen: v1.0.0\n"
+                            "    hooks:\n      - id: unreviewed\n")),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row

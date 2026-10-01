@@ -212,8 +212,9 @@ setting where a tool installs its own release, [actionlint.sh](../../ci/actionli
 among them for the workflow linter Host CI runs, and the model's
 [hook configuration](../../../model/.pre-commit-config.yaml) for the hook
 repositories pre-commit installs, whose rows it holds to each rev's commit as well as
-to the release its `# frozen:` comment names. A dependency bump moves the owner and
-leaves the row, so a row names a release its owner has left unless something holds it.
+to the release its `# frozen:` comment names, and whose every entry it censuses. A
+dependency bump moves the owner and leaves the row, so a row names a release its owner
+has left unless something holds it.
 
 **The rows are a table this rule declares, held total in both directions.** A row is
 either held here, site by site, or declared with why nothing here holds it. A site is a
@@ -242,6 +243,23 @@ outside it. A release is read whole, an opam identifier's after its name's dot a
 any letter, `~`, `+` or dotted suffix it carries; a numeral joined to the word before
 it by a hyphen, a letter or `+`, as a licence identifier's version or a tag's prefix
 is, is not read by the census, and the sites read such a tag where it states a release.
+
+**The hook configuration is censused as K-115 censuses the workflows.** A hook row is
+held against its own entry, so a repository the configuration gained with no row would
+run code whose terms nobody read while every row agreed. So every entry the
+configuration carries is read at its block `- repo:` line. An entry a held row names is
+held by that row's two sites to a full commit and the release its `# frozen:` comment
+names. pre-commit's own `meta` hooks run its `pre_commit.meta_hooks` modules under the
+runner the pre-commit row holds, and its configuration schema refuses to override their
+entry, so a `meta` entry needs no row. Any other entry is a finding: a `local` one,
+because its hooks run an entry on `PATH` or in this repository and install their
+additional dependencies from a registry, which no row reviews and no rev pins, and an
+entry no row names, with its rev when that is not a full commit carrying the tag it was
+frozen at. The reading takes one shape, so every line carrying a `repo` or `rev` key the
+reading did not take, bare or quoted, or any key K-115's census counts whatever it
+spells, is a finding at that line: an entry written as a flow mapping, behind an anchor
+or with its rev first is reported rather than run unread. The configuration is read
+whether or not any hook row is held, so its absence is a finding on its own.
 
 **Fail-closed at every reading**, on K-97's ground: a record without the section or its
 table, a table with no row, a site matching other than once, and an owner absent,
@@ -438,6 +456,23 @@ def _hook(cell: str, repo: str) -> DevTool:
              (Owner("pre-commit", HOOK_CONFIG, url),)),
         Site("the reviewed commit", r"revision `([0-9a-f]{40})`",
              (Owner("pre-commit-rev", HOOK_CONFIG, url),))))
+
+
+# K-118's census of the hook configuration. An entry is read where `_Owners._hook_rev`
+# reads one, at a block `- repo:` line, and its rev at an indented `rev:` line opening
+# its own; every other `repo` or `rev` key, bare or quoted, and every key K-115's census
+# counts whatever it spells, a double-quoted key holding an escape, an alias used as a
+# key and an explicit-key `?` indicator, is a line the census reports.
+_HOOK_REPO_RE = re.compile(r"^[ \t]*-[ \t]+(?P<key>repo):[ \t]*(?P<url>.*?)[ \t]*$")
+_HOOK_REV_KEY_RE = re.compile(r"^[ \t]+(?P<key>rev):")
+_HOOK_KEY_RE = re.compile(
+    r"""(?:(?<=[\s{,\[])|^)"""
+    r"""(?:(?P<q>["']?)re(?:po|v)(?P=q)|"[^"]*\\[^"]*"|\*[^\s,\[\]{}]+)(?=[ \t]*:)"""
+    r"""|^[ \t]*(?:[-?:][ \t]+)*\?(?=[ \t]|$)|(?<=[{,\[])[ \t]*\?(?=[ \t]|$)""")
+_FULL_COMMIT_RE = re.compile(r"[0-9a-f]{40}")
+# pre-commit's own hooks, which run its `pre_commit.meta_hooks` modules under the
+# interpreter running it and whose entry its configuration schema refuses to override.
+_HOOK_META = "meta"
 
 
 _ENV = "tools/vos/env.py"
@@ -1211,6 +1246,64 @@ def _hold(where: Callable[[int], str], name: str, text: str, tool: DevTool,
     return compared, len(numerals)
 
 
+def _hook_census(owners: _Owners, findings: list[str]) -> int:
+    """K-118's census of the hook configuration, returning how many repository entries
+    it read: each, read at its line, is pre-commit's own `meta` hooks or a repository a
+    held row names.
+
+    A row holds its entry's rev to the full commit and the `# frozen:` release it states,
+    so an entry no row names is the one finding naming it, with its rev when that is not
+    a full commit carrying the tag it was frozen at. A `local` entry runs an entry on
+    `PATH` or in this repository and installs its additional dependencies from a
+    registry, which no row reviews and no rev pins, so it is a finding as well.
+    """
+    try:
+        text = owners._text(HOOK_CONFIG)
+    except _UnreadError:
+        return 0
+    named = {owner.key for tool in DEV_TOOL_ROWS for site in tool.sites for owner in site.owners
+             if owner.kind in ("pre-commit", "pre-commit-rev") and owner.path == HOOK_CONFIG}
+    entries = 0
+    for number, line in enumerate(_YAML_BREAK_RE.split(text), start=1):
+        if line.lstrip().startswith("#"):
+            continue
+        where = f"{HOOK_CONFIG}:{number}"
+        entry = _HOOK_REPO_RE.match(line)
+        rev_key = _HOOK_REV_KEY_RE.match(line)
+        taken = (entry.start("key") if entry else
+                 rev_key.start("key") if rev_key else -1)
+        if any(key.start() != taken for key in _HOOK_KEY_RE.finditer(line)):
+            findings.append(f"{where} states a hook repository's `repo` or `rev` key in a "
+                            "form K-118 does not read; write each entry as a block `- repo:` "
+                            "line and an indented `rev:` line, so it is held against its row")
+        if entry is None:
+            continue
+        entries += 1
+        url = entry.group("url").strip("'\"")
+        if url == _HOOK_META or url in named:
+            continue
+        if not url:
+            findings.append(f"{where} opens a hook repository entry with no URL on its line, "
+                            "where K-118 reads it")
+            continue
+        if url == "local":
+            findings.append(f"{where} is a local hook repository, whose hooks run an entry on "
+                            "PATH or in this repository and install their additional "
+                            "dependencies from a registry, which no row reviews and no rev pins")
+            continue
+        try:
+            rev, frozen = owners._hook_rev(Owner("pre-commit-rev", HOOK_CONFIG, url))
+        except _UnreadError:
+            continue
+        unpinned = ("" if _FULL_COMMIT_RE.fullmatch(rev) and frozen else
+                    f", at `{rev}`, which is not a full commit with the `# frozen:` tag it "
+                    "was read at either")
+        findings.append(f"{where} runs hooks from {url}, which no development-tools row K-118 "
+                        f"holds names, so nobody read the terms of the code it installs"
+                        f"{unpinned}")
+    return entries
+
+
 def _dev_tools(ctx: Context) -> None:
     """K-118: every release the development-tools section states is its owner's.
 
@@ -1296,15 +1389,17 @@ def _dev_tools(ctx: Context) -> None:
 
         sites, read = _hold(in_prose, "", prose, DEV_TOOL_PROSE, owners, findings)
         compared, numerals = compared + sites, numerals + read
+    hooks = _hook_census(owners, findings)
     findings += list(owners.faults.values())
 
     rep.report("K-118", "development-tool release(s) the record states and the owner does "
                "not fix:", findings,
                f"the {compared} release statements in {record}'s development-tools section "
                f"are the releases their owners fix, each of the {numerals} release numerals "
-               f"its held rows and paragraphs state is read or declared, and the table's "
+               f"its held rows and paragraphs state is read or declared, the table's "
                f"{declared} other rows are declared, each stating the one release, or "
-               "none, its declaration allows")
+               f"none, its declaration allows, and each of the {hooks} repository entries "
+               f"{HOOK_CONFIG} carries is a held row's or pre-commit's own meta hooks")
 
 
 def _sources(ctx: Context) -> list[tuple[str, str, list[bool]]]:
