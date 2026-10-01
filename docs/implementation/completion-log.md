@@ -2269,6 +2269,137 @@ Calibration: original estimate 6 h, range 4–8, class I; 3.4 h actual on the ag
 
 Landed: Tier A. The integrator's read covers the whole diff against the cell: the switch move, the narrowed closure, K-117's module, registry row, selftest cases and tests, the restatements, the review's findings with the repair's dispositions, and the merge's resolution and repair. K-117 holds what the instruments older than Rocq 9.3.0 compile, and the host tests hold the switch each instrument asks for.
 
+### Q38i · Make the proofs cheaper to compile and recheck without moving a statement
+
+The worker lane `q38i-impl-20260929` started from base `59cc31c3` and ended at `c559db3c` in six commits:
+* the single-evaluation cast at `a6e02267`;
+* the WorkflowProfiles clears at `aadb9126`;
+* the literal lemmas of PqArith at `260076a4`, MlKem at `b50c5985`, HmacDrbg at `f2eab890` and StorageBridge at `c559db3c`.
+
+Readings, measurements and the gate run were taken in the lane's guest with the locked Rocq 9.3.0, on the WSL2 aarch64 guest that other lanes shared. An adversarial review in `q38i-review-20260929` was interrupted when that guest stopped responding. Guest tests now run on GitHub only, so a second review of the same head ran on the host and reused the first one's guest outputs as data. It accepted the head with repairs to this note and its findings, and found no statement, body, opacity or assumption moved. The integration branch `q38-integ-i-20260930` merged `c559db3c` onto `main`'s `b392c2b1`, and the integrator's repair `aa3d4b9d` followed. No proof source changed on `main` between `59cc31c3` and `b392c2b1`, so the lane's gate run covers the merged sources, and the repair changes only comments in two of them.
+
+* **The retired-instruction procedure.** A source set is copied into lane scratch outside the proof gate's workspace. It is compiled in its dependency waves, two at once, by `rocq c -q -w +default,-abstract-large-number -set "Default Goal Selector=!" -disallow-sprop -Q . "" -profile`. Each module is then checked, two at once, by `rocqchk -silent -o -norec -profile` with its closure admitted. A module's figure is the retired-instruction count on the profile's `process` end event. A set is refused when a counter is absent or not positive, an exit is nonzero, or a compile prints anything. Peak memory is the process's maximum resident set from `wait4`, and each module's `-o` summary is hashed and compared. Single runs of unchanged small modules moved by up to 0.75% in compile and 0.62% in recheck between the base set and the candidate's. The table's changes are computed from the raw counts, and Q38h and Q38j remeasure their own base with this procedure.
+* **The cast.** At `a6e02267`, 539 opaque proofs in 13 authored modules read `Proof. vm_reflexivity. Qed.`. Each script was `vm_compute` then `reflexivity` of an equality, optionally after a bare `intros`. Each module defines `Local Ltac vm_reflexivity := intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.` after its opening Require, Import and Open Scope lines, so the kernel's check of the cast at `Qed` is the one evaluation. 31 of those proofs are then rewritten through the literal lemmas, and the 14 lemmas themselves read `unfold <literal>. vm_reflexivity.`.
+  * The tactic has no fallback. Three statements whose goals are `Disciplined` or `Admissible` propositions, each unfolding to an equality, refused it and keep their scripts.
+  * MlDsa.v's three such proofs are left unmade, since retained evidence and a dated benchmark bind its digest.
+  * ArithmeticComposition.v, CredentialHandles.v, InferenceAdmission.v and TwoSourceExtractor.v keep their 16 such proofs. The cast measured no compile fall there beyond single-run noise, and in two single runs it raised ArithmeticComposition.v's recheck by 2.78% and 2.80%.
+  * The generated modules are untouched. At `a6e02267` alone, the corpus's compile retired instructions fall 21.21%.
+* **The literals.** Fourteen `Eval vm_compute` definitions, each with a lemma equating it to its source, are shared by 31 rewritten Examples:
+  * MlKem.v has seven: `demo_ek`, `demo_dk`, `demo_ct`, `demo_key`, `demo_tampered`, and `kem_decaps` of `demo_ct` and of `demo_tampered`. Their lemmas are chained so the recheck runs each computation once.
+  * PqArith.v has five: `ntt` and `ntt_other_order` at ML-KEM's ring of `ramp_poly 256` and `stride_poly 256`, and their `negacyclic 3329 256` product.
+  * HmacDrbg.v has one, `no_reseed_run`.
+  * StorageBridge.v has one, the walk of `bridge_medium` under `bridge_open` at `bridge_generation`, which two Examples' six decodes run.
+
+  Each lemma unfolds its literal before the cast. Casting `eq_refl` of the folded constant made the recheck cost 1,217.9e9 retired instructions against 479.5e9 for ML-KEM's honest decapsulation, and 524.9e9 against 84.4e9 for the walk. Two kinds of value are left without a literal:
+  * values whose evaluation was measured costlier with one: HmacDrbg.v's `pr_true_run` and `first_draw`;
+  * values whose evaluation sits inside a `forallb` over a family. These are PqArith.v's ML-DSA-ring transforms of both probes, StorageBridge.v's decode of the medium flipped at offset 272, and the walk of the one flipped at 144. Two Examples evaluate each. Three round-trip Examples over PqArith's probes are not rewritten through the lemmas.
+
+  Only the `8380417` product is evaluated by a single Example.
+* **The clears.** In `WorkflowProfiles.v`, `H` is cleared before the `destruct … eqn:E`. `apply in_flat_map in H` becomes a `destruct` of `in_flat_map`'s forward direction applied to `H`, followed by `clear H`. The module's compile falls 70.48%; the cast alone moved it 0.02%.
+* **Readings.** The base reading of the 57 sources at `59cc31c3` is byte-identical to Q38c's: 36,772,540 bytes, SHA-256 `b2573834ae42bc1229a6cc7f06d52bec7a6546744bec1e32064d49bdd15df2a6`. The candidate reading at `c559db3c` holds 13,826 constants over 57 modules, 8,744 of them printed, in 38,040,362 bytes, SHA-256 `16f7a4cb4fca861a90abad7392ee7feb87e3fcdae36354630e28759eefa1ae2b`. `proof-reading compare` names 28 differences, each an added constant: the 14 literals and their 14 lemmas.
+* **Gate.** `run.py proofs --jobs 2` over `c559db3c` in the lane passes, reusing nothing. It closes 13,826 constants under the global context, records 128 witnesses, and finds no undeclared axiom in rocqchk's summary. Compile and audit took 243.53 s and the kernel recheck 862.89 s at a worker limit of 2, 1,140.82 s in all. The portable receipt it published differs from the tracked one only in the four literal modules' constant counts (+2, +14, +10 and +2) and inventory digests, with every module's witnesses identical. The tracked receipt was restored, since it records the last successful run and is no claim about the current checkout. Guest CI's proofs lane rechecks the landed revision.
+* **Readers.** Between `59cc31c3` and `c559db3c`:
+  * The witness facts are equal: 128 quantified record-file pairs, 128 witnessed, none unbuilt.
+  * So are apex's reading, the six K-107 tables of 329 values, and K-91's three answers.
+  * The memory-plan export regenerated to scratch is byte-identical to the tracked artifact, at SHA-256 `b9b670f2940dc10f92b070527d3b07b299e8ec4abe90eb8954c9bebd1658bc9b`.
+  * `proofcites`' citations, claims and identifiers are equal, and its constant index differs only by the 28 added names.
+  * The corpus exporter's `source_declarations` are equal for all 57 sources.
+  * The dated crypto campaign's 17 selections name the same mutants, and every selftest literal seed occurs as often as before.
+  * `tools/check.py` reports every derived fact in agreement.
+  * All 57 candidate sources compile under the CertiRocq switch's Rocq 9.1.1, as `gallina.compile_one` spells the compile.
+* **Mutants.** At `c559db3c`, `selftest --rule` kills every mutant for K-91, K-103, K-105, K-107 (two), K-108 and K-109, with none survived or unseeded, and K-109's repair path holds. No tool changed.
+* **Integration.** The host review's corrections are applied in this note:
+  * the cast's count of 539 proofs is restated;
+  * the reading behind each value left without a literal is now stated, where the draft said each was evaluated by one Example;
+  * ArithmeticComposition.v's recheck rise under the cast is now stated;
+  * five-run compile figures with no retained record are dropped.
+
+  `aa3d4b9d` restates the static-memory notes' and two modules' header comments that named the `vm_compute` tactic.
+* **Figures.** Retired instructions are in units of 10^9, rounded to 0.01, and each change is computed from the raw counts. The base is `59cc31c3`, measured from 02:32 to 03:10Z at one-minute guest loads of about 3 to 12. The candidate is `c559db3c`, measured from 04:40 to 05:01Z at loads of about 2 to 5. A star marks a changed module. Every module's `-o` summary is byte-identical between the two sets. HmacDrbg.v's recheck peak is 9,311,012 KB at base and 9,312,124 KB at the candidate.
+
+| Module | Compile, base | Compile, candidate | Change | Recheck, base | Recheck, candidate | Change | Compile peak MiB, base / candidate | Recheck peak MiB, base / candidate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `MlKem.v` * | 380.44 | 191.27 | -49.73% | 9,360.24 | 2,986.49 | -68.09% | 531 / 496 | 1,346 / 767 |
+| `HmacDrbg.v` * | 213.64 | 123.35 | -42.26% | 2,605.50 | 2,019.85 | -22.48% | 336 / 334 | 9,092 / 9,093 |
+| `PqArith.v` * | 192.31 | 88.72 | -53.87% | 2,526.97 | 2,010.37 | -20.44% | 436 / 432 | 858 / 864 |
+| `StorageBridge.v` * | 103.69 | 54.25 | -47.69% | 1,467.20 | 1,045.01 | -28.77% | 441 / 440 | 377 / 363 |
+| `Sha256.v` * | 95.17 | 58.18 | -38.86% | 1,395.11 | 1,393.88 | -0.09% | 365 / 360 | 1,424 / 1,588 |
+| `AesGcm.v` * | 147.41 | 104.69 | -28.98% | 1,095.05 | 1,094.92 | -0.01% | 453 / 450 | 129 / 131 |
+| `CopyRingService.v` * | 240.60 | 125.25 | -47.94% | 842.62 | 842.73 | +0.01% | 391 / 372 | 129 / 131 |
+| `MemoryPlan.v` | 810.87 | 810.88 | +0.00% | 409.07 | 409.03 | -0.01% | 698 / 701 | 158 / 158 |
+| `Keccak.v` * | 28.42 | 20.47 | -27.95% | 219.67 | 219.71 | +0.02% | 370 / 356 | 642 / 707 |
+| `RomVerifier.v` * | 13.28 | 5.76 | -56.58% | 107.70 | 103.86 | -3.56% | 440 / 327 | 727 / 568 |
+| `ElasticDomain.v` | 67.85 | 67.86 | +0.00% | 26.50 | 26.52 | +0.06% | 480 / 478 | 234 / 233 |
+| `RingContract.v` | 7.33 | 7.33 | +0.00% | 23.46 | 23.46 | +0.01% | 328 / 330 | 129 / 131 |
+| `WorkflowProfiles.v` * | 244.63 | 72.22 | -70.48% | 17.90 | 17.91 | +0.02% | 440 / 440 | 169 / 168 |
+| `StaticMemoryLaminar.v` * | 20.78 | 14.75 | -29.00% | 17.00 | 16.99 | -0.04% | 433 / 430 | 210 / 210 |
+| `StaticMemoryService.v` * | 5.63 | 5.35 | -5.10% | 15.43 | 15.54 | +0.68% | 406 / 404 | 215 / 212 |
+| `KernelInstance.v` | 22.74 | 22.74 | +0.00% | 11.40 | 11.38 | -0.13% | 359 / 359 | 129 / 131 |
+| `WitnessContinuity.v` | 16.28 | 16.28 | -0.00% | 10.28 | 10.29 | +0.14% | 425 / 425 | 217 / 217 |
+| `ElasticPoolCampaign.v` | 34.74 | 34.74 | -0.00% | 9.17 | 9.17 | -0.02% | 412 / 412 | 150 / 150 |
+| `ExecutableIndex.v` | 21.09 | 21.09 | -0.00% | 6.18 | 6.18 | +0.01% | 460 / 461 | 144 / 143 |
+| `AdmissionPath.v` | 19.07 | 19.08 | +0.04% | 4.60 | 4.60 | -0.02% | 340 / 341 | 129 / 131 |
+| `InferenceAdmission.v` | 9.90 | 9.91 | +0.06% | 4.50 | 4.50 | -0.03% | 414 / 412 | 129 / 131 |
+| `TwoSourceExtractor.v` | 9.75 | 9.72 | -0.30% | 3.58 | 3.57 | -0.23% | 427 / 426 | 129 / 131 |
+| `MlDsa.v` | 5.71 | 5.71 | +0.01% | 3.42 | 3.43 | +0.36% | 419 / 419 | 129 / 131 |
+| `ProbingModel.v` | 9.06 | 9.06 | -0.00% | 3.34 | 3.36 | +0.33% | 414 / 413 | 129 / 131 |
+| `MemoryPlannerResources.v` | 3.63 | 3.63 | +0.00% | 3.28 | 3.28 | -0.00% | 398 / 399 | 129 / 131 |
+| `KeyspaceDomains.v` | 11.88 | 11.88 | -0.00% | 3.23 | 3.25 | +0.39% | 329 / 329 | 129 / 131 |
+| `ModuleFormats.v` | 7.04 | 7.04 | -0.00% | 2.99 | 2.99 | +0.01% | 412 / 411 | 129 / 131 |
+| `AttestedSession.v` | 6.09 | 6.09 | +0.00% | 2.99 | 2.99 | +0.02% | 410 / 410 | 129 / 131 |
+| `ArithmeticComposition.v` | 6.29 | 6.25 | -0.75% | 2.90 | 2.91 | +0.23% | 410 / 411 | 129 / 131 |
+| `HandlerGraph.v` | 11.42 | 11.41 | -0.07% | 2.79 | 2.77 | -0.57% | 329 / 329 | 129 / 131 |
+| `JournalIndex.v` | 12.17 | 12.16 | -0.07% | 2.78 | 2.77 | -0.43% | 329 / 329 | 129 / 131 |
+| `RotFirmware.v` | 11.62 | 11.62 | +0.00% | 2.69 | 2.69 | +0.03% | 332 / 331 | 129 / 131 |
+| `ElasticPool.v` * | 3.59 | 3.57 | -0.50% | 2.68 | 2.68 | -0.09% | 411 / 411 | 129 / 131 |
+| `SecurityPolicyModel.v` | 5.49 | 5.49 | -0.00% | 2.66 | 2.66 | -0.01% | 399 / 400 | 129 / 131 |
+| `DeviceRegisters.v` | 3.90 | 3.90 | -0.00% | 2.27 | 2.26 | -0.31% | 391 / 393 | 129 / 131 |
+| `ObjectTransactor.v` | 8.48 | 8.48 | +0.01% | 2.21 | 2.22 | +0.38% | 323 / 323 | 129 / 131 |
+| `StorageRecovery.v` | 2.57 | 2.57 | -0.00% | 2.17 | 2.17 | +0.16% | 400 / 401 | 129 / 131 |
+| `MemoryPlannerContracts.v` | 3.10 | 3.10 | +0.00% | 2.16 | 2.16 | +0.19% | 398 / 397 | 129 / 131 |
+| `EndpointIPC.v` | 8.96 | 8.96 | +0.00% | 2.02 | 2.02 | +0.05% | 329 / 328 | 129 / 131 |
+| `EnsembleSchedule.v` | 6.10 | 6.10 | +0.00% | 1.98 | 1.98 | +0.01% | 319 / 322 | 129 / 131 |
+| `MemoryPlannerCertificates.v` | 2.02 | 2.02 | +0.01% | 1.98 | 1.98 | +0.12% | 392 / 392 | 129 / 131 |
+| `ResetTable.v` | 3.37 | 3.37 | -0.00% | 1.70 | 1.71 | +0.23% | 354 / 353 | 129 / 131 |
+| `ObjectRouter.v` | 6.65 | 6.64 | -0.15% | 1.56 | 1.56 | +0.03% | 323 / 324 | 129 / 131 |
+| `DischargeSequence.v` | 6.79 | 6.79 | +0.00% | 1.36 | 1.36 | +0.01% | 322 / 322 | 129 / 131 |
+| `ModuleAdmission.v` | 4.15 | 4.15 | -0.00% | 1.24 | 1.24 | +0.07% | 317 / 315 | 129 / 131 |
+| `SupervisionTree.v` | 3.89 | 3.89 | -0.18% | 1.03 | 1.03 | -0.02% | 320 / 318 | 129 / 131 |
+| `MModeFirmware.v` | 4.09 | 4.09 | -0.01% | 0.98 | 0.98 | -0.09% | 320 / 319 | 129 / 131 |
+| `CyclicExecutive.v` | 3.26 | 3.26 | -0.00% | 0.90 | 0.90 | +0.03% | 315 / 316 | 129 / 131 |
+| `ScheduleRecord.v` | 2.03 | 2.03 | -0.01% | 0.82 | 0.81 | -0.49% | 309 / 310 | 129 / 131 |
+| `CredentialHandles.v` | 2.07 | 2.07 | -0.00% | 0.70 | 0.70 | +0.62% | 309 / 309 | 129 / 131 |
+| `PartitionContext.v` | 2.00 | 2.00 | +0.00% | 0.53 | 0.53 | +0.01% | 309 / 309 | 129 / 131 |
+| `MModeFirmwareSealing.v` | 1.53 | 1.53 | -0.00% | 0.48 | 0.48 | -0.09% | 310 / 310 | 129 / 131 |
+| `ApexTheorem.v` | 0.79 | 0.79 | +0.01% | 0.46 | 0.46 | -0.06% | 229 / 230 | 129 / 131 |
+| `BoundaryCost.v` | 1.02 | 1.02 | +0.00% | 0.32 | 0.32 | -0.42% | 297 / 299 | 129 / 131 |
+| `ComposedNonInterference.v` | 0.75 | 0.75 | +0.01% | 0.31 | 0.31 | -0.05% | 227 / 227 | 129 / 131 |
+| `SeamWitnesses.v` | 0.51 | 0.51 | +0.01% | 0.22 | 0.22 | +0.01% | 156 / 153 | 129 / 131 |
+| `OracleInstantiation.v` | 0.29 | 0.29 | -0.07% | 0.18 | 0.18 | +0.07% | 97 / 99 | 129 / 131 |
+| All 57 | 2,877.93 | 2,056.08 | -28.56% | 20,242.45 | 12,339.32 | -39.04% | n/a | n/a |
+
+* Ten findings.
+  * **The cast clause and the Check's compile fall of more than 0.1% cannot both hold for ArithmeticComposition.v, CredentialHandles.v, InferenceAdmission.v and TwoSourceExtractor.v.** Their 16 such proofs evaluate goals too small for a fall beyond single-run noise. The cast also raised ArithmeticComposition.v's recheck by 2.78% and 2.80% in two single runs, past the 1% bound. The four modules keep their scripts. F-578.
+  * **MlDsa.v's three such proofs stay unmade.** Two retained-evidence copies and a dated benchmark bind its digest, and no command regenerates a dated record. This is the clause's own exemption. F-579.
+  * **Three proofs whose goals unfold to equalities keep their scripts.** These are `Disciplined demo`, `Disciplined demo_pr` and `Admissible demo`; the cast reads a goal's equality syntactically. F-580.
+  * **HmacDrbg.v's `pr_true_run` and `first_draw` keep no literal.** With literals, the module's recheck counted 2,042.8e9 retired instructions against 2,019.9e9, but its one-run peak was 8,125,480 KB against 9,312,124 KB. Open: Q38j weighs the peak. F-581.
+  * **Values that two Examples evaluate inside a `forallb` over a family keep no literal.** These are PqArith.v's ML-DSA-ring transforms of both probes, and StorageBridge.v's decode and walk of the medium flipped at offsets 272 and 144. Three round-trip Examples over the probes are not rewritten through the lemmas. Their benefit is unmeasured, beside the two modules' recheck falls of 20.44% and 28.77%. F-582.
+  * **A literal lemma closed by a cast of `eq_refl` of its folded constant cost the recheck 2.5 and 6.2 times what unfolding it first costs.** Open: Q38h keeps the unfolded form. F-583.
+  * **The 0.1% and 1% thresholds are decidable for modules under about 10e9 instructions only by repeated interleaved runs.** Single-run figures of unchanged small modules moved by up to 0.75% in compile and 0.62% in recheck between two sets. Open: Q38h and Q38j. F-584.
+  * **A rerun of the dated ML-KEM mutation campaign's definitions-only compile would evaluate the seven literals under every mutant.** PqArith's proof oracle would then kill through the literal lemmas, although all 17 recorded selections name the same mutants. The campaign stays as recorded. F-585.
+  * **The dated q19a render-cache campaign's review prefix of CopyRingService.v now carries the module's tactic and the cast.** Both of its anchors still resolve, and the campaign stays as recorded. F-586.
+  * **`wait4` peaks of small `rocqchk` processes are unstable.** They read 129 to 131 MiB in two sets and 46 MiB in a third for the same modules. Sha256.v's rose from 1,458,428 KB to 1,626,180 KB at equal instructions. Open: Q38j repeats peaks before sizing workers. F-587.
+
+Calibration: original estimate 10 h, range 7–13, class I; 5.3 h actual on the agent-parallel clock: 18,819 seconds rounded upward, from each transcript's first and last records:
+* the implementation session, 12,831 s;
+* the interrupted first review, 3,651 s, less 72,396 s without a record while the session was suspended overnight, from 2026-09-30T06:02:04Z to 2026-10-01T02:08:40Z;
+* its restarted copy, stopped after 587 s;
+* the host review, 1,750 s.
+
+Hosted validation is outside it.
+
+Landed: Tier A. The integrator's read covers the whole diff against the cell: every rewritten proof against the clause's shape, the literals and their lemmas, the clears, the reading comparison, the gate run, the reader invariants and the figures. It also covers the review's findings with their corrections, and the integration's prose repair. The narrowings this note names leave the cast and literal clauses partly met. Each is a finding with its disposition, and nothing here claims the cell's unnarrowed Owns. No statement, body, opacity or assumption moved.
+
 ### Q38k · Refuse coinductive definitions while the locked kernel lacks the cofixpoint guard fixes
 
 The worker lane `q38k-impl-20260929` started from base `30f9f95b` and reached `492a0cec`: `47ff1567` adds the refusal and its tests, and `492a0cec` restates the lock guide. An adversarial review in `q38k-review-20260929` rejected that head with one blocking finding, three to fix and two nits. A repair in the worker lane brought it to `eb7abf2a` in four commits, `a4fb19be`, `99c4f64c`, `7ec3ac2c` and `eb7abf2a`. The integration branch `q38-integ-k-20260930` merged `492a0cec` onto `main`'s `ddd8a7dd`, then `main`'s `58af7924`, then `eb7abf2a`, and the integrator's repairs `e554c96e` and `82bf994d` followed. Each guest probe compiled one file alone with the locked Rocq 9.3.0 under the gate's flags in its lane's directory. Every probed cofixpoint is guarded, and no reproduction of rocq#22386 or rocq#22389 was written or compiled.
