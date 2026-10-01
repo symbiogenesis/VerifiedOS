@@ -497,7 +497,7 @@ Definition link_cadence_ok {T : Type} (e : Emission T) (t : LinkTable) : bool :=
 
 Fixpoint slots_agree (a b : list LinkSlot) : bool :=
   match a with
-  | nil => match b with nil => true | cons _ _ => false end
+  | nil => if b is nil then true else false
   | cons x xs =>
       match b with
       | nil => false
