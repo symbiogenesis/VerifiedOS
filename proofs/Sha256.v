@@ -244,6 +244,13 @@
 
 Open Scope list_scope.
 
+(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
+   the goal in the tactic and again where the kernel checks its cast at Qed;
+   this casts eq_refl to the goal unevaluated, so only the check at Qed
+   evaluates it. *)
+Local Ltac vm_reflexivity :=
+  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
+
 (* -------------------------------------------------------------------------
    List helpers, authored rather than imported: the prelude carries the list
    type and not the library over it.
@@ -393,11 +400,11 @@ Definition bytes_of (s : list bool) : list nat :=
 
 Example a_byte_round_trips_over_all_two_hundred_and_fifty_six :
   all_of (fun n => Nat.eqb (byte_value (bits_of_byte n)) n) (upto (Nat.pow 2 byte_bits)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_head_of_a_byte_is_its_most_significant_bit :
   bits_of_byte 0x80 = true :: repeat_of (byte_bits - 1) false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Fixpoint wxor (a b : list bool) : list bool :=
   match a with
@@ -534,12 +541,12 @@ Definition first_primes (k : nat) : list nat := primes_from (k * k + 2) 2 k.
 
 Example the_first_eight_primes :
   first_primes hash_words = 2 :: 3 :: 5 :: 7 :: 11 :: 13 :: 17 :: 19 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example there_are_sixty_four_primes_and_the_last_is_311 :
   andb (Nat.eqb (length_of (first_primes rounds)) rounds)
        (Nat.eqb (last_of (first_primes rounds) 0) 311) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The two tables, derived (s4.2.2, s5.3.3). Each is evaluated once at its
@@ -561,11 +568,11 @@ Definition initial_hash : list word := Eval vm_compute in derived_initial_hash.
 
 Example the_round_constants_are_the_derivation :
   round_constants = derived_round_constants.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_initial_hash_is_the_derivation :
   initial_hash = derived_initial_hash.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_round_constants_are_the_published_table :
   bytes_of (concat_of round_constants) =
@@ -601,7 +608,7 @@ Example the_round_constants_are_the_published_table :
   0x84 :: 0xC8 :: 0x78 :: 0x14 :: 0x8C :: 0xC7 :: 0x02 :: 0x08 ::
   0x90 :: 0xBE :: 0xFF :: 0xFA :: 0xA4 :: 0x50 :: 0x6C :: 0xEB ::
   0xBE :: 0xF9 :: 0xA3 :: 0xF7 :: 0xC6 :: 0x71 :: 0x78 :: 0xF2 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_initial_hash_is_the_published_table :
   bytes_of (concat_of initial_hash) =
@@ -609,7 +616,7 @@ Example the_initial_hash_is_the_published_table :
   0x3C :: 0x6E :: 0xF3 :: 0x72 :: 0xA5 :: 0x4F :: 0xF5 :: 0x3A ::
   0x51 :: 0x0E :: 0x52 :: 0x7F :: 0x9B :: 0x05 :: 0x68 :: 0x8C ::
   0x1F :: 0x83 :: 0xD9 :: 0xAB :: 0x5B :: 0xE0 :: 0xCD :: 0x19 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The table is not its own reverse and carries no repeated entry, which is
    the defect a table read in the wrong direction or off by a row would
@@ -621,7 +628,7 @@ Example the_round_constants_are_sixty_four_distinct_words :
                                                               (nth_of j round_constants zero_word))))
                                  (upto rounds))
                (upto rounds)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The six logical functions, s4.1.2, equations 4.2 through 4.7, one
@@ -653,12 +660,12 @@ Example the_listed_amounts_are_the_ones_the_four_sigmas_use :
        (andb (bits_eqb (small_sigma0 x) (wxor3 (rotr (a 6) x) (rotr (a 7) x) (shr 3 x)))
              (bits_eqb (small_sigma1 x) (wxor3 (rotr (a 8) x) (rotr (a 9) x) (shr 10 x))))
   = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_ten_amounts_are_ten_and_none_of_them_is_a_whole_word :
   andb (Nat.eqb (length_of rotation_amounts) 10)
        (all_of (fun r => Nat.ltb r word_bits) rotation_amounts) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The message schedule, s6.2.2 step 1: the block's sixteen words and then
@@ -869,7 +876,7 @@ Theorem the_rotations_are_invertible_on_an_arbitrary_word :
       b24 :: b25 :: b26 :: b27 :: b28 :: b29 :: b30 :: b31 :: nil in
     map_over (fun r => rotr (word_bits - r) (rotr r w)) rotation_amounts
     = repeat_of (length_of rotation_amounts) w.
-Proof. intros. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The schedule keeps a block of sixteen arbitrary words as its first sixteen
    entries, standard's sigmas or exchanged: the exchange is a defect of the
@@ -896,13 +903,13 @@ Definition probe_lengths : list nat := upto (2 * block_bits + byte_bits).
 Example the_probes_reach_past_two_whole_blocks :
   andb (Nat.leb (S (2 * block_bits)) (length_of probe_lengths))
        (Nat.eqb (nth_of (2 * block_bits) probe_lengths 0) (2 * block_bits)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_pad_is_a_positive_multiple_of_the_block_at_every_probed_length :
   all_of (fun l => let p := length_of (pad (repeat_of l true)) in
                    andb (Nat.eqb (Nat.modulo p block_bits) 0) (Nat.ltb l p))
          probe_lengths = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_message_is_a_prefix_of_its_pad_and_the_length_is_its_suffix :
   all_of (fun l => let m := repeat_of l true in
@@ -910,11 +917,11 @@ Example the_message_is_a_prefix_of_its_pad_and_the_length_is_its_suffix :
                    andb (bits_eqb (take_of l p) m)
                         (bits_eqb (drop_of (length_of p - length_bits) p) (big_endian_length l)))
          probe_lengths = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_one_bit_follows_the_message :
   all_of (fun l => bit_at (pad (repeat_of l false)) l) probe_lengths = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The two defective pads keep the standard's length, so what refuses each
    is the one bit or the byte order and not a shape. *)
@@ -925,7 +932,7 @@ Example the_defective_pads_keep_the_standards_length :
                         (Nat.eqb (length_of (pad_with_a_byte_reversed_length m))
                                  (length_of (pad m))))
          probe_lengths = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-05-165, R-05-166 |*)
 Example the_pad_without_its_one_differs_from_the_pad_in_that_bit_alone :
@@ -936,7 +943,7 @@ Example the_pad_without_its_one_differs_from_the_pad_in_that_bit_alone :
                         (andb (negb (eqb_bool (bit_at q l) (bit_at p l)))
                               (bits_eqb (drop_of (S l) q) (drop_of (S l) p))))
          probe_lengths = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-05-165, R-05-166 |*)
 Example the_byte_reversed_length_agrees_with_the_standard_only_where_the_field_is_zero :
@@ -944,7 +951,7 @@ Example the_byte_reversed_length_agrees_with_the_standard_only_where_the_field_i
        (all_of (fun l => negb (bits_eqb (pad_with_a_byte_reversed_length (repeat_of l true))
                                         (pad (repeat_of l true))))
                (up_from 1 (2 * block_bits))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The published answers. FIPS 180-4's own example first, read from NIST's
@@ -957,12 +964,12 @@ Definition abc : list bool := bytes_from (0x61 :: 0x62 :: 0x63 :: nil).
 Example the_first_schedule_word_of_abc_is_the_message_and_its_one_bit :
   bytes_of (word_at (schedule (block_at (blocks_of (pad abc)) 0)) 0) =
   0x61 :: 0x62 :: 0x63 :: 0x80 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_sixteenth_schedule_word_of_abc_is_its_bit_length :
   bytes_of (word_at (schedule (block_at (blocks_of (pad abc)) 0)) 15) =
   0x00 :: 0x00 :: 0x00 :: 0x18 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_first_round_of_abc_reaches_the_published_working_variables :
   let blk := block_at (blocks_of (pad abc)) 0 in
@@ -973,7 +980,7 @@ Example the_first_round_of_abc_reaches_the_published_working_variables :
   0xBB :: 0x67 :: 0xAE :: 0x85 :: 0x3C :: 0x6E :: 0xF3 :: 0x72 ::
   0xFA :: 0x2A :: 0x46 :: 0x22 :: 0x51 :: 0x0E :: 0x52 :: 0x7F ::
   0x9B :: 0x05 :: 0x68 :: 0x8C :: 0x1F :: 0x83 :: 0xD9 :: 0xAB :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example sha256_of_abc :
   bytes_of (sha256 abc) =
@@ -981,7 +988,7 @@ Example sha256_of_abc :
   0x41 :: 0x41 :: 0x40 :: 0xDE :: 0x5D :: 0xAE :: 0x22 :: 0x23 ::
   0xB0 :: 0x03 :: 0x61 :: 0xA3 :: 0x96 :: 0x17 :: 0x7A :: 0x9C ::
   0xB4 :: 0x10 :: 0xFF :: 0x61 :: 0xF2 :: 0x00 :: 0x15 :: 0xAD :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Fifty-six bytes: the length that no longer leaves room for the length
    field in its own block, so the pad makes two blocks of one. *)
@@ -996,7 +1003,7 @@ Definition two_block_message : list bool := bytes_from (
 
 Example the_two_block_message_pads_to_two_blocks :
   length_of (blocks_of (pad two_block_message)) = 2.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example sha256_of_the_two_block_message :
   bytes_of (sha256 two_block_message) =
@@ -1004,7 +1011,7 @@ Example sha256_of_the_two_block_message :
   0xE5 :: 0xC0 :: 0x26 :: 0x93 :: 0x0C :: 0x3E :: 0x60 :: 0x39 ::
   0xA3 :: 0x3C :: 0xE4 :: 0x59 :: 0x64 :: 0xFF :: 0x21 :: 0x67 ::
   0xF6 :: 0xEC :: 0xED :: 0xD4 :: 0x19 :: 0xDB :: 0x06 :: 0xC1 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    NIST's validation corpus at the padding boundary: the empty message and
@@ -1018,7 +1025,7 @@ Example sha256_of_the_empty_message :
   0x9A :: 0xFB :: 0xF4 :: 0xC8 :: 0x99 :: 0x6F :: 0xB9 :: 0x24 ::
   0x27 :: 0xAE :: 0x41 :: 0xE4 :: 0x64 :: 0x9B :: 0x93 :: 0x4C ::
   0xA4 :: 0x95 :: 0x99 :: 0x1B :: 0x78 :: 0x52 :: 0xB8 :: 0x55 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition message_of_55_bytes : list bool := bytes_from (
   0x3E :: 0xBF :: 0xB0 :: 0x6D :: 0xB8 :: 0xC3 :: 0x8D :: 0x5B ::
@@ -1036,7 +1043,7 @@ Example sha256_of_55_bytes_fits_its_length_in_one_block :
   0x85 :: 0x83 :: 0xDF :: 0xBF :: 0x7F :: 0x5B :: 0xEC :: 0x0A ::
   0xB1 :: 0xF9 :: 0x3C :: 0xE4 :: 0xC8 :: 0xEE :: 0x19 :: 0x16 ::
   0xEF :: 0xF4 :: 0x4A :: 0x93 :: 0xAF :: 0x57 :: 0x49 :: 0xC4 :: nil))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition message_of_56_bytes : list bool := bytes_from (
   0x2D :: 0x52 :: 0x44 :: 0x7D :: 0x12 :: 0x44 :: 0xD2 :: 0xEB ::
@@ -1054,7 +1061,7 @@ Example sha256_of_56_bytes_needs_a_second_block :
   0x9D :: 0x36 :: 0x19 :: 0x5A :: 0xCE :: 0xC2 :: 0xE2 :: 0x55 ::
   0xE2 :: 0xAF :: 0x2B :: 0x7D :: 0x93 :: 0x39 :: 0x97 :: 0xF3 ::
   0x48 :: 0xE0 :: 0x9F :: 0x6C :: 0xE5 :: 0x75 :: 0x83 :: 0x60 :: nil))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition message_of_63_bytes : list bool := bytes_from (
   0xE2 :: 0xF7 :: 0x6E :: 0x97 :: 0x60 :: 0x6A :: 0x87 :: 0x2E ::
@@ -1072,7 +1079,7 @@ Example sha256_of_63_bytes :
   0x1F :: 0xBA :: 0x8C :: 0x54 :: 0x11 :: 0xD2 :: 0xD7 :: 0x48 ::
   0xE8 :: 0xAB :: 0xBF :: 0xDC :: 0xDF :: 0xD9 :: 0x21 :: 0x8C ::
   0xB0 :: 0x2B :: 0x68 :: 0xA7 :: 0x8E :: 0x7D :: 0x4C :: 0x23 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition message_of_64_bytes : list bool := bytes_from (
   0x5A :: 0x86 :: 0xB7 :: 0x37 :: 0xEA :: 0xEA :: 0x8E :: 0xE9 ::
@@ -1091,7 +1098,7 @@ Example sha256_of_64_bytes_fills_a_block_and_pads_into_a_second :
   0xD6 :: 0xDD :: 0x6C :: 0xEF :: 0x3D :: 0xD2 :: 0x80 :: 0x2F ::
   0xE6 :: 0x7B :: 0x33 :: 0x19 :: 0x53 :: 0xB0 :: 0x61 :: 0x14 ::
   0xA6 :: 0x5C :: 0x77 :: 0x28 :: 0x59 :: 0xDF :: 0xC1 :: 0xAA :: nil))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition message_of_163_bytes : list bool := bytes_from (
   0x45 :: 0x11 :: 0x01 :: 0x25 :: 0x0E :: 0xC6 :: 0xF2 :: 0x66 ::
@@ -1123,7 +1130,7 @@ Example sha256_of_163_bytes_spans_three_blocks :
   0x51 :: 0x6C :: 0xDF :: 0x2F :: 0x15 :: 0x00 :: 0x0F :: 0x66 ::
   0x34 :: 0x18 :: 0x5C :: 0x88 :: 0xF5 :: 0x05 :: 0xB3 :: 0x97 ::
   0x75 :: 0xFB :: 0x9A :: 0xB1 :: 0x37 :: 0xA1 :: 0x0A :: 0xA2 :: nil))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The near alternatives refuted at the standard's own example. Each
@@ -1134,23 +1141,23 @@ Proof. vm_compute. reflexivity. Qed.
 
 Example the_pad_without_its_one_misses_the_published_digest :
   bits_eqb (sha256_with_the_pad_missing_its_one abc) (sha256 abc) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_byte_reversed_length_misses_the_published_digest :
   bits_eqb (sha256_with_a_byte_reversed_length abc) (sha256 abc) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_byte_reversed_length_agrees_at_the_empty_message :
   bits_eqb (sha256_with_a_byte_reversed_length nil) (sha256 nil) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_exchanged_sigmas_miss_the_published_digest :
   bits_eqb (sha256_with_the_sigmas_exchanged abc) (sha256 abc) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example maj_written_as_ch_misses_the_published_digest :
   bits_eqb (sha256_with_maj_written_as_ch abc) (sha256 abc) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Ch and Maj agree wherever their last two words coincide, each returning
    that word, so a check at such a state would not separate them; the
@@ -1160,12 +1167,12 @@ Example ch_and_maj_agree_where_the_last_two_words_coincide :
   let x := word_at initial_hash 0 in
   let y := word_at initial_hash 1 in
   andb (bits_eqb (ch x y y) (maj x y y)) (bits_eqb (ch x y y) y) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example ch_and_maj_part_at_the_initial_hash :
   bits_eqb (ch (word_at initial_hash 0) (word_at initial_hash 1) (word_at initial_hash 2))
            (maj (word_at initial_hash 0) (word_at initial_hash 1) (word_at initial_hash 2)) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    HMAC-SHA-256 at RFC 4231's seven cases: two short keys, a key of twenty
@@ -1184,7 +1191,7 @@ Example hmac_of_rfc4231_case_1 :
   0x5C :: 0xA8 :: 0xAF :: 0xCE :: 0xAF :: 0x0B :: 0xF1 :: 0x2B ::
   0x88 :: 0x1D :: 0xC2 :: 0x00 :: 0xC9 :: 0x83 :: 0x3D :: 0xA7 ::
   0x26 :: 0xE9 :: 0x37 :: 0x6C :: 0x2E :: 0x32 :: 0xCF :: 0xF7 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition rfc4231_key_2 : list bool := bytes_from (0x4A :: 0x65 :: 0x66 :: 0x65 :: nil).
 Definition rfc4231_data_2 : list bool := bytes_from (
@@ -1199,7 +1206,7 @@ Example hmac_of_rfc4231_case_2 :
   0x6A :: 0x04 :: 0x24 :: 0x26 :: 0x08 :: 0x95 :: 0x75 :: 0xC7 ::
   0x5A :: 0x00 :: 0x3F :: 0x08 :: 0x9D :: 0x27 :: 0x39 :: 0x83 ::
   0x9D :: 0xEC :: 0x58 :: 0xB9 :: 0x64 :: 0xEC :: 0x38 :: 0x43 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition rfc4231_key_3 : list bool := bytes_from (repeat_of 20 0xAA).
 Definition rfc4231_data_3 : list bool := bytes_from (repeat_of 50 0xDD).
@@ -1210,7 +1217,7 @@ Example hmac_of_rfc4231_case_3 :
   0x85 :: 0x4D :: 0xB8 :: 0xEB :: 0xD0 :: 0x91 :: 0x81 :: 0xA7 ::
   0x29 :: 0x59 :: 0x09 :: 0x8B :: 0x3E :: 0xF8 :: 0xC1 :: 0x22 ::
   0xD9 :: 0x63 :: 0x55 :: 0x14 :: 0xCE :: 0xD5 :: 0x65 :: 0xFE :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition rfc4231_key_4 : list bool := bytes_from (up_from 1 25).
 Definition rfc4231_data_4 : list bool := bytes_from (repeat_of 50 0xCD).
@@ -1221,7 +1228,7 @@ Example hmac_of_rfc4231_case_4 :
   0xA4 :: 0xCC :: 0x81 :: 0x98 :: 0x99 :: 0xF2 :: 0x08 :: 0x3A ::
   0x85 :: 0xF0 :: 0xFA :: 0xA3 :: 0xE5 :: 0x78 :: 0xF8 :: 0x07 ::
   0x7A :: 0x2E :: 0x3F :: 0xF4 :: 0x67 :: 0x29 :: 0x66 :: 0x5B :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition rfc4231_key_5 : list bool := bytes_from (repeat_of 20 0x0C).
 Definition rfc4231_data_5 : list bool := bytes_from (
@@ -1233,7 +1240,7 @@ Example hmac_of_rfc4231_case_5_truncated_to_sixteen_bytes :
   bytes_of (hmac_sha256_truncated 16 rfc4231_key_5 rfc4231_data_5) =
   0xA3 :: 0xB6 :: 0x16 :: 0x74 :: 0x73 :: 0x10 :: 0x0E :: 0xE0 ::
   0x6E :: 0x0C :: 0x79 :: 0x6C :: 0x29 :: 0x55 :: 0x55 :: 0x2B :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition rfc4231_key_long : list bool := bytes_from (repeat_of 131 0xAA).
 Definition rfc4231_data_6 : list bool := bytes_from (
@@ -1251,7 +1258,7 @@ Example hmac_of_rfc4231_case_6_hashes_its_long_key :
   0x0D :: 0x8A :: 0x26 :: 0xAA :: 0xCB :: 0xF5 :: 0xB7 :: 0x7F ::
   0x8E :: 0x0B :: 0xC6 :: 0x21 :: 0x37 :: 0x28 :: 0xC5 :: 0x14 ::
   0x05 :: 0x46 :: 0x04 :: 0x0F :: 0x0E :: 0xE3 :: 0x7F :: 0x54 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition rfc4231_data_7 : list bool := bytes_from (
   0x54 :: 0x68 :: 0x69 :: 0x73 :: 0x20 :: 0x69 :: 0x73 :: 0x20 ::
@@ -1280,7 +1287,7 @@ Example hmac_of_rfc4231_case_7_hashes_its_long_key_over_a_long_message :
   0x27 :: 0x63 :: 0x5F :: 0xBC :: 0xD5 :: 0xB0 :: 0xE9 :: 0x44 ::
   0xBF :: 0xDC :: 0x63 :: 0x64 :: 0x4F :: 0x07 :: 0x13 :: 0x93 ::
   0x8A :: 0x7F :: 0x51 :: 0x53 :: 0x5C :: 0x3A :: 0x35 :: 0xE2 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    NIST's HMAC validation corpus at L = 32: a key of exactly one block, and
@@ -1322,7 +1329,7 @@ Example hmac_of_the_validation_case_with_a_one_block_key :
   0x9F :: 0x11 :: 0x3B :: 0x13 :: 0xFC :: 0x12 :: 0xD7 :: 0x0E ::
   0x16 :: 0x68 :: 0xDC :: 0x33 :: 0x28 :: 0x39 :: 0xC1 :: 0x0D ::
   0xAA :: 0x57 :: 0x17 :: 0x89 :: 0x6C :: 0xB7 :: 0x0D :: 0xDF :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition cavp_key_45 : list bool := bytes_from (
   0xB7 :: 0x63 :: 0x26 :: 0x3D :: 0xC4 :: 0xFC :: 0x62 :: 0xB2 ::
@@ -1356,7 +1363,7 @@ Example hmac_of_the_validation_case_with_a_forty_five_byte_key :
   0xBA :: 0xDD :: 0x7B :: 0xF7 :: 0x96 :: 0x69 :: 0x39 :: 0x61 ::
   0x31 :: 0x7C :: 0xA6 :: 0x80 :: 0xB3 :: 0x80 :: 0x41 :: 0x6F ::
   0x12 :: 0xF4 :: 0x66 :: 0xF0 :: 0x65 :: 0x26 :: 0xB3 :: 0x6B :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition cavp_key_70 : list bool := bytes_from (
   0xC0 :: 0x9E :: 0x29 :: 0x07 :: 0x1C :: 0x40 :: 0x5D :: 0x5E ::
@@ -1393,7 +1400,7 @@ Example hmac_of_the_validation_case_with_a_seventy_byte_key :
   0x47 :: 0xF7 :: 0x51 :: 0x7A :: 0xB1 :: 0x88 :: 0x98 :: 0xB1 ::
   0xB9 :: 0x91 :: 0xD0 :: 0x3C :: 0xFC :: 0xF8 :: 0xC4 :: 0x5B ::
   0xB3 :: 0x61 :: 0x5B :: 0x5F :: 0x75 :: 0x5D :: 0xA6 :: 0x82 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition cavp_key_74 : list bool := bytes_from (
   0x81 :: 0x5C :: 0x2A :: 0x91 :: 0x1A :: 0xAF :: 0x0F :: 0x84 ::
@@ -1429,7 +1436,7 @@ Example hmac_of_the_validation_case_with_a_seventy_four_byte_key_truncated :
   bytes_of (hmac_sha256_truncated 16 cavp_key_74 cavp_msg_74) =
   0x79 :: 0x66 :: 0x44 :: 0x0D :: 0xF7 :: 0x9B :: 0x13 :: 0xE9 ::
   0x5C :: 0x41 :: 0x34 :: 0x6E :: 0xB7 :: 0x92 :: 0xF3 :: 0xEC :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The HMAC alternatives refuted, and the family the truncating one is
@@ -1439,7 +1446,7 @@ Proof. vm_compute. reflexivity. Qed.
 Example the_exchanged_pads_miss_the_published_answer :
   bits_eqb (hmac_with_the_pads_exchanged rfc4231_key_1 rfc4231_data_1)
            (hmac_sha256 rfc4231_key_1 rfc4231_data_1) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition short_key_cases : list (list bool * list bool) :=
   pair rfc4231_key_1 rfc4231_data_1 :: pair rfc4231_key_2 rfc4231_data_2 ::
@@ -1455,25 +1462,25 @@ Example the_truncating_hmac_agrees_at_every_key_within_the_block :
   all_of (fun c => bits_eqb (hmac_with_the_long_key_truncated (fst c) (snd c))
                             (hmac_sha256 (fst c) (snd c)))
          short_key_cases = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_truncating_hmac_parts_at_every_key_beyond_the_block :
   all_of (fun c => negb (bits_eqb (hmac_with_the_long_key_truncated (fst c) (snd c))
                                   (hmac_sha256 (fst c) (snd c))))
          long_key_cases = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_short_and_long_key_cases_are_split_at_the_block :
   andb (all_of (fun c => Nat.leb (length_of (fst c)) block_bits) short_key_cases)
        (all_of (fun c => Nat.ltb block_bits (length_of (fst c))) long_key_cases) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* A key of exactly one block is used as it is, so the truncating and the
    hashing forms are the same function on it: this is the boundary the
    corpus's 64-byte case stands on. *)
 Example a_one_block_key_is_neither_hashed_nor_padded :
   bits_eqb (hmac_key_over sha256 cavp_key_64) cavp_key_64 = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The edges the composition above computes over and never states, each one
@@ -1504,11 +1511,11 @@ Definition shift_probe : word := bytes_from (0x12 :: 0x34 :: 0x56 :: 0x78 :: nil
 
 Example the_right_shift_by_three_answers_the_standard_s_word :
   bits_eqb (shr 3 shift_probe) (bytes_from (0x02 :: 0x46 :: 0x8A :: 0xCF :: nil)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_right_shift_by_ten_answers_the_standard_s_word :
   bits_eqb (shr 10 shift_probe) (bytes_from (0x00 :: 0x04 :: 0x8D :: 0x15 :: nil)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* s6.2.2 step 1 computes the block's sixteen words and forty-eight more,
    and the compression reads the first sixty-four words of whatever it is
@@ -1516,7 +1523,7 @@ Proof. vm_compute. reflexivity. Qed.
    rather than refused and no digest above moves with it. *)
 Example the_schedule_is_exactly_the_rounds_long :
   Nat.eqb (length_of (schedule (block_at (blocks_of (pad abc)) 0))) rounds = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The multiplier of the constant derivation, stated on a product rather
    than left inside the comparison the root search makes of it, where a
@@ -1525,12 +1532,12 @@ Proof. vm_compute. reflexivity. Qed.
 Example the_multiplier_answers_its_product_from_below :
   leb_le (mul_le (bits_le_of word_bits 11) (bits_le_of word_bits 13))
          (bits_le_of word_bits 143) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_multiplier_answers_its_product_from_above :
   leb_le (bits_le_of word_bits 143)
          (mul_le (bits_le_of word_bits 11) (bits_le_of word_bits 13)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The defaults, each stated at the input that reaches it. Nothing above
    hands any of these functions a ragged input, so each answer below is the
@@ -1538,18 +1545,18 @@ Proof. vm_compute. reflexivity. Qed.
    callers that never ask. *)
 Example the_bits_past_the_end_of_a_string_are_zero :
   bits_eqb (map_over (bit_at zero_word) (up_from word_bits word_bits)) zero_word = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_string_is_unequal_to_its_own_prefix :
   negb (bits_eqb zero_word (take_of hash_words zero_word)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_comparison_answers_where_the_first_string_runs_out :
   leb_be nil zero_word = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_comparison_answers_where_the_second_string_runs_out :
   leb_be zero_word nil = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* R-05-164: `run.py proofs` audits the complete native inventory. *)

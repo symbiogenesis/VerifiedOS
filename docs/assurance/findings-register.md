@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 844 of them across 146 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 859 of them across 147 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1153,13 +1153,73 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q38e
 · Disposition: standing, the live set holding none and the rule's docstring and registry row stating them
 
+**F-578** measurement: Q38i's cast clause and its Check's compile fall cannot both hold in ArithmeticComposition.v, CredentialHandles.v, InferenceAdmission.v and TwoSourceExtractor.v, whose 16 such proofs evaluate goals too small for a fall beyond single-run noise, and the cast raised ArithmeticComposition.v's recheck by 2.8% in two single runs
+· Raised: Q38i
+· Disposition: standing, the four modules keeping their scripts
+
+**F-579** measurement: MlDsa.v's three single-evaluation candidates stay unmade, two retained-evidence copies and a dated benchmark binding its digest and no command regenerating a dated record
+· Raised: Q38i
+· Disposition: standing, the cast clause's own exemption
+
+**F-580** measurement: three proofs whose goals unfold to equalities, `Disciplined demo`, `Disciplined demo_pr` and `Admissible demo`, keep their scripts, the cast reading a goal's equality syntactically
+· Raised: Q38i
+· Disposition: standing, each script unchanged
+
+**F-581** measurement: HmacDrbg.v's `pr_true_run` and `first_draw` keep no literal, with which the module's recheck counted 2,042.8e9 retired instructions against 2,019.9e9 while its one-run peak was 8,125,480 KB against 9,312,124 KB
+· Raised: Q38i
+· Disposition: open, Q38j
+
+**F-582** measurement: values two Examples evaluate inside a `forallb` over a family, PqArith.v's ML-DSA-ring transforms of both probes and StorageBridge.v's decode and walk of the medium flipped at offsets 272 and 144, keep no literal, and three round-trip Examples over PqArith's probes are not rewritten through its lemmas
+· Raised: Q38i
+· Disposition: standing, the benefit unmeasured beside the two modules' recheck falls of 20.44% and 28.77%
+
+**F-583** measurement: a literal lemma closed by a cast of `eq_refl` of its folded constant cost the recheck 2.5 and 6.2 times what unfolding it first costs
+· Raised: Q38i
+· Disposition: open, Q38h
+
+**F-584** measurement: single-run retired-instruction figures of unchanged small modules moved by up to 0.75% in compile and 0.62% in recheck between two sets, so a 0.1% or 1% threshold is decidable for a module under about 10e9 instructions only by repeated interleaved runs
+· Raised: Q38i
+· Disposition: open, Q38h and Q38j
+
+**F-585** measurement: a rerun of the dated ML-KEM mutation campaign's definitions-only compile would evaluate Q38i's seven literals under every mutant and PqArith's proof oracle would kill through the literal lemmas, although all 17 recorded selections name the same mutants
+· Raised: Q38i
+· Disposition: standing, the campaign stays as recorded
+
+**F-586** measurement: the dated q19a render-cache campaign's review prefix of CopyRingService.v now carries the module's tactic and the cast, both of its anchors still resolving
+· Raised: Q38i
+· Disposition: standing, the campaign stays as recorded
+
+**F-587** measurement: `wait4` peaks of small `rocqchk` processes read 129 to 131 MiB in two sets and 46 MiB in a third for the same modules, and Sha256.v's rose from 1,458,428 KB to 1,626,180 KB at equal instructions
+· Raised: Q38i
+· Disposition: open, Q38j
+
 **F-566** owed-act: no register entry owns the response to a known inconsistency of the locked prover; the lexical refusals covering #22287, #22387 and #22510, and Q38k's for #22386 and #22389, stand on the lock guide's prose and the audit's code, while R-05-018a's acceptance rests on the compile, the R-05-163 audit and `rocqchk`, which R-05-016a records as sharing the kernel's defects
 · Raised: Q38k
 · Disposition: open, reported and not closed, a register act at R-05-016a and R-05-018a rerunning the review gate
 
+**F-573** measurement: Q38k's first head passed a cofixpoint word joined to a token the source declares, `#_cofix`, `²cofix` and Ltac2's `Std.cofix_²sevens` among them, which the locked compiler compiles to guarded cofixpoints
+· Raised: Q38k
+· Disposition: closed at Q38k, words read through ASCII word characters alone and every declaration of a token able to hide one refused
+
+**F-574** measurement: Q38k's first numeral reading was held by no case, 13 of the review's 14 mutants surviving, and missed `#00x1p5cofix` once a notation declares `#0`
+· Raised: Q38k
+· Disposition: closed at Q38k, 15 probe-backed numeral cases and a decimal reading that stops before `0x`
+
+**F-575** measurement: a cofixpoint word joined to a token a dependency declares stays outside the lexical refusal, the locked compiler reading `+c1cofix` as `+c`, `1` and `cofix` after Stdlib's `+c`, one of 21 such tokens in the locked libraries
+· Raised: Q38k
+· Disposition: standing, the lock guide stating it as the refusal's residue
+
+**F-576** measurement: the machine-bound tactical refusal passed `do 1timeout 5 (exact I)`, and `#_timeout 5 (exact I)` once a notation declares `#_`, both of which the locked compiler compiles silently
+· Raised: Q38k
+· Disposition: closed at Q38k, the tactical reading sharing the coinductive reading's lexer model
+
+**F-577** measurement: `run.py proof-reading` repeated only two of the gate's five refusals before compiling, so it would compile a copy holding an unreadable token, a coinductive form, a hiding token or a dynamic source
+· Raised: Q38k
+· Disposition: closed at Q38k, the reading refusing all five before anything compiles
+
 **F-565** upstream-defect: the locked proof switch's Rocq 9.3.0 carries the cofixpoint guard-checker inconsistencies #22386 and #22389, which Rocq's critical-bug list reports fixed in V9.3
 · Raised: Q39
-· Disposition: open, Q38k refusing coinductive definitions in the sources the gate compiles until a lock move takes a Rocq release carrying #22388 and #22392
+· Disposition: standing, the proof audit's refusal of coinductive types and cofixpoints in the sources the gate compiles covering the forms an authored source writes, a word joined to a token a dependency declares aside, until a move of the proof switch's lock to a Rocq release carrying #22388 and #22392
 
 **F-525** upstream-defect: the locked proof switch's Rocq 9.3.0 carries #22387, module subtyping of inductives whose constructor types differ in let-ins, which Rocq's critical-bug list reports fixed in 9.2.0 and 9.3
 · Raised: Q39

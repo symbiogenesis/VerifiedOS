@@ -620,6 +620,11 @@ def _sources_compile_as_the_gate_compiles() -> None:
         for label, changed, said in (
                 ("a pinned setting reset", {"A.v": 'Set Warnings "-all".\n'}, None),
                 ("a module type", {"A.v": "Module Type T.\nEnd T.\n"}, None),
+                ("a token the lexer cannot follow",
+                 {"A.v": 'Notation "a ^. b" := (Nat.add a b) (at level 50).\n'}, None),
+                ("a coinductive type", {"A.v": "CoInductive s := C : s -> s.\n"}, None),
+                ("a token hiding a cofix", {"A.v": 'Tactic Notation "#a" := idtac.\n'}, None),
+                ("a loaded file", {"A.v": 'Load "Other".\n'}, None),
                 ("a Require cycle", {"A.v": "Require Import B.\n"}, None),
                 ("a diagnostic", {}, {"A.v": (0, "Warning: something")}),
                 ("a failed compile", {}, {"A.v": (1, "")})):

@@ -18,6 +18,13 @@ Require Import CyclicExecutive MemoryPlan ElasticDomain.
 Import ListNotations.
 Local Open Scope nat_scope.
 
+(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
+   the goal in the tactic and again where the kernel checks its cast at Qed;
+   this casts eq_refl to the goal unevaluated, so only the check at Qed
+   evaluates it. *)
+Local Ltac vm_reflexivity :=
+  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
+
 Lemma pool_upto_in : forall n k, In k (upto n) -> k < n.
 Proof.
   induction n; intros k H; simpl in H; [contradiction|].
@@ -183,7 +190,7 @@ Definition pool_reference_cycle : list AllocEvent :=
 
 Example pool_cycle_is_executable :
   pool_run pool_reference_arena [] pool_reference_cycle = pool_reference_cycle.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example pool_classes_are_exact :
   all_of class_exact (ar_classes pool_reference_arena) = true.

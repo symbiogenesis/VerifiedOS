@@ -89,9 +89,9 @@
    inhabited by MemoryPlan.v's `witness_Plan`, whose own family is
    checked below to be well formed and laminar, so the bridge's
    hypotheses are satisfied by the companion's reference plan. A
-   four-object laminar family has its bases, span and load computed by
-   `vm_compute` and checked by reflexivity, and the general theorem is
-   instantiated at it. A two-object crossing family is refused by the
+   four-object laminar family has its bases, span and load computed in
+   the virtual machine as the kernel checks each equality at Qed, and
+   the general theorem is instantiated at it. A two-object crossing family is refused by the
    laminar predicate and the construction collides on it, so the premise
    excludes something and the feasibility theorem needs it. A padded
    placement of the laminar family is feasible with span above its load,
@@ -119,6 +119,13 @@
 Require Import MemoryPlan.
 From Stdlib Require Import Bool List Arith Lia.
 Import ListNotations.
+
+(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
+   the goal in the tactic and again where the kernel checks its cast at Qed;
+   this casts eq_refl to the goal unevaluated, so only the check at Qed
+   evaluates it. *)
+Local Ltac vm_reflexivity :=
+  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 (* -------------------------------------------------------------------------
    Objects, families and the interval predicates. Each predicate is stated
@@ -831,10 +838,10 @@ Definition demo_family : list Obj := [o_outer; o_equal; o_left; o_right].
 Definition witness_Obj : Obj := o_outer.
 
 Example demo_family_is_well_formed : family_ok demo_family = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example demo_family_is_laminar : laminar_b demo_family = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The two equal intervals nest in identity order, so equal sits at the
    origin and outer directly above it; left and right share the addresses
@@ -842,19 +849,19 @@ Proof. vm_compute. reflexivity. Qed.
 Example demo_bases_computed :
   map (fun i => (oid i, build demo_family (oid i))) demo_family
   = [(2, 3); (0, 0); (1, 5); (3, 5)].
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example demo_loads_at_starts : map (load_at demo_family) [0; 1; 4] = [5; 9; 11].
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example demo_load_computed : load demo_family = 11.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example demo_span_computed : span demo_family (build demo_family) = 11.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example demo_construction_is_feasible : feasible_b demo_family (build demo_family) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The general theorem instantiated at the family whose hypotheses were
    decided above. *)
@@ -874,14 +881,14 @@ Definition o_cross_b : Obj := {| oid := 1; weight := 1; lo := 1; hi := 3 |}.
 Definition crossing_family : list Obj := [o_cross_a; o_cross_b].
 
 Example crossing_family_is_well_formed : family_ok crossing_family = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example crossing_family_is_refused : laminar_b crossing_family = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example crossing_construction_collides :
   feasible_b crossing_family (build crossing_family) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Lemma crossing_family_is_not_laminar : ~ Laminar crossing_family.
 Proof.
@@ -893,10 +900,10 @@ Qed.
 Definition padded_placement : nat -> nat := fun id => S (build demo_family id).
 
 Example padded_placement_is_feasible : feasible_b demo_family padded_placement = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example padded_span_computed : span demo_family padded_placement = 12.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Lemma feasibility_does_not_force_the_load :
   Feasible demo_family padded_placement
@@ -913,20 +920,20 @@ Qed.
    and nested in it. The constructed placement passes MemoryPlan.v's own
    colouring check, decided by computation, and its span is the load. *)
 Example demo_plan_family_is_well_formed : family_ok (plan_family demo_plan) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example demo_plan_family_is_laminar : laminar_b (plan_family demo_plan) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example demo_plan_construction_colours : colouring_ok demo_plan (plan_placement demo_plan) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example demo_plan_load_computed : load (plan_family demo_plan) = 2272.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example demo_plan_span_computed :
   span (plan_family demo_plan) (plan_placement demo_plan) = 2272.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Lemma demo_plan_satisfies_the_bridge_hypotheses :
   PlanFamilyOk demo_plan /\ Laminar (plan_family demo_plan).
@@ -956,13 +963,13 @@ Definition g6 : Obj := {| oid := 6; weight := 2; lo := 1; hi := 2 |}.
 Definition gap_family : list Obj := [g0; g1; g2; g3; g4; g5; g6].
 
 Example gap_family_is_well_formed : family_ok gap_family = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example gap_family_is_refused : laminar_b gap_family = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example gap_family_load_computed : load gap_family = 5.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Every tuple whose k-th entry is at most the k-th bound. *)
 Fixpoint tuples (bounds : list nat) : list (list nat) :=
@@ -979,7 +986,7 @@ Definition gap_bounds : list nat := [4; 3; 3; 4; 2; 2; 3].
 
 Example no_gap_placement_spans_the_load :
   forallb (fun t => negb (feasible_b gap_family (from_tuple t))) (tuples gap_bounds) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Lemma tuples_complete : forall bounds t,
   length t = length bounds ->
@@ -1074,10 +1081,10 @@ Qed.
 Definition gap_placement : nat -> nat := from_tuple [4; 1; 3; 0; 0; 1; 4].
 
 Example gap_placement_is_feasible : feasible_b gap_family gap_placement = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example gap_placement_span_computed : span gap_family gap_placement = 6.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Theorem gap_family_optimum_exceeds_its_load :
   Feasible gap_family gap_placement
