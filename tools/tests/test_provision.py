@@ -181,7 +181,9 @@ def _number_reads_the_banners() -> None:
 
 
 def _opam_probe_preserves_build_suffix() -> None:
-    with (patch.object(provision, "switches", return_value={"oracle"}),
+    with (tempfile.TemporaryDirectory(prefix="vos-test-") as td,
+          patch.object(provision.env, "opam_root", return_value=Path(td) / "absent"),
+          patch.object(provision, "switches", return_value={"oracle"}),
           patch.object(provision, "_installed", return_value="0.9.1+9.1")):
         ensure(provision._switch_at("oracle", "rocq-certirocq", "0.9.1+9.1").present,
                "an exact opam version including its Rocq suffix must satisfy the pin")
@@ -328,9 +330,14 @@ def _opam_probe_holds_the_root() -> None:
                and f"from 2.2 to {opam_client.OPAM_ROOT_FORMAT} one way, a deliberate, "
                    "recorded step rather than a repair" in found.saw,
                f"no client over a complete older root is reported, never planned: {found.saw}")
-        for held in (complete, older_complete):
+        # The reviewed client over a complete root holds the row, and over an older one
+        # the report says that client rewrites it one way at its first write.
+        rewrite = (f"that client rewrites this root from format 2.2 to "
+                   f"{opam_client.OPAM_ROOT_FORMAT} one way at its first write")
+        for held, rewritten in ((complete, False), (older_complete, True)):
             found = _opam_probe(held, "/usr/bin/opam", reviewed)
-            ensure(found.present,
+            ensure(found.present and (rewrite in found.saw) is rewritten
+                   and ("one way" in found.saw) is rewritten,
                    f"the reviewed client over a complete {held.name} root holds: {found.saw}")
 
 
@@ -374,6 +381,38 @@ def _opam_row_plans_only_what_is_absent() -> None:
             ensure(report.findings == 1 and ("--install-opam" in said)
                    and (planned or "does not run over what is there" in said),
                    f"with {case}, the report names the command: {said}")
+
+
+def _switch_rows_wait_on_an_older_root() -> None:
+    """An absent switch is planned over no root or one in the reviewed client's format,
+    and never over a root in an older format, which the reviewed client rewrites one way
+    at its first write and any other client would build as a client this tree has not
+    reviewed; a switch already there still reads present."""
+    row = next(fact for fact in provision.FACTS if fact.name == "the Sail switch")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        current, older = Path(td) / "current", Path(td) / "older"
+        opam_root(current, "flat")
+        opam_root(older, "nested")
+        for root, carried, present, planned in (
+                (Path(td) / "absent", (), False, True), (current, (), False, True),
+                (older, (), False, False), (older, (env.SAIL_SWITCH,), True, False),
+                (current, (env.SAIL_SWITCH,), True, False)):
+            with (patch.object(provision.env, "opam_root", return_value=root),
+                  patch.object(provision, "switches", return_value=carried),
+                  patch.object(provision, "_installed", return_value=env.SAIL_VERSION)):
+                results = provision.take((row,))
+                report = provision.run((row,))
+            found = results[0][1]
+            case = f"with the switches {carried} over the {root.name} root"
+            ensure(found.present is present and bool(provision.plan(results)) is planned,
+                   f"{case}, the row reads {found} and plans {provision.plan(results)}")
+            said = "\n".join(report.out)
+            older_clause = (f"rewrites the opam root at {older} from format 2.2 to "
+                            f"{opam_client.OPAM_ROOT_FORMAT} one way at its first write")
+            ensure((older_clause in said) is (root == older and not present)
+                   and (present or planned or "does not run over what is there" in said),
+                   f"{case}, the report names the rewrite only where it holds back a "
+                   f"recipe: {said}")
 
 
 def _dpkg_reports(*absent: str) -> Callable[[str], provision.Found]:
@@ -887,6 +926,7 @@ def cases() -> list[Case]:
         Case("opam-probe-holds-the-reviewed-client", _opam_probe_holds_the_reviewed_client),
         Case("opam-probe-holds-the-root", _opam_probe_holds_the_root),
         Case("opam-row-plans-only-what-is-absent", _opam_row_plans_only_what_is_absent),
+        Case("switch-rows-wait-on-an-older-root", _switch_rows_wait_on_an_older_root),
         Case("root-prerequisites-precede-the-opam-row",
              _root_prerequisites_precede_the_opam_row),
         Case("install-opam-refuses-without-root-prerequisites",

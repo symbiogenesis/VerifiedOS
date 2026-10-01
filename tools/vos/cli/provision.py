@@ -57,7 +57,9 @@ client writes, can upgrade that root's format one way, which is a recorded step 
 than a repair, so a client at another release and a missing client over an older root
 are reported and never planned, and neither is any other standing root with a gap
 `opam_client.root_gaps` names: no stated format or one newer than the reviewed client
-writes, or an owned repository absent, at another URL or with its stamp unread. Every
+writes, or an owned repository absent, at another URL or with its stamp unread. While a
+root stands in an older format, no switch row plans its recipe either, because the
+reviewed client's first write rewrites that root one way. Every
 figure any document states about this
 table is a count over `FACTS`, held by K-24 rather than by care.
 
@@ -296,13 +298,40 @@ def _installed(switch: str, package: str) -> str:
 
 
 def _switch_at(switch: str, package: str, pin: str) -> Found:
-    """A switch carrying one package at the version an owner in this tree fixes."""
+    """A switch carrying one package at the version an owner in this tree fixes.
+
+    Not repairable while the opam root stands in a format older than the reviewed
+    client's, so `--apply` plans no switch recipe over that root: the reviewed client
+    rewrites it one way at its first write, the deliberate, recorded step `_opam_client`
+    reports, and any other client would build the switch as a client this tree has not
+    reviewed."""
+    found = _switch_found(switch, package, pin)
+    if found.present or not (older := _older_root()):
+        return found
+    return Found(False, f"{found.saw}; {older}, so no switch is planned over it",
+                 repairable=False)
+
+
+def _switch_found(switch: str, package: str, pin: str) -> Found:
     if switch not in switches():
         return Found(False, f"opam has no {switch} switch")
     found = _installed(switch, package)
     if not found:
         return Found(False, f"the {switch} switch carries no {package}")
     return Found(found == pin, f"{package} {found} in {switch}")
+
+
+def _older_root() -> str:
+    """Where the opam root stands in a format older than the reviewed client's, what that
+    client does to it, as a clause; empty where no root stands or its format is not
+    older."""
+    root = env.opam_root()
+    fmt = opam_client.root_format(root)
+    if not (opam_client.root_exists(root) and opam_client.older_than_reviewed(fmt)):
+        return ""
+    return (f"the reviewed client {opam_client.OPAM_VERSION} rewrites the opam root at "
+            f"{root} from format {fmt} to {opam_client.OPAM_ROOT_FORMAT} one way at its "
+            "first write, a deliberate, recorded step rather than a repair")
 
 
 def _moving_the_root(fmt: str) -> str:
@@ -339,7 +368,10 @@ def _opam_client() -> Found:
     its format one way, which the report says where the root's format is older than the
     reviewed client's, so replacing a client, or installing one where none stands over a
     root in an older format, is a recorded step and not a repair; any other standing
-    root the command would leave incomplete is reported rather than planned.
+    root the command would leave incomplete is reported rather than planned. The
+    reviewed client over a complete root in an older format holds the row, and the
+    report says that client rewrites the root one way at its first write, which is why
+    no switch row plans a recipe over it.
     """
     where = shutil.which("opam")
     found = _number(_say(("opam", "--version"))) if where else ""
@@ -356,9 +388,13 @@ def _opam_client() -> Found:
         saw = f"{client}; no opam root at {root}"
     if gaps:
         saw += f"; the root {' and '.join(gaps)}, {_standing(resumable)}"
+    older = stands and opam_client.older_than_reviewed(fmt)
     if not reviewed:
         saw += f"; the reviewed client is {opam_client.OPAM_VERSION}{_moving_the_root(fmt)}"
-    older = stands and opam_client.older_than_reviewed(fmt)
+    elif older:
+        saw += (f"; that client rewrites this root from format {fmt} to "
+                f"{opam_client.OPAM_ROOT_FORMAT} one way at its first write, a deliberate, "
+                "recorded step rather than a repair, so no switch is planned over it")
     return Found(reviewed and stands and not gaps, saw,
                  repairable=(reviewed or (where is None and not older))
                  and (not gaps or resumable))

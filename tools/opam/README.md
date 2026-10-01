@@ -42,7 +42,8 @@ or completes one in the shape that route leaves after its leading steps by the r
 running `opam init` over it, which would rewrite that root's shell setup, and reports the root's format and
 repository stamps; it replaces no client and alters no other standing root. A client
 rewrites a root older than its own format one way, and the owner records the reviewed
-client's format as `OPAM_ROOT_FORMAT`, so moving an existing root is a deliberate, recorded step. See [the CI guide](../ci/README.md)
+client's format as `OPAM_ROOT_FORMAT`, so moving an existing root is a deliberate, recorded step,
+and `run.py provision --apply` plans no switch over a root in an older format. See [the CI guide](../ci/README.md)
 for invocation, placement and environment setup. The remaining experimental switches are installed
 separately into an initialized root.
 
