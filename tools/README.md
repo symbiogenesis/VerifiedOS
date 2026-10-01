@@ -1035,7 +1035,12 @@ K-118 holds every pin in the two files to the release
 the clang-format wheel's to its mirror's row and the rest to the model hooks' PyPI
 dependencies row, so a moved pin is a finding until its licence is read at the new
 release and the row states it, and a pin no row reads, such as one added for a package
-a hook gained, is a finding until a row reads its licence.
+a hook gained, is a finding until a row reads its licence. It reads each file as pip
+does, split at every break `str.splitlines` takes, a line ending in `\` that is no
+comment joined with the next and comments stripped after the join, so every line left
+must be one `<name>==<release>` pin with at most its `--hash=sha256:` digests: an
+option such as `-c`, `-r` or `--index-url`, a marker, extras or a URL is a finding at
+its line, and a file declaring an encoding other than UTF-8 is unread.
 
 [ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
 carries, including the ones it ships as warnings or switched off, and that is deliberate:

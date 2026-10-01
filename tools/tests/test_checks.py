@@ -1372,8 +1372,10 @@ _K118_KINDS: dict[str, tuple[pins.Owner, dict[str, str | None], dict[str, str | 
               {"tools/x.sh": "kappa_version=1.2.3\n"}, {"tools/x.sh": "kappa_version=1.2.4\n"}),
     # a constraints file's pin, its name spelled as pip normalizes it, with a hash line
     "pip": (pins.Owner("pip", "tools/ci/c.txt", "kappa"),
-            {"tools/ci/c.txt": "# the pins\nKappa==1.2.3 \\\n    --hash=sha256:00\nother==1.2.4\n"},
-            {"tools/ci/c.txt": "# the pins\nKappa==1.2.4 \\\n    --hash=sha256:00\nother==1.2.4\n"}),
+            {"tools/ci/c.txt": f"# the pins\nKappa==1.2.3 \\\n    --hash=sha256:{'0' * 64}\n"
+                               "other==1.2.4\n"},
+            {"tools/ci/c.txt": f"# the pins\nKappa==1.2.4 \\\n    --hash=sha256:{'0' * 64}\n"
+                               "other==1.2.4\n"}),
 }
 _K118_KAPPA = (_K118_TOOLS + "| Tool | License | Standing |\n| --- | --- | --- |\n"
                "| kappa | `MIT` | Reviewed at 1.2.3. |\n\n## Next\n")
@@ -1422,9 +1424,8 @@ def _k118_every_owner_kind_detects_drift() -> None:
 
 def _k118_pip_census_reads_every_pin() -> None:
     # Each project the hook step's pip constraint files pin is one a held row reads in
-    # that file, so a pin added with no row's reading, or a line naming a project in a
-    # form a pin does not take, is a finding at its line, and both files are read
-    # whether or not a row holds a pin in them.
+    # that file, so a pin added with no row's reading is a finding at its line, and both
+    # files are read whether or not a row holds a pin in them.
     row = pins.DevTool("kappa", (pins.Site("the release", rf"Reviewed at {pins._V}\.", (
         pins.Owner("pip", pins.HOOK_CONSTRAINTS, "kappa"),)),))
 
@@ -1436,25 +1437,83 @@ def _k118_pip_census_reads_every_pin() -> None:
     found, out = run({})
     ensure(not found and any("each of the 1 pins its pip constraint files carry" in line
                              for line in out), f"a pin a held row reads agrees: {found!r}")
+    digest = f"--hash=sha256:{'0' * 64}"
     unread: tuple[tuple[dict[str, str | None], str, str], ...] = (
         ({pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3\nextra==1.0.0\n"},
          f"{pins.HOOK_CONSTRAINTS}:3", "extra"),
-        ({pins.HOOK_BUILD_CONSTRAINTS: "backend==1.0.0 \\\n    --hash=sha256:00\n"},
+        ({pins.HOOK_BUILD_CONSTRAINTS: f"backend==1.0.0 \\\n    {digest}\n"},
          f"{pins.HOOK_BUILD_CONSTRAINTS}:1", "backend"),
-        ({pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3\nhttps://example.com/x.whl\n"},
-         f"{pins.HOOK_CONSTRAINTS}:3", "https"),
         # a project a row reads in one file is not read in the other
         ({pins.HOOK_BUILD_CONSTRAINTS: "kappa==1.2.3\n"},
-         f"{pins.HOOK_BUILD_CONSTRAINTS}:1", "kappa"))
+         f"{pins.HOOK_BUILD_CONSTRAINTS}:1", "kappa"),
+        # pip breaks a line wherever `str.splitlines` does, so a pin after a form feed, a
+        # vertical tab, a record separator or a next-line or line separator inside a
+        # comment is a line of its own, numbered as pip numbers it
+        *(({pins.HOOK_CONSTRAINTS: f"# the pins{brk}extra==1.0.0\nkappa==1.2.3\n"},
+           f"{pins.HOOK_CONSTRAINTS}:2", "extra")
+          for brk in ("\x0c", "\x0b", "\x1e", "\x85", "\u2028")))
     for files, where, name in unread:
         found, _ = run(files)
         ensure(len(found) == 1 and f"{where} pins {name}, which no development-tools row "
                "K-118 holds reads there" in found[0],
                f"a pin no held row reads is one finding at its line ({files!r}): {found!r}")
+    # Every logical line, its continuations joined and its comment stripped as pip does,
+    # is one pin or a finding at its first line: an option pip follows into another file
+    # or index, a marker, extras, a URL and a looser constraint are none, and a marker
+    # continued onto the next line is the pin's line, which pip skips where it is false.
+    shapes: tuple[tuple[str, int, str], ...] = (
+        ("-c other.txt\n", 3, "-c other.txt"),
+        ("--index-url https://example.com/simple\n", 3, "--index-url https://example.com/simple"),
+        ("extra==1.0.0 ; python_version < '3.15'\n", 3, "extra==1.0.0 ; python_version"),
+        ("extra[more]==1.0.0\n", 3, "extra[more]==1.0.0"),
+        ("https://example.com/x.whl\n", 3, "https://example.com/x.whl"),
+        ("extra==1.*\n", 3, "extra==1.*"),
+        ("extra==${EXTRA}\n", 3, "extra==${EXTRA}"),
+        (f"extra==1.0.0 \\\n    {digest} \\\n    ; sys_platform == 'never'\n", 3,
+         f"extra==1.0.0     {digest}     ; sys_platform"))
+    for written, line, stated in shapes:
+        found, out = run({pins.HOOK_CONSTRAINTS: f"# the pins\nkappa==1.2.3\n{written}"})
+        ensure(len(found) == 1 and f"{pins.HOOK_CONSTRAINTS}:{line} states `{stated}" in found[0]
+               and "which K-118 does not read as one pin" in found[0]
+               and not any(item.startswith("ok K-118:") for item in out),
+               f"a logical line that is no pin is a finding at its line ({written!r}): {found!r}")
+    found, _ = run({pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3 \\\n    ; sys_platform "
+                                           "== 'never'\n"})
+    ensure(len(found) == 2 and f"{pins.HOOK_CONSTRAINTS}:2 states `kappa==1.2.3" in found[0]
+           and "kappa is constrained other than to one `==` release" in found[1],
+           f"a held pin a continued marker makes conditional is no pin: {found!r}")
+    # A line pip joins into a comment, the line before it ending in `\` after one, is no
+    # line pip reads, a stream's byte-order mark is stripped, as pip strips it, and a
+    # coding declaration naming UTF-8 changes nothing.
+    for text in ("# the pins\nkappa==1.2.3 # reviewed \\\nextra==1.0.0\n",
+                 "\ufeff# the pins\nkappa==1.2.3\n",
+                 "# -*- coding: utf-8 -*-\nkappa==1.2.3\n"):
+        found, _ = run({pins.HOOK_CONSTRAINTS: text})
+        ensure(not found, f"pip reads no other pin in {text!r}: {found!r}")
+    # A coding declaration naming another encoding is what pip decodes the file by.
+    found, out = run({pins.HOOK_CONSTRAINTS: "# -*- coding: utf-7 -*-\nkappa==1.2.3\n"})
+    ensure(any(f"{pins.HOOK_CONSTRAINTS} declares the utf-7 encoding" in item for item in found)
+           and not any(line.startswith("ok K-118:") for line in out),
+           f"a file pip decodes as another encoding is unread: {found!r}")
     found, out = run({pins.HOOK_BUILD_CONSTRAINTS: None})
     ensure(len(found) == 1 and f"{pins.HOOK_BUILD_CONSTRAINTS} is not in the repository"
            in found[0] and not any(line.startswith("ok K-118:") for line in out),
            f"an absent constraint file fails closed with no row holding it: {found!r}")
+
+
+def _k118_pip_lines_are_read_as_pip_reads_them() -> None:
+    # The constraint files are split where `str.splitlines` splits, which pip splits at.
+    breaks = "a\nb\rc\r\nd\x0be\x0cf\x1cg\x1dh\x1ei\x85j\u2028k\u2029l"
+    ensure([line for _, line in pins._pip_lines(breaks)] == breaks.splitlines(),
+           "every break str.splitlines takes is a break to the reading")
+    # A continuation keeps the number of its first line, its backslashes stripped at both
+    # ends; a comment line ends it and carries its comment, which is then stripped.
+    joined = pins._pip_lines("a==1 \\\n\\  --x \\\n# c\nb==2\n")
+    ensure(joined == [(1, "a==1   --x"), (4, "b==2")],
+           f"continuations join as pip joins them: {joined!r}")
+    stripped = pins._pip_lines("a==1\xa0# c\n  # d\n")
+    ensure(stripped == [(1, "a==1")],
+           f"a `#` after any whitespace Python's `\\s` takes opens pip's comment: {stripped!r}")
 
 
 def _k118_a_row_named_by_its_release_stays_one_row() -> None:
@@ -2249,6 +2308,8 @@ def cases() -> list[Case]:
         Case("k118-declarations-are-held", _k118_declarations_are_held),
         Case("k118-every-owner-kind-detects-drift", _k118_every_owner_kind_detects_drift),
         Case("k118-pip-census-reads-every-pin", _k118_pip_census_reads_every_pin),
+        Case("k118-pip-lines-are-read-as-pip-reads-them",
+             _k118_pip_lines_are_read_as_pip_reads_them),
         Case("k118-a-row-named-by-its-release-stays-one-row",
              _k118_a_row_named_by_its_release_stays_one_row),
         Case("k118-hook-revisions-are-held", _k118_hook_revisions_are_held),

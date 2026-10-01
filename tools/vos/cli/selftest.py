@@ -1876,6 +1876,13 @@ CASES: list[Case] = [
     ("K-118", "a hook dependency the pip constraints pin and no row reads",
      _first_match("tools/ci/model-hooks-constraints.txt", r"\Z",
                   lambda _: "unreviewed-dependency==1.0.0\n")),
+    # The first pin continued onto a line carrying a marker no platform meets: pip joins
+    # a line ending in `\` with the next, so the pin applies nowhere and pip installs
+    # whatever release the hook asks for, while the pin's own line still reads as the
+    # release its row states. Only a reading joining the lines as pip joins them sees it.
+    ("K-118", "a hook dependency pin a continued marker leaves applying nowhere",
+     _first_match("tools/ci/model-hooks-constraints.txt", r"^([A-Za-z0-9._-]+==[^\s\\]+)\n",
+                  lambda m: f"{m[1]} \\\n    ; sys_platform == \"never\"\n")),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row

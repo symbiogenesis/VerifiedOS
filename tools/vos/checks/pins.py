@@ -296,9 +296,19 @@ a U+FEFF opening any line. K-115's census does not, the YAML readers GitHub publ
 the runner's YamlDotNet and the workflow language services' `yaml`, skipping one only
 where a document may begin. The configuration is read whether or not any hook row is
 held, so its absence is a finding on its own. The step's two pip constraint files are
-censused the same way: every project either pins is one a held row's site reads in that
-file, so a pin added for a package a hook gained is a finding at its line until a row
-reads its licence, and both files are read whether or not a row holds a pin in them.
+censused the same way, each read as the pip the locked virtualenv embeds reads it: split
+at every break `str.splitlines` takes, a form feed, a vertical tab, a file, group or
+record separator and a next-line, line or paragraph separator among them, a line ending
+in `\\` that opens with no comment joined with the next, and pip's comment, a `#` at
+the line's start or after whitespace and the rest of the line, stripped once the lines
+are joined. Every logical line left is one `<name>==<release>` pin, with at most its
+`--hash=sha256:` digests, of a project a held row's site reads in that file, or it is a
+finding at its first line: a pin added for a package a hook gained until a row reads its
+licence, and an option such as `-c`, `-r` or `--index-url`, which pip follows into
+another file or index, a marker, extras, a URL or a looser constraint, which no reading
+here takes. A file declaring an encoding other than UTF-8 among its first two lines,
+which pip decodes it by, is unread, and both files are read whether or not a row holds
+a pin in them.
 
 **Fail-closed at every reading**, on K-97's ground: a record without the section or its
 table, a table with no row, a site matching other than once, and an owner absent,
@@ -311,6 +321,7 @@ is read at review with `git ls-remote`. **Reported and never repaired**, on K-97
 ground: moving a row's release would claim a licence reading nobody took.
 """
 
+import codecs
 import re
 import tomllib
 from collections.abc import Callable
@@ -441,7 +452,8 @@ class Owner:
     top-level assignment, `shell` an unquoted shell variable, `pre-commit` and
     `pre-commit-rev` the release a hook configuration's repository entry names after
     `# frozen:` (its rev when there is no such comment) and that entry's rev itself, and
-    `pip` the release a pip requirements or constraints file pins a project to with `==`.
+    `pip` the release a pip requirements or constraints file, read as pip reads it, pins
+    a project to with `==`.
     """
 
     kind: str
@@ -550,17 +562,69 @@ def _pinned(display: str, path: str, tag: str = "") -> tuple[Site, ...]:
     return pinned, Site(f"{display}'s tag read", rf"`{re.escape(tag)}-v{_V}` tag", (owner,))
 
 
-# One requirement line of a pip requirements or constraints file: the project it names
-# and, where it pins one with `==`, the release, followed by no more than a hash
-# continuation or a comment. Comments and option lines, `--hash` among them, name none.
-_PIP_LINE_RE = re.compile(
-    r"(?m)^[ \t]*(?P<name>[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)"
-    r"(?:[ \t]*==[ \t]*(?P<version>[^\s;,\\#]+)(?=[ \t]*(?:\\|#|\r?$)))?")
+# How pip reads a requirements or constraints file, after `pip._internal.req.req_file`
+# in the pip the locked virtualenv embeds: the comment it strips from a logical line once
+# that line's continuations are joined, a `#` at the line's start or after any whitespace
+# Python's `\s` takes, and the coding declaration it decodes the file by when one of the
+# file's first two lines opens with `#` and carries one.
+_PIP_COMMENT_RE = re.compile(r"(^|\s+)#.*$")
+_PIP_CODING_RE = re.compile(r"coding[:=]\s*([-\w.]+)", re.ASCII)
+# A project's name as a requirement line opens with it.
+_PIP_NAME = r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?"
+_PIP_NAME_RE = re.compile(_PIP_NAME)
+# The one shape a logical line is read in, whole: a project, `==` and one release, with
+# at most the SHA-256 digests pip checks the release's file against. An option, a
+# marker, extras, a URL, a wildcard or an environment variable is no pin.
+_PIP_PIN_RE = re.compile(
+    rf"(?P<name>{_PIP_NAME})[ \t]*==[ \t]*"
+    r"(?P<version>[A-Za-z0-9](?:[A-Za-z0-9._+!-]*[A-Za-z0-9])?)"
+    r"(?:[ \t]+--hash=sha256:[0-9a-f]{64})*[ \t]*")
 
 
 def _project(name: str) -> str:
     """A project's name as pip compares it, in PEP 503's normalized form."""
     return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _pip_lines(text: str) -> list[tuple[int, str]]:
+    """A pip requirements or constraints file's logical lines as pip reads them, each
+    with the number pip gives its first line.
+
+    The text is split at every break `str.splitlines` takes, a form feed, a vertical tab,
+    a file, group or record separator and a next-line, line or paragraph separator among
+    them. A line ending in `\\` that the comment pattern does not open is joined with the
+    next, its backslashes at either end stripped; a comment line ends a join and carries
+    its comment into the joined line; the comment is then stripped, and a line left empty
+    is no line.
+    """
+    joined: list[tuple[int, str]] = []
+    parts: list[str] = []
+    first = 0
+    for number, line in enumerate(text.splitlines(), start=1):
+        comment = _PIP_COMMENT_RE.match(line) is not None
+        if line.endswith("\\") and not comment:
+            if not parts:
+                first = number
+            parts.append(line.strip("\\"))
+            continue
+        spelled = f" {line}" if comment else line
+        if parts:
+            joined.append((first, "".join([*parts, spelled])))
+            parts = []
+        else:
+            joined.append((number, spelled))
+    if parts:
+        joined.append((first, "".join(parts)))
+    return [(number, logical) for number, line in joined
+            if (logical := _PIP_COMMENT_RE.sub("", line).strip())]
+
+
+def _utf8(encoding: str) -> bool:
+    """Whether an encoding's name names UTF-8, as Python's codec registry resolves it."""
+    try:
+        return codecs.lookup(encoding).name == "utf-8"
+    except LookupError:
+        return False
 
 
 # K-118's census of the hook configuration. An entry is read where `_Owners._hook_rev`
@@ -1163,6 +1227,7 @@ class _Owners:
         self._texts: dict[str, str | None] = {}
         self._uv: dict[str, dict[str, list[str]]] = {}
         self._opam: dict[str, dict[str, list[str]]] = {}
+        self._pips: dict[str, list[tuple[int, str, re.Match[str] | None]]] = {}
 
     def _fault(self, key: str, message: str) -> _UnreadError:
         self.faults.setdefault(key, message)
@@ -1209,6 +1274,29 @@ class _Owners:
                 table.setdefault(name, []).append(version)
             self._opam[path] = table
         return self._opam[path]
+
+    def _pip(self, path: str) -> list[tuple[int, str, re.Match[str] | None]]:
+        """A pip constraints file's logical lines as `_pip_lines` reads them, each with its
+        line's number and its reading as one pin, or None where it is no pin.
+
+        pip decodes the file by its byte-order mark, which it strips, or failing one by a
+        coding declaration among its first two lines; the text here is read as UTF-8, so
+        a declaration naming another encoding leaves the file unread.
+        """
+        if path not in self._pips:
+            text = self._text(path)
+            if text.startswith("\ufeff"):
+                text = text[1:]
+            else:
+                for line in text.split("\n")[:2]:
+                    declared = _PIP_CODING_RE.search(line) if line.startswith("#") else None
+                    if declared is not None and not _utf8(declared.group(1)):
+                        raise self._fault(path, f"{path} declares the {declared.group(1)} "
+                                          "encoding, which pip decodes it by, so the pins "
+                                          "read here as UTF-8 are not the ones pip reads")
+            self._pips[path] = [(number, logical, _PIP_PIN_RE.fullmatch(logical))
+                                for number, logical in _pip_lines(text)]
+        return self._pips[path]
 
     def _snapshots(self) -> list[str]:
         found = sorted(rel for rel in self.ctx.corpus.indexed
@@ -1259,15 +1347,19 @@ class _Owners:
                        else rf"(?m)^{key}=([^\s'\"#;]+)[ \t]*$")
             return self._one(owner, re.findall(spelled, self._text(owner.path)))
         if owner.kind == "pip":
-            # Every line naming the project, however its name is spelled, is read, so a
-            # second line or one constraining it other than to one release is a fault
-            # rather than a release read loosely.
-            lines = [m for m in _PIP_LINE_RE.finditer(self._text(owner.path))
-                     if _project(m.group("name")) == _project(owner.key)]
-            if any(m.group("version") is None for m in lines):
-                raise self._fault(owner.label(), f"{owner.label()} is constrained other than "
-                                  "to one `==` release, so it fixes no one release")
-            return self._one(owner, [str(m.group("version")) for m in lines])
+            # Every logical line opening with the project's name, however it is spelled,
+            # is read, so a second pin or a line constraining it other than to one release
+            # is a fault rather than a release read loosely.
+            versions: list[str] = []
+            for _, logical, pin in self._pip(owner.path):
+                lead = _PIP_NAME_RE.match(logical)
+                if lead is None or _project(lead.group()) != _project(owner.key):
+                    continue
+                if pin is None:
+                    raise self._fault(owner.label(), f"{owner.label()} is constrained other "
+                                      "than to one `==` release, so it fixes no one release")
+                versions.append(str(pin.group("version")))
+            return self._one(owner, versions)
         if owner.kind in ("pre-commit", "pre-commit-rev"):
             rev, frozen = self._hook_rev(owner)
             if owner.kind == "pre-commit-rev":
@@ -1520,12 +1612,15 @@ def _hook_census(owners: _Owners, findings: list[str]) -> int:
 
 def _pip_census(owners: _Owners, findings: list[str]) -> int:
     """K-118's census of the hook step's pip constraint files, returning how many pins it
-    read: each project a file pins is one a held row's site reads in that file.
+    read: each file is read as pip reads it, and each of its logical lines is one pin of a
+    project a held row's site reads in that file.
 
     A row holds the releases it read against these pins, so a pin added for a package a
-    hook gained, or a line naming a project in another form, installs a release whose
-    terms nobody read while every row agrees; each is a finding at its line. Both files
-    are read whether or not any row holds a pin in them.
+    hook gained installs a release whose terms nobody read while every row agrees, and a
+    line in any other form, an option such as `-c`, `-r` or `--index-url`, a marker,
+    extras, a URL or a looser constraint, changes what pip installs while no reading
+    here takes it; each is a finding at its first line. Both files are read whether or
+    not any row holds a pin in them.
     """
     held: dict[str, set[str]] = {HOOK_CONSTRAINTS: set(), HOOK_BUILD_CONSTRAINTS: set()}
     for tool in DEV_TOOL_ROWS:
@@ -1536,14 +1631,21 @@ def _pip_census(owners: _Owners, findings: list[str]) -> int:
     pinned = 0
     for path, projects in held.items():
         try:
-            text = owners._text(path)
+            lines = owners._pip(path)
         except _UnreadError:
             continue
-        for m in _PIP_LINE_RE.finditer(text):
+        for number, logical, pin in lines:
+            where = f"{path}:{number}"
+            if pin is None:
+                findings.append(f"{where} states `{logical}`, which K-118 does not read as "
+                                "one pin; write each line as `<name>==<release>` with at "
+                                "most its `--hash=sha256:` digests, since an option, a "
+                                "marker, extras, a URL or a looser constraint changes what "
+                                "pip installs unread")
+                continue
             pinned += 1
-            if _project(m.group("name")) not in projects:
-                line = text.count("\n", 0, m.start()) + 1
-                findings.append(f"{path}:{line} pins {m.group('name')}, which no "
+            if _project(pin.group("name")) not in projects:
+                findings.append(f"{where} pins {pin.group('name')}, which no "
                                 "development-tools row K-118 holds reads there, so nobody "
                                 "read the terms of the release pip installs")
     return pinned
