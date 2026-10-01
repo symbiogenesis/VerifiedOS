@@ -857,11 +857,12 @@ def _k115_membership_is_held_both_ways() -> None:
 
 def _k115_licence_link_names_the_reviewed_commit() -> None:
     # The row's licence link is the edition its terms were read at: every link to a file
-    # of the action's own repository, a `blob`, `tree` or `raw` path on github.com, `www.`
-    # or not, or a raw.githubusercontent.com path, whatever the case of its host, owner
-    # and name, names the reviewed commit, and one at another commit, a tag or a branch
-    # is one finding. The finding quotes both at twelve digits, or as far as they must
-    # run to differ.
+    # of the action's own repository, a `blob`, `tree`, `blame` or `raw` path on
+    # github.com, `www.` or not, or a raw.githubusercontent.com path, whatever the case of
+    # its host, owner and name, names the reviewed commit, and one at another commit, a
+    # tag or a branch is one finding, a tree view naming no path after its revision
+    # included. The finding quotes both at twelve digits, or as far as they must run to
+    # differ.
     link = f"example/action/blob/{_K115_SHA}/LICENSE"
     url = f"https://github.com/{link}"
     last = f"{_K115_SHA[:-1]}8"
@@ -877,6 +878,10 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
             (f"{link}) and [a copy](https://github.com/{moved}",
              f"{last}, the row reviewed {_K115_SHA}"),
             (f"example/action/tree/{last}/LICENSE", f"{last}, the row reviewed {_K115_SHA}"),
+            ("example/action/tree/main", "main, the row reviewed 0123456789ab"),
+            ("example/action/tree/v1.2.3", "v1.2.3, the row reviewed 0123456789ab"),
+            ("example/action/tree/main#readme", "main, the row reviewed 0123456789ab"),
+            (f"example/action/blame/{last}/LICENSE", f"{last}, the row reviewed {_K115_SHA}"),
             ("example/action/raw/main/LICENSE", "main, the row reviewed 0123456789ab")):
         found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(link, edit)})
         ensure(len(found) == 1
@@ -898,6 +903,9 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
     # The controls: every spelling at the reviewed commit agrees.
     for edit in (f"https://www.github.com/{link}",
                  f"https://github.com/example/action/tree/{_K115_SHA}/LICENSE",
+                 f"https://github.com/example/action/tree/{_K115_SHA}",
+                 f"https://github.com/example/action/blame/{_K115_SHA}/LICENSE",
+                 f"https://github.com/example/action/tree/{_K115_SHA}?tab=readme-ov-file",
                  f"https://github.com/example/action/raw/{_K115_SHA}/LICENSE",
                  f"https://raw.githubusercontent.com/example/action/{_K115_SHA}/LICENSE",
                  f"https://raw.githubusercontent.com/Example/Action/{_K115_SHA}/LICENSE"):
@@ -1211,11 +1219,13 @@ def _k118_census_reads_every_numeral() -> None:
     # letter or in digits a letter leads, its release led by `v` or not, one after an
     # underscore, a release carrying a letter suffix and one continuing past it are each
     # read, whole; a name's digits are not told from a release's, so `python3.6.6` reads
-    # 6.6, erring toward a finding
+    # 6.6, erring toward a finding, and so does `x86v6.6.6`, its `v` joined to a digit
+    # rather than to a hyphen or `+`
     for written, numeral in (("`coq-extra.6.6.6`", "6.6.6"), ("`base64.6.6.6`", "6.6.6"),
                              ("`x509.6.6.6`", "6.6.6"), ("`iso8601.6.6.6`", "6.6.6"),
                              ("`sexplib0.v6.6.6`", "v6.6.6"),
                              ("`rocq_6.6.6`", "6.6.6"), ("`python3.6.6`", "6.6"),
+                             ("`x86v6.6.6`", "6.6"),
                              ("6.6.6rc1", "6.6.6rc1"), ("v6.6.6a1.dev2", "v6.6.6a1.dev2")):
         found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace(
             "constant 7.8.9.", f"constant 7.8.9. Bundled {written}.")})
@@ -1768,17 +1778,19 @@ def _k81_historical_residue_cannot_exempt_table() -> None:
 
 
 def _k81_moved_gitlink_is_quoted_apart_from_its_row() -> None:
-    # A row's id off its gitlink is quoted beside it at twelve digits, or as far as the
-    # two must run to differ, so an id longer than twelve digits differing only in its
-    # last prints two distinct ids rather than a twelve-digit prefix of itself. An id the
-    # gitlink starts with, at any length, is the pin and no finding.
+    # A row's id off its gitlink is quoted whole, as the record spells it, and the gitlink
+    # beside it at twelve digits or as far as the two must run to differ, so an id longer
+    # than twelve digits differing only in its last prints two distinct ids rather than a
+    # twelve-digit prefix of itself, and one differing before its twelfth digit is not
+    # cut. An id the gitlink starts with, at any length, is the pin and no finding.
     gitlink = "1234abcd" + "0" * 32
     ensure(not _findings_under(_k81({}, {}, table_id=gitlink[:14]), "K-81"),
            "a fourteen-digit id the gitlink starts with is the pin")
     for table_id, stated, carried in (
             ("1234abcd000001", "1234abcd000001", "1234abcd000000"),
             (f"{gitlink[:-1]}1", f"{gitlink[:-1]}1", gitlink),
-            ("1234abce", "1234abce", "1234abcd0000")):
+            ("1234abce", "1234abce", "1234abcd0000"),
+            ("1234abce000000", "1234abce000000", "1234abcd0000")):
         found = _findings_under(_k81({}, {}, table_id=table_id), "K-81")
         quoted = (f"THIRD-PARTY.md:7 pins upstream/example-core at {stated} and the index "
                   f"carries it at {carried};")

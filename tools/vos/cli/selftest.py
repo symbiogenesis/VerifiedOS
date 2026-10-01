@@ -1693,13 +1693,22 @@ CASES: list[Case] = [
     ("K-115", "an action row linking its licence at a commit other than the one it reviewed",
      _first_match(THIRD_PARTY, r"(github\.com/actions/checkout/blob/[0-9a-f]{39})([0-9a-f])",
                   lambda m: m[1] + ("1" if m[2] == "0" else "0"))),
-    # The same moved link spelled on GitHub's raw-content host, which serves the same file:
-    # only a reading taking every host a link to the action's files can name holds it.
+    # The same row gaining a second link to its licence on GitHub's raw-content host,
+    # which serves the same file, at a commit its last digit moved off the reviewed one.
+    # The row still links its terms at the reviewed commit, so only a reading taking the
+    # raw host holds the second link.
     ("K-115", "an action row linking its licence through another host at another commit",
-     _first_match(THIRD_PARTY, r"https://github\.com/(actions/checkout)/blob/"
-                               r"([0-9a-f]{39})([0-9a-f])/",
-                  lambda m: f"https://raw.githubusercontent.com/{m[1]}/{m[2]}"
-                            f"{'1' if m[3] == '0' else '0'}/")),
+     _first_match(THIRD_PARTY, r"(https://github\.com/(actions/checkout)/blob/"
+                               r"([0-9a-f]{39})([0-9a-f])/LICENSE)\)",
+                  lambda m: f"{m[1]}) and [a copy](https://raw.githubusercontent.com/{m[2]}/"
+                            f"{m[3]}{'1' if m[4] == '0' else '0'}/LICENSE)")),
+    # The same row gaining a link to its action's tree at a branch, no path following the
+    # branch. The reviewed link still agrees, so only a reading that ends the revision at
+    # the link's end, and not only at a following `/`, holds the branch.
+    ("K-115", "an action row linking its action's tree at a branch",
+     _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
+                               r"blob/[0-9a-f]{40}/LICENSE\))",
+                  lambda m: f"{m[1]} in [its tree](https://github.com/{m[2]}/tree/main)")),
     # The row's licence link dropped, its text kept: the row still states its reviewed
     # revision and every workflow agrees with it, and only a rule requiring the link
     # sees a row that no longer says where its terms were read.
@@ -1756,6 +1765,13 @@ CASES: list[Case] = [
      _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
                                r"dedicated switch)\.",
                   lambda m: f"{m[1]} beside `base64.3.5.1`.")),
+    # The same row gains a release after a name whose last letter, a `v`, follows a digit:
+    # a census taking every `v` after a non-letter for a tag's prefix, and not only one
+    # after a hyphen or `+`, leaves that release unread.
+    ("K-118", "a development-tool row stating a release after a letter following digits",
+     _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
+                               r"dedicated switch)\.",
+                  lambda m: f"{m[1]} beside `x86v3.5.1`.")),
     # A declared row nothing here owns gains a second release in its licence link text,
     # so the row no longer says which release its terms were read at.
     ("K-118", "a declared development-tool row stating two releases",
