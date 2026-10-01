@@ -1599,9 +1599,11 @@ def _pins(ctx: Context) -> None:
             findings.append(f"{where} pins {pin.path} and states no commit id, so the "
                             "edition its terms were read at is not recorded")
         elif not gitlinks[pin.path].startswith(pin.short):
-            stated, carried = _apart(pin.short, gitlinks[pin.path])
+            # The row is quoted whole, as the record spells it, and the gitlink at
+            # twelve digits or as far as the two must run to differ.
+            _, carried = _apart(pin.short, gitlinks[pin.path])
             findings.append(
-                f"{where} pins {pin.path} at {stated} and the index carries it at "
+                f"{where} pins {pin.path} at {pin.short} and the index carries it at "
                 f"{carried}; the terms on that row were read at the "
                 "commit the row states, so the repair is a licence read and not a "
                 "transcription")

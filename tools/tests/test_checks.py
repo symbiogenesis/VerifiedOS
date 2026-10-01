@@ -1716,17 +1716,19 @@ def _k81_historical_residue_cannot_exempt_table() -> None:
 
 
 def _k81_moved_gitlink_is_quoted_apart_from_its_row() -> None:
-    # A row's id off its gitlink is quoted beside it at twelve digits, or as far as the
-    # two must run to differ, so an id longer than twelve digits differing only in its
-    # last prints two distinct ids rather than a twelve-digit prefix of itself. An id the
-    # gitlink starts with, at any length, is the pin and no finding.
+    # A row's id off its gitlink is quoted whole, as the record spells it, and the gitlink
+    # beside it at twelve digits or as far as the two must run to differ, so an id longer
+    # than twelve digits differing only in its last prints two distinct ids rather than a
+    # twelve-digit prefix of itself, and one differing before its twelfth digit is not
+    # cut. An id the gitlink starts with, at any length, is the pin and no finding.
     gitlink = "1234abcd" + "0" * 32
     ensure(not _findings_under(_k81({}, {}, table_id=gitlink[:14]), "K-81"),
            "a fourteen-digit id the gitlink starts with is the pin")
     for table_id, stated, carried in (
             ("1234abcd000001", "1234abcd000001", "1234abcd000000"),
             (f"{gitlink[:-1]}1", f"{gitlink[:-1]}1", gitlink),
-            ("1234abce", "1234abce", "1234abcd0000")):
+            ("1234abce", "1234abce", "1234abcd0000"),
+            ("1234abce000000", "1234abce000000", "1234abcd0000")):
         found = _findings_under(_k81({}, {}, table_id=table_id), "K-81")
         quoted = (f"THIRD-PARTY.md:7 pins upstream/example-core at {stated} and the index "
                   f"carries it at {carried};")
