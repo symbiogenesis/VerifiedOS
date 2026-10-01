@@ -190,6 +190,35 @@ def _an_option_default_is_read() -> None:
     ensure(none[0] is None and "0 string default" in none[1], f"an absent option: {none}")
 
 
+def _a_rig_constant_the_instrument_binds_is_read() -> None:
+    head = "import argparse\n{imports}\np = argparse.ArgumentParser()\n"
+    body = ("SWITCH = {module}.ORACLE_SWITCH\nRELEASE = {module}.ORACLE_ROCQ_VERSION\n"
+            'p.add_argument("--switch", default=SWITCH)\n')
+    forms = {"from vos import gallina": "gallina", "from vos import env, gallina as g": "g",
+             "import vos.gallina as rig": "rig"}
+    for imports, module in forms.items():
+        files: dict[str, str | bytes] = {
+            "tools/c.py": head.format(imports=imports) + body.format(module=module)}
+        with _tree(files) as root:
+            switch = k117.literal(root, k117.Literal("tools/c.py", "--switch"))
+            release = k117.literal(root, k117.Literal("tools/c.py", "RELEASE"))
+        ensure(switch == (gallina.ORACLE_SWITCH, "") and
+               release == (gallina.ORACLE_ROCQ_VERSION, ""),
+               f"{imports}: the rig's constants read through the file's names: "
+               f"{switch} {release}")
+    unread = {
+        "a module named gallina outside vos": ("import gallina", "gallina.ORACLE_ROCQ_VERSION"),
+        "a constant the rig does not hold": ("from vos import gallina", "gallina.ABSENT"),
+        "a constant that is no string": ("from vos import gallina", "gallina.ENTRY_POINTS"),
+    }
+    for label, (imports, value) in unread.items():
+        files = {"tools/c.py": head.format(imports=imports) + f"RELEASE = {value}\n"}
+        with _tree(files) as root:
+            got = k117.literal(root, k117.Literal("tools/c.py", "RELEASE"))
+        ensure(got[0] is None and "module-level string RELEASE" in got[1],
+               f"{label} is unread, not a release: {got}")
+
+
 def _a_subject_the_instrument_names_is_read() -> None:
     driver = ("import argparse\nfrom pathlib import Path\n"
               "HERE = Path(__file__).resolve().parent\n"
@@ -310,8 +339,13 @@ def _the_live_rows_read_their_instruments() -> None:
     ensure(owners == [("proofs/RingContract.v", "")],
            f"the lowering's default owner is read out of its driver: {owners}")
     compare = by_name["compare_component.py"]
-    ensure(isinstance(compare.switch, k117.Literal) and compare.release is None,
-           "compare_component.py states a switch and no release")
+    if not (isinstance(compare.switch, k117.Literal)
+            and isinstance(compare.release, k117.Literal)):
+        raise TypeError("compare_component.py states its switch and release in its own file")
+    stated = (k117.literal(root, compare.switch), k117.literal(root, compare.release))
+    ensure(stated == ((gallina.ORACLE_SWITCH, ""), (gallina.ORACLE_ROCQ_VERSION, "")),
+           f"compare_component.py's default and release are the oracle's declared ones: "
+           f"{stated}")
     named = {row.selects for row in k117.INSTRUMENTS}
     ensure({"tools/vos/copy_service.py", "tools/vos/supervisor.py"} <= named,
            "every rig caller the tree carries is a row")
@@ -329,6 +363,7 @@ def cases() -> list[Case]:
         _the_set_follows_closure_and_release,
         _readings_fail_closed,
         _an_option_default_is_read,
+        _a_rig_constant_the_instrument_binds_is_read,
         _a_subject_the_instrument_names_is_read,
         _an_unlisted_prover_caller_is_a_finding,
         _each_rig_module_asks_for_its_rows_switches,

@@ -18,12 +18,13 @@ harnesses or a directory of its own, whether it compiles every proof source, as
 `seed coq` does for the `--file` its caller names and as `gallina.emit` does for the
 vector harnesses, and the proof sources it names itself, as the Rupicola lowering names
 its default owner. Each switch and release is the instrument's own constant, imported,
-or, where it has none to import, the literal in its own file, read by name out of that
-file's syntax tree, and so is a proof source the instrument names. The rows older than
-9.3.0 decide the set, and each harness or named source brings its `Require` closure,
-read by [vos/proofs.py](../proofs.py)'s own reader over the proofs directory and the
-harness's directory as one namespace, because that is how every row stages them: the rig
-roots both at the empty logical path, and the recipes copy the proof beside the harness.
+or, where it has none to import, the literal in its own file or the rig's constant that
+file binds under a name of its own, read by name out of that file's syntax tree, and so
+is a proof source the instrument names. The rows older than 9.3.0 decide the set, and
+each harness or named source brings its `Require` closure, read by
+[vos/proofs.py](../proofs.py)'s own reader over the proofs directory and the harness's
+directory as one namespace, because that is how every row stages them: the rig roots
+both at the empty logical path, and the recipes copy the proof beside the harness.
 The dated campaigns under `proofs/campaigns/` are not rows. A row that states no release
 is held older than 9.3.0, since a release nobody states is one nobody can say admits the
 forms.
@@ -97,7 +98,8 @@ class Literal:
     command-line option. `within` is a pattern whose first group is the value where the
     string carries it inside a longer one.
 
-    The value is a string literal, or a path built from `Path(__file__)` by `.resolve()`,
+    The value is a string literal, a string constant of the rig or of `vos.env` that the
+    file imports and names, or a path built from `Path(__file__)` by `.resolve()`,
     `.parent` and `/`, read as the checkout-relative path it names, through `str(...)`
     and the module's own names."""
 
@@ -162,14 +164,17 @@ INSTRUMENTS: tuple[Instrument, ...] = (
     Instrument("the supervisor comparison", "tools/vos/supervisor.py",
                env.ROCQ_SWITCH, env.ROCQ_VERSION),
     # The recipes compile in the switch they import from tools/opam/certirocq.lock, the
-    # one ORACLE_SWITCH names, whose CertiRocq `run.py provision` holds at the rig's pin;
-    # the Docker image's own Rocq 9.1 only bootstraps opam. The row reads the rig's
-    # constants by decision, the recipes importing none.
+    # one ORACLE_SWITCH names: K-118 holds the rig's Rocq and OCaml releases to that
+    # snapshot and `run.py provision` its CertiRocq to the rig's pin, and the Docker
+    # image's own Rocq 9.1 only bootstraps opam. The row reads the rig's constants by
+    # decision, the recipes importing none.
     Instrument("the Wasm oracle's recipes", "tools/wasm-oracle/README.md",
                gallina.ORACLE_SWITCH, gallina.ORACLE_ROCQ_VERSION,
                beside="tools/wasm-oracle"),
-    Instrument("compare_component.py", _COMPARE, Literal(_COMPARE, "--switch"), None,
-               beside="tools/wasm-oracle"),
+    # Its default switch and the release its prover must report are the rig's, bound
+    # under its own names and read through them.
+    Instrument("compare_component.py", _COMPARE, Literal(_COMPARE, "--switch"),
+               Literal(_COMPARE, "ROCQ_VERSION"), beside="tools/wasm-oracle"),
     # The lowering compiles its `--owner` before the source; a caller may name another.
     Instrument("the Rupicola lowering", _REGENERATE, Literal(_REGENERATE, "SWITCH"),
                Literal(_REGENERATE, "SWITCH", r"-rupicola-(\d+\.\d+\.\d+)-ocaml-"),
@@ -422,7 +427,9 @@ def _evaluate(tree: ast.Module, expr: ast.expr, here: str,
               depth: int = 0) -> str | tuple[str, ...] | None:
     """A value one instrument states, as a string, or as the parts of a path under the
     checkout while it is still being built; None for anything else, a path leaving the
-    checkout or a name bound other than once among them."""
+    checkout or a name bound other than once among them. A constant of the rig or of
+    `vos.env` that the file names through its own import is the value that constant
+    holds, the instrument stating it by taking it."""
     if depth > 16:
         return None
     step = depth + 1
@@ -431,6 +438,10 @@ def _evaluate(tree: ast.Module, expr: ast.expr, here: str,
     if isinstance(expr, ast.Name):
         bound = _assigned(tree, expr.id)
         return _evaluate(tree, bound[0], here, step) if len(bound) == 1 else None
+    if (isinstance(expr, ast.Attribute) and isinstance(expr.value, ast.Name)
+            and (module := _modules(tree).get(expr.value.id)) is not None):
+        value = getattr(module, expr.attr, None)
+        return value if isinstance(value, str) else None
     if isinstance(expr, ast.Attribute) and expr.attr == "parent":
         inner = _evaluate(tree, expr.value, here, step)
         return inner[:-1] if isinstance(inner, tuple) and inner else None
@@ -700,17 +711,11 @@ def _asks(tree: ast.Module, own: bool) -> tuple[set[str] | None, list[int]]:
     callees = {_PROVER} if own else set()
     candidates: list[ast.Call] = []
     for node in ast.walk(tree):
+        modules |= _imported(node)
         if isinstance(node, ast.ImportFrom):
             source = node.module or ""
-            if source == "vos" or (node.level and not source):
-                modules |= {a.asname or a.name: _MODULES[a.name] for a in node.names
-                            if a.name in _MODULES}
-            elif source == "vos.gallina" or (node.level and source == "gallina"):
+            if source == "vos.gallina" or (node.level and source == "gallina"):
                 callees |= {a.asname or a.name for a in node.names if a.name == _PROVER}
-        elif isinstance(node, ast.Import):
-            modules |= {a.asname: _MODULES[a.name.removeprefix("vos.")] for a in node.names
-                        if a.asname and a.name.removeprefix("vos.") in _MODULES
-                        and a.name.startswith("vos.")}
         elif isinstance(node, ast.Call):
             candidates.append(node)
     calls = [node for node in candidates if _calls_prover(node.func, callees, modules)]
@@ -761,6 +766,27 @@ def _asks(tree: ast.Module, own: bool) -> tuple[set[str] | None, list[int]]:
         if not got:
             unread.append(node.lineno)
     return asked, unread
+
+
+def _imported(node: ast.AST) -> dict[str, object]:
+    """The names one import binds to the rig or to `vos.env`, each with its module:
+    `from vos import gallina`, relatively or under another name, or `import vos.env as e`."""
+    if isinstance(node, ast.ImportFrom):
+        source = node.module or ""
+        if source == "vos" or (node.level and not source):
+            return {a.asname or a.name: _MODULES[a.name] for a in node.names
+                    if a.name in _MODULES}
+    elif isinstance(node, ast.Import):
+        return {a.asname: _MODULES[a.name.removeprefix("vos.")] for a in node.names
+                if a.asname and a.name.removeprefix("vos.") in _MODULES
+                and a.name.startswith("vos.")}
+    return {}
+
+
+def _modules(tree: ast.Module) -> dict[str, object]:
+    """Every name one module's imports bind to the rig or to `vos.env`."""
+    return {name: module for node in ast.walk(tree)
+            for name, module in _imported(node).items()}
 
 
 def _calls_prover(func: ast.expr, callees: set[str], modules: dict[str, object]) -> bool:

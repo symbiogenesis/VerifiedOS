@@ -999,6 +999,19 @@ def _k117_switch(box: Sandbox) -> bool:
         box.read(importer), "regenerate.SWITCH", "regenerate.LOWERING_SWITCH"))
 
 
+def _k117_release(box: Sandbox) -> bool:
+    """compare_component.py's release constant renamed wherever it is spelled.
+
+    The comparison still holds its prover to the rig's release under the new name, so
+    only the instrument table's reading of the file's own name finds nothing, which is to
+    be a finding rather than the row falling back to no stated release unremarked.
+    """
+    path = "tools/wasm-oracle/compare_component.py"
+    text = box.read(path)
+    renamed = re.sub(r"\bROCQ_VERSION\b", "PROVER_RELEASE", text)
+    return renamed != text and box.write(path, renamed)
+
+
 def _keep_own_id(entry_line: str) -> str:
     head = re.match(rf"^\*\*{REQ_ID_PATTERN}\*\* ", entry_line)
     if head is None:
@@ -2187,6 +2200,8 @@ CASES: list[Case] = [
               "  if l is cons x _ then x else d.")),
     ("K-117", "the Rupicola lowering's switch constant renamed out from under the "
               "instrument table", _k117_switch),
+    ("K-117", "compare_component.py's release constant renamed out from under the "
+              "instrument table", _k117_release),
     # An instrument moved to an older switch while its row still states the gate's: the
     # kernel's vectors asked of the CertiRocq switch at Rocq 9.1.1. Nothing its harness
     # compiles writes a 9.3 form today, so only the reading of what kernel.py asks for

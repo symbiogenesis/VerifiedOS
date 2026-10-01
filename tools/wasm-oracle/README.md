@@ -74,11 +74,10 @@ $ python3 tools/wasm-oracle/compare_component.py \
     --compiler /native/contained/ccomp \
     --compiler-config /native/compcert.ini \
     --model-snapshot /root/build/lane-<name>/model-snapshot \
-    --switch certirocq-0.9.1 \
     --out /root/build/lane-<name>/component-vector
 ```
 
-The model snapshot contains `sail_riscv_sim` and its successful `model-build.json` receipt. The command identifies the existing legacy Wasm environment, including its package export and installed libraries; this does not complete the intended bootstrap above. Missing or changed dependencies invalidate the evidence. Source or tool changes require this experiment to be reissued; Host CI and Guest CI do not execute it. The older `run.py compiler-diff component` aggregate-output mode remains a driver diagnostic and does not satisfy the complete-vector contract. Agreement is finite differential evidence, not a refinement proof.
+The model snapshot contains `sail_riscv_sim` and its successful `model-build.json` receipt. The Wasm side compiles in the declared switch above unless `--switch` names another, and the command refuses a switch whose prover is not the Rocq release [gallina.py](../vos/gallina.py) states for the oracle. It identifies that environment, including its package export and installed libraries, and its receipt says whether the switch was the declared one. M1.2f's recorded comparison named `--switch certirocq-0.9.1`, the undeclared legacy switch. Missing or changed dependencies invalidate the evidence. Source or tool changes require this experiment to be reissued; Host CI and Guest CI do not execute it. The older `run.py compiler-diff component` aggregate-output mode remains a driver diagnostic and does not satisfy the complete-vector contract. Agreement is finite differential evidence, not a refinement proof.
 
 ## Keeping the VM under a long build
 
