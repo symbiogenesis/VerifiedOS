@@ -74,12 +74,15 @@ SAIL_MUTABLE = ("function", "let", "mapping")
 # neighbours a proof file reaches for. A command outside the list opens no region, which
 # leaves its lines attached to the region above: that is why `Proof` and `Qed` are both
 # here even though neither is mutable, and why a `Variant` or a `CoFixpoint` missing
-# from it joined the definition above it.
+# from it joined the definition above it. A keyword is a whole word: read as a prefix,
+# `Letter 4` continuing a term at column 0 opened a region keyed `Let` that nothing
+# mutates, so the plural assumption commands and Ltac2's definitions, which the prefix
+# reading keyed by their singular and by `Ltac`, are spelled as keywords of their own.
 COQ_TOP = re.compile("^(" + "|".join((
     *DECLARATIONS, "Let", "Proof", "Qed", "Defined", "Admitted", "Require", "Import",
     "Export", "Arguments", "Print", "Section", "End", "Notation", "Local", "Global", "Set",
-    "Unset", "Open", "Close", "Hint", "Class", "Variable", "Parameter", "Axiom", "Context",
-    "Ltac", "From")) + ")")
+    "Unset", "Open", "Close", "Hint", "Class", "Variable", "Variables", "Parameter",
+    "Parameters", "Axiom", "Axioms", "Context", "Ltac", "Ltac2", "From")) + r")(?![\w'])")
 
 # And the ones a mutation may land in: the definitional commands, and deliberately not
 # a `Lemma` or a `Theorem`. A mutation inside a proof script breaks the proof and kills

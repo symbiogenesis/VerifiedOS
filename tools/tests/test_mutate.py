@@ -161,6 +161,27 @@ def _every_defining_keyword_opens_its_own_region() -> None:
                f"the definition above swallowed the {keyword}'s sites: {found}")
 
 
+def _a_keyword_is_a_whole_word() -> None:
+    """A column-0 identifier that begins with a region keyword is the term it continues.
+    Read as a prefix, `Letter 4` continuing a definition opened a region keyed `Let` that
+    nothing mutates, and the definition lost its site."""
+    for continued in ("Letter 4.\n", "Settings 4.\n", "Printing 4.\n", "Ending 4.\n",
+                      "Proofs 4.\n", "Lemmas 4.\n"):
+        text = "Definition t : nat :=\n" + continued
+        keyed = [(r.keyword, r.name) for r in mutate.regions(text, mutate.COQ)]
+        ensure(keyed == [("Definition", "t")], f"a term continued by {continued!r}: {keyed}")
+        found = _sites(text, mutate.COQ, "const-inc")
+        ensure([m.before for m in found] == ["4"],
+               f"a term continued by {continued!r} lost its site: {found}")
+    # the plural assumption commands and Ltac2's definitions are keywords of their own
+    text = ("Section S.\nVariables a b : nat.\nDefinition f (n : nat) : nat := n + 1.\n"
+            "End S.\nAxioms x y : nat.\nParameters p q : nat.\nLtac2 t () := ().\n")
+    keyed = [(r.keyword, r.name) for r in mutate.regions(text, mutate.COQ)]
+    ensure(keyed == [("Section", "S."), ("Variables", "a"), ("Definition", "f"),
+                     ("End", "S."), ("Axioms", "x"), ("Parameters", "p"), ("Ltac2", "t")],
+           f"the plural commands opened {keyed}")
+
+
 def _a_decorated_proof_ends_the_definition_above() -> None:
     # The other direction of the same defect: `#[local] Lemma` read as no keyword was
     # the tail of the definition above it, and its statement's literals were mutable.
@@ -370,6 +391,7 @@ def cases() -> list[Case]:
              _the_shared_decoration_grammar_keys_the_region),
         Case("every defining keyword opens its own region",
              _every_defining_keyword_opens_its_own_region),
+        Case("a keyword is a whole word", _a_keyword_is_a_whole_word),
         Case("a void command defines nothing to mutate",
              _a_void_command_defines_nothing_to_mutate),
         Case("a line inside a comment opens no region",
