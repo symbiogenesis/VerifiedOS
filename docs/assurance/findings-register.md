@@ -1283,7 +1283,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-711** measurement: the drawn-set reader's message shapes, read from QuickChick 2.2.0's plugin source, are held only by tests on synthetic output
 · Raised: Q38f
-· Disposition: open, Q38f's hosted dispatches, the first runs to produce them
+· Disposition: standing, Q38f's hosted runs producing passing sets alone, the tests on synthetic output holding each shape
 
 **F-712** measurement: the instrument route's join keys a mutant by its file, line and rewrite, so two sampled mutants on one line with the same rewrite would collapse into one identity and a verdict swapped between them would go unreported
 · Raised: Q38f
@@ -1292,6 +1292,18 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-713** owed-act: a seed step whose baseline compile reaches gallina's per-file limit reads as failed in the instrument route rather than undecided, seed journalling the stopped baseline as no baseline and closing on none
 · Raised: Q38f
 · Disposition: open, owned by no item, the current subject's baseline compiling far below the limit and the step's log naming the limit where it happens
+
+**F-714** measurement: S13a's note says the randomized half runs under QuickChick with counterexample shrinking, while `forAll` never shrinks
+· Raised: Q38f
+· Disposition: standing, S13a's note left as recorded and `a269146c` removing every current-state claim that the harness shrinks
+
+**F-715** owed-act: Q38f's Check required that no tracked file outside the completion log name the retired 9.1.1 QuickChick switch, while the route's landing rule retains report copies that record the switch each run found
+· Raised: Q38f
+· Disposition: closed at Q38f, the retained copies standing as dated records and every tracked recipe, constant, lock, test fixture and current-state statement naming the 9.3.0 switch
+
+**F-716** owed-act: Q38f's closing diff may not touch seed.py, a route input, so seed.py's `--recipe` help still describes the recipe's switch as other than the provisioned one
+· Raised: Q38f
+· Disposition: open, the batch after Q38f's closing restating it
 
 **F-601** measurement: CertiRocq's `plugin/static/camlrocq.ml`, the copy `certirocq_plugin.cmxs` packs, offers `GPL-2.0-or-later` or the INRIA Non-Commercial License Agreement, not the `LGPL-2.1-or-later` the first reading gave every printer file
 · Raised: Q38g
@@ -1496,7 +1508,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-616** owed-act: `run.py provision --apply` imports the QuickChick snapshot wherever its switch is missing, the local guest among them, where Q38l's route builds and checks no QuickChick switch, and provision.py lies outside Q38l's Owns
 · Raised: Q38l
-· Disposition: open, Q38f, which restates `provision`'s QuickChick recipe, the guides stating the import's exclusion from the local guest as the user's ruling meanwhile
+· Disposition: standing, `provision`'s QuickChick recipe importing the hosted lock since Q38f and the guides stating its exclusion from the local guest as the user's ruling
 
 **F-617** measurement: K-75 reads a workflow job's interpreter only where the job installs one, so a job that installs none lies outside its sites
 · Raised: Q38l
