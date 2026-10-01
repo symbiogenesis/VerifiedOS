@@ -616,10 +616,19 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
              "the 'computed value' class states no membership sentence(s) this rule reads"),
             ({"computed": _K119_COMPUTED + " That is what K-05 are."},
              "the 'computed value' class states two membership sentence(s) this rule reads"),
+            # a class's region starts at its lead, so a membership sentence between the
+            # lead and the bold name is the class's own second rather than read by none
+            ({"computed": "Where the set is made of rules which is what K-01 are, and a "
+                          "**computed value**, it is recomputed, which is what K-05 are."},
+             "the 'computed value' class states two membership sentence(s)"),
             ({"total": _K119_TOTAL.replace("**total**", "**whole**")},
              "opens a reach class '**whole**' that is not one of the four this rule reads"),
             ({"total": _K119_TOTAL.replace("**total**", "**whole**")},
              "tools/check-rules.md opens no 'total' class in a form this rule reads"),
+            # the lead is matched in any letter case and the class name exactly, so a name
+            # differing in case alone is a fifth class
+            ({"total": _K119_TOTAL.replace("**total**", "**Total**")},
+             "opens a reach class '**Total**' that is not one of the four this rule reads"),
             ({"heading": "## What a run decides"},
              "tools/check-rules.md carries no '## What a passing run does not decide' "
              "section"),
@@ -628,13 +637,25 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
             ({"heading": meta.REACH_HEADING
               + "\n\nWhen the set is found by **marker**, which is what K-05 are."},
              "states a membership sentence ahead of the first reach class, so no class "
-             "reads it")):
+             "reads it"),
+            # either word is read in either capitalization, so a lower-case `that` written
+            # mid-sentence and a capital `Which` opening a sentence are membership
+            # sentences too
+            ({"heading": meta.REACH_HEADING
+              + "\n\nThe marker rules come first; that is what K-05 are."},
+             "states a membership sentence ahead of the first reach class, so no class "
+             "reads it"),
+            ({"computed": _K119_COMPUTED + " Which is what K-05 are."},
+             "the 'computed value' class states two membership sentence(s) this rule reads")):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
         ensure(not any("named under no reach class" in item for item in found),
                f"an unread class is one finding, not one per rule it held: {found!r}")
         ensure(not any(line.startswith("ok K-119:") for line in out),
                "fail-closed: no ok line stands beside an unread class")
+
+
+_K119_LEAD_FINDING = "states 'Where the set is' in a form that opens no reach class"
 
 
 def _k119_every_class_lead_is_read() -> None:
@@ -650,14 +671,24 @@ def _k119_every_class_lead_is_read() -> None:
              "opens a reach class '**marker**' that is not one of the four this rule reads"),
             ({"computed": _K119_COMPUTED
               + " Where the set is located by a marker, nothing narrows."},
-             "states 'Where the set is' and names no class in bold before a full stop or "
-             "the line's end"),
+             _K119_LEAD_FINDING),
             # any `.` ends the lead's reach, a code span's included, so the bold name past
             # it opens nothing
             ({"computed": _K119_COMPUTED
               + " Where the set is located by `a.b` **marker**, nothing narrows."},
-             "states 'Where the set is' and names no class in bold before a full stop or "
-             "the line's end")):
+             _K119_LEAD_FINDING),
+            # the lead is found in underscore italics, wrapped across a line or spaced
+            # apart, none of which opens a class, so each is reported rather than read
+            # as part of the class before it
+            ({"computed": _K119_COMPUTED
+              + " _Where the set is_ located by **marker**, nothing narrows."},
+             _K119_LEAD_FINDING),
+            ({"computed": _K119_COMPUTED
+              + " Where the set\nis located by **marker**, nothing narrows."},
+             _K119_LEAD_FINDING),
+            ({"computed": _K119_COMPUTED
+              + " Where the set  is located by **marker**, nothing narrows."},
+             _K119_LEAD_FINDING)):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
         ensure(not any(line.startswith("ok K-119:") for line in out),
