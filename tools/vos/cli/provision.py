@@ -362,8 +362,9 @@ def _installed(switch: str, package: str) -> str:
                  "--columns=version", package))
 
 
-def _switch_at(switch: str, package: str, pin: str) -> Found:
-    """A switch carrying one package at the version an owner in this tree fixes.
+def _switch_at(switch: str, package: str, pin: str, *, pinned: bool = False) -> Found:
+    """A switch carrying one package at the version an owner in this tree fixes, or with
+    `pinned` built from the source it pins, as `_switch_found` reads each.
 
     Not repairable where `--apply` would build the switch over a root the reviewed
     client rewrites, or as a client this tree has not reviewed. While the opam root
@@ -376,7 +377,8 @@ def _switch_at(switch: str, package: str, pin: str) -> Found:
     the same pass."""
     older = _older_root()
     client = _client()
-    found = _switch_found(switch, package, pin, older=bool(older), client=client)
+    found = _switch_found(switch, package, pin, older=bool(older), client=client,
+                          pinned=pinned)
     if found.present:
         return found
     if older:
@@ -392,8 +394,9 @@ def _switch_at(switch: str, package: str, pin: str) -> Found:
 
 
 def _switch_found(switch: str, package: str, pin: str, *, older: bool,
-                  client: tuple[str | None, str]) -> Found:
-    """One switch's package at the version opam answers for it.
+                  client: tuple[str | None, str], pinned: bool = False) -> Found:
+    """One switch's package at the version opam answers for it, or with `pinned` the
+    source it was built from, as `_pinned_source` reads it.
 
     Over a root in an older format, where `older` holds, an empty listing is not read as
     the switch's absence where the root's own config lists this switch,
@@ -405,10 +408,25 @@ def _switch_found(switch: str, package: str, pin: str, *, older: bool,
         if older and not listed and switch in opam_client.root_switches(root):
             return Found(False, _unlisted(switch, root, client))
         return Found(False, f"opam has no {switch} switch")
+    if pinned:
+        return _pinned_source(switch, package, pin)
     found = _installed(switch, package)
     if not found:
         return Found(False, f"the {switch} switch carries no {package}")
     return Found(found == pin, f"{package} {found} in {switch}")
+
+
+def _pinned_source(switch: str, package: str, pin: str) -> Found:
+    """One listed switch's package built from the source an owner in this tree pins,
+    `git+URL#commit` as opam states it, where no release of the package is the one the
+    switch needs and a pinned build calls itself `dev`."""
+    fields = _say(("opam", "list", "--switch", switch, "--installed", "--short",
+                   "--columns=version,pin", package)).split()
+    if not fields:
+        return Found(False, f"the {switch} switch carries no {package}")
+    if len(fields) < 2:
+        return Found(False, f"{package} {fields[0]} in {switch}, from no pinned source")
+    return Found(fields[-1] == pin, f"{package} built from {fields[-1]} in {switch}")
 
 
 def _unlisted(switch: str, root: Path, client: tuple[str | None, str]) -> str:
@@ -967,9 +985,9 @@ FACTS: tuple[Fact, ...] = (
     Fact("the QuickChick switch", TOOLCHAIN,
          "run.py quickchick check and properties, and run.py seed coq --quickchick",
          "tools/vos/gallina.py's QUICKCHICK_SWITCH and "
-         "tools/vos/cli/quickchick.py's PACKAGE and VERSION",
+         "tools/vos/cli/quickchick.py's PACKAGE and RECIPE_PIN",
          partial(_switch_at, gallina.QUICKCHICK_SWITCH, quickchick.PACKAGE,
-                 quickchick.VERSION),
+                 quickchick.RECIPE_PIN, pinned=True),
          quickchick.INSTALL),
     Fact("verilator", TOOLCHAIN,
          "run.py rtl lint, elaborate and crosscheck",

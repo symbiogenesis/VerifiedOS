@@ -518,7 +518,7 @@ def _the_randomized_harness_compiles_its_closure_alone() -> None:
         return subprocess.CompletedProcess([], 0, said, "")
 
     with (_tree(files) as td, tempfile.TemporaryDirectory(prefix="vos-work-") as wd,
-          patch.object(quickchick, "installed", return_value=quickchick.VERSION),
+          patch.object(quickchick, "installed", return_value=quickchick.RECIPE_PIN),
           patch.object(gallina, "prover", return_value=gallina.Prover("s", ("rocq", "c"))),
           patch.object(gallina, "compile_one", side_effect=compile_one),
           redirect_stdout(io.StringIO()) as output):
@@ -563,7 +563,7 @@ def _the_randomized_half_refuses_what_does_not_replay_or_hold() -> None:
         if seeded:
             files[f"tools/quickchick/{gallina.RANDOMIZED}"] = _SEEDED + "Require Import A.\n"
         with (_tree(files) as td, tempfile.TemporaryDirectory(prefix="vos-work-") as wd,
-              patch.object(quickchick, "installed", return_value=quickchick.VERSION),
+              patch.object(quickchick, "installed", return_value=quickchick.RECIPE_PIN),
               patch.object(gallina, "prover",
                            return_value=gallina.Prover("s", ("rocq", "c"))),
               patch.object(gallina, "compile_one", side_effect=compile_one) as compiled,
@@ -852,37 +852,67 @@ def _a_compile_a_signal_ended_is_no_refusal() -> None:
            f"a refutation ahead of the signal decides first: {refuted}")
 
 
-def _quickchick_rejects_other_versions() -> None:
-    """QuickChick's own switch is the one asked, and a version it does not pin is refused
-    there before anything is staged, the refusal naming both versions."""
+def _quickchick_rejects_another_source() -> None:
+    """QuickChick's own switch is the one asked, and a QuickChick built from any source
+    but the recipe's pinned commit, a release among them, is refused there before
+    anything is staged, the refusal naming both sources."""
     asked: list[str] = []
+    other = quickchick.RECIPE_PIN.rsplit("#", 1)[0] + "#" + "0" * 40
 
-    def held(switch: str) -> str:
-        asked.append(switch)
-        return "2.1.0"
+    for held_source in ("2.2.0", other):
+        def held(switch: str, source: str = held_source) -> str:
+            asked.append(switch)
+            return source
 
-    with (patch.object(quickchick, "installed", side_effect=held),
-          patch.object(gallina, "prover", return_value=["rocq", "c"]),
-          patch.object(gallina, "version", return_value="9.1.1"),
-          patch.object(gallina, "stage") as stage,
-          redirect_stdout(io.StringIO()) as output):
-        ensure(quickchick.cmd_check(argparse.Namespace(recipe=False)) == 1,
-               "an old installed QuickChick must not pass the check")
-        ensure(quickchick._properties(argparse.Namespace(recipe=False), Mock(), Path(), Path()) == 1,
-               "an old installed QuickChick must not run the properties")
-        ensure(stage.call_count == 0, "the wrong version must be refused before staging")
-        ensure("2.1.0" in output.getvalue() and quickchick.VERSION in output.getvalue(),
-               "a wrong-version refusal must name installed and required versions")
+        with (patch.object(quickchick, "installed", side_effect=held),
+              patch.object(gallina, "prover", return_value=["rocq", "c"]),
+              patch.object(gallina, "version", return_value="9.3.0"),
+              patch.object(gallina, "stage") as stage,
+              redirect_stdout(io.StringIO()) as output):
+            ensure(quickchick.cmd_check(argparse.Namespace(recipe=False)) == 1,
+                   f"a QuickChick built from {held_source} must not pass the check")
+            ensure(quickchick._properties(argparse.Namespace(recipe=False), Mock(), Path(),
+                                          Path()) == 1,
+                   f"a QuickChick built from {held_source} must not run the properties")
+            ensure(stage.call_count == 0, "another source must be refused before staging")
+            ensure(held_source in output.getvalue()
+                   and quickchick.RECIPE_PIN in output.getvalue(),
+                   "a refusal must name the installed and the pinned source")
     ensure(set(asked) == {gallina.QUICKCHICK_SWITCH},
            f"the randomized half asked switches other than QuickChick's: {asked}")
-    with (patch.object(quickchick, "installed", return_value=quickchick.VERSION),
+    with (patch.object(quickchick, "installed", return_value=quickchick.RECIPE_PIN),
           patch.object(gallina, "prover", return_value=["rocq", "c"]),
-          patch.object(gallina, "version", return_value="9.1.1"),
+          patch.object(gallina, "version", return_value="9.3.0"),
           redirect_stdout(io.StringIO()) as output):
         ensure(quickchick.cmd_check(argparse.Namespace(recipe=False)) == 0
                and "`run.py quickchick properties` runs" in output.getvalue(),
-               f"the configured QuickChick release must pass the check, naming the run in "
+               f"the pinned QuickChick commit must pass the check, naming the run in "
                f"its switch: {output.getvalue()}")
+
+
+def _the_quickchick_lock_is_the_recipes_switch() -> None:
+    """The QuickChick snapshot is the recipe's switch, exported: at the Rocq release and
+    OCaml the switch's name states, with each of the recipe's packages pinned to its
+    commit, and the install imports it into the switch the recipe builds. A lock exported
+    without its recipe, or the reverse, is caught here."""
+    text = (env.OPAM_LOCKS / "quickchick.lock").read_text(encoding="utf-8")
+    installed = text.split("installed:", 1)[1].split("]", 1)[0]
+    ensure(f'"rocq-core.{gallina.QUICKCHICK_ROCQ_VERSION}"' in installed
+           and f'"ocaml-base-compiler.{env.OCAML_VERSION}"' in installed
+           and f'"dune.{quickchick.DUNE}"' in installed
+           and f'"rocq-stdlib.{quickchick.STDLIB}"' in installed,
+           "the QuickChick lock is not at the Rocq, OCaml, dune and Stdlib its recipe states")
+    pinned = text.split("pinned:", 1)[-1].split("]", 1)[0]
+    for name, url, commit in quickchick.PINS:
+        block = text.split(f'package "{name}" {{', 1)
+        ensure(len(block) == 2 and f'"git+{url}#{commit}"' in block[1].split("\n}", 1)[0]
+               and f'"{name}.dev"' in pinned,
+               f"the QuickChick lock does not pin {name} to {commit}")
+    ensure(gallina.QUICKCHICK_RECIPE_SWITCH == gallina.QUICKCHICK_SWITCH,
+           "the lock's switch is not the one the recipe builds")
+    ensure(quickchick.INSTALL[-1][3:5] == (str(env.OPAM_LOCKS / "quickchick.lock"),
+                                            f"--switch={gallina.QUICKCHICK_SWITCH}"),
+           f"the install does not import the snapshot into the switch: {quickchick.INSTALL}")
 
 
 def _the_recipe_pins_whole_commits_and_is_asked_by_name() -> None:
@@ -943,9 +973,9 @@ def _the_installed_quickchick_is_read_without_answering() -> None:
     exit 0 reads as holding none."""
     answers = {"OPAMYES": "1", "OpamConfirmLevel": "unsafe-yes", "OPAMROOT": "/elsewhere"}
     printed = {"pinned": (0, f"dev {quickchick.RECIPE_PIN}\n", quickchick.RECIPE_PIN),
-               "released": (0, f"{quickchick.VERSION}\n", quickchick.VERSION),
+               "released": (0, "2.2.0\n", "2.2.0"),
                "absent": (0, "", None),
-               "declined": (1, f"{quickchick.VERSION}\n", None)}
+               "declined": (1, "2.2.0\n", None)}
     for label, (code, out, want) in printed.items():
         with (patch.dict(os.environ, answers),
               patch.object(quickchick.subprocess, "run",
@@ -1099,7 +1129,9 @@ def cases() -> list[Case]:
         Case("a drawn set's program is read by how it ended",
              _a_drawn_sets_program_is_read_by_how_it_ended),
         Case("a compile a signal ended is no refusal", _a_compile_a_signal_ended_is_no_refusal),
-        Case("QuickChick rejects other versions", _quickchick_rejects_other_versions),
+        Case("QuickChick rejects another source", _quickchick_rejects_another_source),
+        Case("the QuickChick lock is the recipe's switch",
+             _the_quickchick_lock_is_the_recipes_switch),
         Case("the recipe pins whole commits and is asked by name",
              _the_recipe_pins_whole_commits_and_is_asked_by_name),
         Case("the installed QuickChick is read without answering",

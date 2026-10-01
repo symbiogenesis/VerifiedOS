@@ -19,15 +19,15 @@ because `forAll` shrinks nothing. A property set whose domain holds no more poin
 than the draws QuickChick spends on it is decided instead by
 [quickchick/Walks.v](quickchick/Walks.v), which loads Stdlib alone and walks the whole
 domain, and `properties` runs both. The install is made, in a switch of its own, and
-`check` reports what that switch holds. QuickChick's Coq and dune constraints require an
-environment independent of the proof gate and CertiRocq compiler; `INSTALL` below
-restores its tested package snapshot.
-
-No QuickChick release installs beside Rocq 9.3.0, so `RECIPE` below builds a second
-QuickChick switch at that release from the upstream commits Rocq's own CI builds, under
-the lock guide's rule for commit pins. Its lock is pending the hosted checks that build
-the switch from the recipe, so `check`, `properties` and `seed coq --quickchick` take
-`--recipe` to run in that switch, holding the commit it was built from.
+`check` reports which commit that switch's QuickChick was built from. No QuickChick
+release installs beside Rocq 9.3.0, so `RECIPE` below builds it at that release from
+the upstream commits Rocq's own CI builds, under the lock guide's rule for commit pins,
+and `INSTALL` restores the snapshot a hosted run of the recipe exported once the
+randomized half's checks passed on it. QuickChick's dependency closure holds dune below
+the proof switch's, so it needs an environment independent of the proof gate and the
+CertiRocq compiler. `check`, `properties` and `seed coq --quickchick` take `--recipe`
+to run in the switch the recipe builds, which a refresh of the pins builds and checks
+ahead of its lock.
 
 [quickchick/FreezeModel.v](quickchick/FreezeModel.v) is a third harness and a different
 question: not *what does this artifact answer* but *do the two statements of one
@@ -57,17 +57,14 @@ from pathlib import Path
 from vos import cli, env, freezemodel, gallina
 from vos.corpus import find_root
 
-# QuickChick's latest release needs coq-simple-io, which caps Coq below 9.2~ and dune
-# below 3.22. Give it an independent Rocq 9.1 environment while the proof gate uses
-# Rocq 9.3 and the CertiRocq oracle uses dune 3.23.1. The explicit prover request also
-# prevents a solver from satisfying the package through an older Coq generation.
+# QuickChick's switch, imported from the snapshot a hosted run of RECIPE below exported
+# once the randomized half's checks passed on the switch it built.
 #
 # Public and stated as argv rather than as a sentence, for the reason `env.ROCQ_INSTALL`
 # is: `run.py provision` stands this switch up and the two refusals below print it, and
 # a recipe written once as a message and once as a command is a recipe only one reader
 # ever runs. `env.install_line` composes the sentence from the argv.
 PACKAGE = "coq-quickchick"
-VERSION = "2.2.0"
 INSTALL: tuple[tuple[str, ...], ...] = (
     ("opam", "switch", "create", gallina.QUICKCHICK_SWITCH,
      "--repos=rocq-released,default", "--empty", "--no-switch", "-y"),
@@ -84,8 +81,8 @@ INSTALL: tuple[tuple[str, ...], ...] = (
 # says the switch's QuickChick was built from, `git+URL#commit`.
 #
 # Stated as argv for the reason INSTALL is. A hosted run builds the switch from it, runs
-# the randomized half's checks there and exports the lock; that lock is tracked only once
-# those checks pass, and until then INSTALL's snapshot is the switch provisioning makes.
+# the randomized half's checks there and exports the lock, which is tracked only once
+# those checks pass; a refresh of the pins moves this recipe first and its lock after.
 PINS: tuple[tuple[str, str, str], ...] = (
     ("coq-ext-lib", "https://github.com/rocq-community/coq-ext-lib.git",
      "ddd03d257f6b85a93bfaa0ed4d03658e0ddf5075"),
@@ -135,8 +132,8 @@ def installed(switch: str) -> str | None:
 
 def _held(recipe: bool) -> tuple[str, str | None, gallina.Prover | None, list[str]]:
     """The switch the randomized half runs in, what it holds of the half, and each
-    reason it cannot run it: QuickChick's provisioned switch at VERSION, or with
-    `recipe` the switch RECIPE builds, at its pinned commit.
+    reason it cannot run it: QuickChick's provisioned switch, or with `recipe` the
+    switch RECIPE builds, each at the recipe's pinned commit.
 
     The package and the prover count together or not at all: a switch holding the
     library and no `rocq` is Coq 8 under another name, which compiles neither the
@@ -144,14 +141,14 @@ def _held(recipe: bool) -> tuple[str, str | None, gallina.Prover | None, list[st
     asked: a run that found the package somewhere else would compile in a switch no
     recipe here stands up."""
     switch = gallina.QUICKCHICK_RECIPE_SWITCH if recipe else gallina.QUICKCHICK_SWITCH
-    wanted = RECIPE_PIN if recipe else VERSION
     held = installed(switch)
     found = gallina.prover(switch)
     why: list[str] = []
     if held is None:
         why.append(f"opam lists no {PACKAGE} in the {switch} switch")
-    elif held != wanted:
-        why.append(f"requires {PACKAGE} {wanted}; the {switch} switch holds {held}")
+    elif held != RECIPE_PIN:
+        why.append(f"requires {PACKAGE} built from {RECIPE_PIN}; the {switch} switch "
+                   f"holds {held}")
     if found is None:
         why.append(f"the {switch} switch has no prover this repository can call: "
                    "`rocq c` is Rocq 9's spelling and Coq 8 ships `coqc` alone")
@@ -170,7 +167,6 @@ def cmd_check(args: argparse.Namespace) -> int:
     taken under. Installation is the provisioner's separate command, and the recipe's a
     hosted run's.
     """
-    wanted = RECIPE_PIN if args.recipe else VERSION
     switch, held, found, why = _held(args.recipe)
     said = gallina.version(found) if found else "no `rocq` binary"
     out: list[str] = ["== the randomized half's switch",
@@ -179,12 +175,12 @@ def cmd_check(args: argparse.Namespace) -> int:
     out.append("")
     if not why:
         recipe = " --recipe" if args.recipe else ""
-        out.append(f"ok {PACKAGE} {wanted} is installed in {switch} under {said}; "
+        out.append(f"ok {PACKAGE} is built from {RECIPE_PIN} in {switch} under {said}; "
                    f"`run.py quickchick properties{recipe}` runs the randomized half")
         print("\n".join(out))
         return 0
-    out.append(f"FAIL {PACKAGE} {wanted} is not installed in {switch}, so the randomized "
-               "half does not run")
+    out.append(f"FAIL {PACKAGE} built from {RECIPE_PIN} is not installed in {switch}, so "
+               "the randomized half does not run")
     out.append("     the enumerative half does: `run.py quickchick vectors`")
     out.append("     the install, as one priced step:")
     out.append(f"       {env.install_line(_install(args.recipe))}")
@@ -372,7 +368,7 @@ def _freeze(args: argparse.Namespace, e: env.Environment, root: Path, work: Path
 
 
 COMMANDS: cli.Table = {
-    "check": (cmd_check, "whether QuickChick is installed, and what installing costs"),
+    "check": (cmd_check, "which QuickChick commit is installed, and what installing costs"),
     "vectors": (cmd_vectors, "the enumerative half: generated inputs, as text"),
     "properties": (cmd_properties, "the randomized half: QuickChick's draws and the "
                                    "walks over domains no larger than them"),

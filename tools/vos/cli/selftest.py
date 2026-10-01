@@ -1801,23 +1801,26 @@ CASES: list[Case] = [
     # A held row gains a release in an opam identifier's spelling, which no site reads:
     # only a census reading a release after its package name's dot sees it at all.
     ("K-118", "a development-tool row stating an opam identifier's release no site reads",
-     _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
-                               r"dedicated switch)\.",
-                  lambda m: f"{m[1]} beside `coq-simple-io.1.10.0`.")),
+     _first_match(THIRD_PARTY, r"(Gallina input generator in a dedicated switch), built",
+                  lambda m: f"{m[1]} beside `coq-simple-io.1.10.0`, built")),
     # The same row gains a release after an opam name ending in digits: a census taking
     # every numeral whose dot follows a digit for the tail of the numeral before it
     # leaves that release unread.
     ("K-118", "a development-tool row stating a release after a name ending in digits",
-     _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
-                               r"dedicated switch)\.",
-                  lambda m: f"{m[1]} beside `base64.3.5.1`.")),
+     _first_match(THIRD_PARTY, r"(Gallina input generator in a dedicated switch), built",
+                  lambda m: f"{m[1]} beside `base64.3.5.1`, built")),
     # The same row gains a release after a name whose last letter, a `v`, follows a digit:
     # a census taking every `v` after a non-letter for a tag's prefix, and not only one
     # after a hyphen or `+`, leaves that release unread.
     ("K-118", "a development-tool row stating a release after a letter following digits",
-     _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
-                               r"dedicated switch)\.",
-                  lambda m: f"{m[1]} beside `x86v3.5.1`.")),
+     _first_match(THIRD_PARTY, r"(Gallina input generator in a dedicated switch), built",
+                  lambda m: f"{m[1]} beside `x86v3.5.1`, built")),
+    # The same direction through a snapshot's commit pin, another owner reader: the
+    # QuickChick snapshot's pinned commit moves while the row names the one its licence
+    # was read at. The commit's first digit changes, so a moved pin leaves it seeded.
+    ("K-118", "an opam snapshot's pinned commit its development-tool row does not state",
+     _first_match("tools/opam/quickchick.lock", r"(QuickChick\.git#)([0-9a-f])",
+                  lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
     # A declared row nothing here owns gains a second release in its licence link text,
     # so the row no longer says which release its terms were read at.
     ("K-118", "a declared development-tool row stating two releases",
