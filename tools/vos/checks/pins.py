@@ -857,6 +857,19 @@ def _tool_rows(text: str, findings: list[str]) -> dict[str, tuple[int, str]]:
     return rows
 
 
+def _apart(ref: str, commit: str) -> tuple[str, str]:
+    """Two revisions quoted at twelve digits, or one past what two different ones share.
+
+    A finding naming both then never prints one id for two different commits; equal ones
+    keep twelve, the finding then being about their releases.
+    """
+    if ref == commit:
+        return ref[:12], commit[:12]
+    shown = max(12, next((i + 1 for i, (a, b) in enumerate(zip(ref, commit, strict=False))
+                          if a != b), min(len(ref), len(commit)) + 1))
+    return ref[:shown], commit[:shown]
+
+
 def _workflow_pins(ctx: Context) -> None:
     """K-115: every action a workflow runs is the commit and release its row reviewed.
 
@@ -894,12 +907,9 @@ def _workflow_pins(ctx: Context) -> None:
                                 r"([^/\s)\]>]+)/", row):
             ref = link.group(1)
             if ref != commit:
-                # quoted at twelve digits, or as far as they must run to tell the two apart
-                shown = max(12, next((i + 1 for i, (a, b) in
-                                      enumerate(zip(ref, commit, strict=False)) if a != b),
-                                     min(len(ref), len(commit)) + 1))
-                findings.append(f"{where} links {tool}'s licence at {ref[:shown]}, the row "
-                                f"reviewed {commit[:shown]}; the link names the edition the "
+                linked, reviewed = _apart(ref, commit)
+                findings.append(f"{where} links {tool}'s licence at {linked}, the row "
+                                f"reviewed {reviewed}; the link names the edition the "
                                 "terms were read at, so the edit is a person's")
     if rows and not actions:
         findings.append(f"{record}'s development-tools table carries no action row, so the "
@@ -955,9 +965,10 @@ def _workflow_pins(ctx: Context) -> None:
                 continue
             want_version, want_sha, row = actions[action]
             if want_sha and (sha, version) != (want_sha, want_version):
+                ran, reviewed = _apart(sha, want_sha)
                 findings.append(
-                    f"{where} runs {action} at {sha[:12]} ({version}), {row} reviewed "
-                    f"{want_sha[:12]} ({want_version}); the row's terms were read at the "
+                    f"{where} runs {action} at {ran} ({version}), {row} reviewed "
+                    f"{reviewed} ({want_version}); the row's terms were read at the "
                     "revision it states, so the edit is a person's")
     if files and not references and not unread:
         findings.append(f"no workflow under {WORKFLOWS} states an action reference, so the "

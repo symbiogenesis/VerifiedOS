@@ -728,6 +728,25 @@ def _k115_moved_or_movable_references_fail() -> None:
                f"a moved or movable reference must report {fragment!r}: {found!r}")
 
 
+def _k115_moved_reference_is_quoted_apart_from_its_row() -> None:
+    # A reference off its row's commit is quoted beside that commit at twelve digits, or
+    # as far as the two must run to differ, so a change in the last digit prints two
+    # distinct ids; a reference at the row's commit under another release keeps twelve.
+    last = f"{_K115_SHA[:-1]}8"
+    middle = f"{_K115_SHA[:19]}f{_K115_SHA[20:]}"
+    for sha, version, shown, reviewed in (
+            (last, "v1.2.3", last, _K115_SHA),
+            (middle, "v1.2.3", middle[:20], _K115_SHA[:20]),
+            ("f" * 40, "v1.2.3", "ffffffffffff", "0123456789ab"),
+            (_K115_SHA, "v1.2.4", "0123456789ab", "0123456789ab")):
+        workflow = _K115_WORKFLOW.replace(f"{_K115_SHA} # v1.2.3\n  -", f"{sha} # {version}\n  -")
+        found = _k115({".github/workflows/a.yml": workflow})
+        quoted = (f"a.yml:2 runs example/action at {shown} ({version}), THIRD-PARTY.md:7 "
+                  f"reviewed {reviewed} (v1.2.3);")
+        ensure(len(found) == 1 and quoted in found[0],
+               f"a moved reference is quoted apart from its row's commit ({quoted}): {found!r}")
+
+
 def _k115_membership_is_held_both_ways() -> None:
     found = _k115({".github/workflows/b.yaml":
                    f"steps:\n  - uses: other/action@{_K115_SHA} # v1.2.3\n"})
@@ -1778,6 +1797,8 @@ def cases() -> list[Case]:
              _k97_reviewed_pin_is_required_without_prose_copies),
         Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),
         Case("k115-moved-or-movable-references-fail", _k115_moved_or_movable_references_fail),
+        Case("k115-moved-reference-is-quoted-apart-from-its-row",
+             _k115_moved_reference_is_quoted_apart_from_its_row),
         Case("k115-membership-is-held-both-ways", _k115_membership_is_held_both_ways),
         Case("k115-licence-link-names-the-reviewed-commit",
              _k115_licence_link_names_the_reviewed_commit),
