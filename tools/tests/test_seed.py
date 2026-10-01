@@ -244,7 +244,8 @@ with tempfile.TemporaryDirectory(prefix="vos-lock-") as td:
     args = argparse.Namespace(spec="capformat", file=None, quickchick=False)
     cases = [(seed, "cmd_sail", "_sail_run", lane / "seed" / "sail-capformat", args)]
     for randomized in (False, True):
-        args = argparse.Namespace(file="proofs/CyclicExecutive.v", quickchick=randomized)
+        args = argparse.Namespace(file="proofs/CyclicExecutive.v", quickchick=randomized,
+                                  recipe=False)
         work = lane / "seed" / ("quickchick" if randomized else "coq")
         cases.append((seed, "cmd_coq", "_coq_run", work, args))
     for name in ("vectors", "properties", "freeze"):
