@@ -169,15 +169,25 @@ jobs:
       # by commit, run over model/ with the pre-commit tools/uv.lock's model group locks,
       # in an environment of their own; any finding or rewrite fails the job.
       # markdown-link-check is skipped because it fetches every external link the
-      # model's Markdown names. Hook code and its unlocked dependencies install at run
-      # time. The step runs on the last shard so that shard 1, which also runs the
-      # checker, typecheck, repair path and workflow analysis, does not lengthen.
+      # model's Markdown names. pip installs each Python hook's dependencies at the
+      # releases tools/ci/model-hooks-constraints.txt fixes and builds its package with
+      # the hashed backends tools/ci/model-hooks-build-constraints.txt fixes, both named
+      # by absolute path because pip runs in each hook's clone, and admits no file
+      # uploaded within three days; a private app-data directory keeps each
+      # environment's pip the one the locked virtualenv embeds. prettier installs from
+      # npm on the runner's Node.js. The step runs on the last shard so that shard 1,
+      # which also runs the checker, typecheck, repair path and workflow analysis, does
+      # not lengthen.
       - name: Model hooks
         if: ${{ !cancelled() && matrix.platform == 'Ubuntu' && matrix.shard == matrix.shards }}
         shell: bash
         env:
           UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/venv-model
           PRE_COMMIT_HOME: ${{ runner.temp }}/pre-commit
+          VIRTUALENV_OVERRIDE_APP_DATA: ${{ runner.temp }}/virtualenv
+          PIP_CONSTRAINT: ${{ github.workspace }}/tools/ci/model-hooks-constraints.txt
+          PIP_BUILD_CONSTRAINT: ${{ github.workspace }}/tools/ci/model-hooks-build-constraints.txt
+          PIP_UPLOADED_PRIOR_TO: P3D
           SKIP: markdown-link-check
         run: |
           uv run --project tools --locked --exact --only-group model --no-python-downloads \

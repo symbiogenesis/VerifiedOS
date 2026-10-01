@@ -969,17 +969,20 @@ confines every hook to paths under `model/`, the exclusion names
 pinned by the full commit of the tag its `# frozen:` comment names, and its
 [THIRD-PARTY.md](../THIRD-PARTY.md) development-tools row states both, which K-118
 holds against the configuration; whether the commit is the tag's is read at review
-with `git ls-remote`. clang-format stays at the release upstream's own hooks pin, because a later
-release lays out upstream's code differently and would ask for rewrites of upstream
-bytes. The last Ubuntu shard of [Host CI](../.github/workflows/host-gates.yml) runs
-the set with `--all-files`, which selects the tracked files under `model/` outside
-`model/dependencies/` and nothing else, and with `SKIP=markdown-link-check`, because
-that hook fetches every external link the model's Markdown names; a finding or a
-rewrite from any other hook fails the job, and `--show-diff-on-failure` prints the
-rewrite. check-added-large-files reads only staged additions, so the CI run decides
-nothing for it; it acts only at commit time. The hooks' own dependencies install unlocked when pre-commit sets a hook up,
-as their rows say. To run the same set from the checkout root with the environment
-above, set `SKIP=markdown-link-check` and run
+with `git ls-remote`. clang-format stays at the release upstream's own hooks pin,
+because a later release lays out upstream's code differently and would ask for
+rewrites of upstream bytes. The last Ubuntu shard of
+[Host CI](../.github/workflows/host-gates.yml) runs the set with `--all-files`, which
+selects the tracked files under `model/` outside `model/dependencies/` and nothing
+else, and with `SKIP=markdown-link-check`, because that hook fetches every external
+link the model's Markdown names; a finding or a rewrite from any other hook fails the
+job, and `--show-diff-on-failure` prints the rewrite. check-added-large-files reads
+only staged additions, so the CI run decides nothing for it; it acts only at commit
+time. What the hooks install beside their own code is pinned as
+[their dependencies' paragraph](#model-hook-dependencies) says. To run the same set
+from the checkout root with the environment above, set `SKIP=markdown-link-check` and
+the step's pip and virtualenv variables, naming the constraint files by absolute path,
+and run
 `uv run --project tools --locked --group model pre-commit run --config model/.pre-commit-config.yaml --all-files`,
 or name paths with `--files <paths>`. The fixing hooks (trailing-whitespace,
 end-of-file-fixer, clang-format and prettier) rewrite the files they select, so read
@@ -993,6 +996,38 @@ other side of the WSL boundary cannot execute, so that side's commits are refuse
 unless its own `pre-commit` is on `PATH`. On a commit touching `model/`, a fixing hook
 that rewrites a staged file fails the commit, and markdown-link-check fetches the
 links of every staged Markdown file.
+
+<a id="model-hook-dependencies"></a>**The hooks' dependencies are pinned wherever pip
+can pin them.** pre-commit installs each Python hook with `pip install .` in its clone,
+inside a virtualenv of its own.
+[model-hooks-constraints.txt](ci/model-hooks-constraints.txt) fixes the release of
+every package pip installs there beside the hook: ruamel.yaml for pre-commit-hooks,
+rapidfuzz for Lucas-C's hooks and the clang-format wheel the mirror requires. Host CI
+names it as `PIP_CONSTRAINT`. It lists no hash, because a hash in a constraints file
+puts pip in hash-checking mode, which refuses the directory pre-commit installs from,
+and a dependency a hook gains installs unpinned, at the newest release the cooldown
+below admits, until the file names it. From pip 26.2 an isolated build ignores the
+regular constraints it inherits, so
+[model-hooks-build-constraints.txt](ci/model-hooks-build-constraints.txt) fixes the
+build backends, setuptools for every hook package and setuptools-scm with its
+vcs-versioning and packaging for codespell's, each with its wheel's SHA-256, and Host
+CI names it as `PIP_BUILD_CONSTRAINT`. Its hashes put each build in hash-checking mode,
+so a build requirement it does not list fails the step. pip runs in each hook's clone,
+so the step names both files by absolute path, and its `PIP_UPLOADED_PRIOR_TO=P3D`
+admits no file uploaded within the [release cooldown](#running-them). Each
+environment's pip is the one the locked virtualenv embeds: the step gives virtualenv an
+empty app-data directory, and virtualenv takes a wheel its periodic update fetched only
+once an hour has passed. prettier is the release the mirror's hook names to npm, which
+installs it on the runner's Node.js and npm and checks it against the registry's
+integrity hash; it declares no dependency, and nothing here fixes Node.js, npm or that
+hash. **The two files are reviewed whenever a hook's rev or the locked virtualenv
+moves**, and no rule holds them to the hooks' requirements or to PyPI's upload times,
+neither of which the checker reads. Run the step's command over a throwaway copy with
+an empty `PRE_COMMIT_HOME`, `PIP_LOG` naming a file, `PIP_UPLOADED_PRIOR_TO=P3D` and
+neither constraint variable set, compare `pip list` in each `py_env-*` environment and
+the build installs the log records with the files, move each pin to the release that
+run installed, with the SHA-256 PyPI states for its wheel where the build file pins
+one, and run the step's command again with both files and an empty `PRE_COMMIT_HOME`.
 
 [ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
 carries, including the ones it ships as warnings or switched off, and that is deliberate:
