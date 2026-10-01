@@ -253,6 +253,13 @@
 
 Open Scope list_scope.
 
+(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
+   the goal in the tactic and again where the kernel checks its cast at Qed;
+   this casts eq_refl to the goal unevaluated, so only the check at Qed
+   evaluates it. *)
+Local Ltac vm_reflexivity :=
+  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
+
 (* -------------------------------------------------------------------------
    List helpers, authored rather than imported: the prelude carries the list
    type and not the library over it.
@@ -987,13 +994,13 @@ Example the_derived_sbox_is_the_published_table :
   0x9B :: 0x1E :: 0x87 :: 0xE9 :: 0xCE :: 0x55 :: 0x28 :: 0xDF ::
   0x8C :: 0xA1 :: 0x89 :: 0x0D :: 0xBF :: 0xE6 :: 0x42 :: 0x68 ::
   0x41 :: 0x99 :: 0x2D :: 0x0F :: 0xB0 :: 0x54 :: 0xBB :: 0x16 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_derived_round_constants_are_the_published_table :
   map_over (fun i => byte_value (gpow_x i)) (upto 10) =
   0x01 :: 0x02 :: 0x04 :: 0x08 :: 0x10 ::
   0x20 :: 0x40 :: 0x80 :: 0x1B :: 0x36 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_derived_mix_matrix_is_the_published_one :
   mix_matrix mix_polynomial =
@@ -1001,7 +1008,7 @@ Example the_derived_mix_matrix_is_the_published_one :
   0x01 :: 0x02 :: 0x03 :: 0x01 ::
   0x01 :: 0x01 :: 0x02 :: 0x03 ::
   0x03 :: 0x01 :: 0x01 :: 0x02 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_derived_inverse_mix_matrix_is_the_published_one :
   mix_matrix inv_mix_polynomial =
@@ -1009,7 +1016,7 @@ Example the_derived_inverse_mix_matrix_is_the_published_one :
   0x09 :: 0x0E :: 0x0B :: 0x0D ::
   0x0D :: 0x09 :: 0x0E :: 0x0B ::
   0x0B :: 0x0D :: 0x09 :: 0x0E :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_low_half_of_the_modulus_is_the_published_byte :
   byte_value aes_modulus_low = 0x1B := eq_refl.
@@ -1018,7 +1025,7 @@ Example the_ghash_reduction_string_is_the_published_one :
   bytes_of ghash_R =
   0xE1 :: 0x00 :: 0x00 :: 0x00 :: 0x00 :: 0x00 :: 0x00 :: 0x00 ::
   0x00 :: 0x00 :: 0x00 :: 0x00 :: 0x00 :: 0x00 :: 0x00 :: 0x00 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The cipher against FIPS 197's own published answers, at all three key
@@ -1036,7 +1043,7 @@ Example the_appendix_b_example_reaches_the_published_ciphertext :
                     0x31 :: 0x31 :: 0x98 :: 0xA2 :: 0xE0 :: 0x37 :: 0x07 :: 0x34 :: nil))) =
   0x39 :: 0x25 :: 0x84 :: 0x1D :: 0x02 :: 0xDC :: 0x09 :: 0xFB ::
   0xDC :: 0x11 :: 0x85 :: 0x97 :: 0x19 :: 0x6A :: 0x0B :: 0x32 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The first expanded round key of the same schedule, which is FIPS 197
    Appendix A.1's w4 through w7, and the last, which is w40 through w43. The
@@ -1049,7 +1056,7 @@ Example the_first_expanded_round_key_is_the_published_one :
                     0xAB :: 0xF7 :: 0x15 :: 0x88 :: 0x09 :: 0xCF :: 0x4F :: 0x3C :: nil))) 1) =
   0xA0 :: 0xFA :: 0xFE :: 0x17 :: 0x88 :: 0x54 :: 0x2C :: 0xB1 ::
   0x23 :: 0xA3 :: 0x39 :: 0x39 :: 0x2A :: 0x6C :: 0x76 :: 0x05 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_last_expanded_round_key_is_the_published_one :
   map_over byte_value
@@ -1058,7 +1065,7 @@ Example the_last_expanded_round_key_is_the_published_one :
                     0xAB :: 0xF7 :: 0x15 :: 0x88 :: 0x09 :: 0xCF :: 0x4F :: 0x3C :: nil))) 10) =
   0xD0 :: 0x14 :: 0xF9 :: 0xA8 :: 0xC9 :: 0xEE :: 0x25 :: 0x89 ::
   0xE1 :: 0x3F :: 0x0C :: 0xC8 :: 0xB6 :: 0x63 :: 0x0C :: 0xA6 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-10-024 |*)
 Example the_appendix_c_one_example_reaches_the_published_ciphertext :
@@ -1068,7 +1075,7 @@ Example the_appendix_c_one_example_reaches_the_published_ciphertext :
                     0x88 :: 0x99 :: 0xAA :: 0xBB :: 0xCC :: 0xDD :: 0xEE :: 0xFF :: nil))) =
   0x69 :: 0xC4 :: 0xE0 :: 0xD8 :: 0x6A :: 0x7B :: 0x04 :: 0x30 ::
   0xD8 :: 0xCD :: 0xB7 :: 0x80 :: 0x70 :: 0xB4 :: 0xC5 :: 0x5A :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-10-024 |*)
 Example the_appendix_c_two_example_reaches_the_published_ciphertext :
@@ -1078,7 +1085,7 @@ Example the_appendix_c_two_example_reaches_the_published_ciphertext :
                     0x88 :: 0x99 :: 0xAA :: 0xBB :: 0xCC :: 0xDD :: 0xEE :: 0xFF :: nil))) =
   0xDD :: 0xA9 :: 0x7C :: 0xA4 :: 0x86 :: 0x4C :: 0xDF :: 0xE0 ::
   0x6E :: 0xAF :: 0x70 :: 0xA0 :: 0xEC :: 0x0D :: 0x71 :: 0x91 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-10-024 |*)
 Example the_appendix_c_three_example_reaches_the_published_ciphertext :
@@ -1088,7 +1095,7 @@ Example the_appendix_c_three_example_reaches_the_published_ciphertext :
                     0x88 :: 0x99 :: 0xAA :: 0xBB :: 0xCC :: 0xDD :: 0xEE :: 0xFF :: nil))) =
   0x8E :: 0xA2 :: 0xB7 :: 0xCA :: 0x51 :: 0x67 :: 0x45 :: 0xBF ::
   0xEA :: 0xFC :: 0x49 :: 0x90 :: 0x4B :: 0x49 :: 0x60 :: 0x89 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The inverse cipher recovers the plaintext at each of the three key lengths,
    which is the whole-cipher half of the invertibility account and a value
@@ -1101,7 +1108,7 @@ Example the_inverse_cipher_recovers_the_plaintext_at_every_key_length :
             bits_eqb (block_of_state (aes_decrypt nk k (aes_encrypt nk k p)))
                      (block_of_state p))
          (4 :: 6 :: 8 :: nil) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The step maps, over arbitrary inputs or over the whole domain they act on.
@@ -1116,30 +1123,30 @@ Definition is_a_bijection_on_bytes (f : byte -> byte) : bool :=
 
 Example sub_byte_is_a_bijection_on_a_byte :
   is_a_bijection_on_bytes sub_byte = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_inverse_substitution_recovers_every_byte :
   all_of (fun b => bits_eqb (inv_sub_byte (sub_byte b)) b) all_bytes = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_field_inverse_is_an_inverse_at_every_nonzero_byte :
   all_of (fun b => if bits_eqb b zero_byte
                    then bits_eqb (ginv b) zero_byte
                    else bits_eqb (gmul b (ginv b)) one_byte)
          all_bytes = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The field multiplication is commutative over the whole of its domain, which
    is 65,536 pairs and not a sample. *)
 Example the_field_multiplication_is_commutative :
   all_of (fun a => all_of (fun b => bits_eqb (gmul a b) (gmul b a)) all_bytes) all_bytes = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example one_is_the_identity_and_zero_the_annihilator :
   all_of (fun a => andb (bits_eqb (gmul one_byte a) a)
                         (bits_eqb (gmul zero_byte a) zero_byte))
          all_bytes = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Distribution and association over every element in the first argument and
    over the eight basis elements in the other two, the basis being what spans
@@ -1148,13 +1155,13 @@ Example the_field_multiplication_distributes_over_the_basis :
   all_of (fun a => all_of (fun b => all_of (fun c =>
             bits_eqb (gmul a (bxor b c)) (bxor (gmul a b) (gmul a c)))
             basis_bytes) basis_bytes) all_bytes = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_field_multiplication_associates_over_the_basis :
   all_of (fun a => all_of (fun b => all_of (fun c =>
             bits_eqb (gmul (gmul a b) c) (gmul a (gmul b c)))
             basis_bytes) basis_bytes) all_bytes = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition covers_each_index_once (l : list nat) (n : nat) : bool :=
   all_of (fun i => Nat.eqb (count_where (fun v => Nat.eqb v i) l) 1) (upto n).
@@ -1177,7 +1184,7 @@ Theorem the_row_shift_is_invertible_on_an_arbitrary_state :
     =
     b0 :: b1 :: b2 :: b3 :: b4 :: b5 :: b6 :: b7 ::
     b8 :: b9 :: b10 :: b11 :: b12 :: b13 :: b14 :: b15 :: nil.
-Proof. intros. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* AddRoundKey is an involution in the round key, over arbitrary bits. *)
 Lemma xorb_cancels : forall x y : bool, xorb (xorb x y) y = x.
@@ -1222,7 +1229,7 @@ Qed.
 Example the_round_key_and_the_state_have_the_same_shape :
   same_shape (state_of_block (block_from (upto block_bytes)))
              (round_key (key_schedule 4 (bytes_from (upto block_bytes))) 3) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* MixColumns: the two polynomials are inverse in the ring the step multiplies
    in, and the round trip holds on the thirty-two columns that span the column
@@ -1230,7 +1237,7 @@ Proof. vm_compute. reflexivity. Qed.
    which this file does not prove and does not claim. *)
 Example the_two_mix_polynomials_are_inverse_modulo_x_to_the_fourth_plus_one :
   map_over byte_value (poly4_mul mix_polynomial inv_mix_polynomial) = 1 :: 0 :: 0 :: 0 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example there_are_thirty_two_single_bit_columns :
   length_of single_bit_columns = 32 := eq_refl.
@@ -1239,7 +1246,7 @@ Example the_inverse_polynomial_recovers_every_single_bit_column :
   all_of (fun col => bits_eqb (concat_of (poly4_mul inv_mix_polynomial (poly4_mul mix_polynomial col)))
                               (concat_of col))
          single_bit_columns = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The three near alternatives to a step map, each held to the single
@@ -1249,12 +1256,12 @@ Proof. vm_compute. reflexivity. Qed.
 
 Example the_wrong_affine_constant_is_still_a_bijection :
   is_a_bijection_on_bytes sub_byte_with_the_wrong_constant = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_wrong_affine_constant_moves_the_low_bit_and_nothing_else :
   all_of (fun b => Nat.eqb (byte_value (bxor (sub_byte b) (sub_byte_with_the_wrong_constant b))) 1)
          all_bytes = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_wrong_affine_constant_misses_the_published_ciphertext :
   bits_eqb (block_of_state
@@ -1265,7 +1272,7 @@ Example the_wrong_affine_constant_misses_the_published_ciphertext :
            (block_from (0x69 :: 0xC4 :: 0xE0 :: 0xD8 :: 0x6A :: 0x7B :: 0x04 :: 0x30 ::
                         0xD8 :: 0xCD :: 0xB7 :: 0x80 :: 0x70 :: 0xB4 :: 0xC5 :: 0x5A :: nil))
   = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_transposed_flattening_is_a_permutation_too :
   covers_each_index_once (map_over transposed_shift_rows_index (upto block_bytes)) block_bytes = true
@@ -1291,7 +1298,7 @@ Example the_transposed_flattening_misses_the_published_ciphertext :
            (block_from (0x69 :: 0xC4 :: 0xE0 :: 0xD8 :: 0x6A :: 0x7B :: 0x04 :: 0x30 ::
                         0xD8 :: 0xCD :: 0xB7 :: 0x80 :: 0x70 :: 0xB4 :: 0xC5 :: 0x5A :: nil))
   = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The two directions exchanged is the closest of the three: it is the same
    permutation on rows zero and two, which is half the state, and it differs
@@ -1308,7 +1315,7 @@ Example the_exchanged_directions_miss_the_published_ciphertext :
            (block_from (0x69 :: 0xC4 :: 0xE0 :: 0xD8 :: 0x6A :: 0x7B :: 0x04 :: 0x30 ::
                         0xD8 :: 0xCD :: 0xB7 :: 0x80 :: 0x70 :: 0xB4 :: 0xC5 :: 0x5A :: nil))
   = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The GF(2^128) multiplication: the standard's form, the model's form, and
@@ -1330,23 +1337,23 @@ Definition ghash_probe_pairs : list (block * block) :=
 
 Example the_probe_family_is_thirty_six_pairs :
   length_of ghash_probe_pairs = 36.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example one_is_the_identity_of_the_field_multiplication :
   all_of (fun x => bits_eqb (gf128_mul x (block_from (0x80 :: repeat_of 15 0 ))) x)
          ghash_probe_blocks = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_field_multiplication_on_blocks_is_commutative :
   all_of (fun p => bits_eqb (gf128_mul (fst p) (snd p)) (gf128_mul (snd p) (fst p)))
          ghash_probe_pairs = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_models_form_and_the_standards_form_are_one_multiplication :
   all_of (fun p => bits_eqb (ghash_mul_the_models_way (fst p) (snd p))
                             (gf128_mul (fst p) (snd p)))
          ghash_probe_pairs = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The form without the reflection is the standard's multiplication under a
    byte-wise reversal of the bits, so it is a field multiplication too and
@@ -1361,37 +1368,37 @@ Example the_unreflected_form_is_the_standards_under_a_byte_wise_reversal :
                             (reflect_block (gf128_mul (reflect_block (fst p))
                                                       (reflect_block (snd p)))))
          ghash_probe_pairs = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_unreflected_form_is_commutative_too :
   all_of (fun p => bits_eqb (ghash_mul_without_the_reflection (fst p) (snd p))
                             (ghash_mul_without_the_reflection (snd p) (fst p)))
          ghash_probe_pairs = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_unreflected_form_has_the_reflected_identity :
   all_of (fun x => bits_eqb (ghash_mul_without_the_reflection x
                                (block_from (0x01 :: repeat_of 15 0))) x)
          ghash_probe_blocks = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_standards_identity_is_not_the_unreflected_forms :
   all_of (fun x => bits_eqb (ghash_mul_without_the_reflection x
                                (block_from (0x80 :: repeat_of 15 0))) x)
          ghash_probe_blocks = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_unreflected_form_is_a_different_multiplication :
   all_of (fun p => bits_eqb (ghash_mul_without_the_reflection (fst p) (snd p))
                             (gf128_mul (fst p) (snd p)))
          ghash_probe_pairs = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_counter_field_wraps_and_leaves_the_rest_of_the_block_alone :
   bytes_of (inc32 (block_from (repeat_of 12 0xAA ++ (0xFF :: 0xFF :: 0xFF :: 0xFF :: nil)))) =
   0xAA :: 0xAA :: 0xAA :: 0xAA :: 0xAA :: 0xAA :: 0xAA :: 0xAA ::
   0xAA :: 0xAA :: 0xAA :: 0xAA :: 0x00 :: 0x00 :: 0x00 :: 0x00 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    AES-GCM against the published test cases. Each key, IV, plaintext,
@@ -1403,7 +1410,7 @@ Example the_hash_subkey_of_the_all_zero_key_is_the_published_one :
   bytes_of (gcm_subkey (key_schedule 4 (bytes_from (repeat_of 16 0))) 10) =
   0x66 :: 0xE9 :: 0x4B :: 0xD4 :: 0xEF :: 0x8A :: 0x2C :: 0x3B ::
   0x88 :: 0x4C :: 0xFA :: 0x59 :: 0xCA :: 0x34 :: 0x2B :: 0x2E :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-10-024 |*)
 Example the_first_published_case_reaches_its_tag :
@@ -1411,7 +1418,7 @@ Example the_first_published_case_reaches_its_tag :
                              (block_from (repeat_of 12 0)) nil nil)) =
   0x58 :: 0xE2 :: 0xFC :: 0xCE :: 0xFA :: 0x7E :: 0x30 :: 0x61 ::
   0x36 :: 0x7F :: 0x1D :: 0x57 :: 0xA4 :: 0xE7 :: 0x45 :: 0x5A :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-10-024 |*)
 Example the_second_published_case_reaches_its_ciphertext_and_tag :
@@ -1422,7 +1429,7 @@ Example the_second_published_case_reaches_its_ciphertext_and_tag :
         0xF3 :: 0x28 :: 0xC2 :: 0xB9 :: 0x71 :: 0xB2 :: 0xFE :: 0x78 :: nil)
        (0xAB :: 0x6E :: 0x47 :: 0xD4 :: 0x2C :: 0xEC :: 0x13 :: 0xBD ::
         0xF5 :: 0x3A :: 0x67 :: 0xB2 :: 0x12 :: 0x57 :: 0xBD :: 0xDF :: nil).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-10-024 |*)
 Example the_third_published_case_reaches_its_ciphertext_and_tag :
@@ -1451,7 +1458,7 @@ Example the_third_published_case_reaches_its_ciphertext_and_tag :
         0x3D :: 0x58 :: 0xE0 :: 0x91 :: 0x47 :: 0x3F :: 0x59 :: 0x85 :: nil)
        (0x4D :: 0x5C :: 0x2A :: 0xF3 :: 0x27 :: 0xCD :: 0x64 :: 0xA6 ::
         0x2C :: 0xF3 :: 0x5A :: 0xBD :: 0x2B :: 0xA6 :: 0xFA :: 0xB4 :: nil).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-10-024 |*)
 Example the_fourth_published_case_carries_associated_data_and_an_unaligned_plaintext :
@@ -1482,7 +1489,7 @@ Example the_fourth_published_case_carries_associated_data_and_an_unaligned_plain
         0x3D :: 0x58 :: 0xE0 :: 0x91 :: nil)
        (0x5B :: 0xC9 :: 0x4F :: 0xBC :: 0x32 :: 0x21 :: 0xA5 :: 0xDB ::
         0x94 :: 0xFA :: 0xE9 :: 0x5A :: 0xE7 :: 0x12 :: 0x1A :: 0x47 :: nil).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The fifth published case takes the other J0 arm: its IV is 64 bits, so the
    initial counter block is a GHASH of the IV and its length rather than a
@@ -1515,7 +1522,7 @@ Example the_fifth_published_case_takes_the_other_initial_counter_arm :
         0xC2 :: 0x3F :: 0x45 :: 0x98 :: nil)
        (0x36 :: 0x12 :: 0xD2 :: 0xE7 :: 0x9E :: 0x3B :: 0x07 :: 0x85 ::
         0x56 :: 0x1B :: 0xE1 :: 0x4A :: 0xAC :: 0xA2 :: 0xFC :: 0xCB :: nil).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    Authenticated decryption, and the two near alternatives to the composition.
@@ -1538,7 +1545,7 @@ Example the_open_of_a_seal_returns_the_message_and_a_flipped_tag_bit_returns_not
         | Some _ => false
         | None => true
         end) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The unpadded GHASH input agrees with the standard's at every published case
    whose associated data and ciphertext are both block-aligned, which is the
@@ -1579,7 +1586,7 @@ Example the_unpadded_ghash_input_agrees_at_every_aligned_published_case :
                  (snd (gcm_encrypt 4 (bytes_from (upto 16))
                                    (block_from (repeat_of 12 7)) (block_from (upto 16))
                                    (block_from (upto 32))))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_unpadded_ghash_input_misses_the_fourth_published_tag :
   bits_eqb (snd (gcm_encrypt_unpadded 4
@@ -1601,7 +1608,7 @@ Example the_unpadded_ghash_input_misses_the_fourth_published_tag :
            (block_from (0x5B :: 0xC9 :: 0x4F :: 0xBC :: 0x32 :: 0x21 :: 0xA5 :: 0xDB ::
                         0x94 :: 0xFA :: 0xE9 :: 0x5A :: 0xE7 :: 0x12 :: 0x1A :: 0x47 :: nil))
   = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And the counter started at J0 agrees at every empty plaintext, which is the
    first published case, and parts from the standard at the second. A vector
@@ -1611,7 +1618,7 @@ Example the_counter_started_at_j0_agrees_at_the_empty_plaintext :
                                (block_from (repeat_of 12 0)) nil nil in
   let b := gcm_encrypt 4 (bytes_from (repeat_of 16 0)) (block_from (repeat_of 12 0)) nil nil in
   andb (bits_eqb (fst a) (fst b)) (bits_eqb (snd a) (snd b)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_counter_started_at_j0_misses_the_second_published_ciphertext :
   bits_eqb (fst (gcm_encrypt_from_j0 4 (bytes_from (repeat_of 16 0))
@@ -1620,7 +1627,7 @@ Example the_counter_started_at_j0_misses_the_second_published_ciphertext :
            (block_from (0x03 :: 0x88 :: 0xDA :: 0xCE :: 0x60 :: 0xB6 :: 0xA3 :: 0x92 ::
                         0xF3 :: 0x28 :: 0xC2 :: 0xB9 :: 0x71 :: 0xB2 :: 0xFE :: 0x78 :: nil))
   = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    What a reused nonce costs, computed rather than argued. Two messages sealed
@@ -1639,7 +1646,7 @@ Example a_reused_nonce_carries_the_exclusive_or_of_the_two_messages :
   let m2 := block_from (rev_of (upto block_bytes)) in
   bits_eqb (bxor (fst (gcm_encrypt 4 key iv nil m1)) (fst (gcm_encrypt 4 key iv nil m2)))
            (bxor m1 m2) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The parameter record inhabited, and the field nothing reads.
@@ -1649,20 +1656,20 @@ Example the_witness_at_the_platform_parameters_is_the_first_published_case :
   bytes_of (snd (seal_under demo demo_key nil)) =
   0x58 :: 0xE2 :: 0xFC :: 0xCE :: 0xFA :: 0x7E :: 0x30 :: 0x61 ::
   0x36 :: 0x7F :: 0x1D :: 0x57 :: 0xA4 :: 0xE7 :: 0x45 :: 0x5A :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_stated_invocation_bound_changes_nothing_the_primitive_computes :
   let a := seal_under demo demo_key nil in
   let b := seal_under demo_with_a_stated_bound demo_key nil in
   andb (bits_eqb (fst a) (fst b)) (bits_eqb (snd a) (snd b)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_truncated_tag_is_a_prefix_of_the_full_one :
   let full := snd (seal_under demo demo_key nil) in
   let short := snd (seal_under demo_truncated_tag demo_key nil) in
   andb (Nat.eqb (length_of short) shortest_admissible_tag)
        (bits_eqb short (take_of shortest_admissible_tag full)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_three_key_lengths_carry_three_round_counts :
   map_over (fun p => rounds_for (key_words p)) (demo :: demo_aes192 :: demo_aes256 :: nil) =
@@ -1685,7 +1692,7 @@ Example the_key_schedule_has_one_round_key_per_round_and_one_more :
   map_over (fun nk => length_of (key_schedule nk (bytes_from (upto (4 * nk)))))
            (4 :: 6 :: 8 :: nil) =
   44 :: 52 :: 60 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The second substitution's guard, at the key lengths that decide it. The three
    FIPS 197 key lengths do not: they agree under either guard, and only a key of
@@ -1718,7 +1725,7 @@ Example the_two_substitution_guards_agree_at_every_key_length_the_standard_carri
                      (concat_of (concat_of (key_schedule_over sub_byte
                                               raised_substitution_guard nk k))))
          (4 :: 6 :: 8 :: nil) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_two_substitution_guards_part_at_the_key_length_between_them :
   let k := bytes_from (upto (nb * 7)) in
@@ -1726,14 +1733,14 @@ Example the_two_substitution_guards_part_at_the_key_length_between_them :
                                     second_substitution_guard 7 k)))
            (concat_of (concat_of (key_schedule_over sub_byte
                                     raised_substitution_guard 7 k))) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_last_round_key_is_the_last_four_words :
   all_of (fun nk => Nat.eqb (length_of (round_key (key_schedule nk (bytes_from (upto (4 * nk))))
                                                   (rounds_for nk)))
                             block_bytes)
          (4 :: 6 :: 8 :: nil) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_full_tag_is_the_longest_admissible_one :
   Nat.eqb (nth_of 0 admissible_tag_lengths 0) block_bits = true := eq_refl.
@@ -1752,13 +1759,13 @@ Example the_full_tag_is_the_longest_admissible_one :
 Example the_admissible_tag_lengths_descend_one_byte_at_a_time_from_the_full_tag :
   all_of (fun i => Nat.eqb (nth_of i admissible_tag_lengths 0) (block_bits - byte_bits * i))
          (upto (length_of admissible_tag_lengths)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example every_restricted_tag_length_is_whole_bytes_below_the_shortest_admissible_one :
   all_of (fun t => andb (Nat.eqb (Nat.modulo t byte_bits) 0)
                         (Nat.ltb t shortest_admissible_tag))
          restricted_tag_lengths = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_two_tag_length_lists_carry_the_counts_the_standard_states :
   andb (Nat.eqb (length_of admissible_tag_lengths) 5)
@@ -1783,7 +1790,7 @@ Example truncating_at_every_listed_tag_length_takes_whole_bytes_of_the_published
                        (0x58 :: 0xE2 :: 0xFC :: 0xCE :: 0xFA :: 0x7E :: 0x30 :: 0x61 ::
                         0x36 :: 0x7F :: 0x1D :: 0x57 :: 0xA4 :: 0xE7 :: 0x45 :: 0x5A :: nil)))))
          (admissible_tag_lengths ++ restricted_tag_lengths) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The sixteen bytes that are their own bit reversal, which is what makes the
    reflection invisible on a byte and visible on a block. *)
@@ -1792,7 +1799,7 @@ Definition palindromic_bytes : list byte :=
 
 Example there_are_sixteen_bytes_that_are_their_own_reversal :
   length_of palindromic_bytes = 16.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_reflection_fixes_a_block_of_those_bytes_and_moves_the_others :
   andb (all_of (fun b => bits_eqb (reflect_block (concat_of (repeat_of block_bytes b)))
@@ -1800,7 +1807,7 @@ Example the_reflection_fixes_a_block_of_those_bytes_and_moves_the_others :
                palindromic_bytes)
        (negb (bits_eqb (reflect_block (block_from (upto block_bytes)))
                        (block_from (upto block_bytes)))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    R-05-166's inhabitation witnesses: one closed definition per record this

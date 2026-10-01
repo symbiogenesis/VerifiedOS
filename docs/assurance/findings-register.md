@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 849 of them across 146 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 859 of them across 147 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1152,6 +1152,46 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-572** measurement: K-117's lexical reading refuses the intro patterns `(H & H')` and `as (a & b)` and a `&=` notation token, which Rocq 9.1.1 and 9.3.0 both compile
 · Raised: Q38e
 · Disposition: standing, the live set holding none and the rule's docstring and registry row stating them
+
+**F-578** measurement: Q38i's cast clause and its Check's compile fall cannot both hold in ArithmeticComposition.v, CredentialHandles.v, InferenceAdmission.v and TwoSourceExtractor.v, whose 16 such proofs evaluate goals too small for a fall beyond single-run noise, and the cast raised ArithmeticComposition.v's recheck by 2.8% in two single runs
+· Raised: Q38i
+· Disposition: standing, the four modules keeping their scripts
+
+**F-579** measurement: MlDsa.v's three single-evaluation candidates stay unmade, two retained-evidence copies and a dated benchmark binding its digest and no command regenerating a dated record
+· Raised: Q38i
+· Disposition: standing, the cast clause's own exemption
+
+**F-580** measurement: three proofs whose goals unfold to equalities, `Disciplined demo`, `Disciplined demo_pr` and `Admissible demo`, keep their scripts, the cast reading a goal's equality syntactically
+· Raised: Q38i
+· Disposition: standing, each script unchanged
+
+**F-581** measurement: HmacDrbg.v's `pr_true_run` and `first_draw` keep no literal, with which the module's recheck counted 2,042.8e9 retired instructions against 2,019.9e9 while its one-run peak was 8,125,480 KB against 9,312,124 KB
+· Raised: Q38i
+· Disposition: open, Q38j
+
+**F-582** measurement: values two Examples evaluate inside a `forallb` over a family, PqArith.v's ML-DSA-ring transforms of both probes and StorageBridge.v's decode and walk of the medium flipped at offsets 272 and 144, keep no literal, and three round-trip Examples over PqArith's probes are not rewritten through its lemmas
+· Raised: Q38i
+· Disposition: standing, the benefit unmeasured beside the two modules' recheck falls of 20.44% and 28.77%
+
+**F-583** measurement: a literal lemma closed by a cast of `eq_refl` of its folded constant cost the recheck 2.5 and 6.2 times what unfolding it first costs
+· Raised: Q38i
+· Disposition: open, Q38h
+
+**F-584** measurement: single-run retired-instruction figures of unchanged small modules moved by up to 0.75% in compile and 0.62% in recheck between two sets, so a 0.1% or 1% threshold is decidable for a module under about 10e9 instructions only by repeated interleaved runs
+· Raised: Q38i
+· Disposition: open, Q38h and Q38j
+
+**F-585** measurement: a rerun of the dated ML-KEM mutation campaign's definitions-only compile would evaluate Q38i's seven literals under every mutant and PqArith's proof oracle would kill through the literal lemmas, although all 17 recorded selections name the same mutants
+· Raised: Q38i
+· Disposition: standing, the campaign stays as recorded
+
+**F-586** measurement: the dated q19a render-cache campaign's review prefix of CopyRingService.v now carries the module's tactic and the cast, both of its anchors still resolving
+· Raised: Q38i
+· Disposition: standing, the campaign stays as recorded
+
+**F-587** measurement: `wait4` peaks of small `rocqchk` processes read 129 to 131 MiB in two sets and 46 MiB in a third for the same modules, and Sha256.v's rose from 1,458,428 KB to 1,626,180 KB at equal instructions
+· Raised: Q38i
+· Disposition: open, Q38j
 
 **F-566** owed-act: no register entry owns the response to a known inconsistency of the locked prover; the lexical refusals covering #22287, #22387 and #22510, and Q38k's for #22386 and #22389, stand on the lock guide's prose and the audit's code, while R-05-018a's acceptance rests on the compile, the R-05-163 audit and `rocqchk`, which R-05-016a records as sharing the kernel's defects
 · Raised: Q38k
