@@ -780,10 +780,7 @@ Proof. vm_reflexivity. Qed.
    says the engineering root equals every root, which no reflexivity check
    catches and which the count catches. *)
 Definition lax_root_eqb (a b : Root) : bool :=
-  match a with
-  | EngineeringRoot => true
-  | _ => root_eqb a b
-  end.
+  if a is EngineeringRoot then true else root_eqb a b.
 
 Example a_reflexive_equality_can_still_be_wrong :
   andb (all_of (fun r => lax_root_eqb r r) all_roots)
@@ -945,16 +942,15 @@ Proof. vm_reflexivity. Qed.
    only one of the six that is not n bytes, and the other four are. *)
 Example every_call_returns_the_length_its_role_takes :
   all_of (fun c => Nat.eqb (call_out_bits c)
-                           (match call_role c with
-                            | MessageDigest => 8 * digest_bytes (parameters demo)
-                            | _ => 8 * hash_bytes (parameters demo)
-                            end))
+                           (if call_role c is MessageDigest
+                            then 8 * digest_bytes (parameters demo)
+                            else 8 * hash_bytes (parameters demo)))
          (calls demo) = true.
 Proof. vm_reflexivity. Qed.
 
 Example the_five_roles_are_five_and_the_digest_is_the_odd_one :
-  andb (Nat.eqb (count_where (fun c => match call_role c with
-                                       | MessageDigest => true | _ => false end)
+  andb (Nat.eqb (count_where (fun c => if call_role c is MessageDigest then true
+                                       else false)
                              (calls demo)) 1)
        (negb (Nat.eqb (8 * digest_bytes (parameters demo))
                       (8 * hash_bytes (parameters demo)))) = true.
@@ -972,15 +968,11 @@ Proof. vm_reflexivity. Qed.
 (* One: R-05-058c's refused shape, a ROM-resident lattice verifier. Its four
    primitives are the four that entry names beside the hash. *)
 Definition with_a_lattice_verifier : RomVerifier :=
-  {| parameters := parameters demo;
-     header := header demo;
-     order := order demo;
+  {| demo with
      calls := calls demo
               ++ map_over (fun q => {| call_prim := q; call_role := ChainStep;
                                        call_out_bits := 8 * hash_bytes shake_256s |})
-                          lattice_prims;
-     accepted_roots := accepted_roots demo;
-     rollback_floor := rollback_floor demo |}.
+                          lattice_prims |}.
 
 Example the_lattice_verifier_is_refused : admissible_b with_a_lattice_verifier = false.
 Proof. vm_reflexivity. Qed.
@@ -1002,12 +994,8 @@ Proof. vm_reflexivity. Qed.
    the signature first, which is what makes the measurement's own clause
    the single difference. *)
 Definition executing_before_it_is_measured : RomVerifier :=
-  {| parameters := parameters demo;
-     header := header demo;
-     order := ReadHeader :: CheckFloor :: VerifySignature :: Execute :: Measure :: nil;
-     calls := calls demo;
-     accepted_roots := accepted_roots demo;
-     rollback_floor := rollback_floor demo |}.
+  {| demo with
+     order := ReadHeader :: CheckFloor :: VerifySignature :: Execute :: Measure :: nil |}.
 
 Example the_unmeasured_verifier_is_refused :
   admissible_b executing_before_it_is_measured = false.
@@ -1025,12 +1013,7 @@ Proof. vm_reflexivity. Qed.
 (* Three: a verifier whose order drops the floor check. Every other phase
    is in place and each occurs once. *)
 Definition with_no_floor_check : RomVerifier :=
-  {| parameters := parameters demo;
-     header := header demo;
-     order := ReadHeader :: VerifySignature :: Measure :: Execute :: nil;
-     calls := calls demo;
-     accepted_roots := accepted_roots demo;
-     rollback_floor := rollback_floor demo |}.
+  {| demo with order := ReadHeader :: VerifySignature :: Measure :: Execute :: nil |}.
 
 Example the_verifier_with_no_floor_check_is_refused :
   admissible_b with_no_floor_check = false.
@@ -1045,15 +1028,11 @@ Proof. vm_reflexivity. Qed.
    development root. It accepts the production root too, which is why the
    set's size and not its membership is what catches it. *)
 Definition accepting_a_development_root_in_production : RomVerifier :=
-  {| parameters := parameters demo;
-     header := header demo;
-     order := order demo;
-     calls := calls demo;
+  {| demo with
      accepted_roots := fun l => match l with
                                 | Production => ProductionRoot :: DevelopmentRoot :: nil
                                 | other => spec_roots other
-                                end;
-     rollback_floor := rollback_floor demo |}.
+                                end |}.
 
 Example the_widened_root_set_is_refused :
   admissible_b accepting_a_development_root_in_production = false.
@@ -1070,17 +1049,11 @@ Proof. vm_reflexivity. Qed.
    which is the transcription defect of reading Table 2's two size columns
    the wrong way round. The layout is still fixed and still bounded. *)
 Definition signature_field_sized_at_the_public_key : RomVerifier :=
-  {| parameters := parameters demo;
-     header := {| image_offset := image_offset demo_header;
-                  image_length := image_length demo_header;
-                  image_hash := image_hash demo_header;
+  {| demo with
+     header := {| demo_header with
                   image_signature := {| field_offset := 48;
                                         field_length := public_key_bytes shake_256s |};
-                  header_bytes := 48 + public_key_bytes shake_256s |};
-     order := order demo;
-     calls := calls demo;
-     accepted_roots := accepted_roots demo;
-     rollback_floor := rollback_floor demo |}.
+                  header_bytes := 48 + public_key_bytes shake_256s |} |}.
 
 Example the_undersized_signature_field_is_refused :
   admissible_b signature_field_sized_at_the_public_key = false.
@@ -1101,11 +1074,7 @@ Proof. vm_reflexivity. Qed.
    ------------------------------------------------------------------------- *)
 
 Definition header_with (sig_field : HeaderField) (bytes : nat) : Header :=
-  {| image_offset := image_offset demo_header;
-     image_length := image_length demo_header;
-     image_hash := image_hash demo_header;
-     image_signature := sig_field;
-     header_bytes := bytes |}.
+  {| demo_header with image_signature := sig_field; header_bytes := bytes |}.
 
 (* One: the signature field starts inside the hash field, so the fields do
    not ascend. It is still inside the header's own length and still sized to
@@ -1158,15 +1127,11 @@ Proof. vm_reflexivity. Qed.
 (* Four: a production part whose accepted set has one member and it is the
    wrong one, which is what separates the set's size from its membership. *)
 Definition accepting_one_wrong_root_in_production : RomVerifier :=
-  {| parameters := parameters demo;
-     header := header demo;
-     order := order demo;
-     calls := calls demo;
+  {| demo with
      accepted_roots := fun l => match l with
                                 | Production => DevelopmentRoot :: nil
                                 | other => spec_roots other
-                                end;
-     rollback_floor := rollback_floor demo |}.
+                                end |}.
 
 Example one_wrong_root_is_refused_though_the_set_is_still_a_singleton :
   andb (Nat.eqb (length_of (accepted_roots accepting_one_wrong_root_in_production Production)) 1)
@@ -1175,13 +1140,7 @@ Proof. vm_reflexivity. Qed.
 
 (* Five: a verifier with no floor at all, which keeps the floor check in its
    order and admits every version there is. *)
-Definition with_the_floor_at_zero : RomVerifier :=
-  {| parameters := parameters demo;
-     header := header demo;
-     order := order demo;
-     calls := calls demo;
-     accepted_roots := accepted_roots demo;
-     rollback_floor := 0 |}.
+Definition with_the_floor_at_zero : RomVerifier := {| demo with rollback_floor := 0 |}.
 
 Example a_floor_of_zero_is_refused_and_admits_every_version :
   andb (andb (negb (admissible_b with_the_floor_at_zero))
