@@ -536,7 +536,7 @@ Definition present_and_named (t : Transactor) (st : Objects) (n : nat) : bool :=
    R-10-009 means by not trusting the journal. *)
 Fixpoint walk_complete (fuel : nat) (st : Objects) (frontier : list nat) : bool :=
   match fuel with
-  | 0 => all_of (fun n => match kids_at st n with nil => true | _ => false end) frontier
+  | 0 => all_of (fun n => if kids_at st n is nil then true else false) frontier
   | S k => walk_complete k st (concat_of (map_over (kids_at st) frontier))
   end.
 
@@ -622,10 +622,7 @@ Definition ReadsNothingTheRootDoesNotReach (rd : Reader) : Prop :=
    below computes rather than existentially quantifying over the bytes. *)
 Definition answers (rd : Reader) (t : Transactor) (st : Objects)
                    (root n : nat) : bool :=
-  match rd t st root n with
-  | None => false
-  | Some _ => true
-  end.
+  if rd t st root n is None then false else true.
 
 (* T1 (R-06-005, R-10-001). *)
 (*| discharges: R-06-005, R-10-001 |*)
@@ -900,10 +897,8 @@ Definition Op : Type := Ab -> Ab.
    takes". Both clear the staging flags, since after either the spare slot
    holds the generation the machine just left. *)
 Definition toggle (ab : Ab) : Ab :=
-  {| ab_b_live := negb (ab_b_live ab);
-     ab_slot_a := ab_slot_a ab;
-     ab_slot_b := ab_slot_b ab;
-     ab_floor := ab_floor ab;
+  {| ab with
+     ab_b_live := negb (ab_b_live ab);
      ab_staged := false;
      ab_admitted := false; ab_retained := Some (live ab) |}.
 
@@ -927,20 +922,18 @@ Proof. intros ab. reflexivity. Qed.
    ------------------------------------------------------------------------- *)
 
 Definition stage (sr : SignedRoot) (ab : Ab) : Ab :=
-  {| ab_b_live := ab_b_live ab;
+  {| ab with
      ab_slot_a := if ab_b_live ab then sr else ab_slot_a ab;
      ab_slot_b := if ab_b_live ab then ab_slot_b ab else sr;
-     ab_floor := ab_floor ab;
      ab_staged := true;
      ab_admitted := false; ab_retained := None |}.
 
 (* The construction R-11-001's own sentence excludes: a stage that writes
    the slot the machine is running from. *)
 Definition inplace_stage (sr : SignedRoot) (ab : Ab) : Ab :=
-  {| ab_b_live := ab_b_live ab;
+  {| ab with
      ab_slot_a := if ab_b_live ab then ab_slot_a ab else sr;
      ab_slot_b := if ab_b_live ab then sr else ab_slot_b ab;
-     ab_floor := ab_floor ab;
      ab_staged := true;
      ab_admitted := false; ab_retained := None |}.
 
@@ -982,12 +975,7 @@ Definition verify_conjuncts (t : Transactor) (st : Objects) (ab : Ab) : list boo
   (cons (admits t (sr_root (spare ab))) nil)))).
 
 Definition verify (t : Transactor) (st : Objects) (ab : Ab) : Ab :=
-  {| ab_b_live := ab_b_live ab;
-     ab_slot_a := ab_slot_a ab;
-     ab_slot_b := ab_slot_b ab;
-     ab_floor := ab_floor ab;
-     ab_staged := ab_staged ab;
-     ab_admitted := andb (ab_staged ab) (stage_admissible t st ab); ab_retained := ab_retained ab |}.
+  {| ab with ab_admitted := andb (ab_staged ab) (stage_admissible t st ab) |}.
 
 (* Reading 7: the verdict field is backed where the verify step would have
    set it, which is the predicate the flip's safety is stated over. *)
@@ -1029,9 +1017,8 @@ Definition eager_flip (ab : Ab) : Ab := toggle ab.
    shipped security update. *)
 Definition resealing_flip (ab : Ab) : Ab :=
   if andb (ab_staged ab) (ab_admitted ab)
-  then {| ab_b_live := negb (ab_b_live ab);
-          ab_slot_a := ab_slot_a ab;
-          ab_slot_b := ab_slot_b ab;
+  then {| ab with
+          ab_b_live := negb (ab_b_live ab);
           ab_floor := sr_floor (spare ab);
           ab_staged := false;
           ab_admitted := false; ab_retained := Some (live ab) |}
@@ -1045,9 +1032,8 @@ Definition resealing_flip (ab : Ab) : Ab :=
    not a second specification of it. *)
 Definition raising_flip (ab : Ab) : Ab :=
   if andb (ab_staged ab) (ab_admitted ab)
-  then {| ab_b_live := negb (ab_b_live ab);
-          ab_slot_a := ab_slot_a ab;
-          ab_slot_b := ab_slot_b ab;
+  then {| ab with
+          ab_b_live := negb (ab_b_live ab);
           ab_floor := if Nat.ltb (ab_floor ab) (sr_floor (spare ab))
                       then sr_floor (spare ab) else ab_floor ab;
           ab_staged := false;
@@ -1095,12 +1081,7 @@ Definition blind_fall_back (ab : Ab) : Ab := toggle ab.
 (* Settling is what a healthy generation gets: the staging flags clear and
    nothing else moves. *)
 Definition settle (ab : Ab) : Ab :=
-  {| ab_b_live := ab_b_live ab;
-     ab_slot_a := ab_slot_a ab;
-     ab_slot_b := ab_slot_b ab;
-     ab_floor := ab_floor ab;
-     ab_staged := false;
-     ab_admitted := false; ab_retained := ab_retained ab |}.
+  {| ab with ab_staged := false; ab_admitted := false |}.
 
 (* Settling copies both slots and the live bit unchanged, so this one holds
    by conversion too. *)
@@ -1658,10 +1639,9 @@ Qed.
    interface obligation, not a property of a freely supplied list. *)
 Definition verify_public (t : Transactor) (st : Objects) (ab : Ab)
     (pinned offered : nat) (packages : list nat) : Ab :=
-  {| ab_b_live := ab_b_live ab; ab_slot_a := ab_slot_a ab; ab_slot_b := ab_slot_b ab;
-     ab_floor := ab_floor ab; ab_staged := ab_staged ab;
+  {| ab with
      ab_admitted := andb (ab_admitted (verify t st ab))
-       (commitment_ok t pinned offered (cons (sr_root (spare ab)) packages)); ab_retained := ab_retained ab |}.
+       (commitment_ok t pinned offered (cons (sr_root (spare ab)) packages)) |}.
 
 (*| discharges: R-13-023b, R-13-023c, R-17-030v |*)
 Theorem public_admission_binds_the_candidate_and_every_package :
@@ -2214,12 +2194,7 @@ Example a_predecessor_below_the_floor_is_not_returned_to :
 
 Definition journal_trusting_verify (cut : Discipline) (j : list Rec) (txn : nat)
                                    (ab : Ab) : Ab :=
-  {| ab_b_live := ab_b_live ab;
-     ab_slot_a := ab_slot_a ab;
-     ab_slot_b := ab_slot_b ab;
-     ab_floor := ab_floor ab;
-     ab_staged := ab_staged ab;
-     ab_admitted := andb (ab_staged ab) (journal_says_committed cut j txn); ab_retained := ab_retained ab |}.
+  {| ab with ab_admitted := andb (ab_staged ab) (journal_says_committed cut j txn) |}.
 
 (* Under the stopping arm the journal reports the stage uncommitted and the
    trusting transactor refuses; under the skipping arm it reports it
@@ -2420,11 +2395,7 @@ Example a_retained_name_does_not_replace_authentication :
 Proof. repeat split; reflexivity. Qed.
 
 Definition with_walk_depth (t : Transactor) (depth : nat) : Transactor :=
-  {| encode_obj := encode_obj t; content_hash := content_hash t; walk_depth := depth;
-     root_copies := root_copies t; encode_root := encode_root t; checksum := checksum t;
-     enrolled_root := enrolled_root t; sig_ok := sig_ok t; admits := admits t;
-     healthy := healthy t; included := included t; consistent := consistent t;
-     checkpoint_accepted := checkpoint_accepted t |}.
+  {| t with walk_depth := depth |}.
 
 Definition only_successor_root : Objects := fun n =>
   if Nat.eqb n 33 then Some next_root_obj else None.

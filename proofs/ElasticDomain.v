@@ -387,7 +387,7 @@ Definition fixed_tier_shape (m : Manifest) : bool :=
 
 Definition fixed_tier (m : Manifest) : bool :=
   fixed_tier_shape m || mf_device_authority m
-  || match mf_kind m with Some _ => true | None => false end.
+  || (if mf_kind m is Some _ then true else false).
 
 (* The composition-fixed envelope. The slots are the frame's and are read
    through Global below; the grants and endpoints are S9's edges. *)
@@ -515,7 +515,7 @@ Definition decl_admits (d : Decl) : bool :=
   && Nat.leb (vmclear_cost (dc_machine d)) (dc_step d).
 
 Definition is_focus (s : DState) (i : nat) : bool :=
-  match ds_focus s with Some f => Nat.eqb f i | None => false end.
+  if ds_focus s is Some f then Nat.eqb f i else false.
 
 (* The focused member takes the composition's focus weight and request. *)
 Definition eff_weight (d : Decl) (s : DState) (i : nat) : nat :=
@@ -801,8 +801,7 @@ Inductive Reply : Type := Continue | SwitchRequested.
 
 (* Virtual time advanced by u units of service over the competing set. *)
 Definition advance (d : Decl) (s : DState) (u : nat) : DState :=
-  {| ds_vtime := Qplus (ds_vtime s) (Qdiv (qn u) (qn (total_weight d s)));
-     ds_focus := ds_focus s; ds_member := ds_member s |}.
+  {| s with ds_vtime := Qplus (ds_vtime s) (Qdiv (qn u) (qn (total_weight d s))) |}.
 
 Definition earlier_eligible (d : Decl) (s : DState) (i : nat) : bool :=
   any_of (fun j => negb (Nat.eqb j i) && eligible d s j
@@ -823,8 +822,7 @@ Definition reply (d : Decl) (s : DState) (i used rem : nat) : Reply :=
   reply_with (boundary_ok d) d s i used rem.
 
 Definition set_member (s : DState) (i : nat) (f : PcFields) : DState :=
-  {| ds_vtime := ds_vtime s; ds_focus := ds_focus s;
-     ds_member := fun j => if Nat.eqb j i then f else ds_member s j |}.
+  {| s with ds_member := fun j => if Nat.eqb j i then f else ds_member s j |}.
 
 (* The published per-request rule at a real yield: virtual time advances
    by the service over the competing weight, the member's eligible time by
@@ -1158,10 +1156,8 @@ Definition accrues (tb : TimeBase) (st : Stint) : bool :=
 
 Definition stint_lag (tb : TimeBase) (i : nat) (st : Stint) : Q :=
   Qminus (if accrues tb st then Qmult (st_share st i) (qn (st_len st)) else 0%Q)
-         (match st_served st with
-          | Some j => if Nat.eqb j i then qn (st_len st) else 0%Q
-          | None => 0%Q
-          end).
+         (if st_served st is Some j then (if Nat.eqb j i then qn (st_len st) else 0%Q)
+          else 0%Q).
 
 (* Service lag (reading 5): entitlement accrued while competing, less
    service received. *)
@@ -1173,7 +1169,7 @@ Fixpoint lag (tb : TimeBase) (i : nat) (l : list Stint) : Q :=
    manager's request cell names, every member placed at the eligible time
    its preserved lag fixes (reading 5). *)
 Definition relaunch (live pend : nat -> bool) (f : option nat) (s : DState) : DState :=
-  {| ds_vtime := ds_vtime s; ds_focus := f;
+  {| s with ds_focus := f;
      ds_member := fun j => {| pc_active := live j; pc_pending := pend j;
                               pc_eligible := pc_eligible (ds_member s j);
                               pc_deadline := pc_deadline (ds_member s j) |} |}.
@@ -1181,7 +1177,7 @@ Definition relaunch (live pend : nat -> bool) (f : option nat) (s : DState) : DS
 Definition rebalance (d : Decl) (s : DState) (past : list Stint)
     (live pend : nat -> bool) (f : option nat) : DState :=
   let s1 := relaunch live pend f s in
-  {| ds_vtime := ds_vtime s1; ds_focus := f;
+  {| s1 with ds_focus := f;
      ds_member := fun j =>
        let w := qn (eff_weight d s1 j) in
        let ve := Qminus (ds_vtime s1) (Qdiv (lag ServedTime j past) w) in
@@ -1194,7 +1190,7 @@ Definition rebalance (d : Decl) (s : DState) (past : list Stint)
 Definition rebalance_ok (d : Decl) (s : DState) (live pend : nat -> bool) (f : option nat) : bool :=
   all_of (fun j => implb (pc_pending (ds_member s j) && live j) (pend j)
                    && implb (pend j) (live j)) (upto (dc_count d))
-  && match f with Some j => Nat.ltb j (dc_count d) | None => true end.
+  && (if f is Some j then Nat.ltb j (dc_count d) else true).
 
 Inductive DStep : Type :=
 | DSlot (w : nat)
@@ -1210,24 +1206,23 @@ Record Config : Type := {
 
 Definition exec (d : Decl) (c : Config) (st : DStep) : Config :=
   match st with
-  | DSlot w => {| cf_state := cf_state c; cf_rem := w; cf_past := cf_past c |}
+  | DSlot w => {| c with cf_rem := w |}
   | DRebalance live pend f =>
-      {| cf_state := rebalance d (cf_state c) (cf_past c) live pend f;
-         cf_rem := cf_rem c; cf_past := cf_past c |}
+      {| c with cf_state := rebalance d (cf_state c) (cf_past c) live pend f |}
   | DRun r =>
       {| cf_state := charge d (cf_state c) (run_member r) (run_service r) (run_pending r);
          cf_rem := cf_rem c - (run_service r + dc_step d);
          cf_past := cf_past c ++ cons (stint_of_run d (cf_state c) r)
                                       (cons (step_stint d (cf_state c)) nil) |}
   | DIdle =>
-      {| cf_state := cf_state c; cf_rem := 0;
+      {| c with cf_rem := 0;
          cf_past := cf_past c ++ cons (idle_stint d (cf_state c) (cf_rem c)) nil |}
   end.
 
 (* The core idles to the boundary only when nothing is eligible or the
    boundary rule forbids a dispatch. *)
 Definition idle_permitted (d : Decl) (s : DState) (rem : nat) : bool :=
-  match select d s with None => true | Some _ => negb (boundary_ok d rem) end.
+  if select d s is None then true else negb (boundary_ok d rem).
 
 Definition step_ok (d : Decl) (c : Config) (st : DStep) : Prop :=
   match st with
@@ -1594,8 +1589,7 @@ Definition accounting_lag (d : Decl) (s : DState) (i : nat) : Q :=
   Qmult (qn (eff_weight d s i)) (Qminus (ds_vtime s) (pc_eligible (ds_member s i))).
 
 Definition published_leave (d : Decl) (s : DState) (j : nat) : DState :=
-  {| ds_vtime := Qplus (ds_vtime s) (Qdiv (accounting_lag d s j) (qn (total_weight d s)));
-     ds_focus := ds_focus s; ds_member := ds_member s |}.
+  {| s with ds_vtime := Qplus (ds_vtime s) (Qdiv (accounting_lag d s j) (qn (total_weight d s))) |}.
 
 (* At the leave, both lags agree for every member; after the published
    adjustment member 0 is selected at once, its accounting lag is 0, and
@@ -2140,28 +2134,24 @@ Record Arena : Type := {
 }.
 
 Definition class_len (a : Arena) (cls : nat) : nat :=
-  match nth_error (ar_classes a) cls with Some c => sc_length c | None => 0 end.
+  if nth_error (ar_classes a) cls is Some c then sc_length c else 0.
 
 Definition overlaps (b1 l1 b2 l2 : nat) : bool := Nat.ltb b1 (b2 + l2) && Nat.ltb b2 (b1 + l1).
 
 Definition is_release_of (b : nat) (e : option AllocEvent) : bool :=
-  match e with Some (Release b' _) => Nat.eqb b b' | _ => false end.
+  if e is Some (Release b' _) then Nat.eqb b b' else false.
 
 Definition released_between (h : list AllocEvent) (b p q : nat) : bool :=
   any_of (fun k => Nat.ltb p k && Nat.ltb k q && is_release_of b (nth_error h k)) (upto q).
 
 (* (i) Chunks live at the same time are disjoint. *)
 Definition disjoint_at (a : Arena) (h : list AllocEvent) (q : nat) : bool :=
-  match nth_error h q with
-  | Some (Grant _ c2 b2 _) =>
-      all_of (fun p => match nth_error h p with
-                       | Some (Grant _ c1 b1 _) =>
-                           released_between h b1 p q
-                           || negb (overlaps b1 (class_len a c1) b2 (class_len a c2))
-                       | _ => true
-                       end) (upto q)
-  | _ => true
-  end.
+  if nth_error h q is Some (Grant _ c2 b2 _)
+  then all_of (fun p => if nth_error h p is Some (Grant _ c1 b1 _)
+                        then released_between h b1 p q
+                             || negb (overlaps b1 (class_len a c1) b2 (class_len a c2))
+                        else true) (upto q)
+  else true.
 
 Definition LiveChunksDisjoint (a : Arena) (h : list AllocEvent) : Prop :=
   forall q, Nat.ltb q (length h) = true -> disjoint_at a h q = true.
@@ -2169,19 +2159,16 @@ Definition LiveChunksDisjoint (a : Arena) (h : list AllocEvent) : Prop :=
 (* (ii) A chunk's capability is bounded exactly to it, at a class of the
    table, aligned to the class, inside the arena. *)
 Definition grant_exact (a : Arena) (e : AllocEvent) : bool :=
-  match e with
-  | Grant _ cls b k =>
-      match nth_error (ar_classes a) cls with
-      | Some c => class_exact c && Nat.eqb (b mod sc_align c) 0
-                  && Nat.eqb (cap_base k) b && Nat.eqb (cap_length k) (sc_length c)
-                  && Nat.leb (ar_base a) b && Nat.leb (b + sc_length c) (ar_base a + ar_span a)
-      | None => false
-      end
-  | _ => true
-  end.
+  if e is Grant _ cls b k
+  then (if nth_error (ar_classes a) cls is Some c
+        then class_exact c && Nat.eqb (b mod sc_align c) 0
+             && Nat.eqb (cap_base k) b && Nat.eqb (cap_length k) (sc_length c)
+             && Nat.leb (ar_base a) b && Nat.leb (b + sc_length c) (ar_base a + ar_span a)
+        else false)
+  else true.
 
 Definition exact_at (a : Arena) (h : list AllocEvent) (q : nat) : bool :=
-  match nth_error h q with Some e => grant_exact a e | None => true end.
+  if nth_error h q is Some e then grant_exact a e else true.
 
 Definition BoundedExactly (a : Arena) (h : list AllocEvent) : Prop :=
   forall q, Nat.ltb q (length h) = true -> exact_at a h q = true.
@@ -2198,11 +2185,9 @@ Definition memory_before (a : Arena) (h : list AllocEvent) (q : nat) : nat -> na
   fold_left apply_event (firstn q h) (ar_initial a).
 
 Definition zeroed_at (a : Arena) (h : list AllocEvent) (q : nat) : bool :=
-  match nth_error h q with
-  | Some (Grant _ c b _) =>
-      all_of (fun off => Nat.eqb (memory_before a h q (b + off)) 0) (upto (class_len a c))
-  | _ => true
-  end.
+  if nth_error h q is Some (Grant _ c b _)
+  then all_of (fun off => Nat.eqb (memory_before a h q (b + off)) 0) (upto (class_len a c))
+  else true.
 
 Definition ZeroedAtHandoff (a : Arena) (h : list AllocEvent) : Prop :=
   forall q, Nat.ltb q (length h) = true -> zeroed_at a h q = true.
@@ -2210,11 +2195,11 @@ Definition ZeroedAtHandoff (a : Arena) (h : list AllocEvent) : Prop :=
 (* (iv) A released chunk's bytes return to service only after R-08-006's
    barrier and a whole sweep pass begun after that barrier (R-08-007a). *)
 Definition is_barrier (e : option AllocEvent) : bool :=
-  match e with Some BarrierDone => true | _ => false end.
+  if e is Some BarrierDone then true else false.
 Definition is_sweep_begin (e : option AllocEvent) : bool :=
-  match e with Some SweepBegin => true | _ => false end.
+  if e is Some SweepBegin then true else false.
 Definition is_sweep_end (e : option AllocEvent) : bool :=
-  match e with Some SweepEnd => true | _ => false end.
+  if e is Some SweepEnd then true else false.
 
 Definition begun_between (h : list AllocEvent) (sp ep : nat) : bool :=
   any_of (fun k => Nat.ltb sp k && Nat.ltb k ep && is_sweep_begin (nth_error h k)) (upto ep).
@@ -2227,16 +2212,12 @@ Definition gate_passed (h : list AllocEvent) (p q : nat) : bool :=
       (upto q)) (upto q).
 
 Definition reuse_ok_at (a : Arena) (h : list AllocEvent) (q : nat) : bool :=
-  match nth_error h q with
-  | Some (Grant _ c2 b2 _) =>
-      all_of (fun p => match nth_error h p with
-                       | Some (Release b1 c1) =>
-                           negb (overlaps b1 (class_len a c1) b2 (class_len a c2))
-                           || gate_passed h p q
-                       | _ => true
-                       end) (upto q)
-  | _ => true
-  end.
+  if nth_error h q is Some (Grant _ c2 b2 _)
+  then all_of (fun p => if nth_error h p is Some (Release b1 c1)
+                        then negb (overlaps b1 (class_len a c1) b2 (class_len a c2))
+                             || gate_passed h p q
+                        else true) (upto q)
+  else true.
 
 Definition ReusedOnlyAfterTheSweep (a : Arena) (h : list AllocEvent) : Prop :=
   forall q, Nat.ltb q (length h) = true -> reuse_ok_at a h q = true.
@@ -2712,7 +2693,7 @@ Definition demo_domain : Domain := {|
   dom_manifest := fun m => plain_manifest m 3;
   dom_cores := cons 0 nil;
   dom_dormant := fun m c => Nat.ltb m 2 && Nat.eqb c 0;
-  dom_extent := fun c => match c with FirstClass => (0, 1024) | SecondClass => (1024, 2048) end
+  dom_extent := fun c => if c is FirstClass then (0, 1024) else (1024, 2048)
 |}.
 
 Theorem the_demo_envelope_is_admitted :
@@ -2730,7 +2711,7 @@ Definition two_label_domain : Domain := {|
   dom_manifest := fun m => plain_manifest m (if Nat.eqb m 1 then 4 else 3);
   dom_cores := cons 0 nil;
   dom_dormant := fun m c => Nat.ltb m 2 && Nat.eqb c 0;
-  dom_extent := fun c => match c with FirstClass => (0, 1024) | SecondClass => (1024, 2048) end
+  dom_extent := fun c => if c is FirstClass then (0, 1024) else (1024, 2048)
 |}.
 
 (* A member holding device authority, which R-07-037f keeps fixed-tier. *)
@@ -2742,7 +2723,7 @@ Definition driver_domain : Domain := {|
        mf_holds_secret := false; mf_device_authority := Nat.eqb m 1; mf_kind := None |};
   dom_cores := cons 0 nil;
   dom_dormant := fun m c => Nat.ltb m 2 && Nat.eqb c 0;
-  dom_extent := fun c => match c with FirstClass => (0, 1024) | SecondClass => (1024, 2048) end
+  dom_extent := fun c => if c is FirstClass then (0, 1024) else (1024, 2048)
 |}.
 
 (* Both classes over one extent. *)
