@@ -410,10 +410,7 @@ Definition own_reads_before (v : PowerVector) (s : list TableStep) (i : nat) : b
          (upto v.(domain_count)).
 
 Definition releases_follow_own_reads (v : PowerVector) (s : list TableStep) : bool :=
-  all_of (fun st => match st with
-                    | IslandRelease i => own_reads_before v s i
-                    | _ => true
-                    end) s.
+  all_of (fun st => if st is IslandRelease i then own_reads_before v s i else true) s.
 
 (* The composition check, at the cold path and at every declared entry. *)
 Definition release_points_ok (t : ResetTable) (v : PowerVector) : bool :=
@@ -524,10 +521,7 @@ Definition all_reads_before (v : PowerVector) (s : list TableStep) (i : nat) : b
          (upto v.(domain_count)).
 
 Definition releases_follow_all_reads (v : PowerVector) (s : list TableStep) : bool :=
-  all_of (fun st => match st with
-                    | IslandRelease i => all_reads_before v s i
-                    | _ => true
-                    end) s.
+  all_of (fun st => if st is IslandRelease i then all_reads_before v s i else true) s.
 
 (* -------------------------------------------------------------------------
    R-15-198a's staging order (readings 3 and 5).
@@ -545,7 +539,7 @@ Definition staged_ahead_of (v : PowerVector) (s : list TableStep) (a n : nat) : 
 
 (* The shell island is named without condition (reading 5). *)
 Definition ahead_listed (t : ResetTable) : bool :=
-  match t.(ahead_islands) with nil => false | cons _ _ => true end.
+  if t.(ahead_islands) is nil then false else true.
 
 Definition staging_ok (t : ResetTable) (v : PowerVector) : bool :=
   andb (ahead_listed t)
@@ -581,10 +575,7 @@ Qed.
    ------------------------------------------------------------------------- *)
 
 Definition tests_begin_after_rot_rail (s : list TableStep) : bool :=
-  match step_after RotRailUp s with
-  | Some y => step_eqb y EntropyTestsBegin
-  | None => false
-  end.
+  if step_after RotRailUp s is Some y then step_eqb y EntropyTestsBegin else false.
 
 Definition tests_run_under (s : list TableStep) : bool :=
   andb (andb (step_precedes EntropyTestsBegin ClockSpineLock s)
@@ -597,10 +588,9 @@ Definition verdict_before_draws (s : list TableStep) : bool :=
           (step_precedes EntropyVerdictExtended DrawsEntropy s).
 
 Definition verdict_before_releases (s : list TableStep) : bool :=
-  all_of (fun st => match st with
-                    | IslandRelease i => step_precedes EntropyVerdictExtended (IslandRelease i) s
-                    | _ => true
-                    end) s.
+  all_of (fun st => if st is IslandRelease i
+                    then step_precedes EntropyVerdictExtended (IslandRelease i) s
+                    else true) s.
 
 Definition entropy_ok (t : ResetTable) : bool :=
   andb (tests_begin_after_rot_rail t.(table_steps))
@@ -699,19 +689,11 @@ Definition demo_steps : list TableStep :=
   (cons (DomainComplete 3) (cons (DomainReady 2) (cons (DomainComplete 2)
   (cons (IslandRelease 1) nil))))))))))))))).
 
-Definition with_steps (t : ResetTable) (s : list TableStep) : ResetTable := {|
-  table_steps := s;
-  entry_points := t.(entry_points);
-  ahead_islands := t.(ahead_islands);
-  inference_island := t.(inference_island)
-|}.
+Definition with_steps (t : ResetTable) (s : list TableStep) : ResetTable :=
+  {| t with table_steps := s |}.
 
-Definition with_entries (t : ResetTable) (es : list nat) : ResetTable := {|
-  table_steps := t.(table_steps);
-  entry_points := es;
-  ahead_islands := t.(ahead_islands);
-  inference_island := t.(inference_island)
-|}.
+Definition with_entries (t : ResetTable) (es : list nat) : ResetTable :=
+  {| t with entry_points := es |}.
 
 Definition demo_table : ResetTable := {|
   table_steps := demo_steps;
