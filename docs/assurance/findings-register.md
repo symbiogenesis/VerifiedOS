@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 926 of them across 152 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 938 of them across 153 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1227,15 +1227,63 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-570** owed-act: `quickchick properties` and `quickchick check` fall back to the CertiRocq switch at Rocq 9.1.1, so K-117 carries a second 9.1.1 row over Properties.v's closure that Q38f's Check does not expect, and `seed coq --quickchick` still compiles every proof source at 9.1.1
 · Raised: Q38e
-· Disposition: open, Q38f for the fallback to the CertiRocq switch, Q38h having held `seed coq --quickchick`'s compile to `Properties.v`'s `Require` closure
+· Disposition: closed at Q38f, `7d5bb6e0` asking only QuickChick's switch for the randomized half, Q38h having held `seed coq --quickchick`'s compile to `Properties.v`'s `Require` closure
 
 **F-571** owed-act: Vectors.v's header says Properties.v needs an install this repository has not made, and Properties.v's header names the undeclared switch `quickchick-9.1.1`
 · Raised: Q38e
-· Disposition: open, Q38f
+· Disposition: closed at Q38f, `a269146c` restating both headers
 
 **F-572** measurement: K-117's lexical reading refuses the intro patterns `(H & H')` and `as (a & b)` and a `&=` notation token, which Rocq 9.1.1 and 9.3.0 both compile
 · Raised: Q38e
 · Disposition: standing, the live set holding none and the rule's docstring and registry row stating them
+
+**F-623** owed-act: Q38l's join reads the `-- ` notes of seed's journal as part of the verdict before them, and its closing-line pattern and shortfall count miss the undecided mutants Q38f's closing line counts, so a run with an undecided mutant reads as never closing
+· Raised: Q38f
+· Disposition: open, Q38f, a repair of the join under Q38l's contract landing before its first comparison dispatch
+
+**F-624** measurement: no contract stated what a `seed coq` run with an undecided mutant exits
+· Raised: Q38f
+· Disposition: standing, such a run exiting 1 as one with a survivor or an unseeded mutant does, Q38l's route reading the journal rather than the exit
+
+**F-625** measurement: `seed coq`'s enumerative mode shares Q38f's journalling, so it journals each compile and leaves a stopped compile's mutant undecided, beyond the Owns' `--quickchick`
+· Raised: Q38f
+· Disposition: standing, its verdicts otherwise unchanged
+
+**F-626** owed-act: `quickchick properties`, `vectors` and `freeze` and `kernel vectors` stop with a traceback on a per-file timeout or a signal rather than a FAIL line naming the file and the cause
+· Raised: Q38f
+· Disposition: open, failing closed, owned by no item
+
+**F-627** measurement: `quickchick.RECIPE` and `INSTALL` pass `-y`, which also answers opam's root-format question
+· Raised: Q38f
+· Disposition: standing, Q38l's route running them only over the fresh root its bootstrap creates and the guides keeping `provision --apply`'s import out of the local guest
+
+**F-628** measurement: a stopped Gallina compile left QuickChick's extracted program running, which loaded every later compile's timing
+· Raised: Q38f
+· Disposition: closed at Q38f, `67472e21` ending the compile's whole process group
+
+**F-629** owed-act: a drawn set whose program built and then crashed scored its mutant stillborn
+· Raised: Q38f
+· Disposition: closed at Q38f, `176015d5` and `7e41851b` implementing the owner's ruling: an ordinary exception kills the mutant, resource exhaustion, a signal or an unclassifiable status leaves it undecided, a program that did not build stays stillborn, and a prover a signal ended leaves it undecided
+
+**F-630** owed-act: nothing checks each walk's printed point count against the domain size Walks.v's header records, so a walk that skips a point still passes
+· Raised: Q38f
+· Disposition: open, owned by no item
+
+**F-708** measurement: a proof refusal earlier in a run's compile waves is dropped when a later compile is ended by a signal or gallina's per-file limit, leaving the mutant undecided rather than killed
+· Raised: Q38f
+· Disposition: standing, erring toward undecided, the owner's ruling treating a signal as the limit is treated
+
+**F-709** measurement: Q38f's seed.py comment said a refuted set kills the mutant however the run ends, while a drawn compile stopped at the per-file limit is undecided before its output is read
+· Raised: Q38f
+· Disposition: closed at Q38f, `23d80862` narrowing it
+
+**F-710** measurement: no test held gallina's reading of GNU time's signal line, both signal cases using a status above 128
+· Raised: Q38f
+· Disposition: closed at Q38f, `f0e87ba8` holding it with a status below 128
+
+**F-711** measurement: the drawn-set reader's message shapes, read from QuickChick 2.2.0's plugin source, are held only by tests on synthetic output
+· Raised: Q38f
+· Disposition: open, Q38f's hosted dispatches, the first runs to produce them
 
 **F-601** measurement: CertiRocq's `plugin/static/camlrocq.ml`, the copy `certirocq_plugin.cmxs` packs, offers `GPL-2.0-or-later` or the INRIA Non-Commercial License Agreement, not the `LGPL-2.1-or-later` the first reading gave every printer file
 · Raised: Q38g
@@ -1432,7 +1480,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-600** owed-act: Q38f's conditional commits restate a comment in tools/vos/env.py and the header of tools/quickchick/Properties.v, both inputs of Q38l's route, which Q38f's closing landing may not touch beyond its lock, gallina.py, quickchick.py and provision.py
 · Raised: Q38l
-· Disposition: open, Q38f rewording both to hold before and after its switch moves and landing them with its unconditional commits
+· Disposition: closed at Q38f, `f0587334` rewording both to hold before and after its switch moves
 
 **F-615** owed-act: seed's journal records no mutant's operator, which Q38l's join was to read from it, so the join reads each one from a `seed list` listing of the same sample at the same revision
 · Raised: Q38l
