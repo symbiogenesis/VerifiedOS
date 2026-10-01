@@ -13,12 +13,13 @@ an **oracle**, which is whatever decides that a defect has been noticed:
     run.py seed coq                     the prover, and then the Gallina vectors
     run.py seed properties --file ...   the model's own `$[test]` harness
 
-Three verdicts and never two. **Stillborn** is a mutant that did not compile, and
-nothing was decided about the oracle because the oracle never ran. **Killed** is a
-mutant that compiled and moved the oracle's answer. **Survived** is a mutant that
-compiled and did not, and a survivor is the finding: the oracle does not reach that
-site. Counting stillborn mutants as kills is the standard way a mutation score is
-inflated, so a run here reports the three apart and scores over the live population.
+Three verdicts decide a mutant, and never two. **Stillborn** is a mutant that did not
+compile, and nothing was decided about the oracle because the oracle never ran.
+**Killed** is a mutant that compiled and moved the oracle's answer. **Survived** is a
+mutant that compiled and did not, and a survivor is the finding: the oracle does not
+reach that site. Counting stillborn mutants as kills is the standard way a mutation
+score is inflated, so a run here reports the three apart and scores over the live
+population; a Gallina run may also leave a mutant undecided, as below.
 What a verdict is, and the report and the exit code they imply, is
 [vos/seeded.py](../seeded.py)'s and is shared with every other loop that seeds a
 defect; what is here is the population and the three oracles.

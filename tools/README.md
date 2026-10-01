@@ -648,17 +648,17 @@ answers one of the two findings that say why generation pays.
 | [run.py seed](vos/cli/seed.py) | **M0.8d**: the property that named a defect was written before the vectors and never ran, the harness running alphabetically so the symptom aborted the executable ahead of the cause | Mutation operators walked over a Sail or Gallina source, each mutant pointed at an oracle that must notice; a written property inherits the blind spots of the choice to write it and a generated mutant is not chosen at all |
 | [run.py quickchick](vos/cli/quickchick.py) | **M0.8d**, one language over: both defects its known-answer vectors found were transcriptions no structural property was written about | The Gallina front's inputs, which the Wasm oracle has never had any generator for: an enumerative half in the proof gate's switch, and a randomized half in a switch of its own: QuickChick's seeded draws, a refuting one printed as drawn, over the domains too large to walk, and a walk of every point of the rest |
 
-Three verdicts and never two, wherever a mutant is run. **Stillborn** is a mutant that
-did not compile, and nothing was decided about the oracle because the oracle never ran.
-**Killed** is one that compiled and moved the oracle's answer. **Survived** is one that
-compiled and did not, and it is the finding: the oracle does not reach that site.
-Counting stillborn mutants as kills is the standard way a mutation score is inflated,
-so a run scores over the live population and reports the three apart. A Gallina
-compile that reaches gallina's per-file limit is stopped and leaves its mutant
-**undecided**, journalled with the file and the limit beside each compile's wall
-seconds, and the run goes on to the next mutant. An undecided mutant is never a kill or
-a survivor, and it is a finding, since a population with an unanswered member is one
-the run did not decide.
+Three verdicts decide a mutant, and never two, wherever one is run. **Stillborn** is a
+mutant that did not compile, and nothing was decided about the oracle because the oracle
+never ran. **Killed** is one that compiled and moved the oracle's answer. **Survived**
+is one that compiled and did not, and it is the finding: the oracle does not reach that
+site. Counting stillborn mutants as kills is the standard way a mutation score is
+inflated, so a run scores over the live population and reports the three apart. A
+Gallina run may also leave a mutant **undecided**: a compile that reaches gallina's
+per-file limit is stopped, its mutant journalled with the file and the limit beside
+each compile's wall seconds, and the run goes on to the next mutant. An undecided mutant
+is never a kill or a survivor, and it is a finding, since a population with an
+unanswered member is one the run did not decide.
 
 **A killed population is a result about the statements and never about the
 definitions.** Every mutant killed says some theorem moved when a definition did, which
