@@ -834,15 +834,20 @@ def _classes(ctx: Context, registered: set[str]) -> None:
             # A membership sentence in a form no region reads leaves the rules it names
             # unread while its class reads as complete, so it is reported. One lying
             # inside a sentence a region read is a word of that list, which the grammar
-            # below already decides, so it is not reported a second time.
+            # below already decides, so it is not reported a second time. Prose naming a
+            # rule past `is what` is found the same way and cannot be told from one, so
+            # the finding states what it found and both ways out of it.
             spans = [c.span() for clauses in regions for c in clauses]
             missed = [c for c in _MEMBERS_FIND_RE.finditer(doc.raw, lo, hi)
                       if not doc.is_fenced(c.start())
                       and not any(a <= c.start() < b for a, b in spans)]
-            findings += [f"{RULES}:{doc.at(c.start())} states a membership sentence in a "
-                         "form this rule does not read: 'which is what' or 'that is "
-                         "what', either capitalized, single-spaced on one line apart from "
-                         "any underscore, a plain list of ids, then 'are'" for c in missed]
+            findings += [f"{RULES}:{doc.at(c.start())} states 'which is what' or 'that is "
+                         "what' before a rule id, which this rule reads as a membership "
+                         "sentence and cannot take: either rewrite it as one ('which is "
+                         "what' or 'that is what', either capitalized, single-spaced on "
+                         "one line apart from any underscore, a plain list of ids, then "
+                         "'are') or reword the prose so no id follows 'is what'"
+                         for c in missed]
             if missed:
                 unread = True
             # No class's region reaches back past the first opener, so a membership

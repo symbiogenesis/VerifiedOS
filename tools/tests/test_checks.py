@@ -716,17 +716,22 @@ def _k119_every_class_lead_is_read() -> None:
                "fail-closed: no ok line stands beside an unread lead")
 
 
-_K119_MEMBERS_FINDING = ("states a membership sentence in a form this rule does not read: "
-                         "'which is what' or 'that is what', either capitalized, "
-                         "single-spaced on one line apart from any underscore, a plain list "
-                         "of ids, then 'are'")
+_K119_MEMBERS_FINDING = ("states 'which is what' or 'that is what' before a rule id, which "
+                         "this rule reads as a membership sentence and cannot take: either "
+                         "rewrite it as one ('which is what' or 'that is what', either "
+                         "capitalized, single-spaced on one line apart from any underscore, "
+                         "a plain list of ids, then 'are') or reword the prose so no id "
+                         "follows 'is what'")
 
 
 def _k119_every_membership_sentence_is_read() -> None:
     # A membership sentence in a form the reading does not take would leave the rules it
     # names unread while its class reads as complete, so each is reported wherever it
-    # stands: inside a class's region, past the last class, or ahead of the first.
+    # stands: inside a class's region, past the last class, or ahead of the first. Prose
+    # naming a rule past `is what` cannot be told from one, so it is reported in the
+    # same words, which offer both repairs.
     for kwargs in (
+            {"computed": _K119_COMPUTED + " That is what K-05 holds."},
             {"computed": _K119_COMPUTED + " The rest, _which is what K-05 are_, recompute."},
             {"computed": _K119_COMPUTED + " The rest, which is\nwhat K-05 are, recompute."},
             {"computed": _K119_COMPUTED + " The rest, which is what K-05\nare, recompute."},
