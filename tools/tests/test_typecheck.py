@@ -26,10 +26,11 @@ per-file suppression, `extend` or any key outside the committed file's, a file-l
 `noqa` directive naming anything but N999 alone, and a range, `file-ignore` or isort
 `skip_file` or `off` comment each refused, the real ruff showing the floor alone passes
 a `per-file-ignores` entry, a `per-file-target-version` entry, a file-level directive, a
-range, a `file-ignore` and a `skip_file` comment, the index read for the tracked
-modules, and each live-tree run giving a verdict and reaching every module the tree
-tracks, a missing or another installed checker refused. The
-import cases hold the scan beside the checkers: an import of a module ruff.toml bans at
+range, a `file-ignore` and a `skip_file` comment, the real ruff reaching with
+`# ruff: ignore[...]` exactly the lines the gate's reading of it says, the index read
+for the tracked modules, and each live-tree run giving a verdict and reaching every
+module the tree tracks, a missing or another installed checker refused. The import
+cases hold the scan beside the checkers: an import of a module ruff.toml bans at
 module level refused outside a function body, in a class body, a module-level block or
 the main guard, or behind an `if` reading a `platform` other than `sys.platform`,
 reading `sys.platform` other than by comparing it with string literals, or comparing it
@@ -1020,13 +1021,12 @@ def _file_suppressions_refused() -> None:
     # and wherever it sits, is refused unless it names only N999, and so is one after
     # trailing code, which ruff ignores. A code with no colon before it names nothing,
     # and ruff reads that directive as switching every rule off. Each comment of a range
-    # is refused too: both
-    # ends of a pair at module level or in a class body, a disable with no enable, which
-    # runs to the end of its block, and one spaced as ruff still reads it; and so are a
-    # file-ignore and isort's skip_file and off, a trailing skip_file among them, which
-    # ruff reads wherever it sits. A string spelling either, a spelling ruff does not
-    # read, and a suppression reaching one statement or line and never a block are not
-    # refused.
+    # is refused too: both ends of a pair at module level or in a class body, a disable
+    # with no enable, which runs to the end of its block, and one spaced as ruff still
+    # reads it; and so are a file-ignore and isort's skip_file and off, a trailing
+    # skip_file among them, which ruff reads wherever it sits. A string spelling either, a
+    # spelling ruff does not read, and a suppression reaching one logical line or one line
+    # are not refused.
     refused = {
         "codes.py": "# ruff: noqa: ANN001\n",
         "flake8.py": "# flake8: noqa: ANN001,ANN201\n",
@@ -1088,6 +1088,65 @@ def _file_suppressions_refused() -> None:
     ensure(len(failed) == 2 and failed[0].startswith("latin.py cannot be read: ")
            and failed[1].startswith("open.py cannot be tokenized: "),
            f"a module that cannot be read or tokenized must be refused: {failed!r}")
+
+
+def _ruff_ignore_reaches_one_line() -> None:
+    # The reading under which the gate admits ruff's `ignore[...]` comment, held against
+    # the pinned ruff: on a line of its own it reaches the one logical line beneath it,
+    # past blank and comment lines, a multi-line one whole, a compound statement's header
+    # but not its block unless the block shares the header's line, a decorator but not the
+    # definition beneath, and every statement a semicolon joins; inside brackets it reaches the one line beneath it; one
+    # ending a line reaches that line alone; and a line takes in the lines a backslash or
+    # a multi-line string joins to it. The module's E711 findings are what ruff leaves.
+    text = "\n".join([
+        "x = y = None",                          # 1
+        "# ruff: ignore[E711]",                  # 2
+        "",                                      # 3
+        "# a comment between",                   # 4
+        "a = (x == None,",                       # 5 reached, with 6
+        "     y == None)",                       # 6
+        "b = x == None",                         # 7
+        "# ruff: ignore[E711]",                  # 8
+        "if x == None:",                         # 9 reached, not its block
+        "    c = y == None",                     # 10
+        "# ruff: ignore[E711]",                  # 11
+        "if x == None: d = y == None",           # 12 reached whole
+        "# ruff: ignore[E711]",                  # 13
+        "@print(x == None)",                     # 14 reached, not the definition
+        "def f(e: object = y == None) -> None:",  # 15
+        "    pass",                              # 16
+        "g = (",                                 # 17
+        "    # ruff: ignore[E711]",              # 18
+        "    x == None,",                        # 19 reached, not 20
+        "    y == None,",                        # 20
+        ")",                                     # 21
+        "h = (x == None,  # ruff: ignore[E711]",  # 22 reached, not 23
+        "     y == None)",                       # 23
+        "i = x == None or \\",                   # 24 joined to 25
+        "    y == None  # ruff: ignore[E711]",   # 25
+        "j = (x == None, '''",                   # 26 joined to 28
+        "text",                                  # 27
+        "''')  # ruff: ignore[E711]",            # 28
+        "# ruff: ignore[E711]",                  # 29
+        "k = x == None; m = y == None",          # 30 reached, both statements
+        "n = x == None",                         # 31
+        ""])
+    rep = Reporter()
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        _write_tools(Path(td), {"reach.py": text}, '[lint]\nselect = ["E711"]\n')
+        exe = typecheck._pinned(rep, "ruff", typecheck.RUFF_VERSION)
+        ensure(exe is not None, f"the pinned ruff must be installed: {rep.out!r}")
+        done = subprocess.run([cast("str", exe), "check", "--config",
+                               str(Path(td) / "tools" / "ruff.toml"), "--no-cache",
+                               "--output-format", "concise", "--no-fix", "reach.py"],
+                              cwd=Path(td) / "tools", capture_output=True, encoding="utf-8",
+                              errors="replace", check=False, timeout=typecheck.TIMEOUT)
+    found = typecheck._parse_ruff(done.stdout)
+    lines = sorted(int(where.partition(" ")[0].split(":")[1]) for _, where in found)
+    ensure(done.returncode == 1 and {code for code, _ in found} == {"E711"}
+           and lines == [7, 10, 15, 20, 23, 31],
+           f"ruff: ignore must reach the lines the reading says and no others: {lines!r} "
+           f"{done.stdout!r} {done.stderr!r}")
 
 
 def _suppressions_reported_beside_the_run() -> None:
@@ -1753,6 +1812,7 @@ def cases() -> list[Case]:
         Case("ruff-settings-refuse-per-file-suppressions",
              _ruff_settings_refuse_per_file_suppressions),
         Case("file-suppressions-refused", _file_suppressions_refused),
+        Case("ruff-ignore-reaches-one-line", _ruff_ignore_reaches_one_line),
         Case("suppressions-reported-beside-the-run", _suppressions_reported_beside_the_run),
         Case("ty-log-variables-removed", _ty_log_variables_removed),
         Case("imports-refused-outside-functions", _imports_refused_outside_functions),
