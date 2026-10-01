@@ -516,11 +516,12 @@ def _unread_switch_is_not_absent() -> None:
 def _hard_upgrade_is_read_from_the_root() -> None:
     """Whether the reviewed client must write an older root's upgrade before it reads it
     is read as opam 2.6.0 decides it, below 2.6~alpha alone and from every configured
-    repository's archive before the format: an archive the client fails on leaves the
-    reading undecided whatever the format and wherever its repository is listed;
-    otherwise the upgrade is hard below 2.0~beta5, at 2.1~alpha and 2.1~alpha2, and
-    wherever the first regular file of an archive is neither `repo` nor under
-    `packages/`. Another reviewed release claims nothing until its own source is read."""
+    repository's archive before the format: an archive the client fails on, or may
+    misread, leaves the reading undecided whatever the format and wherever its
+    repository is listed; otherwise the upgrade is hard below 2.0~beta5, at 2.1~alpha
+    and 2.1~alpha2, and wherever the first regular file of an archive is neither `repo`
+    nor under `packages/`. Another reviewed release claims nothing until its own source
+    is read."""
     type Member = tuple[str, bytes, bytes]
 
     def reg(name: str, data: bytes = b"x") -> Member:
@@ -584,6 +585,21 @@ def _hard_upgrade_is_read_from_the_root() -> None:
         # empty one is passed over as a directory is
         ("an empty regular member named with a slash", "2.2",
          {"default": tar(reg("default/x/", b""), reg("default/repo"))}, True),
+        # whose content the client does not skip, misreading the header after it
+        ("a regular member named with a slash, carrying content", "2.2",
+         {"default": tar(reg("default/x/"), reg("default/repo"))}, False),
+        # whose content the client reads before it decides
+        ("a first regular file cut short", "2.2",
+         {"default": tar(reg("x", b"x" * 600))[:1000]}, False),
+        # the client reads on to two zero blocks, so an archive with no regular file
+        # decides nothing where it ends otherwise, though the format is hard
+        ("older than 2.0~beta5, an archive with no regular file", "2.0~beta",
+         {"default": tar(node("default/"))}, True),
+        ("older than 2.0~beta5, an archive cut after a directory", "2.0~beta",
+         {"default": tar(node("default/"))[:tarfile.BLOCKSIZE]}, False),
+        ("older than 2.0~beta5, an archive with one zero block, then junk", "2.0~beta",
+         {"default": tar(node("default/"))[:2 * tarfile.BLOCKSIZE]
+          + b"junk" * (tarfile.BLOCKSIZE // 4)}, False),
         ("a link first", "2.2", {"default": link_led}, False),
         ("a hard link first", "2.2",
          {"default": tar(node("x", tarfile.LNKTYPE), reg("default/repo"))}, False),

@@ -489,11 +489,17 @@ def _nested_repository(root: Path) -> bool | None:
 def _archive_nested(archive: Path) -> bool | None:
     """Whether the reviewed client reads one repository archive as nested under a
     directory: true where its first regular file, named as `_named_nested` reads it, is
-    outside the repository's own layout; false where the archive is absent or holds no
-    regular file; and None where that client fails on it before deciding, at a member of
-    `_UNREAD_MEMBERS` or a name it refuses ahead of the first regular file, or over an
-    archive it cannot read. A directory, or a member whose name ends in a slash, is
-    passed over, as that client passes it."""
+    outside the repository's own layout; false where the archive is absent, or holds no
+    regular file and ends where `_ended` says that client's reading ends; and None where
+    that client fails on it before deciding, or may: at a member of `_UNREAD_MEMBERS` or
+    a name it refuses ahead of the first regular file, at that file's content cut short,
+    which it reads before it decides, or over an archive it cannot otherwise read.
+
+    A directory, or a member whose name ends in a slash, which that client reads as a
+    directory, is passed over as it passes one with no content. One carrying content is
+    None, because that client reads none of it and seeks only the padding past it, so it
+    reads its next header from within the blocks that content fills, a misreading this
+    reading does not follow."""
     if not archive.is_file():
         return False
     try:
@@ -502,11 +508,26 @@ def _archive_nested(archive: Path) -> bool | None:
                 if member.type in _UNREAD_MEMBERS:
                     return None
                 if member.isdir() or member.name.endswith("/"):
+                    if member.size:
+                        return None
                     continue
+                members.fileobj.seek(member.offset_data)
+                if len(members.fileobj.read(member.size)) != member.size:
+                    return None
                 return _named_nested(member.name)
+            return _ended(members)
     except (OSError, EOFError, tarfile.TarError, zlib.error):
         return None
-    return False
+
+
+def _ended(members: tarfile.TarFile) -> bool | None:
+    """False where the archive `members` has iterated to its end stops at two zero
+    blocks, where the reviewed client's reader stops too; None where it stops otherwise.
+    tarfile stops at a single zero block, at a header it cannot read and at the stream's
+    end, and that client reads on past a single zero block and fails at the other two."""
+    members.fileobj.seek(members.offset)
+    end = bytes(2 * tarfile.BLOCKSIZE)
+    return False if members.fileobj.read(len(end)) == end else None
 
 
 def _named_nested(name: str) -> bool | None:
