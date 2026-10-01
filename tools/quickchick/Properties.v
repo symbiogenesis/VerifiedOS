@@ -24,11 +24,15 @@
    n-length lists over g's points, and a generator binding several their
    product.
 
-   **What a run extracts is fixed in this file, so a verdict replays.** One
-   sentence below the imports replaces one of QuickChick's own extraction
-   choices. QuickChick seeds its random state with
-   `Random.State.make_self_init`, from system-dependent data, so no verdict
-   need replay; the sentence fixes the seed, which `run.py quickchick
+   **What a run extracts is fixed in this file, so a verdict replays.** Two
+   sentences below the imports replace two of QuickChick's own extraction
+   choices. QuickChick extracts `Nat.sub` as OCaml's `(-)`, which goes below
+   zero where Gallina's subtraction stops at it, so a verdict on any
+   subtraction the extracted program reaches would judge arithmetic Gallina
+   does not have; the first sentence restores the truncating extraction
+   Stdlib's own ExtrOcamlNatInt gives it. QuickChick seeds its random state
+   with `Random.State.make_self_init`, from system-dependent data, so no
+   verdict need replay; the second fixes the seed, which `run.py quickchick
    properties` reads and reports, and every set is drawn from that seed.
 
    It needs `coq-quickchick`, which this repository installs in a switch of
@@ -121,6 +125,12 @@ Open Scope string_scope.
    plugin marks opaque; the warnings are about the extraction and not about
    the properties, and they are what a run would otherwise be read through. *)
 Set Warnings "-extraction-opaque-accessed,-extraction".
+
+(* Gallina's subtraction stops at zero, and QuickChick extracts it as OCaml's
+   `(-)`, which does not. This restores the truncating extraction Stdlib's
+   ExtrOcamlNatInt states, word for word, so the program a property is
+   decided by computes the subtraction the definitions compute. *)
+Extract Constant Nat.sub => "fun n m -> Stdlib.max 0 (n-m)".
 
 (* QuickChick draws from `Random.State.make_self_init ()`, seeded from
    system-dependent data. Every set here is drawn from this one seed
