@@ -401,19 +401,19 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,217.1 |
-| Total estimate range h | 2,680.5–5,753.7 |
-| Completed scope h | 716.1 |
-| Complete by estimate % | 17.0 |
-| Remaining h | 3,501 |
-| Open class I h | 762.5 |
+| Total estimate midpoint h | 4,217.2 |
+| Total estimate range h | 2,683.1–5,751.3 |
+| Completed scope h | 722.7 |
+| Complete by estimate % | 17.1 |
+| Remaining h | 3,494.5 |
+| Open class I h | 756 |
 | Open class X h | 2,738.5 |
 | Retained completion estimate h | 164.5 |
 | Unmeasured completed items | 20 |
-| Calibrated total h | 5,146.1 |
+| Calibrated total h | 5,148.1 |
 | Committed M8a open h | 94.5 |
 | Committed M8b open h | 90.5 |
-| Other committed open h | 2,090.5 |
+| Other committed open h | 2,084 |
 | Conditional open h | 811.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1095,9 +1095,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
     * The apex, memory-plan, mutation, constant-table and corpus readers each read a declaration under an attribute, a locality or a control flag, or refuse it by name, and refuse a record completed from a base where they cannot read one; each one's reading of the live tree is unchanged. ([note](completion-log.md#q38b-make-the-proof-source-readers-outside-the-gate-refuse-what-they-cannot-read))
   * [x] **Q38c · Read the whole corpus's elaborated meaning for comparison** · 3.7 h actual · agent-parallel
     * `run.py proof-reading` reads every constant of a passing compile of the corpus, its type, its About less locations and each transparent body and inductive under `Set Printing All`, and compares two readings entry by entry. ([note](completion-log.md#q38c-read-the-whole-corpuss-elaborated-meaning-for-comparison))
-  * [ ] **Q38d · Close the lexical bypasses the Q38a and Q38b reviews routed** · 6.5 h, range 4–9 · I
-    * **Dispatch. Start:** F-507 to F-511 and their probes in [Q38a's note](completion-log.md#q38a-close-the-gates-rocq-93-setting-gaps-and-its-prefix-blind-spots), and F-516 to F-519 in [Q38b's note](completion-log.md#q38b-make-the-proof-source-readers-outside-the-gate-refuse-what-they-cannot-read); the shared lexer in [proofs.py](../../tools/vos/proofs.py), the witness scan's keyword tables in [cli/proofs.py](../../tools/vos/cli/proofs.py), the pinned reading in [proofaudit.py](../../tools/vos/proofaudit.py), the readers Q38b changed, and K-91's Example reader in [keccak.py](../../tools/vos/checks/keccak.py). **Owns:** `strip_comments` reading a comment that holds no newline as one separator, as Rocq's lexer does; sentences split only outside string literals; `Remark`, `Proposition` and `Property` read as statements that quantify; `Load`, `Cd`, `Add LoadPath`, `Add Rec LoadPath`, `Declare ML Module` and `Ltac2 @ external` refused in proof sources before compilation; the decoration grammar that apex, memplan, mutate, consttab and the corpus exporter each spell beside `CONTROL_PREFIXES` read from one owner, with each reader's look-back for a decoration blanking strings as well as comments; mutate's region keywords covering `Variant`, `CoInductive`, `CoFixpoint`, `Structure` and `Let`; K-91's reader ending an `Example` at its own full stop; the pinned lexing fixture in `test_gallina` restated at the new lexing; and host tests for each. It owns no proof source. **Check:** each finding's probe is refused or demanded, with a positive control; every consumer of the shared lexer reads the live tree exactly as at the base, among them the gate, `proofcites`, `proofsearch`, the corpus exporter, `admission`, `composer`, `wire_formats` and Q38b's readers; `run.py test --only` passes for those modules; `run.py selftest --rule` passes for each rule whose reader moves, with none survived or unseeded; Host CI passes; and Guest CI runs both lanes, its proofs lane taking the full recheck a change to the gate's identity forces. **Join:** every later source child.
-    * **Estimate basis:** the lexer changes with the fixture 1–1.5 h, keyword tables and refusals with tests 1–2 h, the shared decoration grammar with its readers and K-91's reader 1–3 h, the consumer comparison and selftest runs 1–2 h, hosted dispatch 0–0.5 h.
+  * [x] **Q38d · Close the lexical bypasses the Q38a and Q38b reviews routed** · 6.6 h actual · agent-parallel
+    * The shared lexer reads comments, strings and the decoration grammar once for the gate and every proof-source reader, refuses the tokens and dynamic sources it cannot follow, and reads every theorem keyword as quantifying, each consumer's live reading unchanged. ([note](completion-log.md#q38d-close-the-lexical-bypasses-the-q38a-and-q38b-reviews-routed))
   * [x] **Q38e · Compile the Stdlib-only Gallina instruments in the proof switch** · 3.4 h actual · agent-parallel
     * `quickchick vectors` and `freeze`, `kernel vectors` and `seed coq`'s enumerative mode compile in the proof switch with byte-identical vectors and verdicts, `quickchick properties` compiles its harness's closure alone, and K-117 refuses Rocq 9.3's syntax in every file an instrument compiles at an older release. ([note](completion-log.md#q38e-compile-the-stdlib-only-gallina-instruments-in-the-proof-switch))
   * [ ] **Q38f · Run the property harness at Rocq 9.3.0** · 10 h, range 7–13 · I
@@ -1136,7 +1135,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,410.8 h · 57% · 126.3 h complete · open range 1,297–3,272 h.
+**Q subtotal:** 2,410.9 h · 57% · 132.9 h complete · open range 1,293–3,263 h.
 
 ### M0 · Hardware reference
 
@@ -2021,10 +2020,10 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 | attended | X-read | 14 | 45.5 | 26.9 | 0.59 |
 | attended | X-authored | 3 | 18 | 25.5 | 1.42 |
 | attended | All | 63 | 323.9 | 238.4 | 0.74 |
-| agent-parallel | I | 33 | 266 | 84.7 | 0.32 |
+| agent-parallel | I | 34 | 272.5 | 91.3 | 0.34 |
 | agent-parallel | X-read | 10 | 101.5 | 34.7 | 0.34 |
 | agent-parallel | X-authored | 22 | 267 | 39.6 | 0.15 |
-| agent-parallel | All | 65 | 634.5 | 159 | 0.25 |
+| agent-parallel | All | 66 | 641 | 165.6 | 0.26 |
 <!-- calibration-results:end -->
 
 ### Calibration record
@@ -2196,6 +2195,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q38a | I | 3 |
 | Q38b | I | 5 |
 | Q38c | I | 8 |
+| Q38d | I | 6.5 |
 | Q38e | I | 6 |
 | Q38i | I | 10 |
 | Q38k | I | 3 |
