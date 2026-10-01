@@ -544,7 +544,7 @@ def _install_opam_installs_only_what_is_absent() -> None:
                    and not installer.called and not launched.called,
                    f"a client at another release is never replaced: {said.getvalue()}")
         # A root lacking the repository `opam init` fetches is not in the shape the
-        # route leaves after its leading steps, so running the route again would not
+        # route leaves after its leading steps, so the route's remaining steps would not
         # complete it.
         partial = Path(td) / "partial"
         opam_root(partial, "flat", configured=opam_client.OPAM_REPOSITORIES[1:])
