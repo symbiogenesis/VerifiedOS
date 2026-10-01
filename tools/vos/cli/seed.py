@@ -403,7 +403,8 @@ def _coq_shard(found: gallina.Prover, work: Path, rel: str, harness_name: str,
     Every verdict is journalled where it is decided rather than where the shards are
     joined, which is the whole of what makes the record survive: a run torn down never
     reaches the join. So is the mutant the tree is on, as it starts, and each compile's
-    file and wall seconds, as it ends.
+    file and wall seconds, as it ends, and each verdict carries the tree and the mutant
+    it is about, which shards journalling at once would otherwise leave to line order.
 
     A compile that reaches gallina's per-file limit is stopped and decides nothing: its
     mutant is undecided, naming the file and the limit, and the shard goes on to the
@@ -427,7 +428,8 @@ def _coq_shard(found: gallina.Prover, work: Path, rel: str, harness_name: str,
                     verdict = Verdict(mutant, UNDECIDED,
                                       f"{_stopped(stopped)}, so nothing was decided "
                                       "about it")
-                verdicts.append(book.record(verdict))
+                verdicts.append(book.record(verdict,
+                                            f"{work.name}: mutant {mutant.ident}"))
             finally:
                 write_source(staged, original)
     return verdicts

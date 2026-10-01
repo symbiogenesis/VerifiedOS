@@ -376,10 +376,16 @@ def _a_compile_past_the_limit_is_undecided_and_the_run_goes_on() -> None:
                      f"-- quickchick: {gallina.RANDOMIZED} draws from seed 7",
                      "-- quickchick: mutant plus-to-minus/0 (plus-to-minus) "
                      "proofs/A.v:1 ` + ` -> ` - `",
+                     "-- quickchick: mutant plus-to-minus/0 is verdict 1",
                      "-- quickchick: mutant const-inc/0 (const-inc) proofs/A.v:1 `1` -> `2`",
-                     "-- quickchick: mutant const-inc/1 (const-inc) proofs/A.v:1 `2` -> `3`"],
-           f"the journal says the seed the baseline draws from and which mutant the tree is "
-           f"on as it starts: {marks}")
+                     "-- quickchick: mutant const-inc/0 is verdict 2",
+                     "-- quickchick: mutant const-inc/1 (const-inc) proofs/A.v:1 `2` -> `3`",
+                     "-- quickchick: mutant const-inc/1 is verdict 3"],
+           f"the journal says the seed the baseline draws from, which mutant the tree is on "
+           f"as it starts, and which mutant each verdict is about: {marks}")
+    named = [n for n, line in enumerate(lines) if line.endswith(" is verdict 1")]
+    ensure(len(named) == 1 and lines[named[0] + 1].split(None, 1)[0] == "1",
+           f"a verdict's mutant is named on the line directly before it: {journal}")
     ensure(code == 1 and lines[-1] == "== complete: 2 verdict(s) decided, 1 undecided, exit 1"
            and "1 undecided" in said and "FAIL 1 of 3 mutant(s) went undecided" in said,
            f"the run reports the undecided mutant as a finding and closes: {said}")

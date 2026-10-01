@@ -209,14 +209,20 @@ class Journal:
         return (f"== every verdict is written to {self.path} as it is decided, so a "
                 "run that does not finish still says what it decided")
 
-    def record(self, verdict: Verdict) -> Verdict:
+    def record(self, verdict: Verdict, about: str = "") -> Verdict:
         """Write one verdict down and hand it back, so a loop journals and keeps in one
-        expression rather than in two statements that can drift apart."""
+        expression rather than in two statements that can drift apart.
+
+        `about` names what the verdict is about where its `what` may not: two mutants
+        rewriting one token on one line read alike, and trees journalling at once
+        interleave their lines. Where it is given it is written as a note directly
+        before the verdict, naming the verdict's number, in the same write."""
         with self._lock:
             self._n += 1
             if verdict.outcome == UNDECIDED:
                 self._undecided += 1
-            self._write("a", [f"{self._n:>5}  {verdict.outcome:<9} "
+            self._write("a", [*([f"-- {about} is verdict {self._n}"] if about else []),
+                              f"{self._n:>5}  {verdict.outcome:<9} "
                               f"{verdict.mutant.what}: {verdict.detail}"])
         return verdict
 

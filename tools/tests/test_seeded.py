@@ -371,6 +371,14 @@ def _a_journal_names_the_verdict_it_hands_back() -> None:
         written = book.path.read_text(encoding="utf-8")
         ensure(verdict.mutant.what in written and "moved 4" in written,
                f"the line does not name the defect or how it died: {written!r}")
+        ensure(book.record(verdict, "j1: mutant op/7") is verdict,
+               "record did not hand its verdict back")
+        lines = book.path.read_text(encoding="utf-8").splitlines()
+        ensure(lines[-2:] == ["-- j1: mutant op/7 is verdict 2",
+                              f"    2  killed    {verdict.mutant.what}: moved 4"]
+               and not any(line.startswith("--") for line in lines[:-2]),
+               f"what a verdict is about is not named, by its number, directly before "
+               f"it, or is named where none was given: {lines}")
 
 
 def cases() -> list[Case]:
