@@ -808,14 +808,17 @@ def _suite_of(where: Path, files: dict[str, bytes]) -> Path:
 def _cmake_suite_listing() -> None:
     """The suite functions configure runs, run by cmake. A clean suite lists the bytes
     `corpus_listing` renders. A name holding ";" leaves an unhashed line however the
-    list splits it: whole inside brackets, into pieces naming nothing, or into pieces
-    that are themselves listed files. Configure keeps a clean suite beside its manifest
-    and removes one holding a split name even beside a manifest recording its listing
-    exactly; a verified tarball extracting a clean suite writes the manifest
-    `corpus_listing` renders, and one extracting a split name writes none; and a
-    download path the glob would read as a pattern is refused before anything in it is
-    touched. The download URL of a suite already standing is never fetched, so it is a
-    `file://` path that does not exist."""
+    list splits it: whole inside brackets, into pieces naming nothing, into pieces
+    that are themselves listed files, or into pieces holding backslashed ".." steps
+    that a relative glob would collapse onto a listed file; and a name holding a
+    backslash is listed unhashed beside the file its "/" spelling names. Configure
+    keeps a clean suite beside its manifest and removes one holding a split name even
+    beside a manifest recording its listing exactly; a verified tarball extracting a
+    clean suite writes the manifest `corpus_listing` renders, and one extracting a
+    split name writes none; and a download path the glob would read as a pattern or
+    split is refused before anything in it is touched. The download URL of a suite
+    already standing is never fetched, so it is a `file://` path that does not
+    exist."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         work = Path(td).resolve()
         clean = {"rv64ui-p-add": b"\x7fELF", "a0": b"zero", "a/b": b"nested",
@@ -831,9 +834,13 @@ def _cmake_suite_listing() -> None:
         for name, files, want in (
                 ("bracketed", {"[;]": b"whole", "z": b"z"}, "unhashed [;]\n" + hashed(b"z", "z")),
                 ("absent-pieces", {"x;y": b"split", "z": b"z"},
-                 "unhashed x\nunhashed y\n" + hashed(b"z", "z")),
+                 "unhashed x\n" + hashed(b"z", "z") + "unhashed y\n"),
                 ("listed-pieces", _SPLIT,
-                 hashed(b"A", "a") + "unhashed a\n" + hashed(b"B", "b") + "unhashed b\n")):
+                 hashed(b"A", "a") + "unhashed a\n" + hashed(b"B", "b") + "unhashed b\n"),
+                ("collapsing-pieces", {"p;..\\..\\q": b"hidden", "q": b"Q"},
+                 "unhashed ..\\..\\q\nunhashed p\n" + hashed(b"Q", "q")),
+                ("backslashed", {"a\\b": b"hidden", "a/b": b"nested"},
+                 hashed(b"nested", "a/b") + "unhashed a\\b\n")):
             got = _cmake_listing(work, _suite_of(work / name, files))
             ensure(got == (head + want).encode(),
                    f"the {name} name leaves its unhashed lines, got {got!r}")
@@ -882,14 +889,15 @@ def _cmake_suite_listing() -> None:
                        f"a tarball extracting a split name writes no manifest, got "
                        f"{done.returncode} and {said[-400:]!r}")
 
-        suite = _suite_of(work / "dl[x]", {"rv64ui-p-add": b"\x7fELF"})
-        done = _cmake(work, f'download_riscv_tests("{suite.parent}" "riscv-tests" '
-                            f'"{absent}")\n')
-        said = " ".join(done.stderr.split())
-        ensure(done.returncode != 0 and "holds [, ], * or ?" in said
-               and (suite / "rv64ui-p-add").is_file(),
-               f"a download path holding a glob character is refused before its suite is "
-               f"touched, got {done.returncode} and {said[-400:]!r}")
+        for where in ("dl[x]", "dl;x"):
+            suite = _suite_of(work / where, {"rv64ui-p-add": b"\x7fELF"})
+            done = _cmake(work, f'download_riscv_tests("{suite.parent}" "riscv-tests" '
+                                f'"{absent}")\n')
+            said = " ".join(done.stderr.split())
+            ensure(done.returncode != 0 and "holds [, ], *, ? or ;" in said
+                   and (suite / "rv64ui-p-add").is_file(),
+                   f"a download path holding {where[2]!r} is refused before its suite is "
+                   f"touched, got {done.returncode} and {said[-400:]!r}")
 
 
 # `_configure` in a child of its own, with `env.stage` standing in for the run. Two
