@@ -541,8 +541,11 @@ def _json_inventory_counts_memory_arrays_per_cache() -> None:
            f"every cache: {actual.arrays!r}")
     ensure(actual.cells == 16, f"the arrays are part of the expanded cells: {actual.cells}")
     lines = rtl._array_lines({"curated": actual, "baseline": actual})
-    ensure(len(lines) == 2 + 2 * len(expected)
-           and lines[2].split() == ["baseline", "whole", "core", "6", "2", "4"]
+    ensure("a cache's label carries in parentheses how many instances of it the top "
+           "reaches" in " ".join(line.strip() for line in lines[:2]),
+           f"the header says what a cache's parenthesized figure is: {lines[:2]!r}")
+    ensure(len(lines) == 3 + 2 * len(expected)
+           and lines[3].split() == ["baseline", "whole", "core", "6", "2", "4"]
            and lines[-2].split() == ["curated", "under", "cva6_icache", "(1)", "2", "0", "2"]
            and lines[-1].split() == ["curated", "outside", "every", "cache", "1", "0", "1"],
            f"the report is one row per arm and scope, baseline first, each cache's label "
@@ -571,10 +574,17 @@ def _json_inventory_reports_an_absent_cache_as_absent() -> None:
                              ("cva6_icache", 0, (0, 0, 0)), (rtl.OUTSIDE, 1, (1, 0, 1))),
            f"the instruction cache reaches no instance and holds no array: {actual.arrays!r}")
     lines = rtl._array_lines({"curated": actual})
+    header = next((line for line in lines if rtl.ARRAY_KINDS[0] in line), "")
+    row = lines[-2]
     ensure(lines[-3].split() == ["curated", "under", "wt_dcache", "(1)", "3", "2", "1"]
-           and lines[-2].split() == ["curated", "under", "cva6_icache", "absent"]
+           and row.split() == ["curated", "under", "cva6_icache",
+                               "absent:", "the", "top", "reaches", "none"]
            and lines[-1].split() == ["curated", "outside", "every", "cache", "1", "0", "1"],
            f"a cache the netlist lacks is reported absent, not as zeros: {lines!r}")
+    first = header.find(rtl.ARRAY_KINDS[0]) + len(rtl.ARRAY_KINDS[0])
+    ensure(bool(header) and 0 <= row.find("absent") < first and len(row) == len(header),
+           f"the absent text spans the count columns, from inside the first to the end of "
+           f"the last, rather than sitting in the first: {header!r} {row!r}")
 
 
 def _json_inventory_reports_an_empty_cache_as_reached() -> None:

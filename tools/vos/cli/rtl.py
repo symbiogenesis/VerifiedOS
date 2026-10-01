@@ -1150,10 +1150,13 @@ def _array_lines(inventories: dict[str, Inventory]) -> list[str]:
     """Each arm's memory-array instances, in the whole core, under each cache and
     outside every cache.
 
-    A cache's label carries how many instances of it the top reaches, and a cache it
-    reaches none of is reported absent rather than as a row of zeros, which would read
-    as the cache present with no arrays.
+    A cache's label carries how many instances of it the top reaches, which the header
+    says. A cache it reaches none of is reported absent, in text spanning the three
+    count columns, rather than as a row of zeros, which would read as the cache present
+    with no arrays, or as one word that would read as the first column's count.
     """
+    column = 13
+    absent = f"{'absent: the top reaches none':>{column * len(ARRAY_KINDS)}}"
     rows: list[tuple[str, str, str]] = []
     for arm in sorted(inventories):
         for scope, reached, found in inventories[arm].arrays:
@@ -1161,12 +1164,13 @@ def _array_lines(inventories: dict[str, Inventory]) -> list[str]:
                 label = scope
             else:
                 label = f"under {scope} ({reached})" if reached else f"under {scope}"
-            counts = "".join(f"{n:>13}" for n in found) if reached else f"{'absent':>13}"
+            counts = "".join(f"{n:>{column}}" for n in found) if reached else absent
             rows.append((arm, label, counts))
     width = max([len("scope"), *(len(label) for _, label, _ in rows)])
-    lines = ["   memory-array instances, expanded, per arm and scope:",
+    lines = ["   memory-array instances, expanded, per arm and scope; a cache's label carries",
+             "   in parentheses how many instances of it the top reaches:",
              f"     {'arm':<9} {'scope':<{width}}"
-             + "".join(f"{kind:>13}" for kind in ARRAY_KINDS)]
+             + "".join(f"{kind:>{column}}" for kind in ARRAY_KINDS)]
     lines.extend(f"     {arm:<9} {label:<{width}}{counts}" for arm, label, counts in rows)
     return lines
 
