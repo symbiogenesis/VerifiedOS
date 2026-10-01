@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 925 of them across 152 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 926 of them across 152 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1324,7 +1324,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-640** owed-act: the boot signature campaign's report step runs checked-out code under `!cancelled()` after its dispatch check refuses a revision, and neither of its dispatch checks carries an id
 · Raised: Q38h
-· Disposition: open, the repair held on the local branch `work/q38-bootguard-20261001` until the user decides when the five-runner campaign that a change to its workflow starts on push may run
+· Disposition: closed, both checking jobs identifying their dispatch check, the report step requiring that check not to have failed and `test_fanout_ci`'s refused-dispatch reading holding both jobs
 
 **F-641** method: Rocq 9.3 checks an `Ltac` definition's hypothesis names when it reads the definition, so a body naming a hypothesis it does not bind, such as one `injection … as` introduces, is refused
 · Raised: Q38h
@@ -1341,6 +1341,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-644** measurement: in `Keccak.v`'s `squeeze`, the constant-increment mutant of the `0` pattern compiles under `if … is` where the explicit match's mutant did not
 · Raised: Q38h
 · Disposition: standing, the population unchanged and a later mutation run deciding that mutant instead of counting it stillborn
+
+**F-645** measurement: in `MemoryPlan.v`'s `aggregate_demo_plan`, the constant-increment mutant of `slot_of`'s `0` pattern compiles under `if … is` where the explicit match's mutant did not
+· Raised: Q38h
+· Disposition: standing, the population unchanged at 679 and a later mutation run deciding that mutant instead of counting it stillborn
 
 **F-578** measurement: Q38i's cast clause and its Check's compile fall cannot both hold in ArithmeticComposition.v, CredentialHandles.v, InferenceAdmission.v and TwoSourceExtractor.v, whose 16 such proofs evaluate goals too small for a fall beyond single-run noise, and the cast raised ArithmeticComposition.v's recheck by 2.8% in two single runs
 · Raised: Q38i

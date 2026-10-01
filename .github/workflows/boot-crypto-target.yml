@@ -7,7 +7,9 @@
 # campaign job joins the five shard receipts. Pushes to main that change the staged
 # streams or this workflow start it; manual dispatch runs from main, and its optional
 # revision input pins checkout to a commit already on main, verified before any
-# checked-out code runs. A push run keeps GitHub's title, the commit subject; a
+# checked-out code runs. A refused dispatch runs no checked-out code afterwards: each
+# later step that runs commands after a failure also requires its job's check not to
+# have failed. A push run keeps GitHub's title, the commit subject; a
 # dispatched run's title ends with the checked-out revision.
 
 name: boot-crypto-target
@@ -72,6 +74,7 @@ jobs:
           submodules: false
 
       - name: Verify dispatched revision belongs to main
+        id: dispatch
         if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: python
         env:
@@ -187,6 +190,8 @@ jobs:
 
       - name: Preserve the interface receipt and logs
         # always(): a job that reaches its time limit still keeps its progress and logs.
+        # The pinned action runs no checked-out code; after a refused dispatch no step
+        # has written these paths, so it finds no files and uploads nothing.
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -218,6 +223,7 @@ jobs:
           submodules: false
 
       - name: Verify dispatched revision belongs to main
+        id: dispatch
         if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: python
         env:
@@ -265,7 +271,7 @@ jobs:
           python3 tools/run.py boot-crypto join --out "$RUNNER_TEMP/campaign" "${reports[@]}"
 
       - name: Report the campaign
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' }}
         shell: python
         run: |
           import json
@@ -287,6 +293,8 @@ jobs:
               summary.write("\n".join(lines) + "\n")
 
       - name: Preserve the campaign receipt
+        # The pinned action runs no checked-out code; after a refused dispatch the join
+        # has not run, so it finds no receipt and uploads nothing.
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
