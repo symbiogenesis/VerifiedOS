@@ -27,8 +27,11 @@ and [check schedule](#check-scheduling-during-fan-out).
 and pull requests to `main`, or through manual dispatch from `main`, without
 initialized submodules. A dispatch's optional `revision` input names a full commit
 already on `main`; the workflow checks out that commit and refuses any other ref or
-revision before running checked-out code. The [Guest CI contract](ci/README.md) owns
-guest triggers, setup, gate commands, proof reuse, cold runs and evidence limits.
+revision before running checked-out code. A refused dispatch runs none afterwards
+either: each later step that runs commands after a failure, the reporting, workflow
+analysis and model-hook steps included, also requires that check not to have failed.
+The [Guest CI contract](ci/README.md) owns guest triggers, setup, gate commands, proof
+reuse, cold runs and evidence limits.
 [boot-crypto-target.yml](../.github/workflows/boot-crypto-target.yml) runs M7.1f's
 boot signature target campaign, whose [contract](../firmware/crypto/README.md#hosted-target-campaign)
 the crypto README owns.
@@ -39,8 +42,9 @@ the API as *process completed with exit code 1* and says nothing. So that invoca
 carries `--summary`, which writes the per-member verdict as JSON beside the run rather
 than into the checkout, and the workflow's next step renders it into one annotation per
 member that did not come back clean and a table into the job summary. That step runs
-after success or failure, unless the workflow was cancelled, so a gate that stopped
-before the wave finished is named as that rather than left looking like a failing member.
+after success or failure, unless the workflow was cancelled or refused its dispatch, so
+a gate that stopped before the wave finished is named as that rather than left looking
+like a failing member.
 `--summary` adds no member and decides nothing about the tree; asked to write that
 verdict and unable to, it reports
 one finding of its own, which is the only way it reaches the exit code.

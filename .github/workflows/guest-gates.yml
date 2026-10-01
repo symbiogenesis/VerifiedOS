@@ -6,9 +6,13 @@
 # The model and proof lanes share no toolchain or output, so each installs only
 # its own toolchains and runs on its own runner. Manual dispatch runs from main;
 # its optional revision input pins checkout to a commit already on main, verified
-# before any checked-out code runs. A run title follows the workflow name with the
-# title input, which fanout fills with the commit subject, or else with the
-# checked-out revision.
+# before any checked-out code runs. Its optional reading_base input, verified there
+# too, names a proper ancestor of that revision whose proof sources the proofs lane
+# compiles, reads and compares with the passing gate's compile. A refused dispatch
+# runs no checked-out code afterwards: each later step that runs commands after a
+# failure also requires that check not to have failed. A run title follows
+# the workflow name with the title input, which fanout fills with the commit subject,
+# or else with the checked-out revision.
 
 name: guest-gates
 run-name: ${{ format('{0}:{1}', github.workflow, inputs.title || inputs.revision || github.sha) }}
@@ -28,6 +32,10 @@ on:
         description: Install toolchains cold and recompile/recheck every proof
         type: boolean
         default: false
+      reading_base:
+        description: Optional full commit SHA, a proper ancestor of revision, whose proofs the proofs lane reads and compares with the gate's compile (empty reads none)
+        type: string
+        default: ""
   schedule:
     - cron: "23 4 * * 1"
     - cron: "23 4 1 * *"
@@ -106,6 +114,10 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.unchanged != 'true' }}
     runs-on: ubuntu-26.04
+    # A job that reaches this limit is cancelled before its report and upload, so each
+    # lane's step limits sum at least 30 minutes under it. That margin is left to the
+    # steps without a limit of their own, setup, caches, report and upload, which took
+    # under a minute in total in every measured hosted run.
     timeout-minutes: 360
     strategy:
       # One lane's failure must not cancel the other lane's verdict.
@@ -141,12 +153,14 @@ jobs:
           submodules: false
 
       - name: Verify dispatched revision belongs to main
+        id: dispatch
         if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: python
         env:
           REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
           DISPATCH_REF: ${{ github.ref }}
           DISPATCH_MAIN_SHA: ${{ github.sha }}
+          READING_BASE: ${{ inputs.reading_base }}
         run: |
           import os
           import re
@@ -160,6 +174,18 @@ jobs:
               raise SystemExit("Checkout does not match the requested revision")
           subprocess.run(["git", "merge-base", "--is-ancestor", revision,
                           os.environ["DISPATCH_MAIN_SHA"]], check=True)
+          # A nonempty reading base is a commit the revision strictly descends from.
+          base = os.environ.get("READING_BASE", "")
+          if base:
+              if not re.fullmatch(r"[0-9a-f]{40}", base) or base == revision:
+                  raise SystemExit("reading_base must be a full lowercase commit SHA other than the revision")
+              named = subprocess.run(["git", "rev-parse", "--verify", "--quiet", base + "^{commit}"],
+                                     capture_output=True, text=True, check=False)
+              if named.returncode or named.stdout.strip() != base:
+                  raise SystemExit("reading_base names no commit in the checkout's history")
+              if subprocess.run(["git", "merge-base", "--is-ancestor", base, revision],
+                                check=False).returncode:
+                  raise SystemExit("reading_base is not an ancestor of the revision")
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -224,6 +250,8 @@ jobs:
 
       - name: Bootstrap guest toolchains
         id: bootstrap
+        # A cold installation took at most 14.3 minutes on a hosted runner in the model
+        # lane and 11.7 in the proofs lane, and a restored one less.
         timeout-minutes: 120
         env:
           GUEST_TOOLCHAIN_OPTIONS: ${{ matrix.toolchains }}
@@ -244,7 +272,7 @@ jobs:
 
       - name: Identify the Sail solver
         id: solver
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         # The memo only accelerates the build; without an identity the build runs cold.
         continue-on-error: true
         # Sail's memo keys each obligation, not the solver that answered it, so a
@@ -274,8 +302,9 @@ jobs:
 
       - name: Model evidence
         id: evidence
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
-        timeout-minutes: 180
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        # The sweep took at most 12.1 minutes on a hosted runner, with a cold Sail memo.
+        timeout-minutes: 150
         # The proofs lane runs the proof gate on its own runner.
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py evidence --no-proofs \
@@ -292,7 +321,7 @@ jobs:
 
       - name: Identify the proof context
         id: proof-context
-        if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         # Candidates only accelerate the gate; without an identity it checks everything.
         continue-on-error: true
         # Give the identity and every proof gate the SAME explicit environment.
@@ -329,7 +358,7 @@ jobs:
 
       - name: Proof gate
         id: proofs
-        if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 120
         # Cold and warm proofs run in the explicit environment the identity step fixed.
         run: |
@@ -354,9 +383,70 @@ jobs:
           path: ${{ env.GUEST_PROOF_PATHS }}
           key: ${{ steps.proof-cache.outputs.cache-primary-key }}
 
+      - name: Read the proofs against the reading base
+        id: reading
+        # Only a dispatch naming a reading base runs it, over a passing gate's compile.
+        if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.dispatch.outcome != 'failure' && inputs.reading_base != '' && steps.proofs.outcome == 'success' }}
+        # Each reading of the whole corpus, compile included, took about 245 s on the
+        # development guest. An hour bounds both on a runner and keeps the proofs lane's
+        # step limits under the job's, which a timed-out job would cut short before its
+        # report and artifact upload.
+        timeout-minutes: 60
+        env:
+          READING_BASE: ${{ inputs.reading_base }}
+        # Both readings and the comparison run in the gate's explicit environment, and
+        # the base's sources come from its own commit, never from the checkout's tree.
+        # The step passes once both readings are recorded and compared: it logs every
+        # difference the comparison names, and a refused reading or comparison fails it.
+        run: |
+          if [[ ! "$READING_BASE" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::reading_base is not a full lowercase commit SHA"
+            exit 1
+          fi
+          base="$VOS_LOG_DIR/proof-reading-base.json"
+          candidate="$VOS_LOG_DIR/proof-reading-candidate.json"
+          comparison="$VOS_LOG_DIR/proof-reading-compare.log"
+          sources="$RUNNER_TEMP/proof-reading-base"
+          rm -rf -- "$sources" "$base" "$candidate" "$comparison"
+          mkdir -p -- "$sources"
+          git archive --format=tar "$READING_BASE" proofs | tar -x -C "$sources"
+          mapfile -d '' -t proof_env < "$RUNNER_TEMP/proof-environment"
+          /usr/bin/time -f "$GUEST_TIME" env -i "${proof_env[@]}" \
+            python3 tools/run.py proof-reading record --out "$candidate" \
+            2>&1 | tee "$VOS_LOG_DIR/proof-reading-candidate.log"
+          /usr/bin/time -f "$GUEST_TIME" env -i "${proof_env[@]}" \
+            python3 tools/run.py proof-reading record --sources "$sources/proofs" --out "$base" \
+            2>&1 | tee "$VOS_LOG_DIR/proof-reading-base.log"
+          # The comparison's log is its standard output alone, which names each difference.
+          compared=0
+          /usr/bin/time -f "$GUEST_TIME" -o "$VOS_LOG_DIR/proof-reading-compare.time" \
+            env -i "${proof_env[@]}" \
+            python3 tools/run.py proof-reading compare "$base" "$candidate" \
+            > "$comparison" || compared=$?
+          cat -- "$comparison" "$VOS_LOG_DIR/proof-reading-compare.time"
+          first=$(head -n 1 -- "$comparison")
+          count=${first#"FAIL proof-reading: "}
+          count=${count%" difference(s) between $base and $candidate"}
+          if (( compared == 0 )); then
+            echo "Proof reading against \`$READING_BASE\`: the two readings are identical." >> "$GITHUB_STEP_SUMMARY"
+          elif (( compared == 1 )) && [[ "$count" =~ ^[0-9]+$ && "$first" == "FAIL proof-reading: $count difference(s) between $base and $candidate" ]]; then
+            echo "Proof reading against \`$READING_BASE\`: $count difference(s), each named in proof-reading-compare.log." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::proof-reading compare refused the readings rather than comparing them"
+            exit 1
+          fi
+          # The digests outlast the artifact in the run's log and summary.
+          for reading in "$base" "$candidate"; do
+            digest=$(sha256sum -- "$reading")
+            echo "- \`${reading##*/}\` SHA-256 \`${digest%% *}\`" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+
       - name: Check generated model bundle
         id: bundle
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        # The emission took at most 32 s on a hosted runner over the memo a passing
+        # sweep warms. Where the sweep failed first, a cold memo adds at most about the
+        # 6 minutes it adds to the sweep.
         timeout-minutes: 15
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py model bundle --check \
@@ -364,7 +454,8 @@ jobs:
 
       - name: Lint standalone RTL
         id: lint
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        # Lint took at most a second on a hosted runner.
         timeout-minutes: 5
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl lint \
@@ -372,32 +463,39 @@ jobs:
 
       - name: Check frozen RTL widths and store lanes
         id: widthcheck
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
-        timeout-minutes: 15
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        # Building and running the testbench took at most 14 s on a hosted runner.
+        timeout-minutes: 5
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl widthcheck \
             2>&1 | tee "$VOS_LOG_DIR/rtl-widthcheck.log"
 
       - name: Crosscheck RTL against fresh model vectors
         id: crosscheck
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        # Building the vector generator, emitting the vectors and replaying them took
+        # at most 98 s on a hosted runner.
         timeout-minutes: 30
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl crosscheck \
             2>&1 | tee "$VOS_LOG_DIR/rtl-crosscheck.log"
 
       - name: Report guest results
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' }}
         env:
           GUEST_LANE: ${{ matrix.lane }}
           # A restored run is not evidence that the toolchains install cold.
           GUEST_TOOLCHAINS: ${{ env.GUEST_COLD != 'true' && steps.toolchains.outputs.cache-hit == 'true' && 'restored' || 'cold' }}
           # A restored memo's verdicts were not discharged again in this run.
           GUEST_SAIL_MEMO: ${{ matrix.lane == 'model' && (env.GUEST_COLD != 'true' && steps.sail-memo.outputs.cache-matched-key != '' && 'restored' || 'cold') || '' }}
+          # Only the proofs lane reads proofs against a base.
+          GUEST_READING_BASE: ${{ matrix.lane == 'proofs' && inputs.reading_base || '' }}
           STEP_RESULTS: ${{ toJSON(steps) }}
         run: python3 tools/ci/report_guest.py
 
       - name: Preserve guest logs and receipts
+        # The pinned action runs no checked-out code. After a refused dispatch no step
+        # has written the log directory, so it finds no files and uploads nothing.
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

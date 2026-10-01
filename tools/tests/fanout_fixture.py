@@ -43,9 +43,11 @@ def fixture() -> Iterator[tuple[Path, Path, Path]]:
         yield root, lane, Path(remote)
 
 
-def init(root: Path, lane: Path) -> tuple[fanout.Batch, Path]:
+def init(root: Path, lane: Path,
+         reading_base: str | None = None) -> tuple[fanout.Batch, Path]:
     args = argparse.Namespace(batch="example", worktree=[lane], host_worktree=[],
-                              remote="origin", cold=True, defer=["separate experiment"])
+                              remote="origin", cold=True, reading_base=reading_base,
+                              defer=["separate experiment"])
     return fanout.initialize(root, args), root / "out/fanout/example/state.json"
 
 
