@@ -199,6 +199,26 @@ def _a_claim_reads_the_shared_tables_and_decorations() -> None:
            in faults[0], f"a claim above a decorated term: {claims!r} {faults!r}")
 
 
+def _a_claim_reads_its_statement_as_rocq_does() -> None:
+    # The annotation is a comment and separates nothing, so a flag above it is the
+    # statement's, and a comment between a decoration and the vernacular is a separator
+    # as Rocq's lexer reads it; a flag that ends the sentence before is no flag of this one.
+    for lead, flag in (("Fail\n", "Fail"), ("Succeed\n(* why. *)\n", "Succeed"),
+                       ("Fail }\nSucceed\n", "Succeed")):
+        claims, faults = proofcites.discharges(
+            f"Check I.\n{lead}(*| discharges: R-01-001 |*)\nTheorem x : True.\n")
+        ensure(not claims and len(faults) == 1 and f"under `{flag}`" in faults[0],
+               f"a claim below {lead!r} was read as {claims!r}: {faults!r}")
+    for text, name in (("(*| discharges: R-01-001 |*)\nLocal(* c *)Lemma p : True.\n", "p"),
+                       ("(*| discharges: R-01-001 |*)\nLemma(* c *)q : True.\n", "q"),
+                       ("Fail Check I.\n(*| discharges: R-01-001 |*)\nTheorem r : True.\n",
+                        "r"),
+                       ("Fail\n}\n(*| discharges: R-01-001 |*)\nTheorem s : True.\n", "s")):
+        claims, faults = proofcites.discharges(text)
+        ensure(claims == [(name, ["R-01-001"])] and not faults,
+               f"the claim in {text!r} was read as {claims!r}: {faults!r}")
+
+
 def _a_flag_before_a_brace_is_the_braces() -> None:
     # A bullet, a brace or a goal selector is a command of its own, and the locked
     # compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps what follows,
@@ -357,6 +377,8 @@ def cases() -> list[Case]:
              _names_read_the_shared_tables_and_decorations),
         Case("a-claim-reads-the-shared-tables-and-decorations",
              _a_claim_reads_the_shared_tables_and_decorations),
+        Case("a-claim-reads-its-statement-as-rocq-does",
+             _a_claim_reads_its_statement_as_rocq_does),
         Case("a-flag-before-a-brace-is-the-braces", _a_flag_before_a_brace_is_the_braces),
         Case("faithful-region-passes", _a_faithful_region_is_no_finding),
         Case("region-hiding-a-citation", _a_region_hiding_a_citation_is_the_finding),

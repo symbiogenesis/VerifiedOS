@@ -29,7 +29,10 @@ from vos.proofs import (
     VOID,
     decorations,
     marker_depths,
+    sentence_ends,
     sentences,
+    strip_comments,
+    void_flag,
 )
 from vos.register import REQ_TOKEN_RE
 
@@ -107,15 +110,18 @@ DISCHARGE_OPEN = "(*|"
 # every message about a malformed annotation spell it once.
 DISCHARGE_WORD = "discharges"
 
-# The annotation and the sentence beneath it, as one anchored match. The id list may not
-# span lines, which is what bounds the `[^|\r\n]*` run to the line it opens on rather
-# than to the rest of a two-megabyte artifact; nothing but horizontal space may follow
-# the closing marker, and no blank line is admitted between the two, because a discharge
-# that floats above an empty line names whichever sentence happens to come next.
+# The annotation and the sentence beneath it, as two anchored matches, the second where
+# the first ends. The id list may not span lines, which is what bounds the `[^|\r\n]*`
+# run to the line it opens on rather than to the rest of a two-megabyte artifact; nothing
+# but horizontal space may follow the closing marker, and no blank line is admitted
+# between the two, because a discharge that floats above an empty line names whichever
+# sentence happens to come next. The annotation is read in the source, and the sentence
+# in the source with its comments blanked at their own offsets, so a comment between a
+# decoration and the vernacular is the separator Rocq's lexer reads.
 _DISCHARGE_RE = re.compile(
-    rf"\(\*\|[^\S\r\n]*{DISCHARGE_WORD}:(?P<ids>[^|\r\n]*)\|\*\)[^\S\r\n]*\r?\n"
-    rf"[^\S\r\n]*(?P<decorations>{CONTROL_PREFIXES})(?P<vernac>[A-Za-z]+)[^\S\r\n]+"
-    rf"(?P<name>[\w']+)")
+    rf"\(\*\|[^\S\r\n]*{DISCHARGE_WORD}:(?P<ids>[^|\r\n]*)\|\*\)[^\S\r\n]*\r?\n")
+_CLAIMED_RE = re.compile(
+    rf"[^\S\r\n]*{CONTROL_PREFIXES}(?P<vernac>[A-Za-z]+)[^\S\r\n]+(?P<name>[\w']+)")
 
 # One annotation's whole content: the constant it sits above, and the entries that
 # constant claims to answer. Repeats inside one list are the caller's to notice; the
@@ -335,7 +341,9 @@ def discharges(text: str) -> tuple[list[Claim], list[str]]:
     cannot name. An annotation above a vernacular outside `STATEMENTS` is a claim on a
     term rather than on a sentence, which renders perfectly and reads as correct. And one
     above a statement under `Fail` or `Succeed` is a claim on a sentence the file keeps
-    nothing of. The statement is read under any decoration of the shared lexer's grammar.
+    nothing of, the flag standing on the statement's line or above the annotation, which
+    is a comment and separates nothing (proofs.void_flag). The statement is read under
+    any decoration of the shared lexer's grammar, comments as separators.
 
     The line a fault names is accumulated across the scan rather than counted from the
     start of the file at each hit, which is one pass over the text for the whole walk
@@ -345,6 +353,9 @@ def discharges(text: str) -> tuple[list[Claim], list[str]]:
     claims: list[Claim] = []
     faults: list[str] = []
     depths = marker_depths(text, DISCHARGE_OPEN) if DISCHARGE_OPEN in text else {}
+    # the source with its comments blanked at their own offsets, and its sentence ends,
+    # read once and only for a file carrying an annotation
+    blanked: tuple[str, list[int]] | None = None
     at, line = 0, 1
     while (mark := text.find(DISCHARGE_OPEN, at)) >= 0:
         line += text.count("\n", at, mark)
@@ -362,7 +373,11 @@ def discharges(text: str) -> tuple[list[Claim], list[str]]:
                           "above the statement it claims")
             continue
         hit = _DISCHARGE_RE.match(text, mark)
-        if hit is None:
+        if hit is not None and blanked is None:
+            code = strip_comments(text, keep_offsets=True)
+            blanked = (code, sentence_ends(code))
+        claimed = _CLAIMED_RE.match(blanked[0], hit.end()) if hit and blanked else None
+        if hit is None or blanked is None or claimed is None:
             faults.append(f"line {line} opens {DISCHARGE_OPEN} and no discharge "
                           f"annotation follows it; the form is `{DISCHARGE_OPEN} "
                           f"{DISCHARGE_WORD}: R-nn-nnn |*)` alone on its line, with a "
@@ -372,13 +387,13 @@ def discharges(text: str) -> tuple[list[Claim], list[str]]:
         if fault is not None:
             faults.append(f"line {line} states {fault}")
             continue
-        vernac, name = hit.group("vernac"), hit.group("name")
+        vernac, name = claimed.group("vernac"), claimed.group("name")
         if vernac not in STATEMENTS:
             faults.append(f"line {line} claims {', '.join(listed)} above "
                           f"`{vernac} {name}`, which states nothing; a discharge sits "
                           f"above one of {', '.join(STATEMENTS)}")
             continue
-        if (flag := _void(hit.group("decorations"))) is not None:
+        if (flag := void_flag(blanked[0], claimed.start(), blanked[1])) is not None:
             faults.append(f"line {line} claims {', '.join(listed)} above `{vernac} {name}` "
                           f"under `{flag}`, which keeps nothing it states")
             continue
