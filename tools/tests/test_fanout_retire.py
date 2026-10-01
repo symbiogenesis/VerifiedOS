@@ -11,9 +11,10 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Callable
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import asdict, replace
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
@@ -706,34 +707,36 @@ def _native_oracle_locks_of_every_edition() -> None:
 
 def _persistence_campaign_lock() -> None:
     """The emulator flocks its block images inside the campaign's output, which the
-    retirement does not open; a live campaign is seen through the `<output>.lock` the
-    campaign holds beside it, and a finished one retires with its images."""
+    retirement does not open; the corpus command's live campaign is seen through the
+    `persistence.lock` the campaign holds in its corpus directory, and a finished one
+    retires with its images and that lock. The stand-in emulator writes its image,
+    attempts the retirement and returns no verdict, which ends the campaign."""
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
-        e = retire.env.Environment(root, root / "model", root / "build", root / "logs",
+        e = retire.env.Environment(TOOLS.parent, TOOLS.parent / "model", root / "build", root / "logs",
                                    "worker", 4, 4096, 2, 2)
         seen: list[str] = []
 
-        def campaign(*args: object) -> dict[str, object]:
-            output = Path(str(args[3]))
-            output.mkdir(parents=True)
-            (output / "durable.img").write_bytes(b"image")
+        def emulator(argv: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+            Path(argv[argv.index("--blkdev-image-create") + 1]).write_bytes(b"image")
             try:
                 retire.retain_native("worker", str(e.lane_root), str(root / "logs"), "3" * 20)
             except retire.RetirementError as exc:
                 seen.append(str(exc))
-            return {"passed": True}
+            return subprocess.CompletedProcess(argv, 1, "", "")
 
-        with (patch.object(model_cli.block_persistence, "run", side_effect=campaign),
-              redirect_stdout(io.StringIO())):
-            ensure(model_cli._corpus_persistence(e, e.lane_root / "corpus", 30) == 0,
-                   "the stand-in campaign passes")
-        ensure(len(seen) == 1 and seen[0].startswith("native output lock is active: ")
-               and re.search(r"/corpus/persistence-[0-9a-f]{32}\.lock$", seen[0]) is not None,
-               f"a retirement during the campaign refuses on its output lock, got {seen}")
+        with (patch.object(model_cli.block_persistence, "producer_identity", return_value={}),
+              patch.object(model_cli.block_persistence, "subprocess",
+                           SimpleNamespace(run=emulator, TimeoutExpired=subprocess.TimeoutExpired)),
+              redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
+            ensure(model_cli._corpus_persistence(e, e.lane_root / "corpus", 30) == 1,
+                   "the stand-in emulator's missing verdict ends the campaign")
+        ensure(seen == [f"native output lock is active: {e.lane_root / 'corpus' / 'persistence.lock'}"],
+               f"a retirement during the campaign refuses on its directory's lock, got {seen}")
         result = retire.retain_native("worker", str(e.lane_root), str(root / "logs"), "3" * 20)
-        images = list((Path(str(result["archive"])) / "lane" / "corpus").glob("persistence-*/durable.img"))
-        ensure(len(images) == 1 and not e.lane_root.exists(),
-               "after the campaign the lane retires with its images")
+        saved = Path(str(result["archive"])) / "lane" / "corpus"
+        ensure(len(list(saved.glob("persistence-*/durable.img"))) == 1
+               and (saved / "persistence.lock").is_file() and not e.lane_root.exists(),
+               "after the campaign the lane retires with its images and its lock")
 
 
 def _idealloc_build_lock() -> None:
@@ -1116,25 +1119,27 @@ def _c_unread_locks(text: str) -> int:
     return len(_C_UNREAD_LOCK.findall(_c_code(text)))
 
 
-def _campaign_calls(name: str, text: str) -> list[tuple[str, bool]]:
-    """Each `block_persistence.run` call in one source, and whether it sits inside a
-    `with ... hold_lock(<its output>, ...)`."""
-    calls: list[tuple[str, bool]] = []
-
-    def visit(node: ast.AST, held: tuple[str, ...]) -> None:
-        if isinstance(node, ast.With | ast.AsyncWith):
-            held += tuple(ast.dump(item.context_expr.args[0]) for item in node.items
-                          if isinstance(item.context_expr, ast.Call) and item.context_expr.args
-                          and isinstance(item.context_expr.func, ast.Attribute)
-                          and item.context_expr.func.attr == "hold_lock")
-        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "run"
-                and isinstance(node.func.value, ast.Name) and node.func.value.id == "block_persistence"):
-            calls.append((f"{name}:{node.lineno}", len(node.args) > 3 and ast.dump(node.args[3]) in held))
-        for child in ast.iter_child_nodes(node):
-            visit(child, held)
-
-    visit(ast.parse(text), ())
-    return calls
+def _campaign_lock(text: str) -> str | None:
+    """The target, as source, of the `hold_lock` that a module's `run` holds across its
+    whole body, or `None` unless every statement after its docstring sits inside one
+    `with ... hold_lock(<target>, ...)`."""
+    tree = ast.parse(text)
+    run = next((node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "run"), None)
+    if run is None:
+        return None
+    body, first = run.body, run.body[0] if run.body else None
+    if (isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant)
+            and isinstance(first.value.value, str)):
+        body = body[1:]
+    block = body[0] if len(body) == 1 else None
+    if not isinstance(block, ast.With):
+        return None
+    for item in block.items:
+        held = item.context_expr
+        if (isinstance(held, ast.Call) and isinstance(held.func, ast.Attribute)
+                and held.func.attr == "hold_lock" and held.args):
+            return ast.unparse(held.args[0])
+    return None
 
 
 def _producer_lock_scanners_fail_closed() -> None:
@@ -1197,12 +1202,15 @@ def _producer_lock_scanners_fail_closed() -> None:
                         ("syscall(SYS_flock, fd, 2); syscall(__NR_flock, fd, 8);\n", 2),
                         ("/* lockf(fd), F_SETLK */ int fd; // syscall(SYS_flock, fd, 2)\n", 0)):
         ensure(_c_unread_locks(text) == count, f"the C scan must count {count} in {text!r}")
-    campaign = ("def go(out, other):\n"
-                "    block_persistence.run(1, 2, 3, out, 4)\n"
-                "    with env.hold_lock(other, 'x'):\n        block_persistence.run(1, 2, 3, out, 4)\n"
-                "    with env.hold_lock(out, 'x'):\n        block_persistence.run(1, 2, 3, out, 4)\n")
-    ensure([locked for _, locked in _campaign_calls("probe.py", campaign)] == [False, False, True],
-           "only a campaign inside a lock on its own output counts as held")
+    ensure(_campaign_lock('def run(root, output):\n    """Held throughout."""\n'
+                          '    with env.hold_lock(output.parent / "persistence", "x"):\n'
+                          '        launch(output)\n') == "output.parent / 'persistence'",
+           "a run whose whole body sits inside its lock names the lock's target")
+    for text in ('def run(root, output):\n    launch(output)\n'
+                 '    with env.hold_lock(output, "x"):\n        launch(output)\n',
+                 'def run(root, output):\n    with open(output) as stream:\n        launch(stream)\n',
+                 'def other(root, output):\n    with env.hold_lock(output, "x"):\n        launch(output)\n'):
+        ensure(_campaign_lock(text) is None, f"a run not wholly inside a lock holds none: {text!r}")
 
 
 def _producer_lock_inventory() -> None:
@@ -1226,9 +1234,10 @@ def _producer_lock_inventory() -> None:
                for found in _python_record_locks(path.relative_to(TOOLS).as_posix(), path.read_text(encoding="utf-8"))]
     ensure(not records, f"unclassified POSIX record locks: {records}")
     # Native producers' own locks, by file. The emulator flocks a `--blkdev-image`,
-    # which the tools pass only from `block_persistence.run`, under the campaign's
-    # `<output>.lock`; the unit test and the emulator it launches lock images in its
-    # scratch in the build tree, under the lock ctest's caller holds beside that tree.
+    # which the tools pass only from `block_persistence.run`, under the
+    # `persistence.lock` that `run` holds in its output's directory across its whole
+    # body; the unit test and the emulator it launches lock images in its scratch in
+    # the build tree, under the lock ctest's caller holds beside that tree.
     native = {"model/c_emulator/blkdev_image.cpp": 1, "model/test/unit_tests/block_image.cpp": 1}
     counts: dict[str, int | None] = {}
     unread: dict[str, int] = {}
@@ -1248,11 +1257,9 @@ def _producer_lock_inventory() -> None:
                         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))))}
     ensure(launchers == {"vos/block_persistence.py"},
            f"only the persistence campaign passes the emulator a block image, got {launchers}")
-    campaigns = [call for path in sources
-                 for call in _campaign_calls(path.name, path.read_text(encoding="utf-8"))]
-    ensure(bool(campaigns), "precondition: the persistence campaign's callers are found")
-    ensure(all(locked for _, locked in campaigns),
-           f"the campaign runs outside a lock beside its output: {[at for at, locked in campaigns if not locked]}")
+    held = _campaign_lock((TOOLS / "vos" / "block_persistence.py").read_text(encoding="utf-8"))
+    ensure(held == "output.parent / 'persistence'",
+           f"block_persistence.run must hold its output directory's persistence.lock across its whole body, got {held}")
     callers = 0
     for path in sources:
         tree = ast.parse(path.read_text(encoding="utf-8"))

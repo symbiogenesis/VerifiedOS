@@ -15,7 +15,7 @@ import time
 from pathlib import Path
 from typing import cast
 
-from vos import asm, block_authority, config, receipts, trace
+from vos import asm, block_authority, config, env, receipts, trace
 
 
 def payload(length: int) -> bytes:
@@ -284,85 +284,92 @@ def run(root: Path, simulator: Path, profile: Path, output: Path,
 
     The caller owns simulator freshness. Output must be a new lane directory,
     because neither a previous image nor a receipt is eligible as new evidence.
+
+    The emulator flocks each block image it opens, inside `output`, where a lane
+    retirement does not look. The campaign therefore holds `persistence.lock` in
+    `output`'s directory, from before `output` exists until its receipt is written,
+    and that `*.lock` is the one a retirement takes. It is one stable lock for every
+    campaign in that directory, so a second campaign there is refused while one runs.
     """
-    output.mkdir(parents=True, exist_ok=False)
-    identity = producer_identity(root, simulator, profile)
-    results: list[dict[str, object]] = []
-    expected = expected_image(root)
-    expected_digest = hashlib.sha256(expected).hexdigest()
-    f = block_authority.fixture(root)
-    initial = (b"VOSBLK01" + f.block_bytes.to_bytes(8, "little")
-               + f.block_count.to_bytes(8, "little") + bytes(8) + f.backing)
-    initial_digest = hashlib.sha256(initial).hexdigest()
-    if expected == initial:
-        raise ValueError("persistence payload does not distinguish the fixture")
+    with env.hold_lock(output.parent / "persistence", "a block persistence campaign"):
+        output.mkdir(parents=True, exist_ok=False)
+        identity = producer_identity(root, simulator, profile)
+        results: list[dict[str, object]] = []
+        expected = expected_image(root)
+        expected_digest = hashlib.sha256(expected).hexdigest()
+        f = block_authority.fixture(root)
+        initial = (b"VOSBLK01" + f.block_bytes.to_bytes(8, "little")
+                   + f.block_count.to_bytes(8, "little") + bytes(8) + f.backing)
+        initial_digest = hashlib.sha256(initial).hexdigest()
+        if expected == initial:
+            raise ValueError("persistence payload does not distinguish the fixture")
 
-    def execute(name: str, phase: str, image: Path | None, create: bool = False,
-                negative: bool = False) -> list[dict[str, object]]:
-        source, elf = output / f"{name}.s", output / f"{name}.elf"
-        source.write_text(program(root, phase, wrong_byte=name == "wrong-byte"),
-                          encoding="utf-8", newline="\n")
-        asm.assemble_file(source, elf)
-        receipt = output / f"{name}.receipt.jsonl"
-        argv = [str(simulator), "--config", str(profile), "--trace-commit",
-                "--inst-limit", "1000000"]
-        if image is not None:
-            argv += ["--blkdev-image-create" if create else "--blkdev-image",
-                     str(image), "--blkdev-receipt", str(receipt)]
-        argv += [str(elf)]
-        started = time.monotonic()
-        done = subprocess.run(argv, capture_output=True, text=True, errors="replace",
-                              timeout=timeout, check=False, cwd=output)
-        text = done.stdout + done.stderr
-        (output / f"{name}.log").write_text(text, encoding="utf-8")
-        normalized = trace.normalize_commit(text.splitlines())
-        passed = htif_verdict(text, done.returncode,
-                              f.block_count + 1 if negative else None) and bool(normalized)
-        results.append({"name": name, "argv": argv, "returncode": done.returncode,
-                        "elapsed_seconds": round(time.monotonic() - started, 3),
-                        "records": len(normalized), "trace_digest": trace.digest(normalized),
-                        "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
-                        "expected": "HTIF refusal" if negative else "HTIF success",
-                        "passed": passed})
-        if not passed:
-            raise ValueError(f"{name}: missing expected HTIF verdict and nonempty trace")
-        if image is None:
-            return []
-        records = read_receipt(receipt, complete=not negative)
-        validate_case(root, records, phase)
-        return records
+        def execute(name: str, phase: str, image: Path | None, create: bool = False,
+                    negative: bool = False) -> list[dict[str, object]]:
+            source, elf = output / f"{name}.s", output / f"{name}.elf"
+            source.write_text(program(root, phase, wrong_byte=name == "wrong-byte"),
+                              encoding="utf-8", newline="\n")
+            asm.assemble_file(source, elf)
+            receipt = output / f"{name}.receipt.jsonl"
+            argv = [str(simulator), "--config", str(profile), "--trace-commit",
+                    "--inst-limit", "1000000"]
+            if image is not None:
+                argv += ["--blkdev-image-create" if create else "--blkdev-image",
+                         str(image), "--blkdev-receipt", str(receipt)]
+            argv += [str(elf)]
+            started = time.monotonic()
+            done = subprocess.run(argv, capture_output=True, text=True, errors="replace",
+                                  timeout=timeout, check=False, cwd=output)
+            text = done.stdout + done.stderr
+            (output / f"{name}.log").write_text(text, encoding="utf-8")
+            normalized = trace.normalize_commit(text.splitlines())
+            passed = htif_verdict(text, done.returncode,
+                                  f.block_count + 1 if negative else None) and bool(normalized)
+            results.append({"name": name, "argv": argv, "returncode": done.returncode,
+                            "elapsed_seconds": round(time.monotonic() - started, 3),
+                            "records": len(normalized), "trace_digest": trace.digest(normalized),
+                            "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                            "expected": "HTIF refusal" if negative else "HTIF success",
+                            "passed": passed})
+            if not passed:
+                raise ValueError(f"{name}: missing expected HTIF verdict and nonempty trace")
+            if image is None:
+                return []
+            records = read_receipt(receipt, complete=not negative)
+            validate_case(root, records, phase)
+            return records
 
-    report: dict[str, object] = {
-        "schema": "verifiedos-block-persistence-1", "scope": "architectural device persistence",
-        **identity,
-        "initial_image_sha256": initial_digest, "expected_image_sha256": expected_digest,
-        "cases": results, "passed": False,
-    }
-    def campaign() -> None:
-        for phase in ("durable", "flush"):
-            image = output / f"{phase}.img"
-            writer = execute(phase, phase, image, create=True)
-            if (writer[0]["sha256"] != initial_digest or writer[-1]["sha256"] != expected_digest
-                    or image.read_bytes() != expected):
-                raise ValueError(f"{phase}: writer did not persist exactly the expected image")
-            writes = [r for r in writer if r.get("event") == "persist" and r.get("kind") == "write"]
-            flushes = [r for r in writer if r.get("event") == "persist" and r.get("kind") == "flush"]
-            if len(writes) != 1 or len(flushes) != (1 if phase == "flush" else 0):
-                raise ValueError(f"{phase}: receipt lacks the exact write/flush operations")
-            reader = execute(phase + "-reopen", "reopen", image)
-            if (reader[0]["sha256"] != writer[-1]["sha256"]
-                    or reader[-1]["sha256"] != expected_digest or image.read_bytes() != expected):
-                raise ValueError(f"{phase}: reopen changed or substituted the image")
-        execute("wrong-byte", "reopen", output / "durable.img", negative=True)
-        execute("fixture-reload", "reopen", None, negative=True)
-        if (output / "durable.img").read_bytes() != expected:
-            raise ValueError("negative read control changed the persistent image")
-        if producer_identity(root, simulator, profile) != identity:
-            raise ValueError("campaign inputs or simulator changed during execution")
-    try:
-        campaign()
-        report["passed"] = True
-    except (OSError, ValueError, subprocess.TimeoutExpired) as error:
-        report["error"] = str(error)
-    receipts.write(output / "results.json", report)
-    return report
+        report: dict[str, object] = {
+            "schema": "verifiedos-block-persistence-1", "scope": "architectural device persistence",
+            **identity,
+            "initial_image_sha256": initial_digest, "expected_image_sha256": expected_digest,
+            "cases": results, "passed": False,
+        }
+        def campaign() -> None:
+            for phase in ("durable", "flush"):
+                image = output / f"{phase}.img"
+                writer = execute(phase, phase, image, create=True)
+                if (writer[0]["sha256"] != initial_digest or writer[-1]["sha256"] != expected_digest
+                        or image.read_bytes() != expected):
+                    raise ValueError(f"{phase}: writer did not persist exactly the expected image")
+                writes = [r for r in writer if r.get("event") == "persist" and r.get("kind") == "write"]
+                flushes = [r for r in writer if r.get("event") == "persist" and r.get("kind") == "flush"]
+                if len(writes) != 1 or len(flushes) != (1 if phase == "flush" else 0):
+                    raise ValueError(f"{phase}: receipt lacks the exact write/flush operations")
+                reader = execute(phase + "-reopen", "reopen", image)
+                if (reader[0]["sha256"] != writer[-1]["sha256"]
+                        or reader[-1]["sha256"] != expected_digest or image.read_bytes() != expected):
+                    raise ValueError(f"{phase}: reopen changed or substituted the image")
+            execute("wrong-byte", "reopen", output / "durable.img", negative=True)
+            execute("fixture-reload", "reopen", None, negative=True)
+            if (output / "durable.img").read_bytes() != expected:
+                raise ValueError("negative read control changed the persistent image")
+            if producer_identity(root, simulator, profile) != identity:
+                raise ValueError("campaign inputs or simulator changed during execution")
+        try:
+            campaign()
+            report["passed"] = True
+        except (OSError, ValueError, subprocess.TimeoutExpired) as error:
+            report["error"] = str(error)
+        receipts.write(output / "results.json", report)
+        return report
