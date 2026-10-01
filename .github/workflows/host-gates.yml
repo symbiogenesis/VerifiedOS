@@ -169,8 +169,8 @@ jobs:
       # in an environment of their own; any finding or rewrite fails the job.
       # markdown-link-check is skipped because it fetches every external link the
       # model's Markdown names. Hook code and its unlocked dependencies install at run
-      # time, so the step runs on the last shard rather than shard 1, whose uv cache a
-      # push saves.
+      # time. The step runs on the last shard so that shard 1, which also runs the
+      # checker, typecheck, repair path and workflow analysis, does not lengthen.
       - name: Model hooks
         if: ${{ !cancelled() && matrix.platform == 'Ubuntu' && matrix.shard == matrix.shards }}
         shell: bash
