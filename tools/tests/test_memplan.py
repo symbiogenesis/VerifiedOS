@@ -288,6 +288,15 @@ def _a_declaration_the_reader_does_not_take_is_refused() -> None:
                         f"a variant under {lead!r} was carried")
     src = memplan.parse(_TOY + '#[deprecated(since="1", note="see x. y")]\n' + _VARIANT)
     ensure("dear_plan" in src.plans, f"a deprecated variant is a variant: {src.plans}")
+    # the flag sharing its line with the full stop of the sentence before, which is where
+    # the look-back starts: only a string-aware sentence end keeps the quoted full stop
+    # from starting it at `y")]`, past the flag
+    stopped, quoted = "Lemma l : True. Proof. exact I. Qed. ", '#[deprecated(note="x. y")]\n'
+    _refused_saying(_TOY + stopped + "Succeed " + quoted + _VARIANT,
+                    "states dear_plan under `Succeed`",
+                    "a variant under a flag after a full stop was carried")
+    src = memplan.parse(_TOY + stopped + quoted + _VARIANT)
+    ensure("dear_plan" in src.plans, f"and with no flag it is carried: {src.plans}")
     # the positive control: a plan value that is no application of build_plan was never
     # a variant this reader carries, and it stays outside the export as it was
     src = memplan.parse(_TOY + "Definition alias_plan : Plan := demo_plan.\n")

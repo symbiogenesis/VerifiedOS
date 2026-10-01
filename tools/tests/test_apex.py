@@ -227,6 +227,19 @@ def _a_flag_behind_a_quoted_full_stop_is_still_read() -> None:
                         "Definition inner (v : Vocabulary) : Prop := v.(gamma).\n")
     ensure(rec.unread == [] and rec.def_fields.get("inner") == ["gamma"],
            f"a deprecated definition is read: {rec.unread!r} {rec.def_fields!r}")
+    # the flag sharing its line with the full stop of the sentence before, which is
+    # where the look-back starts: only a string-aware sentence end keeps the quoted full
+    # stop from starting it at `y")]`, past the flag
+    stopped = "Lemma l : True. Proof. exact I. Qed. "
+    quoted = '#[deprecated(note="x. y")]\n'
+    body = "Definition inner (v : Vocabulary) : Prop := v.(gamma).\n"
+    rec = _read(_APEX + stopped + "Succeed " + quoted + body)
+    ensure(any("spells 3 `Definition` sentences and this parse reads 2" in said
+               for said in rec.unread) and rec.consumers["gamma"] == ["seam_one"],
+           f"a definition under a flag after a full stop was read: {rec.unread!r}")
+    rec = _read(_APEX + stopped + quoted + body)
+    ensure(rec.unread == [] and rec.consumers["gamma"] == ["seam_one", "inner"],
+           f"and with no flag it is read: {rec.unread!r} {rec.consumers['gamma']!r}")
 
 
 def _a_flag_before_a_brace_is_the_braces() -> None:
