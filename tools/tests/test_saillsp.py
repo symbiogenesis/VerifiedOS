@@ -4,6 +4,7 @@
 import hashlib
 import io
 import json
+import os
 import re
 import subprocess
 import tarfile
@@ -417,6 +418,28 @@ def _base_lock() -> None:
             ensure(not run.called, "the Sail pin must be refused before the switch is inspected")
 
 
+def _base_listing_answers_no_question() -> None:
+    """The base switch's `opam list`, its output captured, reads no standard input and
+    inherits no answer from the caller's environment, in any case the caller names it,
+    so a format upgrade it would ask about is declined rather than left on a prompt the
+    caller cannot see or answered by the caller's settings; the rest of the environment,
+    the root among it, is passed on."""
+    files = {"tools/opam/sail.lock": 'installed: ["sail.0.20.3"]',
+             saillsp.LOCK: json.dumps({"sources": [{"name": "sail", "version": "0.20.3"}]})}
+    answers = {"OPAMYES": "1", "OpamConfirmLevel": "unsafe-yes", "OPAMROOT": "/elsewhere"}
+    with (sandbox_tree(files) as root, patch.dict(os.environ, answers),
+          patch.object(saillsp.subprocess, "run",
+                       return_value=subprocess.CompletedProcess([], 0, "sail 0.20.3\n")) as run):
+        ensure(saillsp._base_inventory(root) == ["sail.0.20.3"], "the base lock must match")
+    passed = run.call_args.kwargs.get("env") or {}
+    ensure(run.call_args.args[0][:2] == ["opam", "list"]
+           and run.call_args.kwargs.get("stdin") is subprocess.DEVNULL,
+           f"opam list's standard input is closed: {run.call_args}")
+    ensure(not {key.upper() for key in passed} & set(env.OPAM_ANSWERS)
+           and passed.get("OPAMROOT") == "/elsewhere",
+           f"opam list is passed no answer and keeps the root: {sorted(passed)}")
+
+
 def _tool_sail_pins_agree() -> None:
     lsp = next(spec for spec in json.loads((TOOLS / "sail-lsp/sources.lock.json").read_text(encoding="utf-8"))
                ["sources"] if spec["name"] == "sail")
@@ -440,4 +463,5 @@ def cases() -> list[Case]:
             Case("refused-installation-is-rebuilt", _refused_installation_rebuilt),
             Case("unreadable-recipe-input-keeps-the-installation", _unreadable_recipe_keeps_installation),
             Case("locked-base-dependency-closure", _base_lock),
+            Case("base-listing-answers-no-question", _base_listing_answers_no_question),
             Case("tool-sail-pins-are-the-locked-release", _tool_sail_pins_agree)]

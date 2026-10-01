@@ -61,9 +61,12 @@ def _base_inventory(root: Path) -> list[str]:
     if len(sail) != 1 or f"sail.{sail[0]['version']}" not in expected:
         raise ValueError("the LSP lock's Sail archive is not the Sail release "
                          "tools/opam/sail.lock installs")
+    # A read with its output captured, so it is given no standard input and no answer
+    # (`env.declining_environment`): a root-format upgrade it would ask about is declined.
     done = subprocess.run(["opam", "list", f"--switch={env.SAIL_SWITCH}", "--installed",
                            "--columns=name,version", "--short"], capture_output=True,
-                          text=True, check=True)
+                          text=True, check=True, stdin=subprocess.DEVNULL,
+                          env=env.declining_environment())
     actual = sorted(".".join(line.split()) for line in done.stdout.splitlines() if line.strip())
     if actual != expected:
         raise ValueError("installed Sail dependency inventory differs from tools/opam/sail.lock")
