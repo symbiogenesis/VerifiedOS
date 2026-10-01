@@ -22,9 +22,10 @@ and the files it names, each tracked module a run's log does not name reported
 under its checker and a crash not held to it, the real ruff and ty each reporting a
 module a default exclusion or a ruff.toml exclusion drops, the real ty reaching every
 module and writing no profile with `TY_LOG` and `TY_LOG_PROFILE` set, a ruff.toml
-per-file suppression or `extend`, a file-level `noqa` directive naming anything but
-N999 alone, and a range, `file-ignore` or isort `skip_file` or `off` comment each
-refused, the real ruff showing the floor alone passes each of them, the index
+per-file suppression, `extend` or any key outside the committed file's, a file-level
+`noqa` directive naming anything but N999 alone, and a range, `file-ignore` or isort
+`skip_file` or `off` comment each refused, the real ruff showing the floor alone passes
+each of them, the index
 read for the tracked modules, and each live-tree run giving a verdict and reaching
 every module the tree tracks, a missing or another installed checker refused. The
 import cases hold the scan beside the checkers: an import of a module ruff.toml bans at
@@ -38,6 +39,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -881,23 +883,26 @@ def _ruff_coverage_floor() -> None:
     # the lint with nothing reported: a directory ruff skips by default, an
     # extend-exclude, a lint.exclude, which `--show-files` still lists, and an exclude,
     # which replaces the defaults and so brings the default-skipped module back. Each
-    # module dropped is a finding under ruff; the ones every setting leaves are not.
+    # exclusion key is refused as one the gate has not read, and beside that refusal
+    # each module dropped is a finding under ruff; the ones every setting leaves are not.
     modules = ["kept.py", "stub.pyi", "dist/mod.py", "extended.py", "linted.py",
                "replaced.py"]
-    for config, missing in (
+    for config, refused, missing in (
             ('extend-exclude = ["extended.py"]\n[lint]\nselect = ["ANN"]\n'
-             'exclude = ["linted.py"]\n', ["dist/mod.py", "extended.py", "linted.py"]),
-            ('exclude = ["replaced.py"]\n[lint]\nselect = ["ANN"]\n', ["replaced.py"])):
+             'exclude = ["linted.py"]\n', 2, ["dist/mod.py", "extended.py", "linted.py"]),
+            ('exclude = ["replaced.py"]\n[lint]\nselect = ["ANN"]\n', 1, ["replaced.py"])):
         rep = Reporter()
         with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
             root = Path(td)
             _module_tree(root / "tools", modules)
             (root / "tools" / "ruff.toml").write_text(config, encoding="utf-8", newline="")
             typecheck._run_ruff(rep, root, frozenset(modules))
-        ensure(rep.findings == len(missing)
-               and rep.out[0].startswith("ok ruff:")
-               and rep.out[1:] == [f"FAIL ruff: {len(missing)} tracked module(s) ruff did "
-                                   "not check:", *(f"       {m}" for m in missing)],
+        ensure(rep.findings == refused + len(missing)
+               and rep.out[0] == f"FAIL ruff: {refused} ruff.toml setting(s) the gate refuses:"
+               and rep.out[1 + refused].startswith("ok ruff:")
+               and rep.out[2 + refused:] == [f"FAIL ruff: {len(missing)} tracked module(s) "
+                                             "ruff did not check:",
+                                             *(f"       {m}" for m in missing)],
                f"ruff must report each module {config!r} drops: {rep.out!r}")
     with patch.object(typecheck, "_run_checker") as unheld:
         typecheck._run_ruff(Reporter(), Path.cwd(), None)
@@ -947,6 +952,12 @@ def _ruff_settings_refuse_per_file_suppressions() -> None:
     committed = Path(typecheck.__file__).resolve().parents[2] / "ruff.toml"
     ensure(typecheck._ruff_settings(committed) == [],
            f"the committed ruff.toml must pass: {typecheck._ruff_settings(committed)!r}")
+    # The keys the gate admits are exactly the ones the committed file carries.
+    carried = {path for path, _ in typecheck._ruff_keys(
+        tomllib.loads(committed.read_text(encoding="utf-8")), "")}
+    ensure(carried == typecheck.RUFF_KEYS,
+           f"RUFF_KEYS must be the committed ruff.toml's keys: "
+           f"{sorted(carried ^ typecheck.RUFF_KEYS)!r}")
     lint = '[lint]\nselect = ["ANN"]\n'
     ensure(_ruff_settings(lint) == [], "a ruff.toml without per-file suppressions must pass")
     for text, expected in (
@@ -969,6 +980,25 @@ def _ruff_settings_refuse_per_file_suppressions() -> None:
            f"an extend must be refused: {extended!r}")
     both = _ruff_settings('per-file-ignores = {}\n' + lint + 'per-file-ignores = {}\n')
     ensure(len(both) == 2, f"each table's key must be its own finding: {both!r}")
+    # Any other key the gate has not read is refused at any depth of the tables it
+    # admits, one finding per key and one for a table it does not admit: the per-file
+    # target version, which switches version-gated rules off for the files it matches,
+    # an exclusion, and a key the gate has never seen.
+    for text, expected in (
+            ('per-file-target-version = {"x.py" = "py37"}\n' + lint,
+             "sets per-file-target-version to {'x.py': 'py37'}, a key the gate has not read;"),
+            ('exclude = ["x.py"]\n' + lint, "sets exclude to ['x.py'], a key"),
+            ('future-setting = 1\n' + lint, "sets future-setting to 1, a key"),
+            (lint + 'future-setting = 1\n', "sets lint.future-setting to 1, a key"),
+            (lint + '[lint.flake8-annotations]\nignore-fully-untyped = true\n',
+             "sets lint.flake8-annotations.ignore-fully-untyped to True, a key"),
+            (lint + '[lint.isort]\nforce-single-line = true\nknown-first-party = ["vos"]\n',
+             "sets lint.isort to {'force-single-line': True, 'known-first-party': ['vos']}, "
+             "a key")):
+        found = _ruff_settings(text)
+        ensure(len(found) == 1 and expected in found[0]
+               and "it admits only the keys in RUFF_KEYS" in found[0],
+               f"a key the gate has not read must be one finding: {found!r}")
     for text in (None, "[lint\n"):
         unread = _ruff_settings(text)
         ensure(len(unread) == 1 and "cannot be read" in unread[0],

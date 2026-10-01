@@ -77,10 +77,13 @@ checks or reports.
 ruff's log names a file whose rules are switched off as checked, so the floor cannot
 see a suppression, and the gate refuses each reaching past a line as a ruff finding: a
 `per-file-ignores` or `extend-per-file-ignores` key in `ruff.toml`, in `[lint]` or at
-the top level; an `extend` key, which merges another file's settings beneath it; a
-comment anywhere in a tracked module carrying ruff's file-level suppression,
-`# ruff: noqa` or `# flake8: noqa`, unless it names N999 and no other rule, since ruff
-reports N999 against the file's name rather than a line of it; and one carrying
+the top level; an `extend` key, which merges another file's settings beneath it; any
+other key outside the ones the gate has read, which are the ones `ruff.toml` carries,
+since a top-level `per-file-target-version` also switches rules off for the files a
+pattern matches and a key the gate has not read may do as much; a comment anywhere in
+a tracked module carrying ruff's file-level suppression, `# ruff: noqa` or
+`# flake8: noqa`, unless it names N999 and no other rule, since ruff reports N999
+against the file's name rather than a line of it; and one carrying
 `# ruff: file-ignore[...]`, a `# ruff: disable[...]` or `# ruff: enable[...]` range
 comment, whose `disable` with no matching `enable` runs to the end of its block, or
 isort's `skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` reaches one
@@ -108,7 +111,7 @@ import sysconfig
 import tokenize
 import tomllib
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import NamedTuple
@@ -203,6 +206,21 @@ BANNED = ("lint", "flake8-tidy-imports", "banned-module-level-imports")
 # reads in `[lint]` and, deprecated, at the top level. ruff's log still names a file
 # whose rules are off as checked, so the coverage floor cannot see what they take away.
 RUFF_PER_FILE = ("per-file-ignores", "extend-per-file-ignores")
+
+# The `ruff.toml` keys the gate has read, as dotted paths: the ones the committed file
+# carries and the tables holding them. Any other key is refused, as a key ty.toml's held
+# tables carry beyond the ones the gate admits is: a top-level `per-file-target-version`
+# switches the rules gated on a newer version off for the files a pattern matches, which
+# ruff's log still names as checked, and a key the gate has not read may do as much.
+RUFF_KEYS = frozenset({
+    "target-version", "line-length", "respect-gitignore", "lint",
+    "lint.select", "lint.ignore", "lint.allowed-confusables",
+    "lint.flake8-annotations", "lint.flake8-annotations.suppress-none-returning",
+    "lint.flake8-annotations.suppress-dummy-args",
+    "lint.flake8-annotations.allow-star-arg-any",
+    "lint.flake8-annotations.mypy-init-return",
+    "lint.flake8-tidy-imports", "lint.flake8-tidy-imports.banned-module-level-imports",
+})
 
 # A comment ruff reads as a file-level suppression, matched as ruff's lexer matches it:
 # `ruff` or `flake8`, a colon and `noqa` in any case, after any `#` in the comment. It
@@ -647,29 +665,49 @@ def _run_ty(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
 
 
 def _ruff_settings(config: Path) -> list[str]:
-    """The `ruff.toml` settings the gate refuses, as findings: a `RUFF_PER_FILE` key in
-    `[lint]` or at the top level, and an `extend` key, which merges the settings of a
-    file the gate does not read beneath this one's. Each is refused whatever it says, an
-    empty table included, as ty.toml's `[src]` is held by shape.
+    """The `ruff.toml` settings the gate refuses, as findings, one per key in the file's
+    order: a `RUFF_PER_FILE` key in `[lint]` or at the top level; an `extend` key, which
+    merges the settings of a file the gate does not read beneath this one's; and any
+    other key outside `RUFF_KEYS`, at any depth of the tables `RUFF_KEYS` admits. Each is
+    refused whatever it says, an empty table included, as ty.toml's `[src]` is held by
+    shape, and a table outside `RUFF_KEYS` is one finding, not one per key in it.
 
-    Fail-closed: a file that cannot be read or parsed is a finding. A `lint` value that
-    is not a table is ruff's to refuse, which it does as an invalid configuration before
-    it checks anything, and the gate's run reports as a checker error."""
+    Fail-closed: a file that cannot be read or parsed is a finding, and a key the gate has
+    not read is refused, never assumed harmless. A value whose shape ruff does not accept
+    for its key, such as a `lint` that is not a table, is ruff's to refuse, which it does
+    as an invalid configuration before it checks anything, and the gate's run reports as
+    a checker error."""
     name = f"tools/{config.name}"
     try:
         settings = tomllib.loads(config.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as err:
         return [f"{name} cannot be read: {err}"]
-    lint = settings.get("lint")
-    tables = [("", settings), *([("lint.", lint)] if isinstance(lint, dict) else [])]
-    findings = [f"{name} sets {prefix}{key} to {table[key]!r}; a rule switched off for the "
-                "files a pattern matches is refused, since ruff's log names a file whose "
-                "rules are off as checked"
-                for prefix, table in tables for key in RUFF_PER_FILE if key in table]
-    if "extend" in settings:
-        findings.append(f"{name} sets extend to {settings['extend']!r}; the gate reads only "
-                        "this file, and extend merges another file's settings beneath it")
+    per_file = {f"{prefix}{key}" for prefix in ("", "lint.") for key in RUFF_PER_FILE}
+    findings: list[str] = []
+    for path, value in _ruff_keys(settings, ""):
+        if path in per_file:
+            findings.append(f"{name} sets {path} to {value!r}; a rule switched off for the "
+                            "files a pattern matches is refused, since ruff's log names a "
+                            "file whose rules are off as checked")
+        elif path == "extend":
+            findings.append(f"{name} sets extend to {value!r}; the gate reads only this "
+                            "file, and extend merges another file's settings beneath it")
+        elif path not in RUFF_KEYS:
+            findings.append(f"{name} sets {path} to {value!r}, a key the gate has not read; "
+                            "it admits only the keys in RUFF_KEYS, since a key such as "
+                            "per-file-target-version switches rules off for files ruff's "
+                            "log still names as checked")
     return findings
+
+
+def _ruff_keys(table: dict[str, object], prefix: str) -> Iterator[tuple[str, object]]:
+    """Each key in `table`, as a dotted path under `prefix` with its value, in the file's
+    order, each key of a table `RUFF_KEYS` admits followed by the keys beneath it."""
+    for key, value in table.items():
+        path = prefix + key
+        yield path, value
+        if path in RUFF_KEYS and isinstance(value, dict):
+            yield from _ruff_keys(value, path + ".")
 
 
 def _file_suppressions(tools: Path, tracked: frozenset[str]) -> list[str]:
