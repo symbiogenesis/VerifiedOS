@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 872 of them across 148 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 882 of them across 150 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1205,6 +1205,42 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q38e
 · Disposition: standing, the live set holding none and the rule's docstring and registry row stating them
 
+**F-601** measurement: CertiRocq's `plugin/static/camlrocq.ml`, the copy `certirocq_plugin.cmxs` packs, offers `GPL-2.0-or-later` or the INRIA Non-Commercial License Agreement, not the `LGPL-2.1-or-later` the first reading gave every printer file
+· Raised: Q38g
+· Disposition: closed at Q38g, THIRD-PARTY.md naming each printer file's GNU option
+
+**F-602** measurement: Q38g's host case for the oracle's candidate recipes passed ten mutants its docstring excludes
+· Raised: Q38g
+· Disposition: closed at Q38g, the case holding each recipe to the released repository and the default alone and to installs of released versions into its own switch
+
+**F-603** owed-act: Q38g's conditional CertiRocq licence row repeats the LGPL reading of `camlrocq.ml` and names neither Coq's `theories/ExtractionVanilla/` files nor Rocq's `benchmarks/lib/Makefile`, both `LGPL-2.1`, beside the OCaml runtime headers it names
+· Raised: Q38g
+· Disposition: open, Q38g restating its CertiRocq row before its conditional commits land
+
+**F-604** measurement: the messages of Q38g's lane commits `e4c0a26b` and `6312d09c` describe a hosted run of the oracle's checks, a route the user's ruling withdrew before their merge
+· Raised: Q38g
+· Disposition: standing, the merge's message recording the withdrawal
+
+**F-605** measurement: CertiRocq's package compiles and installs `libraries/CpdtTactics.v` under `CC-BY-NC-ND-3.0`, whose text does not say whether a compilation to `.vo` is an Adaptation
+· Raised: Q38g
+· Disposition: standing, the user's ruling of 2026-09-30 accepting local builds for research use with nothing distributed
+
+**F-606** measurement: the guest's wall clock read about 20 h 06 m behind until about 21:10 on 2026-09-30 and then jumped forward
+· Raised: Q38g
+· Disposition: standing, guest durations taken from monotonic process times or stated as corrected for the jump
+
+**F-607** measurement: the 5.1.1 candidate's switch name is `ORACLE_SWITCH`'s own and an existing switch's in the guest's default root, so that candidate's recipe cannot create its switch there
+· Raised: Q38g
+· Disposition: standing, gallina.py's comment requiring a root that does not hold the switch
+
+**F-608** measurement: the default root's `verifiedos-certirocq-0.9.1-ocaml-5.1.1`, which `ORACLE_SWITCH` names, carries no `rocq-certirocq`, so `provision`'s CertiRocq fact cannot hold there
+· Raised: Q38g
+· Disposition: open, Q38g, until its declared switch moves or that legacy switch is retired
+
+**F-609** owed-act: Q38g's Wasm checks, fresh-root import and `provision` reading cannot be decided under the user's rulings
+· Raised: Q38g
+· Disposition: closed at Q38l, its contract deferring them in Q38g's Check until a check site the user permits
+
 **F-578** measurement: Q38i's cast clause and its Check's compile fall cannot both hold in ArithmeticComposition.v, CredentialHandles.v, InferenceAdmission.v and TwoSourceExtractor.v, whose 16 such proofs evaluate goals too small for a fall beyond single-run noise, and the cast raised ArithmeticComposition.v's recheck by 2.8% in two single runs
 · Raised: Q38i
 · Disposition: standing, the four modules keeping their scripts
@@ -1268,6 +1304,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-577** measurement: `run.py proof-reading` repeated only two of the gate's five refusals before compiling, so it would compile a copy holding an unreadable token, a coinductive form, a hiding token or a dynamic source
 · Raised: Q38k
 · Disposition: closed at Q38k, the reading refusing all five before anything compiles
+
+**F-600** owed-act: Q38f's conditional commits restate a comment in tools/vos/env.py and the header of tools/quickchick/Properties.v, both inputs of Q38l's route, which Q38f's closing landing may not touch beyond its lock, gallina.py, quickchick.py and provision.py
+· Raised: Q38l
+· Disposition: open, Q38f rewording both to hold before and after its switch moves and landing them with its unconditional commits
 
 **F-565** upstream-defect: the locked proof switch's Rocq 9.3.0 carries the cofixpoint guard-checker inconsistencies #22386 and #22389, which Rocq's critical-bug list reports fixed in V9.3
 · Raised: Q39

@@ -446,11 +446,7 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
     process holding its launcher's lock. A producer that takes a new lock after the
     repeated selection and before the rename is not seen, and one that opens its lock
     after the rename recreates the lane root, because `env._open_lock` and
-    `proofs._hold` create missing parents. A proof gate blocked in `proofs._hold`'s
-    `flock` while retirement holds the workspace takes that lock, once retirement
-    releases it, on the moved directory, and then works at the workspace's path: it
-    fails there, or, where a gate started after the move has recreated the
-    workspace, runs in it beside that gate.
+    `proofs._hold` create missing parents.
     """
     if sys.platform == "win32":
         raise RetirementError("native output retention must run through the guest")
