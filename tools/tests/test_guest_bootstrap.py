@@ -478,8 +478,9 @@ def _complete_root_is_kept() -> None:
 
 
 def _resumable_root_is_finished() -> None:
-    """A root in the shape the route's leading steps leave is finished by running the
-    route again, which fetches only the repositories it adds."""
+    """A root in the shape the route's leading steps leave is finished by the route's
+    remaining steps, which never run `opam init` over it and fetch only the
+    repositories they add."""
     owned = bootstrap.opam_client.OPAM_REPOSITORIES
     default = owned[0][0]
     finished = _stamped("fetched") | {default: f"{default}-restored"}
@@ -487,8 +488,9 @@ def _resumable_root_is_finished() -> None:
         lambda opam: opam_root(opam, "flat", {default: f"{default}-restored"}, owned[:1]),
         lambda opam: opam_root(opam, "flat", finished))
     ensure(run.code == 0 and run.installed and run.record["opam_root_action"] == "finished"
-           and run.opam_commands == list(bootstrap.opam_client.CREATE_ROOT),
-           f"a resumable root is finished by the route, ran {run.opam_commands}, "
+           and run.opam_commands == list(bootstrap.opam_client.CREATE_ROOT[1:]),
+           f"a resumable root is finished by the route's remaining steps, ran "
+           f"{run.opam_commands}, "
            f"got {run.record}")
     ensure(run.record["opam_repositories"] == [
                {"name": name, "url": url, "stamp": finished[name]} for name, url in owned],

@@ -154,8 +154,9 @@ def initialize_repositories(opam: Path, log: IO[str]) -> str:
     """Leave the private root at `opam` standing on the opam client owner's repositories,
     and say how: `created` by the owner's one route, `CREATE_ROOT`, where no root stands,
     initialized on its default repository with the rest added unselected, each switch
-    naming the repositories it resolves from; `finished` by that route where
-    `root_resumable` reads a root in the shape its leading steps leave; and `kept` where
+    naming the repositories it resolves from; `finished` by the route's remaining steps,
+    `opam_client.remaining_route`, never `opam init` over it, where `root_resumable`
+    reads a root in the shape the route's leading steps leave; and `kept` where
     a root stands complete, the reviewed client's format with exactly the owner's
     repositories at their URLs and every stamp read, as one the route made.
 
@@ -182,7 +183,7 @@ def initialize_repositories(opam: Path, log: IO[str]) -> str:
         log.write(f"\n== {kept}\n")
         log.flush()
         return "kept"
-    for argv in opam_client.CREATE_ROOT:
+    for argv in opam_client.remaining_route(opam):
         run(argv, log)
     return how
 
