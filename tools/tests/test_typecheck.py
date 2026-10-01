@@ -25,9 +25,10 @@ module and writing no profile with `TY_LOG` and `TY_LOG_PROFILE` set, a ruff.tom
 per-file suppression, `extend` or any key outside the committed file's, a file-level
 `noqa` directive naming anything but N999 alone, and a range, `file-ignore` or isort
 `skip_file` or `off` comment each refused, the real ruff showing the floor alone passes
-each of them, the index
-read for the tracked modules, and each live-tree run giving a verdict and reaching
-every module the tree tracks, a missing or another installed checker refused. The
+a `per-file-ignores` entry, a `per-file-target-version` entry, a file-level directive, a
+range, a `file-ignore` and a `skip_file` comment, the index read for the tracked
+modules, and each live-tree run giving a verdict and reaching every module the tree
+tracks, a missing or another installed checker refused. The
 import cases hold the scan beside the checkers: an import of a module ruff.toml bans at
 module level refused outside a function body, in a class body, a module-level block or
 the main guard, or behind an `if` reading a `platform` other than `sys.platform`, and
@@ -1088,29 +1089,43 @@ def _file_suppressions_refused() -> None:
 def _suppressions_reported_beside_the_run() -> None:
     # The real ruff under a per-file-ignores entry, a file-level directive, a range
     # spanning the module and a file-ignore, each switching ANN off for a module with an
-    # unannotated function: ruff reports nothing and its log names the module as
-    # checked, so the floor alone passes, and the refusal is what fails the gate, one
-    # finding per refused key or comment; the run's verdict then claims no more than it
-    # showed. Without a suppression ruff reports the function.
-    body = "def f(x):\n    return x\n"
-    lint = '[lint]\nselect = ["ANN"]\n'
-    comments = "file-level or range suppression(s) the gate refuses:"
-    for config, text, refusal, count in (
-            (lint, body, None, 0),
-            (lint + 'per-file-ignores = {"x.py" = ["ANN"]}\n', body,
-             "ruff.toml setting(s) the gate refuses:", 1),
-            (lint, "# ruff: noqa: ANN001, ANN201\n" + body, comments, 1),
-            (lint, "# ruff: disable[ANN001, ANN201]\n" + body
-             + "# ruff: enable[ANN001, ANN201]\n", comments, 2),
-            (lint, "# ruff: file-ignore[ANN001, ANN201]\n" + body, comments, 1)):
+    # unannotated function, under a per-file target version of py37, which switches UP006
+    # off for a module annotating with `typing.List`, and under isort's skip_file, which
+    # switches I001 off for an unsorted import block: ruff reports nothing and its log
+    # names the module as checked, so the floor alone passes, and the refusal is what
+    # fails the gate, one finding per refused key or comment; the run's verdict then
+    # claims no more than it showed. Without a suppression ruff reports each module.
+    def ruff_run(config: str, text: str) -> Reporter:
         rep = Reporter()
         with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
             _write_tools(Path(td), {"x.py": text}, config)
             typecheck._run_ruff(rep, Path(td), frozenset({"x.py"}))
-        if refusal is None:
-            ensure(rep.findings == 2 and "ANN001: 1" in "\n".join(rep.out),
-                   f"without a suppression ruff must report the function: {rep.out!r}")
-            continue
+        return rep
+
+    body = "def f(x):\n    return x\n"
+    lint = '[lint]\nselect = ["ANN"]\n'
+    annotated = "from typing import List\nX: List[int] = []\n"
+    upgrade = '[lint]\nselect = ["UP006"]\n'
+    unsorted = "import sys\nimport os\n"
+    isort = '[lint]\nselect = ["I001"]\n'
+    for config, text, code, count in ((lint, body, "ANN001", 2),
+                                      (upgrade, annotated, "UP006", 1),
+                                      (isort, unsorted, "I001", 1)):
+        rep = ruff_run(config, text)
+        ensure(rep.findings == count and rep.out[0] == f"FAIL ruff: {count} lint finding(s):"
+               and f"{code}: 1" in "\n".join(rep.out),
+               f"without a suppression ruff must report the module: {rep.out!r}")
+    settings = "ruff.toml setting(s) the gate refuses:"
+    comments = "file-level or range suppression(s) the gate refuses:"
+    for config, text, refusal, count in (
+            (lint + 'per-file-ignores = {"x.py" = ["ANN"]}\n', body, settings, 1),
+            (lint, "# ruff: noqa: ANN001, ANN201\n" + body, comments, 1),
+            (lint, "# ruff: disable[ANN001, ANN201]\n" + body
+             + "# ruff: enable[ANN001, ANN201]\n", comments, 2),
+            (lint, "# ruff: file-ignore[ANN001, ANN201]\n" + body, comments, 1),
+            ('per-file-target-version = {"x.py" = "py37"}\n' + upgrade, annotated, settings, 1),
+            (isort, "# isort: skip_file\n" + unsorted, comments, 1)):
+        rep = ruff_run(config, text)
         ensure(rep.findings == count and rep.out[0] == f"FAIL ruff: {count} {refusal}"
                and rep.out[1 + count:] == [(f"ok ruff: every function is annotated and "
                                             f"ruff {typecheck.RUFF_VERSION} is clean under "
