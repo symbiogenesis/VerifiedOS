@@ -219,7 +219,7 @@ def _root_gaps_name_what_a_root_lacks() -> None:
 
 def _resumable_roots_are_the_routes_own() -> None:
     """A root reads as in the shape `CREATE_ROOT` leaves after its leading steps only
-    where running the route again completes it: the reviewed client's format, the
+    where the route's remaining steps complete it: the reviewed client's format, the
     route's leading repositories and no other, each at its owned URL with its stamp
     read."""
     (default, url), *others = opam_client.OPAM_REPOSITORIES
@@ -250,25 +250,73 @@ def _resumable_roots_are_the_routes_own() -> None:
                    f"the {name} root reads resumable={not resumable}")
 
 
+def _remaining_route_never_reinitializes() -> None:
+    """Where no root stands the remaining route is the whole route; over a root that
+    stands it is each repository the root does not configure at its owned URL, added
+    unselected, and never `opam init`, so a root in the shape the route leaves after its
+    leading steps is completed without its shell setup being rewritten."""
+    route = opam_client.CREATE_ROOT
+    leading = opam_client.OPAM_REPOSITORIES[:1]
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        absent = Path(td) / "absent"
+        ensure(opam_client.remaining_route(absent) == route,
+               "with no root the whole route remains")
+        absent.mkdir()
+        ensure(opam_client.remaining_route(absent) == route,
+               "a directory without config is no root, so the whole route remains")
+        first_step = Path(td) / "first-step"
+        opam_root(first_step, "flat", configured=leading)
+        ensure(opam_client.root_resumable(first_step)
+               and opam_client.remaining_route(first_step) == route[1:],
+               f"a resumable root lacks the adds alone: "
+               f"{opam_client.remaining_route(first_step)}")
+        foreign = Path(td) / "foreign"
+        opam_root(foreign, "flat", configured=(*leading, ("mine", "https://example.invalid")))
+        ensure(opam_client.remaining_route(foreign) == route[1:],
+               "a repository the owner does not name changes nothing that remains")
+        complete = Path(td) / "complete"
+        opam_root(complete, "nested")
+        ensure(opam_client.remaining_route(complete) == (),
+               "a root configuring every owned repository has nothing left to run")
+        for root in (first_step, foreign, complete):
+            ensure(route[0] not in opam_client.remaining_route(root),
+                   f"opam init never runs over the standing {root.name} root")
+
+
+def _versions_are_ordered_as_opam_orders_them() -> None:
+    """The port of `OpamVersionCompare.compare` answers its Debian ordering: numbers by
+    value, `~` before everything, even before the end of a part, letters before other
+    characters, and the revision after the last `-` only on a tie."""
+    for lower, higher in (("2.9", "2.10"), ("2.6~alpha", "2.6"), ("2.6~alpha1", "2.6~alpha2"),
+                          ("2.6~~", "2.6~"), ("2.6", "2.6.0"), ("2.6", "2.6+x"),
+                          ("2.6", "2.6a"), ("2.6a", "2.6+"), ("2.6", "x"), ("1.0-1", "1.0-2"),
+                          ("1.0-9", "1.0-10"), ("1.0-z", "1.1-a"), ("2.6~", "2.6")):
+        ensure(opam_client.compare_versions(lower, higher) == -1
+               and opam_client.compare_versions(higher, lower) == 1,
+               f"{lower!r} precedes {higher!r}: "
+               f"{opam_client.compare_versions(lower, higher)}")
+    for left, right in (("2.6", "2.6"), ("2.06", "2.6"), ("1.0", "1.00"), ("1.", "1.0"),
+                        ("", "0")):
+        ensure(opam_client.compare_versions(left, right) == 0
+               and opam_client.compare_versions(right, left) == 0,
+               f"{left!r} and {right!r} order as one version")
+
+
 def _newer_formats_are_ordered() -> None:
-    """A stated format is newer than the reviewed client's only by its release numbers:
-    an older format, the reviewed one and a prerelease of it are not, and none stated
-    is not a newer one. Every other stated format is an older one."""
+    """A stated format is newer or older than the reviewed client's by opam's own
+    ordering, which decides whether that client upgrades a root or refuses to write to
+    it: a prerelease of the reviewed format is older, and a format opam orders after it
+    is newer whatever its spelling. None stated is neither."""
     reviewed = opam_client.OPAM_ROOT_FORMAT
-    for fmt, newer in (("99.0", True), (f"{reviewed}.1", True), (reviewed, False),
-                       (f"{reviewed}~alpha1", False), ("2.2", False), ("2.0", False),
-                       ("", False)):
+    for fmt, newer, older in (("99.0", True, False), (f"{reviewed}.1", True, False),
+                              (f"{reviewed}.0", True, False), (f"{reviewed}+x", True, False),
+                              ("x", True, False), (reviewed, False, False),
+                              (f"{reviewed}~alpha1", False, True), ("2.2", False, True),
+                              ("2.0", False, True), ("", False, False)):
         ensure(opam_client.newer_than_reviewed(fmt) is newer,
                f"format {fmt!r} reads newer={opam_client.newer_than_reviewed(fmt)}")
-    # Every other stated format is older, a prerelease of the reviewed one among them,
-    # since opam orders a prerelease before its release.
-    for fmt, older in (("2.2", True), ("2.0", True), (f"{reviewed}~alpha1", True),
-                       (reviewed, False), (f"{reviewed}.1", False), ("99.0", False),
-                       ("", False)):
         ensure(opam_client.older_than_reviewed(fmt) is older,
                f"format {fmt!r} reads older={opam_client.older_than_reviewed(fmt)}")
-    ensure(opam_client.format_key("2.10") > opam_client.format_key("2.9"),
-           "formats are ordered by number, not by text")
 
 
 def _install_verifies_and_never_replaces() -> None:
@@ -319,7 +367,10 @@ def cases() -> list[Case]:
         Case("root-creation-is-the-owners-route", _root_creation_is_the_owners_route),
         Case("root-prerequisites-are-packages", _root_prerequisites_are_packages),
         Case("root-gaps-name-what-a-root-lacks", _root_gaps_name_what_a_root_lacks),
+        Case("versions-are-ordered-as-opam-orders-them",
+             _versions_are_ordered_as_opam_orders_them),
         Case("newer-formats-are-ordered", _newer_formats_are_ordered),
         Case("resumable-roots-are-the-routes-own", _resumable_roots_are_the_routes_own),
+        Case("remaining-route-never-reinitializes", _remaining_route_never_reinitializes),
         Case("install-verifies-and-never-replaces", _install_verifies_and_never_replaces),
     ]
