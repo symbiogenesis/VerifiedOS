@@ -112,6 +112,15 @@ def _plan_refuses_each_bad_request() -> None:
         ]
         cases += [(_request(commits, sample=sample), "sample", "not a whole number")
                   for sample in ("21", "0", "020", "-1", "+5", "1.0", "", "twenty")]
+        # An annotated tag's object names a commit on main once peeled, and is not one.
+        _git(root, "-c", "tag.gpgSign=false", "tag", "-a", "-m", "tip", "tagged-tip", tip)
+        _git(root, "-c", "tag.gpgSign=false", "tag", "-a", "-m", "base", "tagged-base", base)
+        tag_tip = _git(root, "rev-parse", "tagged-tip")
+        tag_base = _git(root, "rev-parse", "tagged-base")
+        ensure(tag_tip != tip and tag_base != base, "each tag is an object of its own")
+        cases += [(_request(commits, revision=tag_tip), "revision", "no commit the dispatching"),
+                  (_request(commits, base_revision=tag_base), "base_revision",
+                   "not an ancestor")]
         for asked, check, fragment in cases:
             checks = route.plan(root, asked)
             found = [c for c in checks if c.check == check]

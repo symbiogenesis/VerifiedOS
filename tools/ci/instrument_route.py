@@ -292,7 +292,10 @@ def _git(checkout: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 def _is_commit(checkout: Path, revision: str) -> bool:
-    return _git(checkout, "cat-file", "-e", f"{revision}^{{commit}}").returncode == 0
+    """Whether the object itself is a commit: an annotated tag's object, which git would
+    peel to the commit it tags, is not one."""
+    done = _git(checkout, "cat-file", "-t", revision)
+    return done.returncode == 0 and done.stdout.strip() == "commit"
 
 
 def _is_ancestor(checkout: Path, older: str, newer: str) -> bool:
@@ -386,7 +389,8 @@ def plan(checkout: Path, asked: Request) -> list[Check]:
                             "commit SHA"))
     elif not _is_commit(checkout, revision):
         checks.append(Check("revision", REFUSED, f"{revision} is no commit the dispatching "
-                            "checkout reaches, so it is not on main"))
+                            "checkout reaches, a tag's object included, so it is not a "
+                            "commit on main"))
     elif main is None:
         checks.append(Check("revision", NOT_DECIDED, "the checkout fetched no main to hold "
                             "the revision against"))
@@ -423,7 +427,11 @@ def plan(checkout: Path, asked: Request) -> list[Check]:
     elif not on_main:
         checks.append(Check("base_revision", NOT_DECIDED, "the revision it must precede was "
                             "refused"))
-    elif not _is_commit(checkout, base) or not _is_ancestor(checkout, base, revision):
+    elif not _is_commit(checkout, base):
+        checks.append(Check("base_revision", REFUSED, f"{base} is no commit the dispatching "
+                            "checkout reaches, a tag's object included, so it is not an "
+                            f"ancestor of {revision}"))
+    elif not _is_ancestor(checkout, base, revision):
         checks.append(Check("base_revision", REFUSED, f"{base} is not an ancestor of "
                             f"{revision}"))
     else:
