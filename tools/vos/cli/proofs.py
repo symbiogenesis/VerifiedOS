@@ -799,11 +799,11 @@ def _schedule(waves: Sequence[Sequence[Path]], needs: Mapping[Path, frozenset[Pa
             not required <= position.keys() for required in needs.values()):
         raise ValueError("the compile schedule must cover every module and requirement once")
     waits: dict[Path, frozenset[Path]] = {}
-    earlier: frozenset[Path] = frozenset()
+    earlier: set[Path] = set()
     for wave in waves:
         for source in wave:
             waits[source] = (needs[source] | earlier) if by_wave else needs[source]
-        earlier = earlier.union(wave)
+        earlier.update(wave)
     dependents: dict[Path, set[Path]] = {source: set() for source in order}
     for source, awaited in waits.items():
         for prerequisite in awaited:
