@@ -174,34 +174,30 @@ def _compare_part(x: str, y: str) -> int:
     return 0
 
 
-def _components(version: str) -> tuple[str, str, str]:
-    """A version's epoch, the text before its first `:`, its revision, the text after the
-    last `-` that follows the epoch, and its upstream version between them, the epoch and
-    the revision empty where the version has none."""
-    epoch, colon, rest = version.partition(":")
-    if not colon:
-        epoch, rest = "", version
-    upstream, hyphen, revision = rest.rpartition("-")
-    return (epoch, upstream, revision) if hyphen else (epoch, rest, "")
+def _components(version: str) -> tuple[str, str]:
+    """A version's upstream version and its revision, the text after its last `-`, the
+    revision empty where the version has none."""
+    upstream, hyphen, revision = version.rpartition("-")
+    return (upstream, revision) if hyphen else (version, "")
 
 
 def compare_versions(x: str, y: str) -> int:
     """-1, 0 or 1 as version `x` orders before, with or after version `y`.
 
     Implements Debian's version ordering (Debian Policy 5.6.12), which opam applies to
-    version strings. The epochs are compared, then the upstream versions on a tie, then
-    the revisions, an absent epoch or revision comparing as `0`. Each component reads as
+    version strings. The upstream versions are compared, then the revisions on a tie, an
+    absent revision comparing as `0`. Each component reads as
     alternating runs of non-digits and of ASCII digits: digit runs compare by value, an
     empty run as zero, and non-digit runs character by character, `~` before everything,
     even the run's end, then the run's end, then the ASCII letters, then every other
     character, letters and the rest each in ASCII order.
 
-    The opam manual defers the ordering's details to Debian's definition, and two cases
-    it leaves open are read here as Debian Policy reads them: the revision is what
-    follows the last `-`, so `1.0-a` orders before `1.0a`, and the epoch is what
-    precedes the first `:`, a character opam's version grammar admits in no version. A
-    character outside ASCII, which neither document admits in a version, orders as a
-    non-letter by its code point.
+    The opam manual defers the ordering's details to Debian's definition. The revision
+    is what follows the last `-`, as Debian Policy reads it, so `1.0-a` orders before
+    `1.0a`. No epoch is read: the manual slices the whole version string into runs, and
+    the reviewed client orders `:`, which opam's version grammar admits in no version,
+    as any other non-letter, so this does too. A character outside ASCII, which neither
+    document admits in a version, orders as a non-letter by its code point.
     """
     for x_part, y_part in zip(_components(x), _components(y), strict=True):
         if order := _compare_part(x_part, y_part):
@@ -253,8 +249,15 @@ def root_resumable(root: Path) -> bool:
     """Whether a standing root is in the shape `CREATE_ROOT` leaves after its leading
     steps, which the route's remaining steps, `remaining_route`, complete: in
     `OPAM_ROOT_FORMAT`, configured with exactly the route's leading repositories, at
-    least the one `opam init` fetched and not every one, each at its owned URL and with
-    its stamp read.
+    least the one `opam init` fetched, each at its owned URL, the first with its stamp
+    read, and at least one owned repository not yet fetched, either not configured or
+    configured with its stamp unread.
+
+    A later repository configured with its stamp unread is what an interrupted step
+    leaves: `opam repository add` writes the repository's configuration before it
+    fetches and removes that configuration only where the fetch returns a failure, so
+    a step stopped during its fetch leaves the repository configured and unfetched. The
+    same step run again keeps that configuration and fetches the repository.
 
     The shape is what is read, not how the root came to be: a root a developer
     initialized by hand on the first repository alone is in it too, and the remaining
@@ -263,30 +266,32 @@ def root_resumable(root: Path) -> bool:
     A root whose first repository's stamp is unread is not one, though the route's first
     step can leave one: `opam init` writes the root's configuration before its first
     fetch and removes the root on a failed fetch only where its directory was absent or
-    empty when it started. No remaining step fetches a repository the root already
-    configures, and `opam init` over a root that stands fetches nothing, so that
+    empty when it started. No remaining step fetches the first repository, which only
+    `opam init` adds, and `opam init` over a root that stands fetches nothing, so that
     repository would stay unread and the root as incomplete as it was found.
     """
     if not root_exists(root) or root_format(root) != OPAM_ROOT_FORMAT:
         return False
     found = repositories(root)
-    if any(not repo["stamp"] for repo in found):
-        return False
     configured = {(repo["name"], repo["url"]) for repo in found}
-    return any(configured == set(OPAM_REPOSITORIES[:count])
-               for count in range(1, len(OPAM_REPOSITORIES)))
+    fetched = {(repo["name"], repo["url"]) for repo in found if repo["stamp"]}
+    return (OPAM_REPOSITORIES[0] in fetched and fetched != set(OPAM_REPOSITORIES)
+            and any(configured == set(OPAM_REPOSITORIES[:count])
+                    for count in range(1, len(OPAM_REPOSITORIES) + 1)))
 
 
 def remaining_route(root: Path) -> tuple[tuple[str, ...], ...]:
     """The steps of `CREATE_ROOT` a root at `root` still lacks: the whole route where no
-    root stands, and otherwise each `opam repository add` whose name and URL the root
-    does not already configure, never `opam init`, which over a standing root rewrites
-    its `opam-init` scripts and removes any shell-hook scripts there. Over a root in the
-    shape `root_resumable` reads, these steps complete it."""
+    root stands, and otherwise each `opam repository add` whose repository the root does
+    not already carry at that URL with its stamp read, never `opam init`, which over a
+    standing root rewrites its `opam-init` scripts and removes any shell-hook scripts
+    there. An add of a repository the root configures at that URL but has not fetched
+    keeps that configuration and fetches it. Over a root in the shape `root_resumable`
+    reads, these steps complete it."""
     if not root_exists(root):
         return CREATE_ROOT
-    configured = {(repo["name"], repo["url"]) for repo in repositories(root)}
-    return tuple(argv for argv in CREATE_ROOT[1:] if (argv[3], argv[4]) not in configured)
+    fetched = {(repo["name"], repo["url"]) for repo in repositories(root) if repo["stamp"]}
+    return tuple(argv for argv in CREATE_ROOT[1:] if (argv[3], argv[4]) not in fetched)
 
 
 def initialized_format(root: Path) -> str:
@@ -334,6 +339,24 @@ def repositories(root: Path) -> list[dict[str, str]]:
         stamp = _STAMP_RE.search(_repo_file(root, name))
         found.append({"name": name, "url": url, "stamp": stamp.group(1) if stamp else ""})
     return found
+
+
+# A root config's `installed-switches` field, one quoted name or a bracketed list of them.
+_SWITCHES_RE = re.compile(r'(?m)^installed-switches:\s*(\[[^\]]*\]|"[^"\r\n]*")')
+_QUOTED_RE = re.compile(r'"([^"\r\n]*)"')
+
+
+def root_switches(root: Path) -> list[str]:
+    """Every switch a root's own `config` lists in its `installed-switches` field, the list
+    `opam switch list` answers from, in the root's order; empty where it lists none or
+    cannot be read. Read from the file rather than through opam, because over a root whose
+    format upgrade cannot be made in memory the reviewed client lists no switch without
+    first upgrading the root."""
+    try:
+        found = _SWITCHES_RE.search((root / "config").read_text(encoding="utf-8"))
+    except OSError:
+        return []
+    return [str(name) for name in _QUOTED_RE.findall(found.group(1))] if found else []
 
 
 def initialized_repositories(root: Path) -> list[dict[str, str]]:

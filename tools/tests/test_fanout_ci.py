@@ -516,29 +516,48 @@ _GATE_ENV = ["        env:",
 # text. A name a step builds at run time is not read.
 _SHELL_STARTUP_RE = re.compile(
     r"(?<![A-Za-z0-9_])(BASH_ENV|ENV|BASH_FUNC_[A-Za-z0-9_]+)(?![A-Za-z0-9_])")
-# The escapes YAML's double-quoted scalars and bash's ANSI-C quoting decode, at bash's
-# widths, and an escaped line break with the indentation after it, which both join.
+# The numeric escapes YAML's double-quoted scalars and bash's ANSI-C quoting decode, at
+# bash's widths, PowerShell 7's `u{...}, and an escaped line break with the indentation
+# after it, which YAML and bash both join. A single-character escape such as `\n` or
+# PowerShell's `` `n `` is not decoded here; `_spellings` reads it as a separator.
 _ESCAPE_RE = re.compile(
     r"\\(?:x([0-9A-Fa-f]{1,2})|u([0-9A-Fa-f]{1,4})|U([0-9A-Fa-f]{1,8})|([0-7]{1,3})"
-    r"|\r?\n[ \t]*)")
+    r"|\r?\n[ \t]*)|`u\{([0-9A-Fa-f]{1,6})\}")
+# How many passes `_decoded` takes at most: a pass can write a new escape, as YAML's
+# `\x5c` turns the text after it into a bash escape, and decoding stops sooner where a
+# pass changes nothing.
+_DECODINGS = 4
 
 
 def _unescaped(match: re.Match[str]) -> str:
     """One escape `_ESCAPE_RE` matched, decoded, and an escaped line break joined."""
-    hexadecimal = match[1] or match[2] or match[3]
+    hexadecimal = match[1] or match[2] or match[3] or match[5]
     if hexadecimal is None and match[4] is None:
         return ""
     point = int(hexadecimal, 16) if hexadecimal is not None else int(match[4], 8)
     return chr(point) if point <= 0x10FFFF else match[0]
 
 
+def _decoded(text: str) -> str:
+    """`text` with `_ESCAPE_RE`'s escapes decoded until a pass changes nothing, or for
+    `_DECODINGS` passes, so an escape an earlier decoding wrote is decoded too."""
+    for _ in range(_DECODINGS):
+        decoded = _ESCAPE_RE.sub(_unescaped, text)
+        if decoded == text:
+            break
+        text = decoded
+    return text
+
+
 def _spellings(text: str) -> list[str]:
-    """A workflow's text as written, with its YAML double-quoted and bash ANSI-C escapes
-    decoded and escaped line breaks joined, and that again with every quote, backtick
-    and backslash dropped, as bash's quote removal and PowerShell's backtick escapes
-    leave a word."""
-    decoded = _ESCAPE_RE.sub(_unescaped, text)
-    return [text, decoded, re.sub(r"[\"'`\\]", "", decoded)]
+    """A workflow's text as written; with its numeric escapes decoded and escaped line
+    breaks joined; that again with every quote, backtick and backslash dropped, as bash's
+    quote removal and PowerShell's backtick escapes leave a word; and that decoded text
+    with each backslash or backtick and the character after it read as a separator, as a
+    single-character escape such as YAML's or bash's `\\n` or PowerShell's `` `n `` ends
+    the word before the name it writes."""
+    decoded = _decoded(text)
+    return [text, decoded, re.sub(r"[\"'`\\]", "", decoded), re.sub(r"[\\`].", " ", decoded)]
 
 
 def _startup_names(contents: str) -> list[str]:
@@ -615,9 +634,11 @@ def _gate_faults(contents: str) -> list[str]:
     gate step nor the shard job may state `continue-on-error`. A shell can run code of
     its own before the command, so each gate step's `env:` block must be exactly its
     SHARD and SHARDS lines, and no uncommented line of the workflow may spell BASH_ENV,
-    ENV or a BASH_FUNC_ variable as a word, as written or once its escapes are decoded
-    and its quotes, backticks and backslashes dropped. Steps other than the gate's are
-    read for those names alone, and a name a step builds at run time is not read.
+    ENV or a BASH_FUNC_ variable as a word in any spelling `_spellings` gives it: as
+    written, with its numeric escapes decoded, with its quotes, backticks and
+    backslashes then dropped, or with each backslash or backtick escape read as a
+    separator. Steps other than the gate's are read for those names alone, and a name a
+    step builds at run time is not read.
     """
     shards = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)[0]
     gates = [step for step in _step_texts(shards)
@@ -794,7 +815,24 @@ def _workflow_gate_on_every_runner() -> None:
             (_GATE_JOB.replace('"TMP=$env:RUNNER_TEMP"', '"BASH`_ENV=$env:RUNNER_TEMP/trap.sh"'),
              "the workflow names BASH_ENV"),
             (_GATE_JOB.replace(job, job + '    env:\n      "BASH_FUNC_python%%": "() { exit 0; }"\n'),
-             "the workflow names BASH_FUNC_python")):
+             "the workflow names BASH_FUNC_python"),
+            # A single-character escape ending the word before the name, in YAML's
+            # double quotes, bash's ANSI-C quoting and PowerShell's backtick;
+            # PowerShell 7's code-point escape; and a YAML escape writing a bash one.
+            (_GATE_JOB.replace(report, export + "\"printf 'x\\nBASH_ENV=/tmp/t' >> "
+                                       "$GITHUB_ENV\"\n" + report),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(report, export + "echo $'x\\nBASH_ENV=/tmp/t' >> \"$GITHUB_ENV\"\n"
+                                       + report), "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace('"TMP=$env:RUNNER_TEMP"',
+                               '"TMP=$env:RUNNER_TEMP`nBASH_ENV=$env:RUNNER_TEMP/trap.sh"'),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace('"TMP=$env:RUNNER_TEMP"',
+                               '"BASH`u{5f}ENV=$env:RUNNER_TEMP/trap.sh"'),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(report, export + "\"echo $'BASH\\x5cx5fENV=/tmp/t' >> "
+                                       "$GITHUB_ENV\"\n" + report),
+             "the workflow names BASH_ENV")):
         ensure(workflow != _GATE_JOB, f"the fixture for {fragment!r} changed nothing")
         found = _gate_faults(workflow)
         ensure(any(fragment in fault for fault in found),

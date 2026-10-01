@@ -45,14 +45,16 @@ function(riscv_tests_listing SUITE TARBALL_NAME EXPECTED_SHA256 OUT_VAR)
         # the suite would have "\" turned into "/" and ".." steps collapsed, so
         # that a name could arrive as another file's. A name holding ";"
         # arrives split at it, or whole where brackets enclose it. A "\" that
-        # escaped a ";" is gone by here, and the check before the sort has
-        # listed it. The piece before a name's first ";" is cut from a path
-        # under directories the glob walked, so it names nothing, a directory,
-        # or an entry the glob also lists, which sorting puts beside it. A path
-        # not under the suite's own, naming no file, holding ";" or "\", or
-        # repeating the one before it is therefore listed unhashed rather than
-        # read, and every name holding either character leaves at least one
-        # such line, here or before the sort.
+        # escaped a ";" in the glob's list is gone by here, and the check
+        # before the sort has listed it; one that escapes a ";" the sort joined
+        # is gone too, and leaves that ";" in its path. The piece before a
+        # name's first ";" is cut from a path under directories the glob
+        # walked, so it names nothing, a directory, or an entry the glob also
+        # lists, which sorting puts beside it. A path not under the suite's
+        # own, naming no file, holding ";" or "\", or repeating the one before
+        # it is therefore listed unhashed rather than read, and every name
+        # holding either character leaves at least one such line, here or
+        # before the sort.
         string(SUBSTRING "${path}" 0 ${prefix_length} prefix)
         set(entry "${path}")
         if(prefix STREQUAL "${SUITE}/")

@@ -29,6 +29,7 @@ import tempfile
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager, redirect_stderr
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure, with_env
@@ -449,6 +450,31 @@ def _git_env_is_empty_where_nothing_needs_saying() -> None:
             f"a .git directory needs no overlay, got {env.git_env(root)}"))
 
 
+def _opam_env_answers_no_question() -> None:
+    """`opam env`, which every toolchain load runs with its output captured, reads no
+    standard input and inherits no answer from the caller's environment, in any case
+    the caller names it, so a format upgrade it would ask about is declined rather than
+    left on a prompt the caller cannot see or answered by the caller's settings; the
+    rest of the environment, the root among it, is passed on, and what it prints is
+    applied."""
+    answers = {"OPAMYES": "1", "OpamConfirmLevel": "unsafe-yes", "OPAMROOT": "/elsewhere"}
+    printed = "OPAMSWITCH='verifiedos-sail'; export OPAMSWITCH;\n"
+    with (patch.dict(os.environ, answers),
+          patch.object(env, "shutil", SimpleNamespace(which=lambda name: f"/usr/bin/{name}")),
+          patch.object(env.subprocess, "run",
+                       return_value=subprocess.CompletedProcess(["opam"], 0, printed)) as run):
+        env._apply_opam_env()
+        applied = os.environ.get("OPAMSWITCH")
+    passed = run.call_args.kwargs.get("env") or {}
+    ensure(run.call_args.args[0][:2] == ["opam", "env"]
+           and run.call_args.kwargs.get("stdin") is subprocess.DEVNULL,
+           f"opam env's standard input is closed: {run.call_args}")
+    ensure(not {key.upper() for key in passed} & set(env.OPAM_ANSWERS)
+           and passed.get("OPAMROOT") == "/elsewhere",
+           f"opam env is passed no answer and keeps the root: {sorted(passed)}")
+    ensure(applied == "verifiedos-sail", f"what opam env prints is applied: {applied!r}")
+
+
 # Both readings of `load` mutate the process they run in, the full one raising the
 # stack limit, applying the opam switch and moving PATH, so each is asked in a child:
 # done in the runner's own process, a case here would prepare a toolchain for every
@@ -531,6 +557,7 @@ def cases() -> list[Case]:
         Case("git-env-names-the-work-tree", _git_env_names_the_work_tree),
         Case("git-env-empty-where-nothing-needs-saying",
              _git_env_is_empty_where_nothing_needs_saying),
+        Case("opam-env-answers-no-question", _opam_env_answers_no_question),
         # toolchain-only, for the reason the first case here is host-only and the other
         # way round: on win32 load() refuses before it reaches the guard under test, and
         # on a guest with no opam switch the full reading has nothing to apply, so its

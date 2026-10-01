@@ -478,9 +478,9 @@ def _complete_root_is_kept() -> None:
 
 
 def _resumable_root_is_finished() -> None:
-    """A root in the shape the route's leading steps leave is finished by the route's
-    remaining steps, which never run `opam init` over it and fetch only the
-    repositories they add."""
+    """A root in the shape the route's leading steps leave, one whose last addition was
+    stopped during its fetch among them, is finished by the route's remaining steps,
+    which never run `opam init` over it and fetch only the repositories they add."""
     owned = bootstrap.opam_client.OPAM_REPOSITORIES
     default = owned[0][0]
     finished = _stamped("fetched") | {default: f"{default}-restored"}
@@ -495,14 +495,35 @@ def _resumable_root_is_finished() -> None:
     ensure(run.record["opam_repositories"] == [
                {"name": name, "url": url, "stamp": finished[name]} for name, url in owned],
            f"the finished root's stamps are recorded, got {run.record.get('opam_repositories')}")
+    # An addition stopped during its fetch leaves its repository configured and unread;
+    # the same step run again fetches it.
+    stopped = _install_over(
+        lambda opam: opam_root(opam, "flat", {default: f"{default}-restored"}),
+        lambda opam: opam_root(opam, "flat", finished))
+    ensure(stopped.code == 0 and stopped.installed
+           and stopped.record["opam_root_action"] == "finished"
+           and stopped.opam_commands == list(bootstrap.opam_client.CREATE_ROOT[1:]),
+           f"a root whose addition stopped during its fetch is finished by adding it "
+           f"again, ran {stopped.opam_commands}, got {stopped.record}")
+
+
+def _unfetched_default(opam: Path) -> None:
+    """What `opam init` leaves where its first fetch fails in a directory that was not
+    empty: its config and the default repository configured, with no metadata."""
+    owned = bootstrap.opam_client.OPAM_REPOSITORIES
+    opam_root(opam, "flat", {}, owned[:1])
+    (opam / "repo" / f"{owned[0][0]}.tar.gz").unlink()
 
 
 def _incomplete_root_is_refused() -> None:
     """Any other standing root is refused before any opam command runs over it or any
-    toolchain is resolved against it, and the record says what it lacks."""
+    toolchain is resolved against it, and the record says what it lacks, each gap the
+    first failed check leaves unstated among it."""
     owned = bootstrap.opam_client.OPAM_REPOSITORIES
     (default, url), *others = owned
     roots: dict[str, tuple[Callable[[Path], None], str]] = {
+        "default configured but unfetched": (_unfetched_default,
+                                             f"no metadata stamp for {default}"),
         "another format": (lambda opam: opam_root(opam, "nested"),
                            f"format 2.2, not the reviewed client's "
                            f"{bootstrap.opam_client.OPAM_ROOT_FORMAT}"),
