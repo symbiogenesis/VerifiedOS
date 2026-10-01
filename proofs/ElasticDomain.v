@@ -833,7 +833,7 @@ Definition charge (d : Decl) (s : DState) (i u : nat) (pending : bool) : DState 
   let w := qn (eff_weight d s i) in
   let ve := Qplus (pc_eligible (ds_member s i)) (Qdiv (qn u) w) in
   set_member (advance d s u) i
-    {| pc_active := pc_active (ds_member s i); pc_pending := pending;
+    {| (ds_member s i) with pc_pending := pending;
        pc_eligible := ve; pc_deadline := Qplus ve (Qdiv (qn (eff_request d s i)) w) |}.
 
 (* One dispatch (reading 4). *)
@@ -1170,9 +1170,8 @@ Fixpoint lag (tb : TimeBase) (i : nat) (l : list Stint) : Q :=
    its preserved lag fixes (reading 5). *)
 Definition relaunch (live pend : nat -> bool) (f : option nat) (s : DState) : DState :=
   {| s with ds_focus := f;
-     ds_member := fun j => {| pc_active := live j; pc_pending := pend j;
-                              pc_eligible := pc_eligible (ds_member s j);
-                              pc_deadline := pc_deadline (ds_member s j) |} |}.
+     ds_member := fun j => {| (ds_member s j) with pc_active := live j;
+                              pc_pending := pend j |} |}.
 
 Definition rebalance (d : Decl) (s : DState) (past : list Stint)
     (live pend : nat -> bool) (f : option nat) : DState :=
