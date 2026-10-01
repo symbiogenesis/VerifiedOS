@@ -1116,6 +1116,10 @@ def _workflow_reading_base_through_environment() -> None:
                f"the reading base reaches a step only through its environment: {line!r}")
     ensure(sum(line == "          READING_BASE: ${{ inputs.reading_base }}" for line in reads) == 2,
            "the dispatch check and the reading step each read the input from their environment")
+    # The model lane's reporter refuses any base, so only the proofs lane's receives one.
+    ensure(sum(line == "          GUEST_READING_BASE: ${{ matrix.lane == 'proofs' && "
+               "inputs.reading_base || '' }}" for line in reads) == 1,
+           "only the proofs lane's reporter receives the base")
     host = (ROOT / ".github/workflows" / ci.HOST).read_text(encoding="utf-8")
     ensure("reading_base" not in host, "Host CI declares no reading base, and fanout sends it none")
 
