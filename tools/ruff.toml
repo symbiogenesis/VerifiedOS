@@ -105,19 +105,25 @@ mypy-init-return = false
 # run time on the platform that lacks it. A banned name covers its submodules. A module
 # ty resolves under neither platform, such as `_overlapped` or `_posixshmem`, is ty's own
 # `unresolved-import` finding and is not listed, and a module whose import fails for want
-# of one configure records as built, missing or disabled, any state but n/a, one a build
-# left out for want of an optional library or whose shared library is absent at run
-# time, is the build's rather than the platform's and is not listed either. `tests/test_typecheck.py` holds
-# the list on each lane against every standard-library module and submodule the running
-# interpreter cannot import, under the gate's own ty runs, so the Windows lane holds the
-# half Windows lacks and the Linux lane the other. It decides the list only on an
-# interpreter carrying its build's whole standard library, as the interpreters Host CI's
-# setup-python installs do: on one short of tkinter, which python.org's Windows installer
-# makes optional and Debian and Ubuntu ship apart, or of ensurepip, which Debian and
-# Ubuntu ship apart too, it fails as short of that library rather than asking for a ban.
+# of one that did not load and that configure records as built, missing or disabled, any
+# state but n/a, one a build left out for want of an optional library or whose shared
+# library is absent at run time, is the build's rather than the platform's and is not
+# listed either. `tests/test_typecheck.py` holds the list on each lane against every
+# standard-library module and submodule the running interpreter cannot import, under the
+# gate's own ty runs, so the Windows lane holds the half Windows lacks and the Linux lane
+# the other. It decides the list only on an interpreter carrying its build's whole
+# standard library, as the interpreters Host CI's setup-python installs do: on one short
+# of tkinter, which python.org's Windows installer makes optional and Debian and Ubuntu
+# ship apart, or of ensurepip, which Debian and Ubuntu ship apart too, it fails as short
+# of that library rather than asking for a ban.
 # TID253 refuses an unnested module-level import of a listed module, and
 # `vos/cli/typecheck.py` reads this list and refuses one anywhere else outside a function
-# body unless an enclosing `if` compares `sys.platform` with string literals.
+# body that both platforms reach, reading each enclosing `if` that compares `sys.platform`
+# with string literals for the platforms each branch takes. That holds that no listed
+# module is imported on both platforms, not which one has it, so on each lane it also
+# refuses one the running platform reaches whose top-level module the interpreter cannot
+# find, as Windows cannot find `fcntl`; a submodule such as `asyncio.unix_events` or a
+# module found that fails to import, such as `pty` on Windows, is not caught that way.
 banned-module-level-imports = [
     # Windows lacks these.
     "_curses", "_curses_panel", "_dbm", "_gdbm", "_posixsubprocess", "asyncio.unix_events",

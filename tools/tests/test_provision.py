@@ -461,35 +461,133 @@ def _switch_rows_wait_on_an_older_root() -> None:
 
 
 def _unread_switch_is_not_absent() -> None:
-    """Over a root in an older format, opam lists no switch where it would have to
-    upgrade the root to read it, so a switch the root's own config lists is reported as
-    unread rather than absent, and still planned nothing; where the config lists it not,
-    or the root is in the reviewed format, opam's empty listing is read as it stands."""
+    """Over a root in an older format, a switch the root's own config lists is reported
+    as unread rather than absent, and still planned nothing, naming who listed nothing:
+    no client on PATH; the reviewed client, which lists no switch without the upgrade it
+    must write first over a root whose repository archive is nested, and declines it; or
+    any other empty listing, another client's or the reviewed client's over a root it
+    upgrades in memory, with the client and the root's format. Where the config lists
+    the switch not, or the root is in the reviewed format, opam's empty listing is read
+    as it stands."""
     row = next(fact for fact in provision.FACTS if fact.name == "the Sail switch")
-    listed = f'installed-switches: ["default" "{env.SAIL_SWITCH}"]\n'
-    unread = ("opam listed no switches without upgrading the root, whose config lists the "
-              f"{env.SAIL_SWITCH} switch")
+    switch = env.SAIL_SWITCH
+    listed = f'installed-switches: ["default" "{switch}"]\n'
+    reviewed: tuple[str | None, str] = ("/usr/bin/opam", opam_client.OPAM_VERSION)
+    other: tuple[str | None, str] = ("/usr/bin/opam", "2.5.0")
+    nothing: tuple[str | None, str] = (None, "")
+    declined = ("opam listed no switches without upgrading the root, whose config lists "
+                f"the {switch} switch")
+    absent = f"opam has no {switch} switch"
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
-        roots: dict[str, tuple[Path, bool]] = {}
-        for name, layout, config, read in (("older-listing", "nested", listed, True),
-                                           ("older-unlisted", "nested", "", False),
-                                           ("current-listing", "flat", listed, False)):
-            root = Path(td) / name
-            opam_root(root, layout)
-            with (root / "config").open("a", encoding="utf-8", newline="") as stream:
+        roots: dict[str, Path] = {}
+        for name, layout, config in (("older-listing", "nested", listed),
+                                     ("older-unpacked", "unpacked", listed),
+                                     ("older-unlisted", "nested", ""),
+                                     ("current-listing", "flat", listed)):
+            roots[name] = Path(td) / name
+            opam_root(roots[name], layout)
+            with (roots[name] / "config").open("a", encoding="utf-8", newline="") as stream:
                 stream.write(config)
-            roots[name] = (root, read)
-        for name, (root, read) in roots.items():
-            with (patch.object(provision.env, "opam_root", return_value=root),
+        for name, client, said in (
+                ("older-listing", reviewed, declined),
+                ("older-listing", nothing, "no opam on PATH lists switches; the root's "
+                                           f"config lists the {switch} switch"),
+                ("older-listing", other, "opam 2.5.0 listed no switches over this root in "
+                                         f"format 2.2, whose config lists the {switch} "
+                                         "switch"),
+                ("older-unpacked", reviewed, f"opam {opam_client.OPAM_VERSION} listed no "
+                                             "switches over this root in format 2.2, whose "
+                                             f"config lists the {switch} switch"),
+                ("older-unlisted", reviewed, absent), ("older-unlisted", nothing, absent),
+                ("current-listing", reviewed, absent)):
+            with (patch.object(provision.env, "opam_root", return_value=roots[name]),
                   patch.object(provision, "switches", return_value=()),
-                  patch.object(provision, "_client",
-                               return_value=("/usr/bin/opam", opam_client.OPAM_VERSION))):
+                  patch.object(provision, "_client", return_value=client)):
                 results = provision.take((row,))
             found = results[0][1]
-            ensure(not found.present and (unread in found.saw) is read
-                   and ("opam has no" in found.saw) is not read
-                   and (not found.repairable) is name.startswith("older"),
-                   f"over the {name} root the row reads {found}")
+            older = name.startswith("older")
+            ensure(not found.present and found.saw.startswith(said + (";" if older else ""))
+                   and (declined in found.saw) is (said == declined)
+                   and (not found.repairable) is older,
+                   f"over the {name} root with the client {client} the row reads {found}")
+
+
+def _hard_upgrade_is_read_from_the_root() -> None:
+    """Whether the reviewed client must write an older root's upgrade before it reads it
+    is read as opam 2.6.0 decides it: from the root's format alone below 2.0~beta5 and
+    at 2.1~alpha and 2.1~alpha2, and below 2.6~alpha where the first regular file of a
+    configured repository's archive, read in name order, is neither `repo` nor under
+    `packages/`; an archive the client fails on first stops the reading undecided, and
+    another reviewed release claims nothing until its own source is read."""
+    regular, folder, link = tarfile.REGTYPE, tarfile.DIRTYPE, tarfile.SYMTYPE
+
+    def root_at(at: Path, fmt: str,
+                archives: dict[str, tuple[tuple[str, bytes], ...] | None]) -> Path:
+        """A root in format `fmt` configuring each of `archives`' repositories, each
+        archive's members in order, or no archive where it maps to None."""
+        (at / "repo").mkdir(parents=True)
+        (at / "config").write_text(f'opam-version: "2.0"\nopam-root-version: "{fmt}"\n',
+                                   encoding="utf-8")
+        listing = "".join(f'  "{name}" {{"https://example.invalid/{name}"}}\n'
+                          for name in archives)
+        (at / "repo" / "repos-config").write_text(
+            f'opam-version: "2.0"\nrepositories: [\n{listing}]\n', encoding="utf-8")
+        for name, members in archives.items():
+            if members is None:
+                continue
+            with tarfile.open(at / "repo" / f"{name}.tar.gz", "w:gz") as archive:
+                for member_name, kind in members:
+                    member = tarfile.TarInfo(member_name)
+                    member.type = kind
+                    data = b"x" if kind == regular else b""
+                    member.size = len(data)
+                    if kind == link:
+                        member.linkname = "elsewhere"
+                    archive.addfile(member, io.BytesIO(data))
+        return at
+
+    nested = (("default/", folder), ("default/repo", regular))
+    flat = (("packages/", folder), ("packages/p/p.1/opam", regular), ("repo", regular))
+    cases: tuple[tuple[str, str, dict[str, tuple[tuple[str, bytes], ...] | None], bool],
+                 ...] = (
+        ("older than 2.0~beta5", "2.0~beta", {"default": None}, True),
+        ("an early 2.1 prerelease", "2.1~alpha2", {"default": None}, True),
+        ("the 2.1 release candidate", "2.1~rc", {"default": None}, False),
+        ("a nested archive", "2.2", {"default": nested}, True),
+        ("unpacked repositories", "2.2", {"default": None}, False),
+        ("a flat archive", "2.2", {"default": flat}, False),
+        ("a nested archive at 2.6~alpha", "2.6~alpha", {"default": nested}, False),
+        ("a nested archive in the reviewed format", opam_client.OPAM_ROOT_FORMAT,
+         {"default": nested}, False),
+        ("a dotted flat name", "2.2", {"default": (("./repo", regular),)}, False),
+        ("a dotted package name", "2.2", {"default": (("./packages/p/opam", regular),)},
+         False),
+        ("a regular file named packages", "2.2", {"default": (("packages", regular),)},
+         True),
+        ("a name ending in a slash", "2.2",
+         {"default": (("default/x/", regular), ("repo", regular))}, False),
+        ("a link first", "2.2", {"default": (("x", link), ("default/repo", regular))},
+         False),
+        ("a climbing name first", "2.2", {"default": (("../repo", regular),)}, False),
+        ("an archive with no regular file", "2.2", {"default": (("default/", folder),)},
+         False),
+        ("a flat archive, then a nested one", "2.2", {"a": flat, "b": nested}, True),
+        ("a link-led archive, then a nested one", "2.2",
+         {"a": (("x", link),), "b": nested}, False))
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        for index, (what, fmt, archives, hard) in enumerate(cases):
+            root = root_at(Path(td) / str(index), fmt, archives)
+            ensure(provision._upgrades_to_read(root) is hard,
+                   f"a root in format {fmt} with {what} reads hard={hard}")
+        corrupt = root_at(Path(td) / "corrupt", "2.2", {"a": None, "b": nested})
+        (corrupt / "repo" / "a.tar.gz").write_bytes(b"not an archive")
+        ensure(not provision._upgrades_to_read(corrupt),
+               "an archive the client cannot read stops the reading undecided")
+        nested_root = root_at(Path(td) / "release", "2.2", {"default": nested})
+        with patch.object(provision.opam_client, "OPAM_VERSION", "2.6.1"):
+            ensure(not provision._upgrades_to_read(nested_root),
+                   "another reviewed release claims no hard upgrade until its source is "
+                   "read")
 
 
 def _client_is_asked_once_per_run() -> None:
@@ -521,6 +619,45 @@ def _client_is_asked_once_per_run() -> None:
            f"a client at another release holds back every row's command: {results}")
     ensure(outside == ("/usr/bin/opam", "2.5.0") and asked.count(version) == 3,
            f"a probe outside a run asks afresh: {outside} after {asked.count(version)}")
+
+
+def _prerelease_client_is_not_reviewed() -> None:
+    """The client's release is read exactly, its first word, so a prerelease or a
+    development build of the reviewed release is another client: the opam row and every
+    switch row are held back with the release they read named, and `--install-opam`
+    refuses to install over it."""
+    reviewed = opam_client.OPAM_VERSION
+    ensure(provision._release(f"{reviewed}~beta1\n") == f"{reviewed}~beta1"
+           and provision._release("") == "",
+           "the release is the client's first word, suffix and all")
+    names = ("opam", "the Sail switch", "the prover switch", "the QuickChick switch")
+    rows = tuple(fact for fact in provision.FACTS if fact.name in names)
+    for release in (f"{reviewed}~beta1", f"{reviewed}~alpha1", f"{reviewed}+dev"):
+
+        def say(argv: tuple[str, ...], release: str = release) -> str:
+            return f"{release}\n" if tuple(argv) == ("opam", "--version") else ""
+
+        with (tempfile.TemporaryDirectory(prefix="vos-test-") as td,
+              patch.object(provision, "shutil",
+                           SimpleNamespace(which=lambda name: "/usr/bin/opam")),
+              patch.object(provision.env, "opam_root", return_value=Path(td) / "absent"),
+              patch.object(provision, "_say", side_effect=say),
+              patch.object(provision, "_dpkg", side_effect=_dpkg_reports()),
+              patch.object(provision.opam_client, "install") as installer,
+              patch.object(provision.subprocess, "run") as launched):
+            results = provision.take(rows)
+            said = "\n".join(provision.run(rows).out)
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()) as refused:
+                code = provision.install_opam(Path(td) / "bin" / "opam")
+        client = f"opam {release} at /usr/bin/opam"
+        ensure(len(results) == len(names)
+               and all(not found.present and not found.repairable and client in found.saw
+                       for _, found in results)
+               and not provision.plan(results) and said.count(client) == len(names),
+               f"opam {release} holds back every row and is named in each: {results}")
+        ensure(code == 1 and f"opam {release} is already on PATH" in refused.getvalue()
+               and not installer.called and not launched.called,
+               f"--install-opam refuses opam {release}: {refused.getvalue()}")
 
 
 def _dpkg_reports(*absent: str) -> Callable[[str], provision.Found]:
@@ -1072,7 +1209,9 @@ def cases() -> list[Case]:
         Case("opam-row-plans-only-what-is-absent", _opam_row_plans_only_what_is_absent),
         Case("switch-rows-wait-on-an-older-root", _switch_rows_wait_on_an_older_root),
         Case("unread-switch-is-not-absent", _unread_switch_is_not_absent),
+        Case("hard-upgrade-is-read-from-the-root", _hard_upgrade_is_read_from_the_root),
         Case("client-is-asked-once-per-run", _client_is_asked_once_per_run),
+        Case("prerelease-client-is-not-reviewed", _prerelease_client_is_not_reviewed),
         Case("root-prerequisites-precede-the-opam-row",
              _root_prerequisites_precede_the_opam_row),
         Case("install-opam-refuses-without-root-prerequisites",

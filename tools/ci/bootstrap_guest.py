@@ -94,13 +94,23 @@ def environment(root: Path, jobs: int) -> dict[str, str]:
     }
 
 
-def run(argv: tuple[str, ...], log: IO[str]) -> None:
+def run(argv: tuple[str, ...], log: IO[str], *, declining: bool = False) -> None:
+    """Run one step into the log, failing where it fails.
+
+    A step inherits this process's input and environment, whose `OPAMYES` answers the
+    questions the installing steps ask. One marked `declining` is a read of the private
+    root and answers none: it runs with no standard input and in
+    `env.declining_environment`. The root stands in the reviewed client's format before
+    any read, so a read asks nothing; one that did, such as a root-format upgrade, is
+    declined and fails the step rather than being answered yes out of sight."""
     command = shlex.join(argv)
     print(f"== {command}", flush=True)
     log.write(f"\n== {command}\n")
     log.flush()
     started = time.monotonic()
-    done = subprocess.run(argv, stdout=log, stderr=log, check=False)
+    done = subprocess.run(argv, stdout=log, stderr=log, check=False,
+                          stdin=subprocess.DEVNULL if declining else None,
+                          env=env.declining_environment() if declining else None)
     log.write(f"exit={done.returncode}, seconds={time.monotonic() - started:.1f}\n")
     log.flush()
     done.check_returncode()
@@ -141,9 +151,13 @@ def system_packages(install: bool, log: IO[str]) -> None:
 
 
 def install_switch(steps: tuple[tuple[str, ...], ...], log: IO[str]) -> None:
+    """Run a switch's steps, skipping the creation of a switch the root already lists,
+    which a failed import left registered. The listing is a read, and declines any
+    question as `run`'s declining steps do."""
     existing = subprocess.run(("opam", "switch", "list", "--short"),
                               stdout=subprocess.PIPE, stderr=log, text=True,
-                              check=True, timeout=60).stdout.splitlines()
+                              check=True, timeout=60, stdin=subprocess.DEVNULL,
+                              env=env.declining_environment()).stdout.splitlines()
     for argv in steps:
         if argv[:3] == ("opam", "switch", "create") and argv[3] in existing:
             continue
@@ -208,7 +222,7 @@ def install_toolchains(root: Path, jobs: int, log: IO[str],
         run((str(solver_bin / "z3"), "--version"), log)
         install_switch(env.SAIL_INSTALL, log)
         run((str(root / "bin" / "opam"), "exec", f"--switch={env.SAIL_SWITCH}",
-             "--", "sail", "--version"), log)
+             "--", "sail", "--version"), log, declining=True)
     if "rocq" in selected:
         install_switch(env.ROCQ_INSTALL, log)
         run((str(root / "opam" / env.ROCQ_SWITCH / "bin" / "rocq"), "--version"), log)

@@ -1709,6 +1709,14 @@ CASES: list[Case] = [
      _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
                                r"blob/[0-9a-f]{40}/LICENSE\))",
                   lambda m: f"{m[1]} in [its tree](https://github.com/{m[2]}/tree/main)")),
+    # The row's licence link narrowed to its action's tree at the reviewed commit, no path
+    # following the commit: the link still names the reviewed revision and every
+    # workflow agrees, so only a reading that tells a view naming a file from one naming
+    # none sees a row that no longer links its terms.
+    ("K-115", "an action row linking its action's tree at the reviewed commit and no file",
+     _first_match(THIRD_PARTY, r"\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
+                               r"blob/([0-9a-f]{40})/LICENSE\)",
+                  lambda m: f"[MIT LICENSE](https://github.com/{m[1]}/tree/{m[2]})")),
     # The row's licence link dropped, its text kept: the row still states its reviewed
     # revision and every workflow agrees with it, and only a rule requiring the link
     # sees a row that no longer says where its terms were read.
@@ -1973,6 +1981,13 @@ CASES: list[Case] = [
      _literal(RULES, "Where the set is **total**,",
               "Where the set\nis located by **marker**, nothing is read. "
               "Where the set is **total**,")),
+
+    # The total class's name with a stray `*` past its closing pair, outside the form
+    # the page states. An opener holding only the other three sides of the two pairs
+    # reads it as the total class as before, so the section reads as agreeing with the
+    # registry while its lead stands in a form the rule says it does not take.
+    ("K-119", "a reach class whose bold name is trailed by a third '*'",
+     _literal(RULES, "Where the set is **total**,", "Where the set is **total***,")),
 
     # A membership sentence ahead of the first class, which no class's region reaches.
     # The rule it names is still placed once by its own class, so the section reads as
