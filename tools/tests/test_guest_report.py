@@ -301,6 +301,19 @@ def _reading_step() -> None:
         "the step runs in the proofs lane, for a named base, over a passing gate's compile")
     ensure("          READING_BASE: ${{ inputs.reading_base }}\n" in step,
            "the base reaches the step through its environment")
+    # A job that reaches its own limit is cancelled, so its report and upload never run:
+    # the limits of the steps the proofs lane can run stay under the job's.
+    job = WORKFLOW.read_text(encoding="utf-8").split("\n  guest-gates:\n", 1)[1]
+    job_limit = re.search(r"(?m)^    timeout-minutes: (\d+)$", job)
+    limits: dict[str, int] = {}
+    for lane_step in job.split("\n      - ")[1:]:
+        guard = re.search(r"(?m)^        if: (.*)$", lane_step)
+        limit = re.search(r"(?m)^        timeout-minutes: (\d+)$", lane_step)
+        if limit is not None and (guard is None or "matrix.lane == 'model'" not in guard[1]):
+            limits[lane_step.split("\n", 1)[0]] = int(limit[1])
+    ensure("name: Read the proofs against the reading base" in limits and "name: Proof gate" in limits
+           and job_limit is not None and sum(limits.values()) < int(job_limit[1]),
+           f"the proofs lane's step limits {limits} must stay under the job's")
     run = step.split("        run: |\n", 1)[1]
     # The proof environment is the gate's own, read from the file the gate reads.
     environment = "mapfile -d '' -t proof_env < \"$RUNNER_TEMP/proof-environment\""

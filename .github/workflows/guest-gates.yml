@@ -377,7 +377,11 @@ jobs:
         id: reading
         # Only a dispatch naming a reading base runs it, over a passing gate's compile.
         if: ${{ matrix.lane == 'proofs' && !cancelled() && inputs.reading_base != '' && steps.proofs.outcome == 'success' }}
-        timeout-minutes: 120
+        # Each reading of the whole corpus, compile included, took about 245 s on the
+        # development guest. An hour bounds both on a runner and keeps the proofs lane's
+        # step limits under the job's, which a timed-out job would cut short before its
+        # report and artifact upload.
+        timeout-minutes: 60
         env:
           READING_BASE: ${{ inputs.reading_base }}
         # Both readings and the comparison run in the gate's explicit environment, and
