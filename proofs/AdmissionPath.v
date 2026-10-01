@@ -2700,7 +2700,7 @@ Qed.
    induction hypothesis `IH` at `s`, and closed. *)
 Local Ltac step_by_IH IH s := simpl; rewrite (IH s); reflexivity.
 
-(* The opening six lemmas over a position share: induction on the position
+(* The opening that six of the lemmas below share: induction on the position
    `n` with the list `l` generalized and reintroduced, the successor case's
    hypothesis named `IH`, and at position zero the empty list closed, which
    leaves that position's cons case over `a` and `s` first and the successor
