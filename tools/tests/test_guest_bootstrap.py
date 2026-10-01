@@ -9,7 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from pathlib import Path
@@ -97,12 +97,13 @@ def _opam_reads_decline() -> None:
     the rest of the environment; any other step inherits both, its OPAMYES among them."""
     answers = {"OPAMYES": "1", "OPAMCONFIRMLEVEL": "unsafe-yes", "OPAMROOT": "/private/opam"}
 
-    def declined(call: object) -> bool:
-        kwargs = getattr(call, "kwargs", {})
-        passed = kwargs.get("env") or {}
-        return (kwargs.get("stdin") is subprocess.DEVNULL
-                and not {key.upper() for key in passed} & set(bootstrap.env.OPAM_ANSWERS)
-                and passed.get("OPAMROOT") == "/private/opam")
+    def declined(kwargs: Mapping[str, object]) -> bool:
+        passed = kwargs.get("env")
+        if kwargs.get("stdin") is not subprocess.DEVNULL or not isinstance(passed, dict):
+            return False
+        named = {str(key).upper() for key in passed}
+        return not named & set(bootstrap.env.OPAM_ANSWERS) and bool(
+            passed.get("OPAMROOT") == "/private/opam")
 
     listing = subprocess.CompletedProcess([], 0, stdout="")
     with (patch.dict(os.environ, answers),
@@ -111,7 +112,7 @@ def _opam_reads_decline() -> None:
         bootstrap.install_switch((("opam", "switch", "create", "private", "-y"),),
                                  io.StringIO())
     ensure(query.call_args.args[0] == ("opam", "switch", "list", "--short")
-           and declined(query.call_args),
+           and declined(query.call_args.kwargs),
            f"the switch listing declines the client's questions: {query.call_args}")
     finished = subprocess.CompletedProcess([], 0)
     for declining in (True, False):
@@ -121,7 +122,7 @@ def _opam_reads_decline() -> None:
             bootstrap.run(("opam", "exec", "--", "sail", "--version"), io.StringIO(),
                           declining=declining)
         kwargs = step.call_args.kwargs
-        ensure(declined(step.call_args) if declining
+        ensure(declined(kwargs) if declining
                else kwargs.get("stdin") is None and kwargs.get("env") is None,
                f"a step marked declining={declining} runs with {kwargs}")
 
