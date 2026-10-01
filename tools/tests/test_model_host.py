@@ -29,7 +29,7 @@ import tarfile
 import tempfile
 import threading
 from collections.abc import Callable
-from contextlib import redirect_stderr, redirect_stdout, suppress
+from contextlib import ExitStack, redirect_stderr, redirect_stdout, suppress
 from functools import partial
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -561,6 +561,51 @@ def _os_with_a_device(named: Callable[[str], bool]) -> SimpleNamespace:
     return SimpleNamespace(**{**vars(os), "open": opened, "fstat": described})
 
 
+def _open_regular_asks_the_name_first() -> None:
+    """`_open_regular` opens nothing its name reports as another kind than a regular
+    file, since opening a device node can act on the device, and hands back a
+    descriptor only on the very file the name reported. A device node cannot be made
+    unprivileged, so the name's answer is simulated: a character device, which is never
+    opened, and a regular file on another inode, a file replaced after its name was
+    asked, which is opened and refused. The positive control is the same file asked as
+    it is, which opens; `O_NOCTTY` rides every open where the platform has it."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        path = Path(td) / "rv64ui-p-add"
+        path.write_bytes(b"\x7fELF")
+        opened: list[str] = []
+
+        def recorded(named: str | Path, flags: int, mode: int = 0o777) -> int:
+            opened.append(str(named))
+            return os.open(named, flags, mode)
+
+        def answering(kind: int, inode_shift: int = 0) -> SimpleNamespace:
+            def lstat(named: str | Path) -> os.stat_result:
+                held = tuple(os.lstat(named))
+                return os.stat_result((kind | stat.S_IMODE(held[0]), held[1] + inode_shift,
+                                       *held[2:]))
+            return SimpleNamespace(**{**vars(os), "open": recorded, "lstat": lstat})
+
+        for kind, shift, why in ((stat.S_IFCHR, 0, "a device is refused unopened"),
+                                 (stat.S_IFREG, 1, "another file is refused once opened")):
+            opened.clear()
+            with patch.object(_MODEL, "os", answering(kind, shift)):
+                fd = _MODEL._open_regular(path)
+            if fd is not None:
+                os.close(fd)
+            ensure(fd is None and opened == ([] if kind == stat.S_IFCHR else [str(path)]),
+                   f"{why}, got {fd} after opening {opened}")
+        opened.clear()
+        with patch.object(_MODEL, "os", answering(stat.S_IFREG)):
+            fd = _MODEL._open_regular(path)
+        ensure(fd is not None and opened == [str(path)],
+               f"control: the file the name reported opens, got {fd} after {opened}")
+        with os.fdopen(cast("int", fd), "rb") as stream:
+            ensure(stream.read() == b"\x7fELF", "and reads as it is")
+        noctty = getattr(os, "O_NOCTTY", 0)
+        ensure(_MODEL._REGULAR_ONLY & noctty == noctty,
+               "no terminal a corpus open meets becomes the controlling one")
+
+
 def _seed_refuses_a_device_manifest() -> None:
     """A donor whose manifest is a device node is refused by the kind its opened
     descriptor reports, simulated by `_os_with_a_device`. The positive control is the
@@ -597,22 +642,77 @@ def _seed_refuses_a_fifo_manifest() -> None:
         _manifest_refused(donor, model_root, partial(_end_of_file, manifest))
 
 
-def _seed_refuses_a_manifest_linked_to_dev_zero() -> None:
-    """A donor whose manifest is a symbolic link to `/dev/zero` is refused before a byte
-    of it is read: followed, the link names a device read without end, until the
-    `MemoryError` that ends the read, which no refusal of `_seed_test_data` catches.
-    POSIX-only, so the case is the guest's."""
+def _seed_refuses_a_manifest_linked_to_a_fifo() -> None:
+    """A donor whose manifest is a symbolic link is refused without being followed. The
+    link names a FIFO, which a reader following it waits on for a writer that never
+    comes, rather than a device such as `/dev/zero`, which such a reader reads until
+    the guest runs out of memory: a regression then fails at `_returns`'s deadline, and
+    the FIFO's write end, opened and closed, releases the reader. POSIX-only, so the
+    case is the guest's and win32 is refused before `os.mkfifo`."""
     if sys.platform == "win32":
-        raise AssertionError("/dev/zero is POSIX-only; the linked manifest case runs in "
-                             "the guest")
+        raise AssertionError("mkfifo is POSIX-only; the linked manifest case runs in the "
+                             "guest")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
         model_root = _corpus_model(root)
         donor = root / "linked-manifest"
         manifest = _MODEL.corpus_manifest(_extracted(donor, {"rv64ui-p-add": b"\x7fELF"}))
+        fifo = root / "target-fifo"
+        os.mkfifo(fifo)
         manifest.unlink()
-        manifest.symlink_to("/dev/zero")
-        _manifest_refused(donor, model_root)
+        manifest.symlink_to(fifo)
+        _manifest_refused(donor, model_root, partial(_end_of_file, fifo))
+
+
+def _verify_refuses_a_sparse_manifest() -> None:
+    """A manifest that is a regular file, holding the suite's listing and then zeros to
+    a terabyte, disagrees with the suite within the deadline: no more of it is read
+    than the listing the tree renders and one byte, where a read of the whole would end
+    in the `MemoryError` that no refusal of `_seed_test_data` catches. The file is
+    sparse, so it allocates nothing; NTFS allocates an extended file, so the case is the
+    guest's and win32 is refused before the truncation."""
+    if sys.platform == "win32":
+        raise AssertionError("NTFS allocates an extended file; the sparse manifest case "
+                             "runs in the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF"})
+        os.truncate(_MODEL.corpus_manifest(suite), 1 << 40)
+        said = _refused(partial(_MODEL.verify_test_corpus, suite, _CORPUS_DIGEST))
+        ensure("disagrees" in said, f"the sparse manifest disagrees, got {said!r}")
+
+
+def _verify_reads_no_file_until_the_paths_agree() -> None:
+    """A suite whose walked paths differ from the ones its manifest records is refused
+    before any of its files is read, so an entry the manifest does not list is never
+    hashed however long it is, and neither is any other when a listed one is gone. The
+    positive control is the suite as sealed, each of whose files is read once."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF", "rv64ui-p-sub": b"\x7fELF"})
+
+        def refused_unread(*where: str) -> None:
+            with patch.object(_MODEL, "_regular_digest",
+                              wraps=_MODEL._regular_digest) as hashed:
+                said = _refused(partial(_MODEL.verify_test_corpus, suite, _CORPUS_DIGEST))
+            ensure("disagrees" in said and all(part in said for part in where)
+                   and not hashed.called,
+                   f"the suite disagrees ({where}) before a file is read, got {said!r} "
+                   f"after reading {hashed.call_args_list}")
+
+        unlisted = suite / "rv64ui-p-unlisted"
+        unlisted.write_bytes(b"never in the tarball")
+        refused_unread(f"at line 4: the manifest has '<end>' and the tree '{unlisted.name}'")
+        unlisted.unlink()
+        # the manifest is read no further than the two remaining files' lines reach
+        gone = suite / "rv64ui-p-sub"
+        gone.unlink()
+        refused_unread("at line 3: the manifest has '", ", read no further, and the tree '<end>'")
+        gone.write_bytes(b"\x7fELF")
+        with patch.object(_MODEL, "_regular_digest", wraps=_MODEL._regular_digest) as hashed:
+            _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
+        ensure(sorted(Path(read.args[0]).name for read in hashed.call_args_list)
+               == ["rv64ui-p-add", "rv64ui-p-sub"],
+               f"control: each file of the sealed suite is read once, got "
+               f"{hashed.call_args_list}")
 
 
 def _refused(call: Callable[[], object], unblock: Callable[[], None] | None = None) -> str:
@@ -747,13 +847,15 @@ def _listing_hashes_only_regular_descriptors() -> None:
 def _listing_refuses_a_fifo_its_check_by_name_missed() -> None:
     """A FIFO that the listing's check by name answers as a regular file, which is a
     file replaced by a FIFO between that check and the read, is listed unhashed rather
-    than waited on, and the suite is refused. POSIX-only, so the case is the guest's and
-    win32 is refused before `os.mkfifo`."""
+    than waited on, and the suite is refused. The FIFO stands under a name the manifest
+    lists, so the suite's paths agree with the manifest's and only the read meets it.
+    POSIX-only, so the case is the guest's and win32 is refused before `os.mkfifo`."""
     if sys.platform == "win32":
         raise AssertionError("mkfifo is POSIX-only; the FIFO listing case runs in the guest")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
-        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF"})
+        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF", "rv64ui-p-fifo": b"x"})
         fifo = suite / "rv64ui-p-fifo"
+        fifo.unlink()
         os.mkfifo(fifo)
         real = Path.is_file
 
@@ -764,6 +866,75 @@ def _listing_refuses_a_fifo_its_check_by_name_missed() -> None:
             said = _refused(partial(_MODEL.verify_test_corpus, suite, _CORPUS_DIGEST),
                             partial(_end_of_file, fifo))
         ensure("non-regular" in said, f"the suite is refused, got {said!r}")
+
+
+def _built_tree(root: Path) -> tuple[Path, Path, Path]:
+    """A build tree holding every build product and a sealed suite of one ELF input,
+    its model root, and the input; and the control on it: the receipt records the input
+    under the name `receipts.snapshot` gives the products."""
+    model_root = _corpus_model(root)
+    build = root / "build"
+    for rel in _MODEL.BUILD_ARTIFACTS:
+        (build / rel).parent.mkdir(parents=True, exist_ok=True)
+        (build / rel).write_bytes(b"product")
+    elf = _extracted(build, {"rv64ui-p-add": b"\x7fELF"}) / "rv64ui-p-add"
+    recorded = _MODEL.build_artifacts(build, model_root)
+    product = hashlib.sha256(b"product").hexdigest()
+    ensure(recorded == {**dict.fromkeys(_MODEL.BUILD_ARTIFACTS, product),
+                        f"test/{_RELEASE}/riscv-tests/rv64ui-p-add":
+                            hashlib.sha256(b"\x7fELF").hexdigest()},
+           f"control: the receipt records every product and the input, got {recorded}")
+    return build, model_root, elf
+
+
+def _receipt_after(build: Path, model_root: Path, replace: Callable[[], object],
+                   unblock: Callable[[], None] | None = None) -> str:
+    """The refusal `build_artifacts` gives when `replace` runs once `sweep_inputs` has
+    verified the suite and selected its inputs, which is the window a check by name
+    does not close."""
+    select = _MODEL.sweep_inputs
+
+    def selected_then_replaced(directory: Path, root: Path, xlen: str = "64") -> list[Path]:
+        # cast because a module loaded from a path answers `Any` for every attribute
+        elves = cast("list[Path]", select(directory, root, xlen))
+        replace()
+        return elves
+
+    with patch.object(_MODEL, "sweep_inputs", selected_then_replaced):
+        return _refused(partial(_MODEL.build_artifacts, build, model_root), unblock)
+
+
+def _receipt_reads_only_regular_sweep_inputs() -> None:
+    """The build receipt reads each sweep input, after its suite verified, only through
+    a descriptor that is a regular file: an input that opens as a device is refused
+    with a `ValueError` naming it, which the build records as its receipt's refusal.
+    The device is simulated by `_os_with_a_device`, from the moment the inputs are
+    selected; the positive control is `_built_tree`'s receipt of the same tree."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td, ExitStack() as later:
+        build, model_root, elf = _built_tree(Path(td))
+        device = _os_with_a_device(lambda path: path == str(elf))
+        said = _receipt_after(build, model_root,
+                              lambda: later.enter_context(patch.object(_MODEL, "os", device)))
+        ensure(f"{elf} is not a regular file" in said,
+               f"the receipt refuses the input, got {said!r}")
+
+
+def _receipt_refuses_a_fifo_sweep_input() -> None:
+    """A sweep input replaced by a real FIFO after its suite verified is refused by the
+    build receipt rather than waited on. POSIX-only, so the case is the guest's and
+    win32 is refused before `os.mkfifo`."""
+    if sys.platform == "win32":
+        raise AssertionError("mkfifo is POSIX-only; the FIFO input case runs in the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        build, model_root, elf = _built_tree(Path(td))
+
+        def replace() -> None:
+            elf.unlink()
+            os.mkfifo(elf)
+
+        said = _receipt_after(build, model_root, replace, partial(_end_of_file, elf))
+        ensure(f"{elf} is not a regular file" in said,
+               f"the receipt refuses the input, got {said!r}")
 
 # The model's own declaration, whose two suite functions the case below cuts out and runs
 # under cmake, so what it holds is what configure runs rather than a copy of it.
@@ -1151,10 +1322,15 @@ def cases() -> list[Case]:
         Case("seed-test-data-refuses-unverified", _seed_test_data_refuses_unverified),
         Case("seed-refuses-a-device-donor", _seed_refuses_a_device_donor),
         Case("seed-refuses-a-fifo-donor", _seed_refuses_a_fifo_donor, lane="guest"),
+        Case("open-regular-asks-the-name-first", _open_regular_asks_the_name_first),
         Case("seed-refuses-a-device-manifest", _seed_refuses_a_device_manifest),
         Case("seed-refuses-a-fifo-manifest", _seed_refuses_a_fifo_manifest, lane="guest"),
-        Case("seed-refuses-a-manifest-linked-to-dev-zero",
-             _seed_refuses_a_manifest_linked_to_dev_zero, lane="guest"),
+        Case("seed-refuses-a-manifest-linked-to-a-fifo",
+             _seed_refuses_a_manifest_linked_to_a_fifo, lane="guest"),
+        Case("verify-refuses-a-sparse-manifest", _verify_refuses_a_sparse_manifest,
+             lane="guest"),
+        Case("verify-reads-no-file-until-the-paths-agree",
+             _verify_reads_no_file_until_the_paths_agree),
         Case("copy-regular-file", _copy_regular_file),
         Case("copy-regular-file-refuses-a-fifo-and-a-link",
              _copy_regular_file_refuses_a_fifo_and_a_link, lane="guest"),
@@ -1164,6 +1340,10 @@ def cases() -> list[Case]:
              _listing_hashes_only_regular_descriptors),
         Case("listing-refuses-a-fifo-its-check-by-name-missed",
              _listing_refuses_a_fifo_its_check_by_name_missed, lane="guest"),
+        Case("receipt-reads-only-regular-sweep-inputs",
+             _receipt_reads_only_regular_sweep_inputs),
+        Case("receipt-refuses-a-fifo-sweep-input", _receipt_refuses_a_fifo_sweep_input,
+             lane="guest"),
 
         # Only where cmake is on PATH: the runner has no skipped verdict, and a case
         # that returned without cmake would pass having decided nothing.

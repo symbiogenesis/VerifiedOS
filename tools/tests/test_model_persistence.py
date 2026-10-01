@@ -3,8 +3,9 @@
 
 import argparse
 import io
+import sys
 import tempfile
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import nullcontext, redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -71,20 +72,30 @@ def _explicit_scope_and_conflicts() -> None:
                "contradictory scope must refuse before running any campaign")
 
 
+def _campaign_lock() -> Mock:
+    """`env.hold_lock` itself where `flock` exists, and on a Windows host, which has
+    none, a stand-in that holds nothing; either records what the campaign locked."""
+    return Mock(wraps=env.hold_lock) if sys.platform != "win32" else Mock(return_value=nullcontext())
+
+
 def _incomplete_or_crashed_campaign_fails() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         e = _environment(Path(td))
         outputs = []
         for report, expected in (({"passed": True}, 0), ({"passed": False}, 1),
                                  ({}, 1), ({"passed": "true"}, 1)):
-            run = Mock(return_value=report)
+            run, lock = Mock(return_value=report), _campaign_lock()
             with (patch.object(model.block_persistence, "run", run),
+                  patch.object(model.env, "hold_lock", lock),
                   redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
                 result = model._corpus_persistence(e, e.lane_root / "corpus", 30)
             ensure(result == expected, "only an explicit passing campaign supplies acceptance")
+            ensure(lock.call_args.args[0] == run.call_args.args[3],
+                   "the campaign holds the lock beside its own output directory")
             outputs.append(run.call_args.args[3])
         ensure(len(set(outputs)) == len(outputs), "reruns must use fresh persistent image directories")
         with (patch.object(model.block_persistence, "run", side_effect=OSError("image unavailable")),
+              patch.object(model.env, "hold_lock", _campaign_lock()),
               redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
             ensure(model._corpus_persistence(e, e.lane_root / "corpus", 30) == 1,
                    "an unavailable backing image must fail the hosted command")
