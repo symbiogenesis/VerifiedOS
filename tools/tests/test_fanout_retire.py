@@ -990,19 +990,18 @@ _RECORD_LOCK = re.compile(r"\b(?:lockf(?:64)?|F_(?:OFD_)?SETLKW?(?:64)?)\b")
 
 def _python_record_locks(name: str, text: str) -> list[str]:
     """Each reference to a POSIX record lock in one Python source: an attribute or a
-    name spelled as one, a name an import from `fcntl` or `os` binds to one, or a
-    string other than a docstring that names one."""
+    name spelled as one, an import of one from any module, reported at the import
+    whatever name it binds, or a string other than a docstring that names one."""
     tree = ast.parse(text)
-    bound = _RECORD_LOCKS | {alias.asname for node in ast.walk(tree)
-                             if isinstance(node, ast.ImportFrom) and node.module in {"fcntl", "os"}
-                             for alias in node.names if alias.name in _RECORD_LOCKS and alias.asname}
     docstrings = _docstrings(tree)
     found: list[str] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Attribute):
             spelled = node.attr in _RECORD_LOCKS
         elif isinstance(node, ast.Name):
-            spelled = node.id in bound
+            spelled = node.id in _RECORD_LOCKS
+        elif isinstance(node, ast.alias):
+            spelled = node.name in _RECORD_LOCKS
         elif isinstance(node, ast.Constant) and id(node) not in docstrings:
             value = node.value.decode("latin-1") if isinstance(node.value, bytes) else node.value
             spelled = isinstance(value, str) and _RECORD_LOCK.search(value) is not None
@@ -1193,19 +1192,22 @@ def _producer_lock_scanners_fail_closed() -> None:
            "the C scan counts a call and skips comments")
     ensure(_c_flock_calls('auto take = flock; const char *s = "flock";\n') is None,
            "the C scan reports a flock it cannot read as a call")
-    for text in ("import fcntl\ndef take(fd):\n    fcntl.lockf(fd, fcntl.LOCK_EX)\n",
-                 "import os\ndef take(fd):\n    os.lockf(fd, os.F_LOCK, 0)\n",
-                 "import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLK, record)\n",
-                 "import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLKW, record)\n",
-                 "from fcntl import F_OFD_SETLK as SET, fcntl\ndef take(fd, record):\n    fcntl(fd, SET, record)\n",
-                 "from fcntl import *\ndef take(fd, record):\n    fcntl(fd, F_OFD_SETLKW, record)\n",
-                 "import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLK64, record)\n",
-                 "from fcntl import F_SETLKW64 as WAIT, fcntl\ndef take(fd, record):\n    fcntl(fd, WAIT, record)\n",
-                 "import ctypes\ndef take(fd):\n    getattr(ctypes.CDLL(None), 'lockf')(fd, 1, 0)\n",
-                 "import ctypes\ndef take(fd):\n    ctypes.CDLL(None).lockf64(fd, 1, 0)\n"):
+    for text, line in (("import fcntl\ndef take(fd):\n    fcntl.lockf(fd, fcntl.LOCK_EX)\n", 3),
+                       ("import os\ndef take(fd):\n    os.lockf(fd, os.F_LOCK, 0)\n", 3),
+                       ("import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLK, record)\n", 3),
+                       ("import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLKW, record)\n", 3),
+                       ("from fcntl import F_OFD_SETLK as SET, fcntl\ndef take(fd, record):\n"
+                        "    fcntl(fd, SET, record)\n", 1),
+                       ("from fcntl import *\ndef take(fd, record):\n    fcntl(fd, F_OFD_SETLKW, record)\n", 3),
+                       ("import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLK64, record)\n", 3),
+                       ("from fcntl import F_SETLKW64 as WAIT, fcntl\ndef take(fd, record):\n"
+                        "    fcntl(fd, WAIT, record)\n", 1),
+                       ("from posix import lockf as grab\ndef take(fd):\n    grab(fd, 1, 0)\n", 1),
+                       ("import ctypes\ndef take(fd):\n    getattr(ctypes.CDLL(None), 'lockf')(fd, 1, 0)\n", 3),
+                       ("import ctypes\ndef take(fd):\n    ctypes.CDLL(None).lockf64(fd, 1, 0)\n", 3)):
         found = _python_record_locks("probe.py", text)
-        ensure(len(found) == 1 and found[0].startswith("probe.py:3: "),
-               f"the Python scan must report the record lock in {text!r}, got {found}")
+        ensure(found == [f"probe.py:{line}: a POSIX record lock"],
+               f"the Python scan must report the record lock in {text!r} at line {line}, got {found}")
     ensure(_python_record_locks("probe.py", '"""lockf and F_SETLK are described."""\n'
                                             "import fcntl\ndef take(fd):\n    fcntl.flock(fd, 2)\n") == [],
            "a docstring naming a record lock, and a flock, are no record locks")
