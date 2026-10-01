@@ -682,8 +682,9 @@ def _a_drawn_harness_that_does_not_build_decides_nothing() -> None:
 
 
 # A drawn harness whose first set passed and whose second set's extracted program built
-# and did not finish, as QuickChick 2.2.0's plugin reports it: the notice naming each set
-# as it starts, then the prover's header and `Error:`, QuickChick's report of the program,
+# and did not finish, as QuickChick 2.2.0's plugin, and the recipe's pinned commit, whose
+# plugin/quickChick.mlg.cppo is the same file, report it: the notice naming each set as
+# it starts, then the prover's header and `Error:`, QuickChick's report of the program,
 # `time` and the program, a blank line, and what the program and GNU time wrote to
 # standard error.
 _PROGRAM = "time /tmp/QuickChick1/_build/Properties.native"

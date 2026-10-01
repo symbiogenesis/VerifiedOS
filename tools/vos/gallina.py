@@ -261,8 +261,9 @@ _COUNT = re.compile(r"[0-9]+")
 # built and did not finish: its command, `time` and the program, then `Exited with status
 # N`, `Killed (N)` or `Stopped (N)`, on the prover's `Error:` line or the one after it,
 # and then, after a blank line, what the program and `time` wrote to standard error.
-# QuickChick 2.2.0's plugin builds the message so in plugin/quickChick.mlg.cppo, the
-# status read from the shell that runs `time` and the program.
+# QuickChick 2.2.0's plugin, and the recipe's pinned commit, whose
+# plugin/quickChick.mlg.cppo is the same file, build the message so, the status read
+# from the shell that runs `time` and the program.
 _UNFINISHED = re.compile(r"^(?:Error:[ \t]*)?(?P<said>\S.*?: (?:Exited with status "
                          r"(?P<status>-?\d+)|(?P<signalled>Killed|Stopped) \(-?\d+\)))"
                          r"[ \t]*$", re.MULTILINE)

@@ -305,7 +305,8 @@ def _a_drawn_harness_that_does_not_build_is_stillborn() -> None:
 def _drawn_ending(report: str, stderr: str, out: str = "QuickChecking prop_b\n"
                   ) -> subprocess.CompletedProcess[str]:
     """The drawn harness's compile where a set's extracted program built and ended on
-    `report`, as QuickChick 2.2.0's plugin reports it, with `stderr` after it."""
+    `report`, as QuickChick 2.2.0's plugin, and the recipe's pinned commit, whose
+    plugin/quickChick.mlg.cppo is the same file, report it, with `stderr` after it."""
     return subprocess.CompletedProcess(
         [], 1, out, 'File "./harness/Properties.v", line 4, characters 0-22:\nError:\n'
                     f"time /tmp/QC/_build/Properties.native: {report}\n\n{stderr}\n")
