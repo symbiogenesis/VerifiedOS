@@ -226,15 +226,27 @@ def _branch_safe(root: Path, record: LaneRecord, revision: str, *, removing: boo
 
 
 def _retain_host(path: Path, destination: Path) -> list[str]:
+    """Move each ignored output Git lists beneath `destination`, ancestors first.
+
+    Git lists a directory whose own `.gitignore` ignores `*`, as ruff's cache does,
+    together with entries inside it, which travel with the directory: an entry beneath
+    one this pass moved is passed over, and any other target that exists refuses.
+    """
     ignored = _git(path, "ls-files", "--others", "--ignored", "--exclude-standard",
                    "--directory", "-z")
-    retained: list[str] = []
+    entries: list[Path] = []
     for raw in ignored.split(b"\0"):
         if not raw:
             continue
         relative = Path(os.fsdecode(raw).rstrip("/"))
         if relative.is_absolute() or ".." in relative.parts:
             raise RetirementError("Git returned an escaping ignored output")
+        entries.append(relative)
+    moved: set[Path] = set()
+    retained: list[str] = []
+    for relative in sorted(entries, key=lambda entry: entry.parts):
+        if not moved.isdisjoint(relative.parents):
+            continue
         source, target = path / relative, destination / "checkout" / relative
         _plain(source.parent)
         _plain(target)
@@ -244,6 +256,7 @@ def _retain_host(path: Path, destination: Path) -> list[str]:
             raise RetirementError(f"retained output already exists; review before resuming: {target}")
         target.parent.mkdir(parents=True, exist_ok=True)
         source.rename(target)
+        moved.add(relative)
         retained.append(str(target))
     return retained
 

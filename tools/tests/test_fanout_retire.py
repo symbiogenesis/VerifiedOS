@@ -63,6 +63,64 @@ def _retains_outputs_and_repeats() -> None:
         ensure(retire.retire(root, record, revision, archive) == result, "completed receipt resumes safely")
 
 
+_RENAME = Path.rename
+
+
+def _dies_moving_cache(source: Path, target: Path) -> Path:
+    """`Path.rename`, except that the process dies as it would move `.ruff_cache`."""
+    if source.name == ".ruff_cache":
+        raise OSError("simulated process death between two retained outputs")
+    return _RENAME(source, target)
+
+
+def _retain_nested_cache(interrupted: bool) -> None:
+    with (sandbox_tree({**FILES, "tools/keep.py": "# fixture\n"}) as root,
+          patch.object(retire, "_guest", return_value={})):
+        path, record, revision, archive = _worker(root)
+        cache = path / "tools" / ".ruff_cache"
+        (cache / "0.16.9").mkdir(parents=True)
+        (cache / ".gitignore").write_text("*\n", encoding="utf-8")
+        (cache / "CACHEDIR.TAG").write_text("Signature: fixture\n", encoding="utf-8")
+        (cache / "0.16.9" / "entry").write_bytes(b"cached")
+        (path / "out").mkdir()
+        (path / "out" / "evidence.json").write_text("evidence\n", encoding="utf-8")
+        listed = _git(path, "ls-files", "--others", "--ignored", "--exclude-standard",
+                      "--directory").splitlines()
+        ensure({"tools/.ruff_cache/", "tools/.ruff_cache/.gitignore"} <= set(listed),
+               f"precondition: Git lists the directory and entries inside it, got {listed}")
+        if interrupted:
+            with patch.object(Path, "rename", _dies_moving_cache):
+                try:
+                    retire.retire(root, record, revision, archive)
+                except OSError:
+                    pass
+                else:
+                    raise AssertionError("the interruption must occur")
+            ensure(cache.is_dir() and not (path / "out").exists(),
+                   "precondition: one output moved before the interruption")
+            planted = retire._archive(root, record, archive)[0] / "checkout" / "tools" / ".ruff_cache"
+            planted.mkdir(parents=True)
+            _refused(lambda: retire.retire(root, record, revision, archive), "retained output already exists")
+            ensure(cache.is_dir(), "a target that existed before the pass leaves its output in place")
+            planted.rmdir()
+        result = retire.retire(root, record, revision, archive)
+        saved = Path(str(result["archive"])) / "checkout"
+        ensure(result["status"] == "retired" and not path.exists()
+               and (saved / "tools" / ".ruff_cache" / "0.16.9" / "entry").read_bytes() == b"cached"
+               and (saved / "tools" / ".ruff_cache" / ".gitignore").is_file()
+               and (saved / "out" / "evidence.json").is_file(),
+               f"the {'resumed' if interrupted else 'clean'} retention moves the directory with its entries")
+
+
+def _nested_ignored_directory() -> None:
+    """Git lists a directory whose own `.gitignore` ignores `*`, as ruff's cache does,
+    together with entries inside it: retention moves the directory once, with them; a
+    retention interrupted between two outputs resumes; and a target that existed
+    before the pass still refuses."""
+    for interrupted in (False, True):
+        _retain_nested_cache(interrupted)
+
+
 def _dirty_and_unintegrated() -> None:
     with sandbox_tree(FILES) as root, patch.object(retire, "_guest") as native:
         path, record, revision, archive = _worker(root)
@@ -1086,6 +1144,7 @@ def _producer_lock_inventory() -> None:
 
 def cases() -> list[Case]:
     return [Case("retains-outputs-and-repeats", _retains_outputs_and_repeats),
+            Case("nested-ignored-directory", _nested_ignored_directory),
             Case("dirty-and-unintegrated", _dirty_and_unintegrated),
             Case("changed-identity-and-locked", _changed_identity_and_locked),
             Case("host-owned-and-outside", _host_owned_and_outside),
