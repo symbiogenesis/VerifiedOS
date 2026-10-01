@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Retirement checks ownership, ancestry, retention and interrupted removal in real Git."""
 
+import argparse
 import ast
 import errno
 import io
@@ -11,15 +12,17 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Callable
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import asdict, replace
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from tests.test_worktree import _commit, _git
 from vos import fanout_retire as retire
 from vos import memory_planner_candidates as candidates
+from vos.cli import memory_planner_candidates as candidates_cli
 from vos.cli import model as model_cli
 from vos.cli import proofs as proofs_cli
 from vos.cli import worktree
@@ -61,6 +64,64 @@ def _retains_outputs_and_repeats() -> None:
         ensure(retained.read_text(encoding="utf-8") == "important evidence\n", "ignored evidence survives")
         ensure(not _git(root, "branch", "--list", "work/worker"), "merged unchanged branch is removed")
         ensure(retire.retire(root, record, revision, archive) == result, "completed receipt resumes safely")
+
+
+_RENAME = Path.rename
+
+
+def _dies_moving_cache(source: Path, target: Path) -> Path:
+    """`Path.rename`, except that the process dies as it would move `.ruff_cache`."""
+    if source.name == ".ruff_cache":
+        raise OSError("simulated process death between two retained outputs")
+    return _RENAME(source, target)
+
+
+def _retain_nested_cache(interrupted: bool) -> None:
+    with (sandbox_tree({**FILES, "tools/keep.py": "# fixture\n"}) as root,
+          patch.object(retire, "_guest", return_value={})):
+        path, record, revision, archive = _worker(root)
+        cache = path / "tools" / ".ruff_cache"
+        (cache / "0.16.9").mkdir(parents=True)
+        (cache / ".gitignore").write_text("*\n", encoding="utf-8")
+        (cache / "CACHEDIR.TAG").write_text("Signature: fixture\n", encoding="utf-8")
+        (cache / "0.16.9" / "entry").write_bytes(b"cached")
+        (path / "out").mkdir()
+        (path / "out" / "evidence.json").write_text("evidence\n", encoding="utf-8")
+        listed = _git(path, "ls-files", "--others", "--ignored", "--exclude-standard",
+                      "--directory").splitlines()
+        ensure({"tools/.ruff_cache/", "tools/.ruff_cache/.gitignore"} <= set(listed),
+               f"precondition: Git lists the directory and entries inside it, got {listed}")
+        if interrupted:
+            with patch.object(Path, "rename", _dies_moving_cache):
+                try:
+                    retire.retire(root, record, revision, archive)
+                except OSError:
+                    pass
+                else:
+                    raise AssertionError("the interruption must occur")
+            ensure(cache.is_dir() and not (path / "out").exists(),
+                   "precondition: one output moved before the interruption")
+            planted = retire._archive(root, record, archive)[0] / "checkout" / "tools" / ".ruff_cache"
+            planted.mkdir(parents=True)
+            _refused(lambda: retire.retire(root, record, revision, archive), "retained output already exists")
+            ensure(cache.is_dir(), "a target that existed before the pass leaves its output in place")
+            planted.rmdir()
+        result = retire.retire(root, record, revision, archive)
+        saved = Path(str(result["archive"])) / "checkout"
+        ensure(result["status"] == "retired" and not path.exists()
+               and (saved / "tools" / ".ruff_cache" / "0.16.9" / "entry").read_bytes() == b"cached"
+               and (saved / "tools" / ".ruff_cache" / ".gitignore").is_file()
+               and (saved / "out" / "evidence.json").is_file(),
+               f"the {'resumed' if interrupted else 'clean'} retention moves the directory with its entries")
+
+
+def _nested_ignored_directory() -> None:
+    """Git lists a directory whose own `.gitignore` ignores `*`, as ruff's cache does,
+    together with entries inside it: retention moves the directory once, with them; a
+    retention interrupted between two outputs resumes; and a target that existed
+    before the pass still refuses."""
+    for interrupted in (False, True):
+        _retain_nested_cache(interrupted)
 
 
 def _dirty_and_unintegrated() -> None:
@@ -389,7 +450,9 @@ def _native_lock_replaced_late() -> None:
 # _LINUX_CAPABILITY_VERSION_3, whose data is two (effective, permitted, inheritable)
 # triples of 32-bit words, capabilities 0 to 31 first; an unprivileged runner holds
 # neither bit. The child then seals a lane directory holding a producer's held lock and
-# reports the checkout walk's and retirement's verdicts.
+# reports the checkout walk's and retirement's verdicts, then seals an oracle edition
+# directory holding an oracle build's held lock and reports retirement's verdict on a
+# lane whose oracle log would move.
 _UNLISTABLE_PROBE = """
 import ctypes
 import fcntl
@@ -445,6 +508,28 @@ finally:
         if path.is_dir():
             path.chmod(0o755)
     os.close(producer)
+edition = build / f"sail-{retire.env.SAIL_VERSION}"
+edition.mkdir()
+log = logs / "oracle-build-oracle.log"
+log.write_text("oracle", encoding="utf-8")
+lock = retire.env._lock_path(edition / retire.env.ORACLE_TREE)
+lock.write_text("", encoding="utf-8")
+builder = os.open(lock, os.O_RDONLY)
+fcntl.flock(builder, fcntl.LOCK_EX | fcntl.LOCK_NB)
+edition.chmod(0)
+try:
+    try:
+        os.listdir(edition)
+        found["edition-control"] = "listed"
+    except PermissionError:
+        found["edition-control"] = "unlistable"
+    with patch.object(retire.env, "filesystem", return_value="ext4"):
+        found["oracle"] = outcome(lambda: retire.retain_native("oracle", str(build / "lane-oracle"),
+                                                               str(logs), "9" * 20))
+    found["oracle-log-in-place"] = log.is_file()
+finally:
+    edition.chmod(0o755)
+    os.close(builder)
 print(json.dumps(found))
 """
 
@@ -452,7 +537,9 @@ print(json.dumps(found))
 def _native_unlistable_directory() -> None:
     """A directory the walk cannot list may hold a nested repository or a producer's
     lock, so the checkout walk and the native selection refuse it, naming it, rather
-    than passing over it and moving a lane whose lock is held."""
+    than passing over it and moving a lane whose lock is held; an oracle edition
+    directory the family's selection cannot list refuses the same way, and the lane's
+    oracle log stays in place."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as work:
         done = subprocess.run([sys.executable, "-c", _UNLISTABLE_PROBE, work],
                               capture_output=True, encoding="utf-8", errors="replace",
@@ -465,6 +552,12 @@ def _native_unlistable_directory() -> None:
                and str(found[key]).endswith("/lane-worker/sealed (Permission denied)"),
                f"the {key} walk refuses naming the unlistable directory, got {found[key]}")
     ensure(found["in-place"], f"a lane with an unlistable directory stays in place, got {found}")
+    ensure(found["edition-control"] == "unlistable",
+           f"precondition: the probe cannot list the oracle edition directory, got {found}")
+    ensure(str(found["oracle"]).startswith("refused: directory cannot be listed: ")
+           and str(found["oracle"]).endswith(f"/build/sail-{retire.env.SAIL_VERSION} (Permission denied)")
+           and found["oracle-log-in-place"],
+           f"the oracle family's selection refuses naming the unlistable edition, got {found}")
 
 
 def _venv_links_and_target_locks() -> None:
@@ -616,40 +709,43 @@ def _native_oracle_locks_of_every_edition() -> None:
 
 def _persistence_campaign_lock() -> None:
     """The emulator flocks its block images inside the campaign's output, which the
-    retirement does not open; a live campaign is seen through the `<output>.lock` the
-    campaign holds beside it, and a finished one retires with its images."""
+    retirement does not open; the corpus command's live campaign is seen through the
+    `persistence.lock` the campaign holds in its corpus directory, and a finished one
+    retires with its images and that lock. The stand-in emulator writes its image,
+    attempts the retirement and returns no verdict, which ends the campaign."""
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
-        e = retire.env.Environment(root, root / "model", root / "build", root / "logs",
+        e = retire.env.Environment(TOOLS.parent, TOOLS.parent / "model", root / "build", root / "logs",
                                    "worker", 4, 4096, 2, 2)
         seen: list[str] = []
 
-        def campaign(*args: object) -> dict[str, object]:
-            output = Path(str(args[3]))
-            output.mkdir(parents=True)
-            (output / "durable.img").write_bytes(b"image")
+        def emulator(argv: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+            Path(argv[argv.index("--blkdev-image-create") + 1]).write_bytes(b"image")
             try:
                 retire.retain_native("worker", str(e.lane_root), str(root / "logs"), "3" * 20)
             except retire.RetirementError as exc:
                 seen.append(str(exc))
-            return {"passed": True}
+            return subprocess.CompletedProcess(argv, 1, "", "")
 
-        with (patch.object(model_cli.block_persistence, "run", side_effect=campaign),
-              redirect_stdout(io.StringIO())):
-            ensure(model_cli._corpus_persistence(e, e.lane_root / "corpus", 30) == 0,
-                   "the stand-in campaign passes")
-        ensure(len(seen) == 1 and seen[0].startswith("native output lock is active: ")
-               and re.search(r"/corpus/persistence-[0-9a-f]{32}\.lock$", seen[0]) is not None,
-               f"a retirement during the campaign refuses on its output lock, got {seen}")
+        with (patch.object(model_cli.block_persistence, "producer_identity", return_value={}),
+              patch.object(model_cli.block_persistence, "subprocess",
+                           SimpleNamespace(run=emulator, TimeoutExpired=subprocess.TimeoutExpired)),
+              redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
+            ensure(model_cli._corpus_persistence(e, e.lane_root / "corpus", 30) == 1,
+                   "the stand-in emulator's missing verdict ends the campaign")
+        ensure(seen == [f"native output lock is active: {e.lane_root / 'corpus' / 'persistence.lock'}"],
+               f"a retirement during the campaign refuses on its directory's lock, got {seen}")
         result = retire.retain_native("worker", str(e.lane_root), str(root / "logs"), "3" * 20)
-        images = list((Path(str(result["archive"])) / "lane" / "corpus").glob("persistence-*/durable.img"))
-        ensure(len(images) == 1 and not e.lane_root.exists(),
-               "after the campaign the lane retires with its images")
+        saved = Path(str(result["archive"])) / "lane" / "corpus"
+        ensure(len(list(saved.glob("persistence-*/durable.img"))) == 1
+               and (saved / "persistence.lock").is_file() and not e.lane_root.exists(),
+               "after the campaign the lane retires with its images and its lock")
 
 
 def _idealloc_build_lock() -> None:
     """Cargo flocks `.cargo-lock` and `.package-cache` inside the idealloc build's
-    output, names the retirement does not select; a live build is seen through the
-    `<output>.lock` the build holds beside it, and a finished one retires."""
+    output, names the retirement does not select; a live candidate run is seen through
+    the `<output>.lock` it holds beside that output from its build through its
+    evidence, and a finished one retires."""
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
         lane = root / "build" / "lane-worker"
         output = lane / "memory-planner-idealloc"
@@ -674,11 +770,12 @@ def _idealloc_build_lock() -> None:
                     seen.append(str(exc))
             raise ValueError("the stand-in toolchain stops the build")
 
+        demo = argparse.Namespace(action="demo", instance=None, baseline=None, timeout=30, iterations=1)
         with (patch.object(candidates, "native_output", side_effect=lambda _, path: path),
               patch.object(candidates, "rust_environment", side_effect=cargo)):
             stopped = False
             try:
-                candidates.build_idealloc(checkout, output)
+                candidates_cli.run(demo, checkout, output)
             except ValueError as exc:
                 stopped = "stand-in" in str(exc)
             ensure(stopped, "the stand-in toolchain ends the build")
@@ -833,15 +930,31 @@ def _checkout_sources(suffixes: tuple[str, ...]) -> list[Path]:
 _FLOCK = re.compile(r"\bflock\b")
 
 
+def _docstrings(tree: ast.Module) -> set[int]:
+    """The identities of a source's docstring constants: the bare string a module,
+    class or function body opens with."""
+    found: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef) and node.body:
+            first = node.body[0]
+            if (isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant)
+                    and isinstance(first.value.value, str)):
+                found.add(id(first.value))
+    return found
+
+
 def _python_flock_sites(name: str, text: str) -> set[tuple[str, str]]:
     """Each (module, innermost function) that reaches `flock` in one Python source: an
     attribute named `flock`, a name `from fcntl import flock [as x]` or `*` binds, or a
-    call passing a string that names the `flock` command."""
+    string other than a docstring that names it, wherever the string sits, so that an
+    argv built before it is run, a constant spread into a call and a lookup by name
+    such as `vars(fcntl)['flock']` are sites."""
     tree = ast.parse(text)
     imported = {alias.asname or alias.name for node in ast.walk(tree)
                 if isinstance(node, ast.ImportFrom) and node.module == "fcntl"
                 for alias in node.names if alias.name in {"flock", "*"}}
     bound = (imported - {"*"}) | ({"flock"} if "*" in imported else set())
+    docstrings = _docstrings(tree)
     sites: set[tuple[str, str]] = set()
 
     def reaches(node: ast.AST) -> bool:
@@ -849,11 +962,10 @@ def _python_flock_sites(name: str, text: str) -> set[tuple[str, str]]:
             return node.attr == "flock"
         if isinstance(node, ast.Name):
             return node.id in bound
-        return isinstance(node, ast.Call) and any(
-            isinstance(inner, ast.Constant) and isinstance(inner.value, str)
-            and _FLOCK.search(inner.value) is not None
-            for argument in (*node.args, *(keyword.value for keyword in node.keywords))
-            for inner in ast.walk(argument))
+        if not isinstance(node, ast.Constant) or id(node) in docstrings:
+            return False
+        value = node.value.decode("latin-1") if isinstance(node.value, bytes) else node.value
+        return isinstance(value, str) and _FLOCK.search(value) is not None
 
     def visit(node: ast.AST, owner: str) -> None:
         for child in ast.iter_child_nodes(node):
@@ -864,6 +976,37 @@ def _python_flock_sites(name: str, text: str) -> set[tuple[str, str]]:
 
     visit(tree, "<module>")
     return sites
+
+
+# POSIX record locks: `lockf` and `fcntl`'s `F_SETLK` family. A record lock and a
+# `flock` on one file neither exclude each other nor are taken by the retirement.
+_RECORD_LOCKS = frozenset({"lockf", "F_SETLK", "F_SETLKW", "F_OFD_SETLK", "F_OFD_SETLKW"})
+_RECORD_LOCK = re.compile(r"\b(?:lockf|F_(?:OFD_)?SETLKW?)\b")
+
+
+def _python_record_locks(name: str, text: str) -> list[str]:
+    """Each reference to a POSIX record lock in one Python source: an attribute or a
+    name spelled as one, a name an import from `fcntl` or `os` binds to one, or a
+    string other than a docstring that names one."""
+    tree = ast.parse(text)
+    bound = _RECORD_LOCKS | {alias.asname for node in ast.walk(tree)
+                             if isinstance(node, ast.ImportFrom) and node.module in {"fcntl", "os"}
+                             for alias in node.names if alias.name in _RECORD_LOCKS and alias.asname}
+    docstrings = _docstrings(tree)
+    found: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute):
+            spelled = node.attr in _RECORD_LOCKS
+        elif isinstance(node, ast.Name):
+            spelled = node.id in bound
+        elif isinstance(node, ast.Constant) and id(node) not in docstrings:
+            value = node.value.decode("latin-1") if isinstance(node.value, bytes) else node.value
+            spelled = isinstance(value, str) and _RECORD_LOCK.search(value) is not None
+        else:
+            continue
+        if spelled:
+            found.append(f"{name}:{node.lineno}: a POSIX record lock")
+    return found
 
 
 # The one recognized shell form: `flock` with option flags and a numeric descriptor,
@@ -898,9 +1041,16 @@ def _shell_code(text: str) -> str:
     return "".join(kept)
 
 
+# Every redirect of a descriptor: its operator, here-document, clobbering and
+# duplicating ones among them, and its whole target word, quoted parts and the bare
+# text joined to them.
+_SHELL_REDIRECT = r"(?<![\w&$]){fd}(<<<|<<-|<<|>>|>\||<>|>&|<&|>|<)[ \t]*((?:\"[^\"]*\"|'[^']*'|[^\s;&|)<>\"'])+)"
+
+
 def _shell_flock_sites(text: str) -> tuple[set[str], list[str]]:
-    """The descriptors a script flocks in the recognized form, each redirected only to
-    a quoted `*.lock` path, and every other `flock` outside comments, unclassified."""
+    """The descriptors a script flocks in the recognized form, each opened only by `>`,
+    `>>`, `<` or `<>` on a word that is one double-quoted `*.lock` path, and every other
+    `flock` outside comments, unclassified."""
     code = _shell_code(text)
     descriptors: set[str] = set()
     unclassified: list[str] = []
@@ -911,9 +1061,14 @@ def _shell_flock_sites(text: str) -> tuple[set[str], list[str]]:
             unclassified.append(f"line {line}: flock outside the recognized form")
             continue
         fd = form.group(1)
-        targets = re.findall(rf"(?<![\w&$]){fd}(?:>>|<>|>|<)[ \t]*(\"[^\"]*\"|'[^']*'|[^\s;&|)]+)", code)
-        if not targets or not all(target.startswith('"') and target.endswith('.lock"') for target in targets):
-            unclassified.append(f"line {line}: descriptor {fd} is not redirected only to a quoted *.lock path")
+        redirects = [(found.group(1), found.group(2))
+                     for found in re.finditer(_SHELL_REDIRECT.format(fd=fd), code)]
+        other = sorted({operator for operator, _ in redirects} - {">", ">>", "<", "<>"})
+        if other:
+            unclassified.append(f"line {line}: descriptor {fd} is redirected by {', '.join(other)}")
+            continue
+        if not redirects or not all(re.fullmatch(r'"[^"]*\.lock"', word) for _, word in redirects):
+            unclassified.append(f"line {line}: descriptor {fd} is not redirected only to one quoted *.lock path")
             continue
         descriptors.add(fd)
     return descriptors, unclassified
@@ -957,45 +1112,71 @@ def _c_flock_calls(text: str) -> int | None:
     return calls if calls == len(_FLOCK.findall(code)) else None
 
 
-def _campaign_calls(name: str, text: str) -> list[tuple[str, bool]]:
-    """Each `block_persistence.run` call in one source, and whether it sits inside a
-    `with ... hold_lock(<its output>, ...)`."""
-    calls: list[tuple[str, bool]] = []
+# What a `flock(` count cannot read: a POSIX record lock, and the `flock` system call
+# reached by its number, which `\bflock\b` does not match.
+_C_UNREAD_LOCK = re.compile(r"\blockf\b|\bF_(?:OFD_)?SETLKW?\b|\b(?:SYS|__NR)_flock\b")
 
-    def visit(node: ast.AST, held: tuple[str, ...]) -> None:
-        if isinstance(node, ast.With | ast.AsyncWith):
-            held += tuple(ast.dump(item.context_expr.args[0]) for item in node.items
-                          if isinstance(item.context_expr, ast.Call) and item.context_expr.args
-                          and isinstance(item.context_expr.func, ast.Attribute)
-                          and item.context_expr.func.attr == "hold_lock")
-        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "run"
-                and isinstance(node.func.value, ast.Name) and node.func.value.id == "block_persistence"):
-            calls.append((f"{name}:{node.lineno}", len(node.args) > 3 and ast.dump(node.args[3]) in held))
-        for child in ast.iter_child_nodes(node):
-            visit(child, held)
 
-    visit(ast.parse(text), ())
-    return calls
+def _c_unread_locks(text: str) -> int:
+    """How many record locks and numbered `flock` system calls one C or C++ source
+    names outside comments."""
+    return len(_C_UNREAD_LOCK.findall(_c_code(text)))
+
+
+def _campaign_lock(text: str) -> str | None:
+    """The target, as source, of the `hold_lock` that a module's `run` holds across its
+    whole body, or `None` unless every statement after its docstring sits inside one
+    `with ... hold_lock(<target>, ...)`."""
+    tree = ast.parse(text)
+    run = next((node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "run"), None)
+    if run is None:
+        return None
+    body, first = run.body, run.body[0] if run.body else None
+    if (isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant)
+            and isinstance(first.value.value, str)):
+        body = body[1:]
+    block = body[0] if len(body) == 1 else None
+    if not isinstance(block, ast.With):
+        return None
+    for item in block.items:
+        held = item.context_expr
+        if (isinstance(held, ast.Call) and isinstance(held.func, ast.Attribute)
+                and held.func.attr == "hold_lock" and held.args):
+            return ast.unparse(held.args[0])
+    return None
 
 
 def _producer_lock_scanners_fail_closed() -> None:
-    """A Python `flock` bound by import or named as a command is a site, and a shell or
-    C `flock` outside the one recognized form is reported rather than passed over."""
+    """A Python `flock` bound by import or named by any string but a docstring is a
+    site, a shell or C `flock` outside the one recognized form is reported rather than
+    passed over, and so is a POSIX record lock or a numbered `flock` system call."""
     for text, owner in (("from fcntl import flock as grab\ndef take(fd):\n    grab(fd, 2)\n", "take"),
                         ("from fcntl import *\ndef take(fd):\n    flock(fd, 2)\n", "take"),
                         ("import subprocess\ndef run(path):\n"
                          "    subprocess.run(['flock', '-x', path, 'true'])\n", "run"),
                         ("import subprocess\ndef run():\n"
                          "    subprocess.run('flock -x 9 true', shell=True)\n", "run"),
+                        ("import subprocess\ndef run(path):\n"
+                         "    command = ['flock', '-x', path, 'true']\n    subprocess.run(command)\n", "run"),
+                        ("import subprocess\nLOCK = ('flock', '-x')\ndef run(path):\n"
+                         "    subprocess.run([*LOCK, path, 'true'])\n", "<module>"),
+                        ("import fcntl\ndef take(fd):\n    vars(fcntl)['flock'](fd, 2)\n", "take"),
+                        ('X = 1\n"""flock, after a statement, is no docstring."""\n', "<module>"),
                         ("import fcntl\ntake = fcntl.flock\n", "<module>")):
         found = _python_flock_sites("probe.py", text)
         ensure(found == {("probe.py", owner)}, f"the Python scan must find {text!r}, got {found}")
-    ensure(_python_flock_sites("probe.py", '"""flock is described, not called."""\n') == set(),
+    ensure(_python_flock_sites("probe.py", '"""flock is described, not called."""\n'
+                                           'class C:\n    """Nor is flock here."""\n'
+                                           'def f():\n    """Nor here: flock."""\n') == set(),
            "a docstring naming flock is not a site")
     for text in ('flock -x "$dir/work.lock" true\n',
                  '(\n    flock --exclusive 9\n) 9>"$dir/state.json"\n',
                  '(\n    flock 9\n) 9>"$dir/work.lock"\n',
                  '(\n    flock -w 10 9\n) 9>"$dir/work.lock"\n',
+                 '(\n    flock -x 9\n) 9>"$dir.lock"/state.json\n',
+                 '(\n    flock -x 9\n) 9>"$d/work.lock"\n: 9>|"$d/state.json"\n',
+                 '(\n    flock -x 9\n) 9>"$d/work.lock" 9>&3\n',
+                 '(\n    flock -x 9\n) 9>"$d/work.lock" 9<<END\nEND\n',
                  'command -v flock >/dev/null\n'):
         descriptors, unclassified = _shell_flock_sites(text)
         ensure(len(unclassified) == 1 and not descriptors,
@@ -1006,12 +1187,34 @@ def _producer_lock_scanners_fail_closed() -> None:
            "the C scan counts a call and skips comments")
     ensure(_c_flock_calls('auto take = flock; const char *s = "flock";\n') is None,
            "the C scan reports a flock it cannot read as a call")
-    campaign = ("def go(out, other):\n"
-                "    block_persistence.run(1, 2, 3, out, 4)\n"
-                "    with env.hold_lock(other, 'x'):\n        block_persistence.run(1, 2, 3, out, 4)\n"
-                "    with env.hold_lock(out, 'x'):\n        block_persistence.run(1, 2, 3, out, 4)\n")
-    ensure([locked for _, locked in _campaign_calls("probe.py", campaign)] == [False, False, True],
-           "only a campaign inside a lock on its own output counts as held")
+    for text in ("import fcntl\ndef take(fd):\n    fcntl.lockf(fd, fcntl.LOCK_EX)\n",
+                 "import os\ndef take(fd):\n    os.lockf(fd, os.F_LOCK, 0)\n",
+                 "import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLK, record)\n",
+                 "import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLKW, record)\n",
+                 "from fcntl import F_OFD_SETLK as SET, fcntl\ndef take(fd, record):\n    fcntl(fd, SET, record)\n",
+                 "from fcntl import *\ndef take(fd, record):\n    fcntl(fd, F_OFD_SETLKW, record)\n",
+                 "import ctypes\ndef take(fd):\n    getattr(ctypes.CDLL(None), 'lockf')(fd, 1, 0)\n"):
+        found = _python_record_locks("probe.py", text)
+        ensure(len(found) == 1 and found[0].startswith("probe.py:3: "),
+               f"the Python scan must report the record lock in {text!r}, got {found}")
+    ensure(_python_record_locks("probe.py", '"""lockf and F_SETLK are described."""\n'
+                                            "import fcntl\ndef take(fd):\n    fcntl.flock(fd, 2)\n") == [],
+           "a docstring naming a record lock, and a flock, are no record locks")
+    for text, count in (("int f(int fd) { return lockf(fd, F_LOCK, 0); }\n", 1),
+                        ("fcntl(fd, F_SETLK, &l); fcntl(fd, F_SETLKW, &l);\n", 2),
+                        ("fcntl(fd, F_OFD_SETLK, &l); fcntl(fd, F_OFD_SETLKW, &l);\n", 2),
+                        ("syscall(SYS_flock, fd, 2); syscall(__NR_flock, fd, 8);\n", 2),
+                        ("/* lockf(fd), F_SETLK */ int fd; // syscall(SYS_flock, fd, 2)\n", 0)):
+        ensure(_c_unread_locks(text) == count, f"the C scan must count {count} in {text!r}")
+    ensure(_campaign_lock('def run(root, output):\n    """Held throughout."""\n'
+                          '    with env.hold_lock(output.parent / "persistence", "x"):\n'
+                          '        launch(output)\n') == "output.parent / 'persistence'",
+           "a run whose whole body sits inside its lock names the lock's target")
+    for text in ('def run(root, output):\n    launch(output)\n'
+                 '    with env.hold_lock(output, "x"):\n        launch(output)\n',
+                 'def run(root, output):\n    with open(output) as stream:\n        launch(stream)\n',
+                 'def other(root, output):\n    with env.hold_lock(output, "x"):\n        launch(output)\n'):
+        ensure(_campaign_lock(text) is None, f"a run not wholly inside a lock holds none: {text!r}")
 
 
 def _producer_lock_inventory() -> None:
@@ -1019,7 +1222,8 @@ def _producer_lock_inventory() -> None:
     file, a directory in `_DIRECTORY_LOCKS`, or a lock of its own inside an output
     beside which its launcher holds a `*.lock`: each `flock` site in the tools' Python
     and in the checkout's shell and C and C++ sources is classified here, and an
-    occurrence the scans cannot classify fails."""
+    occurrence the scans cannot classify fails, as does any POSIX record lock, which a
+    `flock` neither excludes nor is excluded by."""
     lock_files = {("vos/env.py", "_flock"), ("vos/env.py", "_unlock"),  # env._lock_path
                   ("vos/cli/fanout.py", "_exclusive"),  # out/fanout/.lock, host side
                   ("vos/fanout_retire.py", "retain_native")}  # the retirement itself
@@ -1030,29 +1234,36 @@ def _producer_lock_inventory() -> None:
     ensure(directories | {("vos/env.py", "_flock")} <= sites,
            f"precondition: the scan finds the known flock sites, got {sites}")
     ensure(sites <= lock_files | directories, f"unclassified flock sites: {sites - lock_files - directories}")
+    records = [found for path in sources
+               for found in _python_record_locks(path.relative_to(TOOLS).as_posix(), path.read_text(encoding="utf-8"))]
+    ensure(not records, f"unclassified POSIX record locks: {records}")
     # Native producers' own locks, by file. The emulator flocks a `--blkdev-image`,
-    # which the tools pass only from `block_persistence.run`, under the campaign's
-    # `<output>.lock`; the unit test and the emulator it launches lock images in its
-    # scratch in the build tree, under the lock ctest's caller holds beside that tree.
+    # which the tools pass only from `block_persistence.run`, under the
+    # `persistence.lock` that `run` holds in its output's directory across its whole
+    # body; the unit test and the emulator it launches lock images in its scratch in
+    # the build tree, under the lock ctest's caller holds beside that tree.
     native = {"model/c_emulator/blkdev_image.cpp": 1, "model/test/unit_tests/block_image.cpp": 1}
     counts: dict[str, int | None] = {}
+    unread: dict[str, int] = {}
     for path in _checkout_sources((".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp")):
         text = path.read_text(encoding="utf-8", errors="replace")
         if _FLOCK.search(text) is not None:
             counts[path.relative_to(TOOLS.parent).as_posix()] = _c_flock_calls(text)
+        if _C_UNREAD_LOCK.search(text) is not None:
+            unread[path.relative_to(TOOLS.parent).as_posix()] = _c_unread_locks(text)
     ensure({name: count for name, count in counts.items() if count != 0} == native,
            f"unclassified native flock sites (file: calls, None where one is not a call): {counts}")
+    ensure(not any(unread.values()),
+           f"unclassified native record locks and numbered flock system calls (file: count): {unread}")
     launchers = {path.relative_to(TOOLS).as_posix() for path in sources
                  if any(isinstance(node, ast.Constant) and isinstance(node.value, str)
                         and node.value.startswith("--blkdev-image")
                         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))))}
     ensure(launchers == {"vos/block_persistence.py"},
            f"only the persistence campaign passes the emulator a block image, got {launchers}")
-    campaigns = [call for path in sources
-                 for call in _campaign_calls(path.name, path.read_text(encoding="utf-8"))]
-    ensure(bool(campaigns), "precondition: the persistence campaign's callers are found")
-    ensure(all(locked for _, locked in campaigns),
-           f"the campaign runs outside a lock beside its output: {[at for at, locked in campaigns if not locked]}")
+    held = _campaign_lock((TOOLS / "vos" / "block_persistence.py").read_text(encoding="utf-8"))
+    ensure(held == "output.parent / 'persistence'",
+           f"block_persistence.run must hold its output directory's persistence.lock across its whole body, got {held}")
     callers = 0
     for path in sources:
         tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -1086,6 +1297,7 @@ def _producer_lock_inventory() -> None:
 
 def cases() -> list[Case]:
     return [Case("retains-outputs-and-repeats", _retains_outputs_and_repeats),
+            Case("nested-ignored-directory", _nested_ignored_directory),
             Case("dirty-and-unintegrated", _dirty_and_unintegrated),
             Case("changed-identity-and-locked", _changed_identity_and_locked),
             Case("host-owned-and-outside", _host_owned_and_outside),

@@ -976,9 +976,9 @@ rewrites of upstream bytes. The last Ubuntu shard of
 selects the tracked files under `model/` outside `model/dependencies/` and nothing
 else, and with `SKIP=markdown-link-check`, because that hook fetches every external
 link the model's Markdown names; a finding or a rewrite from any other hook fails the
-job, and `--show-diff-on-failure` prints the rewrite. check-added-large-files reads
-only staged additions, so the CI run decides nothing for it; it acts only at commit
-time. What the hooks install beside their own code is pinned as
+job, and `--show-diff-on-failure` prints the rewrite. check-added-large-files acts
+only on staged additions, as at commit time, so the CI run, which stages nothing,
+decides nothing for it. What the hooks install beside their own code is pinned as
 [their dependencies' paragraph](#model-hook-dependencies) says. To run the same set
 from the checkout root with the environment above, set `SKIP=markdown-link-check` and
 the step's pip and virtualenv variables, naming the constraint files by absolute path,
@@ -1023,11 +1023,19 @@ integrity hash; it declares no dependency, and nothing here fixes Node.js, npm o
 hash. **The two files are reviewed whenever a hook's rev or the locked virtualenv
 moves**, and no rule holds them to the hooks' requirements or to PyPI's upload times,
 neither of which the checker reads. Run the step's command over a throwaway copy with
-an empty `PRE_COMMIT_HOME`, `PIP_LOG` naming a file, `PIP_UPLOADED_PRIOR_TO=P3D` and
-neither constraint variable set, compare `pip list` in each `py_env-*` environment and
-the build installs the log records with the files, move each pin to the release that
-run installed, with the SHA-256 PyPI states for its wheel where the build file pins
-one, and run the step's command again with both files and an empty `PRE_COMMIT_HOME`.
+an empty `PRE_COMMIT_HOME`, an empty `VIRTUALENV_OVERRIDE_APP_DATA`, so each
+environment's pip is the embedded one the step runs, `PIP_LOG` naming a file,
+`PIP_UPLOADED_PRIOR_TO=P3D` and neither constraint variable set, compare `pip list` in
+each `py_env-*` environment and the build installs the log records with the files,
+move each pin to the release that run installed, with the SHA-256 PyPI states for its
+wheel where the build file pins one, and run the step's command again with both files
+and an empty `PRE_COMMIT_HOME` and `VIRTUALENV_OVERRIDE_APP_DATA`.
+K-118 holds every pin in the two files to the release
+[THIRD-PARTY.md](../THIRD-PARTY.md)'s development-tools section read its licence at,
+the clang-format wheel's to its mirror's row and the rest to the model hooks' PyPI
+dependencies row, so a moved pin is a finding until its licence is read at the new
+release and the row states it, and a pin no row reads, such as one added for a package
+a hook gained, is a finding until a row reads its licence.
 
 [ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
 carries, including the ones it ships as warnings or switched off, and that is deliberate:
@@ -1074,10 +1082,11 @@ a tracked module carrying ruff's file-level suppression, `# ruff: noqa` or
 against the file's name rather than a line of it; and a comment carrying
 `# ruff: file-ignore[...]`, a `# ruff: disable[...]` or `# ruff: enable[...]` range,
 whose `disable` with no matching `enable` runs to the end of its block, or isort's
-`skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` reaches one logical
-line, as `# noqa` does, and is not refused. ruff's log names a file whose rules
-are switched off as checked, so the coverage floor below cannot see what such a
-suppression takes away.
+`skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` on a line of its own
+reaches the one statement or suite header beneath it, a multi-line one whole but never
+the block a header opens, and one ending a line reaches that line alone; it is not
+refused. ruff's log names a file whose rules are switched off as checked, so the
+coverage floor below cannot see what such a suppression takes away.
 ruff also honors ignore files by default, so ruff.toml sets `respect-gitignore = false`
 and the gate passes `--no-respect-gitignore`: a pattern matching a tracked module would
 otherwise take it out of the lint and annotation run with nothing reported. The settings
@@ -1109,18 +1118,27 @@ neither run sees an import of one fail on the other platform. ruff.toml's
 `banned-module-level-imports` lists each standard-library module the interpreter cannot
 import on Windows or on Linux that ty resolves under both platforms, a listed name
 covering its submodules; a module ty resolves under neither is ty's own
-`unresolved-import` finding, and a module a build leaves out for want of an optional
-library, which configure records as missing or disabled, is the build's and is not
-listed. [tests/test_typecheck.py](tests/test_typecheck.py) holds the list on each lane
+`unresolved-import` finding, and a module whose import fails for want of one configure
+records as built, missing or disabled, any state but `n/a`, one a build leaves out for
+want of an optional library or whose shared library is absent at run time, is the
+build's and is not listed. [tests/test_typecheck.py](tests/test_typecheck.py) holds the list on each lane
 against every standard-library module and submodule the running interpreter cannot
 import, resolved by the gate's own ty runs, so Host CI's Windows and Ubuntu legs
-together hold both halves. ruff's TID253 refuses an import of a listed module only
-where it is unnested at module level, and with the module listed, PLC0415 no longer
-reports one in a class body. So the gate reads the same list and refuses an import of a
-listed module in a tracked module anywhere else outside a function body, in a class body
-or a module-level block such as `if __name__ == "__main__":`, unless an enclosing `if`
-reads `sys.platform`. Each is imported inside the function that uses it, behind a
-`sys.platform` check.
+together hold both halves. The case decides the list only on an interpreter carrying
+its build's whole standard library, as the interpreters Host CI's setup-python installs
+do: on one short of tkinter, which python.org's Windows installer makes optional and
+Debian and Ubuntu ship apart, or of ensurepip, which Debian and Ubuntu ship apart too,
+it fails as short of that library rather than asking for a ban. ruff's TID253 refuses
+an import of a listed module only where it is unnested at module level, and with the
+module listed, PLC0415 no longer reports one in a class body. So the gate reads the
+same list and refuses an import of a listed module in a tracked module anywhere else
+outside a function body, in a class body or a module-level block such as
+`if __name__ == "__main__":`, unless an enclosing `if` compares `sys.platform` with
+string literals: by `==` or `!=` with one, by `in` or `not in` with a tuple, list or set
+of them, or through `startswith`, alone, under `not` or joined by `and` or `or`. An
+import beneath an `if` reading `sys.platform` any other way, which may take a branch on
+every platform, is refused naming its test. Each listed module the tools use is
+imported inside the function that uses it, behind a `sys.platform` check.
 
 The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
 addresses ty's recursive-JSON narrowing behavior, not

@@ -135,7 +135,14 @@ def _write(path: Path, text: str) -> None:
 
 
 class Runner:
-    """Commands have explicit directories, bounded execution and persistent logs."""
+    """Commands have explicit directories, bounded execution and persistent logs.
+
+    Each reads no standard input, its output being captured, and runs in
+    `env.declining_environment` or in the `_process_env` built on it, so an opam command,
+    whether a read such as `opam list` or the `opam exec` around a build, declines a
+    root-format upgrade rather than having a stray line or the caller's answer variables
+    rewrite the root one way.
+    """
 
     def __init__(self, environment: env.Environment, label: str) -> None:
         self.environment = environment
@@ -149,7 +156,9 @@ class Runner:
         log.parent.mkdir(parents=True, exist_ok=True)
         start = time.monotonic()
         try:
-            done = subprocess.run(argv, cwd=cwd, env=process_env, capture_output=True,
+            done = subprocess.run(argv, cwd=cwd, capture_output=True,
+                                  env=env.declining_environment() if process_env is None
+                                  else process_env, stdin=subprocess.DEVNULL,
                                   text=True, encoding="utf-8", errors="replace",
                                   timeout=timeout, check=False)
         except subprocess.TimeoutExpired as exc:
@@ -296,7 +305,8 @@ def _prerequisites(e: env.Environment, runner: Runner, sail: SailPin) -> Path:
 
 
 def _process_env(base: Path, z3_lib: Path) -> dict[str, str]:
-    process = os.environ.copy()
+    """The lane's build environment, on `env.declining_environment` as `Runner` says."""
+    process = env.declining_environment()
     process.update({
         "PATH": str(base / "rust/bin") + os.pathsep + process.get("PATH", ""),
         "CARGO_HOME": str(base / "cargo-home"),

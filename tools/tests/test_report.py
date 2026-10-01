@@ -8,7 +8,7 @@ stdout grep must fail here first, beside the module that made the promise.
 """
 
 from tests.harness import Case, ensure
-from vos.report import Reporter, sites
+from vos.report import Reporter, apart, sites
 
 
 def _falsy_items_dropped() -> None:
@@ -101,6 +101,24 @@ def _sites_capped() -> None:
            f"exactly the cap prints whole, with no 'and 0 more': {at_cap!r}")
 
 
+def _apart_quotes_two_commits_distinctly() -> None:
+    # Two revisions are quoted at twelve digits, or one digit past what they share, so
+    # a finding naming two different commits never prints one id for both; an equal pair
+    # keeps twelve.
+    s = "0123456789abcdef0123456789abcdef01234567"
+    first = f"f{s[1:]}"
+    last = f"{s[:-1]}8"
+    for ref, commit, want in (
+            (s, s, (s[:12], s[:12])),
+            (first, s, (first[:12], s[:12])),
+            (last, s, (last, s)),
+            (s[:12], s, (s[:12], s[:13]))):
+        got = apart(ref, commit)
+        ensure(got == want, f"apart({ref!r}, {commit!r}) is {got!r}, not {want!r}")
+        ensure(ref == commit or got[0] != got[1],
+               f"two different revisions printed as one: {got!r}")
+
+
 def cases() -> list[Case]:
     return [
         Case("falsy-items-dropped", _falsy_items_dropped),
@@ -113,4 +131,5 @@ def cases() -> list[Case]:
         Case("line-appends-verbatim", _line_appends_verbatim),
         Case("sites-uncapped", _sites_uncapped),
         Case("sites-capped", _sites_capped),
+        Case("apart-quotes-two-commits-distinctly", _apart_quotes_two_commits_distinctly),
     ]
