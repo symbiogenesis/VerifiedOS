@@ -319,7 +319,10 @@ def provision(args: argparse.Namespace, runner: Runner = _run) -> int:
         _checked(runner, argv, build_env)
     if switch not in opam_client.root_switches(opam) or not (opam / switch).is_dir():
         raise ValueError(f"after `{name}` the switch {switch} does not stand in {opam}")
-    route.update_receipt(root, closure=closure(switch))
+    packages = closure(switch)
+    pins = route.pins_of(route.closure_of({"closure": packages}) or [])
+    route.update_receipt(root, closure=packages, pins={
+        name: {"url": url, "commit": commit} for name, (url, commit) in pins.items()})
     if imported is not None:
         again = root / route.REEXPORT
         again.parent.mkdir(parents=True, exist_ok=True)
