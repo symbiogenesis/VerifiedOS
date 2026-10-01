@@ -1003,9 +1003,16 @@ def _shell_code(text: str) -> str:
     return "".join(kept)
 
 
+# Every redirect of a descriptor: its operator, here-document, clobbering and
+# duplicating ones among them, and its whole target word, quoted parts and the bare
+# text joined to them.
+_SHELL_REDIRECT = r"(?<![\w&$]){fd}(<<<|<<-|<<|>>|>\||<>|>&|<&|>|<)[ \t]*((?:\"[^\"]*\"|'[^']*'|[^\s;&|)<>\"'])+)"
+
+
 def _shell_flock_sites(text: str) -> tuple[set[str], list[str]]:
-    """The descriptors a script flocks in the recognized form, each redirected only to
-    a quoted `*.lock` path, and every other `flock` outside comments, unclassified."""
+    """The descriptors a script flocks in the recognized form, each opened only by `>`,
+    `>>`, `<` or `<>` on a word that is one double-quoted `*.lock` path, and every other
+    `flock` outside comments, unclassified."""
     code = _shell_code(text)
     descriptors: set[str] = set()
     unclassified: list[str] = []
@@ -1016,9 +1023,14 @@ def _shell_flock_sites(text: str) -> tuple[set[str], list[str]]:
             unclassified.append(f"line {line}: flock outside the recognized form")
             continue
         fd = form.group(1)
-        targets = re.findall(rf"(?<![\w&$]){fd}(?:>>|<>|>|<)[ \t]*(\"[^\"]*\"|'[^']*'|[^\s;&|)]+)", code)
-        if not targets or not all(target.startswith('"') and target.endswith('.lock"') for target in targets):
-            unclassified.append(f"line {line}: descriptor {fd} is not redirected only to a quoted *.lock path")
+        redirects = [(found.group(1), found.group(2))
+                     for found in re.finditer(_SHELL_REDIRECT.format(fd=fd), code)]
+        other = sorted({operator for operator, _ in redirects} - {">", ">>", "<", "<>"})
+        if other:
+            unclassified.append(f"line {line}: descriptor {fd} is redirected by {', '.join(other)}")
+            continue
+        if not redirects or not all(re.fullmatch(r'"[^"]*\.lock"', word) for _, word in redirects):
+            unclassified.append(f"line {line}: descriptor {fd} is not redirected only to one quoted *.lock path")
             continue
         descriptors.add(fd)
     return descriptors, unclassified
@@ -1110,6 +1122,10 @@ def _producer_lock_scanners_fail_closed() -> None:
                  '(\n    flock --exclusive 9\n) 9>"$dir/state.json"\n',
                  '(\n    flock 9\n) 9>"$dir/work.lock"\n',
                  '(\n    flock -w 10 9\n) 9>"$dir/work.lock"\n',
+                 '(\n    flock -x 9\n) 9>"$dir.lock"/state.json\n',
+                 '(\n    flock -x 9\n) 9>"$d/work.lock"\n: 9>|"$d/state.json"\n',
+                 '(\n    flock -x 9\n) 9>"$d/work.lock" 9>&3\n',
+                 '(\n    flock -x 9\n) 9>"$d/work.lock" 9<<END\nEND\n',
                  'command -v flock >/dev/null\n'):
         descriptors, unclassified = _shell_flock_sites(text)
         ensure(len(unclassified) == 1 and not descriptors,
