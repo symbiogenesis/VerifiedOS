@@ -357,6 +357,20 @@ def _verify_test_corpus() -> None:
         refused("non-regular")
 
 
+def _verified_inputs_are_the_suites_top_level_programs() -> None:
+    """The inputs chosen from a suite that verified are the files at its top whose names
+    the pattern matches, each with the digest its verification read: not the `.dump`
+    disassembly beside one, which the pattern matches too, and not a file in a
+    subdirectory, whose path the pattern also matches since a glob's `*` matches `/`."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF", "rv64ui-p-add.dump": b"d",
+                                      "rv64ui-p-dir/rv64ui-p-nested": b"\x7fELF n"})
+        verified = _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
+        chosen = _MODEL._verified_inputs(verified, "rv64ui-p-*")
+    ensure(chosen == {suite / "rv64ui-p-add": hashlib.sha256(b"\x7fELF").hexdigest()},
+           f"only the top-level program is an input, got {chosen}")
+
+
 def _seed_test_data() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
@@ -917,10 +931,13 @@ def _copy_regular_file_reads_no_further_than_verified() -> None:
     verified length and one byte, and leaves no destination: a donor file extended
     then, a sparse terabyte among them, is not read to its end. The growth is
     simulated: the descriptor's `fstat` answers the verified length of a file that is
-    longer. Reads are counted through the reader `os.fdopen` hands the copy."""
+    longer. Reads are counted through the reader `os.fdopen` hands the copy. A second run
+    reads in chunks of the verified length, so the verified bytes end at a chunk's
+    boundary and the one byte past them takes a read of its own, which the copy must
+    still make to find the growth."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
-        source, kept = root / "rv64ui-p-add", root / "copy"
+        source = root / "rv64ui-p-add"
         source.write_bytes(b"\x7fELF")
         verified = _MODEL._regular_digest(source)
         with source.open("ab") as stream:
@@ -931,17 +948,26 @@ def _copy_regular_file_reads_no_further_than_verified() -> None:
             return _CountedReader(cast("IO[bytes]", os.fdopen(fd, mode, buffering)), counts)
 
         def fstat(fd: int) -> os.stat_result:
-            held = tuple(os.fstat(fd))
-            return os.stat_result((*held[:6], verified.size, *held[7:]))
+            # with its times to the nanosecond, so a copy that misses the growth returns
+            # as it would over a real file, rather than failing as it keeps them
+            found = os.fstat(fd)
+            held = tuple(found)
+            return os.stat_result((*held[:6], verified.size, *held[7:]),
+                                  {"st_atime_ns": found.st_atime_ns,
+                                   "st_mtime_ns": found.st_mtime_ns})
 
         grown = SimpleNamespace(**{**vars(os), "fdopen": fdopen, "fstat": fstat})
-        with patch.object(_MODEL, "os", grown):
-            said = _refused(partial(_MODEL._copy_regular_file, source, kept, verified))
-        ensure(f"{source} is longer than the 4 bytes that verified" in said,
-               f"the refusal names the source, got {said!r}")
-        ensure(0 < sum(counts) <= verified.size + 1,
-               f"no more than the verified length and one byte is read, got {counts}")
-        ensure(not kept.exists(), "and nothing is written for it")
+        for chunk in (_MODEL._COPY_CHUNK, verified.size):
+            counts.clear()
+            kept = root / f"copy-{chunk}"
+            with patch.object(_MODEL, "os", grown), patch.object(_MODEL, "_COPY_CHUNK", chunk):
+                said = _refused(partial(_MODEL._copy_regular_file, source, kept, verified))
+            ensure(f"{source} is longer than the 4 bytes that verified" in said,
+                   f"the refusal names the source in {chunk}-byte reads, got {said!r}")
+            ensure(sum(counts) == verified.size + 1,
+                   f"the verified length and one byte are read, and no more, in {chunk}-byte "
+                   f"reads, got {counts}")
+            ensure(not kept.exists(), f"and nothing is written for it in {chunk}-byte reads")
 
 
 def _copy_regular_file_refuses_a_fifo_and_a_link() -> None:
@@ -1652,6 +1678,8 @@ def cases() -> list[Case]:
         Case("corpus-listing-format", _corpus_listing_format),
         Case("corpus-digests", _corpus_digests),
         Case("verify-test-corpus", _verify_test_corpus),
+        Case("verified-inputs-are-the-suites-top-level-programs",
+             _verified_inputs_are_the_suites_top_level_programs),
         Case("seed-test-data", _seed_test_data),
         Case("seed-test-data-refuses-unverified", _seed_test_data_refuses_unverified),
         Case("seed-refuses-a-device-donor", _seed_refuses_a_device_donor),

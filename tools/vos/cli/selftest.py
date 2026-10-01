@@ -1693,13 +1693,22 @@ CASES: list[Case] = [
     ("K-115", "an action row linking its licence at a commit other than the one it reviewed",
      _first_match(THIRD_PARTY, r"(github\.com/actions/checkout/blob/[0-9a-f]{39})([0-9a-f])",
                   lambda m: m[1] + ("1" if m[2] == "0" else "0"))),
-    # The same moved link spelled on GitHub's raw-content host, which serves the same file:
-    # only a reading taking every host a link to the action's files can name holds it.
+    # The same row gaining a second link to its licence on GitHub's raw-content host,
+    # which serves the same file, at a commit its last digit moved off the reviewed one.
+    # The row still links its terms at the reviewed commit, so only a reading taking the
+    # raw host holds the second link.
     ("K-115", "an action row linking its licence through another host at another commit",
-     _first_match(THIRD_PARTY, r"https://github\.com/(actions/checkout)/blob/"
-                               r"([0-9a-f]{39})([0-9a-f])/",
-                  lambda m: f"https://raw.githubusercontent.com/{m[1]}/{m[2]}"
-                            f"{'1' if m[3] == '0' else '0'}/")),
+     _first_match(THIRD_PARTY, r"(https://github\.com/(actions/checkout)/blob/"
+                               r"([0-9a-f]{39})([0-9a-f])/LICENSE)\)",
+                  lambda m: f"{m[1]}) and [a copy](https://raw.githubusercontent.com/{m[2]}/"
+                            f"{m[3]}{'1' if m[4] == '0' else '0'}/LICENSE)")),
+    # The same row gaining a link to its action's tree at a branch, no path following the
+    # branch. The reviewed link still agrees, so only a reading that ends the revision at
+    # the link's end, and not only at a following `/`, holds the branch.
+    ("K-115", "an action row linking its action's tree at a branch",
+     _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
+                               r"blob/[0-9a-f]{40}/LICENSE\))",
+                  lambda m: f"{m[1]} in [its tree](https://github.com/{m[2]}/tree/main)")),
     # The row's licence link dropped, its text kept: the row still states its reviewed
     # revision and every workflow agrees with it, and only a rule requiring the link
     # sees a row that no longer says where its terms were read.
@@ -1756,6 +1765,13 @@ CASES: list[Case] = [
      _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
                                r"dedicated switch)\.",
                   lambda m: f"{m[1]} beside `base64.3.5.1`.")),
+    # The same row gains a release after a name whose last letter, a `v`, follows a digit:
+    # a census taking every `v` after a non-letter for a tag's prefix, and not only one
+    # after a hyphen or `+`, leaves that release unread.
+    ("K-118", "a development-tool row stating a release after a letter following digits",
+     _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
+                               r"dedicated switch)\.",
+                  lambda m: f"{m[1]} beside `x86v3.5.1`.")),
     # A declared row nothing here owns gains a second release in its licence link text,
     # so the row no longer says which release its terms were read at.
     ("K-118", "a declared development-tool row stating two releases",
@@ -1771,14 +1787,58 @@ CASES: list[Case] = [
     ("K-118", "a hook commit the model's hook configuration pins and its row does not state",
      _first_match("model/.pre-commit-config.yaml", r"^([ \t]+rev: \"?)([0-9a-f])",
                   lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
+    # The first entry's rev moved to its tag under a comment other than `# frozen:`, and
+    # its reviewed rev line written into a hook's block-scalar description: YAML reads
+    # the entry's rev as the tag and the line as the description's text, so only a
+    # reading that takes the rev key at the column of the entry's `repo` key, in the one
+    # shape it reads, sees the entry run a revision its row did not review.
+    ("K-118", "a hook repository's rev a line inside a hook's block scalar stands in for",
+     _first_match("model/.pre-commit-config.yaml",
+                  r'^([ \t]+)rev: "?([0-9a-f]{40})"? # frozen: (\S+)\n'
+                  r"(\1hooks:\n([ \t]+)- id: \S+\n)",
+                  lambda m: (f"{m[1]}rev: {m[3]} # the tag\n{m[4]}{m[5]}  description: |\n"
+                             f"{m[5]}    rev: {m[2]} # frozen: {m[3]}\n"))),
+    # A repository entry anchored under the `ci` mapping pre-commit loads unchecked, on a
+    # line whose `#` follows a no-break space, and aliased into `repos`: YAML's blanks are
+    # the space and the tab alone, so that line is a key rather than a comment, and only
+    # a census skipping no other line as one sees the entry pre-commit would run.
+    ("K-118", "a hook repository anchored on a line a no-break space opens and aliased in",
+     _first_match("model/.pre-commit-config.yaml", r"^(repos:\n.*)\Z",
+                  lambda m: ("ci:\n  \u00a0#x: &unreviewed {repo: https://github.com/example/"
+                             f"unreviewed-hooks, rev: {'d' * 40}, hooks: [{{id: unreviewed}}]}}\n"
+                             f"{m[1]}  - *unreviewed\n"),
+                  flags=re.MULTILINE | re.DOTALL)),
+    # The first entry stating a second rev, its commit's last digit changed, after a line
+    # separator closing the entry's last line: YAML breaks the line there and keeps the
+    # last rev, so only a reading splitting the file where YAML does sees two revs.
+    ("K-118", "a hook repository's second rev after a line separator",
+     _first_match("model/.pre-commit-config.yaml",
+                  r'^([ \t]+)rev: "?([0-9a-f]{39})([0-9a-f])"?.*?(?=\n[ \t]*- repo:)',
+                  lambda m: f"{m[0]}\u2028{m[1]}rev: {m[2]}{'1' if m[3] == '0' else '0'}",
+                  flags=re.MULTILINE | re.DOTALL)),
     # A hook repository appended with no row, pinned as `autoupdate --freeze` writes a
     # reviewed one: every row still agrees with its own entry, so only a census of every
     # entry the configuration carries sees code pre-commit runs whose terms nobody read.
+    # Its commit is spelled in letters, which YAML 1.1 reads as the string pre-commit's
+    # schema requires, where forty zeros would load as the octal integer 0 it refuses.
     ("K-118", "a hook repository the model's hook configuration runs and no row reviews",
      _first_match("model/.pre-commit-config.yaml", r"\Z",
                   lambda _: "  - repo: https://github.com/example/unreviewed-hooks\n"
-                            f"    rev: {'0' * 40} # frozen: v1.0.0\n"
+                            f"    rev: {'d' * 40} # frozen: v1.0.0\n"
                             "    hooks:\n      - id: unreviewed\n")),
+    # The build constraints move setuptools, every hook package's build backend, while
+    # its development-tools row stays: the release is extended rather than spelled, so a
+    # reviewed bump leaves the case seeded, and only a reading of the pip constraint
+    # files the model's hook step installs from sees a backend whose terms nobody read.
+    ("K-118", "a hook build backend the pip constraints pin and its row does not state",
+     _first_match("tools/ci/model-hooks-build-constraints.txt", r"^(setuptools==)([^\s\\]+)",
+                  lambda m: f"{m[1]}{m[2]}.1")),
+    # A pin appended for a package no row reads, as a dependency a hook gained would be
+    # pinned: every row still agrees with the pins it reads, so only a census of every
+    # pin the constraint files carry sees a release pip installs whose terms nobody read.
+    ("K-118", "a hook dependency the pip constraints pin and no row reads",
+     _first_match("tools/ci/model-hooks-constraints.txt", r"\Z",
+                  lambda _: "unreviewed-dependency==1.0.0\n")),
 
     # A one-letter respelling of a licence file's name, inside the backticks that make
     # the cell a path rather than a link. That is the whole point of the case: the row
@@ -1944,6 +2004,14 @@ CASES: list[Case] = [
     ("K-119", "a membership sentence in underscore italics ahead of the first class",
      _literal(RULES, "and there are four answers.",
               "and there are four answers, _which is what K-26 are_.")),
+
+    # A membership sentence ahead of the first class again, its first id struck through,
+    # the registry's own markup for an id. A finder crossing only whitespace, emphasis, a
+    # backtick or a bracket on the way to the id passes it over, so the section reads as
+    # agreeing with the registry while it names a list no class reads.
+    ("K-119", "a membership sentence whose first id is struck through",
+     _literal(RULES, "and there are four answers.",
+              "and there are four answers, which is what ~~K-26~~ are.")),
 
     # The same inside the pattern class's region, its list in a code span. The class
     # still reads its own sentence, so a reading that takes the strict form alone finds

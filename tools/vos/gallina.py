@@ -155,8 +155,12 @@ def switch_env(switch: str) -> dict[str, str]:
     rather than replacing them: PATH, OCAMLPATH and the rest come from the switch that
     is about to be compiled in, and everything the parent set for other reasons stays.
     """
+    # Captured, so it reads no standard input and is passed no answer: over a root whose
+    # format upgrade cannot be made in memory, opam declines and the child runs without
+    # the switch's variables, as `env._apply_opam_env` does for the Sail switch.
     done = subprocess.run(["opam", "env", f"--switch={switch}", "--shell=sh"],
-                          capture_output=True, text=True, check=False)
+                          capture_output=True, text=True, check=False,
+                          stdin=subprocess.DEVNULL, env=env.declining_environment())
     if done.returncode != 0:
         return {}
     return {name: value.replace("'\\''", "'")

@@ -25,15 +25,17 @@ module and writing no profile with `TY_LOG` and `TY_LOG_PROFILE` set, a ruff.tom
 per-file suppression, `extend` or any key outside the committed file's, a file-level
 `noqa` directive naming anything but N999 alone, and a range, `file-ignore` or isort
 `skip_file` or `off` comment each refused, the real ruff showing the floor alone passes
-each of them, the index
-read for the tracked modules, and each live-tree run giving a verdict and reaching
-every module the tree tracks, a missing or another installed checker refused. The
+a `per-file-ignores` entry, a `per-file-target-version` entry, a file-level directive, a
+range, a `file-ignore` and a `skip_file` comment, the index read for the tracked
+modules, and each live-tree run giving a verdict and reaching every module the tree
+tracks, a missing or another installed checker refused. The
 import cases hold the scan beside the checkers: an import of a module ruff.toml bans at
 module level refused outside a function body, in a class body, a module-level block or
-the main guard, or behind an `if` reading a `platform` other than `sys.platform`, and
-admitted in a function body or behind a `sys.platform` check, a ruff.toml or module the
-scan cannot read refused, the whole run carrying the scan's refusal, and the real ruff
-leaving open what the scan refuses; and the list itself covering, on each lane, every standard-library
+the main guard, or behind an `if` reading a `platform` other than `sys.platform` or
+reading `sys.platform` other than by comparing it with string literals, and admitted in
+a function body or behind such a comparison, a ruff.toml or module the scan cannot read
+refused, the whole run carrying the scan's refusal, and the real ruff leaving open what
+the scan refuses; and the list itself covering, on each lane, every standard-library
 module the running interpreter cannot import that the gate's ty resolves under both
 platforms.
 """
@@ -1020,7 +1022,8 @@ def _file_suppressions_refused() -> None:
     # runs to the end of its block, and one spaced as ruff still reads it; and so are a
     # file-ignore and isort's skip_file and off, a trailing skip_file among them, which
     # ruff reads wherever it sits. A string spelling either, a spelling ruff does not
-    # read, and a suppression reaching one line are not refused.
+    # read, and a suppression reaching one statement or line and never a block are not
+    # refused.
     refused = {
         "codes.py": "# ruff: noqa: ANN001\n",
         "flake8.py": "# flake8: noqa: ANN001,ANN201\n",
@@ -1087,29 +1090,43 @@ def _file_suppressions_refused() -> None:
 def _suppressions_reported_beside_the_run() -> None:
     # The real ruff under a per-file-ignores entry, a file-level directive, a range
     # spanning the module and a file-ignore, each switching ANN off for a module with an
-    # unannotated function: ruff reports nothing and its log names the module as
-    # checked, so the floor alone passes, and the refusal is what fails the gate, one
-    # finding per refused key or comment; the run's verdict then claims no more than it
-    # showed. Without a suppression ruff reports the function.
-    body = "def f(x):\n    return x\n"
-    lint = '[lint]\nselect = ["ANN"]\n'
-    comments = "file-level or range suppression(s) the gate refuses:"
-    for config, text, refusal, count in (
-            (lint, body, None, 0),
-            (lint + 'per-file-ignores = {"x.py" = ["ANN"]}\n', body,
-             "ruff.toml setting(s) the gate refuses:", 1),
-            (lint, "# ruff: noqa: ANN001, ANN201\n" + body, comments, 1),
-            (lint, "# ruff: disable[ANN001, ANN201]\n" + body
-             + "# ruff: enable[ANN001, ANN201]\n", comments, 2),
-            (lint, "# ruff: file-ignore[ANN001, ANN201]\n" + body, comments, 1)):
+    # unannotated function, under a per-file target version of py37, which switches UP006
+    # off for a module annotating with `typing.List`, and under isort's skip_file, which
+    # switches I001 off for an unsorted import block: ruff reports nothing and its log
+    # names the module as checked, so the floor alone passes, and the refusal is what
+    # fails the gate, one finding per refused key or comment; the run's verdict then
+    # claims no more than it showed. Without a suppression ruff reports each module.
+    def ruff_run(config: str, text: str) -> Reporter:
         rep = Reporter()
         with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
             _write_tools(Path(td), {"x.py": text}, config)
             typecheck._run_ruff(rep, Path(td), frozenset({"x.py"}))
-        if refusal is None:
-            ensure(rep.findings == 2 and "ANN001: 1" in "\n".join(rep.out),
-                   f"without a suppression ruff must report the function: {rep.out!r}")
-            continue
+        return rep
+
+    body = "def f(x):\n    return x\n"
+    lint = '[lint]\nselect = ["ANN"]\n'
+    annotated = "from typing import List\nX: List[int] = []\n"
+    upgrade = '[lint]\nselect = ["UP006"]\n'
+    unsorted = "import sys\nimport os\n"
+    isort = '[lint]\nselect = ["I001"]\n'
+    for config, text, code, count in ((lint, body, "ANN001", 2),
+                                      (upgrade, annotated, "UP006", 1),
+                                      (isort, unsorted, "I001", 1)):
+        rep = ruff_run(config, text)
+        ensure(rep.findings == count and rep.out[0] == f"FAIL ruff: {count} lint finding(s):"
+               and f"{code}: 1" in "\n".join(rep.out),
+               f"without a suppression ruff must report the module: {rep.out!r}")
+    settings = "ruff.toml setting(s) the gate refuses:"
+    comments = "file-level or range suppression(s) the gate refuses:"
+    for config, text, refusal, count in (
+            (lint + 'per-file-ignores = {"x.py" = ["ANN"]}\n', body, settings, 1),
+            (lint, "# ruff: noqa: ANN001, ANN201\n" + body, comments, 1),
+            (lint, "# ruff: disable[ANN001, ANN201]\n" + body
+             + "# ruff: enable[ANN001, ANN201]\n", comments, 2),
+            (lint, "# ruff: file-ignore[ANN001, ANN201]\n" + body, comments, 1),
+            ('per-file-target-version = {"x.py" = "py37"}\n' + upgrade, annotated, settings, 1),
+            (isort, "# isort: skip_file\n" + unsorted, comments, 1)):
+        rep = ruff_run(config, text)
         ensure(rep.findings == count and rep.out[0] == f"FAIL ruff: {count} {refusal}"
                and rep.out[1 + count:] == [(f"ok ruff: every function is annotated and "
                                             f"ruff {typecheck.RUFF_VERSION} is clean under "
@@ -1188,6 +1205,11 @@ def _refused(site: str, names: str = "fcntl") -> str:
             "check")
 
 
+def _unadmitted(site: str, test: str, names: str = "fcntl") -> str:
+    return (f"       {site} imports {names} outside a function body, behind `{test}`, a "
+            "sys.platform test the scan does not admit as separating platforms")
+
+
 def _imports_refused_outside_functions() -> None:
     # An import of a banned module, or of a banned submodule by its parent, that runs
     # outside a function body is refused wherever it sits: unnested at module level, in
@@ -1195,10 +1217,24 @@ def _imports_refused_outside_functions() -> None:
     # name spelled with a fullwidth letter is the banned module, since Python
     # NFKC-normalizes identifiers, though the text never spells it in ASCII. An `if`
     # reading a `platform` other than `sys.platform`, another object's or one imported
-    # from sys and read bare, is not the check the scan admits.
+    # from sys and read bare, is not the check the scan admits, and neither is one
+    # reading `sys.platform` other than by comparing it with string literals: by truth
+    # value, beside a constant or another operand, through a call other than startswith,
+    # against a name or with `in` against a string. Both branches of such an `if` are
+    # refused, each import naming the nearest such test above it.
     refused = {
         "receiver.py": "if args.platform == 'linux':\n    import fcntl\n",
         "fromsys.py": "from sys import platform\n\nif platform == 'linux':\n    import fcntl\n",
+        "truthy.py": "import sys\n\nif sys.platform:\n    import fcntl\n",
+        "always.py": "import sys\n\nif sys.platform or True:\n    import fcntl\n",
+        "length.py": "import sys\n\nif len(sys.platform):\n    import fcntl\n",
+        "operand.py": ("import sys\n\nif sys.platform == 'linux' or args.force:\n"
+                       "    import fcntl\n"),
+        "named.py": "import sys\n\nPOSIX = 'linux'\nif sys.platform == POSIX:\n    import fcntl\n",
+        "substring.py": "import sys\n\nif sys.platform in 'linux':\n    import fcntl\n",
+        "elsebranch.py": "import sys\n\nif not sys.platform:\n    pass\nelse:\n    import fcntl\n",
+        "innermost.py": ("import sys\n\nif sys.platform:\n    if len(sys.platform):\n"
+                         "        import fcntl\n"),
         "toplevel.py": "import os, fcntl\n",
         "classbody.py": "class Locks:\n    import fcntl\n",
         "nested.py": "class Outer:\n    class Inner:\n        import fcntl\n",
@@ -1212,11 +1248,18 @@ def _imports_refused_outside_functions() -> None:
     rep = _scan(refused)
     ensure(rep.findings == len(refused) and rep.out == [
         f"FAIL imports: {len(refused)} {_SCAN_FAIL}",
+        _unadmitted("always.py:4", "sys.platform or True"),
         _refused("classbody.py:2"), _refused("dotted.py:2", "asyncio.unix_events"),
-        _refused("fromsys.py:4"), _refused("mainblock.py:2"),
+        _unadmitted("elsebranch.py:6", "not sys.platform"),
+        _refused("fromsys.py:4"), _unadmitted("innermost.py:5", "len(sys.platform)"),
+        _unadmitted("length.py:4", "len(sys.platform)"), _refused("mainblock.py:2"),
         _refused("member.py:2", "asyncio.unix_events"), _refused("moduleif.py:4"),
-        _refused("nested.py:3"), _refused("nfkc.py:2"), _refused("receiver.py:2"),
-        _refused("toplevel.py:1"), _refused("tryblock.py:2")],
+        _unadmitted("named.py:5", "sys.platform == POSIX"),
+        _refused("nested.py:3"), _refused("nfkc.py:2"),
+        _unadmitted("operand.py:4", "sys.platform == 'linux' or args.force"),
+        _refused("receiver.py:2"), _unadmitted("substring.py:4", "sys.platform in 'linux'"),
+        _refused("toplevel.py:1"), _unadmitted("truthy.py:4", "sys.platform"),
+        _refused("tryblock.py:2")],
         f"each import outside a function body must be refused: {rep.out!r}")
 
 
@@ -1235,11 +1278,25 @@ def _run_wires_in_the_scan() -> None:
 
 
 def _imports_admitted_in_functions_and_platform_blocks() -> None:
-    # A function body runs only when called, and an if reading sys.platform keeps both
-    # its branches off the platform its test excludes, at module level or in a class
-    # body. A name that only begins like a banned one, a banned module's parent, a
-    # relative import and a string are none of them an import of a banned module.
+    # A function body runs only when called, and an if comparing sys.platform with string
+    # literals keeps each of its branches to the platforms that take it, at module level
+    # or in a class body: by == or != with one, by in or not in with a tuple, list or set
+    # of them, or through startswith with one or a tuple of them, alone, under not, or
+    # joined by and or or. A name that only begins like a banned one, a banned module's
+    # parent, a relative import and a string are none of them an import of a banned module.
     admitted = {
+        "platformin.py": ("import sys\n\nif sys.platform in ('linux', 'darwin'):\n"
+                          "    import fcntl\n"),
+        "platformnotin.py": "import sys\n\nif sys.platform not in ['win32']:\n    import fcntl\n",
+        "platformset.py": "import sys\n\nif sys.platform in {'linux'}:\n    import fcntl\n",
+        "platformprefix.py": ("import sys\n\nif sys.platform.startswith('linux'):\n"
+                              "    import fcntl\n"),
+        "platformprefixes.py": ("import sys\n\nif sys.platform.startswith(('linux', 'darwin')):\n"
+                                "    import fcntl\n"),
+        "platformnot.py": "import sys\n\nif not sys.platform == 'win32':\n    import fcntl\n",
+        "platformjoined.py": ("import sys\n\nif sys.platform != 'win32' and not (\n"
+                              "        sys.platform == 'cygwin' or sys.platform.startswith('msys')):\n"
+                              "    import fcntl\n"),
         "function.py": "def lock() -> None:\n    import fcntl\n",
         "coroutine.py": "async def lock() -> None:\n    from fcntl import flock\n",
         "method.py": "class Locks:\n    def lock(self) -> None:\n        import fcntl\n",
@@ -1326,10 +1383,10 @@ def _imports_close_what_ruff_leaves_open() -> None:
 # The program `_import_failures` runs in a child of the running interpreter: each module
 # the interpreter lists as its standard library, and each submodule of a package among
 # them that imports, imported in turn, then one line after `_PROBED`, a JSON object
-# naming each that fails with the module its ModuleNotFoundError could not find, or
-# null. The marker keeps the line apart from anything a module prints as it imports. A
-# `__main__` submodule runs a program, and the trees left out run one or open a browser
-# when imported.
+# naming each that fails with the module its ImportError names, or null where it names
+# none or the failure is another exception. The marker keeps the line apart from
+# anything a module prints as it imports. A `__main__` submodule runs a program, and the
+# trees left out run one or open a browser when imported.
 _PROBED = "vos-import-probe: "
 _IMPORT_PROBE = """\
 import importlib, json, pkgutil, sys
@@ -1347,7 +1404,7 @@ while queue:
     try:
         module = importlib.import_module(name)
     except BaseException as err:
-        failed[name] = err.name if isinstance(err, ModuleNotFoundError) else None
+        failed[name] = err.name if isinstance(err, ImportError) else None
         continue
     queue.extend(info.name for info in pkgutil.iter_modules(getattr(module, "__path__", []),
                                                             name + ".")
@@ -1357,7 +1414,8 @@ while queue:
 
 def _import_failures() -> dict[str, str | None]:
     """Each standard-library module or submodule the running interpreter cannot import,
-    with the module its failure could not find, or `None` for any other failure."""
+    with the module its ImportError names, or `None` where it names none or the failure
+    is another exception."""
     done = subprocess.run([sys.executable, "-B", "-I", "-c", _IMPORT_PROBE],
                           stdin=subprocess.DEVNULL, capture_output=True, encoding="utf-8",
                           errors="replace", check=False, timeout=typecheck.TIMEOUT)
@@ -1390,20 +1448,39 @@ def _ty_unresolved(modules: list[str]) -> set[str]:
     return {modules[int(text.partition(" ")[0].rsplit(":", 2)[1]) - 1] for _, text in found}
 
 
+# The standard-library packages no platform lacks that an installer may leave out or a
+# distribution ships apart from the rest, by top-level name, each with where. An
+# interpreter short of one is short of its build's standard library, not of a platform's.
+_TCL_TK = ("python.org's Windows installer makes Tcl/Tk optional, and Debian and Ubuntu "
+           "ship tkinter in the package python3-tk installs")
+_SEPARABLE = {"_tkinter": _TCL_TK, "tkinter": _TCL_TK,
+              "ensurepip": "Debian and Ubuntu ship ensurepip in python3.X-venv"}
+
+
 def _banned_list_covers_what_cannot_be_imported() -> None:
     # The list's claim, held on this lane: each standard-library module the running
     # interpreter cannot import, that the gate's ty resolves under both of its platforms,
-    # is covered by a listed name, itself or a parent. A module the build left out for
-    # want of an optional library, which configure records as missing or disabled, is the
-    # build's rather than the platform's. The Windows lane holds the half Windows lacks
-    # and the Linux lane the other. The control is that the search finds the best-known
-    # module this lane's platform lacks, so an empty search cannot pass for a clean one.
+    # is covered by a listed name, itself or a parent. A module whose failure names one
+    # configure records as built, missing or disabled, any state but n/a, is the build's
+    # rather than the platform's: one a build left out for want of an optional library,
+    # or one it built whose shared library is absent at run time. The Windows
+    # lane holds the half Windows lacks and the Linux lane the other. The control is that
+    # the search finds the best-known module this lane's platform lacks, so an empty
+    # search cannot pass for a clean one. The case decides the list only on an interpreter
+    # carrying its build's whole standard library, as the interpreters Host CI's
+    # setup-python installs do: a Windows build records no state, and a distribution
+    # ships some pure-Python packages apart, so an interpreter short of a package
+    # `_SEPARABLE` names fails the case as short of its library rather than asked to ban it.
     def omitted(missing: str | None) -> bool:
         return missing is not None and sysconfig.get_config_var(
-            f"MODULE_{missing.upper()}_STATE") in {"missing", "disabled"}
+            f"MODULE_{missing.upper()}_STATE") not in {None, "n/a"}
 
     def covered(name: str, listed: frozenset[str]) -> bool:
         return any(name == ban or name.startswith(ban + ".") for ban in listed)
+
+    def separated(name: str) -> list[str]:
+        roots = {module.partition(".")[0] for module in (name, failed[name]) if module}
+        return [_SEPARABLE[root] for root in sorted(roots) if root in _SEPARABLE]
 
     failed = _import_failures()
     candidates = sorted(name for name, missing in failed.items() if not omitted(missing))
@@ -1416,6 +1493,11 @@ def _banned_list_covers_what_cannot_be_imported() -> None:
     committed = Path(typecheck.__file__).resolve().parents[2] / "ruff.toml"
     banned, unread = typecheck._banned(committed)
     uncovered = [name for name in required if not covered(name, banned)]
+    apart = [name for name in uncovered if separated(name)]
+    ensure(not apart,
+           f"this interpreter lacks {apart!r}, which no platform lacks, so it does not carry "
+           f"its build's whole standard library and the case cannot decide the list on it: "
+           f"{'; '.join(sorted({why for name in apart for why in separated(name)}))}")
     ensure(not unread and not uncovered,
            f"ruff.toml must list each module this interpreter cannot import that ty "
            f"resolves under both platforms: {unread!r} {uncovered!r}")

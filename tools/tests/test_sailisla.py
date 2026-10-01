@@ -3,12 +3,15 @@
 
 import io
 import json
+import os
 import shutil
+import subprocess
 import tarfile
 import tomllib
-from collections.abc import Callable
-from contextlib import nullcontext, redirect_stderr, redirect_stdout
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager, nullcontext, redirect_stderr, redirect_stdout
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import patch
 
@@ -183,6 +186,38 @@ def _sail_pin_is_locked_release() -> None:
         ensure(not run.called, "the Sail pin must be refused before the baseline switch is inspected")
 
 
+@contextmanager
+def _provisioning(root: Path) -> Iterator[None]:
+    """Everything `provision` reaches beyond its runner and the sandbox's files, faked:
+    the lane lock, the prerequisites, the platform, the fetched sources and their lock
+    override's check, the Rust install, an archive under the tracked Sail pin's
+    directory, and the stamp's digests."""
+    directory = json.loads((TOOLS / "sail-isla/lock.json").read_text(encoding="utf-8"))[
+        "sail"]["directory"]
+
+    def fetch(pin: sailisla.SourcePin, destination: Path, runner: sailisla.Runner) -> None:
+        destination.mkdir(parents=True, exist_ok=True)
+        (destination / "Cargo.lock").write_text("upstream", encoding="utf-8")
+
+    def download(url: str, expected: str, destination: Path) -> None:
+        member = tarfile.TarInfo(directory + "/dune-project")
+        member.size = 4
+        with tarfile.open(destination, "w") as archive:
+            archive.addfile(member, io.BytesIO(b"sail"))
+
+    with (patch.object(sailisla.env, "hold_lock", side_effect=lambda *_: nullcontext()),
+          patch.object(sailisla, "_prerequisites", return_value=root / "z3"),
+          patch.object(sailisla.platform, "system", return_value="Linux"),
+          patch.object(sailisla.platform, "machine", return_value="x86_64"),
+          patch.object(sailisla, "_fetch", side_effect=fetch),
+          patch.object(sailisla, "check_lock_override"),
+          patch.object(sailisla, "_install_rust"),
+          patch.object(sailisla, "_download", side_effect=download),
+          patch.object(sailisla, "asset_digest", return_value="a" * 64),
+          patch.object(sailisla, "_binaries", return_value=[])):
+        yield
+
+
 def _provision_uses_fresh_prefix() -> None:
     lock = (TOOLS / "sail-isla/lock.json").read_text(encoding="utf-8")
     files = {"tools/sail-isla/lock.json": lock, "tools/sail-isla/isla.Cargo.lock": "override",
@@ -203,16 +238,6 @@ def _provision_uses_fresh_prefix() -> None:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("superseded", encoding="utf-8")
 
-        def fetch(pin: sailisla.SourcePin, destination: Path, runner: sailisla.Runner) -> None:
-            destination.mkdir(parents=True, exist_ok=True)
-            (destination / "Cargo.lock").write_text("upstream", encoding="utf-8")
-
-        def download(url: str, expected: str, destination: Path) -> None:
-            member = tarfile.TarInfo(json.loads(lock)["sail"]["directory"] + "/dune-project")
-            member.size = 4
-            with tarfile.open(destination, "w") as archive:
-                archive.addfile(member, io.BytesIO(b"sail"))
-
         def run(self: sailisla.Runner, argv: list[str], cwd: Path,
                 process_env: dict[str, str] | None = None, timeout: int = 1800) -> str:
             if "install" in argv and "--prefix" in argv:
@@ -222,17 +247,8 @@ def _provision_uses_fresh_prefix() -> None:
             return "/switch\n" if argv[:2] == ["opam", "var"] else ""
 
         def provision(build: Callable[..., str] = run) -> None:
-            with (patch.object(sailisla.env, "hold_lock", side_effect=lambda *_: nullcontext()),
-                  patch.object(sailisla, "_prerequisites", return_value=root / "z3"),
-                  patch.object(sailisla.platform, "system", return_value="Linux"),
-                  patch.object(sailisla.platform, "machine", return_value="x86_64"),
-                  patch.object(sailisla, "_fetch", side_effect=fetch),
-                  patch.object(sailisla, "check_lock_override"),
-                  patch.object(sailisla, "_install_rust"),
-                  patch.object(sailisla, "_download", side_effect=download),
-                  patch.object(sailisla.Runner, "run", autospec=True, side_effect=build),
-                  patch.object(sailisla, "asset_digest", return_value="a" * 64),
-                  patch.object(sailisla, "_binaries", return_value=[])):
+            with (_provisioning(root),
+                  patch.object(sailisla.Runner, "run", autospec=True, side_effect=build)):
                 sailisla.provision(environment)
 
         plant()
@@ -285,6 +301,51 @@ def _provision_uses_fresh_prefix() -> None:
             raise AssertionError("an interrupted prefix removal must fail provisioning")
         ensure(not stamp.exists() and stale.exists(),
                "the stamp must be gone before the prefix's removal starts")
+
+
+def _runner_answers_no_question() -> None:
+    """Every command provisioning runs through the campaign's runner, and the baseline
+    listing qualification shares with it, the baseline `opam list`, `opam var` and the
+    `opam exec` around each build among them, reads no standard input and inherits no
+    answer from the caller's environment, in any case the caller names
+    it, so a format upgrade opam would ask about is declined rather than left on a
+    prompt the caller cannot see or answered by the caller's settings; the rest of the
+    environment, the root among it, is passed on."""
+    lock = (TOOLS / "sail-isla/lock.json").read_text(encoding="utf-8")
+    sail = cast(sailisla.SailPin, json.loads(lock)["sail"])
+    files = {"tools/opam/sail.lock": f'installed: [\n  "sail.{sail["version"]}"\n]\n',
+             "tools/sail-isla/lock.json": lock, "tools/sail-isla/isla.Cargo.lock": "override",
+             "tools/sail-isla/driver/Cargo.toml": "[package]\n"}
+    answers = {"OPAMYES": "1", "OpamConfirmLevel": "unsafe-yes", "OPAMROOT": "/elsewhere"}
+    calls: list[tuple[list[str], dict[str, object]]] = []
+
+    def run(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        calls.append((argv, kwargs))
+        said = {"list": f"sail {sail['version']}\n", "var": "/switch\n"}
+        return subprocess.CompletedProcess(
+            argv, 0, said.get(argv[1], "") if argv[0] == "opam" else "", "")
+
+    with (sandbox_tree(files) as root, patch.dict(os.environ, answers),
+          patch.object(sailisla.subprocess, "run", side_effect=run)):
+        environment = env.Environment(root=root, model=root / "model", build_root=root / "native",
+                                      log_root=root / "logs", lane="", cpus=1, mem_available_mb=1024,
+                                      jobs=1, test_jobs=1)
+        with patch.object(sailisla, "shutil", SimpleNamespace(which=lambda name: str(root / name))):
+            refused = _refusal(lambda: sailisla._prerequisites(
+                environment, sailisla.Runner(environment, "test"), sail))
+        ensure(f"Z3 {env.Z3_VERSION}" in refused,
+               f"the baseline listing must match and the run stop at the absent Z3: {refused}")
+        with _provisioning(root):
+            sailisla.provision(environment)
+    ensure({argv[1] for argv, _ in calls if argv[0] == "opam"} == {"list", "var", "exec"},
+           f"the campaign's opam commands were all run: {[argv for argv, _ in calls]}")
+    for argv, kwargs in calls:
+        passed = cast(dict[str, str], kwargs.get("env") or {})
+        ensure(kwargs.get("stdin") is subprocess.DEVNULL,
+               f"{argv[:3]}'s standard input is closed: {kwargs}")
+        ensure(not {key.upper() for key in passed} & set(env.OPAM_ANSWERS)
+               and passed.get("OPAMROOT") == "/elsewhere",
+               f"{argv[:3]} is passed no answer and keeps the root: {sorted(passed)}")
 
 
 def _report() -> dict[str, Any]:
@@ -357,6 +418,7 @@ def cases() -> list[Case]:
             Case("tracked-lock-override-carries-declared-versions", _tracked_lock_override),
             Case("sail-pin-is-the-locked-release", _sail_pin_is_locked_release),
             Case("provisioning-installs-into-a-fresh-prefix", _provision_uses_fresh_prefix),
+            Case("runner-answers-no-question", _runner_answers_no_question),
             Case("versioned-json-schema", _schema),
             Case("cli-refuses-partial-verdict", _cli),
             Case("oracle-replays-generated-inputs", _harness_uses_model)]

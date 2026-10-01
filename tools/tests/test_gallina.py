@@ -499,6 +499,28 @@ def _quickchick_rejects_other_versions() -> None:
                "the configured QuickChick release must pass the check")
 
 
+def _a_switch_environment_answers_no_question() -> None:
+    """`opam env` for a prover's switch, its output captured, reads no standard input and
+    inherits no answer from the caller's environment, in any case the caller names it,
+    so a format upgrade it would ask about is declined rather than left on a prompt the
+    caller cannot see or answered by the caller's settings; the rest of the environment,
+    the root among it, is passed on, and what it prints is read back."""
+    answers = {"OPAMYES": "1", "OpamConfirmLevel": "unsafe-yes", "OPAMROOT": "/elsewhere"}
+    printed = "OPAMSWITCH='s'; export OPAMSWITCH;\n"
+    with (patch.dict(os.environ, answers),
+          patch.object(gallina.subprocess, "run",
+                       return_value=subprocess.CompletedProcess(["opam"], 0, printed)) as run):
+        read = gallina.switch_env("s")
+    passed = run.call_args.kwargs.get("env") or {}
+    ensure(run.call_args.args[0][:2] == ["opam", "env"]
+           and run.call_args.kwargs.get("stdin") is subprocess.DEVNULL,
+           f"opam env's standard input is closed: {run.call_args}")
+    ensure(not {key.upper() for key in passed} & set(env.OPAM_ANSWERS)
+           and passed.get("OPAMROOT") == "/elsewhere",
+           f"opam env is passed no answer and keeps the root: {sorted(passed)}")
+    ensure(read == {"OPAMSWITCH": "s"}, f"what opam env prints is read back: {read}")
+
+
 def cases() -> list[Case]:
     return [
         Case("the waves follow the Requires", _waves_follow_requires),
@@ -533,4 +555,6 @@ def cases() -> list[Case]:
         Case("the randomized harness compiles its closure alone",
              _the_randomized_harness_compiles_its_closure_alone),
         Case("QuickChick rejects other versions", _quickchick_rejects_other_versions),
+        Case("a switch's opam environment answers no question",
+             _a_switch_environment_answers_no_question),
     ]

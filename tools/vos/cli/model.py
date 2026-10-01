@@ -2108,16 +2108,17 @@ def _run_trace(argv: list[str], timeout: int) -> list[str] | None:
 def _corpus_persistence(e: env.Environment, out: Path, timeout: int) -> int:
     """Include architectural reopen evidence in the corpus command's verdict.
 
-    The emulator flocks each block image it opens, inside `output`; the campaign holds
-    `<output>.lock` beside it throughout, which is the lock a lane retirement takes.
+    The campaign holds its own lock, the one a lane retirement takes, so this takes
+    none: held here as well, it would refuse the campaign's own hold, a second open
+    of the same file, because `flock` belongs to the open file description rather
+    than to the process.
     """
     output = out / f"persistence-{uuid.uuid4().hex}"
-    with env.hold_lock(output, "a block persistence campaign"):
-        try:
-            report = block_persistence.run(e.root, e.simulator, e.profile, output, timeout)
-        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
-            print(f"PERSISTENCE FAIL ({exc})", file=sys.stderr)
-            return 1
+    try:
+        report = block_persistence.run(e.root, e.simulator, e.profile, output, timeout)
+    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
+        print(f"PERSISTENCE FAIL ({exc})", file=sys.stderr)
+        return 1
     passed = report.get("passed") is True
     print(f"PERSISTENCE {'PASS' if passed else 'FAIL'} (receipt {output / 'results.json'})")
     if not passed and report.get("error"):

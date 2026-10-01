@@ -165,29 +165,31 @@ stays green, and a rule named under two leaves a reader unable to say which reac
 
 **The rules it decides about are the registry's own rows**, the set K-00 reads, so a row
 is inside it the day it is written; the classes are read off the page, each at the
-`Where the set is` opening it, matched in any letter case, and named by the first bold
-phrase after it, past a space and whatever words or italics then stand short of a full
-stop or the line's end, any `.` counting as a full stop; that phrase must spell one of
-the four names exactly, and the class's rules are read from one membership sentence
-standing anywhere from that lead to the next class's lead, or to the section's end
-after the last class: `which is what` or `that is what`, either capitalized,
-single-spaced on one line apart from any underscore, a plain list of ids, then `are`.
-The four class names are fixed here rather than read, so a class retitled away and a fifth class opened that way are
+`Where the set is` opening it, matched in any letter case, and named by the first `**`
+bold phrase after it, past a plain space and whatever words or italics then stand short
+of a full stop or the line's end, any `.` counting as a full stop; that phrase must
+spell one of the four names exactly, and the class's rules are read from one membership
+sentence standing anywhere from that lead to the next class's lead, or to the section's
+end after the last class: `which is what` or `that is what`, with only the first letter
+of the first word in either case, single-spaced with plain spaces on one line apart
+from any underscore, a plain list of ids, then `are`. The four class names are fixed
+here rather than read, so a class retitled away and a fifth class opened that way are
 each a finding rather than a class this rule stops or never starts reading, and so is a
 `Where the set is` anywhere in the section, one wrapped across a line, spaced apart or
 set in underscore italics included, that opens no class in that form. So is any
 `which is what` or `that is what` in the section, in any letter case or spacing and
-followed by a rule id past nothing but whitespace, emphasis, a code span's backtick or
-a link's bracket, that the reading does not take, one in underscore italics, wrapped
-across a line, spaced apart, in capitals, or listing its ids in a code span, emphasis
-or a link included, so no list the section names goes unread. What that reading does
-not reach is a class introduced in some other sentence form: it is read as part of the
-class before it, or as part of no class ahead of the first, and is caught only where it
-carries a membership sentence of its own, that sentence then being a class's second,
-one standing ahead of every class, or one in a form the reading does not take. A list
-is decided whole by a grammar of ids, `K-a through K-b` ranges, commas and `and`, and
-a range expands over the active rows whose numbers it spans, so a struck row inside
-one is skipped rather than placed.
+followed by a rule id past nothing but whitespace, punctuation or markup short of a
+full stop, that the reading does not take, one in underscore italics, wrapped across a
+line, spaced apart, in capitals, or listing its ids in a code span, emphasis,
+strikethrough, parentheses or a link included; a membership sentence in other words,
+`which is exactly what` or one with a word before its first id, is read as prose, which
+is the residue. What that reading does not reach is a class introduced in some other
+sentence form: it is read as part of the class before it, or as part of no class ahead
+of the first, and is caught only where it carries a membership sentence of its own,
+that sentence then being a class's second, one standing ahead of every class, or one in
+a form the reading does not take. A list is decided whole by a grammar of ids,
+`K-a through K-b` ranges, commas and `and`, and a range expands over the active rows
+whose numbers it spans, so a struck row inside one is skipped rather than placed.
 
 **Fail-closed at every reading.** A missing section, a `Where the set is` that opens no
 class, a membership sentence in a form the reading does not take or ahead of the first
@@ -252,19 +254,19 @@ _TIER_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed: Tier (?P<tier>[AB])\b(?P<rest
 
 # K-119's reading of the reach section. A class opens with `Where the set is`, in any
 # letter case so that a lead written mid-sentence is read too, and is named by the first
-# bold phrase after it, past a space and whatever words or italics then stand, short of
-# a full stop or the line's end: any `.` ends the lead's reach, one inside a code span or
-# a link included, and every `Where the set is` in the section has to open a class. The
-# four class names are fixed here rather than read off the page and the bold phrase is
-# compared with them exactly, the lead alone being matched in any letter case, so a
-# class retitled away, a fifth class opened that way, and a `Where the set is` naming no
-# class are each a finding rather than a class this rule silently stops or never starts
-# reading. The opener takes the lead's four words single-spaced, no word character
-# before them and a space after them; the lead-finder is wider, any whitespace between
-# the words, a line break included, and only a letter or digit beside them refused, so a
-# lead wrapped across a line, spaced apart, set in underscore italics or followed by
-# markup or punctuation is found and, opening nothing, is a finding rather than text
-# read as part of the class before it.
+# `**` bold phrase after it, past a plain space and whatever words or italics then stand,
+# short of a full stop or the line's end: any `.` ends the lead's reach, one inside a
+# code span or a link included, and every `Where the set is` in the section has to open a
+# class. The four class names are fixed here rather than read off the page and the bold
+# phrase is compared with them exactly, the lead alone being matched in any letter case,
+# so a class retitled away, a fifth class opened that way, and a `Where the set is`
+# naming no class are each a finding rather than a class this rule silently stops or
+# never starts reading. The opener takes the lead's four words single-spaced with plain
+# spaces, no word character before them and a plain space after them; the lead-finder is
+# wider, any whitespace between the words, a line break included, and only a letter or
+# digit beside them refused, so a lead wrapped across a line, spaced apart, set in
+# underscore italics or followed by markup or punctuation is found and, opening nothing,
+# is a finding rather than text read as part of the class before it.
 REACH_HEADING = "## What a passing run does not decide"
 REACH_CLASSES = ("name", "computed value", "pattern", "total")
 _CLASS_LEAD_RE = re.compile(
@@ -272,22 +274,26 @@ _CLASS_LEAD_RE = re.compile(
 _CLASS_OPEN_RE = re.compile(
     r"\bWhere the set is (?:[^*.\r\n]|\*(?!\*))*?\*\*([^*\r\n]+)\*\*", re.IGNORECASE)
 
-# A class's membership sentence: `which is what` or `that is what`, either capitalized,
-# so that one opening a sentence and one written mid-sentence are both read, the list,
-# then `are`. The capture admits only the characters a list is spelled in, so a sentence
-# that merely discusses a rule is not read as a list; what it captures is then decided
-# whole by the grammar below, so a word the grammar does not know is a finding rather
-# than a list cut short at it. Ids admit the letter suffix, so a suffixed id is named and
-# resolved rather than making the sentence unreadable. The finder is wider, the three
-# words in any letter case with any whitespace between them, a line break included, then
-# an id past any whitespace, emphasis, code-span backtick or link bracket, and only a
-# letter or digit before them refused, so a membership sentence set in underscore
-# italics, wrapped, spaced apart, in capitals or listing its ids in markup is found and,
-# read by no class, is a finding rather than a list the section names and nothing reads.
-# Prose such as `which is what separates` carries no id and is not found.
+# A class's membership sentence: `which is what` or `that is what`, with only the first
+# letter of the first word in either case, so that one opening a sentence and one
+# written mid-sentence are both read, the list, then `are`. The capture admits only the
+# characters a list is spelled in, so a sentence that merely discusses a rule is not
+# read as a list; what it captures is then decided whole by the grammar below, so a word
+# the grammar does not know is a finding rather than a list cut short at it. Ids admit
+# the letter suffix, so a suffixed id is named and resolved rather than making the
+# sentence unreadable. The finder is wider, the three words in any letter case with any
+# whitespace between them, a line break included, then an id past nothing but
+# whitespace, punctuation or markup short of a full stop, and only a letter or digit
+# before them refused, so a membership sentence set in underscore italics, wrapped,
+# spaced apart, in capitals or listing its ids in markup, strikethrough or parentheses
+# is found and, read by no class, is a finding rather than a list the section names and
+# nothing reads. Prose such as `which is what separates` reaches a word before any id
+# and is not found, and neither is an id opening the next sentence; a membership
+# sentence in other words, `which is exactly what` or one with a word before its first
+# id, is read as prose, which is the residue.
 _MEMBERS_RE = re.compile(r"\b(?:[Ww]hich|[Tt]hat) is what (K-[\w ,-]*?) are\b")
 _MEMBERS_FIND_RE = re.compile(
-    r"(?<![^\W_])(?:which|that)\s+is\s+what[\s*_`\[]*K-\d", re.IGNORECASE)
+    r"(?<![^\W_])(?:which|that)\s+is\s+what(?:[^\w.]|_)*K-\d", re.IGNORECASE)
 _CLASS_ID = r"K-\d{2,3}[a-z]?"
 _CLASS_ITEM = rf"{_CLASS_ID}(?: through {_CLASS_ID})?"
 _CLASS_ITEM_RE = re.compile(rf"({_CLASS_ID})(?: through ({_CLASS_ID}))?")
@@ -816,9 +822,9 @@ def _classes(ctx: Context, registered: set[str]) -> None:
             starts = {m.start() for m in opens}
             findings += [f"{RULES}:{doc.at(m.start())} states 'Where the set is' in a form "
                          "that opens no reach class this rule reads: the four words "
-                         "single-spaced on one line, with no underscore before the first "
-                         "and a space after the last, then the class in bold before a "
-                         "full stop or the line's end"
+                         "single-spaced with plain spaces on one line, with no underscore "
+                         "before the first and a plain space after the last, then the "
+                         "class in `**` bold before a full stop or the line's end"
                          for m in _CLASS_LEAD_RE.finditer(doc.raw, lo, hi)
                          if m.start() not in starts and not doc.is_fenced(m.start())]
             # The membership sentences each region reads: the stretch ahead of the first
@@ -829,15 +835,21 @@ def _classes(ctx: Context, registered: set[str]) -> None:
             # A membership sentence in a form no region reads leaves the rules it names
             # unread while its class reads as complete, so it is reported. One lying
             # inside a sentence a region read is a word of that list, which the grammar
-            # below already decides, so it is not reported a second time.
+            # below already decides, so it is not reported a second time. Prose naming a
+            # rule past `is what` is found the same way and cannot be told from one, so
+            # the finding states what it found and both ways out of it.
             spans = [c.span() for clauses in regions for c in clauses]
             missed = [c for c in _MEMBERS_FIND_RE.finditer(doc.raw, lo, hi)
                       if not doc.is_fenced(c.start())
                       and not any(a <= c.start() < b for a, b in spans)]
-            findings += [f"{RULES}:{doc.at(c.start())} states a membership sentence in a "
-                         "form this rule does not read: 'which is what' or 'that is "
-                         "what', either capitalized, single-spaced on one line apart from "
-                         "any underscore, a plain list of ids, then 'are'" for c in missed]
+            findings += [f"{RULES}:{doc.at(c.start())} states 'which is what' or 'that is "
+                         "what' before a rule id, which this rule reads as a membership "
+                         "sentence and cannot take: either rewrite it as one ('which is "
+                         "what' or 'that is what', with only the first letter of the first "
+                         "word in either case, single-spaced with plain spaces on one line "
+                         "apart from any underscore, a plain list of ids, then 'are') or "
+                         "reword the prose so no id follows 'is what'"
+                         for c in missed]
             if missed:
                 unread = True
             # No class's region reaches back past the first opener, so a membership
@@ -872,8 +884,8 @@ def _classes(ctx: Context, registered: set[str]) -> None:
                         f"{where}: the '{name}' class states "
                         f"{'no' if not clauses else figures.words(len(clauses))} "
                         "membership sentence(s) this rule reads, where it needs exactly "
-                        "one: 'which is what' or 'that is what', either capitalized, its "
-                        "rules, then 'are'")
+                        "one: 'which is what' or 'that is what', with only the first "
+                        "letter of the first word in either case, its rules, then 'are'")
                     unread = True
                     continue
                 listed = clauses[0].group(1)
@@ -896,7 +908,8 @@ def _classes(ctx: Context, registered: set[str]) -> None:
             for name in REACH_CLASSES:
                 if name not in seen_classes:
                     findings.append(f"{RULES} opens no '{name}' class in a form this rule "
-                                    "reads: 'Where the set is', then the class in bold")
+                                    "reads: 'Where the set is', then the class in `**` "
+                                    "bold")
                     unread = True
 
     for rule in sorted(placed, key=_rule_key):
