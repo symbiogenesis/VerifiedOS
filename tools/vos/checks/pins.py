@@ -450,6 +450,19 @@ _MENHIR = tuple(_snap(lock, package) for lock in ("sail", "quickchick", "certiro
 # The snapshots whose switches build on OCaml 5.4.1, every one but the CertiRocq oracle's.
 _OCAML_5 = tuple(_snap(lock, "ocaml-base-compiler")
                  for lock in ("sail", "rocq", "quickchick", "rupicola"))
+_CERTIROCQ = Owner("assign", _GALLINA, "CERTIROCQ_VERSION")
+_METAROCQ = tuple(_snap("certirocq", f"rocq-metarocq-{part}") for part in (
+    "utils", "common", "template", "pcuic", "template-pcuic", "safechecker",
+    "safechecker-plugin", "erasure", "erasure-plugin"))
+
+
+def _oracle(display: str, *packages: str) -> Site:
+    """A package of the CertiRocq snapshot, stated as its name and a backticked release,
+    led by v where the opam version is; the packages are the display's own name unless
+    it names another or several."""
+    return Site(f"{display}'s release in the CertiRocq snapshot",
+                rf"(?<![\w-]){re.escape(display)} `(v?\d[\w+~-]*(?:\.[\w+~-]+)*)`",
+                tuple(_snap("certirocq", package) for package in packages or (display,)))
 
 # The rows K-118 holds, each release against the artifact fixing it. A lock's release
 # is the one that installs; ty's and ruff's manifest pins are K-67's, and uv's locked
@@ -543,6 +556,31 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
     DevTool("CompCert, in the oracle's switch", (
         Site("the CertiRocq snapshot's release", rf"version \*\*{_V}\*\* in \[the CertiRocq",
              (_snap("certirocq", "coq-compcert"),)),)),
+    DevTool("CertiRocq", (Site("the CertiRocq snapshot's release",
+                               rf"version \*\*{_V}\*\* in \[the CertiRocq",
+                               (_snap("certirocq", "rocq-certirocq"), _CERTIROCQ)),)),
+    DevTool("MetaRocq", (Site("the CertiRocq snapshot's release",
+                              rf"version \*\*{_V}\*\* in \[the CertiRocq", _METAROCQ),)),
+    DevTool("WasmCert-Coq", (Site("the CertiRocq snapshot's release",
+                                  rf"`coq-wasm` version \*\*{_V}\*\*",
+                                  (_snap("certirocq", "coq-wasm"),)),)),
+    DevTool("Equations", (Site("the CertiRocq snapshot's release",
+                               rf"`rocq-equations` version \*\*{_V}\*\*",
+                               (_snap("certirocq", "rocq-equations"),)),)),
+    DevTool("The CertiRocq snapshot's Rocq libraries", tuple(_oracle(*row) for row in (
+        ("coq-ext-lib",), ("Flocq", "coq-flocq"),
+        ("Mathematical Components", "rocq-mathcomp-ssreflect", "coq-mathcomp-ssreflect"),
+        ("Hierarchy Builder", "rocq-hierarchy-builder"), ("Rocq-Elpi", "rocq-elpi"),
+        ("parseque", "coq-parseque"), ("Rocq Stdlib", "rocq-stdlib", "coq-stdlib"),
+        ("coq",), ("coq-core",), ("coqide-server",)))),
+    DevTool("The CertiRocq snapshot's OCaml libraries and tools", tuple(_oracle(*row) for row in (
+        ("ocamlfind",), ("csexp",), ("dune-configurator",), ("ppx_deriving",), ("ppxlib",),
+        ("base",), ("stdio",), ("sexplib0",), ("ppx_optcomp",), ("ocaml-compiler-libs",),
+        ("astring",), ("fmt",), ("logs",), ("cmdliner",), ("topkg",), ("mdx",),
+        ("ocaml-version",), ("atdts", "atd", "atdgen", "atdgen-runtime", "atdts"),
+        ("biniou",), ("easy-format",), ("cppo",), ("yojson",), ("result",),
+        ("ppx_derivers",), ("linenoise",), ("elpi",), ("re",), ("camlp-streams",),
+        ("stdlib-shims",), ("ocamlbuild",), ("wasm",)))),
     DevTool("std++", (
         Site("the proof snapshot's release",
              rf"\[the proof snapshot\]\(tools/opam/rocq\.lock\) at {_V}\.",
