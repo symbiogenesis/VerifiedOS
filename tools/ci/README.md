@@ -25,7 +25,10 @@ GitHub's **Run workflow** control on `main`. A manual run's optional `revision` 
 names a full lowercase commit already on `main`; the workflow refuses any other ref or
 revision before installing tools. Its optional `reading_base` input, empty by default,
 names a full lowercase commit that is a proper ancestor of that revision; when it is
-nonempty, the same check refuses any other value before checked-out code runs. The
+nonempty, the same check refuses any other value before checked-out code runs. A
+refused dispatch runs no checked-out code afterwards either: each later step that runs
+commands after a failure, the reporter included, also requires that check not to have
+failed, so such a run records no `results.json` and its upload finds no logs. The
 input reaches each step that reads it only through that step's environment, never
 through text written into a script. Each run title follows the workflow name with the
 `title` input, or else with its checked-out revision, and runs are not serialized, so a

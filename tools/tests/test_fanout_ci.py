@@ -1107,6 +1107,120 @@ def _workflow_checkout_validation() -> None:
                        f"{done.stderr}")
 
 
+# The step that checks a dispatched revision, and the conjunct each later step that runs
+# checked-out code after a failure states, in the job of each workflow fanout dispatches.
+_DISPATCH_CHECK = "Verify dispatched revision belongs to main"
+_DISPATCH_GUARD = "steps.dispatch.outcome != 'failure'"
+_DISPATCH_JOBS = {ci.HOST: "host-gates-shard", ci.GUEST: "guest-gates"}
+
+
+def _conjuncts(condition: str) -> list[str] | None:
+    """A step condition's top-level `&&` operands, or None where it is a disjunction."""
+    expression = condition.strip()
+    if expression.startswith("${{") and expression.endswith("}}"):
+        expression = expression[3:-2]
+    operands: list[str] = []
+    depth, quoted, start, index = 0, False, 0, 0
+    while index < len(expression):
+        if expression[index] == "'":
+            quoted = not quoted
+        elif not quoted and expression[index] in "()":
+            depth += 1 if expression[index] == "(" else -1
+        elif not quoted and depth == 0 and expression.startswith("||", index):
+            return None
+        elif not quoted and depth == 0 and expression.startswith("&&", index):
+            operands.append(expression[start:index].strip())
+            start = index + 2
+        index += 1
+    return [*operands, expression[start:].strip()]
+
+
+def _refused_dispatch_faults(contents: str, job: str) -> list[str]:
+    """Why a step of `job` could run checked-out code after its dispatch check refused.
+
+    A step whose condition calls no status function runs only once every earlier step
+    has succeeded, so a refused check skips it. One calling `always()`, `failure()` or
+    `cancelled()`, `!cancelled()` included, runs after a failure too, so each such step
+    after the check that runs a command, whose shell starts in the checkout, or a local
+    `./` action must state the guard as a top-level conjunct of a one-line condition. A
+    condition stated as a block scalar, or not on its `if:` line, is read as one that
+    runs after a failure. The check is identified as `dispatch` and does not continue on
+    error, so a refusal is a failure every later step sees. A pinned action's step runs
+    that action's code.
+    """
+    after = contents.split(f"\n  {job}:\n", 1)[1]
+    steps = _step_texts(re.split(r"\n  (?=\S)", after, maxsplit=1)[0])
+    checks = [n for n, step in enumerate(steps) if _step_values(step, "name") == [_DISPATCH_CHECK]]
+    if len(checks) != 1:
+        return [f"{job} states the dispatch check {len(checks)} time(s), not once"]
+    check = steps[checks[0]]
+    faults: list[str] = []
+    if _step_values(check, "id") != ["dispatch"]:
+        faults.append(f"{job}'s dispatch check is not identified as dispatch, so no later "
+                      "step can read its outcome")
+    if _step_values(check, "continue-on-error"):
+        faults.append(f"{job}'s dispatch check continues on error, so a refusal runs every "
+                      "later step")
+    for step in steps[checks[0] + 1:]:
+        local = any(value.startswith("./") for value in _step_values(step, "uses"))
+        conditions = _step_values(step, "if")
+        if not (_step_values(step, "run") or local) or not any(
+                re.search(r"\b(?:always|failure|cancelled)\(\)", condition)
+                or not condition or condition[0] in "|>" for condition in conditions):
+            continue
+        name = next(iter(_step_values(step, "name")), "an unnamed step")
+        operands = _conjuncts(conditions[0]) if len(conditions) == 1 else None
+        if operands is None or _DISPATCH_GUARD not in operands:
+            faults.append(f"{job}'s step {name!r} runs checked-out code after a failure "
+                          f"without requiring {_DISPATCH_GUARD}")
+    return faults
+
+
+def _workflow_refused_dispatch() -> None:
+    # A refused dispatch runs no checked-out code: each step that runs a command after a
+    # failure also requires the check not to have failed, in both workflows.
+    guard = f" && {_DISPATCH_GUARD}"
+    named = {ci.HOST: ("Analyze workflows", "Model hooks", "Report gate results"),
+             ci.GUEST: ("Model evidence", "Proof gate", "Read the proofs against the reading base",
+                        "Report guest results")}
+    for workflow, job in _DISPATCH_JOBS.items():
+        contents = (ROOT / ".github/workflows" / workflow).read_text(encoding="utf-8")
+        found = _refused_dispatch_faults(contents, job)
+        ensure(not found, f"{workflow} runs checked-out code after a refusal: {found!r}")
+        # The workflow without its guards, as it stood before they were stated, is
+        # refused for every step that runs after a failure.
+        found = _refused_dispatch_faults(contents.replace(guard, ""), job)
+        for step in named[workflow]:
+            ensure(any(f"step {step!r} runs checked-out code" in fault for fault in found),
+                   f"{workflow}'s {step!r} without its guard must be refused: {found!r}")
+        for mutant, fragment in (
+                (contents.replace("        id: dispatch\n", "", 1), "not identified as dispatch"),
+                (contents.replace("        id: dispatch\n",
+                                  "        id: dispatch\n        continue-on-error: true\n", 1),
+                 "continues on error")):
+            ensure(mutant != contents and any(
+                fragment in fault for fault in _refused_dispatch_faults(mutant, job)),
+                f"{workflow}'s check must be refused ({fragment!r})")
+    # A guard that does not bind the step: under a disjunction, at either level, or in a
+    # condition the reading does not take; and a local action that runs after a failure.
+    contents = (ROOT / ".github/workflows" / ci.GUEST).read_text(encoding="utf-8")
+    report = "        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' }}\n"
+    ensure(contents.count(report) == 1, "Guest CI's reporter states the guarded condition")
+    upload = "      - name: Preserve guest logs and receipts\n"
+    for mutant in (
+            contents.replace(report, report.replace(" && ", " || ")),
+            contents.replace(report, report.replace(
+                f"&& {_DISPATCH_GUARD}", f"&& ({_DISPATCH_GUARD} || always())")),
+            contents.replace(report, f"        if: >-\n          {report.split(': ', 1)[1]}"),
+            contents.replace(upload, "      - name: Report locally\n        if: ${{ always() }}\n"
+                                     "        uses: ./.github/actions/report\n\n" + upload)):
+        ensure(mutant != contents and bool(_refused_dispatch_faults(mutant, "guest-gates")),
+               "a guard that need not hold, or a local action after a failure, is refused")
+    # A pinned action after a failure, such as the artifact upload, runs no checked-out code.
+    ensure("        if: ${{ !cancelled() }}\n        uses: actions/upload-artifact@"
+           in contents, "Guest CI's upload runs after a failure without the guard")
+
+
 def _workflow_reading_base_through_environment() -> None:
     # Every expression reading the input stands in an `if:` condition or as the value of
     # an uppercase environment key, so no script text ever holds its value.
@@ -1153,5 +1267,6 @@ def cases() -> list[Case]:
             Case("workflow-gate-on-every-runner", _workflow_gate_on_every_runner),
             Case("workflow-runner-labels-any-style", _workflow_runner_labels_any_style),
             Case("workflow-checkout-validation", _workflow_checkout_validation),
+            Case("workflow-refused-dispatch", _workflow_refused_dispatch),
             Case("workflow-reading-base-through-environment",
                  _workflow_reading_base_through_environment)]

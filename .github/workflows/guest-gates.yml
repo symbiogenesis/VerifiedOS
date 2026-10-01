@@ -8,7 +8,9 @@
 # its optional revision input pins checkout to a commit already on main, verified
 # before any checked-out code runs. Its optional reading_base input, verified there
 # too, names a proper ancestor of that revision whose proof sources the proofs lane
-# compiles, reads and compares with the passing gate's compile. A run title follows
+# compiles, reads and compares with the passing gate's compile. A refused dispatch
+# runs no checked-out code afterwards: each later step that runs commands after a
+# failure also requires that check not to have failed. A run title follows
 # the workflow name with the title input, which fanout fills with the commit subject,
 # or else with the checked-out revision.
 
@@ -147,6 +149,7 @@ jobs:
           submodules: false
 
       - name: Verify dispatched revision belongs to main
+        id: dispatch
         if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: python
         env:
@@ -263,7 +266,7 @@ jobs:
 
       - name: Identify the Sail solver
         id: solver
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         # The memo only accelerates the build; without an identity the build runs cold.
         continue-on-error: true
         # Sail's memo keys each obligation, not the solver that answered it, so a
@@ -293,7 +296,7 @@ jobs:
 
       - name: Model evidence
         id: evidence
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 180
         # The proofs lane runs the proof gate on its own runner.
         run: |
@@ -311,7 +314,7 @@ jobs:
 
       - name: Identify the proof context
         id: proof-context
-        if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         # Candidates only accelerate the gate; without an identity it checks everything.
         continue-on-error: true
         # Give the identity and every proof gate the SAME explicit environment.
@@ -348,7 +351,7 @@ jobs:
 
       - name: Proof gate
         id: proofs
-        if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 120
         # Cold and warm proofs run in the explicit environment the identity step fixed.
         run: |
@@ -376,7 +379,7 @@ jobs:
       - name: Read the proofs against the reading base
         id: reading
         # Only a dispatch naming a reading base runs it, over a passing gate's compile.
-        if: ${{ matrix.lane == 'proofs' && !cancelled() && inputs.reading_base != '' && steps.proofs.outcome == 'success' }}
+        if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.dispatch.outcome != 'failure' && inputs.reading_base != '' && steps.proofs.outcome == 'success' }}
         # Each reading of the whole corpus, compile included, took about 245 s on the
         # development guest. An hour bounds both on a runner and keeps the proofs lane's
         # step limits under the job's, which a timed-out job would cut short before its
@@ -433,7 +436,7 @@ jobs:
 
       - name: Check generated model bundle
         id: bundle
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 15
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py model bundle --check \
@@ -441,7 +444,7 @@ jobs:
 
       - name: Lint standalone RTL
         id: lint
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 5
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl lint \
@@ -449,7 +452,7 @@ jobs:
 
       - name: Check frozen RTL widths and store lanes
         id: widthcheck
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 15
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl widthcheck \
@@ -457,14 +460,14 @@ jobs:
 
       - name: Crosscheck RTL against fresh model vectors
         id: crosscheck
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         timeout-minutes: 30
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl crosscheck \
             2>&1 | tee "$VOS_LOG_DIR/rtl-crosscheck.log"
 
       - name: Report guest results
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' }}
         env:
           GUEST_LANE: ${{ matrix.lane }}
           # A restored run is not evidence that the toolchains install cold.
@@ -477,6 +480,8 @@ jobs:
         run: python3 tools/ci/report_guest.py
 
       - name: Preserve guest logs and receipts
+        # The pinned action runs no checked-out code. After a refused dispatch no step
+        # has written the log directory, so it finds no files and uploads nothing.
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

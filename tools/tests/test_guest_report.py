@@ -296,9 +296,10 @@ def _reading_step() -> None:
            "the reporter reads the reading step by its id")
     condition = re.search(r"(?m)^        if: \$\{\{ (.*) \}\}$", step)
     ensure(condition is not None and set(condition[1].split(" && ")) == {
-        "matrix.lane == 'proofs'", "!cancelled()", "inputs.reading_base != ''",
-        "steps.proofs.outcome == 'success'"},
-        "the step runs in the proofs lane, for a named base, over a passing gate's compile")
+        "matrix.lane == 'proofs'", "!cancelled()", "steps.dispatch.outcome != 'failure'",
+        "inputs.reading_base != ''", "steps.proofs.outcome == 'success'"},
+        "the step runs in the proofs lane of an accepted dispatch, for a named base, over "
+        "a passing gate's compile")
     ensure("          READING_BASE: ${{ inputs.reading_base }}\n" in step,
            "the base reaches the step through its environment")
     # A job that reaches its own limit is cancelled, so its report and upload never run:
