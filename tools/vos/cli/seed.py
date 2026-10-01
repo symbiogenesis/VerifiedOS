@@ -307,8 +307,12 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
     run beside each other: the mutated source, the `.vo` it compiles to and the harness
     that reads them are all under `work`, so two shards racing on one population never
     share a file.
+
+    Under QuickChick only what the mutant moves inside the harness's `Require` closure
+    is compiled, so no proof outside that closure reaches QuickChick's prover.
     """
-    failures = gallina.compile_dependents(found, work, rel)
+    moved = gallina.closure_dependents(work, harness, rel) if quickchick else None
+    failures = gallina.compile_dependents(found, work, rel, moved)
     if failures:
         return Verdict(mutant, KILLED,
                        "the prover refused " + ", ".join(f.source for f in failures),
@@ -316,7 +320,7 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
     # The harness's own shared sources come after the proofs and their failure is a
     # different verdict: a mutation the shipped statements accept and the harness
     # cannot be built over is a mutant no oracle ran against.
-    if gallina.compile_support(found, work):
+    if gallina.compile_support(found, work, moved):
         return Verdict(mutant, STILLBORN,
                        "the harness would not build over the mutant")
     if quickchick:
@@ -403,15 +407,30 @@ def _run_shards(found: gallina.Prover, trees: list[Path], rel: str, harness_name
     return unshard(got)
 
 
+def randomized_subjects(root: Path) -> list[str]:
+    """The proof sources `Properties.v`'s `Require` closure holds, checkout-relative and
+    sorted: the subjects `--quickchick` mutates. Read by `gallina.closure` over the
+    checkout, as the run reads the staged copy of it; none where the harness is absent.
+    """
+    harness = root / gallina.HARNESS_DIR / gallina.RANDOMIZED
+    if not harness.is_file():
+        return []
+    return sorted(source.relative_to(root).as_posix()
+                  for wave in gallina.closure(root, harness) for source in wave
+                  if source.parent == root / gallina.PROOFS)
+
+
 def _quickchick_baseline(root: Path, found: gallina.Prover, work: Path,
                          harness_name: str) -> tuple[list[str] | None, str]:
     """One tree stood up for the randomized harness, whose baseline is a count of green
-    property sets rather than a vector file, so the list it hands back is empty."""
+    property sets rather than a vector file, so the list it hands back is empty. It
+    compiles the harness's `Require` closure and nothing else, as `quickchick
+    properties` does."""
     gallina.stage(root, work)
-    if gallina.compile_proofs(found, work) + gallina.compile_support(found, work):
+    harness = work / "harness" / harness_name
+    if gallina.compile_closure(found, work, harness):
         return None, "the unmutated tree did not compile, so there is no baseline"
-    passed, failed, _ = gallina.properties(found, work,
-                                           work / "harness" / harness_name)
+    passed, failed, _ = gallina.properties(found, work, harness)
     if failed or not passed:
         return None, (f"the unmutated tree's {harness_name} is not green: {failed} "
                       f"property set(s) failed and {passed} passed")
@@ -465,6 +484,11 @@ def cmd_coq(args: argparse.Namespace) -> int:
     QuickChick draws instead and shrinks what refutes, so what it reaches is a range
     and its verdict is a minimal counterexample. A mutant both miss is a site neither
     the proofs nor either kind of generation decides anything about.
+
+    Under QuickChick the run compiles `Properties.v`'s `Require` closure and nothing
+    else, for its baseline and for each mutant's dependents, and refuses a subject that
+    is not a proof source of that closure, whose mutation no property reads. The
+    enumerative mode compiles every proof source and mutates any of them.
     """
     e = lane_env()
     root = find_root()
@@ -472,6 +496,14 @@ def cmd_coq(args: argparse.Namespace) -> int:
     if not (root / rel).is_file():
         print(f"FAIL {rel} is not in this checkout")
         return 1
+    if args.quickchick:
+        subjects = randomized_subjects(root)
+        if Path(rel).as_posix() not in subjects:
+            print(f"FAIL {rel} is not a proof source {gallina.RANDOMIZED}'s Require "
+                  "closure holds, so no QuickChick property reads a mutation of it; "
+                  f"--quickchick mutates {', '.join(subjects) or 'none'}, and the "
+                  "enumerative mode mutates any proof source")
+            return 1
 
     switch = gallina.QUICKCHICK_SWITCH if args.quickchick else gallina.VECTOR_SWITCH
     found = gallina.prover(switch)
@@ -716,7 +748,8 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
                                         "the last one by default")
     if name == "coq":
         sub.add_argument("--file", default=COQ_SUBJECT,
-                         help="which Gallina source to mutate")
+                         help="which Gallina source to mutate; with --quickchick, a "
+                              "proof source Properties.v's Require closure holds")
         sub.add_argument("--quickchick", action="store_true",
                          help="let QuickChick's draws and shrinking decide instead "
                               "of the enumerative harness's vectors")
