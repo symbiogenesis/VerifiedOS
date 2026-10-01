@@ -345,16 +345,29 @@ def _hold(proofs: Path) -> int:
     native directory without touching the original checkout. The descriptor
     stays open, and locked, until the process exits.
 
+    Lane retirement moves a workspace aside while it holds this lock, so a gate that
+    was blocked here would then hold the moved directory and work at a path another
+    gate may have recreated. The lock counts only while the workspace's path still
+    names the directory locked; otherwise it is released and taken again there.
+
     POSIX-only, and this file is typed on the host as well as run in the guest, so
     win32 is refused and the import deferred the way `vos.env` does both.
     """
     if sys.platform == "win32":
         raise RuntimeError("the proof workspace is held in the guest")
     import fcntl
-    proofs.mkdir(parents=True, exist_ok=True)
-    fd = os.open(str(proofs), os.O_RDONLY)
-    fcntl.flock(fd, fcntl.LOCK_EX)
-    return fd
+    while True:
+        proofs.mkdir(parents=True, exist_ok=True)
+        fd = os.open(str(proofs), os.O_RDONLY)
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        held = os.fstat(fd)
+        try:
+            named = proofs.stat()
+        except FileNotFoundError:
+            named = None
+        if named is not None and (named.st_dev, named.st_ino) == (held.st_dev, held.st_ino):
+            return fd
+        os.close(fd)
 
 
 def _compile(root: Path, source: Path) -> subprocess.CompletedProcess[str]:
