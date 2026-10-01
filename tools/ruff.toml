@@ -15,7 +15,10 @@
 # are refused, each named on its own and each for a reason that would hold in any
 # project, not for a local preference; a single site that has to differ says so with
 # a `# noqa: RULE` and a comment, which is auditable in a way a switched-off group
-# is not.
+# is not. For the same reason `vos/cli/typecheck.py` refuses a `per-file-ignores`,
+# `extend-per-file-ignores` or `extend` key in this file, and a file-level
+# `# ruff: noqa` or `# flake8: noqa` comment unless it names N999 alone, which ruff
+# reports against the file's name rather than a line of it.
 
 target-version = "py314"
 line-length = 100          # E501 is not selected; this only sizes the few rules that read it
@@ -93,6 +96,22 @@ allow-star-arg-any = false
 mypy-init-return = false
 
 [lint.flake8-tidy-imports]
-# Absent on one platform but stubbed for both, so ty cannot see a module-level import fail.
-banned-module-level-imports = ["fcntl", "grp", "msvcrt", "posix", "pty", "pwd", "resource",
-                               "syslog", "termios", "tty", "winreg", "winsound"]
+# Each standard-library module the interpreter cannot import on Windows or on Linux, the
+# two platforms the tools run on, that ty resolves under both of its platforms because
+# typeshed stubs it for both: neither ty run sees an import of one fail, and it fails at
+# run time on the platform that lacks it. A banned name covers its submodules. A module
+# ty resolves under neither platform, such as `_overlapped` or `_posixshmem`, is ty's own
+# `unresolved-import` finding and is not listed. TID253 refuses an unnested module-level
+# import of a listed module, and `vos/cli/typecheck.py` reads this list and refuses one
+# anywhere else outside a function body unless an enclosing `if` reads `sys.platform`.
+banned-module-level-imports = [
+    # Windows lacks these.
+    "_curses", "_curses_panel", "_dbm", "_gdbm", "_posixsubprocess", "asyncio.unix_events",
+    "curses", "dbm.gnu", "dbm.ndbm", "fcntl", "grp", "multiprocessing.popen_fork",
+    "multiprocessing.popen_forkserver", "multiprocessing.popen_spawn_posix", "posix", "pty",
+    "pwd", "readline", "resource", "syslog", "termios", "tty",
+    # Linux lacks these.
+    "_winapi", "asyncio.windows_events", "asyncio.windows_utils", "encodings.mbcs",
+    "encodings.oem", "msvcrt", "multiprocessing.popen_spawn_win32", "nt", "winreg",
+    "winsound",
+]

@@ -20,8 +20,17 @@ beside the run, and the real ruff keeping a module an ignore file matches.
 The coverage cases hold the floor under both checkers: the log read out of stderr
 and the files it names, each tracked module a run's log does not name reported
 under its checker and a crash not held to it, the real ruff and ty each reporting a
-module a default exclusion or a ruff.toml exclusion drops, the index read for the
-tracked modules, and the live tree reaching every module it tracks.
+module a default exclusion or a ruff.toml exclusion drops, the real ty reaching every
+module and writing no profile with `TY_LOG` and `TY_LOG_PROFILE` set, a ruff.toml
+per-file suppression or `extend` and a file-level `noqa` directive naming anything but
+N999 alone each refused, the real ruff showing the floor alone passes both, the index
+read for the tracked modules, and each live-tree run giving a verdict and reaching
+every module the tree tracks, a missing or another installed checker refused. The
+import cases hold the scan beside the checkers: an import of a module ruff.toml bans at
+module level refused outside a function body, in a class body, a module-level block or
+the main guard, and admitted in a function body or behind a `sys.platform` check, a
+ruff.toml or module the scan cannot read refused, and the real ruff leaving open what
+the scan refuses.
 """
 
 import os
@@ -554,11 +563,14 @@ def _ty_runs_every_platform() -> None:
                and run.label == f"type error(s) under python-platform {platform}:"
                and run.who == f"ty under python-platform {platform}",
                f"the {platform} pass must name its platform: {run!r}")
-        # Each pass turns its log on and is held to the tracked modules.
+        # Each pass turns its log on and is held to the tracked modules, and is made
+        # without the variables that would replace its log filter or write a profile.
         ensure(run.coverage == typecheck.Coverage(typecheck.TY_LOG, typecheck.TY_CHECKED,
                                                   frozenset({"kept.py"}))
                and run.args[-1 - len(typecheck.TY_VERBOSE):-1] == typecheck.TY_VERBOSE,
                f"the {platform} pass must log what it checks and be held to it: {run!r}")
+        ensure(run.unset == {"TY_LOG", "TY_LOG_PROFILE"},
+               f"the {platform} pass must be made without TY_LOG and TY_LOG_PROFILE: {run!r}")
 
 
 def _win32_pass_types_host_branches() -> None:
@@ -918,6 +930,311 @@ def _ty_coverage_floor() -> None:
            f"only the skipped modules may be findings: {rep.out!r}")
 
 
+def _ruff_settings(text: str | None) -> list[str]:
+    """`_ruff_settings` over a ruff.toml holding `text`, or over none at all."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        config = Path(td) / "ruff.toml"
+        if text is not None:
+            config.write_text(text, encoding="utf-8", newline="")
+        return typecheck._ruff_settings(config)
+
+
+def _ruff_settings_refuse_per_file_suppressions() -> None:
+    # Each key that switches rules off for the files a pattern matches is refused in
+    # [lint] and at the top level, as a table or inline, empty or not, and so is an
+    # extend, which merges a file the gate does not read; one key is one finding.
+    committed = Path(typecheck.__file__).resolve().parents[2] / "ruff.toml"
+    ensure(typecheck._ruff_settings(committed) == [],
+           f"the committed ruff.toml must pass: {typecheck._ruff_settings(committed)!r}")
+    lint = '[lint]\nselect = ["ANN"]\n'
+    ensure(_ruff_settings(lint) == [], "a ruff.toml without per-file suppressions must pass")
+    for text, expected in (
+            (lint + 'per-file-ignores = {"x.py" = ["ALL"]}\n',
+             "sets lint.per-file-ignores to {'x.py': ['ALL']};"),
+            (lint + '[lint.per-file-ignores]\n"x.py" = ["ANN"]\n',
+             "sets lint.per-file-ignores to {'x.py': ['ANN']};"),
+            (lint + 'extend-per-file-ignores = {}\n',
+             "sets lint.extend-per-file-ignores to {};"),
+            ('per-file-ignores = {"x.py" = ["ANN"]}\n' + lint,
+             "sets per-file-ignores to {'x.py': ['ANN']};"),
+            ('extend-per-file-ignores = {"x.py" = ["ANN"]}\n' + lint,
+             "sets extend-per-file-ignores to {'x.py': ['ANN']};")):
+        found = _ruff_settings(text)
+        ensure(len(found) == 1 and expected in found[0]
+               and "since ruff's log names a file whose rules are off as checked" in found[0],
+               f"a per-file suppression must be one finding: {found!r}")
+    extended = _ruff_settings('extend = "other.toml"\n' + lint)
+    ensure(len(extended) == 1 and "sets extend to 'other.toml';" in extended[0],
+           f"an extend must be refused: {extended!r}")
+    both = _ruff_settings('per-file-ignores = {}\n' + lint + 'per-file-ignores = {}\n')
+    ensure(len(both) == 2, f"each table's key must be its own finding: {both!r}")
+    for text in (None, "[lint\n"):
+        unread = _ruff_settings(text)
+        ensure(len(unread) == 1 and "cannot be read" in unread[0],
+               f"an absent or malformed ruff.toml must be a finding: {unread!r}")
+
+
+def _file_suppressions_refused() -> None:
+    # Each comment ruff reads as a file-level suppression, in any of ruff's spellings
+    # and wherever it sits, is refused unless it names only N999, and so is one after
+    # trailing code, which ruff ignores; a string spelling one, and a spelling ruff
+    # does not read, are not comments ruff reads.
+    refused = {
+        "codes.py": "# ruff: noqa: ANN001\n",
+        "flake8.py": "# flake8: noqa: ANN001,ANN201\n",
+        "cased.py": "#ruff:NOQA:ANN001 ANN201\n",
+        "blanket.py": "x = 1\n# ruff: noqa\n",
+        "second.py": "# a note # ruff: noqa: ANN001\n",
+        "indented.py": "if True:\n    pass\n    # ruff: noqa: ANN001\n",
+        "trailing.py": "x = 1  # ruff: noqa: ANN001\n",
+        "beside.py": "# ruff: noqa: N999, ANN001\n",
+        "joined.py": "# ruff: noqa:N999ANN001\n",
+        "twice.py": "# ruff: noqa: N999 # ruff: noqa: ANN001\n",
+    }
+    admitted = {
+        "named.py": "#!/usr/bin/env python3\n# ruff: noqa: N999\n# the name has a hyphen\n",
+        "reason.py": "# ruff: noqa: N999 because the command's name has a hyphen\n",
+        "string.py": 'TEXT = "# ruff: noqa: ANN001"\n',
+        "docstring.py": '"""The gate refuses\n# ruff: noqa: ANN001\n"""\n',
+        "upper.py": "# RUFF: noqa: ANN001\n",
+        "line.py": "x = 1  # noqa: ANN001\n",
+    }
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        _write_tools(Path(td), {**refused, **admitted}, None)
+        found = typecheck._file_suppressions(Path(td) / "tools",
+                                             frozenset({**refused, **admitted}))
+    ensure(found == ["beside.py:1 # ruff: noqa: N999, ANN001", "blanket.py:2 # ruff: noqa",
+                     "cased.py:1 #ruff:NOQA:ANN001 ANN201", "codes.py:1 # ruff: noqa: ANN001",
+                     "flake8.py:1 # flake8: noqa: ANN001,ANN201",
+                     "indented.py:3 # ruff: noqa: ANN001", "joined.py:1 # ruff: noqa:N999ANN001",
+                     "second.py:1 # a note # ruff: noqa: ANN001",
+                     "trailing.py:1 # ruff: noqa: ANN001",
+                     "twice.py:1 # ruff: noqa: N999 # ruff: noqa: ANN001"],
+           f"each file-level suppression but N999 must be refused: {found!r}")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        _write_tools(Path(td), {"open.py": '# ruff: noqa: ANN001\nTEXT = """\n'}, None)
+        (Path(td) / "tools" / "latin.py").write_bytes(b"# \xe9\n")
+        failed = typecheck._file_suppressions(Path(td) / "tools",
+                                              frozenset({"open.py", "latin.py"}))
+    ensure(len(failed) == 2 and failed[0].startswith("latin.py cannot be read: ")
+           and failed[1].startswith("open.py cannot be tokenized: "),
+           f"a module that cannot be read or tokenized must be refused: {failed!r}")
+
+
+def _suppressions_reported_beside_the_run() -> None:
+    # The real ruff under a per-file-ignores entry and under a file-level directive, each
+    # switching ANN off for a module with an unannotated function: ruff reports nothing
+    # and its log names the module as checked, so the floor alone passes, and the
+    # refusal is what fails the gate; the run's verdict then claims no more than it
+    # showed. Without either suppression ruff reports the function.
+    body = "def f(x):\n    return x\n"
+    lint = '[lint]\nselect = ["ANN"]\n'
+    for config, text, refusal in (
+            (lint, body, None),
+            (lint + 'per-file-ignores = {"x.py" = ["ANN"]}\n', body,
+             "FAIL ruff: 1 ruff.toml setting(s) the gate refuses:"),
+            (lint, "# ruff: noqa: ANN001, ANN201\n" + body,
+             "FAIL ruff: 1 file-level suppression(s) the gate refuses:")):
+        rep = Reporter()
+        with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+            _write_tools(Path(td), {"x.py": text}, config)
+            typecheck._run_ruff(rep, Path(td), frozenset({"x.py"}))
+        if refusal is None:
+            ensure(rep.findings == 2 and "ANN001: 1" in "\n".join(rep.out),
+                   f"without a suppression ruff must report the function: {rep.out!r}")
+            continue
+        ensure(rep.findings == 1 and rep.out[0] == refusal
+               and rep.out[2] == (f"ok ruff: every function is annotated and ruff "
+                                  f"{typecheck.RUFF_VERSION} is clean under the "
+                                  "suppressions refused above")
+               and not any("did not check" in line for line in rep.out),
+               f"a suppression must be the one finding beside a clean run: {rep.out!r}")
+
+
+def _ty_log_variables_removed() -> None:
+    # The real ty with TY_LOG and TY_LOG_PROFILE set in the gate's environment. ty takes
+    # TY_LOG ahead of -vv, so a run inheriting TY_LOG=info logs no checked file and every
+    # tracked module reads as unchecked, which the control shows by running with the
+    # removal switched off; the gate's own runs reach every module and leave no profile.
+    modules = ["kept.py", "sub/stub.pyi"]
+    for removed in (True, False):
+        rep = Reporter()
+        with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+            root = Path(td)
+            _module_tree(root / "tools", modules)
+            (root / "tools" / "ty.toml").write_text(_ADMITTED, encoding="utf-8", newline="")
+            with patch.dict(os.environ, {"TY_LOG": "info", "TY_LOG_PROFILE": "1"}), \
+                    patch.object(typecheck, "_user_config", return_value=None), \
+                    patch.object(typecheck, "TY_UNSET",
+                                 typecheck.TY_UNSET if removed else frozenset()):
+                os.environ.pop("PYTHONPATH", None)
+                typecheck._run_ty(rep, root, frozenset(modules))
+            profiled = sorted(path.name for path in (root / "tools").iterdir()
+                              if path.name not in {"ty.toml", "kept.py", "sub"})
+        unchecked = [line for line in rep.out if "did not check" in line]
+        if removed:
+            ensure(rep.findings == 0 and not unchecked and not profiled
+                   and rep.out == [f"ok ty: every expression reachable under python-platform "
+                                   f"{platform} typechecks under ty {typecheck.TY_VERSION}, "
+                                   "all rules at error" for platform in typecheck.TY_PLATFORMS],
+                   f"a run under TY_LOG must still reach every module: {rep.out!r} {profiled!r}")
+        else:
+            ensure(len(unchecked) == len(typecheck.TY_PLATFORMS)
+                   and rep.findings == len(modules) * len(typecheck.TY_PLATFORMS)
+                   and profiled == ["tracing.folded"],
+                   f"the control must show TY_LOG hiding the log and TY_LOG_PROFILE "
+                   f"writing a profile: {rep.out!r} {profiled!r}")
+
+
+# A ruff.toml banning two modules at module level, one of them dotted.
+_BANNING = ('[lint.flake8-tidy-imports]\n'
+            'banned-module-level-imports = ["fcntl", "asyncio.unix_events"]\n')
+_SCAN_OK = ("ok imports: every import of a module ruff.toml bans at module level sits in a "
+            "function body or behind a sys.platform check")
+_SCAN_FAIL = ("import(s) of a module ruff.toml bans at module level outside a function "
+              "body:")
+
+
+def _write_tools(root: Path, modules: dict[str, str], config: str | None) -> None:
+    """A tools tree under `root` holding `modules`, under a ruff.toml holding `config`,
+    or none at all."""
+    tools = root / "tools"
+    tools.mkdir()
+    if config is not None:
+        (tools / "ruff.toml").write_text(config, encoding="utf-8", newline="")
+    for name, text in modules.items():
+        path = tools / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8", newline="")
+
+
+def _scan(modules: dict[str, str], config: str | None = _BANNING) -> Reporter:
+    """`_run_imports` over a tools tree holding `modules`, each tracked."""
+    rep = Reporter()
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        _write_tools(Path(td), modules, config)
+        typecheck._run_imports(rep, Path(td), frozenset(modules))
+    return rep
+
+
+def _refused(site: str, names: str = "fcntl") -> str:
+    return (f"       {site} imports {names} outside a function body, behind no sys.platform "
+            "check")
+
+
+def _imports_refused_outside_functions() -> None:
+    # An import of a banned module, or of a banned submodule by its parent, that runs
+    # outside a function body is refused wherever it sits: unnested at module level, in
+    # a class body at any depth, and in a module-level block such as the main guard.
+    refused = {
+        "toplevel.py": "import os, fcntl\n",
+        "classbody.py": "class Locks:\n    import fcntl\n",
+        "nested.py": "class Outer:\n    class Inner:\n        import fcntl\n",
+        "moduleif.py": "import os\n\nif os.name == 'posix':\n    import fcntl\n",
+        "mainblock.py": "if __name__ == '__main__':\n    import fcntl\n",
+        "tryblock.py": "try:\n    from fcntl import flock\nexcept ImportError:\n    pass\n",
+        "member.py": "class Loop:\n    from asyncio import events, unix_events\n",
+        "dotted.py": "with open(__file__):\n    import asyncio.unix_events as ue\n",
+    }
+    rep = _scan(refused)
+    ensure(rep.findings == len(refused) and rep.out == [
+        f"FAIL imports: {len(refused)} {_SCAN_FAIL}",
+        _refused("classbody.py:2"), _refused("dotted.py:2", "asyncio.unix_events"),
+        _refused("mainblock.py:2"), _refused("member.py:2", "asyncio.unix_events"),
+        _refused("moduleif.py:4"), _refused("nested.py:3"), _refused("toplevel.py:1"),
+        _refused("tryblock.py:2")], f"each import outside a function body must be refused: "
+                                    f"{rep.out!r}")
+
+
+def _imports_admitted_in_functions_and_platform_blocks() -> None:
+    # A function body runs only when called, and an if reading sys.platform keeps both
+    # its branches off the platform its test excludes, at module level or in a class
+    # body. A name that only begins like a banned one, a banned module's parent, a
+    # relative import and a string are none of them an import of a banned module.
+    admitted = {
+        "function.py": "def lock() -> None:\n    import fcntl\n",
+        "coroutine.py": "async def lock() -> None:\n    from fcntl import flock\n",
+        "method.py": "class Locks:\n    def lock(self) -> None:\n        import fcntl\n",
+        "classinfunction.py": "def make() -> None:\n    class Locks:\n        import fcntl\n",
+        "platformif.py": "import sys\n\nif sys.platform != 'win32':\n    import fcntl\n",
+        "platformelse.py": ("import sys\n\nif sys.platform == 'win32':\n    pass\n"
+                            "elif __name__ == '__main__':\n    import fcntl\n"),
+        "platformclass.py": ("import sys\n\nclass Locks:\n    if sys.platform != 'win32':\n"
+                             "        import fcntl\n"),
+        "unrelated.py": ("import asyncio\nimport fcntlx\nfrom asyncio import events\n"
+                         "from . import fcntl\nTEXT = 'import fcntl'\n"),
+    }
+    rep = _scan(admitted)
+    ensure(rep.findings == 0 and rep.out == [_SCAN_OK],
+           f"an import in a function body or behind sys.platform must be admitted: {rep.out!r}")
+
+
+def _imports_fail_closed() -> None:
+    # A ruff.toml the scan cannot read a non-empty list of module names from is one
+    # finding and scans nothing; a module that spells a banned name and cannot be read
+    # or parsed is a finding. A module spelling no banned name is not parsed, its syntax
+    # being ruff's E9 finding.
+    for config, expected in ((None, "cannot be read"),
+                             ('[lint\n', "cannot be read"),
+                             ('[lint]\nselect = ["ANN"]\n', "to None;"),
+                             ('[lint]\nflake8-tidy-imports = 1\n', "to None;"),
+                             ('[lint.flake8-tidy-imports]\nbanned-module-level-imports = []\n',
+                              "to [];"),
+                             ('[lint.flake8-tidy-imports]\n'
+                              'banned-module-level-imports = ["fcntl", 1]\n', "to ['fcntl', 1];"),
+                             ('[lint.flake8-tidy-imports]\n'
+                              'banned-module-level-imports = ["fcntl", ""]\n', "to ['fcntl', ''];")):
+        rep = _scan({"classbody.py": "class Locks:\n    import fcntl\n"}, config)
+        ensure(rep.findings == 1 and rep.out[0] == "FAIL imports: 1 ruff.toml list(s) the gate "
+                                                   "cannot read:" and expected in rep.out[1],
+               f"a ruff.toml without a list of module names must be one finding: {rep.out!r}")
+    rep = _scan({"broken.py": "import fcntl\ndef (:\n", "quiet.py": "def (:\n"})
+    ensure(rep.findings == 1 and rep.out[1].startswith("       broken.py cannot be parsed: "),
+           f"a module spelling a banned name that cannot be parsed must be refused: {rep.out!r}")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        _write_tools(Path(td), {}, _BANNING)
+        (Path(td) / "tools" / "latin.py").write_bytes(b"# \xe9\nimport fcntl\n")
+        unread = Reporter()
+        typecheck._run_imports(unread, Path(td), frozenset({"latin.py"}))
+    ensure(unread.findings == 1 and unread.out[1].startswith("       latin.py cannot be read: "),
+           f"a module that cannot be read must be refused: {unread.out!r}")
+
+
+def _imports_close_what_ruff_leaves_open() -> None:
+    # The positive control. Under the committed ruff.toml, whose list the scan reads,
+    # the real ruff reports TID253 for an unnested module-level import of a banned
+    # module and nothing, neither TID253 nor PLC0415, for one in a class body, a
+    # module-level block or the main guard; the scan refuses all four.
+    committed = Path(typecheck.__file__).resolve().parents[2] / "ruff.toml"
+    banned, unread = typecheck._banned(committed)
+    ensure(not unread and {"fcntl", "curses", "readline", "nt", "_winapi"} <= banned,
+           f"the committed ruff.toml must list the platform-only modules: {unread!r}")
+    modules = {
+        "toplevel.py": "import fcntl\n\nLOCK = fcntl.LOCK_EX\n",
+        "classbody.py": "class Locks:\n    import fcntl\n\n    LOCK = fcntl.LOCK_EX\n",
+        "moduleif.py": ('import os\n\nif os.name == "posix":\n    import fcntl\n\n'
+                        '    LOCK = fcntl.LOCK_EX\n'),
+        "mainblock.py": ('if __name__ == "__main__":\n    import fcntl\n\n'
+                         '    fcntl.flock(0, fcntl.LOCK_EX)\n'),
+    }
+    config = committed.read_text(encoding="utf-8")
+    lint, scan = Reporter(), Reporter()
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        _write_tools(Path(td), modules, config)
+        typecheck._run_ruff(lint, Path(td), frozenset(modules))
+        typecheck._run_imports(scan, Path(td), frozenset(modules))
+    codes = [line.strip() for line in lint.out if line.startswith("       ")
+             and not line.startswith("         ")]
+    banned_sites = [line.strip() for line in lint.out if "is banned at the module level" in line]
+    ensure("TID253: 1" in codes and not any(code.startswith("PLC0415") for code in codes)
+           and len(banned_sites) == 1 and banned_sites[0].startswith("toplevel.py:1:"),
+           f"ruff must report only the unnested import: {lint.out!r}")
+    ensure(scan.out == [f"FAIL imports: 4 {_SCAN_FAIL}", _refused("classbody.py:2"),
+                        _refused("mainblock.py:2"), _refused("moduleif.py:4"),
+                        _refused("toplevel.py:1")],
+           f"the scan must refuse every import ruff leaves open: {scan.out!r}")
+
+
 def _git(root: Path, *args: str) -> None:
     subprocess.run(["git", *args], cwd=root, capture_output=True, check=True)
 
@@ -941,21 +1258,63 @@ def _tracked_reads_the_index() -> None:
     ensure(found == {"a.py", "sub/b.pyi"}, f"the tracked modules read as {sorted(found)!r}")
 
 
+def _unreached(out: list[str]) -> list[str]:
+    """Why a report of the gate's ty and ruff runs does not show every run reaching
+    every tracked module: a line saying a run left a module unchecked, crashed, or never
+    ran for want of the pinned checker, and each run giving no verdict line, since a
+    run that never happened reports no module unchecked."""
+    refusals = ("did not check", "checker error(s)", "not installed",
+                "other than the pinned one")
+    def ty_verdict(line: str, platform: str) -> bool:
+        return (line.startswith(f"ok ty: every expression reachable under python-platform "
+                                f"{platform} ")
+                or (line.startswith("FAIL ty: ")
+                    and line.endswith(f" type error(s) under python-platform {platform}:")))
+
+    problems = [line for line in out if any(refusal in line for refusal in refusals)]
+    problems.extend(f"no verdict from ty under python-platform {platform}"
+                    for platform in typecheck.TY_PLATFORMS
+                    if not any(ty_verdict(line, platform) for line in out))
+    if not any(line.startswith("ok ruff: every function is annotated")
+               or (line.startswith("FAIL ruff: ") and line.endswith(" lint finding(s):"))
+               for line in out):
+        problems.append("no verdict from ruff")
+    return problems
+
+
+def _live_runs(root: Path, tracked: frozenset[str]) -> Reporter:
+    """The gate's ty runs and its ruff run over `root`, held to `tracked`."""
+    rep = Reporter()
+    typecheck._run_ty(rep, root, tracked)
+    typecheck._run_ruff(rep, root, tracked)
+    return rep
+
+
 def _live_tree_reaches_every_tracked_module() -> None:
-    # This checkout: the index's modules include this file and the gate's, and the
-    # gate's ruff run and a ty run reach every one of them. One ty platform stands
-    # for both, since which files a run reaches does not depend on the platform.
+    # This checkout: the index's modules include this file and the gate's, and each of
+    # the gate's ty runs and its ruff run gives a verdict and reaches every one of them.
+    # The controls run the gate with its checker missing and with another version
+    # installed: neither run happens, so neither reports a module unchecked, and each is
+    # refused for the missing verdict and the pin gate's own line.
     root = Path(typecheck.__file__).resolve().parents[3]
     tracked = typecheck._tracked(root)
     ensure({"vos/cli/typecheck.py", "tests/test_typecheck.py"} <= tracked,
            f"the live index must track the gate and its tests: {len(tracked)} module(s)")
-    rep = Reporter()
-    with patch.object(typecheck, "TY_PLATFORMS", ("linux",)):
-        typecheck._run_ty(rep, root, tracked)
-    typecheck._run_ruff(rep, root, tracked)
-    ensure(not any("did not check" in line or "checker error(s)" in line
-                   for line in rep.out),
-           f"the live tree must reach every module it tracks: {rep.out!r}")
+    rep = _live_runs(root, tracked)
+    ensure(not _unreached(rep.out),
+           f"the live tree must reach every module it tracks: {_unreached(rep.out)!r} "
+           f"{rep.out!r}")
+    for control, refusal in ((patch.object(typecheck, "_tool", return_value=None),
+                              "not installed"),
+                             (patch.object(typecheck, "_version", return_value="0.0.0"),
+                              "other than the pinned one")):
+        with control:
+            missed = _unreached(_live_runs(root, tracked).out)
+        ensure(any(refusal in line for line in missed)
+               and "no verdict from ruff" in missed
+               and all(f"no verdict from ty under python-platform {platform}" in missed
+                       for platform in typecheck.TY_PLATFORMS),
+               f"a run that never happened must not read as reaching the tree: {missed!r}")
 
 
 def cases() -> list[Case]:
@@ -994,6 +1353,16 @@ def cases() -> list[Case]:
         Case("coverage-read-from-the-run", _coverage_read_from_the_run, lane="host"),
         Case("ruff-coverage-floor", _ruff_coverage_floor),
         Case("ty-coverage-floor", _ty_coverage_floor),
+        Case("ruff-settings-refuse-per-file-suppressions",
+             _ruff_settings_refuse_per_file_suppressions),
+        Case("file-suppressions-refused", _file_suppressions_refused),
+        Case("suppressions-reported-beside-the-run", _suppressions_reported_beside_the_run),
+        Case("ty-log-variables-removed", _ty_log_variables_removed),
+        Case("imports-refused-outside-functions", _imports_refused_outside_functions),
+        Case("imports-admitted-in-functions-and-platform-blocks",
+             _imports_admitted_in_functions_and_platform_blocks),
+        Case("imports-fail-closed", _imports_fail_closed),
+        Case("imports-close-what-ruff-leaves-open", _imports_close_what_ruff_leaves_open),
         Case("tracked-reads-the-index", _tracked_reads_the_index),
         Case("live-tree-reaches-every-tracked-module", _live_tree_reaches_every_tracked_module),
     ]

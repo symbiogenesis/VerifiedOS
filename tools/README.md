@@ -1026,6 +1026,14 @@ asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own li
 each for a reason that would hold in any project, and no group switched off to spare this
 code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and
 the sentence saying why; the `PGH` group refuses a blanket `# noqa` or `# type: ignore`.
+A suppression reaching a whole file is a ruff finding: a `per-file-ignores` or
+`extend-per-file-ignores` key in ruff.toml, in `[lint]` or at the top level; an `extend`
+key, which merges another file's settings beneath ruff.toml's; and a comment anywhere in
+a tracked module carrying ruff's file-level suppression, `# ruff: noqa` or
+`# flake8: noqa`, unless it names N999 and no other rule, since ruff reports N999
+against the file's name rather than a line of it. ruff's log names a file whose rules
+are switched off as checked, so the coverage floor below cannot see what such a
+suppression takes away.
 ruff also honors ignore files by default, so ruff.toml sets `respect-gitignore = false`
 and the gate passes `--no-respect-gitignore`: a pattern matching a tracked module would
 otherwise take it out of the lint and annotation run with nothing reported. The settings
@@ -1036,7 +1044,9 @@ the gate reports each module the index tracks under `tools/` that a run's log do
 name as a finding under that run's checker. It reads ruff's log rather than
 `ruff check --show-files`, which still lists what `lint.exclude` drops. The log is the
 pinned version's verbose output, so a version whose log has another shape reports
-every tracked module as unchecked.
+every tracked module as unchecked. ty takes its log filter from `TY_LOG` ahead of `-vv`,
+so the gate runs ty without that variable, and without `TY_LOG_PROFILE`, which has ty
+write a profile into `tools/`; neither changes what ty checks or reports.
 
 The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml). ruff finds its file
 from each checked path, but the ty CLI discovers configuration from its working directory
@@ -1050,10 +1060,18 @@ Linux. ty reports nothing in a branch the target makes unreachable, so the gate 
 under `--python-platform linux` and again under `win32`, each run its own verdict. The
 second run types the branches taken only when `sys.platform` is `win32`, and holds every
 call typeshed declares absent on Windows behind a `sys.platform` check. typeshed stubs
-each module one platform lacks, such as `fcntl` or `msvcrt`, for both platforms, so
-neither run sees a module-level import of one fail on the other platform; ruff.toml's
-`banned-module-level-imports` refuses those imports, and each module is imported inside
-the function that uses it, behind a `sys.platform` check.
+most modules one platform lacks, such as `fcntl` or `msvcrt`, for both platforms, so
+neither run sees an import of one fail on the other platform. ruff.toml's
+`banned-module-level-imports` lists each standard-library module the interpreter cannot
+import on Windows or on Linux that ty resolves under both platforms, a listed name
+covering its submodules; a module ty resolves under neither is ty's own
+`unresolved-import` finding. ruff's TID253 refuses an import of a listed module only
+where it is unnested at module level, and with the module listed, PLC0415 no longer
+reports one in a class body. So the gate reads the same list and refuses an import of a
+listed module in a tracked module anywhere else outside a function body, in a class body
+or a module-level block such as `if __name__ == "__main__":`, unless an enclosing `if`
+reads `sys.platform`. Each is imported inside the function that uses it, behind a
+`sys.platform` check.
 
 The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
 addresses ty's recursive-JSON narrowing behavior, not
