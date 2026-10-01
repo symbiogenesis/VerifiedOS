@@ -171,14 +171,15 @@ full stop, and by one membership sentence standing anywhere from that lead to th
 class's, `which is what` or `That is what`, a list of ids, then `are`. The four class
 names are fixed here rather than read, so a class retitled away and a fifth class
 opened that way are each a finding rather than a class this rule stops or never starts
-reading, and so is a `Where the set is` in the section that names no class in bold
-before a full stop or the line's end. What that reading does not reach is a class
-introduced in some other sentence form: it is read as part of the class before it, or
-as part of no class ahead of the first, and is caught only where it carries a
-membership sentence of its own, that sentence then being a class's second or one
-standing ahead of every class. A list is decided whole by a grammar of ids, `K-a
-through K-b` ranges, commas and `and`, and a range expands over the active rows whose
-numbers it spans, so a struck row inside one is skipped rather than placed.
+reading, and so is a `Where the set is` anywhere in the section, one wrapped across a
+line, spaced apart or set in underscore italics included, that opens no class in that
+form. What that reading does not reach is a class introduced in some other sentence
+form: it is read as part of the class before it, or as part of no class ahead of the
+first, and is caught only where it carries a membership sentence of its own, that
+sentence then being a class's second or one standing ahead of every class. A list is
+decided whole by a grammar of ids, `K-a through K-b` ranges, commas and `and`, and a
+range expands over the active rows whose numbers it spans, so a struck row inside one
+is skipped rather than placed.
 
 **Fail-closed at every reading.** A missing section, a `Where the set is` that opens no
 class, a membership sentence ahead of the first class, a class with no membership
@@ -247,10 +248,16 @@ _TIER_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed: Tier (?P<tier>[AB])\b(?P<rest
 # included, and every `Where the set is` in the section has to open a class. The four
 # class names are fixed here rather than read off the page, so a class retitled away, a
 # fifth class opened that way, and a `Where the set is` naming no class are each a
-# finding rather than a class this rule silently stops or never starts reading.
+# finding rather than a class this rule silently stops or never starts reading. The
+# opener takes the lead's four words single-spaced and apart from any word character;
+# the lead-finder is wider, any whitespace between the words, a line break included, and
+# only a letter or digit beside them refused, so a lead wrapped across a line, spaced
+# apart or set in underscore italics is found and, opening nothing, is a finding rather
+# than text read as part of the class before it.
 REACH_HEADING = "## What a passing run does not decide"
 REACH_CLASSES = ("name", "computed value", "pattern", "total")
-_CLASS_LEAD_RE = re.compile(r"\bWhere the set is\b", re.IGNORECASE)
+_CLASS_LEAD_RE = re.compile(
+    r"(?<![^\W_])Where\s+the\s+set\s+is(?![^\W_])", re.IGNORECASE)
 _CLASS_OPEN_RE = re.compile(
     r"\bWhere the set is (?:[^*.\r\n]|\*(?!\*))*?\*\*([^*\r\n]+)\*\*", re.IGNORECASE)
 
@@ -787,9 +794,10 @@ def _classes(ctx: Context, registered: set[str]) -> None:
             # A lead that opens no class leaves what it introduces read as part of the
             # class before it, so it is reported rather than passed over.
             starts = {m.start() for m in opens}
-            findings += [f"{RULES}:{doc.at(m.start())} states 'Where the set is' and names "
-                         "no class in bold before a full stop or the line's end, so it "
-                         "opens no reach class this rule reads"
+            findings += [f"{RULES}:{doc.at(m.start())} states 'Where the set is' in a form "
+                         "that opens no reach class this rule reads: the four words "
+                         "single-spaced on one line and apart from any underscore, then "
+                         "the class in bold before a full stop or the line's end"
                          for m in _CLASS_LEAD_RE.finditer(doc.raw, lo, hi)
                          if m.start() not in starts and not doc.is_fenced(m.start())]
             # No class's region reaches back past the first opener, so a membership

@@ -642,6 +642,9 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
                "fail-closed: no ok line stands beside an unread class")
 
 
+_K119_LEAD_FINDING = "states 'Where the set is' in a form that opens no reach class"
+
+
 def _k119_every_class_lead_is_read() -> None:
     # A fifth class opened by other words than the four use is still read and named, and
     # a lead naming no class in bold is reported rather than folded into the class before.
@@ -655,14 +658,24 @@ def _k119_every_class_lead_is_read() -> None:
              "opens a reach class '**marker**' that is not one of the four this rule reads"),
             ({"computed": _K119_COMPUTED
               + " Where the set is located by a marker, nothing narrows."},
-             "states 'Where the set is' and names no class in bold before a full stop or "
-             "the line's end"),
+             _K119_LEAD_FINDING),
             # any `.` ends the lead's reach, a code span's included, so the bold name past
             # it opens nothing
             ({"computed": _K119_COMPUTED
               + " Where the set is located by `a.b` **marker**, nothing narrows."},
-             "states 'Where the set is' and names no class in bold before a full stop or "
-             "the line's end")):
+             _K119_LEAD_FINDING),
+            # the lead is found in underscore italics, wrapped across a line or spaced
+            # apart, none of which opens a class, so each is reported rather than read
+            # as part of the class before it
+            ({"computed": _K119_COMPUTED
+              + " _Where the set is_ located by **marker**, nothing narrows."},
+             _K119_LEAD_FINDING),
+            ({"computed": _K119_COMPUTED
+              + " Where the set\nis located by **marker**, nothing narrows."},
+             _K119_LEAD_FINDING),
+            ({"computed": _K119_COMPUTED
+              + " Where the set  is located by **marker**, nothing narrows."},
+             _K119_LEAD_FINDING)):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
         ensure(not any(line.startswith("ok K-119:") for line in out),

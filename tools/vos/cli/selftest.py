@@ -1873,6 +1873,21 @@ CASES: list[Case] = [
               "Past them, where the set is located by **marker**, nothing is read. "
               "Where the set is **total**,")),
 
+    # The same fifth class with its lead set in underscore italics, which opens nothing.
+    # A lead found only at a word boundary does not see it, the underscore counting as a
+    # word character, so the text sits unnoticed inside the pattern class's region.
+    ("K-119", "a fifth reach class whose lead is set in underscore italics",
+     _literal(RULES, "Where the set is **total**,",
+              "_Where the set is_ located by **marker**, nothing is read. "
+              "Where the set is **total**,")),
+
+    # The same again with its lead wrapped across a line, which opens nothing either. A
+    # lead found only with single spaces between its words does not see it.
+    ("K-119", "a fifth reach class whose lead is wrapped across a line",
+     _literal(RULES, "Where the set is **total**,",
+              "Where the set\nis located by **marker**, nothing is read. "
+              "Where the set is **total**,")),
+
     # A membership sentence ahead of the first class, which no class's region reaches.
     # The rule it names is still placed once by its own class, so the section reads as
     # agreeing with the registry and only a reading of the stretch before the first
