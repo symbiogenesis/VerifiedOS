@@ -10,7 +10,12 @@
 # The image is published for linux/amd64 only, at every 9.1 tag, so on an arm64
 # host this path wants emulation and the native recipe in README.md is the one
 # that runs.
-FROM rocq/rocq-prover:9.1-ocaml-4.14-flambda
+#
+# The image is pinned by digest, so a tag pushed again cannot move it. Docker Hub
+# gave this digest for both 9.1.1-ocaml-4.14.2-flambda and the floating
+# 9.1-ocaml-4.14-flambda when read on 2026-09-30, each last pushed on 2026-08-28;
+# the tag below is documentation, and the digest is what Docker pulls.
+FROM rocq/rocq-prover:9.1.1-ocaml-4.14.2-flambda@sha256:9a1e969649a3cc3c6f310d5be5a842e2187384560337c6c0807aba9f8565efba
 
 USER root
 RUN apt-get update \

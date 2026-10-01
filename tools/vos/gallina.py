@@ -53,6 +53,33 @@ CERTIROCQ_VERSION = "0.9.1+9.1"
 ORACLE_OCAML_VERSION = "5.1.1"
 ORACLE_SWITCH = f"verifiedos-certirocq-0.9.1-ocaml-{ORACLE_OCAML_VERSION}"
 
+# The candidates for that switch, in the order they are tried: the released CertiRocq,
+# unpatched, at each OCaml release, beside every dependency opam resolves for it from
+# rocq-released and the default repository. OCaml 4.14.4 comes first because its
+# runtime header defines Hd_val as the same macro, token for token, that the native
+# certirocqc bootstrap's C wrapper includes beside it; 5.1.1 defines another macro. A
+# candidate is declared only once it builds and the Wasm oracle's positive and seeded
+# negative checks pass in it: its export becomes tools/opam/certirocq.lock and
+# ORACLE_OCAML_VERSION names it.
+ORACLE_CANDIDATE_OCAML_VERSIONS: tuple[str, ...] = ("4.14.4", "5.1.1")
+
+
+def oracle_candidate_switch(ocaml: str) -> str:
+    """The switch one candidate builds, named as ORACLE_SWITCH would name it."""
+    return f"verifiedos-certirocq-0.9.1-ocaml-{ocaml}"
+
+
+def oracle_candidate_build(ocaml: str) -> tuple[tuple[str, ...], ...]:
+    """The argv that builds one candidate from released packages, into a root carrying
+    rocq-released and the default repository; it pins nothing and reads no checkout."""
+    switch = oracle_candidate_switch(ocaml)
+    return (
+        ("opam", "switch", "create", switch, "--repos=rocq-released,default",
+         f"--packages=ocaml-base-compiler.{ocaml}", "--no-switch", "-y"),
+        ("opam", "install", f"--switch={switch}", "-y",
+         f"ocamlfind.{env.OCAMLFIND_VERSION}", f"rocq-certirocq.{CERTIROCQ_VERSION}"),
+    )
+
 # QuickChick's coq-simple-io dependency caps Coq below 9.2~ independently of CertiRocq.
 # Its dune < 3.22 constraint warrants a separate resolution from the Wasm oracle.
 QUICKCHICK_ROCQ_VERSION = ORACLE_ROCQ_VERSION

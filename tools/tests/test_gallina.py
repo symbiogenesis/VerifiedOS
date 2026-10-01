@@ -381,6 +381,32 @@ def _the_two_switches_are_named_apart() -> None:
            "the harness would live inside the proof gate's own subject")
 
 
+def _the_oracle_candidates_build_from_released_packages() -> None:
+    """Each candidate's recipe names released packages alone, in the switch it would be
+    declared as: no pin, no checkout path or URL, and the CertiRocq release the rig
+    holds. The declared switch is always one of them."""
+    candidates = gallina.ORACLE_CANDIDATE_OCAML_VERSIONS
+    ensure(len(candidates) > 0 and len(set(candidates)) == len(candidates),
+           "the candidates are a nonempty order without repeats")
+    ensure(gallina.oracle_candidate_switch(gallina.ORACLE_OCAML_VERSION)
+           == gallina.ORACLE_SWITCH
+           and gallina.ORACLE_OCAML_VERSION in gallina.ORACLE_CANDIDATE_OCAML_VERSIONS,
+           "the declared oracle switch is not one a candidate recipe builds")
+    for ocaml in gallina.ORACLE_CANDIDATE_OCAML_VERSIONS:
+        steps = gallina.oracle_candidate_build(ocaml)
+        words = [word for step in steps for word in step]
+        ensure(all(step[0] == "opam" and step[1] != "pin" for step in steps),
+               f"{ocaml}: every step is an opam command and none pins: {steps}")
+        ensure(not any("/" in word or "://" in word for word in words),
+               f"{ocaml}: a candidate reads no path and no URL: {words}")
+        ensure(steps[0][:4] == ("opam", "switch", "create",
+                                gallina.oracle_candidate_switch(ocaml))
+               and f"--packages=ocaml-base-compiler.{ocaml}" in steps[0]
+               and f"rocq-certirocq.{gallina.CERTIROCQ_VERSION}" in steps[-1]
+               and f"ocamlfind.{env.OCAMLFIND_VERSION}" in steps[-1],
+               f"{ocaml}: the recipe builds the rig's CertiRocq at that compiler: {steps}")
+
+
 def _the_stdlib_harnesses_compile_in_the_proof_switch() -> None:
     """The vector instruments ask for the gate's own switch and the randomized one for
     QuickChick's, each by the constant that names it. Asked of the prover lookup rather
@@ -490,6 +516,8 @@ def cases() -> list[Case]:
              _an_unterminated_quote_yields_nothing_more),
         Case("written vectors are one per line", _written_vectors_are_one_per_line),
         Case("the two switches are named apart", _the_two_switches_are_named_apart),
+        Case("the oracle candidates build from released packages",
+             _the_oracle_candidates_build_from_released_packages),
         Case("the Stdlib harnesses compile in the proof switch",
              _the_stdlib_harnesses_compile_in_the_proof_switch),
         Case("the randomized harness compiles its closure alone",
