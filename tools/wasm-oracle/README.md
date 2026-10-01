@@ -13,7 +13,7 @@ This is the inner loop of the three-loop discipline ([implementation-checklist Â
 
 [tools/opam/certirocq.lock](../opam/certirocq.lock) is the snapshot of the switch in which the unpatched release, its native `certirocqc` bootstrap included, built at OCaml 4.14.4, `demo.v` printed `true` through the compiled Wasm, and `ipc_oracle.v`'s 84 checks answered `true` while its seeded twin answered `false`. The native recipe's create-and-import steps imported it into a fresh opam root on the aarch64 development guest, where those three checks answered the same and emitted the same modules byte for byte, and `run.py provision`'s CertiRocq oracle row held with `OPAMROOT` naming that root. Both recipes below import it. The Docker build is unexercised: the image is published for `linux/amd64` alone, and that guest, where every check here ran, has not built it. The Gallina vector harnesses compile in the proof gate's switch and exercise nothing in this one.
 
-That guest's default opam root holds no switch of the declared name, so `provision`'s oracle row cannot hold there; its `verifiedos-certirocq-0.9.1-ocaml-5.1.1`, which an earlier declaration named, carries no `rocq-certirocq`. `run.py provision --apply` plans nothing for this switch, whose only route is the recipe here, a person's rather than a tool's.
+`run.py provision --apply` plans nothing for this switch, whose only route is the recipe here, a person's rather than a tool's, and `provision`'s oracle row holds only over a root that carries the declared switch.
 
 Two environments install the same opam package. The container is the portable one and the opam switch is the one that runs on an arm64 host, because `rocq/rocq-prover` publishes `linux/amd64` alone at every 9.1 tag.
 
