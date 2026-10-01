@@ -1596,12 +1596,23 @@ def _k118_hook_census_reads_every_entry() -> None:
                            ('  - "repo": https://github.com/example/quoted\n', (10,)),
                            ("  - &k repo: https://github.com/example/anchored\n", (10,)),
                            (f"  - rev: {'e' * 40}\n    repo: https://github.com/example/late\n",
-                            (10, 11))):
+                            (10, 11)),
+                           # PyYAML and libyaml read every `?` inside a flow collection as a
+                           # key's indicator whatever follows it, so a `?` flush against its
+                           # key after `{`, `,` or `[`, or opening its line, is counted
+                           (f"  - {{?repo: https://github.com/example/flush, ?rev: {'e' * 40}, "
+                            "hooks: [{?id: x}]}\n", (10,)),
+                           ("  - {\n    ?repo: https://github.com/example/opening,\n"
+                            f"    ?rev: {'e' * 40}}}\n", (11, 12))):
         found, _ = _k118_hook(_K118_HOOKS + written)
         ensure(len(found) == len(lines) and all(
             f"{pins.HOOK_CONFIG}:{line} states a hook repository's `repo` or `rev` key in a "
             "form K-118 does not read" in item for line, item in zip(lines, found, strict=True)),
                f"an entry K-118 cannot read is a finding at its line ({written!r}): {found!r}")
+    # after a block indicator, a `?` flush against what follows it opens a plain scalar
+    found, _ = _k118_hook(_K118_HOOKS.replace("      - id: first\n",
+                                              "      - id: first\n        args:\n          - ?x\n"))
+    ensure(not found, f"a block sequence's `?x` item is no key: {found!r}")
     # A `#` after a no-break or ideographic space opens no comment, YAML's blanks being
     # the space and the tab alone: the line is a key, so an entry anchored there and
     # aliased into `repos` is read at that line rather than passed over as a comment.

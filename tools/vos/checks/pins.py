@@ -560,7 +560,11 @@ def _project(name: str) -> str:
 # whole whose `rev` key stands at the column of the entry's `repo` key; every other
 # `repo` or `rev` key, bare or quoted, and every key K-115's census counts whatever it
 # spells, a double-quoted key holding an escape, an alias used as a key and an
-# explicit-key `?` indicator, is a line the census reports.
+# explicit-key `?` indicator, is a line the census reports. A `?` is counted where
+# K-115's census counts one: opening its line after indentation alone or following `{`,
+# `,` or `[` whatever follows it, since PyYAML and libyaml read every `?` inside a flow
+# collection as a key's indicator and a line does not say whether it stands in one, and
+# after a block indicator and a blank only before a blank, as a block key's indicator is.
 _HOOK_REPO_RE = re.compile(r"^[ \t]*-[ \t]+(?P<key>repo):[ \t]*(?P<url>.*?)[ \t]*$")
 # The one shape an entry's rev is read in: a bare `rev` key, a plain or quoted value no
 # tag, anchor, alias, escape or other indicator opens, and at most the `# frozen:`
@@ -576,7 +580,7 @@ _HOOK_REV_KEY_RE = re.compile(r"""^(?P<indent>[ \t]*)(?P<q>["']?)rev(?P=q)(?=[ \
 _HOOK_KEY_RE = re.compile(
     r"""(?:(?<=[\s{,\[])|^)"""
     r"""(?:(?P<q>["']?)re(?:po|v)(?P=q)|"[^"]*\\[^"]*"|\*[^\s,\[\]{}]+)(?=[ \t]*:)"""
-    r"""|^[ \t]*(?:[-?:][ \t]+)*\?(?=[ \t]|$)|(?<=[{,\[])[ \t]*\?(?=[ \t]|$)""")
+    r"""|^[ \t]*(?:\?|(?:[-?:][ \t]+)+\?(?=[ \t]|$))|(?<=[{,\[])[ \t]*\?""")
 _FULL_COMMIT_RE = re.compile(r"[0-9a-f]{40}")
 # pre-commit's own hooks, which run its `pre_commit.meta_hooks` modules under the
 # interpreter running it and whose entry its configuration schema refuses to override.

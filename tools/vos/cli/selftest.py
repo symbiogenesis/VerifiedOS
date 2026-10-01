@@ -1817,6 +1817,14 @@ CASES: list[Case] = [
                   lambda _: '  - {hooks: [{id: unreviewed, name: "the unreviewed hook\n'
                             '    # reviewed"}], repo: https://github.com/example/'
                             f"unreviewed-hooks, rev: {'d' * 40}}}\n")),
+    # A hook repository appended as a flow mapping whose every key stands flush against
+    # its explicit-key `?`: PyYAML and libyaml read every `?` inside a flow collection as
+    # a key's indicator, so pre-commit runs the entry, and only a census counting a flow
+    # `?` whatever follows it, as K-115's does, sees it.
+    ("K-118", "a hook repository stated as a flow mapping of unspaced explicit keys",
+     _first_match("model/.pre-commit-config.yaml", r"\Z",
+                  lambda _: "  - {?repo: https://github.com/example/unreviewed-hooks, "
+                            f"?rev: {'d' * 40}, ?hooks: [{{?id: unreviewed}}]}}\n")),
     # The first entry stating a second rev, its commit's last digit changed, after a line
     # separator closing the entry's last line: YAML breaks the line there and keeps the
     # last rev, so only a reading splitting the file where YAML does sees two revs.
