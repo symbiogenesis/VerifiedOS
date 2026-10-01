@@ -215,6 +215,13 @@ Require Import Sha256.
 
 Open Scope list_scope.
 
+(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
+   the goal in the tactic and again where the kernel checks its cast at Qed;
+   this casts eq_refl to the goal unevaluated, so only the check at Qed
+   evaluates it. *)
+Local Ltac vm_reflexivity :=
+  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
+
 (* -------------------------------------------------------------------------
    Helpers this file adds to Sha256.v's, in the same idiom.
    ------------------------------------------------------------------------- *)
@@ -249,7 +256,7 @@ Definition separator_one : list bool := bits_of_byte 0x01.
 
 Example the_initial_key_and_value_are_outlen_long :
   andb (Nat.eqb (length_of zero_key) outlen_bits) (Nat.eqb (length_of one_value) outlen_bits) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The internal state, s10.1.2.1, and HMAC_DRBG_Update, s10.1.2.2: two
@@ -340,7 +347,7 @@ Example a_partial_block_still_costs_a_block :
   andb (andb (Nat.eqb (blocks_for 0) 0) (Nat.eqb (blocks_for 1) 1))
        (andb (Nat.eqb (blocks_for outlen_bits) 1)
              (Nat.eqb (blocks_for (S outlen_bits)) 2)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Definition update_on (additional : list bool) (k v : list bool) : list bool * list bool :=
   match additional with
@@ -450,7 +457,7 @@ Example the_three_equalities_decide_their_own_enumerations :
   andb (eqb_decides lifecycle_eqb all_lifecycles)
   (andb (eqb_decides lock_eqb all_lock_states)
         (eqb_decides transition_eqb all_transitions)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The seven edges all differ from each other in **both** endpoints, so
    they cannot tell an equality that joins its two comparisons with `and`
@@ -462,7 +469,7 @@ Definition transition_probes : list Transition :=
 
 Example the_transition_equality_decides_a_wider_probe_than_the_edges :
   eqb_decides transition_eqb transition_probes = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* An equality that is reflexive on every edge and still wrong, so that both
    halves of the test above are load-bearing: this one says every lock edge
@@ -477,11 +484,11 @@ Definition lax_transition_eqb (a b : Transition) : bool :=
 Example a_reflexive_equality_can_still_be_wrong :
   andb (all_of (fun t => lax_transition_eqb t t) all_transitions)
        (negb (eqb_decides lax_transition_eqb all_transitions)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example there_are_five_lifecycle_edges_and_two_lock_edges :
   andb (Nat.eqb (length_of lifecycle_edges) 5) (Nat.eqb (length_of lock_edges) 2) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example no_edge_leaves_rma_and_none_joins_development_to_production :
   all_of (fun t => match t with
@@ -490,7 +497,7 @@ Example no_edge_leaves_rma_and_none_joins_development_to_production :
                    | LifecycleEdge Production Development => false
                    | _ => true
                    end) all_transitions = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    R-15-241d's seeding discipline as a record, and the premise every
@@ -845,20 +852,20 @@ Definition with_no_interval : SeedingDiscipline :=
 
 Example the_discipline_silent_on_the_lock_edge_is_refused :
   disciplined_b silent_on_the_lock_edge = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_discipline_silent_on_the_lock_edge_reseeds_on_every_other_edge :
   all_of (fun t => orb (transition_eqb t the_lock_edge) (reseed_on silent_on_the_lock_edge t))
          all_transitions = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_discipline_seeded_below_its_strength_is_refused :
   disciplined_b seeded_below_its_strength = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_discipline_with_no_interval_is_refused :
   disciplined_b with_no_interval = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* A fourth, whose nonce is one bit shorter than the witness's, which is the
    only clause of s8.6.7 the three above leave undecided. *)
@@ -873,7 +880,7 @@ Definition nonced_below_half_its_strength : SeedingDiscipline :=
 
 Example the_discipline_nonced_below_half_its_strength_is_refused :
   disciplined_b nonced_below_half_its_strength = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Each of the four is refused at a boundary and not somewhere past one: the
    short seed is one bit under the strength, the short nonce one bit under
@@ -883,7 +890,7 @@ Example the_two_short_lengths_are_short_by_one_bit :
              (Nat.leb (security_strength demo) (seed_length demo)))
        (andb (Nat.eqb (S (nonce_length nonced_below_half_its_strength)) (nonce_length demo))
              (Nat.leb (security_strength demo) (2 * nonce_length demo))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* Each of the four is the witness with one field moved and no other, which
    is what "held to its single difference" means here: the flag none of them
@@ -893,7 +900,7 @@ Example the_four_refused_disciplines_move_one_field_each :
                         (Nat.eqb (security_strength d) (security_strength demo)))
          (silent_on_the_lock_edge :: seeded_below_its_strength :: with_no_interval
           :: nonced_below_half_its_strength :: nil) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The bounds are bounds and not thresholds, and the flag beside them is a
    request and not an admission condition. The witness's own figures stay
@@ -912,12 +919,12 @@ Example one_is_the_smallest_bound_and_zero_is_refused_on_either :
   andb (disciplined_b (bounded_at 1 1 false))
   (andb (negb (disciplined_b (bounded_at 0 1 false)))
         (negb (disciplined_b (bounded_at 1 0 false)))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example prediction_resistance_is_requested_and_not_required :
   andb (disciplined_b (bounded_at 1 1 false))
        (disciplined_b (bounded_at 1 1 true)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The three published families, run through the envelope. Each is two
@@ -941,18 +948,32 @@ Definition pr_true_run : option Run :=
   run_from demo_pr pr_true_entropy pr_true_nonce nil
            (pr_true_first_reseed_entropy :: pr_true_second_reseed_entropy :: nil) two_draws.
 
+(* The first family's run, whose draws six examples below read, evaluated
+   once into a literal and equated to its source. The compiling machine keeps
+   a constant's value from one example to the next, and the kernel's recheck
+   does not: each example rewritten through this lemma reads the literal
+   where it would otherwise run the family again. The lemma unfolds its
+   literal before the cast: the recheck compares a computation with an
+   unfolded literal several times faster than with the constant that names
+   it. The other two families' draws are each read by one example, which is
+   no sharing, so they keep no literal. *)
+Definition no_reseed_run_literal : option Run := Eval vm_compute in no_reseed_run.
+
+Lemma no_reseed_run_is_its_literal : no_reseed_run = no_reseed_run_literal.
+Proof. unfold no_reseed_run_literal. vm_reflexivity. Qed.
+
 Example the_three_families_complete_and_use_their_whole_pool :
   andb (andb (completed no_reseed_run) (Nat.eqb (pool_left no_reseed_run) 0))
   (andb (andb (completed pr_false_run) (Nat.eqb (pool_left pr_false_run) 0))
         (andb (completed pr_true_run) (Nat.eqb (pool_left pr_true_run) 0))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
 
 Example the_three_families_are_disciplined_runs :
   andb (disciplined_run_b demo nil two_draws)
   (andb (disciplined_run_b demo (pr_false_reseed_entropy :: nil) (Reseed nil :: two_draws))
         (disciplined_run_b demo_pr
            (pr_true_first_reseed_entropy :: pr_true_second_reseed_entropy :: nil) two_draws)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_second_draw_without_a_reseed :
   bytes_of (output_at no_reseed_run 1) =
@@ -972,7 +993,7 @@ Example the_second_draw_without_a_reseed :
   0x7E :: 0xD6 :: 0xD5 :: 0xC0 :: 0xBB :: 0x8D :: 0x50 :: 0xCF ::
   0x1F :: 0x50 :: 0xD4 :: 0x76 :: 0xAA :: 0x04 :: 0x58 :: 0xBD ::
   0xAB :: 0xA8 :: 0x06 :: 0xF4 :: 0x8B :: 0xE9 :: 0xDC :: 0xB8 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
 
 Example the_second_draw_after_one_reseed :
   bytes_of (output_at pr_false_run 1) =
@@ -992,7 +1013,7 @@ Example the_second_draw_after_one_reseed :
   0xD2 :: 0xF8 :: 0x64 :: 0xA6 :: 0xA3 :: 0x8C :: 0xC5 :: 0xB6 ::
   0x49 :: 0x9D :: 0xC4 :: 0x3F :: 0x7F :: 0x2B :: 0xD0 :: 0x9E ::
   0x1E :: 0x0F :: 0x8F :: 0x58 :: 0x85 :: 0x93 :: 0x51 :: 0x24 :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_second_draw_under_prediction_resistance :
   bytes_of (output_at pr_true_run 1) =
@@ -1012,11 +1033,11 @@ Example the_second_draw_under_prediction_resistance :
   0xA8 :: 0x9C :: 0x74 :: 0x22 :: 0xD4 :: 0x37 :: 0x2D :: 0x6D ::
   0x75 :: 0x4A :: 0xBA :: 0xBB :: 0x4B :: 0xF8 :: 0x96 :: 0xFC ::
   0xB1 :: 0xCD :: 0x09 :: 0xD6 :: 0x92 :: 0xD0 :: 0x28 :: 0x3F :: nil.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_two_draws_of_a_run_differ :
   bits_eqb (output_at no_reseed_run 0) (output_at no_reseed_run 1) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
 
 (* The algorithm alone, without the envelope, reaches the same first family:
    two calls of generate under the corpus's interval and none refused. *)
@@ -1029,7 +1050,7 @@ Example the_algorithm_alone_reaches_the_first_family :
                | Some r2 => bits_eqb (fst r2) (output_at no_reseed_run 1)
                end
   end = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    Backtracking resistance across a draw, as a computed property: no block
@@ -1051,22 +1072,22 @@ Example the_state_that_leaves_a_draw_carries_no_block_of_its_output :
   all_of (fun b => andb (negb (bits_eqb b (value (snd first_draw))))
                         (negb (bits_eqb b (key (snd first_draw)))))
          (blocks_of_output (fst first_draw)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_draw_that_updates_first_leaves_its_last_block_as_its_value :
   bits_eqb (last_of (blocks_of_output (fst first_draw_updating_first)) nil)
            (value (snd first_draw_updating_first)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_draw_that_updates_first_keeps_the_length_and_the_counter :
   andb (Nat.eqb (length_of (fst first_draw_updating_first)) corpus_draw_bits)
        (Nat.eqb (reseed_counter (snd first_draw_updating_first))
                 (reseed_counter (snd first_draw))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_draw_that_updates_first_misses_the_published_answer :
   bits_eqb (fst first_draw_updating_first) (output_at no_reseed_run 0) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    Prediction resistance across a reseed, as a computed property: two
@@ -1082,7 +1103,7 @@ Example two_fresh_strings_leave_two_states :
        (negb (bits_eqb (value (reseed instantiated_for_pr pr_true_first_reseed_entropy nil))
                        (value (reseed instantiated_for_pr pr_true_second_reseed_entropy nil))))
   = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_reseed_that_ignores_its_entropy_leaves_one_state :
   andb (bits_eqb (key (reseed_ignoring_its_entropy instantiated_for_pr pr_true_first_reseed_entropy nil))
@@ -1090,17 +1111,17 @@ Example the_reseed_that_ignores_its_entropy_leaves_one_state :
        (Nat.eqb (reseed_counter (reseed_ignoring_its_entropy instantiated_for_pr
                                                              pr_true_first_reseed_entropy nil)) 1)
   = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_pool_that_reuses_a_string_is_not_fresh :
   andb (negb (fresh_pool (pr_true_first_reseed_entropy :: pr_true_first_reseed_entropy :: nil)))
        (fresh_pool (pr_true_first_reseed_entropy :: pr_true_second_reseed_entropy :: nil)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_run_over_a_reused_pool_is_refused_by_the_discipline :
   disciplined_run_b demo_pr (pr_true_first_reseed_entropy :: pr_true_first_reseed_entropy :: nil)
                     two_draws = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The discipline's clauses as things the machine does, at the witness.
@@ -1113,29 +1134,29 @@ Definition witness_run : Run :=
 
 Example a_draw_past_the_bound_is_refused_at_the_witness :
   completed (step demo witness_run (Draw (S (draw_bound demo)) nil)) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_run_with_a_draw_past_the_bound_is_not_disciplined :
   disciplined_run_b demo nil (Draw (S (draw_bound demo)) nil :: nil) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_lock_edge_takes_a_string_from_the_pool :
   andb (Nat.eqb (pool_left (step demo witness_run (Cross the_lock_edge))) 0)
        (Nat.eqb (reseed_counter (state_of (step demo witness_run (Cross the_lock_edge)))) 1) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example every_transition_takes_a_string_from_the_pool_at_the_witness :
   all_of (fun t => Nat.eqb (pool_left (step demo witness_run (Cross t))) 0) all_transitions = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_discipline_silent_on_the_lock_edge_takes_nothing_there :
   Nat.eqb (pool_left (step silent_on_the_lock_edge witness_run (Cross the_lock_edge))) 1 = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example a_lock_transition_from_an_empty_pool_halts :
   completed (step demo {| state := state witness_run; pool := nil; outputs := nil |}
                   (Cross the_lock_edge)) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The instantiation refuses an entropy input and a nonce of the wrong
    length separately, so neither length is carried by the other. *)
@@ -1145,7 +1166,7 @@ Example an_instantiation_refuses_each_wrong_length_on_its_own :
                                         no_reseed_nonce nil nil nil))))
        (negb (completed (run_from demo no_reseed_entropy
                                   (take_of 8 no_reseed_nonce) nil nil nil))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 
 (* The interval at the witness, and the one thing about it a reader gets
@@ -1163,11 +1184,11 @@ Example the_third_draw_reseeds_from_the_pool_and_the_fifth_halts :
              (Nat.eqb (pool_left (run demo three_draws witness_run)) 0))
   (andb (completed (run demo four_draws witness_run))
         (negb (completed (run demo five_draws witness_run)))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_third_draw_leaves_a_counter_of_two :
   Nat.eqb (reseed_counter (state_of (run demo three_draws witness_run))) 2 = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* A counter that starts at zero admits one draw more than the interval
    before the machine reseeds: from an empty pool the standard's third draw
@@ -1182,12 +1203,12 @@ Definition witness_run_counting_from_zero : Run :=
 Example the_counter_at_zero_admits_a_third_draw_the_standard_halts :
   andb (negb (completed (run demo three_draws witness_run_without_a_pool)))
        (completed (run demo three_draws witness_run_counting_from_zero)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example the_counter_at_zero_agrees_with_the_standard_on_the_outputs_it_shares :
   bits_eqb (output_at (run demo two_draws witness_run_counting_from_zero) 1)
            (output_at no_reseed_run 1) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
 
 (* A halted run reports nothing rather than the last thing it held, which is
    R-15-241b's fail-stop read at the reader: no pool, no counter, no output,
@@ -1199,7 +1220,7 @@ Example a_halted_run_reports_nothing :
                                                      witness_run_without_a_pool))) 0)
              (Nat.eqb (length_of (outputs_of (run demo three_draws
                                                   witness_run_without_a_pool))) 0)) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The inverted update misses the published answer at the empty
    personalization string every family here uses, which is the branch it
@@ -1207,7 +1228,7 @@ Proof. vm_compute. reflexivity. Qed.
 Example the_inverted_update_misses_the_published_answer :
   let s0 := instantiate_with_the_inverted_update no_reseed_entropy no_reseed_nonce nil in
   bits_eqb (fst (generate_core s0 corpus_draw_bits nil)) (output_at no_reseed_run 0) = false.
-Proof. vm_compute. reflexivity. Qed.
+Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
 
 (* Both alternative instantiations start their counter where the standard's
    does, except the one whose whole point is that it does not, so the update
@@ -1219,7 +1240,7 @@ Example the_alternative_instantiations_move_one_thing_each :
        (Nat.eqb (S (reseed_counter (instantiate_with_the_counter_at_zero
                                       no_reseed_entropy no_reseed_nonce nil)))
                 (reseed_counter (instantiate no_reseed_entropy no_reseed_nonce nil))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* And it is held to that single difference on both branches, in opposite
    directions: where provided_data is not empty the standard's result is the
@@ -1237,7 +1258,7 @@ Example the_inverted_update_is_one_pass_from_the_standard_on_each_branch :
              (bits_eqb (snd std) (hmac_sha256 (fst std) (snd inv))))
        (andb (bits_eqb (fst inv0) (hmac_sha256 (fst std0) (snd std0 ++ separator_one ++ nil)))
              (bits_eqb (snd inv0) (hmac_sha256 (fst inv0) (snd std0)))) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    R-05-166's inhabitation witnesses: one closed definition per record this

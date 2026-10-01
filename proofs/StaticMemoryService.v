@@ -130,6 +130,13 @@
 From Stdlib Require Import List Lia PeanoNat.
 Import ListNotations.
 
+(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
+   the goal in the tactic and again where the kernel checks its cast at Qed;
+   this casts eq_refl to the goal unevaluated, so only the check at Qed
+   evaluates it. *)
+Local Ltac vm_reflexivity :=
+  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
+
 (* -------------------------------------------------------------------------
    Bytes and the two spellings of the map. The reference multiplies and
    reduces mod 256; the emitted instruction shifts, adds and masks with
@@ -142,7 +149,7 @@ Definition is_byte (b : nat) : Prop := b < 256.
 Definition byte_mask : nat := 255.
 
 Lemma byte_mask_is_ones : byte_mask = Nat.ones 8.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Lemma land_mask_mod : forall a, Nat.land a byte_mask = a mod 256.
 Proof. intro a. rewrite byte_mask_is_ones, Nat.land_ones. reflexivity. Qed.
@@ -161,7 +168,7 @@ Qed.
 (* The same fact re-decided by computation over the byte domain alone. *)
 Example emitted_map_checked_over_every_byte :
   forallb (fun b => emitted_map b =? map_byte b) (seq 0 256) = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
    The checksum. `step` is the `sum` instruction's `(control + value) & 255`;
@@ -623,7 +630,7 @@ Definition witness_InPlaceState : InPlaceState := entry demo_frame.
 
 (*| discharges: R-05-165, R-05-166 |*)
 Example demo_reference : reference demo_frame = demo_output.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-05-165, R-05-166 |*)
 Example demo_variants_agree :
@@ -638,7 +645,7 @@ Proof. vm_compute. repeat split. Qed.
 
 Example generator_chunks_of_the_demo :
   generator_chunks 3 (length demo_frame) = [(0, 3); (3, 1)].
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The XOR pass replaced by a copy of the mapped value: the reference's
    length, different values. *)
@@ -650,7 +657,7 @@ Proof. vm_compute. intro H. discriminate H. Qed.
 
 Example copy_variant_same_length :
   length (copy_instead_of_xor demo_frame) = length (reference demo_frame).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 (* The last two indices dropped. The output is short, and the prefix it
    shares with the reference already differs, because the dropped values
@@ -677,7 +684,7 @@ Proof. vm_compute. intro H. discriminate H. Qed.
 
 Example duplicate_chunk_same_length :
   length (chunked duplicate_chunk demo_frame) = length (reference demo_frame).
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_reflexivity. Qed.
 
 Example missing_chunk_is_no_partition : ~ partitions missing_chunk (length demo_frame).
 Proof. cbn. intros [_ H]. discriminate H. Qed.
