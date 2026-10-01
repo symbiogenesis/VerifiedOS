@@ -2005,6 +2005,14 @@ CASES: list[Case] = [
      _literal(RULES, "and there are four answers.",
               "and there are four answers, _which is what K-26 are_.")),
 
+    # A membership sentence ahead of the first class again, its first id struck through,
+    # the registry's own markup for an id. A finder crossing only whitespace, emphasis, a
+    # backtick or a bracket on the way to the id passes it over, so the section reads as
+    # agreeing with the registry while it names a list no class reads.
+    ("K-119", "a membership sentence whose first id is struck through",
+     _literal(RULES, "and there are four answers.",
+              "and there are four answers, which is what ~~K-26~~ are.")),
+
     # The same inside the pattern class's region, its list in a code span. The class
     # still reads its own sentence, so a reading that takes the strict form alone finds
     # exactly one there and passes this second list over.

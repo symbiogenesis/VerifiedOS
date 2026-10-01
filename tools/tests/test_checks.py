@@ -545,11 +545,12 @@ def _k119(name: str = _K119_NAME, computed: str = _K119_COMPUTED,
 
 def _k119_each_rule_in_one_class_passes() -> None:
     # an italic word between the lead and the bold name is crossed rather than read as
-    # the end of the lead's reach, and a `which is what` naming no rule is prose rather
-    # than a membership sentence
+    # the end of the lead's reach, and a `which is what` naming no rule before a word or
+    # a full stop is prose rather than a membership sentence
     for name in (_K119_NAME, _K119_NAME.replace("by **name**", "by *exact* **name**"),
                  _K119_NAME.replace("it resolves,", "it resolves, which is what separates "
-                                                    "it from a pattern,")):
+                                                    "it from a pattern,"),
+                 _K119_NAME.replace("it resolves,", "it says which is what. K-02 resolves,")):
         found, out = _k119(name=name)
         ensure(not found, f"every active rule named once is clean: {found!r}")
         ensure("ok K-119: each of the registry's 7 rules is named under exactly one of the "
@@ -659,9 +660,10 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
 
 
 _K119_LEAD_FINDING = "states 'Where the set is' in a form that opens no reach class"
-_K119_LEAD_FORM = (_K119_LEAD_FINDING + " this rule reads: the four words single-spaced on "
-                   "one line, with no underscore before the first and a space after the "
-                   "last, then the class in bold before a full stop or the line's end")
+_K119_LEAD_FORM = (_K119_LEAD_FINDING + " this rule reads: the four words single-spaced with "
+                   "plain spaces on one line, with no underscore before the first and a "
+                   "plain space after the last, then the class in `**` bold before a full "
+                   "stop or the line's end")
 
 
 def _k119_every_class_lead_is_read() -> None:
@@ -708,6 +710,12 @@ def _k119_every_class_lead_is_read() -> None:
              _K119_LEAD_FORM),
             ({"computed": _K119_COMPUTED
               + " Where the set is: found by **name**, nothing narrows."},
+             _K119_LEAD_FORM),
+            # the space after `is` is a plain one, so a no-break space there opens nothing,
+            # and the class is named in `**` bold, so underscore bold opens nothing either
+            ({"total": _K119_TOTAL.replace("is **total**", "is\u00a0**total**")},
+             _K119_LEAD_FORM),
+            ({"total": _K119_TOTAL.replace("**total**", "__total__")},
              _K119_LEAD_FORM)):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
@@ -715,17 +723,23 @@ def _k119_every_class_lead_is_read() -> None:
                "fail-closed: no ok line stands beside an unread lead")
 
 
-_K119_MEMBERS_FINDING = ("states a membership sentence in a form this rule does not read: "
-                         "'which is what' or 'that is what', either capitalized, "
-                         "single-spaced on one line apart from any underscore, a plain list "
-                         "of ids, then 'are'")
+_K119_MEMBERS_FINDING = ("states 'which is what' or 'that is what' before a rule id, which "
+                         "this rule reads as a membership sentence and cannot take: either "
+                         "rewrite it as one ('which is what' or 'that is what', with only "
+                         "the first letter of the first word in either case, single-spaced "
+                         "with plain spaces on one line apart from any underscore, a plain "
+                         "list of ids, then 'are') or reword the prose so no id follows "
+                         "'is what'")
 
 
 def _k119_every_membership_sentence_is_read() -> None:
     # A membership sentence in a form the reading does not take would leave the rules it
     # names unread while its class reads as complete, so each is reported wherever it
-    # stands: inside a class's region, past the last class, or ahead of the first.
+    # stands: inside a class's region, past the last class, or ahead of the first. Prose
+    # naming a rule past `is what` cannot be told from one, so it is reported in the
+    # same words, which offer both repairs.
     for kwargs in (
+            {"computed": _K119_COMPUTED + " That is what K-05 holds."},
             {"computed": _K119_COMPUTED + " The rest, _which is what K-05 are_, recompute."},
             {"computed": _K119_COMPUTED + " The rest, which is\nwhat K-05 are, recompute."},
             {"computed": _K119_COMPUTED + " The rest, which is what K-05\nare, recompute."},
@@ -736,6 +750,8 @@ def _k119_every_membership_sentence_is_read() -> None:
             {"total": _K119_TOTAL + " The rest, which is what **K-07** are, narrow nothing."},
             {"total": _K119_TOTAL + " The rest, which is what [K-07](#k-07) are, narrow "
                                     "nothing."},
+            {"total": _K119_TOTAL + " The rest, which is what ~~K-07~~ are, narrow nothing."},
+            {"total": _K119_TOTAL + " The rest, which is what (K-07) are, narrow nothing."},
             {"total": _K119_TOTAL + " WHICH IS WHAT K-07 ARE."},
             {"heading": meta.REACH_HEADING
              + "\n\nThe marker rules come first, _that is what K-05 are_."}):
