@@ -16,9 +16,12 @@
 # project, not for a local preference; a single site that has to differ says so with
 # a `# noqa: RULE` and a comment, which is auditable in a way a switched-off group
 # is not. For the same reason `vos/cli/typecheck.py` refuses a `per-file-ignores`,
-# `extend-per-file-ignores` or `extend` key in this file, and a file-level
-# `# ruff: noqa` or `# flake8: noqa` comment unless it names N999 alone, which ruff
-# reports against the file's name rather than a line of it.
+# `extend-per-file-ignores` or `extend` key in this file, and any key outside its
+# `RUFF_KEYS`, the keys this file carries, so a key added here is read there first; a
+# file-level `# ruff: noqa` or `# flake8: noqa` comment unless it names N999 alone,
+# which ruff reports against the file's name rather than a line of it; and a
+# `# ruff: file-ignore[...]` comment, a `# ruff: disable[...]` or `# ruff: enable[...]`
+# range comment, or isort's `skip_file`, `off` or `on` action comment.
 
 target-version = "py314"
 line-length = 100          # E501 is not selected; this only sizes the few rules that read it
@@ -101,7 +104,12 @@ mypy-init-return = false
 # typeshed stubs it for both: neither ty run sees an import of one fail, and it fails at
 # run time on the platform that lacks it. A banned name covers its submodules. A module
 # ty resolves under neither platform, such as `_overlapped` or `_posixshmem`, is ty's own
-# `unresolved-import` finding and is not listed. TID253 refuses an unnested module-level
+# `unresolved-import` finding and is not listed, and a module a build leaves out for want
+# of an optional library, which configure records as missing or disabled, is the build's
+# rather than the platform's and is not listed either. `tests/test_typecheck.py` holds
+# the list on each lane against every standard-library module and submodule the running
+# interpreter cannot import, under the gate's own ty runs, so the Windows lane holds the
+# half Windows lacks and the Linux lane the other. TID253 refuses an unnested module-level
 # import of a listed module, and `vos/cli/typecheck.py` reads this list and refuses one
 # anywhere else outside a function body unless an enclosing `if` reads `sys.platform`.
 banned-module-level-imports = [

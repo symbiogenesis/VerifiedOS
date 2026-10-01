@@ -75,12 +75,19 @@ its verbosity flag, so each ty run is made without that variable, and without
 checks or reports.
 
 ruff's log names a file whose rules are switched off as checked, so the floor cannot
-see a suppression reaching a whole file, and the gate refuses each as a ruff finding: a
+see a suppression, and the gate refuses each reaching past a line as a ruff finding: a
 `per-file-ignores` or `extend-per-file-ignores` key in `ruff.toml`, in `[lint]` or at
-the top level; an `extend` key, which merges another file's settings beneath it; and a
-comment anywhere in a tracked module carrying ruff's file-level suppression,
-`# ruff: noqa` or `# flake8: noqa`, unless it names N999 and no other rule, since ruff
-reports N999 against the file's name rather than a line of it.
+the top level; an `extend` key, which merges another file's settings beneath it; any
+other key outside the ones the gate has read, which are the ones `ruff.toml` carries,
+since a top-level `per-file-target-version` also switches rules off for the files a
+pattern matches and a key the gate has not read may do as much; a comment anywhere in
+a tracked module carrying ruff's file-level suppression, `# ruff: noqa` or
+`# flake8: noqa`, unless it names N999 and no other rule, since ruff reports N999
+against the file's name rather than a line of it; and one carrying
+`# ruff: file-ignore[...]`, a `# ruff: disable[...]` or `# ruff: enable[...]` range
+comment, whose `disable` with no matching `enable` runs to the end of its block, or
+isort's `skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` reaches one
+logical line, as `# noqa` does, and is not refused.
 
 `ruff.toml` lists the modules the interpreter lacks on one platform that ty resolves on
 both, and ruff's TID253 refuses an import of one only where it is unnested at module
@@ -103,8 +110,9 @@ import sys
 import sysconfig
 import tokenize
 import tomllib
+import unicodedata
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import NamedTuple
@@ -200,6 +208,21 @@ BANNED = ("lint", "flake8-tidy-imports", "banned-module-level-imports")
 # whose rules are off as checked, so the coverage floor cannot see what they take away.
 RUFF_PER_FILE = ("per-file-ignores", "extend-per-file-ignores")
 
+# The `ruff.toml` keys the gate has read, as dotted paths: the ones the committed file
+# carries and the tables holding them. Any other key is refused, as a key ty.toml's held
+# tables carry beyond the ones the gate admits is: a top-level `per-file-target-version`
+# switches the rules gated on a newer version off for the files a pattern matches, which
+# ruff's log still names as checked, and a key the gate has not read may do as much.
+RUFF_KEYS = frozenset({
+    "target-version", "line-length", "respect-gitignore", "lint",
+    "lint.select", "lint.ignore", "lint.allowed-confusables",
+    "lint.flake8-annotations", "lint.flake8-annotations.suppress-none-returning",
+    "lint.flake8-annotations.suppress-dummy-args",
+    "lint.flake8-annotations.allow-star-arg-any",
+    "lint.flake8-annotations.mypy-init-return",
+    "lint.flake8-tidy-imports", "lint.flake8-tidy-imports.banned-module-level-imports",
+})
+
 # A comment ruff reads as a file-level suppression, matched as ruff's lexer matches it:
 # `ruff` or `flake8`, a colon and `noqa` in any case, after any `#` in the comment. It
 # switches off the rules it names, or every rule, for the whole file.
@@ -208,6 +231,17 @@ FILE_NOQA = re.compile(r"#\s*(?:ruff|flake8)\s*:\s*(?i:noqa)")
 # rather than any line of it, so exempting a file from it leaves every line of the file
 # under every rule.
 FILE_SCOPED = frozenset({"N999"})
+# A comment carrying one of ruff's other suppressions that reach past their own line,
+# matched in ruff's case and more loosely than ruff parses it, after any `#` in the
+# comment: `ruff: file-ignore[...]`, which switches the rules it names off for the whole
+# file; `ruff: disable[...]` and `ruff: enable[...]`, whose range runs from the one to
+# the other or, with no matching `enable`, to the end of the block the `disable` sits in,
+# the whole file at module level; and isort's `skip_file`, `off` and `on`, alone or after
+# `ruff:`, which switch import sorting off for the whole file or from `off` to `on` or
+# the file's end. `ruff: ignore[...]`, which reaches one logical line, and isort's
+# `skip`, which reaches one line, suppress no more than `# noqa` does and are not matched.
+FILE_RANGE = re.compile(r"#\s*(?:ruff\s*:\s*(?:disable|enable|file-ignore)\b"
+                        r"|(?:ruff\s*:\s*)?isort\s*:\s*(?:skip_file|off|on)\b)")
 
 
 def _tool(name: str) -> str | None:
@@ -632,38 +666,60 @@ def _run_ty(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
 
 
 def _ruff_settings(config: Path) -> list[str]:
-    """The `ruff.toml` settings the gate refuses, as findings: a `RUFF_PER_FILE` key in
-    `[lint]` or at the top level, and an `extend` key, which merges the settings of a
-    file the gate does not read beneath this one's. Each is refused whatever it says, an
-    empty table included, as ty.toml's `[src]` is held by shape.
+    """The `ruff.toml` settings the gate refuses, as findings, one per key in the file's
+    order: a `RUFF_PER_FILE` key in `[lint]` or at the top level; an `extend` key, which
+    merges the settings of a file the gate does not read beneath this one's; and any
+    other key outside `RUFF_KEYS`, at any depth of the tables `RUFF_KEYS` admits. Each is
+    refused whatever it says, an empty table included, as ty.toml's `[src]` is held by
+    shape, and a table outside `RUFF_KEYS` is one finding, not one per key in it.
 
-    Fail-closed: a file that cannot be read or parsed is a finding. A `lint` value that
-    is not a table is ruff's to refuse, which it does as an invalid configuration before
-    it checks anything, and the gate's run reports as a checker error."""
+    Fail-closed: a file that cannot be read or parsed is a finding, and a key the gate has
+    not read is refused, never assumed harmless. A value whose shape ruff does not accept
+    for its key, such as a `lint` that is not a table, is ruff's to refuse, which it does
+    as an invalid configuration before it checks anything, and the gate's run reports as
+    a checker error."""
     name = f"tools/{config.name}"
     try:
         settings = tomllib.loads(config.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as err:
         return [f"{name} cannot be read: {err}"]
-    lint = settings.get("lint")
-    tables = [("", settings), *([("lint.", lint)] if isinstance(lint, dict) else [])]
-    findings = [f"{name} sets {prefix}{key} to {table[key]!r}; a rule switched off for the "
-                "files a pattern matches is refused, since ruff's log names a file whose "
-                "rules are off as checked"
-                for prefix, table in tables for key in RUFF_PER_FILE if key in table]
-    if "extend" in settings:
-        findings.append(f"{name} sets extend to {settings['extend']!r}; the gate reads only "
-                        "this file, and extend merges another file's settings beneath it")
+    per_file = {f"{prefix}{key}" for prefix in ("", "lint.") for key in RUFF_PER_FILE}
+    findings: list[str] = []
+    for path, value in _ruff_keys(settings, ""):
+        if path in per_file:
+            findings.append(f"{name} sets {path} to {value!r}; a rule switched off for the "
+                            "files a pattern matches is refused, since ruff's log names a "
+                            "file whose rules are off as checked")
+        elif path == "extend":
+            findings.append(f"{name} sets extend to {value!r}; the gate reads only this "
+                            "file, and extend merges another file's settings beneath it")
+        elif path not in RUFF_KEYS:
+            findings.append(f"{name} sets {path} to {value!r}, a key the gate has not read; "
+                            "it admits only the keys in RUFF_KEYS, since a key such as "
+                            "per-file-target-version switches rules off for files ruff's "
+                            "log still names as checked")
     return findings
 
 
+def _ruff_keys(table: dict[str, object], prefix: str) -> Iterator[tuple[str, object]]:
+    """Each key in `table`, as a dotted path under `prefix` with its value, in the file's
+    order, each key of a table `RUFF_KEYS` admits followed by the keys beneath it."""
+    for key, value in table.items():
+        path = prefix + key
+        yield path, value
+        if path in RUFF_KEYS and isinstance(value, dict):
+            yield from _ruff_keys(value, path + ".")
+
+
 def _file_suppressions(tools: Path, tracked: frozenset[str]) -> list[str]:
-    """Each comment in a tracked module that ruff would read as a file-level suppression
-    naming a rule outside `FILE_SCOPED`, or naming none, which suppresses every rule.
+    """Each comment in a tracked module carrying a suppression that reaches past its own
+    line: a file-level `noqa` naming a rule outside `FILE_SCOPED`, or naming none, which
+    suppresses every rule, and any comment `FILE_RANGE` matches.
 
     Comments are read with the tokenizer, so a string that spells a directive is not
-    one, and only a module whose text matches `FILE_NOQA` is tokenized. A directive
-    ruff would ignore for trailing code on its line is refused all the same.
+    one, and only a module whose text matches `FILE_NOQA` or `FILE_RANGE` is tokenized.
+    A directive ruff would ignore, for trailing code or another comment before it on its
+    line or for sitting in a class or function body, is refused all the same.
     Fail-closed: a module that cannot be read or tokenized is a finding."""
     findings: list[str] = []
     for module in sorted(tracked):
@@ -672,7 +728,7 @@ def _file_suppressions(tools: Path, tracked: frozenset[str]) -> list[str]:
         except (OSError, UnicodeDecodeError) as err:
             findings.append(f"{module} cannot be read: {err}")
             continue
-        if not FILE_NOQA.search(text):
+        if not (FILE_NOQA.search(text) or FILE_RANGE.search(text)):
             continue
         try:
             comments = [(token.start[0], token.string)
@@ -682,7 +738,8 @@ def _file_suppressions(tools: Path, tracked: frozenset[str]) -> list[str]:
             findings.append(f"{module} cannot be tokenized: {err}")
             continue
         findings.extend(f"{module}:{line} {comment}" for line, comment in comments
-                        if any(not _names_file_scoped(comment[found.end():])
+                        if FILE_RANGE.search(comment)
+                        or any(not _names_file_scoped(comment[found.end():])
                                for found in FILE_NOQA.finditer(comment)))
     return findings
 
@@ -710,17 +767,18 @@ def _run_ruff(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None
     from the lint but not from what `--show-files` lists.
 
     The log still names a file whose rules are switched off, so the suppressions that
-    switch rules off for a whole file are held first: the `ruff.toml` keys
-    `_ruff_settings` refuses, and the file-level directives `_file_suppressions` finds
-    in the tracked modules. The checker runs regardless, and a clean run beside a
-    refused suppression claims no more than the run showed."""
+    switch rules off past a line are held first: the `ruff.toml` keys `_ruff_settings`
+    refuses, and the file-level and range directives `_file_suppressions` finds in the
+    tracked modules. The checker runs regardless, and a clean run beside a refused
+    suppression claims no more than the run showed."""
     tools = root / "tools"
     held = ""
     if refused := _ruff_settings(tools / "ruff.toml"):
         rep.report("ruff", "ruff.toml setting(s) the gate refuses:", refused)
         held = " under the suppressions refused above"
     if tracked is not None and (suppressed := _file_suppressions(tools, tracked)):
-        rep.report("ruff", "file-level suppression(s) the gate refuses:", suppressed)
+        rep.report("ruff", "file-level or range suppression(s) the gate refuses:",
+                   suppressed)
         held = " under the suppressions refused above"
     coverage = None if tracked is None else Coverage(RUFF_LOG, RUFF_CHECKED, tracked)
     verbose = [] if coverage is None else RUFF_VERBOSE
@@ -777,7 +835,9 @@ def _banned_names(node: ast.Import | ast.ImportFrom, banned: frozenset[str]) -> 
 
 
 def _reads_platform(test: ast.expr) -> bool:
-    """Whether an `if` condition reads `sys.platform`."""
+    """Whether an `if` condition reads `sys.platform`, spelled as the attribute of the
+    name `sys`. A `platform` read from another object, or imported from `sys` and read
+    bare, is not that check."""
     return any(isinstance(node, ast.Attribute) and node.attr == "platform"
                and isinstance(node.value, ast.Name) and node.value.id == "sys"
                for node in ast.walk(test))
@@ -812,9 +872,10 @@ def _run_imports(rep: Reporter, root: Path, tracked: frozenset[str]) -> None:
 
     TID253 refuses such an import only where it is unnested at module level, and with
     the module banned PLC0415 no longer reports it in a class body; neither reads a
-    module-level block. A module whose text never spells the last component of a banned
-    name as a word cannot import it, so only the rest are parsed. Fail-closed: a module
-    that cannot be read or parsed is a finding."""
+    module-level block. A module whose NFKC-normalized text never spells the last
+    component of a banned name as a word cannot import it, since Python normalizes each
+    identifier so before it binds or imports it, so only the rest are parsed.
+    Fail-closed: a module that cannot be read or parsed is a finding."""
     tools = root / "tools"
     banned, unread = _banned(tools / "ruff.toml")
     if unread:
@@ -829,7 +890,7 @@ def _run_imports(rep: Reporter, root: Path, tracked: frozenset[str]) -> None:
         except (OSError, UnicodeDecodeError) as err:
             findings.append(f"{module} cannot be read: {err}")
             continue
-        if not spelled.search(text):
+        if not spelled.search(unicodedata.normalize("NFKC", text)):
             continue
         try:
             tree = ast.parse(text, module)
