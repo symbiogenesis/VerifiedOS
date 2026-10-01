@@ -203,6 +203,10 @@ def _a_randomized_mutant_compiles_its_dependents_in_the_closure() -> None:
                                             randomized)
                 ensure(verdict.outcome == SURVIVED,
                        f"{rel}: the stub decides nothing: {verdict}")
+                closed = f"the proofs {gallina.RANDOMIZED}'s Require closure holds"
+                ensure((closed in verdict.detail) == randomized,
+                       f"{rel}: a reason names the closure's proofs exactly where only "
+                       f"they were asked: {verdict.detail}")
                 runs[rel, randomized] = list(compiled)
     want = {("proofs/A.v", True): ["A", "B", "Probe", "Properties"],
             ("proofs/C.v", True): ["C", "Side", "Properties"],

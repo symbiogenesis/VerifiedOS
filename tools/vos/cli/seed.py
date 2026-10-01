@@ -36,7 +36,10 @@ item. A mutation the prover refuses is killed by the artifact's own statements, 
 is a good answer and the one a reader expects. A mutation the prover accepts is a
 weakening the theorems do not constrain, and it is handed straight to the generated
 Gallina vectors; what those kill is exactly the dividend, and what survives both is
-where neither the proofs nor the generated inputs decide anything.
+where neither the proofs nor the generated inputs decide anything. Under `--quickchick`
+the prover reads `Properties.v`'s `Require` closure alone, so there "the proofs" are that
+closure's and a survivor is a site neither they nor QuickChick's draws constrain; a
+proof outside the closure that would refuse the mutant is the enumerative mode's to ask.
 
 **Which finding this answers.** M0.8d's: the property that named the *pi* defect was
 written before the vectors and never ran, the harness running alphabetically so the
@@ -324,16 +327,18 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
         return Verdict(mutant, STILLBORN,
                        "the harness would not build over the mutant")
     if quickchick:
+        # Only the closure's proofs were asked, so the reason names them and no more.
+        accepted = f"the proofs {gallina.RANDOMIZED}'s Require closure holds accepted it"
         passed, failed, why = gallina.properties(found, work, harness)
         if failed:
             return Verdict(mutant, KILLED,
-                           f"the proofs accepted it and QuickChick refuted {failed} of "
+                           f"{accepted} and QuickChick refuted {failed} of "
                            f"{failed + passed} property set(s): {why}", failed)
         if not passed:
             return Verdict(mutant, STILLBORN,
                            "the harness did not run over the mutant")
         return Verdict(mutant, SURVIVED,
-                       f"the proofs accepted it and {passed} property set(s) held")
+                       f"{accepted} and {passed} property set(s) held")
     lines, said = gallina.vectors(found, work, harness)
     if said:
         return Verdict(mutant, STILLBORN, "the harness did not run over the mutant")
@@ -488,7 +493,9 @@ def cmd_coq(args: argparse.Namespace) -> int:
     Under QuickChick the run compiles `Properties.v`'s `Require` closure and nothing
     else, for its baseline and for each mutant's dependents, and refuses a subject that
     is not a proof source of that closure, whose mutation no property reads. The
-    enumerative mode compiles every proof source and mutates any of them.
+    enumerative mode compiles every proof source and mutates any of them. A mutant only
+    a proof outside that closure refuses is not killed by the prover in this mode; the
+    enumerative mode, which compiles every proof that Requires the subject, decides it.
     """
     e = lane_env()
     root = find_root()
