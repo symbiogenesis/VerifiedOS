@@ -896,8 +896,9 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
         sub.add_argument("--recipe", action="store_true",
                          help="with --quickchick, run in the switch tools/vos/cli/"
                               "quickchick.py's RECIPE builds from its commit pins, "
-                              "holding the pinned commit, rather than in the "
-                              "provisioned QuickChick switch")
+                              "the provisioned QuickChick switch while its lock is "
+                              "RECIPE's export, and point a refusal at `quickchick "
+                              "check --recipe`")
         sub.add_argument("--jobs", type=int, default=1, metavar="N",
                          help="stage N trees and run the population across them at "
                               "once. Every mutant is one prover run and the trees "

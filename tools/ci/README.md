@@ -357,8 +357,8 @@ checks QuickChick's switch on GitHub-hosted runners, and this section owns its c
 QuickChick's switch is built and checked only on this route: no QuickChick switch is
 built or checked in the local guest, and no QuickChick lock is tracked from a guest
 build. The user's ruling of 2026-09-30 keeps `run.py provision --apply`'s QuickChick
-import, which [the lock guide](../opam/README.md) names, out of the local guest, F-616
-holding provision.py's recipe open. No CertiRocq switch is built, checked or dispatched
+import, which [the lock guide](../opam/README.md) names, out of the local guest (F-616).
+No CertiRocq switch is built, checked or dispatched
 on this route, the user's ruling of 2026-09-30 keeping CertiRocq's builds local. No
 switch or download cache is used, so every switch a run reports was built in that run
 from its recipe or lock in a fresh root; the uv cache Guest CI saves is read and never

@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 943 of them across 153 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 944 of them across 153 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1283,7 +1283,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-711** measurement: the drawn-set reader's message shapes, read from QuickChick 2.2.0's plugin source, are held only by tests on synthetic output
 · Raised: Q38f
-· Disposition: standing, Q38f's hosted runs producing passing sets alone, the tests on synthetic output holding each shape
+· Disposition: standing, Q38f's seed jobs having met the refutation shape alone, the tests on synthetic output holding the crash, signal and unfinished shapes
 
 **F-712** measurement: the instrument route's join keys a mutant by its file, line and rewrite, so two sampled mutants on one line with the same rewrite would collapse into one identity and a verdict swapped between them would go unreported
 · Raised: Q38f
@@ -1297,13 +1297,17 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q38f
 · Disposition: standing, S13a's note left as recorded and `a269146c` removing every current-state claim that the harness shrinks
 
-**F-715** owed-act: Q38f's Check required that no tracked file outside the completion log name the retired 9.1.1 QuickChick switch, while the route's landing rule retains report copies that record the switch each run found
+**F-715** method: a Check clause requiring that no tracked file name a retired switch meets the route's landing rule, which retains report copies that record the switch each run found, as Q38f's did
 · Raised: Q38f
-· Disposition: closed at Q38f, the retained copies standing as dated records and every tracked recipe, constant, lock, test fixture and current-state statement naming the 9.3.0 switch
+· Disposition: standing, Q38f's owner reading its clause as excepting retained evidence, which the landing rule requires and the retained-evidence guide forbids rewriting
 
 **F-716** owed-act: Q38f's closing diff may not touch seed.py, a route input, so seed.py's `--recipe` help still describes the recipe's switch as other than the provisioned one
 · Raised: Q38f
-· Disposition: open, the batch after Q38f's closing restating it
+· Disposition: closed at Q38f, `e4a71a14` restating it after the closing landing
+
+**F-717** measurement: Q38f's replayed conditional commits carry the guest-built candidate lock until the closing's lock commit replaces it, so a guest lock sits in the closing merge's second-parent history
+· Raised: Q38f
+· Disposition: standing, no revision on `main`'s first-parent line carrying it and the two locks differing only by `dune.3.23.1` among the roots
 
 **F-601** measurement: CertiRocq's `plugin/static/camlrocq.ml`, the copy `certirocq_plugin.cmxs` packs, offers `GPL-2.0-or-later` or the INRIA Non-Commercial License Agreement, not the `LGPL-2.1-or-later` the first reading gave every printer file
 · Raised: Q38g
@@ -1520,7 +1524,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-616** owed-act: `run.py provision --apply` imports the QuickChick snapshot wherever its switch is missing, the local guest among them, where Q38l's route builds and checks no QuickChick switch, and provision.py lies outside Q38l's Owns
 · Raised: Q38l
-· Disposition: standing, `provision`'s QuickChick recipe importing the hosted lock since Q38f and the guides stating its exclusion from the local guest as the user's ruling
+· Disposition: closed at Q38f, `eaef8c4b` restating `provision`'s QuickChick recipe to the hosted lock, the guides stating its exclusion from the local guest as the user's ruling
 
 **F-617** measurement: K-75 reads a workflow job's interpreter only where the job installs one, so a job that installs none lies outside its sites
 · Raised: Q38l
