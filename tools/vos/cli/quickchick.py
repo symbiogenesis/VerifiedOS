@@ -80,39 +80,50 @@ def installed(switch: str) -> str | None:
     return found or None
 
 
+def _held() -> tuple[str | None, gallina.Prover | None, list[str]]:
+    """What QuickChick's switch holds of the randomized half, and each reason it cannot
+    run it.
+
+    The package and the prover count together or not at all: a switch holding the
+    library and no `rocq` is Coq 8 under another name, which compiles neither the
+    shipped proofs nor a harness that Requires them. QuickChick's switch is the one
+    switch asked: a run that found the package somewhere else would compile in a
+    switch no recipe here stands up."""
+    switch = gallina.QUICKCHICK_SWITCH
+    held = installed(switch)
+    found = gallina.prover(switch)
+    why: list[str] = []
+    if held is None:
+        why.append(f"the {switch} switch carries no {PACKAGE}")
+    elif held != VERSION:
+        why.append(f"requires {PACKAGE} {VERSION}; the {switch} switch holds {held}")
+    if found is None:
+        why.append(f"the {switch} switch has no prover this repository can call: "
+                   "`rocq c` is Rocq 9's spelling and Coq 8 ships `coqc` alone")
+    return held, found, why
+
+
 def cmd_check(args: argparse.Namespace) -> int:
     """Whether the randomized half can run, and what it costs to make it able to.
 
-    Reports the package and prover in each reachable switch, so a run's evidence
-    carries the versions it was taken under. Installation is the provisioner's
-    separate command.
+    Reports the package and prover in QuickChick's switch, so a run's evidence carries
+    the versions it was taken under. Installation is the provisioner's separate command.
     """
     del args
-    out: list[str] = ["== the Gallina front's switches"]
-    where: list[str] = []
-    for switch in (gallina.ORACLE_SWITCH, gallina.QUICKCHICK_SWITCH):
-        version = installed(switch)
-        found = gallina.prover(switch)
-        said = gallina.version(found) if found else "no `rocq` binary"
-        out.append(f"   {switch:<18} {PACKAGE} {version or 'not installed':<15} {said}")
-        # Both halves in one switch or neither counts: a switch holding the library and
-        # no `rocq` is Coq 8 under another name, which compiles neither the shipped
-        # proofs nor a harness that Requires them.
-        if version == VERSION and found:
-            where.append(f"{switch} at {version} under {said}")
-        elif version and version != VERSION:
-            out.append(f"     requires {PACKAGE} {VERSION}; installed {version}")
-        elif version:
-            out.append("     and no prover this repository can call: `rocq c` is Rocq "
-                       "9's spelling and Coq 8 ships `coqc` alone")
+    switch = gallina.QUICKCHICK_SWITCH
+    held, found, why = _held()
+    said = gallina.version(found) if found else "no `rocq` binary"
+    out: list[str] = ["== the randomized half's switch",
+                      f"   {switch}  {PACKAGE} {held or 'not installed'}  {said}"]
+    out.extend(f"     {line}" for line in why)
     out.append("")
-    if where:
-        out.append(f"ok {PACKAGE} is installed: {', '.join(where)}; "
+    if not why:
+        out.append(f"ok {PACKAGE} {VERSION} is installed in {switch} under {said}; "
                    "`run.py quickchick properties` runs the randomized half")
         print("\n".join(out))
         return 0
-    out.append(f"FAIL {PACKAGE} {VERSION} is installed in no switch this repository reaches, so "
-               "the randomized half does not run")
+    out.append(f"FAIL {PACKAGE} {VERSION} is not installed in {switch}, so the randomized "
+               "half does not run")
     out.append("     the enumerative half does: `run.py quickchick vectors`")
     out.append("     the install, as one priced step:")
     out.append(f"       {env.install_line(INSTALL)}")
@@ -169,19 +180,13 @@ def cmd_properties(args: argparse.Namespace) -> int:
 
 def _properties(args: argparse.Namespace, e: env.Environment, root: Path, work: Path) -> int:
     del args, e
-    versions = {s: installed(s) for s in (gallina.QUICKCHICK_SWITCH, gallina.ORACLE_SWITCH)}
-    switch = next((s for s, version in versions.items()
-                   if version == VERSION and gallina.prover(s) is not None), None)
-    if switch is None:
-        found_versions = ", ".join(f"{s}: {v or 'not installed'}" for s, v in versions.items())
-        print(f"FAIL no switch this repository reaches holds both {PACKAGE} {VERSION} and a "
-              f"prover it can call\n     installed versions: {found_versions}\n"
-              f"     the install, as one priced step:\n"
-              f"       {env.install_line(INSTALL)}")
-        return 1
-    found = gallina.prover(switch)
-    if found is None:
-        print(f"FAIL the {switch} switch holds {PACKAGE} and no prover")
+    switch = gallina.QUICKCHICK_SWITCH
+    _, found, why = _held()
+    if why or found is None:
+        print("\n".join([f"FAIL the {switch} switch cannot run the randomized half",
+                         *(f"     {line}" for line in why),
+                         "     the install, as one priced step:",
+                         f"       {env.install_line(INSTALL)}"]))
         return 1
 
     gallina.stage(root, work)

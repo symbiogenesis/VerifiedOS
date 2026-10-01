@@ -479,7 +479,15 @@ def _the_randomized_harness_compiles_its_closure_alone() -> None:
 
 
 def _quickchick_rejects_other_versions() -> None:
-    with (patch.object(quickchick, "installed", return_value="2.1.0"),
+    """QuickChick's own switch is the one asked, and a version it does not pin is refused
+    there before anything is staged, the refusal naming both versions."""
+    asked: list[str] = []
+
+    def held(switch: str) -> str:
+        asked.append(switch)
+        return "2.1.0"
+
+    with (patch.object(quickchick, "installed", side_effect=held),
           patch.object(gallina, "prover", return_value=["rocq", "c"]),
           patch.object(gallina, "version", return_value="9.1.1"),
           patch.object(gallina, "stage") as stage,
@@ -491,6 +499,8 @@ def _quickchick_rejects_other_versions() -> None:
         ensure(stage.call_count == 0, "the wrong version must be refused before staging")
         ensure("2.1.0" in output.getvalue() and quickchick.VERSION in output.getvalue(),
                "a wrong-version refusal must name installed and required versions")
+    ensure(set(asked) == {gallina.QUICKCHICK_SWITCH},
+           f"the randomized half asked switches other than QuickChick's: {asked}")
     with (patch.object(quickchick, "installed", return_value=quickchick.VERSION),
           patch.object(gallina, "prover", return_value=["rocq", "c"]),
           patch.object(gallina, "version", return_value="9.1.1"),

@@ -360,8 +360,8 @@ def _the_live_rows_read_their_instruments() -> None:
            "every rig caller the tree carries is a row")
     properties = {row.switch for row in k117.INSTRUMENTS
                   if row.selects == "tools/vos/cli/quickchick.py"}
-    ensure(properties == {gallina.QUICKCHICK_SWITCH, gallina.ORACLE_SWITCH},
-           f"quickchick properties runs in either switch holding QuickChick: {properties}")
+    ensure(properties == {gallina.QUICKCHICK_SWITCH},
+           f"quickchick properties runs in QuickChick's own switch alone: {properties}")
 
 
 def _the_live_reading_reaches_only_the_older_instruments_proofs() -> None:

@@ -154,10 +154,6 @@ INSTRUMENTS: tuple[Instrument, ...] = (
     Instrument("quickchick properties", "tools/vos/cli/quickchick.py",
                gallina.QUICKCHICK_SWITCH, gallina.QUICKCHICK_ROCQ_VERSION,
                (f"{RIG}/{gallina.RANDOMIZED}",)),
-    # The same run where QuickChick is installed in the CertiRocq switch instead.
-    Instrument("quickchick properties in the oracle's switch", "tools/vos/cli/quickchick.py",
-               gallina.ORACLE_SWITCH, gallina.ORACLE_ROCQ_VERSION,
-               (f"{RIG}/{gallina.RANDOMIZED}",)),
     # Properties.v's closure alone, a subject outside it refused, beside the rig's support.
     Instrument("seed coq --quickchick", "tools/vos/cli/seed.py", gallina.QUICKCHICK_SWITCH,
                gallina.QUICKCHICK_ROCQ_VERSION, (f"{RIG}/{gallina.RANDOMIZED}",),
