@@ -1765,6 +1765,13 @@ CASES: list[Case] = [
      _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
                                r"dedicated switch)\.",
                   lambda m: f"{m[1]} beside `base64.3.5.1`.")),
+    # The same row gains a release after a name whose last letter, a `v`, follows a digit:
+    # a census taking every `v` after a non-letter for a tag's prefix, and not only one
+    # after a hyphen or `+`, leaves that release unread.
+    ("K-118", "a development-tool row stating a release after a letter following digits",
+     _first_match(THIRD_PARTY, r"(Gallina input generator, version \*\*[^*]+\*\*, in a "
+                               r"dedicated switch)\.",
+                  lambda m: f"{m[1]} beside `x86v3.5.1`.")),
     # A declared row nothing here owns gains a second release in its licence link text,
     # so the row no longer says which release its terms were read at.
     ("K-118", "a declared development-tool row stating two releases",

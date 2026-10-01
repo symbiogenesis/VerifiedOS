@@ -387,9 +387,9 @@ def _releases(text: str) -> list[re.Match[str]]:
     """The release numerals the census reads in the text: `_RELEASE_RE`'s matches, less
     each whose dot follows digits no letter leads, the tail of the numeral before it.
 
-    A lone `v` or `V` before those digits is a tag's prefix rather than a name's last
-    letter, so the tail of `LGPL-v2.1.3` or `release-v1.14.2` stays unread, while
-    `sexplib0.v0.17.0` and `python3.14.7` keep their reading.
+    A lone `v` or `V` between those digits and a hyphen or `+` is a tag's prefix rather
+    than a name's last letter, so the tail of `LGPL-v2.1.3` or `release-v1.14.2` stays
+    unread, while `sexplib0.v0.17.0`, `python3.14.7` and `x86v6.6.6` keep their reading.
     """
     found: list[re.Match[str]] = []
     for m in _RELEASE_RE.finditer(text):
@@ -397,7 +397,7 @@ def _releases(text: str) -> list[re.Match[str]]:
         while run > 0 and text[run - 1] in "0123456789":
             run -= 1
         lead = text[run - 1] if run > 0 else ""
-        if lead in ("v", "V") and (run < 2 or not text[run - 2].isalpha()):
+        if lead in ("v", "V") and run >= 2 and text[run - 2] in "+-":
             lead = ""
         if dot >= 0 and text[dot] == "." and run < dot and not lead.isalpha():
             continue

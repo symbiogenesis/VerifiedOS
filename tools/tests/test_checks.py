@@ -1157,11 +1157,13 @@ def _k118_census_reads_every_numeral() -> None:
     # letter or in digits a letter leads, its release led by `v` or not, one after an
     # underscore, a release carrying a letter suffix and one continuing past it are each
     # read, whole; a name's digits are not told from a release's, so `python3.6.6` reads
-    # 6.6, erring toward a finding
+    # 6.6, erring toward a finding, and so does `x86v6.6.6`, its `v` joined to a digit
+    # rather than to a hyphen or `+`
     for written, numeral in (("`coq-extra.6.6.6`", "6.6.6"), ("`base64.6.6.6`", "6.6.6"),
                              ("`x509.6.6.6`", "6.6.6"), ("`iso8601.6.6.6`", "6.6.6"),
                              ("`sexplib0.v6.6.6`", "v6.6.6"),
                              ("`rocq_6.6.6`", "6.6.6"), ("`python3.6.6`", "6.6"),
+                             ("`x86v6.6.6`", "6.6"),
                              ("6.6.6rc1", "6.6.6rc1"), ("v6.6.6a1.dev2", "v6.6.6a1.dev2")):
         found, _ = _k118({"THIRD-PARTY.md": _K118_RECORD.replace(
             "constant 7.8.9.", f"constant 7.8.9. Bundled {written}.")})
