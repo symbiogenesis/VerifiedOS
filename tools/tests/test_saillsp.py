@@ -295,6 +295,53 @@ def _refused_installation_rebuilt() -> None:
             ensure(problem in report.getvalue(), f"install must report why it rebuilt: {report.getvalue()!r}")
 
 
+def _unreadable_recipe_keeps_installation() -> None:
+    """An OSError reading the checkout's recipe inputs is not a refused installation:
+    install stops before removing the receipt or prefix, and status accepts the
+    installation again once the checkout is restored. An artifact status cannot read
+    remains a refusal install repairs."""
+    with sandbox_tree(_BUILD_RECIPE) as root:
+        environment = _environment(root)
+        location = saillsp.home(environment)
+        binary = location / "prefix/bin/sail_lsp"
+        receipt = location / "installation.json"
+        builds: list[list[str]] = []
+
+        def counted(argv: list[str], cwd: Path, environ: dict[str, str], log: Path) -> None:
+            builds.append(argv)
+            _mock_build(argv, cwd, environ, log)
+
+        ensure(_mock_install(environment)["installed"] is True, "the first build must be usable")
+        recorded = receipt.read_bytes()
+        refresh = root / "tools/sail-lsp/dependency-refresh.patch"
+        refresh.unlink()
+        try:
+            _mock_install(environment, counted)
+        except OSError:
+            pass
+        else:
+            raise AssertionError("install proceeded without a recipe input it could read")
+        ensure(not builds and receipt.is_file() and receipt.read_bytes() == recorded and binary.is_file(),
+               "an unreadable recipe input must leave the receipt and prefix in place")
+        refresh.write_text(_BUILD_RECIPE["tools/sail-lsp/dependency-refresh.patch"], encoding="utf-8")
+        ensure(saillsp.status(environment)["installed"] is True,
+               "restoring the checkout must restore the installation without a rebuild")
+
+        def unreadable(path: Path) -> str:
+            if path == binary:
+                raise PermissionError(13, "Permission denied", str(path))
+            return hashlib.sha256(path.read_bytes()).hexdigest()
+
+        with patch.object(saillsp, "sha256", side_effect=unreadable):
+            try:
+                saillsp.status(environment)
+            except ValueError as exc:
+                ensure("changed" in str(exc) and str(exc).endswith("run sail-lsp install"),
+                       f"an artifact status cannot read must be refused with its repair: {exc}")
+            else:
+                raise AssertionError("status accepted an artifact it could not read")
+
+
 def _base_lock() -> None:
     files = {"tools/opam/sail.lock": 'installed: ["ocaml.5.4.1" "dune.3.24.2" "sail.0.20.3"]',
              saillsp.LOCK: json.dumps({"sources": [{"name": "lsp", "version": "1.27.0"},
@@ -344,5 +391,6 @@ def cases() -> list[Case]:
             Case("superseded-archive-fetched-verified-and-replaced", _superseded_archive),
             Case("rebuild-installs-into-a-fresh-prefix", _rebuild_uses_fresh_prefix),
             Case("refused-installation-is-rebuilt", _refused_installation_rebuilt),
+            Case("unreadable-recipe-input-keeps-the-installation", _unreadable_recipe_keeps_installation),
             Case("locked-base-dependency-closure", _base_lock),
             Case("tool-sail-pins-are-the-locked-release", _tool_sail_pins_agree)]
