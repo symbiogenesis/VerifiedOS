@@ -214,12 +214,15 @@ def _kernel_budget_holds_the_recorded_peaks() -> None:
     budget = env.PROOF_KERNEL_WORKER_MIB * 1024
     ensure(all(peak <= budget for peak in peaks),
            f"a recorded kernel peak exceeds the {budget} KiB budget: {peaks}")
+    prose = " ".join(doc.split())
+    ensure(f"agree within {max(peaks) - min(peaks):,} KiB" in prose,
+           "the stated spread is not the recorded peaks' range")
     margin = budget - max(peaks)
     ensure(f"{budget:,} KiB, sits {margin:,} KiB ({round(margin / 1024)} MiB, "
-           f"{100 * margin / budget:.1f}% of the" in " ".join(doc.split()),
+           f"{100 * margin / budget:.1f}% of the" in prose,
            "the stated margin is not the budget less the largest recorded peak")
     second = 2048 + 2 * env.PROOF_KERNEL_WORKER_MIB
-    ensure(f"needs {second:,} MiB available" in " ".join(doc.split()),
+    ensure(f"needs {second:,} MiB available" in prose,
            "the stated second-worker threshold is not the reserve and two budgets")
     # The runner's four vCPUs: four compile/audit workers and one kernel worker over
     # every MemAvailable a 16 GB machine can report, two kernel workers only past it.

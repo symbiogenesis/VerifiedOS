@@ -443,6 +443,9 @@ def proof_jobs(*, kernel: bool = False) -> int:
         run 36814984495 at 2728d4a6    10,030,124 KiB
         run 36819172207 at ae25ee8f    10,029,820 KiB
 
+    The three agree within 456 KiB, so the peak the budget rests on repeats, where
+    small `rocqchk` processes' peaks on the profiling guest did not (F-587).
+
     Beside them, Q38i's per-module rechecks on the profiling guest, a WSL2 aarch64
     VM, each module checked alone with its closure admitted, peaked by `wait4` at
     9,312,124 KiB for HmacDrbg.v and 1,626,180 KiB for Sha256.v, then 864 MiB for
