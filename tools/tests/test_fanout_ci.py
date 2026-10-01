@@ -1200,10 +1200,13 @@ def _workflow_checkout_validation() -> None:
 
 
 # The step that checks a dispatched revision, and the conjunct each later step that runs
-# checked-out code after a failure states, in the job of each workflow fanout dispatches.
+# checked-out code after a failure states, in every job of each workflow that checks one:
+# the two fanout dispatches and the boot signature target campaign's.
 _DISPATCH_CHECK = "Verify dispatched revision belongs to main"
 _DISPATCH_GUARD = "steps.dispatch.outcome != 'failure'"
-_DISPATCH_JOBS = {ci.HOST: "host-gates-shard", ci.GUEST: "guest-gates"}
+_CAMPAIGN = "boot-crypto-target.yml"
+_DISPATCH_JOBS = ((ci.HOST, "host-gates-shard"), (ci.GUEST, "guest-gates"),
+                  (_CAMPAIGN, "interface"), (_CAMPAIGN, "campaign"))
 
 
 def _conjuncts(condition: str) -> list[str] | None:
@@ -1297,31 +1300,38 @@ def _instrument_refused_faults(contents: str) -> list[str]:
     return faults
 
 
+def _in_job(contents: str, job: str, old: str, new: str) -> str:
+    """`contents` with the first `old` after `job`'s own header made `new`."""
+    start = contents.index(f"\n  {job}:\n")
+    return contents[:start] + contents[start:].replace(old, new, 1)
+
+
 def _workflow_refused_dispatch() -> None:
     # A refused dispatch runs no checked-out code: each step that runs a command after a
-    # failure also requires the check not to have failed, in both workflows.
+    # failure also requires its job's check not to have failed, in every checking job.
     guard = f" && {_DISPATCH_GUARD}"
-    named = {ci.HOST: ("Analyze workflows", "Model hooks", "Report gate results"),
-             ci.GUEST: ("Model evidence", "Proof gate", "Read the proofs against the reading base",
-                        "Report guest results")}
-    for workflow, job in _DISPATCH_JOBS.items():
+    check = "        id: dispatch\n"
+    named = {"host-gates-shard": ("Analyze workflows", "Model hooks", "Report gate results"),
+             "guest-gates": ("Model evidence", "Proof gate",
+                             "Read the proofs against the reading base", "Report guest results"),
+             "interface": (), "campaign": ("Report the campaign",)}
+    for workflow, job in _DISPATCH_JOBS:
         contents = (ROOT / ".github/workflows" / workflow).read_text(encoding="utf-8")
         found = _refused_dispatch_faults(contents, job)
         ensure(not found, f"{workflow} runs checked-out code after a refusal: {found!r}")
         # The workflow without its guards, as it stood before they were stated, is
         # refused for every step that runs after a failure.
         found = _refused_dispatch_faults(contents.replace(guard, ""), job)
-        for step in named[workflow]:
+        for step in named[job]:
             ensure(any(f"step {step!r} runs checked-out code" in fault for fault in found),
                    f"{workflow}'s {step!r} without its guard must be refused: {found!r}")
         for mutant, fragment in (
-                (contents.replace("        id: dispatch\n", "", 1), "not identified as dispatch"),
-                (contents.replace("        id: dispatch\n",
-                                  "        id: dispatch\n        continue-on-error: true\n", 1),
+                (_in_job(contents, job, check, ""), "not identified as dispatch"),
+                (_in_job(contents, job, check, check + "        continue-on-error: true\n"),
                  "continues on error")):
             ensure(mutant != contents and any(
                 fragment in fault for fault in _refused_dispatch_faults(mutant, job)),
-                f"{workflow}'s check must be refused ({fragment!r})")
+                f"{workflow}'s {job} check must be refused ({fragment!r})")
     # A guard that does not bind the step: under a disjunction, at either level, or in a
     # condition the reading does not take; and a local action that runs after a failure.
     contents = (ROOT / ".github/workflows" / ci.GUEST).read_text(encoding="utf-8")
