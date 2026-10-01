@@ -16,9 +16,11 @@
 # project, not for a local preference; a single site that has to differ says so with
 # a `# noqa: RULE` and a comment, which is auditable in a way a switched-off group
 # is not. For the same reason `vos/cli/typecheck.py` refuses a `per-file-ignores`,
-# `extend-per-file-ignores` or `extend` key in this file, and a file-level
-# `# ruff: noqa` or `# flake8: noqa` comment unless it names N999 alone, which ruff
-# reports against the file's name rather than a line of it.
+# `extend-per-file-ignores` or `extend` key in this file; a file-level `# ruff: noqa`
+# or `# flake8: noqa` comment unless it names N999 alone, which ruff reports against the
+# file's name rather than a line of it; and a `# ruff: file-ignore[...]` comment, a
+# `# ruff: disable[...]` or `# ruff: enable[...]` range comment, or isort's `skip_file`,
+# `off` or `on` action comment.
 
 target-version = "py314"
 line-length = 100          # E501 is not selected; this only sizes the few rules that read it

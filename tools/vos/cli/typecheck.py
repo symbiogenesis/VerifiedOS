@@ -75,12 +75,16 @@ its verbosity flag, so each ty run is made without that variable, and without
 checks or reports.
 
 ruff's log names a file whose rules are switched off as checked, so the floor cannot
-see a suppression reaching a whole file, and the gate refuses each as a ruff finding: a
+see a suppression, and the gate refuses each reaching past a line as a ruff finding: a
 `per-file-ignores` or `extend-per-file-ignores` key in `ruff.toml`, in `[lint]` or at
-the top level; an `extend` key, which merges another file's settings beneath it; and a
+the top level; an `extend` key, which merges another file's settings beneath it; a
 comment anywhere in a tracked module carrying ruff's file-level suppression,
 `# ruff: noqa` or `# flake8: noqa`, unless it names N999 and no other rule, since ruff
-reports N999 against the file's name rather than a line of it.
+reports N999 against the file's name rather than a line of it; and one carrying
+`# ruff: file-ignore[...]`, a `# ruff: disable[...]` or `# ruff: enable[...]` range
+comment, whose `disable` with no matching `enable` runs to the end of its block, or
+isort's `skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` reaches one
+logical line, as `# noqa` does, and is not refused.
 
 `ruff.toml` lists the modules the interpreter lacks on one platform that ty resolves on
 both, and ruff's TID253 refuses an import of one only where it is unnested at module
@@ -208,6 +212,17 @@ FILE_NOQA = re.compile(r"#\s*(?:ruff|flake8)\s*:\s*(?i:noqa)")
 # rather than any line of it, so exempting a file from it leaves every line of the file
 # under every rule.
 FILE_SCOPED = frozenset({"N999"})
+# A comment carrying one of ruff's other suppressions that reach past their own line,
+# matched in ruff's case and more loosely than ruff parses it, after any `#` in the
+# comment: `ruff: file-ignore[...]`, which switches the rules it names off for the whole
+# file; `ruff: disable[...]` and `ruff: enable[...]`, whose range runs from the one to
+# the other or, with no matching `enable`, to the end of the block the `disable` sits in,
+# the whole file at module level; and isort's `skip_file`, `off` and `on`, alone or after
+# `ruff:`, which switch import sorting off for the whole file or from `off` to `on` or
+# the file's end. `ruff: ignore[...]`, which reaches one logical line, and isort's
+# `skip`, which reaches one line, suppress no more than `# noqa` does and are not matched.
+FILE_RANGE = re.compile(r"#\s*(?:ruff\s*:\s*(?:disable|enable|file-ignore)\b"
+                        r"|(?:ruff\s*:\s*)?isort\s*:\s*(?:skip_file|off|on)\b)")
 
 
 def _tool(name: str) -> str | None:
@@ -658,12 +673,14 @@ def _ruff_settings(config: Path) -> list[str]:
 
 
 def _file_suppressions(tools: Path, tracked: frozenset[str]) -> list[str]:
-    """Each comment in a tracked module that ruff would read as a file-level suppression
-    naming a rule outside `FILE_SCOPED`, or naming none, which suppresses every rule.
+    """Each comment in a tracked module carrying a suppression that reaches past its own
+    line: a file-level `noqa` naming a rule outside `FILE_SCOPED`, or naming none, which
+    suppresses every rule, and any comment `FILE_RANGE` matches.
 
     Comments are read with the tokenizer, so a string that spells a directive is not
-    one, and only a module whose text matches `FILE_NOQA` is tokenized. A directive
-    ruff would ignore for trailing code on its line is refused all the same.
+    one, and only a module whose text matches `FILE_NOQA` or `FILE_RANGE` is tokenized.
+    A directive ruff would ignore, for trailing code or another comment before it on its
+    line or for sitting in a class or function body, is refused all the same.
     Fail-closed: a module that cannot be read or tokenized is a finding."""
     findings: list[str] = []
     for module in sorted(tracked):
@@ -672,7 +689,7 @@ def _file_suppressions(tools: Path, tracked: frozenset[str]) -> list[str]:
         except (OSError, UnicodeDecodeError) as err:
             findings.append(f"{module} cannot be read: {err}")
             continue
-        if not FILE_NOQA.search(text):
+        if not (FILE_NOQA.search(text) or FILE_RANGE.search(text)):
             continue
         try:
             comments = [(token.start[0], token.string)
@@ -682,7 +699,8 @@ def _file_suppressions(tools: Path, tracked: frozenset[str]) -> list[str]:
             findings.append(f"{module} cannot be tokenized: {err}")
             continue
         findings.extend(f"{module}:{line} {comment}" for line, comment in comments
-                        if any(not _names_file_scoped(comment[found.end():])
+                        if FILE_RANGE.search(comment)
+                        or any(not _names_file_scoped(comment[found.end():])
                                for found in FILE_NOQA.finditer(comment)))
     return findings
 
@@ -710,17 +728,18 @@ def _run_ruff(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None
     from the lint but not from what `--show-files` lists.
 
     The log still names a file whose rules are switched off, so the suppressions that
-    switch rules off for a whole file are held first: the `ruff.toml` keys
-    `_ruff_settings` refuses, and the file-level directives `_file_suppressions` finds
-    in the tracked modules. The checker runs regardless, and a clean run beside a
-    refused suppression claims no more than the run showed."""
+    switch rules off past a line are held first: the `ruff.toml` keys `_ruff_settings`
+    refuses, and the file-level and range directives `_file_suppressions` finds in the
+    tracked modules. The checker runs regardless, and a clean run beside a refused
+    suppression claims no more than the run showed."""
     tools = root / "tools"
     held = ""
     if refused := _ruff_settings(tools / "ruff.toml"):
         rep.report("ruff", "ruff.toml setting(s) the gate refuses:", refused)
         held = " under the suppressions refused above"
     if tracked is not None and (suppressed := _file_suppressions(tools, tracked)):
-        rep.report("ruff", "file-level suppression(s) the gate refuses:", suppressed)
+        rep.report("ruff", "file-level or range suppression(s) the gate refuses:",
+                   suppressed)
         held = " under the suppressions refused above"
     coverage = None if tracked is None else Coverage(RUFF_LOG, RUFF_CHECKED, tracked)
     verbose = [] if coverage is None else RUFF_VERBOSE
