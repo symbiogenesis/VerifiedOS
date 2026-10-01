@@ -1825,6 +1825,15 @@ CASES: list[Case] = [
      _first_match("model/.pre-commit-config.yaml", r"\Z",
                   lambda _: "  - {?repo: https://github.com/example/unreviewed-hooks, "
                             f"?rev: {'d' * 40}, ?hooks: [{{?id: unreviewed}}]}}\n")),
+    # A hook repository appended as a flow mapping whose `repo` and `rev` keys each open
+    # their line flush against a byte-order mark: libyaml, whose loader pre-commit takes,
+    # skips a U+FEFF opening any line, so pre-commit runs the entry, and only a census
+    # reading a key after one as after a blank sees it.
+    ("K-118", "a hook repository whose keys follow a byte-order mark opening their lines",
+     _first_match("model/.pre-commit-config.yaml", r"\Z",
+                  lambda _: "  - {hooks: [{id: unreviewed}],\n"
+                            "\ufeffrepo: https://github.com/example/unreviewed-hooks,\n"
+                            f"\ufeffrev: {'d' * 40}}}\n")),
     # The first entry stating a second rev, its commit's last digit changed, after a line
     # separator closing the entry's last line: YAML breaks the line there and keeps the
     # last rev, so only a reading splitting the file where YAML does sees two revs.

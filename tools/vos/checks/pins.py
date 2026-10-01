@@ -286,7 +286,11 @@ anchor or an alias, or standing deeper or shallower than its entry's keys, a hoo
 or a block scalar's text among them, is reported rather than run unread. Every line is
 read, a comment's included, as K-115 reads the workflows: a line opening with `#` may
 continue a quoted scalar opened earlier, which can close there and leave the line
-carrying an entry's keys. The configuration is read whether or not any hook row is
+carrying an entry's keys. A key or a `?` is read after a byte-order mark as after a
+blank: libyaml, whose loader pre-commit takes where PyYAML carries it, skips a U+FEFF
+opening any line. K-115's census does not, the YAML readers GitHub publishes, the
+runner's YamlDotNet and the workflow language services' `yaml`, skipping one only where
+a document may begin. The configuration is read whether or not any hook row is
 held, so its absence is a finding on its own. The step's two pip constraint files are
 censused the same way: every project either pins is one a held row's site reads in that
 file, so a pin added for a package a hook gained is a finding at its line until a row
@@ -565,6 +569,9 @@ def _project(name: str) -> str:
 # `,` or `[` whatever follows it, since PyYAML and libyaml read every `?` inside a flow
 # collection as a key's indicator and a line does not say whether it stands in one, and
 # after a block indicator and a blank only before a blank, as a block key's indicator is.
+# A byte-order mark is read as a blank wherever a key or a `?` may follow one: libyaml,
+# whose loader pre-commit takes where PyYAML carries it, as the locked wheels do, skips a
+# U+FEFF opening any line, so a key flush against one is a key to pre-commit.
 _HOOK_REPO_RE = re.compile(r"^[ \t]*-[ \t]+(?P<key>repo):[ \t]*(?P<url>.*?)[ \t]*$")
 # The one shape an entry's rev is read in: a bare `rev` key, a plain or quoted value no
 # tag, anchor, alias, escape or other indicator opens, and at most the `# frozen:`
@@ -578,9 +585,9 @@ _HOOK_REV_LINE_RE = re.compile(
 # `_hook_rev` counts as that entry's rev whatever shape the rest of its line takes.
 _HOOK_REV_KEY_RE = re.compile(r"""^(?P<indent>[ \t]*)(?P<q>["']?)rev(?P=q)(?=[ \t]*:)""")
 _HOOK_KEY_RE = re.compile(
-    r"""(?:(?<=[\s{,\[])|^)"""
+    r"""(?:(?<=[\s{,\[\ufeff])|^)"""
     r"""(?:(?P<q>["']?)re(?:po|v)(?P=q)|"[^"]*\\[^"]*"|\*[^\s,\[\]{}]+)(?=[ \t]*:)"""
-    r"""|^[ \t]*(?:\?|(?:[-?:][ \t]+)+\?(?=[ \t]|$))|(?<=[{,\[])[ \t]*\?""")
+    r"""|^[ \t\ufeff]*(?:\?|(?:[-?:][ \t]+)+\?(?=[ \t]|$))|(?<=[{,\[])[ \t]*\?""")
 _FULL_COMMIT_RE = re.compile(r"[0-9a-f]{40}")
 # pre-commit's own hooks, which run its `pre_commit.meta_hooks` modules under the
 # interpreter running it and whose entry its configuration schema refuses to override.

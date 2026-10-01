@@ -1630,6 +1630,14 @@ def _k118_hook_census_reads_every_entry() -> None:
         found, _ = _k118_hook(_K118_HOOKS + written)
         ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:11 {_K118_HOOK_UNREAD}" in found[0],
                f"keys after a quoted scalar closed on a `#` line are read there: {found!r}")
+    # libyaml, whose loader pre-commit takes, skips a byte-order mark opening any line,
+    # so a key, or a `?` and its key, flush against one is read at that line.
+    written = ("  - {hooks: [{id: evil}],\n\ufeffrepo: https://github.com/example/evil,\n"
+               "\ufeff?rev: v1}\n")
+    found, _ = _k118_hook(_K118_HOOKS + written)
+    ensure(len(found) == 2 and all(f"{pins.HOOK_CONFIG}:{line} {_K118_HOOK_UNREAD}" in item
+                                   for line, item in zip((11, 12), found, strict=True)),
+           f"a key after a line-opening byte-order mark is read at its line: {found!r}")
 
 
 def _k118_hook_rev_is_read_at_its_entry_column() -> None:
