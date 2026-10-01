@@ -114,6 +114,10 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.unchanged != 'true' }}
     runs-on: ubuntu-26.04
+    # A job that reaches this limit is cancelled before its report and upload, so each
+    # lane's step limits sum at least 30 minutes under it. That margin is left to the
+    # steps without a limit of their own, setup, caches, report and upload, which took
+    # under a minute in total in every measured hosted run.
     timeout-minutes: 360
     strategy:
       # One lane's failure must not cancel the other lane's verdict.
@@ -246,6 +250,8 @@ jobs:
 
       - name: Bootstrap guest toolchains
         id: bootstrap
+        # A cold installation took at most 14.3 minutes on a hosted runner in the model
+        # lane and 11.7 in the proofs lane, and a restored one less.
         timeout-minutes: 120
         env:
           GUEST_TOOLCHAIN_OPTIONS: ${{ matrix.toolchains }}
@@ -297,7 +303,8 @@ jobs:
       - name: Model evidence
         id: evidence
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
-        timeout-minutes: 180
+        # The sweep took at most 12.1 minutes on a hosted runner, with a cold Sail memo.
+        timeout-minutes: 150
         # The proofs lane runs the proof gate on its own runner.
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py evidence --no-proofs \
@@ -437,6 +444,9 @@ jobs:
       - name: Check generated model bundle
         id: bundle
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        # The emission took at most 32 s on a hosted runner over the memo a passing
+        # sweep warms. Where the sweep failed first, a cold memo adds at most about the
+        # 6 minutes it adds to the sweep.
         timeout-minutes: 15
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py model bundle --check \
@@ -445,6 +455,7 @@ jobs:
       - name: Lint standalone RTL
         id: lint
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        # Lint took at most a second on a hosted runner.
         timeout-minutes: 5
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl lint \
@@ -453,7 +464,8 @@ jobs:
       - name: Check frozen RTL widths and store lanes
         id: widthcheck
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
-        timeout-minutes: 15
+        # Building and running the testbench took at most 14 s on a hosted runner.
+        timeout-minutes: 5
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl widthcheck \
             2>&1 | tee "$VOS_LOG_DIR/rtl-widthcheck.log"
@@ -461,6 +473,8 @@ jobs:
       - name: Crosscheck RTL against fresh model vectors
         id: crosscheck
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        # Building the vector generator, emitting the vectors and replaying them took
+        # at most 98 s on a hosted runner.
         timeout-minutes: 30
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl crosscheck \

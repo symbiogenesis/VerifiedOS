@@ -296,6 +296,9 @@ In the proofs lane:
   `proof-reading-compare.log`, stay in the lane's artifact. A reading accepts no proof.
 
 Each required command has a bounded execution time and retains its exit status.
+Each lane's step limits stay a stated margin under the job's, which the steps without
+a limit of their own share, so a lane that reaches every limit still reports and
+uploads its diagnostics.
 Independent checks may still run after another fails when their bootstrap succeeded.
 The evidence command owns its existing internal concurrency and freshness checks.
 Proof receipt publication changes an output rather than the model's input identity;

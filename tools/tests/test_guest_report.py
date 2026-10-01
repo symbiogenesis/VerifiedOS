@@ -18,6 +18,8 @@ from vos.cli import proofs as proofs_cli
 
 WORKFLOW = Path(__file__).resolve().parents[2] / ".github" / "workflows" / "guest-gates.yml"
 READING_BASE = "c" * 40
+# The minutes guest-gates.yml's job leaves under its limit, past every lane's step limits.
+LIMIT_MARGIN = 30
 
 
 def _bootstrap_failure() -> None:
@@ -302,19 +304,6 @@ def _reading_step() -> None:
         "a passing gate's compile")
     ensure("          READING_BASE: ${{ inputs.reading_base }}\n" in step,
            "the base reaches the step through its environment")
-    # A job that reaches its own limit is cancelled, so its report and upload never run:
-    # the limits of the steps the proofs lane can run stay under the job's.
-    job = WORKFLOW.read_text(encoding="utf-8").split("\n  guest-gates:\n", 1)[1]
-    job_limit = re.search(r"(?m)^    timeout-minutes: (\d+)$", job)
-    limits: dict[str, int] = {}
-    for lane_step in job.split("\n      - ")[1:]:
-        guard = re.search(r"(?m)^        if: (.*)$", lane_step)
-        limit = re.search(r"(?m)^        timeout-minutes: (\d+)$", lane_step)
-        if limit is not None and (guard is None or "matrix.lane == 'model'" not in guard[1]):
-            limits[lane_step.split("\n", 1)[0]] = int(limit[1])
-    ensure("name: Read the proofs against the reading base" in limits and "name: Proof gate" in limits
-           and job_limit is not None and sum(limits.values()) < int(job_limit[1]),
-           f"the proofs lane's step limits {limits} must stay under the job's")
     run = step.split("        run: |\n", 1)[1]
     # The proof environment is the gate's own, read from the file the gate reads.
     environment = "mapfile -d '' -t proof_env < \"$RUNNER_TEMP/proof-environment\""
@@ -364,6 +353,31 @@ def _reading_step() -> None:
                    f"the step must accept exactly a comparison naming differences: {first!r}")
 
 
+def _lane_step_limits() -> None:
+    # A job that reaches its own limit is cancelled, so its report and upload never run:
+    # the limits of the steps each lane can run stay the margin the job states under its
+    # limit, which the steps without a limit of their own share.
+    job = WORKFLOW.read_text(encoding="utf-8").split("\n  guest-gates:\n", 1)[1]
+    job_limit = re.search(r"(?m)^    timeout-minutes: (\d+)$", job)
+    for lane, other, steps in (
+            ("model", "proofs", ("Bootstrap guest toolchains", "Model evidence",
+                                 "Check generated model bundle", "Lint standalone RTL",
+                                 "Check frozen RTL widths and store lanes",
+                                 "Crosscheck RTL against fresh model vectors")),
+            ("proofs", "model", ("Bootstrap guest toolchains", "Proof gate",
+                                 "Read the proofs against the reading base"))):
+        limits: dict[str, int] = {}
+        for lane_step in job.split("\n      - ")[1:]:
+            guard = re.search(r"(?m)^        if: (.*)$", lane_step)
+            limit = re.search(r"(?m)^        timeout-minutes: (\d+)$", lane_step)
+            if limit is not None and (guard is None or f"matrix.lane == '{other}'" not in guard[1]):
+                limits[lane_step.split("\n", 1)[0].removeprefix("name: ")] = int(limit[1])
+        ensure(set(steps) <= set(limits) and job_limit is not None
+               and sum(limits.values()) + LIMIT_MARGIN <= int(job_limit[1]),
+               f"the {lane} lane's step limits {limits} must stay {LIMIT_MARGIN} minutes "
+               "under the job's")
+
+
 def cases() -> list[Case]:
     return [
         Case("bootstrap failure retains diagnostics without stale proofs", _bootstrap_failure),
@@ -379,4 +393,5 @@ def cases() -> list[Case]:
         Case("reading outcome and base are recorded and validated", _reading_outcome_recorded),
         Case("reading step runs in the gate's environment and reads compare's verdict",
              _reading_step),
+        Case("each lane's step limits stay a margin under the job's", _lane_step_limits),
     ]
