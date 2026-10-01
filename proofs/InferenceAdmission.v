@@ -525,10 +525,7 @@ Definition schema_codec (sch : Schema) : Codec := {|
   cod_admissible := fun bs => bytes_ok bs && (length bs =? schema_bytes sch);
   cod_encode := fields_encode sch;
   cod_decode := fun bs =>
-    match fields_decode sch bs with
-    | Some (vs, []) => Some vs
-    | _ => None
-    end
+    if fields_decode sch bs is Some (vs, []) then Some vs else None
 |}.
 
 (*| discharges: R-05-051a, R-05-051b |*)
@@ -617,19 +614,15 @@ Definition shape_fields (s : Shape) : list nat :=
     shape_expert_count s; shape_top_k s; shape_kv_bytes_per_token s ].
 
 Definition shape_of_fields (vs : list nat) : option Shape :=
-  match vs with
-  | [ a1; a2; a3; a4; a5; a6 ] => Some (Build_Shape a1 a2 a3 a4 a5 a6)
-  | _ => None
-  end.
+  if vs is [ a1; a2; a3; a4; a5; a6 ] then Some (Build_Shape a1 a2 a3 a4 a5 a6)
+  else None.
 
 Definition encode_shape (w : Widths) (s : Shape) : list Byte :=
   fields_encode (shape_schema w) (shape_fields s).
 
 Definition decode_shape (w : Widths) (bs : list Byte) : option Shape :=
-  match fields_decode (shape_schema w) bs with
-  | Some (vs, []) => shape_of_fields vs
-  | _ => None
-  end.
+  if fields_decode (shape_schema w) bs is Some (vs, []) then shape_of_fields vs
+  else None.
 
 Definition shape_fits (w : Widths) (s : Shape) : bool :=
   fields_fit (shape_schema w) (shape_fields s).
@@ -904,7 +897,7 @@ Qed.
    do. That a verdict cannot then be dropped is R-08-047's obligation on the
    binding path and is not stated here. *)
 Definition forgets_the_cause (f : Fetch) : bool :=
-  match f with FromResidentBank _ => true | _ => false end.
+  if f is FromResidentBank _ then true else false.
 
 (*| discharges: R-08-047 |*)
 Theorem a_boolean_verdict_loses_the_refusal_cause :
@@ -1020,9 +1013,9 @@ Definition opening (c : Composition) : Opening :=
     match decode_shape (comp_widths c) (req_descriptor q) with
     | None => Build_Step srv st (Refused DescriptorNotCanonical)
     | Some s =>
-        match why_refused (comp_ceiling c) s with
-        | Some why => Build_Step srv st (Refused why)
-        | None =>
+        if why_refused (comp_ceiling c) s is Some why
+        then Build_Step srv st (Refused why)
+        else
             if 0 <? comp_bytes_per_token c s
             then
               if sessions_open st <? server_session_capacity srv
@@ -1035,7 +1028,6 @@ Definition opening (c : Composition) : Opening :=
                 else Build_Step srv st (Refused TokenRateAboveGrant)
               else Build_Step srv st (Refused SessionPoolExhausted)
             else Build_Step srv st (Refused PerTokenBytesNotDeclared)
-        end
     end.
 
 (* The obligations the three items put on that step. *)
@@ -1492,8 +1484,8 @@ Example the_ensemble_runs_at_its_slowest_member :
    decode is not injective and re-encoding does not reproduce the bytes. *)
 Definition reserved_field_codec : Codec := {|
   cod_admissible := fun bs => bytes_ok bs && (length bs =? 2);
-  cod_encode := fun vs => match vs with v :: _ => [ v; 0 ] | [] => [ 0; 0 ] end;
-  cod_decode := fun bs => match bs with b :: _ :: [] => Some [ b ] | _ => None end
+  cod_encode := fun vs => if vs is (v :: _) then [ v; 0 ] else [ 0; 0 ];
+  cod_decode := fun bs => if bs is (b :: _ :: []) then Some [ b ] else None
 |}.
 
 Theorem an_accept_and_ignore_field_is_refuted :
@@ -1519,7 +1511,7 @@ Qed.
 Definition two_form_codec : Codec := {|
   cod_admissible := fun bs =>
     bytes_ok bs && ((length bs =? 1) || (length bs =? 2));
-  cod_encode := fun vs => match vs with v :: _ => [ v ] | [] => [ 0 ] end;
+  cod_encode := fun vs => if vs is (v :: _) then [ v ] else [ 0 ];
   cod_decode := fun bs =>
     match bs with
     | [ b ] => Some [ b ]
@@ -1552,12 +1544,12 @@ Qed.
 Definition tally_codec : Codec := {|
   cod_admissible := fun bs => bytes_ok bs;
   cod_encode := fun vs =>
-    match vs with v :: _ => repeat 1 v ++ [ 0 ] | [] => [ 0 ] end;
+    if vs is (v :: _) then repeat 1 v ++ [ 0 ] else [ 0 ];
   cod_decode := fun bs => Some [ length bs - 1 ]
 |}.
 
 Definition one_field_fits (vs : list nat) : bool :=
-  match vs with [ v ] => v <? 256 | _ => false end.
+  if vs is [ v ] then v <? 256 else false.
 
 Theorem a_self_describing_length_is_refuted :
   ~ LengthIsASchemaConstant tally_codec one_field_fits.
@@ -1686,12 +1678,11 @@ Qed.
    excludes. *)
 Definition grantless_opening (c : Composition) : Opening :=
   fun srv st q =>
-    match decode_shape (comp_widths c) (req_descriptor q) with
-    | None => Build_Step srv st (Refused DescriptorNotCanonical)
-    | Some _ =>
+    if decode_shape (comp_widths c) (req_descriptor q) is None
+    then Build_Step srv st (Refused DescriptorNotCanonical)
+    else
         Build_Step srv (Build_Sessions (S (sessions_open st)))
-          (Admitted (req_tokens_per_second q))
-    end.
+          (Admitted (req_tokens_per_second q)).
 
 Definition extravagant_request : Request := {|
   req_descriptor := demo_descriptor;
@@ -1737,11 +1728,10 @@ Qed.
    R-08-047 refuses in favour of the typed exhausted verdict. *)
 Definition overcommitting_opening (c : Composition) : Opening :=
   fun srv st q =>
-    match decode_shape (comp_widths c) (req_descriptor q) with
-    | None => Build_Step srv st (Refused DescriptorNotCanonical)
-    | Some _ =>
-        Build_Step srv (Build_Sessions (S (sessions_open st))) (Admitted 1)
-    end.
+    if decode_shape (comp_widths c) (req_descriptor q) is None
+    then Build_Step srv st (Refused DescriptorNotCanonical)
+    else
+        Build_Step srv (Build_Sessions (S (sessions_open st))) (Admitted 1).
 
 Theorem an_overcommitting_pool_is_refuted :
   ~ PoolBounded (overcommitting_opening demo).
