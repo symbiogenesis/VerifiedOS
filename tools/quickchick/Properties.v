@@ -1,23 +1,22 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 
 (* =========================================================================
-   The QuickChick harness: random generators over the Gallina front, and the
-   one thing no enumeration has, automatic counterexample shrinking.
+   The QuickChick harness: random generators over the Gallina front.
 
    Vectors.v beside this file walks a declared grid and prints what the
    admission algebra answers at every point of it. That is the half that runs
    with no install, and its limit is the grid: a defect outside the corners
    somebody named is a defect it does not reach. This half draws instead, so
-   what it reaches is decided by the generator's range rather than by a list,
-   and when a draw refutes a property QuickChick shrinks the counterexample to
-   a minimal one rather than handing back the frame it happened to draw.
+   what it reaches is decided by the generator's range rather than by a list.
+   A draw that refutes a property is reported as drawn: `forAll` shrinks
+   nothing, so the counterexample QuickChick prints is the point it happened
+   to draw and not a minimal one.
 
-   It needs `coq-quickchick`, which is installed in a switch of its own,
-   `quickchick-9.1.1`, at 2.2.0 against Rocq 9.1.1. `run.py quickchick
-   check` says which switch holds it, and the tool's own header states why
-   the switch is separate: adding the library to the CertiCoq oracle's switch
-   downgrades dune and recompiles fifty-nine packages, and no QuickChick
-   release admits the Rocq release the proof gate's switch carries.
+   It needs `coq-quickchick`, which this repository installs in a switch of
+   its own, the one tools/vos/gallina.py's QUICKCHICK_SWITCH names, from the
+   snapshot tools/opam/quickchick.lock fixes. `run.py quickchick check` says
+   what that switch holds, and tools/opam/README.md states why the switch is
+   separate from the proof gate's.
 
    The properties are the computable shadows of theorems the shipped proofs
    prove, and that is the point of stating them here rather than only there. A
@@ -112,7 +111,7 @@ Open Scope string_scope.
 Set Warnings "-extraction-opaque-accessed,-extraction".
 
 (* -------------------------------------------------------------------------
-   Showing a counterexample. A shrunk frame is only worth having if it can be
+   Showing a counterexample. A drawn frame is only worth having if it can be
    read, so every declared quantity is printed and the tenant is not: reading
    1 is what R-11-023 says admission must not do, and a counterexample that
    displayed it would invite exactly that reading.
@@ -241,7 +240,7 @@ QuickChick (forAll (choose (0, 30)) (fun ctx =>
    quantifies over a machine holds whatever those functions are, so a
    counterexample that turned on one would be a counterexample to a property
    this file does not state. What is shown is the data a drawn machine
-   carries, which is what the shrinker can move.
+   carries, which is what a counterexample can name.
    ------------------------------------------------------------------------- *)
 
 #[global] Instance showInvocation : Show EndpointIPC.Invocation :=

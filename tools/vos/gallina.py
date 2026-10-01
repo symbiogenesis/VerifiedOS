@@ -382,10 +382,10 @@ def properties(found: Prover, work: Path, harness: Path) -> tuple[int, int, str]
     the first counterexample where one did.
 
     QuickChick runs a property at compile time and prints its verdict, so the prover's
-    own stdout is the result: `+++ Passed` per set, `*** Failed` with the shrunk
-    counterexample under it. A compile that did not run at all is reported as a failure
-    of every set rather than as none, an empty run being the vacuous pass every floor in
-    this repository exists to catch.
+    own stdout is the result: `+++ Passed` per set, `*** Failed` with the drawn
+    counterexample under it, unshrunk, `forAll` shrinking nothing. A compile that did
+    not run at all is reported as a failure of every set rather than as none, an empty
+    run being the vacuous pass every floor in this repository exists to catch.
     """
     done = compile_one(found, work, harness)
     said = done.stdout + done.stderr

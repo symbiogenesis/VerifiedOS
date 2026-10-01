@@ -41,9 +41,9 @@
    Required by anything in proofs/, and the proof gate never compiles it, so
    no constant here reaches R-05-163's assumption enumeration. And it is not
    the QuickChick harness: Properties.v beside this file is that, and it needs
-   an install this repository has not made. What this supplies without that
-   install is the enumerative half, and what the install adds is random
-   generation and counterexample shrinking.
+   QuickChick, which `run.py provision` installs in a switch of its own. What
+   this supplies without that install is the enumerative half, and what the
+   install adds is random generation over ranges no grid lists.
 
    It is compiled by tools/vos/gallina.py in the proof gate's own switch,
    which carries the standard library it loads, so it compiles at the release

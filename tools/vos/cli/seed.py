@@ -486,9 +486,9 @@ def cmd_coq(args: argparse.Namespace) -> int:
     Which generator supplies those inputs is `--quickchick`'s to choose, and the two
     are worth having apart. The enumerative harness walks a declared grid, so what it
     reaches is a list somebody wrote and its verdict is a whole vector file that moved.
-    QuickChick draws instead and shrinks what refutes, so what it reaches is a range
-    and its verdict is a minimal counterexample. A mutant both miss is a site neither
-    the proofs nor either kind of generation decides anything about.
+    QuickChick draws instead, so what it reaches is a range and its verdict names the
+    set a draw refuted. A mutant both miss is a site neither the proofs nor either kind
+    of generation decides anything about.
 
     Under QuickChick the run compiles `Properties.v`'s `Require` closure and nothing
     else, for its baseline and for each mutant's dependents, and refuses a subject that
@@ -758,8 +758,8 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
                          help="which Gallina source to mutate; with --quickchick, a "
                               "proof source Properties.v's Require closure holds")
         sub.add_argument("--quickchick", action="store_true",
-                         help="let QuickChick's draws and shrinking decide instead "
-                              "of the enumerative harness's vectors")
+                         help="let QuickChick's draws decide instead of the "
+                              "enumerative harness's vectors")
         sub.add_argument("--jobs", type=int, default=1, metavar="N",
                          help="stage N trees and run the population across them at "
                               "once. Every mutant is one prover run and the trees "

@@ -13,9 +13,9 @@ loads Stdlib alone, it is compiled in the proof gate's own switch, and its outpu
 text file, which is the form both earlier model-as-oracle rigs crossed in.
 
 [quickchick/Properties.v](quickchick/Properties.v) is the half that needs an install:
-random generators, `forAll` over them, and the thing no enumeration has, **automatic
-counterexample shrinking**. The install is made, in a switch of its own, and `check`
-reports which switch holds it and at what version. QuickChick's Coq and dune constraints
+random generators and `forAll` over them, which reach a range rather than a list, a
+counterexample printed as drawn because `forAll` shrinks nothing. The install is made,
+in a switch of its own, and `check` reports which version that switch holds. QuickChick's Coq and dune constraints
 require an environment independent of the proof gate and CertiRocq compiler; `INSTALL`
 below restores its tested package snapshot.
 
