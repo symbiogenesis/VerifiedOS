@@ -594,7 +594,7 @@ Definition statement_of (p : Policy) (d : Durable) : Statement :=
      st_checkpoint := dur_checkpoint d; st_terminal := dur_terminal d |}.
 
 Definition set_pending (w : WState) (o : option Durable) : WState :=
-  {| ws_trusted := ws_trusted w; ws_stored := ws_stored w; ws_pending := o |}.
+  {| w with ws_pending := o |}.
 
 (* The specification consults the anchor and quarantines a store that does
    not match it; the tolerant reading takes the store as given. *)
@@ -628,9 +628,8 @@ Definition prepare (anchored : bool) (p : Policy) (w : WState) (s : Statement)
       if bindsb p s then
         (if statement_eqb s (statement_of p cur)
          then Some (set_pending w (Some cur))
-         else match dur_terminal cur with
-              | Some _ => None
-              | None =>
+         else if dur_terminal cur is Some _ then None
+              else
                   if prefixb (dur_checkpoint cur) (st_checkpoint s) then
                     (match st_terminal s with
                      | None => Some (set_pending w (Some (successor cur s)))
@@ -639,8 +638,7 @@ Definition prepare (anchored : bool) (p : Policy) (w : WState) (s : Statement)
                          then Some (set_pending w (Some (successor cur s)))
                          else None
                      end)
-                  else None
-              end)
+                  else None)
       else None
   end.
 
@@ -648,8 +646,7 @@ Definition prepare (anchored : bool) (p : Policy) (w : WState) (s : Statement)
 Definition commit (anchored : bool) (w : WState) : option WState :=
   match current anchored w, ws_pending w with
   | Some _, Some pend =>
-      Some {| ws_trusted := pend; ws_stored := Some pend;
-              ws_pending := ws_pending w |}
+      Some {| w with ws_trusted := pend; ws_stored := Some pend |}
   | _, _ => None
   end.
 
@@ -676,29 +673,18 @@ Definition step (anchored : bool) (p : Policy) (i : nat) (w : WState) (a : Actio
   : option (WState * option Statement) :=
   match a with
   | Prepare s =>
-      match prepare anchored p w s with
-      | Some w2 => Some (w2, None)
-      | None => None
-      end
+      if prepare anchored p w s is Some w2 then Some (w2, None) else None
   | Commit =>
-      match commit anchored w with
-      | Some w2 => Some (w2, None)
-      | None => None
-      end
+      if commit anchored w is Some w2 then Some (w2, None) else None
   | Release =>
-      match release anchored p w with
-      | Some (w2, s) => Some (w2, Some s)
-      | None => None
-      end
+      if release anchored p w is Some (w2, s) then Some (w2, Some s) else None
   | Crash => Some (set_pending w None, None)
   | Damage o =>
-      Some ({| ws_trusted := ws_trusted w; ws_stored := o;
-               ws_pending := ws_pending w |}, None)
+      Some ({| w with ws_stored := o |}, None)
   | Recover e =>
       if ev_authentic e && policy_eqb (ev_policy e) p && (ev_signer e =? i)
          && durable_eqb (ev_record e) (ws_trusted w)
-      then Some ({| ws_trusted := ws_trusted w; ws_stored := Some (ev_record e);
-                    ws_pending := None |}, None)
+      then Some ({| w with ws_stored := Some (ev_record e); ws_pending := None |}, None)
       else None
   end.
 
@@ -788,7 +774,7 @@ Qed.
 Lemma step_preserves_inv : forall p i w a w2 o,
   Inv w -> step true p i w a = Some (w2, o) -> Inv w2.
 Proof.
-  intros p i w a w2 o Hinv H. destruct a; simpl in H.
+  intros p i w a w2 o Hinv H. destruct a as [s | | | | ? | e]; simpl in H.
   - destruct (prepare true p w s) as [wp |] eqn:Ep; [| discriminate].
     injection H as H1 H2. subst wp.
     exact (prepare_preserves_inv p w s w2 Hinv Ep).
@@ -813,7 +799,7 @@ Lemma step_trusted_extends : forall p i w a w2 o,
   Inv w -> step true p i w a = Some (w2, o) ->
   prefixb (dur_checkpoint (ws_trusted w)) (dur_checkpoint (ws_trusted w2)) = true.
 Proof.
-  intros p i w a w2 o Hinv H. destruct a; simpl in H.
+  intros p i w a w2 o Hinv H. destruct a as [s | | | | ? | e]; simpl in H.
   - destruct (prepare true p w s) as [wp |] eqn:Ep; [| discriminate].
     injection H as H1 H2. subst wp.
     apply prepare_keeps_trusted in Ep. rewrite Ep. apply prefixb_refl.
@@ -839,7 +825,7 @@ Lemma step_emits : forall p i w a w2 s,
   step true p i w a = Some (w2, Some s) ->
   s = statement_of p (ws_trusted w) /\ ws_trusted w2 = ws_trusted w.
 Proof.
-  intros p i w a w2 s H. destruct a; simpl in H.
+  intros p i w a w2 s H. destruct a as [s0 | | | | ? | e]; simpl in H.
   - destruct (prepare true p w s0); discriminate.
   - destruct (commit true w); discriminate.
   - destruct (release true p w) as [[wr s1] |] eqn:Er; [| discriminate].
@@ -859,7 +845,7 @@ Lemma step_sealed_keeps_trusted : forall p i w a w2 o,
   Inv w -> dur_terminal (ws_trusted w) <> None ->
   step true p i w a = Some (w2, o) -> ws_trusted w2 = ws_trusted w.
 Proof.
-  intros p i w a w2 o Hinv Hseal H. destruct a; simpl in H.
+  intros p i w a w2 o Hinv Hseal H. destruct a as [s | | | | ? | e]; simpl in H.
   - destruct (prepare true p w s) as [wp |] eqn:Ep; [| discriminate].
     injection H as H1 H2. subst wp. apply prepare_keeps_trusted in Ep. exact Ep.
   - destruct (commit true w) as [wc |] eqn:Ec; [| discriminate].
@@ -1351,8 +1337,7 @@ Record Client : Type := {
 Definition client_transition (c : Client) (tr : Transition)
   (seals fresh_sigs : list Signature) : Client :=
   if transition_okb (cl_policy c) (cl_pinned c) tr seals fresh_sigs
-  then {| cl_policy := tr_new tr; cl_pinned := tr_anchor tr;
-          cl_continuity := cl_continuity c; cl_seen := cl_seen c |}
+  then {| c with cl_policy := tr_new tr; cl_pinned := tr_anchor tr |}
   else c.
 
 Definition client_rebootstrap (c : Client) (rb : Rebootstrap)
@@ -1439,12 +1424,11 @@ Proof. intros a. unfold Inv, fresh_at. simpl. exact I. Qed.
 
 Definition co_sign (p : Policy) (i : nat) (anchor : Checkpoint)
   (s : Statement) : list Signature :=
-  match run_out true p i (fresh_at anchor) [Prepare s; Commit; Release] with
-  | [out] => [ {| sig_policy := p; sig_signer := i;
-                  sig_key := enrolled_key p i; sig_statement := out;
-                  sig_authentic := true |} ]
-  | _ => []
-  end.
+  if run_out true p i (fresh_at anchor) [Prepare s; Commit; Release] is [out]
+  then [ {| sig_policy := p; sig_signer := i;
+            sig_key := enrolled_key p i; sig_statement := out;
+            sig_authentic := true |} ]
+  else [].
 
 Definition demo_policy : Policy :=
   {| pol_scope := 1; pol_epoch := 0; pol_keys := [10; 11; 12; 13];

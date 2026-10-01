@@ -34,7 +34,7 @@ Proof.
   destruct (guess false), (guess true); reflexivity.
 Qed.
 
-Definition guess_false (_ : bool) : bool := false.
+Definition guess_false & bool : bool := false.
 
 (* Four equal-weight seeds all select the same concrete constant function. *)
 Definition constant_successes (guess : bool -> bool) : nat :=

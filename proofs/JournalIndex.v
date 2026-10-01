@@ -804,12 +804,9 @@ Fixpoint last_write (p : list Rec) (cm : nat -> bool) (b : nat) : option nat :=
   match p with
   | nil => None
   | cons r t =>
-      match last_write t cm b with
-      | Some v => Some v
-      | None =>
-          if andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))
-          then Some (rec_value r) else None
-      end
+      if last_write t cm b is Some v then Some v
+      else if andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))
+           then Some (rec_value r) else None
   end.
 
 Definition writes_committed (p : list Rec) (cm : nat -> bool) (b : nat) : bool :=
@@ -897,7 +894,7 @@ Lemma apply_all_last :
 Proof.
   intros p. induction p as [ | r t IH ]; intros cm s b v H.
   - discriminate H.
-  - simpl in H. simpl. destruct (last_write t cm b) eqn:E.
+  - simpl in H. simpl. destruct (last_write t cm b) as [ n | ] eqn:E.
     + injection H as H. rewrite <- H. exact (IH cm _ b n E).
     + destruct (andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))) eqn:Ea;
         [ | discriminate H ].
@@ -914,7 +911,7 @@ Proof.
   intros p. induction p as [ | r t IH ]; intros cm b v H.
   - discriminate H.
   - simpl in H. unfold writes_committed. simpl.
-    destruct (last_write t cm b) eqn:E.
+    destruct (last_write t cm b) as [ n | ] eqn:E.
     + assert (Ht : writes_committed t cm b = true) by exact (IH cm b n E).
       unfold writes_committed in Ht. rewrite Ht.
       destruct (andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))); reflexivity.
@@ -1003,7 +1000,7 @@ Theorem an_honest_recovery_replays_idempotently :
     ReplayIsIdempotent rc.
 Proof.
   intros cut rc Hu Hl j s b.
-  destruct (last_write (cut j) (commits (cut j)) b) eqn:E.
+  destruct (last_write (cut j) (commits (cut j)) b) as [ n | ] eqn:E.
   - rewrite (Hl j (rc j s) b n E). rewrite (Hl j s b n E). reflexivity.
   - rewrite (Hu j (rc j s) b (last_write_none (cut j) (commits (cut j)) b E)).
     reflexivity.
@@ -1108,8 +1105,7 @@ Example the_probe_records_declare :
   /\ intact torn_probe = false :=
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
     (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
-    (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))))))))))))
-.
+    (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))))))))))).
 
 Definition probe_journal : list Rec :=
   cons torn_probe (cons (whole_probe 1 9) nil).
@@ -1229,7 +1225,7 @@ Theorem the_unscanned_recovery_still_replays_idempotently :
   ReplayIsIdempotent unscanned_recover.
 Proof.
   intros j s b. unfold unscanned_recover.
-  destruct (last_write j (commits (scan j)) b) eqn:E.
+  destruct (last_write j (commits (scan j)) b) as [ n | ] eqn:E.
   - rewrite (apply_all_last j (commits (scan j))
                (apply_all j (commits (scan j)) s) b n E).
     rewrite (apply_all_last j (commits (scan j)) s b n E). reflexivity.
@@ -1274,7 +1270,7 @@ Proof.
       rewrite (the_specification_leaves_untouched_blocks_alone j s b E).
       exact (nat_eqb_refl (s b)).
   - apply all_of_const. intros b.
-    destruct (last_write (scan j) (commits (scan j)) b) eqn:E.
+    destruct (last_write (scan j) (commits (scan j)) b) as [ n | ] eqn:E.
     + rewrite (the_specification_lands_every_committed_write j s b n E).
       exact (nat_eqb_refl n).
     + reflexivity.
@@ -1316,9 +1312,7 @@ Definition cuts (j : list Rec) : list (list Rec) :=
 
 (* One record cut short at g granules: R-10-001a's torn write, at the
    granule gap a says the register does not fix. *)
-Definition tear (g : nat) (r : Rec) : Rec :=
-  {| rec_txn := rec_txn r; rec_block := rec_block r; rec_value := rec_value r;
-     rec_closes := rec_closes r; rec_len := rec_len r; rec_landed := g |}.
+Definition tear (g : nat) (r : Rec) : Rec := {| r with rec_landed := g |}.
 
 Fixpoint tear_at (k g : nat) (j : list Rec) : list Rec :=
   match k, j with
@@ -1374,10 +1368,7 @@ Qed.
 Lemma last_write_app :
   forall (p q : list Rec) (cm : nat -> bool) (b : nat),
     last_write (app p q) cm b
-    = match last_write q cm b with
-      | Some v => Some v
-      | None => last_write p cm b
-      end.
+    = (if last_write q cm b is Some v then Some v else last_write p cm b).
 Proof.
   intros p. induction p as [ | r t IH ]; intros q cm b.
   - simpl. destruct (last_write q cm b); reflexivity.
@@ -1434,7 +1425,7 @@ Proof.
              (fun t => proj1 (the_commit_set_of_a_replay_is_the_journal_s i j t))
              (fun x => eq_refl)).
   unfold replay_prefix. rewrite (apply_all_app (take i j) j (commits j) s).
-  destruct (last_write j (commits j) b) eqn:E.
+  destruct (last_write j (commits j) b) as [ n | ] eqn:E.
   - rewrite (apply_all_last j (commits j) (apply_all (take i j) (commits j) s) b n E).
     rewrite (apply_all_last j (commits j) s b n E). reflexivity.
   - assert (Hw : writes_committed j (commits j) b = false)
@@ -1475,13 +1466,11 @@ Proof.
              (fun x => eq_refl)).
   unfold replay_suffix. rewrite (apply_all_app j (drop i j) (commits j) s).
   assert (Hsplit : last_write j (commits j) b
-                   = match last_write (drop i j) (commits j) b with
-                     | Some v => Some v
-                     | None => last_write (take i j) (commits j) b
-                     end).
+                   = (if last_write (drop i j) (commits j) b is Some v then Some v
+                      else last_write (take i j) (commits j) b)).
   { rewrite <- (last_write_app (take i j) (drop i j) (commits j) b).
     rewrite (app_of_take_and_drop Rec i j). reflexivity. }
-  destruct (last_write (drop i j) (commits j) b) eqn:E.
+  destruct (last_write (drop i j) (commits j) b) as [ n | ] eqn:E.
   - assert (Hn : last_write j (commits j) b = Some n) by exact Hsplit.
     rewrite (apply_all_last (drop i j) (commits j)
                (apply_all j (commits j) s) b n E).
@@ -1934,7 +1923,7 @@ Lemma land_torn_untouched :
   forall (m : Machine) (n g : nat) (p : list Write) (md : Medium) (x : nat),
     in_plan p x = false -> land_torn m n g p md x = md x.
 Proof.
-  intros m n g p md x H. unfold land_torn. destruct (nth_opt p n) eqn:E.
+  intros m n g p md x H. unfold land_torn. destruct (nth_opt p n) as [ w | ] eqn:E.
   - unfold place. destruct (Nat.eqb (w_block w) x) eqn:Eb.
     + assert (Hin : in_plan p (w_block w) = true)
         by exact (nth_opt_is_in_the_plan p n w E).
@@ -2498,10 +2487,7 @@ Qed.
 Definition Buffered (ka : KeyAlgebra) : Type := prod (Index ka) (Index ka).
 
 Definition blook (ka : KeyAlgebra) (k : Key ka) (bx : Buffered ka) : option nat :=
-  match look ka k (fst bx) with
-  | Some v => Some v
-  | None => look ka k (snd bx)
-  end.
+  if look ka k (fst bx) is Some v then Some v else look ka k (snd bx).
 
 Definition flush (ka : KeyAlgebra) (bx : Buffered ka) : Buffered ka :=
   pair nil (ins_all ka (fst bx) (snd bx)).
@@ -2538,11 +2524,7 @@ Proof. intros ka k bx. unfold blook. unfold plain_look. reflexivity. Qed.
 Fixpoint chunks {A : Type} (fuel n : nat) (l : list A) : list (list A) :=
   match fuel with
   | 0 => nil
-  | S f =>
-      match l with
-      | nil => nil
-      | cons _ _ => cons (take n l) (chunks f n (drop n l))
-      end
+  | S f => if l is nil then nil else cons (take n l) (chunks f n (drop n l))
   end.
 
 Definition leaves {A : Type} (n : nat) (l : list A) : list (list A) :=
@@ -3273,9 +3255,7 @@ Qed.
    block 1 stores *beside* its content, and the beside-placement answers
    differently at a block whose content did not move. That is R-10-022a's
    clause failing, rather than a check that happens to return false. *)
-Definition retag (bk : Blk) (t : nat) : Blk :=
-  {| blk_node := blk_node bk; blk_len := blk_len bk; blk_landed := blk_landed bk;
-     blk_content := blk_content bk; blk_tag := t |}.
+Definition retag (bk : Blk) (t : nat) : Blk := {| bk with blk_tag := t |}.
 
 Definition retagged_medium : Medium :=
   place demo_medium 1 (retag (demo_medium 1) 9).
@@ -3892,7 +3872,7 @@ Fixpoint bounded_tree (m : Machine) (md : Medium) (fuel b : nat) : bool :=
   (andb (complete (md b))
   (andb (node_fits m (blk_node (md b)))
     (match fuel with
-     | 0 => match kids_of md b with nil => true | cons _ _ => false end
+     | 0 => if kids_of md b is nil then true else false
      | S k => all_of (bounded_tree m md k) (kids_of md b)
      end))).
 
@@ -3959,11 +3939,7 @@ Qed.
 
 (* The logical journal's six-block view does not bound the physical demo's
    fresh addresses 10 and 11. Structural tests declare that larger inventory. *)
-Definition tree_demo : Machine := {|
-  record_granules := record_granules demo; block_count := 16;
-  fanout := fanout demo; height := height demo; node_granules := node_granules demo;
-  fresh_block := fresh_block demo; root_block := root_block demo; mac := mac demo
-|}.
+Definition tree_demo : Machine := {| demo with block_count := 16 |}.
 
 Definition self_edge_commit : Commit := {|
   cm_plan := cons {| w_block := 11; w_node := node_over (cons 11 nil) (cons 12 nil) |} nil;

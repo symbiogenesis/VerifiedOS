@@ -633,10 +633,8 @@ Fixpoint last_reg_write {W Cs Sr : Type} (g : nat)
   match l with
   | nil => None
   | cons (RecX h t v) r =>
-      match last_reg_write g r with
-      | Some found => Some found
-      | None => if Nat.eqb h g then Some (t, v) else None
-      end
+      if last_reg_write g r is Some found then Some found
+      else if Nat.eqb h g then Some (t, v) else None
   | cons _ r => last_reg_write g r
   end.
 
@@ -645,10 +643,8 @@ Fixpoint last_csr_write {W Cs Sr : Type} (eqb : Cs -> Cs -> bool) (c : Cs)
   match l with
   | nil => None
   | cons (RecC d v) r =>
-      match last_csr_write eqb c r with
-      | Some found => Some found
-      | None => if eqb c d then Some v else None
-      end
+      if last_csr_write eqb c r is Some found then Some found
+      else if eqb c d then Some v else None
   | cons _ r => last_csr_write eqb c r
   end.
 
@@ -700,14 +696,8 @@ Definition SwitchIsTotal (k : Kernel) (succ : Context (kmachine k))
 Definition replay (k : Kernel) (pre : Context (kmachine k)) (b : Trace k)
   : Context (kmachine k) :=
   Build_Context (kmachine k)
-    (fun g => match last_reg_write g b with
-              | Some (t, v) => (v, t)
-              | None => ctx_reg pre g
-              end)
-    (fun c => match last_csr_write k.(csr_eqb) c b with
-              | Some v => v
-              | None => ctx_csr pre c
-              end)
+    (fun g => if last_reg_write g b is Some (t, v) then (v, t) else ctx_reg pre g)
+    (fun c => if last_csr_write k.(csr_eqb) c b is Some v then v else ctx_csr pre c)
     (ctx_pending pre).
 
 (* The burst as a step relation of PartitionContext.v's own kind, which is
@@ -817,10 +807,7 @@ Fixpoint locate (l : list Extent) (pc : nat) : option Extent :=
 
 Definition site_of (k : Kernel) (ext : list Extent) (pc : nat) : Site :=
   if within k.(switch_text) pc then AtSwitch
-  else match locate ext pc with
-       | Some e => AtSlot e
-       | None => Astray pc
-       end.
+  else if locate ext pc is Some e then AtSlot e else Astray pc.
 
 Fixpoint pcs {W Cs Sr : Type} (l : list (TraceRecord W Cs Sr)) : list nat :=
   match l with
@@ -859,10 +846,10 @@ Fixpoint slot_visits (l : list Site) : list Extent :=
   end.
 
 Definition is_switch (s : Site) : bool :=
-  match s with AtSwitch => true | _ => false end.
+  if s is AtSwitch then true else false.
 
 Definition is_astray (s : Site) : bool :=
-  match s with Astray _ => true | _ => false end.
+  if s is Astray _ then true else false.
 
 (* The side condition of the reading itself (reading 8): a pc decides one
    site, or the classification is not a function of the declaration. *)
@@ -953,10 +940,7 @@ Definition filtered (k : Kernel) (bm : k.(Base) -> bool) (t : bool) (v : kword k
 Definition BurstCarriesNoStaleAuthority (k : Kernel) (bm : k.(Base) -> bool)
     (b : Trace k) : bool :=
   all_of (fun r =>
-    match r with
-    | RecX _ t v => only_if t (negb (bm (k.(base_of) v)))
-    | _ => true
-    end) b.
+    if r is RecX _ t v then only_if t (negb (bm (k.(base_of) v))) else true) b.
 
 Definition ImageIsSanitized (k : Kernel) (bm : k.(Base) -> bool)
     (succ : Context (kmachine k)) : bool :=
@@ -1252,10 +1236,7 @@ Definition decoding_check (k : Kernel) (top : kword k -> nat) (limit : nat)
     (l : list Attempt) (tr : Trace k) : bool :=
   andb (RootIsThePartitions k l tr)
        (all_of (fun r =>
-          match r with
-          | RecX _ _ v => Nat.leb (top v) limit
-          | _ => true
-          end) tr).
+          if r is RecX _ _ v then Nat.leb (top v) limit else true) tr).
 
 Definition demo_top (v : bool) : nat := if v then 1 else 0.
 
@@ -1599,11 +1580,11 @@ Definition WellFormedAttempts (l : list Attempt) : bool :=
 Definition BurstWritesExactlyOnce (k : Kernel) (b : Trace k) : bool :=
   andb
     (all_of (fun g => Nat.eqb (tally (fun r =>
-      match r with RecX h _ _ => Nat.eqb h g | _ => false end) b) 1)
+      if r is RecX h _ _ then Nat.eqb h g else false) b) 1)
       observed_registers)
     (all_of (fun c => only_if ((kmachine k).(csr_nameable) c)
       (Nat.eqb (tally (fun r =>
-        match r with RecC d _ => k.(csr_eqb) c d | _ => false end) b) 1))
+        if r is RecC d _ then k.(csr_eqb) c d else false) b) 1))
       k.(csr_roster)).
 
 Definition RunAnswersM44 (k : Kernel) (f : Frame (ktenant k))

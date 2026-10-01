@@ -329,17 +329,14 @@ Fixpoint last_of {A : Type} (l : list A) (d : A) : A :=
 Fixpoint chunks_of {A : Type} (fuel n : nat) (l : list A) : list (list A) :=
   match fuel with
   | 0 => nil
-  | S k => match l with
-           | nil => nil
-           | _ => take_of n l :: chunks_of k n (drop_of n l)
-           end
+  | S k => if l is nil then nil else take_of n l :: chunks_of k n (drop_of n l)
   end.
 
 Definition eqb_bool (x y : bool) : bool := negb (xorb x y).
 
 Fixpoint bits_eqb (a b : list bool) : bool :=
   match a with
-  | nil => match b with nil => true | _ => false end
+  | nil => if b is nil then true else false
   | x :: xs => match b with nil => false | y :: ys => andb (eqb_bool x y) (bits_eqb xs ys) end
   end.
 

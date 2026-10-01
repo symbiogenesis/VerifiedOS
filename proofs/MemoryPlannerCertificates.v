@@ -82,7 +82,7 @@ Proof.
 Qed.
 
 Definition decode_row (domain : list nat) (assignment : nat -> bool) : nat :=
-  match find assignment domain with Some value => value | None => 0 end.
+  if find assignment domain is Some value then value else 0.
 
 Lemma decode_row_present : forall domain assignment,
   (exists value, In value domain /\ assignment value = true) ->

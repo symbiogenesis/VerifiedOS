@@ -272,11 +272,9 @@ Record DrbgState : Type := {
 Definition hmac_drbg_update (provided k v : list bool) : list bool * list bool :=
   let k1 := hmac_sha256 k (v ++ separator_zero ++ provided) in
   let v1 := hmac_sha256 k1 v in
-  match provided with
-  | nil => pair k1 v1
-  | _ :: _ => let k2 := hmac_sha256 k1 (v1 ++ separator_one ++ provided) in
-              pair k2 (hmac_sha256 k2 v1)
-  end.
+  if provided is nil then pair k1 v1
+  else let k2 := hmac_sha256 k1 (v1 ++ separator_one ++ provided) in
+       pair k2 (hmac_sha256 k2 v1).
 
 (* The second pass taken on the wrong branch: run when provided_data is
    empty and skipped when it is not. It is an update in every other respect
@@ -285,11 +283,10 @@ Definition hmac_drbg_update (provided k v : list bool) : list bool * list bool :
 Definition update_with_its_branch_inverted (provided k v : list bool) : list bool * list bool :=
   let k1 := hmac_sha256 k (v ++ separator_zero ++ provided) in
   let v1 := hmac_sha256 k1 v in
-  match provided with
-  | nil => let k2 := hmac_sha256 k1 (v1 ++ separator_one ++ provided) in
-           pair k2 (hmac_sha256 k2 v1)
-  | _ :: _ => pair k1 v1
-  end.
+  if provided is nil
+  then let k2 := hmac_sha256 k1 (v1 ++ separator_one ++ provided) in
+       pair k2 (hmac_sha256 k2 v1)
+  else pair k1 v1.
 
 (* -------------------------------------------------------------------------
    Instantiate (s10.1.2.3) and reseed (s10.1.2.4), each parameterized over
@@ -350,10 +347,7 @@ Example a_partial_block_still_costs_a_block :
 Proof. vm_reflexivity. Qed.
 
 Definition update_on (additional : list bool) (k v : list bool) : list bool * list bool :=
-  match additional with
-  | nil => pair k v
-  | _ :: _ => hmac_drbg_update additional k v
-  end.
+  if additional is nil then pair k v else hmac_drbg_update additional k v.
 
 Definition generate_core (s : DrbgState) (bits : nat) (additional : list bool)
   : list bool * DrbgState :=
@@ -476,10 +470,7 @@ Proof. vm_reflexivity. Qed.
    equals everything, which no reflexivity check catches and which the count
    catches. *)
 Definition lax_transition_eqb (a b : Transition) : bool :=
-  match a with
-  | LockEdge _ _ => true
-  | _ => transition_eqb a b
-  end.
+  if a is LockEdge _ _ then true else transition_eqb a b.
 
 Example a_reflexive_equality_can_still_be_wrong :
   andb (all_of (fun t => lax_transition_eqb t t) all_transitions)
@@ -565,19 +556,17 @@ Definition step (d : SeedingDiscipline) (r : Run) (op : Op) : option Run :=
                Some {| state := snd out; pool := snd er; outputs := outputs r ++ (fst out :: nil) |}
            end
       else let out := generate_core (state r) bits additional in
-           Some {| state := snd out; pool := pool r; outputs := outputs r ++ (fst out :: nil) |}
+           Some {| r with state := snd out; outputs := outputs r ++ (fst out :: nil) |}
   | Reseed additional =>
       match take_entropy d (pool r) with
       | None => None
-      | Some er => Some {| state := reseed (state r) (fst er) additional; pool := snd er;
-                           outputs := outputs r |}
+      | Some er => Some {| r with state := reseed (state r) (fst er) additional; pool := snd er |}
       end
   | Cross t =>
       if reseed_on d t
       then match take_entropy d (pool r) with
            | None => None
-           | Some er => Some {| state := reseed (state r) (fst er) nil; pool := snd er;
-                                outputs := outputs r |}
+           | Some er => Some {| r with state := reseed (state r) (fst er) nil; pool := snd er |}
            end
       else Some r
   end.
@@ -601,7 +590,7 @@ Definition run_from (d : SeedingDiscipline) (entropy nonce personalization : lis
   end.
 
 Definition completed (r : option Run) : bool :=
-  match r with None => false | Some _ => true end.
+  if r is None then false else true.
 
 Definition outputs_of (r : option Run) : list (list bool) :=
   match r with None => nil | Some r => outputs r end.
@@ -623,10 +612,8 @@ Definition disciplined_run_b (d : SeedingDiscipline) (p : list (list bool)) (ops
   andb (disciplined_b d)
   (andb (fresh_pool p)
   (andb (all_of (fun e => Nat.eqb (length_of e) (seed_length d)) p)
-        (all_of (fun op => match op with
-                           | Draw bits _ => Nat.leb bits (draw_bound d)
-                           | _ => true
-                           end) ops))).
+        (all_of (fun op => if op is Draw bits _ then Nat.leb bits (draw_bound d) else true)
+                ops))).
 
 (* -------------------------------------------------------------------------
    What is stated of an arbitrary discipline, an arbitrary state and an
@@ -698,7 +685,7 @@ Theorem a_lock_transition_takes_fresh_entropy :
     Nat.eqb (length_of e) (seed_length d) = true ->
     pool r = e :: rest ->
     step d r (Cross the_lock_edge)
-    = Some {| state := reseed (state r) e nil; pool := rest; outputs := outputs r |}.
+    = Some {| r with state := reseed (state r) e nil; pool := rest |}.
 Proof.
   intros d r e rest HD HL HP. unfold step, take_entropy.
   rewrite (the_lock_edge_reseeds_under_a_disciplined_discipline d HD), HP, HL. reflexivity.
@@ -807,13 +794,7 @@ Definition demo : SeedingDiscipline :=
      prediction_resistance := false |}.
 
 Definition demo_pr : SeedingDiscipline :=
-  {| security_strength := security_strength demo;
-     seed_length := seed_length demo;
-     nonce_length := nonce_length demo;
-     draw_bound := draw_bound demo;
-     interval_bound := interval_bound demo;
-     reseed_on := reseed_on demo;
-     prediction_resistance := true |}.
+  {| demo with prediction_resistance := true |}.
 
 Example the_witness_is_disciplined : Disciplined demo.
 Proof. vm_compute. reflexivity. Qed.
@@ -824,31 +805,16 @@ Proof. vm_compute. reflexivity. Qed.
 (* Three disciplines the premise refuses, each the witness with one field
    moved. *)
 Definition silent_on_the_lock_edge : SeedingDiscipline :=
-  {| security_strength := security_strength demo;
-     seed_length := seed_length demo;
-     nonce_length := nonce_length demo;
-     draw_bound := draw_bound demo;
-     interval_bound := interval_bound demo;
-     reseed_on := fun t => negb (transition_eqb t the_lock_edge);
-     prediction_resistance := false |}.
+  {| demo with reseed_on := fun t => negb (transition_eqb t the_lock_edge);
+               prediction_resistance := false |}.
 
 Definition seeded_below_its_strength : SeedingDiscipline :=
-  {| security_strength := security_strength demo;
-     seed_length := security_strength demo - 1;
-     nonce_length := nonce_length demo;
-     draw_bound := draw_bound demo;
-     interval_bound := interval_bound demo;
-     reseed_on := reseed_on demo;
-     prediction_resistance := false |}.
+  {| demo with seed_length := security_strength demo - 1;
+               prediction_resistance := false |}.
 
 Definition with_no_interval : SeedingDiscipline :=
-  {| security_strength := security_strength demo;
-     seed_length := seed_length demo;
-     nonce_length := nonce_length demo;
-     draw_bound := draw_bound demo;
-     interval_bound := 0;
-     reseed_on := reseed_on demo;
-     prediction_resistance := false |}.
+  {| demo with interval_bound := 0;
+               prediction_resistance := false |}.
 
 Example the_discipline_silent_on_the_lock_edge_is_refused :
   disciplined_b silent_on_the_lock_edge = false.
@@ -870,13 +836,8 @@ Proof. vm_reflexivity. Qed.
 (* A fourth, whose nonce is one bit shorter than the witness's, which is the
    only clause of s8.6.7 the three above leave undecided. *)
 Definition nonced_below_half_its_strength : SeedingDiscipline :=
-  {| security_strength := security_strength demo;
-     seed_length := seed_length demo;
-     nonce_length := nonce_length demo - 1;
-     draw_bound := draw_bound demo;
-     interval_bound := interval_bound demo;
-     reseed_on := reseed_on demo;
-     prediction_resistance := false |}.
+  {| demo with nonce_length := nonce_length demo - 1;
+               prediction_resistance := false |}.
 
 Example the_discipline_nonced_below_half_its_strength_is_refused :
   disciplined_b nonced_below_half_its_strength = false.
@@ -907,13 +868,8 @@ Proof. vm_reflexivity. Qed.
    out of the definition: what is decided is which pairs of bounds the
    premise admits, so the numbers live inside the statements that decide. *)
 Definition bounded_at (draw interval : nat) (pr : bool) : SeedingDiscipline :=
-  {| security_strength := security_strength demo;
-     seed_length := seed_length demo;
-     nonce_length := nonce_length demo;
-     draw_bound := draw;
-     interval_bound := interval;
-     reseed_on := reseed_on demo;
-     prediction_resistance := pr |}.
+  {| demo with draw_bound := draw; interval_bound := interval;
+               prediction_resistance := pr |}.
 
 Example one_is_the_smallest_bound_and_zero_is_refused_on_either :
   andb (disciplined_b (bounded_at 1 1 false))
@@ -1154,7 +1110,7 @@ Example the_discipline_silent_on_the_lock_edge_takes_nothing_there :
 Proof. vm_reflexivity. Qed.
 
 Example a_lock_transition_from_an_empty_pool_halts :
-  completed (step demo {| state := state witness_run; pool := nil; outputs := nil |}
+  completed (step demo {| witness_run with pool := nil; outputs := nil |}
                   (Cross the_lock_edge)) = false.
 Proof. vm_reflexivity. Qed.
 

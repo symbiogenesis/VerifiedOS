@@ -151,12 +151,14 @@ own freshness. Unknown installed-library contexts use one checker process.
 
 Automatic worker sizing uses the guest's usable logical CPUs and available memory
 at each phase, with separate compile/audit and kernel budgets owned by
-[`env.proof_jobs`](vos/env.py). The budgets are informed by the
-[historical prover residency measurements](../docs/performance/toolchain-residency.md#the-prover-and-which-of-its-two-acts-the-device-performs),
-not a measurement of the current parallel batches. A large core count therefore
-does not automatically launch a memory-heavy checker on every core. Explicit
-`--jobs` overrides resource sizing. Unknown memory uses conservative defaults,
-and help, metadata commands and complete cache hits perform no capacity probe.
+[`env.proof_jobs`](vos/env.py). The compile/audit budget is informed by the
+[historical prover residency measurements](../docs/performance/toolchain-residency.md#the-prover-and-which-of-its-two-acts-the-device-performs).
+The kernel budget is set at or above the measured peak of the one kernel worker that
+checks every module on Guest CI's proofs runner, and `proof_jobs` records those
+runs and the margin. A large core count therefore does not automatically launch a
+memory-heavy checker on every core. Explicit `--jobs` overrides resource sizing.
+Unknown memory uses conservative defaults, and help, metadata commands and complete
+cache hits perform no capacity probe.
 
 Every changed module must be an explicit recursive check target in one batch.
 The launcher verifies complete, disjoint target coverage before starting workers.

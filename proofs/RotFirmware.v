@@ -1891,12 +1891,9 @@ Definition Unseal (m : Machine) : Type := nat -> nat -> Blob -> Answer.
    root the holder has enrolled and whether the generation stands at or
    above the floor (R-10-032, R-09-036a). *)
 Definition policy_admits (m : Machine) (d : nat) (p : Policy) : bool :=
-  match p with
-  | ExactVector bd => Nat.eqb d bd
-  | ManifestUnderEnrolledRoot =>
-      andb (member Nat.eqb m.(manifest_root) m.(enrolled_roots))
-           (Nat.leb m.(rollback_floor) m.(generation_version))
-  end.
+  if p is ExactVector bd then Nat.eqb d bd
+  else andb (member Nat.eqb m.(manifest_root) m.(enrolled_roots))
+            (Nat.leb m.(rollback_floor) m.(generation_version)).
 
 Lemma policy_admits_exact :
   forall (m : Machine) (d bd : nat),
@@ -2376,7 +2373,7 @@ Fixpoint without (r : nat) (l : list nat) : list nat :=
   end.
 
 Definition is_empty {A : Type} (l : list A) : bool :=
-  match l with nil => true | cons _ _ => false end.
+  if l is nil then true else false.
 
 Lemma member_without :
   forall (r : nat) (l : list nat), member Nat.eqb r (without r l) = false.
@@ -2994,10 +2991,7 @@ Proof. intros H. discriminate H. Qed.
    credential attempt counter dead, which is the offline brute force
    R-12-017 exists to refuse. *)
 Definition dead_attempt_counter (c : Counter) (e : Event) : bool :=
-  match c with
-  | CredentialAttemptCounter => false
-  | _ => advances_on c e
-  end.
+  if c is CredentialAttemptCounter then false else advances_on c e.
 
 Example the_dead_attempt_counter_table :
   map_over (fun c => map_over (dead_attempt_counter c) all_events) all_counters
@@ -3076,7 +3070,7 @@ Proof. intros m n H. reflexivity. Qed.
 Definition Charge : Type := Outcome -> nat -> nat.
 
 Definition spec_charge : Charge := fun o n =>
-  match o with EntropyHalt => n | OrdinaryFailure => S n end.
+  if o is EntropyHalt then n else S n.
 
 Definition SpendsNoAttemptOnTheEntropyHalt (ch : Charge) : Prop :=
   forall n : nat, ch EntropyHalt n = n.
@@ -3125,7 +3119,7 @@ Proof. intros H. specialize (H 0). discriminate H. Qed.
 Definition Revert : Type := Slot -> Slot.
 
 Definition spec_revert : Revert := fun s =>
-  match s with SlotA => SlotB | SlotB => SlotA end.
+  if s is SlotA then SlotB else SlotA.
 
 Definition RevertsToTheOtherSlot (rv : Revert) : Prop :=
   forall s : Slot, rv s <> s.
