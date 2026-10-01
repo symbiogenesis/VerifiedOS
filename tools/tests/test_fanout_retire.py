@@ -971,6 +971,37 @@ def _python_flock_sites(name: str, text: str) -> set[tuple[str, str]]:
     return sites
 
 
+# POSIX record locks: `lockf` and `fcntl`'s `F_SETLK` family. A record lock and a
+# `flock` on one file neither exclude each other nor are taken by the retirement.
+_RECORD_LOCKS = frozenset({"lockf", "F_SETLK", "F_SETLKW", "F_OFD_SETLK", "F_OFD_SETLKW"})
+_RECORD_LOCK = re.compile(r"\b(?:lockf|F_(?:OFD_)?SETLKW?)\b")
+
+
+def _python_record_locks(name: str, text: str) -> list[str]:
+    """Each reference to a POSIX record lock in one Python source: an attribute or a
+    name spelled as one, a name an import from `fcntl` or `os` binds to one, or a
+    string other than a docstring that names one."""
+    tree = ast.parse(text)
+    bound = _RECORD_LOCKS | {alias.asname for node in ast.walk(tree)
+                             if isinstance(node, ast.ImportFrom) and node.module in {"fcntl", "os"}
+                             for alias in node.names if alias.name in _RECORD_LOCKS and alias.asname}
+    docstrings = _docstrings(tree)
+    found: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute):
+            spelled = node.attr in _RECORD_LOCKS
+        elif isinstance(node, ast.Name):
+            spelled = node.id in bound
+        elif isinstance(node, ast.Constant) and id(node) not in docstrings:
+            value = node.value.decode("latin-1") if isinstance(node.value, bytes) else node.value
+            spelled = isinstance(value, str) and _RECORD_LOCK.search(value) is not None
+        else:
+            continue
+        if spelled:
+            found.append(f"{name}:{node.lineno}: a POSIX record lock")
+    return found
+
+
 # The one recognized shell form: `flock` with option flags and a numeric descriptor,
 # ending its command.
 _SHELL_FLOCK = re.compile(r"flock(?:[ \t]+(?:-[A-Za-z]+|--[a-z][a-z-]*))+[ \t]+(\d+)[ \t]*(?:$|[;&|)])",
@@ -1074,6 +1105,17 @@ def _c_flock_calls(text: str) -> int | None:
     return calls if calls == len(_FLOCK.findall(code)) else None
 
 
+# What a `flock(` count cannot read: a POSIX record lock, and the `flock` system call
+# reached by its number, which `\bflock\b` does not match.
+_C_UNREAD_LOCK = re.compile(r"\blockf\b|\bF_(?:OFD_)?SETLKW?\b|\b(?:SYS|__NR)_flock\b")
+
+
+def _c_unread_locks(text: str) -> int:
+    """How many record locks and numbered `flock` system calls one C or C++ source
+    names outside comments."""
+    return len(_C_UNREAD_LOCK.findall(_c_code(text)))
+
+
 def _campaign_calls(name: str, text: str) -> list[tuple[str, bool]]:
     """Each `block_persistence.run` call in one source, and whether it sits inside a
     `with ... hold_lock(<its output>, ...)`."""
@@ -1097,8 +1139,8 @@ def _campaign_calls(name: str, text: str) -> list[tuple[str, bool]]:
 
 def _producer_lock_scanners_fail_closed() -> None:
     """A Python `flock` bound by import or named by any string but a docstring is a
-    site, and a shell or C `flock` outside the one recognized form is reported rather
-    than passed over."""
+    site, a shell or C `flock` outside the one recognized form is reported rather than
+    passed over, and so is a POSIX record lock or a numbered `flock` system call."""
     for text, owner in (("from fcntl import flock as grab\ndef take(fd):\n    grab(fd, 2)\n", "take"),
                         ("from fcntl import *\ndef take(fd):\n    flock(fd, 2)\n", "take"),
                         ("import subprocess\ndef run(path):\n"
@@ -1136,6 +1178,25 @@ def _producer_lock_scanners_fail_closed() -> None:
            "the C scan counts a call and skips comments")
     ensure(_c_flock_calls('auto take = flock; const char *s = "flock";\n') is None,
            "the C scan reports a flock it cannot read as a call")
+    for text in ("import fcntl\ndef take(fd):\n    fcntl.lockf(fd, fcntl.LOCK_EX)\n",
+                 "import os\ndef take(fd):\n    os.lockf(fd, os.F_LOCK, 0)\n",
+                 "import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLK, record)\n",
+                 "import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLKW, record)\n",
+                 "from fcntl import F_OFD_SETLK as SET, fcntl\ndef take(fd, record):\n    fcntl(fd, SET, record)\n",
+                 "from fcntl import *\ndef take(fd, record):\n    fcntl(fd, F_OFD_SETLKW, record)\n",
+                 "import ctypes\ndef take(fd):\n    getattr(ctypes.CDLL(None), 'lockf')(fd, 1, 0)\n"):
+        found = _python_record_locks("probe.py", text)
+        ensure(len(found) == 1 and found[0].startswith("probe.py:3: "),
+               f"the Python scan must report the record lock in {text!r}, got {found}")
+    ensure(_python_record_locks("probe.py", '"""lockf and F_SETLK are described."""\n'
+                                            "import fcntl\ndef take(fd):\n    fcntl.flock(fd, 2)\n") == [],
+           "a docstring naming a record lock, and a flock, are no record locks")
+    for text, count in (("int f(int fd) { return lockf(fd, F_LOCK, 0); }\n", 1),
+                        ("fcntl(fd, F_SETLK, &l); fcntl(fd, F_SETLKW, &l);\n", 2),
+                        ("fcntl(fd, F_OFD_SETLK, &l); fcntl(fd, F_OFD_SETLKW, &l);\n", 2),
+                        ("syscall(SYS_flock, fd, 2); syscall(__NR_flock, fd, 8);\n", 2),
+                        ("/* lockf(fd), F_SETLK */ int fd; // syscall(SYS_flock, fd, 2)\n", 0)):
+        ensure(_c_unread_locks(text) == count, f"the C scan must count {count} in {text!r}")
     campaign = ("def go(out, other):\n"
                 "    block_persistence.run(1, 2, 3, out, 4)\n"
                 "    with env.hold_lock(other, 'x'):\n        block_persistence.run(1, 2, 3, out, 4)\n"
@@ -1149,7 +1210,8 @@ def _producer_lock_inventory() -> None:
     file, a directory in `_DIRECTORY_LOCKS`, or a lock of its own inside an output
     beside which its launcher holds a `*.lock`: each `flock` site in the tools' Python
     and in the checkout's shell and C and C++ sources is classified here, and an
-    occurrence the scans cannot classify fails."""
+    occurrence the scans cannot classify fails, as does any POSIX record lock, which a
+    `flock` neither excludes nor is excluded by."""
     lock_files = {("vos/env.py", "_flock"), ("vos/env.py", "_unlock"),  # env._lock_path
                   ("vos/cli/fanout.py", "_exclusive"),  # out/fanout/.lock, host side
                   ("vos/fanout_retire.py", "retain_native")}  # the retirement itself
@@ -1160,18 +1222,26 @@ def _producer_lock_inventory() -> None:
     ensure(directories | {("vos/env.py", "_flock")} <= sites,
            f"precondition: the scan finds the known flock sites, got {sites}")
     ensure(sites <= lock_files | directories, f"unclassified flock sites: {sites - lock_files - directories}")
+    records = [found for path in sources
+               for found in _python_record_locks(path.relative_to(TOOLS).as_posix(), path.read_text(encoding="utf-8"))]
+    ensure(not records, f"unclassified POSIX record locks: {records}")
     # Native producers' own locks, by file. The emulator flocks a `--blkdev-image`,
     # which the tools pass only from `block_persistence.run`, under the campaign's
     # `<output>.lock`; the unit test and the emulator it launches lock images in its
     # scratch in the build tree, under the lock ctest's caller holds beside that tree.
     native = {"model/c_emulator/blkdev_image.cpp": 1, "model/test/unit_tests/block_image.cpp": 1}
     counts: dict[str, int | None] = {}
+    unread: dict[str, int] = {}
     for path in _checkout_sources((".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp")):
         text = path.read_text(encoding="utf-8", errors="replace")
         if _FLOCK.search(text) is not None:
             counts[path.relative_to(TOOLS.parent).as_posix()] = _c_flock_calls(text)
+        if _C_UNREAD_LOCK.search(text) is not None:
+            unread[path.relative_to(TOOLS.parent).as_posix()] = _c_unread_locks(text)
     ensure({name: count for name, count in counts.items() if count != 0} == native,
            f"unclassified native flock sites (file: calls, None where one is not a call): {counts}")
+    ensure(not any(unread.values()),
+           f"unclassified native record locks and numbered flock system calls (file: count): {unread}")
     launchers = {path.relative_to(TOOLS).as_posix() for path in sources
                  if any(isinstance(node, ast.Constant) and isinstance(node.value, str)
                         and node.value.startswith("--blkdev-image")
