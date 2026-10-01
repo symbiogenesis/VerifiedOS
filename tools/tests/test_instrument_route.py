@@ -17,6 +17,7 @@ from unittest.mock import patch
 
 from ci import instrument_route as route
 from tests.harness import Case, ensure, sandbox_tree
+from vos import mutate, seeded
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / route.WORKFLOW
@@ -453,10 +454,7 @@ def _run_step_records_how_it_ended() -> None:
                "a step that exits nonzero within its limit fails")
         journal = root / route.JOURNAL
         journal.parent.mkdir(parents=True, exist_ok=True)
-        journal.write_text("== s against the o oracle\n"
-                           "   scope: over the whole population of 1 mutant(s)\n"
-                           "    1  survived  p:1 `a` -> `b`: x\n"
-                           "== complete: 1 verdict(s) decided, exit 1\n", encoding="utf-8")
+        journal.write_text(_journal(_SURVIVED, whole=1), encoding="utf-8")
         with quiet:
             done = route.run_step("seed", [python, "-c", "raise SystemExit(1)"], root=root,
                                   hooks=_hooks(), journal=journal)
@@ -464,10 +462,16 @@ def _run_step_records_how_it_ended() -> None:
         ensure(done == 0 and route.as_object(steps["seed"])["verdict"] == route.COMPLETED,
                "a seed run whose journal closes on every mutant it picked is completed "
                "whatever it exited")
-        journal.write_text("== s against the o oracle\n"
-                           "   scope: over 20 of 90 mutant(s), which is a sample and not "
-                           "the population\n"
-                           "== complete: 0 verdict(s) decided, exit 1\n", encoding="utf-8")
+        journal.write_text(_journal(_KILLED, _UNDECIDED), encoding="utf-8")
+        with quiet:
+            done = route.run_step("seed", [python, "-c", "raise SystemExit(1)"], root=root,
+                                  hooks=_hooks(), journal=journal)
+        steps = route.as_object(route.load_receipt(root)["steps"])
+        ensure(done == 0 and route.as_object(steps["seed"])["verdict"] == route.COMPLETED,
+               "a seed run whose journal counts an undecided mutant among those it picked "
+               "is completed")
+        journal.write_text(_journal(picked=20, whole=90, baseline="the unmutated tree did "
+                                    "not compile, so there is no baseline"), encoding="utf-8")
         with quiet:
             done = route.run_step("seed", [python, "-c", "raise SystemExit(1)"], root=root,
                                   hooks=_hooks(), journal=journal)
@@ -614,18 +618,59 @@ def _receipt(key: str, revision: str, *, candidate: str = REVISION, base: str = 
     return receipt
 
 
-def _journal(*lines: str) -> str:
-    body = [f"{n:>5}  {line}" for n, line in enumerate(lines, 1)]
-    return "\n".join(["== proofs/CyclicExecutive.v against the prover-then-QuickChick oracle",
-                      "   scope: over 2 of 9 mutant(s)", *body,
-                      f"== complete: {len(lines)} verdict(s) decided, exit 1"]) + "\n"
+def _mutant(ident: str, line: int, before: str, after: str) -> mutate.Mutant:
+    return mutate.Mutant(ident, ident.rsplit("/", 1)[0], "proofs/C.v", line, 0, 0, before,
+                         after)
 
 
-_KILLED = "killed    proofs/C.v:3 `<=` -> `<`: refuted 1 of 33"
-_SURVIVED = "survived  proofs/C.v:9 `S n` -> `n`: 33 held"
+_RELATIONAL = _mutant("relational/1", 3, "<=", "<")
+_SUCCESSOR = _mutant("successor/4", 9, "S n", "n")
+_SWAP = _mutant("swap/2", 4, "a", "b")
+_TIMED_OUT = ("the compile of proofs/C.v reached gallina's per-file limit of 900 s and was "
+              "stopped, so nothing was decided about it")
+_KILLED = (_RELATIONAL, seeded.KILLED, "refuted 1 of 33")
+_SURVIVED = (_SUCCESSOR, seeded.SURVIVED, "33 held")
+_UNDECIDED = (_SUCCESSOR, seeded.UNDECIDED, _TIMED_OUT)
 _LISTING = ("== proofs/C.v: 9 mutant(s) over 2 operator(s)\n"
             "     relational/1       proofs/C.v:3 `<=` -> `<`\n"
             "     successor/4        proofs/C.v:9 `S n` -> `n`\n")
+
+
+def _journal(*verdicts: tuple[mutate.Mutant, str, str], whole: int = 9,
+             picked: int | None = None, close: int | None = 1,
+             baseline: str | None = None) -> str:
+    """A journal written by seed's own `Journal`, driven as `seed coq --quickchick`
+    drives it, so a change to the producer's format moves these fixtures with it: the
+    head over `picked` of `whole` mutants, the baseline's notes, and for each verdict the
+    note naming the mutant the tree is on, a compile's note and the verdict, which
+    `record` writes after a note naming its number; then, where `baseline` is given, the
+    note saying why there is none in place of every verdict; and the closing line at
+    exit `close` unless it is None, as a run that never finished writes none."""
+    tree = "quickchick"
+    with tempfile.TemporaryDirectory() as scratch:
+        book = seeded.Journal(Path(scratch) / "seed" / "quickchick.journal")
+        ran = len(verdicts) if picked is None else picked
+        book.start("proofs/CyclicExecutive.v", "prover-then-QuickChick",
+                   seeded.Scope(whole=whole, ran=ran))
+        book.note(f"{tree}: baseline")
+        book.note(f"{tree}: Properties.v draws from seed 42")
+        book.note(f"{tree}: compiled proofs/C.v in 1.25 s, exit 0")
+        if baseline is not None:
+            book.note(f"no baseline: {baseline}")
+        for mutant, outcome, detail in verdicts:
+            book.note(f"{tree}: mutant {mutant.ident} ({mutant.operator}) {mutant.what}")
+            book.note(f"{tree}: compiled proofs/C.v in 2.50 s, exit 0")
+            book.record(seeded.Verdict(mutant, outcome, detail), f"{tree}: mutant {mutant.ident}")
+        if close is not None:
+            book.close(close)
+        return book.path.read_text(encoding="utf-8")
+
+
+def _noteless(journal: route.Journal) -> bool:
+    """Whether no note entered any verdict's reason or identity."""
+    return all("--" not in entry.detail and "compiled" not in entry.detail
+               and "is verdict" not in entry.detail and "--" not in entry.identity
+               for entry in journal.entries)
 
 
 def _artifacts(root: Path, *, seed: bool = True,
@@ -689,10 +734,9 @@ def _join_passes_and_lists_mutants() -> None:
 
 
 def _join_lists_differences() -> None:
-    journals = {"seed-candidate-2": _journal(_KILLED.replace("killed  ", "survived"),
+    journals = {"seed-candidate-2": _journal((_RELATIONAL, seeded.SURVIVED, "33 held"),
                                              _SURVIVED),
-                "seed-base": _journal(_KILLED, "undecided proofs/C.v:9 `S n` -> `n`: "
-                                               "Mutant.v reached the 900 s limit")}
+                "seed-base": _journal(_KILLED, _UNDECIDED)}
     edits: dict[str, dict[str, object]] = {"seed-base": {"opam_client": "2.5.0",
                                                          "runner_image": "ubuntu26-2"}}
     report = _joined(lambda root: _artifacts(root, journals=journals, edits=edits))
@@ -700,14 +744,96 @@ def _join_lists_differences() -> None:
     ensure(len(route.as_list(seed["candidate_differences"])) == 1
            and len(route.as_list(seed["base_differences"])) == 3,
            f"each mutant whose verdict moves is listed with both runs': {seed!r}")
+    base = route.as_object(route.as_object(seed["runs"])["base"])
+    ensure(base["complete"] is True and base["decided"] == 1 and base["undecided"] == 1
+           and base["shortfall"] is None,
+           f"a run with an undecided mutant closes on every mutant it picked: {base!r}")
+    mixed = _journal(_KILLED, (_SWAP, seeded.SURVIVED, "33 held"), _UNDECIDED)
+    counted = route.as_object(route.as_object(route.as_object(_joined(
+        lambda root: _artifacts(root, journals={"seed-base": mixed}))["seed"])["runs"])["base"])
+    ensure(counted["decided"] == 2 and counted["undecided"] == 1 and counted["picked"] == 3
+           and counted["verdicts"] == 3 and counted["shortfall"] is None,
+           f"a run's decided and undecided counts are each its closing line's: {counted!r}")
     other = [route.as_object(item) for item in route.as_list(seed["other_verdicts"])]
-    ensure(len(other) == 1 and other[0]["verdict"] == "undecided"
-           and "900 s" in str(other[0]["reason"]),
-           f"a verdict other than the four is listed with its reason: {other!r}")
+    ensure(len(other) == 1 and other[0]["verdict"] == seeded.UNDECIDED
+           and other[0]["reason"] == _TIMED_OUT and other[0]["run"] == "base",
+           f"an undecided verdict is listed with its journalled reason alone: {other!r}")
+    reasons = [str(side["reason"]) for name in ("candidate_differences", "base_differences")
+               for item in route.as_list(seed[name])
+               for key, sides in route.as_object(item).items() if key != "mutant"
+               for side in map(route.as_object, route.as_list(sides))]
+    ensure(len(reasons) == 8 and set(reasons) == {"refuted 1 of 33", "33 held", _TIMED_OUT},
+           f"each difference carries the verdicts' journalled reasons and no note: {reasons!r}")
     pairs = route.as_list(report["differing_sides"])
     ensure({route.as_object(item)["field"] for item in pairs} == {"opam_client",
                                                                    "runner_image"},
            f"each pair of sides whose client or image differs: {pairs!r}")
+
+
+def _peaked_steps() -> dict[str, object]:
+    """A build job's steps as run_step records them: one GNU time and the sampler both
+    read, one shorter than the first sample that only GNU time read, one GNU time did
+    not wrap that the sampler read, and one neither read."""
+    def step(time: dict[str, float] | None, sampled: int, tree: int, samples: int
+             ) -> dict[str, object]:
+        return {"verdict": route.PASSED, "reason": "exit 0", "exit": 0, "limit_s": 600,
+                "seconds": 1.0, "time": time, "peak_rss_kb": sampled,
+                "peak_tree_rss_kb": tree, "samples": samples}
+    return {"provision": step({"real": 572.5, "maxrss_kb": 1772936.0}, 1383676, 2050476, 9),
+            "properties": step({"real": 23.8, "maxrss_kb": 543612.0}, 0, 0, 0),
+            "check": step(None, 155064, 160000, 1),
+            "export": step(None, 0, 0, 0)}
+
+
+def _join_gives_each_step_peak() -> None:
+    cases: list[tuple[dict[str, object], tuple[object, ...]]] = [
+        ({"time": {"maxrss_kb": 1772936.0}, "peak_rss_kb": 1383676, "peak_tree_rss_kb": 2050476},
+         (1772936, route.PEAK_FROM_TIME, 1772936, 1383676, 2050476)),
+        ({"time": {"maxrss_kb": 543612.0}, "peak_rss_kb": 0, "peak_tree_rss_kb": 0,
+          "samples": 0}, (543612, route.PEAK_FROM_TIME, 543612, None, None)),
+        ({"time": {"maxrss_kb": 800.0}, "peak_rss_kb": 900, "peak_tree_rss_kb": 950},
+         (900, route.PEAK_FROM_SAMPLER, 800, 900, 950)),
+        ({"time": {"maxrss_kb": 900.0}, "peak_rss_kb": 900},
+         (900, route.PEAK_FROM_TIME, 900, 900, None)),
+        ({"time": None, "peak_rss_kb": 155064, "peak_tree_rss_kb": 160000},
+         (155064, route.PEAK_FROM_SAMPLER, None, 155064, 160000)),
+        ({"time": {"real": 0.1}, "peak_rss_kb": 0, "peak_tree_rss_kb": 0, "samples": 0},
+         (None, None, None, None, None)),
+        ({"verdict": route.NOT_RUN, "reason": "the job ended before this step"},
+         (None, None, None, None, None)),
+    ]
+    for receipted, expected in cases:
+        found = route.step_peak(receipted)
+        got = tuple(found[name] for name in ("peak_rss_kb", "peak_from", "maxrss_kb",
+                                             "sampled_rss_kb", "sampled_tree_rss_kb"))
+        ensure(got == expected, f"a step's peak is the larger figure, from where it came, "
+               f"and none where neither recorded one: {receipted!r} gave {got!r}")
+    report = _joined(lambda root: _artifacts(root, edits={"build": {"steps": _peaked_steps()}}))
+    steps = route.as_object(route.as_object(route.as_object(report["jobs"])["build"])["steps"])
+    rows = {name: route.as_object(steps[name]) for name in steps}
+    ensure(rows["properties"]["peak_rss_kb"] == 543612
+           and rows["properties"]["peak_from"] == route.PEAK_FROM_TIME
+           and rows["properties"]["sampled_rss_kb"] is None
+           and rows["provision"]["peak_rss_kb"] == 1772936
+           and rows["provision"]["sampled_rss_kb"] == 1383676
+           and rows["provision"]["sampled_tree_rss_kb"] == 2050476
+           and rows["check"]["peak_from"] == route.PEAK_FROM_SAMPLER
+           and rows["export"]["peak_rss_kb"] is None and rows["export"]["peak_from"] is None,
+           f"report.json gives each step's peak and both figures: {rows!r}")
+    text = route.summary(report)
+    ensure("543612 kB from GNU time; GNU time 543612 kB, sampler none, sampled tree none" in text
+           and "155064 kB from the sampler; GNU time none, sampler 155064 kB, sampled tree "
+               "160000 kB" in text
+           and "| none: neither GNU time nor the sampler recorded one |" in text
+           and not re.search(r"\| 0 \|", text),
+           f"the job summary gives each step's peak and where it came from, never 0: {text!r}")
+    limited = dict(report, jobs=dict(route.as_object(report["jobs"]), **{"seed-base": {
+        "verdict": route.UNDECIDED, "steps": {"seed": {
+            "verdict": route.UNDECIDED, "reason": "the step reached its limit of 60 s and "
+                                                  "timeout ended it"}}}}))
+    ensure("recorded `quickchick properties` peak, 543612 kB from GNU time" in
+           route.summary(limited),
+           "a seed step at its limit names the properties peak the next dispatch stands on")
 
 
 def _join_records_not_run_and_refusals() -> None:
@@ -825,22 +951,56 @@ def cast_list(value: object) -> list[str]:
 
 
 def _journal_and_population_readers() -> None:
-    text = (_journal(_KILLED, "stillborn proofs/C.v:4 `a` -> `b`: did not compile\n"
-                              "  with a second line")
-            + "")
+    text = _journal(_KILLED, (_SWAP, seeded.STILLBORN,
+                              "did not compile\n  with a second line"))
     journal = route.parse_journal(text)
-    ensure(journal.complete and journal.exit == 1 and journal.scope == "over 2 of 9 mutant(s)"
+    ensure(journal.complete and journal.exit == 1
+           and journal.scope == "over 2 of 9 mutant(s), which is a sample and not the "
+                                "population"
            and [e.outcome for e in journal.entries] == ["killed", "stillborn"]
-           and journal.entries[1].detail.endswith("a second line")
+           and journal.entries[1].detail == "did not compile\n  with a second line"
+           and journal.entries[0].detail == "refuted 1 of 33"
            and journal.entries[0].identity == "proofs/C.v:3 `<=` -> `<`",
-           f"the journal reads verdicts, scope and close: {journal!r}")
-    ensure(journal.picked == 2 and journal.decided == 2
+           f"the journal reads verdicts, a reason over several lines, scope and close: "
+           f"{journal!r}")
+    ensure(journal.picked == 2 and journal.decided == 2 and journal.undecided == 0
+           and "undecided" not in text.splitlines()[-1]
            and route.journal_shortfall(journal) is None,
-           f"a journal closing on every mutant it picked records a finished run: {journal!r}")
-    truncated = route.parse_journal(text.rsplit("== complete", 1)[0])
-    ensure(not truncated.complete and len(truncated.entries) == 2
+           f"a journal closing with nothing undecided on every mutant it picked records a "
+           f"finished run: {journal!r}")
+    mixed_text = _journal(_KILLED, (_SWAP, seeded.SURVIVED, "33 held"), _UNDECIDED)
+    mixed = route.parse_journal(mixed_text)
+    notes = [line for line in mixed_text.splitlines() if line.startswith("-- ")]
+    ensure(len(notes) == 12 and mixed_text.splitlines()[-1]
+           == "== complete: 2 verdict(s) decided, 1 undecided, exit 1",
+           f"seed's journal interleaves notes with its verdicts and counts the undecided "
+           f"apart: {mixed_text!r}")
+    ensure([e.outcome for e in mixed.entries] == ["killed", "survived", "undecided"]
+           and [e.detail for e in mixed.entries] == ["refuted 1 of 33", "33 held", _TIMED_OUT]
+           and _noteless(mixed) and mixed.decided == 2 and mixed.undecided == 1
+           and mixed.complete and mixed.exit == 1 and mixed.picked == 3
+           and route.journal_shortfall(mixed) is None,
+           f"notes are no verdict and no verdict's reason, and an undecided verdict counts "
+           f"toward the mutants the run picked: {mixed!r}")
+    step = route.classify(1, 60, oom=[], lowest_free_disk=None, seconds=5.0,
+                          journal_complete=route.journal_shortfall(mixed) is None)
+    ensure(step.verdict == route.COMPLETED,
+           f"a seed step whose journal closes with an undecided mutant is completed: {step!r}")
+    truncated = route.parse_journal(_journal(_KILLED, _UNDECIDED, close=None))
+    ensure(not truncated.complete and len(truncated.entries) == 2 and _noteless(truncated)
+           and truncated.decided is None and truncated.undecided is None
            and route.journal_shortfall(truncated) == "its journal has no closing line",
-           "a journal with no closing line is incomplete")
+           f"a journal with no closing line is incomplete: {truncated!r}")
+    short = route.parse_journal(_journal(_KILLED, _UNDECIDED, picked=4))
+    ensure(route.journal_shortfall(short) == "its journal closes on 2 of the 4 mutant(s) it "
+                                             "picked, 1 of them undecided",
+           f"a closing count short of the mutants picked says how: {short!r}")
+    unstood = route.parse_journal(_journal(picked=20, whole=90, baseline="the unmutated "
+                                           "tree did not compile, so there is no baseline"))
+    ensure(not unstood.entries and unstood.decided == 0 and unstood.undecided == 0
+           and route.journal_shortfall(unstood) == "its journal closes on 0 of the 20 "
+                                                   "mutant(s) it picked",
+           f"a run whose baseline did not stand closes on none it picked: {unstood!r}")
     head = "== proofs/C.v against the prover-then-QuickChick oracle\n"
     for body, fragment in (
             ("   scope: over 20 of 90 mutant(s), which is a sample and not the population\n"
@@ -931,6 +1091,7 @@ def cases() -> list[Case]:
             Case("staging-refuses-a-symlink", _staging_refuses_a_symlink, lane="guest"),
             Case("join-passes-and-lists-mutants", _join_passes_and_lists_mutants),
             Case("join-lists-differences", _join_lists_differences),
+            Case("join-gives-each-step-peak", _join_gives_each_step_peak),
             Case("join-records-not-run-and-refusals", _join_records_not_run_and_refusals),
             Case("join-reads-failures-outside-wrapped-steps",
                  _join_reads_failures_outside_wrapped_steps),

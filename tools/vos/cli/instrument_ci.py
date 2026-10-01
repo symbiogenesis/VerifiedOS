@@ -26,11 +26,11 @@ another, a member that cannot be read or an archive larger than the route's boun
 refusing it; each member is held to the staging allowlist and each
 recorded input to the run. It re-joins the artifacts and holds the result to the run's
 own report, prints the verdict with the run's URL, tested revisions, runner images and
-step durations, and says whether the run is closing evidence: whether the route inputs
-at the candidate's tested revision, and the route's own files at the dispatching
-commit, are unchanged at the closing parent, and, given the closing commit, whether its
-own diff touches only the tracked lock at the export's SHA-256 and the paths the
-owning item's closing landing names.
+step durations and peaks, and says whether the run is closing evidence: whether the
+route inputs at the candidate's tested revision, and the route's own files at the
+dispatching commit, are unchanged at the closing parent, and, given the closing commit,
+whether its own diff touches only the tracked lock at the export's SHA-256 and the paths
+the owning item's closing landing names.
 """
 
 import argparse
@@ -574,7 +574,7 @@ def _durations(report: dict[str, object]) -> list[str]:
         for step, rows in route.as_object(job.get("steps", {})).items():
             row = route.as_object(rows)
             lines.append(f"     {step:<11} {row.get('verdict')}: {row.get('seconds')} s of "
-                         f"{row.get('limit_s')}, peak {row.get('peak_rss_kb')} kB")
+                         f"{row.get('limit_s')}, peak {route.peak_text(row)}")
     return lines
 
 
@@ -609,6 +609,38 @@ def download(client: Client, run_id: int, base: Path) -> tuple[dict[str, Path], 
             continue
         found[name] = base / "artifacts" / name
     return found, refusals
+
+
+def _rows(value: object) -> dict[str, object] | None:
+    return route.as_object(value) if isinstance(value, dict) else None
+
+
+def _differing(a: dict[str, object], b: dict[str, object]) -> list[str]:
+    """The keys present in only one of two objects or bound to different values."""
+    return [key for key in sorted(set(a) | set(b))
+            if key not in a or key not in b or a[key] != b[key]]
+
+
+def report_differences(joined: dict[str, object], report: dict[str, object]) -> list[str]:
+    """Where the run's `report.json` and the re-join of its artifacts disagree: the
+    verdict, the refusals, a job's own fields and each step row of a job, so a report
+    whose verdicts agree names the rows that differ, as those of a report an earlier
+    revision of the route joined do."""
+    found = [name for name in ("verdict", "refusals") if joined.get(name) != report.get(name)]
+    theirs, ours = _rows(joined.get("jobs")), _rows(report.get("jobs"))
+    if theirs is None or ours is None:
+        return found if joined.get("jobs") == report.get("jobs") else [*found, "jobs"]
+    for key in _differing(theirs, ours):
+        a, b = _rows(theirs.get(key)), _rows(ours.get(key))
+        steps_a = _rows(a.get("steps")) if a is not None else None
+        steps_b = _rows(b.get("steps")) if b is not None else None
+        if a is None or b is None or steps_a is None or steps_b is None:
+            found.append(f"job {key}")
+            continue
+        if any(name != "steps" for name in _differing(a, b)):
+            found.append(f"job {key}'s fields")
+        found += [f"job {key}'s {step} step" for step in _differing(steps_a, steps_b)]
+    return found
 
 
 def read_run(client: Client, checkout: Path, run_id: int, *, parent: str | None,
@@ -655,10 +687,10 @@ def read_run(client: Client, checkout: Path, run_id: int, *, parent: str | None,
     joined = route.load_json(by_key["join"] / route.REPORT) if "join" in by_key else None
     if joined is None:
         refusals.append("the run left no report.json from its join job")
-    elif (joined.get("verdict"), joined.get("refusals"), joined.get("jobs")) != (
-            report.get("verdict"), report.get("refusals"), report.get("jobs")):
+    elif differ := report_differences(joined, report):
         refusals.append(f"re-joining the artifacts gives {report.get('verdict')!r}, the run's "
-                        f"report {joined.get('verdict')!r}")
+                        f"report {joined.get('verdict')!r}, and they differ in "
+                        f"{', '.join(differ)}")
     lines.append(f"== verdict: {report.get('verdict')}")
     lines += [f"   refused: {item}" for item in cast("list[str]", report.get("refusals", []))]
     lines += _durations(report)

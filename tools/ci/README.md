@@ -410,13 +410,19 @@ after which the switch its recipe names does not stand, and the checks on a swit
 - Where `base_revision` is given, three seed jobs, the base run and two candidate runs,
   each build their side's switch in a fresh root, list the sampled population with
   `seed list`, the operator of each mutant the journal names, and run
-  `seed coq --quickchick --sample N` over seed's default subject. A seed run is complete
-  when its journal's closing line counts every mutant its head picked, at seed's exit 0
-  or 1; a journal that closes on fewer, as one whose baseline did not stand closes on
-  none, fails the step. `--jobs` stays at 1 until the build job's recorded
-  `quickchick properties` peak is the basis for more; after a seed step reaches its
-  limit, the next dispatch raises `--jobs` on that peak or records the runner decision
-  as owed to the user, and the sample stays 20.
+  `seed coq --quickchick --sample N` over seed's default subject. The route reads the
+  journal as [seed's `Journal`](../vos/seeded.py) writes it: the scope its head states,
+  one line per verdict, any reason running on over the lines after its verdict, and a
+  closing line counting the decided verdicts and, where there is one, the undecided
+  ones apart. A note, a line opening `-- `, is no verdict and no part of one's reason,
+  and the route reads nothing from it. `seed coq` journals a mutant whose compile
+  reaches gallina's per-file timeout as undecided and goes on to the next. A seed run is
+  complete when its journal's closing line counts every mutant its head picked, decided
+  and undecided together, at seed's exit 0 or 1; a journal that closes on fewer, as one
+  whose baseline did not stand closes on none, fails the step. `--jobs` stays at 1 until
+  the build job's recorded `quickchick properties` peak is the basis for more; after a
+  seed step reaches its limit, the next dispatch raises `--jobs` on that peak or records
+  the runner decision as owed to the user, and the sample stays 20.
 - The join job runs when the plan job passed and the run was not cancelled. It takes
   one artifact per job, records a job its prerequisite's failure skipped as not run,
   records as failed a job whose result is failure though none of its wrapped steps
@@ -432,9 +438,9 @@ after which the switch its recipe names does not stand, and the checks on a swit
   each step's verdict, each sampled mutant's verdict in every seed run by its identity,
   operator, site and rewrite, each mutant whose verdict differs between the two
   candidate runs or between base and candidate, or whose journalled verdict is other
-  than killed, survived, stillborn or unseeded, with the verdicts and reasons the
-  journal records, and every pair of sides whose opam client version or runner image
-  differs.
+  than killed, survived, stillborn or unseeded, an undecided one among them, with the
+  verdicts and reasons the journal records, and every pair of sides whose opam client
+  version or runner image differs.
 
 **Receipts and limits.** Each job's receipt records its effective inputs, side,
 revision, base revision, build, sample and subject, the subject being the one the plan
@@ -444,22 +450,30 @@ dispatching commit and `GITHUB_RUN_ATTEMPT`; the recipe built, the switch and th
 its checks ran with, and that switch's installed closure with each pin's URL and
 commit; the runner image, `uname -m`, the opam client's version and the prerequisites
 installed; free disk before and after; and each step's limit, exit, GNU time figures
-and sampled peak. Each step runs under coreutils `timeout --kill-after` at the limit
-instrument_route.py states with its basis: the build's from Q38f's 4,402 s import,
-`quickchick properties`' from Q38e's 378 s, and each seed step's its job's limit,
-GitHub's 360-minute hosted maximum less a 5-minute margin, the build step's limit, the
-population listing's and the staging margin, marked unmeasured. A sampler appends the
-largest resident set, free disk and load average to the job's progress log every
-minute, so a step cut at its limit leaves its peak. An exit of 124, or of 137 where the
-receipt holds no kernel OOM record for the step, once the step has run for its limit,
-is the limit reached; either exit sooner is recorded undecided, its cause unread. A
-step that reaches its limit; that exits for want of disk or memory, as the sampler's
-free-disk figure, a line of its output reporting `No space left on device` or the
-kernel's OOM record shows; or that exits with a line of its output naming
-`TimeoutExpired`, read as a compile reaching gallina's per-file timeout, which raises
-out of the run, decides nothing and is recorded undecided, never as a failure. Each
-step's `timeout-minutes` is a backstop above its limit, and each job's is the sum of its
-step limits plus a 15-minute staging-and-upload margin.
+and the sampler's peaks. Each step runs under coreutils `timeout --kill-after` at the
+limit instrument_route.py states with its basis: the build's from Q38f's 4,402 s
+import, `quickchick properties`' from Q38e's 378 s, and each seed step's its job's
+limit, GitHub's 360-minute hosted maximum less a 5-minute margin, the build step's
+limit, the population listing's and the staging margin, marked unmeasured. A sampler
+appends the largest resident set, its process tree's total, free disk and load average
+to the job's progress log every minute, so a step cut at its limit leaves its peak.
+`report.json`, the job summary and `instrument-ci read` give a step's peak as the
+larger of GNU time's `maxrss_kb` and the sampler's largest resident set, each the
+step's largest single process, name which gave it, and give both figures and the
+sampler's tree total beside it. A step for which neither recorded a figure, as one GNU
+time did not wrap that ended before the first sample, is said to have none, never a
+peak of 0. An exit of 124, or of 137 where the receipt holds no kernel OOM record for
+the step, once the step has run for its limit, is the limit reached; either exit
+sooner is recorded undecided, its cause unread. A step that reaches its limit; that
+exits for want of disk or memory, as the sampler's free-disk figure, a line of its
+output reporting `No space left on device` or the kernel's OOM record shows; or that
+exits with a line of its output naming `TimeoutExpired` decides nothing and is
+recorded undecided, never as a failure. That line is read as a compile that reached
+gallina's per-file timeout and raised out of the step, as one does from
+`quickchick properties`; `seed coq` instead journals such a compile's mutant
+undecided and goes on to the next. Each step's `timeout-minutes` is a backstop above
+its limit, and each job's is the sum of its step limits plus a 15-minute
+staging-and-upload margin.
 
 **Staging.** Each job's staging and upload run under `always()`. As in Guest CI, a
 refused check runs no requested revision's code afterwards: each later step that runs a
@@ -487,7 +501,7 @@ or whose members total more than 256 MiB, and moving an extraction into place on
 whole. It holds each member to the allowlist and each recorded input to the run, reads
 the jobs' conclusions and the `plan.json` of a run the plan refused, re-joins the
 artifacts against the run's `report.json`, and prints the verdict with the run's URL,
-tested revisions, runner images and step durations. It prints whether
+tested revisions, runner images and step durations and peaks. It prints whether
 `git diff --quiet R <closing parent> -- <route inputs>` holds for the candidate's
 `source_revision` R, and whether the same holds over the route's own files and their
 `vos` import closure for the dispatching commit; given the closing commit by

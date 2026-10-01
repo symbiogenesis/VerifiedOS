@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 from ci import instrument_route as route
 from tests.harness import Case, ensure, sandbox_tree
-from tests.test_instrument_route import _artifacts, _commit, _git
+from tests.test_instrument_route import _artifacts, _commit, _git, _peaked_steps
 from vos import fanout_ci
 from vos.cli import instrument_ci as reader
 
@@ -450,8 +450,24 @@ def _reader_reproduces_and_compares() -> None:
         (artifacts / f"instrument-join-{tip}" / route.REPORT).write_text(
             json.dumps(tampered), encoding="utf-8")
         lines, held, _ = _read(root, run, jobs, artifacts, parent=tip)
-        ensure(not held and any("re-joining the artifacts gives" in line for line in lines),
-               f"a report the artifacts do not give is refused: {lines!r}")
+        ensure(not held and any("re-joining the artifacts gives" in line
+                                and line.endswith("they differ in verdict") for line in lines),
+               f"a report the artifacts do not give is refused, naming what differs: {lines!r}")
+        # A report whose step rows an earlier revision of the route gave, the sampler's
+        # peak alone, agrees on every verdict and is refused naming each row that differs.
+        earlier = route.as_object(json.loads(json.dumps(report)))
+        built = route.as_object(route.as_object(route.as_object(earlier["jobs"])["build"])["steps"])
+        for row in built.values():
+            for name in ("peak_from", "maxrss_kb", "sampled_rss_kb", "sampled_tree_rss_kb"):
+                route.as_object(row).pop(name)
+        (artifacts / f"instrument-join-{tip}" / route.REPORT).write_text(
+            json.dumps(earlier), encoding="utf-8")
+        lines, held, _ = _read(root, run, jobs, artifacts, parent=tip)
+        rows = ", ".join(f"job build's {step} step" for step in sorted(route.JOB_STEPS["build"]))
+        ensure(not held and "== verdict: passed" in lines
+               and f"FAIL re-joining the artifacts gives 'passed', the run's report 'passed', "
+                   f"and they differ in {rows}" in lines,
+               f"a report whose step rows alone differ names each of them: {lines!r}")
         # A member outside the allowlist refuses its artifact, and the earlier reading's
         # extraction of it does not stand in for it.
         (artifacts / f"instrument-join-{tip}" / route.REPORT).write_text(
@@ -462,6 +478,30 @@ def _reader_reproduces_and_compares() -> None:
                and any("the build job ran (success) and left no artifact" in line
                        for line in lines),
                f"a refused artifact is missing from the re-join: {lines!r}")
+
+
+def _reader_prints_each_peak() -> None:
+    with tempfile.TemporaryDirectory() as scratch:
+        artifacts = Path(scratch)
+        _artifacts(artifacts, seed=False, edits={"build": {"steps": _peaked_steps()}})
+        report = route.join(artifacts, {name: {"result": "success"} for name in
+                                        ("plan", "build", "import")}, "4242")
+    lines = reader._durations(report)
+    build = lines[lines.index(next(line for line in lines if line.startswith("   build:"))):]
+    shown: dict[str, str] = {}
+    for line in build[1:]:
+        if not line.startswith("     "):
+            break
+        shown[line.split()[0]] = line
+    ensure("peak 543612 kB from GNU time; GNU time 543612 kB, sampler none" in
+           shown["properties"]
+           and "peak 1772936 kB from GNU time; GNU time 1772936 kB, sampler 1383676 kB, "
+               "sampled tree 2050476 kB" in shown["provision"]
+           and "peak 155064 kB from the sampler" in shown["check"]
+           and shown["export"].endswith("peak none: neither GNU time nor the sampler "
+                                        "recorded one")
+           and not any(line.endswith("peak 0 kB") or "peak None" in line for line in lines),
+           f"the reader prints each step's peak and where it came from, never 0: {lines!r}")
 
 
 def _fanout_never_runs_the_route() -> None:
@@ -493,4 +533,5 @@ def cases() -> list[Case]:
             Case("input-refusals", _input_refusals),
             Case("reader-decides-a-refused-plan", _reader_decides_a_refused_plan),
             Case("reader-reproduces-and-compares", _reader_reproduces_and_compares),
+            Case("reader-prints-each-peak", _reader_prints_each_peak),
             Case("fanout-never-runs-the-route", _fanout_never_runs_the_route)]

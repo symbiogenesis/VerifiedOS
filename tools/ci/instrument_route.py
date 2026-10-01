@@ -19,10 +19,11 @@ records why it ended. An exit of 124, or of 137 where the kernel recorded no OOM
 during the step, once the step has run for its limit, is the limit reached, and either
 exit sooner leaves its cause unread; a step the OOM killer acted on, or that ran short
 of disk, is the runner's want rather than the instrument's answer; and a compile that
-reached gallina's per-file timeout, read from an output line naming `TimeoutExpired`,
-met a limit and raised out of the run. Each of those is
-recorded `undecided`, never as a failure, because a failure moves a pin and a runner's
-limit is not evidence about one.
+reached gallina's per-file timeout and raised out of the step, as one does from
+`quickchick properties`, read from an output line naming `TimeoutExpired`, met a limit.
+Each of those is recorded `undecided`, never as a failure, because a failure moves a pin
+and a runner's limit is not evidence about one. `seed coq` prints no such line: it
+journals the mutant whose compile reached that timeout undecided and goes on.
 """
 
 import argparse
@@ -113,8 +114,9 @@ SEED_JOBS = 1
 FULL_SAMPLE = 20
 
 # The verdicts a step and a job carry. `completed` is a seed run whose journal closes
-# on every mutant its head picked, at seed's exit 0 or 1, whatever the step exited:
-# seed exits 1 on a survivor, which is the measurement and not a failure of the step.
+# on every mutant its head picked, decided and undecided together, at seed's exit 0 or
+# 1, whatever the step exited: seed exits 1 on a survivor or an undecided mutant, which
+# is the measurement and not a failure of the step.
 # A journal that closes on fewer, as one whose baseline did not stand closes on none,
 # records a run that measured nothing, and its step fails.
 PASSED = "passed"
@@ -762,8 +764,8 @@ def classify(exit_code: int | None, limit: int, *, oom: Sequence[str] | None,
     """A step's verdict from how it ended.
 
     A limit reached, an OOM kill, a want of disk and a compile that reached gallina's
-    per-file timeout, read from an output line naming `TimeoutExpired`, are each
-    undecided, never a failure.
+    per-file timeout and raised out of the step, read from an output line naming
+    `TimeoutExpired`, are each undecided, never a failure.
     An exit of 124 or 137 is the limit reached once the step has run `seconds` up to its
     limit; sooner, `timeout` did not end it, and what did is unread, so it is undecided.
     `journal_complete` is given for a step a journal decides, a seed run, and such a step
@@ -792,8 +794,8 @@ def classify(exit_code: int | None, limit: int, *, oom: Sequence[str] | None,
                  else f"free disk fell to {lowest_free_disk} bytes, below {DISK_FLOOR}")
         return Outcome(UNDECIDED, f"the step ran short of disk: {shown}")
     if prover_timeout:
-        return Outcome(UNDECIDED, "a compile reached gallina's per-file timeout, which "
-                       "raises out of the run")
+        return Outcome(UNDECIDED, "a compile reached gallina's per-file timeout and "
+                       "raised out of the step")
     if journal_complete:
         return Outcome(COMPLETED, f"the run finished: its journal closes on every mutant "
                        f"it picked, and it exited {exit_code}")
@@ -1240,14 +1242,15 @@ class Entry:
 
 @dataclass(frozen=True)
 class Journal:
-    """A seed journal: its verdicts, whether it closes and on how many verdicts at what
-    exit, and the scope its head states."""
+    """A seed journal: its verdicts, whether it closes, on how many decided and how many
+    undecided verdicts at what exit, and the scope its head states."""
 
     entries: list[Entry] = field(default_factory=list)
     complete: bool = False
     exit: int | None = None
     scope: str | None = None
     decided: int | None = None
+    undecided: int | None = None
 
     @property
     def picked(self) -> int | None:
@@ -1265,7 +1268,19 @@ _SCOPE_RE = re.compile(r"over (?:the whole population of (?P<whole>\d+)|(?P<ran>
 _ENTRY_RE = re.compile(r"^\s*(\d+)  (\S+)\s+(.*)$")
 _MUTANT_RE = re.compile(r"^(?P<site>\S+:\d+) `(?P<before>.*?)` -> `(?P<after>.*?)`: "
                         r"(?P<detail>.*)$", re.DOTALL)
-_CLOSE_RE = re.compile(r"^== complete: (\d+) verdict\(s\) decided, exit (-?\d+)$")
+# The closing line as seed's `Journal.close` words it: the decided verdicts, the
+# undecided ones apart where there is one, and seed's exit.
+_CLOSE_RE = re.compile(r"^== complete: (?P<decided>\d+) verdict\(s\) decided"
+                       r"(?:, (?P<undecided>\d+) undecided)?, exit (?P<exit>-?\d+)$")
+# A note's lines open `-- `, as `Journal.note` writes every line of one and
+# `Journal.record` the line naming a verdict's number: what a compile cost, which mutant
+# a tree is on, the seed a harness draws from, or why there is no baseline. A note is no
+# verdict and no part of one.
+_NOTE = "--"
+
+
+def _is_note(line: str) -> bool:
+    return line == _NOTE or line.startswith(f"{_NOTE} ")
 
 
 def _entry(index: int, outcome: str, text: str) -> Entry:
@@ -1279,18 +1294,27 @@ def _entry(index: int, outcome: str, text: str) -> Entry:
 
 def parse_journal(text: str) -> Journal:
     """A seed journal: its verdicts in the order written, whether its closing line is
-    there, and its scope. A line that opens no verdict continues the one before it."""
+    there, the decided and undecided verdicts that line counts, and its scope.
+
+    A line that opens no verdict, no note and no `== ` line continues the verdict before
+    it, since `Journal.record` writes a reason running over several lines in the one
+    write that journals its verdict. A note ends the verdict before it and is passed
+    over: no note enters any verdict's reason, and the join reads nothing from one."""
     entries: list[Entry] = []
     pending: tuple[int, str, list[str]] | None = None
-    complete, code, scope, decided = False, None, None, None
+    complete, code, scope, decided, undecided = False, None, None, None, None
     for line in text.splitlines():
         closing = _CLOSE_RE.match(line)
         opened = _ENTRY_RE.match(line)
-        if (closing or opened or line.startswith("==")) and pending is not None:
+        note = _is_note(line)
+        if (closing or opened or note or line.startswith("==")) and pending is not None:
             entries.append(_entry(pending[0], pending[1], "\n".join(pending[2])))
             pending = None
+        if note:
+            continue
         if closing:
-            complete, decided, code = True, int(closing.group(1)), int(closing.group(2))
+            complete, code = True, int(closing["exit"])
+            decided, undecided = int(closing["decided"]), int(closing["undecided"] or 0)
         elif opened:
             pending = (int(opened.group(1)), str(opened.group(2)), [str(opened.group(3))])
         elif line.lstrip().startswith("scope:") and not entries and pending is None:
@@ -1299,13 +1323,15 @@ def parse_journal(text: str) -> Journal:
             pending[2].append(line)
     if pending is not None:
         entries.append(_entry(pending[0], pending[1], "\n".join(pending[2])))
-    return Journal(entries, complete, code, scope, decided)
+    return Journal(entries, complete, code, scope, decided, undecided)
 
 
 def journal_shortfall(journal: Journal) -> str | None:
     """Why a seed journal records no finished run, None where it does: a finished run's
-    closing line counts every mutant its head picked, at seed's exit 0 or 1. A run whose
-    baseline did not stand closes on none of them, and is no measurement."""
+    closing line counts every mutant its head picked, its decided and undecided verdicts
+    together, at seed's exit 0 or 1, an undecided mutant being one the run reached and
+    decided nothing about. A run whose baseline did not stand closes on none of them,
+    and is no measurement."""
     if not journal.complete:
         return "its journal has no closing line"
     picked = journal.picked
@@ -1313,8 +1339,11 @@ def journal_shortfall(journal: Journal) -> str | None:
         return "its journal's head states no scope"
     if picked < 1:
         return "its journal's head picks no mutant"
-    if journal.decided != picked:
-        return f"its journal closes on {journal.decided} of the {picked} mutant(s) it picked"
+    undecided = journal.undecided or 0
+    counted = (journal.decided or 0) + undecided
+    if counted != picked:
+        apart = f", {undecided} of them undecided" if undecided else ""
+        return f"its journal closes on {counted} of the {picked} mutant(s) it picked{apart}"
     if journal.exit not in (0, 1):
         return f"its journal closes at exit {journal.exit}"
     return None
@@ -1494,7 +1523,8 @@ def _seed_report(journals: dict[str, Journal],
     return {
         "runs": {run: {"complete": journal.complete, "exit": journal.exit,
                        "scope": journal.scope, "picked": journal.picked,
-                       "decided": journal.decided, "verdicts": len(journal.entries),
+                       "decided": journal.decided, "undecided": journal.undecided,
+                       "verdicts": len(journal.entries),
                        "shortfall": journal_shortfall(journal)}
                  for run, journal in journals.items()},
         "mutants": mutants,
@@ -1506,6 +1536,63 @@ def _seed_report(journals: dict[str, Journal],
                            for run, journal in journals.items() for entry in journal.entries
                            if entry.outcome not in KNOWN_OUTCOMES],
     }
+
+
+# Where a step's peak comes from: GNU time's `maxrss_kb`, written as the step's command
+# ends, or the per-minute sampler, which has no reading of a step that ends before its
+# first sample and keeps its last of one cut at its limit. Each is the step's largest
+# single process; the sampler's tree total is a third figure, never the peak.
+PEAK_FROM_TIME = "GNU time"
+PEAK_FROM_SAMPLER = "sampler"
+
+
+def _figure(value: object) -> int | None:
+    """A recorded memory figure in kB, None where there is none: the sampler's zero is
+    no reading, of a step it never sampled or of a process gone before it read one."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+        return None
+    return int(value)
+
+
+def step_peak(step: dict[str, object]) -> dict[str, object]:
+    """A step's peak from its receipt: the larger of GNU time's `maxrss_kb` and the
+    sampler's largest resident set and which gave it, GNU time's where they agree, both
+    figures, and the sampler's tree total, each None where nothing recorded it."""
+    figures = step.get("time")
+    timed = _figure(as_object(figures).get("maxrss_kb")) if isinstance(figures, dict) else None
+    sampled = _figure(step.get("peak_rss_kb"))
+    peak: int | None = None
+    source: str | None = None
+    if timed is not None and (sampled is None or timed >= sampled):
+        peak, source = timed, PEAK_FROM_TIME
+    elif sampled is not None:
+        peak, source = sampled, PEAK_FROM_SAMPLER
+    return {"peak_rss_kb": peak, "peak_from": source, "maxrss_kb": timed,
+            "sampled_rss_kb": sampled,
+            "sampled_tree_rss_kb": _figure(step.get("peak_tree_rss_kb"))}
+
+
+def _step_row(step: dict[str, object]) -> dict[str, object]:
+    """One step as the report gives it: how it ended, its limit and duration, and its
+    peak with where it came from."""
+    return {**{name: step.get(name) for name in ("verdict", "reason", "exit", "limit_s",
+                                                 "seconds")}, **step_peak(step)}
+
+
+def peak_text(row: dict[str, object]) -> str:
+    """A report step's peak as the job summary and `instrument-ci read` print it, saying
+    so where neither GNU time nor the sampler recorded one rather than printing 0."""
+    peak, source = row.get("peak_rss_kb"), row.get("peak_from")
+    if peak is None or source not in (PEAK_FROM_TIME, PEAK_FROM_SAMPLER):
+        return "none: neither GNU time nor the sampler recorded one"
+
+    def shown(name: str) -> str:
+        value = row.get(name)
+        return f"{value} kB" if value is not None else "none"
+
+    named = "GNU time" if source == PEAK_FROM_TIME else "the sampler"
+    return (f"{peak} kB from {named}; GNU time {shown('maxrss_kb')}, sampler "
+            f"{shown('sampled_rss_kb')}, sampled tree {shown('sampled_tree_rss_kb')}")
 
 
 def _earlier_attempt(directory: Path, run_attempt: str) -> str | None:
@@ -1585,8 +1672,7 @@ def join(artifacts: Path, needs: dict[str, object], run_id: str,
             "runner_image": receipt.get("runner_image"), "uname_m": receipt.get("uname_m"),
             "opam_client": receipt.get("opam_client"), "switch": receipt.get("switch"),
             "flag": receipt.get("flag"), "recipe": receipt.get("recipe"),
-            "steps": {step: {name: as_object(steps.get(step, {})).get(name) for name in
-                             ("verdict", "reason", "exit", "limit_s", "seconds", "peak_rss_kb")}
+            "steps": {step: _step_row(as_object(steps.get(step, {})))
                       for step in JOB_STEPS[_job_of(key)]},
         }
         if key == "build":
@@ -1634,8 +1720,9 @@ def _cell(value: object) -> str:
 
 
 def summary(report: dict[str, object]) -> str:
-    """The job summary: each step's verdict, each sampled mutant's verdict in every seed
-    run, each difference, and each pair of sides whose client or image differs."""
+    """The job summary: each step's verdict and peak, each sampled mutant's verdict in
+    every seed run, each difference, and each pair of sides whose client or image
+    differs."""
     request = as_object(report.get("request", {}))
     lines = [f"### Instrument switch route: {report.get('verdict')}", "",
              f"Revision `{request.get('revision')}`, base "
@@ -1649,10 +1736,11 @@ def summary(report: dict[str, object]) -> str:
     if earlier:
         lines += ["", "Passed over:", *(f"- {_cell(item.get('artifact'))}: "
                                         f"{_cell(item.get('reason'))}" for item in earlier)]
-    lines += ["", "| Job | Step | Verdict | Limit s | Seconds | Peak RSS kB | Reason |",
+    lines += ["", "| Job | Step | Verdict | Limit s | Seconds | Peak resident set | Reason |",
               "| --- | --- | --- | --- | --- | --- | --- |"]
     limited: list[str] = []
-    for key, raw in as_object(report.get("jobs", {})).items():
+    jobs = as_object(report.get("jobs", {}))
+    for key, raw in jobs.items():
         job = as_object(raw)
         steps = as_object(job.get("steps", {}))
         if not steps or job.get("reason"):
@@ -1661,15 +1749,18 @@ def summary(report: dict[str, object]) -> str:
         for step, rows in steps.items():
             row = as_object(rows)
             lines.append(f"| {key} | {step} | {row.get('verdict')} | {row.get('limit_s')} | "
-                         f"{row.get('seconds')} | {row.get('peak_rss_kb')} | "
+                         f"{row.get('seconds')} | {_cell(peak_text(row))} | "
                          f"{_cell(row.get('reason') or '')} |")
             if step == "seed" and "reached its limit" in str(row.get("reason") or ""):
                 limited.append(key)
     if limited:
+        build = as_object(jobs.get("build", {})) if isinstance(jobs.get("build"), dict) else {}
+        built = as_object(build.get("steps", {})) if isinstance(build.get("steps"), dict) else {}
+        properties = as_object(built.get("properties", {}))
         lines += ["", f"A seed step reached its limit ({', '.join(limited)}): the next "
                   "dispatch raises `--jobs` on the build job's recorded `quickchick "
-                  "properties` peak or records the runner decision as owed to the user, "
-                  "the sample staying 20."]
+                  f"properties` peak, {_cell(peak_text(properties))}, or records the runner "
+                  "decision as owed to the user, the sample staying 20."]
     seed = as_object(report.get("seed", {}))
     if seed:
         runs = list(as_object(seed.get("runs", {})))
