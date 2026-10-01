@@ -194,6 +194,10 @@ class Walk:
     first: int | None
 
 
+# One count of a walk line: ASCII digits and nothing else, as Walks.v's `ns` prints one.
+# `str.isdigit` admits a superscript digit that `int` then refuses.
+_COUNT = re.compile(r"[0-9]+")
+
 # One `NAME='value'; export NAME;` line of `opam env --shell=sh`.
 _EXPORT = re.compile(r"^(\w+)='(.*)';\s*export", re.MULTILINE)
 
@@ -506,10 +510,11 @@ def walks(found: Prover, work: Path, harness: Path) -> tuple[list[Walk], str]:
     """Run the exhaustive harness: each property set it walked, or why there are none.
 
     The harness loads Stdlib alone and ends in a `Compute` over a `list string`, one
-    entry per set, `name points premise refuted first`, the last `-` where no point
-    refutes. A harness that did not compile, printed no entry or printed one this cannot
-    read is an error rather than a set that held, so a walk that never ran reads as no
-    verdict.
+    entry per set, `name points premise refuted first`, the last the walk-order position,
+    from 0, of the first point that refutes, `-` where none does. A harness that did not
+    compile, printed no entry, printed one this cannot read, or printed counts that
+    disagree with each other is an error rather than a set that held, so a walk that
+    never ran, or ran and was misread, reads as no verdict.
     """
     lines, said = vectors(found, work, harness)
     if said:
@@ -518,13 +523,21 @@ def walks(found: Prover, work: Path, harness: Path) -> tuple[list[Walk], str]:
     for line in lines:
         parts = line.rsplit(" ", 4)
         numbers = parts[1:]
-        if (len(parts) != 5 or not all(n.isdigit() for n in numbers[:3])
-                or not (numbers[3].isdigit() or numbers[3] == "-")):
+        if (len(parts) != 5 or not all(_COUNT.fullmatch(n) for n in numbers[:3])
+                or not (_COUNT.fullmatch(numbers[3]) or numbers[3] == "-")):
             return [], (f"the walk harness printed {line!r}, which is not "
                         "`name points premise refuted first`")
-        out.append(Walk(name=parts[0], points=int(numbers[0]), premise=int(numbers[1]),
-                        refuted=int(numbers[2]),
-                        first=None if numbers[3] == "-" else int(numbers[3])))
+        walk = Walk(name=parts[0], points=int(numbers[0]), premise=int(numbers[1]),
+                    refuted=int(numbers[2]),
+                    first=None if numbers[3] == "-" else int(numbers[3]))
+        if not (walk.premise <= walk.points and walk.refuted <= walk.points
+                and (walk.first is None) == (walk.refuted == 0)
+                and (walk.first is None or walk.first < walk.points)):
+            return [], (f"the walk harness printed {line!r}, whose counts disagree: the "
+                        "premise and refuted counts are at most the points, and a first "
+                        "position inside the domain is printed exactly where a point "
+                        "refutes")
+        out.append(walk)
     return out, ""
 
 

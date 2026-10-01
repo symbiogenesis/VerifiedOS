@@ -597,6 +597,12 @@ def _the_seed_and_the_walks_are_read() -> None:
                "vacuous": '= ["prop_a 9 0 0 -"] : list string\n',
                "malformed": '= ["prop_a nine 9 0 -"] : list string\n',
                "short": '= ["prop_a 9 0 -"] : list string\n',
+               "superscript": '= ["prop_a ² 9 0 -"] : list string\n',
+               "premise past the domain": '= ["prop_a 9 12 0 -"] : list string\n',
+               "refuted past the domain": '= ["prop_a 9 9 12 3"] : list string\n',
+               "refuted with no first": '= ["prop_a 9 9 2 -"] : list string\n',
+               "first with none refuted": '= ["prop_a 9 9 0 3"] : list string\n',
+               "first past the domain": '= ["prop_a 9 9 1 9"] : list string\n',
                "empty": "= [] : list string\n"}
     read: dict[str, tuple[list[gallina.Walk], str]] = {}
     for label, text in printed.items():
@@ -613,10 +619,15 @@ def _the_seed_and_the_walks_are_read() -> None:
     ensure(gallina.walk_failures(read["vacuous"][0])
            == ["prop_a: no one of its 9 point(s) meets its premise, so it holds vacuously"],
            f"a walk no point of which meets its premise holds vacuously: {read['vacuous']}")
-    for label in ("malformed", "short"):
+    for label in ("malformed", "short", "superscript"):
         ensure(read[label][0] == []
                and "not `name points premise refuted first`" in read[label][1],
                f"a line that is not a walk is an error: {read[label]}")
+    for label in ("premise past the domain", "refuted past the domain",
+                  "refuted with no first", "first with none refuted",
+                  "first past the domain"):
+        ensure(read[label][0] == [] and "whose counts disagree" in read[label][1],
+               f"a walk whose counts disagree is an error, not a verdict: {read[label]}")
     ensure(read["empty"][0] == [] and "printed no quoted vector" in read["empty"][1],
            f"a walk harness printing nothing is an error: {read['empty']}")
     ensure(gallina.walk_failures([gallina.Walk("none", 0, 0, 0, None)])
