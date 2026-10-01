@@ -772,8 +772,9 @@ Qed.
 
 (* The opening the five frame lemmas below share: read node `b` of `ar` in `H`
    and in the goal, refuse an address outside the arena, and read the goal's
-   node past the appended `ext`. *)
-Local Ltac read_the_framed_node :=
+   node past the appended `ext`. The four names are parameters because an
+   Ltac definition must bind every hypothesis name it reads. *)
+Local Ltac read_the_framed_node H ar ext b :=
   simpl in H |- *; destruct (nth_error ar b) as [ nd | ] eqn:E; [ | discriminate H ];
   rewrite (nth_error_app_l _ ar ext b nd E).
 
@@ -782,9 +783,9 @@ Lemma spans_frame :
     spans ka ar fuel b = true -> spans ka (app ar ext) fuel b = true.
 Proof.
   intros ka fuel. induction fuel as [ | f IH ]; intros ar ext b H.
-  - read_the_framed_node.
+  - read_the_framed_node H ar ext b.
     destruct (en_kids nd); [ reflexivity | discriminate H ].
-  - read_the_framed_node.
+  - read_the_framed_node H ar ext b.
     destruct (en_kids nd) as [ | c cs ]; [ reflexivity | ].
     apply (all_of_mono nat (spans ka ar f) (spans ka (app ar ext) f));
       [ intros x Hx; exact (IH ar ext x Hx) | exact H ].
@@ -796,9 +797,9 @@ Lemma flatten_frame :
     flatten ka (app ar ext) fuel b = flatten ka ar fuel b.
 Proof.
   intros ka fuel. induction fuel as [ | f IH ]; intros ar ext b H.
-  - read_the_framed_node.
+  - read_the_framed_node H ar ext b.
     destruct (en_kids nd); [ reflexivity | discriminate H ].
-  - read_the_framed_node.
+  - read_the_framed_node H ar ext b.
     destruct (en_kids nd) as [ | c cs ]; [ reflexivity | ].
     exact (flat_map_agree nat (prod (Key ka) nat)
              (flatten ka (app ar ext) f) (flatten ka ar f)
@@ -813,9 +814,9 @@ Lemma lookup_frame :
     lookup ka (app ar ext) fuel b k = lookup ka ar fuel b k.
 Proof.
   intros ka fuel. induction fuel as [ | f IH ]; intros ar ext b k H.
-  - read_the_framed_node.
+  - read_the_framed_node H ar ext b.
     destruct (en_kids nd); [ reflexivity | discriminate H ].
-  - read_the_framed_node.
+  - read_the_framed_node H ar ext b.
     destruct (en_kids nd) as [ | c cs ]; [ reflexivity | ].
     destruct (nth_error (cons c cs) (route ka k (en_seps nd))) as [ x | ] eqn:Ec;
       [ | reflexivity ].
@@ -831,8 +832,8 @@ Lemma admitted_frame :
     admitted ka g (app ar ext) fuel lo hi b = true.
 Proof.
   intros ka g fuel. induction fuel as [ | f IH ]; intros ar ext lo hi b H.
-  - read_the_framed_node. exact H.
-  - read_the_framed_node.
+  - read_the_framed_node H ar ext b. exact H.
+  - read_the_framed_node H ar ext b.
     apply andb_true_iff in H as [ Hf H ]. apply andb_true_iff. split;
       [ exact Hf | ].
     destruct (en_kids nd) as [ | c cs ]; [ exact H | ].
@@ -2526,8 +2527,8 @@ Lemma well_formed_frame :
     well_formed ka g (app ar ext) fuel lo hi b = true.
 Proof.
   intros ka g fuel. induction fuel as [ | f IH ]; intros ar ext lo hi b H.
-  - read_the_framed_node. exact H.
-  - read_the_framed_node.
+  - read_the_framed_node H ar ext b. exact H.
+  - read_the_framed_node H ar ext b.
     apply andb_true_iff in H as [ Hf H ]. apply andb_true_iff. split;
       [ exact Hf | ].
     destruct (en_kids nd) as [ | c cs ]; [ exact H | ].
