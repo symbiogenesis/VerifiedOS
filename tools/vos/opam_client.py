@@ -129,25 +129,89 @@ def root_exists(root: Path) -> bool:
     return (root / "config").is_file()
 
 
-def format_key(fmt: str) -> tuple[int, ...]:
-    """A root format's release numbers, for ordering two formats: `2.6~alpha` reads as
-    2.6, which is as near as a report needs to come to opam's own ordering."""
-    return tuple(int(part) for part in re.findall(r"\d+", fmt.partition("~")[0]))
+def _skip_zeros(text: bytes, at: int, end: int) -> int:
+    while at < end and text[at] == 0x30:
+        at += 1
+    return at
+
+
+def _digit(byte: int) -> bool:
+    return 0x30 <= byte <= 0x39
+
+
+def _rank(byte: int) -> tuple[int, int]:
+    """A non-digit's place: `~` first, then letters, then every other byte."""
+    if byte == 0x7E:
+        return (0, 0)
+    if 0x41 <= byte <= 0x5A or 0x61 <= byte <= 0x7A:
+        return (1, byte)
+    return (2, byte)
+
+
+def _compare_part(x: bytes, xi: int, xl: int, y: bytes, yi: int, yl: int) -> int:
+    """One part of two versions, alternating runs of non-digits, compared byte by byte
+    by `_rank`, with runs of digits, compared as numbers."""
+    while True:
+        if xi == xl and yi == yl:
+            return 0
+        if xi == xl:
+            rest = _skip_zeros(y, yi, yl)
+            return 0 if rest == yl else (1 if y[rest] == 0x7E else -1)
+        if yi == yl:
+            rest = _skip_zeros(x, xi, xl)
+            return 0 if rest == xl else (-1 if x[rest] == 0x7E else 1)
+        x_digit, y_digit = _digit(x[xi]), _digit(y[yi])
+        if x_digit and y_digit:
+            xi, yi = _skip_zeros(x, xi, xl), _skip_zeros(y, yi, yl)
+            xn, yn = xi, yi
+            while xn < xl and _digit(x[xn]):
+                xn += 1
+            while yn < yl and _digit(y[yn]):
+                yn += 1
+            if xn - xi != yn - yi:
+                return -1 if xn - xi < yn - yi else 1
+            if x[xi:xn] != y[yi:yn]:
+                return -1 if x[xi:xn] < y[yi:yn] else 1
+            xi, yi = xn, yn
+        elif x_digit:
+            return 1 if y[yi] == 0x7E else -1
+        elif y_digit:
+            return -1 if x[xi] == 0x7E else 1
+        elif _rank(x[xi]) != _rank(y[yi]):
+            return -1 if _rank(x[xi]) < _rank(y[yi]) else 1
+        else:
+            xi, yi = xi + 1, yi + 1
+
+
+def compare_versions(x: str, y: str) -> int:
+    """The sign of opam's ordering of two versions, ported from the reviewed release's
+    `OpamVersionCompare.compare`, by which that client orders a root's format against
+    its own: Debian's ordering, each version split at its last `-` into two parts
+    compared in turn. So `2.6~alpha` precedes 2.6, and `2.6.0`, `2.6+x` and `x` follow
+    it."""
+    if x == y:
+        return 0
+    a, b = x.encode("utf-8"), y.encode("utf-8")
+    ra = len(a) if (cut := a.rfind(b"-")) < 0 else cut
+    rb = len(b) if (cut := b.rfind(b"-")) < 0 else cut
+    if version := _compare_part(a, 0, ra, b, 0, rb):
+        return version
+    return _compare_part(a, min(ra + 1, len(a)), len(a), b, min(rb + 1, len(b)), len(b))
 
 
 def newer_than_reviewed(fmt: str) -> bool:
-    """Whether a stated root format is newer than `OPAM_ROOT_FORMAT`. The reviewed
-    client still reads such a root, but refuses every command that takes its write lock
-    as "more recent than this version of opam", a switch creation among them."""
-    return bool(fmt) and format_key(fmt) > format_key(OPAM_ROOT_FORMAT)
+    """Whether a stated root format is newer than `OPAM_ROOT_FORMAT` by opam's own
+    ordering. The reviewed client still reads such a root, but refuses every command
+    that takes its write lock as "more recent than this version of opam", a switch
+    creation among them."""
+    return bool(fmt) and compare_versions(fmt, OPAM_ROOT_FORMAT) > 0
 
 
 def older_than_reviewed(fmt: str) -> bool:
-    """Whether a stated root format is older than `OPAM_ROOT_FORMAT`: any stated format
-    other than it that is not newer, a prerelease of it among them, since opam orders a
-    prerelease before its release. The reviewed client rewrites such a root to its own
-    format, one way, so moving the root to it is a deliberate, recorded step."""
-    return bool(fmt) and fmt != OPAM_ROOT_FORMAT and not newer_than_reviewed(fmt)
+    """Whether a stated root format is older than `OPAM_ROOT_FORMAT` by opam's own
+    ordering, a prerelease of it among them. The reviewed client rewrites such a root to
+    its own format, one way, so moving the root to it is a deliberate, recorded step."""
+    return bool(fmt) and compare_versions(fmt, OPAM_ROOT_FORMAT) < 0
 
 
 def root_gaps(root: Path) -> list[str]:
