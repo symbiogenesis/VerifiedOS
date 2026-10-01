@@ -81,6 +81,10 @@ LEGACY_ATTRIBUTES = (r"(?:Local|Global|Export|Polymorphic|Monomorphic|Cumulative
 # reach the command is `decorations`' to say, since a bullet starts the run again.
 CONTROL_PREFIXES = ("(?:" + BULLETS + "|" + CONTROL_FLAGS + "|" + ATTRIBUTE_OPEN + r"\]\s*|"
                     + LEGACY_ATTRIBUTES + ")*")
+# The same run without the bullets, braces and goal selectors, each a command of its
+# own: what Rocq 9.3's vernac_control reads before a command within its sentence.
+VERNAC_CONTROL = ("(?:" + CONTROL_FLAGS + "|" + ATTRIBUTE_OPEN + r"\]\s*|" + LEGACY_ATTRIBUTES
+                  + ")*")
 # One of them, saying which: `bullet` a bullet, brace or goal selector, `word` a control
 # flag's or a legacy attribute's word, `attributes` what a quoted attribute holds.
 DECORATION = re.compile("(?P<bullet>" + BULLETS + r")|(?=(?P<word>[A-Za-z]+))(?:"

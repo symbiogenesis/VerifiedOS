@@ -272,6 +272,22 @@ def _a_vernacular_inside_a_region_is_the_finding() -> None:
            f"a region that has swallowed code is the finding: {found!r}")
 
 
+def _a_bulleted_continuation_is_prose() -> None:
+    # A transcription wraps an entry's list as bulleted, indented lines, and an item may
+    # open with a word that is also a vernacular. A bullet is a command of its own rather
+    # than a decoration of the one after it, so such a line is the entry's prose; a
+    # vernacular under a control flag or an attribute is still code.
+    found = _k108(f"(* cites R-01-001\n{BEGIN}\n{_TRANSCRIPT}"
+                  "      - Record each value it names.\n      * Export the ledger.\n"
+                  f"{END} *)\n")
+    ensure(found == [], f"a bulleted continuation was read as code: {found!r}")
+    found = _k108(f"(* cites R-01-001 *)\n{BEGIN}\n{_TRANSCRIPT}"
+                  "Time #[local] Definition d := 0.\n"
+                  f"{END}\n")
+    ensure(any("opens a vernacular" in f for f in found),
+           f"a decorated vernacular in a region is the finding: {found!r}")
+
+
 def _prose_inside_a_region_is_the_finding() -> None:
     found = _k108(f"(* cites R-01-001\n{BEGIN}\n{_TRANSCRIPT}"
                   "and a sentence somebody wrote here by hand.\n"
@@ -345,6 +361,7 @@ def cases() -> list[Case]:
         Case("faithful-region-passes", _a_faithful_region_is_no_finding),
         Case("region-hiding-a-citation", _a_region_hiding_a_citation_is_the_finding),
         Case("vernacular-in-a-region", _a_vernacular_inside_a_region_is_the_finding),
+        Case("bulleted-continuation-is-prose", _a_bulleted_continuation_is_prose),
         Case("prose-in-a-region", _prose_inside_a_region_is_the_finding),
         Case("wrapped-transcription-admitted", _a_wrapped_transcription_is_admitted),
         Case("unbalanced-region-is-the-finding", _an_unbalanced_region_is_the_finding),

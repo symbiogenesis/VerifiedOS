@@ -25,6 +25,7 @@ from vos.proofs import (
     CONTROL_PREFIXES,
     DECLARATIONS,
     STATEMENTS,
+    VERNAC_CONTROL,
     VOID,
     decorations,
     marker_depths,
@@ -72,13 +73,16 @@ _ANNOTATION_RE = re.compile(r"\(\*\|\s*discharges:[^|\r\n]*\|\*\)")
 DEFINERS = DECLARATIONS
 
 # What a definition may open with and still be the same definition: the shared lexer's
-# decoration grammar, a proof's bullets, control flags, and quoted and legacy attributes,
-# of which `Fail` and `Succeed` keep nothing the definition states. Public because [the
-# citations check](checks/citations.py) composes a pattern of its own over the same
-# opening, and what precedes a vernacular is one fact: written twice it becomes two, and
-# the second one goes stale the first time a keyword is added to either.
-MODIFIERS = CONTROL_PREFIXES
-_DEFINED_RE = re.compile(rf"^({MODIFIERS})(?:{'|'.join(DEFINERS)})\s+([\w']+)")
+# control flags and quoted and legacy attributes, of which `Fail` and `Succeed` keep
+# nothing the definition states. Public because [the citations check](checks/citations.py)
+# composes a pattern of its own over the same opening, and what precedes a vernacular is
+# one fact: written twice it becomes two, and the second one goes stale the first time a
+# keyword is added to either. A sentence the split leaves after a proof's bullet, brace or
+# goal selector opens with that too, each a command of its own, which this module's own
+# readers take (`CONTROL_PREFIXES`) and the citations check does not: a bulleted line of
+# prose is the shape a transcription's list takes, and its first word is no command.
+MODIFIERS = VERNAC_CONTROL
+_DEFINED_RE = re.compile(rf"^({CONTROL_PREFIXES})(?:{'|'.join(DEFINERS)})\s+([\w']+)")
 
 # `STATEMENTS`, the shared lexer's, are the vernaculars whose sentence *states*
 # something, which is the set a discharge may sit above: Rocq 9.3's theorem keywords and
@@ -110,7 +114,7 @@ DISCHARGE_WORD = "discharges"
 # that floats above an empty line names whichever sentence happens to come next.
 _DISCHARGE_RE = re.compile(
     rf"\(\*\|[^\S\r\n]*{DISCHARGE_WORD}:(?P<ids>[^|\r\n]*)\|\*\)[^\S\r\n]*\r?\n"
-    rf"[^\S\r\n]*(?P<decorations>{MODIFIERS})(?P<vernac>[A-Za-z]+)[^\S\r\n]+"
+    rf"[^\S\r\n]*(?P<decorations>{CONTROL_PREFIXES})(?P<vernac>[A-Za-z]+)[^\S\r\n]+"
     rf"(?P<name>[\w']+)")
 
 # One annotation's whole content: the constant it sits above, and the entries that
