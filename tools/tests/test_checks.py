@@ -1354,6 +1354,21 @@ def _k118_hook_revisions_are_held() -> None:
                f"an unreadable hook configuration must report ({fragment!r}): {found!r}")
         ensure(not any(line.startswith("ok K-118:") for line in out),
                "fail-closed: no ok line stands beside an unread hook configuration")
+    # A next-line, line or paragraph separator breaks a line to YAML, so a second rev
+    # for the entry or a second entry for the repository after one, each of which YAML
+    # loads, the rev it keeps being the last, is stated a second time to the reading too.
+    for brk in ("\x85", "\u2028", "\u2029"):
+        second_rev = f"      - id: first{brk}    rev: {'d' * 40}\n"
+        second_entry = (f"      - id: second{brk}  - repo: https://github.com/example/hooks\n"
+                        "    rev: v0.0.1\n    hooks: []\n")
+        for config, fragment in (
+                (_K118_HOOKS.replace("      - id: first\n", second_rev),
+                 f"{owner} states its rev 2 times"),
+                (_K118_HOOKS.replace("      - id: second\n", second_entry),
+                 f"{owner}'s repository is stated 2 times")):
+            found, _ = _k118_hook(config)
+            ensure(len(found) == 1 and fragment in found[0],
+                   f"a {brk!r} breaks the line the reading reads ({fragment!r}): {found!r}")
 
 
 _K118_HOOK_UNREAD = "states a hook repository's `repo` or `rev` key in a form K-118 does not read"

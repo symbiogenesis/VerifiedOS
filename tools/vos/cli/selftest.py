@@ -1774,6 +1774,14 @@ CASES: list[Case] = [
                              f"unreviewed-hooks, rev: {'d' * 40}, hooks: [{{id: unreviewed}}]}}\n"
                              f"{m[1]}  - *unreviewed\n"),
                   flags=re.MULTILINE | re.DOTALL)),
+    # The first entry stating a second rev, its commit's last digit changed, after a line
+    # separator closing the entry's last line: YAML breaks the line there and keeps the
+    # last rev, so only a reading splitting the file where YAML does sees two revs.
+    ("K-118", "a hook repository's second rev after a line separator",
+     _first_match("model/.pre-commit-config.yaml",
+                  r'^([ \t]+)rev: "?([0-9a-f]{39})([0-9a-f])"?.*?(?=\n[ \t]*- repo:)',
+                  lambda m: f"{m[0]}\u2028{m[1]}rev: {m[2]}{'1' if m[3] == '0' else '0'}",
+                  flags=re.MULTILINE | re.DOTALL)),
     # A hook repository appended with no row, pinned as `autoupdate --freeze` writes a
     # reviewed one: every row still agrees with its own entry, so only a census of every
     # entry the configuration carries sees code pre-commit runs whose terms nobody read.

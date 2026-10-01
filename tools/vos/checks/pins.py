@@ -1178,17 +1178,18 @@ class _Owners:
         """The rev a hook configuration pins for the repository `owner.key` names, and
         the release its `# frozen:` comment states (empty without one).
 
-        The file is read as the lines pre-commit's own `autoupdate` rewrites: a
-        repository entry runs from its block `- repo:` line to the next, and its rev is
-        every `rev` key opening a line at the column of the entry's `repo` key, the one
-        place YAML reads the entry's own. A repository stated other than once, an entry
-        whose rev is stated other than once, or a rev in a shape `_HOOK_REV_LINE_RE`
-        does not read whole, fixes nothing and is a fault.
+        The file is read as the lines pre-commit's own `autoupdate` rewrites, split as
+        the census splits it at every line break YAML reads, a next-line, line or
+        paragraph separator included: a repository entry runs from its block `- repo:`
+        line to the next, and its rev is every `rev` key opening a line at the column of
+        the entry's `repo` key, the one place YAML reads the entry's own. A repository
+        stated other than once, an entry whose rev is stated other than once, or a rev
+        in a shape `_HOOK_REV_LINE_RE` does not read whole, fixes nothing and is a fault.
         """
         named: list[list[str]] = []
         revs: list[str] | None = None
         column = -1
-        for line in re.split(r"\r?\n", self._text(owner.path)):
+        for line in _YAML_BREAK_RE.split(self._text(owner.path)):
             entry = _HOOK_REPO_RE.match(line)
             if entry is not None:
                 revs = None
