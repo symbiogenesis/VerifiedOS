@@ -263,6 +263,29 @@ def _workflow_holds_the_module_limits() -> None:
                f"{job} runs on ubuntu-26.04")
 
 
+def _readme_holds_the_module_constants() -> None:
+    # The contract restates the module's figures in prose; each is held to its constant.
+    text = (ROOT / "tools" / "ci" / "README.md").read_text(encoding="utf-8")
+    section = text.split("\n## Instrument switch route\n", 1)[1].split("\n## ", 1)[0]
+    flat = " ".join(section.split())
+    first, last = route.SAMPLES.start, route.SAMPLES.stop - 1
+    suffixes = (", ".join(f"`{suffix}`" for suffix in route.ALLOWED_SUFFIXES[:-1])
+                + f" and `{route.ALLOWED_SUFFIXES[-1]}`")
+    ensure(route.ARCHIVE_LIMIT % (1 << 20) == 0, "the archive bound is whole MiB")
+    for phrase in (f"Q38f's {route.IMPORT_MEASURED:,} s import",
+                   f"Q38e's {route.PROPERTIES_MEASURED} s",
+                   f"GitHub's {route.HOSTED_MAXIMUM}-minute hosted maximum less a "
+                   f"{route.HOSTED_MARGIN}-minute margin",
+                   f"a {route.STAGING_MARGIN}-minute staging-and-upload margin",
+                   f"more than {route.ARCHIVE_LIMIT >> 20} MiB",
+                   f"a whole number from {first} to {last}, default {route.FULL_SAMPLE}",
+                   f"a `sample` outside {first} to {last}",
+                   f"the sample stays {route.FULL_SAMPLE}",
+                   f"whose sample is not {route.FULL_SAMPLE}",
+                   f"allowlist of {suffixes} files"):
+        ensure(phrase in flat, f"the route's contract states the module's figure: {phrase!r}")
+
+
 def _workflow_contract_shape() -> None:
     text = WORKFLOW.read_text(encoding="utf-8")
     lines = [line for line in text.splitlines() if not line.lstrip().startswith("#")]
@@ -283,8 +306,9 @@ def _workflow_contract_shape() -> None:
     inputs = re.findall(r"(?m)^      ([a-z_]+):\n        description:", text)
     ensure(inputs == ["revision", "base_revision", "build", "sample", "title"],
            f"the inputs are the contract's: {inputs!r}")
-    ensure('default: "20"' in text and "          - install\n          - recipe\n" in text,
-           "sample defaults to 20 and build is a choice of install or recipe")
+    ensure(f'default: "{route.FULL_SAMPLE}"' in text
+           and "".join(f"          - {build}\n" for build in route.BUILDS) in text,
+           "sample defaults to the full sample and build is a choice of install or recipe")
     uploads = re.findall(r"(?m)uses: actions/upload-artifact@[0-9a-f]{40} # v[\d.]+\n"
                          r"        with:\n          name: (instrument-[^\n]+)$", text)
     ensure(len(uploads) == 5 and not any("attempt" in name for name in uploads),
@@ -893,6 +917,7 @@ def cases() -> list[Case]:
             Case("limits-and-minutes", _limits_and_minutes),
             Case("workflow-holds-the-module-limits", _workflow_holds_the_module_limits),
             Case("workflow-contract-shape", _workflow_contract_shape),
+            Case("readme-holds-the-module-constants", _readme_holds_the_module_constants),
             Case("classify-records-undecided", _classify_records_undecided),
             Case("sampler-keeps-peaks", _sampler_keeps_peaks),
             Case("run-step-records-how-it-ended", _run_step_records_how_it_ended,
