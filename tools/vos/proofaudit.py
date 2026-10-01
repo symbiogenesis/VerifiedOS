@@ -309,21 +309,43 @@ def dynamic_sources(text: str) -> list[str]:
 
 
 # The words that write a coinductive type or a cofixpoint (coinductive_forms). Rocq's
-# lexer reads a numeral, fraction and exponent included, as one token and a lone quote
-# as another, so neither joins the word after it: the pinned Rocq 9.3.0 runs
-# `do 1cofix H` as the cofix tactic. Each word begins with a hexadecimal digit, which a
-# hexadecimal numeral reads on through, so a hexadecimal numeral is tried first and the
-# read is possessive, as the lexer's is: `0x1cofix` is `0x1c` and then `ofix`. That also
-# keeps a long run of digits linear.
-_NUMERAL = (r"0[xX][0-9a-fA-F][0-9a-fA-F_]*(?:\.[0-9a-fA-F_]+)?(?:[pP][+-]?[0-9][0-9_]*)?"
-            r"|[0-9][0-9_]*(?:\.[0-9_]+)?(?:[eE][+-]?[0-9][0-9_]*)?")
-_COINDUCTIVE = re.compile(r"(?<![\w'])(?:'|" + _NUMERAL + r")*+"
-                          r"(?:CoInductive|CoFixpoint|CoFix|cofix_|cofix)(?![\w'])")
+# lexer continues an identifier through letters, digits, `_` and `'`, so a word joined to
+# one of them is a token of its own only where a numeral, a quote or a token from the
+# lexer's keyword table ends: the pinned Rocq 9.3.0 runs `do 1cofix H` as the cofix
+# tactic, and `#_cofix H` too once a notation declares `#_`. So a run of quotes,
+# underscores and numerals before a word is read apart from it. A numeral is read as the
+# lexer reads one, fraction and exponent included and possessively: each word begins with
+# a hexadecimal digit, so `0x1cofix` is `0x1c` and then `ofix`. A decimal one stops before
+# a `0x` that may open a hexadecimal one, since a token ending in a digit lets one start
+# there: once a notation declares `#0`, the lexer reads `#00x1p5cofix` as `#0`, `0x1p5`
+# and `cofix`. The possessive read keeps a long run of digits linear. Rocq 9.3.0's
+# Unicode table is older than Python's, and the two class thousands of characters
+# differently, so only ASCII letters, digits, `_` and `'` continue a word here. Any other
+# character beside one separates it, as `²` does in Rocq's lexer, which refuses loudly an
+# identifier such as `écofix` that Rocq reads whole.
+_WORD = r"A-Za-z0-9_'"
+_HEXADECIMAL = r"0[xX][0-9a-fA-F][0-9a-fA-F_]*(?:\.[0-9a-fA-F_]+)?(?:[pP][+-]?[0-9][0-9_]*)?"
+_DECIMAL = r"[0-9](?:(?!0[xX][0-9a-fA-F])[0-9_])*(?:\.[0-9_]+)?(?:[eE][+-]?[0-9][0-9_]*)?"
+_COINDUCTIVE = re.compile(rf"(?<![{_WORD}])(?:['_]|{_HEXADECIMAL}|{_DECIMAL})*+"
+                          rf"(?:CoInductive|CoFixpoint|CoFix|cofix_|cofix)(?![{_WORD}])")
+# A declared token hides a word from that reading when Rocq's lexer reads the token through
+# its keyword table, not as an identifier, and its trailing ASCII letters, digits, quotes
+# and underscores hold a letter. The lexer ends such a token where the reading is still
+# inside a word, and a word may follow it there, directly or after a numeral or a quote:
+# the pinned Rocq 9.3.0 runs `#a1cofix H` as `cofix H` once a tactic notation declares
+# `#a1`, and as `do 1 (cofix H)` once one declares `#a` with a count. Tactic and Ltac2
+# notations take each string as one terminal, its blanks removed. Every other notation
+# command declares its terminals in its first string, as its blank-separated parts, a
+# part quoted at both ends read inside its quotes. An ASCII identifier among them names a
+# variable or is read whole, as any identifier is.
+_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_']*")
+_HIDING_TAIL = re.compile(rf"[A-Za-z][{_WORD}]*\Z")
+_WHOLE_TERMINALS = re.compile(r"(?<![\w'])(?:Tactic|Ltac2)\s+Notation(?![\w'])")
 
 
 def coinductive_forms(text: str) -> list[str]:
     """Sentences that write a coinductive type or a cofixpoint, whose guard check the
-    locked kernel gets wrong.
+    locked kernel gets wrong, or that declare a token able to hide one from this reading.
 
     Rocq 9.3.0's cofixpoint guard checker computes a cofixpoint's recursive tree in the
     wrong environment (rocq#22386) and checks nested mutual cofixpoints against one tree
@@ -331,18 +353,60 @@ def coinductive_forms(text: str) -> list[str]:
     the kernel recheck nor the assumption audit is taken as a cover. `CoInductive`,
     `CoFixpoint` and `cofix`, which is Rocq's term binder, Ltac tactic and reduction flag,
     write one, and so do Ltac2's `Std.cofix_` tactic and its `Constr.Unsafe.CoFix`
-    constructor. So each is refused as a whole identifier wherever it stands, qualified or
-    not, `Let CoFixpoint`, a Search filter `is:CoFixpoint` and the forms under `Fail` or
-    `Succeed` among them. A Gallina identifier spelled as one is refused too, which is
-    loud and costs a rename, as the tactical refusal refuses `timeout`; an identifier that
-    only contains one is read whole. A comment separates, so `co(* c *)fix` is two words,
-    and string literals are emptied first. [The lock guide](../opam/README.md) states the
-    lock move that retires the refusal.
+    constructor. So each is refused wherever Rocq's lexer can read it as a word of its own,
+    qualified or not, `Let CoFixpoint`, a Search filter `is:CoFixpoint`, the forms under
+    `Fail` or `Succeed` and a word after a numeral, a quote or an underscore among them. A
+    Gallina identifier spelled as one is refused too, which is loud and costs a rename, as
+    the tactical refusal refuses `timeout`, and so is one holding a word after only quotes,
+    underscores and numerals, such as `_cofix`; any other identifier that contains one,
+    `is_cofix` or `cofix'` among them, is read whole. A comment separates, so
+    `co(* c *)fix` is two words, and string literals are emptied first.
+
+    Rocq's lexer can also end a token from its keyword table inside what this reading
+    takes for one word, so the declaration of each token that would hide a word that way is
+    refused in every source, whether or not that source writes a word: another source may
+    Require it and write one. The tokens a dependency declares stay outside this reading,
+    Stdlib's `+c` among them: the pinned Rocq 9.3.0 reads `+c1cofix` as `+c`, `1` and
+    `cofix`. [The lock guide](../opam/README.md) records that residue and the lock move
+    that retires the refusal.
     """
-    if "cofix" not in text and "CoFix" not in text and "CoInductive" not in text:
+    words = "cofix" in text or "CoFix" in text or "CoInductive" in text
+    declares = "Notation" in text or "Infix" in text
+    if not words and not declares:
         return []
     return [sentence for sentence in sentences(text)
-            if _COINDUCTIVE.search(_STRING.sub('""', sentence))]
+            if (words and _COINDUCTIVE.search(_STRING.sub('""', sentence)))
+            or (declares and any(map(_hides, _declared_terminals(sentence))))]
+
+
+def _declared_terminals(sentence: str) -> list[str]:
+    """The terminals a notation command declares, each as Rocq's lexer adds it."""
+    emptied = _STRING.sub('""', sentence)
+    if not _DECLARES_TOKENS.search(emptied):
+        return []
+    whole = _WHOLE_TERMINALS.search(emptied)
+    found: list[str] = []
+    for part in _TOKEN_SOURCE.finditer(sentence):
+        if part.group() == ":=":
+            break
+        literal = part.group(1)
+        if literal is None:
+            continue
+        found += [_unquote(piece) for piece in literal.split()]
+        if not whole:
+            break
+        found.append(literal.replace(" ", ""))
+    return found
+
+
+def _unquote(piece: str) -> str:
+    """A notation string's part as a terminal: inside its quotes when quoted at both ends."""
+    return piece[1:-1] if len(piece) > 2 and piece[0] == piece[-1] == "'" else piece
+
+
+def _hides(terminal: str) -> bool:
+    """Whether the lexer can end this terminal where the reading is still inside a word."""
+    return not _IDENTIFIER.fullmatch(terminal) and bool(_HIDING_TAIL.search(terminal))
 
 
 def unreadable_tokens(text: str) -> list[str]:
