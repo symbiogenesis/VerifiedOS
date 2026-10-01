@@ -14,10 +14,13 @@ from ci import instrument_route as route
 from tests.harness import Case, ensure
 from vos import opam_client
 
-_INSTALL = [["opam", "switch", "create", "verifiedos-quickchick-9.1.1-ocaml-5.4.1",
+# A side's INSTALL switch, named apart from its RECIPE switch so that the switch each
+# build chooses shows.
+_SWITCH = "verifiedos-quickchick-base-ocaml-5.4.1"
+_INSTALL = [["opam", "switch", "create", _SWITCH,
              "--repos=rocq-released,default", "--empty", "--no-switch", "-y"],
             ["opam", "switch", "import", "/side/tools/opam/quickchick.lock",
-             "--switch=verifiedos-quickchick-9.1.1-ocaml-5.4.1", "-y"]]
+             f"--switch={_SWITCH}", "-y"]]
 _RECIPE = [["opam", "switch", "create", "verifiedos-quickchick-9.3.0-ocaml-5.4.1",
             "--repos=rocq-released,default", "--no-switch", "-y"],
            ["opam", "pin", "add", "--switch=verifiedos-quickchick-9.3.0-ocaml-5.4.1",
@@ -29,7 +32,7 @@ _RECIPE = [["opam", "switch", "create", "verifiedos-quickchick-9.3.0-ocaml-5.4.1
 def _decl(**changes: object) -> dict[str, object]:
     found: dict[str, object] = {
         "install": _INSTALL, "recipe": _RECIPE,
-        "switch": "verifiedos-quickchick-9.1.1-ocaml-5.4.1",
+        "switch": _SWITCH,
         "recipe_switch": "verifiedos-quickchick-9.3.0-ocaml-5.4.1",
         "subject": "proofs/CyclicExecutive.v"}
     found.update(changes)
@@ -46,7 +49,7 @@ def _prerequisites() -> None:
 def _builds_choose_their_recipe() -> None:
     name, steps, switch, flag = bootstrap.plan_build(_decl(), "install", None)
     ensure(name == "INSTALL" and steps == _INSTALL and flag == ""
-           and switch == "verifiedos-quickchick-9.1.1-ocaml-5.4.1",
+           and switch == _SWITCH,
            "an install build runs INSTALL into QUICKCHICK_SWITCH, checked without a flag")
     name, steps, switch, flag = bootstrap.plan_build(_decl(), "recipe", None)
     ensure(name == "RECIPE" and steps == _RECIPE and flag == "--recipe"
@@ -85,7 +88,7 @@ def _declarations_are_the_sides() -> None:
     files = {
         "tools/vos/__init__.py": "",
         "tools/vos/cli/__init__.py": "",
-        "tools/vos/gallina.py": 'QUICKCHICK_SWITCH = "qc-9.1.1"\n'
+        "tools/vos/gallina.py": 'QUICKCHICK_SWITCH = "qc-base"\n'
                                 'QUICKCHICK_RECIPE_SWITCH = "qc-9.3.0"\n',
         "tools/vos/cli/quickchick.py": (
             "from vos import gallina\n"
@@ -98,8 +101,8 @@ def _declarations_are_the_sides() -> None:
             (side / rel).parent.mkdir(parents=True, exist_ok=True)
             (side / rel).write_text(text, encoding="utf-8")
         found = bootstrap.declarations(side)
-        ensure(found == {"install": [["opam", "switch", "create", "qc-9.1.1"]], "recipe": None,
-                         "switch": "qc-9.1.1", "recipe_switch": "qc-9.3.0",
+        ensure(found == {"install": [["opam", "switch", "create", "qc-base"]], "recipe": None,
+                         "switch": "qc-base", "recipe_switch": "qc-9.3.0",
                          "subject": "proofs/CyclicExecutive.v"},
                f"the side's own declarations are read, RECIPE absent as null: {found!r}")
         (side / "tools/vos/cli/quickchick.py").write_text("raise SystemExit(3)\n",
