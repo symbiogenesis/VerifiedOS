@@ -514,11 +514,12 @@ def _unread_switch_is_not_absent() -> None:
 
 def _hard_upgrade_is_read_from_the_root() -> None:
     """Whether the reviewed client must write an older root's upgrade before it reads it
-    is read as opam 2.6.0 decides it: from the root's format alone below 2.0~beta5 and
-    at 2.1~alpha and 2.1~alpha2, and below 2.6~alpha where the first regular file of a
-    configured repository's archive, read in name order, is neither `repo` nor under
-    `packages/`; an archive the client fails on first stops the reading undecided, and
-    another reviewed release claims nothing until its own source is read."""
+    is read as opam 2.6.0 decides it, below 2.6~alpha alone and from the configured
+    repositories' archives before the format: an archive the client fails on first stops
+    the reading undecided whatever the format; otherwise the upgrade is hard below
+    2.0~beta5, at 2.1~alpha and 2.1~alpha2, and wherever the first regular file of an
+    archive, read in name order, is neither `repo` nor under `packages/`. Another
+    reviewed release claims nothing until its own source is read."""
     regular, folder, link = tarfile.REGTYPE, tarfile.DIRTYPE, tarfile.SYMTYPE
 
     def root_at(at: Path, fmt: str,
@@ -552,6 +553,10 @@ def _hard_upgrade_is_read_from_the_root() -> None:
                  ...] = (
         ("older than 2.0~beta5", "2.0~beta", {"default": None}, True),
         ("an early 2.1 prerelease", "2.1~alpha2", {"default": None}, True),
+        ("older than 2.0~beta5, a link-led archive", "2.0~beta",
+         {"default": (("x", link), ("default/repo", regular))}, False),
+        ("an early 2.1 prerelease, a link-led archive", "2.1~alpha2",
+         {"default": (("x", link), ("default/repo", regular))}, False),
         ("the 2.1 release candidate", "2.1~rc", {"default": None}, False),
         ("a nested archive", "2.2", {"default": nested}, True),
         ("unpacked repositories", "2.2", {"default": None}, False),

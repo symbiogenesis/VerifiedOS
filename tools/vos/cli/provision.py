@@ -428,12 +428,16 @@ def _unlisted(switch: str, root: Path, client: tuple[str | None, str]) -> str:
 
 
 # What makes the reviewed client's upgrade of an older root a hard one, which it writes
-# before it reads the root, by the format the root states, as opam 2.6.0's
-# `OpamFormatUpgrade.upgrades` decides it: a format older than 2.0~beta5; 2.1~alpha or
-# 2.1~alpha2, each upgraded through 2.1~rc; and a format older than 2.6~alpha where
-# `cond_hard_upg_2_6_alpha` reads a configured repository's archive as nested. Every
-# other older root it upgrades in memory to read. Read from that release's source, so
-# the reading claims nothing of another reviewed client until its source is read.
+# before it reads the root, as opam 2.6.0's `OpamFormatUpgrade.upgrades` decides it. For
+# every format older than 2.6~alpha it runs `cond_hard_upg_2_6_alpha` over the
+# configured repositories' archives while it gathers the hard upgrades, before the
+# format decides anything, and that condition catches nothing but its own answer, so an
+# archive the client fails on fails it before it asks. Where the archives are read, the
+# upgrade is hard for a format older than 2.0~beta5; for 2.1~alpha or 2.1~alpha2, each
+# upgraded through 2.1~rc; and for any format older than 2.6~alpha where the condition
+# reads a configured repository's archive as nested. Every other older root it upgrades
+# in memory to read. Read from that release's source, so the reading claims nothing of
+# another reviewed client until its source is read.
 _UPGRADES_READ: str = "2.6.0"
 _HARD_BEFORE = "2.0~beta5"
 _HARD_FROM: tuple[str, ...] = ("2.1~alpha", "2.1~alpha2")
@@ -447,28 +451,34 @@ _UNREAD_MEMBERS = frozenset((tarfile.LNKTYPE, tarfile.SYMTYPE, tarfile.CHRTYPE,
 def _upgrades_to_read(root: Path) -> bool:
     """Whether the reviewed client must write the format upgrade of the root at `root`
     before it reads that root, so that, declining it, it lists no switch there: a hard
-    upgrade, by the root's stated format and its repositories' archives, as
-    `_HARD_BEFORE`, `_HARD_FROM` and `_NESTED_BEFORE` say."""
+    upgrade, by the root's repositories' archives and its stated format, as
+    `_HARD_BEFORE`, `_HARD_FROM` and `_NESTED_BEFORE` say.
+
+    The archives are read before the format decides, because that client reads them
+    first for every format older than `_NESTED_BEFORE`: where it may fail on them it
+    may fail before it asks, whatever the format, so such a root reads false,
+    undecided. A format at or above `_NESTED_BEFORE` leaves that client no hard
+    upgrade."""
     fmt = opam_client.root_format(root)
-    if opam_client.OPAM_VERSION != _UPGRADES_READ or not opam_client.older_than_reviewed(fmt):
+    if (opam_client.OPAM_VERSION != _UPGRADES_READ or not opam_client.older_than_reviewed(fmt)
+            or opam_client.compare_versions(fmt, _NESTED_BEFORE) >= 0):
         return False
-    if (opam_client.compare_versions(fmt, _HARD_BEFORE) < 0
-            or any(opam_client.compare_versions(fmt, hard) == 0 for hard in _HARD_FROM)):
-        return True
-    return opam_client.compare_versions(fmt, _NESTED_BEFORE) < 0 and _nested_repository(root)
+    nested = _nested_repository(root)
+    if nested is None:
+        return False
+    return (nested or opam_client.compare_versions(fmt, _HARD_BEFORE) < 0
+            or any(opam_client.compare_versions(fmt, hard) == 0 for hard in _HARD_FROM))
 
 
-def _nested_repository(root: Path) -> bool:
+def _nested_repository(root: Path) -> bool | None:
     """Whether `cond_hard_upg_2_6_alpha` holds of the root at `root`: some configured
     repository's archive, `repo/<name>.tar.gz`, is nested, the archives read in the order
-    of their repositories' names, as the client's map holds them, until one the client
-    fails on stops the reading undecided."""
+    of their repositories' names, as the client's map holds them; None where an archive
+    the client fails on comes first, which fails the client before it decides."""
     for name in sorted({repo["name"] for repo in opam_client.repositories(root)}):
         nested = _archive_nested(root / "repo" / f"{name}.tar.gz")
-        if nested is None:
-            return False
-        if nested:
-            return True
+        if nested is None or nested:
+            return nested
     return False
 
 
