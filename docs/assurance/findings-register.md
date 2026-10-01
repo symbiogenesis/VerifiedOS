@@ -240,6 +240,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S9, in prose
 · Disposition: open, `_repo_file` catching the gzip errors, `_archive_nested` modelling ocaml-tar's header checks or its docstring narrowed to an archive `tarfile` cannot read, the comment qualified, and the three fixtures added
 
+**F-534** owed-act: K-118's hook census reads a `- repo: meta` line that YAML takes as scalar text, inside a multi-line quoted scalar or continuing a flow plain scalar, as a real `meta` entry whose range takes any `rev:` line at its key column unread, so such a line can end a held entry's range early and stand the rev pre-commit loads after it while the reviewed rev line stays behind as text, and reporting merge keys, tags and directives does not close that path as the module's docstring and the K-118 row imply
+· Raised: S14, in prose
+· Disposition: open, a `meta` entry's range taking no rev line, since pre-commit refuses a rev on a `meta` or `local` entry, `repo:` read as a key only before a blank, the double-quoted, single-quoted and flow-plain shapes held by cases and a selftest mutant, and the docstring and K-118 row reworded to match
+
+**F-535** owed-act: K-118's reading of the hook step's pip constraint files differs from pip 26.2.1's in two ways: it looks for a coding declaration in the first two lines of newline-translated text where pip splits the raw bytes at `\n` alone, so a bare CR can push a declaration pip honours out of the reading's view and leave the file read as UTF-8 where pip decodes it as latin-1; and `_PIP_PIN_RE` takes as one pin a line pip refuses, a tab before the first `--hash` or a release outside PEP 440, so "read as pip reads it" claims more than it holds
+· Raised: S14, in prose
+· Disposition: open, `_Owners._pip` deciding the declaration from the raw bytes as pip's `_decode_req_file` does, with a case and a selftest mutant, a space required before the first digest, and the release held to PEP 440 or the docstring saying a line pip refuses fails the install rather than being read
+
 **F-000t** upstream-defect: the model's documentation emitter writes the emitting checkout's commit and dirty flag into the artifact where git answers it, so a generated file held byte-for-byte would move on every commit and would differ between two lanes describing one model
 · Raised: S15
 · Disposition: open, the fact met twice carrying the first site's disposition: this site's emitter no longer answers the git question, and the configure child F-000o names is still owed its work tree
