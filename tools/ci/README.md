@@ -451,12 +451,22 @@ undecided, never as a failure. Each step's `timeout-minutes` is a backstop above
 limit, and each job's is the sum of its step limits plus a 15-minute staging-and-upload
 margin.
 
-**Staging.** Each job's staging and upload run under `always()`. Staging copies an
-allowlist of `.json`, `.log`, `.txt`, `.lock` and `.journal` files into an upload
-directory and leaves out any file carrying Wasm or ELF magic or a NUL byte, naming each
-in the receipt with its reason, so that no switch, build tree, `.vo`, executable, image
-or opam cache is uploaded. Each artifact is named for its job and revision with no
-attempt suffix, replaced on a rerun and retained 30 days.
+**Staging.** Each job's staging and upload run under `always()`. As in Guest CI, a
+refused check runs no requested revision's code afterwards: each later step that runs a
+command after a failure also requires the plan, or its job's side guard, not to have
+failed, staging alone excepted, and a failed route guard skips the side checkout.
+Staging runs after a refused plan or side revision too, so a refused plan still uploads
+`plan.json` and a refused side its job's receipt, and it runs no requested revision's
+code: its one command runs the dispatching commit's instrument_route.py, which imports
+only the standard library and that checkout's `vos.receipts` and `vos.env`, reads the
+job's private root as data, and reads no file of the side's checkout, whose code no
+step before a refused guard has run.
+The upload runs its pinned action alone. Staging copies an allowlist of `.json`,
+`.log`, `.txt`, `.lock` and `.journal` files into an upload directory and leaves out any
+file carrying Wasm or ELF magic or a NUL byte, naming each in the receipt with its
+reason, so that no switch, build tree, `.vo`, executable, image or opam cache is
+uploaded. Each artifact is named for its job and revision with no attempt suffix,
+replaced on a rerun and retained 30 days.
 
 **Reading.** `run.py instrument-ci read --run ID` follows each artifact's redirect
 without credentials, saves it under `out/instrument-ci/<run id>/` and extracts it only

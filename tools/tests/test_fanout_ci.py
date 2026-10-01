@@ -1227,7 +1227,8 @@ def _conjuncts(condition: str) -> list[str] | None:
     return [*operands, expression[start:].strip()]
 
 
-def _refused_dispatch_faults(contents: str, job: str) -> list[str]:
+def _refused_dispatch_faults(contents: str, job: str, check_name: str = _DISPATCH_CHECK,
+                             ident: str = "dispatch", exempt: str | None = None) -> list[str]:
     """Why a step of `job` could run checked-out code after its dispatch check refused.
 
     A step whose condition calls no status function runs only once every earlier step
@@ -1236,23 +1237,25 @@ def _refused_dispatch_faults(contents: str, job: str) -> list[str]:
     after the check that runs a command, whose shell starts in the checkout, or a local
     `./` action must state the guard as a top-level conjunct of a one-line condition. A
     condition stated as a block scalar, or not on its `if:` line, is read as one that
-    runs after a failure. The check is identified as `dispatch` and does not continue on
-    error, so a refusal is a failure every later step sees. A pinned action's step runs
-    that action's code.
+    runs after a failure. The check, the step named `check_name`, is identified as
+    `ident`, `dispatch` by default, and does not continue on error, so a refusal is a
+    failure every later step sees. A pinned action's step runs that action's code. A
+    step whose one command is `exempt`, run by no action, is left to its caller's reading.
     """
+    guard = f"steps.{ident}.outcome != 'failure'"
     after = contents.split(f"\n  {job}:\n", 1)[1]
     steps = _step_texts(re.split(r"\n  (?=\S)", after, maxsplit=1)[0])
-    checks = [n for n, step in enumerate(steps) if _step_values(step, "name") == [_DISPATCH_CHECK]]
+    checks = [n for n, step in enumerate(steps) if _step_values(step, "name") == [check_name]]
     if len(checks) != 1:
-        return [f"{job} states the dispatch check {len(checks)} time(s), not once"]
+        return [f"{job} states the check {check_name!r} {len(checks)} time(s), not once"]
     check = steps[checks[0]]
     faults: list[str] = []
-    if _step_values(check, "id") != ["dispatch"]:
-        faults.append(f"{job}'s dispatch check is not identified as dispatch, so no later "
-                      "step can read its outcome")
+    if _step_values(check, "id") != [ident]:
+        faults.append(f"{job}'s check {check_name!r} is not identified as {ident}, so no "
+                      "later step can read its outcome")
     if _step_values(check, "continue-on-error"):
-        faults.append(f"{job}'s dispatch check continues on error, so a refusal runs every "
-                      "later step")
+        faults.append(f"{job}'s check {check_name!r} continues on error, so a refusal runs "
+                      "every later step")
     for step in steps[checks[0] + 1:]:
         local = any(value.startswith("./") for value in _step_values(step, "uses"))
         conditions = _step_values(step, "if")
@@ -1260,11 +1263,37 @@ def _refused_dispatch_faults(contents: str, job: str) -> list[str]:
                 re.search(r"\b(?:always|failure|cancelled)\(\)", condition)
                 or not condition or condition[0] in "|>" for condition in conditions):
             continue
+        if exempt is not None and _step_values(step, "run") == [exempt] and not local:
+            continue
         name = next(iter(_step_values(step, "name")), "an unnamed step")
         operands = _conjuncts(conditions[0]) if len(conditions) == 1 else None
-        if operands is None or _DISPATCH_GUARD not in operands:
+        if operands is None or guard not in operands:
             faults.append(f"{job}'s step {name!r} runs checked-out code after a failure "
-                          f"without requiring {_DISPATCH_GUARD}")
+                          f"without requiring {guard}")
+    return faults
+
+
+def _instrument_refused_faults(contents: str) -> list[str]:
+    """Why a step of the instrument route could run the requested revision's code after a
+    refusal: the reading above over each job's check, the plan job's plan step and each
+    later job's side guard, in every job that takes a side checkout, its staging alone
+    excepted. Staging's one command runs the route checkout's instrument_route.py, which
+    imports only the standard library and that checkout's `vos.receipts` and `vos.env`,
+    over the job's private root, read as data, and reads no file of the side's checkout,
+    where no step has run that revision's code before a refused guard. A failed route
+    guard skips the side checkout, and the join takes none."""
+    faults: list[str] = []
+    side = f"{_GUARD} (side)"
+    for job, block in _workflow_jobs(contents).items():
+        names = [_step_values(step, "name") for step in _step_texts(block)]
+        if job == "plan":
+            check, ident = "Plan the dispatch", "plan"
+        elif [side] in names:
+            check, ident = side, "side"
+        else:
+            continue
+        stage = f"python3 route/tools/ci/instrument_route.py stage --job {job}"
+        faults += _refused_dispatch_faults(contents, job, check, ident, stage)
     return faults
 
 
@@ -1311,6 +1340,36 @@ def _workflow_refused_dispatch() -> None:
     # A pinned action after a failure, such as the artifact upload, runs no checked-out code.
     ensure("        if: ${{ !cancelled() }}\n        uses: actions/upload-artifact@"
            in contents, "Guest CI's upload runs after a failure without the guard")
+    # The instrument route: no step runs a requested revision's code after its plan or
+    # side guard refused, staging alone running after either.
+    contents = (ROOT / ".github/workflows" / INSTRUMENT).read_text(encoding="utf-8")
+    found = _instrument_refused_faults(contents)
+    ensure(not found, f"{INSTRUMENT} runs checked-out code after a refusal: {found!r}")
+    side = "      - name: Verify dispatched revision belongs to main (side)\n        id: side\n"
+    ensure(contents.count(side) == 3, f"{INSTRUMENT}'s three side guards are identified")
+    stage = "      - name: Stage the build's records\n"
+    stage_plan = "      - name: Stage the plan\n"
+    for mutant, fragment in (
+            (contents.replace(" && steps.side.outcome != 'failure'", ""),
+             "step \"Compare the imported switch with the build's\" runs checked-out code"),
+            (contents.replace(side, side.replace("        id: side\n", ""), 1),
+             "is not identified as side"),
+            (contents.replace(side, side + "        continue-on-error: true\n", 1),
+             "continues on error"),
+            (contents.replace(stage, "      - name: Report the side\n        if: ${{ always() }}\n"
+                                     "        run: python3 side/tools/run.py quickchick check\n\n"
+                              + stage, 1), "step 'Report the side' runs checked-out code"),
+            (contents.replace("stage --job build\n", "stage --job build --side side\n", 1),
+             "step \"Stage the build's records\" runs checked-out code"),
+            (contents.replace(stage_plan, "      - name: Read the plan\n"
+                                          "        if: ${{ failure() }}\n"
+                                          "        run: python3 route/tools/ci/instrument_route.py"
+                                          " plan\n\n" + stage_plan, 1),
+             "step 'Read the plan' runs checked-out code")):
+        ensure(mutant != contents, f"the instrument fixture for {fragment!r} changed nothing")
+        found = _instrument_refused_faults(mutant)
+        ensure(any(fragment in fault for fault in found),
+               f"the instrument route must refuse this mutant ({fragment!r}): {found!r}")
 
 
 def _workflow_reading_base_through_environment() -> None:

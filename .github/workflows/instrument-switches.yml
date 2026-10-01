@@ -6,10 +6,14 @@
 # dispatch before any requested revision is checked out; every later job runs the
 # route's own files from that commit and takes only the side's declarations,
 # instruments, harnesses and proofs from the revision it tests, checking each checkout
-# against main before any of its code runs. Inputs reach a step only through its
-# environment, and a later job reads only the values the plan validated. No switch or
-# download cache is used: every switch a run reports is built in that run in a fresh
-# root. tools/ci/instrument_route.py owns each step's limit; each job's
+# against main before any of its code runs. A refused check runs none of the requested
+# revision's code afterwards: each later step that runs a command after a failure also
+# requires the plan, or its job's side guard, not to have failed, except staging, which
+# runs only the route's instrument_route.py and reads no file of the side's checkout,
+# so a refused job still uploads its plan.json or receipt. Inputs reach a step only
+# through its environment, and a later job reads only the values the plan validated. No
+# switch or download cache is used: every switch a run reports is built in that run in
+# a fresh root. tools/ci/instrument_route.py owns each step's limit; each job's
 # timeout-minutes is the sum of its step limits plus the staging margin, and each
 # step's is a backstop above its limit. `run.py instrument-ci` dispatches and reads it.
 
@@ -174,6 +178,7 @@ jobs:
           submodules: false
 
       - name: Verify dispatched revision belongs to main (side)
+        id: side
         shell: python
         working-directory: side
         env:
@@ -236,6 +241,8 @@ jobs:
           python3 route/tools/ci/instrument_route.py step export -- \
             python3 route/tools/ci/bootstrap_instrument.py export --github-output "$GITHUB_OUTPUT"
 
+      # always(), after a refused side revision too: staging runs only the route's
+      # instrument_route.py over this job's private root and reads no side file.
       - name: Stage the build's records
         if: ${{ always() }}
         run: python3 route/tools/ci/instrument_route.py stage --job build
@@ -306,6 +313,7 @@ jobs:
           submodules: false
 
       - name: Verify dispatched revision belongs to main (side)
+        id: side
         shell: python
         working-directory: side
         env:
@@ -366,7 +374,7 @@ jobs:
         id: compare
         # The closure is compared whatever the check said; the check's exit is one of
         # the comparison's three grounds.
-        if: ${{ !cancelled() && steps.import.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.side.outcome != 'failure' && steps.import.outcome == 'success' }}
         timeout-minutes: 8
         run: |
           python3 route/tools/ci/instrument_route.py step compare -- \
@@ -449,6 +457,7 @@ jobs:
           submodules: false
 
       - name: Verify dispatched revision belongs to main (side)
+        id: side
         shell: python
         working-directory: side
         env:
