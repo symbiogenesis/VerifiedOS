@@ -336,17 +336,14 @@ Fixpoint keep_where {A : Type} (p : A -> bool) (l : list A) : list A :=
 Fixpoint chunks_of {A : Type} (fuel n : nat) (l : list A) : list (list A) :=
   match fuel with
   | 0 => nil
-  | S k => match l with
-           | nil => nil
-           | _ => take_of n l :: chunks_of k n (drop_of n l)
-           end
+  | S k => if l is nil then nil else take_of n l :: chunks_of k n (drop_of n l)
   end.
 
 Definition eqb_bool (x y : bool) : bool := negb (xorb x y).
 
 Fixpoint bits_eqb (a b : list bool) : bool :=
   match a with
-  | nil => match b with nil => true | _ => false end
+  | nil => if b is nil then true else false
   | x :: xs => match b with nil => false | y :: ys => andb (eqb_bool x y) (bits_eqb xs ys) end
   end.
 
@@ -799,12 +796,10 @@ Fixpoint gctr_from (fuel : nat) (sched : list (list byte)) (nr : nat)
                    (cb : block) (x : list bool) : list bool :=
   match fuel with
   | 0 => nil
-  | S k => match x with
-           | nil => nil
-           | _ => bxor (take_of block_bits x)
-                       (block_of_state (encrypt_with sched nr (state_of_block cb)))
-                  ++ gctr_from k sched nr (inc32 cb) (drop_of block_bits x)
-           end
+  | S k => if x is nil then nil
+           else bxor (take_of block_bits x)
+                     (block_of_state (encrypt_with sched nr (state_of_block cb)))
+                ++ gctr_from k sched nr (inc32 cb) (drop_of block_bits x)
   end.
 
 Definition gctr (sched : list (list byte)) (nr : nat) (icb : block) (x : list bool) : list bool :=
@@ -1210,7 +1205,7 @@ Qed.
    over that is a claim about truncation rather than about the key. *)
 Fixpoint same_shape (a b : state) : bool :=
   match a with
-  | nil => match b with nil => true | _ => false end
+  | nil => if b is nil then true else false
   | x :: xs => match b with
                | nil => false
                | y :: ys => andb (Nat.eqb (length_of x) (length_of y)) (same_shape xs ys)
@@ -1537,14 +1532,10 @@ Example the_open_of_a_seal_returns_the_message_and_a_flipped_tag_bit_returns_not
   let aad := block_from (0xFE :: 0xED :: 0xFA :: 0xCE :: 0xDE :: 0xAD :: 0xBE :: 0xEF :: nil) in
   let m := block_from (upto block_bytes) in
   let r := gcm_encrypt 4 key iv aad m in
-  andb (match gcm_open block_bits 4 key iv aad (fst r) (snd r) with
-        | Some p => bits_eqb p m
-        | None => false
-        end)
-       (match gcm_open block_bits 4 key iv aad (fst r) (bxor (snd r) (block_from (1 :: repeat_of 15 0))) with
-        | Some _ => false
-        | None => true
-        end) = true.
+  andb (if gcm_open block_bits 4 key iv aad (fst r) (snd r) is Some p
+        then bits_eqb p m else false)
+       (if gcm_open block_bits 4 key iv aad (fst r) (bxor (snd r) (block_from (1 :: repeat_of 15 0)))
+        is Some _ then false else true) = true.
 Proof. vm_reflexivity. Qed.
 
 (* The unpadded GHASH input agrees with the standard's at every published case
