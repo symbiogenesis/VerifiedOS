@@ -86,7 +86,7 @@ Proof. induction n; simpl; auto. Qed.
 
 Lemma eqb_equal : forall x y, Nat.eqb x y = true -> x = y.
 Proof.
-  induction x as [|x IH]; destruct y; simpl; intros H; try discriminate;
+  induction x as [|x IH]; destruct y as [|y]; simpl; intros H; try discriminate;
     [reflexivity | f_equal; exact (IH y H)].
 Qed.
 
