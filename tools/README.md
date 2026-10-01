@@ -976,9 +976,9 @@ rewrites of upstream bytes. The last Ubuntu shard of
 selects the tracked files under `model/` outside `model/dependencies/` and nothing
 else, and with `SKIP=markdown-link-check`, because that hook fetches every external
 link the model's Markdown names; a finding or a rewrite from any other hook fails the
-job, and `--show-diff-on-failure` prints the rewrite. check-added-large-files reads
-only staged additions, so the CI run decides nothing for it; it acts only at commit
-time. What the hooks install beside their own code is pinned as
+job, and `--show-diff-on-failure` prints the rewrite. check-added-large-files acts
+only on staged additions, as at commit time, so the CI run, which stages nothing,
+decides nothing for it. What the hooks install beside their own code is pinned as
 [their dependencies' paragraph](#model-hook-dependencies) says. To run the same set
 from the checkout root with the environment above, set `SKIP=markdown-link-check` and
 the step's pip and virtualenv variables, naming the constraint files by absolute path,
