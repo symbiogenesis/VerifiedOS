@@ -1672,6 +1672,26 @@ def _k118_hook_rev_is_read_at_its_entry_column() -> None:
     found, _ = _k118_hook(_K118_HOOKS.replace(entry, f"{entry}        # rev: v0.0.1\n"))
     ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:6 {_K118_HOOK_UNREAD}" in found[0],
            f"a comment stating a rev is a finding at its line, not the entry's rev: {found!r}")
+    # The reading holds a rev line at the entry's column even inside a flow sequence,
+    # where it is no key of the entry, so a merge key, or a key a tag makes one, can
+    # supply the rev YAML loads from a mapping anchored inside a `meta` entry, which no
+    # reading holds: each is a finding at its line, and so is a directive, the
+    # configuration needing none of them, while a `%` or a `!` inside a value is not.
+    meta = (f"  - repo: meta\n    x: &m {{\n    rev: {'d' * 40}\n    }}\n"
+            "    hooks: [{id: check-useless-excludes}]\n")
+    staged = _K118_HOOKS.replace("repos:\n", f"repos:\n{meta}")
+    for merge in ("<<: *m", "!!merge y: *m"):
+        decoy = f"    {merge}\n    x: [\n    {reviewed}\n    ]\n    hooks:\n      - id: first\n"
+        found, _ = _k118_hook(staged.replace(entry, decoy))
+        ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:8 {_K118_HOOK_UNREAD}" in found[0],
+               f"a merge staging the rev YAML loads is a finding at its line ({merge!r}): "
+               f"{found!r}")
+    for prefix in ("%YAML 1.1\n---\n", "\ufeff%YAML 1.1\n---\n"):
+        found, _ = _k118_hook(prefix + _K118_HOOKS)
+        ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:1 {_K118_HOOK_UNREAD}" in found[0],
+               f"a directive is a finding at its line ({prefix!r}): {found!r}")
+    found, _ = _k118_hook(_K118_HOOKS.replace(entry, f"{entry}        args: [--x=%s, y!]\n"))
+    ensure(not found, f"a `%` or a `!` inside a value is no directive or tag: {found!r}")
 
 
 def _k118_shipped_readings_are_declared() -> None:

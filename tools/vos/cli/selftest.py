@@ -1834,6 +1834,17 @@ CASES: list[Case] = [
                   lambda _: "  - {hooks: [{id: unreviewed}],\n"
                             "\ufeffrepo: https://github.com/example/unreviewed-hooks,\n"
                             f"\ufeffrev: {'d' * 40}}}\n")),
+    # The first entry's reviewed rev line moved inside a flow sequence, where it stands
+    # at the entry's key column and is no key of the entry, and a merge key supplying the
+    # rev YAML loads from a mapping anchored inside a `meta` entry put before it, whose
+    # lines no reading holds: pre-commit runs the moved rev, and only a census reporting
+    # every merge key sees the entry run a revision its row did not review.
+    ("K-118", "a hook repository's rev a merge key supplies from a meta entry's mapping",
+     _first_match("model/.pre-commit-config.yaml",
+                  r"^(repos:\n)(  - repo: \S+\n)([ \t]+)(rev: .*\n)",
+                  lambda m: (f"{m[1]}  - repo: meta\n{m[3]}x: &moved {{\n{m[3]}rev: {'d' * 40}\n"
+                             f"{m[3]}}}\n{m[3]}hooks: [{{id: check-useless-excludes}}]\n{m[2]}"
+                             f"{m[3]}<<: *moved\n{m[3]}x: [\n{m[3]}{m[4]}{m[3]}]\n"))),
     # The first entry stating a second rev, its commit's last digit changed, after a line
     # separator closing the entry's last line: YAML breaks the line there and keeps the
     # last rev, so only a reading splitting the file where YAML does sees two revs.
