@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 872 of them across 148 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 873 of them across 149 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1268,6 +1268,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-577** measurement: `run.py proof-reading` repeated only two of the gate's five refusals before compiling, so it would compile a copy holding an unreadable token, a coinductive form, a hiding token or a dynamic source
 · Raised: Q38k
 · Disposition: closed at Q38k, the reading refusing all five before anything compiles
+
+**F-600** owed-act: Q38f's conditional commits restate a comment in tools/vos/env.py and the header of tools/quickchick/Properties.v, both inputs of Q38l's route, which Q38f's closing landing may not touch beyond its lock, gallina.py, quickchick.py and provision.py
+· Raised: Q38l
+· Disposition: open, Q38f rewording both to hold before and after its switch moves and landing them with its unconditional commits
 
 **F-565** upstream-defect: the locked proof switch's Rocq 9.3.0 carries the cofixpoint guard-checker inconsistencies #22386 and #22389, which Rocq's critical-bug list reports fixed in V9.3
 · Raised: Q39
