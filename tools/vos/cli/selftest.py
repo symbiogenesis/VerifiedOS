@@ -1764,6 +1764,16 @@ CASES: list[Case] = [
                   r"(\1hooks:\n([ \t]+)- id: \S+\n)",
                   lambda m: (f"{m[1]}rev: {m[3]} # the tag\n{m[4]}{m[5]}  description: |\n"
                              f"{m[5]}    rev: {m[2]} # frozen: {m[3]}\n"))),
+    # A repository entry anchored under the `ci` mapping pre-commit loads unchecked, on a
+    # line whose `#` follows a no-break space, and aliased into `repos`: YAML's blanks are
+    # the space and the tab alone, so that line is a key rather than a comment, and only
+    # a census skipping no other line as one sees the entry pre-commit would run.
+    ("K-118", "a hook repository anchored on a line a no-break space opens and aliased in",
+     _first_match("model/.pre-commit-config.yaml", r"^(repos:\n.*)\Z",
+                  lambda m: ("ci:\n  \u00a0#x: &unreviewed {repo: https://github.com/example/"
+                             f"unreviewed-hooks, rev: {'d' * 40}, hooks: [{{id: unreviewed}}]}}\n"
+                             f"{m[1]}  - *unreviewed\n"),
+                  flags=re.MULTILINE | re.DOTALL)),
     # A hook repository appended with no row, pinned as `autoupdate --freeze` writes a
     # reviewed one: every row still agrees with its own entry, so only a census of every
     # entry the configuration carries sees code pre-commit runs whose terms nobody read.

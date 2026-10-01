@@ -1356,6 +1356,9 @@ def _k118_hook_revisions_are_held() -> None:
                "fail-closed: no ok line stands beside an unread hook configuration")
 
 
+_K118_HOOK_UNREAD = "states a hook repository's `repo` or `rev` key in a form K-118 does not read"
+
+
 def _k118_hook_census_reads_every_entry() -> None:
     # Every repository entry the configuration carries is read at its line, so code
     # pre-commit installs from a repository no row names is a finding however it is
@@ -1402,9 +1405,14 @@ def _k118_hook_census_reads_every_entry() -> None:
             f"{pins.HOOK_CONFIG}:{line} states a hook repository's `repo` or `rev` key in a "
             "form K-118 does not read" in item for line, item in zip(lines, found, strict=True)),
                f"an entry K-118 cannot read is a finding at its line ({written!r}): {found!r}")
-
-
-_K118_HOOK_UNREAD = "states a hook repository's `repo` or `rev` key in a form K-118 does not read"
+    # A `#` after a no-break or ideographic space opens no comment, YAML's blanks being
+    # the space and the tab alone: the line is a key, so an entry anchored there and
+    # aliased into `repos` is read at that line rather than passed over as a comment.
+    for space in ("\u00a0", "\u3000"):
+        anchored = f"{space}#x: &e {{repo: https://github.com/example/evil, rev: v1}}\n"
+        found, _ = _k118_hook(anchored + _K118_HOOKS + "  - *e\n")
+        ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:1 {_K118_HOOK_UNREAD}" in found[0],
+               f"a key after a {space!r} and a `#` is read at its line: {found!r}")
 
 
 def _k118_hook_rev_is_read_at_its_entry_column() -> None:

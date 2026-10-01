@@ -275,9 +275,10 @@ or `rev` key the reading did not take, bare or quoted, or any key K-115's census
 whatever it spells, is a finding at that line: an entry written as a flow mapping,
 behind an anchor or with its rev first, and a rev carrying another comment, a tag, an
 anchor or an alias, or standing deeper or shallower than its entry's keys, a hook's key
-or a block scalar's text among them, is reported rather than run unread. The
-configuration is read whether or not any hook row is held, so its absence is a finding
-on its own.
+or a block scalar's text among them, is reported rather than run unread. A line passes
+as a comment only where its `#` follows spaces and tabs alone, YAML's only blanks, since
+after a no-break or ideographic space it opens a key. The configuration is read whether
+or not any hook row is held, so its absence is a finding on its own.
 
 **Fail-closed at every reading**, on K-97's ground: a record without the section or its
 table, a table with no row, a site matching other than once, and an owner absent,
@@ -1370,7 +1371,9 @@ def _hook_census(owners: _Owners, findings: list[str]) -> int:
     # census's to report rather than the entry's rev.
     column = -1
     for number, line in enumerate(_YAML_BREAK_RE.split(text), start=1):
-        if line.lstrip().startswith("#"):
+        # A comment opens after YAML's own blanks, a space or a tab: a `#` after a
+        # no-break or ideographic space is a plain scalar's text, which may be a key.
+        if line.lstrip(" \t").startswith("#"):
             continue
         where = f"{HOOK_CONFIG}:{number}"
         entry = _HOOK_REPO_RE.match(line)
