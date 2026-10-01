@@ -919,21 +919,17 @@ Definition single_view : ring_view := mk_ring_view 1 0.
 (*| discharges: R-12-095 |*)
 Theorem the_ring_fills_to_capacity_and_refuses_one_past :
   andb (may_reserve (rv_occupancy brimming_view))
-       (match service_submit full_view with
-        | submit_would_block => true
-        | submit_enqueued => false
-        end) = true.
+       (if service_submit full_view is submit_would_block then true else false) = true.
 Proof. vm_reflexivity. Qed.
 
 (* R-12-095's "no partial enqueue" as a property of the step rather than as a
    sentence: a refused submission leaves the view exactly where it was. *)
 Definition NoPartialEnqueue (f : ring_view -> ring_view) : Prop :=
   forall v : ring_view,
-    match service_submit v with
-    | submit_would_block => andb (Nat.eqb (rv_produced (f v)) (rv_produced v))
-                                 (Nat.eqb (rv_consumed (f v)) (rv_consumed v)) = true
-    | submit_enqueued => True
-    end.
+    if service_submit v is submit_would_block
+    then andb (Nat.eqb (rv_produced (f v)) (rv_produced v))
+              (Nat.eqb (rv_consumed (f v)) (rv_consumed v)) = true
+    else True.
 
 (*| discharges: R-12-095 |*)
 Theorem the_specification_never_partially_enqueues : NoPartialEnqueue rv_publish.
@@ -1395,10 +1391,7 @@ Definition w_pending (w : world) : nat := rv_occupancy (w_view w).
 Definition producer_publishes (r : reset_owner) (w : world) : world :=
   if Nat.ltb (w_pending w) ring_capacity
   then mk_world (mk_ring_view (S (rv_produced (w_view w))) (rv_consumed (w_view w)))
-                (match r with
-                 | reset_at_the_signal => false
-                 | reset_at_the_drain => w_armed w
-                 end)
+                (if r is reset_at_the_signal then false else w_armed w)
                 (w_signals w + (if w_armed w then 1 else 0))
                 (w_seen w) (w_drained w) (w_asleep w)
   else w.
@@ -1409,10 +1402,7 @@ Definition consumer_steps (r : reset_owner) (b : nat) (a : consumer_act)
   | act_drain =>
       mk_world (mk_ring_view (rv_produced (w_view w))
                              (rv_consumed (w_view w) + svc_least b (w_pending w)))
-               (match r with
-                | reset_at_the_drain => false
-                | reset_at_the_signal => w_armed w
-                end)
+               (if r is reset_at_the_drain then false else w_armed w)
                (w_signals w) (rv_produced (w_view w))
                (w_drained w + svc_least b (w_pending w)) (w_asleep w)
   | act_arm =>
@@ -1711,13 +1701,11 @@ Proof. exact the_specification_consumer_stays_inside_its_budget. Qed.
    what its budget admits, which is the shape a blocking wait would take here
    and is refused at the same place. *)
 Definition greedy_consumer_steps (b : nat) (a : consumer_act) (w : world) : world :=
-  match a with
-  | act_drain =>
-      mk_world (mk_ring_view (rv_produced (w_view w)) (rv_produced (w_view w)))
-               (w_armed w) (w_signals w) (rv_produced (w_view w))
-               (w_drained w + w_pending w) (w_asleep w)
-  | _ => consumer_steps reset_at_the_signal b a w
-  end.
+  if a is act_drain
+  then mk_world (mk_ring_view (rv_produced (w_view w)) (rv_produced (w_view w)))
+                (w_armed w) (w_signals w) (rv_produced (w_view w))
+                (w_drained w + w_pending w) (w_asleep w)
+  else consumer_steps reset_at_the_signal b a w.
 
 Definition all_consumer_acts : list consumer_act :=
   cons act_drain (cons act_arm (cons act_recheck (cons act_sleep nil))).
@@ -1884,39 +1872,24 @@ Qed.
 Definition spec_advance : Advancer := fun e s =>
   match e, sl_state s with
   | ev_reserve, state_Free =>
-      match lifecycle_next state_Free with
-      | Some t => Some (with_state s t)
-      | None => None
-      end
+      (if lifecycle_next state_Free is Some t then Some (with_state s t) else None)
   | ev_publish, state_Writing =>
-      match lifecycle_next state_Writing with
-      | Some t => Some (with_state s t)
-      | None => None
-      end
+      (if lifecycle_next state_Writing is Some t then Some (with_state s t) else None)
   | ev_accept, state_Submitted =>
       if sl_validated s
-      then match lifecycle_next state_Submitted with
-           | Some t => Some (with_state s t)
-           | None => None
-           end
+      then (if lifecycle_next state_Submitted is Some t then Some (with_state s t)
+            else None)
       else None
   | ev_complete, state_Accepted =>
-      match lifecycle_next state_Accepted with
-      | Some t => Some (with_state s t)
-      | None => None
-      end
+      (if lifecycle_next state_Accepted is Some t then Some (with_state s t) else None)
   | ev_reclaim, state_Terminal =>
       if Nat.eqb (sl_readers s) 0
-      then match lifecycle_next state_Terminal with
-           | Some t => Some (with_state s t)
-           | None => None
-           end
+      then (if lifecycle_next state_Terminal is Some t then Some (with_state s t)
+            else None)
       else None
   | ev_malformed, state_Submitted =>
-      match lifecycle_malformed state_Submitted with
-      | Some t => Some (with_state s t)
-      | None => None
-      end
+      (if lifecycle_malformed state_Submitted is Some t then Some (with_state s t)
+       else None)
   | _, _ => None
   end.
 
@@ -1953,14 +1926,8 @@ Proof. vm_reflexivity. Qed.
    read as relations and never a rank arithmetic that happens to agree with
    them at one state. *)
 Definition contract_step_ok (s z : slot_state) : bool :=
-  orb (match lifecycle_next s with
-       | Some t => state_eqb z t
-       | None => false
-       end)
-      (match lifecycle_malformed s with
-       | Some t => state_eqb z t
-       | None => false
-       end).
+  orb (if lifecycle_next s is Some t then state_eqb z t else false)
+      (if lifecycle_malformed s is Some t then state_eqb z t else false).
 
 (* Every step an advancer takes is the contract's successor or its one
    malformed step, decided over every event and every slot. *)
@@ -1994,17 +1961,11 @@ Definition rank_only_step_is_lawful (f : Advancer) : bool :=
          all_events.
 
 Definition never_reclaims_under_a_reader (f : Advancer) : bool :=
-  all_of (fun s => match f ev_reclaim s with
-                   | None => true
-                   | Some _ => Nat.eqb (sl_readers s) 0
-                   end)
+  all_of (fun s => if f ev_reclaim s is None then true else Nat.eqb (sl_readers s) 0)
          all_slots.
 
 Definition never_accepts_before_validation (f : Advancer) : bool :=
-  all_of (fun s => match f ev_accept s with
-                   | None => true
-                   | Some _ => sl_validated s
-                   end)
+  all_of (fun s => if f ev_accept s is None then true else sl_validated s)
          all_slots.
 
 Definition advancer_obligations : list (Advancer -> bool) :=
@@ -2040,10 +2001,7 @@ Definition advance_backwards : Advancer := fun e s =>
 Definition advance_unvalidated : Advancer := fun e s =>
   match e, sl_state s with
   | ev_accept, state_Submitted =>
-      match lifecycle_next state_Submitted with
-      | Some t => Some (with_state s t)
-      | None => None
-      end
+      (if lifecycle_next state_Submitted is Some t then Some (with_state s t) else None)
   | _, _ => spec_advance e s
   end.
 
@@ -2052,10 +2010,7 @@ Definition advance_unvalidated : Advancer := fun e s =>
 Definition advance_under_a_reader : Advancer := fun e s =>
   match e, sl_state s with
   | ev_reclaim, state_Terminal =>
-      match lifecycle_next state_Terminal with
-      | Some t => Some (with_state s t)
-      | None => None
-      end
+      (if lifecycle_next state_Terminal is Some t then Some (with_state s t) else None)
   | _, _ => spec_advance e s
   end.
 
@@ -2141,19 +2096,15 @@ Proof. vm_reflexivity. Qed.
    here at the service's own event. *)
 (*| discharges: R-12-094 |*)
 Theorem the_malformed_event_takes_the_contracts_own_step :
-  match spec_advance ev_malformed (slot_at state_Submitted) with
-  | Some z => Nat.eqb (lifecycle_rank (sl_state z))
-                      (2 + lifecycle_rank state_Submitted)
-  | None => false
-  end = true.
+  (if spec_advance ev_malformed (slot_at state_Submitted) is Some z
+   then Nat.eqb (lifecycle_rank (sl_state z)) (2 + lifecycle_rank state_Submitted)
+   else false) = true.
 Proof. vm_reflexivity. Qed.
 
 (*| discharges: R-12-094 |*)
 Theorem the_malformed_event_is_admitted_at_one_state_only :
-  Nat.eqb (count_of (filter_of (fun s => match spec_advance ev_malformed s with
-                                         | Some _ => true
-                                         | None => false
-                                         end)
+  Nat.eqb (count_of (filter_of (fun s => if spec_advance ev_malformed s is Some _
+                                         then true else false)
                                (map_over slot_at all_slot_states))) 1 = true.
 Proof. vm_reflexivity. Qed.
 
@@ -2299,21 +2250,19 @@ Example the_two_buffer_images_differ_only_in_their_length :
 Proof. vm_reflexivity. Qed.
 
 Example the_copy_once_run_is_the_one_the_specification_answers :
-  match copy_once declared_extent first_image second_image with
-  | Some r => andb (Nat.eqb (cr_reads r) (cr_reads staged_run))
-                   (andb (Nat.eqb (cr_bytes r) (cr_bytes staged_run))
-                         (Nat.eqb (cr_staged r) (cr_staged staged_run)))
-  | None => false
-  end = true.
+  (if copy_once declared_extent first_image second_image is Some r
+   then andb (Nat.eqb (cr_reads r) (cr_reads staged_run))
+             (andb (Nat.eqb (cr_bytes r) (cr_bytes staged_run))
+                   (Nat.eqb (cr_staged r) (cr_staged staged_run)))
+   else false) = true.
 Proof. vm_reflexivity. Qed.
 
 Example the_revalidated_run_is_the_one_the_refuter_answers :
-  match copy_revalidating declared_extent first_image second_image with
-  | Some r => andb (Nat.eqb (cr_reads r) (cr_reads revalidated_run))
-                   (andb (Nat.eqb (cr_bytes r) (cr_bytes revalidated_run))
-                         (Nat.eqb (cr_staged r) (cr_staged revalidated_run)))
-  | None => false
-  end = true.
+  (if copy_revalidating declared_extent first_image second_image is Some r
+   then andb (Nat.eqb (cr_reads r) (cr_reads revalidated_run))
+             (andb (Nat.eqb (cr_bytes r) (cr_bytes revalidated_run))
+                   (Nat.eqb (cr_staged r) (cr_staged revalidated_run)))
+   else false) = true.
 Proof. vm_reflexivity. Qed.
 
 (* And the copy is charged at the declared maximum rather than at what
@@ -2327,7 +2276,7 @@ Definition CostIsIndependentOfTheArrival (cost : nat -> copy_run -> nat) : Prop 
   forall (segments : nat) (r1 r2 : copy_run),
     cost segments r1 = cost segments r2.
 
-Definition charged_at_the_maximum (segments : nat) (_ : copy_run) : nat :=
+Definition charged_at_the_maximum (segments : nat) & copy_run : nat :=
   declared_copy_cost segments.
 
 Definition charged_at_the_arrival (_ : nat) (r : copy_run) : nat :=
@@ -2371,10 +2320,7 @@ Fixpoint submit_batch (n : nat) (v : ring_view) : list submit_result :=
 (* The transactional batch R-12-098 forbids: one refused member converts every
    member's result into a refusal. *)
 Definition transactional_batch (n : nat) (v : ring_view) : list submit_result :=
-  if any_of (fun r => match r with
-                      | submit_would_block => true
-                      | submit_enqueued => false
-                      end)
+  if any_of (fun r => if r is submit_would_block then true else false)
             (submit_batch n v)
   then map_over (fun _ => submit_would_block) (submit_batch n v)
   else submit_batch n v.
@@ -2386,10 +2332,7 @@ Definition crowded_view : ring_view :=
   mk_ring_view (Nat.pred (Nat.pred (Nat.pred ring_capacity))) 0.
 
 Definition enqueued_count (l : list submit_result) : nat :=
-  count_of (filter_of (fun r => match r with
-                                | submit_enqueued => true
-                                | submit_would_block => false
-                                end) l).
+  count_of (filter_of (fun r => if r is submit_enqueued then true else false) l).
 
 (*| discharges: R-12-098 |*)
 Theorem the_batch_admits_what_the_ring_holds_and_refuses_the_rest :
@@ -2483,12 +2426,10 @@ Definition drain_activations (b : nat) : nat :=
    five stand in is gap e, so the accounting is a declared field and both arms
    are exhibited. *)
 Definition accounted_latency (s : Service) (o : op) : nat :=
-  match svc_accounting s with
-  | accounts_the_queue =>
-      drain_activations (cap_batch (svc_caps s)) * svc_cadence s
-      + so_service (svc_per_op s o)
-  | accounts_the_service_alone => so_service (svc_per_op s o)
-  end.
+  if svc_accounting s is accounts_the_queue
+  then drain_activations (cap_batch (svc_caps s)) * svc_cadence s
+       + so_service (svc_per_op s o)
+  else so_service (svc_per_op s o).
 
 Definition service_conjuncts : list (Service -> bool) :=
   (* 0: R-12-095. The accepted ceiling spends the completion capacity exactly. *)
@@ -2628,7 +2569,7 @@ Definition demo_service : Service :=
    does not hold its identifier live. It is admitted too, and the difference
    is observable on a slot in that state. *)
 Definition writing_not_live (t : slot_state) : bool :=
-  match t with state_Writing => false | _ => demo_live t end.
+  if t is state_Writing then false else demo_live t.
 
 Definition with_caps (s : Service) (c : svc_capacities) : Service :=
   mk_service c (svc_per_op s) (svc_live s) (svc_reset s) (svc_counter s)
@@ -2741,10 +2682,8 @@ Definition spoiled_at (k : nat) : Service :=
   | 7 => spoil_op demo_service op_read_extent set_validation 25
   | 8 => with_cadence demo_service 2501
   | 9 => spoil_op demo_service op_read_extent set_progress_slack 801
-  | 10 => with_live demo_service (fun t => match t with
-                                           | state_Submitted => false
-                                           | _ => demo_live t
-                                           end)
+  | 10 => with_live demo_service (fun t => if t is state_Submitted then false
+                                           else demo_live t)
   | 11 => with_counter demo_service true
   | _ => with_charging demo_service false
   end.
@@ -3111,14 +3050,10 @@ Example the_declared_service_states_its_seven_other_fields :
        (andb (svc_charges_at_the_maximum demo_service)
              (andb (Nat.eqb (svc_identity demo_service) 1)
                    (andb (svc_live demo_service state_Terminal)
-                         (andb (match svc_reset demo_service with
-                                | reset_at_the_signal => true
-                                | reset_at_the_drain => false
-                                end)
-                               (match svc_accounting demo_service with
-                                | accounts_the_queue => true
-                                | accounts_the_service_alone => false
-                                end))))) = true.
+                         (andb (if svc_reset demo_service is reset_at_the_signal
+                                then true else false)
+                               (if svc_accounting demo_service is accounts_the_queue
+                                then true else false))))) = true.
 Proof. vm_reflexivity. Qed.
 
 Example the_read_record_states_its_thirteen_fields :
@@ -3253,14 +3188,8 @@ Example the_completion_states_its_byte_counts_and_its_metadata :
     (cons (Nat.eqb (metadata demo_completion) 0)
     (cons (Nat.eqb (consumed_bytes demo_completion) 64)
     (cons (Nat.eqb (produced_bytes demo_completion) 4096)
-    (cons (match completion_refinement demo_completion with
-           | None => true
-           | Some _ => false
-           end)
-    (cons (match completion_status demo_completion with
-           | status_ok => true
-           | _ => false
-           end)
+    (cons (if completion_refinement demo_completion is None then true else false)
+    (cons (if completion_status demo_completion is status_ok then true else false)
      nil))))) = true.
 Proof. vm_reflexivity. Qed.
 
@@ -3283,14 +3212,9 @@ Proof. vm_reflexivity. Qed.
 
 Example the_buffer_reference_declares_its_direction_and_its_content :
   andb (Nat.eqb (ref_length demo_buffer_ref) 4096)
-       (andb (match ref_direction demo_buffer_ref with
-              | direction_to_client => true
-              | direction_to_server => false
-              end)
-             (match ref_content demo_buffer_ref with
-              | content_opaque_bytes => true
-              | content_frame_extent => false
-              end)) = true.
+       (andb (if ref_direction demo_buffer_ref is direction_to_client then true else false)
+             (if ref_content demo_buffer_ref is content_opaque_bytes then true else false))
+  = true.
 Proof. vm_reflexivity. Qed.
 
 Example the_two_copy_runs :
