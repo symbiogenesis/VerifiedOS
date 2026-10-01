@@ -9,7 +9,8 @@
 #
 # The image is published for linux/amd64 only, at every 9.1 tag, so on an arm64
 # host this path wants emulation and the native recipe in README.md is the one
-# that runs.
+# that runs. No run has built this image: the snapshot's checks ran through the
+# native recipe on the aarch64 development guest.
 #
 # The image is pinned by digest, so a tag pushed again cannot move it. Docker Hub
 # gave this digest for both 9.1.1-ocaml-4.14.2-flambda and the floating

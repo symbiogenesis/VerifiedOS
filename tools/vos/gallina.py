@@ -50,7 +50,8 @@ CERTIROCQ_VERSION = "0.9.1+9.1"
 # The first candidate below, declared: CertiRocq's native certirocqc bootstrap includes
 # its runtime's Hd_val macro beside OCaml's runtime header, which at 4.14.4 defines the
 # same macro token for token, where OCaml 5.2 made it an inline function the macro
-# collides with. The release builds, bootstraps and passes the Wasm oracle's checks there.
+# collides with. The release builds, bootstraps and passes the Wasm oracle's checks there,
+# in the switch it built and again in the switch imported from the snapshot.
 ORACLE_OCAML_VERSION = "4.14.4"
 ORACLE_SWITCH = f"verifiedos-certirocq-0.9.1-ocaml-{ORACLE_OCAML_VERSION}"
 
@@ -61,9 +62,9 @@ ORACLE_SWITCH = f"verifiedos-certirocq-0.9.1-ocaml-{ORACLE_OCAML_VERSION}"
 # certirocqc bootstrap's C wrapper includes beside it; 5.1.1 defines another macro. A
 # candidate is declared only once it builds and the Wasm oracle's positive and seeded
 # negative checks pass in it: its export becomes tools/opam/certirocq.lock and
-# ORACLE_OCAML_VERSION names it. Each is built in an opam root that does not already
-# hold its switch, such as a lane's private root, since the 5.1.1 candidate's name is
-# ORACLE_SWITCH's own.
+# ORACLE_OCAML_VERSION names it. The 4.14.4 candidate passed and is declared, so the
+# 5.1.1 candidate's recipe has not been run. Each is built in an opam root that does not
+# already hold its switch, such as a lane's private root.
 ORACLE_CANDIDATE_OCAML_VERSIONS: tuple[str, ...] = ("4.14.4", "5.1.1")
 
 
