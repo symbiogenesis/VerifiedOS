@@ -79,10 +79,7 @@ Definition poly_eqb (a b : list Z) : bool :=
 Fixpoint chunk_of {A : Type} (fuel k : nat) (l : list A) : list (list A) :=
   match fuel with
   | O => nil
-  | S f => match l with
-           | nil => nil
-           | _ => firstn k l :: chunk_of f k (skipn k l)
-           end
+  | S f => if l is nil then nil else firstn k l :: chunk_of f k (skipn k l)
   end.
 
 Definition two_pow (d : nat) : Z := 2 ^ Z.of_nat d.
@@ -1111,7 +1108,7 @@ Qed.
 
 Lemma vscale_one : forall q a, reduced_poly q a -> vscale q 1 a = a.
 Proof.
-  intros q a H. unfold vscale. induction H; simpl; auto.
+  intros q a H. unfold vscale. induction H as [|x l H H0 IHForall]; simpl; auto.
   f_equal; auto. unfold mulmod. rewrite Z.mul_1_l. exact H.
 Qed.
 
@@ -1226,7 +1223,7 @@ Local Transparent pow_mod.
 Lemma vscale_compose : forall q u v a,
   vscale q u (vscale q v a) = vscale q (u*v) a.
 Proof.
-  intros q u v a. induction a; unfold vscale in *; cbn [map].
+  intros q u v a. induction a as [|a a0 IHa]; unfold vscale in *; cbn [map].
   - reflexivity.
   - rewrite IHa. f_equal. unfold mulmod.
     rewrite Zmult_mod_idemp_r, Z.mul_assoc. reflexivity.
@@ -1235,7 +1232,7 @@ Qed.
 Lemma vscale_unit : forall q c a,
   c mod q = 1 mod q -> reduced_poly q a -> vscale q c a = a.
 Proof.
-  intros q c a Hc Ha. unfold vscale. induction Ha; cbn [map]; auto.
+  intros q c a Hc Ha. unfold vscale. induction Ha as [|x l H Ha IHHa]; cbn [map]; auto.
   rewrite IHHa. f_equal. unfold mulmod.
   rewrite Zmult_mod, Hc, <- Zmult_mod, Z.mul_1_l. exact H.
 Qed.
@@ -1288,7 +1285,7 @@ Lemma bit_range_div2 : forall n x start,
   map (Z.testbit x) (z_range n (start + 1)) =
   map (Z.testbit (x/2)) (z_range n start).
 Proof.
-  induction n; intros x start H; cbn [z_range map]; [reflexivity|].
+  induction n as [|n IHn]; intros x start H; cbn [z_range map]; [reflexivity|].
   f_equal.
   - replace (start+1) with (Z.succ start) by lia.
     symmetry. apply Z.div2_bits. exact H.
@@ -1298,7 +1295,7 @@ Qed.
 Lemma bits_le_succ : forall n x,
   bits_le (S n) x = Z.testbit x 0 :: bits_le n (x/2).
 Proof.
-  intros. unfold bits_le, indices. cbn [z_range map]. f_equal.
+  intros n x. unfold bits_le, indices. cbn [z_range map]. f_equal.
   change (map (Z.testbit x) (z_range n (0+1)) = map (Z.testbit (x/2)) (z_range n 0)).
   apply bit_range_div2. lia.
 Qed.
@@ -1315,7 +1312,7 @@ Qed.
 Theorem bits_value_of_bits_le : forall n x,
   0 <= x < 2 ^ Z.of_nat n -> bits_value (bits_le n x) = x.
 Proof.
-  induction n; intros x H.
+  induction n as [|n IHn]; intros x H.
   - cbn in H. assert (x=0) by lia. subst. reflexivity.
   - rewrite bits_le_succ. cbn [bits_value]. rewrite IHn.
     + replace (if Z.testbit x 0 then 1 else 0) with (Z.b2z (Z.testbit x 0))
@@ -1338,7 +1335,7 @@ Proof.
 Qed.
 
 Lemma bits_le_length : forall n x, length (bits_le n x) = n.
-Proof. induction n; intros; [reflexivity|]. rewrite bits_le_succ. simpl. rewrite IHn. reflexivity. Qed.
+Proof. induction n as [|n IHn]; intros; [reflexivity|]. rewrite bits_le_succ. simpl. rewrite IHn. reflexivity. Qed.
 
 Lemma chunk_of_exact : forall {A} fuel width (chunks : list (list A)),
   (0 < width)%nat -> (length chunks <= fuel)%nat ->
@@ -1361,7 +1358,7 @@ Lemma chunk_of_concat : forall {A} fuel width (xs : list A),
   (0 < width)%nat -> (length xs <= fuel * width)%nat ->
   concat (chunk_of fuel width xs) = xs.
 Proof.
-  intros A fuel. induction fuel; intros width xs Hw Hlen.
+  intros A fuel. induction fuel as [|fuel IHfuel]; intros width xs Hw Hlen.
   - destruct xs; [reflexivity|simpl in Hlen; lia].
   - destruct xs as [|x xs]; [reflexivity|].
     change (firstn width (x :: xs) ++ concat (chunk_of fuel width (skipn width (x :: xs))) = x :: xs).
@@ -1373,7 +1370,7 @@ Lemma chunk_of_lengths : forall {A} fuel width (xs : list A),
   (0 < width)%nat -> (length xs mod width = 0)%nat ->
   Forall (fun part => length part = width) (chunk_of fuel width xs).
 Proof.
-  intros A fuel. induction fuel; intros width xs Hw Hmod; [constructor|].
+  intros A fuel. induction fuel as [|fuel IHfuel]; intros width xs Hw Hmod; [constructor|].
   destruct xs as [|x xs]; [constructor|].
   assert (Hle : (width <= length (x :: xs))%nat).
   { destruct (Nat.lt_ge_cases (length (x :: xs)) width); [rewrite Nat.mod_small in Hmod by lia; simpl in Hmod; lia|lia]. }
@@ -1392,14 +1389,14 @@ Lemma bit_codec_chunks : forall width chunks,
   Forall (fun bs => length bs = width) chunks ->
   map (bits_le width) (map bits_value chunks) = chunks.
 Proof.
-  intros width chunks H. induction H; cbn [map]; [reflexivity|].
+  intros width chunks H. induction H as [|x l H H0 IHForall]; cbn [map]; [reflexivity|].
   f_equal; [rewrite <- H; apply bits_le_of_bits_value|exact IHForall].
 Qed.
 
 Lemma concat_bits_length : forall width xs,
   length (concat (map (bits_le width) xs)) = (length xs * width)%nat.
 Proof.
-  intros width xs. induction xs; cbn [map concat length]; [reflexivity|].
+  intros width xs. induction xs as [|a xs IHxs]; cbn [map concat length]; [reflexivity|].
   rewrite length_app, bits_le_length, IHxs. lia.
 Qed.
 
@@ -1415,7 +1412,7 @@ Proof.
   2: lia.
   2: { rewrite concat_bits_length. nia. }
   rewrite chunk_of_exact.
-  - clear Halign. induction Hbounds; cbn [map]; [reflexivity|].
+  - clear Halign. induction Hbounds as [|x l H Hbounds IHHbounds]; cbn [map]; [reflexivity|].
     rewrite bits_value_of_bits_le by exact H. rewrite IHHbounds. reflexivity.
   - exact Hw.
   - rewrite length_map.
@@ -1426,7 +1423,7 @@ Proof.
         [|lia|rewrite concat_bits_length; nia].
       pose proof (chunk_of_lengths (length xs * width) 8
         (concat (map (bits_le width) xs)) (ltac:(lia)) (ltac:(rewrite concat_bits_length; exact Halign))) as Hparts.
-      induction Hparts; cbn [concat length]; [reflexivity|]. rewrite length_app, H, IHHparts. lia. }
+      induction Hparts as [|x l H Hparts IHHparts]; cbn [concat length]; [reflexivity|]. rewrite length_app, H, IHHparts. lia. }
     rewrite concat_bits_length in Htotal. rewrite length_map. nia.
   - apply Forall_forall. intros bs Hbs. apply in_map_iff in Hbs.
     destruct Hbs as [x [<- Hx]]. apply bits_le_length.
