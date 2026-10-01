@@ -382,7 +382,10 @@ after which the switch its recipe names does not stand, and the checks on a swit
   records the runner decision as owed to the user, and the sample stays 20.
 - The join job runs when the plan job passed and the run was not cancelled. It takes
   one artifact per job, records a job its prerequisite's failure skipped as not run,
-  refuses an artifact missing from a job that ran, or a duplicate, and writes
+  records as failed a job whose result is failure though none of its wrapped steps
+  failed or was undecided, a seed run only where a step of its own never ran, since a
+  seed run's result is its matrix's, refuses an artifact missing from a job that ran,
+  or a duplicate, and writes
   `report.json` and a job summary naming each step's verdict, each sampled mutant's
   verdict in every seed run by its identity, operator, site and rewrite, each mutant
   whose verdict differs between the two candidate runs or between base and candidate,
@@ -391,7 +394,9 @@ after which the switch its recipe names does not stand, and the checks on a swit
   opam client version or runner image differs.
 
 **Receipts and limits.** Each job's receipt records its effective inputs, side,
-revision, base revision, build, sample and subject, beside its `source_revision`, the
+revision, base revision, build, sample and subject, the subject being the one the plan
+read from the side's seed.py and provisioning refusing a side that names another,
+beside its `source_revision`, recorded before provisioning reads anything else, the
 dispatching commit and `GITHUB_RUN_ATTEMPT`; the recipe built, the switch and the flag
 its checks ran with, and that switch's installed closure with each pin's URL and
 commit; the runner image, `uname -m`, the opam client's version and the prerequisites

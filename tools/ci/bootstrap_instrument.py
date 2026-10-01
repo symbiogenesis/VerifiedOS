@@ -12,8 +12,9 @@ the side revision's own declarations: by `quickchick.RECIPE` into
 `quickchick.INSTALL` into `gallina.QUICKCHICK_SWITCH` where it is `install`, or, in the
 import job, by the lock guide's create-and-import form from the build job's export into
 the switch the build's recipe names. A build after which that switch does not stand is
-refused. The job's receipt then records the side's subject and tested revision, the
-recipe built, the switch and the flag its checks run with, the switch's installed
+refused. The job's receipt records the side's tested revision before anything else,
+refuses a side whose seed subject is not the one the plan read at that revision, and
+then records the recipe built, the switch and the flag its checks run with, the switch's installed
 closure with each pin's URL and commit, the opam client's version and the
 prerequisites installed. [The route's contract](README.md#instrument-switch-route)
 states what a run decides.
@@ -263,6 +264,25 @@ def export_environment(values: dict[str, str], path: Path,
             stream.write(f"{path}\n")
 
 
+def side_revision(side: Path) -> str:
+    """The commit the side's checkout stands at."""
+    return subprocess.run(("git", "-C", str(side), "rev-parse", "HEAD"), capture_output=True,
+                          text=True, check=True, timeout=60,
+                          stdin=subprocess.DEVNULL).stdout.strip()
+
+
+def held_subject(root: Path, decl: dict[str, object]) -> str:
+    """The side's subject, held to the one the plan read at the side's revision and the
+    receipt records from the job's start; a receipt naming none takes the side's."""
+    stated = decl.get("subject")
+    found = stated if isinstance(stated, str) else ""
+    inputs = route.load_receipt(root).get("inputs", {})
+    planned = str(route.as_object(inputs).get("subject", "")) if isinstance(inputs, dict) else ""
+    if planned and planned != found:
+        raise ValueError(f"the side's seed.py names subject {found!r}, the plan {planned!r}")
+    return found
+
+
 def provision(args: argparse.Namespace, runner: Runner = _run) -> int:
     """Build the side's switch in a fresh root and record what was built."""
     if sys.platform != "linux":
@@ -271,6 +291,10 @@ def provision(args: argparse.Namespace, runner: Runner = _run) -> int:
     if machine not in opam_client.OPAM_HASHES:
         raise ValueError(f"no reviewed opam binary for {machine}")
     root = Path(args.root)
+    side = Path(args.side)
+    # The tested revision comes first, so a provisioning refused at any later point
+    # still records what it would have tested and fails rather than going unread.
+    route.update_receipt(root, source_revision=side_revision(side))
     opam = root / "opam"
     if opam.exists():
         raise ValueError(f"{opam} already stands; the route builds every switch in a fresh "
@@ -285,16 +309,11 @@ def provision(args: argparse.Namespace, runner: Runner = _run) -> int:
             raise ValueError(f"the export's SHA-256 is {digest}, not the build job's recorded "
                              f"{args.expect_sha256!r}")
         source = {"sha256": digest, "bytes": imported.stat().st_size}
-    side = Path(args.side)
     decl = declarations(side)
     name, steps, switch, flag = plan_build(decl, args.build, imported)
-    revision = subprocess.run(("git", "-C", str(side), "rev-parse", "HEAD"),
-                              capture_output=True, text=True, check=True, timeout=60,
-                              stdin=subprocess.DEVNULL).stdout.strip()
-    subject = decl.get("subject")
-    route.update_inputs(root, subject=subject if isinstance(subject, str) else "")
-    route.update_receipt(root, source_revision=revision, recipe=name, recipe_steps=steps,
-                         switch=switch, flag=flag, import_source=source)
+    route.update_inputs(root, subject=held_subject(root, decl))
+    route.update_receipt(root, recipe=name, recipe_steps=steps, switch=switch, flag=flag,
+                         import_source=source)
 
     prerequisites = system_packages(args.install_system, runner)
     route.update_receipt(root, prerequisites=prerequisites)

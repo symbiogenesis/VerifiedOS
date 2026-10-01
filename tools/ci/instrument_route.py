@@ -463,7 +463,9 @@ def plan_record(checkout: Path, asked: Request, checks: Sequence[Check]) -> dict
         for side, revision in (("candidate", asked.revision), ("base", asked.base_revision)):
             if revision:
                 source = source_at(checkout, revision, SEED)
-                subjects[side] = string_constant(source, "COQ_SUBJECT") if source else None
+                found = string_constant(source, "COQ_SUBJECT") if source else None
+                # One printable line, as a job output carries it, or none.
+                subjects[side] = found if found and found.isprintable() else None
     return {
         "schema": 1, "workflow": WORKFLOW,
         "request": {"ref": asked.ref, "revision": asked.revision,
@@ -479,15 +481,20 @@ def plan_record(checkout: Path, asked: Request, checks: Sequence[Check]) -> dict
     }
 
 
-def plan_outputs(asked: Request, ok: bool) -> dict[str, str]:
-    """The job outputs later jobs read, each a value the plan validated, so no input
-    reaches a later job's expression unchecked."""
+def plan_outputs(asked: Request, ok: bool,
+                 subjects: dict[str, str | None] | None = None) -> dict[str, str]:
+    """The job outputs later jobs read, each a value the plan validated or read from a
+    side's source, so no input reaches a later job's expression unchecked: with each
+    side's subject, which every job's receipt records from its start."""
     label = asked.revision if FULL_COMMIT.fullmatch(asked.revision) else "unnamed"
     found = {"accepted": "true" if ok else "false", "label": label}
     if ok:
+        named = subjects or {}
         found |= {"revision": asked.revision, "base_revision": asked.base_revision,
                   "build": asked.build, "sample": asked.sample,
-                  "seed": "true" if asked.base_revision else "false"}
+                  "seed": "true" if asked.base_revision else "false",
+                  "subject": named.get("candidate") or "",
+                  "base_subject": named.get("base") or ""}
     return found
 
 
@@ -517,8 +524,10 @@ def cmd_plan(args: argparse.Namespace) -> int:
     checkout = args.checkout
     checks = plan(checkout, asked)
     ok = accepted(checks)
-    receipts.write(args.root / LOGS / PLAN, plan_record(checkout, asked, checks))
-    github_output(plan_outputs(asked, ok))
+    record = plan_record(checkout, asked, checks)
+    receipts.write(args.root / LOGS / PLAN, record)
+    github_output(plan_outputs(asked, ok,
+                               cast("dict[str, str | None]", record["subjects"])))
     for check in checks:
         print(f"{check.verdict:<11} {check.check}: {check.reason}")
     print("ok the plan accepts the dispatch" if ok else "FAIL the plan refuses the dispatch; "
@@ -546,18 +555,21 @@ def free_disk(path: Path) -> int | None:
 
 def base_receipt(root: Path) -> dict[str, object]:
     """What every job's receipt records before its first step: the job, its side and the
-    dispatch's effective inputs, as the workflow states them, beside the run. The side's
-    subject, source revision, recipe, switch and closure are the provisioning's to add."""
+    dispatch's effective inputs, as the workflow states them from the plan, the side's
+    subject among them, beside the run. The side's source revision, recipe, switch and
+    closure are the provisioning's to add."""
     environ = os.environ
+    side = environ.get("INSTRUMENT_SIDE", "")
     return {
         "schema": 1, "job": environ.get("INSTRUMENT_JOB", ""),
         "run": environ.get("INSTRUMENT_RUN", ""),
-        "inputs": {"side": environ.get("INSTRUMENT_SIDE", ""),
+        "inputs": {"side": side,
                    "revision": environ.get("INSTRUMENT_REVISION", ""),
                    "base_revision": environ.get("INSTRUMENT_BASE_REVISION", ""),
                    "build": environ.get("INSTRUMENT_BUILD", ""),
                    "sample": environ.get("INSTRUMENT_SAMPLE", ""),
-                   "subject": ""},
+                   "subject": environ.get("INSTRUMENT_BASE_SUBJECT" if side == "base"
+                                          else "INSTRUMENT_SUBJECT", "")},
         "dispatching_commit": environ.get("GITHUB_SHA", ""),
         "run_id": environ.get("GITHUB_RUN_ID", ""),
         "run_attempt": environ.get("GITHUB_RUN_ATTEMPT", ""),
@@ -1322,6 +1334,20 @@ def _verdict_of(steps: dict[str, object], job: str) -> str:
     return PASSED
 
 
+def _failed_outside(key: str, steps: dict[str, object], result: str) -> bool:
+    """Whether a job failed outside the steps the wrapper records: its result is failure
+    and none of its wrapped steps failed or was undecided, as where a guard, an action or
+    a download ended it. A seed run's result is its matrix's, failed where any run
+    failed, so one run is held to it only where a step of its own never ran."""
+    if result != "failure":
+        return False
+    verdicts = {str(as_object(steps.get(step, {})).get("verdict", NOT_RUN))
+                for step in JOB_STEPS[_job_of(key)]}
+    if not verdicts <= {PASSED, COMPLETED, NOT_RUN}:
+        return False
+    return NOT_RUN in verdicts or _job_of(key) != "seed"
+
+
 def _expected(plan_json: dict[str, object]) -> list[str]:
     keys = ["build", "import"]
     if plan_json.get("seed") is True:
@@ -1496,8 +1522,12 @@ def join(artifacts: Path, needs: dict[str, object], run_id: str) -> dict[str, ob
         refusals += _receipt_refusals(key, receipt, plan_json, run_id, revision)
         receipts_by_key[key] = receipt
         steps = as_object(receipt.get("steps", {})) if isinstance(receipt.get("steps"), dict) else {}
+        outside = _failed_outside(key, steps, result)
         jobs[key] = {
-            "verdict": _verdict_of(steps, _job_of(key)), "result": result,
+            "verdict": FAILED if outside else _verdict_of(steps, _job_of(key)),
+            **({"reason": "the job failed outside its wrapped steps, so no instrument step "
+                          "decided it"} if outside else {}),
+            "result": result,
             "artifact": found[key].name, "source_revision": receipt.get("source_revision"),
             "runner_image": receipt.get("runner_image"), "uname_m": receipt.get("uname_m"),
             "opam_client": receipt.get("opam_client"), "switch": receipt.get("switch"),
@@ -1567,7 +1597,7 @@ def summary(report: dict[str, object]) -> str:
     for key, raw in as_object(report.get("jobs", {})).items():
         job = as_object(raw)
         steps = as_object(job.get("steps", {}))
-        if not steps:
+        if not steps or job.get("reason"):
             lines.append(f"| {key} | | {job.get('verdict')} | | | | "
                          f"{_cell(job.get('reason', ''))} |")
         for step, rows in steps.items():

@@ -148,7 +148,8 @@ def _refusals_before_any_build() -> None:
                                   expect_sha256="0" * 64, install_system=False,
                                   github_env=None, github_path=None)
         with patch.object(sys, "platform", "linux"), \
-                patch("platform.machine", return_value="x86_64"):
+                patch("platform.machine", return_value="x86_64"), \
+                patch.object(bootstrap, "side_revision", return_value="a" * 40):
             for expected, fragment in (("0" * 64, "not the build job's recorded"),
                                        ("", "not the build job's recorded")):
                 args.expect_sha256 = expected
@@ -158,6 +159,10 @@ def _refusals_before_any_build() -> None:
                     ensure(fragment in str(error) and digest in str(error), str(error))
                     continue
                 raise AssertionError("an export at another SHA-256 must be refused")
+            receipt = route.load_receipt(root)
+            ensure(receipt.get("source_revision") == "a" * 40,
+                   f"a provisioning refused early still records its tested revision: "
+                   f"{receipt!r}")
             (root / "opam").mkdir()
             try:
                 bootstrap.provision(args, runner=lambda argv, environment: 0)
@@ -165,6 +170,19 @@ def _refusals_before_any_build() -> None:
                 ensure("fresh root" in str(error), str(error))
             else:
                 raise AssertionError("a root that already stands must be refused")
+    with tempfile.TemporaryDirectory() as scratch:
+        root = Path(scratch)
+        ensure(bootstrap.held_subject(root, _decl()) == "proofs/CyclicExecutive.v",
+               "a receipt naming no subject takes the side's")
+        route.update_inputs(root, subject="proofs/CyclicExecutive.v")
+        ensure(bootstrap.held_subject(root, _decl()) == "proofs/CyclicExecutive.v",
+               "a side naming the plan's subject holds")
+        try:
+            bootstrap.held_subject(root, _decl(subject="proofs/Other.v"))
+        except ValueError as error:
+            ensure("the plan 'proofs/CyclicExecutive.v'" in str(error), str(error))
+        else:
+            raise AssertionError("a side whose subject is not the plan's is refused")
     with patch.object(bootstrap, "missing_packages", return_value=["bubblewrap"]):
         try:
             bootstrap.system_packages(False)

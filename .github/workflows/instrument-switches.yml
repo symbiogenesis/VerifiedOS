@@ -73,6 +73,8 @@ jobs:
       build: ${{ steps.plan.outputs.build }}
       sample: ${{ steps.plan.outputs.sample }}
       seed: ${{ steps.plan.outputs.seed }}
+      subject: ${{ steps.plan.outputs.subject }}
+      base_subject: ${{ steps.plan.outputs.base_subject }}
     env:
       INSTRUMENT_JOB: plan
     steps:
@@ -133,6 +135,7 @@ jobs:
       INSTRUMENT_BASE_REVISION: ${{ needs.plan.outputs.base_revision }}
       INSTRUMENT_BUILD: ${{ needs.plan.outputs.build }}
       INSTRUMENT_SAMPLE: ${{ needs.plan.outputs.sample }}
+      INSTRUMENT_SUBJECT: ${{ needs.plan.outputs.subject }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -263,6 +266,7 @@ jobs:
       INSTRUMENT_BASE_REVISION: ${{ needs.plan.outputs.base_revision }}
       INSTRUMENT_BUILD: ${{ needs.plan.outputs.build }}
       INSTRUMENT_SAMPLE: ${{ needs.plan.outputs.sample }}
+      INSTRUMENT_SUBJECT: ${{ needs.plan.outputs.subject }}
       EXPORT_SHA256: ${{ needs.build.outputs.export_sha256 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -402,6 +406,9 @@ jobs:
       INSTRUMENT_BASE_REVISION: ${{ needs.plan.outputs.base_revision }}
       INSTRUMENT_BUILD: ${{ needs.plan.outputs.build }}
       INSTRUMENT_SAMPLE: ${{ needs.plan.outputs.sample }}
+      # The receipt takes the base subject on the base side and the other on the candidate's.
+      INSTRUMENT_SUBJECT: ${{ needs.plan.outputs.subject }}
+      INSTRUMENT_BASE_SUBJECT: ${{ needs.plan.outputs.base_subject }}
       # The base side always builds its revision's INSTALL.
       SIDE_BUILD: ${{ matrix.run == 'base' && 'install' || needs.plan.outputs.build }}
     steps:

@@ -12,6 +12,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager, redirect_stdout
 from io import StringIO
 from pathlib import Path
+from typing import cast
 from unittest.mock import patch
 
 from ci import instrument_route as route
@@ -158,9 +159,21 @@ def _plan_outputs_only_validated_values() -> None:
         ensure(outputs == {"accepted": "false", "label": "unnamed"},
                f"a refused plan hands later jobs nothing it read: {outputs!r}")
         asked = _request(commits, base_revision=commits["base"])
-        outputs = route.plan_outputs(asked, True)
+        record = route.plan_record(root, asked, route.plan(root, asked))
+        outputs = route.plan_outputs(asked, True,
+                                     cast("dict[str, str | None]", record["subjects"]))
         ensure(outputs["seed"] == "true" and outputs["sample"] == "20"
-               and outputs["revision"] == commits["tip"], f"accepted outputs: {outputs!r}")
+               and outputs["revision"] == commits["tip"]
+               and outputs["subject"] == outputs["base_subject"] == "proofs/CyclicExecutive.v",
+               f"accepted outputs, each side's subject read from its source: {outputs!r}")
+        environment = {"INSTRUMENT_SIDE": "base", "INSTRUMENT_SUBJECT": "proofs/C.v",
+                       "INSTRUMENT_BASE_SUBJECT": "proofs/B.v"}
+        with patch.dict(os.environ, environment), tempfile.TemporaryDirectory() as scratch:
+            base = route.as_object(route.base_receipt(Path(scratch))["inputs"])
+            with patch.dict(os.environ, {"INSTRUMENT_SIDE": "candidate"}):
+                candidate = route.as_object(route.base_receipt(Path(scratch))["inputs"])
+        ensure(base["subject"] == "proofs/B.v" and candidate["subject"] == "proofs/C.v",
+               f"a receipt records its side's subject from its start: {base!r}, {candidate!r}")
         with tempfile.TemporaryDirectory() as scratch:
             target = Path(scratch) / "out"
             try:
@@ -187,7 +200,8 @@ def _plan_command_records_and_exits() -> None:
                    and record["run_id"] == RUN_ID,
                    f"the plan writes plan.json and exits {code}: {found}, {record!r}")
             written = output.read_text(encoding="utf-8")
-            ensure(f"accepted={'true' if code == 0 else 'false'}" in written,
+            ensure(f"accepted={'true' if code == 0 else 'false'}" in written
+                   and ("subject=proofs/CyclicExecutive.v\n" in written) is (code == 0),
                    f"the plan's outputs reach GITHUB_OUTPUT: {written!r}")
 
 
@@ -671,6 +685,36 @@ def _join_records_not_run_and_refusals() -> None:
            f"{report['refusals']!r}")
 
 
+def _join_reads_failures_outside_wrapped_steps() -> None:
+    not_run = {"verdict": route.NOT_RUN, "reason": "the job ended before this step"}
+    early = {"steps": {step: not_run for step in route.JOB_STEPS["seed"]}}
+    failed_seed = dict(_SUCCESS, seed={"result": "failure"})
+    report = _joined(lambda root: _artifacts(root, edits={"seed-candidate-1": early}),
+                     failed_seed)
+    jobs = route.as_object(report["jobs"])
+    ensure(report["verdict"] == route.FAILED and not report["refusals"]
+           and route.as_object(jobs["seed-candidate-1"])["verdict"] == route.FAILED
+           and "outside its wrapped steps" in str(
+               route.as_object(jobs["seed-candidate-1"])["reason"])
+           and route.as_object(jobs["seed-base"])["verdict"] == route.PASSED,
+           f"a seed run that failed before any step is failed, and the matrix's result "
+           f"fails no run whose own steps all ran: {report!r}")
+    imported = {"steps": {step: not_run for step in route.JOB_STEPS["import"]}}
+    report = _joined(lambda root: _artifacts(root, seed=False, edits={"import": imported}),
+                     dict(_SUCCESS, **{"import": {"result": "failure"}}))
+    ensure(report["verdict"] == route.FAILED
+           and route.as_object(route.as_object(report["jobs"])["import"])["verdict"]
+           == route.FAILED, f"an import that failed at its download is failed: {report!r}")
+    report = _joined(lambda root: _artifacts(root, seed=False, edits={"import": imported}),
+                     dict(_SUCCESS, **{"import": {"result": "cancelled"}}))
+    ensure(report["verdict"] == route.INCOMPLETE,
+           f"a cancelled job that ran no step is incomplete, not failed: {report!r}")
+    text = route.summary(_joined(lambda root: _artifacts(root, seed=False,
+                                                         edits={"import": imported}),
+                                 dict(_SUCCESS, **{"import": {"result": "failure"}})))
+    ensure("outside its wrapped steps" in text, f"the summary names why: {text!r}")
+
+
 def cast_list(value: object) -> list[str]:
     return [str(item) for item in route.as_list(value)]
 
@@ -781,5 +825,7 @@ def cases() -> list[Case]:
             Case("join-passes-and-lists-mutants", _join_passes_and_lists_mutants),
             Case("join-lists-differences", _join_lists_differences),
             Case("join-records-not-run-and-refusals", _join_records_not_run_and_refusals),
+            Case("join-reads-failures-outside-wrapped-steps",
+                 _join_reads_failures_outside_wrapped_steps),
             Case("journal-and-population-readers", _journal_and_population_readers),
             Case("import-comparison", _import_comparison)]
