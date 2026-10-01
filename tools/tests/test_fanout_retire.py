@@ -1044,16 +1044,20 @@ def _shell_code(text: str) -> str:
     return "".join(kept)
 
 
-# Every redirect of a descriptor: its operator, here-document, clobbering and
-# duplicating ones among them, and its whole target word, quoted parts and the bare
-# text joined to them.
+# The redirects of a descriptor the scan reads, each with its operator, here-document,
+# clobbering and duplicating ones among them, and its whole target word, quoted parts
+# and the bare text joined to them; `_SHELL_DESCRIPTOR` counts every redirect of the
+# descriptor, among them one whose word this cannot match, such as a process
+# substitution's `9< <(cmd)`.
 _SHELL_REDIRECT = r"(?<![\w&$]){fd}(<<<|<<-|<<|>>|>\||<>|>&|<&|>|<)[ \t]*((?:\"[^\"]*\"|'[^']*'|[^\s;&|)<>\"'])+)"
+_SHELL_DESCRIPTOR = r"(?<![\w&$]){fd}[<>]"
 
 
 def _shell_flock_sites(text: str) -> tuple[set[str], list[str]]:
     """The descriptors a script flocks in the recognized form, each opened only by `>`,
-    `>>`, `<` or `<>` on a word that is one double-quoted `*.lock` path, and every other
-    `flock` outside comments, unclassified."""
+    `>>`, `<` or `<>` on a word that is one double-quoted `*.lock` path, and, unclassified,
+    every other `flock` outside comments, among them one whose descriptor has a redirect
+    the scan cannot read."""
     code = _shell_code(text)
     descriptors: set[str] = set()
     unclassified: list[str] = []
@@ -1066,6 +1070,9 @@ def _shell_flock_sites(text: str) -> tuple[set[str], list[str]]:
         fd = form.group(1)
         redirects = [(found.group(1), found.group(2))
                      for found in re.finditer(_SHELL_REDIRECT.format(fd=fd), code)]
+        if len(re.findall(_SHELL_DESCRIPTOR.format(fd=fd), code)) != len(redirects):
+            unclassified.append(f"line {line}: descriptor {fd} has a redirect the scan cannot read")
+            continue
         other = sorted({operator for operator, _ in redirects} - {">", ">>", "<", "<>"})
         if other:
             unclassified.append(f"line {line}: descriptor {fd} is redirected by {', '.join(other)}")
@@ -1189,6 +1196,7 @@ def _producer_lock_scanners_fail_closed() -> None:
                  '(\n    flock -x 9\n) 9>"$d/work.lock"\n: 9>|"$d/state.json"\n',
                  '(\n    flock -x 9\n) 9>"$d/work.lock" 9>&3\n',
                  '(\n    flock -x 9\n) 9>"$d/work.lock" 9<<END\nEND\n',
+                 '(\n    flock -x 9\n) 9>"$d/work.lock" 9< <(cat "$d/state.json")\n',
                  'command -v flock >/dev/null\n'):
         descriptors, unclassified = _shell_flock_sites(text)
         ensure(len(unclassified) == 1 and not descriptors,
