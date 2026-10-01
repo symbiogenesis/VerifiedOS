@@ -879,8 +879,13 @@ def wave_makespan(waves: Sequence[Sequence[float]], jobs: int) -> float:
     the schedule lasts the sum over its waves. The gate replays it over each module's
     measured compile and audit seconds, so that a run's phase is read against the
     schedule it replaced at the same worker limit, without comparing runs on machines
-    whose speed differs. The phase's wall seconds also carry the source analysis and
-    bookkeeping the replay leaves out.
+    whose speed differs.
+
+    The replay leans both ways. The phase's wall seconds also carry the source analysis
+    and bookkeeping the replay leaves out, a fraction of a second that disfavours this
+    schedule. Each span is measured with the workers more fully occupied than at a wave
+    schedule's wave ends, so where concurrent workers slow one another the replay is
+    lengthened, which favours this schedule.
     """
     if jobs < 1:
         raise ValueError("the replayed worker limit must be positive")
