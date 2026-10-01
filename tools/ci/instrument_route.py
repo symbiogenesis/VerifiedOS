@@ -18,7 +18,9 @@ states what a run decides and what it leaves to the item that owns the switch.
 records why it ended. An exit of 124, or of 137 where the kernel recorded no OOM kill
 during the step, once the step has run for its limit, is the limit reached, and either
 exit sooner leaves its cause unread; a step the OOM killer acted on, or that ran short
-of disk, is the runner's want rather than the instrument's answer. Each of those is
+of disk, is the runner's want rather than the instrument's answer; and a compile that
+reached gallina's per-file timeout, read from an output line naming `TimeoutExpired`,
+met a limit and raised out of the run. Each of those is
 recorded `undecided`, never as a failure, because a failure moves a pin and a runner's
 limit is not evidence about one.
 """
