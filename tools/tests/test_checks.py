@@ -662,8 +662,8 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
 _K119_LEAD_FINDING = "states 'Where the set is' in a form that opens no reach class"
 _K119_LEAD_FORM = (_K119_LEAD_FINDING + " this rule reads: the four words single-spaced with "
                    "plain spaces on one line, with no underscore before the first and a "
-                   "plain space after the last, then the class in `**` bold before a full "
-                   "stop or the line's end")
+                   "plain space after the last, then the class in `**` bold with no third "
+                   "`*` beside either pair before a full stop or the line's end")
 
 
 def _k119_every_class_lead_is_read() -> None:
@@ -716,6 +716,12 @@ def _k119_every_class_lead_is_read() -> None:
             ({"total": _K119_TOTAL.replace("is **total**", "is\u00a0**total**")},
              _K119_LEAD_FORM),
             ({"total": _K119_TOTAL.replace("**total**", "__total__")},
+             _K119_LEAD_FORM),
+            # nor does a name with a third `*` beside either pair, in bold italics or
+            # trailed by a stray `*` past the closing pair
+            ({"total": _K119_TOTAL.replace("**total**", "***total***")},
+             _K119_LEAD_FORM),
+            ({"total": _K119_TOTAL.replace("**total**", "**total***")},
              _K119_LEAD_FORM)):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
@@ -752,6 +758,7 @@ def _k119_every_membership_sentence_is_read() -> None:
                                     "nothing."},
             {"total": _K119_TOTAL + " The rest, which is what ~~K-07~~ are, narrow nothing."},
             {"total": _K119_TOTAL + " The rest, which is what (K-07) are, narrow nothing."},
+            {"total": _K119_TOTAL + " The rest, which is what _K-07_ are, narrow nothing."},
             {"total": _K119_TOTAL + " WHICH IS WHAT K-07 ARE."},
             {"heading": meta.REACH_HEADING
              + "\n\nThe marker rules come first, _that is what K-05 are_."}):

@@ -1982,6 +1982,13 @@ CASES: list[Case] = [
               "Where the set\nis located by **marker**, nothing is read. "
               "Where the set is **total**,")),
 
+    # The total class's name with a stray `*` past its closing pair, outside the form
+    # the page states. An opener holding only the other three sides of the two pairs
+    # reads it as the total class as before, so the section reads as agreeing with the
+    # registry while its lead stands in a form the rule says it does not take.
+    ("K-119", "a reach class whose bold name is trailed by a third '*'",
+     _literal(RULES, "Where the set is **total**,", "Where the set is **total***,")),
+
     # A membership sentence ahead of the first class, which no class's region reaches.
     # The rule it names is still placed once by its own class, so the section reads as
     # agreeing with the registry and only a reading of the stretch before the first
