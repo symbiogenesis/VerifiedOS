@@ -423,13 +423,18 @@ after which the switch its recipe names does not stand, and the checks on a swit
   failed or was undecided, a seed run only where a step of its own never ran, since a
   seed run's result is its matrix's, passes over and records an artifact an earlier
   attempt of the run left for a job this attempt did not run, refuses an artifact
-  missing from a job that ran, or a duplicate, and writes `report.json` and a job
-  summary naming each step's verdict, each sampled mutant's verdict in every seed run
-  by its identity, operator, site and rewrite, each mutant whose verdict differs
-  between the two candidate runs or between base and candidate, or whose journalled
-  verdict is other than killed, survived, stillborn or unseeded, with the verdicts and
-  reasons the journal records, and every pair of sides whose opam client version or
-  runner image differs.
+  missing from a job that ran, a duplicate, any other artifact from a job that did not
+  run, an artifact the route does not name or one not named for its side's revision, a
+  `plan.json` missing, unreadable or naming another run, and a receipt that cannot be
+  read, that names another job, seed run, run or dispatching commit, that records inputs
+  other than the plan's, or that records no tested revision once its provisioning ran or
+  another revision than its side's, and writes `report.json` and a job summary naming
+  each step's verdict, each sampled mutant's verdict in every seed run by its identity,
+  operator, site and rewrite, each mutant whose verdict differs between the two
+  candidate runs or between base and candidate, or whose journalled verdict is other
+  than killed, survived, stillborn or unseeded, with the verdicts and reasons the
+  journal records, and every pair of sides whose opam client version or runner image
+  differs.
 
 **Receipts and limits.** Each job's receipt records its effective inputs, side,
 revision, base revision, build, sample and subject, the subject being the one the plan
@@ -466,12 +471,13 @@ code: its one command runs the dispatching commit's instrument_route.py, which i
 only the standard library and that checkout's `vos.receipts` and `vos.env`, reads the
 job's private root as data, and reads no file of the side's checkout, whose code no
 step before a refused guard has run.
-The upload runs its pinned action alone. Staging copies an allowlist of `.json`,
-`.log`, `.txt`, `.lock` and `.journal` files into an upload directory and leaves out any
-file carrying Wasm or ELF magic or a NUL byte, naming each in the receipt with its
-reason, so that no switch, build tree, `.vo`, executable, image or opam cache is
-uploaded. Each artifact is named for its job and revision with no attempt suffix,
-replaced on a rerun and retained 30 days.
+The upload runs its pinned action alone. Staging copies an allowlist of `.json`, `.log`,
+`.txt`, `.lock` and `.journal` files into an upload directory and leaves out any file
+that is not a regular file, holds more than 64 MiB, would take the artifact past 256 MiB
+or carries Wasm or ELF magic or a NUL byte, naming each in the receipt with its reason,
+so that no switch, build tree, `.vo`, executable, image or opam cache is uploaded. Each
+artifact is named for its job and revision with no attempt suffix, replaced on a rerun
+and retained 30 days.
 
 **Reading.** `run.py instrument-ci read --run ID` follows each artifact's redirect
 without credentials, saves it under `out/instrument-ci/<run id>/` and extracts it only

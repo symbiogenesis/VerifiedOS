@@ -271,13 +271,16 @@ def _readme_holds_the_module_constants() -> None:
     first, last = route.SAMPLES.start, route.SAMPLES.stop - 1
     suffixes = (", ".join(f"`{suffix}`" for suffix in route.ALLOWED_SUFFIXES[:-1])
                 + f" and `{route.ALLOWED_SUFFIXES[-1]}`")
-    ensure(route.ARCHIVE_LIMIT % (1 << 20) == 0, "the archive bound is whole MiB")
+    ensure(route.ARCHIVE_LIMIT % (1 << 20) == 0 and route.FILE_LIMIT % (1 << 20) == 0,
+           "the archive and file bounds are whole MiB")
     for phrase in (f"Q38f's {route.IMPORT_MEASURED:,} s import",
                    f"Q38e's {route.PROPERTIES_MEASURED} s",
                    f"GitHub's {route.HOSTED_MAXIMUM}-minute hosted maximum less a "
                    f"{route.HOSTED_MARGIN}-minute margin",
                    f"a {route.STAGING_MARGIN}-minute staging-and-upload margin",
                    f"more than {route.ARCHIVE_LIMIT >> 20} MiB",
+                   f"holds more than {route.FILE_LIMIT >> 20} MiB",
+                   f"the artifact past {route.ARCHIVE_LIMIT >> 20} MiB",
                    f"a whole number from {first} to {last}, default {route.FULL_SAMPLE}",
                    f"a `sample` outside {first} to {last}",
                    f"the sample stays {route.FULL_SAMPLE}",
