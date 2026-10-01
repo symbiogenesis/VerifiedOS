@@ -1072,7 +1072,12 @@ neither run sees an import of one fail on the other platform. ruff.toml's
 `banned-module-level-imports` lists each standard-library module the interpreter cannot
 import on Windows or on Linux that ty resolves under both platforms, a listed name
 covering its submodules; a module ty resolves under neither is ty's own
-`unresolved-import` finding. ruff's TID253 refuses an import of a listed module only
+`unresolved-import` finding, and a module a build leaves out for want of an optional
+library, which configure records as missing or disabled, is the build's and is not
+listed. [tests/test_typecheck.py](tests/test_typecheck.py) holds the list on each lane
+against every standard-library module and submodule the running interpreter cannot
+import, resolved by the gate's own ty runs, so Host CI's Windows and Ubuntu legs
+together hold both halves. ruff's TID253 refuses an import of a listed module only
 where it is unnested at module level, and with the module listed, PLC0415 no longer
 reports one in a class body. So the gate reads the same list and refuses an import of a
 listed module in a tracked module anywhere else outside a function body, in a class body

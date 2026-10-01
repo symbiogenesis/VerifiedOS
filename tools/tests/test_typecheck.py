@@ -32,12 +32,16 @@ import cases hold the scan beside the checkers: an import of a module ruff.toml 
 module level refused outside a function body, in a class body, a module-level block or
 the main guard, and admitted in a function body or behind a `sys.platform` check, a
 ruff.toml or module the scan cannot read refused, and the real ruff leaving open what
-the scan refuses.
+the scan refuses; and the list itself covering, on each lane, every standard-library
+module the running interpreter cannot import that the gate's ty resolves under both
+platforms.
 """
 
+import json
 import os
 import subprocess
 import sys
+import sysconfig
 import tempfile
 import tomllib
 from pathlib import Path
@@ -1296,6 +1300,104 @@ def _imports_close_what_ruff_leaves_open() -> None:
            f"the scan must refuse every import ruff leaves open: {scan.out!r}")
 
 
+# The program `_import_failures` runs in a child of the running interpreter: each module
+# the interpreter lists as its standard library, and each submodule of a package among
+# them that imports, imported in turn, then one line after `_PROBED`, a JSON object
+# naming each that fails with the module its ModuleNotFoundError could not find, or
+# null. The marker keeps the line apart from anything a module prints as it imports. A
+# `__main__` submodule runs a program, and the trees left out run one or open a browser
+# when imported.
+_PROBED = "vos-import-probe: "
+_IMPORT_PROBE = """\
+import importlib, json, pkgutil, sys
+
+SKIP = {"antigravity", "idlelib", "test", "this", "turtledemo"}
+
+def skipped(name):
+    parts = name.split(".")
+    return parts[0] in SKIP or parts[-1] == "__main__"
+
+failed = {}
+queue = sorted(name for name in sys.stdlib_module_names if not skipped(name))
+while queue:
+    name = queue.pop()
+    try:
+        module = importlib.import_module(name)
+    except BaseException as err:
+        failed[name] = err.name if isinstance(err, ModuleNotFoundError) else None
+        continue
+    queue.extend(info.name for info in pkgutil.iter_modules(getattr(module, "__path__", []),
+                                                            name + ".")
+                 if not skipped(info.name))
+""" + f"print({_PROBED!r} + json.dumps(failed))\n"
+
+
+def _import_failures() -> dict[str, str | None]:
+    """Each standard-library module or submodule the running interpreter cannot import,
+    with the module its failure could not find, or `None` for any other failure."""
+    done = subprocess.run([sys.executable, "-B", "-I", "-c", _IMPORT_PROBE],
+                          stdin=subprocess.DEVNULL, capture_output=True, encoding="utf-8",
+                          errors="replace", check=False, timeout=typecheck.TIMEOUT)
+    lines = [line.removeprefix(_PROBED) for line in done.stdout.splitlines()
+             if line.startswith(_PROBED)]
+    ensure(done.returncode == 0 and len(lines) == 1,
+           f"the import probe exited {done.returncode}: {done.stderr.strip()[-400:]!r}")
+    return cast("dict[str, str | None]", json.loads(lines[0]))
+
+
+def _ty_unresolved(modules: list[str]) -> set[str]:
+    """Each of `modules` the gate's own ty run, under the ty.toml it admits, cannot
+    resolve under one of its platforms or more, read from the findings each run gives."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        _write_tools(root, {"probe.py": "".join(f"import {name}\n" for name in modules),
+                            "ty.toml": _ADMITTED}, None)
+        with patch.dict(os.environ), \
+                patch.object(typecheck, "_user_config", return_value=None), \
+                patch.object(typecheck, "_summarize") as verdicts:
+            os.environ.pop("PYTHONPATH", None)
+            rep = Reporter()
+            typecheck._run_ty(rep, root, None)
+    ensure(rep.findings == 0 and verdicts.call_count == len(typecheck.TY_PLATFORMS),
+           f"each ty run must give a verdict: {rep.out!r} {verdicts.call_args_list!r}")
+    found = [finding for call in verdicts.call_args_list
+             for finding in cast("list[tuple[str, str]]", call.args[3])]
+    ensure(all(code == "unresolved-import" for code, _ in found),
+           f"an import alone must give no finding but an unresolved one: {found!r}")
+    return {modules[int(text.partition(" ")[0].rsplit(":", 2)[1]) - 1] for _, text in found}
+
+
+def _banned_list_covers_what_cannot_be_imported() -> None:
+    # The list's claim, held on this lane: each standard-library module the running
+    # interpreter cannot import, that the gate's ty resolves under both of its platforms,
+    # is covered by a listed name, itself or a parent. A module the build left out for
+    # want of an optional library, which configure records as missing or disabled, is the
+    # build's rather than the platform's. The Windows lane holds the half Windows lacks
+    # and the Linux lane the other. The control is that the search finds the best-known
+    # module this lane's platform lacks, so an empty search cannot pass for a clean one.
+    def omitted(missing: str | None) -> bool:
+        return missing is not None and sysconfig.get_config_var(
+            f"MODULE_{missing.upper()}_STATE") in {"missing", "disabled"}
+
+    def covered(name: str, listed: frozenset[str]) -> bool:
+        return any(name == ban or name.startswith(ban + ".") for ban in listed)
+
+    failed = _import_failures()
+    candidates = sorted(name for name, missing in failed.items() if not omitted(missing))
+    unresolved = _ty_unresolved(candidates)
+    required = [name for name in candidates if name not in unresolved]
+    known = "fcntl" if sys.platform == "win32" else "msvcrt"
+    ensure(known in required,
+           f"the search must find {known}, which this platform lacks: {failed!r} "
+           f"{sorted(unresolved)!r}")
+    committed = Path(typecheck.__file__).resolve().parents[2] / "ruff.toml"
+    banned, unread = typecheck._banned(committed)
+    uncovered = [name for name in required if not covered(name, banned)]
+    ensure(not unread and not uncovered,
+           f"ruff.toml must list each module this interpreter cannot import that ty "
+           f"resolves under both platforms: {unread!r} {uncovered!r}")
+
+
 def _git(root: Path, *args: str) -> None:
     subprocess.run(["git", *args], cwd=root, capture_output=True, check=True)
 
@@ -1424,6 +1526,8 @@ def cases() -> list[Case]:
              _imports_admitted_in_functions_and_platform_blocks),
         Case("imports-fail-closed", _imports_fail_closed),
         Case("imports-close-what-ruff-leaves-open", _imports_close_what_ruff_leaves_open),
+        Case("banned-list-covers-what-cannot-be-imported",
+             _banned_list_covers_what_cannot_be_imported),
         Case("tracked-reads-the-index", _tracked_reads_the_index),
         Case("live-tree-reaches-every-tracked-module", _live_tree_reaches_every_tracked_module),
     ]
