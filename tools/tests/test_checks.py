@@ -660,9 +660,10 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
 
 
 _K119_LEAD_FINDING = "states 'Where the set is' in a form that opens no reach class"
-_K119_LEAD_FORM = (_K119_LEAD_FINDING + " this rule reads: the four words single-spaced on "
-                   "one line, with no underscore before the first and a space after the "
-                   "last, then the class in bold before a full stop or the line's end")
+_K119_LEAD_FORM = (_K119_LEAD_FINDING + " this rule reads: the four words single-spaced with "
+                   "plain spaces on one line, with no underscore before the first and a "
+                   "plain space after the last, then the class in `**` bold before a full "
+                   "stop or the line's end")
 
 
 def _k119_every_class_lead_is_read() -> None:
@@ -709,6 +710,12 @@ def _k119_every_class_lead_is_read() -> None:
              _K119_LEAD_FORM),
             ({"computed": _K119_COMPUTED
               + " Where the set is: found by **name**, nothing narrows."},
+             _K119_LEAD_FORM),
+            # the space after `is` is a plain one, so a no-break space there opens nothing,
+            # and the class is named in `**` bold, so underscore bold opens nothing either
+            ({"total": _K119_TOTAL.replace("is **total**", "is\u00a0**total**")},
+             _K119_LEAD_FORM),
+            ({"total": _K119_TOTAL.replace("**total**", "__total__")},
              _K119_LEAD_FORM)):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
@@ -718,10 +725,11 @@ def _k119_every_class_lead_is_read() -> None:
 
 _K119_MEMBERS_FINDING = ("states 'which is what' or 'that is what' before a rule id, which "
                          "this rule reads as a membership sentence and cannot take: either "
-                         "rewrite it as one ('which is what' or 'that is what', either "
-                         "capitalized, single-spaced on one line apart from any underscore, "
-                         "a plain list of ids, then 'are') or reword the prose so no id "
-                         "follows 'is what'")
+                         "rewrite it as one ('which is what' or 'that is what', with only "
+                         "the first letter of the first word in either case, single-spaced "
+                         "with plain spaces on one line apart from any underscore, a plain "
+                         "list of ids, then 'are') or reword the prose so no id follows "
+                         "'is what'")
 
 
 def _k119_every_membership_sentence_is_read() -> None:
