@@ -2700,6 +2700,16 @@ Qed.
    induction hypothesis `IH` at `s`, and closed. *)
 Local Ltac step_by_IH IH s := simpl; rewrite (IH s); reflexivity.
 
+(* The opening six lemmas over a position share: induction on the position
+   `n` with the list `l` generalized and reintroduced, the successor case's
+   hypothesis named `IH`, and at position zero the empty list closed, which
+   leaves that position's cons case over `a` and `s` first and the successor
+   case second. `n` and `l` are parameters because an Ltac definition must
+   bind every hypothesis name it reads. *)
+Local Ltac induct_on_the_position n l :=
+  revert l; induction n as [ | k IH ]; intros l;
+  [ destruct l as [ | a s ]; [ reflexivity | ] | .. ].
+
 Lemma all_of_insert :
   forall (A : Type) (q : A -> bool) (x : A) (l : list A) (n : nat),
     all_of q (insert_at n x l) = andb (q x) (all_of q l).
@@ -2727,9 +2737,8 @@ Lemma all_of_swap :
   forall (A : Type) (p : A -> bool) (l : list A) (n : nat),
     all_of p (swap_at n l) = all_of p l.
 Proof.
-  intros A p l n. revert l. induction n as [ | k IH ]; intros l.
-  - destruct l as [ | a s ]; [ reflexivity | ].
-    destruct s as [ | b t ]; [ reflexivity | ].
+  intros A p l n. induct_on_the_position n l.
+  - destruct s as [ | b t ]; [ reflexivity | ].
     simpl. destruct (p a); destruct (p b); reflexivity.
   - destruct l as [ | a s ]; [ reflexivity | ].
     step_by_IH IH s.
@@ -2739,9 +2748,8 @@ Lemma all_of_dup :
   forall (A : Type) (p : A -> bool) (l : list A) (n : nat),
     all_of p (dup_at n l) = all_of p l.
 Proof.
-  intros A p l n. revert l. induction n as [ | k IH ]; intros l.
-  - destruct l as [ | a s ]; [ reflexivity | ].
-    simpl. destruct (p a); reflexivity.
+  intros A p l n. induct_on_the_position n l.
+  - simpl. destruct (p a); reflexivity.
   - destruct l as [ | a s ]; [ reflexivity | ].
     step_by_IH IH s.
 Qed.
@@ -2758,9 +2766,8 @@ Qed.
 Lemma count_of_swap :
   forall (A : Type) (l : list A) (n : nat), count_of (swap_at n l) = count_of l.
 Proof.
-  intros A l n. revert l. induction n as [ | k IH ]; intros l.
-  - destruct l as [ | a s ]; [ reflexivity | ].
-    destruct s as [ | b t ]; reflexivity.
+  intros A l n. induct_on_the_position n l.
+  - destruct s as [ | b t ]; reflexivity.
   - destruct l as [ | a s ]; [ reflexivity | ]. step_by_IH IH s.
 Qed.
 
@@ -2768,9 +2775,8 @@ Lemma count_of_drop :
   forall (A : Type) (l : list A) (n : nat),
     Nat.leb (count_of (drop_at n l)) (count_of l) = true.
 Proof.
-  intros A l n. revert l. induction n as [ | k IH ]; intros l.
-  - destruct l as [ | a s ]; [ reflexivity | ]. simpl.
-    exact (nat_leb_succ (count_of s)).
+  intros A l n. induct_on_the_position n l.
+  - simpl. exact (nat_leb_succ (count_of s)).
   - destruct l as [ | a s ]; [ reflexivity | ]. simpl. exact (IH s).
 Qed.
 
@@ -3014,9 +3020,8 @@ Lemma any_of_swap :
   forall (A : Type) (p : A -> bool) (l : list A) (n : nat),
     any_of p (swap_at n l) = any_of p l.
 Proof.
-  intros A p l n. revert l. induction n as [ | k IH ]; intros l.
-  - destruct l as [ | a s ]; [ reflexivity | ].
-    destruct s as [ | b t ]; [ reflexivity | ].
+  intros A p l n. induct_on_the_position n l.
+  - destruct s as [ | b t ]; [ reflexivity | ].
     simpl. destruct (p a); destruct (p b); reflexivity.
   - destruct l as [ | a s ]; [ reflexivity | ].
     step_by_IH IH s.
@@ -3026,9 +3031,8 @@ Lemma any_of_dup :
   forall (A : Type) (p : A -> bool) (l : list A) (n : nat),
     any_of p (dup_at n l) = any_of p l.
 Proof.
-  intros A p l n. revert l. induction n as [ | k IH ]; intros l.
-  - destruct l as [ | a s ]; [ reflexivity | ].
-    simpl. destruct (p a); reflexivity.
+  intros A p l n. induct_on_the_position n l.
+  - simpl. destruct (p a); reflexivity.
   - destruct l as [ | a s ]; [ reflexivity | ].
     step_by_IH IH s.
 Qed.
@@ -3319,16 +3323,10 @@ Definition thin_cert (id : nat) : Cert :=
    proofs generation-scoped, so revving the Sail model leaves the derivation
    intact and makes it no longer a verdict for this generation. *)
 Definition with_sail_model (v : nat) (c : Cert) : Cert :=
-  {| c with cert_versions := {| ver_spec_set := c.(cert_versions).(ver_spec_set);
-                                ver_sail_model := v;
-                                ver_language := c.(cert_versions).(ver_language);
-                                ver_profile := c.(cert_versions).(ver_profile) |} |}.
+  {| c with cert_versions := {| c.(cert_versions) with ver_sail_model := v |} |}.
 
 Definition with_profile (v : nat) (c : Cert) : Cert :=
-  {| c with cert_versions := {| ver_spec_set := c.(cert_versions).(ver_spec_set);
-                                ver_sail_model := c.(cert_versions).(ver_sail_model);
-                                ver_language := c.(cert_versions).(ver_language);
-                                ver_profile := v |} |}.
+  {| c with cert_versions := {| c.(cert_versions) with ver_profile := v |} |}.
 
 (* R-11-005's two versions and R-05-135b's two are four obligations and not
    one: a derivation agreeing on three of them is refused on the fourth, and
@@ -3593,10 +3591,10 @@ Definition p_unknown_tier_and_unknown_form : Package Cert :=
 Definition amb_first : Ambient := {| amb_run := 0; amb_state := 0 |}.
 
 Definition amb_second : Ambient :=
-  {| amb_run := S amb_first.(amb_run); amb_state := amb_first.(amb_state) |}.
+  {| amb_first with amb_run := S amb_first.(amb_run) |}.
 
 Definition amb_composing : Ambient :=
-  {| amb_run := amb_first.(amb_run); amb_state := demo.(composer_id) |}.
+  {| amb_first with amb_state := demo.(composer_id) |}.
 
 Definition demo_check (p : Package Cert) : Verdict :=
   spec_check demo Cert full_reading amb_first p.

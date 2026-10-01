@@ -123,7 +123,7 @@ Definition witness_State : State := initial.
 (* Distinct candidate owners can both claim the same physical arena. *)
 Definition exclusive (s : State) : bool := negb (owns_arena (editor s) && owns_arena (painter s)).
 Definition workspace (a : AppState) : nat :=
-  match phase a with Quiescing | Retiring | Restoring => 16 | _ => 0 end.
+  if phase a is (Quiescing | Retiring | Restoring) then 16 else 0.
 Definition private_bytes (a : AppState) : nat := if owns_arena a then 64 else 0.
 Definition checkpoint_bytes (a : AppState) : nat := if durable a is Some _ then 16 else 0.
 Definition ram (s : State) : nat :=
@@ -133,10 +133,9 @@ Definition store (s : State) : nat :=
   checkpoint_bytes (editor s) + checkpoint_bytes (painter s) +
   (if target s is Some _ then 16 else 0).
 Definition phase_ok (a : AppState) : bool :=
-  match phase a with
-  | Hibernated | Closed => negb (owns_arena a) && negb (document_grant a) && negb (session_authority a)
-  | _ => owns_arena a
-  end.
+  if phase a is (Hibernated | Closed)
+  then negb (owns_arena a) && negb (document_grant a) && negb (session_authority a)
+  else owns_arena a.
 
 Record Edge := {
   edge_enabled : bool; user_authority : bool; observable_request : bool;
@@ -205,7 +204,7 @@ Definition propose (c : Edge) (s : State) (e : Event) : option State :=
   | Request a => if target s is Some _ then None
     else if edge_ok c && negb (appeqb old a) && (min_dwell c <=? dwell s) &&
                   (writes s <? write_limit c) &&
-                  (match phase v with Active | Background | Frozen | Closed => true | _ => false end)
+                  (if phase v is (Active | Background | Frozen | Closed) then true else false)
               then Some (control (put s old
                   (if phase v is Closed then v else with_phase v Quiescing)) old (Some a)
                        0 (writes s) (carry_work c))
@@ -251,7 +250,7 @@ Definition propose (c : Edge) (s : State) (e : Event) : option State :=
                    if owns_arena (painter s) then Painter else old in
       let victim := get s owner in
       if reusable r &&
-         (match phase victim with Retiring | Hibernated => true | _ => false end)
+         (if phase victim is (Retiring | Hibernated) then true else false)
       then Some (control (put s owner (stopped victim Closed false)) owner None 0
                          (writes s) (elapsed s + recovery_work c)) else None
   | Crash =>
@@ -478,7 +477,7 @@ Proof.
 Qed.
 
 Definition execution_slots (v : AppState) : nat :=
-  match phase v with Active | Background => 1 | _ => 0 end.
+  if phase v is (Active | Background) then 1 else 0.
 Theorem hibernation_has_zero_private_work : forall (c : Edge) (s t : State) r,
   propose c s (Release r) = Some t ->
   private_bytes (get t (selected s)) = 0 /\ execution_slots (get t (selected s)) = 0.

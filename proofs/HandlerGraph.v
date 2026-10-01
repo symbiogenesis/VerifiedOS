@@ -1490,6 +1490,15 @@ Proof.
   exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
 Qed.
 
+(* The opening five theorems below share: simplify the emitted edges to the
+   specification's filter over machine `m` and roster `r`, weaken the
+   filter's admission to the property each reads, and introduce the edge
+   `e` and its admission `He` in the first goal that leaves, the second
+   being the filter's own admission. `m` and `r` are parameters because an
+   Ltac definition must bind every hypothesis name it reads. *)
+Local Ltac read_off_the_filter m r :=
+  simpl; apply (all_of_mono Edge (admissible_edge m r)); [ intros e He | .. ].
+
 (* O9a (R-12-013a), O10 (R-12-024e), O16 (R-12-024f, R-05-042) and O18
    (R-12-005) read off the same emitted list, each as the conjunct its entry
    owns. They are separate theorems because each is refuted by a separate
@@ -1500,9 +1509,8 @@ Theorem every_composed_edge_declares_a_resource_limit :
     all_of (fun e => Nat.ltb 0 e.(edge_limit)) (spec_compose m a r).(graph_edges)
     = true.
 Proof.
-  intros m a r. simpl.
-  apply (all_of_mono Edge (admissible_edge m r)).
-  - intros e He. exact (admissible_declares_a_limit m r e He).
+  intros m a r. read_off_the_filter m r.
+  - exact (admissible_declares_a_limit m r e He).
   - exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
 Qed.
 
@@ -1512,9 +1520,8 @@ Theorem every_composed_edge_declares_an_interface_world :
     all_of (fun e => Nat.ltb e.(edge_world) m.(world_count))
            (spec_compose m a r).(graph_edges) = true.
 Proof.
-  intros m a r. simpl.
-  apply (all_of_mono Edge (admissible_edge m r)).
-  - intros e He. exact (admissible_world_is_declared m r e He).
+  intros m a r. read_off_the_filter m r.
+  - exact (admissible_world_is_declared m r e He).
   - exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
 Qed.
 
@@ -1525,9 +1532,8 @@ Theorem the_specification_never_widens_a_manifest :
                               (m.(descriptor) e.(edge_owner)).(desc_manifest))
            (spec_compose m a r).(graph_edges) = true.
 Proof.
-  intros m a r. simpl.
-  apply (all_of_mono Edge (admissible_edge m r)).
-  - intros e He. exact (admissible_bounds_inside_the_manifest m r e He).
+  intros m a r. read_off_the_filter m r.
+  - exact (admissible_bounds_inside_the_manifest m r e He).
   - exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
 Qed.
 
@@ -1554,9 +1560,8 @@ Theorem every_composed_ring_is_inside_the_ceiling :
     all_of (fun e => Nat.leb e.(edge_ring) m.(ring_depth_ceiling))
            (spec_compose m a r).(graph_edges) = true.
 Proof.
-  intros m a r. simpl.
-  apply (all_of_mono Edge (admissible_edge m r)).
-  - intros e He. exact (admissible_ring_is_inside_the_ceiling m r e He).
+  intros m a r. read_off_the_filter m r.
+  - exact (admissible_ring_is_inside_the_ceiling m r e He).
   - exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
 Qed.
 
@@ -1578,10 +1583,8 @@ Definition ExemptsNoFormatClass (c : Composer) : Prop :=
 Theorem the_specification_exempts_no_format_class :
   ExemptsNoFormatClass spec_compose.
 Proof.
-  intros m a r k. simpl.
-  apply (all_of_mono Edge (admissible_edge m r)).
-  - intros e He.
-    rewrite (admissible_format_is_inventoried m r e He).
+  intros m a r k. read_off_the_filter m r.
+  - rewrite (admissible_format_is_inventoried m r e He).
     rewrite (admissible_format_has_a_verified_parser m r e He).
     destruct (class_eqb (m.(format_class) e.(edge_format)) k); reflexivity.
   - exact (all_of_filter_self Edge (admissible_edge m r) (declared_edges m r)).
