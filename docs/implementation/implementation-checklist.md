@@ -401,19 +401,19 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,221.9 |
-| Total estimate range h | 2,693.8–5,750 |
-| Completed scope h | 743.4 |
-| Complete by estimate % | 17.6 |
-| Remaining h | 3,478.5 |
-| Open class I h | 740 |
+| Total estimate midpoint h | 4,219.3 |
+| Total estimate range h | 2,697.2–5,741.4 |
+| Completed scope h | 759.8 |
+| Complete by estimate % | 18.0 |
+| Remaining h | 3,459.5 |
+| Open class I h | 721 |
 | Open class X h | 2,738.5 |
 | Retained completion estimate h | 164.5 |
 | Unmeasured completed items | 20 |
-| Calibrated total h | 5,157.5 |
+| Calibrated total h | 5,160.4 |
 | Committed M8a open h | 94.5 |
 | Committed M8b open h | 90.5 |
-| Other committed open h | 2,068 |
+| Other committed open h | 2,049 |
 | Conditional open h | 811.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1102,7 +1102,7 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
     * QuickChick runs at Rocq 9.3.0 from commit pins in its own switch, built and checked on the hosted route with its lock tracked from that run's export, and the property harness walks its small domains, extracts `Nat.sub` truncating, seeds its draws and claims no shrinking, its re-run verdicts and seed comparison agreeing with the base's. ([note](completion-log.md#q38f-run-the-property-harness-at-rocq-930))
   * [x] **Q38g · Settle the switch the Wasm oracle keeps** · 4.5 h actual · agent-parallel
     * The CertiRocq oracle's switch is declared at OCaml 4.14.4 and its lock tracked: `demo.v` and `ipc_oracle.v`'s checks pass through the compiled Wasm and its seeded twin fails, in the built switch and again after a fresh-root import, where `provision`'s fact reads it, and THIRD-PARTY.md names every package the lock pins and the in-file terms of the archives behind its new rows. ([note](completion-log.md#q38g-settle-the-switch-the-wasm-oracle-keeps))
-  * [x] **Q38h · Write the proof sources in Rocq 9.3's syntax** · {{ACTUAL}} h actual · agent-parallel
+  * [x] **Q38h · Write the proof sources in Rocq 9.3's syntax** · 16.4 h actual · agent-parallel
     * `seed coq --quickchick` compiles no proof source outside `Properties.v`'s `Require` closure, Guest CI's proofs lane reads and compares a base's elaboration when a `fanout` batch sets `--reading-base`, and the authored proof sources take Rocq 9.3's syntax except where a reader, a campaign anchor, a record binding a source's digest or the target's own grammar keeps the base's form, each covering run's comparison naming no difference. ([note](completion-log.md#q38h-write-the-proof-sources-in-rocq-93s-syntax))
   * [x] **Q38i · Make the proofs cheaper to compile and recheck without moving a statement** · 5.3 h actual · agent-parallel
     * Literal lemmas share the costliest repeated evaluations, a VM cast closes the single-evaluation proofs where it measured cheaper, and two clears trim a search, cutting the corpus's compile retired instructions 28.56% and its kernel recheck 39.04% with no statement, body or assumption moved. ([note](completion-log.md#q38i-make-the-proofs-cheaper-to-compile-and-recheck-without-moving-a-statement))
@@ -1132,7 +1132,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,415.6 h · 57% · 153.6 h complete · open range 1,283–3,241 h.
+**Q subtotal:** 2,413 h · 57% · 170 h complete · open range 1,270–3,216 h.
 
 ### M0 · Hardware reference
 
@@ -2017,10 +2017,10 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 | attended | X-read | 14 | 45.5 | 26.9 | 0.59 |
 | attended | X-authored | 3 | 18 | 25.5 | 1.42 |
 | attended | All | 63 | 323.9 | 238.4 | 0.74 |
-| agent-parallel | I | 38 | 302 | 112 | 0.37 |
+| agent-parallel | I | 39 | 317 | 128.4 | 0.41 |
 | agent-parallel | X-read | 10 | 101.5 | 34.7 | 0.34 |
 | agent-parallel | X-authored | 22 | 267 | 39.6 | 0.15 |
-| agent-parallel | All | 70 | 670.5 | 186.3 | 0.28 |
+| agent-parallel | All | 71 | 685.5 | 202.7 | 0.30 |
 <!-- calibration-results:end -->
 
 ### Calibration record
