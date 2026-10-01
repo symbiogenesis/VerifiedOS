@@ -498,9 +498,12 @@ def _json_inventory_preserves_hierarchy_and_declarations() -> None:
 # cache's template out of the netlist and its instance out of the top, and
 # `icache_arrays=False` keeps both and gives the template no cells, so the instruction
 # cache is reached and holds no array. `icache_in_dcache` moves the instruction cache's
-# instance from the top into the data cache, so the two cache rows overlap.
+# instance from the top into the data cache, so the two cache rows overlap. `spares`
+# is how many instances of the one spare SRAM template the top holds, so a template
+# repeated outside every cache is counted at each instance.
 def _array_netlist(*, nested: bool = False, icache: bool = True,
-                   icache_arrays: bool = True, icache_in_dcache: bool = False) -> str:
+                   icache_arrays: bool = True, icache_in_dcache: bool = False,
+                   spares: int = 1) -> str:
     def module(name: str, level: int, *cells: str) -> dict[str, object]:
         return {"type": "MODULE", "name": name, "level": level,
                 "stmtsp": [{"type": "CELL", "name": f"u{i}", "modName": target}
@@ -516,7 +519,7 @@ def _array_netlist(*, nested: bool = False, icache: bool = True,
     at_top = ["cva6_icache"] if icache and not icache_in_dcache else []
     in_dcache = ["cva6_icache"] if icache and icache_in_dcache else []
     return json.dumps({"type": "NETLIST", "modulesp": [
-        module("cva6", 1, "wt_dcache", *at_top, "sram__S"),
+        module("cva6", 1, "wt_dcache", *at_top, *(["sram__S"] * spares)),
         module("wt_dcache", 2, "wt_dcache_mem", *(["wt_dcache__N"] if nested else []),
                *in_dcache),
         *inner,
@@ -555,6 +558,12 @@ def _json_inventory_counts_memory_arrays_per_cache() -> None:
     ensure(nested.arrays[:2] == ((rtl.WHOLE_CORE, 1, (7, 2, 5)), ("wt_dcache", 2, (4, 2, 2)))
            and nested.arrays[-1] == (rtl.OUTSIDE, 1, (1, 0, 1)),
            f"an array inside two data-cache instances is counted once: {nested.arrays!r}")
+    with sandbox_tree({"inventory.json": _array_netlist(spares=2)}) as root:
+        spare = rtl._inventory(root / "inventory.json")
+    ensure(spare.arrays[0] == (rtl.WHOLE_CORE, 1, (7, 2, 5))
+           and spare.arrays[-1] == (rtl.OUTSIDE, 1, (2, 0, 2)),
+           f"two instances of the spare SRAM's template outside every cache are counted "
+           f"twice there, as in the whole core: {spare.arrays!r}")
     # An instruction cache inside the data cache is in both cache rows, which then sum
     # past the whole core; the outside row is still what no cache encloses.
     with sandbox_tree({"inventory.json": _array_netlist(icache_in_dcache=True)}) as root:
@@ -582,7 +591,8 @@ def _json_inventory_reports_an_absent_cache_as_absent() -> None:
            and lines[-1].split() == ["curated", "outside", "every", "cache", "1", "0", "1"],
            f"a cache the netlist lacks is reported absent, not as zeros: {lines!r}")
     first = header.find(rtl.ARRAY_KINDS[0]) + len(rtl.ARRAY_KINDS[0])
-    ensure(bool(header) and 0 <= row.find("absent") < first and len(row) == len(header),
+    ensure(bool(header) and 0 <= row.find("absent") < first and len(row) == len(header)
+           and row.endswith("none"),
            f"the absent text spans the count columns, from inside the first to the end of "
            f"the last, rather than sitting in the first: {header!r} {row!r}")
 
