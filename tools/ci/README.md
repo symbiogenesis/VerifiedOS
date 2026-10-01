@@ -373,7 +373,10 @@ after which the switch its recipe names does not stand, and the checks on a swit
 - Where `base_revision` is given, three seed jobs, the base run and two candidate runs,
   each build their side's switch in a fresh root, list the sampled population with
   `seed list`, the operator of each mutant the journal names, and run
-  `seed coq --quickchick --sample N` over seed's default subject. `--jobs` stays at 1
+  `seed coq --quickchick --sample N` over seed's default subject. A seed run is complete
+  when its journal's closing line counts every mutant its head picked, at seed's exit 0
+  or 1; a journal that closes on fewer, as one whose baseline did not stand closes on
+  none, fails the step. `--jobs` stays at 1
   until the build job's recorded `quickchick properties` peak is the basis for more;
   after a seed step reaches its limit, the next dispatch raises `--jobs` on that peak or
   records the runner decision as owed to the user, and the sample stays 20.

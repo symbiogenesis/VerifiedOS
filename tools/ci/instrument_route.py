@@ -109,9 +109,11 @@ SEED_JOBS = 1
 # The sample a comparison dispatch takes, which the reader holds closing evidence to.
 FULL_SAMPLE = 20
 
-# The verdicts a step and a job carry. `completed` is a seed run that reached its
-# journal's closing line, whatever its exit: seed exits 1 on a survivor, which is the
-# measurement and not a failure of the step.
+# The verdicts a step and a job carry. `completed` is a seed run whose journal closes
+# on every mutant its head picked, at seed's exit 0 or 1, whatever the step exited:
+# seed exits 1 on a survivor, which is the measurement and not a failure of the step.
+# A journal that closes on fewer, as one whose baseline did not stand closes on none,
+# records a run that measured nothing, and its step fails.
 PASSED = "passed"
 COMPLETED = "completed"
 FAILED = "failed"
@@ -727,13 +729,15 @@ class Outcome:
 
 def classify(exit_code: int | None, limit: int, *, oom: Sequence[str] | None,
              lowest_free_disk: int | None, no_space: bool = False,
-             prover_timeout: bool = False, journal_complete: bool | None = None) -> Outcome:
+             prover_timeout: bool = False, journal_complete: bool | None = None,
+             journal_reason: str = "its journal has no closing line") -> Outcome:
     """A step's verdict from how it ended.
 
     A limit reached, an OOM kill and a want of disk are each undecided, never a failure.
     `journal_complete` is given for a step a journal decides, a seed run, and such a step
-    is `completed` once its journal closes, whatever it exited, unless the kernel killed
-    one of its processes for memory, which can read as a mutant's verdict.
+    is `completed` once its journal closes on every mutant it picked, whatever the step
+    exited, unless the kernel killed one of its processes for memory, which can read as
+    a mutant's verdict; `journal_reason` says why a journal that does not falls short.
     """
     if exit_code == 0 and journal_complete is None:
         return Outcome(PASSED, "exit 0")
@@ -755,12 +759,12 @@ def classify(exit_code: int | None, limit: int, *, oom: Sequence[str] | None,
         return Outcome(UNDECIDED, "a compile reached gallina's per-file timeout, which "
                        "raises out of the run")
     if journal_complete:
-        return Outcome(COMPLETED, f"the run finished: its journal closes, and it exited "
-                       f"{exit_code}")
+        return Outcome(COMPLETED, f"the run finished: its journal closes on every mutant "
+                       f"it picked, and it exited {exit_code}")
     if exit_code is None:
         return Outcome(FAILED, "the step's command did not start")
     if journal_complete is not None:
-        return Outcome(FAILED, f"exit {exit_code} with no closing line in its journal")
+        return Outcome(FAILED, f"exit {exit_code}, and {journal_reason}")
     return Outcome(FAILED, f"exit {exit_code}")
 
 
@@ -851,12 +855,15 @@ def run_step(name: str, argv: Sequence[str], *, root: Path = ROOT, limit: Limit 
                                 sampler.lowest_free_disk if sampler else None)
             if value is not None]
     complete: bool | None = None
+    shortfall = ""
     if journal is not None:
         text = _read(journal) if journal.is_file() else None
-        complete = text is not None and parse_journal(text).complete
+        why = journal_shortfall(parse_journal(text)) if text is not None else (
+            "it wrote no journal")
+        complete, shortfall = why is None, why or ""
     outcome = classify(exit_code, chosen.seconds, oom=oom, lowest_free_disk=min(lows, default=None),
                        no_space=no_space, prover_timeout=prover_timeout,
-                       journal_complete=complete)
+                       journal_complete=complete, journal_reason=shortfall)
     receipt = load_receipt(root)
     steps = as_object(receipt.get("steps", {}))
     steps[name] = {
@@ -1180,12 +1187,28 @@ class Entry:
 
 @dataclass(frozen=True)
 class Journal:
+    """A seed journal: its verdicts, whether it closes and on how many verdicts at what
+    exit, and the scope its head states."""
+
     entries: list[Entry] = field(default_factory=list)
     complete: bool = False
     exit: int | None = None
     scope: str | None = None
+    decided: int | None = None
+
+    @property
+    def picked(self) -> int | None:
+        """How many mutants the head says the run picked, None where it says none."""
+        found = _SCOPE_RE.match(self.scope or "")
+        if found is None:
+            return None
+        return int(found["whole"] if found["whole"] is not None else found["ran"])
 
 
+# The scope a journal's head states, as seed's `Scope.stated` words it: the whole
+# population, or a sample of it.
+_SCOPE_RE = re.compile(r"over (?:the whole population of (?P<whole>\d+)|(?P<ran>\d+) of \d+)"
+                       r" mutant\(s\)")
 _ENTRY_RE = re.compile(r"^\s*(\d+)  (\S+)\s+(.*)$")
 _MUTANT_RE = re.compile(r"^(?P<site>\S+:\d+) `(?P<before>.*?)` -> `(?P<after>.*?)`: "
                         r"(?P<detail>.*)$", re.DOTALL)
@@ -1206,7 +1229,7 @@ def parse_journal(text: str) -> Journal:
     there, and its scope. A line that opens no verdict continues the one before it."""
     entries: list[Entry] = []
     pending: tuple[int, str, list[str]] | None = None
-    complete, code, scope = False, None, None
+    complete, code, scope, decided = False, None, None, None
     for line in text.splitlines():
         closing = _CLOSE_RE.match(line)
         opened = _ENTRY_RE.match(line)
@@ -1214,7 +1237,7 @@ def parse_journal(text: str) -> Journal:
             entries.append(_entry(pending[0], pending[1], "\n".join(pending[2])))
             pending = None
         if closing:
-            complete, code = True, int(closing.group(2))
+            complete, decided, code = True, int(closing.group(1)), int(closing.group(2))
         elif opened:
             pending = (int(opened.group(1)), str(opened.group(2)), [str(opened.group(3))])
         elif line.lstrip().startswith("scope:") and not entries and pending is None:
@@ -1223,7 +1246,25 @@ def parse_journal(text: str) -> Journal:
             pending[2].append(line)
     if pending is not None:
         entries.append(_entry(pending[0], pending[1], "\n".join(pending[2])))
-    return Journal(entries, complete, code, scope)
+    return Journal(entries, complete, code, scope, decided)
+
+
+def journal_shortfall(journal: Journal) -> str | None:
+    """Why a seed journal records no finished run, None where it does: a finished run's
+    closing line counts every mutant its head picked, at seed's exit 0 or 1. A run whose
+    baseline did not stand closes on none of them, and is no measurement."""
+    if not journal.complete:
+        return "its journal has no closing line"
+    picked = journal.picked
+    if picked is None:
+        return "its journal's head states no scope"
+    if picked < 1:
+        return "its journal's head picks no mutant"
+    if journal.decided != picked:
+        return f"its journal closes on {journal.decided} of the {picked} mutant(s) it picked"
+    if journal.exit not in (0, 1):
+        return f"its journal closes at exit {journal.exit}"
+    return None
 
 
 # One sampled mutant as `seed list` prints it: its identifier, which leads with its
@@ -1385,7 +1426,9 @@ def _seed_report(journals: dict[str, Journal],
                for run, journal in journals.items()}})
     return {
         "runs": {run: {"complete": journal.complete, "exit": journal.exit,
-                       "scope": journal.scope, "verdicts": len(journal.entries)}
+                       "scope": journal.scope, "picked": journal.picked,
+                       "decided": journal.decided, "verdicts": len(journal.entries),
+                       "shortfall": journal_shortfall(journal)}
                  for run, journal in journals.items()},
         "mutants": mutants,
         "candidate_differences": _differences(journals, "candidate-1", "candidate-2"),

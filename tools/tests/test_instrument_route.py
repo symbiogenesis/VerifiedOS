@@ -292,6 +292,9 @@ def _classify_records_undecided() -> None:
          route.UNDECIDED, "limit"),
         (route.classify(0, limit, oom=[], lowest_free_disk=None, journal_complete=False),
          route.FAILED, "no closing line"),
+        (route.classify(1, limit, oom=[], lowest_free_disk=None, journal_complete=False,
+                        journal_reason="its journal closes on 0 of the 20 mutant(s) it picked"),
+         route.FAILED, "exit 1, and its journal closes on 0 of the 20"),
         (route.classify(3, limit, oom=[], lowest_free_disk=None), route.FAILED, "exit 3"),
         (route.classify(None, limit, oom=[], lowest_free_disk=None), route.FAILED,
          "did not start"),
@@ -362,14 +365,28 @@ def _run_step_records_how_it_ended() -> None:
                "a step that exits nonzero within its limit fails")
         journal = root / route.JOURNAL
         journal.parent.mkdir(parents=True, exist_ok=True)
-        journal.write_text("== s against the o oracle\n    1  survived  p:1 `a` -> `b`: x\n"
+        journal.write_text("== s against the o oracle\n"
+                           "   scope: over the whole population of 1 mutant(s)\n"
+                           "    1  survived  p:1 `a` -> `b`: x\n"
                            "== complete: 1 verdict(s) decided, exit 1\n", encoding="utf-8")
         with quiet:
             done = route.run_step("seed", [python, "-c", "raise SystemExit(1)"], root=root,
                                   hooks=_hooks(), journal=journal)
         steps = route.as_object(route.load_receipt(root)["steps"])
         ensure(done == 0 and route.as_object(steps["seed"])["verdict"] == route.COMPLETED,
-               "a seed run whose journal closes is completed whatever it exited")
+               "a seed run whose journal closes on every mutant it picked is completed "
+               "whatever it exited")
+        journal.write_text("== s against the o oracle\n"
+                           "   scope: over 20 of 90 mutant(s), which is a sample and not "
+                           "the population\n"
+                           "== complete: 0 verdict(s) decided, exit 1\n", encoding="utf-8")
+        with quiet:
+            done = route.run_step("seed", [python, "-c", "raise SystemExit(1)"], root=root,
+                                  hooks=_hooks(), journal=journal)
+        seed = route.as_object(route.as_object(route.load_receipt(root)["steps"])["seed"])
+        ensure(done == 1 and seed["verdict"] == route.FAILED
+               and "closes on 0 of the 20" in str(seed["reason"]),
+               f"a seed run whose baseline did not stand measured nothing: {seed!r}")
         oom = route.Hooks(oom=iter([[], ["Out of memory: Killed process 9"]]).__next__,
                           sample=_hooks().sample, gnu_time=None, interval=0.05)
         with quiet:
@@ -659,9 +676,34 @@ def _journal_and_population_readers() -> None:
            and journal.entries[1].detail.endswith("a second line")
            and journal.entries[0].identity == "proofs/C.v:3 `<=` -> `<`",
            f"the journal reads verdicts, scope and close: {journal!r}")
+    ensure(journal.picked == 2 and journal.decided == 2
+           and route.journal_shortfall(journal) is None,
+           f"a journal closing on every mutant it picked records a finished run: {journal!r}")
     truncated = route.parse_journal(text.rsplit("== complete", 1)[0])
-    ensure(not truncated.complete and len(truncated.entries) == 2,
+    ensure(not truncated.complete and len(truncated.entries) == 2
+           and route.journal_shortfall(truncated) == "its journal has no closing line",
            "a journal with no closing line is incomplete")
+    head = "== proofs/C.v against the prover-then-QuickChick oracle\n"
+    for body, fragment in (
+            ("   scope: over 20 of 90 mutant(s), which is a sample and not the population\n"
+             "== complete: 0 verdict(s) decided, exit 1\n", "closes on 0 of the 20"),
+            ("   scope: over the whole population of 3 mutant(s)\n"
+             "    1  killed    p:1 `a` -> `b`: x\n"
+             "== complete: 1 verdict(s) decided, exit 1\n", "closes on 1 of the 3"),
+            ("   scope: over the whole population of 0 mutant(s)\n"
+             "== complete: 0 verdict(s) decided, exit 1\n", "picks no mutant"),
+            ("== complete: 0 verdict(s) decided, exit 1\n", "states no scope"),
+            ("   scope: over the whole population of 1 mutant(s)\n"
+             "    1  killed    p:1 `a` -> `b`: x\n"
+             "== complete: 1 verdict(s) decided, exit 2\n", "closes at exit 2")):
+        found = route.journal_shortfall(route.parse_journal(head + body))
+        ensure(found is not None and fragment in found,
+               f"a journal falling short says how ({fragment!r}): {found!r}")
+    whole = route.parse_journal(head + "   scope: over the whole population of 1 mutant(s)\n"
+                                "    1  killed    p:1 `a` -> `b`: x\n"
+                                "== complete: 1 verdict(s) decided, exit 0\n")
+    ensure(whole.picked == 1 and route.journal_shortfall(whole) is None,
+           f"a whole-population scope states its count: {whole!r}")
     listed = route.parse_population(_LISTING + "     successor/5        proofs/C.v:9 "
                                                "`S n` -> `n`\nok proofs/C.v yields 9\n")
     ensure(listed == {"proofs/C.v:3 `<=` -> `<`": ["relational"],
