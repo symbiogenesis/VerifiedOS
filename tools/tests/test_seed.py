@@ -131,9 +131,9 @@ def _seed_list_refuses_an_unmutable_kind() -> None:
 
 def _the_randomized_mode_refuses_a_subject_outside_its_closure() -> None:
     """`--quickchick` mutates only a proof source `Properties.v`'s closure holds, and
-    says so before it asks for a prover or stages anything: a proof Requiring a member
-    from outside, and a harness inside the closure, are each refused; the enumerative
-    mode takes either proof."""
+    says so before it asks for a prover, whose lookup precedes any staging: a proof
+    Requiring a member from outside, and a harness inside the closure, are each refused;
+    the enumerative mode takes either proof."""
     asked: list[str] = []
 
     def absent(switch: str) -> None:
@@ -141,8 +141,7 @@ def _the_randomized_mode_refuses_a_subject_outside_its_closure() -> None:
 
     with (_closed_tree() as root, patch.object(seed, "find_root", return_value=root),
           patch.object(seed, "lane_env", return_value=Mock()),
-          patch.object(gallina, "prover", side_effect=absent),
-          patch.object(gallina, "stage") as stage):
+          patch.object(gallina, "prover", side_effect=absent)):
         ensure(seed.randomized_subjects(root) == ["proofs/A.v", "proofs/B.v", "proofs/C.v"],
                f"the closure's proof sources are A, B and C: {seed.randomized_subjects(root)}")
         for rel in ("proofs/Far.v", f"{_RIG}/Probe.v"):
@@ -152,8 +151,7 @@ def _the_randomized_mode_refuses_a_subject_outside_its_closure() -> None:
             ensure(code == 1 and "is not a proof source Properties.v's Require closure" in text
                    and "mutates proofs/A.v, proofs/B.v, proofs/C.v" in text,
                    f"{rel} is refused with the closure's subjects named: {text}")
-        ensure(not asked and not stage.called,
-               f"a refused subject asks for no prover and stages nothing: {asked}")
+        ensure(not asked, f"a refused subject asks for no prover: {asked}")
         for rel, randomized in (("proofs/B.v", True), ("proofs/Far.v", False)):
             with redirect_stdout(io.StringIO()) as said:
                 seed.cmd_coq(argparse.Namespace(file=rel, quickchick=randomized))
