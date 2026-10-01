@@ -301,7 +301,7 @@ from vos import corpus as corpus_mod
 from vos import pins as pins_mod
 from vos import rtl_width, toolenv
 from vos.checks import generated
-from vos.report import apart as _apart
+from vos.report import apart
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -823,7 +823,7 @@ def _bindings(ctx: Context) -> None:
             findings.append(f"{file}'s {label} names {path}, which the index carries no "
                             "gitlink for")
         elif oid != recorded:
-            stated, carried = _apart(recorded, oid)
+            stated, carried = apart(recorded, oid)
             findings.append(
                 f"{file}'s {label} is {stated} and the index carries {path} at "
                 f"{carried}; regenerate it from a checkout at the gitlink, which "
@@ -966,7 +966,7 @@ def _workflow_pins(ctx: Context) -> None:
                             "the link names the edition the terms were read at")
         for ref in links:
             if ref != commit:
-                linked, reviewed = _apart(ref, commit)
+                linked, reviewed = apart(ref, commit)
                 findings.append(f"{where} links {tool}'s licence at {linked}, the row "
                                 f"reviewed {reviewed}; the link names the edition the "
                                 "terms were read at, so the edit is a person's")
@@ -1024,7 +1024,7 @@ def _workflow_pins(ctx: Context) -> None:
                 continue
             want_version, want_sha, row = actions[action]
             if want_sha and (sha, version) != (want_sha, want_version):
-                ran, reviewed = _apart(sha, want_sha)
+                ran, reviewed = apart(sha, want_sha)
                 findings.append(
                     f"{where} runs {action} at {ran} ({version}), {row} reviewed "
                     f"{reviewed} ({want_version}); the row's terms were read at the "
@@ -1601,7 +1601,7 @@ def _pins(ctx: Context) -> None:
         elif not gitlinks[pin.path].startswith(pin.short):
             # The row is quoted whole, as the record spells it, and the gitlink at
             # twelve digits or as far as the two must run to differ.
-            _, carried = _apart(pin.short, gitlinks[pin.path])
+            _, carried = apart(pin.short, gitlinks[pin.path])
             findings.append(
                 f"{where} pins {pin.path} at {pin.short} and the index carries it at "
                 f"{carried}; the terms on that row were read at the "
