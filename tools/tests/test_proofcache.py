@@ -267,7 +267,11 @@ _PHASE_LINE = re.compile(r"^  compile/audit: (\d+\.\d\d)s; wave schedule replaye
 
 def _the_phase_line_replays_the_wave_schedule() -> None:
     """Each compiled module logs its span, a reused one none, and the phase's line gives
-    the replay `wave_makespan` computes over exactly those spans at the run's limit."""
+    the replay `wave_makespan` computes over exactly those spans at the run's limit.
+
+    The automatic run sizes three compile workers and one kernel worker, so the replay
+    must use the compile limit. Reading the inputs takes 0.3 s before the phase starts,
+    so a span measured from the run's start rather than the phase's would begin late."""
     with tempfile.TemporaryDirectory(prefix="vos-proof-replay-") as temporary:
         root = Path(temporary) / "source"
         folder = root / "proofs"
@@ -287,22 +291,32 @@ def _the_phase_line_replays_the_wave_schedule() -> None:
             return gate.Checked(source, symbols=[{
                 "name": f"{source.stem}.sound", "type": "True", "claims": [], "assumptions": []}])
 
+        def inputs(base: Path, sources: list[Path]) -> dict[str, str]:
+            time.sleep(0.3)
+            return receipts.snapshot(base, sources)
+
+        def sizing(*, kernel: bool = False) -> int:
+            return 1 if kernel else 3
+
         waves = [[source.stem for source in wave]
                  for wave in gate.proofs_mod.SourceIndex.read(gate._sources(root)).ordered]
         with patch.object(gate, "workspace", return_value=work), \
-                patch.object(gate, "_inputs", side_effect=receipts.snapshot), \
+                patch.object(gate, "_inputs", side_effect=inputs), \
                 patch.object(gate, "_toolchain", return_value=toolchain), \
                 patch.object(gate, "_cache_context", return_value={"library_hash": "fixed"}), \
                 patch.object(gate, "_check_source", side_effect=check), \
-                patch.object(gate, "_recheck", return_value=""):
+                patch.object(gate, "_recheck", return_value=""), \
+                patch.object(gate.env, "proof_jobs", side_effect=sizing):
             for jobs, edited, compiled in ((2, "", set(texts)),
-                                           (3, "Consumer", {"Consumer", "ApexTheorem"})):
+                                           (3, "Consumer", {"Consumer", "ApexTheorem"}),
+                                           (None, "Side", {"Side"})):
                 if edited:
                     source = folder / f"{edited}.v"
                     source.write_text(texts[edited] + "\n(* edited *)", encoding="utf-8")
                 with patch.object(gate, "wave_makespan", wraps=gate.wave_makespan) as replay, \
                         contextlib.redirect_stdout(io.StringIO()) as output:
                     ensure(gate._run_locked(root, jobs) == 0, "the replay fixture failed")
+                expected_limit = sizing() if jobs is None else jobs
                 lines = output.getvalue().splitlines()
                 spans = {match.group(1): (float(match.group(2)), float(match.group(3)))
                          for match in map(_SPAN_LINE.match, lines) if match}
@@ -310,12 +324,16 @@ def _the_phase_line_replays_the_wave_schedule() -> None:
                        f"timing lines {sorted(spans)} do not name exactly the compiled modules")
                 ensure(all(0 <= start <= end for start, end in spans.values()),
                        f"a span does not run forward from the phase's start: {spans}")
+                ensure(min(start for start, _ in spans.values()) < 0.3,
+                       f"the spans are not measured from the phase's start: {spans}")
                 phase = [match for match in map(_PHASE_LINE.match, lines) if match]
-                ensure(len(phase) == 1 and int(phase[0].group(2)) == jobs,
-                       f"no phase line names the replay at worker limit {jobs}: {lines}")
+                ensure(len(phase) == 1 and int(phase[0].group(2)) == expected_limit,
+                       f"no phase line names the replay at worker limit {expected_limit}: {lines}")
+                ensure(all(end <= float(phase[0].group(1)) for _, end in spans.values()),
+                       f"a span ends after the phase's {phase[0].group(1)}s: {spans}")
                 replay.assert_called_once()
                 durations, limit = replay.call_args.args
-                ensure(limit == jobs and [len(wave) for wave in durations]
+                ensure(limit == expected_limit and [len(wave) for wave in durations]
                        == [len(wave) for wave in waves],
                        "the replay is not over the gate's waves at the run's worker limit")
                 for wave, measured in zip(waves, durations, strict=True):
