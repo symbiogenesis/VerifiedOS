@@ -2,10 +2,12 @@
 """Per-coordinate controls for the reference component comparison."""
 
 import json
+import re
 from pathlib import Path
 
 from tests.harness import Case, ensure
 from vos import compiler_component as cc
+from vos import gallina
 
 
 def _population_and_wrappers() -> None:
@@ -67,6 +69,42 @@ def _every_coordinate_and_shape() -> None:
             raise AssertionError(f"{label} observation accepted")
 
 
+def _declared_switch_and_prover_release() -> None:
+    root = Path(__file__).resolve().parents[2]
+    lock = (root / "tools/opam/certirocq.lock").read_text(encoding="utf-8")
+    listed = cc.installed(lock)
+    ensure(len(listed) > 1 and f"rocq-certirocq.{gallina.CERTIROCQ_VERSION}" in listed,
+           f"the snapshot's installed list is read: {listed[:3]}")
+    # An imported switch's re-export drops the compiler section (F-496) and may order
+    # its lines otherwise; it is still the snapshot's switch.
+    reexport = re.sub(r"^compiler: \[.*?^\]\n", "", lock, flags=re.MULTILINE | re.DOTALL)
+    head, _, tail = reexport.partition("installed: [\n")
+    body, _, rest = tail.partition("]")
+    reexport = head + "installed: [\n" + "".join(reversed(body.splitlines(keepends=True))) + "]" + rest
+    ensure("compiler:" not in reexport and cc.installed(reexport) == listed,
+           "a re-export without the compiler section installs the snapshot's packages")
+    other = lock.replace(f'"rocq-certirocq.{gallina.CERTIROCQ_VERSION}"\n', "")
+    ensure(cc.installed(other) != listed, "a switch lacking a package is another switch")
+    for label, text in (("no list", "opam-version: \"2.0\"\n"),
+                        ("an empty list", "installed: [\n]\n"),
+                        ("a repeated package", 'installed: [\n  "a.1"\n  "a.1"\n]\n')):
+        try:
+            cc.installed(text)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"an export with {label} was read")
+    release = gallina.ORACLE_ROCQ_VERSION
+    banner = (f"The Rocq Prover, version {release}\n"
+              f"compiled with OCaml {gallina.ORACLE_OCAML_VERSION}\n")
+    ensure(cc.reports_release(banner, release), f"the banner reports {release}")
+    ensure(cc.reports_release(f"version {release}.", release), "a closing full stop is no part")
+    for wrong in (f"{release}0", f"{release}.1", f"{release}+dev", f"{release}~rc1", "9.3.0"):
+        ensure(not cc.reports_release(banner.replace(release, wrong), release),
+               f"version {wrong} is not {release}")
+
+
 def cases() -> list[Case]:
     return [Case("source-owned-component-wrappers", _population_and_wrappers),
-            Case("component-coordinate-and-shape-refusals", _every_coordinate_and_shape)]
+            Case("component-coordinate-and-shape-refusals", _every_coordinate_and_shape),
+            Case("declared-switch-and-prover-release", _declared_switch_and_prover_release)]
