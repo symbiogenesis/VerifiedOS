@@ -7,9 +7,10 @@ value completed from a base with `with` (rocq#22207), and the `&` and `of` binde
 gate is not the only compiler of these sources. The QuickChick harness and its seeded
 mutants, the CertiRocq Wasm oracle and the Rupicola lowering each compile a proof source
 or a harness with an older release, held there by the libraries they load. **A form
-the gate accepts breaks those instruments without any gate saying so**: no hosted lane
-runs them, and the first reader to learn of it is whoever runs one next. This rule is
-what says so, on every checker run.
+the gate accepts breaks those instruments without any gate saying so**: no gate runs
+them, the instrument switch route running the QuickChick harness only when dispatched,
+and the first reader to learn of it is whoever runs one next. This rule is what says
+so, on every checker run.
 
 **The set is derived and never listed.** `INSTRUMENTS` below is the one table of every
 instrument that compiles a proof source or a harness outside the gate: its switch, its

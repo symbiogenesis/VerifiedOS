@@ -23,10 +23,10 @@ K-75 is that rule one figure over, on the version the tools are *written* to rat
 than the versions they run. The interpreter floor decides what the two checkers admit
 and what this directory's Python may say, and it is written as a setting in ty's
 dialect and in ruff's, shown in the manual install command, and restated as a literal
-the provisioner probes the running interpreter against and as the version the CI workflows install;
-ty.toml's is the source because it is the environment an editor's language server and
-this gate both resolve against, and the only site that writes the figure bare. The
-sites are enumerated rather than counted here, because the count is `_FLOOR_SITES`' to
+the provisioner probes the running interpreter against and as the version each CI
+workflow's jobs install; ty.toml's is the source because it is the environment an
+editor's language server and this gate both resolve against, and the only site that
+writes the figure bare. The sites are enumerated rather than counted here, because the count is `_FLOOR_SITES`' to
 state. The two dialects are why the rule is worth having rather than obvious: `3.14`
 and `py314` are one figure in two spellings, so a bump applied to one of them does not
 read as a disagreement with the other. Narrative prose links to the supported version
@@ -34,10 +34,13 @@ instead of copying it. The provisioner explicitly restates the floor, while
 tools/pyproject.toml constrains the interpreter used for dependency resolution.
 Both are held against ty's target.
 
-The window is the enumerated sites rather than a directory, as K-67's is: the host
-and guest workflows' `python-version` settings sit outside `tools/` and select the
-interpreters their gates run on. Historical measurements retain the interpreter
-versions used for those runs and are outside this current setup check.
+The window is the enumerated sites rather than a directory, as K-67's is: the
+`python-version` settings of host CI, guest CI, the boot signature target campaign and
+the instrument switch route sit outside `tools/` and select the interpreters their jobs
+run on. Each workflow is one site whose every match is held, so no job's setting escapes
+the comparison; a job that installs no interpreter states none and is not read.
+Historical measurements retain the interpreter versions used for those runs and are
+outside this current setup check.
 
 K-84 is the third direction on the same registry and the one that faces outward. K-00
 holds the registry against the checks and the selftest holds it against the mutants,
@@ -236,6 +239,7 @@ PROVISION = "tools/vos/cli/provision.py"
 _HOST_WORKFLOW = ".github/workflows/host-gates.yml"
 _GUEST_WORKFLOW = ".github/workflows/guest-gates.yml"
 _CAMPAIGN_WORKFLOW = ".github/workflows/boot-crypto-target.yml"
+_INSTRUMENT_WORKFLOW = ".github/workflows/instrument-switches.yml"
 
 TY_CONF = "tools/ty.toml"
 RUFF_CONF = "tools/ruff.toml"
@@ -392,6 +396,8 @@ _FLOOR_SITES: list[tuple[str, str, re.Pattern[str], Callable[[str], str]]] = [
     ("workflow interpreter", _GUEST_WORKFLOW,
      re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
     ("workflow interpreter", _CAMPAIGN_WORKFLOW,
+     re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
+    ("workflow interpreter", _INSTRUMENT_WORKFLOW,
      re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
 ]
 

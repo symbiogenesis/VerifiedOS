@@ -44,7 +44,9 @@ repository stamps; it replaces no client and alters no other standing root. A cl
 rewrites a root older than its own format one way, and the owner records the reviewed
 client's format as `OPAM_ROOT_FORMAT`, so moving an existing root is a deliberate, recorded step,
 and `run.py provision --apply` plans no switch over a root in an older format. See [the CI guide](../ci/README.md)
-for invocation, placement and environment setup. The remaining experimental switches are installed
+for invocation, placement and environment setup. QuickChick's switch is built and checked only on
+[the instrument switch route](../ci/README.md#instrument-switch-route), on GitHub-hosted runners in
+a fresh root, and CertiRocq's only locally; the remaining experimental switches are installed
 separately into an initialized root.
 
 From the repository root in the guest, register the repositories and import a snapshot into its dedicated switch:
@@ -58,7 +60,7 @@ $ opam switch import tools/opam/rupicola.lock \
     --switch=verifiedos-rupicola-9.2.0-ocaml-5.4.1 -y
 ```
 
-Use the corresponding switch and snapshot from the table for the other environments. The Sail switch needs only the default repository. `run.py provision --apply` imports the Sail, proof and QuickChick snapshots through the recipes in [env.py](../vos/env.py) and [quickchick.py](../vos/cli/quickchick.py). The [Wasm oracle](../wasm-oracle/README.md) specifies the pending snapshot import in both the native recipe and Dockerfile. Creating these switches preserves existing switches and the user's active switch.
+Use the corresponding switch and snapshot from the table for the other environments. The Sail switch needs only the default repository. `run.py provision --apply` imports the Sail, proof and QuickChick snapshots through the recipes in [env.py](../vos/env.py) and [quickchick.py](../vos/cli/quickchick.py); the user's ruling of 2026-09-30 keeps its QuickChick import out of the local guest, QuickChick's switch being built and checked only on [the instrument switch route](../ci/README.md#instrument-switch-route), F-616 holding provision.py's recipe open. The [Wasm oracle](../wasm-oracle/README.md) specifies the pending snapshot import in both the native recipe and Dockerfile. Creating these switches preserves existing switches and the user's active switch.
 
 If an import fails after creating its switch, retry the import command directly, omitting creation. The provisioner checks for an existing switch and skips creation automatically, so `run.py provision --apply` can resume a partial installation.
 

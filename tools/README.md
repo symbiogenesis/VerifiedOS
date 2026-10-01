@@ -35,6 +35,13 @@ reuse, cold runs and evidence limits.
 [boot-crypto-target.yml](../.github/workflows/boot-crypto-target.yml) runs M7.1f's
 boot signature target campaign, whose [contract](../firmware/crypto/README.md#hosted-target-campaign)
 the crypto README owns.
+[instrument-switches.yml](../.github/workflows/instrument-switches.yml) builds and
+checks QuickChick's switch on manual dispatch from `main` alone, the one place the
+user's rulings let it be built and checked;
+[the instrument switch route](ci/README.md#instrument-switch-route) in the Guest CI
+contract owns it, and `run.py instrument-ci` dispatches it and reads its runs back.
+The user's ruling of 2026-09-30 keeps `run.py provision --apply`'s QuickChick import
+out of the local guest, F-616 holding provision.py's recipe open.
 
 **A red host CI run has to name which member went red, to a reader who cannot open its
 log.** One invocation is four members and one exit code, which reaches the run page and
@@ -132,6 +139,7 @@ caught by nothing, which is a residue the findings register carries.
 | `test` | host | Runs the tools' own behavioral tests, one module per subject under [tests/](tests/). |
 | `worktree` | host | Lists registered checkouts, creates a fresh branch at an explicit base under the primary checkout's `.worktrees/`, and verifies assigned worktrees, including host-provisioned locations. `--json` produces handoff data, including each lane's name and `lane_root`, the guest directory its outputs land in. |
 | `fanout` | host | Records explicit worker handoffs, merges their commits, repairs derived facts, publishes settled inputs, requires Host CI on both platforms, dispatches both Guest CI lanes and retires integrated batch-owned lanes. Journals support resume without waiting for Guest CI. See the [completion contract and usage](fanout.md). |
+| `instrument-ci` | host | `dispatch` sends one dispatch of [the instrument switch route](ci/README.md#instrument-switch-route), refusing nothing its plan job refuses, with a nonce in the run title and its intent journalled first; `--resume NONCE` recovers an interrupted dispatch by that nonce without posting again. `read --run ID` follows each artifact's redirect without credentials, extracts it under `out/instrument-ci/<run id>/`, holds its members to the staging allowlist and its inputs to the run, re-joins the run's verdict and says whether the run is closing evidence for a `--closing` commit. `fanout` never runs it. |
 | `proof-search` | host | Retrieves current local proof examples by query words, script tokens or authored requirement references, with bounded excerpts, source locations and SHA-256 identities. `--json` follows the tracked [JSON Schema](proof-search.schema.json). Results are advisory; the [portable workflow](../docs/assurance/proof-assistance.md) defines bounded repair and the unchanged fresh proof gate. |
 | `sail-context` | host | Retrieves compiler-emitted Sail declarations, scattered clauses and recorded incoming references. Checks the bundle's recorded local source hashes before returning bounded context and SHA-256 identities; omitted sources and the freshness boundary remain explicit. `search`, `symbol` and `references` accept `--json` under the tracked [JSON Schema](sail-context.schema.json). The [portable Sail workflow](../docs/assurance/sail-assistance.md) defines repair, validation and upstream adoption decisions. |
 | `sail-assist` | guest | `init`, `status`, `typecheck`, `pause`, `resume`, `replan`, `finish` and `recover` manage finite repair journals under the tracked [schema](sail-assist.schema.json). The strict compiler process envelope preserves raw diagnostics, exit status and before/after input identities. Follow the [workflow and recovery contract](../docs/assurance/sail-assistance.md#agent-workflow). Windows launcher notices go to stderr so JSON stdout remains machine-readable. |

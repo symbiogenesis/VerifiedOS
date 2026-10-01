@@ -1618,6 +1618,14 @@ CASES: list[Case] = [
      _first_match(".github/workflows/boot-crypto-target.yml",
                   r'(python-version: "3\.14".*)python-version: "3\.14"',
                   lambda m: m[1] + 'python-version: "3.13"', flags=re.DOTALL)),
+    # The instrument switch route installs the interpreter in each of its five jobs, so
+    # each job's copy is seeded on its own, found within that job's block.
+    *(("K-75", f"the instrument switch route's {job} job interpreter below the floor "
+       "ty.toml fixes",
+       _first_match(".github/workflows/instrument-switches.yml",
+                    rf'(^  {job}:\n(?:(?!^  [\w-]+:\n).)*?)python-version: "3\.14"',
+                    lambda m: m[1] + 'python-version: "3.13"', flags=re.MULTILINE | re.DOTALL))
+      for job in ("plan", "build", "import", "seed", "join")),
     ("K-75", "a project admitting an interpreter below the typing target",
      _literal("tools/pyproject.toml", 'requires-python = ">=3.14,<3.15"',
               'requires-python = ">=3.13,<3.15"')),
