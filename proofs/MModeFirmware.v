@@ -1115,7 +1115,7 @@ Theorem the_specification_is_not_lazily_initialized :
 Proof. intros m i j g e. reflexivity. Qed.
 
 Definition lazily_initialized (m : Machine) : Lazy m :=
-  fun i g e => match i with 0 => false | S _ => holds m e g end.
+  fun i g e => if i is 0 then false else holds m e g.
 
 Theorem a_lazily_initialized_static_is_refuted :
   forall (m : Machine) (g : Graph m) (e : Edge m),
