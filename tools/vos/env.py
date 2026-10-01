@@ -417,16 +417,52 @@ def _mem_available_mb() -> int:
     return 0
 
 
+# The proof gate's per-worker planning budgets in MiB, which `proof_jobs` states the
+# basis of.
+PROOF_COMPILE_WORKER_MIB = 1024
+PROOF_KERNEL_WORKER_MIB = 10240
+
+
 def proof_jobs(*, kernel: bool = False) -> int:
     """Use available cores subject to a phase-specific memory planning budget.
 
-    The historical toolchain-residency report records compilation below 1 GiB per
-    module but a whole-set kernel recheck above 8 GiB. Reserve 2 GiB of headroom,
-    then budget 1 GiB per compile/audit worker or 10 GiB per kernel worker. These
-    are scheduling estimates, not bounds on future proof workloads. Sample in the
-    guest just before each phase, after the workspace lock has been acquired.
+    Reserve 2 GiB of headroom, then budget 1 GiB per compile/audit worker or 10 GiB
+    per kernel worker. Sample in the guest just before each phase, after the workspace
+    lock has been acquired.
+
+    The compile/audit budget is an estimate: the historical toolchain-residency
+    report records compilation below 1 GiB per module.
+
+    The kernel budget is set at or above the largest kernel worker peak measured.
+    Guest CI's proofs runner, one x86_64 `ubuntu-26.04` VM of 4 vCPUs and 16 GB,
+    checks every module in one kernel worker. GNU time's `maxrss_kb`, the peak
+    resident memory of the gate's largest process, read in three full rechecks of
+    the same 57 sources:
+
+        run 36812890026 at 1045acb9    10,029,668 KiB
+        run 36814984495 at 2728d4a6    10,030,124 KiB
+        run 36819172207 at ae25ee8f    10,029,820 KiB
+
+    Beside them, Q38i's per-module rechecks on the profiling guest, a WSL2 aarch64
+    VM, each module checked alone with its closure admitted, peaked by `wait4` at
+    9,312,124 KiB for HmacDrbg.v and 1,626,180 KiB for Sha256.v, then 864 MiB for
+    PqArith.v, 767 for MlKem.v, 707 for Keccak.v and 568 for RomVerifier.v, and at
+    most 363 MiB for every other module.
+
+    The 10 GiB budget, 10,485,760 KiB, sits 455,636 KiB (445 MiB, 4.3% of the
+    budget) above the largest of these peaks. A second kernel worker needs 22,528
+    MiB available, which a 16 GB runner never has, so that runner runs one kernel
+    worker; its four compile/audit workers need 6,144 MiB.
+
+    The peak HmacDrbg.v's literals would save admits no second worker there either
+    (F-581). Literals for its `pr_true_run` and `first_draw` lowered its per-module
+    recheck peak by 1,186,644 KiB. Two workers at the largest runner peak less that
+    saving would need 17,686,960 KiB, and 19,784,112 KiB with the reserve, above the
+    runner's 16 GB even read as 16 GiB, 16,777,216 KiB. So HmacDrbg.v keeps no
+    literal for them.
     """
-    return worker_jobs(10240 if kernel else 1024, fallback=1 if kernel else 4,
+    return worker_jobs(PROOF_KERNEL_WORKER_MIB if kernel else PROOF_COMPILE_WORKER_MIB,
+                       fallback=1 if kernel else 4,
                        label="kernel" if kernel else "compile/audit")
 
 

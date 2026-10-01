@@ -1336,11 +1336,12 @@ Without `--jobs`, each phase selects as many workers as the available logical CP
 and its memory planning budget permit. The guest samples `MemAvailable` immediately
 before compilation/auditing and again before kernel checking, after acquiring the
 workspace lock. [The resource policy](vos/env.py) owns the headroom, per-worker budgets
-and conservative fallbacks when memory cannot be read. Kernel workers receive a larger
-budget because the [recorded prover measurements](../docs/performance/toolchain-residency.md#the-prover-and-which-of-its-two-acts-the-device-performs)
-show substantially higher memory use for a full recheck than for compilation.
-These are estimates, not measured limits for the current parallel batches. Guest CI's
-proof log records the gate's peak single-process resident memory
+and conservative fallbacks when memory cannot be read. The compile/audit budget is an
+estimate from the [recorded prover measurements](../docs/performance/toolchain-residency.md#the-prover-and-which-of-its-two-acts-the-device-performs).
+The kernel budget is set at or above the peak resident memory of the one kernel worker
+that checks every module on Guest CI's proofs runner, whose recorded runs and margin
+`proof_jobs` states, so that 16 GB runner runs one kernel worker. Guest CI's
+proof log records each run's peak single-process resident memory
 ([Guest CI contract](ci/README.md)). The selected limits are printed. An explicit
 `--jobs N` overrides automatic CPU/memory sizing for both phases; the single-process
 fallback for an unknown library identity still applies.
