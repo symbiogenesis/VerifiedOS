@@ -975,7 +975,8 @@ the set with `--all-files`, which selects the tracked files under `model/` outsi
 `model/dependencies/` and nothing else, and with `SKIP=markdown-link-check`, because
 that hook fetches every external link the model's Markdown names; a finding or a
 rewrite from any other hook fails the job, and `--show-diff-on-failure` prints the
-rewrite. The hooks' own dependencies install unlocked when pre-commit sets a hook up,
+rewrite. check-added-large-files reads only staged additions, so the CI run decides
+nothing for it; it acts only at commit time. The hooks' own dependencies install unlocked when pre-commit sets a hook up,
 as their rows say. To run the same set from the checkout root with the environment
 above, set `SKIP=markdown-link-check` and run
 `uv run --project tools --locked --group model pre-commit run --config model/.pre-commit-config.yaml --all-files`,
