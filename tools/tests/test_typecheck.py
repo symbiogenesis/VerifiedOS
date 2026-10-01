@@ -1094,10 +1094,11 @@ def _ruff_ignore_reaches_one_line() -> None:
     # The reading under which the gate admits ruff's `ignore[...]` comment, held against
     # the pinned ruff: on a line of its own it reaches the one logical line beneath it,
     # past blank and comment lines, a multi-line one whole, a compound statement's header
-    # but not its block unless the block shares the header's line, a decorator but not the
-    # definition beneath, and every statement a semicolon joins; inside brackets it reaches the one line beneath it; one
-    # ending a line reaches that line alone; and a line takes in the lines a backslash or
-    # a multi-line string joins to it. The module's E711 findings are what ruff leaves.
+    # but not its block unless the block shares the header's line, a decorator but not
+    # the definition beneath, and every statement a semicolon joins; inside brackets it
+    # reaches the one line beneath it; one ending a line reaches that line alone; and a
+    # line takes in the lines a backslash or a multi-line string joins to it. The
+    # module's E711 findings are what ruff leaves.
     text = "\n".join([
         "x = y = None",                          # 1
         "# ruff: ignore[E711]",                  # 2
@@ -1423,7 +1424,7 @@ def _imports_admitted_in_functions_and_platform_blocks() -> None:
                             "elif len(sys.platform):\n    import fcntl\n"),
         "nowhere.py": "import sys\n\nif sys.platform == 'darwin':\n    import fcntl\n",
         "emptyin.py": "import sys\n\nif sys.platform in ():\n    import fcntl\n",
-        "unrelated.py":("import asyncio\nimport fcntlx\nfrom asyncio import events\n"
+        "unrelated.py": ("import asyncio\nimport fcntlx\nfrom asyncio import events\n"
                          "from . import fcntl\nTEXT = 'import fcntl'\n"),
     }
     rep = _scan(admitted)
