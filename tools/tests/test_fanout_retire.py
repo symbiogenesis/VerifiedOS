@@ -351,6 +351,39 @@ def _native_hard_linked_locks() -> None:
                "an oracle lock reached through two links does not refuse its own retirement")
 
 
+def _native_lock_replaced_late() -> None:
+    """A producer that replaces a lock retirement holds and takes the new file is not
+    excluded by retirement's descriptor on the old one: the repeated selection compares
+    the file each lock names, not only its path, and the lane stays in place."""
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        lane = root / "build" / "lane-worker"
+        lane.mkdir(parents=True)
+        (lane / "result.bin").write_bytes(b"proof")
+        lock, walk = lane / "model.lock", retire._tree_safe
+        lock.write_text("", encoding="utf-8")
+        walks: list[Path] = []
+        held: list[int] = []
+
+        def racing(path: Path, *, checkout: bool = False) -> list[Path]:
+            walks.append(path)
+            if walks.count(lane) == 2:
+                lock.unlink()
+                lock.write_text("", encoding="utf-8")
+                held.append(os.open(lock, os.O_RDONLY))
+                _hold(held[-1])
+            return walk(path, checkout=checkout)
+
+        try:
+            with patch.object(retire, "_tree_safe", side_effect=racing):
+                _refused(lambda: retire.retain_native("worker", str(lane), str(root / "logs"), "9" * 20),
+                         f"native output locks changed while retirement took them: {lock}")
+        finally:
+            for fd in held:
+                os.close(fd)
+        ensure(len(held) == 1, "precondition: the lock was replaced as the selection was repeated")
+        ensure((lane / "result.bin").exists(), "a lane whose lock was replaced late stays in place")
+
+
 def _venv_links_and_target_locks() -> None:
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
         lane = root / "build" / "lane-worker"
@@ -963,6 +996,7 @@ def cases() -> list[Case]:
             Case("native-linked-proof-workspace", _native_linked_proof_workspace, lane="guest"),
             Case("native-locks-taken-late", _native_locks_taken_late, lane="guest"),
             Case("native-hard-linked-locks", _native_hard_linked_locks, lane="guest"),
+            Case("native-lock-replaced-late", _native_lock_replaced_late, lane="guest"),
             Case("venv-links-and-target-locks", _venv_links_and_target_locks, lane="guest"),
             Case("native-exact-log-ownership", _native_exact_log_ownership, lane="guest"),
             Case("native-log-directories-and-companions", _native_log_directories_and_companions, lane="guest"),

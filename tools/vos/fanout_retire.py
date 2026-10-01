@@ -358,6 +358,15 @@ def _native_locks(targets: list[tuple[Path, Path]], source: Path, *, oracle: boo
     return lock_paths
 
 
+def _names_now(path: Path) -> tuple[int, int] | None:
+    """The file a selected lock path names now, or None once it is gone."""
+    try:
+        status = path.lstat()
+    except (FileNotFoundError, NotADirectoryError):
+        return None
+    return status.st_dev, status.st_ino
+
+
 def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
                   peers: list[str] | None = None) -> dict[str, object]:
     """Run only on the native guest; retain outputs while holding their live locks.
@@ -378,12 +387,12 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
     as a `*.lock` file a lane's uv cache hard-links into an environment it installs, is
     locked once. Any other lock that cannot be opened or taken, and a move the
     filesystem rejects, refuse naming the path. With every selected lock held the
-    selection is repeated, and a lock that appeared or vanished since refuses.
-    Residual: a producer that takes a new lock after that repetition and before the
-    rename is not seen, and one that opens its lock after the rename recreates the lane
-    root, because `env._open_lock` and `proofs._hold` create missing parents. Exact
-    peer-colliding and unknown log layouts remain in place with explicit deferred
-    evidence. No source path is recursively deleted.
+    selection is repeated, and a lock that appeared, vanished or names another file
+    since refuses. Residual: a producer that takes a new lock after that repetition
+    and before the rename is not seen, and one that opens its lock after the rename
+    recreates the lane root, because `env._open_lock` and `proofs._hold` create
+    missing parents. Exact peer-colliding and unknown log layouts remain in place with
+    explicit deferred evidence. No source path is recursively deleted.
     """
     if sys.platform == "win32":
         raise RetirementError("native output retention must run through the guest")
@@ -422,7 +431,9 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
         # them, so two paths can name one file, and flock treats each open file
         # description on it independently: a second would be refused by retirement's
         # own first, so each file is locked once, through the first path that opens
-        # it, and every descriptor stays open.
+        # it, and every descriptor stays open. `opened` records the file each path's
+        # descriptor opened.
+        opened: dict[Path, tuple[int, int]] = {}
         held: set[tuple[int, int]] = set()
         for path in sorted(lock_paths):
             _plain(path)
@@ -434,18 +445,22 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
                 fd = os.open(path, os.O_RDONLY)
                 stack.callback(os.close, fd)
                 status = os.fstat(fd)
-                if (status.st_dev, status.st_ino) not in held:
+                opened[path] = status.st_dev, status.st_ino
+                if opened[path] not in held:
                     fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    held.add((status.st_dev, status.st_ino))
+                    held.add(opened[path])
             except BlockingIOError as exc:
                 raise RetirementError(f"native output lock is active: {path}") from exc
             except OSError as exc:
                 raise RetirementError(f"native output lock cannot be taken: {path} "
                                       f"({exc.strerror or exc}; {len(lock_paths)} locks needed)") from exc
         # A producer that created and took a lock after the first selection is not
-        # among those held: with every selected lock held, the selection is repeated
-        # and a lock that appeared or vanished meanwhile refuses.
-        changed = lock_paths ^ _native_locks(targets, source, oracle=oracle)
+        # among those held, nor is one that replaced a selected lock with a new file
+        # and took that: with every selected lock held, the selection is repeated, and
+        # a lock that appeared, vanished or names another file meanwhile refuses.
+        again = _native_locks(targets, source, oracle=oracle)
+        changed = (lock_paths ^ again) | {path for path in lock_paths & again
+                                          if _names_now(path) != opened[path]}
         if changed:
             raise RetirementError("native output locks changed while retirement took them: "
                                   + ", ".join(str(path) for path in sorted(changed)))
