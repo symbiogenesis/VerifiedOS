@@ -684,10 +684,9 @@ Definition arrive (c : Composition)
   fun template t p =>
     if Nat.ltb (live_count p) c.(top_rung_capacity)
     then (bump p, Granted (Tenant c) (retenant_slot template t))
-    else match choose_victim p with
-         | Some v => (p, Suspended (Tenant c) v (retenant_slot template t))
-         | None => (p, NoSlot (Tenant c))
-         end.
+    else if choose_victim p is Some v
+    then (p, Suspended (Tenant c) v (retenant_slot template t))
+    else (p, NoSlot (Tenant c)).
 
 Definition CeilingInvariant (c : Composition) (step : Arrival c) : Prop :=
   forall (template : Slot (Tenant c)) (t : Tenant c) (p : Population),
