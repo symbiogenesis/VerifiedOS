@@ -625,6 +625,10 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
              "opens a reach class '**whole**' that is not one of the four this rule reads"),
             ({"total": _K119_TOTAL.replace("**total**", "**whole**")},
              "tools/check-rules.md opens no 'total' class in a form this rule reads"),
+            # the lead is matched in any letter case and the class name exactly, so a name
+            # differing in case alone is a fifth class
+            ({"total": _K119_TOTAL.replace("**total**", "**Total**")},
+             "opens a reach class '**Total**' that is not one of the four this rule reads"),
             ({"heading": "## What a run decides"},
              "tools/check-rules.md carries no '## What a passing run does not decide' "
              "section"),
