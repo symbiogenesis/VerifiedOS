@@ -438,6 +438,7 @@ def _the_stdlib_harnesses_compile_in_the_proof_switch() -> None:
         ensure(all(gallina.VECTOR_SWITCH in line for line in said),
                f"the refusal must name the switch it looked in: {said}")
         with (patch.object(seed, "lane_env", return_value=Mock()),
+              patch.object(quickchick, "installed", return_value=None),
               redirect_stdout(io.StringIO())):
             for randomized, recipe in ((False, False), (True, False), (True, True)):
                 args = argparse.Namespace(file=seed.COQ_SUBJECT, quickchick=randomized,

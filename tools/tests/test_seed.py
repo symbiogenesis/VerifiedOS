@@ -25,8 +25,8 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from tests.harness import TOOLS, Case, ensure
-from vos import gallina, mutate
-from vos.cli import seed
+from vos import env, gallina, mutate
+from vos.cli import quickchick, seed
 from vos.seeded import SURVIVED
 
 _ROOT = TOOLS.parent
@@ -111,6 +111,43 @@ def _moved_counts_a_length_change() -> None:
            "a shortened answer did not count its missing lines")
 
 
+def _seed_coq_holds_the_installed_quickchick() -> None:
+    """`seed coq --quickchick` holds what QuickChick's switch carries as `quickchick
+    check` holds it: a release the provisioned switch does not pin, or with `--recipe`
+    anything but the pinned commit, is refused before a tree is staged, the refusal
+    naming both; the one held runs the population in the switch it was asked of."""
+    for recipe, source, code in ((False, "2.1.0", 1), (True, "2.2.0", 1),
+                                 (False, quickchick.VERSION, 0),
+                                 (True, quickchick.RECIPE_PIN, 0)):
+        switch = gallina.QUICKCHICK_RECIPE_SWITCH if recipe else gallina.QUICKCHICK_SWITCH
+        wanted = quickchick.RECIPE_PIN if recipe else quickchick.VERSION
+        asked: list[str] = []
+
+        def held(name: str, source: str = source, asked: list[str] = asked) -> str:
+            asked.append(name)
+            return source
+
+        with (patch.object(seed, "lane_env", return_value=Mock(lane_root=Path("lane"))),
+              patch.object(quickchick, "installed", side_effect=held),
+              patch.object(gallina, "prover",
+                           side_effect=lambda name: gallina.Prover(name, ("rocq", "c"))),
+              patch.object(env, "hold_lock"),
+              patch.object(seed, "_coq_run", return_value=0) as ran,
+              redirect_stdout(io.StringIO()) as output):
+            got = seed.cmd_coq(argparse.Namespace(file=seed.COQ_SUBJECT, quickchick=True,
+                                                  recipe=recipe, jobs=1))
+        said = output.getvalue()
+        ensure(got == code and asked == [switch],
+               f"recipe={recipe} holding {source} exited {got} having asked {asked}: {said}")
+        if code:
+            ensure(not ran.called and source in said and wanted in said,
+                   f"recipe={recipe}: {source} must be refused before staging, the refusal "
+                   f"naming both it and {wanted}: {said}")
+        else:
+            ensure(ran.called and ran.call_args.args[4].switch == switch,
+                   f"recipe={recipe}: the held QuickChick must run in {switch}: {said}")
+
+
 def _oracle_list_runs() -> None:
     code, out = _run("oracle", "list")
     ensure(code == 0, f"the live specs do not parse: {out}")
@@ -140,17 +177,22 @@ def _seed_list_refuses_an_unmutable_kind() -> None:
 
 def _the_randomized_mode_refuses_a_subject_outside_its_closure() -> None:
     """`--quickchick` mutates only a proof source `Properties.v`'s closure holds, and
-    says so before it asks for a prover, whose lookup precedes any staging: a proof
-    Requiring a member from outside, and a harness inside the closure, are each refused;
-    the enumerative mode takes either proof."""
+    says so before it asks for a prover or for the QuickChick a switch holds, whose
+    lookups precede any staging: a proof Requiring a member from outside, and a harness
+    inside the closure, are each refused; the enumerative mode takes either proof."""
     asked: list[str] = []
+    held: list[str] = []
 
     def absent(switch: str) -> None:
         asked.append(switch)
 
+    def unheld(switch: str) -> None:
+        held.append(switch)
+
     with (_closed_tree() as root, patch.object(seed, "find_root", return_value=root),
           patch.object(seed, "lane_env", return_value=Mock()),
-          patch.object(gallina, "prover", side_effect=absent)):
+          patch.object(gallina, "prover", side_effect=absent),
+          patch.object(quickchick, "installed", side_effect=unheld)):
         ensure(seed.randomized_subjects(root) == ["proofs/A.v", "proofs/B.v", "proofs/C.v"],
                f"the closure's proof sources are A, B and C: {seed.randomized_subjects(root)}")
         for rel in ("proofs/Far.v", f"{_RIG}/Probe.v"):
@@ -161,15 +203,17 @@ def _the_randomized_mode_refuses_a_subject_outside_its_closure() -> None:
             ensure(code == 1 and "is not a proof source Properties.v's Require closure" in text
                    and "mutates proofs/A.v, proofs/B.v, proofs/C.v" in text,
                    f"{rel} is refused with the closure's subjects named: {text}")
-        ensure(not asked, f"a refused subject asks for no prover: {asked}")
+        ensure(not asked and not held,
+               f"a refused subject asks for no prover and no QuickChick: {asked} {held}")
         for rel, randomized in (("proofs/B.v", True), ("proofs/Far.v", False)):
             with redirect_stdout(io.StringIO()) as said:
                 seed.cmd_coq(argparse.Namespace(file=rel, quickchick=randomized,
                                                 recipe=False))
             ensure("no prover" in said.getvalue(),
                    f"{rel} reaches the prover's lookup: {said.getvalue()}")
-    ensure(asked == [gallina.QUICKCHICK_SWITCH, gallina.VECTOR_SWITCH],
-           f"the admitted subjects asked for their mode's switch: {asked}")
+    ensure(asked == [gallina.QUICKCHICK_SWITCH, gallina.VECTOR_SWITCH]
+           and held == [gallina.QUICKCHICK_SWITCH],
+           f"the admitted subjects asked for their mode's switch: {asked} {held}")
 
 
 def _the_randomized_baseline_compiles_its_closure_alone() -> None:
@@ -254,7 +298,8 @@ with tempfile.TemporaryDirectory(prefix="vos-lock-") as td:
 
     with patch.object(seed, "lane_env", return_value=e), \\
          patch.object(env, "load", return_value=e), \\
-         patch.object(gallina, "prover", return_value=prover):
+         patch.object(gallina, "prover", return_value=prover), \\
+         patch.object(quickchick, "_held", return_value=(prover.switch, "", prover, [])):
         for module, command, worker, work, args in cases:
             work.mkdir(parents=True, exist_ok=True)
             marker = work / "live-source"
@@ -317,6 +362,8 @@ def cases() -> list[Case]:
              _the_randomized_baseline_compiles_its_closure_alone),
         Case("a randomized mutant compiles its dependents in the closure",
              _a_randomized_mutant_compiles_its_dependents_in_the_closure),
+        Case("seed coq --quickchick holds the installed QuickChick",
+             _seed_coq_holds_the_installed_quickchick),
         Case("mutation workspaces are held for the whole run",
              _mutation_workspaces_are_held_for_the_whole_run, lane="guest"),
         Case("oracle list runs over the live specs", _oracle_list_runs, lane="host"),

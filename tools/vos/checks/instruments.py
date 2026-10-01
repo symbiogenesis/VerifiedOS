@@ -155,17 +155,19 @@ INSTRUMENTS: tuple[Instrument, ...] = (
     Instrument("quickchick properties", "tools/vos/cli/quickchick.py",
                gallina.QUICKCHICK_SWITCH, gallina.QUICKCHICK_ROCQ_VERSION,
                (f"{RIG}/{gallina.RANDOMIZED}", f"{RIG}/{gallina.EXHAUSTIVE}")),
-    # Properties.v's closure alone, the walk harness beside it, a subject outside that
-    # closure refused, beside the rig's support.
-    Instrument("seed coq --quickchick", "tools/vos/cli/seed.py", gallina.QUICKCHICK_SWITCH,
-               gallina.QUICKCHICK_ROCQ_VERSION,
+    # `seed coq --quickchick` runs in the switch quickchick.py's holder chooses, which
+    # holds the QuickChick there as `quickchick check` does. It compiles Properties.v's
+    # closure alone, the walk harness beside it, a subject outside that closure refused,
+    # beside the rig's support.
+    Instrument("seed coq --quickchick", "tools/vos/cli/quickchick.py",
+               gallina.QUICKCHICK_SWITCH, gallina.QUICKCHICK_ROCQ_VERSION,
                (f"{RIG}/{gallina.RANDOMIZED}", f"{RIG}/{gallina.EXHAUSTIVE}"),
                support=True),
     # The same two in the switch QuickChick's commit-pinned recipe builds.
     Instrument("quickchick properties --recipe", "tools/vos/cli/quickchick.py",
                gallina.QUICKCHICK_RECIPE_SWITCH, gallina.QUICKCHICK_RECIPE_ROCQ_VERSION,
                (f"{RIG}/{gallina.RANDOMIZED}", f"{RIG}/{gallina.EXHAUSTIVE}")),
-    Instrument("seed coq --quickchick --recipe", "tools/vos/cli/seed.py",
+    Instrument("seed coq --quickchick --recipe", "tools/vos/cli/quickchick.py",
                gallina.QUICKCHICK_RECIPE_SWITCH, gallina.QUICKCHICK_RECIPE_ROCQ_VERSION,
                (f"{RIG}/{gallina.RANDOMIZED}", f"{RIG}/{gallina.EXHAUSTIVE}"),
                support=True),

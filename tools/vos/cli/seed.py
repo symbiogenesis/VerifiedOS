@@ -69,6 +69,7 @@ from pathlib import Path
 
 from vos import cli, env, gallina, mutate, sailrig
 from vos import oracle as oracle_spec
+from vos.cli import quickchick
 from vos.corpus import find_root
 from vos.seeded import (
     KILLED,
@@ -542,17 +543,23 @@ def cmd_coq(args: argparse.Namespace) -> int:
         print("FAIL --recipe names the switch QuickChick's recipe builds and runs only "
               "with --quickchick")
         return 1
-    if not args.quickchick:
-        switch = gallina.VECTOR_SWITCH
-    elif args.recipe:
-        switch = gallina.QUICKCHICK_RECIPE_SWITCH
+    if args.quickchick:
+        # QuickChick's own holder chooses the switch and holds what it carries, as it
+        # does for `quickchick check` and `properties`, so no population is decided
+        # under a QuickChick release or commit the switch's recipe does not pin.
+        switch, _, found, why = quickchick._held(args.recipe)
+        if why or found is None:
+            check = "quickchick check --recipe" if args.recipe else "quickchick check"
+            print("\n".join([f"FAIL the {switch} switch cannot run the randomized half",
+                             *(f"     {line}" for line in why),
+                             f"     `run.py {check}` says what installing it costs"]))
+            return 1
     else:
-        switch = gallina.QUICKCHICK_SWITCH
-    found = gallina.prover(switch)
-    if found is None:
-        print(f"FAIL no prover in the {switch} switch; "
-              "`run.py provision` says which switches this lane holds")
-        return 1
+        found = gallina.prover(gallina.VECTOR_SWITCH)
+        if found is None:
+            print(f"FAIL no prover in the {gallina.VECTOR_SWITCH} switch; "
+                  "`run.py provision` says which switches this lane holds")
+            return 1
 
     name = "quickchick" if args.quickchick else "coq"
     work = e.lane_root / WORK / name
@@ -800,8 +807,9 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
                               "enumerative harness's vectors")
         sub.add_argument("--recipe", action="store_true",
                          help="with --quickchick, run in the switch tools/vos/cli/"
-                              "quickchick.py's RECIPE builds from its commit pins rather "
-                              "than in the provisioned QuickChick switch")
+                              "quickchick.py's RECIPE builds from its commit pins, "
+                              "holding the pinned commit, rather than in the "
+                              "provisioned QuickChick switch")
         sub.add_argument("--jobs", type=int, default=1, metavar="N",
                          help="stage N trees and run the population across them at "
                               "once. Every mutant is one prover run and the trees "
