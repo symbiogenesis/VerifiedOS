@@ -47,13 +47,17 @@ expected to produce the other's.
 
 ## The fifth, which is about the run
 
-**Undecided** is a mutant whose oracle was asked and did not answer inside the time the
-run gives one compile, so the run stopped that compile and went on to the next mutant.
-It is a fact about neither the subject nor the case but about the run's budget, and it
-is a finding, because a population with an unanswered member was not decided: a run
-reporting `ok` over it would quote a verdict nobody reached. It is never a kill, a stop
-being no answer, and never a survivor, nothing having been seen to hold. The Gallina
-lane yields it, where a compile reaches gallina's per-file limit.
+**Undecided** is a mutant whose oracle was asked and gave no answer: a compile did not
+end inside the time the run gives one, so the run stopped it, or the oracle ended on
+something that decides nothing about the mutant, and the run went on to the next. It is
+a fact about neither the subject nor the case but about the run and the machine under
+it, and it is a finding, because a population with an unanswered member was not
+decided: a run reporting `ok` over it would quote a verdict nobody reached. It is never
+a kill, a stop being no answer, never a survivor, nothing having been seen to hold, and
+never stillborn, no compile having been seen to fail. The Gallina lane yields it, where
+a compile reaches gallina's per-file limit, and under QuickChick where a drawn set's
+program built and then ended on memory or stack running out, a signal, a program that
+could not run, or a status nobody can classify.
 
 ## The report, and the second copy that survives the process
 
@@ -378,8 +382,7 @@ def summarize(out: list[str], verdicts: list[Verdict], subject: str,
         out.extend(f"       {v.mutant.what}: {v.detail}" for v in survived)
     if undecided:
         out.append(f"FAIL {len(undecided)} of {len(verdicts)} mutant(s) went undecided, "
-                   f"the run stopping a compile before the {oracle_name} oracle "
-                   "answered:")
+                   f"the {oracle_name} oracle giving no answer about them:")
         out.extend(f"       {v.mutant.what}: {v.detail}" for v in undecided)
     if not live and not unseeded and not undecided:
         # the vacuous pass every floor here exists to catch, and the floor an empty

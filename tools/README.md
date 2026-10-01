@@ -656,9 +656,16 @@ site. Counting stillborn mutants as kills is the standard way a mutation score i
 inflated, so a run scores over the live population and reports the three apart. A
 Gallina run may also leave a mutant **undecided**: a compile that reaches gallina's
 per-file limit is stopped, its mutant journalled with the file and the limit beside
-each compile's wall seconds, and the run goes on to the next mutant. An undecided mutant
-is never a kill or a survivor, and it is a finding, since a population with an
-unanswered member is one the run did not decide.
+each compile's wall seconds, and the run goes on to the next mutant. Under `--quickchick`
+a drawn set whose program built and then ended on what decides nothing about the
+mutant, memory or stack running out, a signal, a program that could not run or a status
+the reader cannot classify, leaves its mutant undecided the same way, journalled with
+why. A set whose program ended on any other exception nothing caught kills the mutant,
+the baseline's program having finished every set, its reason naming the set, the status
+and the exception; a draw refuting a set ahead of it still decides first, and a drawn
+harness that does not build, its Rocq or its extracted OCaml, leaves the mutant
+stillborn. An undecided mutant is never a kill, a survivor or stillborn, and it is a
+finding, since a population with an unanswered member is one the run did not decide.
 
 **A killed population is a result about the statements and never about the
 definitions.** Every mutant killed says some theorem moved when a definition did, which

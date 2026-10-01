@@ -274,7 +274,8 @@ def _properties(args: argparse.Namespace, e: env.Environment, root: Path, work: 
         return 1
     done = gallina.compile_one(found, work, drawn)
     print(done.stdout + done.stderr)
-    passed, failed, why = gallina.drawn_sets(done)
+    sets = gallina.drawn_sets(done)
+    passed, failed, why = sets.passed, sets.failed, sets.why
     if not (passed or failed):
         print(f"FAIL {gallina.RANDOMIZED} decided no property set under {PACKAGE} in "
               f"{switch}: {why}")

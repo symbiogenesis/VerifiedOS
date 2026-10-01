@@ -34,7 +34,11 @@ population order, and closing on the line that carries the run's scope. The Gall
 lane also journals the seed a randomized baseline draws from, which mutant each staged
 tree is on and each compile's file and wall seconds, and a compile that reaches
 gallina's per-file limit is stopped, its mutant journalled undecided with the file and
-the limit, and the run goes on to the next.
+the limit, and the run goes on to the next. Under `--quickchick` a drawn set whose
+program built and then ended on what decides nothing about the mutant, memory or stack
+running out, a signal, a program that could not run or a status the reader cannot
+classify, leaves the mutant undecided the same way, journalled with why, and one whose
+program ended on any other exception nothing caught kills it.
 
 The Coq lane runs **two** oracles in sequence and the second is the one worth the
 item. A mutation the prover refuses is killed by the artifact's own statements, which
@@ -351,18 +355,29 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
             return Verdict(mutant, KILLED,
                            f"{accepted} and {len(refuted)} of {len(walked)} walked "
                            f"set(s) did not hold: {refuted[0]}", len(refuted))
-        # A drawn harness that does not build is scored as the walk harness is: no
-        # draw ran against the mutant, so nothing was decided about it.
-        passed, failed, why = gallina.properties(found, work, harness)
-        if not (passed or failed):
-            return Verdict(mutant, STILLBORN,
-                           f"the drawn harness decided nothing over the mutant: {why}")
-        if failed:
+        # A set a draw refutes kills the mutant however the run ends after it. Short of
+        # one, a set whose program built and then ended on an exception nothing caught
+        # kills it too, the baseline's program having finished every set; a set whose
+        # program ended on what decides nothing about the mutant leaves it undecided; and
+        # a drawn harness that does not build is scored as the walk harness is: no draw
+        # ran against the mutant, so nothing was decided about it.
+        sets = gallina.properties(found, work, harness)
+        if sets.failed:
             return Verdict(mutant, KILLED,
-                           f"{accepted} and QuickChick refuted {failed} of "
-                           f"{failed + passed} property set(s): {why}", failed)
+                           f"{accepted} and QuickChick refuted {sets.failed} of "
+                           f"{sets.failed + sets.passed} property set(s): {sets.why}",
+                           sets.failed)
+        if sets.ended == gallina.DRAWN_CRASHED:
+            return Verdict(mutant, KILLED, f"{accepted} and {sets.why}", 1)
+        if sets.ended == gallina.DRAWN_UNANSWERED:
+            return Verdict(mutant, UNDECIDED,
+                           f"the drawn harness gave no answer over the mutant: {sets.why}, "
+                           "so nothing was decided about it")
+        if not sets.passed:
+            return Verdict(mutant, STILLBORN,
+                           f"the drawn harness decided nothing over the mutant: {sets.why}")
         return Verdict(mutant, SURVIVED,
-                       f"{accepted}, {len(walked)} walked set(s) held and {passed} "
+                       f"{accepted}, {len(walked)} walked set(s) held and {sets.passed} "
                        "drawn property set(s) passed")
     lines, said = gallina.vectors(found, work, harness)
     if said:
@@ -508,12 +523,12 @@ def _quickchick_baseline(root: Path, found: gallina.Prover, work: Path,
     if said or gallina.walk_failures(walked):
         return None, (f"the unmutated tree's {gallina.EXHAUSTIVE} is not green: "
                       f"{said or '; '.join(gallina.walk_failures(walked))}")
-    passed, failed, why = gallina.properties(found, work, drawn)
-    if not (passed or failed):
-        return None, f"the unmutated tree's {harness_name} decided nothing: {why}"
-    if failed:
-        return None, (f"the unmutated tree's {harness_name} is not green: {failed} "
-                      f"property set(s) failed and {passed} passed: {why}")
+    sets = gallina.properties(found, work, drawn)
+    if not (sets.passed or sets.failed):
+        return None, f"the unmutated tree's {harness_name} decided nothing: {sets.why}"
+    if sets.failed:
+        return None, (f"the unmutated tree's {harness_name} is not green: {sets.failed} "
+                      f"property set(s) failed and {sets.passed} passed: {sets.why}")
     return [], ""
 
 

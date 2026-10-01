@@ -226,10 +226,59 @@ class Walk:
 _COUNT = re.compile(r"[0-9]+")
 
 # The line on which QuickChick's plugin reports a drawn set's extracted program that
-# built and did not finish: its command, then `Exited with status N`, `Killed (N)` or
-# `Stopped (N)`, on the prover's `Error:` line or the one after it.
-_UNFINISHED = re.compile(r"^(?:Error:[ \t]*)?(?P<said>\S.*?: (?:Exited with status -?\d+"
-                         r"|Killed \(-?\d+\)|Stopped \(-?\d+\)))[ \t]*$", re.MULTILINE)
+# built and did not finish: its command, `time` and the program, then `Exited with status
+# N`, `Killed (N)` or `Stopped (N)`, on the prover's `Error:` line or the one after it,
+# and then, after a blank line, what the program and `time` wrote to standard error.
+# QuickChick 2.2.0's plugin builds the message so in plugin/quickChick.mlg.cppo, the
+# status read from the shell that runs `time` and the program.
+_UNFINISHED = re.compile(r"^(?:Error:[ \t]*)?(?P<said>\S.*?: (?:Exited with status "
+                         r"(?P<status>-?\d+)|(?P<signalled>Killed|Stopped) \(-?\d+\)))"
+                         r"[ \t]*$", re.MULTILINE)
+
+# What OCaml's runtime writes to standard error for an exception nothing caught, before
+# it exits with status 2: the exception's name, qualified or not, and its arguments.
+_EXCEPTION = re.compile(r"^Fatal error: exception (?P<name>[A-Za-z_][\w'.]*)(?P<args>.*?)"
+                        r"[ \t\r]*$", re.MULTILINE)
+
+# The exceptions that are the program's memory or stack running out rather than a value
+# the subject made it compute, so a set ending on one decides nothing about the subject.
+_EXHAUSTION = frozenset({"Out_of_memory", "Stack_overflow"})
+
+# GNU time's line for a program a signal ended, after which it exits 128 + the signal, as
+# the shell's own `time` does without the line.
+_TERMINATED = re.compile(r"\bCommand terminated by signal (?P<signal>\d+)")
+
+# The notice QuickChick prints as it starts a set, naming the set as the harness states
+# it, and the prover's header naming the line of the sentence it stopped at.
+_QUICKCHECKING = re.compile(r"^QuickChecking (?P<set>.*?)[ \t\r]*$", re.MULTILINE)
+_LOCATED = re.compile(r'^File "[^"]*", line (?P<line>\d+)', re.MULTILINE)
+
+# How one compile of the randomized harness ended, as `drawn_sets` reads it. Decided: a
+# draw refuted a set, or the compile finished with every set it reached passed. Crashed:
+# no draw refuted a set, and a set's extracted program built and then ended on an
+# exception nothing caught other than memory or stack running out, which the program
+# never does over the unmutated tree, whose baseline finished every set. Unanswered: a
+# set's program ended on what decides nothing about the subject: memory or stack running
+# out, a signal, a program or `time` that could not run, or a status this reader cannot
+# classify. Nothing: the harness did not build, its Rocq or its extracted OCaml, or it
+# printed no verdict.
+DRAWN_DECIDED = "decided"
+DRAWN_CRASHED = "crashed"
+DRAWN_UNANSWERED = "unanswered"
+DRAWN_NOTHING = "nothing"
+
+
+@dataclass(frozen=True)
+class Drawn:
+    """What one compile of the randomized harness decided: how many property sets passed
+    and how many a draw refuted, the first counterexample or the reason no set was
+    decided, and which of the `DRAWN_` readings says how the compile ended."""
+
+    passed: int
+    failed: int
+    why: str
+    ended: str
+
 
 # One `NAME='value'; export NAME;` line of `opam env --shell=sh`.
 _EXPORT = re.compile(r"^(\w+)='(.*)';\s*export", re.MULTILINE)
@@ -549,42 +598,91 @@ def vectors(found: Prover, work: Path, harness: Path) -> tuple[list[str], str]:
     return lines, ""
 
 
-def properties(found: Prover, work: Path, harness: Path) -> tuple[int, int, str]:
+def properties(found: Prover, work: Path, harness: Path) -> Drawn:
     """Run the randomized harness, and read what it decided as `drawn_sets` does."""
     return drawn_sets(compile_one(found, work, harness))
 
 
-def drawn_sets(done: subprocess.CompletedProcess[str]) -> tuple[int, int, str]:
+def drawn_sets(done: subprocess.CompletedProcess[str]) -> Drawn:
     """What one compile of the randomized harness decided: how many property sets
     passed, how many failed, and the first counterexample where one did; or, where it
-    decided none, no set passed or failed and the reason why.
+    decided none, no set passed or failed, the reason why, and how the compile ended.
 
     QuickChick runs a property at compile time and prints its verdict, so the prover's
     own stdout is the result: `+++ Passed` per set, `*** Failed` with the drawn
-    counterexample under it, unshrunk, `forAll` shrinking nothing. A compile that failed
-    and refuted no set decided nothing, even where sets ahead of the failure passed, the
-    sets after it never having run, and neither did one that printed no verdict. Neither
-    is read as a set that passed, an empty run being the vacuous pass every floor in this
-    repository exists to catch, nor as sets a draw refuted: a harness that did not build
-    is a mutant no draw ran against and a baseline that is none, as the walk harness's is.
-    A set whose extracted program built and then exited non-zero, or was killed or
-    stopped, is read the same way, its reason naming the program rather than a build.
+    counterexample under it, unshrunk, `forAll` shrinking nothing. A set a draw refuted
+    is read as refuted however the compile ended after it. Short of one, a compile that
+    failed decided no set, even where sets ahead of the failure passed, the sets after it
+    never having run, and neither did one that printed no verdict: neither is read as a
+    set that passed, an empty run being the vacuous pass every floor in this repository
+    exists to catch.
+
+    How it failed is read off the report `_UNFINISHED` names. A set's program that built
+    and ended on an exception nothing caught, `Exited with status N` for N from 1 to 125
+    with OCaml's `Fatal error: exception E` after it, crashed, unless E is Out_of_memory
+    or Stack_overflow. Memory or stack running out, a signal, read as `Killed (N)`,
+    `Stopped (N)`, N of 128 and over or GNU time's `Command terminated by signal`, a
+    program or `time` that could not run, N of 126 or 127, and any status this reader
+    cannot classify each decide nothing about the subject, and read as unanswered. A
+    harness that did not build, its Rocq or, reported as `Could not compile test
+    program`, its extracted OCaml, decided nothing: a mutant no draw ran against and a
+    baseline that is none, as the walk harness's is.
     """
     said = done.stdout + done.stderr
     passed = said.count("+++ Passed")
     failed = said.count("*** Failed")
     if failed:
-        return passed, failed, _first(said, "")
+        return Drawn(passed, failed, _first(said, ""), DRAWN_DECIDED)
     if done.returncode != 0:
         unfinished = _UNFINISHED.search(said)
         if unfinished:
-            return 0, 0, ("its extracted program did not finish: "
-                          f"{unfinished.group('said')[:200]}")
+            ended, why = _unfinished(said, unfinished)
+            return Drawn(0, 0, why, ended)
         error = _first(said, "")
-        return 0, 0, f"it did not build: {error}" if error else "it did not build"
+        return Drawn(0, 0, f"it did not build: {error}" if error else "it did not build",
+                     DRAWN_NOTHING)
     if not passed:
-        return 0, 0, "it compiled and printed no verdict line"
-    return passed, 0, ""
+        return Drawn(0, 0, "it compiled and printed no verdict line", DRAWN_NOTHING)
+    return Drawn(passed, 0, "", DRAWN_DECIDED)
+
+
+def _unfinished(said: str, report: re.Match[str]) -> tuple[str, str]:
+    """How a drawn set whose program built did not finish, read from QuickChick's report
+    of it and what follows: `DRAWN_CRASHED` or `DRAWN_UNANSWERED`, and the reason, naming
+    the set, as the last notice ahead of the report and the line the prover stopped at
+    name it, and QuickChick's own report line."""
+    ahead, after = said[:report.start()], said[report.end():]
+    named = [m.group("set") for m in _QUICKCHECKING.finditer(ahead)]
+    lines = [m.group("line") for m in _LOCATED.finditer(ahead)]
+    which = " ".join([*([f"`{named[-1][:120]}`"] if named else []),
+                      *([f"at line {lines[-1]}"] if lines else [])])
+    program = f"the program of the drawn set {which}" if which else "a drawn set's program"
+    line = report.group("said")[:200]
+    nothing = "which decides nothing about the subject"
+    if report.group("signalled"):
+        how = report.group("signalled").lower()
+        return DRAWN_UNANSWERED, f"{program} was {how} by a signal, {nothing}: {line}"
+    code = int(report.group("status"))
+    terminated = _TERMINATED.search(after)
+    if terminated or code >= 128:
+        signal_number = terminated.group("signal") if terminated else str(code - 128)
+        return DRAWN_UNANSWERED, (f"{program} was ended by signal {signal_number}, "
+                                  f"{nothing}: {line}")
+    if code in (126, 127):
+        return DRAWN_UNANSWERED, (f"{program} or the `time` running it could not run, "
+                                  f"{nothing}: {line}")
+    thrown = _EXCEPTION.search(after)
+    if thrown is None or not 1 <= code <= 125:
+        return DRAWN_UNANSWERED, (f"{program} exited with status {code}, which this "
+                                  "reader cannot classify, so it decides nothing about "
+                                  f"the subject: {line}")
+    exception = f"{thrown.group('name')}{thrown.group('args')}"[:120]
+    if thrown.group("name").rsplit(".", 1)[-1] in _EXHAUSTION:
+        return DRAWN_UNANSWERED, (f"{program} exited with status {code} on {exception}, "
+                                  f"its memory or stack running out, {nothing}: {line}")
+    return DRAWN_CRASHED, (f"{program} exited with status {code} on the uncaught "
+                           f"exception {exception}, so the sets after it in the harness "
+                           "did not run")
 
 
 def seed(harness: Path) -> str | None:

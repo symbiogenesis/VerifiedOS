@@ -31,7 +31,7 @@ from unittest.mock import Mock, patch
 from tests.harness import TOOLS, Case, ensure
 from vos import env, gallina, mutate
 from vos.cli import quickchick, seed
-from vos.seeded import KILLED, STILLBORN, SURVIVED, Verdict
+from vos.seeded import KILLED, STILLBORN, SURVIVED, UNDECIDED, Journal, Scope, Verdict
 
 _ROOT = TOOLS.parent
 
@@ -140,6 +140,25 @@ def _verdict(quickchick: bool, answers: dict[str, subprocess.CompletedProcess[st
             got = seed._coq_verdict(gallina.Prover("s", ("rocq", "c")), work, "proofs/A.v",
                                     harness, Mock(), ["v 1"], quickchick)
     return got, compiled
+
+
+def _sharded(answers: dict[str, subprocess.CompletedProcess[str]]
+             ) -> tuple[list[Verdict], list[str]]:
+    """One mutant of proofs/A.v put to `_coq_shard` under QuickChick over the staged rig,
+    the prover answering from `answers`: its verdicts and its journal's lines."""
+    mutant = mutate.Mutant(ident="const-inc/0", operator="const-inc", path="proofs/A.v",
+                           line=1, start=22, end=23, before="1", after="2")
+    with (tempfile.TemporaryDirectory(prefix="vos-rig-") as td,
+          tempfile.TemporaryDirectory(prefix="vos-work-") as wd):
+        work = gallina.stage(_checkout(_RIG, Path(td)), Path(wd) / "tree")
+        book = Journal(Path(wd) / "quickchick.journal")
+        book.start("proofs/A.v", "prover-then-QuickChick", Scope(whole=1, ran=1))
+        with patch.object(gallina, "compile_one", side_effect=_answered(answers, [])):
+            got = seed._coq_shard(gallina.Prover("s", ("rocq", "c")), work, "proofs/A.v",
+                                  gallina.RANDOMIZED, [mutant], _RIG["proofs/A.v"], [],
+                                  True, book)
+        lines = book.path.read_text(encoding="utf-8").splitlines()
+    return got, lines
 
 
 def _baseline(rig: dict[str, str], answers: dict[str, subprocess.CompletedProcess[str]]
@@ -277,6 +296,73 @@ def _a_drawn_harness_that_does_not_build_is_stillborn() -> None:
     got, why, _ = _baseline(_RIG, {gallina.RANDOMIZED: _done(1)})
     ensure(got is None and "decided nothing: it did not build" in why,
            f"a drawn harness that does not build is no baseline: {why}")
+
+
+def _drawn_ending(report: str, stderr: str, out: str = "QuickChecking prop_b\n"
+                  ) -> subprocess.CompletedProcess[str]:
+    """The drawn harness's compile where a set's extracted program built and ended on
+    `report`, as QuickChick 2.2.0's plugin reports it, with `stderr` after it."""
+    return subprocess.CompletedProcess(
+        [], 1, out, 'File "./harness/Properties.v", line 4, characters 0-22:\nError:\n'
+                    f"time /tmp/QC/_build/Properties.native: {report}\n\n{stderr}\n")
+
+
+def _a_drawn_set_is_scored_by_how_its_program_ended() -> None:
+    """A set whose program built and ended on an uncaught exception other than memory or
+    stack running out kills the mutant, the reason naming the set, the status and the
+    exception and saying the sets after it did not run; memory or stack running out, a
+    signal, a program that could not run, and a status the reader cannot classify leave
+    it undecided, never killed, survived or stillborn; a refutation ahead of the program
+    still kills it as a refutation; an extracted program QuickChick could not compile
+    leaves it stillborn; and a baseline whose set's program crashed is none."""
+    crash = "Fatal error: exception Not_found\n"
+    crashed, _ = _verdict(True, {gallina.RANDOMIZED: _drawn_ending("Exited with status 2",
+                                                                   crash)})
+    ensure(crashed.outcome == KILLED and crashed.moved == 1
+           and crashed.detail == (f"the proofs {gallina.RANDOMIZED}'s Require closure holds "
+                                  "accepted it and the program of the drawn set `prop_b` at "
+                                  "line 4 exited with status 2 on the uncaught exception "
+                                  "Not_found, so the sets after it in the harness did not run"),
+           f"a set's program ending on an uncaught exception kills the mutant: {crashed}")
+    for label, report, stderr in (
+            ("stack", "Exited with status 2", "Fatal error: exception Stack_overflow\n"),
+            ("memory", "Exited with status 2", "Fatal error: exception Out_of_memory\n"),
+            ("signal", "Exited with status 137", "Command terminated by signal 9\n"),
+            ("not run", "Exited with status 127", "time: cannot run Properties.native\n"),
+            ("killed", "Killed (-7)", ""),
+            ("stopped", "Stopped (-10)", ""),
+            ("unclassified", "Exited with status 2", "")):
+        undecided, _ = _verdict(True, {gallina.RANDOMIZED: _drawn_ending(report, stderr)})
+        ensure(undecided.outcome == UNDECIDED and undecided.moved == 0
+               and undecided.detail.startswith("the drawn harness gave no answer over the "
+                                               "mutant: the program of the drawn set `prop_b`")
+               and f"Properties.native: {report}, so nothing was decided about it"
+               in undecided.detail,
+               f"{label}: a set's program ending on what decides nothing leaves the mutant "
+               f"undecided, with why: {undecided}")
+    refuted, _ = _verdict(True, {gallina.RANDOMIZED: _drawn_ending(
+        "Exited with status 2", crash, out="+++ Passed 10000 tests\n*** Failed after 3 tests\n")})
+    ensure(refuted.outcome == KILLED and "QuickChick refuted 1 of 2 property set(s): *** Failed"
+           in refuted.detail, f"a refutation ahead of the program decides first: {refuted}")
+    unbuilt, _ = _verdict(True, {gallina.RANDOMIZED: subprocess.CompletedProcess(
+        [], 1, "QuickChecking prop_b\n",
+        "Error:\nCould not compile test program: /tmp/QC/Properties.ml\n")})
+    ensure(unbuilt.outcome == STILLBORN
+           and "decided nothing over the mutant: it did not build: Error: Could not compile "
+               "test program" in unbuilt.detail,
+           f"an extracted program that does not build leaves the mutant stillborn: {unbuilt}")
+    got, why, _ = _baseline(_RIG, {gallina.RANDOMIZED: _drawn_ending("Exited with status 2",
+                                                                     crash)})
+    ensure(got is None and "decided nothing: the program of the drawn set `prop_b`" in why,
+           f"a baseline whose set's program crashed is none: {why}")
+    verdicts, lines = _sharded({gallina.RANDOMIZED: _drawn_ending("Killed (-7)", "")})
+    journalled = [line for line in lines if line[:5].strip() == "1"]
+    ensure([v.outcome for v in verdicts] == [UNDECIDED] and len(journalled) == 1
+           and journalled[0].split(None, 2)[1] == UNDECIDED
+           and journalled[0].endswith("Properties.native: Killed (-7), so nothing was "
+                                      "decided about it")
+           and "-- tree: mutant const-inc/0 is verdict 1" in lines,
+           f"an undecided mutant is journalled with its reason: {lines}")
 
 
 def _the_randomized_baseline_refuses_what_does_not_replay_or_hold() -> None:
@@ -632,6 +718,8 @@ def cases() -> list[Case]:
              _the_walks_decide_a_mutant_before_the_draws),
         Case("a drawn harness that does not build is stillborn",
              _a_drawn_harness_that_does_not_build_is_stillborn),
+        Case("a drawn set is scored by how its program ended",
+             _a_drawn_set_is_scored_by_how_its_program_ended),
         Case("the randomized baseline refuses what does not replay or hold",
              _the_randomized_baseline_refuses_what_does_not_replay_or_hold),
         Case("a compile past the limit is undecided and the run goes on",

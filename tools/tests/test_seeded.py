@@ -7,8 +7,8 @@ print a larger number and read exactly like a better one. Counting an unseeded c
 the same way as a stillborn mutant would be the quieter version of it: a case that has
 stopped applying to the document it was written against decides nothing and would
 report its rule live for as long as nobody looked, so the two verdicts are apart here
-and one of them fails the run. An undecided mutant, whose compile the run stopped at
-its limit, is held the same way: never a kill, and a finding.
+and one of them fails the run. An undecided mutant, whose oracle gave no answer, is held
+the same way: never a kill, and a finding.
 
 The other half is the protocol. Two populations reach `summarize`, one walked out of a
 source and one authored, and each satisfies `Seeded` from a different shape: a walked

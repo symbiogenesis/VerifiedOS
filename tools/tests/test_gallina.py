@@ -643,41 +643,152 @@ def _a_drawn_harness_that_does_not_build_decides_nothing() -> None:
     the sets after the failure never having run, and neither did one that printed no
     verdict: each is read as no set passed or failed, with why, never as sets a draw
     refuted. A refuted set is read as one whether or not the compile failed after it. A
-    set whose extracted program built and did not finish decided nothing either, and
-    the reason names the program as QuickChick's plugin reports it, on the prover's
-    `Error:` line or the one after it; a build error printed over several lines is
-    named by its first line after the bare `Error:`."""
+    build error printed over several lines is named by its first line after the bare
+    `Error:`, and an extracted program QuickChick could not compile is a build failure
+    as a Rocq error is."""
     error = "Error: The reference foo was not found"
-    program = "time /tmp/QuickChick1/Properties.native"
-    crashed = (f'File "./harness/Properties.v", line 9, characters 0-40:\nError:\n'
-               f"{program}: Exited with status 2\n\nFatal error: exception Stack_overflow\n")
+    unbuilt = ("Error:\nCould not compile test program: /tmp/QuickChick1/Properties.ml\n\n"
+               "Build stderr:\nFile \"Properties.ml\", line 3: Error: Unbound value x\n")
     printed = {"broken": (1, "", error),
                "broken after a pass": (1, "+++ Passed 10000 tests\n", error),
                "broken over lines": (1, "", "Error:\nThe reference foo was not found\n"
                                            "in the current environment.\n"),
-               "crashed after a pass": (1, "+++ Passed 10000 tests\n", crashed),
-               "killed": (1, "", f"Error: {program}: Killed (-7)\n"),
+               "extraction unbuilt": (1, "QuickChecking prop_a\n", unbuilt),
                "silent": (0, "", ""),
                "refuted": (0, "+++ Passed 10000 tests\n*** Failed after 3 tests\n", ""),
                "refuted then broken": (1, "*** Failed after 3 tests\n", error),
                "passed": (0, "+++ Passed 10000 tests\n" * 2, "")}
     read = {label: gallina.drawn_sets(subprocess.CompletedProcess([], code, out, err))
             for label, (code, out, err) in printed.items()}
+    nothing, decided = gallina.DRAWN_NOTHING, gallina.DRAWN_DECIDED
     for label in ("broken", "broken after a pass", "broken over lines"):
-        ensure(read[label] == (0, 0, f"it did not build: {error}"),
+        ensure(read[label] == gallina.Drawn(0, 0, f"it did not build: {error}", nothing),
                f"a {label} harness is a build failure: {read[label]}")
-    ensure(read["crashed after a pass"]
-           == (0, 0, f"its extracted program did not finish: {program}: Exited with status 2")
-           and read["killed"]
-           == (0, 0, f"its extracted program did not finish: {program}: Killed (-7)"),
-           f"a set whose program built and did not finish decided nothing, and says so: "
-           f"{read['crashed after a pass']} {read['killed']}")
-    ensure(read["silent"] == (0, 0, "it compiled and printed no verdict line"),
+    ensure(read["extraction unbuilt"]
+           == gallina.Drawn(0, 0, "it did not build: Error: Could not compile test "
+                                  "program: /tmp/QuickChick1/Properties.ml", nothing),
+           f"an extracted program that does not build is a build failure: "
+           f"{read['extraction unbuilt']}")
+    ensure(read["silent"]
+           == gallina.Drawn(0, 0, "it compiled and printed no verdict line", nothing),
            f"a harness printing no verdict decided nothing: {read['silent']}")
-    ensure(read["refuted"] == (1, 1, "*** Failed after 3 tests")
-           and read["refuted then broken"] == (0, 1, "*** Failed after 3 tests"),
+    ensure(read["refuted"] == gallina.Drawn(1, 1, "*** Failed after 3 tests", decided)
+           and read["refuted then broken"]
+           == gallina.Drawn(0, 1, "*** Failed after 3 tests", decided),
            f"a refuted set is read as refuted: {read}")
-    ensure(read["passed"] == (2, 0, ""), f"two passing sets: {read['passed']}")
+    ensure(read["passed"] == gallina.Drawn(2, 0, "", decided),
+           f"two passing sets: {read['passed']}")
+
+
+# A drawn harness whose first set passed and whose second set's extracted program built
+# and did not finish, as QuickChick 2.2.0's plugin reports it: the notice naming each set
+# as it starts, then the prover's header and `Error:`, QuickChick's report of the program,
+# `time` and the program, a blank line, and what the program and GNU time wrote to
+# standard error.
+_PROGRAM = "time /tmp/QuickChick1/_build/Properties.native"
+_TWO_SETS = ("QuickChecking (forAll genA prop_a)\n+++ Passed 10000 tests\n"
+             "Time Elapsed: 0.101s\nQuickChecking (forAll genB prop_b)\nTime Elapsed: 0.002s\n")
+
+
+def _unfinished(report: str, stderr: str, out: str = _TWO_SETS,
+                own_line: bool = True) -> subprocess.CompletedProcess[str]:
+    """The prover's answer for a drawn harness whose second set's program ended on
+    `report`, with `stderr` after it, the report on the `Error:` line or the one after."""
+    header = 'File "./harness/Properties.v", line 12, characters 0-36:\n'
+    error = (f"Error:\n{_PROGRAM}: {report}" if own_line
+             else f"Error: {_PROGRAM}: {report}")
+    return subprocess.CompletedProcess([], 1, out, f"{header}{error}\n\n{stderr}\n")
+
+
+def _a_drawn_sets_program_is_read_by_how_it_ended() -> None:
+    """A set whose extracted program built and ended on an exception nothing caught,
+    `Exited with status N` for a small N and OCaml's `Fatal error: exception E` after
+    it, crashed, the reason naming the set by its notice and its line, the status and
+    the exception, and that the sets after it did not run. Memory or stack running out,
+    a signal however it is reported, a program or `time` that could not run, and a
+    status the reader cannot classify each decide nothing, read as unanswered with
+    QuickChick's report line. No set passed or failed in either reading, and a set a
+    draw refuted ahead of the program still decides first."""
+    exited = "Command exited with non-zero status 2\n0.00user 0.00system 0:00.00elapsed\n"
+    shapes = {
+        "crashed": _unfinished("Exited with status 2",
+                               f"Fatal error: exception Not_found\n{exited}"),
+        "crashed with arguments": _unfinished(
+            "Exited with status 2",
+            'Fatal error: exception Invalid_argument("index out of bounds")\n',
+            own_line=False),
+        "crashed on a qualified name": _unfinished("Exited with status 1",
+                                                   "Fatal error: exception Stdlib.Exit\n"),
+        "stack": _unfinished("Exited with status 2",
+                             f"Fatal error: exception Stack_overflow\n{exited}"),
+        "memory": _unfinished("Exited with status 2", "Fatal error: exception Out_of_memory\n",
+                              own_line=False),
+        "signal by status": _unfinished("Exited with status 137", "\nreal\t0m1.20s\n"),
+        "signal by time": _unfinished("Exited with status 137",
+                                      "Command terminated by signal 9\n0.00user\n"),
+        "not run": _unfinished("Exited with status 127",
+                               "time: cannot run /tmp/QuickChick1/_build/Properties.native: "
+                               "No such file or directory\n"),
+        "not executable": _unfinished("Exited with status 126", "Permission denied\n"),
+        "killed": _unfinished("Killed (-7)", "", own_line=False),
+        "stopped": _unfinished("Stopped (-10)", ""),
+        "unexplained": _unfinished("Exited with status 2", exited),
+        "unexplained status": _unfinished("Exited with status 0",
+                                          "Fatal error: exception Not_found\n"),
+        "unnamed": _unfinished("Exited with status 2", "Fatal error: exception Not_found\n",
+                               out=""),
+        "refuted then crashed": _unfinished("Exited with status 2",
+                                            "Fatal error: exception Not_found\n",
+                                            out="*** Failed after 3 tests\n\n7\n"),
+    }
+    read = {label: gallina.drawn_sets(done) for label, done in shapes.items()}
+    crashed = {label: read[label] for label in ("crashed", "crashed with arguments",
+                                                "crashed on a qualified name")}
+    the_set = "the program of the drawn set `(forAll genB prop_b)` at line 12"
+    ensure(crashed == {
+        "crashed": gallina.Drawn(0, 0, f"{the_set} exited with status 2 on the uncaught "
+                                       "exception Not_found, so the sets after it in the "
+                                       "harness did not run", gallina.DRAWN_CRASHED),
+        "crashed with arguments": gallina.Drawn(
+            0, 0, f"{the_set} exited with status 2 on the uncaught exception "
+                  'Invalid_argument("index out of bounds"), so the sets after it in the '
+                  "harness did not run", gallina.DRAWN_CRASHED),
+        "crashed on a qualified name": gallina.Drawn(
+            0, 0, f"{the_set} exited with status 1 on the uncaught exception Stdlib.Exit, "
+                  "so the sets after it in the harness did not run", gallina.DRAWN_CRASHED)},
+           f"a set's program ending on an uncaught exception crashed, named by set, "
+           f"status and exception: {crashed}")
+    why = {"stack": "exited with status 2 on Stack_overflow, its memory or stack running out",
+           "memory": "exited with status 2 on Out_of_memory, its memory or stack running out",
+           "signal by status": "was ended by signal 9",
+           "signal by time": "was ended by signal 9",
+           "not run": "or the `time` running it could not run",
+           "not executable": "or the `time` running it could not run",
+           "killed": "was killed by a signal",
+           "stopped": "was stopped by a signal",
+           "unexplained": "exited with status 2, which this reader cannot classify",
+           "unexplained status": "exited with status 0, which this reader cannot classify"}
+    reports = {"stack": "Exited with status 2", "memory": "Exited with status 2",
+               "signal by status": "Exited with status 137",
+               "signal by time": "Exited with status 137",
+               "not run": "Exited with status 127", "not executable": "Exited with status 126",
+               "killed": "Killed (-7)", "stopped": "Stopped (-10)",
+               "unexplained": "Exited with status 2", "unexplained status": "Exited with status 0"}
+    for label, said in why.items():
+        got = read[label]
+        ensure(got.ended == gallina.DRAWN_UNANSWERED and (got.passed, got.failed) == (0, 0)
+               and got.why.startswith(f"{the_set} {said}")
+               and "decides nothing about the subject" in got.why
+               and got.why.endswith(f": {_PROGRAM}: {reports[label]}"),
+               f"{label}: a set's program ending on what decides nothing is unanswered, "
+               f"with QuickChick's report: {got}")
+    ensure(read["unnamed"].ended == gallina.DRAWN_CRASHED
+           and read["unnamed"].why.startswith("the program of the drawn set at line 12 "
+                                              "exited with status 2"),
+           f"a set no notice names is named by its line: {read['unnamed']}")
+    ensure(read["refuted then crashed"]
+           == gallina.Drawn(0, 1, "*** Failed after 3 tests", gallina.DRAWN_DECIDED),
+           f"a refutation ahead of the program decides first: {read['refuted then crashed']}")
 
 
 def _quickchick_rejects_other_versions() -> None:
@@ -924,6 +1035,8 @@ def cases() -> list[Case]:
         Case("the seed and the walks are read", _the_seed_and_the_walks_are_read),
         Case("a drawn harness that does not build decides nothing",
              _a_drawn_harness_that_does_not_build_decides_nothing),
+        Case("a drawn set's program is read by how it ended",
+             _a_drawn_sets_program_is_read_by_how_it_ended),
         Case("QuickChick rejects other versions", _quickchick_rejects_other_versions),
         Case("the recipe pins whole commits and is asked by name",
              _the_recipe_pins_whole_commits_and_is_asked_by_name),
