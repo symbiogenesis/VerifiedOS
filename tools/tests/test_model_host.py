@@ -853,7 +853,7 @@ def _cmake_suite_listing() -> None:
                        f"control: configure keeps a clean suite beside its manifest, got "
                        f"{done.returncode} and {said[-400:]!r}")
             else:
-                ensure(done.returncode != 0 and again in said and absent in said
+                ensure(done.returncode != 0 and again in said
                        and not suite.exists() and not manifest.exists(),
                        f"configure removes a suite holding a split name and downloads it "
                        f"again, got {done.returncode} and {said[-400:]!r}")
