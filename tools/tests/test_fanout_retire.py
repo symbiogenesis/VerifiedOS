@@ -978,10 +978,14 @@ def _python_flock_sites(name: str, text: str) -> set[tuple[str, str]]:
     return sites
 
 
-# POSIX record locks: `lockf` and `fcntl`'s `F_SETLK` family. A record lock and a
-# `flock` on one file neither exclude each other nor are taken by the retirement.
-_RECORD_LOCKS = frozenset({"lockf", "F_SETLK", "F_SETLKW", "F_OFD_SETLK", "F_OFD_SETLKW"})
-_RECORD_LOCK = re.compile(r"\b(?:lockf|F_(?:OFD_)?SETLKW?)\b")
+# POSIX record locks: `lockf` and `fcntl`'s `F_SETLK` family, with the large-file
+# spellings glibc declares, `lockf64`, `F_SETLK64` and `F_SETLKW64`, the last two of
+# which Python's `fcntl` also exports; `F_OFD_SETLK` and `F_OFD_SETLKW` have none. A
+# record lock and a `flock` on one file neither exclude each other nor are taken by
+# the retirement.
+_RECORD_LOCKS = frozenset({"lockf", "lockf64", "F_SETLK", "F_SETLKW", "F_SETLK64", "F_SETLKW64",
+                           "F_OFD_SETLK", "F_OFD_SETLKW"})
+_RECORD_LOCK = re.compile(r"\b(?:lockf(?:64)?|F_(?:OFD_)?SETLKW?(?:64)?)\b")
 
 
 def _python_record_locks(name: str, text: str) -> list[str]:
@@ -1112,9 +1116,10 @@ def _c_flock_calls(text: str) -> int | None:
     return calls if calls == len(_FLOCK.findall(code)) else None
 
 
-# What a `flock(` count cannot read: a POSIX record lock, and the `flock` system call
-# reached by its number, which `\bflock\b` does not match.
-_C_UNREAD_LOCK = re.compile(r"\blockf\b|\bF_(?:OFD_)?SETLKW?\b|\b(?:SYS|__NR)_flock\b")
+# What a `flock(` count cannot read: a POSIX record lock, in its large-file spelling
+# too, and the `flock` system call reached by its number, which `\bflock\b` does not
+# match.
+_C_UNREAD_LOCK = re.compile(r"\blockf(?:64)?\b|\bF_(?:OFD_)?SETLKW?(?:64)?\b|\b(?:SYS|__NR)_flock\b")
 
 
 def _c_unread_locks(text: str) -> int:
@@ -1149,7 +1154,8 @@ def _campaign_lock(text: str) -> str | None:
 def _producer_lock_scanners_fail_closed() -> None:
     """A Python `flock` bound by import or named by any string but a docstring is a
     site, a shell or C `flock` outside the one recognized form is reported rather than
-    passed over, and so is a POSIX record lock or a numbered `flock` system call."""
+    passed over, and so is a POSIX record lock, in its large-file spelling too, or a
+    numbered `flock` system call."""
     for text, owner in (("from fcntl import flock as grab\ndef take(fd):\n    grab(fd, 2)\n", "take"),
                         ("from fcntl import *\ndef take(fd):\n    flock(fd, 2)\n", "take"),
                         ("import subprocess\ndef run(path):\n"
@@ -1193,7 +1199,10 @@ def _producer_lock_scanners_fail_closed() -> None:
                  "import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLKW, record)\n",
                  "from fcntl import F_OFD_SETLK as SET, fcntl\ndef take(fd, record):\n    fcntl(fd, SET, record)\n",
                  "from fcntl import *\ndef take(fd, record):\n    fcntl(fd, F_OFD_SETLKW, record)\n",
-                 "import ctypes\ndef take(fd):\n    getattr(ctypes.CDLL(None), 'lockf')(fd, 1, 0)\n"):
+                 "import fcntl\ndef take(fd, record):\n    fcntl.fcntl(fd, fcntl.F_SETLK64, record)\n",
+                 "from fcntl import F_SETLKW64 as WAIT, fcntl\ndef take(fd, record):\n    fcntl(fd, WAIT, record)\n",
+                 "import ctypes\ndef take(fd):\n    getattr(ctypes.CDLL(None), 'lockf')(fd, 1, 0)\n",
+                 "import ctypes\ndef take(fd):\n    ctypes.CDLL(None).lockf64(fd, 1, 0)\n"):
         found = _python_record_locks("probe.py", text)
         ensure(len(found) == 1 and found[0].startswith("probe.py:3: "),
                f"the Python scan must report the record lock in {text!r}, got {found}")
@@ -1201,7 +1210,9 @@ def _producer_lock_scanners_fail_closed() -> None:
                                             "import fcntl\ndef take(fd):\n    fcntl.flock(fd, 2)\n") == [],
            "a docstring naming a record lock, and a flock, are no record locks")
     for text, count in (("int f(int fd) { return lockf(fd, F_LOCK, 0); }\n", 1),
+                        ("int f(int fd) { return lockf64(fd, F_LOCK, 0); }\n", 1),
                         ("fcntl(fd, F_SETLK, &l); fcntl(fd, F_SETLKW, &l);\n", 2),
+                        ("struct flock64 l; fcntl(fd, F_SETLK64, &l); fcntl(fd, F_SETLKW64, &l);\n", 2),
                         ("fcntl(fd, F_OFD_SETLK, &l); fcntl(fd, F_OFD_SETLKW, &l);\n", 2),
                         ("syscall(SYS_flock, fd, 2); syscall(__NR_flock, fd, 8);\n", 2),
                         ("/* lockf(fd), F_SETLK */ int fd; // syscall(SYS_flock, fd, 2)\n", 0)):
