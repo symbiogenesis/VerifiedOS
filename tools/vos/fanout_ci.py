@@ -60,6 +60,9 @@ class CIState(TypedDict):
     ref: str
     revision: str
     cold: bool
+    # The commit Guest CI's proofs lane reads beside the revision, forwarded as its
+    # `reading_base` input; a record without the key names none.
+    reading_base: NotRequired[str]
     host: RunState | None
     guest: RunState | None
 
@@ -90,9 +93,12 @@ def repository(root: Path, remote: str) -> str:
     return str(match.group(1))
 
 
-def new_state(repository: str, ref: str, revision: str, cold: bool) -> CIState:
+def new_state(repository: str, ref: str, revision: str, cold: bool,
+              reading_base: str | None = None) -> CIState:
     state: CIState = {"repository": repository, "ref": ref, "revision": revision,
                       "cold": cold, "host": None, "guest": None}
+    if reading_base is not None:
+        state["reading_base"] = reading_base
     return validate_state(state)
 
 
@@ -141,6 +147,12 @@ def validate_state(value: object) -> CIState:
         raise CIError("hosted validation publishes and dispatches only main; initialize a new main batch")
     if type(record.get("cold")) is not bool:
         raise CIError("hosted validation needs an explicit cold boolean")
+    # Guest CI's dispatch check refuses any other reading base before checked-out code runs.
+    if "reading_base" in record:
+        base = _string(record, "reading_base")
+        if not re.fullmatch(r"[0-9a-f]{40}", base) or base == revision:
+            raise CIError("a reading base must be a full lowercase commit SHA other than "
+                          "the revision")
     for lane, workflow in (("host", HOST), ("guest", GUEST)):
         if lane not in record:
             raise CIError(f"hosted validation is missing {lane} state")
@@ -341,6 +353,10 @@ def _dispatch(client: GitHub, state: CIState, record: RunState, subject: str,
     if record["workflow"] == GUEST:
         # guest-gates owns a mandatory model/proofs matrix; there is no lane filter.
         inputs["cold"] = state["cold"]
+        # Sent only when the batch names one; the input's empty default reads none.
+        reading_base = state.get("reading_base")
+        if reading_base is not None:
+            inputs["reading_base"] = reading_base
     try:
         result = client.request("POST", f"actions/workflows/{record['workflow']}/dispatches",
                                 {"ref": state["ref"], "inputs": inputs})

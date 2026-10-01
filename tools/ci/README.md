@@ -10,7 +10,8 @@ require Host CI and dispatch both guest lanes without waiting for their verdicts
 The [`fanout` completion command](../fanout.md) runs from `main`, merges the selected
 local worktrees and publishes only `main`,
 requires Host CI on Windows and Ubuntu for that commit, then dispatches both guest
-lanes with the batch's `cold` policy. It records the dispatch response and returns
+lanes with the batch's `cold` policy and, for a batch initialized with
+`--reading-base`, its reading base. It records the dispatch response and returns
 without polling Guest CI. The optional `title` workflow input carries the commit
 subject into the run title, which also identifies an interrupted dispatch for
 recovery. The explicit `revision` input pins checkout
@@ -22,7 +23,14 @@ local and remote `main`; Guest CI may remain pending.
 every Monday at 04:23 UTC, on the first day of each month at 04:23 UTC, or through
 GitHub's **Run workflow** control on `main`. A manual run's optional `revision` input
 names a full lowercase commit already on `main`; the workflow refuses any other ref or
-revision before installing tools. Each run title follows the workflow name with the
+revision before installing tools. Its optional `reading_base` input, empty by default,
+names a full lowercase commit that is a proper ancestor of that revision; when it is
+nonempty, the same check refuses any other value before checked-out code runs. A
+refused dispatch runs no checked-out code afterwards either: each later step that runs
+commands after a failure, the reporter included, also requires that check not to have
+failed, so such a run records no `results.json` and its upload finds no logs. The
+input reaches each step that reads it only through that step's environment, never
+through text written into a script. Each run title follows the workflow name with the
 `title` input, or else with its checked-out revision, and runs are not serialized, so a
 queued handoff is never replaced. Ordinary runs reuse installed toolchains and
 content-validated native proof results. The monthly run and the manual `cold` input
@@ -36,12 +44,14 @@ failed or canceled runs, absent history and failed history lookups run all gates
 reruns always execute them. The history job alone has `actions: read`; the gate lanes keep `contents: read`.
 They need no repository secrets or initialized submodules. The public repository's standard
 [runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
-has 16 GB of RAM; the proof kernel recheck has historically exceeded 8 GiB,
-so a smaller runner needs a separate resource measurement.
+has 16 GB of RAM; the proof gate's one kernel worker peaks just under its 10 GiB
+budget there, as the runs [vos/env.py](../vos/env.py)'s `proof_jobs` records
+measured, so a smaller runner needs a separate resource measurement.
 
 The gate job is a two-lane matrix, and each lane has its own runner. The `model` lane
 installs Z3, Sail and Verilator, then runs the model evidence sweep, bundle comparison,
-RTL lint, width check and crosscheck. The `proofs` lane installs Rocq alone and runs the proof gate.
+RTL lint, width check and crosscheck. The `proofs` lane installs Rocq alone, runs the
+proof gate and, in a run given a `reading_base`, reads the proofs against that base.
 Neither lane consumes the other's toolchain or outputs, so a run lasts as long as its
 longer lane. One lane's failure does not cancel the other. Both lanes must pass to
 establish complete guest evidence; Host CI supplies no model, RTL or proof verdict.
@@ -126,7 +136,10 @@ retention error is recorded separately without hiding the original installation 
 
 The workflow bounds each command and keeps independent checks running after a gate
 failure. [report_guest.py](report_guest.py) reads its lane from `GUEST_LANE`, retains
-that lane's command outcomes in `results.json` and renders the job summary. It copies
+that lane's command outcomes in `results.json` and renders the job summary. The proofs
+lane's outcomes include the reading step's, `skipped` in a run given no reading base,
+and a run given one also records that base. The reporter refuses a base in the model
+lane or in any form but a full lowercase commit SHA. It copies
 the checkout's proof receipt only when the proofs lane's proof gate step succeeded; the
 tracked receipt otherwise predates the run. In the model lane it validates all member
 names, exit codes and durations before rendering the evidence table. Skipped, failed or
@@ -226,7 +239,9 @@ path lists and saves neither. A change to either key or path list here must chan
 that workflow's restore with it, or its runners install and emit cold.
 
 Each command runs under GNU time, whose figures in its retained log end with
-`maxrss_kb`: the peak resident memory of the command's largest single process. For
+`maxrss_kb`: the peak resident memory of the command's largest single process. The
+reading comparison's log holds the comparison alone, so its figures stand beside it in
+`proof-reading-compare.time`. For
 the proof gate this measures the kernel recheck against the planning budget in
 [vos/env.py](../vos/env.py)'s `proof_jobs`.
 
@@ -267,8 +282,24 @@ In the proofs lane:
 - `python3 tools/run.py proofs` validates native cache candidates and compiles,
   audits and kernel-checks proofs whose evidence cannot be reused. With no valid
   candidates it checks every proof. Cold runs add `--fresh` to force all work.
+- In a run given a `reading_base`, once the proof gate has passed,
+  [`python3 tools/run.py proof-reading`](../vos/cli/proof_reading.py) `record` reads
+  the gate's compile, `record --sources` compiles and reads the base's `proofs/`,
+  which `git archive` extracts from that commit into the runner's temporary
+  directory, and `compare` compares the base's reading with the gate's. All three run
+  in the gate's explicit environment. The step passes once both readings are recorded
+  and compared, whatever differences the comparison names: it logs every one, its
+  summary line states their count, and it then prints both readings' SHA-256 to its
+  log and the summary, which outlast the artifact. A refused reading, a comparison
+  that refuses its readings rather than comparing them, and a base whose sources
+  cannot be extracted each fail it. Both readings, as `proof-reading-base.json` and
+  `proof-reading-candidate.json`, their console logs and the comparison's log,
+  `proof-reading-compare.log`, stay in the lane's artifact. A reading accepts no proof.
 
 Each required command has a bounded execution time and retains its exit status.
+Each lane's step limits stay a stated margin under the job's, which the steps without
+a limit of their own share, so a lane that reaches every limit still reports and
+uploads its diagnostics.
 Independent checks may still run after another fails when their bootstrap succeeded.
 The evidence command owns its existing internal concurrency and freshness checks.
 Proof receipt publication changes an output rather than the model's input identity;

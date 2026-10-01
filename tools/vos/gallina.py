@@ -263,7 +263,8 @@ def compile_proofs(found: Prover, work: Path) -> list[Failure]:
     return _compile_all(found, work, sorted((work / PROOFS).glob("*.v")))
 
 
-def compile_dependents(found: Prover, work: Path, rel: str) -> list[Failure]:
+def compile_dependents(found: Prover, work: Path, rel: str,
+                       moved: list[list[Path]] | None = None) -> list[Failure]:
     """The one mutated proof and whatever Requires it, which is what a mutant moves.
 
     `compile_proofs` is the right shape for a baseline, where nothing on disk is
@@ -279,7 +280,15 @@ def compile_dependents(found: Prover, work: Path, rel: str) -> list[Failure]:
     A subject the proofs directory does not hold falls back to the whole directory,
     because the closure of a name that is not there is empty and an empty compile would
     report a green baseline for a tree nobody built.
+
+    `moved`, where given, is what `closure_dependents` says the mutant moves inside one
+    harness's `Require` closure, and only the proofs among it are compiled: a proof
+    outside that closure is never handed to the prover, however many of them Require
+    the subject.
     """
+    if moved is not None:
+        return _compile_waves(found, work, [[s for s in wave if s.parent == work / PROOFS]
+                                            for wave in moved])
     sources = sorted((work / PROOFS).glob("*.v"))
     stem = Path(rel).stem
     if stem not in {source.stem for source in sources}:
@@ -288,18 +297,33 @@ def compile_dependents(found: Prover, work: Path, rel: str) -> list[Failure]:
 
 
 def closure(work: Path, harness: Path) -> list[list[Path]]:
-    """One harness's `Require` closure over the staged tree, in dependency order, the
-    harness in the last wave.
+    """One harness's `Require` closure over a tree holding the proofs and the harness's
+    own directory, in dependency order, the harness in the last wave. The tree is the
+    staged one, or the checkout, whose harnesses the stage copies unchanged.
 
     The proofs and the harnesses are read as one namespace because `compile_one` roots
     both directories at the empty logical path, so a harness's `Require` resolves
     against either and its closure runs through both.
     """
-    sources = sorted((work / PROOFS).glob("*.v")) + sorted((work / "harness").glob("*.v"))
+    sources = sorted((work / PROOFS).glob("*.v")) + sorted(harness.parent.glob("*.v"))
     index = proofs.SourceIndex.read(sources)
     wanted = set(index.imports[harness]) | {harness}
     return [[s for s in wave if s in wanted] for wave in index.ordered
             if any(s in wanted for s in wave)]
+
+
+def closure_dependents(work: Path, harness: Path, rel: str) -> list[list[Path]]:
+    """What a mutation of `rel` moves inside one harness's `Require` closure: `rel` and
+    each member that Requires it, directly or through another member, proofs and
+    support harnesses alike, in Require order, the harness itself left for its caller
+    to run. `compile_dependents` takes the proofs of it and `compile_support` the rest.
+
+    A subject the closure does not hold moves the closure whole, for the reason
+    `compile_dependents` falls back to the whole directory.
+    """
+    whole = [kept for wave in closure(work, harness)
+             if (kept := [s for s in wave if s != harness])]
+    return proofs.dependents([s for wave in whole for s in wave], Path(rel).stem) or whole
 
 
 def compile_closure(found: Prover, work: Path, harness: Path) -> list[Failure]:
@@ -309,7 +333,8 @@ def compile_closure(found: Prover, work: Path, harness: Path) -> list[Failure]:
                                         for wave in closure(work, harness)])
 
 
-def compile_support(found: Prover, work: Path) -> list[Failure]:
+def compile_support(found: Prover, work: Path,
+                    moved: list[list[Path]] | None = None) -> list[Failure]:
     """The harness directory's shared sources: everything there that is not an entry
     point, which is what an entry point's `Require` resolves against.
 
@@ -321,7 +346,14 @@ def compile_support(found: Prover, work: Path) -> list[Failure]:
     put a `Compute` over a hundred vectors inside every `quickchick vectors` run and
     inside every seeded mutant's baseline, which is a price paid by loops that decide
     nothing about it.
+
+    `moved`, where given, is what `closure_dependents` says a mutant moves inside one
+    harness's closure, and only the shared sources among it are compiled, in its order.
     """
+    if moved is not None:
+        return _compile_waves(found, work, [[s for s in wave if s.parent == work / "harness"
+                                             and s.name not in ENTRY_POINTS]
+                                            for wave in moved])
     shared = [p for p in sorted((work / "harness").glob("*.v"))
               if p.name not in ENTRY_POINTS]
     return _compile_all(found, work, shared)

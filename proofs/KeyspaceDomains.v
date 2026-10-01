@@ -858,13 +858,9 @@ Fixpoint entries_eqb (a b : Keyspace) : bool :=
   | _, _ => false
   end.
 
-Definition at_version (ve : nat) (k : K2) : K2 :=
-  {| k_domain := k_domain k; k_space := k_space k; k_kind := k_kind k;
-     k_object := k_object k; k_attr := k_attr k; k_version := ve |}.
+Definition at_version (ve : nat) (k : K2) : K2 := {| k with k_version := ve |}.
 
-Definition at_attr (av : nat) (k : K2) : K2 :=
-  {| k_domain := k_domain k; k_space := k_space k; k_kind := k_kind k;
-     k_object := k_object k; k_attr := av; k_version := k_version k |}.
+Definition at_attr (av : nat) (k : K2) : K2 := {| k with k_attr := av |}.
 
 Definition in_domain (d : nat) (e : prod K2 nat) : bool :=
   Nat.eqb (k_domain (fst e)) d.
@@ -1109,10 +1105,7 @@ Proof. intros ks k. reflexivity. Qed.
    contradicts the keyspace, which is why it has to be refuted by the
    obligation rather than caught by a wrong answer. *)
 Definition side_meta (side : Keyspace) : MetaReader :=
-  fun ks k => match look l2_keys k ks with
-              | Some v => Some v
-              | None => look l2_keys k side
-              end.
+  fun ks k => if look l2_keys k ks is Some v then Some v else look l2_keys k side.
 
 (* =========================================================================
    R-10-005b and R-12-024e: query admission, resolution, and what a
@@ -1942,10 +1935,7 @@ Proof. intros al g1 g2 n. reflexivity. Qed.
 (* R-14-012a's "namespace escape": a resolver that falls through to
    something the manifest did not place. *)
 Definition escaping_path : PathResolver :=
-  fun al gl n => match alias_look al n with
-                 | Some o => Some o
-                 | None => gl n
-                 end.
+  fun al gl n => if alias_look al n is Some o then Some o else gl n.
 
 Theorem the_escaping_resolver_is_refuted : ~ ReadsNoGlobalDirectory escaping_path.
 Proof.
@@ -1997,21 +1987,16 @@ Record Sealing : Type := {
 
 (* One field replaced and every other kept, so that a refuting sealing
    differs from the specification in exactly the place its defect is. *)
-Definition with_key (s : Sealing) (f : nat -> nat) : Sealing :=
-  {| se_key := f; se_dedup_key := se_dedup_key s; se_nonce := se_nonce s;
-     se_stored := se_stored s; se_digest := se_digest s |}.
+Definition with_key (s : Sealing) (f : nat -> nat) : Sealing := {| s with se_key := f |}.
 
 Definition with_nonce (s : Sealing) (f : nat -> nat -> nat) : Sealing :=
-  {| se_key := se_key s; se_dedup_key := se_dedup_key s; se_nonce := f;
-     se_stored := se_stored s; se_digest := se_digest s |}.
+  {| s with se_nonce := f |}.
 
 Definition with_stored (s : Sealing) (f : nat -> nat -> nat) : Sealing :=
-  {| se_key := se_key s; se_dedup_key := se_dedup_key s; se_nonce := se_nonce s;
-     se_stored := f; se_digest := se_digest s |}.
+  {| s with se_stored := f |}.
 
 Definition with_digest (s : Sealing) (f : nat -> nat -> nat) : Sealing :=
-  {| se_key := se_key s; se_dedup_key := se_dedup_key s; se_nonce := se_nonce s;
-     se_stored := se_stored s; se_digest := f |}.
+  {| s with se_digest := f |}.
 
 Record Ext : Type := {
   ex_present : bool;
@@ -2302,7 +2287,7 @@ Definition recoverable (kr : Keyring) (d : nat) : bool :=
 Definition Eraser : Type := Keyring -> Keyring.
 
 Definition spec_erase : Eraser := fun kr =>
-  {| kr_root_live := false; kr_resident := fun _ => false; kr_blob := kr_blob kr |}.
+  {| kr with kr_root_live := false; kr_resident := fun _ => false |}.
 
 Definition LeavesNoKeyRecoverable (er : Eraser) : Prop :=
   forall (kr : Keyring) (d : nat), recoverable (er kr) d = false.
@@ -2320,20 +2305,14 @@ Proof. intros kr d. reflexivity. Qed.
 
 (* R-10-014's own words refused: a bulk overwrite of the wrapped blobs,
    which is the mechanism that entry declines by name. *)
-Definition overwrite_erase : Eraser := fun kr =>
-  {| kr_root_live := kr_root_live kr; kr_resident := kr_resident kr;
-     kr_blob := fun _ => false |}.
+Definition overwrite_erase : Eraser := fun kr => {| kr with kr_blob := fun _ => false |}.
 
 (* R-10-032's lock, which zeroizes the core's residency and leaves the
    sealing root standing. It is a different obligation and not this one. *)
-Definition lock_erase : Eraser := fun kr =>
-  {| kr_root_live := kr_root_live kr; kr_resident := fun _ => false;
-     kr_blob := kr_blob kr |}.
+Definition lock_erase : Eraser := fun kr => {| kr with kr_resident := fun _ => false |}.
 
 (* And the root destroyed with the After-First-Unlock copy forgotten. *)
-Definition root_erase : Eraser := fun kr =>
-  {| kr_root_live := false; kr_resident := kr_resident kr;
-     kr_blob := kr_blob kr |}.
+Definition root_erase : Eraser := fun kr => {| kr with kr_root_live := false |}.
 
 Theorem the_overwrite_erase_is_refuted : ~ LeavesNoKeyRecoverable overwrite_erase.
 Proof.
@@ -2962,12 +2941,16 @@ Example which_sealing_leaks_at_which_extent :
    to keep the three it does not break, so that the named defect and not the
    construction's shape is what refuses it. *)
 
+(* The refutation each leaky sealing and each leaky observer below shares: the
+   two volumes agree on everything `auth0` covers and differ in extent 1's
+   plaintext, which the construction's observation exposes. *)
+Local Ltac refute_at_the_unauthorised_extent :=
+  intros H; specialize (H auth0 vol_a vol_b 1 vol_a_is_in_range eq_refl eq_refl);
+  discriminate H.
+
 Theorem the_compressing_sealing_is_refuted :
   ~ Noninterferent l2_demo ratio_sealing spec_obs.
-Proof.
-  intros H. specialize (H auth0 vol_a vol_b 1 vol_a_is_in_range eq_refl eq_refl).
-  discriminate H.
-Qed.
+Proof. refute_at_the_unauthorised_extent. Qed.
 
 Theorem the_compressing_sealing_keeps_every_other_obligation :
   keys_separated l2_demo ratio_sealing = true
@@ -2978,10 +2961,7 @@ Proof. repeat split; intros; reflexivity. Qed.
 
 Theorem the_convergent_sealing_is_refuted :
   ~ Noninterferent l2_demo convergent_sealing spec_obs.
-Proof.
-  intros H. specialize (H auth0 vol_a vol_b 1 vol_a_is_in_range eq_refl eq_refl).
-  discriminate H.
-Qed.
+Proof. refute_at_the_unauthorised_extent. Qed.
 
 Theorem the_convergent_sealing_keeps_every_other_obligation :
   keys_separated l2_demo convergent_sealing = true
@@ -2992,10 +2972,7 @@ Proof. repeat split; intros; reflexivity. Qed.
 
 Theorem the_shared_key_sealing_is_refuted :
   ~ Noninterferent l2_demo shared_sealing spec_obs.
-Proof.
-  intros H. specialize (H auth0 vol_a vol_b 1 vol_a_is_in_range eq_refl eq_refl).
-  discriminate H.
-Qed.
+Proof. refute_at_the_unauthorised_extent. Qed.
 
 Theorem the_shared_key_sealing_keeps_every_other_obligation :
   length_hides_at l2_demo shared_sealing = true
@@ -3063,17 +3040,11 @@ Definition digest_obs : Observer :=
 
 Theorem the_opening_observer_is_refuted :
   ~ Noninterferent l2_demo demo_sealing open_obs.
-Proof.
-  intros H. specialize (H auth0 vol_a vol_b 1 vol_a_is_in_range eq_refl eq_refl).
-  discriminate H.
-Qed.
+Proof. refute_at_the_unauthorised_extent. Qed.
 
 Theorem the_publishing_observer_is_refuted :
   ~ Noninterferent l2_demo demo_sealing digest_obs.
-Proof.
-  intros H. specialize (H auth0 vol_a vol_b 1 vol_a_is_in_range eq_refl eq_refl).
-  discriminate H.
-Qed.
+Proof. refute_at_the_unauthorised_extent. Qed.
 
 (* The twin for both: each agrees with the specification's observation on
    every extent the reader is authorised for, so what refuses it is the
@@ -3189,15 +3160,7 @@ Example the_keyspace_answers_the_keys_it_was_given :
 Definition acl_entry : prod K2 nat := pair (mk_key 0 0 k_acl 6 4 0) 60.
 
 Definition five_kind_demo : Composition :=
-  {| domain_count := domain_count l2_demo; space_count := space_count l2_demo;
-     kind_count := S (kind_count l2_demo);
-     snapshot_cost := snapshot_cost l2_demo;
-     extent_count := extent_count l2_demo; plain_span := plain_span l2_demo;
-     queue_bound := queue_bound l2_demo; result_bound := result_bound l2_demo;
-     batch_txn := batch_txn l2_demo; object_block := object_block l2_demo;
-     meta_block := meta_block l2_demo; index_block := index_block l2_demo;
-     granules := granules l2_demo; live_version := live_version l2_demo;
-     region_count := region_count l2_demo |}.
+  {| l2_demo with kind_count := S (kind_count l2_demo) |}.
 
 Example the_kind_roster_is_the_composition_s :
   every_key_names_a_declared_kind (kind_count l2_demo) demo_keyspace = true

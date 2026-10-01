@@ -256,7 +256,7 @@ Qed.
 Theorem release_deadline_sound : forall actual bounds deadline,
   Forall2 le actual bounds -> list_sum bounds <= deadline ->
   list_sum actual <= deadline.
-Proof. intros. pose proof (elapsed_bounds_sum actual bounds H). lia. Qed.
+Proof. intros actual bounds deadline H H0. pose proof (elapsed_bounds_sum actual bounds H). lia. Qed.
 
 Definition nonlexical_trace : list CreditEvent :=
   [Take 4; Take 3; Return 4; Take 2; Return 3; Return 2].

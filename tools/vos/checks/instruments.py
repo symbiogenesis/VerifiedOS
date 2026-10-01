@@ -15,18 +15,21 @@ what says so, on every checker run.
 instrument that compiles a proof source or a harness outside the gate: its switch, its
 Rocq release, the harnesses it compiles, whether it also compiles the rig's support
 harnesses or a directory of its own, whether it compiles every proof source, as
-`seed coq` does for the `--file` its caller names and as `gallina.emit` does for the
-vector harnesses, and the proof sources it names itself, as the Rupicola lowering names
-its default owner. Each switch and release is the instrument's own constant, imported,
-or, where it has none to import, the literal in its own file or the rig's constant that
-file binds under a name of its own, read by name out of that file's syntax tree, and so
-is a proof source the instrument names. The rows older than 9.3.0 decide the set, and
-each harness or named source brings its `Require` closure, read by
+`seed coq`'s enumerative mode does for the `--file` its caller names and as
+`gallina.emit` does for the vector harnesses, and the proof sources it names itself, as
+the Rupicola lowering names its default owner. `seed coq --quickchick` compiles its
+harness's closure alone and refuses a subject outside it, so its row holds that harness
+and the rig's support harnesses, each with its closure, which today lie inside the
+harness's. Each switch and release is the instrument's own constant,
+imported, or, where it has none to import, the literal in its own file or the rig's
+constant that file binds under a name of its own, read by name out of that file's syntax
+tree, and so is a proof source the instrument names. The rows older than 9.3.0 decide
+the set, and each harness or named source brings its `Require` closure, read by
 [vos/proofs.py](../proofs.py)'s own reader over the proofs directory and the harness's
 directory as one namespace, because that is how every row stages them: the rig roots
-both at the empty logical path, and the recipes copy the proof beside the harness.
-The dated campaigns under `proofs/campaigns/` are not rows. A row that states no release
-is held older than 9.3.0, since a release nobody states is one nobody can say admits the
+both at the empty logical path, and the recipes copy the proof beside the harness. The
+dated campaigns under `proofs/campaigns/` are not rows. A row that states no release is
+held older than 9.3.0, since a release nobody states is one nobody can say admits the
 forms.
 
 **The table's own membership is held too.** Every module under `tools/vos/` that resolves
@@ -154,9 +157,10 @@ INSTRUMENTS: tuple[Instrument, ...] = (
     Instrument("quickchick properties in the oracle's switch", "tools/vos/cli/quickchick.py",
                gallina.ORACLE_SWITCH, gallina.ORACLE_ROCQ_VERSION,
                (f"{RIG}/{gallina.RANDOMIZED}",)),
+    # Properties.v's closure alone, a subject outside it refused, beside the rig's support.
     Instrument("seed coq --quickchick", "tools/vos/cli/seed.py", gallina.QUICKCHICK_SWITCH,
                gallina.QUICKCHICK_ROCQ_VERSION, (f"{RIG}/{gallina.RANDOMIZED}",),
-               support=True, whole=True),
+               support=True),
     # Each writes its harness at run time, over proofs its own module names; at the
     # gate's release they add nothing, and older they would derive no file and fail.
     Instrument("the copy-service comparison", "tools/vos/copy_service.py",
@@ -475,6 +479,34 @@ def _entry(root: Path, value: str | Literal | None) -> tuple[str | None, str]:
 def decide(root: Path, index: Iterable[str],
            rows: Sequence[Instrument]) -> tuple[list[str], str]:
     """The rule over one tree and one table: its findings and its clean line."""
+    reached, labels, findings = reach(root, index, rows)
+    decided = 0
+    for rel in sorted(reached):
+        try:
+            text = (root / rel).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as err:
+            findings.append(f"{rel} cannot be read, so the forms it writes are undecided "
+                            f"({err})")
+            continue
+        decided += 1
+        compiled = "; ".join(dict.fromkeys(reached[rel]))
+        findings += [f"{rel}:{line} writes {form}, which only Rocq 9.3.0 and later parse, "
+                     f"and is compiled by {compiled}" for line, form in forms(text)]
+
+    names = ", ".join(labels) or "none"
+    ok = (f"no {FORM_IF}, record value completed with `with`, `&` or `of` binder in the "
+          f"{decided} file(s) compiled by the {len(labels)} of the table's {len(rows)} "
+          f"instruments older than Rocq 9.3.0, each switch and release read from the "
+          f"constant or literal stating it and each rig module held to the switches its "
+          f"calls ask for: {names}")
+    return findings, ok
+
+
+def reach(root: Path, index: Iterable[str],
+          rows: Sequence[Instrument]) -> tuple[dict[str, list[str]], list[str], list[str]]:
+    """What the table's rows older than Rocq 9.3.0 compile in one tree: each file with
+    the label of every such row compiling it, those rows' labels in table order, and the
+    findings of the reading. The forms each file writes are `decide`'s to read."""
     tracked = set(index)
     findings: list[str] = []
     if not rows:
@@ -530,27 +562,7 @@ def decide(root: Path, index: Iterable[str],
             directory = rel.rsplit("/", 1)[0]
             for member in sorted(closures.get(directory, {}).get(rel, {rel})):
                 reached.setdefault(member, []).append(label)
-
-    decided = 0
-    for rel in sorted(reached):
-        try:
-            text = (root / rel).read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError) as err:
-            findings.append(f"{rel} cannot be read, so the forms it writes are undecided "
-                            f"({err})")
-            continue
-        decided += 1
-        compiled = "; ".join(dict.fromkeys(reached[rel]))
-        findings += [f"{rel}:{line} writes {form}, which only Rocq 9.3.0 and later parse, "
-                     f"and is compiled by {compiled}" for line, form in forms(text)]
-
-    names = ", ".join(label for _, label, _ in starts) or "none"
-    ok = (f"no {FORM_IF}, record value completed with `with`, `&` or `of` binder in the "
-          f"{decided} file(s) compiled by the {len(starts)} of the table's {len(rows)} "
-          f"instruments older than Rocq 9.3.0, each switch and release read from the "
-          f"constant or literal stating it and each rig module held to the switches its "
-          f"calls ask for: {names}")
-    return findings, ok
+    return reached, [label for _, label, _ in starts], findings
 
 
 def _starts(root: Path, row: Instrument, tracked: set[str],

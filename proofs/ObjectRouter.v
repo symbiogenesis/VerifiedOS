@@ -1366,34 +1366,28 @@ Qed.
    router that answers where no live delegation exists, under the capability
    the composition gave the fabric. *)
 Definition standing_route : Router := fun c f sid a =>
-  match live_session c f sid with
-  | Some s => answer_under c (se_cap s) a
-  | None => answer_under c (standing_cap c) a
-  end.
+  if live_session c f sid is Some s then answer_under c (se_cap s) a
+  else answer_under c (standing_cap c) a.
 
 (* The same entry's "each delegation ending with its session at the
    revocation epoch" refused: a router that falls back to a session whose
    epoch has passed. *)
 Definition immortal_route : Router := fun c f sid a =>
-  match live_session c f sid with
-  | Some s => answer_under c (se_cap s) a
-  | None => match any_session f sid with
-            | None => Refused
-            | Some s => answer_under c (se_cap s) a
-            end
-  end.
+  if live_session c f sid is Some s then answer_under c (se_cap s) a
+  else match any_session f sid with
+       | None => Refused
+       | Some s => answer_under c (se_cap s) a
+       end.
 
 (* R-12-024e's "resolution derives object capabilities only from the
    namespace capability the caller delegated for that session" refused: a
    router that answers this caller under another live session's capability. *)
 Definition peer_route : Router := fun c f sid a =>
-  match live_session c f sid with
-  | None => Refused
-  | Some _ => match first_live c f with
-              | None => Refused
-              | Some t => answer_under c (se_cap t) a
-              end
-  end.
+  if live_session c f sid is None then Refused
+  else match first_live c f with
+       | None => Refused
+       | Some t => answer_under c (se_cap t) a
+       end.
 
 (* R-10-005b's third prohibition refused outright: a router that hands back
    exactly the rights the ask names. *)
@@ -1453,8 +1447,7 @@ Proof. intros c f g sid a H. unfold widening_route. rewrite H. reflexivity. Qed.
    ========================================================================= *)
 
 Definition with_queue (s : Subscription) (p : Phase) (q : list Delta) : Subscription :=
-  {| sb_id := sb_id s; sb_domain := sb_domain s; sb_space := sb_space s;
-     sb_phase := p; sb_queue := q |}.
+  {| s with sb_phase := p; sb_queue := q |}.
 
 Lemma queue_of_with_queue : forall (s : Subscription) (p : Phase) (q : list Delta),
   sb_queue (with_queue s p q) = q.
@@ -1468,20 +1461,15 @@ Definition Publisher : Type :=
   Composition -> Txn -> Subscription -> list Delta -> Subscription.
 
 Definition spec_publish : Publisher := fun c x s ds =>
-  match tx_committed x with
-  | false => s
-  | true =>
-      match sb_phase s with
-      | PhaseRescanRequired => s
-      | PhaseLive =>
-          if Nat.leb (count_of (append_of (sb_queue s) ds)) (queue_bound c)
-          then with_queue s PhaseLive (append_of (sb_queue s) ds)
-          else with_queue s PhaseRescanRequired
-                 (append_of (take_of (before_last (queue_bound c))
-                                     (append_of (sb_queue s) ds))
-                            (cons DeltaRescan nil))
-      end
-  end.
+  if tx_committed x
+  then (if sb_phase s is PhaseRescanRequired then s
+        else if Nat.leb (count_of (append_of (sb_queue s) ds)) (queue_bound c)
+        then with_queue s PhaseLive (append_of (sb_queue s) ds)
+        else with_queue s PhaseRescanRequired
+               (append_of (take_of (before_last (queue_bound c))
+                                   (append_of (sb_queue s) ds))
+                          (cons DeltaRescan nil)))
+  else s.
 
 (* The specification's four arms as equations, so that every theorem below
    rewrites rather than reduces a nested match by tactic. *)
@@ -1615,62 +1603,48 @@ Qed.
 
 (* "rather than buffering without bound" refused. *)
 Definition hoarding_publish : Publisher := fun c x s ds =>
-  match tx_committed x with
-  | false => s
-  | true =>
-      match sb_phase s with
-      | PhaseRescanRequired => s
-      | PhaseLive => with_queue s PhaseLive (append_of (sb_queue s) ds)
-      end
-  end.
+  if tx_committed x
+  then (if sb_phase s is PhaseRescanRequired then s
+        else with_queue s PhaseLive (append_of (sb_queue s) ds))
+  else s.
 
 (* "one rescan-required marker" refused by a publisher whose markers count
    the deltas it dropped, which publishes how many changes the domain
    committed. *)
 Definition twin_marker_publish : Publisher := fun c x s ds =>
-  match tx_committed x with
-  | false => s
-  | true =>
-      match sb_phase s with
-      | PhaseRescanRequired => s
-      | PhaseLive =>
-          if Nat.leb (count_of (append_of (sb_queue s) ds)) (queue_bound c)
-          then with_queue s PhaseLive (append_of (sb_queue s) ds)
-          else with_queue s PhaseRescanRequired
-                 (append_of (take_of (before_last (before_last (queue_bound c)))
-                                     (append_of (sb_queue s) ds))
-                            (cons DeltaRescan (cons DeltaRescan nil)))
-      end
-  end.
+  if tx_committed x
+  then (if sb_phase s is PhaseRescanRequired then s
+        else if Nat.leb (count_of (append_of (sb_queue s) ds)) (queue_bound c)
+        then with_queue s PhaseLive (append_of (sb_queue s) ds)
+        else with_queue s PhaseRescanRequired
+               (append_of (take_of (before_last (before_last (queue_bound c)))
+                                   (append_of (sb_queue s) ds))
+                          (cons DeltaRescan (cons DeltaRescan nil))))
+  else s.
 
 (* "no further delta" refused: a publisher that reads the queue and not the
    phase, so a subscription that has emitted its marker goes on delivering. *)
 Definition resuming_publish : Publisher := fun c x s ds =>
-  match tx_committed x with
-  | false => s
-  | true =>
-      if Nat.leb (count_of (append_of (sb_queue s) ds)) (queue_bound c)
-      then with_queue s (sb_phase s) (append_of (sb_queue s) ds)
-      else with_queue s PhaseRescanRequired
-             (append_of (take_of (before_last (queue_bound c))
-                                 (append_of (sb_queue s) ds))
-                        (cons DeltaRescan nil))
-  end.
+  if tx_committed x
+  then (if Nat.leb (count_of (append_of (sb_queue s) ds)) (queue_bound c)
+        then with_queue s (sb_phase s) (append_of (sb_queue s) ds)
+        else with_queue s PhaseRescanRequired
+               (append_of (take_of (before_last (queue_bound c))
+                                   (append_of (sb_queue s) ds))
+                          (cons DeltaRescan nil)))
+  else s.
 
 (* "derived only after the committing L0 transaction" refused: a publisher
    that delivers an open transaction's changes before it commits, and before
    a crash would have rolled them back. *)
 Definition prepare_publish : Publisher := fun c x s ds =>
-  match sb_phase s with
-  | PhaseRescanRequired => s
-  | PhaseLive =>
-      if Nat.leb (count_of (append_of (sb_queue s) ds)) (queue_bound c)
-      then with_queue s PhaseLive (append_of (sb_queue s) ds)
-      else with_queue s PhaseRescanRequired
-             (append_of (take_of (before_last (queue_bound c))
-                                 (append_of (sb_queue s) ds))
-                        (cons DeltaRescan nil))
-  end.
+  if sb_phase s is PhaseRescanRequired then s
+  else if Nat.leb (count_of (append_of (sb_queue s) ds)) (queue_bound c)
+  then with_queue s PhaseLive (append_of (sb_queue s) ds)
+  else with_queue s PhaseRescanRequired
+         (append_of (take_of (before_last (queue_bound c))
+                             (append_of (sb_queue s) ds))
+                    (cons DeltaRescan nil)).
 
 Theorem the_hoarding_publisher_emits_no_further_delta :
   NoFurtherDeltaAfterTheMarker hoarding_publish.
@@ -1813,7 +1787,7 @@ Proof. intros c i d sp. reflexivity. Qed.
 Definition Commit : Type := Table -> submit_result -> Txn -> Txn.
 
 Definition spec_commit : Commit := fun _ _ x =>
-  {| tx_id := tx_id x; tx_committed := true |}.
+  {| x with tx_committed := true |}.
 
 Definition NeverBackpressuresTheCommit (cm : Commit) : Prop :=
   forall (t1 t2 : Table) (r1 r2 : submit_result) (x : Txn),
@@ -1829,20 +1803,14 @@ Proof. intros t1 t2 r1 r2 x. reflexivity. Qed.
    `submit_would_block`, and a commit that reads it has made the committing
    transaction wait on a subscriber's queue. *)
 Definition ring_blocking_commit : Commit := fun _ r x =>
-  match r with
-  | submit_enqueued => {| tx_id := tx_id x; tx_committed := true |}
-  | submit_would_block => x
-  end.
+  if r is submit_enqueued then {| x with tx_committed := true |} else x.
 
 (* And the same defect reached from the table rather than from the ring: a
    commit that waits while any subscription is already past its bound. *)
 Definition queue_sensitive_commit : Commit := fun t _ x =>
-  if any_of (fun s => match sb_phase s with
-                      | PhaseRescanRequired => true
-                      | PhaseLive => false
-                      end) t
+  if any_of (fun s => if sb_phase s is PhaseRescanRequired then true else false) t
   then x
-  else {| tx_id := tx_id x; tx_committed := true |}.
+  else {| x with tx_committed := true |}.
 
 Theorem the_ring_blocking_commit_agrees_where_the_ring_accepted :
   forall (t : Table) (x : Txn),

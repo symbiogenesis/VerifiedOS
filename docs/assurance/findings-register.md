@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 895 of them across 152 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 905 of them across 152 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1227,7 +1227,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-570** owed-act: `quickchick properties` and `quickchick check` fall back to the CertiRocq switch at Rocq 9.1.1, so K-117 carries a second 9.1.1 row over Properties.v's closure that Q38f's Check does not expect, and `seed coq --quickchick` still compiles every proof source at 9.1.1
 · Raised: Q38e
-· Disposition: open, Q38h for `seed coq --quickchick`'s compile of every proof source, and Q38f for the fallback to the CertiRocq switch
+· Disposition: open, Q38f for the fallback to the CertiRocq switch, Q38h having held `seed coq --quickchick`'s compile to `Properties.v`'s `Require` closure
 
 **F-571** owed-act: Vectors.v's header says Properties.v needs an install this repository has not made, and Properties.v's header names the undeclared switch `quickchick-9.1.1`
 · Raised: Q38e
@@ -1275,11 +1275,43 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-610** owed-act: K-117 holds every proof source while `seed coq --quickchick` compiles every one in QuickChick's Rocq 9.1.1 switch, so no authored source may take Rocq 9.3's syntax until that compile narrows or QuickChick's switch moves
 · Raised: Q38h
-· Disposition: open, Q38h holding that compile to `Properties.v`'s `Require` closure
+· Disposition: closed at landing, Q38h holding that compile to `Properties.v`'s `Require` closure, within which Rocq 9.3's syntax waits on Q38f
 
 **F-611** method: Q38i's retired-instruction procedure has no permitted site while guest runs are excluded, and Guest CI's wall times over the same sources vary by up to 71% between runs
 · Raised: Q38h
 · Disposition: standing, a cost claim about a rewrite that leaves every statement and transparent body as elaborated and Q38i's evaluation sites untouched resting on that identity
+
+**F-637** owed-act: Guest CI's report step and Host CI's analysis, hook and report steps ran checked-out code under `!cancelled()` after the dispatch check refused a revision
+· Raised: Q38h
+· Disposition: closed at landing, each such step run only when the dispatch check did not fail, and the checkout-guard test reading that condition in both workflows
+
+**F-638** owed-act: Guest CI's model lane stated step limits summing to 365 minutes under a 360-minute job limit
+· Raised: Q38h
+· Disposition: closed at landing, the limits restated from the lane's measured durations with a margin for the report and upload, and the limit test holding both lanes
+
+**F-639** owed-act: the enumerative `seed coq` accepts a `--file` outside `proofs/` and fails at its first mutant, its stage holding no copy of that file
+· Raised: Q38h
+· Disposition: standing, no current-state statement offering such a subject and `--quickchick` refusing every subject outside `Properties.v`'s closure
+
+**F-640** owed-act: the boot signature campaign's report step runs checked-out code under `!cancelled()` after its dispatch check refuses a revision, and neither of its dispatch checks carries an id
+· Raised: Q38h
+· Disposition: open, the repair held on the local branch `work/q38-bootguard-20261001` until the user decides when the five-runner campaign that a change to its workflow starts on push may run
+
+**F-641** method: Rocq 9.3 checks an `Ltac` definition's hypothesis names when it reads the definition, so a body naming a hypothesis it does not bind, such as one `injection … as` introduces, is refused
+· Raised: Q38h
+· Disposition: standing, each `Local Ltac` Q38h adds binding the names it reads by its own intro patterns or taking them as parameters
+
+**F-642** owed-act: Q38h's Owns let a lane rewrite `MemoryPlan.v` by regenerating the memory-plan export, while its Check held that export byte for byte, although the export records the source's MD5
+· Raised: Q38h
+· Disposition: closed at landing, the Check excepting the `source_md5` the export's generator writes for a rewritten `MemoryPlan.v`
+
+**F-643** owed-act: K-117's table does not read the dated Q19a review replay, `proofs/campaigns/q19a-render-cache.py`, which compiles `CopyRingService.v`'s prefix in a Rocq 9.2.0 switch it names at run time
+· Raised: Q38h
+· Disposition: standing, Q38h leaving that prefix as the base writes it as a campaign anchor
+
+**F-644** measurement: in `Keccak.v`'s `squeeze`, the constant-increment mutant of the `0` pattern compiles under `if … is` where the explicit match's mutant did not
+· Raised: Q38h
+· Disposition: standing, the population unchanged and a later mutation run deciding that mutant instead of counting it stillborn
 
 **F-578** measurement: Q38i's cast clause and its Check's compile fall cannot both hold in ArithmeticComposition.v, CredentialHandles.v, InferenceAdmission.v and TwoSourceExtractor.v, whose 16 such proofs evaluate goals too small for a fall beyond single-run noise, and the cast raised ArithmeticComposition.v's recheck by 2.8% in two single runs
 · Raised: Q38i
@@ -1295,7 +1327,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-581** measurement: HmacDrbg.v's `pr_true_run` and `first_draw` keep no literal, with which the module's recheck counted 2,042.8e9 retired instructions against 2,019.9e9 while its one-run peak was 8,125,480 KB against 9,312,124 KB
 · Raised: Q38i
-· Disposition: open, Q38j
+· Disposition: standing, Q38j finding that two kernel workers at the runner's 10,030,124 KiB peak less the literals' 1,186,644 KB saving, with env.py's 2 GiB reserve, would need 19,784,112 KiB against the runner's 16 GB, so the literals would buy no second worker
 
 **F-582** measurement: values two Examples evaluate inside a `forallb` over a family, PqArith.v's ML-DSA-ring transforms of both probes and StorageBridge.v's decode and walk of the medium flipped at offsets 272 and 144, keep no literal, and three round-trip Examples over PqArith's probes are not rewritten through its lemmas
 · Raised: Q38i
@@ -1307,7 +1339,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-584** measurement: single-run retired-instruction figures of unchanged small modules moved by up to 0.75% in compile and 0.62% in recheck between two sets, so a 0.1% or 1% threshold is decidable for a module under about 10e9 instructions only by repeated interleaved runs
 · Raised: Q38i
-· Disposition: open, Q38j, Q38h taking no retired-instruction figure (F-611)
+· Disposition: closed at landing, Q38j holding each run to its own replay and Q38h taking no retired-instruction figure (F-611)
 
 **F-585** measurement: a rerun of the dated ML-KEM mutation campaign's definitions-only compile would evaluate Q38i's seven literals under every mutant and PqArith's proof oracle would kill through the literal lemmas, although all 17 recorded selections name the same mutants
 · Raised: Q38i
@@ -1319,7 +1351,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-587** measurement: `wait4` peaks of small `rocqchk` processes read 129 to 131 MiB in two sets and 46 MiB in a third for the same modules, and Sha256.v's rose from 1,458,428 KB to 1,626,180 KB at equal instructions
 · Raised: Q38i
-· Disposition: open, Q38j
+· Disposition: closed at landing, Q38j's budget resting on the runner's whole-set kernel peak, which repeats within 456 KiB across three runs
 
 **F-612** measurement: three full rechecks of the same 57 sources on Guest CI's proofs runner took 152.67 to 246.83 s to compile and audit and 725.79 to 1,242.86 s to recheck
 · Raised: Q38j
@@ -1332,6 +1364,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-614** measurement: a model weighted by Q38i's compile retired instructions puts a dependency schedule 11.3% below the wave schedule at the runner's 4 compile workers and 22.1% below at the profiling guest's 12
 · Raised: Q38j
 · Disposition: standing, the compile and audit phase being 16 to 17% of a full recheck's wall time on the runner
+
+**F-635** method: the comparison of each run's compile and audit phase with the wave schedule replayed over its own spans leans both ways, the analysis the replay leaves out disfavouring the dependency schedule and the fuller occupancy its spans are measured under favouring it
+· Raised: Q38j
+· Disposition: standing, both leanings stated in `wave_makespan`'s docstring, a phase below its replay deciding no gain smaller than the occupancy the spans carry
+
+**F-636** measurement: with the longest chain of dependents first, a model weighted by Q38i's compile retired instructions puts the dependency schedule at its 923.3e9 longest weighted chain, 28.9% below the wave schedule at 4 compile workers and 24.1% below at 12
+· Raised: Q38j
+· Disposition: standing, beside F-614, whose figures are a wave-then-name priority's
 
 **F-566** owed-act: no register entry owns the response to a known inconsistency of the locked prover; the lexical refusals covering #22287, #22387 and #22510, and Q38k's for #22386 and #22389, stand on the lock guide's prose and the audit's code, while R-05-018a's acceptance rests on the compile, the R-05-163 audit and `rocqchk`, which R-05-016a records as sharing the kernel's defects
 · Raised: Q38k

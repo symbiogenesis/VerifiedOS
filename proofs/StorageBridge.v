@@ -282,12 +282,10 @@ Definition Sealer : Type := bytes -> bytes -> bytes -> bytes * bytes.
    key length is a composition parameter R-10-024 does not fix. *)
 Definition gcm_opener (key_words : nat) (key : bytes) : Opener :=
   fun iv aad c t =>
-    match AesGcm.gcm_open AesGcm.block_bits key_words (AesGcm.bytes_from key)
-            (AesGcm.block_from iv) (AesGcm.block_from aad) (AesGcm.block_from c)
-            (AesGcm.block_from t) with
-    | Some m => Some (AesGcm.bytes_of m)
-    | None => None
-    end.
+    if AesGcm.gcm_open AesGcm.block_bits key_words (AesGcm.bytes_from key)
+         (AesGcm.block_from iv) (AesGcm.block_from aad) (AesGcm.block_from c)
+         (AesGcm.block_from t) is Some m
+    then Some (AesGcm.bytes_of m) else None.
 
 Definition gcm_sealer (key_words : nat) (key : bytes) : Sealer :=
   fun iv aad m =>
@@ -483,15 +481,13 @@ Fixpoint open_payloads (open : Opener) (g txn : nat) (ps : list Pending) (es : l
   | q :: ps', e :: es' =>
       if Nat.eqb (pending_position q) (entry_position e)
          && bytes_eqb (pending_header q) (payload_header txn (entry_target e))
-      then match open (frame_nonce g (pending_position q) payload_kind) (pending_header q)
-                      (pending_body q) (entry_tag e) with
-           | Some [v] => if v <? 256 then
-               match open_payloads open g txn ps' es' with
-               | Some ws => Some ((entry_target e, v) :: ws)
-               | None => None
-               end else None
-           | _ => None
-           end
+      then if open (frame_nonce g (pending_position q) payload_kind) (pending_header q)
+                   (pending_body q) (entry_tag e) is Some [v]
+           then if v <? 256 then
+                  if open_payloads open g txn ps' es' is Some ws
+                  then Some ((entry_target e, v) :: ws) else None
+                else None
+           else None
       else None
   | _, _ => None
   end.
@@ -522,16 +518,13 @@ Fixpoint walk (l : Layout) (open : Opener) (g : nat) (medium : bytes) (fuel p : 
         then walk l open g medium fuel' (S p) (pending ++ [pending_of p f]) done
         else Ended (rev done)
       else if Nat.eqb (nth 0 f 0) commit_kind && commit_admissible l f then
-        match open (frame_nonce g p commit_kind) (firstn frame_header_bytes f ++ commit_body f)
-                   [] (commit_tag f) with
-        | Some [] =>
-            match open_payloads open g (commit_txn f) pending
-                    (decode_entries (commit_count f) (commit_body f)) with
-            | Some ws => walk l open g medium fuel' (S p) [] ((commit_txn f, ws) :: done)
-            | None => CommittedPayloadRefused p
-            end
-        | _ => Ended (rev done)
-        end
+        if open (frame_nonce g p commit_kind) (firstn frame_header_bytes f ++ commit_body f)
+                [] (commit_tag f) is Some []
+        then if open_payloads open g (commit_txn f) pending
+                  (decode_entries (commit_count f) (commit_body f)) is Some ws
+             then walk l open g medium fuel' (S p) [] ((commit_txn f, ws) :: done)
+             else CommittedPayloadRefused p
+        else Ended (rev done)
       else Ended (rev done)
   end.
 
@@ -1033,7 +1026,7 @@ Example each_crash_image_recovers_exactly_the_landed_commits :
 Proof. vm_reflexivity. Qed.
 
 Definition is_refusal (o : Outcome) : bool :=
-  match o with Recovered _ => false | _ => true end.
+  if o is Recovered _ then false else true.
 
 (* Generated: the low bit inverted in one byte of each field class the
    decoder reads in transaction 8's frames: the first payload's kind and
@@ -1103,11 +1096,10 @@ Proof. vm_reflexivity. Qed.
 Example the_largest_position_and_fields_fit :
   let l := {| frame_bytes := 50; journal_frames := 256; payload_limit := 1 |} in
   layout_fits l = true /\
-  match write_journal l shape_sealer 255
-    (repeat {| txn_id := 255; txn_writes := [(255,255)] |} 128) with
-  | Some medium => length medium = 256 * 50 /\ octets medium = true
-  | None => False
-  end.
+  (if write_journal l shape_sealer 255
+        (repeat {| txn_id := 255; txn_writes := [(255,255)] |} 128) is Some medium
+   then length medium = 256 * 50 /\ octets medium = true
+   else False).
 Proof. vm_compute. split; [reflexivity|]. split; reflexivity. Qed.
 
 Definition invalid_transactions : list (list Txn) :=
@@ -1135,7 +1127,7 @@ Proof. vm_reflexivity. Qed.
 
 Example an_opener_cannot_publish_a_non_octet :
   decode bridge_layout (fun _ _ ciphertext _ =>
-    match ciphertext with [] => Some [] | _ => Some [256] end)
+    if ciphertext is [] then Some [] else Some [256])
     bridge_journal bridge_generation (bridge_checkpoint 0) bridge_medium
   = RefusedCommittedPayload 2.
 Proof. vm_reflexivity. Qed.
