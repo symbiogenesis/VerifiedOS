@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+# The build backends pip installs from PyPI into the isolated environment it builds each
+# Python hook package in, which Host CI's Model hooks step names as PIP_BUILD_CONSTRAINT:
+# from pip 26.2 a build ignores the regular constraints it inherits. setuptools builds
+# every hook package, and codespell's also requires setuptools-scm, which brings
+# vcs-versioning and packaging. Each carries the SHA-256 PyPI states for its one wheel,
+# so pip builds in hash-checking mode and refuses a build requirement this file does
+# not list. Each release was uploaded more than three days before it was pinned, the
+# cooldown tools/pyproject.toml's exclude-newer sets and the step's
+# PIP_UPLOADED_PRIOR_TO keeps; tools/README.md#model-hook-dependencies gives the review
+# that moves them.
+packaging==26.3 \
+    --hash=sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c
+setuptools==84.0.0 \
+    --hash=sha256:51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670
+setuptools-scm==10.3.4 \
+    --hash=sha256:82f34c3e3084fc2b57d397200637cc13f2338004052d2fee47baa5f0e902464e
+vcs-versioning==2.5.0 \
+    --hash=sha256:dbf44f6303dc817e5792cb7d0e9cc90e3046ee1e32eaa357b20ad368811313d0

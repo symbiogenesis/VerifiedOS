@@ -200,15 +200,14 @@ def test_corpus_digests(model_root: Path, version: str) -> dict[str, str]:
 # suite to on every configure, downloading again a suite that disagrees. The listing is
 # the tarball's recorded digest, then each file's SHA-256 and path relative to the
 # suite, sorted by the path's bytes; a symbolic link is listed unhashed, every name
-# holding `;` and one holding `\` whose `/` spelling names no file leave at least one
-# unhashed line, and no written manifest holds an unhashed line. `corpus_listing`
-# renders that listing for the readers that do not configure: the seeding that copies a
-# suite into a new lane, and the sweep and trace-diff that read one. It walks the tree
-# rather than globbing it and lists every non-regular entry unhashed without reading
-# it, hashing a file only through a descriptor that is a regular file, so the sweep and
-# trace-diff also refuse what configure does not tell apart: a FIFO or device node,
-# which the verified tarball does not contain, and a name holding `\` beside the file
-# its `/` spelling names, which configure's glob folds into that file.
+# holding `;` or `\` leaves at least one unhashed line, and no written manifest holds
+# an unhashed line. `corpus_listing` renders that listing for the readers that do not
+# configure: the seeding that copies a suite into a new lane, and the sweep and
+# trace-diff that read one. It walks the tree rather than globbing it and lists every
+# non-regular entry unhashed without reading it, hashing a file only through a
+# descriptor that is a regular file, so the sweep and trace-diff also refuse what
+# configure does not tell apart: a FIFO or device node, which the verified tarball
+# does not contain.
 # A build's receipt reads the corpus through `_test_corpus` too, so a disagreement
 # between the two renderings fails the first build that records its evidence rather
 # than passing unseen.
@@ -515,7 +514,8 @@ ORACLE_STAMP_CLAIM = "bytes"
 # Written beside the tree once the bundled suite has passed on the simulator a run just
 # built there, and read back by `trace-diff` before it runs a simulator as the oracle:
 # the stamp the tree carried, the simulator's SHA-256 and the suite's tally. `oracle`
-# removes it before it touches the tree, so it stands only while the latest run passed.
+# removes it as soon as it holds the tree's lock, so it stands only while the latest
+# `oracle` run to hold that lock passed.
 ORACLE_RECEIPT_SUFFIX = ".receipt.json"
 
 
@@ -1451,8 +1451,10 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
     as evidence. It runs the simulator the build just linked in the tree, whatever
     `VOS_ORACLE` names, and only once it passes is `oracle_receipt` written beside the
     tree, naming the tree's stamp, that simulator's SHA-256 and the tally, which
-    `trace-diff` requires. The receipt is removed before the run touches the tree, so a
-    run that stops short of a passing suite, refused, failed or killed, leaves none.
+    `trace-diff` requires. The receipt is removed as soon as the run holds the tree's
+    lock, so a run that holds it and then stops short of a passing suite, refused,
+    failed or killed, leaves none; a run refused before it holds the lock leaves the
+    tree and its receipt as they were.
 
     The compiler is this environment's `sail`, bound twice. The tree sits under the
     edition that builds it (`env.Environment.oracle_root`), because the Makefile's

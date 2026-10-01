@@ -46,9 +46,12 @@ module `tools/vos/saillsp.py` and the dependency-refresh patch, so a change to
 any of them, the installer's own code included, makes `status` refuse each
 lane's installation as stale until `install` rebuilds it. `install` returns an
 installation `status` accepts and otherwise builds one, first printing any
-refusal it repairs. It downloads again any source archive that is missing or
-differs from its pin, keeps a download only once its SHA-256 matches, and
-extracts each source into a fresh tree. It removes
+refusal it repairs. A recipe input the checkout cannot read is not such a
+refusal: `install` stops before removing anything, and `status` accepts the
+installation again once the checkout is restored. `install` downloads again
+any source archive that is missing or differs from its pin, keeps a download
+only once its SHA-256 matches, and extracts each source into a fresh tree. It
+removes
 the previous receipt first and installs into an emptied prefix and
 configuration, so nothing a superseded recipe installed is loaded or hashed as an
 artifact, and an interrupted rebuild leaves no installation for `status` to

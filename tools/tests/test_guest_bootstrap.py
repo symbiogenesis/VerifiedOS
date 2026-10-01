@@ -5,11 +5,13 @@ import argparse
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 from collections.abc import Callable
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
+from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 from typing import IO, cast
@@ -355,10 +357,12 @@ def _repositories_come_from_the_owner() -> None:
     """The root is created by the owner's one route, on the owner's repositories, the
     first as the default; bootstrap spells no opam command of its own for it."""
     launched: list[tuple[str, ...]] = []
-    with patch.object(bootstrap, "run", side_effect=lambda argv, log: launched.append(argv)):
-        bootstrap.initialize_repositories(io.StringIO())
-    ensure(launched == list(bootstrap.opam_client.CREATE_ROOT),
-           f"bootstrap runs the owner's root-creation route, ran {launched}")
+    with (tempfile.TemporaryDirectory() as directory,
+          patch.object(bootstrap, "run", side_effect=lambda argv, log: launched.append(argv))):
+        how = bootstrap.initialize_repositories(Path(directory) / "opam", io.StringIO())
+    ensure(how == "created" and launched == list(bootstrap.opam_client.CREATE_ROOT),
+           f"bootstrap runs the owner's root-creation route where no root stands, "
+           f"ran {launched} and says {how}")
     source = Path(bootstrap.__file__).read_text(encoding="utf-8")
     ensure('"init"' not in source and '"repository"' not in source,
            "bootstrap must run the owner's route, not restate its commands")
@@ -374,38 +378,77 @@ def _repositories_come_from_the_owner() -> None:
            f"the prover switch resolves only from configured repositories, got {selected}")
 
 
-def _install_over(initialize: Callable[[Path], None]) -> tuple[int, dict[str, object], bool]:
-    """`install` with every step standing in but the reading of the opam root, which
-    `initialize` writes where the private root keeps it: the exit code, the record, and
-    whether any toolchain was installed."""
+def _stamped(suffix: str) -> dict[str, str]:
+    """A stamp for each owned repository, telling the run that read it apart."""
+    return {name: f"{name}-{suffix}" for name, _ in bootstrap.opam_client.OPAM_REPOSITORIES}
+
+
+@dataclass(frozen=True)
+class _Installed:
+    """What one `install` over a fixture opam root did: its exit code, its record, every
+    command it launched, and whether any toolchain was installed."""
+
+    code: int
+    record: dict[str, object]
+    commands: list[tuple[str, ...]]
+    installed: bool
+
+    @property
+    def opam_commands(self) -> list[tuple[str, ...]]:
+        return [argv for argv in self.commands if argv and Path(argv[0]).name == "opam"]
+
+
+def _install_over(standing: Callable[[Path], None] | None,
+                  route: Callable[[Path], None] = lambda opam: None) -> _Installed:
+    """`install` with every step standing in but bootstrap's handling of the opam root:
+    `standing` writes the root that stands where the private root keeps it before the
+    run, where one does, and `route` the root the root-creation route leaves there once
+    its last step runs."""
+    commands: list[tuple[str, ...]] = []
     with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {}, clear=True):
         root = Path(directory)
+        opam = root / "opam"
+        if standing is not None:
+            standing(opam)
+
+        def launch(argv: tuple[str, ...], log: IO[str]) -> None:
+            commands.append(tuple(argv))
+            if tuple(argv) == bootstrap.opam_client.CREATE_ROOT[-1]:
+                shutil.rmtree(opam, ignore_errors=True)
+                route(opam)
+
+        def query(argv: tuple[str, ...], **kwargs: object) -> subprocess.CompletedProcess[str]:
+            commands.append(tuple(argv))
+            return subprocess.CompletedProcess(argv, 0, stdout="f" * 40 + "\n")
+
         args = argparse.Namespace(jobs=2, toolchains=["rocq"], install_system=False,
                                   github_env=None, github_path=None)
-        revision = subprocess.CompletedProcess([], 0, stdout="f" * 40 + "\n")
         with (patch.object(bootstrap, "system_packages"),
-              patch.object(bootstrap.subprocess, "run", return_value=revision),
+              patch.object(bootstrap.subprocess, "run", side_effect=query),
               patch.object(bootstrap.platform, "platform", return_value="fixture-host"),
               patch.object(bootstrap.platform, "machine", return_value="x86_64"),
               patch.object(bootstrap.receipts, "download",
                            side_effect=lambda url, target, expected: target.write_bytes(b"")),
-              patch.object(bootstrap, "initialize_repositories",
-                           side_effect=lambda log: initialize(root / "opam")),
+              patch.object(bootstrap, "run", side_effect=launch),
               patch.object(bootstrap, "install_toolchains") as toolchains,
               patch.object(bootstrap, "retain_logs"),
-              redirect_stderr(io.StringIO())):
+              redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
             code = bootstrap.install(args, root, "fixture")
         record = cast("dict[str, object]", json.loads(
             (root / "logs" / "bootstrap.json").read_text(encoding="utf-8")))
-        return code, record, toolchains.called
+        return _Installed(code, record, commands, toolchains.called)
 
 
 def _repository_state_is_recorded() -> None:
     """bootstrap.json names the metadata the snapshots were resolved against, read from
     a root in the layout the reviewed client leaves: 2.6's, each repository tarred flat."""
-    code, record, installed = _install_over(lambda opam: opam_root(opam, "flat"))
-    ensure(code == 0 and record["exit_code"] == 0 and installed,
+    run = _install_over(None, lambda opam: opam_root(opam, "flat"))
+    record = run.record
+    ensure(run.code == 0 and record["exit_code"] == 0 and run.installed,
            f"the fixture installs, got {record}")
+    ensure(run.opam_commands == list(bootstrap.opam_client.CREATE_ROOT)
+           and record["opam_root_action"] == "created",
+           f"where no root stands the route creates one, ran {run.opam_commands}")
     ensure(record["opam_repositories"] == [
                {"name": name, "url": url, "stamp": f"{name}-stamp"}
                for name, url in bootstrap.opam_client.OPAM_REPOSITORIES],
@@ -416,31 +459,104 @@ def _repository_state_is_recorded() -> None:
            "the client recorded is the reviewed one, and the root is in its format")
 
 
+def _complete_root_is_kept() -> None:
+    """A complete root that stands, as Guest CI restores one with its switches, is kept:
+    no opam command runs over it, since adding a repository it carries fetches that one
+    again, and the record carries the stamps the restored switches were resolved
+    against rather than a refetched one."""
+    restored = _stamped("restored")
+    run = _install_over(lambda opam: opam_root(opam, "flat", restored),
+                        lambda opam: opam_root(opam, "flat", _stamped("refetched")))
+    ensure(run.code == 0 and run.record["exit_code"] == 0 and run.installed,
+           f"a complete root installs, got {run.record}")
+    ensure(not run.opam_commands and run.record["opam_root_action"] == "kept",
+           f"a complete root runs no opam command, ran {run.opam_commands}")
+    ensure(run.record["opam_repositories"] == [
+               {"name": name, "url": url, "stamp": restored[name]}
+               for name, url in bootstrap.opam_client.OPAM_REPOSITORIES],
+           f"the restored stamps are recorded, got {run.record.get('opam_repositories')}")
+
+
+def _resumable_root_is_finished() -> None:
+    """A root in the shape the route's leading steps leave is finished by the route's
+    remaining steps, which never run `opam init` over it and fetch only the
+    repositories they add."""
+    owned = bootstrap.opam_client.OPAM_REPOSITORIES
+    default = owned[0][0]
+    finished = _stamped("fetched") | {default: f"{default}-restored"}
+    run = _install_over(
+        lambda opam: opam_root(opam, "flat", {default: f"{default}-restored"}, owned[:1]),
+        lambda opam: opam_root(opam, "flat", finished))
+    ensure(run.code == 0 and run.installed and run.record["opam_root_action"] == "finished"
+           and run.opam_commands == list(bootstrap.opam_client.CREATE_ROOT[1:]),
+           f"a resumable root is finished by the route's remaining steps, ran "
+           f"{run.opam_commands}, "
+           f"got {run.record}")
+    ensure(run.record["opam_repositories"] == [
+               {"name": name, "url": url, "stamp": finished[name]} for name, url in owned],
+           f"the finished root's stamps are recorded, got {run.record.get('opam_repositories')}")
+
+
+def _incomplete_root_is_refused() -> None:
+    """Any other standing root is refused before any opam command runs over it or any
+    toolchain is resolved against it, and the record says what it lacks."""
+    owned = bootstrap.opam_client.OPAM_REPOSITORIES
+    (default, url), *others = owned
+    roots: dict[str, tuple[Callable[[Path], None], str]] = {
+        "another format": (lambda opam: opam_root(opam, "nested"),
+                           f"format 2.2, not the reviewed client's "
+                           f"{bootstrap.opam_client.OPAM_ROOT_FORMAT}"),
+        "an unstamped first repository": (
+            lambda opam: opam_root(opam, "flat", {name: "s" for name, _ in others}),
+            f"no metadata stamp for {default}"),
+        "a repository the owner does not name": (
+            lambda opam: opam_root(opam, "flat",
+                                   configured=(*owned, ("mine", "https://example.invalid"))),
+            "is configured with"),
+        "a repository at another URL": (
+            lambda opam: opam_root(opam, "flat", configured=((default, url + "/elsewhere"),
+                                                             *others)),
+            "is configured with"),
+        "no repositories": (lambda opam: opam_root(opam, "flat", configured=()),
+                            "no repositories"),
+    }
+    for what, (standing, reason) in roots.items():
+        run = _install_over(standing, lambda opam: opam_root(opam, "flat"))
+        ensure(run.code == 1 and run.record["exit_code"] == 1 and not run.installed
+               and not run.opam_commands and "opam_repositories" not in run.record
+               and "opam_root_action" not in run.record,
+               f"a root with {what} must fail the bootstrap untouched and unrecorded, "
+               f"ran {run.opam_commands}, got {run.record}")
+        error = str(run.record.get("error"))
+        ensure(reason in error and "left as it is" in error,
+               f"a root with {what}: the record says what it lacks, got {error}")
+
+
 def _root_in_another_format_is_refused() -> None:
     """A root the reviewed client did not write in its own format is not the one the
     record names: the recorded format would otherwise drift from the client's unseen."""
-    code, record, installed = _install_over(lambda opam: opam_root(opam, "nested"))
-    ensure(code == 1 and not installed and "opam_root_format" not in record
+    run = _install_over(None, lambda opam: opam_root(opam, "nested"))
+    ensure(run.code == 1 and not run.installed and "opam_root_format" not in run.record
            and f"format 2.2, not the reviewed client's {bootstrap.opam_client.OPAM_ROOT_FORMAT}"
-           in str(record.get("error")),
-           f"a 2.2-format root fails the bootstrap and says so, got {record}")
+           in str(run.record.get("error")),
+           f"a 2.2-format root fails the bootstrap and says so, got {run.record}")
 
 
 def _unread_repository_state_is_refused() -> None:
     """A root whose repositories cannot be read fails the bootstrap before any toolchain
     is resolved against it, rather than recording an empty or unstamped state."""
     (default, _), *others = bootstrap.opam_client.OPAM_REPOSITORIES
-    for what, initialize in (
+    for what, route in (
             ("an empty listing", lambda opam: None),
             ("an unstamped repository",
              lambda opam: opam_root(opam, "flat", {name: "s" for name, _ in others}))):
-        code, record, installed = _install_over(initialize)
-        ensure(code == 1 and record["exit_code"] == 1 and not installed
-               and "opam_repositories" not in record,
-               f"{what} must fail the bootstrap unrecorded, got {record}")
+        run = _install_over(None, route)
+        ensure(run.code == 1 and run.record["exit_code"] == 1 and not run.installed
+               and "opam_repositories" not in run.record,
+               f"{what} must fail the bootstrap unrecorded, got {run.record}")
         ensure(("no repositories" if what == "an empty listing"
-                else f"no metadata stamp for {default}") in str(record.get("error")),
-               f"{what}: the record says what was not read, got {record.get('error')}")
+                else f"no metadata stamp for {default}") in str(run.record.get("error")),
+               f"{what}: the record says what was not read, got {run.record.get('error')}")
 
 
 def _job_arguments() -> None:
@@ -501,6 +617,9 @@ def cases() -> list[Case]:
         Case("root prerequisites come from the owner", _root_prerequisites_come_from_the_owner),
         Case("repositories come from the owner", _repositories_come_from_the_owner),
         Case("repository state is recorded", _repository_state_is_recorded),
+        Case("a complete root is kept without the route", _complete_root_is_kept),
+        Case("a resumable root is finished by the route", _resumable_root_is_finished),
+        Case("an incomplete root is refused untouched", _incomplete_root_is_refused),
         Case("unread repository state is refused", _unread_repository_state_is_refused),
         Case("a root in another format is refused", _root_in_another_format_is_refused),
     ]
