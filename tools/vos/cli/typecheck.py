@@ -88,8 +88,9 @@ against the file's name rather than a line of it; and one carrying
 comment, whose `disable` with no matching `enable` runs to the end of its block, or
 isort's `skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` on a line of
 its own reaches the one logical line beneath it, a multi-line one whole, or, inside
-brackets, the one line beneath it, and one ending a line reaches that line alone, a line
-taking in the lines a backslash or a multi-line string joins to it; it is not refused.
+brackets, the one line of code beneath it, past blank and comment lines, and one ending
+a line reaches that line alone, a line taking in the lines a backslash or a multi-line
+string joins to it; it is not refused.
 
 `ruff.toml` lists the modules the interpreter lacks on one platform that ty resolves on
 both, and ruff's TID253 refuses an import of one only where it is unnested at module
@@ -253,8 +254,8 @@ FILE_SCOPED = frozenset({"N999"})
 # the whole file at module level; and isort's `skip_file`, `off` and `on`, alone or after
 # `ruff:`, which switch import sorting off for the whole file or from `off` to `on` or
 # the file's end. `ruff: ignore[...]`, which reaches the one logical line beneath it, the
-# one line beneath it inside brackets, or the line it ends, and isort's `skip`, which
-# reaches one line, are not matched.
+# one line of code beneath it inside brackets, or the line it ends, and isort's `skip`,
+# which reaches one line, are not matched.
 FILE_RANGE = re.compile(r"#\s*(?:ruff\s*:\s*(?:disable|enable|file-ignore)\b"
                         r"|(?:ruff\s*:\s*)?isort\s*:\s*(?:skip_file|off|on)\b)")
 

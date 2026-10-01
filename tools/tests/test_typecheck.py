@@ -1096,9 +1096,9 @@ def _ruff_ignore_reaches_one_line() -> None:
     # past blank and comment lines, a multi-line one whole, a compound statement's header
     # but not its block unless the block shares the header's line, a decorator but not
     # the definition beneath, and every statement a semicolon joins; inside brackets it
-    # reaches the one line beneath it; one ending a line reaches that line alone; and a
-    # line takes in the lines a backslash or a multi-line string joins to it. The
-    # module's E711 findings are what ruff leaves.
+    # reaches the one line of code beneath it, past blank and comment lines; one ending a
+    # line reaches that line alone; and a line takes in the lines a backslash or a
+    # multi-line string joins to it. The module's E711 findings are what ruff leaves.
     text = "\n".join([
         "x = y = None",                          # 1
         "# ruff: ignore[E711]",                  # 2
@@ -1118,19 +1118,21 @@ def _ruff_ignore_reaches_one_line() -> None:
         "    pass",                              # 16
         "g = (",                                 # 17
         "    # ruff: ignore[E711]",              # 18
-        "    x == None,",                        # 19 reached, not 20
-        "    y == None,",                        # 20
-        ")",                                     # 21
-        "h = (x == None,  # ruff: ignore[E711]",  # 22 reached, not 23
-        "     y == None)",                       # 23
-        "i = x == None or \\",                   # 24 joined to 25
-        "    y == None  # ruff: ignore[E711]",   # 25
-        "j = (x == None, '''",                   # 26 joined to 28
-        "text",                                  # 27
-        "''')  # ruff: ignore[E711]",            # 28
-        "# ruff: ignore[E711]",                  # 29
-        "k = x == None; m = y == None",          # 30 reached, both statements
-        "n = x == None",                         # 31
+        "    # a comment inside brackets",       # 19
+        "",                                      # 20
+        "    x == None,",                        # 21 reached, not 22
+        "    y == None,",                        # 22
+        ")",                                     # 23
+        "h = (x == None,  # ruff: ignore[E711]",  # 24 reached, not 25
+        "     y == None)",                       # 25
+        "i = x == None or \\",                   # 26 joined to 27
+        "    y == None  # ruff: ignore[E711]",   # 27
+        "j = (x == None, '''",                   # 28 joined to 30
+        "text",                                  # 29
+        "''')  # ruff: ignore[E711]",            # 30
+        "# ruff: ignore[E711]",                  # 31
+        "k = x == None; m = y == None",          # 32 reached, both statements
+        "n = x == None",                         # 33
         ""])
     rep = Reporter()
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
@@ -1145,7 +1147,7 @@ def _ruff_ignore_reaches_one_line() -> None:
     found = typecheck._parse_ruff(done.stdout)
     lines = sorted(int(where.partition(" ")[0].split(":")[1]) for _, where in found)
     ensure(done.returncode == 1 and {code for code, _ in found} == {"E711"}
-           and lines == [7, 10, 15, 20, 23, 31],
+           and lines == [7, 10, 15, 22, 25, 33],
            f"ruff: ignore must reach the lines the reading says and no others: {lines!r} "
            f"{done.stdout!r} {done.stderr!r}")
 
