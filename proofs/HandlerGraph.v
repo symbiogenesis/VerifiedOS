@@ -516,14 +516,12 @@ Fixpoint find_last_of {A : Type} (p : A -> bool) (l : list A) : option A :=
   match l with
   | nil => None
   | cons x r =>
-      match find_last_of p r with
-      | Some y => Some y
-      | None => if p x then Some x else None
-      end
+      if find_last_of p r is Some y then Some y
+      else if p x then Some x else None
   end.
 
 Definition is_some {A : Type} (o : option A) : bool :=
-  match o with Some _ => true | None => false end.
+  if o is Some _ then true else false.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
 Proof.
@@ -1236,27 +1234,8 @@ Record Machine : Type := {
    R-13-002's obligation quantifies over (reading 3). Every other field is
    carried across unchanged, so a composer that answers differently under it
    answered by running the script. *)
-Definition with_script (m : Machine) (s : nat -> list Edge) : Machine := {|
-  package_count := m.(package_count);
-  roster := m.(roster);
-  descriptor := m.(descriptor);
-  script := s;
-  type_count := m.(type_count);
-  intent_count := m.(intent_count);
-  world_count := m.(world_count);
-  in_inventory := m.(in_inventory);
-  verified_parser := m.(verified_parser);
-  format_class := m.(format_class);
-  node_pool_capacity := m.(node_pool_capacity);
-  ring_pool_capacity := m.(ring_pool_capacity);
-  ring_depth_ceiling := m.(ring_depth_ceiling);
-  template_stages := m.(template_stages);
-  template_in := m.(template_in);
-  template_out := m.(template_out);
-  channel := m.(channel);
-  ambiguity_admitted := m.(ambiguity_admitted);
-  graph_identity := m.(graph_identity)
-|}.
+Definition with_script (m : Machine) (s : nat -> list Edge) : Machine :=
+  {| m with script := s |}.
 
 Lemma with_script_changes_nothing_else :
   forall (m : Machine) (s : nat -> list Edge),
@@ -1321,6 +1300,20 @@ Example there_are_twelve_conjuncts :
   forall (m : Machine) (r : list nat), count_of (edge_conjuncts m r) = 12.
 Proof. intros m r. reflexivity. Qed.
 
+(* The opening the eight conjunct readings below share: introduce the
+   machine, the roster, the edge and its admission `H`, and unfold `H` into
+   its twelve conjuncts. *)
+Local Ltac read_the_conjuncts :=
+  intros m r e H; unfold admissible_edge, edge_conjuncts in H; simpl in H.
+
+(* The first six conjuncts of the conjunction `H` set aside, its remainder
+   named `H6`: where every reading of a conjunct past the sixth starts, here
+   and over the weakened filters and the template below. *)
+Local Ltac drop_six_conjuncts :=
+  destruct (andb_split _ _ H) as [ _ H1 ]; destruct (andb_split _ _ H1) as [ _ H2 ];
+  destruct (andb_split _ _ H2) as [ _ H3 ]; destruct (andb_split _ _ H3) as [ _ H4 ];
+  destruct (andb_split _ _ H4) as [ _ H5 ]; destruct (andb_split _ _ H5) as [ _ H6 ].
+
 (* The conjuncts every closure and attenuation theorem below reads back out
    of the conjunction, one small lemma each rather than a `simpl` inside each
    theorem. *)
@@ -1328,7 +1321,7 @@ Lemma admissible_owner_on_roster :
   forall (m : Machine) (r : list nat) (e : Edge),
     admissible_edge m r e = true -> mem_nat e.(edge_owner) r = true.
 Proof.
-  intros m r e H. unfold admissible_edge, edge_conjuncts in H. simpl in H.
+  read_the_conjuncts.
   destruct (andb_split _ _ H) as [ H0 _ ]. exact H0.
 Qed.
 
@@ -1336,7 +1329,7 @@ Lemma admissible_target_on_roster :
   forall (m : Machine) (r : list nat) (e : Edge),
     admissible_edge m r e = true -> mem_nat e.(edge_target) r = true.
 Proof.
-  intros m r e H. unfold admissible_edge, edge_conjuncts in H. simpl in H.
+  read_the_conjuncts.
   destruct (andb_split _ _ H) as [ _ H1 ].
   destruct (andb_split _ _ H1) as [ H2 _ ]. exact H2.
 Qed.
@@ -1345,7 +1338,7 @@ Lemma admissible_declares_a_limit :
   forall (m : Machine) (r : list nat) (e : Edge),
     admissible_edge m r e = true -> Nat.ltb 0 e.(edge_limit) = true.
 Proof.
-  intros m r e H. unfold admissible_edge, edge_conjuncts in H. simpl in H.
+  read_the_conjuncts.
   destruct (andb_split _ _ H) as [ _ H1 ].
   destruct (andb_split _ _ H1) as [ _ H2 ].
   destruct (andb_split _ _ H2) as [ H3 _ ]. exact H3.
@@ -1356,13 +1349,8 @@ Lemma admissible_world_is_declared :
     admissible_edge m r e = true ->
     Nat.ltb e.(edge_world) m.(world_count) = true.
 Proof.
-  intros m r e H. unfold admissible_edge, edge_conjuncts in H. simpl in H.
-  destruct (andb_split _ _ H) as [ _ H1 ].
-  destruct (andb_split _ _ H1) as [ _ H2 ].
-  destruct (andb_split _ _ H2) as [ _ H3 ].
-  destruct (andb_split _ _ H3) as [ _ H4 ].
-  destruct (andb_split _ _ H4) as [ _ H5 ].
-  destruct (andb_split _ _ H5) as [ _ H6 ].
+  read_the_conjuncts.
+  drop_six_conjuncts.
   destruct (andb_split _ _ H6) as [ H7 _ ]. exact H7.
 Qed.
 
@@ -1370,13 +1358,8 @@ Lemma admissible_format_is_inventoried :
   forall (m : Machine) (r : list nat) (e : Edge),
     admissible_edge m r e = true -> m.(in_inventory) e.(edge_format) = true.
 Proof.
-  intros m r e H. unfold admissible_edge, edge_conjuncts in H. simpl in H.
-  destruct (andb_split _ _ H) as [ _ H1 ].
-  destruct (andb_split _ _ H1) as [ _ H2 ].
-  destruct (andb_split _ _ H2) as [ _ H3 ].
-  destruct (andb_split _ _ H3) as [ _ H4 ].
-  destruct (andb_split _ _ H4) as [ _ H5 ].
-  destruct (andb_split _ _ H5) as [ _ H6 ].
+  read_the_conjuncts.
+  drop_six_conjuncts.
   destruct (andb_split _ _ H6) as [ _ H7 ].
   destruct (andb_split _ _ H7) as [ H8 _ ]. exact H8.
 Qed.
@@ -1385,13 +1368,8 @@ Lemma admissible_format_has_a_verified_parser :
   forall (m : Machine) (r : list nat) (e : Edge),
     admissible_edge m r e = true -> m.(verified_parser) e.(edge_format) = true.
 Proof.
-  intros m r e H. unfold admissible_edge, edge_conjuncts in H. simpl in H.
-  destruct (andb_split _ _ H) as [ _ H1 ].
-  destruct (andb_split _ _ H1) as [ _ H2 ].
-  destruct (andb_split _ _ H2) as [ _ H3 ].
-  destruct (andb_split _ _ H3) as [ _ H4 ].
-  destruct (andb_split _ _ H4) as [ _ H5 ].
-  destruct (andb_split _ _ H5) as [ _ H6 ].
+  read_the_conjuncts.
+  drop_six_conjuncts.
   destruct (andb_split _ _ H6) as [ _ H7 ].
   destruct (andb_split _ _ H7) as [ _ H8 ].
   destruct (andb_split _ _ H8) as [ H9 _ ]. exact H9.
@@ -1402,13 +1380,8 @@ Lemma admissible_bounds_inside_the_manifest :
     admissible_edge m r e = true ->
     Nat.leb e.(edge_bounds) (m.(descriptor) e.(edge_owner)).(desc_manifest) = true.
 Proof.
-  intros m r e H. unfold admissible_edge, edge_conjuncts in H. simpl in H.
-  destruct (andb_split _ _ H) as [ _ H1 ].
-  destruct (andb_split _ _ H1) as [ _ H2 ].
-  destruct (andb_split _ _ H2) as [ _ H3 ].
-  destruct (andb_split _ _ H3) as [ _ H4 ].
-  destruct (andb_split _ _ H4) as [ _ H5 ].
-  destruct (andb_split _ _ H5) as [ _ H6 ].
+  read_the_conjuncts.
+  drop_six_conjuncts.
   destruct (andb_split _ _ H6) as [ _ H7 ].
   destruct (andb_split _ _ H7) as [ _ H8 ].
   destruct (andb_split _ _ H8) as [ _ H9 ].
@@ -1420,13 +1393,8 @@ Lemma admissible_ring_is_inside_the_ceiling :
     admissible_edge m r e = true ->
     Nat.leb e.(edge_ring) m.(ring_depth_ceiling) = true.
 Proof.
-  intros m r e H. unfold admissible_edge, edge_conjuncts in H. simpl in H.
-  destruct (andb_split _ _ H) as [ _ H1 ].
-  destruct (andb_split _ _ H1) as [ _ H2 ].
-  destruct (andb_split _ _ H2) as [ _ H3 ].
-  destruct (andb_split _ _ H3) as [ _ H4 ].
-  destruct (andb_split _ _ H4) as [ _ H5 ].
-  destruct (andb_split _ _ H5) as [ _ H6 ].
+  read_the_conjuncts.
+  drop_six_conjuncts.
   destruct (andb_split _ _ H6) as [ _ H7 ].
   destruct (andb_split _ _ H7) as [ _ H8 ].
   destruct (andb_split _ _ H8) as [ _ H9 ].
@@ -1844,10 +1812,8 @@ Definition runtime_edge (b : BannedMechanism) : Edge := {|
   edge_ring := 1
 |}.
 
-Definition amend_by (b : BannedMechanism) : Amender := fun g => {|
-  graph_nodes := g.(graph_nodes);
-  graph_edges := cons (runtime_edge b) g.(graph_edges)
-|}.
+Definition amend_by (b : BannedMechanism) : Amender := fun g =>
+  {| g with graph_edges := cons (runtime_edge b) g.(graph_edges) |}.
 
 (* The whole family, with the specification's own non-amendment as the
    fallback past the last index (reading 9). *)
@@ -1975,33 +1941,15 @@ Definition spec_select : Selector :=
 
 (* The same request with one field moved, so that each independence
    obligation quantifies over exactly the field its entry names. *)
-Definition with_run (q : Request) (n : nat) : Request := {|
-  req_intent := q.(req_intent);
-  req_bound := q.(req_bound);
-  req_run := n;
-  req_content := q.(req_content)
-|}.
+Definition with_run (q : Request) (n : nat) : Request := {| q with req_run := n |}.
 
-Definition with_name (q : Request) (n : nat) : Request := {|
-  req_intent := {| int_index := q.(req_intent).(int_index); int_name := n |};
-  req_bound := q.(req_bound);
-  req_run := q.(req_run);
-  req_content := q.(req_content)
-|}.
+Definition with_name (q : Request) (n : nat) : Request :=
+  {| q with req_intent := {| int_index := q.(req_intent).(int_index); int_name := n |} |}.
 
-Definition with_bound (q : Request) (b : nat) : Request := {|
-  req_intent := q.(req_intent);
-  req_bound := b;
-  req_run := q.(req_run);
-  req_content := q.(req_content)
-|}.
+Definition with_bound (q : Request) (b : nat) : Request := {| q with req_bound := b |}.
 
-Definition with_content (q : Request) (n : nat) : Request := {|
-  req_intent := q.(req_intent);
-  req_bound := q.(req_bound);
-  req_run := q.(req_run);
-  req_content := n
-|}.
+Definition with_content (q : Request) (n : nat) : Request :=
+  {| q with req_content := n |}.
 
 (* O6 (R-12-024b's "deterministic typed routing"): the selection does not
    vary with which run it is. *)
@@ -2163,12 +2111,7 @@ Lemma dropping_the_world_keeps_the_manifest :
     Nat.leb e.(edge_bounds) (m.(descriptor) e.(edge_owner)).(desc_manifest) = true.
 Proof.
   intros m r e H. unfold edge_conjuncts in H. simpl in H.
-  destruct (andb_split _ _ H) as [ _ H1 ].
-  destruct (andb_split _ _ H1) as [ _ H2 ].
-  destruct (andb_split _ _ H2) as [ _ H3 ].
-  destruct (andb_split _ _ H3) as [ _ H4 ].
-  destruct (andb_split _ _ H4) as [ _ H5 ].
-  destruct (andb_split _ _ H5) as [ _ H6 ].
+  drop_six_conjuncts.
   destruct (andb_split _ _ H6) as [ _ H7 ].
   destruct (andb_split _ _ H7) as [ _ H8 ].
   destruct (andb_split _ _ H8) as [ H9 _ ]. exact H9.
@@ -2180,12 +2123,7 @@ Lemma dropping_the_manifest_keeps_the_world :
     Nat.ltb e.(edge_world) m.(world_count) = true.
 Proof.
   intros m r e H. unfold edge_conjuncts in H. simpl in H.
-  destruct (andb_split _ _ H) as [ _ H1 ].
-  destruct (andb_split _ _ H1) as [ _ H2 ].
-  destruct (andb_split _ _ H2) as [ _ H3 ].
-  destruct (andb_split _ _ H3) as [ _ H4 ].
-  destruct (andb_split _ _ H4) as [ _ H5 ].
-  destruct (andb_split _ _ H5) as [ _ H6 ].
+  drop_six_conjuncts.
   destruct (andb_split _ _ H6) as [ H7 _ ]. exact H7.
 Qed.
 
@@ -2246,22 +2184,16 @@ Definition name_reading_select : Selector := fun g q =>
    nearest compatible one, which is the fallback R-12-024b's acceptance
    clause excludes. It is deterministic and returns only admitted edges. *)
 Definition fallback_select : Selector := fun g q =>
-  match find_of (matches q) g.(graph_edges) with
-  | Some e => Some e
-  | None => find_of (fun e => Nat.leb e.(edge_limit) q.(req_bound))
-                    g.(graph_edges)
-  end.
+  if find_of (matches q) g.(graph_edges) is Some e then Some e
+  else find_of (fun e => Nat.leb e.(edge_limit) q.(req_bound)) g.(graph_edges).
 
 (* O8's second refuter, which is O4's fifth mechanism read from the selection
    side: where the intent names no admitted edge it guesses from the bytes.
    It is deterministic in the run and in the name and returns only admitted
    edges, and it both fails to fail closed and sniffs. *)
 Definition sniffing_select : Selector := fun g q =>
-  match find_of (matches q) g.(graph_edges) with
-  | Some e => Some e
-  | None => find_of (fun e => Nat.eqb e.(edge_format) q.(req_content))
-                    g.(graph_edges)
-  end.
+  if find_of (matches q) g.(graph_edges) is Some e then Some e
+  else find_of (fun e => Nat.eqb e.(edge_format) q.(req_content)) g.(graph_edges).
 
 (* O9b's refuter: a selector that answers the intent and ignores the bound. *)
 Definition overrunning_select : Selector := fun g q =>
@@ -2287,10 +2219,8 @@ Definition widened_edge (q : Request) : Edge := {|
 |}.
 
 Definition widening_select : Selector := fun g q =>
-  match find_of (matches q) g.(graph_edges) with
-  | Some e => Some e
-  | None => Some (widened_edge q)
-  end.
+  if find_of (matches q) g.(graph_edges) is Some e then Some e
+  else Some (widened_edge q).
 
 (* The obligations each refuter keeps, stated of an arbitrary graph and
    request rather than computed on the demo, so that what refutes each below
@@ -2586,7 +2516,7 @@ Definition spec_bind : Binder := fun m occ t =>
   else Some Bound.
 
 Definition is_bound (v : option Verdict) : bool :=
-  match v with Some Bound => true | _ => false end.
+  if v is Some Bound then true else false.
 
 (* R-08-047: the request cannot be dropped or converted into an implicit
    wait, so a binder answers at every occupancy. *)
@@ -2845,12 +2775,7 @@ Theorem a_well_formed_template_crosses_no_undeclared_label :
     template_ok m t = true -> labels_joined m t = true.
 Proof.
   intros m t H. unfold template_ok, template_conjuncts in H. simpl in H.
-  destruct (andb_split _ _ H) as [ _ H1 ].
-  destruct (andb_split _ _ H1) as [ _ H2 ].
-  destruct (andb_split _ _ H2) as [ _ H3 ].
-  destruct (andb_split _ _ H3) as [ _ H4 ].
-  destruct (andb_split _ _ H4) as [ _ H5 ].
-  destruct (andb_split _ _ H5) as [ _ H6 ].
+  drop_six_conjuncts.
   destruct (andb_split _ _ H6) as [ H7 _ ].
   exact H7.
 Qed.
@@ -3125,7 +3050,7 @@ Definition short_node (k : nat) : nat :=
 Definition demo_script (p : nat) : list Edge :=
   if Nat.eqb p 2 then cons e_scripted nil else nil.
 
-Definition no_script (_ : nat) : list Edge := nil.
+Definition no_script & nat : list Edge := nil.
 
 (* R-08-021's declared inter-level channels: one, from level 0 to level 1, so
    the template's last join crosses a level the composition declared and the
@@ -3305,48 +3230,53 @@ Proof.
   split; [ intros m a1 a2 r; reflexivity | intros m s a r; reflexivity ].
 Qed.
 
+(* The refutation the seven dropped-conjunct composers below share: the
+   obligation each breaks, read at the demo composition, computes to false. *)
+Local Ltac refute_at_the_demo :=
+  intros H; specialize (H demo demo_ambient demo_roster); discriminate H.
+
 Theorem the_limitless_composer_is_refuted :
   ~ (forall (m : Machine) (a : Ambient) (r : list nat),
        all_of (fun e => Nat.ltb 0 e.(edge_limit))
               (limitless_compose m a r).(graph_edges) = true).
-Proof. intros H. specialize (H demo demo_ambient demo_roster). discriminate H. Qed.
+Proof. refute_at_the_demo. Qed.
 
 Theorem the_widening_composer_is_refuted :
   ~ (forall (m : Machine) (a : Ambient) (r : list nat),
        all_of (fun e => Nat.leb e.(edge_bounds)
                                  (m.(descriptor) e.(edge_owner)).(desc_manifest))
               (widening_compose m a r).(graph_edges) = true).
-Proof. intros H. specialize (H demo demo_ambient demo_roster). discriminate H. Qed.
+Proof. refute_at_the_demo. Qed.
 
 Theorem the_uninventoried_composer_is_refuted :
   ~ (forall (m : Machine) (a : Ambient) (r : list nat),
        all_of (fun e => m.(in_inventory) e.(edge_format))
               (uninventoried_compose m a r).(graph_edges) = true).
-Proof. intros H. specialize (H demo demo_ambient demo_roster). discriminate H. Qed.
+Proof. refute_at_the_demo. Qed.
 
 Theorem the_unverified_composer_is_refuted :
   ~ (forall (m : Machine) (a : Ambient) (r : list nat),
        all_of (fun e => m.(verified_parser) e.(edge_format))
               (unverified_compose m a r).(graph_edges) = true).
-Proof. intros H. specialize (H demo demo_ambient demo_roster). discriminate H. Qed.
+Proof. refute_at_the_demo. Qed.
 
 Theorem the_ringless_composer_is_refuted :
   ~ (forall (m : Machine) (a : Ambient) (r : list nat),
        all_of (fun e => Nat.ltb 0 e.(edge_ring))
               (ringless_compose m a r).(graph_edges) = true).
-Proof. intros H. specialize (H demo demo_ambient demo_roster). discriminate H. Qed.
+Proof. refute_at_the_demo. Qed.
 
 Theorem the_deep_ring_composer_is_refuted :
   ~ (forall (m : Machine) (a : Ambient) (r : list nat),
        all_of (fun e => Nat.leb e.(edge_ring) m.(ring_depth_ceiling))
               (deep_ring_compose m a r).(graph_edges) = true).
-Proof. intros H. specialize (H demo demo_ambient demo_roster). discriminate H. Qed.
+Proof. refute_at_the_demo. Qed.
 
 Theorem the_worldless_composer_is_refuted :
   ~ (forall (m : Machine) (a : Ambient) (r : list nat),
        all_of (fun e => Nat.ltb e.(edge_world) m.(world_count))
               (worldless_compose m a r).(graph_edges) = true).
-Proof. intros H. specialize (H demo demo_ambient demo_roster). discriminate H. Qed.
+Proof. refute_at_the_demo. Qed.
 
 (* Each of the seven keeps the closure obligation except the one that drops
    it, so what refutes each is its own conjunct. The count in the name is the
