@@ -922,10 +922,30 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
         beside = _K115_RECORD.replace(link, f"{link}) and [a view]({view}")
         found = _k115({"THIRD-PARTY.md": beside})
         ensure(not found, f"a view at the reviewed commit agrees ({view}): {found!r}")
+    # Punctuation closing a bare link ends it rather than belonging to it: a link at the
+    # reviewed commit ending a sentence, set off by a comma, or wrapped in a code span or
+    # emphasis agrees, and one at a tag ending a sentence is quoted at the tag, its
+    # interior dots kept.
+    sentence = f"[terms]({url})."
+    at_tree = f"https://github.com/{tree}/{_K115_SHA}"
+    for bare in (f"terms at {url}.",
+                 f"terms at `{url}`.",
+                 f"[terms]({url}), read beside {at_tree}.",
+                 f"[terms]({url}), read beside {at_tree}, its tree.",
+                 f"[terms]({url}), read beside `{at_tree}`.",
+                 f"[terms]({url}), read beside **{at_tree}**."):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(sentence, bare)})
+        ensure(not found, f"a bare link at the reviewed commit agrees ({bare}): {found!r}")
+    found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(
+        sentence, f"[terms]({url}), read beside https://github.com/{tree}/v1.2.3.")})
+    ensure(len(found) == 1
+           and "THIRD-PARTY.md:7 links example/action's licence at v1.2.3, the row" in found[0],
+           f"a bare link at a tag ending a sentence is quoted at the tag: {found!r}")
     # A row linking no file of its action's repository says nothing about the edition
     # its terms were read at, and is one finding: the link dropped, or a link into
     # another repository, or one naming the repository and no file, alone in its place,
-    # a view at the reviewed commit naming no path after it among them.
+    # a view at the reviewed commit naming no path after it among them, and one naming
+    # only a slash closed by a full stop or a code span.
     dropped = "THIRD-PARTY.md:7 links no licence of example/action at the reviewed commit"
     for old, new in ((f"[terms]({url})", "terms"),
                      (url, f"https://github.com/other/dep/blob/{_K115_SHA}/LICENSE"),
@@ -935,7 +955,9 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
                      (url, f"https://github.com/{tree}/{_K115_SHA}?tab=readme-ov-file"),
                      (url, f"https://github.com/{tree}/{_K115_SHA}#readme"),
                      (url, f"https://github.com/example/action/blob/{_K115_SHA}"),
-                     (url, f"https://raw.githubusercontent.com/example/action/{_K115_SHA}")):
+                     (url, f"https://raw.githubusercontent.com/example/action/{_K115_SHA}"),
+                     (f"[terms]({url})", f"terms at {at_tree}/"),
+                     (f"[terms]({url})", f"terms at `{at_tree}/`")):
         found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(old, new)})
         ensure(len(found) == 1 and dropped in found[0],
                f"a row linking no licence file is one finding ({new}): {found!r}")

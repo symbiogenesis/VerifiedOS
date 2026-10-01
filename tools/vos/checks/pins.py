@@ -162,9 +162,13 @@ its terms were read at, so the row links a file of the action's own repository, 
 `blob`, `tree`, `blame` or `raw` path on github.com or a path on
 raw.githubusercontent.com, its owner and name in any case, and every such link is held
 to name the reviewed commit, never another commit, a tag or a branch that could move
-under it, the revision read up to a `/`, `?`, `#` or the link's end. A view naming no
-path after its revision, such as the tree at a commit, is held to the reviewed commit
-too but links no file, so it does not stand for the licence link. Membership is total
+under it. A `/`, `?` or `#` ends the revision, and so does a run of sentence
+punctuation or Markdown delimiters, `.`, `,`, `:`, `;`, `!`, `*`, `_`, `~`, a backtick,
+a quote or a pipe, standing just before the link's close at a blank, `)`, `]`, `>` or
+the row's end, so a bare link ending a sentence is read at its revision and a tag keeps
+its interior dots. A view naming no path after its revision, or only slashes and such a
+closing run, as the tree at a commit does, is held to the reviewed commit too but links
+no file, so it does not stand for the licence link. Membership is total
 in both directions: a line naming an action with no row runs code whose terms nobody
 read, and a row naming an action no workflow runs is a review of nothing. The two
 workflow analyzers Host CI runs are installed from a lock and a script rather than
@@ -913,22 +917,32 @@ def _tool_rows(text: str, findings: list[str]) -> dict[str, tuple[int, str]]:
     return rows
 
 
+# What closes a link in a row: a blank, a bracket closing Markdown's link or autolink
+# syntax, or the row's end. A run of sentence punctuation or Markdown delimiters
+# standing just before that close ends a bare link rather than belonging to it.
+_LINK_CLOSE = r"(?:[\s)\]>]|$)"
+_LINK_TRAIL = r".,:;!*_~`'\"|"
+
+
 def _licence_links(tool: str) -> re.Pattern[str]:
     """Every view of the action's own repository at a revision, and the file it names.
 
     A `blob`, `tree`, `blame` or `raw` path on github.com, `www.` or not, or a path on
     raw.githubusercontent.com, with the scheme, host, owner and name in any case. Its
     groups are the revision named and the path after it, empty for a view naming no
-    file, the tree at a revision among them. The revision is the segment after the view,
-    ending at a `/`, `?`, `#` or the link's end, so a view of the tree at a tag or branch
-    with no path after it is read too. Any other link into the repository, its front
-    page, a commit's or a release's, links no file and is not read.
+    file, the tree at a revision among them. The revision is the segment after the view:
+    a `/`, `?` or `#` ends it, and so does a run of `_LINK_TRAIL`'s punctuation standing
+    just before the link's close, so a bare link ending a sentence or wrapped in a code
+    span is read at its revision, and a tag keeps its interior dots. The path ends at a
+    `?` or `#`, or before a run of slashes and that punctuation standing just before the
+    close, so a trailing slash or full stop names no file. Any other link into the
+    repository, its front page, a commit's or a release's, links no file and is not read.
     """
     name = re.escape(tool)
     return re.compile(rf"(?:(?i:https?://(?:www\.)?github\.com/{name})/(?:blob|tree|blame|raw)"
                       rf"|(?i:https?://raw\.githubusercontent\.com/{name}))"
-                      r"/([^/\s)\]>#?]+)(?=[/#?\s)\]>]|$)"
-                      r"(?:/([^/\s)\]>#?][^\s)\]>#?]*))?")
+                      rf"/([^/\s)\]>#?]+?)(?=[/#?]|[{_LINK_TRAIL}]*{_LINK_CLOSE})"
+                      rf"(?:/([^\s)\]>#?]*?)(?=[#?]|[/{_LINK_TRAIL}]*{_LINK_CLOSE}))?")
 
 
 def _workflow_pins(ctx: Context) -> None:
