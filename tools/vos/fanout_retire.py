@@ -374,14 +374,16 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
     `.package-cache`, are covered only through those wrapping locks. No other
     directory is opened, so the number of directories in a tree (a private opam root
     holds tens of thousands) never meets the descriptor limit; more `*.lock` entries
-    than descriptors refuse, naming the path. Any other lock that cannot be opened or
-    taken, and a move the filesystem rejects, refuse naming the path. With every
-    selected lock held the selection is repeated, and a lock that appeared or vanished
-    since refuses. Residual: a producer that takes a new lock after that repetition
-    and before the rename is not seen, and one that opens its lock after the rename
-    recreates the lane root, because `env._open_lock` and `proofs._hold` create
-    missing parents. Exact peer-colliding and unknown log layouts remain in place with
-    explicit deferred evidence. No source path is recursively deleted.
+    than descriptors refuse, naming the path. A file several selected paths name, such
+    as a `*.lock` file a lane's uv cache hard-links into an environment it installs, is
+    locked once. Any other lock that cannot be opened or taken, and a move the
+    filesystem rejects, refuse naming the path. With every selected lock held the
+    selection is repeated, and a lock that appeared or vanished since refuses.
+    Residual: a producer that takes a new lock after that repetition and before the
+    rename is not seen, and one that opens its lock after the rename recreates the lane
+    root, because `env._open_lock` and `proofs._hold` create missing parents. Exact
+    peer-colliding and unknown log layouts remain in place with explicit deferred
+    evidence. No source path is recursively deleted.
     """
     if sys.platform == "win32":
         raise RetirementError("native output retention must run through the guest")
@@ -416,6 +418,12 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
     oracle = logs / f"oracle-build-{lane}.log" in selected_logs
     lock_paths = _native_locks(targets, source, oracle=oracle)
     with contextlib.ExitStack() as stack:
+        # A lane-local uv cache hard-links the files it installs, `*.lock` files among
+        # them, so two paths can name one file, and flock treats each open file
+        # description on it independently: a second would be refused by retirement's
+        # own first, so each file is locked once, through the first path that opens
+        # it, and every descriptor stays open.
+        held: set[tuple[int, int]] = set()
         for path in sorted(lock_paths):
             _plain(path)
             if path.is_symlink() or path.is_junction():
@@ -425,7 +433,10 @@ def retain_native(lane: str, lane_root: str, log_root: str, batch: str,
             try:
                 fd = os.open(path, os.O_RDONLY)
                 stack.callback(os.close, fd)
-                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                status = os.fstat(fd)
+                if (status.st_dev, status.st_ino) not in held:
+                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    held.add((status.st_dev, status.st_ino))
             except BlockingIOError as exc:
                 raise RetirementError(f"native output lock is active: {path}") from exc
             except OSError as exc:

@@ -295,6 +295,62 @@ def _native_locks_taken_late() -> None:
         _lock_taken_late(name)
 
 
+def _native_hard_linked_locks() -> None:
+    """A lane-local uv cache hard-links the files it installs, `*.lock` files among
+    them, so two selected paths can name one file: retirement locks it once and the
+    idle lane retires, while a producer holding it through either link refuses it. The
+    oracle family's locks, selected outside the lane, are held once the same way."""
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        lane = root / "build" / "lane-worker"
+        cached = lane / "uv-cache" / "archive-v0" / "entry" / "empty_template_renv.lock"
+        installed = lane / "venv-model" / "lib" / "pre_commit" / "empty_template_renv.lock"
+        for folder in (cached.parent, installed.parent):
+            folder.mkdir(parents=True)
+        cached.write_text("", encoding="utf-8")
+        os.link(cached, installed)
+        ensure(cached.stat().st_ino == installed.stat().st_ino, "precondition: the two links name one file")
+        # Positive control: flock belongs to the open file description, so a lock
+        # taken through one link excludes a second description through the other,
+        # even within one process.
+        with cached.open() as first, installed.open() as second:
+            _hold(first.fileno())
+            try:
+                _hold(second.fileno())
+            except BlockingIOError:
+                pass
+            else:
+                raise AssertionError("precondition: two descriptions of one file exclude each other")
+        for link in (cached, installed):
+            with link.open() as handle:
+                _hold(handle.fileno())
+                _refused(lambda: retire.retain_native("worker", str(lane), str(root / "logs"), "7" * 20),
+                         "native output lock is active")
+            ensure(cached.exists() and installed.exists(), f"a lock held through {link} keeps the lane in place")
+        result = retire.retain_native("worker", str(lane), str(root / "logs"), "7" * 20)
+        saved = Path(str(result["archive"])) / "lane"
+        ensure(not lane.exists() and (saved / cached.relative_to(lane)).stat().st_ino
+               == (saved / installed.relative_to(lane)).stat().st_ino,
+               "the idle lane retires with both links to its lock")
+    with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
+        build, logs = root / "build", root / "logs"
+        lane = build / "lane-worker"
+        lane.mkdir(parents=True)
+        logs.mkdir()
+        log = logs / "oracle-build-worker.log"
+        log.write_text("oracle", encoding="utf-8")
+        unkeyed = retire.env._lock_path(build / retire.env.ORACLE_TREE)
+        edition = retire.env._lock_path(build / f"sail-{retire.env.SAIL_VERSION}" / retire.env.ORACLE_TREE)
+        edition.parent.mkdir()
+        unkeyed.write_text("", encoding="utf-8")
+        os.link(unkeyed, edition)
+        ensure({unkeyed, edition} <= retire._native_locks([], lane, oracle=True),
+               "precondition: the oracle family's selection names both links")
+        result = retire.retain_native("worker", str(lane), str(logs), "7b" * 10)
+        ensure((Path(str(result["archive"])) / "logs" / log.name).exists() and not log.exists()
+               and unkeyed.exists() and edition.exists(),
+               "an oracle lock reached through two links does not refuse its own retirement")
+
+
 def _venv_links_and_target_locks() -> None:
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
         lane = root / "build" / "lane-worker"
@@ -906,6 +962,7 @@ def cases() -> list[Case]:
             Case("native-directory-lock", _native_directory_lock, lane="guest"),
             Case("native-linked-proof-workspace", _native_linked_proof_workspace, lane="guest"),
             Case("native-locks-taken-late", _native_locks_taken_late, lane="guest"),
+            Case("native-hard-linked-locks", _native_hard_linked_locks, lane="guest"),
             Case("venv-links-and-target-locks", _venv_links_and_target_locks, lane="guest"),
             Case("native-exact-log-ownership", _native_exact_log_ownership, lane="guest"),
             Case("native-log-directories-and-companions", _native_log_directories_and_companions, lane="guest"),
