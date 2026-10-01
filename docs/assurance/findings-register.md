@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 938 of them across 153 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 940 of them across 153 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1239,7 +1239,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-623** owed-act: Q38l's join reads the `-- ` notes of seed's journal as part of the verdict before them, and its closing-line pattern and shortfall count miss the undecided mutants Q38f's closing line counts, so a run with an undecided mutant reads as never closing
 · Raised: Q38f
-· Disposition: open, Q38f, a repair of the join under Q38l's contract landing before its first comparison dispatch
+· Disposition: closed at Q38f, `51c65691` skipping the notes and counting the undecided mutants, held by fixtures written by seed's own journal
 
 **F-624** measurement: no contract stated what a `seed coq` run with an undecided mutant exits
 · Raised: Q38f
@@ -1284,6 +1284,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-711** measurement: the drawn-set reader's message shapes, read from QuickChick 2.2.0's plugin source, are held only by tests on synthetic output
 · Raised: Q38f
 · Disposition: open, Q38f's hosted dispatches, the first runs to produce them
+
+**F-712** measurement: the instrument route's join keys a mutant by its file, line and rewrite, so two sampled mutants on one line with the same rewrite would collapse into one identity and a verdict swapped between them would go unreported
+· Raised: Q38f
+· Disposition: standing, the planned sample of `CyclicExecutive.v` holding no such pair
+
+**F-713** owed-act: a seed step whose baseline compile reaches gallina's per-file limit reads as failed in the instrument route rather than undecided, seed journalling the stopped baseline as no baseline and closing on none
+· Raised: Q38f
+· Disposition: open, owned by no item, the current subject's baseline compiling far below the limit and the step's log naming the limit where it happens
 
 **F-601** measurement: CertiRocq's `plugin/static/camlrocq.ml`, the copy `certirocq_plugin.cmxs` packs, offers `GPL-2.0-or-later` or the INRIA Non-Commercial License Agreement, not the `LGPL-2.1-or-later` the first reading gave every printer file
 · Raised: Q38g
@@ -1512,7 +1520,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-622** owed-act: the instrument route's build job exports its switch with a plain `opam switch export`, so whether a `RECIPE` switch's export keeps the pins the import job compares is undecided
 · Raised: Q38l
-· Disposition: open, Q38f's first `recipe` dispatch, an export that loses them moving to `--freeze` under Q38l's contract
+· Disposition: closed at Q38f, the export of run 36922031556's `recipe` build keeping each pin's URL and commit and its import job finding the pins equal
 
 **F-631** owed-act: Q38l's control precondition named gallina.py's later edits as the oracle's candidate switches and its opam environment alone, while `34c6595c` changed the closure readers `seed coq --quickchick` compiles through and Q38g moves the oracle's own switch
 · Raised: Q38l
@@ -1528,7 +1536,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-706** owed-act: the instrument route's join report and summary and `instrument-ci read` give a step's peak as the per-minute sampler's figure, which reads 0 KB for a step that ends before the first sample, as the control's `quickchick properties` did at 543,612 KB by GNU time, while Q38l's Owns makes that step's recorded peak the basis for raising seed's `--jobs`
 · Raised: Q38l
-· Disposition: open, Q38f, which routes it, repairing the report under Q38l's contract before its first comparison dispatch, each receipt's GNU time peak standing meanwhile
+· Disposition: closed at Q38f, `5147fc97` giving each step's peak as the larger of GNU time's and the sampler's, and `ae2c71be` naming the step rows a report written before it differs in when `instrument-ci read` re-joins it
 
 **F-707** measurement: the instrument route's plan accepts a `base_revision` dispatch whose side's seed.py binds no subject it can read, and that side's seed job builds its switch before its population listing refuses for want of a subject
 · Raised: Q38l
