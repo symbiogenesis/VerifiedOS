@@ -33,8 +33,9 @@ guest triggers, setup, gate commands, proof reuse, cold runs and evidence limits
 boot signature target campaign, whose [contract](../firmware/crypto/README.md#hosted-target-campaign)
 the crypto README owns.
 [instrument-switches.yml](../.github/workflows/instrument-switches.yml) builds and
-checks QuickChick's switch, which is built and checked nowhere else, on manual dispatch
-from `main` alone; [the instrument switch route](ci/README.md#instrument-switch-route)
+checks QuickChick's switch on manual dispatch from `main` alone, the one place the
+user's rulings let it be built and checked, so `run.py provision --apply`'s local
+QuickChick import is not run; [the instrument switch route](ci/README.md#instrument-switch-route)
 in the Guest CI contract owns it, and `run.py instrument-ci` dispatches it and reads its
 runs back.
 

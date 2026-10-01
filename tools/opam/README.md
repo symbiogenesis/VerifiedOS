@@ -60,7 +60,7 @@ $ opam switch import tools/opam/rupicola.lock \
     --switch=verifiedos-rupicola-9.2.0-ocaml-5.4.1 -y
 ```
 
-Use the corresponding switch and snapshot from the table for the other environments. The Sail switch needs only the default repository. `run.py provision --apply` imports the Sail, proof and QuickChick snapshots through the recipes in [env.py](../vos/env.py) and [quickchick.py](../vos/cli/quickchick.py). The [Wasm oracle](../wasm-oracle/README.md) specifies the pending snapshot import in both the native recipe and Dockerfile. Creating these switches preserves existing switches and the user's active switch.
+Use the corresponding switch and snapshot from the table for the other environments. The Sail switch needs only the default repository. `run.py provision --apply` imports the Sail, proof and QuickChick snapshots through the recipes in [env.py](../vos/env.py) and [quickchick.py](../vos/cli/quickchick.py); its QuickChick import is not run in the local guest, QuickChick's switch being built and checked only on [the instrument switch route](../ci/README.md#instrument-switch-route). The [Wasm oracle](../wasm-oracle/README.md) specifies the pending snapshot import in both the native recipe and Dockerfile. Creating these switches preserves existing switches and the user's active switch.
 
 If an import fails after creating its switch, retry the import command directly, omitting creation. The provisioner checks for an existing switch and skips creation automatically, so `run.py provision --apply` can resume a partial installation.
 
