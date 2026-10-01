@@ -27,7 +27,8 @@ randomized half's checks passed on it. QuickChick's dependency closure holds dun
 the proof switch's, so it needs an environment independent of the proof gate and the
 CertiRocq compiler. `check`, `properties` and `seed coq --quickchick` take `--recipe`
 to run in the switch the recipe builds, which a refresh of the pins builds and checks
-ahead of its lock.
+ahead of its lock in a root that does not already hold the provisioned switch of that
+name.
 
 [quickchick/FreezeModel.v](quickchick/FreezeModel.v) is a third harness and a different
 question: not *what does this artifact answer* but *do the two statements of one
@@ -383,8 +384,9 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
     if name in ("check", "properties"):
         sub.add_argument("--recipe", action="store_true",
                          help="run in the switch RECIPE builds from its commit pins, "
-                              "holding the pinned commit, rather than in the provisioned "
-                              "QuickChick switch")
+                              "the provisioned QuickChick switch while its lock is "
+                              "RECIPE's export, and name RECIPE's build rather than the "
+                              "lock's import where that switch cannot run the half")
 
 
 def main(argv: list[str] | None = None) -> int:

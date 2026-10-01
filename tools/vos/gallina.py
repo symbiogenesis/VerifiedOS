@@ -95,10 +95,10 @@ def oracle_candidate_build(ocaml: str) -> tuple[tuple[str, ...], ...]:
 
 # The switch QuickChick's commit-pinned recipe builds, tools/vos/cli/quickchick.py's
 # RECIPE, at Rocq 9.3.0, beside which no QuickChick, coq-simple-io or coq-ext-lib
-# release installs. Named apart from QUICKCHICK_SWITCH, so that a recipe moved ahead of
-# its tracked lock can be built and checked beside the switch provisioning imports. A
-# literal rather than `env.ROCQ_VERSION`, because a move of the proof switch's lock
-# does not move this one.
+# release installs. QUICKCHICK_SWITCH below names this same switch, since the tracked
+# lock is this recipe's export, so a recipe moved ahead of that lock is built and
+# checked in a root that does not already hold that switch. A literal rather than
+# `env.ROCQ_VERSION`, because a move of the proof switch's lock does not move this one.
 QUICKCHICK_RECIPE_ROCQ_VERSION = "9.3.0"
 QUICKCHICK_RECIPE_SWITCH = (f"verifiedos-quickchick-{QUICKCHICK_RECIPE_ROCQ_VERSION}"
                             f"-ocaml-{env.OCAML_VERSION}")
