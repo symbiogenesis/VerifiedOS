@@ -230,6 +230,12 @@ class Walk:
 # `str.isdigit` admits a superscript digit that `int` then refuses.
 _COUNT = re.compile(r"[0-9]+")
 
+# The line on which QuickChick's plugin reports a drawn set's extracted program that
+# built and did not finish: its command, then `Exited with status N`, `Killed (N)` or
+# `Stopped (N)`, on the prover's `Error:` line or the one after it.
+_UNFINISHED = re.compile(r"^(?:Error:[ \t]*)?(?P<said>\S.*?: (?:Exited with status -?\d+"
+                         r"|Killed \(-?\d+\)|Stopped \(-?\d+\)))[ \t]*$", re.MULTILINE)
+
 # One `NAME='value'; export NAME;` line of `opam env --shell=sh`.
 _EXPORT = re.compile(r"^(\w+)='(.*)';\s*export", re.MULTILINE)
 
@@ -566,6 +572,8 @@ def drawn_sets(done: subprocess.CompletedProcess[str]) -> tuple[int, int, str]:
     is read as a set that passed, an empty run being the vacuous pass every floor in this
     repository exists to catch, nor as sets a draw refuted: a harness that did not build
     is a mutant no draw ran against and a baseline that is none, as the walk harness's is.
+    A set whose extracted program built and then exited non-zero, or was killed or
+    stopped, is read the same way, its reason naming the program rather than a build.
     """
     said = done.stdout + done.stderr
     passed = said.count("+++ Passed")
@@ -573,6 +581,10 @@ def drawn_sets(done: subprocess.CompletedProcess[str]) -> tuple[int, int, str]:
     if failed:
         return passed, failed, _first(said, "")
     if done.returncode != 0:
+        unfinished = _UNFINISHED.search(said)
+        if unfinished:
+            return 0, 0, ("its extracted program did not finish: "
+                          f"{unfinished.group('said')[:200]}")
         error = _first(said, "")
         return 0, 0, f"it did not build: {error}" if error else "it did not build"
     if not passed:
@@ -651,10 +663,14 @@ def walk_failures(found_walks: list[Walk]) -> list[str]:
 
 
 def _first(text: str, fallback: str) -> str:
-    """The first line that says something a reader wants, for a one-line verdict."""
-    for line in text.splitlines():
-        if line.strip().startswith(("*** Failed", "Error", "Failed")):
-            return line.strip()[:200]
+    """The first line that says something a reader wants, for a one-line verdict: a
+    bare `Error:`, which the prover prints over a message of several lines, with the
+    message's first line after it."""
+    lines = [line.strip() for line in text.splitlines()]
+    for n, line in enumerate(lines):
+        if line.startswith(("*** Failed", "Error", "Failed")):
+            message = [after for after in lines[n + 1:] if after][:1] if line == "Error:" else []
+            return " ".join([line, *message])[:200]
     return fallback
 
 

@@ -642,19 +642,36 @@ def _a_drawn_harness_that_does_not_build_decides_nothing() -> None:
     """A compile of the drawn harness that failed and refuted no set decided nothing,
     the sets after the failure never having run, and neither did one that printed no
     verdict: each is read as no set passed or failed, with why, never as sets a draw
-    refuted. A refuted set is read as one whether or not the compile failed after it."""
+    refuted. A refuted set is read as one whether or not the compile failed after it. A
+    set whose extracted program built and did not finish decided nothing either, and
+    the reason names the program as QuickChick's plugin reports it, on the prover's
+    `Error:` line or the one after it; a build error printed over several lines is
+    named by its first line after the bare `Error:`."""
     error = "Error: The reference foo was not found"
+    program = "time /tmp/QuickChick1/Properties.native"
+    crashed = (f'File "./harness/Properties.v", line 9, characters 0-40:\nError:\n'
+               f"{program}: Exited with status 2\n\nFatal error: exception Stack_overflow\n")
     printed = {"broken": (1, "", error),
                "broken after a pass": (1, "+++ Passed 10000 tests\n", error),
+               "broken over lines": (1, "", "Error:\nThe reference foo was not found\n"
+                                           "in the current environment.\n"),
+               "crashed after a pass": (1, "+++ Passed 10000 tests\n", crashed),
+               "killed": (1, "", f"Error: {program}: Killed (-7)\n"),
                "silent": (0, "", ""),
                "refuted": (0, "+++ Passed 10000 tests\n*** Failed after 3 tests\n", ""),
                "refuted then broken": (1, "*** Failed after 3 tests\n", error),
                "passed": (0, "+++ Passed 10000 tests\n" * 2, "")}
     read = {label: gallina.drawn_sets(subprocess.CompletedProcess([], code, out, err))
             for label, (code, out, err) in printed.items()}
-    for label in ("broken", "broken after a pass"):
+    for label in ("broken", "broken after a pass", "broken over lines"):
         ensure(read[label] == (0, 0, f"it did not build: {error}"),
                f"a {label} harness is a build failure: {read[label]}")
+    ensure(read["crashed after a pass"]
+           == (0, 0, f"its extracted program did not finish: {program}: Exited with status 2")
+           and read["killed"]
+           == (0, 0, f"its extracted program did not finish: {program}: Killed (-7)"),
+           f"a set whose program built and did not finish decided nothing, and says so: "
+           f"{read['crashed after a pass']} {read['killed']}")
     ensure(read["silent"] == (0, 0, "it compiled and printed no verdict line"),
            f"a harness printing no verdict decided nothing: {read['silent']}")
     ensure(read["refuted"] == (1, 1, "*** Failed after 3 tests")
