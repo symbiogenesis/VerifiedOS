@@ -976,9 +976,9 @@ rewrites of upstream bytes. The last Ubuntu shard of
 selects the tracked files under `model/` outside `model/dependencies/` and nothing
 else, and with `SKIP=markdown-link-check`, because that hook fetches every external
 link the model's Markdown names; a finding or a rewrite from any other hook fails the
-job, and `--show-diff-on-failure` prints the rewrite. check-added-large-files reads
-only staged additions, so the CI run decides nothing for it; it acts only at commit
-time. What the hooks install beside their own code is pinned as
+job, and `--show-diff-on-failure` prints the rewrite. check-added-large-files acts
+only on staged additions, as at commit time, so the CI run, which stages nothing,
+decides nothing for it. What the hooks install beside their own code is pinned as
 [their dependencies' paragraph](#model-hook-dependencies) says. To run the same set
 from the checkout root with the environment above, set `SKIP=markdown-link-check` and
 the step's pip and virtualenv variables, naming the constraint files by absolute path,
@@ -1023,11 +1023,19 @@ integrity hash; it declares no dependency, and nothing here fixes Node.js, npm o
 hash. **The two files are reviewed whenever a hook's rev or the locked virtualenv
 moves**, and no rule holds them to the hooks' requirements or to PyPI's upload times,
 neither of which the checker reads. Run the step's command over a throwaway copy with
-an empty `PRE_COMMIT_HOME`, `PIP_LOG` naming a file, `PIP_UPLOADED_PRIOR_TO=P3D` and
-neither constraint variable set, compare `pip list` in each `py_env-*` environment and
-the build installs the log records with the files, move each pin to the release that
-run installed, with the SHA-256 PyPI states for its wheel where the build file pins
-one, and run the step's command again with both files and an empty `PRE_COMMIT_HOME`.
+an empty `PRE_COMMIT_HOME`, an empty `VIRTUALENV_OVERRIDE_APP_DATA`, so each
+environment's pip is the embedded one the step runs, `PIP_LOG` naming a file,
+`PIP_UPLOADED_PRIOR_TO=P3D` and neither constraint variable set, compare `pip list` in
+each `py_env-*` environment and the build installs the log records with the files,
+move each pin to the release that run installed, with the SHA-256 PyPI states for its
+wheel where the build file pins one, and run the step's command again with both files
+and an empty `PRE_COMMIT_HOME` and `VIRTUALENV_OVERRIDE_APP_DATA`.
+K-118 holds every pin in the two files to the release
+[THIRD-PARTY.md](../THIRD-PARTY.md)'s development-tools section read its licence at,
+the clang-format wheel's to its mirror's row and the rest to the model hooks' PyPI
+dependencies row, so a moved pin is a finding until its licence is read at the new
+release and the row states it, and a pin no row reads, such as one added for a package
+a hook gained, is a finding until a row reads its licence.
 
 [ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
 carries, including the ones it ships as warnings or switched off, and that is deliberate:

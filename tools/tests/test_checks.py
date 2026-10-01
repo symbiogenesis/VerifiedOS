@@ -1067,8 +1067,10 @@ _K118_OWNERS = {
     "tools/opam/x.lock": 'opam-version: "2.0"\ninstalled: ["beta.4.5.6" "lib.2.0.0"]\n',
     "tools/opam/y.lock": 'opam-version: "2.0"\ninstalled: [\n  "lib.2.0.0"\n]\n',
     "tools/vos/x.py": 'BETA = "7.8.9"\n',
-    # a hook configuration carrying no repository, which the census reads as none
-    pins.HOOK_CONFIG: "repos: []\n"}
+    # a hook configuration carrying no repository, which the census reads as none, and
+    # pip constraint files carrying no pin
+    pins.HOOK_CONFIG: "repos: []\n",
+    pins.HOOK_CONSTRAINTS: "# no pin\n", pins.HOOK_BUILD_CONSTRAINTS: "# no pin\n"}
 _K118_ROWS = (
     pins.DevTool("alpha", (pins.Site("the reviewed release", rf"The reviewed `v{pins._V}` tag's",
                                      (pins.Owner("uv", "tools/uv.lock", "alpha"),)),),
@@ -1352,6 +1354,10 @@ _K118_KINDS: dict[str, tuple[pins.Owner, dict[str, str | None], dict[str, str | 
                {"tools/vos/x.py": 'KAPPA = "1.2.3"\n'}, {"tools/vos/x.py": 'KAPPA = "1.2.4"\n'}),
     "shell": (pins.Owner("shell", "tools/x.sh", "kappa_version"),
               {"tools/x.sh": "kappa_version=1.2.3\n"}, {"tools/x.sh": "kappa_version=1.2.4\n"}),
+    # a constraints file's pin, its name spelled as pip normalizes it, with a hash line
+    "pip": (pins.Owner("pip", "tools/ci/c.txt", "kappa"),
+            {"tools/ci/c.txt": "# the pins\nKappa==1.2.3 \\\n    --hash=sha256:00\nother==1.2.4\n"},
+            {"tools/ci/c.txt": "# the pins\nKappa==1.2.4 \\\n    --hash=sha256:00\nother==1.2.4\n"}),
 }
 _K118_KAPPA = (_K118_TOOLS + "| Tool | License | Standing |\n| --- | --- | --- |\n"
                "| kappa | `MIT` | Reviewed at 1.2.3. |\n\n## Next\n")
@@ -1384,11 +1390,55 @@ def _k118_every_owner_kind_detects_drift() -> None:
     loose: tuple[tuple[str, dict[str, str | None], str], ...] = (
         ("uv-required", {"tools/pyproject.toml": '[tool.uv]\nrequired-version = ">=1.2.3"\n'},
          "is '>=1.2.3', which requires no one exact release"),
-        ("shell", {"tools/x.sh": 'kappa_version="1.2.3"\n'}, "kappa_version is stated 0 times"))
+        ("shell", {"tools/x.sh": 'kappa_version="1.2.3"\n'}, "kappa_version is stated 0 times"),
+        ("pip", {"tools/ci/c.txt": "kappa>=1.2.3\n"},
+         "tools/ci/c.txt's kappa is constrained other than to one `==` release"),
+        ("pip", {"tools/ci/c.txt": "kappa==1.2.3 ; python_version < '3.15'\n"},
+         "tools/ci/c.txt's kappa is constrained other than to one `==` release"),
+        ("pip", {"tools/ci/c.txt": "kappa==1.2.3\nKAPPA==1.2.3\n"},
+         "tools/ci/c.txt's kappa is stated 2 times"),
+        ("pip", {"tools/ci/c.txt": "# kappa==1.2.3\n"}, "tools/ci/c.txt's kappa is stated 0 times"))
     for kind, edit, fragment in loose:
         found = _k118_kappa(kind, edit)
         ensure(len(found) == 1 and fragment in found[0],
                f"an owner not stating one exact release must report ({fragment!r}): {found!r}")
+
+
+def _k118_pip_census_reads_every_pin() -> None:
+    # Each project the hook step's pip constraint files pin is one a held row reads in
+    # that file, so a pin added with no row's reading, or a line naming a project in a
+    # form a pin does not take, is a finding at its line, and both files are read
+    # whether or not a row holds a pin in them.
+    row = pins.DevTool("kappa", (pins.Site("the release", rf"Reviewed at {pins._V}\.", (
+        pins.Owner("pip", pins.HOOK_CONSTRAINTS, "kappa"),)),))
+
+    def run(files: dict[str, str | None]) -> tuple[list[str], list[str]]:
+        return _k118({"THIRD-PARTY.md": _K118_KAPPA,
+                      pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3\n", **files},
+                     rows=(row,), declared={}, prose=pins.DevTool("the paragraphs"))
+
+    found, out = run({})
+    ensure(not found and any("each of the 1 pins its pip constraint files carry" in line
+                             for line in out), f"a pin a held row reads agrees: {found!r}")
+    unread: tuple[tuple[dict[str, str | None], str, str], ...] = (
+        ({pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3\nextra==1.0.0\n"},
+         f"{pins.HOOK_CONSTRAINTS}:3", "extra"),
+        ({pins.HOOK_BUILD_CONSTRAINTS: "backend==1.0.0 \\\n    --hash=sha256:00\n"},
+         f"{pins.HOOK_BUILD_CONSTRAINTS}:1", "backend"),
+        ({pins.HOOK_CONSTRAINTS: "# the pins\nkappa==1.2.3\nhttps://example.com/x.whl\n"},
+         f"{pins.HOOK_CONSTRAINTS}:3", "https"),
+        # a project a row reads in one file is not read in the other
+        ({pins.HOOK_BUILD_CONSTRAINTS: "kappa==1.2.3\n"},
+         f"{pins.HOOK_BUILD_CONSTRAINTS}:1", "kappa"))
+    for files, where, name in unread:
+        found, _ = run(files)
+        ensure(len(found) == 1 and f"{where} pins {name}, which no development-tools row "
+               "K-118 holds reads there" in found[0],
+               f"a pin no held row reads is one finding at its line ({files!r}): {found!r}")
+    found, out = run({pins.HOOK_BUILD_CONSTRAINTS: None})
+    ensure(len(found) == 1 and f"{pins.HOOK_BUILD_CONSTRAINTS} is not in the repository"
+           in found[0] and not any(line.startswith("ok K-118:") for line in out),
+           f"an absent constraint file fails closed with no row holding it: {found!r}")
 
 
 def _k118_a_row_named_by_its_release_stays_one_row() -> None:
@@ -1462,13 +1512,32 @@ def _k118_hook_revisions_are_held() -> None:
          f"{owner}'s repository is stated 2 times"),
         (_K118_HOOKS.replace("    hooks:\n      - id: first\n",
                              f"    rev: {'a' * 40}\n    hooks:\n"), f"{owner} states its rev 2 times"),
-        (_K118_HOOKS.replace(" # frozen: v1.0.0", " # a comment"), f"{owner} states its rev 0 times"))
+        (_K118_HOOKS.replace(" # frozen: v1.0.0", " # a comment"),
+         f"{owner} states its rev as `rev: {'a' * 40} # a comment`, which is not"))
     for config, fragment in unreadable:
         found, out = _k118_hook(config)
         ensure(any(fragment in item for item in found),
                f"an unreadable hook configuration must report ({fragment!r}): {found!r}")
         ensure(not any(line.startswith("ok K-118:") for line in out),
                "fail-closed: no ok line stands beside an unread hook configuration")
+    # A next-line, line or paragraph separator breaks a line to YAML, so a second rev
+    # for the entry or a second entry for the repository after one, each of which YAML
+    # loads, the rev it keeps being the last, is stated a second time to the reading too.
+    for brk in ("\x85", "\u2028", "\u2029"):
+        second_rev = f"      - id: first{brk}    rev: {'d' * 40}\n"
+        second_entry = (f"      - id: second{brk}  - repo: https://github.com/example/hooks\n"
+                        "    rev: v0.0.1\n    hooks: []\n")
+        for config, fragment in (
+                (_K118_HOOKS.replace("      - id: first\n", second_rev),
+                 f"{owner} states its rev 2 times"),
+                (_K118_HOOKS.replace("      - id: second\n", second_entry),
+                 f"{owner}'s repository is stated 2 times")):
+            found, _ = _k118_hook(config)
+            ensure(len(found) == 1 and fragment in found[0],
+                   f"a {brk!r} breaks the line the reading reads ({fragment!r}): {found!r}")
+
+
+_K118_HOOK_UNREAD = "states a hook repository's `repo` or `rev` key in a form K-118 does not read"
 
 
 def _k118_hook_census_reads_every_entry() -> None:
@@ -1517,6 +1586,46 @@ def _k118_hook_census_reads_every_entry() -> None:
             f"{pins.HOOK_CONFIG}:{line} states a hook repository's `repo` or `rev` key in a "
             "form K-118 does not read" in item for line, item in zip(lines, found, strict=True)),
                f"an entry K-118 cannot read is a finding at its line ({written!r}): {found!r}")
+    # A `#` after a no-break or ideographic space opens no comment, YAML's blanks being
+    # the space and the tab alone: the line is a key, so an entry anchored there and
+    # aliased into `repos` is read at that line rather than passed over as a comment.
+    for space in ("\u00a0", "\u3000"):
+        anchored = f"{space}#x: &e {{repo: https://github.com/example/evil, rev: v1}}\n"
+        found, _ = _k118_hook(anchored + _K118_HOOKS + "  - *e\n")
+        ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:1 {_K118_HOOK_UNREAD}" in found[0],
+               f"a key after a {space!r} and a `#` is read at its line: {found!r}")
+
+
+def _k118_hook_rev_is_read_at_its_entry_column() -> None:
+    # An entry's rev is the `rev` key at its `repo` key's column, read whole as
+    # `rev: <value>` with at most its `# frozen:` tag. A rev there carrying another
+    # comment, a tag or an anchor is unread, and a line of the row's commit and tag
+    # standing deeper, as a hook's key or a block scalar's text, is not the entry's rev
+    # though YAML loads the entry with the moved one: each is a finding at its line, and
+    # the entry's owner fixes no revision rather than the stand-in's.
+    owner = f"{pins.HOOK_CONFIG}'s https://github.com/example/hooks"
+    entry = f"    rev: {'a' * 40} # frozen: v1.0.0\n    hooks:\n      - id: first\n"
+    reviewed = f"rev: {'a' * 40} # frozen: v1.0.0"
+    moved = "    rev: v9.9.9 # moved\n    hooks:\n      - id: first\n"
+    for written, lines, stated in (
+            (entry.replace("frozen: v1.0.0", "pinned"), (3,), f"rev: {'a' * 40} # pinned"),
+            (entry.replace("rev: ", "rev: !!str "), (3,), f"rev: !!str {reviewed[5:]}"),
+            (entry.replace("rev: ", "rev: &r "), (3,), f"rev: &r {reviewed[5:]}"),
+            (f"{moved}        {reviewed}\n", (3, 6), "rev: v9.9.9 # moved"),
+            (f"{moved}        description: |\n          {reviewed}\n", (3, 7),
+             "rev: v9.9.9 # moved")):
+        found, out = _k118_hook(_K118_HOOKS.replace(entry, written))
+        ensure(len(found) == len(lines) + 1 and all(
+            f"{pins.HOOK_CONFIG}:{line} {_K118_HOOK_UNREAD}" in item
+            for line, item in zip(lines, found, strict=False))
+               and f"{owner} states its rev as `{stated}`, which is not" in found[-1]
+               and not any(line.startswith("ok K-118:") for line in out),
+               f"a rev K-118 does not read at its entry's column is reported ({written!r}): "
+               f"{found!r}")
+    # A comment line stating a rev under the entry is no key; the fixture's quoted rev
+    # at the column is read whole, as the agreement case shows.
+    found, _ = _k118_hook(_K118_HOOKS.replace(entry, f"{entry}        # rev: v0.0.1\n"))
+    ensure(not found, f"a comment stating a rev is not the entry's rev: {found!r}")
 
 
 def _k118_shipped_readings_are_declared() -> None:
@@ -2073,10 +2182,13 @@ def cases() -> list[Case]:
         Case("k118-each-tag-is-read-or-reported", _k118_each_tag_is_read_or_reported),
         Case("k118-declarations-are-held", _k118_declarations_are_held),
         Case("k118-every-owner-kind-detects-drift", _k118_every_owner_kind_detects_drift),
+        Case("k118-pip-census-reads-every-pin", _k118_pip_census_reads_every_pin),
         Case("k118-a-row-named-by-its-release-stays-one-row",
              _k118_a_row_named_by_its_release_stays_one_row),
         Case("k118-hook-revisions-are-held", _k118_hook_revisions_are_held),
         Case("k118-hook-census-reads-every-entry", _k118_hook_census_reads_every_entry),
+        Case("k118-hook-rev-is-read-at-its-entry-column",
+             _k118_hook_rev_is_read_at_its_entry_column),
         Case("k118-shipped-readings-are-declared", _k118_shipped_readings_are_declared),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),
         Case("k81-unused-historical-residue-fails", _k81_unused_historical_residue_fails),
