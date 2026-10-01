@@ -748,6 +748,12 @@ def _join_lists_differences() -> None:
     ensure(base["complete"] is True and base["decided"] == 1 and base["undecided"] == 1
            and base["shortfall"] is None,
            f"a run with an undecided mutant closes on every mutant it picked: {base!r}")
+    mixed = _journal(_KILLED, (_SWAP, seeded.SURVIVED, "33 held"), _UNDECIDED)
+    counted = route.as_object(route.as_object(route.as_object(_joined(
+        lambda root: _artifacts(root, journals={"seed-base": mixed}))["seed"])["runs"])["base"])
+    ensure(counted["decided"] == 2 and counted["undecided"] == 1 and counted["picked"] == 3
+           and counted["verdicts"] == 3 and counted["shortfall"] is None,
+           f"a run's decided and undecided counts are each its closing line's: {counted!r}")
     other = [route.as_object(item) for item in route.as_list(seed["other_verdicts"])]
     ensure(len(other) == 1 and other[0]["verdict"] == seeded.UNDECIDED
            and other[0]["reason"] == _TIMED_OUT and other[0]["run"] == "base",
