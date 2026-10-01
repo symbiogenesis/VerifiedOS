@@ -410,6 +410,16 @@ def _reader_reproduces_and_compares() -> None:
         lines, held, _ = _read(root, run, jobs, artifacts, parent=tip)
         ensure(not held and any("re-joining the artifacts gives" in line for line in lines),
                f"a report the artifacts do not give is refused: {lines!r}")
+        # A member outside the allowlist refuses its artifact, and the earlier reading's
+        # extraction of it does not stand in for it.
+        (artifacts / f"instrument-join-{tip}" / route.REPORT).write_text(
+            json.dumps(report), encoding="utf-8")
+        (build / "Switch.vo").write_bytes(b"compiled")
+        lines, held, _ = _read(root, run, jobs, artifacts, parent=tip)
+        ensure(not held and any("Switch.vo is outside the allowlist" in line for line in lines)
+               and any("the build job ran (success) and left no artifact" in line
+                       for line in lines),
+               f"a refused artifact is missing from the re-join: {lines!r}")
 
 
 def _fanout_never_runs_the_route() -> None:

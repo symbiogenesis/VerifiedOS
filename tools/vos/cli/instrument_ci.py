@@ -531,6 +531,9 @@ def download(client: Client, run_id: int, base: Path) -> tuple[dict[str, Path], 
     refusal that kept one out."""
     found: dict[str, Path] = {}
     refusals: list[str] = []
+    # An earlier reading's extraction never stands in for an artifact this one refuses.
+    if (base / "artifacts").exists():
+        shutil.rmtree(base / "artifacts")
     for artifact in _pages(client, f"actions/runs/{run_id}/artifacts", "artifacts"):
         name = str(artifact.get("name", ""))
         if not route.ARTIFACT_RE.fullmatch(name):
