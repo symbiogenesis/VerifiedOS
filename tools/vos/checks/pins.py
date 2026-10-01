@@ -283,14 +283,14 @@ or `rev` key the reading did not take, bare or quoted, or any key K-115's census
 whatever it spells, is a finding at that line: an entry written as a flow mapping,
 behind an anchor or with its rev first, and a rev carrying another comment, a tag, an
 anchor or an alias, or standing deeper or shallower than its entry's keys, a hook's key
-or a block scalar's text among them, is reported rather than run unread. A line passes
-as a comment only where its `#` follows spaces and tabs alone, YAML's only blanks, since
-after a no-break or ideographic space it opens a key. The configuration is read whether
-or not any hook row is held, so its absence is a finding on its own. The step's two pip
-constraint files are censused the same way: every project either pins is one a held
-row's site reads in that file, so a pin added for a package a hook gained is a finding
-at its line until a row reads its licence, and both files are read whether or not a row
-holds a pin in them.
+or a block scalar's text among them, is reported rather than run unread. Every line is
+read, a comment's included, as K-115 reads the workflows: a line opening with `#` may
+continue a quoted scalar opened earlier, which can close there and leave the line
+carrying an entry's keys. The configuration is read whether or not any hook row is
+held, so its absence is a finding on its own. The step's two pip constraint files are
+censused the same way: every project either pins is one a held row's site reads in that
+file, so a pin added for a package a hook gained is a finding at its line until a row
+reads its licence, and both files are read whether or not a row holds a pin in them.
 
 **Fail-closed at every reading**, on K-97's ground: a record without the section or its
 table, a table with no row, a site matching other than once, and an owner absent,
@@ -1449,10 +1449,10 @@ def _hook_census(owners: _Owners, findings: list[str]) -> int:
     # census's to report rather than the entry's rev.
     column = -1
     for number, line in enumerate(_YAML_BREAK_RE.split(text), start=1):
-        # A comment opens after YAML's own blanks, a space or a tab: a `#` after a
-        # no-break or ideographic space is a plain scalar's text, which may be a key.
-        if line.lstrip(" \t").startswith("#"):
-            continue
+        # Every line is read, a comment's included, as K-115 reads the workflows: a line
+        # opening with `#` may continue a quoted scalar opened earlier, which can close
+        # there and leave the line carrying an entry's keys, and a `#` after a no-break
+        # or ideographic space, which YAML reads as content, opens no comment at all.
         where = f"{HOOK_CONFIG}:{number}"
         entry = _HOOK_REPO_RE.match(line)
         if entry is not None:

@@ -1610,6 +1610,15 @@ def _k118_hook_census_reads_every_entry() -> None:
         found, _ = _k118_hook(anchored + _K118_HOOKS + "  - *e\n")
         ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:1 {_K118_HOOK_UNREAD}" in found[0],
                f"a key after a {space!r} and a `#` is read at its line: {found!r}")
+    # A line opening with `#` may continue a hook's quoted name opened on the line
+    # before, the scalar closing there and the line going on to carry the entry's keys,
+    # which YAML loads as an entry: the line is read rather than passed over as a comment.
+    for quote in ('"', "'"):
+        written = (f"  - {{hooks: [{{id: evil, name: {quote}the hook\n    # reviewed{quote}}}], "
+                   "repo: https://github.com/example/evil, rev: v1}\n")
+        found, _ = _k118_hook(_K118_HOOKS + written)
+        ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:11 {_K118_HOOK_UNREAD}" in found[0],
+               f"keys after a quoted scalar closed on a `#` line are read there: {found!r}")
 
 
 def _k118_hook_rev_is_read_at_its_entry_column() -> None:
@@ -1638,10 +1647,12 @@ def _k118_hook_rev_is_read_at_its_entry_column() -> None:
                and not any(line.startswith("ok K-118:") for line in out),
                f"a rev K-118 does not read at its entry's column is reported ({written!r}): "
                f"{found!r}")
-    # A comment line stating a rev under the entry is no key; the fixture's quoted rev
-    # at the column is read whole, as the agreement case shows.
+    # A comment line stating a rev under the entry is read too, a line opening with `#`
+    # possibly continuing a quoted scalar, so the census errs toward a finding at it,
+    # while the entry's own rev is still the one read at its column.
     found, _ = _k118_hook(_K118_HOOKS.replace(entry, f"{entry}        # rev: v0.0.1\n"))
-    ensure(not found, f"a comment stating a rev is not the entry's rev: {found!r}")
+    ensure(len(found) == 1 and f"{pins.HOOK_CONFIG}:6 {_K118_HOOK_UNREAD}" in found[0],
+           f"a comment stating a rev is a finding at its line, not the entry's rev: {found!r}")
 
 
 def _k118_shipped_readings_are_declared() -> None:

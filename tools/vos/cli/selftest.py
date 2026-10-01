@@ -1808,6 +1808,15 @@ CASES: list[Case] = [
                              f"unreviewed-hooks, rev: {'d' * 40}, hooks: [{{id: unreviewed}}]}}\n"
                              f"{m[1]}  - *unreviewed\n"),
                   flags=re.MULTILINE | re.DOTALL)),
+    # A hook repository appended as a flow mapping whose keys follow its hook's quoted
+    # name continued onto a line opening with `#`: that line is the name's text and then
+    # the entry's keys rather than a comment, so pre-commit runs the entry, and only a
+    # census reading every line, a comment's included, sees it.
+    ("K-118", "a hook repository stated after a quoted scalar's line opening with #",
+     _first_match("model/.pre-commit-config.yaml", r"\Z",
+                  lambda _: '  - {hooks: [{id: unreviewed, name: "the unreviewed hook\n'
+                            '    # reviewed"}], repo: https://github.com/example/'
+                            f"unreviewed-hooks, rev: {'d' * 40}}}\n")),
     # The first entry stating a second rev, its commit's last digit changed, after a line
     # separator closing the entry's last line: YAML breaks the line there and keeps the
     # last rev, so only a reading splitting the file where YAML does sees two revs.
