@@ -1223,7 +1223,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-569** owed-act: `compare_component.py` names its switch but states no Rocq release, so K-117 holds its row older than 9.3.0 by its fail-closed default rather than by a release it reads
 · Raised: Q38e
-· Disposition: open, Q38g
+· Disposition: closed at Q38g, `ab484dbc` binding `compare_component.py`'s switch and release to gallina's oracle constants, which K-117 reads as Rocq 9.1.1
 
 **F-570** owed-act: `quickchick properties` and `quickchick check` fall back to the CertiRocq switch at Rocq 9.1.1, so K-117 carries a second 9.1.1 row over Properties.v's closure that Q38f's Check does not expect, and `seed coq --quickchick` still compiles every proof source at 9.1.1
 · Raised: Q38e
@@ -1247,7 +1247,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-603** owed-act: Q38g's conditional CertiRocq licence row repeats the LGPL reading of `camlrocq.ml` and names neither Coq's `theories/ExtractionVanilla/` files nor Rocq's `benchmarks/lib/Makefile`, both `LGPL-2.1`, beside the OCaml runtime headers it names
 · Raised: Q38g
-· Disposition: open, Q38g restating its CertiRocq row before its conditional commits land
+· Disposition: closed at Q38g, `ec052b59` naming every non-MIT file group of the archive with how each reaches the build
 
 **F-604** measurement: the messages of Q38g's lane commits `e4c0a26b` and `6312d09c` describe a hosted run of the oracle's checks, a route the user's ruling withdrew before their merge
 · Raised: Q38g
@@ -1263,15 +1263,44 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-607** measurement: the 5.1.1 candidate's switch name is `ORACLE_SWITCH`'s own and an existing switch's in the guest's default root, so that candidate's recipe cannot create its switch there
 · Raised: Q38g
-· Disposition: standing, gallina.py's comment requiring a root that does not hold the switch
+· Disposition: standing, gallina.py's comment requiring a root that does not hold the switch and `ORACLE_SWITCH` naming the 4.14.4 switch since Q38g
 
 **F-608** measurement: the default root's `verifiedos-certirocq-0.9.1-ocaml-5.1.1`, which `ORACLE_SWITCH` names, carries no `rocq-certirocq`, so `provision`'s CertiRocq fact cannot hold there
 · Raised: Q38g
-· Disposition: open, Q38g, until its declared switch moves or that legacy switch is retired
+· Disposition: closed at Q38g, `ORACLE_SWITCH` naming the 4.14.4 switch, whose fact `provision` read as holding over a fresh root that carries it
 
 **F-609** owed-act: Q38g's Wasm checks, fresh-root import and `provision` reading cannot be decided under the user's rulings
 · Raised: Q38g
-· Disposition: closed at Q38l, its contract deferring them in Q38g's Check until a check site the user permits
+· Disposition: closed at Q38g, the user's ruling of 2026-10-01 running them once in the local guest, where each passed
+
+**F-634** measurement: MetaRocq's archive carries five files under terms other than its MIT licence, among them `bytestring.v` under `LGPL-2.1` with an exception whose text it does not carry, extracted into the plugins every oracle run loads
+· Raised: Q38g
+· Disposition: closed at Q38g, `464ec037` naming each in the MetaRocq row with how it reaches the build
+
+**F-700** measurement: the CertiRocq snapshot's other new archives compile, run or install files under terms their top-level licences do not state
+· Raised: Q38g
+· Disposition: closed at Q38g, `bf681e77` naming the built groups in their rows
+
+**F-701** owed-act: THIRD-PARTY.md's rows for OCaml's compiler, the Rocq prover, dune, Zarith, Menhir and CompCert rest on their archives' top-level licence files, while those archives carry other in-file terms
+· Raised: Q38g
+· Disposition: open, a census of those rows' in-file terms, owned by no item
+
+**F-702** measurement: CertiRocq's release archive carries `benchmarks/lib/SqlQueries3.v`, which its header licenses to the CertiRocq project alone as a benchmark
+· Raised: Q38g
+· Disposition: standing, nothing building or installing it, every CertiRocq build that unpacks it local under the user's ruling of 2026-09-30, and the CertiRocq row recording it
+
+**F-703** measurement: `compare_component.py` accepted `9.1.1.1`, `9.1.1+dev` and `9.1.1~rc1` as Rocq 9.1.1 and labelled a run's switch declared by its name alone
+· Raised: Q38g
+· Disposition: closed at Q38g, `a6c81a4a` reading the release exactly and the declared label from the export's installed packages, held by `test_compiler_component`
+
+**F-704** measurement: the CertiRocq snapshot imported into a fresh root re-exports without its `compiler:` section until its invariant is set, after which it reproduces the lock byte for byte
+· Raised: Q38g
+· Disposition: open, F-496's act, the lock guide stating the set-invariant form meanwhile
+· Restates: F-496
+
+**F-705** measurement: `fd46e3a7`'s message makes its merge conditional on a hosted run and a lock from that run's artifact, a route the user's rulings withdrew
+· Raised: Q38g
+· Disposition: standing, Q38g's note and its records commit stating that the tracked lock is the local export and that no hosted runner built or checked CertiRocq
 
 **F-610** owed-act: K-117 holds every proof source while `seed coq --quickchick` compiles every one in QuickChick's Rocq 9.1.1 switch, so no authored source may take Rocq 9.3's syntax until that compile narrows or QuickChick's switch moves
 · Raised: Q38h
@@ -2346,7 +2375,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-452** method: the component evidence's Wasm side was compiled in the undeclared, unlocked legacy switch `certirocq-0.9.1` under OCaml 4.14.2 rather than the declared oracle switch, and the component report binds the module digest but not its producing environment
 · Raised: M1.2f, in prose
-· Disposition: closed by the producer-binding arm of the component contract; the fresh ordered-vector comparison binds the legacy switch's package export, compiler/prover/runtime identities, installed libraries and staged sources. The intended portable oracle bootstrap remains incomplete
+· Disposition: closed by the producer-binding arm of the component contract; the fresh ordered-vector comparison binds the legacy switch's package export, compiler/prover/runtime identities, installed libraries and staged sources; since Q38g the declared switch's lock is tracked and imports into a fresh root, and the comparison names whether its switch is the declared one
 
 **F-453** measurement: the simulator binary's digest is revision-bound, changing with the embedded `git describe` while `model/` is byte-identical
 · Raised: M1.2f, in prose
