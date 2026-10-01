@@ -1504,10 +1504,25 @@ def _seed_report(journals: dict[str, Journal],
     }
 
 
-def join(artifacts: Path, needs: dict[str, object], run_id: str) -> dict[str, object]:
+def _earlier_attempt(directory: Path, run_attempt: str) -> str | None:
+    """The attempt an artifact's receipt names where it is earlier than this one, None
+    otherwise: a rerun keeps the artifacts of jobs it does not run again."""
+    receipt = load_json(directory / RECEIPT)
+    recorded = receipt.get("run_attempt") if receipt is not None else None
+    if (isinstance(recorded, str) and recorded.isdecimal() and run_attempt.isdecimal()
+            and int(recorded) < int(run_attempt)):
+        return recorded
+    return None
+
+
+def join(artifacts: Path, needs: dict[str, object], run_id: str,
+         run_attempt: str = "") -> dict[str, object]:
     """The run's report from one artifact per job: each job's verdict or why it did not
-    run, each seed run's verdicts, and every disagreement a reader acts on."""
+    run, each seed run's verdicts, and every disagreement a reader acts on. An artifact
+    an earlier attempt left for a job this attempt did not run is passed over and
+    recorded, never read as this attempt's."""
     refusals: list[str] = []
+    passed_over: list[dict[str, str]] = []
     found = _artifacts(artifacts, refusals)
     plan_json: dict[str, object] = {}
     if "plan" not in found:
@@ -1532,7 +1547,12 @@ def join(artifacts: Path, needs: dict[str, object], run_id: str) -> dict[str, ob
         ran = result in {"success", "failure", "cancelled"}
         revision = _side_revision(key, request)
         if not ran:
-            if key in found:
+            earlier = _earlier_attempt(found[key], run_attempt) if key in found else None
+            if earlier is not None:
+                passed_over.append({"artifact": found[key].name, "run_attempt": earlier,
+                                    "reason": f"left by attempt {earlier} for a job attempt "
+                                              f"{run_attempt} did not run"})
+            elif key in found:
                 refusals.append(f"an artifact from the {key} job, which did not run")
             why = ("its prerequisite, the build job, exported no switch whose checks all "
                    "passed" if key == "import" else f"the job's result is {result}")
@@ -1599,8 +1619,9 @@ def join(artifacts: Path, needs: dict[str, object], run_id: str) -> dict[str, ob
         verdict = INCOMPLETE
     else:
         verdict = PASSED
-    return {"schema": 1, "run_id": run_id, "verdict": verdict, "refusals": refusals,
-            "request": request, "dispatching_commit": plan_json.get("dispatching_commit"),
+    return {"schema": 1, "run_id": run_id, "run_attempt": run_attempt, "verdict": verdict,
+            "refusals": refusals, "passed_over": passed_over, "request": request,
+            "dispatching_commit": plan_json.get("dispatching_commit"),
             "jobs": jobs, "seed": seed, "differing_sides": pairs}
 
 
@@ -1620,6 +1641,10 @@ def summary(report: dict[str, object]) -> str:
     refusals = cast("list[str]", report.get("refusals", []))
     if refusals:
         lines += ["", "Refused:", *(f"- {_cell(item)}" for item in refusals)]
+    earlier = [as_object(item) for item in as_list(report.get("passed_over", []))]
+    if earlier:
+        lines += ["", "Passed over:", *(f"- {_cell(item.get('artifact'))}: "
+                                        f"{_cell(item.get('reason'))}" for item in earlier)]
     lines += ["", "| Job | Step | Verdict | Limit s | Seconds | Peak RSS kB | Reason |",
               "| --- | --- | --- | --- | --- | --- | --- |"]
     limited: list[str] = []
@@ -1670,7 +1695,8 @@ def summary(report: dict[str, object]) -> str:
 
 def cmd_join(args: argparse.Namespace) -> int:
     needs = as_object(json.loads(os.environ.get("NEEDS", "{}") or "{}"))
-    report = join(args.artifacts, needs, os.environ.get("GITHUB_RUN_ID", ""))
+    report = join(args.artifacts, needs, os.environ.get("GITHUB_RUN_ID", ""),
+                  os.environ.get("GITHUB_RUN_ATTEMPT", ""))
     receipts.write(args.root / LOGS / REPORT, report)
     text = summary(report)
     print(text)

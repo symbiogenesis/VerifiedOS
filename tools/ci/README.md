@@ -384,8 +384,9 @@ after which the switch its recipe names does not stand, and the checks on a swit
   one artifact per job, records a job its prerequisite's failure skipped as not run,
   records as failed a job whose result is failure though none of its wrapped steps
   failed or was undecided, a seed run only where a step of its own never ran, since a
-  seed run's result is its matrix's, refuses an artifact missing from a job that ran,
-  or a duplicate, and writes
+  seed run's result is its matrix's, passes over and records an artifact an earlier
+  attempt of the run left for a job this attempt did not run, refuses an artifact
+  missing from a job that ran, or a duplicate, and writes
   `report.json` and a job summary naming each step's verdict, each sampled mutant's
   verdict in every seed run by its identity, operator, site and rewrite, each mutant
   whose verdict differs between the two candidate runs or between base and candidate,

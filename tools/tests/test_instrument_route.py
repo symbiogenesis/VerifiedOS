@@ -728,6 +728,25 @@ def _join_records_not_run_and_refusals() -> None:
                                    (root / f"instrument-join-{REVISION}").mkdir()))
     ensure(report["verdict"] == route.PASSED, f"an earlier join's artifact is passed over: "
            f"{report['refusals']!r}")
+    # A rerun in which the build now fails leaves the earlier attempt's import artifact
+    # for a job this attempt skipped: passed over and recorded, so the failure shows.
+    failed_build = {"steps": dict(route.as_object(_receipt("build", REVISION)["steps"]),
+                                  properties={"verdict": route.FAILED}), "run_attempt": "2"}
+    rerun = dict(_SUCCESS, build={"result": "failure"}, **{"import": {"result": "skipped"}})
+    with tempfile.TemporaryDirectory() as scratch:
+        root = Path(scratch)
+        _artifacts(root, seed=False, edits={"build": failed_build,
+                                             "import": {"run_attempt": "1"}})
+        report = route.join(root, rerun, RUN_ID, "2")
+        stale = route.join(root, rerun, RUN_ID, "1")
+    passed = [route.as_object(item) for item in route.as_list(report["passed_over"])]
+    ensure(report["verdict"] == route.FAILED and not report["refusals"]
+           and [item["artifact"] for item in passed] == [f"instrument-import-{REVISION}"]
+           and "Passed over:" in route.summary(report),
+           f"an earlier attempt's artifact for a skipped job is passed over: {report!r}")
+    ensure(stale["verdict"] == route.REFUSED and any(
+        "which did not run" in item for item in cast_list(stale["refusals"])),
+           f"an artifact from this attempt for a job that did not run is refused: {stale!r}")
 
 
 def _join_reads_failures_outside_wrapped_steps() -> None:

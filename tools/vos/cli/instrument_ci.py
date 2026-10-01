@@ -649,7 +649,9 @@ def read_run(client: Client, checkout: Path, run_id: int, *, parent: str | None,
         lines += [f"FAIL {item}" for item in refusals]
         return lines, not refusals
     staged = base / "artifacts"
-    report = route.join(staged, needs_from_jobs(jobs), str(run_id))
+    attempt = run.get("run_attempt")
+    report = route.join(staged, needs_from_jobs(jobs), str(run_id),
+                        str(attempt) if type(attempt) is int else "")
     joined = route.load_json(by_key["join"] / route.REPORT) if "join" in by_key else None
     if joined is None:
         refusals.append("the run left no report.json from its join job")
