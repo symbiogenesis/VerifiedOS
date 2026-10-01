@@ -982,7 +982,11 @@ def _cmake_suite_listing() -> None:
     list splits it: whole inside brackets, into pieces naming nothing, into pieces
     that are themselves listed files, or into pieces holding backslashed ".." steps
     that a relative glob would collapse onto a listed file; and a name holding a
-    backslash is listed unhashed beside the file its "/" spelling names. Configure
+    backslash is listed unhashed beside the file its "/" spelling names. A name
+    ending in a backslash escapes the ";" joining the next path to it, so the sort
+    keeps the two as one element without the backslash and the loop hashes only
+    listed files, "a0" sorting between the two "a" lines so that neither repeats the
+    line before it; the check before the sort lists that escape unhashed. Configure
     keeps a clean suite beside its manifest and removes one holding a split name even
     beside a manifest recording its listing exactly; a verified tarball extracting a
     clean suite writes the manifest `corpus_listing` renders, and one extracting a
@@ -1011,7 +1015,10 @@ def _cmake_suite_listing() -> None:
                 ("collapsing-pieces", {"p;..\\..\\q": b"hidden", "q": b"Q"},
                  "unhashed ..\\..\\q\nunhashed p\n" + hashed(b"Q", "q")),
                 ("backslashed", {"a\\b": b"hidden", "a/b": b"nested"},
-                 hashed(b"nested", "a/b") + "unhashed a\\b\n")):
+                 hashed(b"nested", "a/b") + "unhashed a\\b\n"),
+                ("escaping-backslash", {"a": b"A", "a0": b"0", "a\\": b"hidden", "b": b"B"},
+                 "unhashed a name holding \\ before a semicolon\n" + hashed(b"A", "a")
+                 + hashed(b"0", "a0") + hashed(b"A", "a") + hashed(b"B", "b"))):
             got = _cmake_listing(work, _suite_of(work / name, files))
             ensure(got == (head + want).encode(),
                    f"the {name} name leaves its unhashed lines, got {got!r}")
