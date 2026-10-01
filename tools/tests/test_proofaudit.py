@@ -548,8 +548,13 @@ def _coinductive_forms_are_refused_before_compiling() -> None:
              # refused loudly.
              "Definition \u00e9cofix := 0.", "Definition cofix\u00e9 := 0.",
              "Definition x\u0663cofix := 0.")
+    # The pinned Rocq 9.3.0 reports a syntax error at `cofix` itself after each numeral,
+    # reading every letter case, sign, fraction and underscore as interp/numTok.ml does.
     lexical = (*(f"Check {numeral}cofix." for numeral in ("1", "1_", "1e5", "1e+5", "1.5",
                                                           "0x1p5", "0x1cp5", "0x1'", "'")),
+               *(f"Check {numeral}cofix." for numeral in (
+                   "1E5", "1E+5", "1e-5", "1._5", "1._e5", "1_.5", "1_e5", "1e5_", "0X1p5",
+                   "0x1P5", "0x1p-5", "0x1.5p5", "0x1.ap5", "0x1_p5", "0x1p5_")),
                *(f"Check {joined}." for joined in ("#_cofix", "x\u00b2cofix", "\u0663cofix",
                                                   "\u2080cofix", "#00x1p5cofix")),
                *(prefix + word for prefix in _PREFIXES
@@ -623,6 +628,9 @@ def _coinductive_controls_reach_the_compiler() -> None:
                "Ltac2 get (f : Std.red_flags) := f.(Std.rCofix).",
                "Definition x'cofix := 0.", "Definition x1cofix := 0.", "Check 0x1cofix.",
                "Check 1ecofix.", "Check #acofix.",
+               # An exponent's underscore continues its digits, so the pinned Rocq 9.3.0
+               # reads `1e5_0` and `0x1p5_0` whole, leaving the identifier `x1p5cofix`.
+               "Check 1e5_0x1p5cofix.", "Check 0x1p5_0x1p5cofix.",
                # Tokens that end in a symbol, or whose trailing letters, digits, quotes and
                # underscores hold no letter, hide no word from the reading, and neither do
                # identifiers or a format string's boxes.
