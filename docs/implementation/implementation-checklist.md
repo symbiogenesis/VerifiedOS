@@ -401,16 +401,16 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,221.3 |
-| Total estimate range h | 2,693.2–5,749.4 |
-| Completed scope h | 742.8 |
+| Total estimate midpoint h | 4,221.9 |
+| Total estimate range h | 2,693.8–5,750 |
+| Completed scope h | 743.4 |
 | Complete by estimate % | 17.6 |
 | Remaining h | 3,478.5 |
 | Open class I h | 740 |
 | Open class X h | 2,738.5 |
 | Retained completion estimate h | 164.5 |
 | Unmeasured completed items | 20 |
-| Calibrated total h | 5,156.9 |
+| Calibrated total h | 5,157.5 |
 | Committed M8a open h | 94.5 |
 | Committed M8b open h | 90.5 |
 | Other committed open h | 2,068 |
@@ -1148,7 +1148,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,415 h · 57% · 153 h complete · open range 1,283–3,241 h.
+**Q subtotal:** 2,415.6 h · 57% · 153.6 h complete · open range 1,283–3,241 h.
 
 ### M0 · Hardware reference
 
@@ -2033,10 +2033,10 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 | attended | X-read | 14 | 45.5 | 26.9 | 0.59 |
 | attended | X-authored | 3 | 18 | 25.5 | 1.42 |
 | attended | All | 63 | 323.9 | 238.4 | 0.74 |
-| agent-parallel | I | 38 | 303.5 | 111.4 | 0.37 |
+| agent-parallel | I | 38 | 302 | 112 | 0.37 |
 | agent-parallel | X-read | 10 | 101.5 | 34.7 | 0.34 |
 | agent-parallel | X-authored | 22 | 267 | 39.6 | 0.15 |
-| agent-parallel | All | 70 | 672 | 185.7 | 0.28 |
+| agent-parallel | All | 70 | 670.5 | 186.3 | 0.28 |
 <!-- calibration-results:end -->
 
 ### Calibration record
