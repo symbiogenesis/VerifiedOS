@@ -184,9 +184,27 @@ def _extraction_refuses_and_bounds() -> None:
             found = reader.extract(_zip(*members), fresh)
             ensure(any(fragment in item for item in found) and not fresh.exists(),
                    f"an archive is refused whole ({fragment!r}): {found!r}")
+        for members, fragment in (
+                ((_member("a.log", b"x"), _member("a.log/b.log", b"y")), "is the directory of"),
+                ((_member("A.log", b"x"), _member("a.log", b"y")), "name one file")):
+            fresh = Path(scratch) / f"collide-{fragment.replace(' ', '-')}"
+            found = reader.extract(_zip(*members), fresh)
+            ensure(any(fragment in item for item in found) and not fresh.exists(),
+                   f"members landing on one another refuse the archive ({fragment!r}): "
+                   f"{found!r}")
+        corrupt = _zip(_member("ok.log", b"a body to corrupt\n"))
+        corrupt = corrupt.replace(b"a body to corrupt", b"a body to c0rrupt", 1)
+        fresh = Path(scratch) / "corrupt"
+        found = reader.extract(corrupt, fresh)
+        ensure(any("cannot be read" in item for item in found) and not fresh.exists()
+               and not fresh.with_name("corrupt.partial").exists(),
+               f"a member failing its CRC refuses the archive: {found!r}")
         found = reader.extract(good, Path(scratch) / "bounded", limit=3)
         ensure(any("over the 3-byte bound" in item for item in found),
                f"members past the bound refuse the archive: {found!r}")
+        ensure(not reader.extract(good, target) and not target.with_name(
+            "artifact.partial").exists() and (target / "receipt.json").is_file(),
+               "an extraction moved into place leaves no partial tree")
         ensure(reader.extract(b"not a zip", Path(scratch) / "z") == [
             "the artifact is not a zip archive"], "a non-archive is refused")
     ensure(reader.member_refusal("a/b.log") is None

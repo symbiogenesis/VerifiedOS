@@ -425,7 +425,9 @@ attempt suffix, replaced on a rerun and retained 30 days.
 **Reading.** `run.py instrument-ci read --run ID` follows each artifact's redirect
 without credentials, saves it under `out/instrument-ci/<run id>/` and extracts it only
 there, refusing an archive with a member whose path is absolute or climbs out of its
-directory or whose members total more than 256 MiB. It holds each member to the
+directory, two members that would land on one another, a member that cannot be read,
+or whose members total more than 256 MiB, and moving an extraction into place only
+whole. It holds each member to the
 allowlist and each recorded input to the run, reads the jobs' conclusions and the
 `plan.json` of a run the plan refused, re-joins the artifacts against the run's
 `report.json`, and prints the verdict with the run's URL, tested revisions, runner

@@ -21,8 +21,9 @@ by finding the run whose title carries the nonce, never by posting again.
 
 **`read` trusts nothing it downloads.** Each artifact's redirect is followed without
 credentials, saved under `out/instrument-ci/<run id>/` and extracted only there, a
-member whose path is absolute or climbs out of its directory or an archive larger than
-the route's bound refusing it; each member is held to the staging allowlist and each
+member whose path is absolute or climbs out of its directory, two members landing on one
+another, a member that cannot be read or an archive larger than the route's bound
+refusing it; each member is held to the staging allowlist and each
 recorded input to the run. It re-joins the artifacts and holds the result to the run's
 own report, prints the verdict with the run's URL, tested revisions, runner images and
 step durations, and says whether the run is closing evidence: whether the route inputs
@@ -294,19 +295,48 @@ def member_refusal(name: str) -> str | None:
     return None
 
 
+def collisions(names: Sequence[str]) -> list[str]:
+    """Members that would land on one another: two names equal but for case, which one
+    file holds on a case-insensitive filesystem, and a name that is another's directory."""
+    found: list[str] = []
+    seen: dict[str, str] = {}
+    for name in names:
+        folded = name.casefold()
+        if folded in seen:
+            found.append(f"members {seen[folded]!r} and {name!r} name one file")
+        else:
+            seen[folded] = name
+    for name in names:
+        parts = PurePosixPath(name.casefold()).parts
+        for depth in range(1, len(parts)):
+            prefix = "/".join(parts[:depth])
+            if prefix in seen:
+                found.append(f"member {seen[prefix]!r} is the directory of member {name!r}")
+    return found
+
+
+# What reading a member raises where its archive is malformed: a bad CRC, an unsupported
+# compression, an encrypted member, or a truncated stream.
+_UNREADABLE = (zipfile.BadZipFile, NotImplementedError, RuntimeError, ValueError, EOFError,
+               OSError)
+
+
 def extract(data: bytes, target: Path, limit: int = route.ARCHIVE_LIMIT) -> list[str]:
     """Extract one artifact's archive into `target` alone, or refuse it whole: a member
-    whose path is absolute or climbs out, members totalling more than `limit` bytes, a
-    member outside the staging allowlist or carrying a Wasm or ELF header or a NUL
-    byte. A refused archive leaves nothing extracted."""
+    whose path is absolute or climbs out, two members that would land on one another,
+    members totalling more than `limit` bytes, a member that cannot be read, or one
+    outside the staging allowlist or carrying a Wasm or ELF header or a NUL byte. The
+    members are written beside `target` and moved into place whole, so a refused archive
+    leaves nothing extracted."""
     try:
         archive = zipfile.ZipFile(io.BytesIO(data))
-    except zipfile.BadZipFile:
+    except (zipfile.BadZipFile, zipfile.LargeZipFile, ValueError, EOFError):
         return ["the artifact is not a zip archive"]
     with archive:
         members = [info for info in archive.infolist() if not info.is_dir()]
         refusals = [refusal for info in members
                     if (refusal := member_refusal(info.filename)) is not None]
+        refusals += collisions([info.filename.replace("\\", "/") for info in members])
         total = sum(info.file_size for info in members)
         if total > limit:
             refusals.append(f"its members hold {total} bytes, over the {limit}-byte bound")
@@ -315,19 +345,32 @@ def extract(data: bytes, target: Path, limit: int = route.ARCHIVE_LIMIT) -> list
         contents: list[tuple[str, bytes]] = []
         for info in members:
             name = info.filename.replace("\\", "/")
-            body = archive.read(info)
+            try:
+                body = archive.read(info)
+            except _UNREADABLE as error:
+                refusals.append(f"member {name} cannot be read: {error}")
+                continue
             why = route.name_refusal(name) or route.content_refusal(body)
             if why is not None:
                 refusals.append(f"member {name} is outside the allowlist: {why}")
             contents.append((name, body))
     if refusals:
         return refusals
+    partial = target.with_name(f"{target.name}.partial")
+    if partial.exists():
+        shutil.rmtree(partial)
+    try:
+        for name, body in contents:
+            path = partial.joinpath(*PurePosixPath(name).parts)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(body)
+    except OSError as error:
+        shutil.rmtree(partial, ignore_errors=True)
+        return [f"the archive could not be extracted: {error}"]
     if target.exists():
         shutil.rmtree(target)
-    for name, body in contents:
-        path = target.joinpath(*PurePosixPath(name).parts)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(body)
+    partial.mkdir(parents=True, exist_ok=True)
+    partial.rename(target)
     return []
 
 
