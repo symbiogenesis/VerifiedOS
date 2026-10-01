@@ -1223,7 +1223,7 @@ Local Transparent pow_mod.
 Lemma vscale_compose : forall q u v a,
   vscale q u (vscale q v a) = vscale q (u*v) a.
 Proof.
-  intros q u v a. induction a as [|x a IHa]; unfold vscale in *; cbn [map].
+  intros q u v a. induction a as [|a a0 IHa]; unfold vscale in *; cbn [map].
   - reflexivity.
   - rewrite IHa. f_equal. unfold mulmod.
     rewrite Zmult_mod_idemp_r, Z.mul_assoc. reflexivity.
@@ -1396,7 +1396,7 @@ Qed.
 Lemma concat_bits_length : forall width xs,
   length (concat (map (bits_le width) xs)) = (length xs * width)%nat.
 Proof.
-  intros width xs. induction xs as [|x xs IHxs]; cbn [map concat length]; [reflexivity|].
+  intros width xs. induction xs as [|a xs IHxs]; cbn [map concat length]; [reflexivity|].
   rewrite length_app, bits_le_length, IHxs. lia.
 Qed.
 
