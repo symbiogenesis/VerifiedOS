@@ -7,7 +7,8 @@ print a larger number and read exactly like a better one. Counting an unseeded c
 the same way as a stillborn mutant would be the quieter version of it: a case that has
 stopped applying to the document it was written against decides nothing and would
 report its rule live for as long as nobody looked, so the two verdicts are apart here
-and one of them fails the run.
+and one of them fails the run. An undecided mutant, whose oracle gave no answer, is held
+the same way: never a kill, and a finding.
 
 The other half is the protocol. Two populations reach `summarize`, one walked out of a
 source and one authored, and each satisfies `Seeded` from a different shape: a walked
@@ -77,6 +78,52 @@ def _an_unseeded_mutant_is_a_finding() -> None:
            f"the report does not say the oracle was never asked: {out}")
     ensure(any("1 unseeded" in line for line in out),
            f"the fourth verdict was not counted: {out}")
+
+
+def _an_undecided_mutant_is_a_finding_and_no_kill() -> None:
+    """A mutant whose compile the run stopped at its limit was asked and never answered:
+    beside a kill it still fails the run, counted apart from the kills and named with
+    why, and a run whose only verdicts are undecided says so rather than that every
+    mutant was stillborn."""
+    out: list[str] = []
+    code = seeded.summarize(out, [seeded.Verdict(_mutant(1), seeded.KILLED, "moved", 2),
+                                  seeded.Verdict(_mutant(2), seeded.UNDECIDED,
+                                                 "the compile of f.v reached the limit")],
+                            "f.sail", "test")
+    ensure(code == 1, f"an undecided mutant beside a kill passed the run: {out}")
+    ensure(any("1 killed, 0 survived, 0 stillborn, 1 undecided" in line for line in out),
+           f"the undecided mutant was not counted apart from the kill: {out}")
+    ensure(any(line.startswith("FAIL 1 of 2 mutant(s) went undecided") for line in out)
+           and any("f.v reached the limit" in line for line in out),
+           f"the report does not name the undecided mutant and why: {out}")
+    ensure(seeded.findings_in([seeded.Verdict(_mutant(), seeded.UNDECIDED, "limit")]) == 1,
+           "an undecided mutant alone is one finding")
+    only: list[str] = []
+    seeded.summarize(only, [seeded.Verdict(_mutant(), seeded.UNDECIDED, "limit")],
+                     "f.sail", "test")
+    ensure(not any("stillborn, so the" in line for line in only),
+           f"an undecided run was reported as all stillborn: {only}")
+
+
+def _a_journal_note_is_no_verdict() -> None:
+    """What a verdict cost is written down beside the verdicts, every line of a note
+    opening neither on a verdict's number nor on the head's or the close's `==`, as the
+    head says, and counts as no verdict on the closing line, which counts an undecided
+    verdict apart from the decided ones."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        book = seeded.Journal(Path(td) / "run.journal")
+        book.start("f.sail", "test", seeded.Scope(whole=2, ran=2))
+        book.note("t: compiled f.v in 1.25 s, exit 0")
+        book.record(seeded.Verdict(_mutant(1), seeded.KILLED, "moved"))
+        book.note("no baseline: f.v did not compile:\n3 errors")
+        book.record(seeded.Verdict(_mutant(2), seeded.UNDECIDED, "limit"))
+        book.close(1)
+        lines = book.path.read_text(encoding="utf-8").splitlines()
+    ensure("`-- `" in lines[2] and lines[3] == "-- t: compiled f.v in 1.25 s, exit 0"
+           and lines[5:7] == ["-- no baseline: f.v did not compile:", "-- 3 errors"]
+           and lines[-1] == "== complete: 1 verdict(s) decided, 1 undecided, exit 1",
+           f"a note's every line is not its own `-- ` line, or the close does not count "
+           f"the undecided verdict apart: {lines}")
 
 
 def _no_unseeded_verdict_is_reported_as_none() -> None:
@@ -261,6 +308,8 @@ def _the_finding_count_and_the_exit_code_agree() -> None:
          seeded.Verdict(_mutant(2), seeded.UNSEEDED, "moved off"),
          seeded.Verdict(_mutant(3), seeded.SURVIVED, "reproduced")],
         [seeded.Verdict(_mutant(), seeded.UNSEEDED, "moved off")],
+        [seeded.Verdict(_mutant(1), seeded.KILLED, "moved"),
+         seeded.Verdict(_mutant(2), seeded.UNDECIDED, "limit")],
     ]
     for verdicts in populations:
         out: list[str] = []
@@ -322,6 +371,14 @@ def _a_journal_names_the_verdict_it_hands_back() -> None:
         written = book.path.read_text(encoding="utf-8")
         ensure(verdict.mutant.what in written and "moved 4" in written,
                f"the line does not name the defect or how it died: {written!r}")
+        ensure(book.record(verdict, "j1: mutant op/7") is verdict,
+               "record did not hand its verdict back")
+        lines = book.path.read_text(encoding="utf-8").splitlines()
+        ensure(lines[-2:] == ["-- j1: mutant op/7 is verdict 2",
+                              f"    2  killed    {verdict.mutant.what}: moved 4"]
+               and not any(line.startswith("--") for line in lines[:-2]),
+               f"what a verdict is about is not named, by its number, directly before "
+               f"it, or is named where none was given: {lines}")
 
 
 def cases() -> list[Case]:
@@ -348,6 +405,9 @@ def cases() -> list[Case]:
         Case("a survivor fails the run", _a_survivor_fails_the_run),
         Case("a stillborn mutant does not", _a_stillborn_mutant_does_not_fail_the_run),
         Case("an unseeded mutant is a finding", _an_unseeded_mutant_is_a_finding),
+        Case("an undecided mutant is a finding and no kill",
+             _an_undecided_mutant_is_a_finding_and_no_kill),
+        Case("a journal note is no verdict", _a_journal_note_is_no_verdict),
         Case("a run with none reports no unseeded count",
              _no_unseeded_verdict_is_reported_as_none),
         Case("an all-stillborn run is a finding", _an_all_stillborn_run_is_a_finding),

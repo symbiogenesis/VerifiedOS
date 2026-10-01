@@ -959,14 +959,13 @@ FACTS: tuple[Fact, ...] = (
          partial(_switch_at, env.ROCQ_SWITCH, "rocq-core", env.ROCQ_VERSION),
          env.ROCQ_INSTALL),
     Fact("the CertiRocq oracle switch", TOOLCHAIN,
-         "the M1.5 Wasm oracle, and run.py quickchick check and properties where "
-         "QuickChick is installed there",
+         "the M1.5 Wasm oracle",
          "tools/vos/gallina.py's ORACLE_SWITCH and CERTIROCQ_VERSION, the switch "
          "tools/wasm-oracle/README.md's recipe imports from tools/opam/certirocq.lock",
          partial(_switch_at, gallina.ORACLE_SWITCH, "rocq-certirocq",
                  gallina.CERTIROCQ_VERSION)),
     Fact("the QuickChick switch", TOOLCHAIN,
-         "run.py quickchick properties",
+         "run.py quickchick check and properties, and run.py seed coq --quickchick",
          "tools/vos/gallina.py's QUICKCHICK_SWITCH and "
          "tools/vos/cli/quickchick.py's PACKAGE and VERSION",
          partial(_switch_at, gallina.QUICKCHICK_SWITCH, quickchick.PACKAGE,

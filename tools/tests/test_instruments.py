@@ -147,6 +147,33 @@ def _the_set_follows_closure_and_release() -> None:
            f"a row stating no release is held older: {unstated}")
 
 
+def _a_support_row_reads_what_the_rig_compiles() -> None:
+    """A row compiling the rig's support reads what `gallina.compile_support` compiles
+    for it: the randomized half's own support only where the row runs the drawn
+    harness, and no entry point."""
+    rig = k117.RIG
+    files: dict[str, str | bytes] = {
+        "proofs/A.v": "Definition a := 0.\n",
+        f"{rig}/Probe.v": "Require Import A.\n",
+        f"{rig}/IPCProperties.v": "Definition c (o : option nat) := "
+                                  "if o is Some n then n else 0.\n",
+        f"{rig}/{gallina.ENUMERATIVE}": "Variant v := V of nat.\n",
+        f"{rig}/{gallina.RANDOMIZED}": "Require Import A.\n",
+    }
+
+    def row(*harnesses: str) -> k117.Instrument:
+        return k117.Instrument("old", "tools/x.py", "some-switch", "9.1.1",
+                               harnesses=tuple(f"{rig}/{h}" for h in harnesses),
+                               support=True)
+
+    vector, _ = _decide(files, [row(gallina.ENUMERATIVE)])
+    ensure([f.split(" ")[0] for f in vector] == [f"{rig}/{gallina.ENUMERATIVE}:1"],
+           f"a vector row reads its harness and the shared probe alone: {vector}")
+    drawn, _ = _decide(files, [row(gallina.RANDOMIZED)])
+    ensure([f.split(" ")[0] for f in drawn] == [f"{rig}/IPCProperties.v:1"],
+           f"a row running the drawn harness reads the randomized half's support: {drawn}")
+
+
 def _readings_fail_closed() -> None:
     files: dict[str, str | bytes] = {
         "proofs/A.v": "Definition a := 0.\n",
@@ -360,8 +387,18 @@ def _the_live_rows_read_their_instruments() -> None:
            "every rig caller the tree carries is a row")
     properties = {row.switch for row in k117.INSTRUMENTS
                   if row.selects == "tools/vos/cli/quickchick.py"}
-    ensure(properties == {gallina.QUICKCHICK_SWITCH, gallina.ORACLE_SWITCH},
-           f"quickchick properties runs in either switch holding QuickChick: {properties}")
+    ensure(properties == {gallina.QUICKCHICK_SWITCH, gallina.QUICKCHICK_RECIPE_SWITCH},
+           "quickchick properties runs in QuickChick's provisioned switch or the one its "
+           f"recipe builds, and no other: {properties}")
+    ensure(by_name["quickchick properties --recipe"].release
+           == gallina.QUICKCHICK_RECIPE_ROCQ_VERSION,
+           "the recipe's rows read the recipe's own release")
+    walked = f"{k117.RIG}/{gallina.EXHAUSTIVE}"
+    randomized = [row for row in k117.INSTRUMENTS if "quickchick" in row.name
+                  and row.name != "quickchick vectors" and row.name != "quickchick freeze"]
+    ensure(len(randomized) == 4 and all(walked in row.harnesses for row in randomized),
+           f"the randomized half's four rows compile the walk harness beside the drawn one: "
+           f"{[row.name for row in randomized]}")
 
 
 def _the_live_reading_reaches_only_the_older_instruments_proofs() -> None:
@@ -420,6 +457,7 @@ def cases() -> list[Case]:
         _look_alikes_pass,
         _code_keeps_lines_and_blanks_strings,
         _the_set_follows_closure_and_release,
+        _a_support_row_reads_what_the_rig_compiles,
         _readings_fail_closed,
         _an_option_default_is_read,
         _a_rig_constant_the_instrument_binds_is_read,

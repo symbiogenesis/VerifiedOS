@@ -13,12 +13,13 @@ an **oracle**, which is whatever decides that a defect has been noticed:
     run.py seed coq                     the prover, and then the Gallina vectors
     run.py seed properties --file ...   the model's own `$[test]` harness
 
-Three verdicts and never two. **Stillborn** is a mutant that did not compile, and
-nothing was decided about the oracle because the oracle never ran. **Killed** is a
-mutant that compiled and moved the oracle's answer. **Survived** is a mutant that
-compiled and did not, and a survivor is the finding: the oracle does not reach that
-site. Counting stillborn mutants as kills is the standard way a mutation score is
-inflated, so a run here reports the three apart and scores over the live population.
+Three verdicts decide a mutant, and never two. **Stillborn** is a mutant that did not
+compile, and nothing was decided about the oracle because the oracle never ran.
+**Killed** is a mutant that compiled and moved the oracle's answer. **Survived** is a
+mutant that compiled and did not, and a survivor is the finding: the oracle does not
+reach that site. Counting stillborn mutants as kills is the standard way a mutation
+score is inflated, so a run here reports the three apart and scores over the live
+population; a Gallina run may also leave a mutant undecided, as below.
 What a verdict is, and the report and the exit code they imply, is
 [vos/seeded.py](../seeded.py)'s and is shared with every other loop that seeds a
 defect; what is here is the population and the three oracles.
@@ -29,7 +30,17 @@ under a population that costs a compiler or a prover per member, and each writes
 verdict to a journal beside the lane's staged trees as it is decided, so a run that is
 killed anyway still says what it had decided rather than losing the lot at the report
 it never printed. The report itself is unmoved: accumulated, printed whole, in
-population order, and closing on the line that carries the run's scope.
+population order, and closing on the line that carries the run's scope. The Gallina
+lane also journals the seed a randomized baseline draws from, which mutant each staged
+tree is on and each compile's file and wall seconds, and a compile that reaches
+gallina's per-file limit is stopped, its mutant journalled undecided with the file and
+the limit, and the run goes on to the next; a compile a signal ends, a kill for want of
+memory among them, leaves its mutant undecided the same way, with the file and the
+signal, and never killed or stillborn. Under `--quickchick` a drawn set whose
+program built and then ended on what decides nothing about the mutant, memory or stack
+running out, a signal, a program that could not run or a status the reader cannot
+classify, leaves the mutant undecided the same way, journalled with why, and one whose
+program ended on any other exception nothing caught kills it.
 
 The Coq lane runs **two** oracles in sequence and the second is the one worth the
 item. A mutation the prover refuses is killed by the artifact's own statements, which
@@ -64,16 +75,18 @@ import argparse
 import concurrent.futures
 import shutil
 import subprocess
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 
 from vos import cli, env, gallina, mutate, sailrig
 from vos import oracle as oracle_spec
+from vos.cli import quickchick
 from vos.corpus import find_root
 from vos.seeded import (
     KILLED,
     STILLBORN,
     SURVIVED,
+    UNDECIDED,
     Journal,
     Scope,
     Verdict,
@@ -311,10 +324,13 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
     that reads them are all under `work`, so two shards racing on one population never
     share a file.
 
-    Under QuickChick only what the mutant moves inside the harness's `Require` closure
-    is compiled, so no proof outside that closure reaches QuickChick's prover.
+    Under QuickChick only what the mutant moves inside the `Require` closure of the
+    harness and the walk harness beside it is compiled, so no proof outside that closure
+    reaches QuickChick's prover. The walk harness Requires nothing the drawn one's
+    closure does not hold, so the proofs asked are that closure's.
     """
-    moved = gallina.closure_dependents(work, harness, rel) if quickchick else None
+    walker = harness.parent / gallina.EXHAUSTIVE
+    moved = gallina.closure_dependents(work, rel, harness, walker) if quickchick else None
     failures = gallina.compile_dependents(found, work, rel, moved)
     if failures:
         return Verdict(mutant, KILLED,
@@ -322,23 +338,51 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
                        len(failures))
     # The harness's own shared sources come after the proofs and their failure is a
     # different verdict: a mutation the shipped statements accept and the harness
-    # cannot be built over is a mutant no oracle ran against.
-    if gallina.compile_support(found, work, moved):
+    # cannot be built over is a mutant no oracle ran against. The randomized half's own
+    # support is among them only where that half decides.
+    if gallina.compile_support(found, work, moved, randomized=quickchick):
         return Verdict(mutant, STILLBORN,
                        "the harness would not build over the mutant")
     if quickchick:
         # Only the closure's proofs were asked, so the reason names them and no more.
         accepted = f"the proofs {gallina.RANDOMIZED}'s Require closure holds accepted it"
-        passed, failed, why = gallina.properties(found, work, harness)
-        if failed:
-            return Verdict(mutant, KILLED,
-                           f"{accepted} and QuickChick refuted {failed} of "
-                           f"{failed + passed} property set(s): {why}", failed)
-        if not passed:
+        # The walks first: they are the cheaper half, and a set a walk refutes is a
+        # kill whatever the draws would say.
+        walked, said = gallina.walks(found, work, walker)
+        if said:
             return Verdict(mutant, STILLBORN,
-                           "the harness did not run over the mutant")
+                           "the walk harness did not run over the mutant")
+        refuted = gallina.walk_failures(walked)
+        if refuted:
+            return Verdict(mutant, KILLED,
+                           f"{accepted} and {len(refuted)} of {len(walked)} walked "
+                           f"set(s) did not hold: {refuted[0]}", len(refuted))
+        # A set a draw refutes kills the mutant however the program or the prover ends
+        # after it; a compile stopped at gallina's per-file limit is undecided before
+        # its output is read. Short of one, a set whose program built and then ended on
+        # an exception nothing caught kills it too, the baseline's program having
+        # finished every set; a set whose program ended on what decides nothing about
+        # the mutant leaves it undecided; and a drawn harness that does not build is
+        # scored as the walk harness is: no draw ran against the mutant, so nothing was
+        # decided about it.
+        sets = gallina.properties(found, work, harness)
+        if sets.failed:
+            return Verdict(mutant, KILLED,
+                           f"{accepted} and QuickChick refuted {sets.failed} of "
+                           f"{sets.failed + sets.passed} property set(s): {sets.why}",
+                           sets.failed)
+        if sets.ended == gallina.DRAWN_CRASHED:
+            return Verdict(mutant, KILLED, f"{accepted} and {sets.why}", 1)
+        if sets.ended == gallina.DRAWN_UNANSWERED:
+            return Verdict(mutant, UNDECIDED,
+                           f"the drawn harness gave no answer over the mutant: {sets.why}, "
+                           "so nothing was decided about it")
+        if not sets.passed:
+            return Verdict(mutant, STILLBORN,
+                           f"the drawn harness decided nothing over the mutant: {sets.why}")
         return Verdict(mutant, SURVIVED,
-                       f"{accepted} and {passed} property set(s) held")
+                       f"{accepted}, {len(walked)} walked set(s) held and {sets.passed} "
+                       "drawn property set(s) passed")
     lines, said = gallina.vectors(found, work, harness)
     if said:
         return Verdict(mutant, STILLBORN, "the harness did not run over the mutant")
@@ -349,6 +393,26 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
                        "vector(s) moved", moved)
     return Verdict(mutant, SURVIVED,
                    "the proofs accepted it and every vector reproduced")
+
+
+def _accounted(book: Journal, tree: str) -> Callable[[gallina.Compiled], None]:
+    """How one staged tree's compiles are journalled as they end: the tree, the source,
+    its wall seconds and how the prover run ended, a stopped one with its limit."""
+    def note(done: gallina.Compiled) -> None:
+        ended = (f"stopped at gallina's per-file limit of {done.limit:g} s"
+                 if done.exit is None else f"exit {done.exit}")
+        book.note(f"{tree}: compiled {done.source} in {done.seconds:.2f} s, {ended}")
+    return note
+
+
+def _stopped(stopped: gallina.CompileTimeout | gallina.CompileSignalled) -> str:
+    """A compile stopped at its limit, or ended by a signal, as the reason a verdict or a
+    baseline names."""
+    if isinstance(stopped, gallina.CompileSignalled):
+        return (f"the compile of {stopped.source} was ended by "
+                f"{gallina.signal_named(stopped.signal)}")
+    return (f"the compile of {stopped.source} reached gallina's per-file limit of "
+            f"{stopped.timeout:g} s and was stopped")
 
 
 def _coq_shard(found: gallina.Prover, work: Path, rel: str, harness_name: str,
@@ -362,18 +426,37 @@ def _coq_shard(found: gallina.Prover, work: Path, rel: str, harness_name: str,
 
     Every verdict is journalled where it is decided rather than where the shards are
     joined, which is the whole of what makes the record survive: a run torn down never
-    reaches the join.
+    reaches the join. So is the mutant the tree is on, as it starts, and each compile's
+    file and wall seconds, as it ends, and each verdict carries the tree and the mutant
+    it is about, which shards journalling at once would otherwise leave to line order.
+
+    A compile that reaches gallina's per-file limit is stopped and decides nothing: its
+    mutant is undecided, naming the file and the limit, and the shard goes on to the
+    next. So is one a signal ends, a kill for want of memory among them, naming the file
+    and the signal. What the stopped compile leaves in the tree is recompiled before it
+    is read, every mutant here mutating the one source and recompiling it and everything
+    the run reads that Requires it, the harnesses among them.
     """
     staged = work / rel
     harness = work / "harness" / harness_name
     verdicts: list[Verdict] = []
-    for mutant in mutants:
-        write_source(staged, mutant.apply(original))
-        try:
-            verdicts.append(book.record(
-                _coq_verdict(found, work, rel, harness, mutant, baseline, quickchick)))
-        finally:
-            write_source(staged, original)
+    with gallina.observed(_accounted(book, work.name)):
+        for mutant in mutants:
+            book.note(f"{work.name}: mutant {mutant.ident} ({mutant.operator}) "
+                      f"{mutant.what}")
+            write_source(staged, mutant.apply(original))
+            try:
+                try:
+                    verdict = _coq_verdict(found, work, rel, harness, mutant, baseline,
+                                           quickchick)
+                except (gallina.CompileTimeout, gallina.CompileSignalled) as stopped:
+                    verdict = Verdict(mutant, UNDECIDED,
+                                      f"{_stopped(stopped)}, so nothing was decided "
+                                      "about it")
+                verdicts.append(book.record(verdict,
+                                            f"{work.name}: mutant {mutant.ident}"))
+            finally:
+                write_source(staged, original)
     return verdicts
 
 
@@ -426,24 +509,44 @@ def randomized_subjects(root: Path) -> list[str]:
 
 
 def _quickchick_baseline(root: Path, found: gallina.Prover, work: Path,
-                         harness_name: str) -> tuple[list[str] | None, str]:
-    """One tree stood up for the randomized harness, whose baseline is a count of green
-    property sets rather than a vector file, so the list it hands back is empty. It
-    compiles the harness's `Require` closure and nothing else, as `quickchick
-    properties` does."""
+                         harness_name: str, book: Journal | None = None
+                         ) -> tuple[list[str] | None, str]:
+    """One tree stood up for the randomized harness and the walk harness beside it,
+    whose baseline is green property sets rather than a vector file, so the list it
+    hands back is empty. It compiles the two harnesses' `Require` closure and nothing
+    else, as `quickchick properties` does. A harness the staged tree does not hold is
+    refused first, as `quickchick properties` refuses it, and a drawn harness that fixes
+    no seed next, since a verdict its mutants reach would not replay; the seed one fixes
+    is journalled in `book`, where one is given, before anything compiles."""
     gallina.stage(root, work)
-    harness = work / "harness" / harness_name
-    if gallina.compile_closure(found, work, harness):
+    drawn = work / "harness" / harness_name
+    walker = work / "harness" / gallina.EXHAUSTIVE
+    for harness in (drawn, walker):
+        if not harness.is_file():
+            return None, f"there is no harness at {gallina.HARNESS_DIR}/{harness.name}"
+    seed = gallina.seed(drawn)
+    if seed is None:
+        return None, (f"{harness_name} fixes QuickChick's random state other than once "
+                      "after its last Require of QuickChick, so no verdict over it replays")
+    if book is not None:
+        book.note(f"{work.name}: {harness_name} draws from seed {seed}")
+    if gallina.compile_closure(found, work, drawn, walker):
         return None, "the unmutated tree did not compile, so there is no baseline"
-    passed, failed, _ = gallina.properties(found, work, harness)
-    if failed or not passed:
-        return None, (f"the unmutated tree's {harness_name} is not green: {failed} "
-                      f"property set(s) failed and {passed} passed")
+    walked, said = gallina.walks(found, work, walker)
+    if said or gallina.walk_failures(walked):
+        return None, (f"the unmutated tree's {gallina.EXHAUSTIVE} is not green: "
+                      f"{said or '; '.join(gallina.walk_failures(walked))}")
+    sets = gallina.properties(found, work, drawn)
+    if not (sets.passed or sets.failed):
+        return None, f"the unmutated tree's {harness_name} decided nothing: {sets.why}"
+    if sets.failed:
+        return None, (f"the unmutated tree's {harness_name} is not green: {sets.failed} "
+                      f"property set(s) failed and {sets.passed} passed: {sets.why}")
     return [], ""
 
 
 def _stand_up(root: Path, found: gallina.Prover, trees: list[Path], harness_name: str,
-              quickchick: bool) -> tuple[list[str] | None, str]:
+              quickchick: bool, book: Journal) -> tuple[list[str] | None, str]:
     """Stage and compile every tree, and take the baseline they are all held to.
 
     They are stood up together for the same reason the shards run together, and then
@@ -451,6 +554,10 @@ def _stand_up(root: Path, found: gallina.Prover, trees: list[Path], harness_name
     mutants are compared against, so trees that differed unmutated would make a verdict
     depend on which shard happened to draw the mutant. That is a defect this rig has no
     other way of seeing, and it is cheap to refuse here.
+
+    Each tree's compiles are journalled as a shard's are, and one that reaches
+    gallina's per-file limit, or that a signal ends, leaves that tree, and so the run,
+    with no baseline.
     """
     def one(work: Path) -> tuple[list[str] | None, str]:
         # The emitter's own account of a failure is carried out rather than dropped
@@ -458,10 +565,15 @@ def _stand_up(root: Path, found: gallina.Prover, trees: list[Path], harness_name
         # in this loop where the reader has nothing else to go on, and "the unmutated
         # tree did not run" costs a whole second run to turn into which proof refused
         # and what the prover said about it.
-        if quickchick:
-            return _quickchick_baseline(root, found, work, harness_name)
-        said: list[str] = []
-        return gallina.emit(root, work, said), "\n".join(said)
+        with gallina.observed(_accounted(book, work.name)):
+            book.note(f"{work.name}: baseline")
+            try:
+                if quickchick:
+                    return _quickchick_baseline(root, found, work, harness_name, book)
+                said: list[str] = []
+                return gallina.emit(root, work, said), "\n".join(said)
+            except (gallina.CompileTimeout, gallina.CompileSignalled) as stopped:
+                return None, f"{_stopped(stopped)}, so the unmutated tree has no baseline"
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(trees)) as pool:
         got = list(pool.map(one, trees))
@@ -486,16 +598,18 @@ def cmd_coq(args: argparse.Namespace) -> int:
     Which generator supplies those inputs is `--quickchick`'s to choose, and the two
     are worth having apart. The enumerative harness walks a declared grid, so what it
     reaches is a list somebody wrote and its verdict is a whole vector file that moved.
-    QuickChick draws instead and shrinks what refutes, so what it reaches is a range
-    and its verdict is a minimal counterexample. A mutant both miss is a site neither
-    the proofs nor either kind of generation decides anything about.
+    QuickChick draws instead, from the seed its harness fixes, so what it reaches is a
+    range and its verdict names the set a draw refuted; a set whose domain is no larger
+    than its draws is walked whole by the walk harness beside it. A mutant both miss is
+    a site neither the proofs nor either kind of generation decides anything about.
 
-    Under QuickChick the run compiles `Properties.v`'s `Require` closure and nothing
-    else, for its baseline and for each mutant's dependents, and refuses a subject that
-    is not a proof source of that closure, whose mutation no property reads. The
-    enumerative mode compiles every proof source and mutates any of them. A mutant only
-    a proof outside that closure refuses is not killed by the prover in this mode; the
-    enumerative mode, which compiles every proof that Requires the subject, decides it.
+    Under QuickChick the run compiles `Properties.v`'s `Require` closure and the walk
+    harness, whose Requires lie inside it, and nothing else, for its baseline and for
+    each mutant's dependents, and refuses a subject that is not a proof source of that
+    closure, whose mutation no property reads. The enumerative mode compiles every proof
+    source and mutates any of them. A mutant only a proof outside that closure refuses
+    is not killed by the prover in this mode; the enumerative mode, which compiles every
+    proof that Requires the subject, decides it.
     """
     e = lane_env()
     root = find_root()
@@ -512,12 +626,27 @@ def cmd_coq(args: argparse.Namespace) -> int:
                   "enumerative mode mutates any proof source")
             return 1
 
-    switch = gallina.QUICKCHICK_SWITCH if args.quickchick else gallina.VECTOR_SWITCH
-    found = gallina.prover(switch)
-    if found is None:
-        print(f"FAIL no prover in the {switch} switch; "
-              "`run.py provision` says which switches this lane holds")
+    if args.recipe and not args.quickchick:
+        print("FAIL --recipe names the switch QuickChick's recipe builds and runs only "
+              "with --quickchick")
         return 1
+    if args.quickchick:
+        # QuickChick's own holder chooses the switch and holds what it carries, as it
+        # does for `quickchick check` and `properties`, so no population is decided
+        # under a QuickChick release or commit the switch's recipe does not pin.
+        switch, _, found, why = quickchick._held(args.recipe)
+        if why or found is None:
+            check = "quickchick check --recipe" if args.recipe else "quickchick check"
+            print("\n".join([f"FAIL the {switch} switch cannot run the randomized half",
+                             *(f"     {line}" for line in why),
+                             f"     `run.py {check}` says what installing it costs"]))
+            return 1
+    else:
+        found = gallina.prover(gallina.VECTOR_SWITCH)
+        if found is None:
+            print(f"FAIL no prover in the {gallina.VECTOR_SWITCH} switch; "
+                  "`run.py provision` says which switches this lane holds")
+            return 1
 
     name = "quickchick" if args.quickchick else "coq"
     work = e.lane_root / WORK / name
@@ -549,14 +678,17 @@ def _coq_run(args: argparse.Namespace, e: env.Environment, root: Path, rel: str,
     # a run that asked for no concurrency stages exactly where it staged before.
     jobs = max(1, args.jobs)
     trees = [work] if jobs == 1 else [work / f"j{n}" for n in range(jobs)]
-    baseline, why = _stand_up(root, found, trees, harness_name, args.quickchick)
+    baseline, why = _stand_up(root, found, trees, harness_name, args.quickchick, book)
     if baseline is None:
         out.append(f"FAIL {why}")
+        book.note(f"no baseline: {why}")
         book.close(1)
         print("\n".join(out))
         return 1
-    said = (f"{len(baseline)} vector(s) from the Gallina front"
-            if not args.quickchick else "green under QuickChick")
+    said = (f"{len(baseline)} vector(s) from the Gallina front" if not args.quickchick
+            else (f"green under QuickChick from seed "
+                  f"{gallina.seed(trees[0] / 'harness' / harness_name)} and at every "
+                  "point of each walked domain"))
     out.append(f"== baseline: {said}, {gallina.version(found)} in {switch}"
                + (f", over {len(trees)} staged tree(s) agreeing unmutated"
                   if len(trees) > 1 else ""))
@@ -758,8 +890,14 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
                          help="which Gallina source to mutate; with --quickchick, a "
                               "proof source Properties.v's Require closure holds")
         sub.add_argument("--quickchick", action="store_true",
-                         help="let QuickChick's draws and shrinking decide instead "
-                              "of the enumerative harness's vectors")
+                         help="let QuickChick's seeded draws, and the walks over "
+                              "domains no larger than them, decide instead of the "
+                              "enumerative harness's vectors")
+        sub.add_argument("--recipe", action="store_true",
+                         help="with --quickchick, run in the switch tools/vos/cli/"
+                              "quickchick.py's RECIPE builds from its commit pins, "
+                              "holding the pinned commit, rather than in the "
+                              "provisioned QuickChick switch")
         sub.add_argument("--jobs", type=int, default=1, metavar="N",
                          help="stage N trees and run the population across them at "
                               "once. Every mutant is one prover run and the trees "

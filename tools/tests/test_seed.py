@@ -6,11 +6,15 @@ What is pinned here is that the loop **puts the tree back**: the `$[test]` oracl
 writes into `model/`, which is a `-text` tree where a newline-translating round trip
 rewrites every line of the file it touched. The verdict arithmetic this tool reports
 through is `vos/seeded.py`'s and is held in [test_seeded.py](test_seeded.py), beside
-the module that decides it and beside the loops that share it.
+the module that decides it and beside the loops that share it. Which verdict one
+Gallina mutant earns is this tool's, and is held here over a staged miniature of the
+rig whose prover answers from a table: which harness decides it, in which order, and
+what a harness that will not build scores.
 
-Also pinned, with a stub prover, is what `seed coq --quickchick` compiles: `Properties.v`'s
-`Require` closure alone, for its baseline and for each mutant's dependents, a subject
-outside that closure refused before any prover is asked.
+Also pinned, with a stub prover, is what `seed coq --quickchick` compiles:
+`Properties.v`'s `Require` closure and the walk harness, whose Requires lie inside it,
+and nothing else, for its baseline and for each mutant's dependents, a subject outside
+that closure refused before any prover is asked.
 """
 
 import argparse
@@ -18,33 +22,38 @@ import io
 import subprocess
 import sys
 import tempfile
-from collections.abc import Iterator
+import time
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 from tests.harness import TOOLS, Case, ensure
-from vos import gallina, mutate
-from vos.cli import seed
-from vos.seeded import SURVIVED
+from vos import env, gallina, mutate
+from vos.cli import quickchick, seed
+from vos.seeded import KILLED, STILLBORN, SURVIVED, UNDECIDED, Journal, Scope, Verdict
 
 _ROOT = TOOLS.parent
 
 # Properties.v Requires B, which Requires A, and two support harnesses, Probe over A and
-# Side over C. Far Requires A from outside that closure; Lone is support outside it, and
-# Vectors is the enumerative entry point, which Requires Far.
-_RIG = gallina.HARNESS_DIR
+# Side over C, and fixes its seed; the walk harness beside it Requires B. Far Requires A
+# from outside that closure; Lone is support outside it, and Vectors is the enumerative
+# entry point, which Requires Far.
+_DIR = gallina.HARNESS_DIR
 _CLOSED: dict[str, str] = {
     "proofs/A.v": "Definition a : nat := 1.\n",
     "proofs/B.v": "Require Import A.\nDefinition b : nat := a.\n",
     "proofs/C.v": "Definition c : nat := 2.\n",
     "proofs/Far.v": "Require Import A.\nDefinition far : nat := a.\n",
-    f"{_RIG}/Probe.v": "Require Import A.\n",
-    f"{_RIG}/Side.v": "Require Import C.\n",
-    f"{_RIG}/Lone.v": "Require Import Far.\n",
-    f"{_RIG}/{gallina.ENUMERATIVE}": "Require Import Far Probe.\n",
-    f"{_RIG}/{gallina.RANDOMIZED}": "From QuickChick Require Import QuickChick.\n"
-                                    "Require Import B Probe Side.\n",
+    f"{_DIR}/Probe.v": "Require Import A.\n",
+    f"{_DIR}/Side.v": "Require Import C.\n",
+    f"{_DIR}/Lone.v": "Require Import Far.\n",
+    f"{_DIR}/{gallina.ENUMERATIVE}": "Require Import Far Probe.\n",
+    f"{_DIR}/{gallina.RANDOMIZED}": "From QuickChick Require Import QuickChick.\n"
+                                    "Require Import B Probe Side.\n"
+                                    'Extract Constant newRandomSeed => '
+                                    '"(Random.State.make [|7|])".\n',
+    f"{_DIR}/{gallina.EXHAUSTIVE}": "Require Import B.\n",
 }
 
 
@@ -61,15 +70,114 @@ def _closed_tree() -> Iterator[Path]:
 @contextmanager
 def _stub_prover(compiled: list[str]) -> Iterator[gallina.Prover]:
     """A prover that records each source it is handed, by stem, and prints one green
-    property set and one vector for every compile."""
+    property set and one vector for every compile, and one walked set that held for the
+    walk harness's."""
     def compile_one(found: gallina.Prover, work: Path, source: Path,
                     timeout: int = 900) -> subprocess.CompletedProcess[str]:
         del found, work, timeout
         compiled.append(source.stem)
+        if source.name == gallina.EXHAUSTIVE:
+            return subprocess.CompletedProcess([], 0, '= ["prop_w 9 9 0 -"] : list string\n',
+                                               "")
         return subprocess.CompletedProcess([], 0, '= ["v"]\n+++ Passed 10000 tests\n', "")
 
     with patch.object(gallina, "compile_one", side_effect=compile_one):
         yield gallina.Prover("stub", ("rocq", "c"))
+
+# A checkout's proofs and harnesses in miniature: one proof, the shared probe, the
+# support only the randomized half Requires, and the three entry points `seed coq`
+# compiles, with what each prints when it builds.
+_RIG = {"proofs/A.v": "Definition a : nat := 1.\n",
+        "tools/quickchick/Probe.v": "Require Import A.\n",
+        "tools/quickchick/IPCProperties.v": "Require Import Probe.\n",
+        f"tools/quickchick/{gallina.ENUMERATIVE}": "Require Import Probe.\n",
+        f"tools/quickchick/{gallina.RANDOMIZED}":
+            "From QuickChick Require Import QuickChick.\n"
+            'Extract Constant newRandomSeed => "(Random.State.make [|7|])".\n'
+            "Require Import Probe IPCProperties.\n",
+        f"tools/quickchick/{gallina.EXHAUSTIVE}": "Require Import IPCProperties.\n"}
+_PRINTS = {gallina.ENUMERATIVE: '= ["v 1"] : list string\n',
+           gallina.EXHAUSTIVE: '= ["prop_w 9 9 0 -"] : list string\n',
+           gallina.RANDOMIZED: "+++ Passed 10000 tests\n" * 2}
+
+
+def _done(code: int, said: str = "") -> subprocess.CompletedProcess[str]:
+    return subprocess.CompletedProcess([], code, said,
+                                       "" if code == 0 else "Error: The reference x was not found")
+
+
+def _checkout(rig: dict[str, str], root: Path) -> Path:
+    """The rig written out as a checkout at `root`."""
+    for rel, text in rig.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text, encoding="utf-8", newline="")
+    return root
+
+
+def _answered(answers: dict[str, subprocess.CompletedProcess[str]], compiled: list[str]
+              ) -> Callable[..., subprocess.CompletedProcess[str]]:
+    """A stand-in for the prover: each compile answered from `answers` by file name,
+    else as `_PRINTS` says the file prints, and every file it is handed kept in order."""
+    def compile_one(found: gallina.Prover, work: Path, source: Path,
+                    timeout: int = 900) -> subprocess.CompletedProcess[str]:
+        del found, work, timeout
+        compiled.append(source.name)
+        return answers.get(source.name, _done(0, _PRINTS.get(source.name, "")))
+    return compile_one
+
+
+def _verdict(quickchick: bool, answers: dict[str, subprocess.CompletedProcess[str]]
+             ) -> tuple[Verdict, list[str]]:
+    """One mutant of proofs/A.v put to `_coq_verdict` over the staged rig, and every file
+    it compiled."""
+    compiled: list[str] = []
+    with (tempfile.TemporaryDirectory(prefix="vos-rig-") as td,
+          tempfile.TemporaryDirectory(prefix="vos-work-") as wd):
+        work = gallina.stage(_checkout(_RIG, Path(td)), Path(wd) / "tree")
+        harness = work / "harness" / (gallina.RANDOMIZED if quickchick
+                                       else gallina.ENUMERATIVE)
+        with patch.object(gallina, "compile_one", side_effect=_answered(answers, compiled)):
+            got = seed._coq_verdict(gallina.Prover("s", ("rocq", "c")), work, "proofs/A.v",
+                                    harness, Mock(), ["v 1"], quickchick)
+    return got, compiled
+
+
+def _sharded(answers: dict[str, subprocess.CompletedProcess[str]], quickchick: bool = True
+             ) -> tuple[list[Verdict], list[str]]:
+    """One mutant of proofs/A.v put to `_coq_shard` over the staged rig, under QuickChick
+    or the enumerative harness, the prover answering from `answers`: its verdicts and its
+    journal's lines."""
+    mutant = mutate.Mutant(ident="const-inc/0", operator="const-inc", path="proofs/A.v",
+                           line=1, start=22, end=23, before="1", after="2")
+    with (tempfile.TemporaryDirectory(prefix="vos-rig-") as td,
+          tempfile.TemporaryDirectory(prefix="vos-work-") as wd):
+        work = gallina.stage(_checkout(_RIG, Path(td)), Path(wd) / "tree")
+        book = Journal(Path(wd) / "seed.journal")
+        book.start("proofs/A.v", "seed", Scope(whole=1, ran=1))
+        with patch.object(gallina, "compile_one", side_effect=_answered(answers, [])):
+            got = seed._coq_shard(gallina.Prover("s", ("rocq", "c")), work, "proofs/A.v",
+                                  gallina.RANDOMIZED if quickchick else gallina.ENUMERATIVE,
+                                  [mutant], _RIG["proofs/A.v"], [] if quickchick else ["v 1"],
+                                  quickchick, book)
+        lines = book.path.read_text(encoding="utf-8").splitlines()
+    return got, lines
+
+
+def _baseline(rig: dict[str, str], answers: dict[str, subprocess.CompletedProcess[str]]
+              ) -> tuple[list[str] | None, str, list[str]]:
+    """`_quickchick_baseline` over the rig as a checkout: what it handed back, and every
+    file it compiled."""
+    compiled: list[str] = []
+    with (tempfile.TemporaryDirectory(prefix="vos-rig-") as td,
+          tempfile.TemporaryDirectory(prefix="vos-work-") as wd,
+          patch.object(gallina, "compile_one", side_effect=_answered(answers, compiled))):
+        got, why = seed._quickchick_baseline(_checkout(rig, Path(td)),
+                                             gallina.Prover("s", ("rocq", "c")),
+                                             Path(wd) / "tree", gallina.RANDOMIZED)
+    return got, why, compiled
+
+
+_REFUTED = _done(0, '= ["prop_w 9 9 2 4"] : list string\n')
 
 
 def _run(command: str, *args: str) -> tuple[int, str]:
@@ -102,6 +210,354 @@ def _moved_counts_a_length_change() -> None:
            "a shortened answer did not count its missing lines")
 
 
+def _seed_coq_holds_the_installed_quickchick() -> None:
+    """`seed coq --quickchick` holds what QuickChick's switch carries as `quickchick
+    check` holds it: a release the provisioned switch does not pin, or with `--recipe`
+    anything but the pinned commit, is refused before a tree is staged, the refusal
+    naming both; the one held runs the population in the switch it was asked of."""
+    for recipe, source, code in ((False, "2.1.0", 1), (True, "2.2.0", 1),
+                                 (False, quickchick.VERSION, 0),
+                                 (True, quickchick.RECIPE_PIN, 0)):
+        switch = gallina.QUICKCHICK_RECIPE_SWITCH if recipe else gallina.QUICKCHICK_SWITCH
+        wanted = quickchick.RECIPE_PIN if recipe else quickchick.VERSION
+        asked: list[str] = []
+
+        def held(name: str, source: str = source, asked: list[str] = asked) -> str:
+            asked.append(name)
+            return source
+
+        with (patch.object(seed, "lane_env", return_value=Mock(lane_root=Path("lane"))),
+              patch.object(quickchick, "installed", side_effect=held),
+              patch.object(gallina, "prover",
+                           side_effect=lambda name: gallina.Prover(name, ("rocq", "c"))),
+              patch.object(env, "hold_lock"),
+              patch.object(seed, "_coq_run", return_value=0) as ran,
+              redirect_stdout(io.StringIO()) as output):
+            got = seed.cmd_coq(argparse.Namespace(file=seed.COQ_SUBJECT, quickchick=True,
+                                                  recipe=recipe, jobs=1))
+        said = output.getvalue()
+        ensure(got == code and asked == [switch],
+               f"recipe={recipe} holding {source} exited {got} having asked {asked}: {said}")
+        if code:
+            ensure(not ran.called and source in said and wanted in said,
+                   f"recipe={recipe}: {source} must be refused before staging, the refusal "
+                   f"naming both it and {wanted}: {said}")
+        else:
+            ensure(ran.called and ran.call_args.args[4].switch == switch,
+                   f"recipe={recipe}: the held QuickChick must run in {switch}: {said}")
+
+
+def _only_the_randomized_half_builds_its_support() -> None:
+    """IPCProperties.v states the sets the randomized half draws and walks, and no other
+    run reads it: an enumerative mutant over which it does not compile is decided by the
+    vectors, never compiling it, and a randomized mutant over which it does not compile
+    is one no oracle ran against."""
+    broken = {"IPCProperties.v": _done(1)}
+    vector, compiled = _verdict(False, broken)
+    ensure(vector.outcome == SURVIVED and "IPCProperties.v" not in compiled,
+           f"the vectors decide a mutant only the property support breaks: {vector}, "
+           f"having compiled {compiled}")
+    drawn, compiled = _verdict(True, broken)
+    ensure(drawn.outcome == STILLBORN and "IPCProperties.v" in compiled
+           and gallina.EXHAUSTIVE not in compiled,
+           f"the randomized half builds its support before either harness: {drawn}, "
+           f"having compiled {compiled}")
+
+
+def _the_walks_decide_a_mutant_before_the_draws() -> None:
+    """A randomized mutant the proofs accept is put to the walk harness first: one it
+    cannot be built over is stillborn, one a walk refutes is killed without a draw, and
+    one every walk and every draw holds survives."""
+    unbuilt, compiled = _verdict(True, {gallina.EXHAUSTIVE: _done(1)})
+    ensure(unbuilt.outcome == STILLBORN and gallina.RANDOMIZED not in compiled,
+           f"a walk harness that does not build decides nothing: {unbuilt} {compiled}")
+    refuted, compiled = _verdict(True, {gallina.EXHAUSTIVE: _REFUTED})
+    ensure(refuted.outcome == KILLED and refuted.moved == 1
+           and "prop_w: 2 of 9 point(s) refute it, the first at position 4" in refuted.detail
+           and gallina.RANDOMIZED not in compiled,
+           f"a refuted walk kills the mutant before a draw: {refuted} {compiled}")
+    held, compiled = _verdict(True, {})
+    ensure(held.outcome == SURVIVED
+           and "1 walked set(s) held and 2 drawn property set(s) passed" in held.detail
+           and compiled[-2:] == [gallina.EXHAUSTIVE, gallina.RANDOMIZED],
+           f"a mutant every walk and draw holds survives: {held} {compiled}")
+
+
+def _a_drawn_harness_that_does_not_build_is_stillborn() -> None:
+    """The drawn harness's build failure is scored as the walk harness's is: a mutant
+    over which it does not build is one no draw ran against, never a kill, and a baseline
+    over which it does not build is none; a set a draw refutes is still a kill."""
+    unbuilt, _ = _verdict(True, {gallina.RANDOMIZED: _done(1)})
+    ensure(unbuilt.outcome == STILLBORN and "it did not build: Error:" in unbuilt.detail,
+           f"a drawn harness that does not build decides nothing: {unbuilt}")
+    refuted, _ = _verdict(True, {gallina.RANDOMIZED:
+                                 _done(0, "+++ Passed 10000 tests\n*** Failed after 3 tests\n")})
+    ensure(refuted.outcome == KILLED and refuted.moved == 1
+           and "QuickChick refuted 1 of 2 property set(s)" in refuted.detail,
+           f"a refuted draw kills the mutant: {refuted}")
+    got, why, _ = _baseline(_RIG, {gallina.RANDOMIZED: _done(1)})
+    ensure(got is None and "decided nothing: it did not build" in why,
+           f"a drawn harness that does not build is no baseline: {why}")
+
+
+def _drawn_ending(report: str, stderr: str, out: str = "QuickChecking prop_b\n"
+                  ) -> subprocess.CompletedProcess[str]:
+    """The drawn harness's compile where a set's extracted program built and ended on
+    `report`, as QuickChick 2.2.0's plugin reports it, with `stderr` after it."""
+    return subprocess.CompletedProcess(
+        [], 1, out, 'File "./harness/Properties.v", line 4, characters 0-22:\nError:\n'
+                    f"time /tmp/QC/_build/Properties.native: {report}\n\n{stderr}\n")
+
+
+def _a_drawn_set_is_scored_by_how_its_program_ended() -> None:
+    """A set whose program built and ended on an uncaught exception other than memory or
+    stack running out kills the mutant, the reason naming the set, the status and the
+    exception and saying the sets after it did not run; memory or stack running out, a
+    signal, a program that could not run, and a status the reader cannot classify leave
+    it undecided, never killed, survived or stillborn; a refutation ahead of the program
+    still kills it as a refutation; an extracted program QuickChick could not compile
+    leaves it stillborn; and a baseline whose set's program crashed is none."""
+    crash = "Fatal error: exception Not_found\n"
+    crashed, _ = _verdict(True, {gallina.RANDOMIZED: _drawn_ending("Exited with status 2",
+                                                                   crash)})
+    ensure(crashed.outcome == KILLED and crashed.moved == 1
+           and crashed.detail == (f"the proofs {gallina.RANDOMIZED}'s Require closure holds "
+                                  "accepted it and the program of the drawn set `prop_b` at "
+                                  "line 4 exited with status 2 on the uncaught exception "
+                                  "Not_found, so the sets after it in the harness did not run"),
+           f"a set's program ending on an uncaught exception kills the mutant: {crashed}")
+    for label, report, stderr in (
+            ("stack", "Exited with status 2", "Fatal error: exception Stack_overflow\n"),
+            ("memory", "Exited with status 2", "Fatal error: exception Out_of_memory\n"),
+            ("signal", "Exited with status 137", "Command terminated by signal 9\n"),
+            ("not run", "Exited with status 127", "time: cannot run Properties.native\n"),
+            ("killed", "Killed (-7)", ""),
+            ("stopped", "Stopped (-10)", ""),
+            ("unclassified", "Exited with status 2", "")):
+        undecided, _ = _verdict(True, {gallina.RANDOMIZED: _drawn_ending(report, stderr)})
+        ensure(undecided.outcome == UNDECIDED and undecided.moved == 0
+               and undecided.detail.startswith("the drawn harness gave no answer over the "
+                                               "mutant: the program of the drawn set `prop_b`")
+               and f"Properties.native: {report}, so nothing was decided about it"
+               in undecided.detail,
+               f"{label}: a set's program ending on what decides nothing leaves the mutant "
+               f"undecided, with why: {undecided}")
+    refuted, _ = _verdict(True, {gallina.RANDOMIZED: _drawn_ending(
+        "Exited with status 2", crash, out="+++ Passed 10000 tests\n*** Failed after 3 tests\n")})
+    ensure(refuted.outcome == KILLED and "QuickChick refuted 1 of 2 property set(s): *** Failed"
+           in refuted.detail, f"a refutation ahead of the program decides first: {refuted}")
+    unbuilt, _ = _verdict(True, {gallina.RANDOMIZED: subprocess.CompletedProcess(
+        [], 1, "QuickChecking prop_b\n",
+        "Error:\nCould not compile test program: /tmp/QC/Properties.ml\n")})
+    ensure(unbuilt.outcome == STILLBORN
+           and "decided nothing over the mutant: it did not build: Error: Could not compile "
+               "test program" in unbuilt.detail,
+           f"an extracted program that does not build leaves the mutant stillborn: {unbuilt}")
+    got, why, _ = _baseline(_RIG, {gallina.RANDOMIZED: _drawn_ending("Exited with status 2",
+                                                                     crash)})
+    ensure(got is None and "decided nothing: the program of the drawn set `prop_b`" in why,
+           f"a baseline whose set's program crashed is none: {why}")
+    verdicts, lines = _sharded({gallina.RANDOMIZED: _drawn_ending("Killed (-7)", "")})
+    journalled = [line for line in lines if line[:5].strip() == "1"]
+    ensure([v.outcome for v in verdicts] == [UNDECIDED] and len(journalled) == 1
+           and journalled[0].split(None, 2)[1] == UNDECIDED
+           and journalled[0].endswith("Properties.native: Killed (-7), so nothing was "
+                                      "decided about it")
+           and "-- tree: mutant const-inc/0 is verdict 1" in lines,
+           f"an undecided mutant is journalled with its reason: {lines}")
+
+
+def _a_compile_a_signal_ends_leaves_the_mutant_undecided() -> None:
+    """A compile a signal ends, a kill of the prover for want of memory among them,
+    leaves the mutant undecided, journalled with the file and the signal, whether it is
+    a proof's, a support harness's or a harness's, in either mode, never killed or
+    stillborn; a positive nonzero exit is still a refusal or a harness that did not
+    build; and a baseline compile a signal ends leaves the run with no baseline."""
+    signalled = _done(-9)
+    for randomized, name, source in (
+            (True, "A.v", "proofs/A.v"),
+            (True, "IPCProperties.v", "harness/IPCProperties.v"),
+            (True, gallina.EXHAUSTIVE, f"harness/{gallina.EXHAUSTIVE}"),
+            (False, "A.v", "proofs/A.v"),
+            (False, gallina.ENUMERATIVE, f"harness/{gallina.ENUMERATIVE}")):
+        verdicts, lines = _sharded({name: signalled}, randomized)
+        journalled = [line for line in lines if line[:5].strip() == "1"]
+        ensure([v.outcome for v in verdicts] == [UNDECIDED]
+               and verdicts[0].detail.startswith(f"the compile of {source} was ended by "
+                                                 "signal 9")
+               and verdicts[0].detail.endswith(", so nothing was decided about it")
+               and len(journalled) == 1 and journalled[0].split(None, 2)[1] == UNDECIDED,
+               f"randomized={randomized}: a compile of {source} a signal ended leaves the "
+               f"mutant undecided, journalled: {verdicts} {lines}")
+    drawn, _ = _sharded({gallina.RANDOMIZED: subprocess.CompletedProcess([], -9, "", "")})
+    ensure([v.outcome for v in drawn] == [UNDECIDED]
+           and drawn[0].detail.startswith("the drawn harness gave no answer over the mutant: "
+                                          "the prover compiling it was ended by signal 9"),
+           f"a drawn harness compile a signal ended leaves the mutant undecided: {drawn}")
+    for randomized, name, outcome, said in (
+            (True, "A.v", KILLED, "the prover refused A.v"),
+            (True, "IPCProperties.v", STILLBORN, "the harness would not build"),
+            (False, gallina.ENUMERATIVE, STILLBORN, "the harness did not run")):
+        verdicts, _ = _sharded({name: _done(1)}, randomized)
+        ensure([(v.outcome, v.detail.startswith(said)) for v in verdicts] == [(outcome, True)],
+               f"randomized={randomized}: a positive exit of {name} is still {outcome}: "
+               f"{verdicts}")
+    with (tempfile.TemporaryDirectory(prefix="vos-rig-") as td,
+          tempfile.TemporaryDirectory(prefix="vos-work-") as wd,
+          patch.object(gallina, "compile_one", side_effect=_answered({"A.v": signalled}, []))):
+        book = Journal(Path(wd) / "seed.journal")
+        book.start("proofs/A.v", "seed", Scope(whole=1, ran=1))
+        got, why = seed._stand_up(_checkout(_RIG, Path(td)), gallina.Prover("s", ("rocq", "c")),
+                                  [Path(wd) / "tree"], gallina.RANDOMIZED, True, book)
+    ensure(got is None and why.startswith("the compile of proofs/A.v was ended by signal 9")
+           and why.endswith(", so the unmutated tree has no baseline"),
+           f"a baseline compile a signal ended leaves no baseline: {why}")
+
+
+def _the_randomized_baseline_refuses_what_does_not_replay_or_hold() -> None:
+    """The baseline every randomized mutant is held to: a drawn harness fixing no seed
+    is refused before anything compiles, a walk harness that does not build or a walk a
+    point refutes is no baseline, and a green tree is one."""
+    unseeded = {**_RIG, f"tools/quickchick/{gallina.RANDOMIZED}":
+                "From QuickChick Require Import QuickChick.\n"
+                "Require Import Probe IPCProperties.\n"}
+    got, why, compiled = _baseline(unseeded, {})
+    ensure(got is None and "fixes QuickChick's random state other than once" in why
+           and not compiled, f"an unseeded harness is refused before compiling: {why}")
+    for label, walk in (("does not build", _done(1)), ("is refuted", _REFUTED)):
+        got, why, compiled = _baseline(_RIG, {gallina.EXHAUSTIVE: walk})
+        ensure(got is None and f"{gallina.EXHAUSTIVE} is not green" in why
+               and gallina.RANDOMIZED not in compiled,
+               f"a walk that {label} is no baseline: {why} {compiled}")
+    got, why, compiled = _baseline(_RIG, {})
+    ensure(got == [] and not why and "IPCProperties.v" in compiled
+           and compiled[-2:] == [gallina.EXHAUSTIVE, gallina.RANDOMIZED],
+           f"a green tree is the baseline: {got} {why} {compiled}")
+
+
+def _a_missing_harness_is_refused_before_the_seed() -> None:
+    """A checkout holding no drawn harness, or no walk harness, is refused by name before
+    its seed is read and before anything compiles, rather than read as a harness fixing
+    no seed or met as a closure reading a harness that is not there."""
+    for name in (gallina.RANDOMIZED, gallina.EXHAUSTIVE):
+        rig = {rel: text for rel, text in _RIG.items() if rel != f"tools/quickchick/{name}"}
+        got, why, compiled = _baseline(rig, {})
+        ensure(got is None and why == f"there is no harness at {gallina.HARNESS_DIR}/{name}"
+               and not compiled,
+               f"a checkout without {name} is refused by name before compiling: {why} "
+               f"{compiled}")
+
+
+# A prover that answers as `_PRINTS` says each file prints, and outlasts any limit a
+# case lowers to on a source holding the marker: the subtraction one mutant of
+# `_TIMED_SOURCE` writes. A real process, so the limit stops a real prover run.
+_SLOW_PROVER = """\
+import sys
+import time
+from pathlib import Path
+
+source = Path(sys.argv[-1])
+if {marker!r} in source.read_text(encoding="utf-8"):
+    time.sleep({sleep})
+sys.stdout.write({prints!r}.get(source.name, ""))
+"""
+_TIMED_SOURCE = "Definition a : nat := 1 + 2.\n"
+_LIMIT = 5
+_SLEEP = 120
+
+
+def _timed_run(source: str) -> tuple[int, str, list[str], float]:
+    """`seed coq --quickchick` over the rig with proofs/A.v holding `source`, the stub
+    prover answering and gallina's per-file limit lowered to `_LIMIT`: its exit, what it
+    printed, its journal's lines, and its wall seconds."""
+    with (tempfile.TemporaryDirectory(prefix="vos-rig-") as td,
+          tempfile.TemporaryDirectory(prefix="vos-lane-") as ld):
+        root, lane = _checkout({**_RIG, "proofs/A.v": source}, Path(td)), Path(ld)
+        stub = lane / "prover.py"
+        stub.write_text(_SLOW_PROVER.format(marker=" - ", sleep=_SLEEP, prints=_PRINTS),
+                        encoding="utf-8")
+        args = argparse.Namespace(file="proofs/A.v", quickchick=True, recipe=False, jobs=1,
+                                  region=[], operator=[], limit=0, sample=0)
+        began = time.monotonic()
+        with (patch.object(gallina, "COMPILE_TIMEOUT", _LIMIT),
+              patch.object(gallina, "switch_env", return_value={}),
+              redirect_stdout(io.StringIO()) as output):
+            code = seed._coq_run(args, Mock(lane_root=lane), root, "proofs/A.v",
+                                 gallina.Prover("stub", (sys.executable, str(stub))),
+                                 lane / seed.WORK / "quickchick")
+        spent = time.monotonic() - began
+        journal = (lane / seed.WORK / "quickchick.journal").read_text(encoding="utf-8")
+    return code, output.getvalue(), journal.splitlines(), spent
+
+
+def _a_compile_past_the_limit_is_undecided_and_the_run_goes_on() -> None:
+    """`seed coq --quickchick` journals the mutant each tree is on and each compile's
+    file and wall seconds; a compile that reaches gallina's per-file limit, here a stub
+    prover outlasting a lowered one, is stopped, its mutant journalled undecided naming
+    the file and the limit, and the run goes on to the next mutant and closes its journal,
+    the undecided mutant failing the run as a finding rather than counting as a kill."""
+    code, said, lines, spent = _timed_run(_TIMED_SOURCE)
+    journal = "\n".join(lines)
+    verdicts = [line.split(None, 2) for line in lines if line[:5].strip().isdigit()]
+    ensure([v[1] for v in verdicts] == ["undecided", "survived", "survived"]
+           and verdicts[0][2].startswith("proofs/A.v:1 ` + ` -> ` - `: the compile of "
+                                         f"proofs/A.v reached gallina's per-file limit of "
+                                         f"{_LIMIT} s"),
+           f"the stopped mutant is undecided by file and limit, and the next two are "
+           f"decided: {journal}")
+    stopped = [line for line in lines if line.startswith("-- quickchick: compiled proofs/A.v")
+               and line.endswith(f"stopped at gallina's per-file limit of {_LIMIT} s")]
+    ensure(len(stopped) == 1 and _LIMIT <= float(stopped[0].split(" in ")[1].split()[0])
+           < _SLEEP and spent < _SLEEP,
+           f"the prover run is stopped at the limit and journalled with its seconds: "
+           f"{stopped}, the run taking {spent:.1f} s")
+    compiled = [line.split()[3] for line in lines
+                if line.startswith("-- quickchick: compiled ") and line.endswith("exit 0")]
+    baseline = ["proofs/A.v", "harness/IPCProperties.v", "harness/Probe.v",
+                f"harness/{gallina.EXHAUSTIVE}", f"harness/{gallina.RANDOMIZED}"]
+    ensure(sorted(compiled[:5]) == sorted(baseline) and len(compiled) == 3 * len(baseline),
+           f"each compile of the baseline and of the two decided mutants is journalled: "
+           f"{compiled}")
+    marks = [line for line in lines if line.startswith("-- quickchick: ")
+             and " compiled " not in line]
+    ensure(marks == ["-- quickchick: baseline",
+                     f"-- quickchick: {gallina.RANDOMIZED} draws from seed 7",
+                     "-- quickchick: mutant plus-to-minus/0 (plus-to-minus) "
+                     "proofs/A.v:1 ` + ` -> ` - `",
+                     "-- quickchick: mutant plus-to-minus/0 is verdict 1",
+                     "-- quickchick: mutant const-inc/0 (const-inc) proofs/A.v:1 `1` -> `2`",
+                     "-- quickchick: mutant const-inc/0 is verdict 2",
+                     "-- quickchick: mutant const-inc/1 (const-inc) proofs/A.v:1 `2` -> `3`",
+                     "-- quickchick: mutant const-inc/1 is verdict 3"],
+           f"the journal says the seed the baseline draws from, which mutant the tree is on "
+           f"as it starts, and which mutant each verdict is about: {marks}")
+    named = [n for n, line in enumerate(lines) if line.endswith(" is verdict 1")]
+    ensure(len(named) == 1 and lines[named[0] + 1].split(None, 1)[0] == "1",
+           f"a verdict's mutant is named on the line directly before it: {journal}")
+    ensure(code == 1 and lines[-1] == "== complete: 2 verdict(s) decided, 1 undecided, exit 1"
+           and "1 undecided" in said and "FAIL 1 of 3 mutant(s) went undecided" in said,
+           f"the run reports the undecided mutant as a finding and closes: {said}")
+
+
+def _a_baseline_compile_past_the_limit_leaves_no_baseline() -> None:
+    """A compile of the unmutated tree that reaches the limit is stopped and leaves the
+    run with no baseline, which it says by file and limit, on stdout and in the journal,
+    and the journal closes on no verdict after the stopped compile."""
+    code, said, lines, spent = _timed_run(_TIMED_SOURCE.replace(" + ", " - "))
+    why = (f"the compile of proofs/A.v reached gallina's per-file limit of {_LIMIT} s and "
+           "was stopped, so the unmutated tree has no baseline")
+    ensure(code == 1 and spent < _SLEEP and f"FAIL {why}" in said,
+           f"a stopped baseline compile is no baseline, named by file and limit: {said}")
+    ensure(lines[3:] == ["-- quickchick: baseline",
+                         f"-- quickchick: {gallina.RANDOMIZED} draws from seed 7", lines[5],
+                         f"-- no baseline: {why}",
+                         "== complete: 0 verdict(s) decided, exit 1"]
+           and lines[5].startswith("-- quickchick: compiled proofs/A.v in ")
+           and lines[5].endswith(f"stopped at gallina's per-file limit of {_LIMIT} s"),
+           f"the journal records the seed, the stopped baseline compile with its limit and "
+           f"why there is no baseline, and closes: {lines}")
+
+
 def _oracle_list_runs() -> None:
     code, out = _run("oracle", "list")
     ensure(code == 0, f"the live specs do not parse: {out}")
@@ -131,49 +587,59 @@ def _seed_list_refuses_an_unmutable_kind() -> None:
 
 def _the_randomized_mode_refuses_a_subject_outside_its_closure() -> None:
     """`--quickchick` mutates only a proof source `Properties.v`'s closure holds, and
-    says so before it asks for a prover, whose lookup precedes any staging: a proof
-    Requiring a member from outside, and a harness inside the closure, are each refused;
-    the enumerative mode takes either proof."""
+    says so before it asks for a prover or for the QuickChick a switch holds, whose
+    lookups precede any staging: a proof Requiring a member from outside, and a harness
+    inside the closure, are each refused; the enumerative mode takes either proof."""
     asked: list[str] = []
+    held: list[str] = []
 
     def absent(switch: str) -> None:
         asked.append(switch)
 
+    def unheld(switch: str) -> None:
+        held.append(switch)
+
     with (_closed_tree() as root, patch.object(seed, "find_root", return_value=root),
           patch.object(seed, "lane_env", return_value=Mock()),
-          patch.object(gallina, "prover", side_effect=absent)):
+          patch.object(gallina, "prover", side_effect=absent),
+          patch.object(quickchick, "installed", side_effect=unheld)):
         ensure(seed.randomized_subjects(root) == ["proofs/A.v", "proofs/B.v", "proofs/C.v"],
                f"the closure's proof sources are A, B and C: {seed.randomized_subjects(root)}")
-        for rel in ("proofs/Far.v", f"{_RIG}/Probe.v"):
+        for rel in ("proofs/Far.v", f"{_DIR}/Probe.v"):
             with redirect_stdout(io.StringIO()) as said:
-                code = seed.cmd_coq(argparse.Namespace(file=rel, quickchick=True))
+                code = seed.cmd_coq(argparse.Namespace(file=rel, quickchick=True,
+                                                       recipe=False))
             text = said.getvalue()
             ensure(code == 1 and "is not a proof source Properties.v's Require closure" in text
                    and "mutates proofs/A.v, proofs/B.v, proofs/C.v" in text,
                    f"{rel} is refused with the closure's subjects named: {text}")
-        ensure(not asked, f"a refused subject asks for no prover: {asked}")
+        ensure(not asked and not held,
+               f"a refused subject asks for no prover and no QuickChick: {asked} {held}")
         for rel, randomized in (("proofs/B.v", True), ("proofs/Far.v", False)):
             with redirect_stdout(io.StringIO()) as said:
-                seed.cmd_coq(argparse.Namespace(file=rel, quickchick=randomized))
+                seed.cmd_coq(argparse.Namespace(file=rel, quickchick=randomized,
+                                                recipe=False))
             ensure("no prover" in said.getvalue(),
                    f"{rel} reaches the prover's lookup: {said.getvalue()}")
-    ensure(asked == [gallina.QUICKCHICK_SWITCH, gallina.VECTOR_SWITCH],
-           f"the admitted subjects asked for their mode's switch: {asked}")
+    ensure(asked == [gallina.QUICKCHICK_SWITCH, gallina.VECTOR_SWITCH]
+           and held == [gallina.QUICKCHICK_SWITCH],
+           f"the admitted subjects asked for their mode's switch: {asked} {held}")
 
 
 def _the_randomized_baseline_compiles_its_closure_alone() -> None:
-    """The baseline compiles what `Properties.v` Requires, in Require order, and then
-    the harness: never the proof that Requires a member from outside the closure, the
-    support harness outside it, nor another entry point."""
+    """The baseline compiles what `Properties.v` and the walk harness Require, in
+    Require order, and then the walk harness and `Properties.v`: never the proof that
+    Requires a member from outside the closure, the support harness outside it, nor
+    another entry point."""
     compiled: list[str] = []
     with (_closed_tree() as root, tempfile.TemporaryDirectory(prefix="vos-work-") as wd,
           _stub_prover(compiled) as found):
         got = seed._quickchick_baseline(root, found, Path(wd) / "quickchick",
                                         gallina.RANDOMIZED)
     ensure(got == ([], ""), f"the stubbed baseline stands up green: {got}")
-    ensure(compiled[-1] == "Properties"
-           and sorted(compiled[:-1]) == ["A", "B", "C", "Probe", "Side"],
-           f"the baseline compiled {compiled}, not the closure and then the harness")
+    ensure(compiled[-2:] == ["Walks", "Properties"]
+           and sorted(compiled[:-2]) == ["A", "B", "C", "Probe", "Side"],
+           f"the baseline compiled {compiled}, not the closure and then the harnesses")
     ensure(compiled.index("A") < min(compiled.index("B"), compiled.index("Probe"))
            and compiled.index("C") < compiled.index("Side"),
            f"a Require was compiled after what reads it: {compiled}")
@@ -181,9 +647,9 @@ def _the_randomized_baseline_compiles_its_closure_alone() -> None:
 
 def _a_randomized_mutant_compiles_its_dependents_in_the_closure() -> None:
     """A mutant under QuickChick compiles the proofs of the closure it moves, then the
-    support harnesses there it moves, then the harness: never a proof outside the
-    closure that Requires it. The enumerative mode, unchanged, compiles every proof
-    that Requires the mutant and the rig's whole support."""
+    support harnesses there it moves, then the walk harness and the drawn one: never a
+    proof outside the closure that Requires it. The enumerative mode, unchanged,
+    compiles every proof that Requires the mutant and the rig's whole support."""
     mutant = mutate.Mutant(ident="op/1", operator="op", path="proofs/A.v", line=1,
                            start=0, end=1, before="a", after="b")
     compiled: list[str] = []
@@ -206,8 +672,8 @@ def _a_randomized_mutant_compiles_its_dependents_in_the_closure() -> None:
                        f"{rel}: a reason names the closure's proofs exactly where only "
                        f"they were asked: {verdict.detail}")
                 runs[rel, randomized] = list(compiled)
-    want = {("proofs/A.v", True): ["A", "B", "Probe", "Properties"],
-            ("proofs/C.v", True): ["C", "Side", "Properties"],
+    want = {("proofs/A.v", True): ["A", "B", "Probe", "Walks", "Properties"],
+            ("proofs/C.v", True): ["C", "Side", "Walks", "Properties"],
             ("proofs/A.v", False): ["A", "B", "Far", "Lone", "Probe", "Side", "Vectors"],
             ("proofs/C.v", False): ["C", "Lone", "Probe", "Side", "Vectors"]}
     ensure(runs == want, f"the mutants compiled {runs}, not {want}")
@@ -232,7 +698,8 @@ with tempfile.TemporaryDirectory(prefix="vos-lock-") as td:
     args = argparse.Namespace(spec="capformat", file=None, quickchick=False)
     cases = [(seed, "cmd_sail", "_sail_run", lane / "seed" / "sail-capformat", args)]
     for randomized in (False, True):
-        args = argparse.Namespace(file="proofs/CyclicExecutive.v", quickchick=randomized)
+        args = argparse.Namespace(file="proofs/CyclicExecutive.v", quickchick=randomized,
+                                  recipe=False)
         work = lane / "seed" / ("quickchick" if randomized else "coq")
         cases.append((seed, "cmd_coq", "_coq_run", work, args))
     for name in ("vectors", "properties", "freeze"):
@@ -241,7 +708,8 @@ with tempfile.TemporaryDirectory(prefix="vos-lock-") as td:
 
     with patch.object(seed, "lane_env", return_value=e), \\
          patch.object(env, "load", return_value=e), \\
-         patch.object(gallina, "prover", return_value=prover):
+         patch.object(gallina, "prover", return_value=prover), \\
+         patch.object(quickchick, "_held", return_value=(prover.switch, "", prover, [])):
         for module, command, worker, work, args in cases:
             work.mkdir(parents=True, exist_ok=True)
             marker = work / "live-source"
@@ -304,6 +772,26 @@ def cases() -> list[Case]:
              _the_randomized_baseline_compiles_its_closure_alone),
         Case("a randomized mutant compiles its dependents in the closure",
              _a_randomized_mutant_compiles_its_dependents_in_the_closure),
+        Case("seed coq --quickchick holds the installed QuickChick",
+             _seed_coq_holds_the_installed_quickchick),
+        Case("only the randomized half builds its support",
+             _only_the_randomized_half_builds_its_support),
+        Case("the walks decide a mutant before the draws",
+             _the_walks_decide_a_mutant_before_the_draws),
+        Case("a drawn harness that does not build is stillborn",
+             _a_drawn_harness_that_does_not_build_is_stillborn),
+        Case("a drawn set is scored by how its program ended",
+             _a_drawn_set_is_scored_by_how_its_program_ended),
+        Case("a compile a signal ends leaves the mutant undecided",
+             _a_compile_a_signal_ends_leaves_the_mutant_undecided),
+        Case("the randomized baseline refuses what does not replay or hold",
+             _the_randomized_baseline_refuses_what_does_not_replay_or_hold),
+        Case("a missing harness is refused before the seed",
+             _a_missing_harness_is_refused_before_the_seed),
+        Case("a compile past the limit is undecided and the run goes on",
+             _a_compile_past_the_limit_is_undecided_and_the_run_goes_on),
+        Case("a baseline compile past the limit leaves no baseline",
+             _a_baseline_compile_past_the_limit_leaves_no_baseline),
         Case("mutation workspaces are held for the whole run",
              _mutation_workspaces_are_held_for_the_whole_run, lane="guest"),
         Case("oracle list runs over the live specs", _oracle_list_runs, lane="host"),

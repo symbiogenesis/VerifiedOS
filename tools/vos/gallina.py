@@ -21,16 +21,25 @@ Stdlib and nothing else, and the proof gate's switch carries Stdlib, so
 mode compile in that switch, at the gate's release and under their own flags: a proof
 source that compiles under the gate compiles under them. The randomized harness loads
 QuickChick and the Wasm oracle loads CertiRocq, and no release of either admits a Rocq
-newer than 9.1, so each keeps a switch of its own at Rocq 9.1.1. K-117 holds what each
-instrument older than Rocq 9.3.0 compiles, these two and the Rupicola lowering among
-them, free of the syntax only Rocq 9.3 reads. Every switch is **read** here and never
-written.
+newer than 9.1, so each keeps a switch of its own at Rocq 9.1.1; the walk harness that
+decides the property sets small enough to enumerate compiles beside the randomized one.
+QuickChick's commit-pinned recipe builds a second QuickChick switch, at Rocq 9.3.0,
+which a run asks for by name while that recipe's lock awaits its hosted checks. K-117
+holds what each instrument older than Rocq 9.3.0 compiles, these two and the Rupicola
+lowering among them, free of the syntax only Rocq 9.3 reads. Every switch is **read**
+here and never written.
 """
 
 import os
 import re
 import shutil
+import signal
 import subprocess
+import sys
+import time
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager, suppress
+from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -90,6 +99,15 @@ QUICKCHICK_ROCQ_VERSION = ORACLE_ROCQ_VERSION
 QUICKCHICK_SWITCH = (f"verifiedos-quickchick-{QUICKCHICK_ROCQ_VERSION}"
                      f"-ocaml-{env.OCAML_VERSION}")
 
+# The switch QuickChick's commit-pinned recipe builds, tools/vos/cli/quickchick.py's
+# RECIPE, at Rocq 9.3.0, beside which no QuickChick, coq-simple-io or coq-ext-lib
+# release installs. Named apart from QUICKCHICK_SWITCH while the recipe's lock is
+# pending its hosted checks, so a run can ask for either. A literal rather than
+# `env.ROCQ_VERSION`, because a move of the proof switch's lock does not move this one.
+QUICKCHICK_RECIPE_ROCQ_VERSION = "9.3.0"
+QUICKCHICK_RECIPE_SWITCH = (f"verifiedos-quickchick-{QUICKCHICK_RECIPE_ROCQ_VERSION}"
+                            f"-ocaml-{env.OCAML_VERSION}")
+
 # Where the shipped proofs are, and where this repository's own Gallina harnesses are.
 # The second is not under `proofs/` on purpose: the proof gate compiles everything it
 # finds there and holds each constant's assumption set against the declared one, so a
@@ -103,6 +121,7 @@ HARNESS_DIR = "tools/quickchick"
 # where another one's output went.
 ENUMERATIVE = "Vectors.v"
 RANDOMIZED = "Properties.v"
+EXHAUSTIVE = "Walks.v"
 FREEZE = "FreezeModel.v"
 KERNEL = "KernelVectors.v"
 WORK = "gallina"
@@ -115,12 +134,41 @@ FREEZE_MODEL = "freeze-model.txt"
 # library this switch may not hold or are a second subject entirely. A set rather than
 # a tuple spelled at the one site that reads it, so that adding a harness is one edit
 # here and the exclusion cannot be the half somebody forgets.
-ENTRY_POINTS: frozenset[str] = frozenset({ENUMERATIVE, RANDOMIZED, FREEZE, KERNEL})
+ENTRY_POINTS: frozenset[str] = frozenset({ENUMERATIVE, RANDOMIZED, EXHAUSTIVE, FREEZE,
+                                          KERNEL})
+
+# The support harnesses only the randomized half's two entry points Require:
+# IPCProperties.v states the property sets Properties.v draws and Walks.v walks.
+# `compile_support` leaves them alone unless it is asked for that half, by name for the
+# reason the entry points are: a vector run that compiled them would pay for statements
+# none of its harnesses reads, and would stop on one that did not compile.
+RANDOMIZED_SUPPORT: frozenset[str] = frozenset({"IPCProperties.v"})
 
 # The one line a harness's output is read back through. `Compute` on a `list string`
 # prints `= ["a"; "b"] : list string`, and the entries carry no quote and no backslash
 # by construction, so the quoted segments are the vectors.
 QUOTED = '"'
+
+# The wall-clock seconds one prover run is given before it is stopped, unless its caller
+# names another limit. Read when a compile starts rather than bound as a default, so a
+# test can lower it for the run it makes.
+COMPILE_TIMEOUT = 900
+
+# The one sentence that fixes QuickChick's random state in the randomized harness.
+# QuickChick extracts `newRandomSeed` as `Random.State.make_self_init ()`, read from
+# system-dependent data, so a verdict it reaches need not replay; the harness states the
+# seed instead, read here so a run can report it and refuse a harness that states none.
+_SEED = re.compile(r"\bExtract\s+Constant\s+(?:[\w']+\.)*newRandomSeed\s*=>\s*"
+                   r'"\(\s*Random\.State\.make\s*\[\|\s*(\d+)\s*\|\]\s*\)"\s*\.')
+
+# A sentence that Requires QuickChick's library: `From QuickChick Require ...`, or a
+# `Require` naming QuickChick before its sentence ends. Loading the library replays
+# QuickChick's own `Extract Constant newRandomSeed`, so a seed stated ahead of the last
+# such sentence fixes nothing; a qualified name's dot is followed by a letter, which is
+# what keeps the scan inside one sentence.
+_REQUIRES_QUICKCHICK = re.compile(r"\bFrom\s+QuickChick\s+Require\b"
+                                  r"|\bRequire\b(?:(?!\.(?:\s|$)).)*?\bQuickChick\b",
+                                  re.DOTALL)
 
 
 @dataclass(frozen=True)
@@ -137,6 +185,129 @@ class Prover:
 
     switch: str
     argv: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class Compiled:
+    """One prover run: the source as staged, relative to the tree it compiled in, its
+    wall seconds, its exit, None where it reached its limit and was stopped, and the
+    limit it was given."""
+
+    source: str
+    seconds: float
+    exit: int | None
+    limit: float
+
+
+class CompileTimeout(subprocess.TimeoutExpired):
+    """A prover run that reached its limit and was stopped: the source as staged and the
+    limit, `timeout`. A `TimeoutExpired`, so a caller catching that still catches it."""
+
+    def __init__(self, source: str, timeout: float, cmd: list[str]) -> None:
+        super().__init__(cmd, timeout)
+        self.source = source
+
+
+def signal_named(number: int) -> str:
+    """A signal as a reason names it: its number, and its name where this platform's
+    `signal` module knows one."""
+    try:
+        return f"signal {number} ({signal.Signals(number).name})"
+    except ValueError:
+        return f"signal {number}"
+
+
+class CompileSignalled(subprocess.SubprocessError):
+    """A prover run a signal ended rather than an exit, a kill for want of memory among
+    them: the source as staged and the signal's number, `signal`. Raised where a compile
+    is read for an answer, by `_compile_waves` and `vectors`, so a run nothing decided is
+    never read as a source the prover refused or a harness that did not build."""
+
+    def __init__(self, source: str, number: int) -> None:
+        super().__init__(f"the compile of {source} was ended by {signal_named(number)}")
+        self.source = source
+        self.signal = number
+
+
+def _exited(work: Path, source: Path,
+            done: subprocess.CompletedProcess[str]) -> subprocess.CompletedProcess[str]:
+    """A prover run handed back where it ended on an exit, and `CompileSignalled` raised
+    where a signal ended it, which POSIX reports as a negative return code."""
+    if done.returncode < 0:
+        raise CompileSignalled(source.relative_to(work).as_posix(), -done.returncode)
+    return done
+
+
+@dataclass(frozen=True)
+class Walk:
+    """One property set the exhaustive harness decided over its whole domain: how many
+    points the domain holds, how many meet the property's premise, how many refute the
+    property, and the position of the first that does, None where none does."""
+
+    name: str
+    points: int
+    premise: int
+    refuted: int
+    first: int | None
+
+
+# One count of a walk line: ASCII digits and nothing else, as Walks.v's `ns` prints one.
+# `str.isdigit` admits a superscript digit that `int` then refuses.
+_COUNT = re.compile(r"[0-9]+")
+
+# The line on which QuickChick's plugin reports a drawn set's extracted program that
+# built and did not finish: its command, `time` and the program, then `Exited with status
+# N`, `Killed (N)` or `Stopped (N)`, on the prover's `Error:` line or the one after it,
+# and then, after a blank line, what the program and `time` wrote to standard error.
+# QuickChick 2.2.0's plugin builds the message so in plugin/quickChick.mlg.cppo, the
+# status read from the shell that runs `time` and the program.
+_UNFINISHED = re.compile(r"^(?:Error:[ \t]*)?(?P<said>\S.*?: (?:Exited with status "
+                         r"(?P<status>-?\d+)|(?P<signalled>Killed|Stopped) \(-?\d+\)))"
+                         r"[ \t]*$", re.MULTILINE)
+
+# What OCaml's runtime writes to standard error for an exception nothing caught, before
+# it exits with status 2: the exception's name, qualified or not, and its arguments.
+_EXCEPTION = re.compile(r"^Fatal error: exception (?P<name>[A-Za-z_][\w'.]*)(?P<args>.*?)"
+                        r"[ \t\r]*$", re.MULTILINE)
+
+# The exceptions that are the program's memory or stack running out rather than a value
+# the subject made it compute, so a set ending on one decides nothing about the subject.
+_EXHAUSTION = frozenset({"Out_of_memory", "Stack_overflow"})
+
+# GNU time's line for a program a signal ended, after which it exits 128 + the signal, as
+# the shell's own `time` does without the line.
+_TERMINATED = re.compile(r"\bCommand terminated by signal (?P<signal>\d+)")
+
+# The notice QuickChick prints as it starts a set, naming the set as the harness states
+# it, and the prover's header naming the line of the sentence it stopped at.
+_QUICKCHECKING = re.compile(r"^QuickChecking (?P<set>.*?)[ \t\r]*$", re.MULTILINE)
+_LOCATED = re.compile(r'^File "[^"]*", line (?P<line>\d+)', re.MULTILINE)
+
+# How one compile of the randomized harness ended, as `drawn_sets` reads it. Decided: a
+# draw refuted a set, or the compile finished with every set it reached passed. Crashed:
+# no draw refuted a set, and a set's extracted program built and then ended on an
+# exception nothing caught other than memory or stack running out, which the program
+# never does over the unmutated tree, whose baseline finished every set. Unanswered: a
+# set's program ended on what decides nothing about the subject: memory or stack running
+# out, a signal, a program or `time` that could not run, or a status this reader cannot
+# classify; or a signal ended the prover. Nothing: the harness did not build, its Rocq or
+# its extracted OCaml, or it printed no verdict.
+DRAWN_DECIDED = "decided"
+DRAWN_CRASHED = "crashed"
+DRAWN_UNANSWERED = "unanswered"
+DRAWN_NOTHING = "nothing"
+
+
+@dataclass(frozen=True)
+class Drawn:
+    """What one compile of the randomized harness decided: how many property sets passed
+    and how many a draw refuted, the first counterexample or the reason no set was
+    decided, and which of the `DRAWN_` readings says how the compile ended."""
+
+    passed: int
+    failed: int
+    why: str
+    ended: str
 
 
 # One `NAME='value'; export NAME;` line of `opam env --shell=sh`.
@@ -220,19 +391,79 @@ def stage(root: Path, work: Path) -> Path:
     return work
 
 
+# Who is told of each prover run in this context: one callback, set by `observed` around
+# the compiles a caller wants accounted, and none elsewhere. A context variable rather
+# than an argument threaded through every reader that compiles, and per thread, so the
+# shards of one run each report into their own account.
+_OBSERVER: ContextVar[Callable[[Compiled], None] | None] = ContextVar("gallina_observer",
+                                                                     default=None)
+
+
+@contextmanager
+def observed(callback: Callable[[Compiled], None]) -> Iterator[None]:
+    """Tell `callback` of each prover run this thread makes inside the block, as it ends,
+    the one that reaches its limit among them."""
+    token = _OBSERVER.set(callback)
+    try:
+        yield
+    finally:
+        _OBSERVER.reset(token)
+
+
+def _stop(running: subprocess.Popen[str]) -> None:
+    """End a prover run and every process it started, and reap it.
+
+    On POSIX the run leads a session of its own, so its group is everything it started:
+    QuickChick runs each drawn set's extracted program as a grandchild of the prover,
+    and a kill of the prover alone leaves that program running under every later
+    compile, whose seconds a comparison between dispatches reads. Windows has no process
+    group to end, and the prover alone is killed, as `subprocess.run` kills it."""
+    if sys.platform != "win32":
+        with suppress(ProcessLookupError):
+            os.killpg(running.pid, signal.SIGKILL)
+        running.wait()
+        return
+    running.kill()
+    running.communicate()
+
+
 def compile_one(found: Prover, work: Path, source: Path,
-                timeout: int = 900) -> subprocess.CompletedProcess[str]:
+                timeout: float | None = None) -> subprocess.CompletedProcess[str]:
     """One source, with the proofs directory rooted at the empty logical path.
 
     `-Q proofs ""` is the proof gate's own spelling, so a companion's `Require Import`
     resolves to the `.vo` built here and never to an installed one.
+
+    Stopped at `timeout` seconds, `COMPILE_TIMEOUT` where none is named, and then raises
+    `CompileTimeout` naming the source and the limit. A stop, or an interrupt of the
+    wait, ends the prover's whole process group, as `_stop` states. The prover run alone
+    is timed, the switch environment being read ahead of it, and an observer `observed`
+    set is told of it either way.
     """
-    return subprocess.run(
-        [*found.argv, "-q", "-Q", PROOFS, "", "-Q", "harness", "",
-         source.relative_to(work).as_posix()],
-        cwd=work, capture_output=True, text=True, encoding="utf-8", errors="replace",
-        timeout=timeout, check=False,
-        env={**os.environ, **switch_env(found.switch)})
+    rel = source.relative_to(work).as_posix()
+    limit = COMPILE_TIMEOUT if timeout is None else timeout
+    argv = [*found.argv, "-q", "-Q", PROOFS, "", "-Q", "harness", "", rel]
+    environment = {**os.environ, **switch_env(found.switch)}
+    observer = _OBSERVER.get()
+    began = time.monotonic()
+    with subprocess.Popen(argv, cwd=work, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE, text=True, encoding="utf-8",
+                          errors="replace", env=environment,
+                          start_new_session=sys.platform != "win32") as running:
+        try:
+            stdout, stderr = running.communicate(timeout=limit)
+        except subprocess.TimeoutExpired as expired:
+            _stop(running)
+            if observer is not None:
+                observer(Compiled(rel, time.monotonic() - began, None, limit))
+            raise CompileTimeout(rel, limit, argv) from expired
+        except BaseException:
+            _stop(running)
+            raise
+    done = subprocess.CompletedProcess(argv, running.returncode, stdout, stderr)
+    if observer is not None:
+        observer(Compiled(rel, time.monotonic() - began, done.returncode, limit))
+    return done
 
 
 def _compile_waves(found: Prover, work: Path,
@@ -241,12 +472,14 @@ def _compile_waves(found: Prover, work: Path,
 
     Failures accumulate rather than stopping the run, because a mutation inside a
     definition several proofs read is refused by each of them and the reader wants to
-    know which.
+    know which. A failure is a nonzero exit; a run a signal ended raises
+    `CompileSignalled` instead and stops the waves, as a run stopped at its limit does,
+    since a prover killed for want of memory has said nothing about the source.
     """
     out: list[Failure] = []
     for wave in ordered:
         for source in wave:
-            done = compile_one(found, work, source)
+            done = _exited(work, source, compile_one(found, work, source))
             if done.returncode != 0:
                 out.append(Failure(source=source.name,
                                    said=(done.stderr or done.stdout).strip()))
@@ -281,8 +514,8 @@ def compile_dependents(found: Prover, work: Path, rel: str,
     because the closure of a name that is not there is empty and an empty compile would
     report a green baseline for a tree nobody built.
 
-    `moved`, where given, is what `closure_dependents` says the mutant moves inside one
-    harness's `Require` closure, and only the proofs among it are compiled: a proof
+    `moved`, where given, is what `closure_dependents` says the mutant moves inside the
+    harnesses' `Require` closure, and only the proofs among it are compiled: a proof
     outside that closure is never handed to the prover, however many of them Require
     the subject.
     """
@@ -296,66 +529,86 @@ def compile_dependents(found: Prover, work: Path, rel: str,
     return _compile_waves(found, work, proofs.dependents(sources, stem))
 
 
-def closure(work: Path, harness: Path) -> list[list[Path]]:
-    """One harness's `Require` closure over a tree holding the proofs and the harness's
-    own directory, in dependency order, the harness in the last wave. The tree is the
-    staged one, or the checkout, whose harnesses the stage copies unchanged.
+def closure(work: Path, *harnesses: Path) -> list[list[Path]]:
+    """The harnesses' `Require` closure over a tree holding the proofs and the
+    harnesses' own directory, in dependency order, each harness in a wave after
+    everything it Requires, one harness so in the last wave. The tree is the staged one,
+    or the checkout, whose harnesses the stage copies unchanged.
 
     The proofs and the harnesses are read as one namespace because `compile_one` roots
     both directories at the empty logical path, so a harness's `Require` resolves
-    against either and its closure runs through both.
+    against either and its closure runs through both. Several harnesses, all in one
+    directory, are read as one closure, so a source two of them Require is in it once,
+    in the order the union gives it.
     """
-    sources = sorted((work / PROOFS).glob("*.v")) + sorted(harness.parent.glob("*.v"))
+    sources = (sorted((work / PROOFS).glob("*.v"))
+               + sorted(harnesses[0].parent.glob("*.v")))
     index = proofs.SourceIndex.read(sources)
-    wanted = set(index.imports[harness]) | {harness}
+    wanted = {s for harness in harnesses for s in index.imports[harness]} | set(harnesses)
     return [[s for s in wave if s in wanted] for wave in index.ordered
             if any(s in wanted for s in wave)]
 
 
-def closure_dependents(work: Path, harness: Path, rel: str) -> list[list[Path]]:
-    """What a mutation of `rel` moves inside one harness's `Require` closure: `rel` and
+def closure_dependents(work: Path, rel: str, *harnesses: Path) -> list[list[Path]]:
+    """What a mutation of `rel` moves inside the harnesses' `Require` closure: `rel` and
     each member that Requires it, directly or through another member, proofs and
-    support harnesses alike, in Require order, the harness itself left for its caller
-    to run. `compile_dependents` takes the proofs of it and `compile_support` the rest.
+    support harnesses alike, in Require order, the harnesses themselves left for their
+    caller to run. `compile_dependents` takes the proofs of it and `compile_support` the
+    rest.
 
     A subject the closure does not hold moves the closure whole, for the reason
     `compile_dependents` falls back to the whole directory.
     """
-    whole = [kept for wave in closure(work, harness)
-             if (kept := [s for s in wave if s != harness])]
+    whole = [kept for wave in closure(work, *harnesses)
+             if (kept := [s for s in wave if s not in harnesses])]
     return proofs.dependents([s for wave in whole for s in wave], Path(rel).stem) or whole
 
 
-def compile_closure(found: Prover, work: Path, harness: Path) -> list[Failure]:
-    """What one harness Requires and nothing else, in Require order, every failure
-    kept; the harness itself is left for its caller to run."""
-    return _compile_waves(found, work, [[s for s in wave if s != harness]
-                                        for wave in closure(work, harness)])
+def compile_closure(found: Prover, work: Path, *harnesses: Path) -> list[Failure]:
+    """What the harnesses Require and nothing else, in Require order, every failure
+    kept; the harnesses themselves are left for their caller to run.
+
+    Several harnesses are read as one closure, as `closure` reads them, so a source two
+    of them Require is compiled once."""
+    return _compile_waves(found, work, [[s for s in wave if s not in harnesses]
+                                        for wave in closure(work, *harnesses)])
 
 
-def compile_support(found: Prover, work: Path,
-                    moved: list[list[Path]] | None = None) -> list[Failure]:
+def is_support(name: str, randomized: bool = False) -> bool:
+    """Whether `compile_support` compiles the harness of this name: never an entry
+    point, and the randomized half's own support only with `randomized`. One predicate
+    rather than a set difference spelled at each reader, K-117 reading it as well."""
+    return name not in ENTRY_POINTS and (randomized or name not in RANDOMIZED_SUPPORT)
+
+
+def compile_support(found: Prover, work: Path, moved: list[list[Path]] | None = None,
+                    randomized: bool = False) -> list[Failure]:
     """The harness directory's shared sources: everything there that is not an entry
-    point, which is what an entry point's `Require` resolves against.
+    point, which is what an entry point's `Require` resolves against, and is not the
+    randomized half's own support unless `randomized` asks for that half.
 
     The entry points are excluded by name rather than by their contents, and the reason
     is one per harness. The randomized half needs a library this repository installs in
     a switch of its own, and compiling it to satisfy another harness's imports would
-    make the enumerative half wait on the randomized half's price. The freeze model is
-    a second subject with no reader here at all: compiling it as shared support would
-    put a `Compute` over a hundred vectors inside every `quickchick vectors` run and
-    inside every seeded mutant's baseline, which is a price paid by loops that decide
-    nothing about it.
+    make the enumerative half wait on the randomized half's price. The walk harness
+    decides its sets over whole domains as it compiles, a price only the randomized
+    half's runs owe. The freeze model is a second subject with no reader here at all:
+    compiling it as shared support would put a `Compute` over a hundred vectors inside
+    every `quickchick vectors` run and inside every seeded mutant's baseline, which is a
+    price paid by loops that decide nothing about it. The randomized half's support is
+    that half's price too, and a mutant over which it alone does not compile is one the
+    vectors still decide rather than one their harness could not be built over.
 
-    `moved`, where given, is what `closure_dependents` says a mutant moves inside one
-    harness's closure, and only the shared sources among it are compiled, in its order.
+    `moved`, where given, is what `closure_dependents` says a mutant moves inside the
+    harnesses' closure, and only the shared sources among it are compiled, in its order,
+    `randomized` admitting the randomized half's own support as it does for the rest.
     """
     if moved is not None:
         return _compile_waves(found, work, [[s for s in wave if s.parent == work / "harness"
-                                             and s.name not in ENTRY_POINTS]
+                                             and is_support(s.name, randomized)]
                                             for wave in moved])
     shared = [p for p in sorted((work / "harness").glob("*.v"))
-              if p.name not in ENTRY_POINTS]
+              if is_support(p.name, randomized)]
     return _compile_all(found, work, shared)
 
 
@@ -366,8 +619,9 @@ def vectors(found: Prover, work: Path, harness: Path) -> tuple[list[str], str]:
     the artifact: every quoted segment is one vector, in the order the list holds them.
     A harness that printed nothing is an error rather than an empty run, an empty
     comparison being the failure mode every rule in this repository is written against.
+    A compile a signal ended raises `CompileSignalled`, as `_compile_waves` does.
     """
-    done = compile_one(found, work, harness)
+    done = _exited(work, harness, compile_one(found, work, harness))
     if done.returncode != 0:
         return [], (done.stderr or done.stdout).strip()
     lines = _quoted(done.stdout)
@@ -377,30 +631,177 @@ def vectors(found: Prover, work: Path, harness: Path) -> tuple[list[str], str]:
     return lines, ""
 
 
-def properties(found: Prover, work: Path, harness: Path) -> tuple[int, int, str]:
-    """Run the randomized harness: how many property sets passed, how many failed, and
-    the first counterexample where one did.
+def properties(found: Prover, work: Path, harness: Path) -> Drawn:
+    """Run the randomized harness, and read what it decided as `drawn_sets` does."""
+    return drawn_sets(compile_one(found, work, harness))
+
+
+def drawn_sets(done: subprocess.CompletedProcess[str]) -> Drawn:
+    """What one compile of the randomized harness decided: how many property sets
+    passed, how many failed, and the first counterexample where one did; or, where it
+    decided none, no set passed or failed, the reason why, and how the compile ended.
 
     QuickChick runs a property at compile time and prints its verdict, so the prover's
-    own stdout is the result: `+++ Passed` per set, `*** Failed` with the shrunk
-    counterexample under it. A compile that did not run at all is reported as a failure
-    of every set rather than as none, an empty run being the vacuous pass every floor in
-    this repository exists to catch.
+    own stdout is the result: `+++ Passed` per set, `*** Failed` with the drawn
+    counterexample under it, unshrunk, `forAll` shrinking nothing. A set a draw refuted
+    is read as refuted however the compile ended after it. Short of one, a compile that
+    failed decided no set, even where sets ahead of the failure passed, the sets after it
+    never having run, and neither did one that printed no verdict: neither is read as a
+    set that passed, an empty run being the vacuous pass every floor in this repository
+    exists to catch.
+
+    How it failed is read off the report `_UNFINISHED` names. A set's program that built
+    and ended on an exception nothing caught, `Exited with status N` for N from 1 to 125
+    with OCaml's `Fatal error: exception E` after it, crashed, unless E is Out_of_memory
+    or Stack_overflow. Memory or stack running out, a signal, read as `Killed (N)`,
+    `Stopped (N)`, N of 128 and over or GNU time's `Command terminated by signal`, a
+    program or `time` that could not run, N of 126 or 127, and any status this reader
+    cannot classify each decide nothing about the subject, and read as unanswered, as
+    does a prover run a signal ended, which `_compile_waves` and `vectors` raise as
+    `CompileSignalled`. A harness that did not build, its Rocq or, reported as `Could
+    not compile test program`, its extracted OCaml, decided nothing: a mutant no draw ran
+    against and a baseline that is none, as the walk harness's is.
     """
-    done = compile_one(found, work, harness)
     said = done.stdout + done.stderr
     passed = said.count("+++ Passed")
     failed = said.count("*** Failed")
-    if done.returncode != 0 and not failed:
-        return 0, max(1, passed + failed), _first(said, "the harness did not compile")
-    return passed, failed, _first(said, "") if failed else ""
+    if failed:
+        return Drawn(passed, failed, _first(said, ""), DRAWN_DECIDED)
+    if done.returncode < 0:
+        return Drawn(0, 0, f"the prover compiling it was ended by "
+                           f"{signal_named(-done.returncode)}, which decides nothing about "
+                           "the subject", DRAWN_UNANSWERED)
+    if done.returncode != 0:
+        unfinished = _UNFINISHED.search(said)
+        if unfinished:
+            ended, why = _unfinished(said, unfinished)
+            return Drawn(0, 0, why, ended)
+        error = _first(said, "")
+        return Drawn(0, 0, f"it did not build: {error}" if error else "it did not build",
+                     DRAWN_NOTHING)
+    if not passed:
+        return Drawn(0, 0, "it compiled and printed no verdict line", DRAWN_NOTHING)
+    return Drawn(passed, 0, "", DRAWN_DECIDED)
+
+
+def _unfinished(said: str, report: re.Match[str]) -> tuple[str, str]:
+    """How a drawn set whose program built did not finish, read from QuickChick's report
+    of it and what follows: `DRAWN_CRASHED` or `DRAWN_UNANSWERED`, and the reason, naming
+    the set, as the last notice ahead of the report and the line the prover stopped at
+    name it, and QuickChick's own report line."""
+    ahead, after = said[:report.start()], said[report.end():]
+    named = [m.group("set") for m in _QUICKCHECKING.finditer(ahead)]
+    lines = [m.group("line") for m in _LOCATED.finditer(ahead)]
+    which = " ".join([*([f"`{named[-1][:120]}`"] if named else []),
+                      *([f"at line {lines[-1]}"] if lines else [])])
+    program = f"the program of the drawn set {which}" if which else "a drawn set's program"
+    line = report.group("said")[:200]
+    nothing = "which decides nothing about the subject"
+    if report.group("signalled"):
+        how = report.group("signalled").lower()
+        return DRAWN_UNANSWERED, f"{program} was {how} by a signal, {nothing}: {line}"
+    code = int(report.group("status"))
+    terminated = _TERMINATED.search(after)
+    if terminated or code >= 128:
+        signal_number = terminated.group("signal") if terminated else str(code - 128)
+        return DRAWN_UNANSWERED, (f"{program} was ended by signal {signal_number}, "
+                                  f"{nothing}: {line}")
+    if code in (126, 127):
+        return DRAWN_UNANSWERED, (f"{program} or the `time` running it could not run, "
+                                  f"{nothing}: {line}")
+    thrown = _EXCEPTION.search(after)
+    if thrown is None or not 1 <= code <= 125:
+        return DRAWN_UNANSWERED, (f"{program} exited with status {code}, which this "
+                                  "reader cannot classify, so it decides nothing about "
+                                  f"the subject: {line}")
+    exception = f"{thrown.group('name')}{thrown.group('args')}"[:120]
+    if thrown.group("name").rsplit(".", 1)[-1] in _EXHAUSTION:
+        return DRAWN_UNANSWERED, (f"{program} exited with status {code} on {exception}, "
+                                  f"its memory or stack running out, {nothing}: {line}")
+    return DRAWN_CRASHED, (f"{program} exited with status {code} on the uncaught "
+                           f"exception {exception}, so the sets after it in the harness "
+                           "did not run")
+
+
+def seed(harness: Path) -> str | None:
+    """The seed the randomized harness fixes QuickChick's random state at, or None where
+    it fixes none, fixes it other than once, or fixes it ahead of a sentence that
+    Requires QuickChick, whose loading states QuickChick's own seed over it.
+
+    Read with the comments blanked by the shared lexer, so a commented-out sentence
+    fixes nothing."""
+    try:
+        text = proofs.strip_comments(harness.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError):
+        return None
+    found = list(_SEED.finditer(text))
+    loads = [m.end() for m in _REQUIRES_QUICKCHICK.finditer(text)]
+    if len(found) != 1 or (loads and found[0].start() < loads[-1]):
+        return None
+    return str(found[0].group(1))
+
+
+def walks(found: Prover, work: Path, harness: Path) -> tuple[list[Walk], str]:
+    """Run the exhaustive harness: each property set it walked, or why there are none.
+
+    The harness loads Stdlib alone and ends in a `Compute` over a `list string`, one
+    entry per set, `name points premise refuted first`, the last the walk-order position,
+    from 0, of the first point that refutes, `-` where none does. A harness that did not
+    compile, printed no entry, printed one this cannot read, or printed counts that
+    disagree with each other is an error rather than a set that held, so a walk that
+    never ran, or ran and was misread, reads as no verdict.
+    """
+    lines, said = vectors(found, work, harness)
+    if said:
+        return [], said
+    out: list[Walk] = []
+    for line in lines:
+        parts = line.rsplit(" ", 4)
+        numbers = parts[1:]
+        if (len(parts) != 5 or not all(_COUNT.fullmatch(n) for n in numbers[:3])
+                or not (_COUNT.fullmatch(numbers[3]) or numbers[3] == "-")):
+            return [], (f"the walk harness printed {line!r}, which is not "
+                        "`name points premise refuted first`")
+        walk = Walk(name=parts[0], points=int(numbers[0]), premise=int(numbers[1]),
+                    refuted=int(numbers[2]),
+                    first=None if numbers[3] == "-" else int(numbers[3]))
+        if not (walk.premise <= walk.points and walk.refuted <= walk.points
+                and (walk.first is None) == (walk.refuted == 0)
+                and (walk.first is None or walk.first < walk.points)):
+            return [], (f"the walk harness printed {line!r}, whose counts disagree: the "
+                        "premise and refuted counts are at most the points, and a first "
+                        "position inside the domain is printed exactly where a point "
+                        "refutes")
+        out.append(walk)
+    return out, ""
+
+
+def walk_failures(found_walks: list[Walk]) -> list[str]:
+    """Each walked set that does not hold, as one line naming it: one a point refutes,
+    one whose domain is empty and so decides nothing, and one whose premise no point
+    meets, which holds vacuously."""
+    out: list[str] = []
+    for w in found_walks:
+        if w.refuted:
+            out.append(f"{w.name}: {w.refuted} of {w.points} point(s) refute it, the "
+                       f"first at position {w.first}")
+        elif not w.points:
+            out.append(f"{w.name}: its domain holds no point, so it decides nothing")
+        elif not w.premise:
+            out.append(f"{w.name}: no one of its {w.points} point(s) meets its premise, "
+                       "so it holds vacuously")
+    return out
 
 
 def _first(text: str, fallback: str) -> str:
-    """The first line that says something a reader wants, for a one-line verdict."""
-    for line in text.splitlines():
-        if line.strip().startswith(("*** Failed", "Error", "Failed")):
-            return line.strip()[:200]
+    """The first line that says something a reader wants, for a one-line verdict: a
+    bare `Error:`, which the prover prints over a message of several lines, with the
+    message's first line after it."""
+    lines = [line.strip() for line in text.splitlines()]
+    for n, line in enumerate(lines):
+        if line.startswith(("*** Failed", "Error", "Failed")):
+            message = [after for after in lines[n + 1:] if after][:1] if line == "Error:" else []
+            return " ".join([line, *message])[:200]
     return fallback
 
 

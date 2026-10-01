@@ -18,20 +18,20 @@ Rocq release, the harnesses it compiles, whether it also compiles the rig's supp
 harnesses or a directory of its own, whether it compiles every proof source, as
 `seed coq`'s enumerative mode does for the `--file` its caller names and as
 `gallina.emit` does for the vector harnesses, and the proof sources it names itself, as
-the Rupicola lowering names its default owner. `seed coq --quickchick` compiles its
-harness's closure alone and refuses a subject outside it, so its row holds that harness
-and the rig's support harnesses, each with its closure, which today lie inside the
-harness's. Each switch and release is the instrument's own constant,
-imported, or, where it has none to import, the literal in its own file or the rig's
-constant that file's top-level import binds under a name nothing else there binds, read
-by name out of that file's syntax tree, and so is a proof source the instrument names.
-The rows older than 9.3.0 decide the set, and each harness or named source brings its
-`Require` closure, read by [vos/proofs.py](../proofs.py)'s own reader over the proofs
-directory and the harness's directory as one namespace, because that is how every row
-stages them: the rig roots both at the empty logical path, and the recipes copy the
-proof beside the harness. The dated campaigns under `proofs/campaigns/` are not rows. A
-row that states no release is held older than 9.3.0, since a release nobody states is
-one nobody can say admits the forms.
+the Rupicola lowering names its default owner. `seed coq --quickchick` compiles the
+closure of its harness and the walk harness beside it alone and refuses a subject
+outside the first's, so its row holds the two harnesses and the rig's support harnesses,
+each with its closure, which today lie inside the first harness's. Each switch and
+release is the instrument's own constant, imported, or, where it has none to import,
+the literal in its own file or the rig's constant that file's top-level import binds
+under a name nothing else there binds, read by name out of that file's syntax tree,
+and so is a proof source the instrument names. The rows older than 9.3.0 decide
+the set, and each harness or named source brings its `Require` closure, read by
+[vos/proofs.py](../proofs.py)'s own reader over the proofs directory and the harness's
+directory as one namespace, because that is how every row stages them: the rig roots both
+at the empty logical path, and the recipes copy the proof beside the harness. The dated
+campaigns under `proofs/campaigns/` are not rows. A row that states no release is held
+older than 9.3.0, since a release nobody states is one nobody can say admits the forms.
 
 **The table's own membership is held too.** Every module under `tools/vos/` that resolves
 a prover through `gallina.prover` has to be some row's `selects`, so an instrument added
@@ -118,7 +118,8 @@ class Instrument:
 
     `selects` is the module that chooses its switch. `release` is None where the
     instrument states none. `harnesses` are the files it runs, `support` whether it
-    also compiles the rig's non-entry harnesses as `gallina.compile_support` does,
+    also compiles the rig's shared harnesses as `gallina.compile_support` does, the
+    randomized half's own support among them where it runs the drawn harness,
     `beside` a directory whose every tracked Gallina file it compiles, `whole`
     whether it compiles every proof source, and `subjects` the proof sources it names
     itself and compiles, each with its `Require` closure.
@@ -153,14 +154,22 @@ INSTRUMENTS: tuple[Instrument, ...] = (
                support=True, whole=True),
     Instrument("quickchick properties", "tools/vos/cli/quickchick.py",
                gallina.QUICKCHICK_SWITCH, gallina.QUICKCHICK_ROCQ_VERSION,
-               (f"{RIG}/{gallina.RANDOMIZED}",)),
-    # The same run where QuickChick is installed in the CertiRocq switch instead.
-    Instrument("quickchick properties in the oracle's switch", "tools/vos/cli/quickchick.py",
-               gallina.ORACLE_SWITCH, gallina.ORACLE_ROCQ_VERSION,
-               (f"{RIG}/{gallina.RANDOMIZED}",)),
-    # Properties.v's closure alone, a subject outside it refused, beside the rig's support.
-    Instrument("seed coq --quickchick", "tools/vos/cli/seed.py", gallina.QUICKCHICK_SWITCH,
-               gallina.QUICKCHICK_ROCQ_VERSION, (f"{RIG}/{gallina.RANDOMIZED}",),
+               (f"{RIG}/{gallina.RANDOMIZED}", f"{RIG}/{gallina.EXHAUSTIVE}")),
+    # `seed coq --quickchick` runs in the switch quickchick.py's holder chooses, which
+    # holds the QuickChick there as `quickchick check` does. It compiles Properties.v's
+    # closure alone, the walk harness beside it, a subject outside that closure refused,
+    # beside the rig's support.
+    Instrument("seed coq --quickchick", "tools/vos/cli/quickchick.py",
+               gallina.QUICKCHICK_SWITCH, gallina.QUICKCHICK_ROCQ_VERSION,
+               (f"{RIG}/{gallina.RANDOMIZED}", f"{RIG}/{gallina.EXHAUSTIVE}"),
+               support=True),
+    # The same two in the switch QuickChick's commit-pinned recipe builds.
+    Instrument("quickchick properties --recipe", "tools/vos/cli/quickchick.py",
+               gallina.QUICKCHICK_RECIPE_SWITCH, gallina.QUICKCHICK_RECIPE_ROCQ_VERSION,
+               (f"{RIG}/{gallina.RANDOMIZED}", f"{RIG}/{gallina.EXHAUSTIVE}")),
+    Instrument("seed coq --quickchick --recipe", "tools/vos/cli/quickchick.py",
+               gallina.QUICKCHICK_RECIPE_SWITCH, gallina.QUICKCHICK_RECIPE_ROCQ_VERSION,
+               (f"{RIG}/{gallina.RANDOMIZED}", f"{RIG}/{gallina.EXHAUSTIVE}"),
                support=True),
     # Each writes its harness at run time, over proofs its own module names; at the
     # gate's release they add nothing, and older they would derive no file and fail.
@@ -586,8 +595,9 @@ def _starts(root: Path, row: Instrument, tracked: set[str],
             findings.append(f"{row.name} compiles {rel!r}, which the git index does not "
                             "carry")
     if row.support:
+        randomized = f"{RIG}/{gallina.RANDOMIZED}" in row.harnesses
         files |= {rel for rel in _gallina_in(tracked, RIG)
-                  if rel.rsplit("/", 1)[1] not in gallina.ENTRY_POINTS}
+                  if gallina.is_support(rel.rsplit("/", 1)[1], randomized)}
     if row.beside:
         found = _gallina_in(tracked, row.beside)
         if not found:

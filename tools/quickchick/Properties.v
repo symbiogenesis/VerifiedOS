@@ -1,23 +1,46 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 
 (* =========================================================================
-   The QuickChick harness: random generators over the Gallina front, and the
-   one thing no enumeration has, automatic counterexample shrinking.
+   The QuickChick harness: random generators over the Gallina front, for the
+   property sets whose domains are too large to walk.
 
    Vectors.v beside this file walks a declared grid and prints what the
    admission algebra answers at every point of it. That is the half that runs
    with no install, and its limit is the grid: a defect outside the corners
    somebody named is a defect it does not reach. This half draws instead, so
-   what it reaches is decided by the generator's range rather than by a list,
-   and when a draw refutes a property QuickChick shrinks the counterexample to
-   a minimal one rather than handing back the frame it happened to draw.
+   what it reaches is decided by the generator's range rather than by a list.
+   A draw that refutes a property is reported as drawn: `forAll` shrinks
+   nothing, so the counterexample QuickChick prints is the point it happened
+   to draw and not a minimal one.
 
-   It needs `coq-quickchick`, which is installed in a switch of its own,
-   `quickchick-9.1.1`, at 2.2.0 against Rocq 9.1.1. `run.py quickchick
-   check` says which switch holds it, and the tool's own header states why
-   the switch is separate: adding the library to the CertiCoq oracle's switch
-   downgrades dune and recompiles fifty-nine packages, and no QuickChick
-   release admits the Rocq release the proof gate's switch carries.
+   **A set is drawn here only where its domain outruns the draws.**
+   QuickChick spends 10,000 draws on a set, and a domain holding no more
+   points than that is one a draw that size samples without covering. Each
+   such set is decided at every point of its domain by Walks.v beside this
+   file, which loads Stdlib alone, over the statements IPCProperties.v holds
+   for both halves. The size of each domain left here is stated beside its
+   `QuickChick` command, counted as Walks.v counts one: `choose (a, b)` holds
+   b - a + 1 points, `elems_ d l` the members of l, `vectorOf n g` the
+   n-length lists over g's points, and a generator binding several their
+   product.
+
+   **What a run extracts is fixed in this file, so a verdict replays.** Two
+   sentences below the imports replace two of QuickChick's own extraction
+   choices. QuickChick extracts `Nat.sub` as OCaml's `(-)`, which goes below
+   zero where Gallina's subtraction stops at it, so a verdict on any
+   subtraction the extracted program reaches would judge arithmetic Gallina
+   does not have; the first sentence restores the truncating extraction
+   Stdlib's own ExtrOcamlNatInt gives it. QuickChick seeds its random state
+   with `Random.State.make_self_init`, from system-dependent data, so no
+   verdict need replay; the second fixes the seed, which `run.py quickchick
+   properties` reads and reports, and every set is drawn from that seed.
+
+   It needs `coq-quickchick`, which this repository installs in a switch of
+   its own, the one tools/vos/gallina.py's QUICKCHICK_SWITCH names, from the
+   snapshot tools/opam/quickchick.lock fixes. `run.py quickchick check` says
+   which QuickChick that switch holds, by its release or, for a build from a
+   commit pin, by the commit, and tools/opam/README.md states why the switch
+   is separate from the proof gate's and what the snapshot installs.
 
    The properties are the computable shadows of theorems the shipped proofs
    prove, and that is the point of stating them here rather than only there. A
@@ -42,50 +65,41 @@
    readiness index runs to sixteen states, the payload grid runs to one past
    each budget, the badge widths run to one past the declared one, the offer
    sequence is one fixed list of five, and the machine is one. Every property
-   below is stated over a drawn machine, a drawn readiness index, a drawn
-   payload, a drawn width or a drawn offer sequence, so what it reaches is a
-   range rather than a list. Two of them are the arithmetic no theorem in
+   drawn below is stated over a drawn machine, a drawn readiness index, a
+   drawn payload, a drawn width or a drawn offer sequence, so what it reaches
+   is a range rather than a list. One of them is arithmetic no theorem in
    EndpointIPC.v states and no vector could check at every point:
    `prop_queue_depth_is_the_unsatisfied_offers`, which fixes exactly how much
-   state the construction R-07-029a excludes would have accumulated, and
-   `prop_only_the_full_mask_is_the_surface`, which is that file's
-   thirty-two-member enumeration lifted to an unbounded index.
+   state the construction R-07-029a excludes would have accumulated.
 
-   **Each refuting construction is drawn against the obligation it does not
-   break as well as the one it does.** A property set that only ever exercised
-   the defect would be measuring the shape of the construction rather than the
-   named defect, so the ambient grant is checked to grant everything named,
-   the io_uring numbering to number every invocation, the work-stealing
-   rotation to agree wherever nothing is observed, and the submission-queue
-   dispatcher to agree wherever the two observations agree.
+   **Each refuting construction is decided against the obligation it does
+   not break as well as the one it does,** here or in Walks.v. A property set
+   that only ever exercised the defect would be measuring the shape of the
+   construction rather than the named defect, so the ambient grant is checked
+   to grant everything named, the io_uring numbering to number every
+   invocation, the work-stealing rotation to agree wherever nothing is
+   observed, and the submission-queue dispatcher to agree wherever the two
+   observations agree.
 
    **A guarded property whose premise a generator rarely reaches holds
    vacuously, so the premises are measured and not assumed.** Over 10000 draws
-   apiece, the refusal arm is reached 5009 times, a capability slot the
-   payload names 2770, a slot fault 2366, a register fault 2455, an inventory
-   carrying a non-object 6648, two observations that agree 1142, an act the
-   criterion excludes 7088, a ring with work outstanding 4217, a kernel table
-   3277, and a drawn width that is the machine's declared one 1416. One
-   premise is genuinely thin and is answered by a second generator rather than
-   left standing: a freely drawn invocation sequence is the frozen surface on
-   48 draws of 10000, so the transposition property is run again over
-   sequences built from the specification's own by transposing it, where the
-   figure is 10000 of 10000. The seventh premise is the one that moved: it
-   used to read *an act `numbered_act` answers false at* and now reads *an act
-   R-07-031b's criterion excludes*, and the two predicates agree at every one
-   of the seventeen acts, which
-   `the_criterion_and_the_specification_numbering_agree_everywhere` decides by
-   conversion in the artifact, so the figure is the same measurement and not a
-   restated one.
+   apiece, measured before the seed was fixed, the refusal arm is reached 5009
+   times, a capability slot the payload names 2770, a slot fault 2366, a
+   register fault 2455, and a drawn width that is the machine's declared one
+   1416. A freely drawn invocation sequence is the frozen surface on 48 draws
+   of 10000, so the transposition property is decided again over the
+   sequences built from the specification's own by transposing it, every one
+   of which is the frozen surface, and Walks.v walks that domain whole. The
+   walked sets' premises are counted at every point of their domains by the
+   walk itself, which fails a set whose premise no point meets.
 
-   **An unguarded property owes no premise figure, and four of the ones below
-   are unguarded for that reason.** A property whose whole content is an
-   equality between two definitions cannot hold vacuously; what it can do
-   instead is hold by conversion because one side restates the other's body,
-   which is the defect the two decider and delivery properties below were
-   rewritten to remove. Each is now stated against the specification it is
-   about rather than against the construction it is named for, so a
-   redefinition of either side moves one column and not both:
+   **An unguarded property owes no premise figure.** A property whose whole
+   content is an equality between two definitions cannot hold vacuously; what
+   it can do instead is hold by conversion because one side restates the
+   other's body. The delivery property below and IPCProperties.v's lost-wakeup
+   property are each stated against the specification they are about rather
+   than against the construction they are named for, so a redefinition of
+   either side moves one column and not both:
    `prop_the_naive_decider_differs_exactly_at_the_lost_wakeup` fails if either
    decider changes, and `prop_delivery_ignores_the_predecessor` fails if the
    unswapped construction stops reading R-07-044's arm or if the
@@ -100,6 +114,7 @@ Require Import CyclicExecutive.
 Require Import Probe.
 Require EndpointIPC.
 Require Import IPCProbe.
+Require Import IPCProperties.
 
 Import ListNotations.
 Import QcDefaultNotation.
@@ -111,8 +126,21 @@ Open Scope string_scope.
    the properties, and they are what a run would otherwise be read through. *)
 Set Warnings "-extraction-opaque-accessed,-extraction".
 
+(* Gallina's subtraction stops at zero, and QuickChick extracts it as OCaml's
+   `(-)`, which does not. This restores the truncating extraction Stdlib's
+   ExtrOcamlNatInt states, word for word, so the program a property is
+   decided by computes the subtraction the definitions compute. *)
+Extract Constant Nat.sub => "fun n m -> Stdlib.max 0 (n-m)".
+
+(* QuickChick draws from `Random.State.make_self_init ()`, seeded from
+   system-dependent data. Every set here is drawn from this one seed
+   instead, so a run replays; tools/vos/gallina.py reads it and refuses a
+   harness that fixes none, or fixes it ahead of a Require of QuickChick,
+   whose loading states QuickChick's own seed over it. *)
+Extract Constant RandomQC.newRandomSeed => "(Random.State.make [|20260930|])".
+
 (* -------------------------------------------------------------------------
-   Showing a counterexample. A shrunk frame is only worth having if it can be
+   Showing a counterexample. A drawn frame is only worth having if it can be
    read, so every declared quantity is printed and the tenant is not: reading
    1 is what R-11-023 says admission must not do, and a counterexample that
    displayed it would invite exactly that reading.
@@ -188,16 +216,23 @@ Definition prop_width_splits (f : Frame bool) : bool :=
           (total_width (reserved_band f)
            + total_width (band_slots (discretionary_band f))).
 
+(* The domains below, each past the 10,000 draws. `genSlot` holds 12 * 221^3
+   points, `genFrame` 2 * (12 * 221^3)^3 and `genTenants` 31. *)
+
+(* genFrame * genTenants^2 = 2 * (12 * 221^3)^3 * 31^2 points: drawn. *)
 QuickChick (forAll genFrame (fun f =>
               forAll genTenants (fun rts =>
                 forAll genTenants (fun dts =>
                   prop_retenanting_is_blind f rts dts)))).
 
+(* genFrame = 2 * (12 * 221^3)^3 points: drawn. *)
 QuickChick (forAll genFrame prop_admitted_implies_reserved).
 
+(* genFrame^2 = 4 * (12 * 221^3)^6 points: drawn. *)
 QuickChick (forAll genFrame (fun f =>
               forAll genFrame (fun g => prop_cost_is_size_independent f g))).
 
+(* genFrame = 2 * (12 * 221^3)^3 points: drawn. *)
 QuickChick (forAll genFrame prop_width_splits).
 
 (* An independently written arithmetic decision over generated boundary
@@ -215,12 +250,14 @@ Definition prop_boundary_padding (ctx op handler sample : nat) : bool :=
   Nat.eqb (padded_release (machine c) (boundary_inputs c) 100
               elapsed) (100 + total).
 
+(* 31^3 * 151 * 31 * 2 = 278,903,342 points: drawn. *)
 QuickChick (forAll (choose (0, 30)) (fun ctx =>
   forAll (choose (0, 30)) (fun op => forAll (choose (0, 30)) (fun handler =>
     forAll (choose (0, 150)) (fun width => forAll (choose (0, 30)) (fun workload =>
       forAll (elems_ true [false; true]) (fun populated =>
         prop_boundary_admission ctx op handler width workload populated))))))).
 
+(* 31^3 * 151 = 4,498,441 points: drawn. *)
 QuickChick (forAll (choose (0, 30)) (fun ctx =>
   forAll (choose (0, 30)) (fun op => forAll (choose (0, 30)) (fun handler =>
     forAll (choose (0, 150)) (fun sample =>
@@ -241,20 +278,11 @@ QuickChick (forAll (choose (0, 30)) (fun ctx =>
    quantifies over a machine holds whatever those functions are, so a
    counterexample that turned on one would be a counterexample to a property
    this file does not state. What is shown is the data a drawn machine
-   carries, which is what the shrinker can move.
+   carries, which is what a counterexample can name.
    ------------------------------------------------------------------------- *)
 
 #[global] Instance showInvocation : Show EndpointIPC.Invocation :=
   {| show i := "inv" ++ show (ipc_inv_ix i) |}.
-
-#[global] Instance showNameable : Show EndpointIPC.Nameable :=
-  {| show c := "nm" ++ show (ipc_nm_ix c) |}.
-
-#[global] Instance showLifecycle : Show EndpointIPC.Lifecycle :=
-  {| show op := "lc" ++ show (ipc_lc_ix op) |}.
-
-#[global] Instance showAct : Show EndpointIPC.Act :=
-  {| show a := "act" ++ show (ipc_act_ix a) |}.
 
 #[global] Instance showMessage : Show EndpointIPC.Message :=
   {| show m := "(regs " ++ show (EndpointIPC.msg_regs m)
@@ -265,10 +293,6 @@ QuickChick (forAll (choose (0, 30)) (fun ctx =>
                ++ " at " ++ show (EndpointIPC.offer_at o)
                ++ " " ++ show (EndpointIPC.offer_carries o)
                ++ " badge " ++ show (EndpointIPC.offer_badge o) ++ ")" |}.
-
-#[global] Instance showRing : Show EndpointIPC.Ring :=
-  {| show r := "(produced " ++ show (EndpointIPC.produced r)
-               ++ " consumed " ++ show (EndpointIPC.consumed r) ++ ")" |}.
 
 #[global] Instance showMachine : Show EndpointIPC.Machine :=
   {| show m := "(parts " ++ show (EndpointIPC.partition_count m)
@@ -283,21 +307,12 @@ QuickChick (forAll (choose (0, 30)) (fun ctx =>
 (* -------------------------------------------------------------------------
    The generators. The ranges are the ones the definitions decide inside: a
    payload that reaches past both budgets, a badge width past the declared
-   one, a readiness index past the endpoint set, and ring indices on both
-   sides of the drain.
+   one, and a readiness index past the endpoint set. The generators of the
+   walked sets are Walks.v's domains, which enumerate what they drew.
    ------------------------------------------------------------------------- *)
 
 Definition genInvocation : G EndpointIPC.Invocation :=
   elems_ EndpointIPC.Send EndpointIPC.all_invocations.
-
-Definition genNameable : G EndpointIPC.Nameable :=
-  elems_ EndpointIPC.NEndpoint EndpointIPC.all_nameable.
-
-Definition genLifecycle : G EndpointIPC.Lifecycle :=
-  elems_ EndpointIPC.LCreate EndpointIPC.all_lifecycles.
-
-Definition genAct : G EndpointIPC.Act :=
-  elems_ EndpointIPC.ASend EndpointIPC.all_acts.
 
 (* A short list of small slot numbers. Small on purpose: a capability slot
    drawn from a wide range is almost never named twice and almost never named
@@ -327,31 +342,18 @@ Definition genOffer : G EndpointIPC.Offer :=
 Definition genOffers : G (list EndpointIPC.Offer) :=
   bindGen (choose (0, 6)) (fun n => vectorOf n genOffer).
 
-Definition genRing : G EndpointIPC.Ring :=
-  bindGen (choose (0, 6)) (fun p =>
-  bindGen (choose (0, 6)) (fun c => returnGen (ipc_ring p c))).
-
 (* A readiness state is drawn as the index of its bit pattern, which is
    EndpointIPC.v's own `readiness_of`: the index is showable where the
    predicate is not, and it ranges past the sixteen states the enumerative
    half walks. *)
 Definition genReadinessIx : G nat := choose (0, 255).
 
-(* An invocation sequence, drawn two ways. The unconstrained one is what the
-   generic occurrence facts are stated over; the second is the specification's
-   own sequence with a drawn transposition applied, which is the only way a
-   draw lands on a frozen surface often enough to decide anything. *)
+(* An unconstrained invocation sequence, which the generic occurrence facts
+   are stated over. Its twin, the specification's own sequence with two
+   transpositions applied, is the only way to land on a frozen surface often
+   enough to decide anything, and its 49 points are walked by Walks.v. *)
 Definition genInvSeq : G (list EndpointIPC.Invocation) :=
   bindGen (choose (0, 7)) (fun n => vectorOf n genInvocation).
-
-Definition genPermutedSurface : G (list EndpointIPC.Invocation) :=
-  bindGen (choose (0, 6)) (fun a =>
-  bindGen (choose (0, 6)) (fun b =>
-  returnGen (EndpointIPC.swap_at_inv a
-               (EndpointIPC.swap_at_inv b EndpointIPC.spec_surface)))).
-
-Definition genNameables : G (list EndpointIPC.Nameable) :=
-  bindGen (choose (0, 5)) (fun n => vectorOf n genNameable).
 
 (* The five-member cost table as a function, built from five drawn magnitudes.
    A cost function cannot be drawn directly, and this is the shape that keeps
@@ -513,90 +515,16 @@ Definition prop_a_register_fault_is_refused_on_its_own
               (Nat.leb s (EndpointIPC.slot_count m)))
         (negb (EndpointIPC.message_ok m (ipc_message w s))).
 
-(* S13a's: the badge space is two to the declared width, at a drawn width
-   (the_badge_space_is_two_to_the_declared_width). *)
-Definition prop_badge_space_is_two_to_the_width (w : nat) : bool :=
-  Nat.eqb (EndpointIPC.count_of (EndpointIPC.badges w))
-          (EndpointIPC.two_pow w).
-
-(* And the admission side of gap a, over a drawn machine and a drawn width:
-   the generated space at a width is admitted exactly when that width is the
-   machine's declared one, which is what makes `badge_ok` read its field. *)
+(* The admission side of gap a, over a drawn machine and a drawn width: the
+   generated space at a width is admitted exactly when that width is the
+   machine's declared one, which is what makes `badge_ok` read its field. The
+   badge space itself, two to the declared width, is IPCProperties.v's and is
+   walked. *)
 Definition prop_badges_are_admitted_at_the_declared_width_alone
              (m : EndpointIPC.Machine) (w : nat) : bool :=
   Bool.eqb (EndpointIPC.all_of (EndpointIPC.badge_ok m)
                                (EndpointIPC.badges w))
            (Nat.eqb w (EndpointIPC.badge_width m)).
-
-(* S12's: reading 2, that the frozen surface is a set and not an order, at a
-   drawn sequence and a drawn index rather than at the four transpositions of
-   one sequence (no_transposition_leaves_the_frozen_surface). *)
-Definition prop_a_transposition_does_not_move_the_verdict
-             (n : nat) (l : list EndpointIPC.Invocation) : bool :=
-  Bool.eqb (EndpointIPC.frozen_surface (EndpointIPC.swap_at_inv n l))
-           (EndpointIPC.frozen_surface l).
-
-(* And the other side of that contrast, which is what makes it one: starting a
-   member twice is never the frozen surface, at any index of any sequence that
-   carried it once (no_insertion_of_a_present_member_is_the_frozen_surface). *)
-Definition prop_an_insertion_adds_exactly_one_occurrence
-             (n : nat) (i : EndpointIPC.Invocation)
-             (l : list EndpointIPC.Invocation) : bool :=
-  Nat.eqb (EndpointIPC.occurrences_inv i (EndpointIPC.insert_at_inv n i l))
-          (S (EndpointIPC.occurrences_inv i l)).
-
-(* S35's, lifted off its index: the thirty-two-member enumeration says exactly
-   one mask is the frozen surface, and this says which one at an unbounded
-   index (no_proper_boolean_enumeration_is_the_frozen_surface). *)
-Definition prop_only_the_full_mask_is_the_surface (n : nat) : bool :=
-  let space := EndpointIPC.two_pow
-                 (EndpointIPC.count_of EndpointIPC.all_invocations) in
-  Bool.eqb (EndpointIPC.surface_mask_ok n)
-           (Nat.eqb (Nat.modulo n space) (EndpointIPC.before_last space)).
-
-(* S3's and S4a's. R-07-027a states the negative of the two tables and nothing
-   positive of the three classes, so the obligation drawn here is the one the
-   entry carries, that no table has a lifecycle, held of both admissible maps;
-   and beside it the two constructions, the one that lets the schedule table
-   be revoked and the one that admits nothing at all. Which acts each class
-   has is EndpointIPC.v's gap j and no column here reads it
-   (the_specification_gives_no_table_a_lifecycle,
-   the_revoke_only_lifecycle_discharges_both, the_table_lifecycle_is_refuted,
-   the_frozen_lifecycle_states_nothing). *)
-Definition prop_lifecycles_split_tables_from_objects
-             (c : EndpointIPC.Nameable) (op : EndpointIPC.Lifecycle) : bool :=
-  andb (andb (implb (EndpointIPC.is_table c)
-                    (negb (EndpointIPC.spec_lifecycles c op)))
-             (implb (EndpointIPC.is_table c)
-                    (negb (EndpointIPC.revoke_only_lifecycle c op))))
-       (andb (implb (EndpointIPC.nameable_eqb c EndpointIPC.NScheduleTable)
-                    (EndpointIPC.table_lifecycle c op))
-             (negb (EndpointIPC.frozen_lifecycle c op))).
-
-(* R-07-027a's closure read over a drawn candidate: an inventory that names a
-   kernel table or the refused reply object is never closed, whatever else it
-   names (no_fourth_class_is_closed, generalised off its index). *)
-Definition prop_no_non_object_survives_the_inventory
-             (l : list EndpointIPC.Nameable) : bool :=
-  implb (EndpointIPC.any_of (fun c => negb (EndpointIPC.is_object c)) l)
-        (negb (EndpointIPC.inventory_ok l)).
-
-(* S11's: dispatch by the number alone, at two drawn observations
-   (the_specification_dispatches_by_the_number_alone). *)
-Definition prop_dispatch_ignores_the_observation (n a b : nat) : bool :=
-  Nat.eqb (ipc_opt_inv_ix (EndpointIPC.spec_dispatch (fun _ => a) n))
-          (ipc_opt_inv_ix (EndpointIPC.spec_dispatch (fun _ => b) n)).
-
-(* And the twin over R-07-030's construction: the submission-queue dispatcher
-   agrees with itself wherever the two observations agree, so what refutes it
-   is the read of memory and not a different table. *)
-Definition prop_the_queue_dispatch_agrees_where_the_memory_does
-             (n a b : nat) : bool :=
-  implb (Nat.eqb a b)
-        (Nat.eqb (ipc_opt_inv_ix
-                    (EndpointIPC.submission_queue_dispatch (fun _ => a) n))
-                 (ipc_opt_inv_ix
-                    (EndpointIPC.submission_queue_dispatch (fun _ => b) n))).
 
 (* S30's: the rotation is composition-fixed, at a drawn machine and two drawn
    observations (the_specification_rotation_is_composition_fixed); and its
@@ -630,31 +558,6 @@ Definition prop_delivery_ignores_the_predecessor
                         (Bool.eqb (EndpointIPC.pending m p b)
                                   (EndpointIPC.pending m q b)))).
 
-(* S28's and S29's, which are twins: the consumer never yields over work its
-   recheck saw and never over work its own drain saw
-   (the_specification_decider_rechecks_after_arming, ..._yields_only_...). *)
-Definition prop_the_decider_never_yields_over_work
-             (before now : EndpointIPC.Ring) : bool :=
-  andb (implb (EndpointIPC.has_work now)
-              (negb (EndpointIPC.spec_decide before now)))
-       (implb (EndpointIPC.has_work before)
-              (negb (EndpointIPC.spec_decide before now))).
-
-(* And the lost wakeup as a universal rather than a witness, stated against
-   the specification and not against the construction's own body. The naive
-   consumer and the specification agree everywhere except where the drain saw
-   nothing and the recheck would have seen work, and they differ there: that
-   is the lost wakeup as an equality between two functions rather than as a
-   restatement of one of them, and a redefinition of either decider moves one
-   side of it. The clause it replaces asserted `naive_decide` equal to its own
-   body and never mentioned the specification at all. *)
-Definition prop_the_naive_decider_differs_exactly_at_the_lost_wakeup
-             (before now : EndpointIPC.Ring) : bool :=
-  Bool.eqb (Bool.eqb (EndpointIPC.naive_decide before now)
-                     (EndpointIPC.spec_decide before now))
-           (negb (andb (negb (EndpointIPC.has_work before))
-                       (EndpointIPC.has_work now))).
-
 (* Reading 13, over a drawn machine: R-07-029a's *within the invocation's own
    bounded cost* admits a refusal that spends the whole of it, and that holds
    of every composition rather than of the demo
@@ -662,44 +565,6 @@ Definition prop_the_naive_decider_differs_exactly_at_the_lost_wakeup
 Definition prop_the_boundary_refusal_is_admitted
              (m : EndpointIPC.Machine) (i : EndpointIPC.Invocation) : bool :=
   Nat.leb (EndpointIPC.boundary_refusal m i) (EndpointIPC.invocation_cost m i).
-
-(* The numbering's two clauses and the three constructions that break one
-   each, stated as the clause each construction does *not* break. The
-   specification's own second clause is now among them, and that is the
-   change: it is stated against R-07-031b's criterion for what may be
-   numbered rather than against `numbered_act`'s own body, so a draw can
-   falsify it where an implication from a hypothesis to itself could not
-   (the_specification_numbering_discharges_both, and the standing halves of
-   the_iouring_numbering_is_refuted, the_fifth_group_numbering_is_refuted and
-   the_short_numbering_drops_a_member). *)
-Definition prop_the_numberings_split_on_one_clause_each
-             (i : EndpointIPC.Invocation) (a : EndpointIPC.Act) : bool :=
-  andb (andb (EndpointIPC.numbered_act (EndpointIPC.act_of i))
-             (andb (EndpointIPC.iouring_numbering (EndpointIPC.act_of i))
-                   (EndpointIPC.fifth_group_numbering (EndpointIPC.act_of i))))
-       (andb (implb (negb (EndpointIPC.is_the_act_of_an_invocation a))
-                    (negb (EndpointIPC.numbered_act a)))
-             (implb (negb (EndpointIPC.is_the_act_of_an_invocation a))
-                    (negb (EndpointIPC.short_numbering a)))).
-
-(* Gap i as a drawn column. The two trap surfaces the criterion admits differ
-   at exactly the three acts R-11-023 owes a carrier for and agree at the
-   other fourteen, and every act the ABI numbers traps on both, so what the
-   register does fix is decided at every draw and what it leaves open is
-   visible as the one place the two columns part
-   (the_two_admissible_surfaces_differ_on_the_schedule_transitions_alone,
-   the_files_own_trap_surface_is_admissible,
-   the_syscall_carried_trap_surface_is_admissible). *)
-Definition prop_the_trap_surfaces_differ_only_where_the_gap_is
-             (a : EndpointIPC.Act) : bool :=
-  andb (Bool.eqb (negb (Bool.eqb
-                          (EndpointIPC.traps_act a)
-                          (EndpointIPC.traps_with_the_schedule_transitions a)))
-                 (EndpointIPC.any_of (fun s => EndpointIPC.act_eqb s a)
-                                     EndpointIPC.schedule_transitions))
-       (implb (EndpointIPC.is_the_act_of_an_invocation a)
-              (andb (EndpointIPC.traps_act a)
-                    (EndpointIPC.traps_with_the_schedule_transitions a))).
 
 (* Reading 15's shadow, over a drawn dispatch sequence: R-07-037c's second
    conjunct, that the bits a member leaves are the bits it finds at its next
@@ -721,90 +586,79 @@ Definition prop_a_members_bits_survive_a_dispatch_sequence
                 (EndpointIPC.sharing_step (fun _ _ => false))
                 (fun _ _ => true) pred others u b)).
 
+(* The domains below, each past the 10,000 draws. `genMessage` holds 3,906^2
+   = 15,256,836 points, `genOffer` 7 * 7 * 15,256,836 * 31 = 23,175,133,884,
+   `genOffers` the sum of genOffer^n for n from 0 to 6, and `genMachine`
+   7 * 6^3 * 5 * (10^5)^2 * 1,555 * 4 * 2 * 5 * 5, about 2.35 * 10^19. *)
+
+(* 256 * genOffer = 5,932,834,274,304 points: drawn. *)
 QuickChick (forAll genReadinessIx (fun r =>
               forAll genOffer (prop_outcome_is_the_readiness_bit r))).
 
+(* 256 * genOffer = 5,932,834,274,304 points: drawn. *)
 QuickChick (forAll genReadinessIx (fun r =>
               forAll genOffer (prop_nothing_crosses_on_a_refusal r))).
 
+(* 256 * genOffers points: drawn. *)
 QuickChick (forAll genReadinessIx (fun r =>
               forAll genOffers (prop_parks_nothing_over_a_drawn_sequence r))).
 
+(* 256 * genOffers points: drawn. *)
 QuickChick (forAll genReadinessIx (fun r =>
               forAll genOffers (prop_queue_depth_is_the_unsatisfied_offers r))).
 
+(* genOffers points: drawn. *)
 QuickChick (forAll genOffers prop_an_unready_peer_refuses_everything).
 
+(* genMessage * 64 * 7 = 6,835,062,528 points: drawn. *)
 QuickChick (forAll genMessage (fun msg =>
               forAll (choose (0, 63)) (fun h =>
                 forAll (choose (0, 6)) (prop_grant_moves_only_what_is_named
                                           msg h)))).
 
+(* genMessage * 64 * 7 = 6,835,062,528 points: drawn. *)
 QuickChick (forAll genMessage (fun msg =>
               forAll (choose (0, 63)) (fun h =>
                 forAll (choose (0, 6))
                        (prop_ambient_grant_still_grants_what_is_named msg h)))).
 
+(* genMachine * 8 * 8 points: drawn. *)
 QuickChick (forAll genMachine (fun m =>
               forAll (choose (0, 7)) (fun w =>
                 forAll (choose (0, 7))
                        (prop_a_slot_fault_is_refused_on_its_own m w)))).
 
+(* genMachine * 8 * 8 points: drawn. *)
 QuickChick (forAll genMachine (fun m =>
               forAll (choose (0, 7)) (fun w =>
                 forAll (choose (0, 7))
                        (prop_a_register_fault_is_refused_on_its_own m w)))).
 
-QuickChick (forAll (choose (0, 8)) prop_badge_space_is_two_to_the_width).
-
+(* genMachine * 7 points: drawn. *)
 QuickChick (forAll genMachine (fun m =>
               forAll (choose (0, 6))
                      (prop_badges_are_admitted_at_the_declared_width_alone m))).
 
-(* Run twice, over two generators, because one of them almost never reaches
-   the interesting side. A sequence drawn freely is the frozen surface on 48
-   of 10000 draws, measured rather than estimated, so over `genInvSeq` this
-   property is very nearly always the agreement of two falses; over
-   `genPermutedSurface` it is the agreement of two trues at every draw. The
-   pair is what makes reading 2 checked in both directions rather than in the
-   direction a generator happens to favour. *)
+(* Decided over two domains, because one of them almost never reaches the
+   interesting side. A sequence drawn freely is the frozen surface on 48 of
+   10000 draws, measured rather than estimated, so over `genInvSeq` this
+   property is very nearly always the agreement of two falses; over the
+   specification's own sequence transposed, which Walks.v walks whole, it is
+   the agreement of two trues at every point. The pair is what makes reading
+   2 checked in both directions rather than in the direction a generator
+   happens to favour. Here, 8 * (5^0 + ... + 5^7) = 781,248 points: drawn. *)
 QuickChick (forAll (choose (0, 7)) (fun n =>
               forAll genInvSeq
                      (prop_a_transposition_does_not_move_the_verdict n))).
 
-QuickChick (forAll (choose (0, 7)) (fun n =>
-              forAll genPermutedSurface
-                     (prop_a_transposition_does_not_move_the_verdict n))).
-
-QuickChick (forAll (choose (0, 7)) (fun n =>
-              forAll genInvocation (fun i =>
-                forAll genPermutedSurface
-                       (prop_an_insertion_adds_exactly_one_occurrence n i)))).
-
-QuickChick (forAll (choose (0, 255)) prop_only_the_full_mask_is_the_surface).
-
-QuickChick (forAll genNameable (fun c =>
-              forAll genLifecycle
-                     (prop_lifecycles_split_tables_from_objects c))).
-
-QuickChick (forAll genNameables prop_no_non_object_survives_the_inventory).
-
-QuickChick (forAll (choose (0, 8)) (fun n =>
-              forAll (choose (0, 8)) (fun a =>
-                forAll (choose (0, 8))
-                       (prop_dispatch_ignores_the_observation n a)))).
-
-QuickChick (forAll (choose (0, 8)) (fun n =>
-              forAll (choose (0, 8)) (fun a =>
-                forAll (choose (0, 8))
-                  (prop_the_queue_dispatch_agrees_where_the_memory_does n a)))).
-
+(* genMachine * 7^3 points: drawn. *)
 QuickChick (forAll genMachine (fun m =>
               forAll (choose (0, 6)) (fun a =>
                 forAll (choose (0, 6)) (fun b =>
                   forAll (choose (0, 6))
                          (prop_the_rotation_is_composition_fixed m a b))))).
 
+(* genMachine * 6^4 points: drawn. *)
 QuickChick (forAll genMachine (fun m =>
               forAll (choose (0, 5)) (fun p =>
                 forAll (choose (0, 5)) (fun q =>
@@ -812,22 +666,11 @@ QuickChick (forAll genMachine (fun m =>
                     forAll (choose (0, 5))
                            (prop_delivery_ignores_the_predecessor m p q s)))))).
 
-QuickChick (forAll genRing (fun before =>
-              forAll genRing (prop_the_decider_never_yields_over_work before))).
-
-QuickChick (forAll genRing (fun before =>
-              forAll genRing
-                (prop_the_naive_decider_differs_exactly_at_the_lost_wakeup
-                   before))).
-
+(* genMachine * 5 points: drawn. *)
 QuickChick (forAll genMachine (fun m =>
               forAll genInvocation (prop_the_boundary_refusal_is_admitted m))).
 
-QuickChick (forAll genInvocation (fun i =>
-              forAll genAct (prop_the_numberings_split_on_one_clause_each i))).
-
-QuickChick (forAll genAct prop_the_trap_surfaces_differ_only_where_the_gap_is).
-
+(* 6 * 6 * 4 * 3,906 = 562,464 points: drawn. *)
 QuickChick (forAll (choose (0, 5)) (fun u =>
               forAll (choose (0, 5)) (fun pred =>
                 forAll (choose (0, 3)) (fun b =>
