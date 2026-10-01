@@ -216,6 +216,26 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S9, in prose
 · Disposition: closed at 05130fa3, the comparison written again from Debian Policy 5.6.12 and the opam manual's version ordering alone, its author having seen five call lines of the translation before writing and the translation then serving only as a black-box differential oracle
 
+**F-528** owed-act: K-115's licence-link reading still differs from GitHub's rendering in three spellings: a bare link's path runs on through an autolink placed directly after it, so the second link is never read; a scheme-less `www.` autolink is not read at all; and an HTML attribute value is read as a bare link, its trailing punctuation stripped; `_licence_links`'s docstring also calls the path group absent where it can be empty
+· Raised: S14, in prose
+· Disposition: open, `<` ending a bare link, a scheme-less `www.` host alternative and an attribute value read whole, each held by a case, or each named in the K-115 row and the module's account as outside the rule
+
+**F-529** owed-act: K-119's declared residue leaves out two kinds of membership sentence its finder also reads as prose: one with markup or an entity among its three words, and one with a `.` before its first id
+· Raised: S14, in prose
+· Disposition: open, the residue clause in the K-119 row, `meta.py`'s module docstring and its reader comment naming both, or the finder's gaps between the three words widened as its gap before the id is, with a case and the live reach count re-read
+
+**F-530** owed-act: the typecheck import scan's fail-closed branch for a finder that raises is held only for `ValueError`, not `ImportError`, and its wording for an own-line `# ruff: ignore` inside brackets omits that the line of code it reaches takes in the lines a backslash or a multi-line string joins to it, which the pinned ruff 0.16.9 suppresses
+· Raised: S14, in prose
+· Disposition: open, the finder-refusal control run over both exceptions, and a bracketed backslash-joined pair added to the reach case, with the module docstring and tools/README.md worded to match
+
+**F-531** owed-act: lane retirement's receipt and producer-lock scans claim more than they hold: a native output a guest pass moved before it died or timed out stays unrecorded while `retire`'s docstring says an interrupted retirement records each output once, the retained-target filter drops a target that does not exist rather than one whose output has gone, the record-lock regex's `64` spellings and the campaign lock read from its `with` body alone have no case, a block image is seen only as a string constant opening `--blkdev-image`, and an `fcntl` call naming its command by number takes a record lock neither scan reads
+· Raised: S14, in prose
+· Disposition: open, the docstring and comment narrowed to what the code holds, each untested reading given a case, block images found anywhere in a str or bytes constant, and numeric `fcntl` commands reported or the inventory's docstring narrowed to record locks spelled by name
+
+**F-532** owed-act: opam 2.6.0's `OpamGlobalState.load_config`, on a root whose config states `opam-version: "2.1"`, calls `hard_upgrade_from_2_1_intermediates`, which, read but not run, writes the config back as 2.0 before `as_necessary` asks its question, and it takes any root version strictly between 2.0 and 2.1 as 2.1~alpha2, while `run.py provision`'s hard-upgrade reading names only 2.1~alpha and 2.1~alpha2, so its reading that the reviewed client declines over such a root is unverified
+· Raised: S9, in prose
+· Disposition: open, the path read through in opam 2.6.0's `opamGlobalState.ml` and `opamFormatUpgrade.ml`, whether a 2.1~rc root states `opam-version: "2.1"` settled, and provision's unread-switch wording held to what the client does over such a root
+
 **F-000t** upstream-defect: the model's documentation emitter writes the emitting checkout's commit and dirty flag into the artifact where git answers it, so a generated file held byte-for-byte would move on every commit and would differ between two lanes describing one model
 · Raised: S15
 · Disposition: open, the fact met twice carrying the first site's disposition: this site's emitter no longer answers the git question, and the configure child F-000o names is still owed its work tree
