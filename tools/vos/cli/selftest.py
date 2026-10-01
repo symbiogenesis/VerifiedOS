@@ -1709,6 +1709,14 @@ CASES: list[Case] = [
      _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
                                r"blob/[0-9a-f]{40}/LICENSE\))",
                   lambda m: f"{m[1]} in [its tree](https://github.com/{m[2]}/tree/main)")),
+    # The row's licence link narrowed to its action's tree at the reviewed commit, no path
+    # following the commit: the link still names the reviewed revision and every
+    # workflow agrees, so only a reading that tells a view naming a file from one naming
+    # none sees a row that no longer links its terms.
+    ("K-115", "an action row linking its action's tree at the reviewed commit and no file",
+     _first_match(THIRD_PARTY, r"\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
+                               r"blob/([0-9a-f]{40})/LICENSE\)",
+                  lambda m: f"[MIT LICENSE](https://github.com/{m[1]}/tree/{m[2]})")),
     # The row's licence link dropped, its text kept: the row still states its reviewed
     # revision and every workflow agrees with it, and only a rule requiring the link
     # sees a row that no longer says where its terms were read.
