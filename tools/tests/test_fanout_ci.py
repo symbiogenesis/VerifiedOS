@@ -552,12 +552,16 @@ def _decoded(text: str) -> str:
 def _spellings(text: str) -> list[str]:
     """A workflow's text as written; with its numeric escapes decoded and escaped line
     breaks joined; that again with every quote, backtick and backslash dropped, as bash's
-    quote removal and PowerShell's backtick escapes leave a word; and that decoded text
-    with each backslash or backtick and the character after it read as a separator, as a
+    quote removal and PowerShell's backtick escapes leave a word; that decoded text with
+    each backslash or backtick and the character after it read as a separator, as a
     single-character escape such as YAML's or bash's `\\n` or PowerShell's `` `n `` ends
-    the word before the name it writes."""
+    the word before the name it writes; and that decoded text with each run of
+    backslashes and backticks and the character after the run read as one separator, as
+    a doubled backslash that bash's or YAML's double quotes reduce to one, before an
+    escape `printf` or `echo -e` then decodes, ends that word too."""
     decoded = _decoded(text)
-    return [text, decoded, re.sub(r"[\"'`\\]", "", decoded), re.sub(r"[\\`].", " ", decoded)]
+    return [text, decoded, re.sub(r"[\"'`\\]", "", decoded), re.sub(r"[\\`].", " ", decoded),
+            re.sub(r"[\\`]+.", " ", decoded)]
 
 
 def _startup_names(contents: str) -> list[str]:
@@ -636,9 +640,10 @@ def _gate_faults(contents: str) -> list[str]:
     SHARD and SHARDS lines, and no uncommented line of the workflow may spell BASH_ENV,
     ENV or a BASH_FUNC_ variable as a word in any spelling `_spellings` gives it: as
     written, with its numeric escapes decoded, with its quotes, backticks and
-    backslashes then dropped, or with each backslash or backtick escape read as a
-    separator. Steps other than the gate's are read for those names alone, and a name a
-    step builds at run time is not read.
+    backslashes then dropped, with each backslash or backtick escape read as a
+    separator, or with each run of backslashes and backticks and the character after
+    the run read as one separator. Steps other than the gate's are read for those names
+    alone, and a name a step builds at run time is not read.
     """
     shards = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)[0]
     gates = [step for step in _step_texts(shards)
@@ -831,6 +836,14 @@ def _workflow_gate_on_every_runner() -> None:
                                '"BASH`u{5f}ENV=$env:RUNNER_TEMP/trap.sh"'),
              "the workflow names BASH_ENV"),
             (_GATE_JOB.replace(report, export + "\"echo $'BASH\\x5cx5fENV=/tmp/t' >> "
+                                       "$GITHUB_ENV\"\n" + report),
+             "the workflow names BASH_ENV"),
+            # A doubled backslash, which bash's or YAML's double quotes reduce to one,
+            # before an escape printf then decodes into the break ending the word.
+            (_GATE_JOB.replace(report, export + "printf \"x\\\\nBASH_ENV=/tmp/t\" >> "
+                                       "\"$GITHUB_ENV\"\n" + report),
+             "the workflow names BASH_ENV"),
+            (_GATE_JOB.replace(report, export + "\"printf 'x\\\\nBASH_ENV=/tmp/t' >> "
                                        "$GITHUB_ENV\"\n" + report),
              "the workflow names BASH_ENV")):
         ensure(workflow != _GATE_JOB, f"the fixture for {fragment!r} changed nothing")
