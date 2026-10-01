@@ -356,7 +356,7 @@ instrument waits on and what un-quarantines it.
 
 The shared machinery is [vos/](vos/), and it holds parses, never decisions: [corpus.py](vos/corpus.py) reads the documents, [register.py](vos/register.py) the register and the tables other documents count, [apex.py](vos/apex.py) the statement's Vocabulary record, [figures.py](vos/figures.py) how a derived figure is spelled and repaired, [trace.py](vos/trace.py) the executors' trace dialects, [jsonc.py](vos/jsonc.py) the model's configuration dialect with [config.py](vos/config.py) the one decoder over it, [coread.py](vos/coread.py) the pairing between a register entry and the prose it cites, [proofcites.py](vos/proofcites.py) what each shipped proof artifact cites and what it defines, read lexically so that the host wave decides it with no prover in reach, and named for the citation half rather than for the evidence it is because `vos/<name>.py` beside `vos/cli/<name>.py` is this directory's word for *the machinery behind that command*, [provenance.py](vos/provenance.py) the synthesis record binding each claimed absence to a build, [pins.py](vos/pins.py) the licence record's table of upstream pins and the shape a restatement of one takes, [fieldbindings.py](vos/fieldbindings.py) the field-bindings table the bindings group and [run.py blast](vos/cli/blast.py) both read, [env.py](vos/env.py) the build environment, [report.py](vos/report.py) the one verdict line every check prints, and [seeded.py](vos/seeded.py) the verdicts a mutation run reports, the exit code they imply and the journal a run that does not finish leaves behind, shared by every loop that seeds a defect so that five accountings cannot drift into five measurements. One more is the *model's own* and is the newest: [sailbundle.py](vos/sailbundle.py) reads the bundle Sail emits about the model it typechecked, every definition indexed by the name the model gives it, and it is the owner the four parses below used to each write a regex for. Three sit on top of it and are read together: [sailexpr.py](vos/sailexpr.py) is the model's own expressions read as expressions rather than matched as text, [encdec.py](vos/encdec.py) joins each `encdec` clause to the `assembly` clause that names it and hands back every form the model spells with the bits it spells it at, and [freezeschema.py](vos/freezeschema.py) owns the freeze contract's §4 record shapes so that the producer writing a stream and the analyzer reading it cannot be two statements of one schema. Four read the *model*, which the document corpus excludes by name: [geometry.py](vos/geometry.py) the welded block size, [capformat.py](vos/capformat.py) the frozen capability format's widths and both packings of it, [coreclass.py](vos/coreclass.py) the core-class table and the extension registry, and [decode.py](vos/decode.py) the assembly clauses the model spells its mnemonics with. **What each of the four takes from the bundle is a *definition* and what it still takes from a file is everything else**, which is the line the emitter itself draws: a `type`, a `let`, a `mapping` or a `function` is indexed by name, so a rename is a lookup that misses instead of a pattern that quietly matches nothing, while a comment, a configuration key, an `assert` inside a test body and a SystemVerilog `localparam` are not definitions at all and keep the patterns that read the artifacts writing them. `--doc-format identity` drops unanchored comments, so a regex whose fact the bundle does not carry is kept rather than deleted. Two of the four read outside the model as well as inside it, and by path in both directions: geometry.py takes the block size the authored capability package writes, and capformat.py takes every site that restates a format width, in `rtl/` and in five documents the corpus does carry. The checks themselves live in [vos/checks/](vos/checks/), one module per rule group, each carrying its group's reasoning beside its code. The `counts` group is the one that outgrew that: [counts.py](vos/checks/counts.py) holds its claim table and the run, and its families sit in the `counts_*.py` modules beside it, one per artifact its rules read. The group is still one heading, one entry in `GROUPS`, and one column of [check-rules.md](check-rules.md), because a rule is registered by its id and its group and never by the file carrying it.
 
-Those four and K-63's citation scan are where the checker reaches past its own corpus, and the reach is declared rather than habitual. It is a good deal narrower than it was: what is left under `model/` is the two comments capformat.py reads, the configurations, the harness assert, the requirement citations, the hook configuration whose revisions K-118 holds the hook rows of [THIRD-PARTY.md](../THIRD-PARTY.md) against, and the three platform files K-94 pairs against each other, the definitions having moved to the bundle. That last reach is the one that is a *pairing* rather than a value: what it takes from each of the three is which call the file makes about a window, and no bundle entry carries that, a call inside a body being what the definition index deliberately does not hold. `model/` is excluded from the document corpus by name, and [run.py selftest](vos/cli/selftest.py) stands the whole tree up as empty files to save copying what no rule opens, so a model path a rule reads has to be admitted by one of two declarations in [corpus.py](vos/corpus.py) or it passes on the host and fails every sandbox's baseline.
+Those four and K-63's citation scan are where the checker reaches past its own corpus, and the reach is declared rather than habitual. It is a good deal narrower than it was: what is left under `model/` is the two comments capformat.py reads, the configurations, the harness assert, the requirement citations, the hook configuration whose entries K-118 censuses and whose revisions it holds the hook rows of [THIRD-PARTY.md](../THIRD-PARTY.md) against, and the three platform files K-94 pairs against each other, the definitions having moved to the bundle. That last reach is the one that is a *pairing* rather than a value: what it takes from each of the three is which call the file makes about a window, and no bundle entry carries that, a call inside a body being what the definition index deliberately does not hold. `model/` is excluded from the document corpus by name, and [run.py selftest](vos/cli/selftest.py) stands the whole tree up as empty files to save copying what no rule opens, so a model path a rule reads has to be admitted by one of two declarations in [corpus.py](vos/corpus.py) or it passes on the host and fails every sandbox's baseline.
 
 **The two declarations are narrow for opposite reasons and are deliberately not one list.** `MODEL_FACTS` explicitly names the files in the value window by path: it is the *value* window, and a rule reading a number out of the model should name the file it reads, so adding one is a decision somebody makes. `is_model_citation_path` admits by kind instead, because the rule behind it holds a construct that occurs wherever the model argues from the register, and a window sized for the other purpose left it reporting `ok` about a quarter of its subject. Merging them would make the audited list quietly mean two things.
 
@@ -968,16 +968,21 @@ confines every hook to paths under `model/`, the exclusion names
 `model/.codespellrc` and `model/.markdown-link-check.config`. Each hook repository is
 pinned by the full commit of the tag its `# frozen:` comment names, and its
 [THIRD-PARTY.md](../THIRD-PARTY.md) development-tools row states both, which K-118
-holds. clang-format stays at the release upstream's own hooks pin, because a later
-release lays out upstream's code differently and would ask for rewrites of upstream
-bytes. The last Ubuntu shard of [Host CI](../.github/workflows/host-gates.yml) runs
-the set with `--all-files`, which selects the tracked files under `model/` outside
-`model/dependencies/` and nothing else, and with `SKIP=markdown-link-check`, because
-that hook fetches every external link the model's Markdown names; a finding or a
-rewrite from any other hook fails the job, and `--show-diff-on-failure` prints the
-rewrite. The hooks' own dependencies install unlocked when pre-commit sets a hook up,
-as their rows say. To run the same set from the checkout root with the environment
-above, set `SKIP=markdown-link-check` and run
+holds against the configuration; whether the commit is the tag's is read at review
+with `git ls-remote`. clang-format stays at the release upstream's own hooks pin,
+because a later release lays out upstream's code differently and would ask for
+rewrites of upstream bytes. The last Ubuntu shard of
+[Host CI](../.github/workflows/host-gates.yml) runs the set with `--all-files`, which
+selects the tracked files under `model/` outside `model/dependencies/` and nothing
+else, and with `SKIP=markdown-link-check`, because that hook fetches every external
+link the model's Markdown names; a finding or a rewrite from any other hook fails the
+job, and `--show-diff-on-failure` prints the rewrite. check-added-large-files reads
+only staged additions, so the CI run decides nothing for it; it acts only at commit
+time. What the hooks install beside their own code is pinned as
+[their dependencies' paragraph](#model-hook-dependencies) says. To run the same set
+from the checkout root with the environment above, set `SKIP=markdown-link-check` and
+the step's pip and virtualenv variables, naming the constraint files by absolute path,
+and run
 `uv run --project tools --locked --group model pre-commit run --config model/.pre-commit-config.yaml --all-files`,
 or name paths with `--files <paths>`. The fixing hooks (trailing-whitespace,
 end-of-file-fixer, clang-format and prettier) rewrite the files they select, so read
@@ -991,6 +996,38 @@ other side of the WSL boundary cannot execute, so that side's commits are refuse
 unless its own `pre-commit` is on `PATH`. On a commit touching `model/`, a fixing hook
 that rewrites a staged file fails the commit, and markdown-link-check fetches the
 links of every staged Markdown file.
+
+<a id="model-hook-dependencies"></a>**The hooks' dependencies are pinned wherever pip
+can pin them.** pre-commit installs each Python hook with `pip install .` in its clone,
+inside a virtualenv of its own.
+[model-hooks-constraints.txt](ci/model-hooks-constraints.txt) fixes the release of
+every package pip installs there beside the hook: ruamel.yaml for pre-commit-hooks,
+rapidfuzz for Lucas-C's hooks and the clang-format wheel the mirror requires. Host CI
+names it as `PIP_CONSTRAINT`. It lists no hash, because a hash in a constraints file
+puts pip in hash-checking mode, which refuses the directory pre-commit installs from,
+and a dependency a hook gains installs unpinned, at the newest release the cooldown
+below admits, until the file names it. From pip 26.2 an isolated build ignores the
+regular constraints it inherits, so
+[model-hooks-build-constraints.txt](ci/model-hooks-build-constraints.txt) fixes the
+build backends, setuptools for every hook package and setuptools-scm with its
+vcs-versioning and packaging for codespell's, each with its wheel's SHA-256, and Host
+CI names it as `PIP_BUILD_CONSTRAINT`. Its hashes put each build in hash-checking mode,
+so a build requirement it does not list fails the step. pip runs in each hook's clone,
+so the step names both files by absolute path, and its `PIP_UPLOADED_PRIOR_TO=P3D`
+admits no file uploaded within the [release cooldown](#running-them). Each
+environment's pip is the one the locked virtualenv embeds: the step gives virtualenv an
+empty app-data directory, and virtualenv takes a wheel its periodic update fetched only
+once an hour has passed. prettier is the release the mirror's hook names to npm, which
+installs it on the runner's Node.js and npm and checks it against the registry's
+integrity hash; it declares no dependency, and nothing here fixes Node.js, npm or that
+hash. **The two files are reviewed whenever a hook's rev or the locked virtualenv
+moves**, and no rule holds them to the hooks' requirements or to PyPI's upload times,
+neither of which the checker reads. Run the step's command over a throwaway copy with
+an empty `PRE_COMMIT_HOME`, `PIP_LOG` naming a file, `PIP_UPLOADED_PRIOR_TO=P3D` and
+neither constraint variable set, compare `pip list` in each `py_env-*` environment and
+the build installs the log records with the files, move each pin to the release that
+run installed, with the SHA-256 PyPI states for its wheel where the build file pins
+one, and run the step's command again with both files and an empty `PRE_COMMIT_HOME`.
 
 [ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
 carries, including the ones it ships as warnings or switched off, and that is deliberate:

@@ -957,7 +957,9 @@ _K118_OWNERS = {
     "tools/uv.lock": '[[package]]\nname = "alpha"\nversion = "1.2.3"\n',
     "tools/opam/x.lock": 'opam-version: "2.0"\ninstalled: ["beta.4.5.6" "lib.2.0.0"]\n',
     "tools/opam/y.lock": 'opam-version: "2.0"\ninstalled: [\n  "lib.2.0.0"\n]\n',
-    "tools/vos/x.py": 'BETA = "7.8.9"\n'}
+    "tools/vos/x.py": 'BETA = "7.8.9"\n',
+    # a hook configuration carrying no repository, which the census reads as none
+    pins.HOOK_CONFIG: "repos: []\n"}
 _K118_ROWS = (
     pins.DevTool("alpha", (pins.Site("the reviewed release", rf"The reviewed `v{pins._V}` tag's",
                                      (pins.Owner("uv", "tools/uv.lock", "alpha"),)),),
@@ -1351,6 +1353,54 @@ def _k118_hook_revisions_are_held() -> None:
                f"an unreadable hook configuration must report ({fragment!r}): {found!r}")
         ensure(not any(line.startswith("ok K-118:") for line in out),
                "fail-closed: no ok line stands beside an unread hook configuration")
+
+
+def _k118_hook_census_reads_every_entry() -> None:
+    # Every repository entry the configuration carries is read at its line, so code
+    # pre-commit installs from a repository no row names is a finding however it is
+    # pinned, and the configuration is read with no hook row to hold as well.
+    _, out = _k118_hook()
+    ensure(any("each of the 2 repository entries" in line for line in out),
+           f"the ok line counts the entries the census read: {out!r}")
+    found, out = _k118({pins.HOOK_CONFIG: None})
+    ensure(len(found) == 1 and f"{pins.HOOK_CONFIG} is not in the repository" in found[0]
+           and not any(line.startswith("ok K-118:") for line in out),
+           f"an absent configuration fails closed with no hook row: {found!r}")
+    extra = ("  - repo: https://github.com/example/extra\n"
+             f"    rev: {'d' * 40} # frozen: v3.0.0\n    hooks:\n      - id: third\n")
+    where = f"{pins.HOOK_CONFIG}:10"
+    found, _ = _k118_hook(_K118_HOOKS + extra)
+    ensure(len(found) == 1 and f"{where} runs hooks from https://github.com/example/extra, "
+           "which no development-tools row K-118 holds names" in found[0]
+           and ", at `" not in found[0], f"an entry no row names is one finding: {found!r}")
+    for old, new, rev in ((f"{'d' * 40} # frozen: v3.0.0", "v3.0.0", "v3.0.0"),
+                          (" # frozen: v3.0.0", "", "d" * 40)):
+        found, _ = _k118_hook(_K118_HOOKS + extra.replace(old, new))
+        ensure(len(found) == 1 and "https://github.com/example/extra" in found[0]
+               and f", at `{rev}`, which is not a full commit with the `# frozen:` tag"
+               in found[0], f"an unnamed entry's movable rev is in its finding: {found!r}")
+    # pre-commit's own meta hooks need no row; a local repository runs code none reviews
+    found, out = _k118_hook(_K118_HOOKS + "  - repo: meta\n    hooks:\n"
+                            "      - id: check-useless-excludes\n")
+    ensure(not found and any("each of the 3 repository entries" in line for line in out),
+           f"a meta entry is read and needs no row: {found!r}")
+    found, _ = _k118_hook(_K118_HOOKS + "  - repo: local\n    hooks:\n      - id: mine\n"
+                          "        entry: mine\n        language: system\n")
+    ensure(len(found) == 1 and f"{where} is a local hook repository" in found[0],
+           f"a local entry is a finding: {found!r}")
+    # an entry in a shape the reading does not take is a finding at each line holding a
+    # key it did not take, whatever the entry names
+    for written, lines in ((f"  - {{repo: https://github.com/example/flow, rev: {'e' * 40}}}\n",
+                            (10,)),
+                           ('  - "repo": https://github.com/example/quoted\n', (10,)),
+                           ("  - &k repo: https://github.com/example/anchored\n", (10,)),
+                           (f"  - rev: {'e' * 40}\n    repo: https://github.com/example/late\n",
+                            (10, 11))):
+        found, _ = _k118_hook(_K118_HOOKS + written)
+        ensure(len(found) == len(lines) and all(
+            f"{pins.HOOK_CONFIG}:{line} states a hook repository's `repo` or `rev` key in a "
+            "form K-118 does not read" in item for line, item in zip(lines, found, strict=True)),
+               f"an entry K-118 cannot read is a finding at its line ({written!r}): {found!r}")
 
 
 def _k118_shipped_readings_are_declared() -> None:
@@ -1849,6 +1899,7 @@ def cases() -> list[Case]:
         Case("k118-a-row-named-by-its-release-stays-one-row",
              _k118_a_row_named_by_its_release_stays_one_row),
         Case("k118-hook-revisions-are-held", _k118_hook_revisions_are_held),
+        Case("k118-hook-census-reads-every-entry", _k118_hook_census_reads_every_entry),
         Case("k118-shipped-readings-are-declared", _k118_shipped_readings_are_declared),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),
         Case("k81-unused-historical-residue-fails", _k81_unused_historical_residue_fails),
