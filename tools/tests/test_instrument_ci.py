@@ -293,10 +293,12 @@ def _input_refusals() -> None:
                                "request": {"title": f"ic-{NONCE} x", "revision": "a" * 40}}
     run: dict[str, object] = {"path": f".github/workflows/{reader.WORKFLOW_FILE}",
                               "event": "workflow_dispatch", "head_sha": "d" * 40,
+                              "status": "completed",
                               "display_title": f"instrument-switches:ic-{NONCE} x"}
     ensure(not reader.input_refusals(run, 9, plan), "a run agreeing with its plan holds")
     for change, fragment in (({"path": ".github/workflows/guest-gates.yml"}, "not a run of"),
                              ({"event": "push"}, "not dispatched"),
+                             ({"status": "in_progress"}, "not completed"),
                              ({"head_sha": "e" * 40}, "dispatching commit"),
                              ({"display_title": "instrument-switches:other"}, "title")):
         found = reader.input_refusals(run | change, 9, plan)
@@ -346,7 +348,7 @@ def _reader_decides_a_refused_plan() -> None:
                                                                           encoding="utf-8")
         run: dict[str, object] = {
             "id": 9, "path": f".github/workflows/{reader.WORKFLOW_FILE}",
-            "event": "workflow_dispatch", "head_sha": commits["tip"],
+            "event": "workflow_dispatch", "head_sha": commits["tip"], "status": "completed",
                "display_title": f"instrument-switches:ic-{NONCE} abc1234",
                "html_url": "https://github.com/example/verifiedos/actions/runs/9"}
         jobs = [_job("plan", "failure"), *(_job(name, "skipped") for name in ("build", "import", "join"))]
@@ -384,7 +386,7 @@ def _reader_reproduces_and_compares() -> None:
             json.dumps(report), encoding="utf-8")
         run: dict[str, object] = {
             "id": 9, "path": f".github/workflows/{reader.WORKFLOW_FILE}",
-            "event": "workflow_dispatch", "head_sha": tip,
+            "event": "workflow_dispatch", "head_sha": tip, "status": "completed",
                "display_title": f"instrument-switches:{tip}",
                "html_url": "https://github.com/example/verifiedos/actions/runs/9"}
         lines, held, _ = _read(root, run, jobs, artifacts, parent=tip)

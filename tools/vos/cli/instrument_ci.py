@@ -492,6 +492,9 @@ def input_refusals(run: dict[str, object], run_id: int,
         refusals.append(f"run {run_id} is not a run of {WORKFLOW_FILE}")
     if run.get("event") != "workflow_dispatch":
         refusals.append(f"run {run_id} was not dispatched")
+    if run.get("status") != "completed":
+        refusals.append(f"run {run_id} is {run.get('status')!r}, not completed, so its "
+                        "artifacts are not yet all there")
     if plan is None:
         refusals.append("no plan.json was read")
         return refusals
