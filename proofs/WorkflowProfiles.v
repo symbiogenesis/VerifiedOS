@@ -28,7 +28,7 @@ Local Ltac vm_reflexivity :=
 Inductive App := Editor | Painter.
 Definition appeqb (a b : App) : bool :=
   match a, b with Editor, Editor | Painter, Painter => true | _, _ => false end.
-Definition other (a : App) : App := match a with Editor => Painter | Painter => Editor end.
+Definition other (a : App) : App := if a is Editor then Painter else Editor.
 Inductive Phase := Active | Background | Frozen | Quiescing | Retiring |
                    Hibernated | Restoring | Closed.
 Inductive Data := EmptyDocument | SavedDocument | EditedDocument.
@@ -45,7 +45,7 @@ Record Checkpoint := {
 }.
 Definition cp_ok (a : App) (c : Checkpoint) : bool :=
   appeqb a (cp_app c) &&
-  (match cp_payload c with Semantic => true | _ => false end) &&
+  (if cp_payload c is Semantic then true else false) &&
   cp_schema c && cp_generation c && cp_label c && cp_authenticated c &&
   cp_committed c && (negb (cp_security_critical c) || cp_fresh c).
 Definition checkpoint (a : App) (d : Data) : Checkpoint :=
@@ -106,14 +106,12 @@ Record State := {
   dwell : nat; writes : nat; elapsed : nat
 }.
 Definition get (s : State) (a : App) : AppState :=
-  match a with Editor => editor s | Painter => painter s end.
+  if a is Editor then editor s else painter s.
 Definition put (s : State) (a : App) (v : AppState) : State :=
-  {| editor := match a with Editor => v | Painter => editor s end;
-     painter := match a with Editor => painter s | Painter => v end;
-     selected := selected s; target := target s; dwell := dwell s;
-     writes := writes s; elapsed := elapsed s |}.
+  {| s with editor := if a is Editor then v else editor s;
+     painter := if a is Editor then painter s else v |}.
 Definition control (s : State) (sel : App) (t : option App) (d w e : nat) : State :=
-  {| editor := editor s; painter := painter s; selected := sel; target := t;
+  {| s with selected := sel; target := t;
      dwell := d; writes := w; elapsed := e |}.
 Definition initial : State :=
   {| editor := appstate Active true (Some (checkpoint Editor SavedDocument))
@@ -127,13 +125,13 @@ Definition exclusive (s : State) : bool := negb (owns_arena (editor s) && owns_a
 Definition workspace (a : AppState) : nat :=
   match phase a with Quiescing | Retiring | Restoring => 16 | _ => 0 end.
 Definition private_bytes (a : AppState) : nat := if owns_arena a then 64 else 0.
-Definition checkpoint_bytes (a : AppState) : nat := match durable a with Some _ => 16 | None => 0 end.
+Definition checkpoint_bytes (a : AppState) : nat := if durable a is Some _ then 16 else 0.
 Definition ram (s : State) : nat :=
   40 + 8 + private_bytes (editor s) + private_bytes (painter s) +
   workspace (editor s) + workspace (painter s).
 Definition store (s : State) : nat :=
   checkpoint_bytes (editor s) + checkpoint_bytes (painter s) +
-  match target s with Some _ => 16 | None => 0 end.
+  (if target s is Some _ then 16 else 0).
 Definition phase_ok (a : AppState) : bool :=
   match phase a with
   | Hibernated | Closed => negb (owns_arena a) && negb (document_grant a) && negb (session_authority a)
@@ -194,25 +192,24 @@ Definition with_phase (v : AppState) (p : Phase) : AppState :=
 Definition stopped (v : AppState) (p : Phase) (own : bool) : AppState :=
   appstate p own (durable v) (document v) false false.
 Definition checkpoint_present (a : App) (v : AppState) : bool :=
-  match durable v with Some cp => cp_ok a cp | None => false end.
+  if durable v is Some cp then cp_ok a cp else false.
 
 (* Each step is one bounded service quantum. Refusal returns None, so callers
    retain the source state. Destructive failures enter explicit recovery. *)
 Definition propose (c : Edge) (s : State) (e : Event) : option State :=
   let old := selected s in let v := get s old in
   match e with
-  | Tick => match target s with
-            | None => Some (control s old None (Nat.min (min_dwell c) (S (dwell s))) (writes s) 0)
-            | Some _ => None end
-  | Request a => match target s with
-    | Some _ => None
-    | None => if edge_ok c && negb (appeqb old a) && (min_dwell c <=? dwell s) &&
+  | Tick => if target s is None
+            then Some (control s old None (Nat.min (min_dwell c) (S (dwell s))) (writes s) 0)
+            else None
+  | Request a => if target s is Some _ then None
+    else if edge_ok c && negb (appeqb old a) && (min_dwell c <=? dwell s) &&
                   (writes s <? write_limit c) &&
                   (match phase v with Active | Background | Frozen | Closed => true | _ => false end)
               then Some (control (put s old
-                  (match phase v with Closed => v | _ => with_phase v Quiescing end)) old (Some a)
+                  (if phase v is Closed then v else with_phase v Quiescing)) old (Some a)
                        0 (writes s) (carry_work c))
-              else None end
+              else None
   | Freeze => match target s, phase v with
     | None, Active => Some (put s old (with_phase v Frozen)) | _, _ => None end
   | ServeBackground => match target s, phase v with
@@ -244,13 +241,11 @@ Definition propose (c : Edge) (s : State) (e : Event) : option State :=
                            a None 0 (writes s) 0) else None
       | _, _ => None end
     | _, _ => None end
-  | RestoreFailed => match target s with
-    | Some a => let dst := get s a in
-      match phase dst with
-      | Restoring => Some (control (put s a (stopped dst Retiring true)) a (Some old)
+  | RestoreFailed => if target s is Some a then let dst := get s a in
+      (if phase dst is Restoring then Some (control (put s a (stopped dst Retiring true)) a (Some old)
                           0 (writes s) (elapsed s))
-      | _ => None end
-    | None => None end
+      else None)
+    else None
   | Recover r =>
       let owner := if owns_arena (editor s) then Editor else
                    if owns_arena (painter s) then Painter else old in
@@ -272,13 +267,12 @@ Definition propose (c : Edge) (s : State) (e : Event) : option State :=
 
 Definition step (c : Edge) (s : State) (e : Event) : option State :=
   if edge_ok c && state_ok c s then
-    match propose c s e with
-    | Some t => if state_ok c t then Some t else None
-    | None => None end
+    if propose c s e is Some t then (if state_ok c t then Some t else None)
+    else None
   else None.
 Fixpoint run (c : Edge) (s : State) (es : list Event) : option State :=
   match es with [] => Some s | e :: rest =>
-    match step c s e with Some t => run c t rest | None => None end end.
+    if step c s e is Some t then run c t rest else None end.
 
 Theorem step_preserves_admission : forall (c : Edge) (s t : State) e,
   step c s e = Some t -> state_ok c t = true /\ edge_ok c = true.
@@ -425,7 +419,8 @@ Theorem consumer_refinement_preserves_admitted_invariants :
   forall x es y, ImplementationTrace advance x es y ->
   state_ok c (view x) = true -> state_ok c (view y) = true.
 Proof.
-  intros C view advance c SIM x es y H. induction H; intros HS; [exact HS|].
+  intros C view advance c SIM x es y H.
+  induction H as [x | x y z e es H H0 IHImplementationTrace]; intros HS; [exact HS|].
   apply IHImplementationTrace. exact (proj1 (step_preserves_admission c (view x) (view y) e (SIM x e y H))).
 Qed.
 
@@ -497,10 +492,10 @@ Qed.
 
 Definition switch_to (a : App) : list Event :=
   [Request a; Commit (checkpoint (other a)
-    (match a with Painter => EditedDocument | Editor => SavedDocument end)); Release cleared;
+    (if a is Painter then EditedDocument else SavedDocument)); Release cleared;
    BeginRestore; FinishRestore true].
 Definition accepted (c : Edge) (s : State) (es : list Event) : bool :=
-  match run c s es with Some _ => true | None => false end.
+  if run c s es is Some _ then true else false.
 Example successful_switch : accepted reference initial (switch_to Painter) = true.
 Proof. vm_reflexivity. Qed.
 Example immediate_repeated_switch_refused :
@@ -600,7 +595,7 @@ Definition crash_prefixes : list (list Event) :=
   map (fun n => firstn n (switch_to Painter) ++ [Crash; Recover cleared]) (seq 0 6).
 Definition recovered (s : State) : bool :=
   negb (owns_arena (editor s)) && negb (owns_arena (painter s)) &&
-  match target s with None => true | Some _ => false end.
+  (if target s is None then true else false).
 Example every_crash_boundary_reaches_reserved_recovery :
   forallb (fun es => match run reference initial es with
     Some s => recovered s && state_ok reference s | None => false end) crash_prefixes = true.
