@@ -785,7 +785,7 @@ Qed.
 (* A broken issuer taking a caller's exporter creates signed evidence from
    B that matches A's session. Such an event violates LocalContextIntegrity. *)
 Definition caller_exporter_event : Issuance :=
-  {| event_a with issuer_context := context_b |}.
+  {| issued_evidence := issued_evidence event_a; issuer_context := context_b |}.
 
 Example a_caller_supplied_exporter_would_accept_substitution :
   snd (decide example_profile software_policy (ledger_authentic [caller_exporter_event])
