@@ -104,7 +104,7 @@
    the entry governs this artifact is the review gate's reading.
 
    Non-vacuity (R-05-165, R-05-166). `demo_frame` is a concrete frame
-   whose outputs every model computes by `vm_compute`,
+   whose outputs every model computes in the virtual machine,
    `witness_InPlaceState` inhabits the one record theorems quantify over,
    and three wrong variants are refuted on that frame: the XOR pass
    replaced by a copy, which mirrors the mutant the Python tests apply, a

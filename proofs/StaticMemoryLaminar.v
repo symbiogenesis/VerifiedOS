@@ -89,9 +89,9 @@
    inhabited by MemoryPlan.v's `witness_Plan`, whose own family is
    checked below to be well formed and laminar, so the bridge's
    hypotheses are satisfied by the companion's reference plan. A
-   four-object laminar family has its bases, span and load computed by
-   `vm_compute` and checked by reflexivity, and the general theorem is
-   instantiated at it. A two-object crossing family is refused by the
+   four-object laminar family has its bases, span and load computed in
+   the virtual machine as the kernel checks each equality at Qed, and
+   the general theorem is instantiated at it. A two-object crossing family is refused by the
    laminar predicate and the construction collides on it, so the premise
    excludes something and the feasibility theorem needs it. A padded
    placement of the laminar family is feasible with span above its load,
