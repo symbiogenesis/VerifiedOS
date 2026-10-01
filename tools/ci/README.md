@@ -60,10 +60,17 @@ and probes it, prepending its private binary directory to `PATH` before Sail sta
 even for `--version`. Each tool is probed immediately after installation, so a failed
 Sail probe stops before building Rocq or Verilator. A repeatable `--toolchain` option
 selects `sail` (with its solver), `rocq` or `rtl`. The default installs all three in
-that order, and `bootstrap.json` records the selection, each opam repository's URL and
-metadata stamp, and the root's format. Bootstrap fails when the root is not configured with
-exactly the owner's repositories, a stamp cannot be read, or the format is not the reviewed
-client's. Bootstrap failures print the last
+that order. Bootstrap creates its opam root by the owner's root-creation route where
+none stands, and finishes one in the shape the route's leading steps leave by running
+the route again. It keeps a root that stands complete, in the reviewed client's format
+with exactly the owner's repositories at their URLs and every metadata stamp read,
+without running the route over it, because the reviewed client's `repository add`
+fetches a repository the root already carries again and removes it where that fetch
+fails. It refuses any other standing root and leaves it as it is. `bootstrap.json`
+records the selection, whether the root was created, finished or kept, each opam
+repository's URL and metadata stamp, and the root's format. Bootstrap fails when the
+root is not configured with exactly the owner's repositories, a stamp cannot be read,
+or the format is not the reviewed client's. Bootstrap failures print the last
 40 log lines in the Actions console as well as retaining the complete log.
 Bootstrap and the Verilator installer share verified-download and atomic-publication
 helpers in [vos/receipts.py](../vos/receipts.py); the reporter and JSON writers use
@@ -143,9 +150,10 @@ sequential within its runner's memory budget.
 
 Ordinary weekly and manual runs restore a lane's installed
 toolchains: its opam root without downloads or logs, the Verilator prefix and the
-ownership marker. Bootstrap then runs unchanged: it imports each lock into its restored
-switch, installs the uncached solver, skips a Verilator prefix whose receipt matches
-and probes every tool. The key includes the lane, runner OS, architecture, the Sail
+ownership marker. Bootstrap then runs unchanged: it keeps the restored root, which
+stands complete, and records the repository stamps its switches were resolved against,
+imports each lock into its restored switch, installs the uncached solver, skips a
+Verilator prefix whose receipt matches and probes every tool. The key includes the lane, runner OS, architecture, the Sail
 and Rocq snapshots, bootstrap and [the opam client's owner](../vos/opam_client.py), with the image version for the model lane and only
 the image's release (`ImageOS`) for the proofs lane. Rocq and its checker load only
 the C library, whose ABI a release keeps and whose bytes the proof gate binds. A

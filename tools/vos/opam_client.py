@@ -61,8 +61,8 @@ OPAM_REPOSITORIES: tuple[tuple[str, str], ...] = (
 # The one route that creates a root, in the root `OPAMROOT` names: a bare `opam init`
 # on the first repository, with no shell setup and no opamrc, then every other
 # repository added unselected, each switch naming the repositories it resolves from.
-# Guest bootstrap runs it in its private root, and `run.py provision --install-opam`
-# where no root stands or where `root_resumable` reads one in the shape the route
+# Guest bootstrap, in its private root, and `run.py provision --install-opam` run it
+# only where no root stands or where `root_resumable` reads one in the shape the route
 # leaves after its leading steps. Repeating the route over a root it made finishes that
 # root, and it is not inert over a finished one: `opam init` over a root that stands
 # reports it already initialized, fetches nothing and exits 0, while adding a
