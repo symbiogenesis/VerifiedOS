@@ -13,11 +13,14 @@ compiler: [
   "ocaml-options-vanilla.1"
 ]
 roots: [
-  "coq.9.1.1"
-  "coq-quickchick.2.2.0"
+  "coq-ext-lib.dev"
+  "coq-quickchick.dev"
+  "coq-simple-io.dev"
+  "dune.3.23.1"
   "ocaml-base-compiler.5.4.1"
   "ocamlfind.1.9.8"
-  "rocq-core.9.1.1"
+  "rocq-core.9.3.0"
+  "rocq-stdlib.9.2.0"
 ]
 installed: [
   "atd.4.2.0"
@@ -37,18 +40,17 @@ installed: [
   "conf-gmp.5"
   "conf-linux-libc-dev.0"
   "conf-pkg-config.5"
-  "coq.9.1.1"
-  "coq-core.9.1.1"
-  "coq-ext-lib.0.13.1"
+  "coq.9.3.0"
+  "coq-core.9.3.0"
+  "coq-ext-lib.dev"
   "coq-mathcomp-ssreflect.2.6.0"
-  "coq-quickchick.2.2.0"
-  "coq-simple-io.1.11.0"
-  "coq-stdlib.9.0.0"
-  "coqide-server.9.1.1"
+  "coq-quickchick.dev"
+  "coq-simple-io.dev"
+  "coqide-server.9.3.0"
   "cppo.1.8.0"
   "csexp.1.5.2"
-  "dune.3.21.1"
-  "dune-configurator.3.21.1"
+  "dune.3.23.1"
+  "dune-configurator.3.23.1"
   "easy-format.1.3.4"
   "elpi.3.7.3"
   "menhir.20260209"
@@ -66,21 +68,144 @@ installed: [
   "ocamlbuild.0.16.1"
   "ocamlfind.1.9.8"
   "ppx_derivers.1.2.1"
-  "ppx_deriving.6.1.3"
+  "ppx_deriving.6.2.0"
   "ppx_optcomp.v0.17.1"
   "ppxlib.0.38.0"
   "re.1.14.0"
-  "rocq-core.9.1.1"
+  "rocq-core.9.3.0"
   "rocq-elpi.3.5.1"
   "rocq-hierarchy-builder.1.10.3"
   "rocq-mathcomp-boot.2.6.0"
   "rocq-mathcomp-order.2.6.0"
   "rocq-mathcomp-ssreflect.2.6.0"
-  "rocq-runtime.9.1.1"
-  "rocq-stdlib.9.0.0"
+  "rocq-runtime.9.3.0"
+  "rocq-stdlib.9.2.0"
   "sexplib0.v0.17.0"
   "stdio.v0.17.0"
   "stdlib-shims.0.3.0"
   "yojson.3.0.0"
   "zarith.1.14"
 ]
+pinned: ["coq-ext-lib.dev" "coq-quickchick.dev" "coq-simple-io.dev"]
+package "coq-ext-lib" {
+  opam-version: "2.0"
+  version: "dev"
+  synopsis: "A library of Coq definitions, theorems, and tactics"
+  description:
+    "A collection of theories and plugins that may be useful in other Coq developments."
+  maintainer: "gmalecha@gmail.com"
+  authors: "Gregory Malecha"
+  license: "BSD-2-Clause"
+  tags: "logpath:ExtLib"
+  homepage: "https://github.com/coq-community/coq-ext-lib"
+  doc: "https://coq-community.github.io/coq-ext-lib/"
+  bug-reports: "https://github.com/coq-community/coq-ext-lib/issues"
+  depends: [
+    "coq" {>= "8.9" & (< "8.10" | >= "8.11")}
+  ]
+  build: [make "-j%{jobs}%" "theories"]
+  run-test: [make "-j%{jobs}%" "examples"]
+  install: [make "install"]
+  dev-repo: "git+https://github.com/coq-community/coq-ext-lib.git"
+  url {
+    src:
+      "git+https://github.com/rocq-community/coq-ext-lib.git#ddd03d257f6b85a93bfaa0ed4d03658e0ddf5075"
+  }
+}
+package "coq-quickchick" {
+  opam-version: "2.0"
+  version: "dev"
+  synopsis: "Randomized Property-Based Testing for Coq"
+  description: """\
+A library for property-based testing in Coq.
+
+  - Combinators for testable properties and random generators.
+  - QuickChick plugin for running tests in a Coq session.
+  - Includes a mutation testing tool."""
+  maintainer: "leonidas@umd.edu"
+  authors: [
+    "Leonidas Lampropoulos"
+    "Zoe Paraskevopoulou"
+    "Maxime Denes"
+    "Catalin Hritcu"
+    "Benjamin Pierce"
+    "Li-yao Xia"
+    "Arthur Azevedo de Amorim"
+    "Yishuai Li"
+    "Antal Spector-Zabusky"
+  ]
+  license: "MIT"
+  homepage: "https://github.com/QuickChick/QuickChick"
+  bug-reports: "https://github.com/QuickChick/QuickChick/issues"
+  depends: [
+    "dune" {>= "3.12"}
+    "ocaml" {>= "4.07"}
+    "menhir" {build}
+    "cppo" {build & >= "1.6.8"}
+    "coq" {>= "8.15~"}
+    "coq-ext-lib"
+    "coq-mathcomp-ssreflect"
+    "coq-simple-io" {>= "1.6.0"}
+    "ocamlfind"
+    "ocamlbuild"
+    "odoc" {with-doc}
+  ]
+  build: [
+    ["dune" "subst"] {dev}
+    [
+      "dune"
+      "build"
+      "-p"
+      name
+      "-j"
+      jobs
+      "@install"
+      "@runtest" {with-test}
+      "@doc" {with-doc}
+      "--stop-on-first-error"
+    ]
+  ]
+  dev-repo: "git+https://github.com/QuickChick/QuickChick.git"
+  url {
+    src:
+      "git+https://github.com/QuickChick/QuickChick.git#3d4d6c0e9f72172a9f0b26db61c5496ec8e0f568"
+  }
+}
+package "coq-simple-io" {
+  opam-version: "2.0"
+  version: "dev"
+  synopsis: "IO monad for Coq"
+  description: """\
+This library provides tools to implement IO programs directly in Coq, in a
+similar style to Haskell. Facilities for formal verification are not
+included.
+
+IO is defined as a parameter with a purely functional interface in
+Coq, to be extracted to OCaml. Some wrappers for the basic types and
+functions in the OCaml Pervasives module are provided, and users are free to
+define their own APIs on top of this IO type."""
+  maintainer: "lysxia@gmail.com"
+  authors: ["Li-yao Xia" "Yishuai Li"]
+  license: "MIT"
+  homepage: "https://github.com/Lysxia/coq-simple-io"
+  bug-reports: "https://github.com/Lysxia/coq-simple-io/issues"
+  depends: [
+    "dune" {>= "3.7"}
+    "ocaml" {>= "4.08.0"}
+    "ocamlfind"
+    "coq" {>= "8.12~"}
+    "coq-ext-lib" {>= "0.10.0"}
+    "ocamlbuild" {with-test & >= "0.9.0"}
+    "cppo" {build & >= "1.6.8"}
+    "odoc" {with-doc}
+  ]
+  build: [
+    ["dune" "subst"] {dev}
+    ["dune" "build" "-p" name "-j" jobs "@install"]
+  ]
+  dev-repo: "git+https://github.com/Lysxia/coq-simple-io.git"
+  url {
+    src:
+      "git+https://github.com/Lysxia/rocq-simple-io.git#d035c0a85f0bde4ad56c31a9fa9ef3cb5e8d0f18"
+  }
+}

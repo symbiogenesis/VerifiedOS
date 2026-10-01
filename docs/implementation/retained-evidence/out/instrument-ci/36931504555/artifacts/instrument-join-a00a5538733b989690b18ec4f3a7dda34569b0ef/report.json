@@ -1,0 +1,710 @@
+{
+  "differing_sides": [],
+  "dispatching_commit": "a00a5538733b989690b18ec4f3a7dda34569b0ef",
+  "jobs": {
+    "build": {
+      "artifact": "instrument-build-a00a5538733b989690b18ec4f3a7dda34569b0ef",
+      "export": {
+        "bytes": 5477,
+        "path": "export/quickchick.lock",
+        "sha256": "6ad236570a171b869fa1cbe018562b132770c06ef142d7358fe8d20d2a44b39f"
+      },
+      "flag": "--recipe",
+      "opam_client": "2.6.0",
+      "recipe": "RECIPE",
+      "result": "success",
+      "runner_image": "ubuntu26-20260927.149.1",
+      "source_revision": "a00a5538733b989690b18ec4f3a7dda34569b0ef",
+      "steps": {
+        "check": {
+          "exit": 0,
+          "limit_s": 600,
+          "maxrss_kb": 155100,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 155100,
+          "reason": "exit 0",
+          "sampled_rss_kb": null,
+          "sampled_tree_rss_kb": null,
+          "seconds": 3.2,
+          "verdict": "passed"
+        },
+        "export": {
+          "exit": 0,
+          "limit_s": 600,
+          "maxrss_kb": 155064,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 155064,
+          "reason": "exit 0",
+          "sampled_rss_kb": null,
+          "sampled_tree_rss_kb": null,
+          "seconds": 0.2,
+          "verdict": "passed"
+        },
+        "properties": {
+          "exit": 0,
+          "limit_s": 2100,
+          "maxrss_kb": 621996,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 621996,
+          "reason": "exit 0",
+          "sampled_rss_kb": null,
+          "sampled_tree_rss_kb": null,
+          "seconds": 18.7,
+          "verdict": "passed"
+        },
+        "provision": {
+          "exit": 0,
+          "limit_s": 9600,
+          "maxrss_kb": 1803104,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 1803104,
+          "reason": "exit 0",
+          "sampled_rss_kb": 1501600,
+          "sampled_tree_rss_kb": 2654416,
+          "seconds": 761.2,
+          "verdict": "passed"
+        }
+      },
+      "switch": "verifiedos-quickchick-9.3.0-ocaml-5.4.1",
+      "uname_m": "x86_64",
+      "verdict": "passed"
+    },
+    "import": {
+      "artifact": "instrument-import-a00a5538733b989690b18ec4f3a7dda34569b0ef",
+      "comparison": {
+        "check": "passed",
+        "closure_equal": true,
+        "pins": {
+          "coq-ext-lib": {
+            "commit": "ddd03d257f6b85a93bfaa0ed4d03658e0ddf5075",
+            "url": "git+https://github.com/rocq-community/coq-ext-lib.git"
+          },
+          "coq-quickchick": {
+            "commit": "3d4d6c0e9f72172a9f0b26db61c5496ec8e0f568",
+            "url": "git+https://github.com/QuickChick/QuickChick.git"
+          },
+          "coq-simple-io": {
+            "commit": "d035c0a85f0bde4ad56c31a9fa9ef3cb5e8d0f18",
+            "url": "git+https://github.com/Lysxia/rocq-simple-io.git"
+          }
+        },
+        "pins_equal": true,
+        "reasons": [],
+        "reexport": {
+          "bytes": 5219,
+          "difference": [
+            "--- export",
+            "+++ reexport",
+            "@@ -2,13 +1,0 @@",
+            "-compiler: [",
+            "-  \"base-bigarray.base\"",
+            "-  \"base-domains.base\"",
+            "-  \"base-effects.base\"",
+            "-  \"base-nnp.base\"",
+            "-  \"base-threads.base\"",
+            "-  \"base-unix.base\"",
+            "-  \"ocaml.5.4.1\"",
+            "-  \"ocaml-base-compiler.5.4.1\"",
+            "-  \"ocaml-compiler.5.4.1\"",
+            "-  \"ocaml-config.3\"",
+            "-  \"ocaml-options-vanilla.1\"",
+            "-]"
+          ],
+          "identical": false,
+          "sha256": "faabd477d61824f7f84b2f690a77feae842e15f7c9755195167ed2735a786565"
+        },
+        "verdict": "passed"
+      },
+      "flag": "--recipe",
+      "opam_client": "2.6.0",
+      "recipe": "import into RECIPE's switch",
+      "result": "success",
+      "runner_image": "ubuntu26-20260927.149.1",
+      "source_revision": "a00a5538733b989690b18ec4f3a7dda34569b0ef",
+      "steps": {
+        "check": {
+          "exit": 0,
+          "limit_s": 600,
+          "maxrss_kb": 155068,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 155068,
+          "reason": "exit 0",
+          "sampled_rss_kb": null,
+          "sampled_tree_rss_kb": null,
+          "seconds": 0.7,
+          "verdict": "passed"
+        },
+        "compare": {
+          "exit": 0,
+          "limit_s": 300,
+          "maxrss_kb": 27788,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 27788,
+          "reason": "exit 0",
+          "sampled_rss_kb": null,
+          "sampled_tree_rss_kb": null,
+          "seconds": 0.1,
+          "verdict": "passed"
+        },
+        "import": {
+          "exit": 0,
+          "limit_s": 9600,
+          "maxrss_kb": 1803292,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 1803292,
+          "reason": "exit 0",
+          "sampled_rss_kb": 1451604,
+          "sampled_tree_rss_kb": 2208560,
+          "seconds": 641.4,
+          "verdict": "passed"
+        }
+      },
+      "switch": "verifiedos-quickchick-9.3.0-ocaml-5.4.1",
+      "uname_m": "x86_64",
+      "verdict": "passed"
+    },
+    "seed-base": {
+      "artifact": "instrument-seed-base-b22f44a1abdd87480af7def4630f46053036988f",
+      "flag": "",
+      "opam_client": "2.6.0",
+      "recipe": "INSTALL",
+      "result": "success",
+      "runner_image": "ubuntu26-20260927.149.1",
+      "source_revision": "b22f44a1abdd87480af7def4630f46053036988f",
+      "steps": {
+        "population": {
+          "exit": 0,
+          "limit_s": 300,
+          "maxrss_kb": 38496,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 38496,
+          "reason": "exit 0",
+          "sampled_rss_kb": null,
+          "sampled_tree_rss_kb": null,
+          "seconds": 0.3,
+          "verdict": "passed"
+        },
+        "provision": {
+          "exit": 0,
+          "limit_s": 9600,
+          "maxrss_kb": 1773072,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 1773072,
+          "reason": "exit 0",
+          "sampled_rss_kb": 1197872,
+          "sampled_tree_rss_kb": 1737608,
+          "seconds": 739.3,
+          "verdict": "passed"
+        },
+        "seed": {
+          "exit": 1,
+          "limit_s": 10500,
+          "maxrss_kb": 521216,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 521216,
+          "reason": "the run finished: its journal closes on every mutant it picked, and it exited 1",
+          "sampled_rss_kb": 505412,
+          "sampled_tree_rss_kb": 670812,
+          "seconds": 165.8,
+          "verdict": "completed"
+        }
+      },
+      "switch": "verifiedos-quickchick-9.1.1-ocaml-5.4.1",
+      "uname_m": "x86_64",
+      "verdict": "passed"
+    },
+    "seed-candidate-1": {
+      "artifact": "instrument-seed-candidate-1-a00a5538733b989690b18ec4f3a7dda34569b0ef",
+      "flag": "--recipe",
+      "opam_client": "2.6.0",
+      "recipe": "RECIPE",
+      "result": "success",
+      "runner_image": "ubuntu26-20260927.149.1",
+      "source_revision": "a00a5538733b989690b18ec4f3a7dda34569b0ef",
+      "steps": {
+        "population": {
+          "exit": 0,
+          "limit_s": 300,
+          "maxrss_kb": 38284,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 38284,
+          "reason": "exit 0",
+          "sampled_rss_kb": null,
+          "sampled_tree_rss_kb": null,
+          "seconds": 0.5,
+          "verdict": "passed"
+        },
+        "provision": {
+          "exit": 0,
+          "limit_s": 9600,
+          "maxrss_kb": 1803240,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 1803240,
+          "reason": "exit 0",
+          "sampled_rss_kb": 1319800,
+          "sampled_tree_rss_kb": 2533932,
+          "seconds": 778.2,
+          "verdict": "passed"
+        },
+        "seed": {
+          "exit": 1,
+          "limit_s": 10500,
+          "maxrss_kb": 622136,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 622136,
+          "reason": "the run finished: its journal closes on every mutant it picked, and it exited 1",
+          "sampled_rss_kb": 532920,
+          "sampled_tree_rss_kb": 643192,
+          "seconds": 167.8,
+          "verdict": "completed"
+        }
+      },
+      "switch": "verifiedos-quickchick-9.3.0-ocaml-5.4.1",
+      "uname_m": "x86_64",
+      "verdict": "passed"
+    },
+    "seed-candidate-2": {
+      "artifact": "instrument-seed-candidate-2-a00a5538733b989690b18ec4f3a7dda34569b0ef",
+      "flag": "--recipe",
+      "opam_client": "2.6.0",
+      "recipe": "RECIPE",
+      "result": "success",
+      "runner_image": "ubuntu26-20260927.149.1",
+      "source_revision": "a00a5538733b989690b18ec4f3a7dda34569b0ef",
+      "steps": {
+        "population": {
+          "exit": 0,
+          "limit_s": 300,
+          "maxrss_kb": 38436,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 38436,
+          "reason": "exit 0",
+          "sampled_rss_kb": null,
+          "sampled_tree_rss_kb": null,
+          "seconds": 0.3,
+          "verdict": "passed"
+        },
+        "provision": {
+          "exit": 0,
+          "limit_s": 9600,
+          "maxrss_kb": 1803148,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 1803148,
+          "reason": "exit 0",
+          "sampled_rss_kb": 1214604,
+          "sampled_tree_rss_kb": 2788832,
+          "seconds": 733.1,
+          "verdict": "passed"
+        },
+        "seed": {
+          "exit": 1,
+          "limit_s": 10500,
+          "maxrss_kb": 622232,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 622232,
+          "reason": "the run finished: its journal closes on every mutant it picked, and it exited 1",
+          "sampled_rss_kb": 557124,
+          "sampled_tree_rss_kb": 711916,
+          "seconds": 161.2,
+          "verdict": "completed"
+        }
+      },
+      "switch": "verifiedos-quickchick-9.3.0-ocaml-5.4.1",
+      "uname_m": "x86_64",
+      "verdict": "passed"
+    }
+  },
+  "passed_over": [],
+  "refusals": [],
+  "request": {
+    "base_revision": "b22f44a1abdd87480af7def4630f46053036988f",
+    "build": "recipe",
+    "ref": "refs/heads/main",
+    "revision": "a00a5538733b989690b18ec4f3a7dda34569b0ef",
+    "sample": "20",
+    "title": "ic-ccec91bda02d8e7f Q38f closing seed comparison"
+  },
+  "run_attempt": "1",
+  "run_id": "36931504555",
+  "schema": 1,
+  "seed": {
+    "base_differences": [],
+    "candidate_differences": [],
+    "mutants": [
+      {
+        "base": [
+          "killed"
+        ],
+        "candidate-1": [
+          "killed"
+        ],
+        "candidate-2": [
+          "killed"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:1090 `Nat.leb` -> `Nat.ltb`",
+        "operator": [
+          "leb-to-ltb"
+        ],
+        "rewrite": "`Nat.leb` -> `Nat.ltb`",
+        "site": "proofs/CyclicExecutive.v:1090"
+      },
+      {
+        "base": [
+          "killed"
+        ],
+        "candidate-1": [
+          "killed"
+        ],
+        "candidate-2": [
+          "killed"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:1097 `100` -> `101`",
+        "operator": [
+          "const-inc"
+        ],
+        "rewrite": "`100` -> `101`",
+        "site": "proofs/CyclicExecutive.v:1097"
+      },
+      {
+        "base": [
+          "killed"
+        ],
+        "candidate-1": [
+          "killed"
+        ],
+        "candidate-2": [
+          "killed"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:215 ` + ` -> ` - `",
+        "operator": [
+          "plus-to-minus"
+        ],
+        "rewrite": "` + ` -> ` - `",
+        "site": "proofs/CyclicExecutive.v:215"
+      },
+      {
+        "base": [
+          "killed"
+        ],
+        "candidate-1": [
+          "killed"
+        ],
+        "candidate-2": [
+          "killed"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:225 `andb` -> `orb`",
+        "operator": [
+          "andb-to-orb"
+        ],
+        "rewrite": "`andb` -> `orb`",
+        "site": "proofs/CyclicExecutive.v:225"
+      },
+      {
+        "base": [
+          "killed"
+        ],
+        "candidate-1": [
+          "killed"
+        ],
+        "candidate-2": [
+          "killed"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:260 `Nat.leb` -> `Nat.ltb`",
+        "operator": [
+          "leb-to-ltb"
+        ],
+        "rewrite": "`Nat.leb` -> `Nat.ltb`",
+        "site": "proofs/CyclicExecutive.v:260"
+      },
+      {
+        "base": [
+          "killed"
+        ],
+        "candidate-1": [
+          "killed"
+        ],
+        "candidate-2": [
+          "killed"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:265 `true` -> `false`",
+        "operator": [
+          "true-to-false"
+        ],
+        "rewrite": "`true` -> `false`",
+        "site": "proofs/CyclicExecutive.v:265"
+      },
+      {
+        "base": [
+          "killed"
+        ],
+        "candidate-1": [
+          "killed"
+        ],
+        "candidate-2": [
+          "killed"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:809 ` + ` -> ` - `",
+        "operator": [
+          "plus-to-minus"
+        ],
+        "rewrite": "` + ` -> ` - `",
+        "site": "proofs/CyclicExecutive.v:809"
+      },
+      {
+        "base": [
+          "survived"
+        ],
+        "candidate-1": [
+          "survived"
+        ],
+        "candidate-2": [
+          "survived"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:815 `35` -> `36`",
+        "operator": [
+          "const-inc"
+        ],
+        "rewrite": "`35` -> `36`",
+        "site": "proofs/CyclicExecutive.v:815"
+      },
+      {
+        "base": [
+          "killed"
+        ],
+        "candidate-1": [
+          "killed"
+        ],
+        "candidate-2": [
+          "killed"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:817 `150` -> `151`",
+        "operator": [
+          "const-inc"
+        ],
+        "rewrite": "`150` -> `151`",
+        "site": "proofs/CyclicExecutive.v:817"
+      },
+      {
+        "base": [
+          "survived"
+        ],
+        "candidate-1": [
+          "survived"
+        ],
+        "candidate-2": [
+          "survived"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:817 `true` -> `false`",
+        "operator": [
+          "true-to-false"
+        ],
+        "rewrite": "`true` -> `false`",
+        "site": "proofs/CyclicExecutive.v:817"
+      },
+      {
+        "base": [
+          "killed"
+        ],
+        "candidate-1": [
+          "killed"
+        ],
+        "candidate-2": [
+          "killed"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:820 `35` -> `36`",
+        "operator": [
+          "const-inc"
+        ],
+        "rewrite": "`35` -> `36`",
+        "site": "proofs/CyclicExecutive.v:820"
+      },
+      {
+        "base": [
+          "survived"
+        ],
+        "candidate-1": [
+          "survived"
+        ],
+        "candidate-2": [
+          "survived"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:821 `100` -> `101`",
+        "operator": [
+          "const-inc"
+        ],
+        "rewrite": "`100` -> `101`",
+        "site": "proofs/CyclicExecutive.v:821"
+      },
+      {
+        "base": [
+          "survived"
+        ],
+        "candidate-1": [
+          "survived"
+        ],
+        "candidate-2": [
+          "survived"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:851 `25` -> `26`",
+        "operator": [
+          "const-inc"
+        ],
+        "rewrite": "`25` -> `26`",
+        "site": "proofs/CyclicExecutive.v:851"
+      },
+      {
+        "base": [
+          "survived"
+        ],
+        "candidate-1": [
+          "survived"
+        ],
+        "candidate-2": [
+          "survived"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:862 `100` -> `101`",
+        "operator": [
+          "const-inc"
+        ],
+        "rewrite": "`100` -> `101`",
+        "site": "proofs/CyclicExecutive.v:862"
+      },
+      {
+        "base": [
+          "survived"
+        ],
+        "candidate-1": [
+          "survived"
+        ],
+        "candidate-2": [
+          "survived"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:879 `90` -> `91`",
+        "operator": [
+          "const-inc"
+        ],
+        "rewrite": "`90` -> `91`",
+        "site": "proofs/CyclicExecutive.v:879"
+      },
+      {
+        "base": [
+          "survived"
+        ],
+        "candidate-1": [
+          "survived"
+        ],
+        "candidate-2": [
+          "survived"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:886 `0` -> `1`",
+        "operator": [
+          "const-inc"
+        ],
+        "rewrite": "`0` -> `1`",
+        "site": "proofs/CyclicExecutive.v:886"
+      },
+      {
+        "base": [
+          "killed"
+        ],
+        "candidate-1": [
+          "killed"
+        ],
+        "candidate-2": [
+          "killed"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:916 `false` -> `true`",
+        "operator": [
+          "false-to-true"
+        ],
+        "rewrite": "`false` -> `true`",
+        "site": "proofs/CyclicExecutive.v:916"
+      },
+      {
+        "base": [
+          "killed"
+        ],
+        "candidate-1": [
+          "killed"
+        ],
+        "candidate-2": [
+          "killed"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:972 `andb` -> `orb`",
+        "operator": [
+          "andb-to-orb"
+        ],
+        "rewrite": "`andb` -> `orb`",
+        "site": "proofs/CyclicExecutive.v:972"
+      },
+      {
+        "base": [
+          "killed"
+        ],
+        "candidate-1": [
+          "killed"
+        ],
+        "candidate-2": [
+          "killed"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:976 `true` -> `false`",
+        "operator": [
+          "true-to-false"
+        ],
+        "rewrite": "`true` -> `false`",
+        "site": "proofs/CyclicExecutive.v:976"
+      },
+      {
+        "base": [
+          "survived"
+        ],
+        "candidate-1": [
+          "survived"
+        ],
+        "candidate-2": [
+          "survived"
+        ],
+        "mutant": "proofs/CyclicExecutive.v:996 `200` -> `201`",
+        "operator": [
+          "const-inc"
+        ],
+        "rewrite": "`200` -> `201`",
+        "site": "proofs/CyclicExecutive.v:996"
+      }
+    ],
+    "other_verdicts": [],
+    "runs": {
+      "base": {
+        "complete": true,
+        "decided": 20,
+        "exit": 1,
+        "picked": 20,
+        "scope": "over 20 of 142 mutant(s), which is a sample and not the population",
+        "shortfall": null,
+        "undecided": 0,
+        "verdicts": 20
+      },
+      "candidate-1": {
+        "complete": true,
+        "decided": 20,
+        "exit": 1,
+        "picked": 20,
+        "scope": "over 20 of 142 mutant(s), which is a sample and not the population",
+        "shortfall": null,
+        "undecided": 0,
+        "verdicts": 20
+      },
+      "candidate-2": {
+        "complete": true,
+        "decided": 20,
+        "exit": 1,
+        "picked": 20,
+        "scope": "over 20 of 142 mutant(s), which is a sample and not the population",
+        "shortfall": null,
+        "undecided": 0,
+        "verdicts": 20
+      }
+    }
+  },
+  "verdict": "passed"
+}

@@ -393,6 +393,16 @@ def _the_live_rows_read_their_instruments() -> None:
     ensure(by_name["quickchick properties --recipe"].release
            == gallina.QUICKCHICK_RECIPE_ROCQ_VERSION,
            "the recipe's rows read the recipe's own release")
+    older: set[str] = set()
+    for row in k117.INSTRUMENTS:
+        stated = row.release if not isinstance(row.release, k117.Literal) else (
+            k117.literal(root, row.release)[0])
+        number = k117.release_of(stated) if stated else None
+        if number is None or number < k117.SINCE:
+            older.add(row.name)
+    ensure(older == {"the Wasm oracle's recipes", "compare_component.py",
+                     "the Rupicola lowering"},
+           f"only the CertiRocq recipes and the lowering compile below Rocq 9.3.0: {older}")
     walked = f"{k117.RIG}/{gallina.EXHAUSTIVE}"
     randomized = [row for row in k117.INSTRUMENTS if "quickchick" in row.name
                   and row.name != "quickchick vectors" and row.name != "quickchick freeze"]

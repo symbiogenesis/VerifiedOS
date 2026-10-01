@@ -1491,9 +1491,10 @@ def _k118_every_owner_kind_detects_drift() -> None:
     # at its owner's release and reports that owner moved without the row.
     kinds = {owner.kind for tool in (*pins.DEV_TOOL_ROWS, pins.DEV_TOOL_PROSE)
              for site in tool.sites for owner in site.owners}
-    # The hook kinds hold a rev's commit and its frozen tag rather than kappa's release;
-    # k118-hook-revisions-are-held moves each without its row.
-    ensure(kinds == set(_K118_KINDS) | {"pre-commit", "pre-commit-rev"},
+    # The hook kinds hold a rev's commit and its frozen tag, and a snapshot's pin holds a
+    # commit, rather than kappa's release; k118-hook-revisions-are-held and
+    # k118-snapshot-pins-are-held move each without its row.
+    ensure(kinds == set(_K118_KINDS) | {"pre-commit", "pre-commit-rev", "opam-pin"},
            f"every owner kind a shipped site uses has a drift case: {kinds!r}")
     for kind, (_, _, drift) in _K118_KINDS.items():
         found = _k118_kappa(kind, {})
@@ -1631,6 +1632,45 @@ def _k118_a_row_named_by_its_release_stays_one_row() -> None:
     found = run(record.replace("Py 3.14", "Py 3.15"))
     ensure(len(found) == 1 and "(Py 3.15) states the series as 3.15, where tools/vos/x.py's "
            "PY fixes 3.14" in found[0], f"a moved cell is its row's drift, once: {found!r}")
+
+
+def _k118_snapshot_pins_are_held() -> None:
+    # A snapshot pinning a package to an upstream commit, as `opam switch export` writes
+    # one: the row states the commit its licence was read at, held against the commit
+    # the package block's `url` names, whole.
+    commit = "3d4d6c0e" + "a" * 32
+    lock = ('opam-version: "2.0"\ninstalled: ["mu.dev"]\npinned: ["mu.dev"]\n'
+            'package "mu" {\n  opam-version: "2.0"\n  version: "dev"\n  url {\n'
+            f'    src:\n      "git+https://github.com/example/mu.git#{commit}"\n  }}\n}}\n')
+    row = pins.DevTool("mu", (pins.Site("the pinned commit", rf"from the commit {pins._COMMIT}",
+                                        (pins.Owner("opam-pin", "tools/opam/z.lock", "mu"),)),))
+
+    def run(stated: str, text: str) -> list[str]:
+        record = (_K118_TOOLS + "| Tool | License | Standing |\n| --- | --- | --- |\n"
+                  f"| mu | `MIT` | Built from the commit `{stated}`. |\n\n## Next\n")
+        return _k118({"THIRD-PARTY.md": record, "tools/opam/z.lock": text}, rows=(row,),
+                     declared={}, prose=pins.DevTool("the paragraphs"))[0]
+
+    ensure(not run(commit, lock), "a row stating the snapshot's pinned commit agrees")
+    moved = lock.replace(f"#{commit}", f"#1{commit[1:]}")
+    found = run(commit, moved)
+    ensure(len(found) == 1 and f"(mu) states the pinned commit as {commit}, where the commit "
+           f"tools/opam/z.lock pins mu to fixes 1{commit[1:]}" in found[0],
+           f"a pin moved without its row is one finding naming both commits: {found!r}")
+    found = run(f"1{commit[1:]}", lock)
+    ensure(len(found) == 1 and f"as 1{commit[1:]}, where" in found[0],
+           f"a row moved without its pin is one finding: {found!r}")
+    for text, fragment in (
+            (lock.replace(f"git+https://github.com/example/mu.git#{commit}",
+                          "https://example.org/mu-1.0.tar.gz"),
+             "the commit tools/opam/z.lock pins mu to is stated 0 times"),
+            (lock.replace('package "mu"', 'package "nu"'),
+             "the commit tools/opam/z.lock pins mu to is stated 0 times"),
+            (lock.replace(f"#{commit}", f"#{commit[:12]}"),
+             "the commit tools/opam/z.lock pins mu to is stated 0 times")):
+        found = run(commit, text)
+        ensure(any(fragment in item for item in found),
+               f"a package not pinned to one whole commit is unread, not passed: {found!r}")
 
 
 # Two hook repository entries as `pre-commit autoupdate --freeze` writes them, one rev
@@ -2415,6 +2455,7 @@ def cases() -> list[Case]:
         Case("k118-hook-census-reads-every-entry", _k118_hook_census_reads_every_entry),
         Case("k118-hook-rev-is-read-at-its-entry-column",
              _k118_hook_rev_is_read_at_its_entry_column),
+        Case("k118-snapshot-pins-are-held", _k118_snapshot_pins_are_held),
         Case("k118-shipped-readings-are-declared", _k118_shipped_readings_are_declared),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),
         Case("k81-unused-historical-residue-fails", _k81_unused_historical_residue_fails),

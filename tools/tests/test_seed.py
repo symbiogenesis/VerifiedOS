@@ -212,14 +212,16 @@ def _moved_counts_a_length_change() -> None:
 
 def _seed_coq_holds_the_installed_quickchick() -> None:
     """`seed coq --quickchick` holds what QuickChick's switch carries as `quickchick
-    check` holds it: a release the provisioned switch does not pin, or with `--recipe`
-    anything but the pinned commit, is refused before a tree is staged, the refusal
-    naming both; the one held runs the population in the switch it was asked of."""
-    for recipe, source, code in ((False, "2.1.0", 1), (True, "2.2.0", 1),
-                                 (False, quickchick.VERSION, 0),
+    check` holds it: anything but the recipe's pinned commit, a release among them, is
+    refused before a tree is staged, with `--recipe` or without, the refusal naming
+    both; the one held runs the population in the switch it was asked of."""
+    other = quickchick.RECIPE_PIN.rsplit("#", 1)[0] + "#" + "0" * 40
+    for recipe, source, code in ((False, "2.2.0", 1), (True, "2.2.0", 1),
+                                 (False, other, 1),
+                                 (False, quickchick.RECIPE_PIN, 0),
                                  (True, quickchick.RECIPE_PIN, 0)):
         switch = gallina.QUICKCHICK_RECIPE_SWITCH if recipe else gallina.QUICKCHICK_SWITCH
-        wanted = quickchick.RECIPE_PIN if recipe else quickchick.VERSION
+        wanted = quickchick.RECIPE_PIN
         asked: list[str] = []
 
         def held(name: str, source: str = source, asked: list[str] = asked) -> str:
@@ -303,7 +305,8 @@ def _a_drawn_harness_that_does_not_build_is_stillborn() -> None:
 def _drawn_ending(report: str, stderr: str, out: str = "QuickChecking prop_b\n"
                   ) -> subprocess.CompletedProcess[str]:
     """The drawn harness's compile where a set's extracted program built and ended on
-    `report`, as QuickChick 2.2.0's plugin reports it, with `stderr` after it."""
+    `report`, as QuickChick 2.2.0's plugin, and the recipe's pinned commit, whose
+    plugin/quickChick.mlg.cppo is the same file, report it, with `stderr` after it."""
     return subprocess.CompletedProcess(
         [], 1, out, 'File "./harness/Properties.v", line 4, characters 0-22:\nError:\n'
                     f"time /tmp/QC/_build/Properties.native: {report}\n\n{stderr}\n")

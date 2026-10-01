@@ -20,14 +20,13 @@ Stdlib and nothing else, and the proof gate's switch carries Stdlib, so
 `quickchick vectors`, `quickchick freeze`, `kernel vectors` and `seed coq`'s enumerative
 mode compile in that switch, at the gate's release and under their own flags: a proof
 source that compiles under the gate compiles under them. The randomized harness loads
-QuickChick and the Wasm oracle loads CertiRocq, and no release of either admits a Rocq
-newer than 9.1, so each keeps a switch of its own at Rocq 9.1.1; the walk harness that
-decides the property sets small enough to enumerate compiles beside the randomized one.
-QuickChick's commit-pinned recipe builds a second QuickChick switch, at Rocq 9.3.0,
-which a run asks for by name while that recipe's lock awaits its hosted checks. K-117
-holds what each instrument older than Rocq 9.3.0 compiles, these two and the Rupicola
-lowering among them, free of the syntax only Rocq 9.3 reads. Every switch is **read**
-here and never written.
+QuickChick, which no release builds at Rocq 9.3, so it compiles in a switch of its own
+built from pinned commits at the gate's release, beside the walk harness that decides
+the property sets small enough to enumerate. The Wasm oracle loads CertiRocq, which no
+release admits a Rocq newer than 9.1, so it keeps a switch at Rocq 9.1.1. K-117 holds
+what each instrument older than Rocq 9.3.0 compiles, the Wasm oracle and the Rupicola
+lowering, free of the syntax only Rocq 9.3 reads. Every switch is **read** here and
+never written.
 """
 
 import os
@@ -93,20 +92,23 @@ def oracle_candidate_build(ocaml: str) -> tuple[tuple[str, ...], ...]:
          f"ocamlfind.{env.OCAMLFIND_VERSION}", f"rocq-certirocq.{CERTIROCQ_VERSION}"),
     )
 
-# QuickChick's coq-simple-io dependency caps Coq below 9.2~ independently of CertiRocq.
-# Its dune < 3.22 constraint warrants a separate resolution from the Wasm oracle.
-QUICKCHICK_ROCQ_VERSION = ORACLE_ROCQ_VERSION
-QUICKCHICK_SWITCH = (f"verifiedos-quickchick-{QUICKCHICK_ROCQ_VERSION}"
-                     f"-ocaml-{env.OCAML_VERSION}")
 
 # The switch QuickChick's commit-pinned recipe builds, tools/vos/cli/quickchick.py's
 # RECIPE, at Rocq 9.3.0, beside which no QuickChick, coq-simple-io or coq-ext-lib
-# release installs. Named apart from QUICKCHICK_SWITCH while the recipe's lock is
-# pending its hosted checks, so a run can ask for either. A literal rather than
+# release installs. QUICKCHICK_SWITCH below names this same switch, since the tracked
+# lock is this recipe's export, so a recipe moved ahead of that lock is built and
+# checked in a root that does not already hold that switch. A literal rather than
 # `env.ROCQ_VERSION`, because a move of the proof switch's lock does not move this one.
 QUICKCHICK_RECIPE_ROCQ_VERSION = "9.3.0"
 QUICKCHICK_RECIPE_SWITCH = (f"verifiedos-quickchick-{QUICKCHICK_RECIPE_ROCQ_VERSION}"
                             f"-ocaml-{env.OCAML_VERSION}")
+
+# QuickChick's switch, the one provisioning imports tools/opam/quickchick.lock into:
+# that lock is the export of a hosted run that built the recipe's switch and passed the
+# randomized half's checks on it, so the two are one switch at one release, and neither
+# is the CertiRocq switch's.
+QUICKCHICK_ROCQ_VERSION = QUICKCHICK_RECIPE_ROCQ_VERSION
+QUICKCHICK_SWITCH = QUICKCHICK_RECIPE_SWITCH
 
 # Where the shipped proofs are, and where this repository's own Gallina harnesses are.
 # The second is not under `proofs/` on purpose: the proof gate compiles everything it
@@ -259,8 +261,9 @@ _COUNT = re.compile(r"[0-9]+")
 # built and did not finish: its command, `time` and the program, then `Exited with status
 # N`, `Killed (N)` or `Stopped (N)`, on the prover's `Error:` line or the one after it,
 # and then, after a blank line, what the program and `time` wrote to standard error.
-# QuickChick 2.2.0's plugin builds the message so in plugin/quickChick.mlg.cppo, the
-# status read from the shell that runs `time` and the program.
+# QuickChick 2.2.0's plugin, and the recipe's pinned commit, whose
+# plugin/quickChick.mlg.cppo is the same file, build the message so, the status read
+# from the shell that runs `time` and the program.
 _UNFINISHED = re.compile(r"^(?:Error:[ \t]*)?(?P<said>\S.*?: (?:Exited with status "
                          r"(?P<status>-?\d+)|(?P<signalled>Killed|Stopped) \(-?\d+\)))"
                          r"[ \t]*$", re.MULTILINE)

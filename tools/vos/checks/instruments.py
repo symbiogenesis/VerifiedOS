@@ -4,13 +4,11 @@
 Rocq 9.3.0 reads four forms no earlier release parses: `if … is` (rocq#21609), a record
 value completed from a base with `with` (rocq#22207), and the `&` and `of` binders
 (rocq#21611). The proof gate compiles at 9.3.0, so it accepts each of them, and the
-gate is not the only compiler of these sources. The QuickChick harness and its seeded
-mutants, the CertiRocq Wasm oracle and the Rupicola lowering each compile a proof source
-or a harness with an older release, held there by the libraries they load. **A form
-the gate accepts breaks those instruments without any gate saying so**: no gate runs
-them, the instrument switch route running the QuickChick harness only when dispatched,
-and the first reader to learn of it is whoever runs one next. This rule is what says
-so, on every checker run.
+gate is not the only compiler of these sources. The CertiRocq Wasm oracle and the
+Rupicola lowering each compile a proof source or a harness with an older release, held
+there by the libraries they load. **A form the gate accepts breaks those instruments
+without any gate saying so**: no gate runs them, and the first reader to learn of it is
+whoever runs one next. This rule is what says so, on every checker run.
 
 **The set is derived and never listed.** `INSTRUMENTS` below is the one table of every
 instrument that compiles a proof source or a harness outside the gate: its switch, its

@@ -36,8 +36,8 @@ from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
 from tests.test_opam_client import opam_root
-from vos import cli, env, opam_client
-from vos.cli import provision, rtl, typecheck
+from vos import cli, env, gallina, opam_client
+from vos.cli import provision, quickchick, rtl, typecheck
 from vos.report import Reporter
 
 _ROOT = TOOLS.parent
@@ -209,6 +209,40 @@ def _opam_probe_preserves_build_suffix() -> None:
                "an exact opam version including its Rocq suffix must satisfy the pin")
         ensure(not provision._switch_at("oracle", "rocq-certirocq", "0.9.1+9.2").present,
                "the same release built for another Rocq version must be rejected")
+
+
+def _a_pinned_source_is_held_by_its_commit() -> None:
+    """QuickChick's switch builds a commit no release carries, and a pinned build calls
+    itself `dev`, so its fact holds the source opam states rather than a version: the
+    pinned commit passes, another commit, an unpinned release and an absent package do
+    not, each said apart. The fact plans its switch as every switch row does, so over a
+    root in an older format a switch without the pinned build is reported, never
+    planned."""
+    pin = quickchick.RECIPE_PIN
+    other = pin.rsplit("#", 1)[0] + "#" + "0" * 40
+    answers = {
+        f"dev {pin}": (True, f"built from {pin}"),
+        f"dev {other}": (False, f"built from {other}"),
+        "2.2.0": (False, "from no pinned source"),
+        "": (False, "carries no coq-quickchick"),
+    }
+    fact = next(fact for fact in provision.FACTS if fact.name == "the QuickChick switch")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        older = Path(td) / "older"
+        opam_root(older, "nested")
+        for root in (Path(td) / "absent", older):
+            for answer, (present, said) in answers.items():
+                with (patch.object(provision.env, "opam_root", return_value=root),
+                      patch.object(provision, "switches",
+                                   return_value=(gallina.QUICKCHICK_SWITCH,)),
+                      patch.object(provision, "_client", return_value=(None, "")),
+                      patch.object(provision, "_say", return_value=answer)):
+                    found = fact.probe()
+                ensure(found.present is present and said in found.saw
+                       and found.repairable is (present or root != older),
+                       f"{answer!r} over the {root.name} root read as {found}")
+    ensure(gallina.QUICKCHICK_SWITCH in " ".join(" ".join(step) for step in fact.install),
+           "the QuickChick fact's install creates the switch gallina.py names")
 
 
 def _opam_root_fixture(root: Path) -> None:
@@ -1250,6 +1284,7 @@ def cases() -> list[Case]:
         Case("number-reads-the-banners", _number_reads_the_banners),
         Case("probes-answer-no-question", _probes_answer_no_question),
         Case("opam-probe-preserves-build-suffix", _opam_probe_preserves_build_suffix),
+        Case("a-pinned-source-is-held-by-its-commit", _a_pinned_source_is_held_by_its_commit),
         Case("opam-probe-holds-the-reviewed-client", _opam_probe_holds_the_reviewed_client),
         Case("opam-probe-holds-the-root", _opam_probe_holds_the_root),
         Case("opam-row-plans-only-what-is-absent", _opam_row_plans_only_what_is_absent),

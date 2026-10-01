@@ -235,7 +235,8 @@ K-118 is K-97's agreement made total over the rest of the development-tools sect
 **Each row states the release its terms were read at, and most of those releases have
 an owner here**: [uv.lock](../../uv.lock) for the Python packages,
 [pyproject.toml](../../pyproject.toml)'s `required-version` for uv, the exported
-[opam snapshots](../../opam/README.md) for the switches, a constant or a shell
+[opam snapshots](../../opam/README.md) for the switches, and for a package a snapshot
+pins to an upstream commit, the commit its `url` names, a constant or a shell
 setting where a tool installs its own release, [actionlint.sh](../../ci/actionlint.sh)'s
 among them for the workflow linter Host CI runs, and the model's
 [hook configuration](../../../model/.pre-commit-config.yaml) for the hook
@@ -461,7 +462,8 @@ class Owner:
     """An artifact here that fixes a release, and which entry of it does.
 
     `uv` is a package of a uv lock, `uv-required` the uv release a project requires,
-    `opam` a package of one exported snapshot, `opam-every` a package every snapshot
+    `opam` a package of one exported snapshot, `opam-pin` the commit one exported
+    snapshot pins a package's source to, `opam-every` a package every snapshot
     under a directory installs and `opam-any` one some of them do, `assign` a quoted
     top-level assignment, `shell` an unquoted shell variable, `pre-commit` and
     `pre-commit-rev` the release a hook configuration's repository entry names after
@@ -475,6 +477,8 @@ class Owner:
     key: str
 
     def label(self) -> str:
+        if self.kind == "opam-pin":
+            return f"the commit {self.path} pins {self.key} to"
         if self.kind == "opam-every":
             return f"the {self.key} every snapshot under {self.path} installs"
         if self.kind == "opam-any":
@@ -539,6 +543,14 @@ def _uv(package: str) -> Owner:
 
 def _snap(lock: str, package: str) -> Owner:
     return Owner("opam", f"{SNAPSHOTS}{lock}.lock", package)
+
+
+def _pin(lock: str, package: str) -> Owner:
+    return Owner("opam-pin", f"{SNAPSHOTS}{lock}.lock", package)
+
+
+# A pinned package's commit as a row states it, read whole.
+_COMMIT = r"`([0-9a-f]{40})`"
 
 
 def _locked(display: str, package: str) -> Site:
@@ -734,8 +746,12 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
                         rf"The reviewed \[{_V} LICENSE\.txt\]"
                         rf"\(https://github\.com/Z3Prover/z3/blob/z3-{_V}/LICENSE\.txt\)",
                         (Owner("assign", _ENV, "Z3_VERSION"),)),)),
-    DevTool("QuickChick", (Site("the switch's release", rf"version \*\*{_V}\*\*",
-                                (_snap("quickchick", "coq-quickchick"),)),)),
+    DevTool("QuickChick", (Site("the pinned commit", rf"built from the commit {_COMMIT}",
+                                (_pin("quickchick", "coq-quickchick"),)),)),
+    DevTool("coq-simple-io", (Site("the pinned commit", rf"built from the commit {_COMMIT}",
+                                   (_pin("quickchick", "coq-simple-io"),)),)),
+    DevTool("coq-ext-lib", (Site("the pinned commit", rf"built from the commit {_COMMIT}",
+                                 (_pin("quickchick", "coq-ext-lib"),)),)),
     DevTool("Rupicola, Bedrock2, and the Bedrock2 compiler", (
         Site("Rupicola's release", rf"Rupicola \*\*{_V}\*\*", (_snap("rupicola", "coq-rupicola"),)),
         Site("Bedrock2's and its compiler's release", rf"Bedrock2 and its compiler \*\*{_V}\*\*",
@@ -777,14 +793,14 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
         *_pinned("vcs-versioning", HOOK_BUILD_CONSTRAINTS, "vcs-versioning"),
         *_pinned("packaging", HOOK_BUILD_CONSTRAINTS))),
     DevTool("Rocq prover: `rocq-core`, `rocq-runtime` and `rocqchk`", (
-        Site("the proof switch's edition", rf"{_V} in the proof switch",
-             (_snap("rocq", "rocq-core"), _snap("rocq", "rocq-runtime"))),
+        Site("the proof and QuickChick switches' edition",
+             rf"{_V} in the proof and QuickChick switches",
+             (_snap("rocq", "rocq-core"), _snap("rocq", "rocq-runtime"),
+              _snap("quickchick", "rocq-core"), _snap("quickchick", "rocq-runtime"))),
         Site("the lowering switch's edition", rf"{_V} in the lowering switch",
              (_snap("rupicola", "rocq-core"), _snap("rupicola", "rocq-runtime"))),
-        Site("the QuickChick and oracle switches' edition",
-             rf"{_V} in the QuickChick and CertiRocq oracle switches",
-             (_snap("quickchick", "rocq-core"), _snap("quickchick", "rocq-runtime"),
-              _snap("certirocq", "rocq-core"), _snap("certirocq", "rocq-runtime"),
+        Site("the oracle switch's edition", rf"{_V} in the CertiRocq oracle switch",
+             (_snap("certirocq", "rocq-core"), _snap("certirocq", "rocq-runtime"),
               _ORACLE_ROCQ)),
         Site("the tags read", _TAGS_READ, (Owner("opam-any", SNAPSHOTS, "rocq-core"), _ORACLE_ROCQ),
              each=_TAG)),
@@ -875,10 +891,6 @@ DEV_TOOL_PROSE = DevTool("the section's paragraphs", (
     Site("Sail Rocq support library's licence tag",
          rf"\[LICENSE\]\(https://github\.com/rems-project/coq-sail/blob/{_V}/LICENSE\)",
          (_snap("sail", "sail"),)),
-    Site("QuickChick's release", rf"`coq-quickchick\.{_V}` retains",
-         (_snap("quickchick", "coq-quickchick"),)),
-    Site("QuickChick switch's prover", rf"retains Rocq {_V} because",
-         (_snap("quickchick", "rocq-core"),)),
     Site("riscv-coq's release", rf"`coq-riscv\.{_V}` uses", (_snap("rupicola", "coq-riscv"),)),
     Site("lowering snapshot's compiler", rf"fixes OCaml {_V}, Rocq",
          (_snap("rupicola", "ocaml-base-compiler"),)),
@@ -895,8 +907,6 @@ DEV_TOOL_PROSE = DevTool("the section's paragraphs", (
                 "the earlier reading the current one is compared with"),
         Residue("`rocq-stdpp-bitvector` 1.13.0",
                 "the release coq-sail's metadata requires, which no project switch installs"),
-        Residue("requires Coq below 9.2",
-                "coq-simple-io's upper bound, a constraint and not a release"),
         Residue("`coq-compcert >= 3.17`",
                 "CertiRocq's lower bound, a constraint and not a release"),
         Residue("is byte-identical to 3.17.",
@@ -1311,6 +1321,7 @@ class _Owners:
         self._uv: dict[str, dict[str, list[str]]] = {}
         self._opam: dict[str, dict[str, list[str]]] = {}
         self._pips: dict[str, list[tuple[int, str, re.Match[str] | None]]] = {}
+        self._pins: dict[str, dict[str, list[str]]] = {}
 
     def _fault(self, key: str, message: str) -> _UnreadError:
         self.faults.setdefault(key, message)
@@ -1381,6 +1392,18 @@ class _Owners:
                                 for number, logical in _pip_lines(text)]
         return self._pips[path]
 
+    def _snapshot_pins(self, path: str) -> dict[str, list[str]]:
+        """Each package an exported snapshot carries a definition of, with the commits
+        its `url` block's `src` pins it to: `git+URL#commit`, the commit whole."""
+        if path not in self._pins:
+            table: dict[str, list[str]] = {}
+            for block in re.finditer(r'^package "([^"\r\n]+)" \{(.*?)^\}', self._text(path),
+                                     re.MULTILINE | re.DOTALL):
+                table[block.group(1)] = re.findall(
+                    r'\bsrc:\s*"git\+[^"#\s]+#([0-9a-f]{40})"', block.group(2))
+            self._pins[path] = table
+        return self._pins[path]
+
     def _snapshots(self) -> list[str]:
         found = sorted(rel for rel in self.ctx.corpus.indexed
                        if rel.startswith(SNAPSHOTS) and rel.endswith(".lock"))
@@ -1401,6 +1424,8 @@ class _Owners:
             return self._one(owner, self._uv_lock(owner.path).get(owner.key, []))
         if owner.kind == "opam":
             return self._one(owner, self._snapshot(owner.path).get(owner.key, []))
+        if owner.kind == "opam-pin":
+            return self._one(owner, self._snapshot_pins(owner.path).get(owner.key, []))
         if owner.kind in ("opam-every", "opam-any"):
             found: set[str] = set()
             for path in self._snapshots():
