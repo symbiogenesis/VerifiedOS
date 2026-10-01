@@ -634,14 +634,12 @@ Qed.
    ------------------------------------------------------------------------- *)
 
 Definition manifest_of_identity (xs : list nat) : option Manifest :=
-  match xs with
-  | g :: w :: a :: t :: v :: c :: i :: s :: p :: fp :: e :: pr :: nil =>
+  if xs is (g :: w :: a :: t :: v :: c :: i :: s :: p :: fp :: e :: pr :: nil) then
       Some {| graph_id := g; weights_id := w; arithmetic_id := a;
               tokenizer_id := t; vocabulary_id := v; circuit_id := c;
               implementation_id := i; schema_id := s; protocol_id := p;
               footprint_id := fp; envelope_id := e; propositions_id := pr |}
-  | _ => None
-  end.
+  else None.
 
 Lemma manifest_of_its_identity : forall m, manifest_of_identity (identity m) = Some m.
 Proof. intros m. destruct m. reflexivity. Qed.
@@ -720,10 +718,7 @@ Definition read_manifest (f : FormatBounds) (bs : list nat) : option Manifest :=
     | nil => None
     | tag :: rest =>
         if Nat.eqb tag (manifest_tag f) then
-          match read_manifest_body f rest with
-          | Some (m, nil) => Some m
-          | _ => None
-          end
+          (if read_manifest_body f rest is Some (m, nil) then Some m else None)
         else None
     end
   else None.
@@ -859,15 +854,13 @@ Definition read_certificate (f : FormatBounds) (bs : list nat) : option Certific
                       match read_blob f (evidence_bytes_max f) r3 with
                       | None => None
                       | Some (evidence, r4) =>
-                          match read_entries f (assumption_entries_max f) r4 with
-                          | Some (entries, nil) =>
-                              Some {| certificate_subject := subject;
-                                      certificate_checker := checker;
-                                      certificate_profile := profile;
-                                      certificate_evidence := evidence;
-                                      certificate_assumptions := entries |}
-                          | _ => None
-                          end
+                          if read_entries f (assumption_entries_max f) r4 is Some (entries, nil)
+                          then Some {| certificate_subject := subject;
+                                       certificate_checker := checker;
+                                       certificate_profile := profile;
+                                       certificate_evidence := evidence;
+                                       certificate_assumptions := entries |}
+                          else None
                       end
                   end
               end

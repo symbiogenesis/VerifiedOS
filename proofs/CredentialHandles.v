@@ -86,7 +86,7 @@ Proof. induction n; simpl; auto. Qed.
 
 Lemma eqb_equal : forall x y, Nat.eqb x y = true -> x = y.
 Proof.
-  induction x as [|x IH]; destruct y; simpl; intros H; try discriminate;
+  induction x as [|x IH]; destruct y as [|y]; simpl; intros H; try discriminate;
     [reflexivity | f_equal; exact (IH y H)].
 Qed.
 
@@ -362,7 +362,7 @@ Definition consent_once_state : ServerState :=
 
 Definition state_after (p : CredentialPolicy) (c : Credential)
            (s : ServerState) (r : ClientRequest) : ServerState :=
-  match authorize_and_charge p c s r with Some next => next | None => s end.
+  if authorize_and_charge p c s r is Some next then next else s.
 
 Example the_fixture_expiry_relation_is_monotone : expiry_is_monotone demo_policy.
 Proof.
@@ -515,7 +515,7 @@ Definition witness_ServerState : ServerState := approved_state.
 Inductive Handle : Type := SealedReference : nat -> Handle | RawReference : nat -> Handle.
 Record Vault : Type := { vault_lookup : nat -> option Credential }.
 Definition handle_is_sealed (h : Handle) : bool :=
-  match h with SealedReference _ => true | RawReference _ => false end.
+  if h is SealedReference _ then true else false.
 Definition handle_identity (h : Handle) : nat :=
   match h with SealedReference n | RawReference n => n end.
 Definition resolve_handle (v : Vault) (h : Handle) : option Credential :=
@@ -549,11 +549,10 @@ Proof. reflexivity. Qed.
 Definition empty_vault : Vault := {| vault_lookup := fun _ => None |}.
 Definition demo_issued := issue_handle empty_vault 17 demo_child.
 Example a_sealed_use_spends_its_shared_account :
-  match use_handle demo_policy (snd demo_issued) approved_state (fst demo_issued)
-                   (ProtocolUse demo_request) with
-  | Some next => account_used next 7 = 1
-  | None => False
-  end.
+  if use_handle demo_policy (snd demo_issued) approved_state (fst demo_issued)
+                (ProtocolUse demo_request) is Some next
+  then account_used next 7 = 1
+  else False.
 Proof. vm_compute; reflexivity. Qed.
 Example widened_role_scope_and_operation_are_refused_through_the_handle :
   use_handle demo_policy (snd demo_issued) approved_state (fst demo_issued)

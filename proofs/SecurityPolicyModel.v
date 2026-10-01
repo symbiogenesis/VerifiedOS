@@ -415,10 +415,8 @@ Definition scoped (r : ReleaseRule) : Prop :=
 Definition witnessed (m : PolicyModel) (i : SystemInput) (rel : Release) : bool :=
   forallb (fun g =>
     m.(consent_site) g.(witness_site) &&
-    (match i.(consent) g.(witness_site) with
-     | Some act => grant_eqb g act
-     | None => false
-     end) && state_eqb (rel.(states) g.(witness_site))
+    (if i.(consent) g.(witness_site) is Some act then grant_eqb g act else false)
+    && state_eqb (rel.(states) g.(witness_site))
                        (i.(lifecycle) g.(witness_site))) rel.(grants).
 
 (* -------------------------------------------------------------------------
@@ -513,19 +511,19 @@ Definition authorized_release_target (m : PolicyModel) (p : Powerbox)
    ------------------------------------------------------------------------- *)
 
 Definition ref_clearance (c : nat) : nat :=
-  match c with O => O | _ => 1 end.
+  if c is O then O else 1.
 
 Definition ref_trusted (c : nat) : bool :=
-  match c with S (S O) => true | _ => false end.
+  if c is S (S O) then true else false.
 
 Definition ref_content_level (s : nat) : nat :=
-  match s with O => O | _ => 1 end.
+  if s is O then O else 1.
 
 Definition ref_arrival_level (s : nat) : nat :=
-  match s with O => O | _ => 1 end.
+  if s is O then O else 1.
 
 Definition ref_consent_site (s : nat) : bool :=
-  match s with S (S O) => true | _ => false end.
+  if s is S (S O) then true else false.
 
 Definition ref_drives (c s : nat) : bool :=
   match c, s with
@@ -579,7 +577,7 @@ Definition unlabelled_compartment : PolicyModel := {|
   levels := 2;
   flows := Nat.leb;
   compartments := 3;
-  clearance := fun c => match c with O => O | _ => 2 end;
+  clearance := fun c => if c is O then O else 2;
   trusted := ref_trusted;
   sites := 4;
   content_level := ref_content_level;
@@ -1091,10 +1089,9 @@ Proof. repeat split; reflexivity. Qed.
    site alone. *)
 Definition consent_powerbox : Powerbox :=
   fun i now =>
-    {| grants := match i.(consent) 2 with
-                  | Some g => if Nat.eqb g.(witness_site) 2 then g :: nil else nil
-                  | None => nil
-                  end;
+    {| grants := if i.(consent) 2 is Some g
+                  then (if Nat.eqb g.(witness_site) 2 then g :: nil else nil)
+                  else nil;
        states := fun _ => i.(lifecycle) 2;
        at_instant := now |}.
 
