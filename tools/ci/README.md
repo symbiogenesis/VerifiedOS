@@ -69,7 +69,8 @@ complete, in the reviewed client's format with exactly the owner's repositories 
 their URLs and every metadata stamp read, without running the route over it, because
 the reviewed client's `repository add`
 fetches a repository the root already carries again and removes it where that fetch
-fails. It refuses any other standing root and leaves it as it is. `bootstrap.json`
+fails. It refuses any other standing root, naming each gap it reads there, and leaves
+it as it is. `bootstrap.json`
 records the selection, whether the root was created, finished or kept, each opam
 repository's URL and metadata stamp, and the root's format. Bootstrap fails when the
 root is not configured with exactly the owner's repositories, a stamp cannot be read,

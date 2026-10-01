@@ -507,12 +507,23 @@ def _resumable_root_is_finished() -> None:
            f"again, ran {stopped.opam_commands}, got {stopped.record}")
 
 
+def _unfetched_default(opam: Path) -> None:
+    """What `opam init` leaves where its first fetch fails in a directory that was not
+    empty: its config and the default repository configured, with no metadata."""
+    owned = bootstrap.opam_client.OPAM_REPOSITORIES
+    opam_root(opam, "flat", {}, owned[:1])
+    (opam / "repo" / f"{owned[0][0]}.tar.gz").unlink()
+
+
 def _incomplete_root_is_refused() -> None:
     """Any other standing root is refused before any opam command runs over it or any
-    toolchain is resolved against it, and the record says what it lacks."""
+    toolchain is resolved against it, and the record says what it lacks, each gap the
+    first failed check leaves unstated among it."""
     owned = bootstrap.opam_client.OPAM_REPOSITORIES
     (default, url), *others = owned
     roots: dict[str, tuple[Callable[[Path], None], str]] = {
+        "default configured but unfetched": (_unfetched_default,
+                                             f"no metadata stamp for {default}"),
         "another format": (lambda opam: opam_root(opam, "nested"),
                            f"format 2.2, not the reviewed client's "
                            f"{bootstrap.opam_client.OPAM_ROOT_FORMAT}"),
