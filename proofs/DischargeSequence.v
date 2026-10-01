@@ -510,19 +510,19 @@ Proof. induction n as [ | k IH ]; simpl; [reflexivity | exact IH]. Qed.
 
 Lemma nat_eqb_true : forall i j : nat, Nat.eqb i j = true -> i = j.
 Proof.
-  induction i as [ | i IH ]; destruct j; simpl; intros H; try discriminate H.
+  induction i as [ | i IH ]; destruct j as [ | j ]; simpl; intros H; try discriminate H.
   - reflexivity.
   - f_equal. exact (IH j H).
 Qed.
 
 Lemma nat_eqb_sym : forall i j : nat, Nat.eqb i j = Nat.eqb j i.
 Proof.
-  induction i as [ | i IH ]; destruct j; simpl; try reflexivity. exact (IH j).
+  induction i as [ | i IH ]; destruct j as [ | j ]; simpl; try reflexivity. exact (IH j).
 Qed.
 
 Lemma nat_leb_split : forall i j : nat, Nat.leb i j = orb (Nat.ltb i j) (Nat.eqb i j).
 Proof.
-  unfold Nat.ltb. induction i as [ | i IH ]; destruct j; simpl; try reflexivity.
+  unfold Nat.ltb. induction i as [ | i IH ]; destruct j as [ | j ]; simpl; try reflexivity.
   exact (IH j).
 Qed.
 
@@ -639,7 +639,7 @@ Definition phase_index (s : Step) : option nat :=
 
 (* Whether a step belongs to one of the listed phases. *)
 Definition names_a_phase (ks : list nat) (s : Step) : bool :=
-  match phase_index s with Some k => mem_nat k ks | None => false end.
+  if phase_index s is Some k then mem_nat k ks else false.
 
 Definition is_entry_step (s : Step) : bool :=
   match s with
@@ -1872,7 +1872,7 @@ Definition demo : Machine := {|
   requesters := cons true (cons false nil);
   Bank := bool;
   phase_count := 2;
-  banks_of := fun k => match k with 0 => cons true nil | _ => cons false nil end;
+  banks_of := fun k => if k is 0 then cons true nil else cons false nil;
   Chunk := bool;
   chunks_of := fun _ => cons true (cons false nil);
   Extent := bool;
