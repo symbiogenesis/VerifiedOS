@@ -18,6 +18,7 @@ The one case that runs the command is the guest's, doubled and bracketed by
 exactly the defect this tool exists not to be.
 """
 
+import gzip
 import io
 import os
 import shutil
@@ -520,12 +521,31 @@ def _hard_upgrade_is_read_from_the_root() -> None:
     otherwise the upgrade is hard below 2.0~beta5, at 2.1~alpha and 2.1~alpha2, and
     wherever the first regular file of an archive is neither `repo` nor under
     `packages/`. Another reviewed release claims nothing until its own source is read."""
-    regular, folder, link = tarfile.REGTYPE, tarfile.DIRTYPE, tarfile.SYMTYPE
+    type Member = tuple[str, bytes, bytes]
 
-    def root_at(at: Path, fmt: str,
-                archives: dict[str, tuple[tuple[str, bytes], ...] | None]) -> Path:
-        """A root in format `fmt` configuring each of `archives`' repositories, each
-        archive's members in order, or no archive where it maps to None."""
+    def reg(name: str, data: bytes = b"x") -> Member:
+        return name, tarfile.REGTYPE, data
+
+    def node(name: str, kind: bytes = tarfile.DIRTYPE) -> Member:
+        return name, kind, b""
+
+    def tar(*members: Member) -> bytes:
+        """An uncompressed tar stream of `members`, each a name, a member type and its
+        content, in order, ended as tarfile ends one."""
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode="w") as archive:
+            for name, kind, data in members:
+                member = tarfile.TarInfo(name)
+                member.type, member.size = kind, len(data)
+                if kind in (tarfile.LNKTYPE, tarfile.SYMTYPE):
+                    member.linkname = "elsewhere"
+                archive.addfile(member, io.BytesIO(data))
+        return stream.getvalue()
+
+    def root_at(at: Path, fmt: str, archives: dict[str, bytes | None]) -> Path:
+        """A root in format `fmt` configuring each of `archives`' repositories in order,
+        each with its tar stream gzipped as its archive, or no archive where it maps to
+        None."""
         (at / "repo").mkdir(parents=True)
         (at / "config").write_text(f'opam-version: "2.0"\nopam-root-version: "{fmt}"\n',
                                    encoding="utf-8")
@@ -533,30 +553,22 @@ def _hard_upgrade_is_read_from_the_root() -> None:
                           for name in archives)
         (at / "repo" / "repos-config").write_text(
             f'opam-version: "2.0"\nrepositories: [\n{listing}]\n', encoding="utf-8")
-        for name, members in archives.items():
-            if members is None:
-                continue
-            with tarfile.open(at / "repo" / f"{name}.tar.gz", "w:gz") as archive:
-                for member_name, kind in members:
-                    member = tarfile.TarInfo(member_name)
-                    member.type = kind
-                    data = b"x" if kind == regular else b""
-                    member.size = len(data)
-                    if kind == link:
-                        member.linkname = "elsewhere"
-                    archive.addfile(member, io.BytesIO(data))
+        for name, stream in archives.items():
+            if stream is not None:
+                (at / "repo" / f"{name}.tar.gz").write_bytes(gzip.compress(stream))
         return at
 
-    nested = (("default/", folder), ("default/repo", regular))
-    flat = (("packages/", folder), ("packages/p/p.1/opam", regular), ("repo", regular))
-    cases: tuple[tuple[str, str, dict[str, tuple[tuple[str, bytes], ...] | None], bool],
-                 ...] = (
+    nested = tar(node("default/"), reg("default/repo"))
+    flat = tar(node("packages/"), reg("packages/p/p.1/opam"), reg("repo"))
+    link_led = tar(node("x", tarfile.SYMTYPE), reg("default/repo"))
+    cases: tuple[tuple[str, str, dict[str, bytes | None], bool], ...] = (
         ("older than 2.0~beta5", "2.0~beta", {"default": None}, True),
+        ("the first 2.1 prerelease", "2.1~alpha", {"default": None}, True),
         ("an early 2.1 prerelease", "2.1~alpha2", {"default": None}, True),
-        ("older than 2.0~beta5, a link-led archive", "2.0~beta",
-         {"default": (("x", link), ("default/repo", regular))}, False),
+        ("older than 2.0~beta5, a link-led archive", "2.0~beta", {"default": link_led},
+         False),
         ("an early 2.1 prerelease, a link-led archive", "2.1~alpha2",
-         {"default": (("x", link), ("default/repo", regular))}, False),
+         {"default": link_led}, False),
         ("the 2.1 release candidate", "2.1~rc", {"default": None}, False),
         ("a nested archive", "2.2", {"default": nested}, True),
         ("unpacked repositories", "2.2", {"default": None}, False),
@@ -564,24 +576,34 @@ def _hard_upgrade_is_read_from_the_root() -> None:
         ("a nested archive at 2.6~alpha", "2.6~alpha", {"default": nested}, False),
         ("a nested archive in the reviewed format", opam_client.OPAM_ROOT_FORMAT,
          {"default": nested}, False),
-        ("a dotted flat name", "2.2", {"default": (("./repo", regular),)}, False),
-        ("a dotted package name", "2.2", {"default": (("./packages/p/opam", regular),)},
+        ("a dotted flat name", "2.2", {"default": tar(reg("./repo"))}, False),
+        ("a dotted package name", "2.2", {"default": tar(reg("./packages/p/opam"))},
          False),
-        ("a regular file named packages", "2.2", {"default": (("packages", regular),)},
-         True),
-        ("a name ending in a slash", "2.2",
-         {"default": (("default/x/", regular), ("repo", regular))}, False),
-        ("a link first", "2.2", {"default": (("x", link), ("default/repo", regular))},
+        ("a regular file named packages", "2.2", {"default": tar(reg("packages"))}, True),
+        # ocaml-tar reads a regular member named with a slash as a directory, and an
+        # empty one is passed over as a directory is
+        ("an empty regular member named with a slash", "2.2",
+         {"default": tar(reg("default/x/", b""), reg("default/repo"))}, True),
+        ("a link first", "2.2", {"default": link_led}, False),
+        ("a hard link first", "2.2",
+         {"default": tar(node("x", tarfile.LNKTYPE), reg("default/repo"))}, False),
+        ("a character device first", "2.2",
+         {"default": tar(node("x", tarfile.CHRTYPE), reg("default/repo"))}, False),
+        ("a block device first", "2.2",
+         {"default": tar(node("x", tarfile.BLKTYPE), reg("default/repo"))}, False),
+        ("a FIFO first", "2.2",
+         {"default": tar(node("x", tarfile.FIFOTYPE), reg("default/repo"))}, False),
+        ("an absolute name first", "2.2", {"default": tar(reg("/x"), reg("default/repo"))},
          False),
-        ("a climbing name first", "2.2", {"default": (("../repo", regular),)}, False),
-        ("an archive with no regular file", "2.2", {"default": (("default/", folder),)},
+        ("a climbing name first", "2.2", {"default": tar(reg("../repo"))}, False),
+        ("an archive with no regular file", "2.2", {"default": tar(node("default/"))},
          False),
         ("a flat archive, then a nested one", "2.2", {"a": flat, "b": nested}, True),
         ("a link-led archive, then a nested one", "2.2",
-         {"a": (("x", link),), "b": nested}, False),
+         {"a": tar(node("x", tarfile.SYMTYPE)), "b": nested}, False),
         # listed first, so the client's map visits it first, though it sorts last
         ("a link-led archive listed before a nested one", "2.2",
-         {"b": (("x", link),), "a": nested}, False))
+         {"b": tar(node("x", tarfile.SYMTYPE)), "a": nested}, False))
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         for index, (what, fmt, archives, hard) in enumerate(cases):
             root = root_at(Path(td) / str(index), fmt, archives)
