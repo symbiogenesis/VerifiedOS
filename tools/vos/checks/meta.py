@@ -177,17 +177,19 @@ fifth class opened that way are each a finding rather than a class this rule sto
 never starts reading, and so is a `Where the set is` anywhere in the section, one
 wrapped across a line, spaced apart or set in underscore italics included, that opens no
 class in that form. So is any `which is what` or `that is what` in the section, in any
-letter case or spacing and followed by a rule id past nothing but whitespace, emphasis,
-a code span's backtick or a link's bracket, that the reading does not take, one in
-underscore italics, wrapped across a line, spaced apart, in capitals, or listing its ids
-in a code span, emphasis or a link included, so no list the section names goes unread.
-What that reading does not reach is a class introduced in some other sentence form: it
-is read as part of the class before it, or as part of no class ahead of the first, and
-is caught only where it carries a membership sentence of its own, that sentence then
-being a class's second, one standing ahead of every class, or one in a form the reading
-does not take. A list is decided whole by a grammar of ids, `K-a through K-b` ranges,
-commas and `and`, and a range expands over the active rows whose numbers it spans, so a
-struck row inside one is skipped rather than placed.
+letter case or spacing and followed by a rule id past nothing but whitespace,
+punctuation or markup short of a full stop, that the reading does not take, one in
+underscore italics, wrapped across a line, spaced apart, in capitals, or listing its
+ids in a code span, emphasis, strikethrough, parentheses or a link included; a
+membership sentence in other words, `which is exactly what` or one with a word before
+its first id, is read as prose, which is the residue. What that reading does not reach
+is a class introduced in some other sentence form: it is read as part of the class
+before it, or as part of no class ahead of the first, and is caught only where it
+carries a membership sentence of its own, that sentence then being a class's second,
+one standing ahead of every class, or one in a form the reading does not take. A list
+is decided whole by a grammar of ids, `K-a through K-b` ranges, commas and `and`, and a
+range expands over the active rows whose numbers it spans, so a struck row inside one
+is skipped rather than placed.
 
 **Fail-closed at every reading.** A missing section, a `Where the set is` that opens no
 class, a membership sentence in a form the reading does not take or ahead of the first
@@ -280,14 +282,17 @@ _CLASS_OPEN_RE = re.compile(
 # than a list cut short at it. Ids admit the letter suffix, so a suffixed id is named and
 # resolved rather than making the sentence unreadable. The finder is wider, the three
 # words in any letter case with any whitespace between them, a line break included, then
-# an id past any whitespace, emphasis, code-span backtick or link bracket, and only a
-# letter or digit before them refused, so a membership sentence set in underscore
-# italics, wrapped, spaced apart, in capitals or listing its ids in markup is found and,
-# read by no class, is a finding rather than a list the section names and nothing reads.
-# Prose such as `which is what separates` carries no id and is not found.
+# an id past nothing but whitespace, punctuation or markup short of a full stop, and only
+# a letter or digit before them refused, so a membership sentence set in underscore
+# italics, wrapped, spaced apart, in capitals or listing its ids in markup, strikethrough
+# or parentheses is found and, read by no class, is a finding rather than a list the
+# section names and nothing reads. Prose such as `which is what separates` reaches a
+# word before any id and is not found, and neither is an id opening the next sentence; a
+# membership sentence in other words, `which is exactly what` or one with a word before
+# its first id, is read as prose, which is the residue.
 _MEMBERS_RE = re.compile(r"\b(?:[Ww]hich|[Tt]hat) is what (K-[\w ,-]*?) are\b")
 _MEMBERS_FIND_RE = re.compile(
-    r"(?<![^\W_])(?:which|that)\s+is\s+what[\s*_`\[]*K-\d", re.IGNORECASE)
+    r"(?<![^\W_])(?:which|that)\s+is\s+what(?:[^\w.]|_)*K-\d", re.IGNORECASE)
 _CLASS_ID = r"K-\d{2,3}[a-z]?"
 _CLASS_ITEM = rf"{_CLASS_ID}(?: through {_CLASS_ID})?"
 _CLASS_ITEM_RE = re.compile(rf"({_CLASS_ID})(?: through ({_CLASS_ID}))?")

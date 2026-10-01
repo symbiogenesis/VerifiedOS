@@ -545,11 +545,12 @@ def _k119(name: str = _K119_NAME, computed: str = _K119_COMPUTED,
 
 def _k119_each_rule_in_one_class_passes() -> None:
     # an italic word between the lead and the bold name is crossed rather than read as
-    # the end of the lead's reach, and a `which is what` naming no rule is prose rather
-    # than a membership sentence
+    # the end of the lead's reach, and a `which is what` naming no rule before a word or
+    # a full stop is prose rather than a membership sentence
     for name in (_K119_NAME, _K119_NAME.replace("by **name**", "by *exact* **name**"),
                  _K119_NAME.replace("it resolves,", "it resolves, which is what separates "
-                                                    "it from a pattern,")):
+                                                    "it from a pattern,"),
+                 _K119_NAME.replace("it resolves,", "it says which is what. K-02 resolves,")):
         found, out = _k119(name=name)
         ensure(not found, f"every active rule named once is clean: {found!r}")
         ensure("ok K-119: each of the registry's 7 rules is named under exactly one of the "
@@ -736,6 +737,8 @@ def _k119_every_membership_sentence_is_read() -> None:
             {"total": _K119_TOTAL + " The rest, which is what **K-07** are, narrow nothing."},
             {"total": _K119_TOTAL + " The rest, which is what [K-07](#k-07) are, narrow "
                                     "nothing."},
+            {"total": _K119_TOTAL + " The rest, which is what ~~K-07~~ are, narrow nothing."},
+            {"total": _K119_TOTAL + " The rest, which is what (K-07) are, narrow nothing."},
             {"total": _K119_TOTAL + " WHICH IS WHAT K-07 ARE."},
             {"heading": meta.REACH_HEADING
              + "\n\nThe marker rules come first, _that is what K-05 are_."}):
