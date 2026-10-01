@@ -41,7 +41,7 @@ Fixpoint residency_max (ps : list ResidencyCase) : nat :=
   end.
 
 Definition boundary_nonempty (b : BoundaryInputs) : bool :=
-  match residency_cases b with nil => false | cons _ _ => true end.
+  if residency_cases b is nil then false else true.
 
 Definition full_switch_cost (m : Machine) (b : BoundaryInputs) : nat :=
   switch_cost m + context_cost b.
@@ -65,32 +65,32 @@ Definition ResidencyRefines (b : BoundaryInputs)
 
 (* Prelude-only arithmetic, with a prefix to avoid shadowing consumers. *)
 Lemma bc_leb_refl : forall n : nat, Nat.leb n n = true.
-Proof. induction n; simpl; [reflexivity | exact IHn]. Qed.
+Proof. induction n as [|n IHn]; simpl; [reflexivity | exact IHn]. Qed.
 
 Lemma bc_leb_trans : forall a b c : nat,
   Nat.leb a b = true -> Nat.leb b c = true -> Nat.leb a c = true.
 Proof.
-  induction a; intros b c Hab Hbc; [reflexivity |].
-  destruct b; [discriminate Hab |]. destruct c; [discriminate Hbc |].
+  induction a as [|a IHa]; intros b c Hab Hbc; [reflexivity |].
+  destruct b as [|b]; [discriminate Hab |]. destruct c as [|c]; [discriminate Hbc |].
   simpl in *. exact (IHa b c Hab Hbc).
 Qed.
 
 Lemma bc_add_zero : forall a : nat, a + 0 = a.
-Proof. induction a; simpl; [reflexivity | rewrite IHa; reflexivity]. Qed.
+Proof. induction a as [|a IHa]; simpl; [reflexivity | rewrite IHa; reflexivity]. Qed.
 
 Lemma bc_add_succ : forall a b : nat, a + S b = S (a + b).
-Proof. induction a; intros b; simpl; [reflexivity | rewrite IHa; reflexivity]. Qed.
+Proof. induction a as [|a IHa]; intros b; simpl; [reflexivity | rewrite IHa; reflexivity]. Qed.
 
 Lemma bc_add_comm : forall a b : nat, a + b = b + a.
 Proof.
-  induction a; intros b; simpl.
+  induction a as [|a IHa]; intros b; simpl.
   - rewrite bc_add_zero. reflexivity.
   - rewrite IHa, bc_add_succ. reflexivity.
 Qed.
 
 Lemma bc_add_left : forall k a b : nat,
   Nat.leb a b = true -> Nat.leb (k + a) (k + b) = true.
-Proof. induction k; intros a b H; simpl; [exact H | apply IHk; exact H]. Qed.
+Proof. induction k as [|k IHk]; intros a b H; simpl; [exact H | apply IHk; exact H]. Qed.
 
 Lemma bc_add_mono : forall a b c d : nat,
   Nat.leb a b = true -> Nat.leb c d = true ->
@@ -105,13 +105,13 @@ Qed.
 
 Lemma bc_max_left : forall a b : nat, Nat.leb a (Nat.max a b) = true.
 Proof.
-  induction a; intros b; [reflexivity |].
+  induction a as [|a IHa]; intros b; [reflexivity |].
   destruct b; simpl; [apply bc_leb_refl | apply IHa].
 Qed.
 
 Lemma bc_max_right : forall a b : nat, Nat.leb b (Nat.max a b) = true.
 Proof.
-  induction a; intros b; simpl; [apply bc_leb_refl |].
+  induction a as [|a IHa]; intros b; simpl; [apply bc_leb_refl |].
   destruct b; simpl; [reflexivity | apply IHa].
 Qed.
 
@@ -119,7 +119,7 @@ Lemma bc_max_upper : forall a b c : nat,
   Nat.leb a c = true -> Nat.leb b c = true ->
   Nat.leb (Nat.max a b) c = true.
 Proof.
-  induction a; intros b c Ha Hb; simpl; [exact Hb |].
+  induction a as [|a IHa]; intros b c Ha Hb; simpl; [exact Hb |].
   destruct c; [discriminate Ha |]. destruct b; simpl; [exact Ha |].
   apply IHa; assumption.
 Qed.
@@ -127,9 +127,9 @@ Qed.
 Lemma bc_sub_padding : forall elapsed bound : nat,
   Nat.leb elapsed bound = true -> elapsed + (bound - elapsed) = bound.
 Proof.
-  induction elapsed; intros bound H.
+  induction elapsed as [|elapsed IHelapsed]; intros bound H.
   - destruct bound; reflexivity.
-  - destruct bound; [discriminate H |]. simpl in *.
+  - destruct bound as [|bound]; [discriminate H |]. simpl in *.
     rewrite (IHelapsed bound H). reflexivity.
 Qed.
 
