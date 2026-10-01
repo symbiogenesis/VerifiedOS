@@ -40,6 +40,7 @@ into it, and `wait` blocks on that lock rather than on a marker or on a sleep.
 
 import argparse
 import errno
+import fnmatch
 import hashlib
 import json
 import os
@@ -53,7 +54,7 @@ import time
 import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import IO, NamedTuple, cast
 
 from vos import (
@@ -418,7 +419,8 @@ def verify_test_corpus(suite: Path, tarball_sha256: str) -> VerifiedSuite:
     The answer is what a reader after the verification goes by, rather than the tree's
     names, which can change once it returns: the seeding copies only the files it
     lists, each while it is still the file that verified, and writes their manifest
-    from the bytes that verified.
+    from the bytes that verified; the sweep, trace-diff and the build receipt choose
+    their inputs from the files it lists, and the receipt records the digests it read.
     """
     manifest = corpus_manifest(suite)
     if suite.is_symlink() or not suite.is_dir():
@@ -464,9 +466,9 @@ def verify_test_corpus(suite: Path, tarball_sha256: str) -> VerifiedSuite:
     return VerifiedSuite(suite, recorded, files)
 
 
-def _test_corpus(directory: Path, model_root: Path) -> Path:
+def _test_corpus(directory: Path, model_root: Path) -> VerifiedSuite:
     """Select the declared release even when older or newer donor caches coexist, and
-    only a suite that is the verified extraction its manifest records."""
+    only a suite that is the verified extraction its manifest records, as it verified."""
     version = test_corpus_version(model_root)
     suite = directory / "test" / version / "riscv-tests"
     if not suite.is_dir():
@@ -474,39 +476,52 @@ def _test_corpus(directory: Path, model_root: Path) -> Path:
     digest = test_corpus_digests(model_root, version).get("riscv-tests")
     if digest is None:
         raise ValueError(f"the model records no riscv-tests digest at release {version}")
-    verify_test_corpus(suite, digest)
-    return suite
+    return verify_test_corpus(suite, digest)
+
+
+def _verified_inputs(verified: VerifiedSuite, pattern: str) -> dict[Path, str]:
+    """The files at the top of `verified`'s suite whose names match the glob `pattern`,
+    other than the `.dump` disassemblies beside them, in path order, each with the
+    SHA-256 its verification read. They are chosen from what verified rather than from
+    the tree as it stands, so an entry added after the verification is not among them,
+    and none is read again to choose it."""
+    chosen = {verified.suite / relative: hashed.digest
+              for relative, hashed in verified.files.items()
+              if "/" not in relative and fnmatch.fnmatchcase(relative, pattern)
+              and PurePosixPath(relative).suffix != ".dump"}
+    return dict(sorted(chosen.items()))
+
+
+def _sweep_corpus(directory: Path, model_root: Path, xlen: str = "64") -> dict[Path, str]:
+    """The nonempty physical-variant suite selected by both the runner and its receipt,
+    each input with the SHA-256 its suite's verification read."""
+    verified = _test_corpus(directory, model_root)
+    elves = _verified_inputs(verified, f"rv{xlen}*-p-*")
+    if not elves:
+        raise ValueError(f"no rv{xlen} physical-variant ELF inputs under {verified.suite}")
+    return elves
 
 
 def build_artifacts(directory: Path, model_root: Path) -> dict[str, str]:
     """Build products and the exact downloaded ELF inputs the profile sweep consumes.
 
-    The inputs are read after `sweep_inputs` has verified their suite, so each is
-    hashed through `_regular_digest` under the name `receipts.snapshot` gives the
-    products: an input replaced since by a FIFO, a device or a link is refused with a
-    `ValueError`, which the build records as its receipt's refusal, rather than waited
-    on or read without end.
+    Each input is recorded, under the name `receipts.snapshot` gives the products, with
+    the SHA-256 its suite's verification read through a descriptor that is a regular
+    file, and is not read again: an input replaced or added once the suite verified
+    changes nothing recorded here, and the next verification, `verified_build`'s among
+    them, refuses the suite.
     """
-    inputs = sweep_inputs(directory, model_root)
+    inputs = _sweep_corpus(directory, model_root)
     recorded = receipts.snapshot(directory, [directory / rel for rel in BUILD_ARTIFACTS])
     base = directory.resolve()
-    for path in inputs:
-        hashed = _regular_digest(path)
-        if hashed is None:
-            raise ValueError(f"{path} is not a regular file; the test corpus changed after "
-                             "it verified")
-        recorded[path.resolve().relative_to(base).as_posix()] = hashed.digest
+    for path, digest in inputs.items():
+        recorded[(path.parent.resolve() / path.name).relative_to(base).as_posix()] = digest
     return dict(sorted(recorded.items()))
 
 
 def sweep_inputs(directory: Path, model_root: Path, xlen: str = "64") -> list[Path]:
     """The nonempty physical-variant suite selected by both the runner and its receipt."""
-    suite = _test_corpus(directory, model_root)
-    elves = [path for path in sorted(suite.glob(f"rv{xlen}*-p-*"))
-             if path.is_file() and path.suffix != ".dump"]
-    if not elves:
-        raise ValueError(f"no rv{xlen} physical-variant ELF inputs under {suite}")
-    return elves
+    return list(_sweep_corpus(directory, model_root, xlen))
 
 
 def verified_build(e: env.Environment, *, fast: bool = False) -> dict[str, object]:
@@ -1916,12 +1931,11 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
     elves = [Path(p) for p in args.elf]
     if args.corpus:
         try:
-            suite = _test_corpus(e.build_dir, e.model)
+            verified = _test_corpus(e.build_dir, e.model)
         except ValueError as err:
             print(str(err), file=sys.stderr)
             return 1
-        elves = sorted(p for p in suite.glob("rv64ui-p-*")
-                       if p.is_file() and p.suffix != ".dump")
+        elves = list(_verified_inputs(verified, "rv64ui-p-*"))
     if not elves:
         print("nothing to compare: pass one or more ELFs, or --corpus", file=sys.stderr)
         return 1

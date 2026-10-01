@@ -15,6 +15,7 @@ and a case that decides the overlay decides nothing about whether the configure 
 it: the defect this repository met lived at this call and not one module over.
 """
 
+import argparse
 import hashlib
 import importlib.util
 import io
@@ -29,7 +30,14 @@ import tarfile
 import tempfile
 import threading
 from collections.abc import Callable, Iterator
-from contextlib import ExitStack, contextmanager, redirect_stderr, redirect_stdout, suppress
+from contextlib import (
+    ExitStack,
+    contextmanager,
+    nullcontext,
+    redirect_stderr,
+    redirect_stdout,
+    suppress,
+)
 from functools import partial
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -1072,10 +1080,18 @@ def _listing_refuses_a_fifo_its_check_by_name_missed() -> None:
         ensure("non-regular" in said, f"the suite is refused, got {said!r}")
 
 
+def _built_receipt() -> dict[str, str]:
+    """What the receipt records of `_built_tree`'s tree as it was built: every product,
+    and the one input under the name `receipts.snapshot` gives the products."""
+    product = hashlib.sha256(b"product").hexdigest()
+    return {**dict.fromkeys(_MODEL.BUILD_ARTIFACTS, product),
+            f"test/{_RELEASE}/riscv-tests/rv64ui-p-add": hashlib.sha256(b"\x7fELF").hexdigest()}
+
+
 def _built_tree(root: Path) -> tuple[Path, Path, Path]:
     """A build tree holding every build product and a sealed suite of one ELF input,
-    its model root, and the input; and the control on it: the receipt records the input
-    under the name `receipts.snapshot` gives the products."""
+    its model root, and the input; and the control on it: the receipt is
+    `_built_receipt`."""
     model_root = _corpus_model(root)
     build = root / "build"
     for rel in _MODEL.BUILD_ARTIFACTS:
@@ -1083,50 +1099,52 @@ def _built_tree(root: Path) -> tuple[Path, Path, Path]:
         (build / rel).write_bytes(b"product")
     elf = _extracted(build, {"rv64ui-p-add": b"\x7fELF"}) / "rv64ui-p-add"
     recorded = _MODEL.build_artifacts(build, model_root)
-    product = hashlib.sha256(b"product").hexdigest()
-    ensure(recorded == {**dict.fromkeys(_MODEL.BUILD_ARTIFACTS, product),
-                        f"test/{_RELEASE}/riscv-tests/rv64ui-p-add":
-                            hashlib.sha256(b"\x7fELF").hexdigest()},
+    ensure(recorded == _built_receipt(),
            f"control: the receipt records every product and the input, got {recorded}")
     return build, model_root, elf
 
 
-def _receipt_after(build: Path, model_root: Path, replace: Callable[[], object],
-                   unblock: Callable[[], None] | None = None) -> str:
-    """The refusal `build_artifacts` gives when `replace` runs once `sweep_inputs` has
-    verified the suite and selected its inputs, which is the window a check by name
-    does not close."""
-    select = _MODEL.sweep_inputs
-
-    def selected_then_replaced(directory: Path, root: Path, xlen: str = "64") -> list[Path]:
-        # cast because a module loaded from a path answers `Any` for every attribute
-        elves = cast("list[Path]", select(directory, root, xlen))
-        replace()
-        return elves
-
-    with patch.object(_MODEL, "sweep_inputs", selected_then_replaced):
-        return _refused(partial(_MODEL.build_artifacts, build, model_root), unblock)
-
-
-def _receipt_reads_only_regular_sweep_inputs() -> None:
-    """The build receipt reads each sweep input, after its suite verified, only through
-    a descriptor that is a regular file: an input that opens as a device is refused
-    with a `ValueError` naming it, which the build records as its receipt's refusal.
-    The device is simulated by `_os_with_a_device`, from the moment the inputs are
-    selected; the positive control is `_built_tree`'s receipt of the same tree."""
-    with tempfile.TemporaryDirectory(prefix="vos-test-") as td, ExitStack() as later:
+def _receipt_records_what_verified() -> None:
+    """The sweep and its build receipt take their inputs from what the suite's
+    verification found, and the receipt records each with the SHA-256 that verification
+    read rather than reading it again. An ELF added beside the input once the suite has
+    verified is neither swept nor recorded; an input that would open as a device then,
+    simulated by `_os_with_a_device`, is recorded as it verified, and is read once, by
+    the verification. The next verification refuses the suite the added ELF changed.
+    The control is `_built_tree`'s receipt."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         build, model_root, elf = _built_tree(Path(td))
+        late = elf.with_name("rv64ui-p-late")
+        add_late = partial(late.write_bytes, b"\x7fELF late")
+        with _changed_after_verifying(add_late):
+            selected = _MODEL.sweep_inputs(build, model_root)
+        ensure(selected == [elf], f"an ELF added once the suite verified is not swept, "
+                                  f"got {selected}")
+        late.unlink()
         device = _os_with_a_device(lambda path: path == str(elf))
-        said = _receipt_after(build, model_root,
-                              lambda: later.enter_context(patch.object(_MODEL, "os", device)))
-        ensure(f"{elf} is not a regular file" in said,
-               f"the receipt refuses the input, got {said!r}")
+        with ExitStack() as later:
+
+            def change() -> None:
+                add_late()
+                later.enter_context(patch.object(_MODEL, "os", device))
+
+            with (patch.object(_MODEL, "_regular_digest",
+                               wraps=_MODEL._regular_digest) as hashed,
+                  _changed_after_verifying(change)):
+                recorded = _MODEL.build_artifacts(build, model_root)
+        ensure(recorded == _built_receipt(),
+               f"the receipt records what verified and nothing added since, got {recorded}")
+        read = [Path(call.args[0]) for call in hashed.call_args_list]
+        ensure(read == [elf], f"the input is read once, by the verification, got {read}")
+        said = _refused(partial(_MODEL.build_artifacts, build, model_root))
+        ensure("disagrees" in said, f"the next verification refuses the suite, got {said!r}")
 
 
-def _receipt_refuses_a_fifo_sweep_input() -> None:
-    """A sweep input replaced by a real FIFO after its suite verified is refused by the
-    build receipt rather than waited on. POSIX-only, so the case is the guest's and
-    win32 is refused before `os.mkfifo`."""
+def _receipt_opens_no_sweep_input_after_verifying() -> None:
+    """A sweep input replaced by a real FIFO once its suite has verified is not opened
+    by the build receipt, which returns within `_returns`'s deadline recording the
+    bytes that verified; the next verification refuses the suite holding the FIFO.
+    POSIX-only, so the case is the guest's and win32 is refused before `os.mkfifo`."""
     if sys.platform == "win32":
         raise AssertionError("mkfifo is POSIX-only; the FIFO input case runs in the guest")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
@@ -1136,9 +1154,36 @@ def _receipt_refuses_a_fifo_sweep_input() -> None:
             elf.unlink()
             os.mkfifo(elf)
 
-        said = _receipt_after(build, model_root, replace, partial(_end_of_file, elf))
-        ensure(f"{elf} is not a regular file" in said,
-               f"the receipt refuses the input, got {said!r}")
+        recorded: list[object] = []
+        with _changed_after_verifying(replace):
+            _returns(lambda: recorded.append(_MODEL.build_artifacts(build, model_root)),
+                     partial(_end_of_file, elf))
+        ensure(recorded == [_built_receipt()],
+               f"the receipt records the bytes that verified, got {recorded}")
+        said = _refused(partial(_MODEL.build_artifacts, build, model_root),
+                        partial(_end_of_file, elf))
+        ensure("non-regular" in said, f"the next verification refuses the suite, got {said!r}")
+
+
+def _trace_diff_compares_what_verified() -> None:
+    """`trace-diff --corpus` compares the rv64ui programs its suite's verification
+    found, and not an ELF added beside them once the suite has verified. The oracle's
+    checks, its lock and the comparison stand in, so only the selection is decided."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        build, model_root, elf = _built_tree(Path(td))
+        late = elf.with_name("rv64ui-p-late")
+        e = SimpleNamespace(build_dir=build, model=model_root, oracle_root=Path(td) / "oracle")
+        unlocked = SimpleNamespace(hold_lock=lambda *_, **__: nullcontext())
+        with (patch.object(_MODEL, "_missing_simulator", return_value=None),
+              patch.object(_MODEL, "_missing_oracle", return_value=None),
+              patch.object(_MODEL, "_unvouched_oracle", return_value=None),
+              patch.object(_MODEL, "env", unlocked),
+              patch.object(_MODEL, "_adjudicate", return_value=0) as adjudicated,
+              _changed_after_verifying(partial(late.write_bytes, b"\x7fELF late"))):
+            code = _MODEL.cmd_trace_diff(e, argparse.Namespace(elf=[], corpus=True))
+        compared = adjudicated.call_args.args[2] if adjudicated.called else None
+        ensure(code == 0 and compared == [elf],
+               f"only the program that verified is compared, got {code} and {compared}")
 
 # The model's own declaration, whose two suite functions the case below cuts out and runs
 # under cmake, so what it holds is what configure runs rather than a copy of it.
@@ -1549,10 +1594,10 @@ def cases() -> list[Case]:
              _listing_hashes_only_regular_descriptors),
         Case("listing-refuses-a-fifo-its-check-by-name-missed",
              _listing_refuses_a_fifo_its_check_by_name_missed, lane="guest"),
-        Case("receipt-reads-only-regular-sweep-inputs",
-             _receipt_reads_only_regular_sweep_inputs),
-        Case("receipt-refuses-a-fifo-sweep-input", _receipt_refuses_a_fifo_sweep_input,
-             lane="guest"),
+        Case("receipt-records-what-verified", _receipt_records_what_verified),
+        Case("receipt-opens-no-sweep-input-after-verifying",
+             _receipt_opens_no_sweep_input_after_verifying, lane="guest"),
+        Case("trace-diff-compares-what-verified", _trace_diff_compares_what_verified),
 
         # Only where cmake is on PATH: the runner has no skipped verdict, and a case
         # that returned without cmake would pass having decided nothing.
