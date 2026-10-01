@@ -18,8 +18,9 @@ harnesses or a directory of its own, whether it compiles every proof source, as
 `seed coq`'s enumerative mode does for the `--file` its caller names and as
 `gallina.emit` does for the vector harnesses, and the proof sources it names itself, as
 the Rupicola lowering names its default owner. `seed coq --quickchick` compiles its
-harness's closure alone and refuses a subject outside it, so its row compiles no proof
-source past that closure. Each switch and release is the instrument's own constant,
+harness's closure alone and refuses a subject outside it, so its row holds that harness
+and the rig's support harnesses, each with its closure, which today lie inside the
+harness's. Each switch and release is the instrument's own constant,
 imported, or, where it has none to import, the literal in its own file, read by name out
 of that file's syntax tree, and so is a proof source the instrument names. The rows
 older than 9.3.0 decide the set, and each harness or named source brings its `Require`
