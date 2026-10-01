@@ -1326,10 +1326,10 @@ def _imports_close_what_ruff_leaves_open() -> None:
 # The program `_import_failures` runs in a child of the running interpreter: each module
 # the interpreter lists as its standard library, and each submodule of a package among
 # them that imports, imported in turn, then one line after `_PROBED`, a JSON object
-# naming each that fails with the module its ModuleNotFoundError could not find, or
-# null. The marker keeps the line apart from anything a module prints as it imports. A
-# `__main__` submodule runs a program, and the trees left out run one or open a browser
-# when imported.
+# naming each that fails with the module its ImportError names, or null where it names
+# none or the failure is another exception. The marker keeps the line apart from
+# anything a module prints as it imports. A `__main__` submodule runs a program, and the
+# trees left out run one or open a browser when imported.
 _PROBED = "vos-import-probe: "
 _IMPORT_PROBE = """\
 import importlib, json, pkgutil, sys
@@ -1347,7 +1347,7 @@ while queue:
     try:
         module = importlib.import_module(name)
     except BaseException as err:
-        failed[name] = err.name if isinstance(err, ModuleNotFoundError) else None
+        failed[name] = err.name if isinstance(err, ImportError) else None
         continue
     queue.extend(info.name for info in pkgutil.iter_modules(getattr(module, "__path__", []),
                                                             name + ".")
@@ -1357,7 +1357,8 @@ while queue:
 
 def _import_failures() -> dict[str, str | None]:
     """Each standard-library module or submodule the running interpreter cannot import,
-    with the module its failure could not find, or `None` for any other failure."""
+    with the module its ImportError names, or `None` where it names none or the failure
+    is another exception."""
     done = subprocess.run([sys.executable, "-B", "-I", "-c", _IMPORT_PROBE],
                           stdin=subprocess.DEVNULL, capture_output=True, encoding="utf-8",
                           errors="replace", check=False, timeout=typecheck.TIMEOUT)
@@ -1390,20 +1391,39 @@ def _ty_unresolved(modules: list[str]) -> set[str]:
     return {modules[int(text.partition(" ")[0].rsplit(":", 2)[1]) - 1] for _, text in found}
 
 
+# The standard-library packages no platform lacks that an installer may leave out or a
+# distribution ships apart from the rest, by top-level name, each with where. An
+# interpreter short of one is short of its build's standard library, not of a platform's.
+_TCL_TK = ("python.org's Windows installer makes Tcl/Tk optional, and Debian and Ubuntu "
+           "ship tkinter in the package python3-tk installs")
+_SEPARABLE = {"_tkinter": _TCL_TK, "tkinter": _TCL_TK,
+              "ensurepip": "Debian and Ubuntu ship ensurepip in python3.X-venv"}
+
+
 def _banned_list_covers_what_cannot_be_imported() -> None:
     # The list's claim, held on this lane: each standard-library module the running
     # interpreter cannot import, that the gate's ty resolves under both of its platforms,
-    # is covered by a listed name, itself or a parent. A module the build left out for
-    # want of an optional library, which configure records as missing or disabled, is the
-    # build's rather than the platform's. The Windows lane holds the half Windows lacks
-    # and the Linux lane the other. The control is that the search finds the best-known
-    # module this lane's platform lacks, so an empty search cannot pass for a clean one.
+    # is covered by a listed name, itself or a parent. A module whose failure names one
+    # configure records as built, missing or disabled, any state but n/a, is the build's
+    # rather than the platform's: one a build left out for want of an optional library,
+    # or one it built whose shared library is absent at run time. The Windows
+    # lane holds the half Windows lacks and the Linux lane the other. The control is that
+    # the search finds the best-known module this lane's platform lacks, so an empty
+    # search cannot pass for a clean one. The case decides the list only on an interpreter
+    # carrying its build's whole standard library, as the interpreters Host CI's
+    # setup-python installs do: a Windows build records no state, and a distribution
+    # ships some pure-Python packages apart, so an interpreter short of a package
+    # `_SEPARABLE` names fails the case as short of its library rather than asked to ban it.
     def omitted(missing: str | None) -> bool:
         return missing is not None and sysconfig.get_config_var(
-            f"MODULE_{missing.upper()}_STATE") in {"missing", "disabled"}
+            f"MODULE_{missing.upper()}_STATE") not in {None, "n/a"}
 
     def covered(name: str, listed: frozenset[str]) -> bool:
         return any(name == ban or name.startswith(ban + ".") for ban in listed)
+
+    def separated(name: str) -> list[str]:
+        roots = {module.partition(".")[0] for module in (name, failed[name]) if module}
+        return [_SEPARABLE[root] for root in sorted(roots) if root in _SEPARABLE]
 
     failed = _import_failures()
     candidates = sorted(name for name, missing in failed.items() if not omitted(missing))
@@ -1416,6 +1436,11 @@ def _banned_list_covers_what_cannot_be_imported() -> None:
     committed = Path(typecheck.__file__).resolve().parents[2] / "ruff.toml"
     banned, unread = typecheck._banned(committed)
     uncovered = [name for name in required if not covered(name, banned)]
+    apart = [name for name in uncovered if separated(name)]
+    ensure(not apart,
+           f"this interpreter lacks {apart!r}, which no platform lacks, so it does not carry "
+           f"its build's whole standard library and the case cannot decide the list on it: "
+           f"{'; '.join(sorted({why for name in apart for why in separated(name)}))}")
     ensure(not unread and not uncovered,
            f"ruff.toml must list each module this interpreter cannot import that ty "
            f"resolves under both platforms: {unread!r} {uncovered!r}")

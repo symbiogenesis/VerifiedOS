@@ -104,14 +104,20 @@ mypy-init-return = false
 # typeshed stubs it for both: neither ty run sees an import of one fail, and it fails at
 # run time on the platform that lacks it. A banned name covers its submodules. A module
 # ty resolves under neither platform, such as `_overlapped` or `_posixshmem`, is ty's own
-# `unresolved-import` finding and is not listed, and a module a build leaves out for want
-# of an optional library, which configure records as missing or disabled, is the build's
-# rather than the platform's and is not listed either. `tests/test_typecheck.py` holds
+# `unresolved-import` finding and is not listed, and a module whose import fails for want
+# of one configure records as built, missing or disabled, any state but n/a, one a build
+# left out for want of an optional library or whose shared library is absent at run
+# time, is the build's rather than the platform's and is not listed either. `tests/test_typecheck.py` holds
 # the list on each lane against every standard-library module and submodule the running
 # interpreter cannot import, under the gate's own ty runs, so the Windows lane holds the
-# half Windows lacks and the Linux lane the other. TID253 refuses an unnested module-level
-# import of a listed module, and `vos/cli/typecheck.py` reads this list and refuses one
-# anywhere else outside a function body unless an enclosing `if` reads `sys.platform`.
+# half Windows lacks and the Linux lane the other. It decides the list only on an
+# interpreter carrying its build's whole standard library, as the interpreters Host CI's
+# setup-python installs do: on one short of tkinter, which python.org's Windows installer
+# makes optional and Debian and Ubuntu ship apart, or of ensurepip, which Debian and
+# Ubuntu ship apart too, it fails as short of that library rather than asking for a ban.
+# TID253 refuses an unnested module-level import of a listed module, and
+# `vos/cli/typecheck.py` reads this list and refuses one anywhere else outside a function
+# body unless an enclosing `if` reads `sys.platform`.
 banned-module-level-imports = [
     # Windows lacks these.
     "_curses", "_curses_panel", "_dbm", "_gdbm", "_posixsubprocess", "asyncio.unix_events",
