@@ -447,7 +447,9 @@ def _native_lock_replaced_late() -> None:
 # _LINUX_CAPABILITY_VERSION_3, whose data is two (effective, permitted, inheritable)
 # triples of 32-bit words, capabilities 0 to 31 first; an unprivileged runner holds
 # neither bit. The child then seals a lane directory holding a producer's held lock and
-# reports the checkout walk's and retirement's verdicts.
+# reports the checkout walk's and retirement's verdicts, then seals an oracle edition
+# directory holding an oracle build's held lock and reports retirement's verdict on a
+# lane whose oracle log would move.
 _UNLISTABLE_PROBE = """
 import ctypes
 import fcntl
@@ -503,6 +505,28 @@ finally:
         if path.is_dir():
             path.chmod(0o755)
     os.close(producer)
+edition = build / f"sail-{retire.env.SAIL_VERSION}"
+edition.mkdir()
+log = logs / "oracle-build-oracle.log"
+log.write_text("oracle", encoding="utf-8")
+lock = retire.env._lock_path(edition / retire.env.ORACLE_TREE)
+lock.write_text("", encoding="utf-8")
+builder = os.open(lock, os.O_RDONLY)
+fcntl.flock(builder, fcntl.LOCK_EX | fcntl.LOCK_NB)
+edition.chmod(0)
+try:
+    try:
+        os.listdir(edition)
+        found["edition-control"] = "listed"
+    except PermissionError:
+        found["edition-control"] = "unlistable"
+    with patch.object(retire.env, "filesystem", return_value="ext4"):
+        found["oracle"] = outcome(lambda: retire.retain_native("oracle", str(build / "lane-oracle"),
+                                                               str(logs), "9" * 20))
+    found["oracle-log-in-place"] = log.is_file()
+finally:
+    edition.chmod(0o755)
+    os.close(builder)
 print(json.dumps(found))
 """
 
@@ -510,7 +534,9 @@ print(json.dumps(found))
 def _native_unlistable_directory() -> None:
     """A directory the walk cannot list may hold a nested repository or a producer's
     lock, so the checkout walk and the native selection refuse it, naming it, rather
-    than passing over it and moving a lane whose lock is held."""
+    than passing over it and moving a lane whose lock is held; an oracle edition
+    directory the family's selection cannot list refuses the same way, and the lane's
+    oracle log stays in place."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as work:
         done = subprocess.run([sys.executable, "-c", _UNLISTABLE_PROBE, work],
                               capture_output=True, encoding="utf-8", errors="replace",
@@ -523,6 +549,12 @@ def _native_unlistable_directory() -> None:
                and str(found[key]).endswith("/lane-worker/sealed (Permission denied)"),
                f"the {key} walk refuses naming the unlistable directory, got {found[key]}")
     ensure(found["in-place"], f"a lane with an unlistable directory stays in place, got {found}")
+    ensure(found["edition-control"] == "unlistable",
+           f"precondition: the probe cannot list the oracle edition directory, got {found}")
+    ensure(str(found["oracle"]).startswith("refused: directory cannot be listed: ")
+           and str(found["oracle"]).endswith(f"/build/sail-{retire.env.SAIL_VERSION} (Permission denied)")
+           and found["oracle-log-in-place"],
+           f"the oracle family's selection refuses naming the unlistable edition, got {found}")
 
 
 def _venv_links_and_target_locks() -> None:

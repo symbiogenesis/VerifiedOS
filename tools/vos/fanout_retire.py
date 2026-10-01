@@ -2,6 +2,7 @@
 """Retire explicitly handed-off lanes, retaining outputs before non-forced removal."""
 
 import contextlib
+import fnmatch
 import hashlib
 import json
 import os
@@ -90,6 +91,18 @@ def _clean(path: Path) -> None:
 def _unlistable(error: OSError) -> NoReturn:
     raise RetirementError(f"directory cannot be listed: {error.filename} "
                           f"({error.strerror or error})") from error
+
+
+def _entries(directory: Path) -> list[str]:
+    """The names `directory` holds: none when it is absent or not a directory, which
+    holds no lock, and a refusal naming it and the cause when it cannot be listed."""
+    try:
+        with os.scandir(directory) as found:
+            return [entry.name for entry in found]
+    except (FileNotFoundError, NotADirectoryError):
+        return []
+    except OSError as error:
+        _unlistable(error)
 
 
 def _tree_safe(path: Path, *, checkout: bool = False) -> list[Path]:
@@ -371,13 +384,22 @@ def _native_locks(targets: list[tuple[Path, Path]], source: Path, *, oracle: boo
     # the oracle pin under a directory keyed by the Sail edition, and the log's name
     # carries neither, so a log another checkout wrote is covered only by holding the
     # lock of every tree of the family, under every edition and at the unkeyed
-    # spelling earlier checkouts locked, whichever pin it names.
+    # spelling earlier checkouts locked, whichever pin it names. Names match
+    # case-sensitively, and a linked edition is listed through its link, whose locks
+    # `_plain` then refuses. `Path.glob` passes over a directory it cannot list, and
+    # the locks in it, so each directory is listed by `_entries`, which refuses.
     if oracle:
-        family = env.ORACLE_TREE.rsplit("-", 1)[0]
-        for oracle_lock in (*source.parent.glob(f"sail-*/{family}-*.lock"),
-                            *source.parent.glob(f"{family}-*.lock")):
-            if oracle_lock.exists() or oracle_lock.is_symlink():
-                lock_paths.add(oracle_lock)
+        family, build = env.ORACLE_TREE.rsplit("-", 1)[0], source.parent
+        names = _entries(build)
+        listed = [(build, names)]
+        listed.extend((build / name, _entries(build / name)) for name in names
+                      if fnmatch.fnmatchcase(name, "sail-*"))
+        for directory, found in listed:
+            for name in found:
+                oracle_lock = directory / name
+                if fnmatch.fnmatchcase(name, f"{family}-*.lock") and (
+                        oracle_lock.exists() or oracle_lock.is_symlink()):
+                    lock_paths.add(oracle_lock)
     return lock_paths
 
 
