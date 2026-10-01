@@ -1029,7 +1029,7 @@ def _run_imports(rep: Reporter, root: Path, tracked: frozenset[str]) -> None:
             elif running in site.reach and (unfound := _unfound(site.names)):
                 findings.append(
                     f"{module}:{site.line} imports {', '.join(unfound)} outside a function "
-                    f"body, behind {behind}, which {running} takes and where this "
+                    f"body, behind {behind}, on a branch {running} takes, where this "
                     "interpreter cannot find it")
     rep.report("imports", "import(s) of a module ruff.toml bans at module level outside a "
                "function body:", findings,

@@ -1444,19 +1444,20 @@ def _imports_admitted_in_functions_and_platform_blocks() -> None:
 
 
 def _missing(site: str, test: str, names: str, platform: str) -> str:
-    return (f"       {site} imports {names} outside a function body, behind `{test}`, which "
-            f"{platform} takes and where this interpreter cannot find it")
+    return (f"       {site} imports {names} outside a function body, behind `{test}`, on a "
+            f"branch {platform} takes, where this interpreter cannot find it")
 
 
 def _imports_refused_where_the_running_platform_lacks_them() -> None:
     # Keeping an import from one platform does not say which platform has the module, so
     # on each lane an import the running platform reaches is refused where this
-    # interpreter cannot find its top-level module, naming the test that lets it through,
-    # in a class body as at module level. The same import kept to the other platform is
-    # admitted, and so are one of a module the interpreter finds and one of a submodule
-    # whose package it finds, which this reading does not catch. With modules no
-    # interpreter finds, the refusal follows the running platform: each of the two
-    # refuses the import it reaches, and a platform outside them refuses neither.
+    # interpreter cannot find its top-level module, naming the nearest test reading
+    # `sys.platform`, whose body or `else` the running platform takes, in a class body as
+    # at module level. The same import kept to the other platform is admitted, and so are
+    # one of a module the interpreter finds and one of a submodule whose package it
+    # finds, which this reading does not catch. With modules no interpreter finds, the
+    # refusal follows the running platform: each of the two refuses the import it
+    # reaches, and a platform outside them refuses neither.
     config = ('[lint.flake8-tidy-imports]\nbanned-module-level-imports = ["fcntl", "msvcrt", '
               '"asyncio.unix_events", "asyncio.windows_events", "vosnolinux", "vosnowin32"]\n')
     running = sys.platform
@@ -1464,6 +1465,8 @@ def _imports_refused_where_the_running_platform_lacks_them() -> None:
     submodule = "asyncio.unix_events" if running == "win32" else "asyncio.windows_events"
     modules = {
         "wrongside.py": f"import sys\n\nif sys.platform == {running!r}:\n    import {lacking}\n",
+        "elseside.py": (f"import sys\n\nif sys.platform != {running!r}:\n    pass\nelse:\n"
+                        f"    import {lacking}\n"),
         "classside.py": (f"import sys\n\nclass Locks:\n    if sys.platform.startswith("
                          f"{running[:3]!r}):\n        from {lacking} import flags\n"),
         "rightside.py": f"import sys\n\nif sys.platform != {running!r}:\n    import {lacking}\n",
@@ -1471,10 +1474,11 @@ def _imports_refused_where_the_running_platform_lacks_them() -> None:
         "submodule.py": f"import sys\n\nif sys.platform == {running!r}:\n    import {submodule}\n",
     }
     rep = _scan(modules, config)
-    ensure(rep.findings == 2 and rep.out == [
-        f"FAIL imports: 2 {_SCAN_FAIL}",
+    ensure(rep.findings == 3 and rep.out == [
+        f"FAIL imports: 3 {_SCAN_FAIL}",
         _missing("classside.py:5", f"sys.platform.startswith({running[:3]!r})", lacking,
                  running),
+        _missing("elseside.py:6", f"sys.platform != {running!r}", lacking, running),
         _missing("wrongside.py:4", f"sys.platform == {running!r}", lacking, running)],
         f"an import this platform reaches of a module it lacks must be refused: {rep.out!r}")
     lanes = {"lanes.py": ("import sys\n\nif sys.platform == 'linux':\n    import vosnolinux\n"
