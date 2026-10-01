@@ -156,7 +156,8 @@ def initialize_repositories(opam: Path, log: IO[str]) -> str:
     initialized on its default repository with the rest added unselected, each switch
     naming the repositories it resolves from; `finished` by the route's remaining steps,
     `opam_client.remaining_route`, never `opam init` over it, where `root_resumable`
-    reads a root in the shape the route's leading steps leave; and `kept` where
+    reads a root in the shape the route's leading steps leave, one whose last addition
+    was stopped during its fetch among them; and `kept` where
     a root stands complete, the reviewed client's format with exactly the owner's
     repositories at their URLs and every stamp read, as one the route made.
 

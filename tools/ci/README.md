@@ -62,7 +62,9 @@ Sail probe stops before building Rocq or Verilator. A repeatable `--toolchain` o
 selects `sail` (with its solver), `rocq` or `rtl`. The default installs all three in
 that order. Bootstrap creates its opam root by the owner's root-creation route where
 none stands, and finishes one in the shape the route's leading steps leave by running
-the route's remaining steps, never `opam init` over it. It keeps a root that stands
+the route's remaining steps, never `opam init` over it. That shape includes a root
+whose `repository add` was stopped during its fetch, which leaves the repository
+configured but unfetched; the same step run again fetches it. It keeps a root that stands
 complete, in the reviewed client's format with exactly the owner's repositories at
 their URLs and every metadata stamp read, without running the route over it, because
 the reviewed client's `repository add`

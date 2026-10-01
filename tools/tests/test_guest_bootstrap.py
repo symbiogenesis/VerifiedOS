@@ -478,9 +478,9 @@ def _complete_root_is_kept() -> None:
 
 
 def _resumable_root_is_finished() -> None:
-    """A root in the shape the route's leading steps leave is finished by the route's
-    remaining steps, which never run `opam init` over it and fetch only the
-    repositories they add."""
+    """A root in the shape the route's leading steps leave, one whose last addition was
+    stopped during its fetch among them, is finished by the route's remaining steps,
+    which never run `opam init` over it and fetch only the repositories they add."""
     owned = bootstrap.opam_client.OPAM_REPOSITORIES
     default = owned[0][0]
     finished = _stamped("fetched") | {default: f"{default}-restored"}
@@ -495,6 +495,16 @@ def _resumable_root_is_finished() -> None:
     ensure(run.record["opam_repositories"] == [
                {"name": name, "url": url, "stamp": finished[name]} for name, url in owned],
            f"the finished root's stamps are recorded, got {run.record.get('opam_repositories')}")
+    # An addition stopped during its fetch leaves its repository configured and unread;
+    # the same step run again fetches it.
+    stopped = _install_over(
+        lambda opam: opam_root(opam, "flat", {default: f"{default}-restored"}),
+        lambda opam: opam_root(opam, "flat", finished))
+    ensure(stopped.code == 0 and stopped.installed
+           and stopped.record["opam_root_action"] == "finished"
+           and stopped.opam_commands == list(bootstrap.opam_client.CREATE_ROOT[1:]),
+           f"a root whose addition stopped during its fetch is finished by adding it "
+           f"again, ran {stopped.opam_commands}, got {stopped.record}")
 
 
 def _incomplete_root_is_refused() -> None:

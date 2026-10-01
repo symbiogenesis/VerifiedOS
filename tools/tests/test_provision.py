@@ -308,6 +308,18 @@ def _opam_probe_holds_the_root() -> None:
                        "steps complete" in found.saw,
                    f"a root in the shape the route leaves after its leading steps is "
                    f"repairable, with the client at {where}: {found.saw}")
+        # An addition stopped during its fetch leaves its repository configured and
+        # unread, which running that addition again fetches.
+        stopped = Path(td) / "stopped"
+        opam_root(stopped, "flat", stamps={default: "s"})
+        unread = ", ".join(name for name, _ in others)
+        for where, version in (("/usr/bin/opam", reviewed), (None, "")):
+            found = _opam_probe(stopped, where, version)
+            ensure(not found.present and found.repairable
+                   and f"the root records no metadata stamp for {unread}, in the shape the "
+                       "root-creation route leaves after its leading steps" in found.saw,
+                   f"a root whose addition stopped during its fetch is repairable, with "
+                   f"the client at {where}: {found.saw}")
         unformatted = Path(td) / "unformatted"
         opam_root(unformatted, "flat")
         (unformatted / "config").write_text('opam-version: "2.0"\n', encoding="utf-8")
@@ -825,6 +837,41 @@ def _stopped_route_is_finished() -> None:
                "the finished root holds the row")
 
 
+def _stopped_fetch_is_finished() -> None:
+    """A root whose last addition was stopped during its fetch, that repository
+    configured and unread, is finished by running the addition again, which fetches it,
+    and never by `opam init`."""
+    (default, _), *_ = opam_client.OPAM_REPOSITORIES
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        target, root = Path(td) / "bin" / "opam", Path(td) / "opam"
+        opam_root(root, "flat", stamps={default: f"{default}-stamp"})
+        ran: list[tuple[str, ...]] = []
+
+        def run(argv: list[str], *, check: bool,
+                env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+            del check, env
+            ran.append(tuple(argv))
+            if tuple(argv) == opam_client.CREATE_ROOT[-1]:
+                shutil.rmtree(root)
+                opam_root(root, "flat")
+            return subprocess.CompletedProcess(argv, 0)
+
+        with (patch.object(provision, "shutil",
+                           SimpleNamespace(which=lambda name: "/usr/bin/opam")),
+              patch.object(provision, "env", SimpleNamespace(opam_root=lambda: root)),
+              patch.object(provision, "_say", return_value=opam_client.OPAM_VERSION),
+              patch.object(provision, "_dpkg", side_effect=_dpkg_reports()),
+              patch.object(provision.subprocess, "run", side_effect=run),
+              redirect_stdout(io.StringIO()) as out, redirect_stderr(io.StringIO()) as said):
+            code = provision.install_opam(target)
+        ensure(code == 0 and ran == list(opam_client.CREATE_ROOT[1:])
+               and f"finished the opam root at {root}" in out.getvalue(),
+               f"the stopped addition runs again and alone: {ran} {out.getvalue()} "
+               f"{said.getvalue()}")
+        ensure(_opam_probe(root, "/usr/bin/opam", opam_client.OPAM_VERSION).present,
+               "the finished root holds the row")
+
+
 # The shell-hook scripts opam 2.6.0 writes under a root's `opam-init` directory, one
 # per shell it supports a hook for.
 _HOOKS = ("env_hook.sh", "env_hook.zsh", "env_hook.csh", "env_hook.fish")
@@ -1033,6 +1080,7 @@ def cases() -> list[Case]:
         Case("install-opam-installs-only-what-is-absent",
              _install_opam_installs_only_what_is_absent),
         Case("stopped-route-is-finished", _stopped_route_is_finished),
+        Case("stopped-fetch-is-finished", _stopped_fetch_is_finished),
         Case("resume-keeps-the-shell-hook", _resume_keeps_the_shell_hook),
         Case("failed-import-can-retry", _failed_import_can_retry),
         Case("placement-probe-decides-by-filesystem",

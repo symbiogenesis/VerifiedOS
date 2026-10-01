@@ -245,8 +245,15 @@ def root_resumable(root: Path) -> bool:
     """Whether a standing root is in the shape `CREATE_ROOT` leaves after its leading
     steps, which the route's remaining steps, `remaining_route`, complete: in
     `OPAM_ROOT_FORMAT`, configured with exactly the route's leading repositories, at
-    least the one `opam init` fetched and not every one, each at its owned URL and with
-    its stamp read.
+    least the one `opam init` fetched, each at its owned URL, the first with its stamp
+    read, and at least one owned repository not yet fetched, either not configured or
+    configured with its stamp unread.
+
+    A later repository configured with its stamp unread is what an interrupted step
+    leaves: `opam repository add` writes the repository's configuration before it
+    fetches and removes that configuration only where the fetch returns a failure, so
+    a step stopped during its fetch leaves the repository configured and unfetched. The
+    same step run again keeps that configuration and fetches the repository.
 
     The shape is what is read, not how the root came to be: a root a developer
     initialized by hand on the first repository alone is in it too, and the remaining
@@ -255,30 +262,32 @@ def root_resumable(root: Path) -> bool:
     A root whose first repository's stamp is unread is not one, though the route's first
     step can leave one: `opam init` writes the root's configuration before its first
     fetch and removes the root on a failed fetch only where its directory was absent or
-    empty when it started. No remaining step fetches a repository the root already
-    configures, and `opam init` over a root that stands fetches nothing, so that
+    empty when it started. No remaining step fetches the first repository, which only
+    `opam init` adds, and `opam init` over a root that stands fetches nothing, so that
     repository would stay unread and the root as incomplete as it was found.
     """
     if not root_exists(root) or root_format(root) != OPAM_ROOT_FORMAT:
         return False
     found = repositories(root)
-    if any(not repo["stamp"] for repo in found):
-        return False
     configured = {(repo["name"], repo["url"]) for repo in found}
-    return any(configured == set(OPAM_REPOSITORIES[:count])
-               for count in range(1, len(OPAM_REPOSITORIES)))
+    fetched = {(repo["name"], repo["url"]) for repo in found if repo["stamp"]}
+    return (OPAM_REPOSITORIES[0] in fetched and fetched != set(OPAM_REPOSITORIES)
+            and any(configured == set(OPAM_REPOSITORIES[:count])
+                    for count in range(1, len(OPAM_REPOSITORIES) + 1)))
 
 
 def remaining_route(root: Path) -> tuple[tuple[str, ...], ...]:
     """The steps of `CREATE_ROOT` a root at `root` still lacks: the whole route where no
-    root stands, and otherwise each `opam repository add` whose name and URL the root
-    does not already configure, never `opam init`, which over a standing root rewrites
-    its `opam-init` scripts and removes any shell-hook scripts there. Over a root in the
-    shape `root_resumable` reads, these steps complete it."""
+    root stands, and otherwise each `opam repository add` whose repository the root does
+    not already carry at that URL with its stamp read, never `opam init`, which over a
+    standing root rewrites its `opam-init` scripts and removes any shell-hook scripts
+    there. An add of a repository the root configures at that URL but has not fetched
+    keeps that configuration and fetches it. Over a root in the shape `root_resumable`
+    reads, these steps complete it."""
     if not root_exists(root):
         return CREATE_ROOT
-    configured = {(repo["name"], repo["url"]) for repo in repositories(root)}
-    return tuple(argv for argv in CREATE_ROOT[1:] if (argv[3], argv[4]) not in configured)
+    fetched = {(repo["name"], repo["url"]) for repo in repositories(root) if repo["stamp"]}
+    return tuple(argv for argv in CREATE_ROOT[1:] if (argv[3], argv[4]) not in fetched)
 
 
 def initialized_format(root: Path) -> str:
