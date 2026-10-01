@@ -208,6 +208,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S14
 · Disposition: closed, eight such sentences repaired to what is true across the plan and this register, with the rerun returning to the item that owns it and that cell deliberately not re-priced here; two of the eight stood a commit longer than the rest, which is the class arriving inside the item that names it
 
+**F-526** owed-act: the host gate's shell-startup refusal reads the workflow's text, so a `BASH_ENV`, `ENV` or `BASH_FUNC_` name a step builds at run time, `PYTHONPATH`, `PYTHONHOME` or `LD_PRELOAD` set at the workflow or job level or by a `GITHUB_ENV` write, and a directory a `GITHUB_PATH` write puts ahead of `python` can each still change what a gate step runs while every host-gates reading passes
+· Raised: S14, in prose
+· Disposition: open, a reading of each gate step's effective environment and PATH: no workflow- or job-level `env` beyond a declared set, and no `GITHUB_ENV` or `GITHUB_PATH` write in a step ahead of the gate
+
 **F-000t** upstream-defect: the model's documentation emitter writes the emitting checkout's commit and dirty flag into the artifact where git answers it, so a generated file held byte-for-byte would move on every commit and would differ between two lanes describing one model
 · Raised: S15
 · Disposition: open, the fact met twice carrying the first site's disposition: this site's emitter no longer answers the git question, and the configure child F-000o names is still owed its work tree
