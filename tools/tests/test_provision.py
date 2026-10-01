@@ -180,6 +180,17 @@ def _number_reads_the_banners() -> None:
            "a banner with no dotted number yields none rather than a fragment")
 
 
+def _probes_answer_no_question() -> None:
+    """A probe's subprocess reads no standard input, so a question opam asks before an
+    upgrade it would write is declined rather than left to the caller's terminal."""
+    with patch.object(provision.subprocess, "run",
+                      return_value=subprocess.CompletedProcess(["opam"], 0, "2.6.0\n")) as run:
+        ensure(provision._say(("opam", "switch", "list", "--short")) == "2.6.0",
+               "the probe still reads the command's standard output")
+    ensure(run.call_args.kwargs.get("stdin") is subprocess.DEVNULL,
+           f"the probe's standard input is closed: {run.call_args}")
+
+
 def _opam_probe_preserves_build_suffix() -> None:
     with (tempfile.TemporaryDirectory(prefix="vos-test-") as td,
           patch.object(provision.env, "opam_root", return_value=Path(td) / "absent"),
@@ -922,6 +933,7 @@ def cases() -> list[Case]:
         Case("every-row-is-actionable", _every_row_is_actionable),
         Case("versions-are-read-and-not-typed", _versions_are_read_and_not_typed),
         Case("number-reads-the-banners", _number_reads_the_banners),
+        Case("probes-answer-no-question", _probes_answer_no_question),
         Case("opam-probe-preserves-build-suffix", _opam_probe_preserves_build_suffix),
         Case("opam-probe-holds-the-reviewed-client", _opam_probe_holds_the_reviewed_client),
         Case("opam-probe-holds-the-root", _opam_probe_holds_the_root),

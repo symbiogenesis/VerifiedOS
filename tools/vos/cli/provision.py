@@ -177,10 +177,19 @@ def _say(argv: Sequence[str]) -> str:
     probe below would otherwise read that warning as an answer about a package. A
     command that is absent, that fails, or that does not answer inside the bound comes
     back empty and its caller reports it as absent.
+
+    No standard input either, so a probe never answers a question. opam asks before it
+    writes a root-format upgrade, yes by default, and a read such as `opam switch list`
+    writes one where the upgrade cannot be done in memory, as the reviewed client's
+    from a 2.2 root keeping a repository's archive under a directory named for it. A
+    probe reading the caller's terminal would wait there, its question captured out of
+    sight, and an empty line would answer yes; with no input and no answer set in the
+    caller's environment, opam declines and exits.
     """
     try:
         done = subprocess.run(list(argv), capture_output=True, encoding="utf-8",
-                              errors="replace", check=False, timeout=TIMEOUT)
+                              errors="replace", check=False, timeout=TIMEOUT,
+                              stdin=subprocess.DEVNULL)
     except (OSError, subprocess.SubprocessError):
         return ""
     return done.stdout.strip() if done.returncode == 0 else ""
