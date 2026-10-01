@@ -968,7 +968,8 @@ confines every hook to paths under `model/`, the exclusion names
 `model/.codespellrc` and `model/.markdown-link-check.config`. Each hook repository is
 pinned by the full commit of the tag its `# frozen:` comment names, and its
 [THIRD-PARTY.md](../THIRD-PARTY.md) development-tools row states both, which K-118
-holds. clang-format stays at the release upstream's own hooks pin, because a later
+holds against the configuration; whether the commit is the tag's is read at review
+with `git ls-remote`. clang-format stays at the release upstream's own hooks pin, because a later
 release lays out upstream's code differently and would ask for rewrites of upstream
 bytes. The last Ubuntu shard of [Host CI](../.github/workflows/host-gates.yml) runs
 the set with `--all-files`, which selects the tracked files under `model/` outside

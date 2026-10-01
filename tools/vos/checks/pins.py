@@ -265,9 +265,11 @@ whether or not any hook row is held, so its absence is a finding on its own.
 table, a table with no row, a site matching other than once, and an owner absent,
 unparsable or stating its release other than once are each a finding, reported once per
 owner, so the rule owes the floors group no member. What it does not decide is whether
-the licence at the stated release was read; the row's reviewer did that. **Reported and
-never repaired**, on K-97's ground: moving a row's release would claim a licence reading
-nobody took.
+the licence at the stated release was read; the row's reviewer did that. Nor does it
+decide whether a hook rev's commit is the tag its `# frozen:` comment names: the row's
+two sites hold the row against the configuration, and whether the commit is the tag's
+is read at review with `git ls-remote`. **Reported and never repaired**, on K-97's
+ground: moving a row's release would claim a licence reading nobody took.
 """
 
 import re
