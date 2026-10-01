@@ -7,7 +7,7 @@ import json
 import re
 import subprocess
 import tarfile
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from contextlib import nullcontext, redirect_stderr
 from pathlib import Path
 from typing import Any, cast
@@ -266,8 +266,14 @@ def _refused_installation_rebuilt() -> None:
             _mock_build(argv, cwd, environ, log)
 
         ensure(_mock_install(environment)["installed"] is True, "the first build must be usable")
+        good: dict[str, Any] = json.loads(receipt.read_text(encoding="utf-8"))
         ensure(_mock_install(environment, counted)["installed"] is True and not builds,
                "control: an installation status accepts must be returned without a rebuild")
+
+        def rewritten(fields: Mapping[str, object]) -> Callable[[], object]:
+            """The first build's receipt, of the current recipe, with `fields` replaced."""
+            return lambda: receipt.write_text(json.dumps({**good, **fields}), encoding="utf-8")
+
         damages: tuple[tuple[str, Callable[[], object]], ...] = (
             ("changed", lambda: binary.write_text("edited", encoding="utf-8")),
             ("missing", binary.unlink),
@@ -276,7 +282,13 @@ def _refused_installation_rebuilt() -> None:
             # JSON of the current recipe that lacks the fields status reports.
             ("unreadable", lambda: receipt.write_text(
                 json.dumps({"lock_sha256": saillsp.lock_identity(root)}), encoding="utf-8")),
-            ("unreadable", lambda: receipt.write_text("[]", encoding="utf-8")))
+            ("unreadable", lambda: receipt.write_text("[]", encoding="utf-8")),
+            # A field status reports, present with the wrong shape: an artifacts object
+            # without the server, artifacts as a list, an elapsed time that is negative
+            # or a boolean, and a log that is not a path.
+            *(("unreadable", rewritten(fields)) for fields in (
+                {"artifacts": {}}, {"artifacts": ["prefix/bin/sail_lsp"]},
+                {"elapsed_seconds": -1}, {"elapsed_seconds": True}, {"log": None})))
         for problem, damage in damages:
             damage()
             try:
@@ -297,9 +309,10 @@ def _refused_installation_rebuilt() -> None:
 
 def _unreadable_recipe_keeps_installation() -> None:
     """An OSError reading the checkout's recipe inputs is not a refused installation:
-    install stops before removing the receipt or prefix, and status accepts the
-    installation again once the checkout is restored. An artifact status cannot read
-    remains a refusal install repairs."""
+    install stops before removing the receipt or prefix, even when status would refuse
+    the receipt, and status accepts the installation again once the checkout is
+    restored. A receipt or an artifact status cannot read remains a refusal install
+    repairs."""
     with sandbox_tree(_BUILD_RECIPE) as root:
         environment = _environment(root)
         location = saillsp.home(environment)
@@ -326,6 +339,22 @@ def _unreadable_recipe_keeps_installation() -> None:
         refresh.write_text(_BUILD_RECIPE["tools/sail-lsp/dependency-refresh.patch"], encoding="utf-8")
         ensure(saillsp.status(environment)["installed"] is True,
                "restoring the checkout must restore the installation without a rebuild")
+        read_text = Path.read_text
+
+        def denied(path: Path, encoding: str | None = None, errors: str | None = None,
+                   newline: str | None = None) -> str:
+            if path == receipt:
+                raise PermissionError(13, "Permission denied", str(path))
+            return read_text(path, encoding, errors, newline)
+
+        with patch.object(Path, "read_text", denied):
+            try:
+                saillsp.status(environment)
+            except ValueError as exc:
+                ensure("unreadable" in str(exc) and str(exc).endswith("run sail-lsp install"),
+                       f"a receipt status cannot read must be refused with its repair: {exc}")
+            else:
+                raise AssertionError("status accepted a receipt it could not read")
 
         def unreadable(path: Path) -> str:
             if path == binary:
@@ -340,6 +369,20 @@ def _unreadable_recipe_keeps_installation() -> None:
                        f"an artifact status cannot read must be refused with its repair: {exc}")
             else:
                 raise AssertionError("status accepted an artifact it could not read")
+
+        # install reads the recipe before it asks status, so a receipt status refuses
+        # does not carry it past an unreadable input into removing the installation.
+        receipt.write_text("{", encoding="utf-8")
+        refresh.unlink()
+        builds.clear()
+        try:
+            _mock_install(environment, counted)
+        except OSError:
+            pass
+        else:
+            raise AssertionError("install proceeded without a recipe input it could read")
+        ensure(not builds and receipt.read_text(encoding="utf-8") == "{" and binary.is_file(),
+               "an unreadable recipe input must stop install before it repairs a refused receipt")
 
 
 def _base_lock() -> None:

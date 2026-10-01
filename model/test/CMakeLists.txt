@@ -18,14 +18,25 @@ set(TEST_DOWNLOAD_SHA256_2026-08-20_riscv-vector-tests-v512x64 "a968025ffd35fa9c
 # tarball: the tarball's recorded SHA-256, then the SHA-256 and relative path of
 # every file in the suite, sorted by path. A symbolic link is listed unhashed,
 # and every name holding ";" or "\" leaves at least one unhashed line (see the
-# loop below). No manifest is written holding an unhashed line. Configure does
-# not tell a FIFO or device node from a file, and reading one can stall it. The
-# verified riscv-tests tarball contains neither, and the listing
-# tools/vos/cli/model.py renders for the readers that do not configure refuses
-# both.
+# check before the sort and the loop below). No manifest is written holding an
+# unhashed line. Configure does not tell a FIFO or device node from a file, and
+# reading one can stall it. The verified riscv-tests tarball contains neither,
+# and the listing tools/vos/cli/model.py renders for the readers that do not
+# configure refuses both.
 function(riscv_tests_listing SUITE TARBALL_NAME EXPECTED_SHA256 OUT_VAR)
     set(listing "tarball ${TARBALL_NAME}.tar.gz sha256 ${EXPECTED_SHA256}\n")
     file(GLOB_RECURSE paths LIST_DIRECTORIES false "${SUITE}/*")
+    # CMake's list splitting takes a "\" before a ";" as escaping that ";".
+    # A name ending in "\", whose path the glob joins to the next with ";",
+    # or holding "\;" therefore reaches the sort inside one element, its "\"
+    # dropped, and the sort writes that element back with a bare ";". The
+    # loop then splits it into paths that can each name a listed file, none
+    # of them the name that held the "\", so any "\;" in the glob's list is
+    # listed as this one unhashed line instead.
+    string(FIND "${paths}" "\\;" escaped)
+    if(NOT escaped EQUAL -1)
+        string(APPEND listing "unhashed a name holding \\ before a semicolon\n")
+    endif()
     list(SORT paths)
     string(LENGTH "${SUITE}/" prefix_length)
     set(previous "")
@@ -33,13 +44,15 @@ function(riscv_tests_listing SUITE TARBALL_NAME EXPECTED_SHA256 OUT_VAR)
         # The glob returns each path as it found it, where paths relative to
         # the suite would have "\" turned into "/" and ".." steps collapsed, so
         # that a name could arrive as another file's. A name holding ";"
-        # arrives split at it, or whole where brackets enclose it. The piece
-        # before a name's first ";" is cut from a path under directories the
-        # glob walked, so it names nothing, a directory, or an entry the glob
-        # also lists, which sorting puts beside it. A path not under the
-        # suite's own, naming no file, holding ";" or "\", or repeating the one
-        # before it is therefore listed unhashed rather than read, and every
-        # name holding either character leaves at least one such line.
+        # arrives split at it, or whole where brackets enclose it. A "\" that
+        # escaped a ";" is gone by here, and the check before the sort has
+        # listed it. The piece before a name's first ";" is cut from a path
+        # under directories the glob walked, so it names nothing, a directory,
+        # or an entry the glob also lists, which sorting puts beside it. A path
+        # not under the suite's own, naming no file, holding ";" or "\", or
+        # repeating the one before it is therefore listed unhashed rather than
+        # read, and every name holding either character leaves at least one
+        # such line, here or before the sort.
         string(SUBSTRING "${path}" 0 ${prefix_length} prefix)
         set(entry "${path}")
         if(prefix STREQUAL "${SUITE}/")

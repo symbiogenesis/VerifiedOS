@@ -11,6 +11,7 @@ of the archive, as the 2.6 format rewrites it.
 """
 
 import io
+import itertools
 import re
 import sys
 import tarfile
@@ -284,19 +285,51 @@ def _remaining_route_never_reinitializes() -> None:
 
 
 def _versions_are_ordered_as_opam_orders_them() -> None:
-    """The port of `OpamVersionCompare.compare` answers its Debian ordering: numbers by
-    value, `~` before everything, even before the end of a part, letters before other
-    characters, and the revision after the last `-` only on a tie."""
+    """`compare_versions` answers Debian's version ordering (Debian Policy 5.6.12), which
+    opam applies to versions: numbers by value, whatever their length or leading zeros,
+    an empty number as zero, `~` before everything, even before the end of a part, ASCII
+    letters before other characters, the epoch before the first `:` first, and the
+    revision after the last `-` only on a tie, an absent epoch or revision as `0`. The
+    examples the opam manual and Debian Policy list in order are in that order."""
+    ordered = (
+        # The opam manual's "Version Ordering" example.
+        ("~~", "~", "~beta2", "~beta10", "0.1", "1.0~beta", "1.0", "1.0-test", "1.0.1",
+         "1.0.10", "dev", "trunk"),
+        # Debian Policy 5.6.12's parts "~~, ~~a, ~, the empty part, a", and its footnote's
+        # prerelease example.
+        ("~~", "~~a", "~", "", "a"),
+        ("1.0~beta1~svn1245", "1.0~beta1", "1.0"),
+    )
     for lower, higher in (("2.9", "2.10"), ("2.6~alpha", "2.6"), ("2.6~alpha1", "2.6~alpha2"),
                           ("2.6~~", "2.6~"), ("2.6", "2.6.0"), ("2.6", "2.6+x"),
                           ("2.6", "2.6a"), ("2.6a", "2.6+"), ("2.6", "x"), ("1.0-1", "1.0-2"),
-                          ("1.0-9", "1.0-10"), ("1.0-z", "1.1-a"), ("2.6~", "2.6")):
+                          ("1.0-9", "1.0-10"), ("1.0-z", "1.1-a"), ("2.6~", "2.6"),
+                          # `~` against the end of the string.
+                          ("~", ""), ("a~b", "a"), ("1.0~", "1.0"), ("1.0~~", "1.0~"),
+                          # Letters before every other character, then ASCII order.
+                          ("z", "+"), ("1.0Z", "1.0a"), ("1.0z", "1.0_"), ("1.0+", "1.0."),
+                          # Characters outside ASCII as non-letters, an Arabic-Indic
+                          # three among them.
+                          ("1.0z", "1.0" + chr(0xE9)), ("1.9", "1." + chr(0x663)),
+                          # Numbers by value, not by their digits' text.
+                          ("1.09", "1.010"), ("1.9", "1.0010"), ("9" * 5000, "1" + "0" * 5000),
+                          # The revision after the last `-`, only on a tie.
+                          ("1.0-a", "1.0a"), ("1-2.3", "1-2-1"), ("1.0-test-9", "1.0-test-10"),
+                          ("1.0-9", "1.0.0-1"),
+                          # The epoch first.
+                          ("9.9", "1:0.1"), ("2:9", "10:0"), ("1:1.0-9", "1:1.0.1-1"),
+                          *(pair for sequence in ordered
+                            for pair in itertools.combinations(sequence, 2))):
         ensure(opam_client.compare_versions(lower, higher) == -1
                and opam_client.compare_versions(higher, lower) == 1,
                f"{lower!r} precedes {higher!r}: "
                f"{opam_client.compare_versions(lower, higher)}")
     for left, right in (("2.6", "2.6"), ("2.06", "2.6"), ("1.0", "1.00"), ("1.", "1.0"),
-                        ("", "0")):
+                        ("", "0"),
+                        # Leading zeros, and empty parts counting as zero.
+                        ("1.007", "1.7"), ("0010", "10"), ("1.000", "1.0"), ("a", "a0"),
+                        ("1.0-", "1.0"), ("1.0-0", "1.0"), ("1.0-00", "1.0-"),
+                        ("0:1.0", "1.0"), ("00:1.0-0", "1.0")):
         ensure(opam_client.compare_versions(left, right) == 0
                and opam_client.compare_versions(right, left) == 0,
                f"{left!r} and {right!r} order as one version")

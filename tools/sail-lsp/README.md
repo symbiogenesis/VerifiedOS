@@ -51,10 +51,9 @@ refusal: `install` stops before removing anything, and `status` accepts the
 installation again once the checkout is restored. `install` downloads again
 any source archive that is missing or differs from its pin, keeps a download
 only once its SHA-256 matches, and extracts each source into a fresh tree. It
-removes
-the previous receipt first and installs into an emptied prefix and
-configuration, so nothing a superseded recipe installed is loaded or hashed as an
-artifact, and an interrupted rebuild leaves no installation for `status` to
+removes the previous receipt first and installs into an emptied prefix and
+configuration, so nothing a superseded recipe installed is loaded or hashed as
+an artifact, and an interrupted rebuild leaves no installation for `status` to
 accept. Native install and qualification outputs remain in the assigned build
 lane; build logs use its assigned native log location. Installation receipts
 retain source hashes, license-file hashes, the complete inherited package
