@@ -923,15 +923,31 @@ def _checkout_sources(suffixes: tuple[str, ...]) -> list[Path]:
 _FLOCK = re.compile(r"\bflock\b")
 
 
+def _docstrings(tree: ast.Module) -> set[int]:
+    """The identities of a source's docstring constants: the bare string a module,
+    class or function body opens with."""
+    found: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef) and node.body:
+            first = node.body[0]
+            if (isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant)
+                    and isinstance(first.value.value, str)):
+                found.add(id(first.value))
+    return found
+
+
 def _python_flock_sites(name: str, text: str) -> set[tuple[str, str]]:
     """Each (module, innermost function) that reaches `flock` in one Python source: an
     attribute named `flock`, a name `from fcntl import flock [as x]` or `*` binds, or a
-    call passing a string that names the `flock` command."""
+    string other than a docstring that names it, wherever the string sits, so that an
+    argv built before it is run, a constant spread into a call and a lookup by name
+    such as `vars(fcntl)['flock']` are sites."""
     tree = ast.parse(text)
     imported = {alias.asname or alias.name for node in ast.walk(tree)
                 if isinstance(node, ast.ImportFrom) and node.module == "fcntl"
                 for alias in node.names if alias.name in {"flock", "*"}}
     bound = (imported - {"*"}) | ({"flock"} if "*" in imported else set())
+    docstrings = _docstrings(tree)
     sites: set[tuple[str, str]] = set()
 
     def reaches(node: ast.AST) -> bool:
@@ -939,11 +955,10 @@ def _python_flock_sites(name: str, text: str) -> set[tuple[str, str]]:
             return node.attr == "flock"
         if isinstance(node, ast.Name):
             return node.id in bound
-        return isinstance(node, ast.Call) and any(
-            isinstance(inner, ast.Constant) and isinstance(inner.value, str)
-            and _FLOCK.search(inner.value) is not None
-            for argument in (*node.args, *(keyword.value for keyword in node.keywords))
-            for inner in ast.walk(argument))
+        if not isinstance(node, ast.Constant) or id(node) in docstrings:
+            return False
+        value = node.value.decode("latin-1") if isinstance(node.value, bytes) else node.value
+        return isinstance(value, str) and _FLOCK.search(value) is not None
 
     def visit(node: ast.AST, owner: str) -> None:
         for child in ast.iter_child_nodes(node):
@@ -1069,18 +1084,27 @@ def _campaign_calls(name: str, text: str) -> list[tuple[str, bool]]:
 
 
 def _producer_lock_scanners_fail_closed() -> None:
-    """A Python `flock` bound by import or named as a command is a site, and a shell or
-    C `flock` outside the one recognized form is reported rather than passed over."""
+    """A Python `flock` bound by import or named by any string but a docstring is a
+    site, and a shell or C `flock` outside the one recognized form is reported rather
+    than passed over."""
     for text, owner in (("from fcntl import flock as grab\ndef take(fd):\n    grab(fd, 2)\n", "take"),
                         ("from fcntl import *\ndef take(fd):\n    flock(fd, 2)\n", "take"),
                         ("import subprocess\ndef run(path):\n"
                          "    subprocess.run(['flock', '-x', path, 'true'])\n", "run"),
                         ("import subprocess\ndef run():\n"
                          "    subprocess.run('flock -x 9 true', shell=True)\n", "run"),
+                        ("import subprocess\ndef run(path):\n"
+                         "    command = ['flock', '-x', path, 'true']\n    subprocess.run(command)\n", "run"),
+                        ("import subprocess\nLOCK = ('flock', '-x')\ndef run(path):\n"
+                         "    subprocess.run([*LOCK, path, 'true'])\n", "<module>"),
+                        ("import fcntl\ndef take(fd):\n    vars(fcntl)['flock'](fd, 2)\n", "take"),
+                        ('X = 1\n"""flock, after a statement, is no docstring."""\n', "<module>"),
                         ("import fcntl\ntake = fcntl.flock\n", "<module>")):
         found = _python_flock_sites("probe.py", text)
         ensure(found == {("probe.py", owner)}, f"the Python scan must find {text!r}, got {found}")
-    ensure(_python_flock_sites("probe.py", '"""flock is described, not called."""\n') == set(),
+    ensure(_python_flock_sites("probe.py", '"""flock is described, not called."""\n'
+                                           'class C:\n    """Nor is flock here."""\n'
+                                           'def f():\n    """Nor here: flock."""\n') == set(),
            "a docstring naming flock is not a site")
     for text in ('flock -x "$dir/work.lock" true\n',
                  '(\n    flock --exclusive 9\n) 9>"$dir/state.json"\n',
