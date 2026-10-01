@@ -31,6 +31,7 @@ opam root restored under another client is another root.
 
 import re
 import tarfile
+from itertools import zip_longest
 from pathlib import Path
 
 from vos import receipts
@@ -131,74 +132,81 @@ def root_exists(root: Path) -> bool:
     return (root / "config").is_file()
 
 
-def _skip_zeros(text: bytes, at: int, end: int) -> int:
-    while at < end and text[at] == 0x30:
-        at += 1
-    return at
+# A run of non-digits followed by a run of ASCII digits, either possibly empty.
+_RUN_RE = re.compile(r"([^0-9]*)([0-9]*)")
 
 
-def _digit(byte: int) -> bool:
-    return 0x30 <= byte <= 0x39
+def _weight(char: str) -> int:
+    """A character's place in a non-digit run, where the run's end weighs 0: `~` before
+    the end, the ASCII letters after it in code order, then every other character in code
+    order."""
+    if char == "~":
+        return -1
+    if "A" <= char <= "Z" or "a" <= char <= "z":
+        return ord(char)
+    return 0x100 + ord(char)
 
 
-def _rank(byte: int) -> tuple[int, int]:
-    """A non-digit's place: `~` first, then letters, then every other byte."""
-    if byte == 0x7E:
-        return (0, 0)
-    if 0x41 <= byte <= 0x5A or 0x61 <= byte <= 0x7A:
-        return (1, byte)
-    return (2, byte)
+def _compare_text(x: str, y: str) -> int:
+    """-1, 0 or 1 as non-digit run `x` orders before, with or after `y`, character by
+    character by `_weight`, each run's end weighing 0 against the other's character."""
+    a, b = [*map(_weight, x), 0], [*map(_weight, y), 0]
+    return (a > b) - (a < b)
 
 
-def _compare_part(x: bytes, xi: int, xl: int, y: bytes, yi: int, yl: int) -> int:
-    """One part of two versions, alternating runs of non-digits, compared byte by byte
-    by `_rank`, with runs of digits, compared as numbers."""
-    while True:
-        if xi == xl and yi == yl:
-            return 0
-        if xi == xl:
-            rest = _skip_zeros(y, yi, yl)
-            return 0 if rest == yl else (1 if y[rest] == 0x7E else -1)
-        if yi == yl:
-            rest = _skip_zeros(x, xi, xl)
-            return 0 if rest == xl else (-1 if x[rest] == 0x7E else 1)
-        x_digit, y_digit = _digit(x[xi]), _digit(y[yi])
-        if x_digit and y_digit:
-            xi, yi = _skip_zeros(x, xi, xl), _skip_zeros(y, yi, yl)
-            xn, yn = xi, yi
-            while xn < xl and _digit(x[xn]):
-                xn += 1
-            while yn < yl and _digit(y[yn]):
-                yn += 1
-            if xn - xi != yn - yi:
-                return -1 if xn - xi < yn - yi else 1
-            if x[xi:xn] != y[yi:yn]:
-                return -1 if x[xi:xn] < y[yi:yn] else 1
-            xi, yi = xn, yn
-        elif x_digit:
-            return 1 if y[yi] == 0x7E else -1
-        elif y_digit:
-            return -1 if x[xi] == 0x7E else 1
-        elif _rank(x[xi]) != _rank(y[yi]):
-            return -1 if _rank(x[xi]) < _rank(y[yi]) else 1
-        else:
-            xi, yi = xi + 1, yi + 1
+def _compare_number(x: str, y: str) -> int:
+    """-1, 0 or 1 as digit run `x` is less than, equal to or greater than `y` by value,
+    an empty run counting as zero. Without leading zeros the shorter run is the smaller,
+    and runs of one length order as their digits do, so no run is too long to compare."""
+    a, b = x.lstrip("0"), y.lstrip("0")
+    return ((len(a), a) > (len(b), b)) - ((len(a), a) < (len(b), b))
+
+
+def _compare_part(x: str, y: str) -> int:
+    """-1, 0 or 1 as one component of a version orders before, with or after the same
+    component of another: their leading non-digit runs, then the digit runs after them,
+    and so on in turn until a pair differs, a string that ends first continuing as empty
+    runs."""
+    for (x_text, x_digits), (y_text, y_digits) in zip_longest(
+            _RUN_RE.findall(x), _RUN_RE.findall(y), fillvalue=("", "")):
+        if order := _compare_text(x_text, y_text) or _compare_number(x_digits, y_digits):
+            return order
+    return 0
+
+
+def _components(version: str) -> tuple[str, str, str]:
+    """A version's epoch, the text before its first `:`, its revision, the text after the
+    last `-` that follows the epoch, and its upstream version between them, the epoch and
+    the revision empty where the version has none."""
+    epoch, colon, rest = version.partition(":")
+    if not colon:
+        epoch, rest = "", version
+    upstream, hyphen, revision = rest.rpartition("-")
+    return (epoch, upstream, revision) if hyphen else (epoch, rest, "")
 
 
 def compare_versions(x: str, y: str) -> int:
-    """The sign of opam's ordering of two versions, ported from the reviewed release's
-    `OpamVersionCompare.compare`, by which that client orders a root's format against
-    its own: Debian's ordering, each version split at its last `-` into two parts
-    compared in turn. So `2.6~alpha` precedes 2.6, and `2.6.0`, `2.6+x` and `x` follow
-    it."""
-    if x == y:
-        return 0
-    a, b = x.encode("utf-8"), y.encode("utf-8")
-    ra = len(a) if (cut := a.rfind(b"-")) < 0 else cut
-    rb = len(b) if (cut := b.rfind(b"-")) < 0 else cut
-    if version := _compare_part(a, 0, ra, b, 0, rb):
-        return version
-    return _compare_part(a, min(ra + 1, len(a)), len(a), b, min(rb + 1, len(b)), len(b))
+    """-1, 0 or 1 as version `x` orders before, with or after version `y`.
+
+    Implements Debian's version ordering (Debian Policy 5.6.12), which opam applies to
+    version strings. The epochs are compared, then the upstream versions on a tie, then
+    the revisions, an absent epoch or revision comparing as `0`. Each component reads as
+    alternating runs of non-digits and of ASCII digits: digit runs compare by value, an
+    empty run as zero, and non-digit runs character by character, `~` before everything,
+    even the run's end, then the run's end, then the ASCII letters, then every other
+    character, letters and the rest each in ASCII order.
+
+    The opam manual defers the ordering's details to Debian's definition, and two cases
+    it leaves open are read here as Debian Policy reads them: the revision is what
+    follows the last `-`, so `1.0-a` orders before `1.0a`, and the epoch is what
+    precedes the first `:`, a character opam's version grammar admits in no version. A
+    character outside ASCII, which neither document admits in a version, orders as a
+    non-letter by its code point.
+    """
+    for x_part, y_part in zip(_components(x), _components(y), strict=True):
+        if order := _compare_part(x_part, y_part):
+            return order
+    return 0
 
 
 def newer_than_reviewed(fmt: str) -> bool:
