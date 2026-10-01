@@ -217,6 +217,28 @@ def _root_gaps_name_what_a_root_lacks() -> None:
                f"{opam_client.root_gaps(foreign)}")
 
 
+def _root_switches_are_the_configs_own() -> None:
+    """A root's switches are read from its config's `installed-switches` field, a list
+    or a single name, on one line or several, and none where the field or the root is
+    absent."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        for name, field, want in (
+                ("listed", 'installed-switches: ["default" "verifiedos-sail"]\n',
+                 ["default", "verifiedos-sail"]),
+                ("single", 'installed-switches: "verifiedos-rocq"\n', ["verifiedos-rocq"]),
+                ("lines", 'installed-switches: [\n  "a"\n  "b"\n]\nswitch: "a"\n', ["a", "b"]),
+                ("empty", "installed-switches: []\n", []),
+                ("unlisted", 'switch: "default"\n', [])):
+            root = Path(td) / name
+            opam_root(root, "nested")
+            config = (root / "config").read_bytes() + field.encode()
+            (root / "config").write_bytes(config)
+            ensure(opam_client.root_switches(root) == want,
+                   f"the {name} config lists {opam_client.root_switches(root)}, not {want}")
+        ensure(opam_client.root_switches(Path(td) / "absent") == [],
+               "a root that does not stand lists no switch")
+
+
 def _resumable_roots_are_the_routes_own() -> None:
     """A root reads as in the shape `CREATE_ROOT` leaves after its leading steps only
     where the route's remaining steps complete it: the reviewed client's format, the
@@ -373,4 +395,5 @@ def cases() -> list[Case]:
         Case("resumable-roots-are-the-routes-own", _resumable_roots_are_the_routes_own),
         Case("remaining-route-never-reinitializes", _remaining_route_never_reinitializes),
         Case("install-verifies-and-never-replaces", _install_verifies_and_never_replaces),
+        Case("root-switches-are-the-configs-own", _root_switches_are_the_configs_own),
     ]

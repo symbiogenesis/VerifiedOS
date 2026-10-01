@@ -448,6 +448,38 @@ def _switch_rows_wait_on_an_older_root() -> None:
                    f"back a recipe: {said}")
 
 
+def _unread_switch_is_not_absent() -> None:
+    """Over a root in an older format, opam lists no switch where it would have to
+    upgrade the root to read it, so a switch the root's own config lists is reported as
+    unread rather than absent, and still planned nothing; where the config lists it not,
+    or the root is in the reviewed format, opam's empty listing is read as it stands."""
+    row = next(fact for fact in provision.FACTS if fact.name == "the Sail switch")
+    listed = f'installed-switches: ["default" "{env.SAIL_SWITCH}"]\n'
+    unread = ("opam listed no switches without upgrading the root, whose config lists the "
+              f"{env.SAIL_SWITCH} switch")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        roots: dict[str, tuple[Path, bool]] = {}
+        for name, layout, config, read in (("older-listing", "nested", listed, True),
+                                           ("older-unlisted", "nested", "", False),
+                                           ("current-listing", "flat", listed, False)):
+            root = Path(td) / name
+            opam_root(root, layout)
+            with (root / "config").open("a", encoding="utf-8", newline="") as stream:
+                stream.write(config)
+            roots[name] = (root, read)
+        for name, (root, read) in roots.items():
+            with (patch.object(provision.env, "opam_root", return_value=root),
+                  patch.object(provision, "switches", return_value=()),
+                  patch.object(provision, "_client",
+                               return_value=("/usr/bin/opam", opam_client.OPAM_VERSION))):
+                results = provision.take((row,))
+            found = results[0][1]
+            ensure(not found.present and (unread in found.saw) is read
+                   and ("opam has no" in found.saw) is not read
+                   and (not found.repairable) is name.startswith("older"),
+                   f"over the {name} root the row reads {found}")
+
+
 def _client_is_asked_once_per_run() -> None:
     """One run asks the opam client its release once, and the opam row and every switch
     row read that one answer, a client at another release holding back each of their
@@ -992,6 +1024,7 @@ def cases() -> list[Case]:
         Case("opam-probe-holds-the-root", _opam_probe_holds_the_root),
         Case("opam-row-plans-only-what-is-absent", _opam_row_plans_only_what_is_absent),
         Case("switch-rows-wait-on-an-older-root", _switch_rows_wait_on_an_older_root),
+        Case("unread-switch-is-not-absent", _unread_switch_is_not_absent),
         Case("client-is-asked-once-per-run", _client_is_asked_once_per_run),
         Case("root-prerequisites-precede-the-opam-row",
              _root_prerequisites_precede_the_opam_row),

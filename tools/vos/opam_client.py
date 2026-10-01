@@ -328,6 +328,24 @@ def repositories(root: Path) -> list[dict[str, str]]:
     return found
 
 
+# A root config's `installed-switches` field, one quoted name or a bracketed list of them.
+_SWITCHES_RE = re.compile(r'(?m)^installed-switches:\s*(\[[^\]]*\]|"[^"\r\n]*")')
+_QUOTED_RE = re.compile(r'"([^"\r\n]*)"')
+
+
+def root_switches(root: Path) -> list[str]:
+    """Every switch a root's own `config` lists in its `installed-switches` field, the list
+    `opam switch list` answers from, in the root's order; empty where it lists none or
+    cannot be read. Read from the file rather than through opam, because over a root whose
+    format upgrade cannot be made in memory the reviewed client lists no switch without
+    first upgrading the root."""
+    try:
+        found = _SWITCHES_RE.search((root / "config").read_text(encoding="utf-8"))
+    except OSError:
+        return []
+    return [str(name) for name in _QUOTED_RE.findall(found.group(1))] if found else []
+
+
 def initialized_repositories(root: Path) -> list[dict[str, str]]:
     """`repositories` over a root just initialized on `OPAM_REPOSITORIES`, refused unless
     it is configured with exactly those names and URLs and every one's stamp was read.

@@ -59,9 +59,11 @@ are reported and never planned, and neither is any other standing root with a ga
 `opam_client.root_gaps` names: no stated format or one newer than the reviewed client
 writes, or an owned repository absent, at another URL or with its stamp unread. While a
 root stands in an older format, no switch row plans its recipe either, because the
-reviewed client's first write rewrites that root one way; nor does one while a client
-at another release is on PATH, which would build the switch as a client this tree has
-not reviewed. Every
+reviewed client rewrites that root one way at its first write, or at its first read
+where the upgrade cannot be made in memory, and where opam lists no switch without
+upgrading that root, a switch row reports one the root's config lists as unread rather
+than absent; nor does a switch row plan its recipe while a client at another release
+is on PATH, which would build the switch as a client this tree has not reviewed. Every
 figure any document states about this
 table is a count over `FACTS`, held by K-24 rather than by care.
 
@@ -349,13 +351,14 @@ def _switch_at(switch: str, package: str, pin: str) -> Found:
     Not repairable where `--apply` would build the switch over a root the reviewed
     client rewrites, or as a client this tree has not reviewed. While the opam root
     stands in a format older than the reviewed client's, that client rewrites it one way
-    at its first write, the deliberate, recorded step `_opam_client` reports. While a
-    client at another release is on PATH, that client would build the switch, and a
-    Sail switch names the client that built it in its version string. Where no client is
-    on PATH the switch stays repairable, because the opam row ahead of it installs the
-    reviewed client in the same pass."""
+    at its first write, or at its first read where the upgrade cannot be made in memory,
+    the deliberate, recorded step `_opam_client` reports. While a client at another
+    release is on PATH, that client would build the switch, and a Sail switch names the
+    client that built it in its version string. Where no client is on PATH the switch
+    stays repairable, because the opam row ahead of it installs the reviewed client in
+    the same pass."""
     older = _older_root()
-    found = _switch_found(switch, package, pin)
+    found = _switch_found(switch, package, pin, older=bool(older))
     if found.present:
         return found
     if older:
@@ -370,8 +373,18 @@ def _switch_at(switch: str, package: str, pin: str) -> Found:
     return found
 
 
-def _switch_found(switch: str, package: str, pin: str) -> Found:
-    if switch not in switches():
+def _switch_found(switch: str, package: str, pin: str, *, older: bool) -> Found:
+    """One switch's package at the version opam answers for it.
+
+    Over a root in an older format, where `older` holds, opam lists no switch at all when
+    it would have to upgrade the root to read it and declines to. Where it lists none
+    there and the root's own config lists this switch, `opam_client.root_switches`, the
+    row says opam did not read the switch rather than that the switch is absent."""
+    listed = switches()
+    if switch not in listed:
+        if older and not listed and switch in opam_client.root_switches(env.opam_root()):
+            return Found(False, "opam listed no switches without upgrading the root, whose "
+                                f"config lists the {switch} switch")
         return Found(False, f"opam has no {switch} switch")
     found = _installed(switch, package)
     if not found:
@@ -389,7 +402,8 @@ def _older_root() -> str:
         return ""
     return (f"the reviewed client {opam_client.OPAM_VERSION} rewrites the opam root at "
             f"{root} from format {fmt} to {opam_client.OPAM_ROOT_FORMAT} one way at its "
-            "first write, a deliberate, recorded step rather than a repair")
+            "first write, or at its first read where the upgrade cannot be made in "
+            "memory, a deliberate, recorded step rather than a repair")
 
 
 def _moving_the_root(fmt: str) -> str:
@@ -428,8 +442,9 @@ def _opam_client() -> Found:
     root in an older format, is a recorded step and not a repair; any other standing
     root the command would leave incomplete is reported rather than planned. The
     reviewed client over a complete root in an older format holds the row, and the
-    report says that client rewrites the root one way at its first write, which is why
-    no switch row plans a recipe over it.
+    report says that client rewrites the root one way at its first write, or at its
+    first read where the upgrade cannot be made in memory, which is why no switch row
+    plans a recipe over it.
     """
     where, found = _client()
     client = f"opam {found or 'answering no version'} at {where}" if where else "no opam on PATH"
@@ -450,7 +465,8 @@ def _opam_client() -> Found:
         saw += f"; the reviewed client is {opam_client.OPAM_VERSION}{_moving_the_root(fmt)}"
     elif older:
         saw += (f"; that client rewrites this root from format {fmt} to "
-                f"{opam_client.OPAM_ROOT_FORMAT} one way at its first write, a deliberate, "
+                f"{opam_client.OPAM_ROOT_FORMAT} one way at its first write, or at its "
+                "first read where the upgrade cannot be made in memory, a deliberate, "
                 "recorded step rather than a repair, so no switch is planned over it")
     return Found(reviewed and stands and not gaps, saw,
                  repairable=(reviewed or (where is None and not older))
