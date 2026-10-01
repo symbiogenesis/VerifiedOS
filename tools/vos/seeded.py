@@ -180,16 +180,19 @@ class Journal:
     this one.
 
     **A note is not a verdict.** A loop may also write down what a verdict cost as it
-    goes, the Gallina lane each compile's file and wall seconds, one line each opening
-    `-- `, which neither a verdict line, opening on its number, nor the head or the
-    closing line, opening `== `, does. A run stopped mid-mutant thereby still says
-    which mutant it was on and what it had compiled.
+    goes, the Gallina lane each compile's file and wall seconds, every line of a note
+    opening `-- `, which neither a verdict line, opening on its number, nor the head or
+    the closing line, opening `== `, does. A run stopped mid-mutant thereby still says
+    which mutant it was on and what it had compiled. The closing line counts undecided
+    verdicts apart from decided ones, an undecided mutant being one nothing was decided
+    about.
     """
 
     def __init__(self, path: Path) -> None:
         self.path = path
         self._lock = Lock()
         self._n = 0
+        self._undecided = 0
 
     def start(self, subject: str, oracle_name: str, scope: Scope) -> str:
         """Open the file on this run's head, and say where it is.
@@ -200,8 +203,9 @@ class Journal:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._write("w", [f"== {subject} against the {oracle_name} oracle",
                           f"   scope: {scope.stated()}",
-                          "   one line per verdict, as it is decided; the closing line "
-                          "is written only by a run that finished"])
+                          "   one line per verdict, as it is decided, and any note the "
+                          "loop writes on lines opening `-- `; the closing line is "
+                          "written only by a run that finished"])
         return (f"== every verdict is written to {self.path} as it is decided, so a "
                 "run that does not finish still says what it decided")
 
@@ -210,18 +214,23 @@ class Journal:
         expression rather than in two statements that can drift apart."""
         with self._lock:
             self._n += 1
+            if verdict.outcome == UNDECIDED:
+                self._undecided += 1
             self._write("a", [f"{self._n:>5}  {verdict.outcome:<9} "
                               f"{verdict.mutant.what}: {verdict.detail}"])
         return verdict
 
     def note(self, text: str) -> None:
-        """Write one line that is not a verdict, opening `-- `, as it happens."""
+        """Write a note that is not a verdict as it happens, every line of it opening
+        `-- `, so a reason the prover gave over several lines reads as no verdict."""
         with self._lock:
-            self._write("a", [f"-- {text}"])
+            self._write("a", [f"-- {line}" for line in text.splitlines() or [""]])
 
     def close(self, code: int) -> None:
         """The closing line, which is what a truncated journal is missing."""
-        self._write("a", [f"== complete: {self._n} verdict(s) decided, exit {code}"])
+        undecided = f", {self._undecided} undecided" if self._undecided else ""
+        self._write("a", [f"== complete: {self._n - self._undecided} verdict(s) decided"
+                          f"{undecided}, exit {code}"])
 
     def _write(self, mode: str, lines: list[str]) -> None:
         with self.path.open(mode, encoding="utf-8", newline="\n") as handle:

@@ -195,11 +195,13 @@ class Prover:
 @dataclass(frozen=True)
 class Compiled:
     """One prover run: the source as staged, relative to the tree it compiled in, its
-    wall seconds, and its exit, None where it reached its limit and was stopped."""
+    wall seconds, its exit, None where it reached its limit and was stopped, and the
+    limit it was given."""
 
     source: str
     seconds: float
     exit: int | None
+    limit: float
 
 
 class CompileTimeout(subprocess.TimeoutExpired):
@@ -373,14 +375,14 @@ def compile_one(found: Prover, work: Path, source: Path,
         except subprocess.TimeoutExpired as expired:
             _stop(running)
             if observer is not None:
-                observer(Compiled(rel, time.monotonic() - began, None))
+                observer(Compiled(rel, time.monotonic() - began, None, limit))
             raise CompileTimeout(rel, limit, argv) from expired
         except BaseException:
             _stop(running)
             raise
     done = subprocess.CompletedProcess(argv, running.returncode, stdout, stderr)
     if observer is not None:
-        observer(Compiled(rel, time.monotonic() - began, done.returncode))
+        observer(Compiled(rel, time.monotonic() - began, done.returncode, limit))
     return done
 
 

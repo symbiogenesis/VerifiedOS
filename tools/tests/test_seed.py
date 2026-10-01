@@ -358,7 +358,7 @@ def _a_compile_past_the_limit_is_undecided_and_the_run_goes_on() -> None:
            f"the stopped mutant is undecided by file and limit, and the next two are "
            f"decided: {journal}")
     stopped = [line for line in lines if line.startswith("-- quickchick: compiled proofs/A.v")
-               and line.endswith("stopped at gallina's per-file limit")]
+               and line.endswith(f"stopped at gallina's per-file limit of {_LIMIT} s")]
     ensure(len(stopped) == 1 and _LIMIT <= float(stopped[0].split(" in ")[1].split()[0])
            < _SLEEP and spent < _SLEEP,
            f"the prover run is stopped at the limit and journalled with its seconds: "
@@ -373,30 +373,35 @@ def _a_compile_past_the_limit_is_undecided_and_the_run_goes_on() -> None:
     marks = [line for line in lines if line.startswith("-- quickchick: ")
              and " compiled " not in line]
     ensure(marks == ["-- quickchick: baseline",
+                     f"-- quickchick: {gallina.RANDOMIZED} draws from seed 7",
                      "-- quickchick: mutant plus-to-minus/0 (plus-to-minus) "
                      "proofs/A.v:1 ` + ` -> ` - `",
                      "-- quickchick: mutant const-inc/0 (const-inc) proofs/A.v:1 `1` -> `2`",
                      "-- quickchick: mutant const-inc/1 (const-inc) proofs/A.v:1 `2` -> `3`"],
-           f"the journal says which mutant the tree is on as it starts: {marks}")
-    ensure(code == 1 and lines[-1] == "== complete: 3 verdict(s) decided, exit 1"
+           f"the journal says the seed the baseline draws from and which mutant the tree is "
+           f"on as it starts: {marks}")
+    ensure(code == 1 and lines[-1] == "== complete: 2 verdict(s) decided, 1 undecided, exit 1"
            and "1 undecided" in said and "FAIL 1 of 3 mutant(s) went undecided" in said,
            f"the run reports the undecided mutant as a finding and closes: {said}")
 
 
 def _a_baseline_compile_past_the_limit_leaves_no_baseline() -> None:
     """A compile of the unmutated tree that reaches the limit is stopped and leaves the
-    run with no baseline, which it says by file and limit, and the journal closes on no
-    verdict after the stopped compile."""
+    run with no baseline, which it says by file and limit, on stdout and in the journal,
+    and the journal closes on no verdict after the stopped compile."""
     code, said, lines, spent = _timed_run(_TIMED_SOURCE.replace(" + ", " - "))
-    ensure(code == 1 and spent < _SLEEP
-           and f"FAIL the compile of proofs/A.v reached gallina's per-file limit of {_LIMIT} "
-               "s and was stopped, so the unmutated tree has no baseline" in said,
+    why = (f"the compile of proofs/A.v reached gallina's per-file limit of {_LIMIT} s and "
+           "was stopped, so the unmutated tree has no baseline")
+    ensure(code == 1 and spent < _SLEEP and f"FAIL {why}" in said,
            f"a stopped baseline compile is no baseline, named by file and limit: {said}")
-    ensure(lines[3:] == ["-- quickchick: baseline", lines[4],
+    ensure(lines[3:] == ["-- quickchick: baseline",
+                         f"-- quickchick: {gallina.RANDOMIZED} draws from seed 7", lines[5],
+                         f"-- no baseline: {why}",
                          "== complete: 0 verdict(s) decided, exit 1"]
-           and lines[4].startswith("-- quickchick: compiled proofs/A.v in ")
-           and lines[4].endswith("stopped at gallina's per-file limit"),
-           f"the journal records the stopped baseline compile and closes: {lines}")
+           and lines[5].startswith("-- quickchick: compiled proofs/A.v in ")
+           and lines[5].endswith(f"stopped at gallina's per-file limit of {_LIMIT} s"),
+           f"the journal records the seed, the stopped baseline compile with its limit and "
+           f"why there is no baseline, and closes: {lines}")
 
 
 def _oracle_list_runs() -> None:

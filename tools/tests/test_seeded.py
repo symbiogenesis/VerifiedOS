@@ -106,19 +106,24 @@ def _an_undecided_mutant_is_a_finding_and_no_kill() -> None:
 
 
 def _a_journal_note_is_no_verdict() -> None:
-    """What a verdict cost is written down beside the verdicts, on a line that opens
-    neither on a verdict's number nor on the head's or the close's `==`, and counts as
-    no verdict on the closing line."""
+    """What a verdict cost is written down beside the verdicts, every line of a note
+    opening neither on a verdict's number nor on the head's or the close's `==`, as the
+    head says, and counts as no verdict on the closing line, which counts an undecided
+    verdict apart from the decided ones."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         book = seeded.Journal(Path(td) / "run.journal")
-        book.start("f.sail", "test", seeded.Scope(whole=1, ran=1))
+        book.start("f.sail", "test", seeded.Scope(whole=2, ran=2))
         book.note("t: compiled f.v in 1.25 s, exit 0")
-        book.record(seeded.Verdict(_mutant(), seeded.KILLED, "moved"))
-        book.close(0)
+        book.record(seeded.Verdict(_mutant(1), seeded.KILLED, "moved"))
+        book.note("no baseline: f.v did not compile:\n3 errors")
+        book.record(seeded.Verdict(_mutant(2), seeded.UNDECIDED, "limit"))
+        book.close(1)
         lines = book.path.read_text(encoding="utf-8").splitlines()
-    ensure(lines[3] == "-- t: compiled f.v in 1.25 s, exit 0"
-           and lines[-1] == "== complete: 1 verdict(s) decided, exit 0",
-           f"the note is not its own line, or counted as a verdict: {lines}")
+    ensure("`-- `" in lines[2] and lines[3] == "-- t: compiled f.v in 1.25 s, exit 0"
+           and lines[5:7] == ["-- no baseline: f.v did not compile:", "-- 3 errors"]
+           and lines[-1] == "== complete: 1 verdict(s) decided, 1 undecided, exit 1",
+           f"a note's every line is not its own `-- ` line, or the close does not count "
+           f"the undecided verdict apart: {lines}")
 
 
 def _no_unseeded_verdict_is_reported_as_none() -> None:

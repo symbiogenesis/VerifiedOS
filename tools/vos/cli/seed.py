@@ -30,9 +30,10 @@ verdict to a journal beside the lane's staged trees as it is decided, so a run t
 killed anyway still says what it had decided rather than losing the lot at the report
 it never printed. The report itself is unmoved: accumulated, printed whole, in
 population order, and closing on the line that carries the run's scope. The Gallina
-lane also journals which mutant each staged tree is on and each compile's file and wall
-seconds, and a compile that reaches gallina's per-file limit is stopped, its mutant
-journalled undecided with the file and the limit, and the run goes on to the next.
+lane also journals the seed a randomized baseline draws from, which mutant each staged
+tree is on and each compile's file and wall seconds, and a compile that reaches
+gallina's per-file limit is stopped, its mutant journalled undecided with the file and
+the limit, and the run goes on to the next.
 
 The Coq lane runs **two** oracles in sequence and the second is the one worth the
 item. A mutation the prover refuses is killed by the artifact's own statements, which
@@ -376,10 +377,10 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
 
 def _accounted(book: Journal, tree: str) -> Callable[[gallina.Compiled], None]:
     """How one staged tree's compiles are journalled as they end: the tree, the source,
-    its wall seconds and how the prover run ended."""
+    its wall seconds and how the prover run ended, a stopped one with its limit."""
     def note(done: gallina.Compiled) -> None:
-        ended = ("stopped at gallina's per-file limit" if done.exit is None
-                 else f"exit {done.exit}")
+        ended = (f"stopped at gallina's per-file limit of {done.limit:g} s"
+                 if done.exit is None else f"exit {done.exit}")
         book.note(f"{tree}: compiled {done.source} in {done.seconds:.2f} s, {ended}")
     return note
 
@@ -481,18 +482,23 @@ def randomized_subjects(root: Path) -> list[str]:
 
 
 def _quickchick_baseline(root: Path, found: gallina.Prover, work: Path,
-                         harness_name: str) -> tuple[list[str] | None, str]:
+                         harness_name: str, book: Journal | None = None
+                         ) -> tuple[list[str] | None, str]:
     """One tree stood up for the randomized harness and the walk harness beside it,
     whose baseline is green property sets rather than a vector file, so the list it
     hands back is empty. It compiles the two harnesses' `Require` closure and nothing
     else, as `quickchick properties` does. A drawn harness that fixes no seed is refused
-    here, since a verdict its mutants reach would not replay."""
+    here, since a verdict its mutants reach would not replay; the seed one fixes is
+    journalled in `book`, where one is given, before anything compiles."""
     gallina.stage(root, work)
     drawn = work / "harness" / harness_name
     walker = work / "harness" / gallina.EXHAUSTIVE
-    if gallina.seed(drawn) is None:
+    seed = gallina.seed(drawn)
+    if seed is None:
         return None, (f"{harness_name} fixes QuickChick's random state other than once "
                       "after its last Require of QuickChick, so no verdict over it replays")
+    if book is not None:
+        book.note(f"{work.name}: {harness_name} draws from seed {seed}")
     if gallina.compile_closure(found, work, drawn, walker):
         return None, "the unmutated tree did not compile, so there is no baseline"
     walked, said = gallina.walks(found, work, walker)
@@ -531,7 +537,7 @@ def _stand_up(root: Path, found: gallina.Prover, trees: list[Path], harness_name
             book.note(f"{work.name}: baseline")
             try:
                 if quickchick:
-                    return _quickchick_baseline(root, found, work, harness_name)
+                    return _quickchick_baseline(root, found, work, harness_name, book)
                 said: list[str] = []
                 return gallina.emit(root, work, said), "\n".join(said)
             except gallina.CompileTimeout as stopped:
@@ -643,6 +649,7 @@ def _coq_run(args: argparse.Namespace, e: env.Environment, root: Path, rel: str,
     baseline, why = _stand_up(root, found, trees, harness_name, args.quickchick, book)
     if baseline is None:
         out.append(f"FAIL {why}")
+        book.note(f"no baseline: {why}")
         book.close(1)
         print("\n".join(out))
         return 1
