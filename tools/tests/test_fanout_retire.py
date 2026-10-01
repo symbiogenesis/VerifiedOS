@@ -1130,8 +1130,10 @@ def _c_unread_locks(text: str) -> int:
 def _campaign_lock(text: str) -> str | None:
     """The target, as source, of the `hold_lock` that a module's `run` holds across its
     whole body, or `None` unless every statement after its docstring sits inside one
-    `with` whose first item is `hold_lock(<target>, ...)`: a `with` enters its items
-    left to right, so an item before the lock runs unheld."""
+    `with` whose first item is `hold_lock(<target>, ...)`, and every `--blkdev-image*`
+    string the module spells sits in that `with`'s body: a `with` enters its items left
+    to right, so an item before the lock runs unheld, and a block image passed from
+    anywhere else can be launched without the lock."""
     tree = ast.parse(text)
     run = next((node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "run"), None)
     if run is None:
@@ -1144,10 +1146,15 @@ def _campaign_lock(text: str) -> str | None:
     if not isinstance(block, ast.With):
         return None
     held = block.items[0].context_expr
-    if (isinstance(held, ast.Call) and isinstance(held.func, ast.Attribute)
+    if not (isinstance(held, ast.Call) and isinstance(held.func, ast.Attribute)
             and held.func.attr == "hold_lock" and held.args):
-        return ast.unparse(held.args[0])
-    return None
+        return None
+    inside = {id(node) for statement in block.body for node in ast.walk(statement)}
+    if any(isinstance(node, ast.Constant) and isinstance(node.value, str)
+           and node.value.startswith("--blkdev-image") and id(node) not in inside
+           for node in ast.walk(tree)):
+        return None
+    return ast.unparse(held.args[0])
 
 
 def _producer_lock_scanners_fail_closed() -> None:
@@ -1226,12 +1233,21 @@ def _producer_lock_scanners_fail_closed() -> None:
     ensure(_campaign_lock('def run(root, output):\n    with env.hold_lock(output, "x"), open(output) as stream:\n'
                           '        launch(stream)\n') == "output",
            "an item after the lock enters with it held")
+    ensure(_campaign_lock('def run(root, output):\n    with env.hold_lock(output, "x"):\n'
+                          '        def execute(image):\n            emulate(["--blkdev-image", image])\n'
+                          '        execute(output)\n') == "output",
+           "a block image passed from inside the lock is held")
     for text in ('def run(root, output):\n    launch(output)\n'
                  '    with env.hold_lock(output, "x"):\n        launch(output)\n',
                  'def run(root, output):\n    with open(output) as stream:\n        launch(stream)\n',
                  'def run(root, output):\n    with launch(output), env.hold_lock(output, "x"):\n        launch(output)\n',
-                 'def other(root, output):\n    with env.hold_lock(output, "x"):\n        launch(output)\n'):
-        ensure(_campaign_lock(text) is None, f"a run not wholly inside a lock holds none: {text!r}")
+                 'def other(root, output):\n    with env.hold_lock(output, "x"):\n        launch(output)\n',
+                 'def launch(output):\n    emulate(["--blkdev-image-create", output])\n'
+                 'def run(root, output):\n    with env.hold_lock(output, "x"):\n        launch(output)\n',
+                 'IMAGE = "--blkdev-image"\ndef run(root, output):\n'
+                 '    with env.hold_lock(output, "x"):\n        emulate([IMAGE, output])\n'):
+        ensure(_campaign_lock(text) is None,
+               f"a run not wholly inside a lock, or a block image outside it, holds none: {text!r}")
 
 
 def _producer_lock_inventory() -> None:
@@ -1280,7 +1296,8 @@ def _producer_lock_inventory() -> None:
            f"only the persistence campaign passes the emulator a block image, got {launchers}")
     held = _campaign_lock((TOOLS / "vos" / "block_persistence.py").read_text(encoding="utf-8"))
     ensure(held == "output.parent / 'persistence'",
-           f"block_persistence.run must hold its output directory's persistence.lock across its whole body, got {held}")
+           "block_persistence.run must hold its output directory's persistence.lock across its whole body, "
+           f"and spell every block image inside it, got {held}")
     callers = 0
     for path in sources:
         tree = ast.parse(path.read_text(encoding="utf-8"))
