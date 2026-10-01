@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Retirement checks ownership, ancestry, retention and interrupted removal in real Git."""
 
+import argparse
 import ast
 import errno
 import io
@@ -21,6 +22,7 @@ from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from tests.test_worktree import _commit, _git
 from vos import fanout_retire as retire
 from vos import memory_planner_candidates as candidates
+from vos.cli import memory_planner_candidates as candidates_cli
 from vos.cli import model as model_cli
 from vos.cli import proofs as proofs_cli
 from vos.cli import worktree
@@ -741,8 +743,9 @@ def _persistence_campaign_lock() -> None:
 
 def _idealloc_build_lock() -> None:
     """Cargo flocks `.cargo-lock` and `.package-cache` inside the idealloc build's
-    output, names the retirement does not select; a live build is seen through the
-    `<output>.lock` the build holds beside it, and a finished one retires."""
+    output, names the retirement does not select; a live candidate run is seen through
+    the `<output>.lock` it holds beside that output from its build through its
+    evidence, and a finished one retires."""
     with sandbox_tree(FILES) as root, patch.object(retire.env, "filesystem", return_value="ext4"):
         lane = root / "build" / "lane-worker"
         output = lane / "memory-planner-idealloc"
@@ -767,11 +770,12 @@ def _idealloc_build_lock() -> None:
                     seen.append(str(exc))
             raise ValueError("the stand-in toolchain stops the build")
 
+        demo = argparse.Namespace(action="demo", instance=None, baseline=None, timeout=30, iterations=1)
         with (patch.object(candidates, "native_output", side_effect=lambda _, path: path),
               patch.object(candidates, "rust_environment", side_effect=cargo)):
             stopped = False
             try:
-                candidates.build_idealloc(checkout, output)
+                candidates_cli.run(demo, checkout, output)
             except ValueError as exc:
                 stopped = "stand-in" in str(exc)
             ensure(stopped, "the stand-in toolchain ends the build")

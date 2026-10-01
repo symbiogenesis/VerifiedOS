@@ -6,6 +6,7 @@ lifetimes nor infers them. Exact rank conversion preserves interval coexistence.
 Downloads, compiler output and subprocess files stay in the native guest lane.
 """
 
+import contextlib
 import copy
 import hashlib
 import json
@@ -17,6 +18,7 @@ import tarfile
 import tempfile
 import time
 import tomllib
+from collections.abc import Iterator
 from dataclasses import asdict
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -213,19 +215,32 @@ checked before addressing local files; unexpected source files are also refused.
         raise ValueError("unexpected source file in Cargo package")
 
 
+@contextlib.contextmanager
+def hold_output(root: Path, output: Path) -> Iterator[Path]:
+    """Hold the lock beside `output`, the lock a lane retirement takes, for one run.
+
+    Cargo flocks `target/<profile>/.cargo-lock` and `$CARGO_HOME/.package-cache`, both
+    inside `output`, where a retirement does not look, so a run holds `<output>.lock`
+    from its build through its evidence, taking it once: a second hold in the same
+    process would be refused by the first. A held lock refuses as `ValueError` naming
+    its holder, which a `plan` turns into its retained baseline and the command
+    reports, where `env.hold_lock`'s `SystemExit` would escape both.
+    """
+    output = native_output(root, output)
+    try:
+        lock = env.hold_lock(output, "an idealloc candidate run")
+    except SystemExit as refusal:
+        raise ValueError(str(refusal)) from refusal
+    with lock:
+        yield output
+
+
 def build_idealloc(root: Path, output: Path) -> dict[str, Any]:
     """Build only a hash-bound upstream core and this repository's authored bridge.
 
-    Cargo flocks `target/<profile>/.cargo-lock` and `$CARGO_HOME/.package-cache`, both
-    inside `output`; the build holds `<output>.lock` beside it throughout, which is the
-    lock a lane retirement takes.
+    The caller holds `hold_output` throughout.
     """
     output = native_output(root, output)
-    with env.hold_lock(output, "an idealloc build"):
-        return _build_idealloc(root, output)
-
-
-def _build_idealloc(root: Path, output: Path) -> dict[str, Any]:
     pin = json.loads((root / PIN_PATH).read_text(encoding="utf-8"))
     # Version 3 moved the Rust pin to the shared rust_toolchain owner.
     if pin.get("schema") != PIN_SCHEMA or "rust" in pin:
