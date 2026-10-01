@@ -1043,6 +1043,94 @@ def _workflow_runner_labels_any_style() -> None:
            f"the matrix's runner belongs to the shard job alone: {found!r}")
 
 
+# The instrument switch route's workflow, whose every job but the plan checks each
+# checkout it takes against main before any of that checkout's code runs.
+INSTRUMENT = "instrument-switches.yml"
+_GUARD = "Verify dispatched revision belongs to main"
+
+
+def _workflow_jobs(contents: str) -> dict[str, str]:
+    """Each job's block of a workflow, by its key."""
+    body = contents.split("\njobs:\n", 1)[1]
+    names = re.findall(r"(?m)^  ([a-z][\w-]*):\n", body)
+    blocks = re.split(r"(?m)^  [a-z][\w-]*:\n", body)[1:]
+    return dict(zip(names, blocks, strict=True))
+
+
+def _instrument_guard_faults(contents: str) -> tuple[list[str], list[str]]:
+    """The instrument route's guard scripts, and why its jobs do not guard each checkout.
+
+    The plan job checks out the dispatching commit alone and refuses its own ref and
+    commit, so it carries no guard. Every other job's first step checks out that commit
+    as `route`, and each checkout a job takes is followed at once by a guard step, run
+    by Python in the checkout's directory, holding the checked-out revision, given as
+    that checkout's own ref, to main's commit under main's ref, so no code of either
+    checkout runs before its guard."""
+    scripts: list[str] = []
+    faults: list[str] = []
+    for job, block in _workflow_jobs(contents).items():
+        steps = _step_texts(block)
+        checkouts = [n for n, step in enumerate(steps)
+                     if re.search(r"(?m)^      - uses: actions/checkout@", step)]
+        if job == "plan":
+            refs = [_step_block(steps[n], "with") for n in checkouts]
+            if len(checkouts) != 1 or "          ref: ${{ github.sha }}" not in refs[0]:
+                faults.append("the plan job checks out more than the dispatching commit")
+            continue
+        if not checkouts or checkouts[0] != 0:
+            faults.append(f"{job} does not open with its route checkout")
+        for n in checkouts:
+            given = "\n".join(_step_block(steps[n], "with"))
+            ref = re.search(r"(?m)^          ref: (.+)$", given)
+            path = re.search(r"(?m)^          path: (\S+)$", given)
+            guard = steps[n + 1] if n + 1 < len(steps) else ""
+            if (ref is None or path is None
+                    or "          persist-credentials: false" not in given):
+                faults.append(f"{job} takes a checkout without a ref, a path or "
+                              "persist-credentials: false")
+                continue
+            if not guard.startswith(f"      - name: {_GUARD} ({path[1]})\n"):
+                faults.append(f"{job}'s {path[1]} checkout is not followed by its guard")
+                continue
+            wanted = ["        env:", f"          REQUESTED_REVISION: {ref[1]}",
+                      "          DISPATCH_REF: ${{ github.ref }}",
+                      "          DISPATCH_MAIN_SHA: ${{ github.sha }}"]
+            if (_step_values(guard, "shell") != ["python"]
+                    or _step_values(guard, "working-directory") != [path[1]]
+                    or _step_block(guard, "env") != wanted):
+                faults.append(f"{job}'s {path[1]} guard does not hold that checkout to main")
+            scripts.append(textwrap.dedent(guard.split("        run: |\n", 1)[1]))
+    return scripts, faults
+
+
+def _workflow_instrument_guards() -> None:
+    contents = (ROOT / ".github/workflows" / INSTRUMENT).read_text(encoding="utf-8")
+    scripts, faults = _instrument_guard_faults(contents)
+    ensure(not faults and len(scripts) == 7,
+           f"every instrument job guards each checkout it takes: {faults!r}, {len(scripts)}")
+    ensure(not _startup_names(contents),
+           f"{INSTRUMENT} sets no BASH_ENV, ENV or BASH_FUNC_*: {_startup_names(contents)}")
+    side = "      - name: Verify dispatched revision belongs to main (side)\n"
+    for workflow, fragment in (
+            (contents.replace(side, "      - name: Install something first\n", 1),
+             "side checkout is not followed by its guard"),
+            (contents.replace("          DISPATCH_MAIN_SHA: ${{ github.sha }}\n",
+                              "          DISPATCH_MAIN_SHA: ${{ needs.plan.outputs.revision }}\n",
+                              1), "guard does not hold that checkout to main"),
+            (contents.replace("        working-directory: side\n",
+                              "        working-directory: route\n", 1),
+             "guard does not hold that checkout to main"),
+            (contents.replace("          path: route\n          fetch-depth: 0\n",
+                              "          path: route\n          fetch-depth: 0\n"
+                              "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+                              " # v7.0.1\n        with:\n          ref: ${{ inputs.revision }}\n",
+                              1), "plan job checks out more")):
+        ensure(workflow != contents, f"the fixture for {fragment!r} changed nothing")
+        _, found = _instrument_guard_faults(workflow)
+        ensure(any(fragment in fault for fault in found),
+               f"an unguarded checkout must be refused ({fragment!r}): {found!r}")
+
+
 def _workflow_checkout_validation() -> None:
     scripts: dict[str, str] = {}
     for workflow in (ci.HOST, ci.GUEST):
@@ -1050,6 +1138,10 @@ def _workflow_checkout_validation() -> None:
         step = contents.split("      - name: Verify dispatched revision belongs to main\n", 1)[1]
         script = step.split("        run: |\n", 1)[1].split("\n      - ", 1)[0]
         scripts[workflow] = textwrap.dedent(script)
+    instrument, _ = _instrument_guard_faults(
+        (ROOT / ".github/workflows" / INSTRUMENT).read_text(encoding="utf-8"))
+    ensure(bool(instrument), f"{INSTRUMENT}'s guard steps are read")
+    scripts.update((f"{INSTRUMENT} guard {n}", script) for n, script in enumerate(instrument))
     with sandbox_tree({"README.md": "workflow fixture\n"}) as root:
         _fixture_identity(root)
         _git(root, "commit", "--allow-empty", "-qm", "base")
@@ -1135,7 +1227,8 @@ def _conjuncts(condition: str) -> list[str] | None:
     return [*operands, expression[start:].strip()]
 
 
-def _refused_dispatch_faults(contents: str, job: str) -> list[str]:
+def _refused_dispatch_faults(contents: str, job: str, check_name: str = _DISPATCH_CHECK,
+                             ident: str = "dispatch", exempt: str | None = None) -> list[str]:
     """Why a step of `job` could run checked-out code after its dispatch check refused.
 
     A step whose condition calls no status function runs only once every earlier step
@@ -1144,23 +1237,25 @@ def _refused_dispatch_faults(contents: str, job: str) -> list[str]:
     after the check that runs a command, whose shell starts in the checkout, or a local
     `./` action must state the guard as a top-level conjunct of a one-line condition. A
     condition stated as a block scalar, or not on its `if:` line, is read as one that
-    runs after a failure. The check is identified as `dispatch` and does not continue on
-    error, so a refusal is a failure every later step sees. A pinned action's step runs
-    that action's code.
+    runs after a failure. The check, the step named `check_name`, is identified as
+    `ident`, `dispatch` by default, and does not continue on error, so a refusal is a
+    failure every later step sees. A pinned action's step runs that action's code. A
+    step whose one command is `exempt`, run by no action, is left to its caller's reading.
     """
+    guard = f"steps.{ident}.outcome != 'failure'"
     after = contents.split(f"\n  {job}:\n", 1)[1]
     steps = _step_texts(re.split(r"\n  (?=\S)", after, maxsplit=1)[0])
-    checks = [n for n, step in enumerate(steps) if _step_values(step, "name") == [_DISPATCH_CHECK]]
+    checks = [n for n, step in enumerate(steps) if _step_values(step, "name") == [check_name]]
     if len(checks) != 1:
-        return [f"{job} states the dispatch check {len(checks)} time(s), not once"]
+        return [f"{job} states the check {check_name!r} {len(checks)} time(s), not once"]
     check = steps[checks[0]]
     faults: list[str] = []
-    if _step_values(check, "id") != ["dispatch"]:
-        faults.append(f"{job}'s dispatch check is not identified as dispatch, so no later "
-                      "step can read its outcome")
+    if _step_values(check, "id") != [ident]:
+        faults.append(f"{job}'s check {check_name!r} is not identified as {ident}, so no "
+                      "later step can read its outcome")
     if _step_values(check, "continue-on-error"):
-        faults.append(f"{job}'s dispatch check continues on error, so a refusal runs every "
-                      "later step")
+        faults.append(f"{job}'s check {check_name!r} continues on error, so a refusal runs "
+                      "every later step")
     for step in steps[checks[0] + 1:]:
         local = any(value.startswith("./") for value in _step_values(step, "uses"))
         conditions = _step_values(step, "if")
@@ -1168,11 +1263,37 @@ def _refused_dispatch_faults(contents: str, job: str) -> list[str]:
                 re.search(r"\b(?:always|failure|cancelled)\(\)", condition)
                 or not condition or condition[0] in "|>" for condition in conditions):
             continue
+        if exempt is not None and _step_values(step, "run") == [exempt] and not local:
+            continue
         name = next(iter(_step_values(step, "name")), "an unnamed step")
         operands = _conjuncts(conditions[0]) if len(conditions) == 1 else None
-        if operands is None or _DISPATCH_GUARD not in operands:
+        if operands is None or guard not in operands:
             faults.append(f"{job}'s step {name!r} runs checked-out code after a failure "
-                          f"without requiring {_DISPATCH_GUARD}")
+                          f"without requiring {guard}")
+    return faults
+
+
+def _instrument_refused_faults(contents: str) -> list[str]:
+    """Why a step of the instrument route could run the requested revision's code after a
+    refusal: the reading above over each job's check, the plan job's plan step and each
+    later job's side guard, in every job that takes a side checkout, its staging alone
+    excepted. Staging's one command runs the route checkout's instrument_route.py, which
+    imports only the standard library and that checkout's `vos.receipts` and `vos.env`,
+    over the job's private root, read as data, and reads no file of the side's checkout,
+    where no step has run that revision's code before a refused guard. A failed route
+    guard skips the side checkout, and the join takes none."""
+    faults: list[str] = []
+    side = f"{_GUARD} (side)"
+    for job, block in _workflow_jobs(contents).items():
+        names = [_step_values(step, "name") for step in _step_texts(block)]
+        if job == "plan":
+            check, ident = "Plan the dispatch", "plan"
+        elif [side] in names:
+            check, ident = side, "side"
+        else:
+            continue
+        stage = f"python3 route/tools/ci/instrument_route.py stage --job {job}"
+        faults += _refused_dispatch_faults(contents, job, check, ident, stage)
     return faults
 
 
@@ -1219,6 +1340,36 @@ def _workflow_refused_dispatch() -> None:
     # A pinned action after a failure, such as the artifact upload, runs no checked-out code.
     ensure("        if: ${{ !cancelled() }}\n        uses: actions/upload-artifact@"
            in contents, "Guest CI's upload runs after a failure without the guard")
+    # The instrument route: no step runs a requested revision's code after its plan or
+    # side guard refused, staging alone running after either.
+    contents = (ROOT / ".github/workflows" / INSTRUMENT).read_text(encoding="utf-8")
+    found = _instrument_refused_faults(contents)
+    ensure(not found, f"{INSTRUMENT} runs checked-out code after a refusal: {found!r}")
+    side = "      - name: Verify dispatched revision belongs to main (side)\n        id: side\n"
+    ensure(contents.count(side) == 3, f"{INSTRUMENT}'s three side guards are identified")
+    stage = "      - name: Stage the build's records\n"
+    stage_plan = "      - name: Stage the plan\n"
+    for mutant, fragment in (
+            (contents.replace(" && steps.side.outcome != 'failure'", ""),
+             "step \"Compare the imported switch with the build's\" runs checked-out code"),
+            (contents.replace(side, side.replace("        id: side\n", ""), 1),
+             "is not identified as side"),
+            (contents.replace(side, side + "        continue-on-error: true\n", 1),
+             "continues on error"),
+            (contents.replace(stage, "      - name: Report the side\n        if: ${{ always() }}\n"
+                                     "        run: python3 side/tools/run.py quickchick check\n\n"
+                              + stage, 1), "step 'Report the side' runs checked-out code"),
+            (contents.replace("stage --job build\n", "stage --job build --side side\n", 1),
+             "step \"Stage the build's records\" runs checked-out code"),
+            (contents.replace(stage_plan, "      - name: Read the plan\n"
+                                          "        if: ${{ failure() }}\n"
+                                          "        run: python3 route/tools/ci/instrument_route.py"
+                                          " plan\n\n" + stage_plan, 1),
+             "step 'Read the plan' runs checked-out code")):
+        ensure(mutant != contents, f"the instrument fixture for {fragment!r} changed nothing")
+        found = _instrument_refused_faults(mutant)
+        ensure(any(fragment in fault for fault in found),
+               f"the instrument route must refuse this mutant ({fragment!r}): {found!r}")
 
 
 def _workflow_reading_base_through_environment() -> None:
@@ -1267,6 +1418,7 @@ def cases() -> list[Case]:
             Case("workflow-gate-on-every-runner", _workflow_gate_on_every_runner),
             Case("workflow-runner-labels-any-style", _workflow_runner_labels_any_style),
             Case("workflow-checkout-validation", _workflow_checkout_validation),
+            Case("workflow-instrument-guards", _workflow_instrument_guards),
             Case("workflow-refused-dispatch", _workflow_refused_dispatch),
             Case("workflow-reading-base-through-environment",
                  _workflow_reading_base_through_environment)]

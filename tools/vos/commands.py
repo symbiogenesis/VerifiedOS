@@ -68,6 +68,8 @@ COMMANDS: tuple[Command, ...] = (
             "create and verify isolated checkouts with a provider-neutral root"),
     Command("fanout", "vos.cli.fanout",
             "integrate a batch, publish hosted CI evidence and retire its worktrees"),
+    Command("instrument-ci", "vos.cli.instrument_ci",
+            "dispatch the hosted QuickChick switch route and read its runs back"),
     Command("proof-search", "vos.cli.proof_search",
             "retrieve local proof examples as advisory source text, without a prover"),
     Command("sail-context", "vos.cli.sail_context",

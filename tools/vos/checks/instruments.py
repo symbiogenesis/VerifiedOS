@@ -7,9 +7,10 @@ value completed from a base with `with` (rocq#22207), and the `&` and `of` binde
 gate is not the only compiler of these sources. The QuickChick harness and its seeded
 mutants, the CertiRocq Wasm oracle and the Rupicola lowering each compile a proof source
 or a harness with an older release, held there by the libraries they load. **A form
-the gate accepts breaks those instruments without any gate saying so**: no hosted lane
-runs them, and the first reader to learn of it is whoever runs one next. This rule is
-what says so, on every checker run.
+the gate accepts breaks those instruments without any gate saying so**: no gate runs
+them, the instrument switch route running the QuickChick harness only when dispatched,
+and the first reader to learn of it is whoever runs one next. This rule is what says
+so, on every checker run.
 
 **The set is derived and never listed.** `INSTRUMENTS` below is the one table of every
 instrument that compiles a proof source or a harness outside the gate: its switch, its
@@ -21,15 +22,16 @@ the Rupicola lowering names its default owner. `seed coq --quickchick` compiles 
 harness's closure alone and refuses a subject outside it, so its row holds that harness
 and the rig's support harnesses, each with its closure, which today lie inside the
 harness's. Each switch and release is the instrument's own constant,
-imported, or, where it has none to import, the literal in its own file, read by name out
-of that file's syntax tree, and so is a proof source the instrument names. The rows
-older than 9.3.0 decide the set, and each harness or named source brings its `Require`
-closure, read by [vos/proofs.py](../proofs.py)'s own reader over the proofs directory
-and the harness's directory as one namespace, because that is how every row stages
-them: the rig roots both at the empty logical path, and the recipes copy the proof
-beside the harness. The dated campaigns under `proofs/campaigns/` are not rows. A row
-that states no release is held older than 9.3.0, since a release nobody states is one
-nobody can say admits the forms.
+imported, or, where it has none to import, the literal in its own file or the rig's
+constant that file's top-level import binds under a name nothing else there binds, read
+by name out of that file's syntax tree, and so is a proof source the instrument names.
+The rows older than 9.3.0 decide the set, and each harness or named source brings its
+`Require` closure, read by [vos/proofs.py](../proofs.py)'s own reader over the proofs
+directory and the harness's directory as one namespace, because that is how every row
+stages them: the rig roots both at the empty logical path, and the recipes copy the
+proof beside the harness. The dated campaigns under `proofs/campaigns/` are not rows. A
+row that states no release is held older than 9.3.0, since a release nobody states is
+one nobody can say admits the forms.
 
 **The table's own membership is held too.** Every module under `tools/vos/` that resolves
 a prover through `gallina.prover` has to be some row's `selects`, so an instrument added
@@ -100,7 +102,8 @@ class Literal:
     command-line option. `within` is a pattern whose first group is the value where the
     string carries it inside a longer one.
 
-    The value is a string literal, or a path built from `Path(__file__)` by `.resolve()`,
+    The value is a string literal, a string constant of the rig or of `vos.env` that the
+    file imports and names, or a path built from `Path(__file__)` by `.resolve()`,
     `.parent` and `/`, read as the checkout-relative path it names, through `str(...)`
     and the module's own names."""
 
@@ -166,14 +169,17 @@ INSTRUMENTS: tuple[Instrument, ...] = (
     Instrument("the supervisor comparison", "tools/vos/supervisor.py",
                env.ROCQ_SWITCH, env.ROCQ_VERSION),
     # The recipes compile in the switch they import from tools/opam/certirocq.lock, the
-    # one ORACLE_SWITCH names, whose CertiRocq `run.py provision` holds at the rig's pin;
-    # the Docker image's own Rocq 9.1 only bootstraps opam. The row reads the rig's
-    # constants by decision, the recipes importing none.
+    # one ORACLE_SWITCH names: K-118 holds the rig's Rocq and OCaml releases to that
+    # snapshot and `run.py provision` its CertiRocq to the rig's pin, and the Docker
+    # image's own Rocq 9.1 only bootstraps opam. The row reads the rig's constants by
+    # decision, the recipes importing none.
     Instrument("the Wasm oracle's recipes", "tools/wasm-oracle/README.md",
                gallina.ORACLE_SWITCH, gallina.ORACLE_ROCQ_VERSION,
                beside="tools/wasm-oracle"),
-    Instrument("compare_component.py", _COMPARE, Literal(_COMPARE, "--switch"), None,
-               beside="tools/wasm-oracle"),
+    # Its default switch and the release its prover must report are the rig's, bound
+    # under its own names and read through them.
+    Instrument("compare_component.py", _COMPARE, Literal(_COMPARE, "--switch"),
+               Literal(_COMPARE, "ROCQ_VERSION"), beside="tools/wasm-oracle"),
     # The lowering compiles its `--owner` before the source; a caller may name another.
     Instrument("the Rupicola lowering", _REGENERATE, Literal(_REGENERATE, "SWITCH"),
                Literal(_REGENERATE, "SWITCH", r"-rupicola-(\d+\.\d+\.\d+)-ocaml-"),
@@ -426,7 +432,10 @@ def _evaluate(tree: ast.Module, expr: ast.expr, here: str,
               depth: int = 0) -> str | tuple[str, ...] | None:
     """A value one instrument states, as a string, or as the parts of a path under the
     checkout while it is still being built; None for anything else, a path leaving the
-    checkout or a name bound other than once among them."""
+    checkout or a name bound other than once among them. A constant of the rig or of
+    `vos.env` that the file names through its own top-level import, under a name nothing
+    else at its top level binds, is the value that constant holds, the instrument stating
+    it by taking it."""
     if depth > 16:
         return None
     step = depth + 1
@@ -435,6 +444,10 @@ def _evaluate(tree: ast.Module, expr: ast.expr, here: str,
     if isinstance(expr, ast.Name):
         bound = _assigned(tree, expr.id)
         return _evaluate(tree, bound[0], here, step) if len(bound) == 1 else None
+    if (isinstance(expr, ast.Attribute) and isinstance(expr.value, ast.Name)
+            and (module := _modules(tree).get(expr.value.id)) is not None):
+        value = getattr(module, expr.attr, None)
+        return value if isinstance(value, str) else None
     if isinstance(expr, ast.Attribute) and expr.attr == "parent":
         inner = _evaluate(tree, expr.value, here, step)
         return inner[:-1] if isinstance(inner, tuple) and inner else None
@@ -712,17 +725,11 @@ def _asks(tree: ast.Module, own: bool) -> tuple[set[str] | None, list[int]]:
     callees = {_PROVER} if own else set()
     candidates: list[ast.Call] = []
     for node in ast.walk(tree):
+        modules |= _imported(node)
         if isinstance(node, ast.ImportFrom):
             source = node.module or ""
-            if source == "vos" or (node.level and not source):
-                modules |= {a.asname or a.name: _MODULES[a.name] for a in node.names
-                            if a.name in _MODULES}
-            elif source == "vos.gallina" or (node.level and source == "gallina"):
+            if source == "vos.gallina" or (node.level and source == "gallina"):
                 callees |= {a.asname or a.name for a in node.names if a.name == _PROVER}
-        elif isinstance(node, ast.Import):
-            modules |= {a.asname: _MODULES[a.name.removeprefix("vos.")] for a in node.names
-                        if a.asname and a.name.removeprefix("vos.") in _MODULES
-                        and a.name.startswith("vos.")}
         elif isinstance(node, ast.Call):
             candidates.append(node)
     calls = [node for node in candidates if _calls_prover(node.func, callees, modules)]
@@ -773,6 +780,53 @@ def _asks(tree: ast.Module, own: bool) -> tuple[set[str] | None, list[int]]:
         if not got:
             unread.append(node.lineno)
     return asked, unread
+
+
+def _imported(node: ast.AST) -> dict[str, object]:
+    """The names one import binds to the rig or to `vos.env`, each with its module:
+    `from vos import gallina`, relatively or under another name, or `import vos.env as e`."""
+    if isinstance(node, ast.ImportFrom):
+        source = node.module or ""
+        if source == "vos" or (node.level and not source):
+            return {a.asname or a.name: _MODULES[a.name] for a in node.names
+                    if a.name in _MODULES}
+    elif isinstance(node, ast.Import):
+        return {a.asname: _MODULES[a.name.removeprefix("vos.")] for a in node.names
+                if a.asname and a.name.removeprefix("vos.") in _MODULES
+                and a.name.startswith("vos.")}
+    return {}
+
+
+def _modules(tree: ast.Module) -> dict[str, object]:
+    """Every name one module's top-level imports bind to the rig or to `vos.env` and
+    nothing else at its top level binds, so the name holds that module wherever the
+    module's own top level reads it. An import made only inside a function binds nothing
+    there, and a name also assigned, defined or imported again is not read."""
+    return {name: module for node in tree.body
+            for name, module in _imported(node).items() if _bindings(tree, name) == 1}
+
+
+def _bindings(tree: ast.Module, name: str) -> int:
+    """How many of a module's top-level statements bind one name: an import, a
+    definition, an assignment, or a loop's or `with`'s target."""
+    count = 0
+    for node in tree.body:
+        if isinstance(node, ast.Import | ast.ImportFrom):
+            count += sum((a.asname or a.name.split(".")[0]) == name for a in node.names)
+            continue
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+            count += node.name == name
+            continue
+        targets: list[ast.expr] = []
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign | ast.AugAssign | ast.For | ast.AsyncFor):
+            targets = [node.target]
+        elif isinstance(node, ast.With | ast.AsyncWith):
+            targets = [item.optional_vars for item in node.items if item.optional_vars]
+        count += sum(isinstance(n, ast.Name) and n.id == name
+                     for target in targets for n in ast.walk(target))
+    return count
 
 
 def _calls_prover(func: ast.expr, callees: set[str], modules: dict[str, object]) -> bool:
