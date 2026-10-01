@@ -2138,6 +2138,13 @@ Qed.
    one stated six times.
    ------------------------------------------------------------------------- *)
 
+(* The opening the six theorems below share: introduce the machine `m`,
+   split the five obligations each witness keeps, and introduce the first
+   obligation's digest, compartment and blob as `d`, `c` and `b` and its
+   premise as `H`, each name bound by the body's own patterns. *)
+Local Ltac open_the_kept_obligations :=
+  intros m; repeat split; [ intros d c b H | .. ].
+
 (* An unseal that checks who is asking and not what ran: the lifecycle
    state, the sealing root, the entropy verdict and the compartment all
    hold, and the policy does not enter. R-12-014's *binding secrets to the
@@ -2157,8 +2164,8 @@ Theorem the_convenient_unseal_keeps_the_other_five :
     /\ BoundToTheCompartment m (convenient_unseal m)
     /\ ExportsNoKey m (convenient_unseal m).
 Proof.
-  intros m. repeat split.
-  - intros d c b H. unfold convenient_unseal. rewrite H.
+  open_the_kept_obligations.
+  - unfold convenient_unseal. rewrite H.
     destruct m.(entropy_ok); reflexivity.
   - intros d c b H. unfold convenient_unseal. rewrite H.
     destruct m.(entropy_ok);
@@ -2190,8 +2197,8 @@ Theorem the_portable_unseal_keeps_the_other_five :
     /\ BoundToTheCompartment m (portable_unseal m)
     /\ ExportsNoKey m (portable_unseal m).
 Proof.
-  intros m. repeat split.
-  - intros d c b H. unfold portable_unseal. rewrite H.
+  open_the_kept_obligations.
+  - unfold portable_unseal. rewrite H.
     destruct m.(entropy_ok); reflexivity.
   - intros d c b H. unfold portable_unseal. rewrite H.
     destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
@@ -2224,8 +2231,8 @@ Theorem the_stale_unseal_keeps_the_other_five :
     /\ BoundToTheCompartment m (stale_unseal m)
     /\ ExportsNoKey m (stale_unseal m).
 Proof.
-  intros m. repeat split.
-  - intros d c b H. unfold stale_unseal. rewrite H.
+  open_the_kept_obligations.
+  - unfold stale_unseal. rewrite H.
     destruct m.(entropy_ok); reflexivity.
   - intros d c b H. unfold stale_unseal. rewrite H.
     destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
@@ -2256,8 +2263,8 @@ Theorem the_best_effort_unseal_keeps_the_other_five :
     /\ BoundToTheCompartment m (best_effort_unseal m)
     /\ ExportsNoKey m (best_effort_unseal m).
 Proof.
-  intros m. repeat split.
-  - intros d c b H. unfold best_effort_unseal. rewrite H. reflexivity.
+  open_the_kept_obligations.
+  - unfold best_effort_unseal. rewrite H. reflexivity.
   - intros d c b H. unfold best_effort_unseal. rewrite H.
     destruct (policy_admits m d b.(bound_policy)); reflexivity.
   - intros d c b H. unfold best_effort_unseal. rewrite H.
@@ -2290,8 +2297,8 @@ Theorem the_promiscuous_unseal_keeps_the_other_five :
     /\ UnsealsNothingOnAFailedRoot m (promiscuous_unseal m)
     /\ ExportsNoKey m (promiscuous_unseal m).
 Proof.
-  intros m. repeat split.
-  - intros d c b H. unfold promiscuous_unseal. rewrite H.
+  open_the_kept_obligations.
+  - unfold promiscuous_unseal. rewrite H.
     destruct m.(entropy_ok); reflexivity.
   - intros d c b H. unfold promiscuous_unseal. rewrite H.
     destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
@@ -2319,8 +2326,8 @@ Theorem the_exporting_unseal_keeps_all_five_gates :
     /\ UnsealsNothingOnAFailedRoot m (exporting_unseal m)
     /\ BoundToTheCompartment m (exporting_unseal m).
 Proof.
-  intros m. repeat split.
-  - intros d c b H. unfold exporting_unseal, unseal_admits. rewrite H.
+  open_the_kept_obligations.
+  - unfold exporting_unseal, unseal_admits. rewrite H.
     destruct m.(entropy_ok); reflexivity.
   - intros d c b H. unfold exporting_unseal, unseal_admits. rewrite H.
     destruct m.(entropy_ok); destruct (policy_admits m d b.(bound_policy));
