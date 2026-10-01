@@ -494,16 +494,23 @@ def _json_inventory_preserves_hierarchy_and_declarations() -> None:
 # The two templates of one kind are one kind, and a template reached from two parents
 # is counted at each instance. `nested` puts a second data cache inside the first, over
 # one more SRAM wrapper, which is counted once. `icache=False` leaves the instruction
-# cache's template out of the netlist and its instance out of the top.
-def _array_netlist(*, nested: bool = False, icache: bool = True) -> str:
+# cache's template out of the netlist and its instance out of the top, and
+# `icache_arrays=False` keeps both and gives the template no cells, so the instruction
+# cache is reached and holds no array.
+def _array_netlist(*, nested: bool = False, icache: bool = True,
+                   icache_arrays: bool = True) -> str:
     def module(name: str, level: int, *cells: str) -> dict[str, object]:
         return {"type": "MODULE", "name": name, "level": level,
                 "stmtsp": [{"type": "CELL", "name": f"u{i}", "modName": target}
                            for i, target in enumerate(cells)]}
 
     inner = [module("wt_dcache__N", 3, "sram__D")] if nested else []
-    fetch = [module("cva6_icache", 2, "sram__I", "sram__I"),
-             module("sram__I", 3, "prim_ram_1p__W")] if icache else []
+    fetch: list[dict[str, object]] = []
+    if icache and icache_arrays:
+        fetch = [module("cva6_icache", 2, "sram__I", "sram__I"),
+                 module("sram__I", 3, "prim_ram_1p__W")]
+    elif icache:
+        fetch = [module("cva6_icache", 2)]
     return json.dumps({"type": "NETLIST", "modulesp": [
         module("cva6", 1, "wt_dcache", *(["cva6_icache"] if icache else []), "sram__S"),
         module("wt_dcache", 2, "wt_dcache_mem", *(["wt_dcache__N"] if nested else [])),
@@ -551,6 +558,19 @@ def _json_inventory_reports_an_absent_cache_as_absent() -> None:
     ensure(lines[-2].split() == ["curated", "under", "wt_dcache", "(1)", "3", "2", "1"]
            and lines[-1].split() == ["curated", "under", "cva6_icache", "absent"],
            f"a cache the netlist lacks is reported absent, not as zeros: {lines!r}")
+
+
+def _json_inventory_reports_an_empty_cache_as_reached() -> None:
+    # The converse: an instruction cache the top reaches that holds no array keeps its
+    # reach and prints its zeros, so present-and-empty never reads as absent.
+    with sandbox_tree({"inventory.json": _array_netlist(icache_arrays=False)}) as root:
+        actual = rtl._inventory(root / "inventory.json")
+    ensure(actual.arrays == ((rtl.WHOLE_CORE, 1, (4, 2, 2)), ("wt_dcache", 1, (3, 2, 1)),
+                             ("cva6_icache", 1, (0, 0, 0))),
+           f"the instruction cache is reached once and holds no array: {actual.arrays!r}")
+    lines = rtl._array_lines({"curated": actual})
+    ensure(lines[-1].split() == ["curated", "under", "cva6_icache", "(1)", "0", "0", "0"],
+           f"a reached cache with no arrays is reported as zeros, not absent: {lines!r}")
 
 
 def _json_inventory_rejects_unresolved_hierarchy() -> None:
@@ -687,6 +707,8 @@ def cases() -> list[Case]:
              _json_inventory_counts_memory_arrays_per_cache),
         Case("json-inventory-reports-an-absent-cache-as-absent",
              _json_inventory_reports_an_absent_cache_as_absent),
+        Case("json-inventory-reports-an-empty-cache-as-reached",
+             _json_inventory_reports_an_empty_cache_as_reached),
         Case("json-inventory-rejects-unresolved-hierarchy",
              _json_inventory_rejects_unresolved_hierarchy),
         Case("json-inventory-rejects-absent-netlist",
