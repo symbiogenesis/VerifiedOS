@@ -172,22 +172,22 @@ the four names exactly, and the class's rules are read from one membership sente
 standing anywhere from that lead to the next class's lead, or to the section's end
 after the last class: `which is what` or `that is what`, either capitalized,
 single-spaced on one line apart from any underscore, a plain list of ids, then `are`.
-The four class names are fixed here rather than read, so a class retitled away and a fifth class opened that way are
-each a finding rather than a class this rule stops or never starts reading, and so is a
-`Where the set is` anywhere in the section, one wrapped across a line, spaced apart or
-set in underscore italics included, that opens no class in that form. So is any
-`which is what` or `that is what` in the section, in any letter case or spacing and
-followed by a rule id past nothing but whitespace, emphasis, a code span's backtick or
-a link's bracket, that the reading does not take, one in underscore italics, wrapped
-across a line, spaced apart, in capitals, or listing its ids in a code span, emphasis
-or a link included, so no list the section names goes unread. What that reading does
-not reach is a class introduced in some other sentence form: it is read as part of the
-class before it, or as part of no class ahead of the first, and is caught only where it
-carries a membership sentence of its own, that sentence then being a class's second,
-one standing ahead of every class, or one in a form the reading does not take. A list
-is decided whole by a grammar of ids, `K-a through K-b` ranges, commas and `and`, and
-a range expands over the active rows whose numbers it spans, so a struck row inside
-one is skipped rather than placed.
+The four class names are fixed here rather than read, so a class retitled away and a
+fifth class opened that way are each a finding rather than a class this rule stops or
+never starts reading, and so is a `Where the set is` anywhere in the section, one
+wrapped across a line, spaced apart or set in underscore italics included, that opens no
+class in that form. So is any `which is what` or `that is what` in the section, in any
+letter case or spacing and followed by a rule id past nothing but whitespace, emphasis,
+a code span's backtick or a link's bracket, that the reading does not take, one in
+underscore italics, wrapped across a line, spaced apart, in capitals, or listing its ids
+in a code span, emphasis or a link included, so no list the section names goes unread.
+What that reading does not reach is a class introduced in some other sentence form: it
+is read as part of the class before it, or as part of no class ahead of the first, and
+is caught only where it carries a membership sentence of its own, that sentence then
+being a class's second, one standing ahead of every class, or one in a form the reading
+does not take. A list is decided whole by a grammar of ids, `K-a through K-b` ranges,
+commas and `and`, and a range expands over the active rows whose numbers it spans, so a
+struck row inside one is skipped rather than placed.
 
 **Fail-closed at every reading.** A missing section, a `Where the set is` that opens no
 class, a membership sentence in a form the reading does not take or ahead of the first
