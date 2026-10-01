@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 924 of them across 152 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 926 of them across 152 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1477,6 +1477,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-633** owed-act: the instrument route records a step undecided for a no-space report or gallina's per-file timeout, bounds staged files and artifacts, refuses a non-regular file, records a job failed outside its wrapped steps, passes over an earlier attempt's artifact and refuses a receipt that disagrees with the plan, none of which Q38l's Owns named
 · Raised: Q38l
 · Disposition: closed at Q38l, the Owns naming each
+
+**F-706** owed-act: the instrument route's join report and summary and `instrument-ci read` give a step's peak as the per-minute sampler's figure, which reads 0 KB for a step that ends before the first sample, as the control's `quickchick properties` did at 543,612 KB by GNU time, while Q38l's Owns makes that step's recorded peak the basis for raising seed's `--jobs`
+· Raised: Q38l
+· Disposition: open, a repair of the report under Q38l's contract landing before Q38f's first comparison dispatch, each receipt's GNU time peak standing meanwhile
+
+**F-707** measurement: the instrument route's plan accepts a `base_revision` dispatch whose side's seed.py binds no subject it can read, and that side's seed job builds its switch before its population listing refuses for want of a subject
+· Raised: Q38l
+· Disposition: standing, such a run deciding no verdict and costing only runner time
 
 **F-565** upstream-defect: the locked proof switch's Rocq 9.3.0 carries the cofixpoint guard-checker inconsistencies #22386 and #22389, which Rocq's critical-bug list reports fixed in V9.3
 · Raised: Q39
