@@ -167,16 +167,17 @@ stays green, and a rule named under two leaves a reader unable to say which reac
 is inside it the day it is written; the classes are read off the page, each at the
 `Where the set is` opening it, matched in any letter case, and named by the first `**`
 bold phrase after it, past a plain space and whatever words or italics then stand short
-of a full stop or the line's end, any `.` counting as a full stop; that phrase must
-spell one of the four names exactly, and the class's rules are read from one membership
-sentence standing anywhere from that lead to the next class's lead, or to the section's
-end after the last class: `which is what` or `that is what`, with only the first letter
-of the first word in either case, single-spaced with plain spaces on one line apart
-from any underscore, a plain list of ids, then `are`. The four class names are fixed
-here rather than read, so a class retitled away and a fifth class opened that way are
-each a finding rather than a class this rule stops or never starts reading, and so is a
-`Where the set is` anywhere in the section, one wrapped across a line, spaced apart or
-set in underscore italics included, that opens no class in that form. So is any
+of a full stop or the line's end, any `.` counting as a full stop; that phrase must be
+in `**` bold with no third `*` beside either pair and spell one of the four names
+exactly, and the class's rules are read from one membership sentence standing anywhere
+from that lead to the next class's lead, or to the section's end after the last class:
+`which is what` or `that is what`, with only the first letter of the first word in
+either case, single-spaced with plain spaces on one line apart from any underscore, a
+plain list of ids, then `are`. The four class names are fixed here rather than read,
+so a class retitled away and a fifth class opened that way are each a finding rather
+than a class this rule stops or never starts reading, and so is a `Where the set is`
+anywhere in the section, one wrapped across a line, spaced apart or set in underscore
+italics included, that opens no class in that form. So is any
 `which is what` or `that is what` the reading does not take in the section, in any
 letter case or spacing and followed by a rule id past no letter, digit or `.`, so that
 whitespace, punctuation and Markdown's emphasis, code, strikethrough, parenthesis and
@@ -258,23 +259,27 @@ _TIER_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed: Tier (?P<tier>[AB])\b(?P<rest
 # letter case so that a lead written mid-sentence is read too, and is named by the first
 # `**` bold phrase after it, past a plain space and whatever words or italics then stand,
 # short of a full stop or the line's end: any `.` ends the lead's reach, one inside a
-# code span or a link included, and every `Where the set is` in the section has to open a
-# class. The four class names are fixed here rather than read off the page and the bold
-# phrase is compared with them exactly, the lead alone being matched in any letter case,
-# so a class retitled away, a fifth class opened that way, and a `Where the set is`
-# naming no class are each a finding rather than a class this rule silently stops or
-# never starts reading. The opener takes the lead's four words single-spaced with plain
-# spaces, no word character before them and a plain space after them; the lead-finder is
-# wider, any whitespace between the words, a line break included, and only a letter or
-# digit beside them refused, so a lead wrapped across a line, spaced apart, set in
-# underscore italics or followed by markup or punctuation is found and, opening nothing,
-# is a finding rather than text read as part of the class before it.
+# code span or a link included. The phrase is in `**` bold with no third `*` beside
+# either pair, so a name in bold italics or trailed by a stray `*` opens nothing, and
+# every `Where the set is` in the section has to open a class. The lookahead past the
+# closing pair holds that side; the phrase's own characters and the crossing before it
+# already refuse a `*` against the other three. The four class names are fixed here
+# rather than read off the page and the bold phrase is compared with them exactly, the
+# lead alone being matched in any letter case, so a class retitled away, a fifth class
+# opened that way, and a `Where the set is` naming no class are each a finding rather
+# than a class this rule silently stops or never starts reading. The opener takes the
+# lead's four words single-spaced with plain spaces, no word character before them and a
+# plain space after them; the lead-finder is wider, any whitespace between the words, a
+# line break included, and only a letter or digit beside them refused, so a lead wrapped
+# across a line, spaced apart, set in underscore italics or followed by markup or
+# punctuation is found and, opening nothing, is a finding rather than text read as part
+# of the class before it.
 REACH_HEADING = "## What a passing run does not decide"
 REACH_CLASSES = ("name", "computed value", "pattern", "total")
 _CLASS_LEAD_RE = re.compile(
     r"(?<![^\W_])Where\s+the\s+set\s+is(?![^\W_])", re.IGNORECASE)
 _CLASS_OPEN_RE = re.compile(
-    r"\bWhere the set is (?:[^*.\r\n]|\*(?!\*))*?\*\*([^*\r\n]+)\*\*", re.IGNORECASE)
+    r"\bWhere the set is (?:[^*.\r\n]|\*(?!\*))*?\*\*([^*\r\n]+)\*\*(?!\*)", re.IGNORECASE)
 
 # A class's membership sentence: `which is what` or `that is what`, with only the first
 # letter of the first word in either case, so that one opening a sentence and one
@@ -826,7 +831,8 @@ def _classes(ctx: Context, registered: set[str]) -> None:
                          "that opens no reach class this rule reads: the four words "
                          "single-spaced with plain spaces on one line, with no underscore "
                          "before the first and a plain space after the last, then the "
-                         "class in `**` bold before a full stop or the line's end"
+                         "class in `**` bold with no third `*` beside either pair before "
+                         "a full stop or the line's end"
                          for m in _CLASS_LEAD_RE.finditer(doc.raw, lo, hi)
                          if m.start() not in starts and not doc.is_fenced(m.start())]
             # The membership sentences each region reads: the stretch ahead of the first
@@ -911,7 +917,7 @@ def _classes(ctx: Context, registered: set[str]) -> None:
                 if name not in seen_classes:
                     findings.append(f"{RULES} opens no '{name}' class in a form this rule "
                                     "reads: 'Where the set is', then the class in `**` "
-                                    "bold")
+                                    "bold with no third `*` beside either pair")
                     unread = True
 
     for rule in sorted(placed, key=_rule_key):
