@@ -33,10 +33,12 @@ Rupicola lowering among them, free of the syntax only Rocq 9.3 reads. Every swit
 import os
 import re
 import shutil
+import signal
 import subprocess
+import sys
 import time
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
@@ -326,6 +328,23 @@ def observed(callback: Callable[[Compiled], None]) -> Iterator[None]:
         _OBSERVER.reset(token)
 
 
+def _stop(running: subprocess.Popen[str]) -> None:
+    """End a prover run and every process it started, and reap it.
+
+    On POSIX the run leads a session of its own, so its group is everything it started:
+    QuickChick runs each drawn set's extracted program as a grandchild of the prover,
+    and a kill of the prover alone leaves that program running under every later
+    compile, whose seconds a comparison between dispatches reads. Windows has no process
+    group to end, and the prover alone is killed, as `subprocess.run` kills it."""
+    if sys.platform != "win32":
+        with suppress(ProcessLookupError):
+            os.killpg(running.pid, signal.SIGKILL)
+        running.wait()
+        return
+    running.kill()
+    running.communicate()
+
+
 def compile_one(found: Prover, work: Path, source: Path,
                 timeout: float | None = None) -> subprocess.CompletedProcess[str]:
     """One source, with the proofs directory rooted at the empty logical path.
@@ -334,9 +353,10 @@ def compile_one(found: Prover, work: Path, source: Path,
     resolves to the `.vo` built here and never to an installed one.
 
     Stopped at `timeout` seconds, `COMPILE_TIMEOUT` where none is named, and then raises
-    `CompileTimeout` naming the source and the limit. The prover run alone is timed, the
-    switch environment being read ahead of it, and an observer `observed` set is told of
-    it either way.
+    `CompileTimeout` naming the source and the limit. A stop, or an interrupt of the
+    wait, ends the prover's whole process group, as `_stop` states. The prover run alone
+    is timed, the switch environment being read ahead of it, and an observer `observed`
+    set is told of it either way.
     """
     rel = source.relative_to(work).as_posix()
     limit = COMPILE_TIMEOUT if timeout is None else timeout
@@ -344,14 +364,21 @@ def compile_one(found: Prover, work: Path, source: Path,
     environment = {**os.environ, **switch_env(found.switch)}
     observer = _OBSERVER.get()
     began = time.monotonic()
-    try:
-        done = subprocess.run(argv, cwd=work, capture_output=True, text=True,
-                              encoding="utf-8", errors="replace", timeout=limit,
-                              check=False, env=environment)
-    except subprocess.TimeoutExpired as expired:
-        if observer is not None:
-            observer(Compiled(rel, time.monotonic() - began, None))
-        raise CompileTimeout(rel, limit, argv) from expired
+    with subprocess.Popen(argv, cwd=work, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE, text=True, encoding="utf-8",
+                          errors="replace", env=environment,
+                          start_new_session=sys.platform != "win32") as running:
+        try:
+            stdout, stderr = running.communicate(timeout=limit)
+        except subprocess.TimeoutExpired as expired:
+            _stop(running)
+            if observer is not None:
+                observer(Compiled(rel, time.monotonic() - began, None))
+            raise CompileTimeout(rel, limit, argv) from expired
+        except BaseException:
+            _stop(running)
+            raise
+    done = subprocess.CompletedProcess(argv, running.returncode, stdout, stderr)
     if observer is not None:
         observer(Compiled(rel, time.monotonic() - began, done.returncode))
     return done

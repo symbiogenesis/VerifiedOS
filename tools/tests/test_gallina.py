@@ -14,9 +14,12 @@ import argparse
 import io
 import os
 import re
+import signal
 import subprocess
+import sys
 import tempfile
-from contextlib import redirect_stdout
+import time
+from contextlib import redirect_stdout, suppress
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -787,6 +790,74 @@ def _a_switch_environment_answers_no_question() -> None:
     ensure(read == {"OPAMSWITCH": "s"}, f"what opam env prints is read back: {read}")
 
 
+# A child that beats into a file until it is ended, and a prover that starts one, as
+# QuickChick's prover starts a drawn set's extracted program, and then outlasts any limit
+# a case lowers to. The prover writes the child's pid beside the beats, so a case that
+# fails can still end it, and sleeps only once the child has beaten.
+_BEAT = """\
+import sys
+import time
+from pathlib import Path
+
+while True:
+    with Path(sys.argv[1]).open("a", encoding="utf-8") as beats:
+        beats.write(".")
+    time.sleep(0.05)
+"""
+_SPAWNING_PROVER = """\
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+here = Path(__file__).parent
+child = subprocess.Popen([sys.executable, str(here / "beat.py"), str(here / "beats")],
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL)
+(here / "child.pid").write_text(str(child.pid), encoding="utf-8")
+while not (here / "beats").exists():
+    time.sleep(0.01)
+time.sleep(120)
+"""
+
+
+def _a_stopped_compile_ends_what_the_prover_started() -> None:
+    """A compile stopped at its limit ends the prover's whole process group, not the
+    prover alone: a drawn set's extracted program, which QuickChick runs as the prover's
+    child, left running would load every later compile of the run. Here the stub
+    prover's child stops beating once the compile is stopped."""
+    if sys.platform == "win32":
+        raise AssertionError("process groups are POSIX-only; this case runs in the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-group-") as td:
+        work = Path(td)
+        (work / "beat.py").write_text(_BEAT, encoding="utf-8")
+        (work / "prover.py").write_text(_SPAWNING_PROVER, encoding="utf-8")
+        source = work / "harness" / "A.v"
+        source.parent.mkdir()
+        source.write_text("", encoding="utf-8")
+        beats = work / "beats"
+        found = gallina.Prover("stub", (sys.executable, str(work / "prover.py")))
+        try:
+            with patch.object(gallina, "switch_env", return_value={}):
+                try:
+                    gallina.compile_one(found, work, source, timeout=5)
+                except gallina.CompileTimeout:
+                    pass
+                else:
+                    raise AssertionError("the stub prover was not stopped at its limit")
+            ensure(beats.is_file(), "the stub prover's child never beat, so nothing was "
+                                    "decided about it")
+            time.sleep(0.5)
+            settled = beats.stat().st_size
+            time.sleep(1.5)
+            ensure(beats.stat().st_size == settled,
+                   "the prover's child went on beating after its compile was stopped")
+        finally:
+            with suppress(OSError, ValueError):
+                os.kill(int((work / "child.pid").read_text(encoding="utf-8")),
+                        signal.SIGKILL)
+
+
 def cases() -> list[Case]:
     return [
         Case("the waves follow the Requires", _waves_follow_requires),
@@ -834,4 +905,6 @@ def cases() -> list[Case]:
              _the_installed_quickchick_is_read_without_answering),
         Case("a switch's opam environment answers no question",
              _a_switch_environment_answers_no_question),
+        Case("a stopped compile ends what the prover started",
+             _a_stopped_compile_ends_what_the_prover_started, lane="guest"),
     ]
