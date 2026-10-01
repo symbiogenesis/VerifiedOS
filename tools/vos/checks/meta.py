@@ -165,36 +165,44 @@ stays green, and a rule named under two leaves a reader unable to say which reac
 
 **The rules it decides about are the registry's own rows**, the set K-00 reads, so a row
 is inside it the day it is written; the classes are read off the page, each at the
-`Where the set is` opening it, matched in any letter case, by the first bold phrase
-after it, which must spell one of the four names exactly, whatever words or italics
-stand between short of a full stop or the line's end, any `.` counting as a full stop,
-and by one membership sentence standing anywhere from that lead to the next class's,
-`which is what` or `that is what`, either capitalized, a list of ids, then `are`. The
-four class names are fixed here rather than read, so a class retitled away and a fifth
-class opened that way are each a finding rather than a class this rule stops or never
-starts reading, and so is a `Where the set is` anywhere in the section, one wrapped
-across a line, spaced apart or set in underscore italics included, that opens no class
-in that form. What that reading does not reach is a class introduced in some other
-sentence form: it is read as part of the class before it, or as part of no class ahead
-of the first, and is caught only where it carries a membership sentence of its own,
-that sentence then being a class's second or one standing ahead of every class. A list
+`Where the set is` opening it, matched in any letter case, and named by the first bold
+phrase after it, past a space and whatever words or italics then stand short of a full
+stop or the line's end, any `.` counting as a full stop; that phrase must spell one of
+the four names exactly, and the class's rules are read from one membership sentence
+standing anywhere from that lead to the next class's lead, or to the section's end
+after the last class: `which is what` or `that is what`, either capitalized,
+single-spaced on one line apart from any underscore, a plain list of ids, then `are`.
+The four class names are fixed here rather than read, so a class retitled away and a fifth class opened that way are
+each a finding rather than a class this rule stops or never starts reading, and so is a
+`Where the set is` anywhere in the section, one wrapped across a line, spaced apart or
+set in underscore italics included, that opens no class in that form. So is any
+`which is what` or `that is what` in the section, in any letter case or spacing and
+followed by a rule id past nothing but whitespace, emphasis, a code span's backtick or
+a link's bracket, that the reading does not take, one in underscore italics, wrapped
+across a line, spaced apart, in capitals, or listing its ids in a code span, emphasis
+or a link included, so no list the section names goes unread. What that reading does
+not reach is a class introduced in some other sentence form: it is read as part of the
+class before it, or as part of no class ahead of the first, and is caught only where it
+carries a membership sentence of its own, that sentence then being a class's second,
+one standing ahead of every class, or one in a form the reading does not take. A list
 is decided whole by a grammar of ids, `K-a through K-b` ranges, commas and `and`, and
 a range expands over the active rows whose numbers it spans, so a struck row inside
 one is skipped rather than placed.
 
 **Fail-closed at every reading.** A missing section, a `Where the set is` that opens no
-class, a membership sentence ahead of the first class, a class with no membership
-sentence or with two, a list carrying a word the grammar does not know, a range that
-runs backwards or ends on an id the registry does not carry as an active rule, an id a
-class names that is struck, quarantined or never registered, and a class naming no
-registered rule are each findings, so the floor is inside the rule for the reason
-K-84's is. What it does not decide is whether a rule sits in the class its row and code
-fit, which is a reading.
+class, a membership sentence in a form the reading does not take or ahead of the first
+class, a class with no membership sentence or with two, a list carrying a word the
+grammar does not know, a range that runs backwards or ends on an id the registry does
+not carry as an active rule, an id a class names that is struck, quarantined or never
+registered, and a class naming no registered rule are each findings, so the floor is
+inside the rule for the reason K-84's is. What it does not decide is whether a rule
+sits in the class its row and code fit, which is a reading.
 """
 
 import re
 import tomllib
 from collections.abc import Callable
+from itertools import pairwise
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -244,18 +252,19 @@ _TIER_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed: Tier (?P<tier>[AB])\b(?P<rest
 
 # K-119's reading of the reach section. A class opens with `Where the set is`, in any
 # letter case so that a lead written mid-sentence is read too, and is named by the first
-# bold phrase after it, whatever words or italics stand between, short of a full stop or
-# the line's end: any `.` ends the lead's reach, one inside a code span or a link
-# included, and every `Where the set is` in the section has to open a class. The four
-# class names are fixed here rather than read off the page and the bold phrase is
+# bold phrase after it, past a space and whatever words or italics then stand, short of
+# a full stop or the line's end: any `.` ends the lead's reach, one inside a code span or
+# a link included, and every `Where the set is` in the section has to open a class. The
+# four class names are fixed here rather than read off the page and the bold phrase is
 # compared with them exactly, the lead alone being matched in any letter case, so a
 # class retitled away, a fifth class opened that way, and a `Where the set is` naming no
 # class are each a finding rather than a class this rule silently stops or never starts
-# reading. The opener takes the lead's four words single-spaced and apart from any word
-# character; the lead-finder is wider, any whitespace between the words, a line break
-# included, and only a letter or digit beside them refused, so a lead wrapped across a
-# line, spaced apart or set in underscore italics is found and, opening nothing, is a
-# finding rather than text read as part of the class before it.
+# reading. The opener takes the lead's four words single-spaced, no word character
+# before them and a space after them; the lead-finder is wider, any whitespace between
+# the words, a line break included, and only a letter or digit beside them refused, so a
+# lead wrapped across a line, spaced apart, set in underscore italics or followed by
+# markup or punctuation is found and, opening nothing, is a finding rather than text
+# read as part of the class before it.
 REACH_HEADING = "## What a passing run does not decide"
 REACH_CLASSES = ("name", "computed value", "pattern", "total")
 _CLASS_LEAD_RE = re.compile(
@@ -269,8 +278,16 @@ _CLASS_OPEN_RE = re.compile(
 # that merely discusses a rule is not read as a list; what it captures is then decided
 # whole by the grammar below, so a word the grammar does not know is a finding rather
 # than a list cut short at it. Ids admit the letter suffix, so a suffixed id is named and
-# resolved rather than making the sentence unreadable.
+# resolved rather than making the sentence unreadable. The finder is wider, the three
+# words in any letter case with any whitespace between them, a line break included, then
+# an id past any whitespace, emphasis, code-span backtick or link bracket, and only a
+# letter or digit before them refused, so a membership sentence set in underscore
+# italics, wrapped, spaced apart, in capitals or listing its ids in markup is found and,
+# read by no class, is a finding rather than a list the section names and nothing reads.
+# Prose such as `which is what separates` carries no id and is not found.
 _MEMBERS_RE = re.compile(r"\b(?:[Ww]hich|[Tt]hat) is what (K-[\w ,-]*?) are\b")
+_MEMBERS_FIND_RE = re.compile(
+    r"(?<![^\W_])(?:which|that)\s+is\s+what[\s*_`\[]*K-\d", re.IGNORECASE)
 _CLASS_ID = r"K-\d{2,3}[a-z]?"
 _CLASS_ITEM = rf"{_CLASS_ID}(?: through {_CLASS_ID})?"
 _CLASS_ITEM_RE = re.compile(rf"({_CLASS_ID})(?: through ({_CLASS_ID}))?")
@@ -799,15 +816,33 @@ def _classes(ctx: Context, registered: set[str]) -> None:
             starts = {m.start() for m in opens}
             findings += [f"{RULES}:{doc.at(m.start())} states 'Where the set is' in a form "
                          "that opens no reach class this rule reads: the four words "
-                         "single-spaced on one line and apart from any underscore, then "
-                         "the class in bold before a full stop or the line's end"
+                         "single-spaced on one line, with no underscore before the first "
+                         "and a space after the last, then the class in bold before a "
+                         "full stop or the line's end"
                          for m in _CLASS_LEAD_RE.finditer(doc.raw, lo, hi)
                          if m.start() not in starts and not doc.is_fenced(m.start())]
+            # The membership sentences each region reads: the stretch ahead of the first
+            # class, then each class from its lead to the next one's or the section's end.
+            cuts = [lo, *(m.start() for m in opens), hi]
+            regions = [[c for c in _MEMBERS_RE.finditer(doc.raw, a, b)
+                        if not doc.is_fenced(c.start())] for a, b in pairwise(cuts)]
+            # A membership sentence in a form no region reads leaves the rules it names
+            # unread while its class reads as complete, so it is reported. One lying
+            # inside a sentence a region read is a word of that list, which the grammar
+            # below already decides, so it is not reported a second time.
+            spans = [c.span() for clauses in regions for c in clauses]
+            missed = [c for c in _MEMBERS_FIND_RE.finditer(doc.raw, lo, hi)
+                      if not doc.is_fenced(c.start())
+                      and not any(a <= c.start() < b for a, b in spans)]
+            findings += [f"{RULES}:{doc.at(c.start())} states a membership sentence in a "
+                         "form this rule does not read: 'which is what' or 'that is "
+                         "what', either capitalized, single-spaced on one line apart from "
+                         "any underscore, a plain list of ids, then 'are'" for c in missed]
+            if missed:
+                unread = True
             # No class's region reaches back past the first opener, so a membership
             # sentence ahead of it belongs to a class no reading sees.
-            first = opens[0].start() if opens else hi
-            ahead = [c for c in _MEMBERS_RE.finditer(doc.raw, lo, first)
-                     if not doc.is_fenced(c.start())]
+            ahead = regions[0]
             findings += [f"{RULES}:{doc.at(c.start())} states a membership sentence ahead "
                          "of the first reach class, so no class reads it" for c in ahead]
             if ahead:
@@ -827,12 +862,11 @@ def _classes(ctx: Context, registered: set[str]) -> None:
                     unread = True
                     continue
                 seen_classes.add(name)
-                # The region runs from this lead to the next, so a membership sentence
-                # standing between the lead and the bold name is this class's own and
-                # counted with the rest rather than falling between two regions.
-                end = opens[k + 1].start() if k + 1 < len(opens) else hi
-                clauses = [c for c in _MEMBERS_RE.finditer(doc.raw, m.start(), end)
-                           if not doc.is_fenced(c.start())]
+                # The region runs from this lead to the next, or to the section's end
+                # after the last, so a membership sentence standing between the lead and
+                # the bold name is this class's own and counted with the rest rather than
+                # falling between two regions.
+                clauses = regions[k + 1]
                 if len(clauses) != 1:
                     findings.append(
                         f"{where}: the '{name}' class states "
