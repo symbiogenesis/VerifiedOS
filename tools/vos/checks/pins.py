@@ -159,9 +159,10 @@ row without any file here changing, so the rule first holds each line to the one
 that cannot move, `owner/repo[/path]@<40 hex digits> # vX.Y.Z`, and then holds its
 commit and release to the action's own row. The row's licence link names the edition
 its terms were read at, so the row links a file of the action's own repository, a
-`blob`, `tree` or `raw` path on github.com or a path on raw.githubusercontent.com, its
-owner and name in any case, and every such link is held to name the reviewed commit,
-never another commit, a tag or a branch that could move under it. Membership is total
+`blob`, `tree`, `blame` or `raw` path on github.com or a path on
+raw.githubusercontent.com, its owner and name in any case, and every such link is held
+to name the reviewed commit, never another commit, a tag or a branch that could move
+under it, the revision read up to a `/`, `?`, `#` or the link's end. Membership is total
 in both directions: a line naming an action with no row runs code whose terms nobody
 read, and a row naming an action no workflow runs is a review of nothing. The two
 workflow analyzers Host CI runs are installed from a lock and a script rather than
@@ -913,15 +914,17 @@ def _tool_rows(text: str, findings: list[str]) -> dict[str, tuple[int, str]]:
 def _licence_links(tool: str) -> re.Pattern[str]:
     """Every link to a file of the action's own repository, its group the revision named.
 
-    A `blob`, `tree` or `raw` path on github.com, `www.` or not, or a path on
-    raw.githubusercontent.com, with the scheme, host, owner and name in any case. Any
+    A `blob`, `tree`, `blame` or `raw` path on github.com, `www.` or not, or a path on
+    raw.githubusercontent.com, with the scheme, host, owner and name in any case. The
+    revision is the segment after the view, ending at a `/`, `?`, `#` or the link's end,
+    so a view of the tree at a tag or branch with no path after it is read too. Any
     other link into the repository, its front page, a commit's or a release's, links no
     file and is not read.
     """
     name = re.escape(tool)
-    return re.compile(rf"(?:(?i:https?://(?:www\.)?github\.com/{name})/(?:blob|tree|raw)"
+    return re.compile(rf"(?:(?i:https?://(?:www\.)?github\.com/{name})/(?:blob|tree|blame|raw)"
                       rf"|(?i:https?://raw\.githubusercontent\.com/{name}))"
-                      r"/([^/\s)\]>]+)/")
+                      r"/([^/\s)\]>#?]+)(?=[/#?\s)\]>]|$)")
 
 
 def _workflow_pins(ctx: Context) -> None:

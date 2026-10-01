@@ -1702,6 +1702,13 @@ CASES: list[Case] = [
                                r"([0-9a-f]{39})([0-9a-f])/LICENSE)\)",
                   lambda m: f"{m[1]}) and [a copy](https://raw.githubusercontent.com/{m[2]}/"
                             f"{m[3]}{'1' if m[4] == '0' else '0'}/LICENSE)")),
+    # The same row gaining a link to its action's tree at a branch, no path following the
+    # branch. The reviewed link still agrees, so only a reading that ends the revision at
+    # the link's end, and not only at a following `/`, holds the branch.
+    ("K-115", "an action row linking its action's tree at a branch",
+     _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
+                               r"blob/[0-9a-f]{40}/LICENSE\))",
+                  lambda m: f"{m[1]} in [its tree](https://github.com/{m[2]}/tree/main)")),
     # The row's licence link dropped, its text kept: the row still states its reviewed
     # revision and every workflow agrees with it, and only a rule requiring the link
     # sees a row that no longer says where its terms were read.

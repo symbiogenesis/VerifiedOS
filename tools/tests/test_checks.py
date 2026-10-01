@@ -795,11 +795,12 @@ def _k115_membership_is_held_both_ways() -> None:
 
 def _k115_licence_link_names_the_reviewed_commit() -> None:
     # The row's licence link is the edition its terms were read at: every link to a file
-    # of the action's own repository, a `blob`, `tree` or `raw` path on github.com, `www.`
-    # or not, or a raw.githubusercontent.com path, whatever the case of its host, owner
-    # and name, names the reviewed commit, and one at another commit, a tag or a branch
-    # is one finding. The finding quotes both at twelve digits, or as far as they must
-    # run to differ.
+    # of the action's own repository, a `blob`, `tree`, `blame` or `raw` path on
+    # github.com, `www.` or not, or a raw.githubusercontent.com path, whatever the case of
+    # its host, owner and name, names the reviewed commit, and one at another commit, a
+    # tag or a branch is one finding, a tree view naming no path after its revision
+    # included. The finding quotes both at twelve digits, or as far as they must run to
+    # differ.
     link = f"example/action/blob/{_K115_SHA}/LICENSE"
     url = f"https://github.com/{link}"
     last = f"{_K115_SHA[:-1]}8"
@@ -815,6 +816,10 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
             (f"{link}) and [a copy](https://github.com/{moved}",
              f"{last}, the row reviewed {_K115_SHA}"),
             (f"example/action/tree/{last}/LICENSE", f"{last}, the row reviewed {_K115_SHA}"),
+            ("example/action/tree/main", "main, the row reviewed 0123456789ab"),
+            ("example/action/tree/v1.2.3", "v1.2.3, the row reviewed 0123456789ab"),
+            ("example/action/tree/main#readme", "main, the row reviewed 0123456789ab"),
+            (f"example/action/blame/{last}/LICENSE", f"{last}, the row reviewed {_K115_SHA}"),
             ("example/action/raw/main/LICENSE", "main, the row reviewed 0123456789ab")):
         found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(link, edit)})
         ensure(len(found) == 1
@@ -836,6 +841,9 @@ def _k115_licence_link_names_the_reviewed_commit() -> None:
     # The controls: every spelling at the reviewed commit agrees.
     for edit in (f"https://www.github.com/{link}",
                  f"https://github.com/example/action/tree/{_K115_SHA}/LICENSE",
+                 f"https://github.com/example/action/tree/{_K115_SHA}",
+                 f"https://github.com/example/action/blame/{_K115_SHA}/LICENSE",
+                 f"https://github.com/example/action/tree/{_K115_SHA}?tab=readme-ov-file",
                  f"https://github.com/example/action/raw/{_K115_SHA}/LICENSE",
                  f"https://raw.githubusercontent.com/example/action/{_K115_SHA}/LICENSE",
                  f"https://raw.githubusercontent.com/Example/Action/{_K115_SHA}/LICENSE"):
