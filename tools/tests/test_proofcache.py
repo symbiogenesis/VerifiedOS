@@ -6,6 +6,7 @@ import io
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import threading
 from pathlib import Path
@@ -813,6 +814,42 @@ def _native_admitted_installed_axioms() -> None:
                            "the edit did not admit the root that loads the sealed module")
 
 
+def _hold_while_retired(td: Path, recreated: bool) -> None:
+    if sys.platform == "win32":
+        raise AssertionError("flock is POSIX-only; the workspace lock cases run in the guest")
+    import fcntl
+    take = fcntl.flock
+    work, aside = td / "proof-gate", td / "retained"
+    taken: list[int] = []
+
+    def retire_while_blocked(fd: int, operation: int) -> None:
+        take(fd, operation)
+        taken.append(os.fstat(fd).st_ino)
+        if len(taken) == 1:
+            work.rename(aside)
+            if recreated:
+                work.mkdir()
+
+    with patch.object(fcntl, "flock", side_effect=retire_while_blocked):
+        fd = gate._hold(work)
+    try:
+        ensure(len(taken) == 2 and os.fstat(fd).st_ino == work.stat().st_ino
+               and os.fstat(fd).st_ino != aside.stat().st_ino,
+               f"recreated={recreated}: the gate holds the moved directory, "
+               f"locks taken on {taken}")
+    finally:
+        os.close(fd)
+
+
+def _the_lock_follows_a_moved_workspace() -> None:
+    """A gate blocked on the workspace's lock while retirement moves the directory aside
+    holds, once the lock is released, the directory the workspace's path then names:
+    a new one where the path is gone, or one another gate recreated there."""
+    for recreated in (False, True):
+        with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+            _hold_while_retired(Path(td), recreated)
+
+
 def cases() -> list[Case]:
     return [Case("incremental-proof-cache-invalidation", _incremental_run),
             Case("gate-identity-follows-imports", _gate_identity_follows_imports),
@@ -829,6 +866,8 @@ def cases() -> list[Case]:
             Case("kernel-admission-covers-installed-names",
                  _admission_covers_only_the_installed_names_it_repeats),
             Case("proof-cache-library-identities", _context_hashes_library_bytes, lane="guest"),
+            Case("proof-workspace-lock-follows-a-move", _the_lock_follows_a_moved_workspace,
+                 lane="guest"),
             Case("native-incremental-kernel", _native_incremental_kernel, lane="toolchain"),
             Case("native-admitted-installed-axioms", _native_admitted_installed_axioms,
                  lane="toolchain")]
