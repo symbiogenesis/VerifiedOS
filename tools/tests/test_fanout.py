@@ -84,11 +84,15 @@ def _reading_base_fixed_at_init() -> None:
         head = commit(root, "settled on main")
         unmerged = commit(lane, "worker only")
         tree = git(root, "rev-parse", f"{base}^{{tree}}")
+        # Git peels an annotated tag to its commit, so only comparing the named commit
+        # with the value refuses the tag object's SHA.
+        git(root, "-c", "tag.gpgSign=false", "tag", "-a", "-m", "reading base", "named", base)
+        tag = git(root, "rev-parse", "named")
         # Guest CI's dispatch check takes only a full lowercase commit SHA.
         for value, fragment in ((base[:7], "full lowercase"), ("A" * 40, "full lowercase"),
                                 ("", "full lowercase"), (f"{base}\n", "full lowercase"),
                                 ("f" * 40, "names no commit"), (tree, "names no commit"),
-                                (unmerged, "not an ancestor")):
+                                (tag, "names no commit"), (unmerged, "not an ancestor")):
             refuses(lambda value=value: init(root, lane, value), fragment)
             ensure(not (root / "out/fanout/example/state.json").exists(),
                    f"a refused reading base {value!r} recorded a batch")

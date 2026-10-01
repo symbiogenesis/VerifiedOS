@@ -1060,6 +1060,10 @@ def _workflow_checkout_validation() -> None:
         _git(root, "commit", "--allow-empty", "-qm", "unpublished sibling")
         sibling = _git(root, "rev-parse", "HEAD")
         tree = _git(root, "rev-parse", f"{base}^{{tree}}")
+        # Git peels an annotated tag to its commit wherever a commit is expected, so only
+        # comparing the named commit with the input refuses the tag object's SHA.
+        _git(root, "-c", "tag.gpgSign=false", "tag", "-a", "-m", "reading base", "named", base)
+        tag = _git(root, "rev-parse", "named")
 
         def guard(script: str, checkout: str, requested: str, main: str, ref: str,
                   reading_base: str = "") -> subprocess.CompletedProcess[str]:
@@ -1091,6 +1095,7 @@ def _workflow_checkout_validation() -> None:
                 (advanced, f" {base}", "full lowercase commit SHA"),
                 (advanced, "f" * 40, "names no commit"),
                 (advanced, tree, "names no commit"),
+                (advanced, tag, "names no commit"),
                 (advanced, sibling, "not an ancestor"),
                 (base, advanced, "not an ancestor")):
             done = guard(guest, checkout, checkout, advanced, "refs/heads/main", reading_base)
