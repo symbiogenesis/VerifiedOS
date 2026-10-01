@@ -1580,6 +1580,25 @@ def _k81_historical_residue_cannot_exempt_table() -> None:
            f"a table row cannot exercise a historical exception: {found!r}")
 
 
+def _k81_moved_gitlink_is_quoted_apart_from_its_row() -> None:
+    # A row's id off its gitlink is quoted beside it at twelve digits, or as far as the
+    # two must run to differ, so an id longer than twelve digits differing only in its
+    # last prints two distinct ids rather than a twelve-digit prefix of itself. An id the
+    # gitlink starts with, at any length, is the pin and no finding.
+    gitlink = "1234abcd" + "0" * 32
+    ensure(not _findings_under(_k81({}, {}, table_id=gitlink[:14]), "K-81"),
+           "a fourteen-digit id the gitlink starts with is the pin")
+    for table_id, stated, carried in (
+            ("1234abcd000001", "1234abcd000001", "1234abcd000000"),
+            (f"{gitlink[:-1]}1", f"{gitlink[:-1]}1", gitlink),
+            ("1234abce", "1234abce", "1234abcd0000")):
+        found = _findings_under(_k81({}, {}, table_id=table_id), "K-81")
+        quoted = (f"THIRD-PARTY.md:7 pins upstream/example-core at {stated} and the index "
+                  f"carries it at {carried};")
+        ensure(len(found) == 1 and quoted in found[0],
+               f"a moved gitlink is quoted apart from its row ({quoted}): {found!r}")
+
+
 def _k81_generated_device_package_is_outside_the_window() -> None:
     # The same line in a tracked document is a restatement; in the generated device
     # package it is the generator's record, held by K-88 and read by nothing here.
@@ -1862,6 +1881,8 @@ def cases() -> list[Case]:
         Case("k81-historical-residue-cannot-exempt-table",
              _k81_historical_residue_cannot_exempt_table),
         Case("k81-historical-residue-requires-reason", _k81_historical_residue_requires_reason),
+        Case("k81-moved-gitlink-is-quoted-apart-from-its-row",
+             _k81_moved_gitlink_is_quoted_apart_from_its_row),
         Case("k81-generated-device-package-is-outside-the-window",
              _k81_generated_device_package_is_outside_the_window),
         Case("k116-consumed-bindings-are-held-whole-and-fail-closed",
