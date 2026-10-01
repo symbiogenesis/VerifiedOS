@@ -45,7 +45,7 @@ from typing import IO, Self, cast
 from unittest.mock import Mock, patch
 
 from tests.harness import TOOLS, Case, ensure
-from vos import differential
+from vos import differential, env
 
 
 def _load_model() -> ModuleType:
@@ -1165,6 +1165,44 @@ def _receipt_opens_no_sweep_input_after_verifying() -> None:
         ensure("non-regular" in said, f"the next verification refuses the suite, got {said!r}")
 
 
+def _build_records_an_unreadable_product() -> None:
+    """A build whose stages pass and one of whose products is gone before its evidence is
+    recorded fails with the reason in its receipt, rather than with the `OSError`
+    escaping the command before any receipt is written. The stages, configure and the
+    build identity stand in; the control is the same build over `_built_tree`'s whole
+    tree, whose receipt records its products and input."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        build, model_root, _ = _built_tree(root)
+        e = env.Environment(root, model_root, root / "build-root", root / "logs", "", 4,
+                            4096, 2, 2)
+        log = e.log("model-build")
+        sail = subprocess.CompletedProcess([], 0, "Sail 9.9.9 (fixture)\n", "")
+
+        def built() -> tuple[int, dict[str, object]]:
+            with (patch.object(_MODEL, "build_identity", return_value={"inputs": {}}),
+                  patch.object(_MODEL, "_configure", return_value=0),
+                  patch.object(_MODEL, "env", SimpleNamespace(stage=Mock(return_value=0))),
+                  patch.object(_MODEL, "subprocess",
+                               SimpleNamespace(run=Mock(return_value=sail))),
+                  redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
+                code = cast("int", _MODEL._build_locked(e, build, log, []))
+            record = json.loads(log.with_suffix(".json").read_text(encoding="utf-8"))
+            return code, cast("dict[str, object]", record)
+
+        code, record = built()
+        ensure(code == 0 and record.get("artifacts") == _built_receipt(),
+               f"control: the whole tree's build records its evidence, got {code}, {record}")
+        product = build / _MODEL.BUILD_ARTIFACTS[-1]
+        product.unlink()
+        code, record = built()
+        refusal = str(record.get("refusal"))
+        ensure(code == 1 and record.get("exit_code") == 1
+               and "the build's evidence cannot be recorded" in refusal
+               and product.name in refusal,
+               f"the receipt records the unreadable product, got {code} and {record}")
+
+
 def _trace_diff_compares_what_verified() -> None:
     """`trace-diff --corpus` compares the rv64ui programs its suite's verification
     found, and not an ELF added beside them once the suite has verified. The oracle's
@@ -1598,6 +1636,7 @@ def cases() -> list[Case]:
         Case("receipt-opens-no-sweep-input-after-verifying",
              _receipt_opens_no_sweep_input_after_verifying, lane="guest"),
         Case("trace-diff-compares-what-verified", _trace_diff_compares_what_verified),
+        Case("build-records-an-unreadable-product", _build_records_an_unreadable_product),
 
         # Only where cmake is on PATH: the runner has no skipped verdict, and a case
         # that returned without cmake would pass having decided nothing.

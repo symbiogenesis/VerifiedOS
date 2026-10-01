@@ -890,10 +890,13 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
     artifacts: dict[str, str] = {}
     if code == 0 and not refusal:
         # The sweep's inputs are read through `_test_corpus`, which holds the suite to
-        # the manifest configure wrote, so an unverified corpus fails the build here.
+        # the manifest configure wrote, so an unverified corpus fails the build here,
+        # and so does a product that cannot be read: its `OSError` is the refusal the
+        # receipt records rather than an exception that ends the run before one is
+        # written.
         try:
             artifacts = build_artifacts(build_dir, e.model)
-        except ValueError as err:
+        except (OSError, ValueError) as err:
             refusal = f"the build's evidence cannot be recorded: {err}"
     if refusal:
         print(refusal, file=sys.stderr)
