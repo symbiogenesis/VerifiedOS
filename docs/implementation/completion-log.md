@@ -2165,7 +2165,72 @@ Calibration: original estimate 7 h, range 4–10, class X, re-priced at 7.5 h, r
 
 Landed: Tier A. The read covers the lock and its export, the release-archive reading, the three output comparisons and each named difference, the configure binding and the compiler-file class with their cases and mutants, the canonical-term record's restated identity against the emissions, the support library's re-read, the restated statements against the grep, and the four findings against their register entries. No checker rule was added; K-12, K-82, K-88 and K-96 hold the entry's links, finding count, regenerated bundle and calibration row, and none holds its readings.
 
-### Q38a · Close the gate's Rocq 9.3 setting gaps and its prefix blind spots
+### Q38 · Modernize and harden the proof corpus at Rocq 9.3.0
+
+Q36 locked Rocq 9.3.0 for its kernel fixes: its compiler refuses the guard-checker counterexamples of rocq#21839 and rocq#22382, which Rocq 9.2.0 accepts. This item took what the release offers the proof sources and the gate that accepts them. Its children, Q38a to Q38l, did the work, and their entries below carry the evidence. The parent has no estimate or actual of its own; its children carry the estimates and the calibration rows.
+
+**What the release offered.**
+
+* **Three source forms.** These are `if … is` ([rocq#21609](https://github.com/rocq-prover/rocq/pull/21609)), a record value completed from a base with `with` ([rocq#22207](https://github.com/rocq-prover/rocq/pull/22207)), and `& T` for a binder written `(_ : T)` ([rocq#21611](https://github.com/rocq-prover/rocq/pull/21611)). Q38c's native controls compare three rewrites with their bases and name no difference for any of them: a `match` rewritten as `if … is`, a record literal rewritten as `{| r with … |}`, and `(_ : n = 0)` rewritten as `& n = 0`. `&` in place of a named binder changes the `Arguments` line that `Print` and `About` show, so Q38h makes no named binder anonymous.
+* **Two settings the gate did not pin.** These are the unreported conversion flag `Kernel Conversion Dep Heuristic` and `Default Proof Using`. Q38a pins both.
+* **A grammar in which a bullet, a brace or a goal selector is a whole command.** After one, the locked compiler accepts a setting, a `Timeout` or a declaration, and it keeps a setting in effect past the proof. Q38a's and Q38d's readings follow that grammar.
+* **Missing fixes.** The release lacks the cofixpoint guard-checker fixes for rocq#22386 and rocq#22389 (F-565). Q38k refuses the coinductive forms. The release also lacks rocq#22387's module-subtyping fix (F-525). In authored sources, the audit's existing refusal of functors and module signatures covers that form.
+* **No QuickChick, `coq-simple-io` or CertiRocq release admitted it when the oracle route was decided.** The instruments that compile Gallina in older switches therefore decided which sources could take its syntax, and when.
+
+**No child moved a statement.**
+
+* **Q38i's sources.** Q38i's reading comparison names 28 differences between its base and its candidate. Each one is an added constant: one of its 14 literals or one of their 14 lemmas. Every module's `-o` summary is byte-identical.
+* **Q38h's sources.** Five Guest CI runs that `fanout` batches dispatched with a `reading_base` before the rewrites they cover hold every module Q38h rewrote: 36884798806 (`28c26ec8` to `cb5a386e`), 36907415013 (`41b9ebe8` to `28e276af`), 36924383823 (`28c26ec8` to `009fadc4`), 36926000222 (`28c26ec8` to `5441fbac`) and 36937812496 (`28c26ec8` to `97ecd755`), the last holding all 40 rewritten sources. Each comparison names no difference in a module Q38h rewrote.
+* **The other children.** From Q38's opening at `754969b3` to `97ecd755`, `git log -- 'proofs/*.v'` names only Q38h's and Q38i's commits. The other children changed tools, harnesses, locks and guides.
+
+**What each child settled.**
+
+* **Q38a** pins `Kernel Conversion Dep Heuristic` and `Default Proof Using`. It refuses `timeout`, `timeoutf` and `alloc_limit` wherever one stands as a whole identifier. It reads every sentence head after the prefixes a sentence can carry: bullets, braces, selectors, `Program` and quoted attributes. The live readings are byte-identical. Its review found five lexical bypasses, which went to Q38d.
+* **Q38b** makes apex, memplan, mutate, consttab and the corpus exporter read a declaration under an attribute, a locality or a control flag, or refuse it by name. Each also refuses a record completed from a base where it cannot read one. Each reader's reading of the live tree is unchanged. The two plan values the memory-plan export leaves unread stay open at Q5b (F-515).
+* **Q38c** adds `run.py proof-reading`. It reads every constant of a passing compile under `Set Printing All` and compares two readings entry by entry. Its base reading at `754969b3` holds 13,798 constants, the gate's own count.
+* **Q38d** puts comments, strings and the decoration grammar in one shared lexer, which the gate and every proof-source reader use. Before compiling, the gate refuses the declared tokens the lexer cannot follow. It also refuses the dynamic sources: `Load`, `Cd`, the load-path commands, `Declare ML Module` and `Ltac2 @ external`. It reads `Remark`, `Proposition` and `Property` as quantifying. Every consumer's live reading is unchanged. F-596 and F-598 are reported and not closed, because closing either would re-baseline the mutant populations.
+* **Q38e** moves four instruments to the proof switch: `quickchick vectors`, `quickchick freeze`, `kernel vectors` and `seed coq`'s enumerative mode. Their vectors and verdicts are byte-identical. It narrows `quickchick properties` to its harness's `Require` closure. It adds K-117, which refuses Rocq 9.3's syntax in every file that an instrument compiles at an older release.
+* **Q38f** runs the property harness at Rocq 9.3.0.
+  * **The switch.** QuickChick's switch, `verifiedos-quickchick-9.3.0-ocaml-5.4.1`, is built from the three commit pins Rocq V9.3.0's CI overlay pins, QuickChick `3d4d6c0e9f`, `coq-simple-io` `d035c0a85f` and `coq-ext-lib` `ddd03d257f`, with Rocq 9.3.0, `rocq-stdlib` 9.2.0 and dune 3.23.1. No later commit was probed: each of the three built and passed the harness.
+  * **The lock.** Its lock, SHA-256 `6ad236570a171b869fa1cbe018562b132770c06ef142d7358fe8d20d2a44b39f`, is the export of run 36931493979 on Q38l's hosted route, which built the switch, passed its checks and re-imported that export on a second runner with an equal closure and equal pins. The lock guide admits commit pins in that snapshot alone, each naming the release that retires it, and THIRD-PARTY.md records each upstream's licence at its pinned commit.
+  * **The consumers.** `quickchick properties`, `quickchick check`, `seed coq --quickchick` and `provision` read the new switch. The Rocq 9.1.1 QuickChick switch is gone from every tracked recipe, constant, lock, test fixture and current-state statement, and the retained report copies record it as their runs found it (F-715).
+  * **The harness.** It walks the 12 property sets whose domains hold no more points than the draws spent on them, extracts `Nat.sub` as truncating subtraction and draws from the recorded seed 20260930. It makes no shrinking claim, `forAll` never shrinking (F-714). Seed journals each compile and leaves a compile that reaches the per-file limit undecided.
+  * **The comparisons.** Set by set, the base's 33 verdicts are equal under truncating subtraction in run 36931499615, and run 36931504555's seed comparison gives every sampled mutant the base's verdict in both candidate runs.
+  * **K-117's set** is now the harnesses of the Wasm oracle's recipes, `compare_component.py` and the Rupicola lowering, with `EndpointIPC.v` and `RingContract.v`.
+* **Q38g** declares the CertiRocq oracle's switch: CertiRocq 0.9.1+9.1 over Rocq 9.1.1, built with OCaml 4.14.4. It tracks the switch's lock. `demo.v`'s and `ipc_oracle.v`'s checks pass through the compiled Wasm, and the seeded twin fails. Both results hold in the built switch and again after a fresh-root import. These checks ran once in the local guest, under the user's ruling of 2026-10-01. THIRD-PARTY.md names every package the lock pins, with the in-file terms of the archives behind its new rows.
+* **Q38h** writes the proof sources in Rocq 9.3's syntax.
+  * **The tools.** `seed coq --quickchick` compiles no proof source outside `Properties.v`'s `Require` closure. Guest CI's proofs lane reads and compares a base's elaboration when `fanout init --reading-base` sets one.
+  * **The rewrite.** 40 of the 53 authored sources in scope take Rocq 9.3's syntax across five batches: 277 matches, 102 record updates, 7 `&` binders, 11 `Local Ltac` definitions with 81 calls, 14 joined full stops and 77 named hypotheses. `PartitionContext.v`, `BoundaryCost.v` and `CyclicExecutive.v` landed after Q38f's closing landing.
+  * **What it leaves.** `MemoryPlan.v`'s `demo_class_of` keeps the `match` that `vos.memplan` reads. `AttestedSession.v`, `MlDsa.v`, `StorageRecovery.v` and `SupervisionTree.v` stay as the base writes them, because tracked records outside the gate's receipt bind their digests. `CopyRingService.v`'s prefix that the dated Q19a campaign compiles stays as a campaign anchor (F-643), and six forms whose target cannot be written in place stay too (F-646). `EndpointIPC.v` stays outside the rewrite, as do the generated `RingContract.v`, `DeviceRegisters.v` and `ElasticPoolCampaign.v`.
+  * Each `Local Ltac` it adds binds the hypothesis names it reads (F-641). It takes no retired-instruction figure (F-611).
+* **Q38i** lowers the cost of compiling and rechecking the proofs. Literal lemmas share the costliest repeated evaluations. A VM cast closes the single-evaluation proofs where the cast measured cheaper. Two clears trim a search. Together they cut the corpus's compile retired instructions by 28.56% and its kernel recheck by 39.04%. F-578 to F-582 record where it narrowed the cast and literal clauses.
+* **Q38j** starts each module's compile and audit once the modules it requires have finished. It sizes the kernel worker budget from the proofs runner's repeated peak. Guest CI runs 36883131989 and 36884798806 compiled and audited in 174.42 s and 170.21 s, against replayed wave makespans of 308.58 s and 303.29 s.
+* **Q38k** refuses, before compiling, every source the gate compiles that writes a coinductive type or a cofixpoint, or that declares a token that could hide one. The refusal stands until a lock move takes a release that carries the fixes for rocq#22386 and rocq#22389. The lock guide states the refusal's residue. F-566 stays open: no register entry yet owns the response to a known kernel inconsistency.
+* **Q38l** builds and checks QuickChick's switch on GitHub-hosted runners. Control run 36900954975 at `5b4dafe0` imported the Rocq 9.1.1 QuickChick lock, then tracked, into a fresh root and passed `quickchick check` and the 33 property sets. It then re-imported its export on a second runner, with an equal closure and a byte-identical re-export. The plan refused each of the six dispatches the Check names, with no later job started. `instrument-ci read` reads the control as passed closing evidence, and each refusal as refused by the plan.
+
+**The finish line held.**
+
+* **The predicate.** `7eac8b19` stated it on 2026-10-01: Q38 closes when Q38f, Q38g, Q38h, Q38j and Q38l land, and it takes no further child.
+* **The landings.** Q38j landed at `511a71ff`, Q38g at `a5bb9b42`, Q38l at `1e6c38a2`, Q38f at `c0f34cdc` and Q38h at `3848b086`.
+* **No further child.** The checklist carries no child beyond Q38a to Q38l.
+* **The findings.** Each finding the remaining work raised is indexed in the findings register under the child that raised it. No entry names a Q38 child as its open owner: F-583, which Q38i routed to Q38h, closes at Q38h, and F-616, which Q38l routed to Q38f, stands on Q38f's recipe.
+* **The open acts.** The owed acts the children leave open name owners outside Q38. F-515 is open at Q5b. F-566 is a register act at R-05-016a and R-05-018a. F-596 and F-598 are reported and not closed. F-626, F-630, F-701 and F-713 are owned by no item. F-704 is F-496's act. F-716's restatement of seed.py's `--recipe` help falls to the batch after Q38f's closing.
+
+The parent's allocation, as the checklist carried it while the item was open, is retained here:
+
+  * Q36 locked Rocq 9.3.0 for its kernel fixes. This item takes what the release offers the proof sources and the gate that accepts them. **No child moves a statement:** an edit that would change an elaborated statement, a transparent body, an opacity, an assumption or a witness returns to the requirement owner under [the portable proof workflow](../assurance/proof-assistance.md). The release's source syntax, `if … is` ([rocq#21609](https://github.com/rocq-prover/rocq/pull/21609)), record values completed from a base with `with` ([rocq#22207](https://github.com/rocq-prover/rocq/pull/22207)) and `& T` for a binder written `(_ : T)` ([rocq#21611](https://github.com/rocq-prover/rocq/pull/21611)), prints byte for byte as the forms it replaces under the audit's `Set Printing All`; `&` in place of a named binder changes the `Arguments` line `Print` and `About` show. No released QuickChick, simple-io or CertiRocq admits Rocq 9.2, though, and `quickchick properties` and [`seed coq --quickchick`](../../tools/vos/cli/seed.py) compile `Properties.v`'s `Require` closure in QuickChick's Rocq 9.1.1 switch, so within that closure that syntax waits on Q38f's move of QuickChick to Rocq 9.3.0, Q38e having moved the Stdlib-only instruments there.
+  * **The oracle route and the profile.** Of the instruments that compile a proof source with a Rocq older than 9.3.0, only `quickchick properties`, `seed coq --quickchick` and the CertiRocq Wasm oracle load a plugin, and the Rupicola lowering loads Rupicola and bedrock2 at Rocq 9.2.0 and stays there. `quickchick vectors` and `freeze`, `kernel vectors` and `seed coq`'s enumerative mode compile harnesses that load only Stdlib, which the proof switch carries. Rocq V9.3.0's CI overlay builds QuickChick, `coq-simple-io` and `coq-ext-lib` at commits past their latest releases, none of which admits Rocq 9.3, and in an opam switch QuickChick's dependency closure, through `rocq-elpi` 3.5.1, needs dune below 3.24. No CertiRocq, MetaRocq or WasmCert-Coq release admits Rocq 9.3, and upstream records no CertiRocq build at 9.3.0 short of unmerged patches. So Q38e moves the Stdlib-only instruments to the proof switch, Q38f builds QuickChick at Rocq 9.3.0 in its own switch from commit pins on the GitHub-hosted route Q38l builds, Q38g settles the switch the Wasm oracle keeps, built and checked only in the local guest, and Q38h, which holds `seed coq --quickchick` to `Properties.v`'s closure, rewrites the sources no older Rocq compiles. `EndpointIPC.v`, the one proof source the Wasm oracle compiles and whose bytes [M1.2f's evidence](#m12f-close-the-acceptance-loop-both-ends) binds, and the generated `RingContract.v`, which the Rupicola lowering compiles at Rocq 9.2.0, stay outside Q38h and free of the forms Q38e's rule refuses. Q38i and Q38j take a per-module compile and kernel-recheck profile: Q38i lowers what the sources cost to check, and Q38j schedules the gate around what remains. Q38k refuses the coinductive forms whose guard check the locked kernel gets wrong, until a lock move takes a release carrying the fixes.
+  * **The finish line.** Q38 closes when Q38f, Q38g, Q38h, Q38j and Q38l land, and takes no further child: a finding its remaining work raises goes to [the findings register](../assurance/findings-register.md) or into an existing item.
+
+Landed: Tier A. The parent's closing decides that its finish line held and its allocation was carried out. The integrator's read covers:
+
+* each child's entry and summary line, against the allocation retained above;
+* the findings-register dispositions of the findings the children routed to one another;
+* the cell's move.
+
+No checker rule was added. K-12, K-82 and K-113 hold the entry's links, its presence for the landed parent and the cell's one summary line. None of them holds the entry's readings.
+
+#### Q38a · Close the gate's Rocq 9.3 setting gaps and its prefix blind spots
 
 The worker lane `q38a-impl-20260929` started from base `754969b3`. An adversarial review in `q38a-review-20260929` refuted parts of its first head `b951607b`, and a repair in the worker lane brought it to `812a85a3`; `main` merged the two heads at `e97e026c` and `bf387669`. Readings are host readings unless stated. The guest probes compiled with the locked Rocq 9.3.0 under the gate's flags in `/root/build/lane-q38a-impl-20260929/probes`.
 
@@ -2190,7 +2255,7 @@ Calibration: original estimate 3 h, range 2–4, class I; 2.2 h actual on the ag
 
 Landed: Tier A. The integrator's read covers the whole diff of the two gate modules against the cell, the review's ten findings and the repair's dispositions, the ratified widening of the prefixes, and the five findings routed to Q38d. No checker rule was added; K-12, K-82 and K-96 hold the entry's links, finding count and calibration row, and none holds the readings, which the host tests hold.
 
-### Q38b · Make the proof-source readers outside the gate refuse what they cannot read
+#### Q38b · Make the proof-source readers outside the gate refuse what they cannot read
 
 The worker lane `q38b-impl-20260929` started from base `754969b3`, and `main` merged its first head `e65ee0a9` at `25452df9`. An adversarial review in `q38b-review-20260929` accepted that head with repairs: one blocking finding and four to fix. A repair in the worker lane brought it to `fea51b48`, which `main` merged at `d54ff530`. The readings are the worker's, on the Windows host, and each compares the base with the candidate.
 
@@ -2216,7 +2281,7 @@ Calibration: original estimate 5 h, range 3–7, class I; 3.3 h actual on the ag
 
 Landed: Tier A. The integrator's read covers the whole diff of the five readers against the cell, the review's findings with their reproductions, and the repair's dispositions. It also covers the one knowingly unread shape, which F-515 routes to Q5b, and the four findings routed to Q38d. K-42, K-43, K-44, K-88 and K-107 hold these readers' outputs over the live tree. The host tests hold each reader's reading or refusal of each form.
 
-### Q38c · Read the whole corpus's elaborated meaning for comparison
+#### Q38c · Read the whole corpus's elaborated meaning for comparison
 
 The worker lane `q38c-impl-20260929` started from base `754969b3`, and `main` merged its first head `fa380748` at `0e484b6c`. An adversarial review in `q38c-review-20260929` accepted that head with three repairs to make and four nits. A repair in the worker lane brought it to `3f403305`, which the integration branch `q38-integ-20260929` merged at `4223154f`. The readings were taken in the guest with the locked Rocq 9.3.0.
 
@@ -2247,7 +2312,7 @@ Calibration: original estimate 8 h, range 5–11, class I; 3.7 h actual on the a
 
 Landed: Tier A. The integrator's read covers the command's and the reading's whole code against the cell, and the review's findings with the repair's dispositions. It checked that the default route's binding matches what the gate's receipt records: `.vo` outputs and top-level `.v` inputs under `proofs/`. It also covers the documentation rows it added. No checker rule holds the reading; the host tests and native controls hold it.
 
-### Q38d · Close the lexical bypasses the Q38a and Q38b reviews routed
+#### Q38d · Close the lexical bypasses the Q38a and Q38b reviews routed
 
 Q38d ran in two rounds. The first ran in the worker lane `q38d-impl-20260929`, from base `0e484b6c` to `399a3d44`. An adversarial review found two blocking bypasses, three to fix and two nits, and a repair brought the lane to `904e178b`. The integration branch `q38-integ-d-20260929` published it at `643459e2` while the item stayed open for F-516 to F-519. The second round ran in `q38d-follow-20260929` from `643459e2`. Thirteen commits took it to `14a77dda`. A review in `q38d-follow-review-20260929` accepted that head with five repairs to make and six nits, and nine repair commits brought it to `ee67ecda`. The integration branch `q38-integ-d2-20260930` merged `ee67ecda` onto `main`'s `5857a2d5`. The workers compiled each probe alone with the locked Rocq 9.3.0 under the gate's flags in their lanes' guest directories, and read the readers on the Windows host, comparing the base's tools, taken by `git archive`, with the head's over the same tree.
 
@@ -2297,7 +2362,7 @@ Hosted validation is outside it.
 
 Landed: Tier A. The integrator's read covers both rounds' whole diffs against the cell: the shared lexer and its refusals, the decoration grammar and every reader that now composes it, the keyword tables, the tests and cases, and both reviews' findings with their repairs' dispositions. It also covers the round-1 publication and this integration's merge and consumer comparison. Every consumer of the shared lexer reads the live tree as it did, and each finding the cell names is closed by a reading the host tests hold.
 
-### Q38e · Compile the Stdlib-only Gallina instruments in the proof switch
+#### Q38e · Compile the Stdlib-only Gallina instruments in the proof switch
 
 The worker lane `q38e-impl-20260929` started from base `59cc31c3` and reached `e7a11114`. An adversarial review in `q38e-review-20260929` accepted that head with four repairs to make and five nits. A repair in the worker lane brought it to `ff6ffbd4`, which the integration branch `q38-integ-e-20260929` merged onto `main`'s `ca8d7a2e` at `4192a24e`, and the integrator's repair `ab90626a` followed. The guest comparisons ran each side's tools from a `git archive` export under the lane directory: the base `59cc31c3` in the CertiRocq switch at Rocq 9.1.1, and the head at `f80f9677` and `fd67b6b7` in the switches it selects.
 
@@ -2319,7 +2384,7 @@ Calibration: original estimate 6 h, range 4–8, class I; 3.4 h actual on the ag
 
 Landed: Tier A. The integrator's read covers the whole diff against the cell: the switch move, the narrowed closure, K-117's module, registry row, selftest cases and tests, the restatements, the review's findings with the repair's dispositions, and the merge's resolution and repair. K-117 holds what the instruments older than Rocq 9.3.0 compile, and the host tests hold the switch each instrument asks for.
 
-### Q38f · Run the property harness at Rocq 9.3.0
+#### Q38f · Run the property harness at Rocq 9.3.0
 
 The implementation lane `q38f-impl-20260929` built the commit-pinned recipe, the domain walks, the fixed seed and the seed journalling. It was reviewed and repaired, then parked with its conditional half in `q38f-cond-20260930`, as `a6784ddb` records on `main`. After the resume, `q38f-impl2-20261001` merged `main`, took a second review and repair, and rebased the conditional commits into `q38f-cond2-20261001`. Its history was then restructured so that the journalling commits precede the truncating `Nat.sub`. A prep round implemented the owner's ruling on F-629, left a compile a signal ended undecided and reworded CF-1, and its verify round's repairs followed. The 31 tool commits were rebased onto `28e276af`, after Q38l's closing landing. Batch `q38f-tools-20261001` landed them at `39ca2625`, with the journalling head `b22f44a1` before `Nat.sub` at `2c5248ce`. The route's repairs for F-623 and F-706 landed at `a00a5538` in batch `q38f-route-20261001`. The closing dispatches ran at that revision under a route freeze the peer session held. The closing lane `q38f-close-20261001` replayed the four conditional commits onto `a00a5538` as `eaef8c4b`, `bc3d0e89`, `27354027` and `a55e3f8e`, without `9dd1a651`'s seed.py hunk. `a20cce3e` renamed a route test's retired switch, and `73329e78` tracked the lock. A review in `q38f-closerev-20261001` accepted that head, its one blocking finding being F-715.
 
@@ -2378,7 +2443,7 @@ The integrating sessions' orchestration of the earlier rounds and every runner's
 
 Landed: Tier A. The lock guide's amendment admitting commit pins is a new normative claim. The integrator's read covers the whole diff against the cell: the recipe, the lock bytes against the run's artifact, the walks, seed and journalling, the scoring under the owner's ruling, the conditional commits as replayed and the seed.py hunk they leave out, the restated guides, rows and tests, each review's findings with its repair's dispositions, the route's repairs, and every artifact of the four runs against their receipts and `report.json`.
 
-### Q38g · Settle the switch the Wasm oracle keeps
+#### Q38g · Settle the switch the Wasm oracle keeps
 
 The implementation lane `q38g-impl-20260929` built the OCaml 4.14.4 candidate in a private opam root in the guest with `/usr/bin/opam` 2.5.0 and `--keep-build-dir`, and opam ended the build at exit 0. Its unconditional half, the Dockerfile's digest pin, gallina.py's two candidates and their released-package recipe, and THIRD-PARTY.md's readings of CertiRocq's CompCert printers and `CpdtTactics.v`, landed while the item stayed open, after a review in `q38g-review2-20260930`. Its three conditional commits followed: `fd46e3a7` declares the switch at 4.14.4, `26150de1` adds the licence rows and `ab484dbc` binds `compare_component.py` to the oracle's constants. The closing lane `q38g-close-20261001` started at `ab484dbc` and merged `main`'s `feb70969` at `3d43d6b2`. It restated the CertiRocq row for F-603 at `ec052b59`, ran the checks the user's ruling of 2026-10-01 permits once in the local guest, and tracked the lock at `650cce68`. It then restated the guides at `8d10e30e`, K-118's registry row at `1461f78b` and the packaging clause at `a6d267c2`, renamed a local that shadowed the `gallina` module at `d851023d`, and merged `main`'s `cb5a386e` at `e54dea21`. An adversarial review in `q38g-review3-20261001` accepted that head with one blocking finding, four to fix and four nits. A repair in seven commits brought the lane to `a6c81a4a`, which batch `q38-gl-20261001` merges with Q38l's implementation onto `main`'s `8ccefcad`. No hosted runner built or checked CertiRocq, and the only guest runs are the ones the ruling names.
 
@@ -2435,7 +2500,7 @@ The 4.14.4 candidate's build ran while the session was suspended and is outside 
 
 Landed: Tier A. The item declares a new project switch and tracks its lock, which THIRD-PARTY.md, K-117, K-118, `provision` and `compare_component.py` read, and its Check rests on measured guest runs rather than a rule. The integrator's read covers the whole diff against the cell: the lock bytes, the restated guides, the licence rows and their census, the registry rows, `compare_component.py`'s release and scope readings and their tests, the review's findings with the repair's dispositions, and both merges' resolutions.
 
-### Q38h · Write the proof sources in Rocq 9.3's syntax
+#### Q38h · Write the proof sources in Rocq 9.3's syntax
 
 Under the user's ruling of 2026-09-30 that guest tests run on GitHub only, no proof gate, proof reading or instruction measurement ran in the local guest. Before each batch landed, host readers found their readings of its sources unchanged against the base's, and each batch's Guest CI run decided its compile and its elaborated reading.
 
@@ -2608,7 +2673,7 @@ The contract's restatement for GitHub-only runs, the Q38 parent's draft, the int
 
 Landed: Tier A. Its Guest CI input and step and its `fanout` option are new normative claims. The integrator's read covers the whole diff against the cell: the narrowed compile, K-117's row and the `test_instruments` case; the dispatch check, the reading step, the report and `fanout`'s option, with their tests and restated contracts; the guard and limit repairs; every rewrite against its clause and the rulings above; each unwritten rewrite and left-whole source against its reason and the final grep; the host readings and mutant populations against the base; each review's findings with its repair's dispositions; and each covering run's comparison and digests against its log. No checker rule was added. K-12, K-82, K-96 and K-117 hold the entry's links, its finding count, its calibration row and the instruments' reach, and none holds its readings.
 
-### Q38i · Make the proofs cheaper to compile and recheck without moving a statement
+#### Q38i · Make the proofs cheaper to compile and recheck without moving a statement
 
 The worker lane `q38i-impl-20260929` started from base `59cc31c3` and ended at `c559db3c` in six commits:
 * the single-evaluation cast at `a6e02267`;
@@ -2739,7 +2804,7 @@ Hosted validation is outside it.
 
 Landed: Tier A. The integrator's read covers the whole diff against the cell: every rewritten proof against the clause's shape, the literals and their lemmas, the clears, the reading comparison, the gate run, the reader invariants and the figures. It also covers the review's findings with their corrections, and the integration's prose repair. The narrowings this note names leave the cast and literal clauses partly met. Each is a finding with its disposition, and nothing here claims the cell's unnarrowed Owns. No statement, body, opacity or assumption moved.
 
-### Q38j · Schedule the proof gate by dependency and size its kernel workers from measured peaks
+#### Q38j · Schedule the proof gate by dependency and size its kernel workers from measured peaks
 
 The worker lane `q38j-impl-20261001` started from base `feb70969` and reached `618c1557` in three commits: `b8a5747c` sizes the kernel budget from the runner's measured peaks, `da1cb62e` schedules the compile and audit phase by dependency, and `618c1557` states that the budget's peak repeats across runs. An adversarial review in `q38j-rev-20261001` found three defects to fix and three nits, and a repair in the worker lane brought it to `441d9a12` in six commits, `6cf3082b`, `8c8ce3ed`, `72ba8fc1`, `2ee561f3`, `3802c25f` and `441d9a12`, the last typing a set `8c8ce3ed` left to ty. The integration branch `q38-integ-tools-20261001` merged it onto `main`'s `8ef1da0b` beside Q38h's seed narrowing and reading step, and batch `q38-tools-20261001` published `28c26ec8`. Under the user's ruling that guest tests run on GitHub only, no gate ran in the local guest: the schedule's behaviour was decided by host tests, and its hosted figures by Guest CI's proofs lane.
 
@@ -2766,7 +2831,7 @@ Calibration: original estimate 5 h, range 3.5–6.5, class I; 0.8 h actual on th
 
 Landed: Tier A. The integrator's read covers the whole diff against the cell: the schedule and its fallback to waves, the timing lines and the replay, env.py's peaks, margin, worker counts and F-581's arithmetic, the restated statements, the tests, the review's findings with the repair's dispositions, and the two Guest CI runs and the receipt comparison. The schedule holds the wave schedule's verdicts and receipt fields with a shorter compile phase in both runs, and the budget holds every recorded peak.
 
-### Q38k · Refuse coinductive definitions while the locked kernel lacks the cofixpoint guard fixes
+#### Q38k · Refuse coinductive definitions while the locked kernel lacks the cofixpoint guard fixes
 
 The worker lane `q38k-impl-20260929` started from base `30f9f95b` and reached `492a0cec`: `47ff1567` adds the refusal and its tests, and `492a0cec` restates the lock guide. An adversarial review in `q38k-review-20260929` rejected that head with one blocking finding, three to fix and two nits. A repair in the worker lane brought it to `eb7abf2a` in four commits, `a4fb19be`, `99c4f64c`, `7ec3ac2c` and `eb7abf2a`. The integration branch `q38-integ-k-20260930` merged `492a0cec` onto `main`'s `ddd8a7dd`, then `main`'s `58af7924`, then `eb7abf2a`, and the integrator's repairs `e554c96e` and `82bf994d` followed. Each guest probe compiled one file alone with the locked Rocq 9.3.0 under the gate's flags in its lane's directory. Every probed cofixpoint is guarded, and no reproduction of rocq#22386 or rocq#22389 was written or compiled.
 
@@ -2798,7 +2863,7 @@ Calibration: original estimate 3 h, range 2–4, class I; 2.2 h actual on the ag
 
 Landed: Tier A. The integrator's read covers the whole diff against the cell: the refusal and its call site, the lexer model and the hiding-declaration reading, the tests and their cases, the lock guide's restated sentences, the review's findings with the repair's dispositions, and the integration's two repairs. The refusal holds every coinductive form an authored source writes or lets a declared token hide, the host tests hold each spelling the locked compiler was probed to accept, and the lock guide holds the residue and the retirement condition.
 
-### Q38l · Build and check the QuickChick switch on GitHub-hosted runners
+#### Q38l · Build and check the QuickChick switch on GitHub-hosted runners
 
 The first implementation lane, `q38l-impl-20261001`, was parked at `78b98930` with a work-in-progress plan, sampler, staging and join, as `a6784ddb` records on `main`. The second, `q38l-impl2-20261001`, started from `78b98930`, kept that work, merged `main`'s `5a08edf5` at `055c9bab` and implemented the Owns in ten commits ending at `a8682e8d`. A review in `q38l-review3-20261001` found nothing blocking among its fourteen findings, and a repair in 17 commits brought the lane to `a6de46ad`. The lane merged `main`'s `cb5a386e` at `dccd5865`, and `b504a236` held the import comparison to its side guard under F-637's rule. A second adversarial review found the Check's control precondition false, three findings to fix and five nits. A repair in six commits brought the lane to `03774b00`, which batch `q38-gl-20261001` merged with Q38g's closing lane onto `main` at `5b4dafe0`, the integrator restating the Check's precondition and the Owns clauses its findings named. The control and the six refusal dispatches ran at that revision, which is this landing's parent, so no route input changed between them. No CertiRocq input, job or step is on the route, and no QuickChick switch was built or checked in the local guest.
 
