@@ -143,10 +143,10 @@ decided before emission and never reported at runtime. In the plan's own terms
 a narrowing is a `Narrowing` record, a region, an offset in granules, a stride
 in granules, a dynamic index and a length in granules, and it is `Exact` when
 its base is a whole number of that region's granules
-([MemoryPlan.v](../../../proofs/MemoryPlan.v) lines 2336 to 2363); a quantized
-region base narrows exactly at every index (`a_quantized_slot_base_narrows_exactly`,
-lines 2370 to 2382) and the plan's own check admits only exact narrowings
-(`spec_narrow_ok`, lines 2396 to 2408). A frame carved from `csp` is such a
+([MemoryPlan.v](../../../proofs/MemoryPlan.v)'s `Narrowing` and `Exact`); a
+quantized region base narrows exactly at every index
+(`a_quantized_slot_base_narrows_exactly`) and the plan's own check admits only
+exact narrowings (`spec_narrow_ok`). A frame carved from `csp` is such a
 record over the `Stacks` region: the frame's offset is `offset_granules`, its
 size is `length_granules`, and its index is zero. So a frame narrowing is exact
 under the plan's rule when the frame's offset and size are whole granules of the
