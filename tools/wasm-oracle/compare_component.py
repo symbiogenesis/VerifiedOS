@@ -131,10 +131,10 @@ def main() -> int:
         "package_export_sha256": sha(producer / "packages.export"), "libraries_sha256": sha(producer / "libraries.json"),
         "representation_sha256": sha(representation),
         "scope": "the declared oracle switch" if declared else "a switch other than the declared oracle's"})
-    gallina = (root / "tools/wasm-oracle/ipc_oracle.v").read_text(encoding="utf-8")
+    gallina_source = (root / "tools/wasm-oracle/ipc_oracle.v").read_text(encoding="utf-8")
     c_source = (root / "tools/wasm-oracle/ipc_oracle.c").read_text(encoding="utf-8")
     endpoint = (root / "proofs/EndpointIPC.v").read_bytes()
-    observed_g, observed_c, ids = cc.wrappers(gallina, c_source)
+    observed_g, observed_c, ids = cc.wrappers(gallina_source, c_source)
     save(out / "population.json", ids)
     observations: dict[str, tuple[cc.Observation, cc.Observation]] = {}
     rows: list[dict[str, object]] = []
