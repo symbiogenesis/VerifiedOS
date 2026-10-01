@@ -305,13 +305,16 @@ is open.
 ## Acceptance evidence
 
 Every set below is the lines beginning `%Error` in the curated arm's output of
-`python tools/run.py rtl elaborate`, under Verilator 5.052 in the lane derived
-from this checkout, with `upstream/cva6-cheri` at the registry's pin and
-`upstream/opentitan` at its gitlink populated under a cone sparse checkout of
-`hw/ip/prim` and `hw/ip/prim_generic`. The elaborator's own
-`Exiting due to N error(s)` summary line is not one of them. The first two sets
-are name-resolution diagnostics, the elaborator stopping at that stage before
-any member read, and the third is the member layer behind them.
+`python tools/run.py rtl elaborate` under Verilator 5.052, taken in a lane
+derived from this checkout with `upstream/cva6-cheri` at the pin the registry
+then stated and the primitives read from `upstream/opentitan` at the gitlink
+then recorded, populated under a cone sparse checkout of `hw/ip/prim` and
+`hw/ip/prim_generic`. The elaborator's own `Exiting due to N error(s)` summary
+line is not one of them. The first two sets are name-resolution diagnostics,
+the elaborator stopping at that stage before any member read, and the third is
+the member layer behind them. The fourth, after seam 4, is empty; its paragraph
+names the commit it was taken at and the primitive source `rtl elaborate` reads
+now.
 
 **Before seam 3**, at the seam-2 registry: **44 diagnostics** over eight files,
 `branch_unit.sv` 11, `cheri_unit.sv` 11, `issue_read_operands.sv` 9,
