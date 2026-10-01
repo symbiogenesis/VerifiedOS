@@ -16,10 +16,11 @@ states what a run decides and what it leaves to the item that owns the switch.
 **A step that reaches its limit decides nothing.** Each step runs under coreutils
 `timeout` at the limit stated below, inside the step, so the wrapper outlives it and
 records why it ended. An exit of 124, or of 137 where the kernel recorded no OOM kill
-during the step, is the limit reached; a step the OOM killer acted on, or that ran
-short of disk, is the runner's want rather than the instrument's answer. Each of those
-is recorded `undecided`, never as a failure, because a failure moves a pin and a
-runner's limit is not evidence about one.
+during the step, once the step has run for its limit, is the limit reached, and either
+exit sooner leaves its cause unread; a step the OOM killer acted on, or that ran short
+of disk, is the runner's want rather than the instrument's answer. Each of those is
+recorded `undecided`, never as a failure, because a failure moves a pin and a runner's
+limit is not evidence about one.
 """
 
 import argparse
@@ -750,10 +751,13 @@ class Outcome:
 def classify(exit_code: int | None, limit: int, *, oom: Sequence[str] | None,
              lowest_free_disk: int | None, no_space: bool = False,
              prover_timeout: bool = False, journal_complete: bool | None = None,
-             journal_reason: str = "its journal has no closing line") -> Outcome:
+             journal_reason: str = "its journal has no closing line",
+             seconds: float | None = None) -> Outcome:
     """A step's verdict from how it ended.
 
     A limit reached, an OOM kill and a want of disk are each undecided, never a failure.
+    An exit of 124 or 137 is the limit reached once the step has run `seconds` up to its
+    limit; sooner, `timeout` did not end it, and what did is unread, so it is undecided.
     `journal_complete` is given for a step a journal decides, a seed run, and such a step
     is `completed` once its journal closes on every mutant it picked, whatever the step
     exited, unless the kernel killed one of its processes for memory, which can read as
@@ -763,6 +767,10 @@ def classify(exit_code: int | None, limit: int, *, oom: Sequence[str] | None,
         return Outcome(PASSED, "exit 0")
     if oom:
         return Outcome(UNDECIDED, f"the kernel's OOM killer acted during the step: {oom[0]}")
+    if exit_code in (124, 137) and seconds is not None and seconds < limit:
+        return Outcome(UNDECIDED, f"the step exited {exit_code} after {seconds:.1f} s, short "
+                       f"of its limit of {limit} s, so timeout did not end it, and what "
+                       "did is unread")
     if exit_code == 124:
         return Outcome(UNDECIDED, f"the step reached its limit of {limit} s and timeout "
                        "ended it")
@@ -868,7 +876,8 @@ def run_step(name: str, argv: Sequence[str], *, root: Path = ROOT, limit: Limit 
                     prover_timeout = prover_timeout or b"TimeoutExpired" in line
             exit_code = child.wait()
             sampler.stop()
-    seconds = round(time.monotonic() - started, 1)
+    elapsed = time.monotonic() - started
+    seconds = round(elapsed, 1)
     oom = new_oom(oom_before, found.oom())
     disk_after = free_disk(root)
     lows = [value for value in (disk_before, disk_after,
@@ -883,7 +892,7 @@ def run_step(name: str, argv: Sequence[str], *, root: Path = ROOT, limit: Limit 
         complete, shortfall = why is None, why or ""
     outcome = classify(exit_code, chosen.seconds, oom=oom, lowest_free_disk=min(lows, default=None),
                        no_space=no_space, prover_timeout=prover_timeout,
-                       journal_complete=complete, journal_reason=shortfall)
+                       journal_complete=complete, journal_reason=shortfall, seconds=elapsed)
     receipt = load_receipt(root)
     steps = as_object(receipt.get("steps", {}))
     steps[name] = {
@@ -1605,7 +1614,7 @@ def summary(report: dict[str, object]) -> str:
             lines.append(f"| {key} | {step} | {row.get('verdict')} | {row.get('limit_s')} | "
                          f"{row.get('seconds')} | {row.get('peak_rss_kb')} | "
                          f"{_cell(row.get('reason') or '')} |")
-            if step == "seed" and row.get("exit") in (124, 137):
+            if step == "seed" and "reached its limit" in str(row.get("reason") or ""):
                 limited.append(key)
     if limited:
         lines += ["", f"A seed step reached its limit ({', '.join(limited)}): the next "

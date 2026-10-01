@@ -408,10 +408,11 @@ GitHub's 360-minute hosted maximum less a 5-minute margin, the build step's limi
 population listing's and the staging margin, marked unmeasured. A sampler appends the
 largest resident set, free disk and load average to the job's progress log every
 minute, so a step cut at its limit leaves its peak. An exit of 124, or of 137 where the
-receipt holds no kernel OOM record for the step, is the limit reached. A step that
-reaches its limit, or exits for want of disk or memory as the sampler's free-disk
-figure or the kernel's OOM record shows, decides nothing and is recorded undecided,
-never as a failure. Each step's `timeout-minutes` is a backstop above its limit, and
+receipt holds no kernel OOM record for the step, once the step has run for its limit,
+is the limit reached; either exit sooner is recorded undecided, its cause unread. A
+step that reaches its limit, or exits for want of disk or memory as the sampler's
+free-disk figure or the kernel's OOM record shows, decides nothing and is recorded
+undecided, never as a failure. Each step's `timeout-minutes` is a backstop above its limit, and
 each job's is the sum of its step limits plus a 15-minute staging-and-upload margin.
 
 **Staging.** Each job's staging and upload run under `always()`. Staging copies an

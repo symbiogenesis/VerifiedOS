@@ -313,6 +313,14 @@ def _classify_records_undecided() -> None:
          route.COMPLETED, "journal closes"),
         (route.classify(124, limit, oom=[], lowest_free_disk=None, journal_complete=True),
          route.UNDECIDED, "limit"),
+        (route.classify(124, limit, oom=[], lowest_free_disk=None, seconds=60.2),
+         route.UNDECIDED, "timeout ended it"),
+        (route.classify(137, limit, oom=[], lowest_free_disk=None, seconds=121.0),
+         route.UNDECIDED, "timeout killed it"),
+        (route.classify(137, limit, oom=None, lowest_free_disk=None, seconds=1.0),
+         route.UNDECIDED, "after 1.0 s, short of its limit of 60 s"),
+        (route.classify(124, limit, oom=[], lowest_free_disk=None, seconds=3.5,
+                        journal_complete=True), route.UNDECIDED, "what did is unread"),
         (route.classify(0, limit, oom=[], lowest_free_disk=None, journal_complete=False),
          route.FAILED, "no closing line"),
         (route.classify(1, limit, oom=[], lowest_free_disk=None, journal_complete=False,
@@ -327,6 +335,14 @@ def _classify_records_undecided() -> None:
     for outcome, verdict, fragment in cases:
         ensure(outcome.verdict == verdict and fragment in outcome.reason,
                f"{outcome!r} should be {verdict} ({fragment!r})")
+    for seconds, said in ((61.0, True), (2.0, False)):
+        outcome = route.classify(124, limit, oom=[], lowest_free_disk=None, seconds=seconds)
+        report: dict[str, object] = {"verdict": route.UNDECIDED, "request": {}, "jobs": {
+            "seed-base": {"verdict": route.UNDECIDED, "steps": {"seed": {
+                "verdict": outcome.verdict, "reason": outcome.reason, "exit": 124}}}}}
+        text = route.summary(report)
+        ensure(("A seed step reached its limit (seed-base)" in text) is said,
+               f"the summary names a seed step's limit only where it was reached: {text!r}")
 
 
 def _sampler_keeps_peaks() -> None:
