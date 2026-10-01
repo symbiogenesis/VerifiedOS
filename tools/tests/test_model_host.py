@@ -568,7 +568,8 @@ def _open_regular_asks_the_name_first() -> None:
     unprivileged, so the name's answer is simulated: a character device, which is never
     opened, and a regular file on another inode, a file replaced after its name was
     asked, which is opened and refused. The positive control is the same file asked as
-    it is, which opens; `O_NOCTTY` rides every open where the platform has it."""
+    it is, which opens. `O_NONBLOCK`, `O_NOFOLLOW`, `O_NOCTTY` and `O_BINARY` ride every
+    open where the platform defines them."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         path = Path(td) / "rv64ui-p-add"
         path.write_bytes(b"\x7fELF")
@@ -601,9 +602,61 @@ def _open_regular_asks_the_name_first() -> None:
                f"control: the file the name reported opens, got {fd} after {opened}")
         with os.fdopen(cast("int", fd), "rb") as stream:
             ensure(stream.read() == b"\x7fELF", "and reads as it is")
-        noctty = getattr(os, "O_NOCTTY", 0)
-        ensure(_MODEL._REGULAR_ONLY & noctty == noctty,
-               "no terminal a corpus open meets becomes the controlling one")
+        for name in ("O_NONBLOCK", "O_NOFOLLOW", "O_NOCTTY", "O_BINARY"):
+            flag = getattr(os, name, 0)
+            ensure(_MODEL._REGULAR_ONLY & flag == flag,
+                   f"{name} rides every corpus open on a platform that defines it")
+
+
+def _os_answering_regular() -> SimpleNamespace:
+    """`os` as model.py sees it, except that a name answers as a regular file: what the
+    name names, its final link followed, with its kind made regular. A FIFO keeps its
+    own inode, and a symbolic link answers as the regular file it names, so only the
+    open's flags and the opened descriptor stand between `_open_regular` and either."""
+
+    def lstat(named: str | Path) -> os.stat_result:
+        held = tuple(Path(named).stat())
+        return os.stat_result((stat.S_IFREG | stat.S_IMODE(held[0]), *held[1:]))
+
+    return SimpleNamespace(**{**vars(os), "lstat": lstat})
+
+
+def _open_regular_refuses_what_the_name_answered_as_a_file() -> None:
+    """A FIFO, and a symbolic link to a regular file, each under a name that answered as
+    a regular file, which is an entry replaced between that answer and the open, are
+    refused by the open itself: the FIFO is opened without waiting and refused by its
+    descriptor's kind, and the link is not followed. The name's answer is simulated by
+    `_os_answering_regular`, which gives the link the identity of the file it names, so
+    a followed link would be the very file the name reported and would open, and an
+    open that waits on the FIFO fails `_returns`'s deadline. The positive control is
+    that file, asked through the same answer, which opens. POSIX-only, so the case is
+    the guest's and win32 is refused before `os.mkfifo`."""
+    if sys.platform == "win32":
+        raise AssertionError("mkfifo is POSIX-only; the FIFO and link open case runs in "
+                             "the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        fifo, link, regular = root / "rv64ui-p-fifo", root / "rv64ui-p-link", root / "regular"
+        os.mkfifo(fifo)
+        regular.write_bytes(b"\x7fELF")
+        link.symlink_to(regular)
+
+        def opened(path: Path) -> int | None:
+            held: list[int | None] = []
+            with patch.object(_MODEL, "os", _os_answering_regular()):
+                _returns(lambda: held.append(_MODEL._open_regular(path)),
+                         partial(_end_of_file, fifo))
+            return held[0]
+
+        for path in (fifo, link):
+            fd = opened(path)
+            if fd is not None:
+                os.close(fd)
+            ensure(fd is None, f"{path.name} is refused by the open, got descriptor {fd}")
+        fd = opened(regular)
+        ensure(fd is not None, "control: the regular file the name answered for opens")
+        with os.fdopen(cast("int", fd), "rb") as stream:
+            ensure(stream.read() == b"\x7fELF", "and reads as it is")
 
 
 def _seed_refuses_a_device_manifest() -> None:
@@ -845,11 +898,14 @@ def _listing_hashes_only_regular_descriptors() -> None:
 
 
 def _listing_refuses_a_fifo_its_check_by_name_missed() -> None:
-    """A FIFO that the listing's check by name answers as a regular file, which is a
-    file replaced by a FIFO between that check and the read, is listed unhashed rather
+    """A FIFO that the listing's check by name, `Path.is_file`, answers as a regular file,
+    which is a file replaced by a FIFO between that check and the read, is refused by
+    `_open_regular`'s own check by name before any open: it is listed unhashed rather
     than waited on, and the suite is refused. The FIFO stands under a name the manifest
     lists, so the suite's paths agree with the manifest's and only the read meets it.
-    POSIX-only, so the case is the guest's and win32 is refused before `os.mkfifo`."""
+    A FIFO that both checks answer as a regular file is the open's to refuse, which
+    `_open_regular_refuses_what_the_name_answered_as_a_file` holds. POSIX-only, so the
+    case is the guest's and win32 is refused before `os.mkfifo`."""
     if sys.platform == "win32":
         raise AssertionError("mkfifo is POSIX-only; the FIFO listing case runs in the guest")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
@@ -1323,6 +1379,8 @@ def cases() -> list[Case]:
         Case("seed-refuses-a-device-donor", _seed_refuses_a_device_donor),
         Case("seed-refuses-a-fifo-donor", _seed_refuses_a_fifo_donor, lane="guest"),
         Case("open-regular-asks-the-name-first", _open_regular_asks_the_name_first),
+        Case("open-regular-refuses-what-the-name-answered-as-a-file",
+             _open_regular_refuses_what_the_name_answered_as_a_file, lane="guest"),
         Case("seed-refuses-a-device-manifest", _seed_refuses_a_device_manifest),
         Case("seed-refuses-a-fifo-manifest", _seed_refuses_a_fifo_manifest, lane="guest"),
         Case("seed-refuses-a-manifest-linked-to-a-fifo",
