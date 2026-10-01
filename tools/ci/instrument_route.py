@@ -759,7 +759,9 @@ def classify(exit_code: int | None, limit: int, *, oom: Sequence[str] | None,
              seconds: float | None = None) -> Outcome:
     """A step's verdict from how it ended.
 
-    A limit reached, an OOM kill and a want of disk are each undecided, never a failure.
+    A limit reached, an OOM kill, a want of disk and a compile that reached gallina's
+    per-file timeout, read from an output line naming `TimeoutExpired`, are each
+    undecided, never a failure.
     An exit of 124 or 137 is the limit reached once the step has run `seconds` up to its
     limit; sooner, `timeout` did not end it, and what did is unread, so it is undecided.
     `journal_complete` is given for a step a journal decides, a seed run, and such a step

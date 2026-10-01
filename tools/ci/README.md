@@ -446,11 +446,13 @@ largest resident set, free disk and load average to the job's progress log every
 minute, so a step cut at its limit leaves its peak. An exit of 124, or of 137 where the
 receipt holds no kernel OOM record for the step, once the step has run for its limit,
 is the limit reached; either exit sooner is recorded undecided, its cause unread. A
-step that reaches its limit, or exits for want of disk or memory as the sampler's
-free-disk figure or the kernel's OOM record shows, decides nothing and is recorded
-undecided, never as a failure. Each step's `timeout-minutes` is a backstop above its
-limit, and each job's is the sum of its step limits plus a 15-minute staging-and-upload
-margin.
+step that reaches its limit; that exits for want of disk or memory, as the sampler's
+free-disk figure, a line of its output reporting `No space left on device` or the
+kernel's OOM record shows; or that exits with a line of its output naming
+`TimeoutExpired`, read as a compile reaching gallina's per-file timeout, which raises
+out of the run, decides nothing and is recorded undecided, never as a failure. Each
+step's `timeout-minutes` is a backstop above its limit, and each job's is the sum of its
+step limits plus a 15-minute staging-and-upload margin.
 
 **Staging.** Each job's staging and upload run under `always()`. As in Guest CI, a
 refused check runs no requested revision's code afterwards: each later step that runs a
