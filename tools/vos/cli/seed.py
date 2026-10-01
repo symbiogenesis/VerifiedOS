@@ -538,7 +538,16 @@ def cmd_coq(args: argparse.Namespace) -> int:
                   "enumerative mode mutates any proof source")
             return 1
 
-    switch = gallina.QUICKCHICK_SWITCH if args.quickchick else gallina.VECTOR_SWITCH
+    if args.recipe and not args.quickchick:
+        print("FAIL --recipe names the switch QuickChick's recipe builds and runs only "
+              "with --quickchick")
+        return 1
+    if not args.quickchick:
+        switch = gallina.VECTOR_SWITCH
+    elif args.recipe:
+        switch = gallina.QUICKCHICK_RECIPE_SWITCH
+    else:
+        switch = gallina.QUICKCHICK_SWITCH
     found = gallina.prover(switch)
     if found is None:
         print(f"FAIL no prover in the {switch} switch; "
@@ -789,6 +798,10 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
                          help="let QuickChick's seeded draws, and the walks over "
                               "domains no larger than them, decide instead of the "
                               "enumerative harness's vectors")
+        sub.add_argument("--recipe", action="store_true",
+                         help="with --quickchick, run in the switch tools/vos/cli/"
+                              "quickchick.py's RECIPE builds from its commit pins rather "
+                              "than in the provisioned QuickChick switch")
         sub.add_argument("--jobs", type=int, default=1, metavar="N",
                          help="stage N trees and run the population across them at "
                               "once. Every mutant is one prover run and the trees "

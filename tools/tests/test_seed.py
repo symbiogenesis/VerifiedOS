@@ -155,7 +155,8 @@ def _the_randomized_mode_refuses_a_subject_outside_its_closure() -> None:
                f"the closure's proof sources are A, B and C: {seed.randomized_subjects(root)}")
         for rel in ("proofs/Far.v", f"{_RIG}/Probe.v"):
             with redirect_stdout(io.StringIO()) as said:
-                code = seed.cmd_coq(argparse.Namespace(file=rel, quickchick=True))
+                code = seed.cmd_coq(argparse.Namespace(file=rel, quickchick=True,
+                                                       recipe=False))
             text = said.getvalue()
             ensure(code == 1 and "is not a proof source Properties.v's Require closure" in text
                    and "mutates proofs/A.v, proofs/B.v, proofs/C.v" in text,
@@ -163,7 +164,8 @@ def _the_randomized_mode_refuses_a_subject_outside_its_closure() -> None:
         ensure(not asked, f"a refused subject asks for no prover: {asked}")
         for rel, randomized in (("proofs/B.v", True), ("proofs/Far.v", False)):
             with redirect_stdout(io.StringIO()) as said:
-                seed.cmd_coq(argparse.Namespace(file=rel, quickchick=randomized))
+                seed.cmd_coq(argparse.Namespace(file=rel, quickchick=randomized,
+                                                recipe=False))
             ensure("no prover" in said.getvalue(),
                    f"{rel} reaches the prover's lookup: {said.getvalue()}")
     ensure(asked == [gallina.QUICKCHICK_SWITCH, gallina.VECTOR_SWITCH],

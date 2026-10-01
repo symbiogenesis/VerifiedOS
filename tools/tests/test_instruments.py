@@ -360,12 +360,18 @@ def _the_live_rows_read_their_instruments() -> None:
            "every rig caller the tree carries is a row")
     properties = {row.switch for row in k117.INSTRUMENTS
                   if row.selects == "tools/vos/cli/quickchick.py"}
-    ensure(properties == {gallina.QUICKCHICK_SWITCH},
-           f"quickchick properties runs in QuickChick's own switch alone: {properties}")
+    ensure(properties == {gallina.QUICKCHICK_SWITCH, gallina.QUICKCHICK_RECIPE_SWITCH},
+           "quickchick properties runs in QuickChick's provisioned switch or the one its "
+           f"recipe builds, and no other: {properties}")
+    ensure(by_name["quickchick properties --recipe"].release
+           == gallina.QUICKCHICK_RECIPE_ROCQ_VERSION,
+           "the recipe's rows read the recipe's own release")
     walked = f"{k117.RIG}/{gallina.EXHAUSTIVE}"
-    ensure(all(walked in row.harnesses for row in k117.INSTRUMENTS
-               if row.name in ("quickchick properties", "seed coq --quickchick")),
-           "the randomized half's rows compile the walk harness beside the drawn one")
+    randomized = [row for row in k117.INSTRUMENTS if "quickchick" in row.name
+                  and row.name != "quickchick vectors" and row.name != "quickchick freeze"]
+    ensure(len(randomized) == 4 and all(walked in row.harnesses for row in randomized),
+           f"the randomized half's four rows compile the walk harness beside the drawn one: "
+           f"{[row.name for row in randomized]}")
 
 
 def _the_live_reading_reaches_only_the_older_instruments_proofs() -> None:

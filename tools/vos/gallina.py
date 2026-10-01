@@ -23,7 +23,9 @@ source that compiles under the gate compiles under them. The randomized harness 
 QuickChick and the Wasm oracle loads CertiRocq, and no release of either admits a Rocq
 newer than 9.1, so each keeps a switch of its own at Rocq 9.1.1; the walk harness that
 decides the property sets small enough to enumerate compiles beside the randomized one.
-K-117 holds what each instrument older than Rocq 9.3.0 compiles, these two and the
+QuickChick's commit-pinned recipe builds a second QuickChick switch, at the gate's
+release, which a run asks for by name while that recipe's lock awaits its hosted
+checks. K-117 holds what each instrument older than Rocq 9.3.0 compiles, these two and the
 Rupicola lowering among them, free of the syntax only Rocq 9.3 reads. Every switch is
 **read** here and never written.
 """
@@ -90,6 +92,15 @@ def oracle_candidate_build(ocaml: str) -> tuple[tuple[str, ...], ...]:
 QUICKCHICK_ROCQ_VERSION = ORACLE_ROCQ_VERSION
 QUICKCHICK_SWITCH = (f"verifiedos-quickchick-{QUICKCHICK_ROCQ_VERSION}"
                      f"-ocaml-{env.OCAML_VERSION}")
+
+# The switch QuickChick's commit-pinned recipe builds, tools/vos/cli/quickchick.py's
+# RECIPE, at Rocq 9.3.0, beside which no QuickChick, coq-simple-io or coq-ext-lib
+# release installs. Named apart from QUICKCHICK_SWITCH while the recipe's lock is
+# pending its hosted checks, so a run can ask for either. A literal rather than
+# `env.ROCQ_VERSION`, because a move of the proof switch's lock does not move this one.
+QUICKCHICK_RECIPE_ROCQ_VERSION = "9.3.0"
+QUICKCHICK_RECIPE_SWITCH = (f"verifiedos-quickchick-{QUICKCHICK_RECIPE_ROCQ_VERSION}"
+                            f"-ocaml-{env.OCAML_VERSION}")
 
 # Where the shipped proofs are, and where this repository's own Gallina harnesses are.
 # The second is not under `proofs/` on purpose: the proof gate compiles everything it

@@ -161,6 +161,14 @@ INSTRUMENTS: tuple[Instrument, ...] = (
                gallina.QUICKCHICK_ROCQ_VERSION,
                (f"{RIG}/{gallina.RANDOMIZED}", f"{RIG}/{gallina.EXHAUSTIVE}"),
                support=True),
+    # The same two in the switch QuickChick's commit-pinned recipe builds.
+    Instrument("quickchick properties --recipe", "tools/vos/cli/quickchick.py",
+               gallina.QUICKCHICK_RECIPE_SWITCH, gallina.QUICKCHICK_RECIPE_ROCQ_VERSION,
+               (f"{RIG}/{gallina.RANDOMIZED}", f"{RIG}/{gallina.EXHAUSTIVE}")),
+    Instrument("seed coq --quickchick --recipe", "tools/vos/cli/seed.py",
+               gallina.QUICKCHICK_RECIPE_SWITCH, gallina.QUICKCHICK_RECIPE_ROCQ_VERSION,
+               (f"{RIG}/{gallina.RANDOMIZED}", f"{RIG}/{gallina.EXHAUSTIVE}"),
+               support=True),
     # Each writes its harness at run time, over proofs its own module names; at the
     # gate's release they add nothing, and older they would derive no file and fail.
     Instrument("the copy-service comparison", "tools/vos/copy_service.py",

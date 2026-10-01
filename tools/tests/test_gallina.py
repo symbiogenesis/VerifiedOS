@@ -439,11 +439,14 @@ def _the_stdlib_harnesses_compile_in_the_proof_switch() -> None:
                f"the refusal must name the switch it looked in: {said}")
         with (patch.object(seed, "lane_env", return_value=Mock()),
               redirect_stdout(io.StringIO())):
-            for randomized in (False, True):
-                args = argparse.Namespace(file=seed.COQ_SUBJECT, quickchick=randomized)
+            for randomized, recipe in ((False, False), (True, False), (True, True)):
+                args = argparse.Namespace(file=seed.COQ_SUBJECT, quickchick=randomized,
+                                          recipe=recipe)
                 ensure(seed.cmd_coq(args) == 1, "an absent prover must be refused")
+            args = argparse.Namespace(file=seed.COQ_SUBJECT, quickchick=False, recipe=True)
+            ensure(seed.cmd_coq(args) == 1, "--recipe without --quickchick is refused")
     want = [gallina.VECTOR_SWITCH, gallina.VECTOR_SWITCH, gallina.VECTOR_SWITCH,
-            gallina.QUICKCHICK_SWITCH]
+            gallina.QUICKCHICK_SWITCH, gallina.QUICKCHICK_RECIPE_SWITCH]
     ensure(asked == want, f"the instruments asked for {asked}, not {want}")
 
 
@@ -475,7 +478,7 @@ def _the_randomized_harness_compiles_its_closure_alone() -> None:
           patch.object(gallina, "prover", return_value=gallina.Prover("s", ("rocq", "c"))),
           patch.object(gallina, "compile_one", side_effect=compile_one),
           redirect_stdout(io.StringIO()) as output):
-        code = quickchick._properties(argparse.Namespace(), Mock(), Path(td),
+        code = quickchick._properties(argparse.Namespace(recipe=False), Mock(), Path(td),
                                       Path(wd) / "gallina")
     ensure(code == 0, f"the closure run failed: {output.getvalue()}")
     ensure(compiled[-2:] == ["Properties", "Walks"]
@@ -512,7 +515,7 @@ def _the_randomized_half_refuses_what_does_not_replay_or_hold() -> None:
                            return_value=gallina.Prover("s", ("rocq", "c"))),
               patch.object(gallina, "compile_one", side_effect=compile_one) as compiled,
               redirect_stdout(io.StringIO()) as output):
-            code = quickchick._properties(argparse.Namespace(), Mock(), Path(td),
+            code = quickchick._properties(argparse.Namespace(recipe=False), Mock(), Path(td),
                                           Path(wd) / "gallina")
         ensure(code == 1 and want in output.getvalue(),
                f"seeded={seeded}: the run said {output.getvalue()}")
@@ -575,9 +578,9 @@ def _quickchick_rejects_other_versions() -> None:
           patch.object(gallina, "version", return_value="9.1.1"),
           patch.object(gallina, "stage") as stage,
           redirect_stdout(io.StringIO()) as output):
-        ensure(quickchick.cmd_check(argparse.Namespace()) == 1,
+        ensure(quickchick.cmd_check(argparse.Namespace(recipe=False)) == 1,
                "an old installed QuickChick must not pass the check")
-        ensure(quickchick._properties(argparse.Namespace(), Mock(), Path(), Path()) == 1,
+        ensure(quickchick._properties(argparse.Namespace(recipe=False), Mock(), Path(), Path()) == 1,
                "an old installed QuickChick must not run the properties")
         ensure(stage.call_count == 0, "the wrong version must be refused before staging")
         ensure("2.1.0" in output.getvalue() and quickchick.VERSION in output.getvalue(),
@@ -588,7 +591,7 @@ def _quickchick_rejects_other_versions() -> None:
           patch.object(gallina, "prover", return_value=["rocq", "c"]),
           patch.object(gallina, "version", return_value="9.1.1"),
           redirect_stdout(io.StringIO())):
-        ensure(quickchick.cmd_check(argparse.Namespace()) == 0,
+        ensure(quickchick.cmd_check(argparse.Namespace(recipe=False)) == 0,
                "the configured QuickChick release must pass the check")
 
 
@@ -612,6 +615,52 @@ def _a_switch_environment_answers_no_question() -> None:
            and passed.get("OPAMROOT") == "/elsewhere",
            f"opam env is passed no answer and keeps the root: {sorted(passed)}")
     ensure(read == {"OPAMSWITCH": "s"}, f"what opam env prints is read back: {read}")
+
+
+def _the_recipe_pins_whole_commits_and_is_asked_by_name() -> None:
+    """QuickChick's recipe pins each upstream to one whole commit, creates the switch the
+    recipe's constants name at the repository's OCaml, pins before it installs, and
+    installs every pinned package beside the Rocq, Stdlib and dune it states; and
+    `check --recipe` asks that switch alone and holds the pinned commit, a release
+    refused there."""
+    convention = (f"verifiedos-quickchick-{gallina.QUICKCHICK_RECIPE_ROCQ_VERSION}-ocaml-"
+                  f"{env.OCAML_VERSION}")
+    ensure(convention == gallina.QUICKCHICK_RECIPE_SWITCH,
+           "the recipe's switch does not follow the project's naming convention")
+    pins = {name: (url, commit) for name, url, commit in quickchick.PINS}
+    ensure(set(pins) == {"coq-ext-lib", "coq-simple-io", quickchick.PACKAGE}
+           and all(re.fullmatch(r"[0-9a-f]{40}", commit) for _, commit in pins.values()),
+           f"the recipe pins the three upstreams, each to one whole commit: {pins}")
+    switch = gallina.QUICKCHICK_RECIPE_SWITCH
+    create, *pinning, install = quickchick.RECIPE
+    ensure(create[:4] == ("opam", "switch", "create", switch)
+           and f"--packages=ocaml-base-compiler.{env.OCAML_VERSION}" in create,
+           f"the recipe creates its switch at the repository's OCaml: {create}")
+    ensure([step[:4] for step in pinning] == [("opam", "pin", "add", f"--switch={switch}")] * 3
+           and [step[-2:] for step in pinning]
+           == [(f"{name}.dev", f"git+{url}#{commit}") for name, (url, commit) in pins.items()],
+           f"the recipe pins each package to its commit before installing: {pinning}")
+    ensure(install[:3] == ("opam", "install", f"--switch={switch}")
+           and {f"rocq-core.{gallina.QUICKCHICK_RECIPE_ROCQ_VERSION}",
+                f"rocq-stdlib.{quickchick.STDLIB}", f"dune.{quickchick.DUNE}",
+                *(f"{name}.dev" for name in pins)} <= set(install),
+           f"the recipe installs the pinned packages beside its Rocq and dune: {install}")
+    url, commit = pins[quickchick.PACKAGE]
+    ensure(f"git+{url}#{commit}" == quickchick.RECIPE_PIN,
+           "the pin a check holds is QuickChick's in the recipe")
+    asked: list[str] = []
+    for source, code in ((quickchick.RECIPE_PIN, 0), ("2.2.0", 1)):
+        def held(switch: str, source: str = source) -> str:
+            asked.append(switch)
+            return source
+
+        with (patch.object(quickchick, "installed", side_effect=held),
+              patch.object(gallina, "prover", return_value=["rocq", "c"]),
+              patch.object(gallina, "version", return_value="9.3.0"),
+              redirect_stdout(io.StringIO()) as output):
+            ensure(quickchick.cmd_check(argparse.Namespace(recipe=True)) == code,
+                   f"a recipe switch holding {source} must exit {code}: {output.getvalue()}")
+    ensure(set(asked) == {switch}, f"`check --recipe` asked other switches: {asked}")
 
 
 def cases() -> list[Case]:
@@ -653,4 +702,6 @@ def cases() -> list[Case]:
         Case("QuickChick rejects other versions", _quickchick_rejects_other_versions),
         Case("a switch's opam environment answers no question",
              _a_switch_environment_answers_no_question),
+        Case("the recipe pins whole commits and is asked by name",
+             _the_recipe_pins_whole_commits_and_is_asked_by_name),
     ]
