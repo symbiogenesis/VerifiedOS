@@ -1011,12 +1011,12 @@ def _workflow_runner_labels_any_style() -> None:
 
 
 def _workflow_checkout_validation() -> None:
-    scripts: list[str] = []
+    scripts: dict[str, str] = {}
     for workflow in (ci.HOST, ci.GUEST):
         contents = (ROOT / ".github/workflows" / workflow).read_text(encoding="utf-8")
         step = contents.split("      - name: Verify dispatched revision belongs to main\n", 1)[1]
         script = step.split("        run: |\n", 1)[1].split("\n      - ", 1)[0]
-        scripts.append(textwrap.dedent(script))
+        scripts[workflow] = textwrap.dedent(script)
     with sandbox_tree({"README.md": "workflow fixture\n"}) as root:
         _fixture_identity(root)
         _git(root, "commit", "--allow-empty", "-qm", "base")
@@ -1026,6 +1026,16 @@ def _workflow_checkout_validation() -> None:
         _git(root, "checkout", "--detach", base)
         _git(root, "commit", "--allow-empty", "-qm", "unpublished sibling")
         sibling = _git(root, "rev-parse", "HEAD")
+        tree = _git(root, "rev-parse", f"{base}^{{tree}}")
+
+        def guard(script: str, checkout: str, requested: str, main: str, ref: str,
+                  reading_base: str = "") -> subprocess.CompletedProcess[str]:
+            _git(root, "checkout", "--detach", checkout)
+            environment = dict(os.environ, REQUESTED_REVISION=requested, DISPATCH_REF=ref,
+                               DISPATCH_MAIN_SHA=main, READING_BASE=reading_base)
+            return subprocess.run([sys.executable, "-c", script], cwd=root, env=environment,
+                                  capture_output=True, text=True, check=False, timeout=30)
+
         cases = ((base, base, base, "refs/heads/main", True),
                  (base, base, advanced, "refs/heads/main", True),
                  (advanced, base, advanced, "refs/heads/main", False),
@@ -1033,15 +1043,48 @@ def _workflow_checkout_validation() -> None:
                  (sibling, sibling, advanced, "refs/heads/main", False),
                  (base, base, advanced, "refs/heads/work/stranded", False))
         for checkout, requested, main, ref, passes in cases:
-            _git(root, "checkout", "--detach", checkout)
-            environment = dict(os.environ, REQUESTED_REVISION=requested,
-                               DISPATCH_REF=ref, DISPATCH_MAIN_SHA=main)
-            for script in scripts:
-                done = subprocess.run([sys.executable, "-c", script], cwd=root,
-                                      env=environment, capture_output=True, text=True,
-                                      check=False, timeout=30)
+            for script in scripts.values():
+                done = guard(script, checkout, requested, main, ref)
                 ensure((done.returncode == 0) == passes,
                        f"workflow checkout guard gave wrong verdict: {done.stderr}")
+        # Guest CI's reading base, when nonempty, is refused before checked-out code runs
+        # unless it is a full lowercase commit that is a proper ancestor of the revision.
+        guest = scripts[ci.GUEST]
+        for checkout, reading_base, refusal in (
+                (advanced, base, None),
+                (advanced, advanced, "other than the revision"),
+                (advanced, base[:7], "full lowercase commit SHA"),
+                (advanced, "A" * 40, "full lowercase commit SHA"),
+                (advanced, f" {base}", "full lowercase commit SHA"),
+                (advanced, "f" * 40, "names no commit"),
+                (advanced, tree, "names no commit"),
+                (advanced, sibling, "not an ancestor"),
+                (base, advanced, "not an ancestor")):
+            done = guard(guest, checkout, checkout, advanced, "refs/heads/main", reading_base)
+            if refusal is None:
+                ensure(done.returncode == 0, f"a proper ancestor was refused: {done.stderr}")
+            else:
+                ensure(done.returncode != 0 and refusal in done.stderr,
+                       f"reading base {reading_base!r} must be refused with {refusal!r}: "
+                       f"{done.stderr}")
+
+
+def _workflow_reading_base_through_environment() -> None:
+    # Every expression reading the input stands in an `if:` condition or as the value of
+    # an uppercase environment key, so no script text ever holds its value.
+    contents = (ROOT / ".github/workflows" / ci.GUEST).read_text(encoding="utf-8")
+    lines = [line for line in contents.split("\n") if not line.lstrip().startswith("#")]
+    reads = [line for line in lines if "reading_base" in "".join(
+        expression for expression in re.findall(r"\$\{\{(.*?)\}\}", line))]
+    ensure(len(reads) == 4, f"the input is read where the step guards expect: {reads!r}")
+    for line in reads:
+        ensure(re.fullmatch(r"          [A-Z][A-Z_]*: \$\{\{ [^{}]* \}\}", line) is not None
+               or re.fullmatch(r"        if: \$\{\{ [^{}]* \}\}", line) is not None,
+               f"the reading base reaches a step only through its environment: {line!r}")
+    ensure(sum(line == "          READING_BASE: ${{ inputs.reading_base }}" for line in reads) == 2,
+           "the dispatch check and the reading step each read the input from their environment")
+    host = (ROOT / ".github/workflows" / ci.HOST).read_text(encoding="utf-8")
+    ensure("reading_base" not in host, "Host CI declares no reading base, and fanout sends it none")
 
 
 def cases() -> list[Case]:
@@ -1066,4 +1109,6 @@ def cases() -> list[Case]:
             Case("workflow-host-job-names", _workflow_host_job_names),
             Case("workflow-gate-on-every-runner", _workflow_gate_on_every_runner),
             Case("workflow-runner-labels-any-style", _workflow_runner_labels_any_style),
-            Case("workflow-checkout-validation", _workflow_checkout_validation)]
+            Case("workflow-checkout-validation", _workflow_checkout_validation),
+            Case("workflow-reading-base-through-environment",
+                 _workflow_reading_base_through_environment)]

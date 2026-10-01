@@ -1,14 +1,23 @@
 # SPDX-License-Identifier: Apache-2.0
 """Guest diagnostics retain failures and never present an unexecuted proof as fresh."""
 
+import contextlib
+import io
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from ci.report_guest import LANES, SAIL_MEMO, TOOLCHAINS, main, report
+from ci.report_guest import LANES, READING_FILES, SAIL_MEMO, TOOLCHAINS, main, report
 from tests.harness import Case, ensure
+from vos import proofaudit, proofreading, receipts
+from vos.cli import proof_reading
+from vos.cli import proofs as proofs_cli
+
+WORKFLOW = Path(__file__).resolve().parents[2] / ".github" / "workflows" / "guest-gates.yml"
+READING_BASE = "c" * 40
 
 
 def _bootstrap_failure() -> None:
@@ -215,6 +224,127 @@ def _member_names_cannot_break_table() -> None:
                "member name was interpreted as table or HTML syntax")
 
 
+def _reading_outcome_recorded() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        for outcome in ("success", "failure", "skipped", "cancelled"):
+            logs = root / outcome
+            summary = report("proofs", logs, root / "absent-console", root / "absent-proof",
+                             {"proofs": {"outcome": "success"}, "reading": {"outcome": outcome}},
+                             "abc", toolchains="cold", reading_base=READING_BASE)
+            result = json.loads((logs / "results.json").read_text(encoding="utf-8"))
+            ensure(result["commands"]["reading"] == outcome
+                   and result["reading_base"] == READING_BASE,
+                   "the reading step's outcome and its base were not retained")
+            ensure(f"| reading | {outcome} |" in summary, "the reading outcome was lost")
+            ensure(("Both readings and the comparison's log are retained" in summary)
+                   == (outcome == "success"),
+                   "a reading that did not pass was presented as a comparison")
+        summary = report("proofs", root / "none", root / "absent-console", root / "absent-proof",
+                         {"proofs": {"outcome": "success"}}, "abc", toolchains="cold")
+        result = json.loads((root / "none" / "results.json").read_text(encoding="utf-8"))
+        ensure(result["commands"]["reading"] == "skipped" and "reading_base" not in result
+               and "Proof reading base" not in summary,
+               "a run without a reading base stated one")
+        environment = {"VOS_LOG_DIR": str(root / "main"), "RUNNER_TEMP": str(root),
+                       "STEP_RESULTS": "{}", "GITHUB_SHA": "b" * 40, "GUEST_REVISION": "",
+                       "GUEST_TOOLCHAINS": "cold",
+                       "GITHUB_STEP_SUMMARY": str(root / "summary.md")}
+        with patch.dict(os.environ, {**environment, "GUEST_LANE": "proofs",
+                                     "GUEST_SAIL_MEMO": "", "GUEST_READING_BASE": READING_BASE}):
+            main()
+        result = json.loads((root / "main" / "results.json").read_text(encoding="utf-8"))
+        ensure(result["reading_base"] == READING_BASE, "the workflow's reading base was lost")
+        # Only the proofs lane states a base, and only one the dispatch check accepts.
+        for lane, memo, base in (("model", "cold", READING_BASE),
+                                 ("proofs", "", READING_BASE[:7]),
+                                 ("proofs", "", READING_BASE.upper())):
+            with patch.dict(os.environ, {**environment, "GUEST_LANE": lane,
+                                         "GUEST_SAIL_MEMO": memo, "GUEST_READING_BASE": base}):
+                try:
+                    main()
+                except SystemExit as err:
+                    ensure("base" in str(err), f"the refusal said {err}")
+                    continue
+            ensure(False, f"the {lane} lane accepted reading base {base!r}")
+
+
+def _step(name: str) -> str:
+    """One guest-gates step's text, from its name line to the next step."""
+    contents = WORKFLOW.read_text(encoding="utf-8")
+    return contents.split(f"      - name: {name}\n", 1)[1].split("\n      - ", 1)[0]
+
+
+def _reading(body: str) -> dict[str, object]:
+    """A one-constant reading the schema accepts, its body as given."""
+    digest = "0" * 64
+    return {"format": proofreading.FORMAT, "schema": proofreading.SCHEMA,
+            "reader": {"prover": "The Rocq Prover, version 9.3.0", "prover_sha256": digest,
+                       "query_flags": list(proofs_cli.STRICT),
+                       "inventory_settings": proofaudit.SETTINGS,
+                       "reading_settings": proofreading.SETTINGS},
+            "modules": {"M": {"constants": {"M.a": {
+                "kind": "Constant", "opacity": "transparent", "universes": "monomorphic",
+                "check": "M.a\n     : nat", "about": "M.a : nat\n\nM.a is transparent",
+                "print": f"M.a {body}"}}}},
+            "provenance": {"sources": {"M.v": digest}, "objects": {"M.vo": digest}}}
+
+
+def _reading_step() -> None:
+    step = _step("Read the proofs against the reading base")
+    ensure("        id: reading\n" in step and "reading" in LANES["proofs"],
+           "the reporter reads the reading step by its id")
+    condition = re.search(r"(?m)^        if: \$\{\{ (.*) \}\}$", step)
+    ensure(condition is not None and set(condition[1].split(" && ")) == {
+        "matrix.lane == 'proofs'", "!cancelled()", "inputs.reading_base != ''",
+        "steps.proofs.outcome == 'success'"},
+        "the step runs in the proofs lane, for a named base, over a passing gate's compile")
+    ensure("          READING_BASE: ${{ inputs.reading_base }}\n" in step,
+           "the base reaches the step through its environment")
+    run = step.split("        run: |\n", 1)[1]
+    # The proof environment is the gate's own, read from the file the gate reads.
+    environment = "mapfile -d '' -t proof_env < \"$RUNNER_TEMP/proof-environment\""
+    ensure(environment in _step("Proof gate") and environment in run,
+           "the reading reads the gate's explicit environment")
+    commands = [line.strip() for line in re.sub(r"\\\n\s*", "", run).split("\n")
+                if "tools/run.py" in line]
+    ensure(len(commands) == 3 and all(
+        'env -i "${proof_env[@]}" python3 tools/run.py proof-reading ' in command
+        for command in commands), f"every reading command runs in that environment: {commands}")
+    for fragment in ('proof-reading record --out "$candidate"',
+                     'proof-reading record --sources "$sources/proofs" --out "$base"',
+                     'proof-reading compare "$base" "$candidate" > "$comparison"'):
+        ensure(any(fragment in command for command in commands),
+               f"the step runs {fragment!r}")
+    ensure('git archive --format=tar "$READING_BASE" proofs | tar -x -C "$sources"' in run,
+           "the base's sources come from its own commit")
+    for name in READING_FILES:
+        ensure(f'"$VOS_LOG_DIR/{name}"' in run, f"{name} is written where the artifact keeps it")
+    # The step tells a comparison that names differences from a refused one by the line
+    # `compare` prints first, which this holds to the command's own output.
+    template = "FAIL proof-reading: $count difference(s) between $base and $candidate"
+    for line in ('first=$(head -n 1 -- "$comparison")', 'count=${first#"FAIL proof-reading: "}',
+                 'count=${count%" difference(s) between $base and $candidate"}',
+                 f'"$first" == "{template}"'):
+        ensure(line in run, f"the step decides the comparison by {line!r}")
+    with tempfile.TemporaryDirectory() as directory:
+        folder = Path(directory)
+        base, candidate = folder / READING_FILES[0], folder / READING_FILES[1]
+        receipts.write(base, _reading("= 0"))
+        receipts.write(candidate, _reading("= 1"))
+        for second, code, compared in ((base, 0, False), (candidate, 1, True),
+                                       (folder / "absent.json", 1, False)):
+            with contextlib.redirect_stdout(io.StringIO()) as said:
+                exit_code = proof_reading.main(["compare", str(base), str(second)])
+            first = said.getvalue().split("\n", 1)[0]
+            count = first.removeprefix("FAIL proof-reading: ").removesuffix(
+                f" difference(s) between {base} and {second}")
+            matched = count.isdigit() and first == template.replace("$count", count).replace(
+                "$base", str(base)).replace("$candidate", str(second))
+            ensure(exit_code == code and matched == compared,
+                   f"the step must accept exactly a comparison naming differences: {first!r}")
+
+
 def cases() -> list[Case]:
     return [
         Case("bootstrap failure retains diagnostics without stale proofs", _bootstrap_failure),
@@ -227,4 +357,7 @@ def cases() -> list[Case]:
         Case("skipped evidence refuses stale records and proof receipts", _skipped_evidence_ignores_old_record),
         Case("diagnostic copy failure preserves the remaining report", _diagnostic_copy_failure_keeps_summary),
         Case("member names are escaped in Markdown tables", _member_names_cannot_break_table),
+        Case("reading outcome and base are recorded and validated", _reading_outcome_recorded),
+        Case("reading step runs in the gate's environment and reads compare's verdict",
+             _reading_step),
     ]

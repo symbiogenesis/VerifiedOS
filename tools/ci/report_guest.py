@@ -5,6 +5,7 @@ import html
 import json
 import math
 import os
+import re
 import shutil
 import sys
 from dataclasses import dataclass
@@ -15,11 +16,15 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from vos import receipts  # noqa: E402  (standalone reporting needs no locked environment)
 
-# Each lane's workflow step ids, in execution order.
+# Each lane's workflow step ids, in execution order. The proofs lane's `reading` runs
+# only when a dispatch names a reading base, and is skipped otherwise.
 LANES: dict[str, tuple[str, ...]] = {
     "model": ("bootstrap", "evidence", "bundle", "lint", "widthcheck", "crosscheck"),
-    "proofs": ("bootstrap", "proofs"),
+    "proofs": ("bootstrap", "proofs", "reading"),
 }
+# The files the reading step writes into the log directory the lane's artifact keeps.
+READING_FILES = ("proof-reading-base.json", "proof-reading-candidate.json",
+                 "proof-reading-compare.log")
 # How bootstrap found the lane's toolchains; only a cold run shows that they install.
 TOOLCHAINS: dict[str, str] = {
     "cold": "installed cold.",
@@ -97,19 +102,27 @@ def evidence_rows(logs: Path, outcome: str) -> list[str]:
 
 def report(lane: str, logs: Path, console: Path, proof: Path,
            steps: dict[str, dict[str, str]], revision: str, *, toolchains: str,
-           sail_memo: str | None = None) -> str:
+           sail_memo: str | None = None, reading_base: str | None = None) -> str:
     """Keep command outcomes even when evidence is absent or unreadable."""
     logs.mkdir(parents=True, exist_ok=True)
     outcomes = {name: steps.get(name, {}).get("outcome", "skipped") for name in LANES[lane]}
     results: dict[str, object] = {"revision": revision, "lane": lane, "toolchains": toolchains}
     if sail_memo is not None:
         results["sail_memo"] = sail_memo
+    if reading_base is not None:
+        results["reading_base"] = reading_base
     receipts.write(logs / "results.json", {**results, "commands": outcomes})
     rows = [f"### Guest gates: {lane}", "", f"Toolchains: {TOOLCHAINS[toolchains]}"]
     if sail_memo is not None:
         rows.extend(("", f"Sail memo: {SAIL_MEMO[sail_memo]}"))
     rows.extend(("", "| Command | Outcome |", "| --- | --- |"))
     rows.extend(f"| {name} | {outcome} |" for name, outcome in outcomes.items())
+    if reading_base is not None:
+        # Only a passing reading step recorded and compared both readings.
+        rows.extend(("", f"Proof reading base: {cell(reading_base)}. " + (
+            f"Both readings and the comparison's log are retained as {', '.join(READING_FILES)}."
+            if outcomes.get("reading") == "success"
+            else "The reading step did not pass, so no comparison is reported.")))
     retained_proof = logs / "proof-evidence.json"
     retained_proof.unlink(missing_ok=True)
     if console.is_file():
@@ -137,6 +150,12 @@ def main() -> None:
                          f"expected one of {', '.join(SAIL_MEMO)}")
     if lane != "model" and sail_memo:
         raise SystemExit(f"the {lane} lane runs no Sail build to state a memo for")
+    # Only the proofs lane reads proofs against a base, which the dispatch check verified.
+    reading_base = os.environ.get("GUEST_READING_BASE", "")
+    if reading_base and lane != "proofs":
+        raise SystemExit(f"the {lane} lane reads no proofs against a base")
+    if reading_base and not re.fullmatch(r"[0-9a-f]{40}", reading_base):
+        raise SystemExit(f"reading base {reading_base!r} is not a full lowercase commit SHA")
     summary = report(
         lane,
         Path(os.environ.get("VOS_LOG_DIR", Path.home() / "verifiedos-guest" / "logs")),
@@ -145,6 +164,7 @@ def main() -> None:
         json.loads(os.environ["STEP_RESULTS"]),
         os.environ.get("GUEST_REVISION") or os.environ["GITHUB_SHA"],
         toolchains=toolchains, sail_memo=sail_memo or None,
+        reading_base=reading_base or None,
     )
     with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8", newline="") as stream:
         stream.write(summary)
