@@ -767,8 +767,9 @@ def _join_records_not_run_and_refusals() -> None:
            f"{report['refusals']!r}")
     # A rerun in which the build now fails leaves the earlier attempt's import artifact
     # for a job this attempt skipped: passed over and recorded, so the failure shows.
-    failed_build = {"steps": dict(route.as_object(_receipt("build", REVISION)["steps"]),
-                                  properties={"verdict": route.FAILED}), "run_attempt": "2"}
+    failed_build: dict[str, object] = {
+        "steps": dict(route.as_object(_receipt("build", REVISION)["steps"]),
+                      properties={"verdict": route.FAILED}), "run_attempt": "2"}
     rerun = dict(_SUCCESS, build={"result": "failure"}, **{"import": {"result": "skipped"}})
     with tempfile.TemporaryDirectory() as scratch:
         root = Path(scratch)
@@ -788,7 +789,7 @@ def _join_records_not_run_and_refusals() -> None:
 
 def _join_reads_failures_outside_wrapped_steps() -> None:
     not_run = {"verdict": route.NOT_RUN, "reason": "the job ended before this step"}
-    early = {"steps": {step: not_run for step in route.JOB_STEPS["seed"]}}
+    early: dict[str, object] = {"steps": dict.fromkeys(route.JOB_STEPS["seed"], not_run)}
     failed_seed = dict(_SUCCESS, seed={"result": "failure"})
     report = _joined(lambda root: _artifacts(root, edits={"seed-candidate-1": early}),
                      failed_seed)
@@ -800,7 +801,7 @@ def _join_reads_failures_outside_wrapped_steps() -> None:
            and route.as_object(jobs["seed-base"])["verdict"] == route.PASSED,
            f"a seed run that failed before any step is failed, and the matrix's result "
            f"fails no run whose own steps all ran: {report!r}")
-    imported = {"steps": {step: not_run for step in route.JOB_STEPS["import"]}}
+    imported: dict[str, object] = {"steps": dict.fromkeys(route.JOB_STEPS["import"], not_run)}
     report = _joined(lambda root: _artifacts(root, seed=False, edits={"import": imported}),
                      dict(_SUCCESS, **{"import": {"result": "failure"}}))
     ensure(report["verdict"] == route.FAILED
