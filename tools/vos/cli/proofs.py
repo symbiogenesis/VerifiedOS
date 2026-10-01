@@ -50,7 +50,9 @@ from vos.corpus import find_root
 # is unchanged by the move. `a parse two tools make is written once` is that module's
 # own convention and this is it applied to itself. `strip_comments` came back with it and
 # is no longer imported here: its one consumer was the anywhere-matching witness search,
-# which retired when the prover took the inhabitation judgement over.
+# which retired when the prover took the inhabitation judgement over. The statement
+# keywords followed when the citation and mutation readers needed the same table.
+from vos.proofs import STATEMENTS
 from vos.proofs import sentences as _sentences
 
 PROOFS = "proofs"
@@ -100,15 +102,14 @@ WITNESS_CONVENTION = (f"a closed top-level `Definition {WITNESS_PREFIX}<Record> 
                       "term is the artifact's own reference instance where it has one")
 
 # The vernaculars whose sentence states a theorem, and so whose binders are the
-# quantifiers this gate reads: Rocq 9.3's seven theorem keywords, its grammar's
-# `thm_token`, and `Example`, which states and defines. Beside them, every vernacular
-# whose sentence carries a name and an ascription at all, which is the shape this parse
-# walks. Every statement is a definer, so the second list is built from the first and
-# cannot again lack a keyword the first reads. Only `Definition` can be a witness, which
-# the witness lookup requires of the keyword rather than of this table, so that
-# widening the parse cannot widen what counts as an inhabitant.
-STATEMENTS = ("Theorem", "Lemma", "Fact", "Remark", "Corollary", "Proposition", "Property",
-              "Example")
+# quantifiers this gate reads, are the shared lexer's `STATEMENTS`: Rocq 9.3's seven
+# theorem keywords, its grammar's `thm_token`, and `Example`, which states and defines.
+# Beside them, every vernacular whose sentence carries a name and an ascription at all,
+# which is the shape this parse walks. Every statement is a definer, so the second list
+# is built from the first and cannot again lack a keyword the first reads. Only
+# `Definition` can be a witness, which the witness lookup requires of the keyword rather
+# than of this table, so that widening the parse cannot widen what counts as an
+# inhabitant.
 DEFINERS = ("Definition", *STATEMENTS, "Instance")
 # A section binder quantifies every statement in its section, so it is a quantifier too.
 SECTION_BINDERS = ("Variable", "Variables", "Context", "Hypothesis", "Hypotheses")

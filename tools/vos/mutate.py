@@ -47,6 +47,8 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from vos.proofs import DECLARATIONS, VOID, decorations, strip_comments
+
 # The lanes this engine carries. Named rather than passed as free strings, because the
 # comment syntax, the region keywords and the operator table are three facts that have
 # to agree about which language is being mutated.
@@ -65,15 +67,22 @@ SAIL_TOP = re.compile(
 # information; what carries behaviour is a function body and a table written as a `let`.
 SAIL_MUTABLE = ("function", "let", "mapping")
 
-# Rocq's command keywords, same reading. The list is what this repository's own proofs
-# use plus the neighbours a proof file reaches for, and a command outside it opens no
-# region, which leaves its lines attached to the region above: that is why `Proof` and
-# `Qed` are both here even though neither is mutable.
-COQ_TOP = re.compile(
-    r"^(Definition|Fixpoint|Inductive|Record|Lemma|Theorem|Example|Corollary|"
-    r"Proposition|Remark|Fact|Proof|Qed|Defined|Admitted|Require|Import|Export|"
-    r"Arguments|Print|Section|End|Notation|Local|Global|Set|Unset|Open|Close|"
-    r"Hint|Instance|Class|Variable|Parameter|Axiom|Context|Ltac|From)")
+# Rocq's command keywords, same reading. Every vernacular whose sentence binds a
+# top-level name is the shared lexer's `DECLARATIONS`, Rocq 9.3's theorem keywords,
+# recursive definitions and inductive types among them, and `Let` binds one inside a
+# section; beside them, the commands this repository's own proofs use plus the
+# neighbours a proof file reaches for. A command outside the list opens no region, which
+# leaves its lines attached to the region above: that is why `Proof` and `Qed` are both
+# here even though neither is mutable, and why a `Variant` or a `CoFixpoint` missing
+# from it joined the definition above it. A keyword is a whole word: read as a prefix,
+# `Letter 4` continuing a term at column 0 opened a region keyed `Let` that nothing
+# mutates, so the plural assumption commands and Ltac2's definitions, which the prefix
+# reading keyed by their singular and by `Ltac`, are spelled as keywords of their own.
+COQ_TOP = re.compile("(" + "|".join((
+    *DECLARATIONS, "Let", "Proof", "Qed", "Defined", "Admitted", "Require", "Import",
+    "Export", "Arguments", "Print", "Section", "End", "Notation", "Local", "Global", "Set",
+    "Unset", "Open", "Close", "Hint", "Class", "Variable", "Variables", "Parameter",
+    "Parameters", "Axiom", "Axioms", "Context", "Ltac", "Ltac2", "From")) + r")(?![\w'])")
 
 # And the ones a mutation may land in: the definitional commands, and deliberately not
 # a `Lemma` or a `Theorem`. A mutation inside a proof script breaks the proof and kills
@@ -81,26 +90,19 @@ COQ_TOP = re.compile(
 # a mutation inside a *definition* is the question this engine is asking.
 COQ_MUTABLE = ("Definition", "Fixpoint", "Inductive", "Record")
 
-# What may stand before a Rocq command's keyword: a quoted attribute, a legacy attribute,
-# or a control flag. A line opening with any of them opens a region keyed by the command
-# they decorate, so `#[local] Definition` is a definition rather than the tail of the
-# region above it and `Local Definition` is not a `Local` nobody mutates; written on lines
-# of their own, they wait for the command under them and the region opens where they do.
-# `Fail` and `Succeed` run the command and keep nothing it defines, so a region under
-# either, on the command's line or above it, is keyed by the flag and no mutation lands
-# in it.
-COQ_DECORATION = re.compile(
-    r'#\[(?:[^\]"]|"[^"]*")*\]\s*'
-    r"|(Local|Global|Program|Polymorphic|Monomorphic|Cumulative|NonCumulative|Private"
-    r"|Time|Instructions|Fail|Succeed)\s+"
-    r'|(Profile)\s+(?:"[^"]*"\s+)?|(Redirect)\s+"[^"]*"\s+|(Timeout)\s+\d+\s+'
-    r"|(AllocLimit)\s+\d+\s*(?:Mw|kw)\s+")
-COQ_VOID = ("Fail", "Succeed")
-
-# The characters a decoration can open with, so the undecorated line, which is nearly
-# every line, pays one membership test rather than a failed match.
-_DECORATION_OPENS = frozenset("#LGPMCNTIFSRA")
-
+# What may stand before a Rocq command's keyword is the shared lexer's decoration grammar
+# ([proofs.py](proofs.py)): quoted and legacy attributes, control flags, and the bullets,
+# braces and goal selectors of a proof, read over the source with its comments blanked,
+# so a comment is the separator Rocq's lexer reads. A line opening with them opens a
+# region keyed by the command they decorate, so `#[local] Definition` is a definition
+# rather than the tail of the region above it and `Local Definition` is not a `Local`
+# nobody mutates. They are read as the run Rocq's lexer reads, across lines, blank lines,
+# comments and an attribute spanning lines, and the region opens where the first of them
+# stands. A bullet, a brace or a goal selector is a command of its own, so the flags
+# before one are its and the command after one opens its region after it. `Fail` and
+# `Succeed` run the command and keep nothing it defines, so a region under either, on
+# the command's line or above it, is keyed by the flag and no mutation lands in it.
+#
 # The command under a decoration where `COQ_TOP` does not name it, `Opaque` under
 # `Local` being one this repository's proofs write. A command is capitalised, so a word
 # under a flag that is not is a tactic's, `Time lia` in a proof script, and no command.
@@ -267,35 +269,46 @@ def mask(text: str, lane: str) -> list[bool]:
     return ok
 
 
-def _coq_head(line: str) -> tuple[list[str], str, str] | None:
-    """The decorations a Rocq line opens with, the command keyword under them and the
-    rest of the line after it, or None where the line opens with neither.
+def _coq_head(code: str, at: int) -> tuple[str, str | None, int, int] | None:
+    """The command a Rocq line opening at `at` names, where `code` is the source with its
+    comments blanked at their own offsets: its keyword, the flag keeping nothing it
+    stands under or None, where its region opens, and where its keyword ends; or None
+    where the line names no command. Whether the line is code at all is the caller's to
+    decide, a line inside a comment reading the same.
+
+    The decorations are read as the run Rocq's lexer reads, across lines, blank lines,
+    comments and an attribute or a quoted target spanning lines, so the command under
+    them may stand on a later line, and its region opens where the run does. A bullet, a
+    brace or a goal selector is a command of its own, so the run starts again at each
+    (proofs.decorations) and the command after one opens its region after it.
 
     A bare line names a command exactly when it starts with a `COQ_TOP` keyword. A
     decorated one names the `COQ_TOP` keyword under it, else the capitalised command
-    word under it, else the empty keyword, which the caller reads as decorations whose
-    command is on a later line where only comments follow them and as a tactic's flag
-    otherwise. Whether the line is code at all is the caller's to decide too, a line
-    inside a comment reading the same.
+    word under it; a word under a flag that is not one is a tactic's, and no command. A
+    bullet, a brace or a goal selector, and `Export`, name a command only where a
+    `COQ_TOP` keyword follows them, the line otherwise read bare. At a line's start `-`,
+    `+`, `*` and `{` continue a term as often as they open a proof step, and a capitalised
+    word after one is as often a constructor as a command. `Export` decorates an option
+    command, `Set` or `Unset`, and is otherwise the command that exports a module.
     """
-    at = 0
-    flags: list[str] = []
-    if line[:1] in _DECORATION_OPENS:
-        while (decoration := COQ_DECORATION.match(line, at)) is not None:
-            flags.append(next((g for g in decoration.groups() if g), "#["))
-            at = decoration.end()
-    rest = line[at:]
-    found = COQ_TOP.match(rest)
-    if found is None and flags:
-        found = _COMMAND_WORD.match(rest)
-    if found is not None:
-        return flags, str(found.group(1)), rest[found.end():]
-    return (flags, "", rest) if flags else None
-
-
-def _prose(text: str, start: int, end: int, lexical: list[bool]) -> bool:
-    """Whether `text[start:end]` carries nothing but blank space, comments and strings."""
-    return all(not lexical[at] or text[at].isspace() for at in range(start, end))
+    found, opened = decorations(code, at)
+    command = COQ_TOP.match(code, opened)
+    if command is None and found:
+        if any(decoration.group("bullet") is not None or decoration.group("word") == "Export"
+               for decoration in found):
+            found.clear()
+            command = COQ_TOP.match(code, at)
+        else:
+            command = _COMMAND_WORD.match(code, opened)
+    if command is None:
+        return None
+    start = at
+    if found and found[0].group("bullet") is not None:
+        found = found[1:]
+        start = found[0].start() if found else command.start()
+    void = next((str(decoration.group("word")) for decoration in found
+                 if decoration.group("word") in VOID), None)
+    return str(command.group(1)), void, start, command.end()
 
 
 def regions(text: str, lane: str, lexical: list[bool] | None = None) -> list[Region]:
@@ -306,43 +319,32 @@ def regions(text: str, lane: str, lexical: list[bool] | None = None) -> list[Reg
     and both languages here put every top-level command at the start of a line. A Rocq
     command's decorations are read past, so the region is keyed by what they decorate,
     and opens at the first of them where they stand on lines of their own above it,
-    blank lines and comments between them. A Rocq line whose first character lies inside
-    a comment or a string is prose that opens nothing, whatever word it starts with, its
-    lines staying in the region above. `lexical` is `mask(text, lane)` where the caller
-    holds it already.
+    blank lines, comments and an attribute's lines between them (`_coq_head`). A Rocq
+    line is read with its comments blanked at their own offsets, each the separator
+    Rocq's lexer reads it as, and one whose first character lies inside a comment or a
+    string is prose that opens nothing, whatever word it starts with, its lines staying in
+    the region above; so is a line the decorations of a command below it run through.
+    `lexical` is `mask(text, lane)` where the caller holds it already.
     """
     starts: list[tuple[int, str, str]] = []
-    # a Rocq command's decorations on lines of their own, waiting for the command they
-    # decorate: where the first of them stands, or -1 where none waits, and every flag
-    waiting = -1
-    waited: list[str] = []
+    # where the keyword of the last Rocq command read ends: a line opening before it is
+    # one that command's decorations ran through, and opens nothing of its own
+    read_to = 0
     offset = 0
+    code = strip_comments(text, keep_offsets=True) if lane == COQ else text
     for line in text.splitlines(keepends=True):
         head: tuple[str, str] | None = None
         start = offset
         if lane == COQ:
-            found = _coq_head(line)
-            if lexical is None and (found is not None or waiting >= 0):
+            found = (_coq_head(code, offset)
+                     if offset >= read_to and not code[offset].isspace() else None)
+            if found is not None and lexical is None:
                 lexical = mask(text, lane)
-            end = offset + len(line)
             if found is not None and lexical is not None and lexical[offset]:
-                flags, keyword, after = found
-                waited.extend(flags)
-                if keyword:
-                    start = offset if waiting < 0 else waiting
-                    void = next((flag for flag in waited if flag in COQ_VOID), None)
-                    head = (keyword if void is None else void, after)
-                    waiting = -1
-                    waited.clear()
-                elif _prose(text, end - len(after), end, lexical):
-                    waiting = offset if waiting < 0 else waiting
-                else:
-                    waiting = -1
-                    waited.clear()
-            elif waiting >= 0 and lexical is not None \
-                    and not _prose(text, offset, end, lexical):
-                waiting = -1
-                waited.clear()
+                keyword, void, start, read_to = found
+                stop = code.find("\n", read_to)
+                head = (keyword if void is None else void,
+                        code[read_to:stop + 1 if stop >= 0 else len(code)])
         else:
             sail = SAIL_TOP.match(line)
             head = (str(sail.group(1)), line[sail.end():]) if sail else None

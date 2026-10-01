@@ -19,7 +19,9 @@ inventing a residue rather than reporting one.
 Three more hold the spellings Rocq admits around a definition: one under an attribute
 or a locality is read as itself, one under `Fail`, on its line or a line above it,
 defines nothing and is a residue, and a record value completed from a base with `with`
-is a residue while a `match`'s own `with` is read.
+is a residue while a `match`'s own `with` is read. One after `Fail }` or `Succeed {` is
+read as itself, the flag being the brace's, and a body runs to its own full stop, a
+string's aside.
 """
 
 import tempfile
@@ -181,6 +183,102 @@ def _control_prefixed_definition_is_a_residue() -> None:
            f"a timed definition is read: {rec.unread!r} {rec.def_fields!r}")
 
 
+def _the_shared_decoration_grammar_is_read() -> None:
+    # The decorations are the shared lexer's, spelled as Rocq's lexer reads them: no
+    # blank after a word or a string, a doubled quote in a quoted target, a comment as a
+    # separator, and a bullet before a definition inside a proof.
+    for prefix in ("Time#[local]", "Local(* c *)", "Polymorphic(* a *)Program(* b *)",
+                   'Redirect "a""b" ', "Instructions\n", '#[deprecated(note="a""b")]'):
+        rec = _read(_APEX + f"\n{prefix}Definition inner (v : Vocabulary) : Prop := "
+                            "v.(gamma).\n")
+        ensure(rec.unread == [] and rec.def_fields.get("inner") == ["gamma"]
+               and rec.consumers["gamma"] == ["seam_one", "inner"],
+               f"under {prefix!r} the definition was not read as itself: {rec.unread!r} "
+               f"{rec.def_fields!r}")
+    rec = _read(_APEX + "\nLemma l : True.\nProof.\n- Definition inner (v : Vocabulary) : "
+                        "Prop := v.(gamma).\n  exact I.\nQed.\n")
+    ensure(rec.unread == [] and rec.def_fields.get("inner") == ["gamma"],
+           f"a definition after a bullet was not read: {rec.unread!r} {rec.def_fields!r}")
+    # and under a void flag however it is spelled, the definition is a residue
+    for prefix in ("Succeed#[local]", "Fail(* c *)", "Time Fail "):
+        rec = _read(_APEX + f"\n{prefix}Definition inner (v : Vocabulary) : Prop := "
+                            "v.(gamma).\n")
+        ensure(any("spells 3 `Definition` sentences and this parse reads 2" in said
+                   for said in rec.unread) and rec.consumers["gamma"] == ["seam_one"],
+               f"a definition under {prefix!r} was not a residue: {rec.unread!r}")
+
+
+def _a_flag_behind_a_quoted_full_stop_is_still_read() -> None:
+    # The look-back for a flag above the definition runs to the full stop that ends the
+    # sentence before, which a string's full stop is not, and reads each flag however
+    # the decoration grammar spells it: a quoted target with a doubled quote, or no blank
+    # after a word or a string.
+    for lead in ('Succeed #[deprecated(since="1", note="see x. y")]\n',
+                 'Fail #[deprecated(since="1", note="a""b. c")]\n#[local]\n',
+                 'Profile"p"Succeed\n', 'Redirect "a""b" Fail\n'):
+        rec = _read(_APEX + f"\n{lead}Definition inner (v : Vocabulary) : Prop := "
+                            "v.(gamma).\n")
+        ensure(any("spells 3 `Definition` sentences and this parse reads 2" in said
+                   for said in rec.unread),
+               f"a definition under {lead!r} is a residue, got {rec.unread!r}")
+        ensure(rec.consumers["gamma"] == ["seam_one"],
+               f"and under {lead!r} it consumes nothing: {rec.consumers['gamma']!r}")
+    # the positive control: a quoted full stop above a definition no flag voids
+    rec = _read(_APEX + '\n#[deprecated(since="1", note="see x. y")]\n'
+                        "Definition inner (v : Vocabulary) : Prop := v.(gamma).\n")
+    ensure(rec.unread == [] and rec.def_fields.get("inner") == ["gamma"],
+           f"a deprecated definition is read: {rec.unread!r} {rec.def_fields!r}")
+    # the flag sharing its line with the full stop of the sentence before, which is
+    # where the look-back starts: only a string-aware sentence end keeps the quoted full
+    # stop from starting it at `y")]`, past the flag
+    stopped = "Lemma l : True. Proof. exact I. Qed. "
+    quoted = '#[deprecated(note="x. y")]\n'
+    body = "Definition inner (v : Vocabulary) : Prop := v.(gamma).\n"
+    rec = _read(_APEX + stopped + "Succeed " + quoted + body)
+    ensure(any("spells 3 `Definition` sentences and this parse reads 2" in said
+               for said in rec.unread) and rec.consumers["gamma"] == ["seam_one"],
+           f"a definition under a flag after a full stop was read: {rec.unread!r}")
+    rec = _read(_APEX + stopped + quoted + body)
+    ensure(rec.unread == [] and rec.consumers["gamma"] == ["seam_one", "inner"],
+           f"and with no flag it is read: {rec.unread!r} {rec.consumers['gamma']!r}")
+
+
+def _a_flag_before_a_brace_is_the_braces() -> None:
+    # A bullet, a brace or a goal selector is a command of its own, and the locked
+    # compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps the definition
+    # after it, so that definition is read as itself.
+    proof = "\nLemma l : True.\nProof.\n"
+    body = "Definition inner (v : Vocabulary) : Prop := v.(gamma).\n  exact I.\nQed.\n"
+    for lead in ("Fail }\n", "Fail } ", "Succeed { ", "Succeed 1: {\n", "Fail\n}\n"):
+        rec = _read(_APEX + proof + lead + body)
+        ensure(rec.unread == [] and rec.consumers["gamma"] == ["seam_one", "inner"],
+               f"after {lead!r} the definition was not read: {rec.unread!r} "
+               f"{rec.consumers['gamma']!r}")
+    # the control: a flag after a bullet is the definition's, which it keeps nothing of
+    rec = _read(_APEX + proof + "- Succeed " + body)
+    ensure(any("spells 3 `Definition` sentences and this parse reads 2" in said
+               for said in rec.unread) and rec.consumers["gamma"] == ["seam_one"],
+           f"a definition after `- Succeed` was not a residue: {rec.unread!r}")
+
+
+def _a_string_ends_no_body() -> None:
+    # A definition's body ends at its own full stop, where the shared sentence split ends
+    # it, so a string's full stop before a capital on the next line ends nothing and the
+    # field read after it is read; ended there, the body lost the read with no residue.
+    rec = _read(_APEX + 'Definition inner (v : Vocabulary) : Prop :=\n'
+                        '  let _ := "x.\nY"%string in v.(gamma).\n')
+    ensure(rec.unread == [] and rec.def_fields.get("inner") == ["gamma"]
+           and rec.consumers["gamma"] == ["seam_one", "inner"],
+           f"a string's full stop ended the body: {rec.unread!r} {rec.def_fields!r}")
+    # a definition a line of that string spells opens nothing, and the count says so
+    rec = _read(_APEX + 'Definition inner (v : Vocabulary) : Prop :=\n  let _ := "x.\n'
+                        'Definition fake (v : Vocabulary) : Prop := v.(beta).\n'
+                        '"%string in v.(gamma).\n')
+    ensure("fake" not in rec.def_fields and any(
+        "spells 4 `Definition` sentences and this parse reads 3" in said for said in rec.unread),
+           f"a definition a string spells was read: {rec.unread!r} {rec.def_fields!r}")
+
+
 def _record_completed_from_a_base_is_a_residue() -> None:
     # `{| v with alpha := v.(beta) |}` projects gamma out of v and spells it nowhere, so
     # both readings agree on beta alone; the `with` is what refuses it, and the beta it
@@ -224,6 +322,11 @@ def cases() -> list[Case]:
         Case("prefixed-definition-is-read", _prefixed_definition_is_read),
         Case("control-prefixed-definition-is-a-residue",
              _control_prefixed_definition_is_a_residue),
+        Case("a-flag-behind-a-quoted-full-stop-is-still-read",
+             _a_flag_behind_a_quoted_full_stop_is_still_read),
+        Case("the-shared-decoration-grammar-is-read", _the_shared_decoration_grammar_is_read),
+        Case("a-flag-before-a-brace-is-the-braces", _a_flag_before_a_brace_is_the_braces),
+        Case("a-string-ends-no-body", _a_string_ends_no_body),
         Case("record-completed-from-a-base-is-a-residue",
              _record_completed_from_a_base_is_a_residue),
     ]

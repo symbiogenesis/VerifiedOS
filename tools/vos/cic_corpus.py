@@ -49,7 +49,7 @@ and not a figure this report may quote.
 import re
 from dataclasses import dataclass, field
 
-from vos.proofs import sentences
+from vos.proofs import VOID, decorations, sentences
 
 # The four headings `Print All Dependencies` prints, and the key each one lands under.
 # The command prints nothing else, and a fifth heading is a Rocq change this parse has
@@ -107,21 +107,15 @@ SOURCE_VERNACULARS: tuple[str, ...] = (
 # One of them, as a whole word where a sentence's decorations end.
 _VERNACULAR = re.compile("(?:" + "|".join(SOURCE_VERNACULARS) + r")\b")
 
-# What may stand before a sentence's vernacular: quoted attributes, legacy attributes and
-# control flags, any number of each. Five of the legacy attributes are counted vernaculars
-# in their own right, and a quoted attribute can spell the same five, `#[program]` and
+# What may stand before a sentence's vernacular is the shared lexer's decoration grammar
+# (vos/proofs.py), any number of each: a proof's bullets, control flags, and quoted and
+# legacy attributes. Five of the legacy attributes are counted vernaculars in their own
+# right, and a quoted attribute can spell the same five, `#[program]` and
 # `#[universes(polymorphic)]` being two; each is counted wherever it stands, and so is
 # the vernacular it decorates, so `Polymorphic Inductive` is one of each rather than a
 # modifier standing for nothing. `Fail` and `Succeed` keep nothing the sentence declares,
 # so a sentence under either counts neither its vernacular nor its modifiers, as no
 # kernel reading could find a declaration it never kept.
-_DECORATION = re.compile(
-    r'#\[(?P<attributes>(?:[^\]"]|"[^"]*")*)\]\s*'
-    r"|(?P<legacy>Local|Global|Program|Polymorphic|Monomorphic|Cumulative|NonCumulative"
-    r"|Private|Time|Instructions|Fail|Succeed)\s+"
-    r'|Profile\s+(?:"[^"]*"\s+)?|Redirect\s+"[^"]*"\s+|Timeout\s+\d+\s+'
-    r"|AllocLimit\s+\d+\s*(?:Mw|kw)\s+")
-_VOID = ("Fail", "Succeed")
 _QUOTED = re.compile(r'"[^"]*"')
 _UNIVERSES = re.compile(r"\buniverses\s*\(([^()]*)\)")
 _SETTING = re.compile(r"\b(program|polymorphic|cumulative)\b(?:\s*=\s*(yes|no)\b)?")
@@ -397,16 +391,15 @@ def source_declarations(text: str) -> dict[str, int]:
     """
     counts = dict.fromkeys(SOURCE_VERNACULARS, 0)
     for sentence in sentences(text):
-        at = 0
+        found, at = decorations(sentence)
         spelled: list[str] = []
         void = False
-        while (decoration := _DECORATION.match(sentence, at)) is not None:
+        for decoration in found:
             if decoration.group("attributes") is not None:
                 spelled += _attribute_modifiers(decoration.group("attributes"))
-            elif decoration.group("legacy") in counts:
-                spelled.append(decoration.group("legacy"))
-            void = void or decoration.group("legacy") in _VOID
-            at = decoration.end()
+            elif decoration.group("word") in counts:
+                spelled.append(decoration.group("word"))
+            void = void or decoration.group("word") in VOID
         head = _VERNACULAR.match(sentence, at)
         if head is not None:
             spelled.append(head.group())

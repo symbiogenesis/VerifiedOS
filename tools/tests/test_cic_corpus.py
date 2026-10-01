@@ -312,6 +312,17 @@ def _source_reading_reads_past_decorations() -> None:
             "Cumulative": 2, "Monomorphic": 1, "NonCumulative": 1}
     ensure({key: counts[key] for key in want} == want,
            f"the vernaculars under decorations and the modifiers they spell: {counts}")
+    # the shared lexer's grammar, spelled as Rocq's lexer reads it: no blank after a word
+    # or a string, a doubled quote in a quoted target, and a bullet inside a proof
+    tight = cic_corpus.source_declarations(
+        "Time#[universes(polymorphic)]Inductive I := C.\n"
+        'Redirect "a""b" Program Fixpoint f (n : nat) : nat := n.\n'
+        'Profile"p"Local Fixpoint g (n : nat) : nat := n.\n'
+        "Lemma l : True.\nProof.\n- Fixpoint h (n : nat) : nat := n.\n  exact I.\nQed.\n"
+        "Succeed#[program]Inductive J := D.\n")
+    want = {"Inductive": 1, "Fixpoint": 3, "Program": 1, "Polymorphic": 1}
+    ensure({key: tight[key] for key in want} == want,
+           f"the vernaculars under the shared decorations: {tight}")
     # `Fail` and `Succeed` keep nothing a sentence declares, on its line or the line
     # above, so neither its vernacular nor any modifier around the flag is counted
     void = cic_corpus.source_declarations(
@@ -319,6 +330,24 @@ def _source_reading_reads_past_decorations() -> None:
         "#[local] Fail Polymorphic Inductive J := D.\n"
         "#[program]\nSucceed Cumulative Inductive K := E.\n")
     ensure(not any(void.values()), f"a sentence under a void flag was counted: {void}")
+
+
+def _source_reading_reads_a_flag_before_a_brace_as_the_braces() -> None:
+    # A bullet, a brace or a goal selector is a command of its own, and the locked
+    # compiler runs `Fail }` and `Succeed {` as the brace's flag and keeps the declaration
+    # after it, so that declaration and the modifiers after the brace are counted; a flag
+    # after a bullet is the declaration's, which counts nothing.
+    counts = cic_corpus.source_declarations(
+        "Lemma l : True.\nProof.\n"
+        "Fail }\nFixpoint f (n : nat) : nat := n.\n"
+        "Succeed { Program Fixpoint g (n : nat) : nat := n.\n"
+        "Succeed 1: { Inductive I := C.\n"
+        "Fail } Polymorphic Inductive J := D.\n"
+        "- Succeed Inductive K := E.\n"
+        "  exact I.\nQed.\n")
+    want = {"Inductive": 2, "Fixpoint": 2, "Program": 1, "Polymorphic": 1}
+    ensure({key: value for key, value in counts.items() if value} == want,
+           f"the declarations after a brace's flag: {counts}")
 
 
 def _closure_names_split_by_ownership() -> None:
@@ -357,6 +386,8 @@ def cases() -> list[Case]:
         Case("source-reading-counts-sentences", _source_reading_counts_sentences),
         Case("source-reading-reads-past-decorations",
              _source_reading_reads_past_decorations),
+        Case("source-reading-reads-a-flag-before-a-brace-as-the-braces",
+             _source_reading_reads_a_flag_before_a_brace_as_the_braces),
         Case("closure-names-split-by-ownership", _closure_names_split_by_ownership),
         Case("marker-goals-open-with-proof", _marker_goals_open_with_proof),
     ]
