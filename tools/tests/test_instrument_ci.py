@@ -286,6 +286,15 @@ def _closing_commit_refusals() -> None:
         moved = reader.differing(root, commits["tip"], stray, inputs)
         ensure(set(moved) == {route.LOCK, "tools/vos/gallina.py", "tools/vos/env.py"},
                f"the comparison names each moved input: {moved!r}")
+        # A named path that newly imports a module the same commit adds brings that
+        # module into the route inputs, though the tested revision has none.
+        fresh = _commit(root, {"tools/vos/cli/quickchick.py": ("from vos import gallina, fresh\n"
+                                                               "from . import seed\n"),
+                               "tools/vos/fresh.py": "X = 1\n"}, "fresh import")
+        found = reader.closing_refusals(root, fresh, inputs, allowed, digest)
+        ensure("tools/vos/fresh.py" not in inputs
+               and any("touches the route input tools/vos/fresh.py" in item for item in found),
+               f"a module the closing commit newly imports is a route input: {found!r}")
 
 
 def _input_refusals() -> None:

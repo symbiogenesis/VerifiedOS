@@ -433,7 +433,8 @@ images and step durations. It prints whether
 `source_revision` R, and whether the same holds over the route's own files and their `vos` import closure for the dispatching
 commit; given the closing commit by `--closing` and the paths its owning item's closing
 landing names by `--closing-path`, it reads that commit's own diff over the route
-inputs and prints those paths. It refuses as closing evidence a run whose verdict is not
+inputs at R and at the closing commit, so a module a named path newly imports is one,
+and prints those paths. It refuses as closing evidence a run whose verdict is not
 passed or where a comparison does not hold, a closing commit that touches a route input
 other than the tracked lock, its SHA-256 equal to the artifact's export, and the named
 paths, and a run with a `base_revision` whose sample is not 20 or whose subject is not

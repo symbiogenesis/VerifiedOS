@@ -464,8 +464,10 @@ def closing_refusals(checkout: Path, closing: str, inputs: Sequence[str],
                      allowed: Sequence[str], export_sha256: str | None) -> list[str]:
     """Why a closing commit's own diff refuses the run as its evidence: a route input it
     touches other than the tracked lock, at the export's SHA-256, and the paths the
-    owning item's closing landing names."""
+    owning item's closing landing names. The inputs are those at the tested revision
+    and the closing commit's own, so a module a named path newly imports is one."""
     refusals: list[str] = []
+    inputs = sorted({*inputs, *side_inputs(checkout, closing)})
     touched = differing(checkout, f"{closing}^1", closing, inputs)
     for path in touched:
         if path == route.LOCK:
