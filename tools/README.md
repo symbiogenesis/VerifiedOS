@@ -37,10 +37,11 @@ boot signature target campaign, whose [contract](../firmware/crypto/README.md#ho
 the crypto README owns.
 [instrument-switches.yml](../.github/workflows/instrument-switches.yml) builds and
 checks QuickChick's switch on manual dispatch from `main` alone, the one place the
-user's rulings let it be built and checked, so `run.py provision --apply`'s local
-QuickChick import is not run;
+user's rulings let it be built and checked;
 [the instrument switch route](ci/README.md#instrument-switch-route) in the Guest CI
 contract owns it, and `run.py instrument-ci` dispatches it and reads its runs back.
+The user's ruling of 2026-09-30 keeps `run.py provision --apply`'s QuickChick import
+out of the local guest, F-616 holding provision.py's recipe open.
 
 **A red host CI run has to name which member went red, to a reader who cannot open its
 log.** One invocation is four members and one exit code, which reaches the run page and
