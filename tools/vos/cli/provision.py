@@ -59,7 +59,11 @@ are reported and never planned, and neither is any other standing root with a ga
 `opam_client.root_gaps` names: no stated format or one newer than the reviewed client
 writes, or an owned repository absent, at another URL or with its stamp unread. While a
 root stands in an older format, no switch row plans its recipe either, because the
-reviewed client's first write rewrites that root one way. Every
+reviewed client rewrites that root one way at its first write, or at its first read
+where the upgrade cannot be made in memory, and where opam lists no switch without
+upgrading that root, a switch row reports one the root's config lists as unread rather
+than absent; nor does a switch row plan its recipe while a client at another release
+is on PATH, which would build the switch as a client this tree has not reviewed. Every
 figure any document states about this
 table is a count over `FACTS`, held by K-24 rather than by care.
 
@@ -72,6 +76,7 @@ Exit 0 clean, 1 on any absent fact, which is the convention every tool here keep
 """
 
 import argparse
+import contextvars
 import importlib.util
 import os
 import platform
@@ -79,9 +84,10 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from importlib import metadata
 from pathlib import Path
@@ -169,11 +175,6 @@ class Fact:
     install: tuple[tuple[str, ...], ...] = ()
 
 
-# The variables through which the reviewed client takes an answer to an unnamed question
-# from the environment, OPAMYES answering yes and OPAMCONFIRMLEVEL any answer.
-_ANSWERS: tuple[str, ...] = ("OPAMYES", "OPAMCONFIRMLEVEL")
-
-
 def _say(argv: Sequence[str]) -> str:
     """One probe's subprocess, reduced to its standard output.
 
@@ -183,21 +184,17 @@ def _say(argv: Sequence[str]) -> str:
     command that is absent, that fails, or that does not answer inside the bound comes
     back empty and its caller reports it as absent.
 
-    No standard input either, so a probe never answers a question. opam asks before it
-    writes a root-format upgrade, yes by default, and a read such as `opam switch list`
-    writes one where the upgrade cannot be done in memory, as the reviewed client's
-    from a 2.2 root keeping a repository's archive under a directory named for it. A
-    probe reading the caller's terminal would wait there, its question captured out of
-    sight, and an empty line would answer yes. Nor does a probe pass on the variables
-    through which a caller's environment answers opam's questions, `_ANSWERS`, so opam
-    declines and exits.
+    No standard input either, and the environment `env.declining_environment` gives, so
+    a probe never answers a question. opam asks before it writes a root-format upgrade,
+    yes by default, and a read such as `opam switch list` writes one where the upgrade
+    cannot be done in memory. A probe reading the caller's terminal would wait there,
+    its question captured out of sight, and an empty line would answer yes, as would
+    the caller's own `env.OPAM_ANSWERS`; without either, opam declines and exits.
     """
     try:
         done = subprocess.run(list(argv), capture_output=True, encoding="utf-8",
                               errors="replace", check=False, timeout=TIMEOUT,
-                              stdin=subprocess.DEVNULL,
-                              env={key: value for key, value in os.environ.items()
-                                   if key.upper() not in _ANSWERS})
+                              stdin=subprocess.DEVNULL, env=env.declining_environment())
     except (OSError, subprocess.SubprocessError):
         return ""
     return done.stdout.strip() if done.returncode == 0 else ""
@@ -218,6 +215,40 @@ def _number(text: str) -> str:
     """
     found = _NUMBER_RE.search(text)
     return found.group(0) if found else ""
+
+
+@dataclass
+class _Asked:
+    """What one `take` asks once for every row it probes: the opam client on PATH and
+    the release it answers, unasked until a row first wants it."""
+
+    lock: threading.Lock = field(default_factory=threading.Lock)
+    client: tuple[str | None, str] | None = None
+
+
+# The `_Asked` of the `take` this probe runs under, and none outside a `take`.
+_ASKED: contextvars.ContextVar[_Asked | None] = contextvars.ContextVar("provision_asked",
+                                                                      default=None)
+
+
+def _client() -> tuple[str | None, str]:
+    """Where the opam client on PATH is and the dotted release it answers, empty where
+    it answers none, or no path and no release where no client is on PATH.
+
+    Asked once per `take`, so the opam row and every switch row read one answer and the
+    client is run once for all of them; a probe outside a `take` asks afresh."""
+    asked = _ASKED.get()
+    if asked is None:
+        return _ask_client()
+    with asked.lock:
+        if asked.client is None:
+            asked.client = _ask_client()
+        return asked.client
+
+
+def _ask_client() -> tuple[str | None, str]:
+    where = shutil.which("opam")
+    return where, _number(_say(("opam", "--version"))) if where else ""
 
 
 def _floor() -> tuple[int, ...]:
@@ -317,20 +348,43 @@ def _installed(switch: str, package: str) -> str:
 def _switch_at(switch: str, package: str, pin: str) -> Found:
     """A switch carrying one package at the version an owner in this tree fixes.
 
-    Not repairable while the opam root stands in a format older than the reviewed
-    client's, so `--apply` plans no switch recipe over that root: the reviewed client
-    rewrites it one way at its first write, the deliberate, recorded step `_opam_client`
-    reports, and any other client would build the switch as a client this tree has not
-    reviewed."""
-    found = _switch_found(switch, package, pin)
-    if found.present or not (older := _older_root()):
+    Not repairable where `--apply` would build the switch over a root the reviewed
+    client rewrites, or as a client this tree has not reviewed. While the opam root
+    stands in a format older than the reviewed client's, that client rewrites it one way
+    at its first write, or at its first read where the upgrade cannot be made in memory,
+    the deliberate, recorded step `_opam_client` reports. While a client at another
+    release is on PATH, that client would build the switch, and a Sail switch names the
+    client that built it in its version string. Where no client is on PATH the switch
+    stays repairable, because the opam row ahead of it installs the reviewed client in
+    the same pass."""
+    older = _older_root()
+    found = _switch_found(switch, package, pin, older=bool(older))
+    if found.present:
         return found
-    return Found(False, f"{found.saw}; {older}, so no switch is planned over it",
-                 repairable=False)
+    if older:
+        return Found(False, f"{found.saw}; {older}, so no switch is planned over it",
+                     repairable=False)
+    where, version = _client()
+    if where is not None and version != opam_client.OPAM_VERSION:
+        return Found(False, f"{found.saw}; opam {version or 'answering no version'} at "
+                            f"{where} would build it, and the reviewed client is "
+                            f"{opam_client.OPAM_VERSION}, so no switch is planned",
+                     repairable=False)
+    return found
 
 
-def _switch_found(switch: str, package: str, pin: str) -> Found:
-    if switch not in switches():
+def _switch_found(switch: str, package: str, pin: str, *, older: bool) -> Found:
+    """One switch's package at the version opam answers for it.
+
+    Over a root in an older format, where `older` holds, opam lists no switch at all when
+    it would have to upgrade the root to read it and declines to. Where it lists none
+    there and the root's own config lists this switch, `opam_client.root_switches`, the
+    row says opam did not read the switch rather than that the switch is absent."""
+    listed = switches()
+    if switch not in listed:
+        if older and not listed and switch in opam_client.root_switches(env.opam_root()):
+            return Found(False, "opam listed no switches without upgrading the root, whose "
+                                f"config lists the {switch} switch")
         return Found(False, f"opam has no {switch} switch")
     found = _installed(switch, package)
     if not found:
@@ -348,7 +402,8 @@ def _older_root() -> str:
         return ""
     return (f"the reviewed client {opam_client.OPAM_VERSION} rewrites the opam root at "
             f"{root} from format {fmt} to {opam_client.OPAM_ROOT_FORMAT} one way at its "
-            "first write, a deliberate, recorded step rather than a repair")
+            "first write, or at its first read where the upgrade cannot be made in "
+            "memory, a deliberate, recorded step rather than a repair")
 
 
 def _moving_the_root(fmt: str) -> str:
@@ -387,11 +442,11 @@ def _opam_client() -> Found:
     root in an older format, is a recorded step and not a repair; any other standing
     root the command would leave incomplete is reported rather than planned. The
     reviewed client over a complete root in an older format holds the row, and the
-    report says that client rewrites the root one way at its first write, which is why
-    no switch row plans a recipe over it.
+    report says that client rewrites the root one way at its first write, or at its
+    first read where the upgrade cannot be made in memory, which is why no switch row
+    plans a recipe over it.
     """
-    where = shutil.which("opam")
-    found = _number(_say(("opam", "--version"))) if where else ""
+    where, found = _client()
     client = f"opam {found or 'answering no version'} at {where}" if where else "no opam on PATH"
     reviewed = found == opam_client.OPAM_VERSION
     root = env.opam_root()
@@ -410,7 +465,8 @@ def _opam_client() -> Found:
         saw += f"; the reviewed client is {opam_client.OPAM_VERSION}{_moving_the_root(fmt)}"
     elif older:
         saw += (f"; that client rewrites this root from format {fmt} to "
-                f"{opam_client.OPAM_ROOT_FORMAT} one way at its first write, a deliberate, "
+                f"{opam_client.OPAM_ROOT_FORMAT} one way at its first write, or at its "
+                "first read where the upgrade cannot be made in memory, a deliberate, "
                 "recorded step rather than a repair, so no switch is planned over it")
     return Found(reviewed and stands and not gaps, saw,
                  repairable=(reviewed or (where is None and not older))
@@ -831,14 +887,26 @@ def take(facts: Sequence[Fact]) -> list[tuple[Fact, Found]]:
     Concurrent because most of these are a subprocess waiting on a version banner and
     none of them reads another's answer; merged in table order because a report a
     person reads twice has to be the same report both times, and the order two probes
-    finish in is not a property of the machine being described.
+    finish in is not a property of the machine being described. What several rows read,
+    the opam client `_client` answers for, is asked once for the whole run, so every
+    row reads one answer, and afresh by the next run.
     """
     if not facts:
         return []
+    asked = _Asked()
     with ThreadPoolExecutor(max_workers=min(8, len(facts))) as pool:
-        pending = [pool.submit(_guarded, fact) for fact in facts]
+        pending = [pool.submit(_guarded_under, asked, fact) for fact in facts]
         return [(fact, done.result())
                 for fact, done in zip(facts, pending, strict=True)]
+
+
+def _guarded_under(asked: _Asked, fact: Fact) -> Found:
+    """`_guarded`, with what its run has already asked, `asked`, read by `_client`."""
+    token = _ASKED.set(asked)
+    try:
+        return _guarded(fact)
+    finally:
+        _ASKED.reset(token)
 
 
 def plan(results: Sequence[tuple[Fact, Found]]) -> list[tuple[Fact, tuple[tuple[str, ...], ...]]]:

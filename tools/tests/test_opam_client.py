@@ -218,12 +218,36 @@ def _root_gaps_name_what_a_root_lacks() -> None:
                f"{opam_client.root_gaps(foreign)}")
 
 
+def _root_switches_are_the_configs_own() -> None:
+    """A root's switches are read from its config's `installed-switches` field, a list
+    or a single name, on one line or several, and none where the field or the root is
+    absent."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        for name, field, want in (
+                ("listed", 'installed-switches: ["default" "verifiedos-sail"]\n',
+                 ["default", "verifiedos-sail"]),
+                ("single", 'installed-switches: "verifiedos-rocq"\n', ["verifiedos-rocq"]),
+                ("lines", 'installed-switches: [\n  "a"\n  "b"\n]\nswitch: "a"\n', ["a", "b"]),
+                ("empty", "installed-switches: []\n", []),
+                ("unlisted", 'switch: "default"\n', [])):
+            root = Path(td) / name
+            opam_root(root, "nested")
+            config = (root / "config").read_bytes() + field.encode()
+            (root / "config").write_bytes(config)
+            ensure(opam_client.root_switches(root) == want,
+                   f"the {name} config lists {opam_client.root_switches(root)}, not {want}")
+        ensure(opam_client.root_switches(Path(td) / "absent") == [],
+               "a root that does not stand lists no switch")
+
+
 def _resumable_roots_are_the_routes_own() -> None:
     """A root reads as in the shape `CREATE_ROOT` leaves after its leading steps only
     where the route's remaining steps complete it: the reviewed client's format, the
-    route's leading repositories and no other, each at its owned URL with its stamp
-    read."""
+    route's leading repositories and no other, each at its owned URL, the first with its
+    stamp read and some owned repository not yet fetched, unconfigured or, where a
+    step was stopped during its fetch, configured with its stamp unread."""
     (default, url), *others = opam_client.OPAM_REPOSITORIES
+    owned = opam_client.OPAM_REPOSITORIES
     leading = opam_client.OPAM_REPOSITORIES[:1]
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         roots: dict[str, bool] = {}
@@ -237,6 +261,10 @@ def _resumable_roots_are_the_routes_own() -> None:
             return at
 
         root("first-step", True)
+        root("stopped-fetch", True, stamps={default: "s"}, configured=owned)
+        root("unfetched-first", False, stamps={name: "s" for name, _ in others},
+             configured=owned)
+        root("unfetched-all", False, stamps={}, configured=owned)
         root("complete", False, configured=opam_client.OPAM_REPOSITORIES)
         root("older", False, layout="nested")
         root("unstamped", False, stamps={})
@@ -253,9 +281,10 @@ def _resumable_roots_are_the_routes_own() -> None:
 
 def _remaining_route_never_reinitializes() -> None:
     """Where no root stands the remaining route is the whole route; over a root that
-    stands it is each repository the root does not configure at its owned URL, added
-    unselected, and never `opam init`, so a root in the shape the route leaves after its
-    leading steps is completed without its shell setup being rewritten."""
+    stands it is each repository the root does not carry at its owned URL with its stamp
+    read, added unselected, and never `opam init`, so a root in the shape the route
+    leaves after its leading steps is completed without its shell setup being
+    rewritten."""
     route = opam_client.CREATE_ROOT
     leading = opam_client.OPAM_REPOSITORIES[:1]
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
@@ -275,11 +304,19 @@ def _remaining_route_never_reinitializes() -> None:
         opam_root(foreign, "flat", configured=(*leading, ("mine", "https://example.invalid")))
         ensure(opam_client.remaining_route(foreign) == route[1:],
                "a repository the owner does not name changes nothing that remains")
+        # A step stopped during its fetch leaves its repository configured and unread,
+        # and running that step again is what fetches it.
+        stopped = Path(td) / "stopped"
+        opam_root(stopped, "flat", stamps={leading[0][0]: "s"})
+        ensure(opam_client.root_resumable(stopped)
+               and opam_client.remaining_route(stopped) == route[1:],
+               f"a configured but unfetched repository is added again: "
+               f"{opam_client.remaining_route(stopped)}")
         complete = Path(td) / "complete"
         opam_root(complete, "nested")
         ensure(opam_client.remaining_route(complete) == (),
-               "a root configuring every owned repository has nothing left to run")
-        for root in (first_step, foreign, complete):
+               "a root carrying every owned repository with its stamp has nothing to run")
+        for root in (first_step, foreign, stopped, complete):
             ensure(route[0] not in opam_client.remaining_route(root),
                    f"opam init never runs over the standing {root.name} root")
 
@@ -407,4 +444,5 @@ def cases() -> list[Case]:
         Case("resumable-roots-are-the-routes-own", _resumable_roots_are_the_routes_own),
         Case("remaining-route-never-reinitializes", _remaining_route_never_reinitializes),
         Case("install-verifies-and-never-replaces", _install_verifies_and_never_replaces),
+        Case("root-switches-are-the-configs-own", _root_switches_are_the_configs_own),
     ]
