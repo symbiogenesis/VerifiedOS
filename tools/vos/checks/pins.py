@@ -262,17 +262,22 @@ held against its own entry, so a repository the configuration gained with no row
 run code whose terms nobody read while every row agreed. So every entry the
 configuration carries is read at its block `- repo:` line. An entry a held row names is
 held by that row's two sites to a full commit and the release its `# frozen:` comment
-names. pre-commit's own `meta` hooks run its `pre_commit.meta_hooks` modules under the
-runner the pre-commit row holds, and its configuration schema refuses to override their
-entry, so a `meta` entry needs no row. Any other entry is a finding: a `local` one,
-because its hooks run an entry on `PATH` or in this repository and install their
-additional dependencies from a registry, which no row reviews and no rev pins, and an
-entry no row names, with its rev when that is not a full commit carrying the tag it was
-frozen at. The reading takes one shape, so every line carrying a `repo` or `rev` key the
-reading did not take, bare or quoted, or any key K-115's census counts whatever it
-spells, is a finding at that line: an entry written as a flow mapping, behind an anchor
-or with its rev first is reported rather than run unread. The configuration is read
-whether or not any hook row is held, so its absence is a finding on its own.
+names, its rev read at the one line whose `rev` key stands at the column of the entry's
+`repo` key, where YAML reads the entry's own, and read whole as `rev: <value>` with at
+most that comment. pre-commit's own `meta` hooks run its `pre_commit.meta_hooks`
+modules under the runner the pre-commit row holds, and its configuration schema refuses
+to override their entry, so a `meta` entry needs no row. Any other entry is a finding:
+a `local` one, because its hooks run an entry on `PATH` or in this repository and
+install their additional dependencies from a registry, which no row reviews and no rev
+pins, and an entry no row names, with its rev when that is not a full commit carrying
+the tag it was frozen at. The reading takes one shape, so every line carrying a `repo`
+or `rev` key the reading did not take, bare or quoted, or any key K-115's census counts
+whatever it spells, is a finding at that line: an entry written as a flow mapping,
+behind an anchor or with its rev first, and a rev carrying another comment, a tag, an
+anchor or an alias, or standing deeper or shallower than its entry's keys, a hook's key
+or a block scalar's text among them, is reported rather than run unread. The
+configuration is read whether or not any hook row is held, so its absence is a finding
+on its own.
 
 **Fail-closed at every reading**, on K-97's ground: a record without the section or its
 table, a table with no row, a site matching other than once, and an owner absent,
@@ -498,12 +503,23 @@ def _hook(cell: str, repo: str) -> DevTool:
 
 
 # K-118's census of the hook configuration. An entry is read where `_Owners._hook_rev`
-# reads one, at a block `- repo:` line, and its rev at an indented `rev:` line opening
-# its own; every other `repo` or `rev` key, bare or quoted, and every key K-115's census
-# counts whatever it spells, a double-quoted key holding an escape, an alias used as a
-# key and an explicit-key `?` indicator, is a line the census reports.
+# reads one, at a block `- repo:` line, and its rev at a line `_HOOK_REV_LINE_RE` reads
+# whole whose `rev` key stands at the column of the entry's `repo` key; every other
+# `repo` or `rev` key, bare or quoted, and every key K-115's census counts whatever it
+# spells, a double-quoted key holding an escape, an alias used as a key and an
+# explicit-key `?` indicator, is a line the census reports.
 _HOOK_REPO_RE = re.compile(r"^[ \t]*-[ \t]+(?P<key>repo):[ \t]*(?P<url>.*?)[ \t]*$")
-_HOOK_REV_KEY_RE = re.compile(r"^[ \t]+(?P<key>rev):")
+# The one shape an entry's rev is read in: a bare `rev` key, a plain or quoted value no
+# tag, anchor, alias, escape or other indicator opens, and at most the `# frozen:`
+# comment naming its tag, so a line carrying another comment or a rev YAML reads
+# otherwise is not one the rule reports agreement about.
+_HOOK_REV_LINE_RE = re.compile(
+    r"""(?P<indent>[ \t]+)(?P<key>rev):[ \t]*(?P<q>["']?)"""
+    r"""(?P<rev>[^\s"'#\\&*!|>%@`{}\[\],?:-][^\s"'#\\]*)(?P=q)"""
+    r"""(?:[ \t]+#[ \t]*frozen:[ \t]*(?P<frozen>\S+))?[ \t]*""")
+# A `rev` key, bare or quoted, after indentation alone: at an entry's key column, one
+# `_hook_rev` counts as that entry's rev whatever shape the rest of its line takes.
+_HOOK_REV_KEY_RE = re.compile(r"""^(?P<indent>[ \t]*)(?P<q>["']?)rev(?P=q)(?=[ \t]*:)""")
 _HOOK_KEY_RE = re.compile(
     r"""(?:(?<=[\s{,\[])|^)"""
     r"""(?:(?P<q>["']?)re(?:po|v)(?P=q)|"[^"]*\\[^"]*"|\*[^\s,\[\]{}]+)(?=[ \t]*:)"""
@@ -1162,22 +1178,40 @@ class _Owners:
         the release its `# frozen:` comment states (empty without one).
 
         The file is read as the lines pre-commit's own `autoupdate` rewrites: a
-        repository entry runs from its `- repo:` line to the next, and holds one `rev:`
-        line. A repository stated other than once, or an entry whose rev is stated
-        other than once, fixes nothing and is a fault.
+        repository entry runs from its block `- repo:` line to the next, and its rev is
+        every `rev` key opening a line at the column of the entry's `repo` key, the one
+        place YAML reads the entry's own. A repository stated other than once, an entry
+        whose rev is stated other than once, or a rev in a shape `_HOOK_REV_LINE_RE`
+        does not read whole, fixes nothing and is a fault.
         """
-        entries = re.split(r"(?m)^[ \t]*-[ \t]+repo:[ \t]*", self._text(owner.path))[1:]
-        named = [entry for entry in entries
-                 if entry.split("\n", 1)[0].strip().strip("'\"") == owner.key]
+        named: list[list[str]] = []
+        revs: list[str] | None = None
+        column = -1
+        for line in re.split(r"\r?\n", self._text(owner.path)):
+            entry = _HOOK_REPO_RE.match(line)
+            if entry is not None:
+                revs = None
+                if entry.group("url").strip("'\"") == owner.key:
+                    fresh: list[str] = []
+                    column, revs = entry.start("key"), fresh
+                    named.append(fresh)
+                continue
+            key = _HOOK_REV_KEY_RE.match(line)
+            if revs is not None and key is not None and key.end("indent") == column:
+                revs.append(line)
         if len(named) != 1:
             raise self._fault(owner.label(), f"{owner.label()}'s repository is stated "
                               f"{len(named)} times, so it fixes no one revision")
-        revs = list(re.finditer(r"(?m)^[ \t]+rev:[ \t]*([\"']?)([^\s\"'#]+)\1"
-                                r"(?:[ \t]+#[ \t]*frozen:[ \t]*(\S+))?[ \t]*\r?$", named[0]))
-        if len(revs) != 1:
+        if len(named[0]) != 1:
             raise self._fault(owner.label(), f"{owner.label()} states its rev "
-                              f"{len(revs)} times, so it fixes no one revision")
-        return str(revs[0].group(2)), str(revs[0].group(3) or "")
+                              f"{len(named[0])} times, so it fixes no one revision")
+        read = _HOOK_REV_LINE_RE.fullmatch(named[0][0])
+        if read is None:
+            stated = named[0][0].strip(" \t")
+            raise self._fault(owner.label(), f"{owner.label()} states its rev as `{stated}`, "
+                              "which is not `rev: <value>` with at most its `# frozen:` tag, "
+                              "so it fixes no one revision")
+        return str(read.group("rev")), str(read.group("frozen") or "")
 
 
 def _dev_section(text: str, findings: list[str]) -> tuple[int, list[str]] | None:
@@ -1331,18 +1365,25 @@ def _hook_census(owners: _Owners, findings: list[str]) -> int:
     named = {owner.key for tool in DEV_TOOL_ROWS for site in tool.sites for owner in site.owners
              if owner.kind in ("pre-commit", "pre-commit-rev") and owner.path == HOOK_CONFIG}
     entries = 0
+    # The column of the last entry's `repo` key, where its rev key is read and nowhere
+    # else: a deeper or shallower `rev`, one in a block scalar's text among them, is the
+    # census's to report rather than the entry's rev.
+    column = -1
     for number, line in enumerate(_YAML_BREAK_RE.split(text), start=1):
         if line.lstrip().startswith("#"):
             continue
         where = f"{HOOK_CONFIG}:{number}"
         entry = _HOOK_REPO_RE.match(line)
-        rev_key = _HOOK_REV_KEY_RE.match(line)
-        taken = (entry.start("key") if entry else
-                 rev_key.start("key") if rev_key else -1)
+        if entry is not None:
+            column = entry.start("key")
+        rev = _HOOK_REV_LINE_RE.fullmatch(line)
+        taken = (column if entry is not None or (rev is not None and rev.start("key") == column)
+                 else -1)
         if any(key.start() != taken for key in _HOOK_KEY_RE.finditer(line)):
             findings.append(f"{where} states a hook repository's `repo` or `rev` key in a "
                             "form K-118 does not read; write each entry as a block `- repo:` "
-                            "line and an indented `rev:` line, so it is held against its row")
+                            "line and a `rev:` line at its `repo` key's column, carrying at "
+                            "most its `# frozen:` tag, so it is held against its row")
         if entry is None:
             continue
         entries += 1

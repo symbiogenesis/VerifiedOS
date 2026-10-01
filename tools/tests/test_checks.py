@@ -1346,7 +1346,8 @@ def _k118_hook_revisions_are_held() -> None:
          f"{owner}'s repository is stated 2 times"),
         (_K118_HOOKS.replace("    hooks:\n      - id: first\n",
                              f"    rev: {'a' * 40}\n    hooks:\n"), f"{owner} states its rev 2 times"),
-        (_K118_HOOKS.replace(" # frozen: v1.0.0", " # a comment"), f"{owner} states its rev 0 times"))
+        (_K118_HOOKS.replace(" # frozen: v1.0.0", " # a comment"),
+         f"{owner} states its rev as `rev: {'a' * 40} # a comment`, which is not"))
     for config, fragment in unreadable:
         found, out = _k118_hook(config)
         ensure(any(fragment in item for item in found),
@@ -1401,6 +1402,41 @@ def _k118_hook_census_reads_every_entry() -> None:
             f"{pins.HOOK_CONFIG}:{line} states a hook repository's `repo` or `rev` key in a "
             "form K-118 does not read" in item for line, item in zip(lines, found, strict=True)),
                f"an entry K-118 cannot read is a finding at its line ({written!r}): {found!r}")
+
+
+_K118_HOOK_UNREAD = "states a hook repository's `repo` or `rev` key in a form K-118 does not read"
+
+
+def _k118_hook_rev_is_read_at_its_entry_column() -> None:
+    # An entry's rev is the `rev` key at its `repo` key's column, read whole as
+    # `rev: <value>` with at most its `# frozen:` tag. A rev there carrying another
+    # comment, a tag or an anchor is unread, and a line of the row's commit and tag
+    # standing deeper, as a hook's key or a block scalar's text, is not the entry's rev
+    # though YAML loads the entry with the moved one: each is a finding at its line, and
+    # the entry's owner fixes no revision rather than the stand-in's.
+    owner = f"{pins.HOOK_CONFIG}'s https://github.com/example/hooks"
+    entry = f"    rev: {'a' * 40} # frozen: v1.0.0\n    hooks:\n      - id: first\n"
+    reviewed = f"rev: {'a' * 40} # frozen: v1.0.0"
+    moved = "    rev: v9.9.9 # moved\n    hooks:\n      - id: first\n"
+    for written, lines, stated in (
+            (entry.replace("frozen: v1.0.0", "pinned"), (3,), f"rev: {'a' * 40} # pinned"),
+            (entry.replace("rev: ", "rev: !!str "), (3,), f"rev: !!str {reviewed[5:]}"),
+            (entry.replace("rev: ", "rev: &r "), (3,), f"rev: &r {reviewed[5:]}"),
+            (f"{moved}        {reviewed}\n", (3, 6), "rev: v9.9.9 # moved"),
+            (f"{moved}        description: |\n          {reviewed}\n", (3, 7),
+             "rev: v9.9.9 # moved")):
+        found, out = _k118_hook(_K118_HOOKS.replace(entry, written))
+        ensure(len(found) == len(lines) + 1 and all(
+            f"{pins.HOOK_CONFIG}:{line} {_K118_HOOK_UNREAD}" in item
+            for line, item in zip(lines, found, strict=False))
+               and f"{owner} states its rev as `{stated}`, which is not" in found[-1]
+               and not any(line.startswith("ok K-118:") for line in out),
+               f"a rev K-118 does not read at its entry's column is reported ({written!r}): "
+               f"{found!r}")
+    # A comment line stating a rev under the entry is no key; the fixture's quoted rev
+    # at the column is read whole, as the agreement case shows.
+    found, _ = _k118_hook(_K118_HOOKS.replace(entry, f"{entry}        # rev: v0.0.1\n"))
+    ensure(not found, f"a comment stating a rev is not the entry's rev: {found!r}")
 
 
 def _k118_shipped_readings_are_declared() -> None:
@@ -1900,6 +1936,8 @@ def cases() -> list[Case]:
              _k118_a_row_named_by_its_release_stays_one_row),
         Case("k118-hook-revisions-are-held", _k118_hook_revisions_are_held),
         Case("k118-hook-census-reads-every-entry", _k118_hook_census_reads_every_entry),
+        Case("k118-hook-rev-is-read-at-its-entry-column",
+             _k118_hook_rev_is_read_at_its_entry_column),
         Case("k118-shipped-readings-are-declared", _k118_shipped_readings_are_declared),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),
         Case("k81-unused-historical-residue-fails", _k81_unused_historical_residue_fails),

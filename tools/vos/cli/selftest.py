@@ -1753,6 +1753,17 @@ CASES: list[Case] = [
     ("K-118", "a hook commit the model's hook configuration pins and its row does not state",
      _first_match("model/.pre-commit-config.yaml", r"^([ \t]+rev: \"?)([0-9a-f])",
                   lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
+    # The first entry's rev moved to its tag under a comment other than `# frozen:`, and
+    # its reviewed rev line written into a hook's block-scalar description: YAML reads
+    # the entry's rev as the tag and the line as the description's text, so only a
+    # reading that takes the rev key at the column of the entry's `repo` key, in the one
+    # shape it reads, sees the entry run a revision its row did not review.
+    ("K-118", "a hook repository's rev a line inside a hook's block scalar stands in for",
+     _first_match("model/.pre-commit-config.yaml",
+                  r'^([ \t]+)rev: "?([0-9a-f]{40})"? # frozen: (\S+)\n'
+                  r"(\1hooks:\n([ \t]+)- id: \S+\n)",
+                  lambda m: (f"{m[1]}rev: {m[3]} # the tag\n{m[4]}{m[5]}  description: |\n"
+                             f"{m[5]}    rev: {m[2]} # frozen: {m[3]}\n"))),
     # A hook repository appended with no row, pinned as `autoupdate --freeze` writes a
     # reviewed one: every row still agrees with its own entry, so only a census of every
     # entry the configuration carries sees code pre-commit runs whose terms nobody read.
