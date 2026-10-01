@@ -169,10 +169,10 @@ is inside it the day it is written; the classes are read off the page, each at t
 phrase after it, past a space and whatever words or italics then stand short of a full
 stop or the line's end, any `.` counting as a full stop; that phrase must spell one of
 the four names exactly, and the class's rules are read from one membership sentence
-standing anywhere from that lead to the next class's, `which is what` or
-`that is what`, either capitalized, single-spaced on one line apart from any
-underscore, a plain list of ids, then `are`. The four class names are fixed here
-rather than read, so a class retitled away and a fifth class opened that way are
+standing anywhere from that lead to the next class's lead, or to the section's end
+after the last class: `which is what` or `that is what`, either capitalized,
+single-spaced on one line apart from any underscore, a plain list of ids, then `are`.
+The four class names are fixed here rather than read, so a class retitled away and a fifth class opened that way are
 each a finding rather than a class this rule stops or never starts reading, and so is a
 `Where the set is` anywhere in the section, one wrapped across a line, spaced apart or
 set in underscore italics included, that opens no class in that form. So is any
@@ -862,9 +862,10 @@ def _classes(ctx: Context, registered: set[str]) -> None:
                     unread = True
                     continue
                 seen_classes.add(name)
-                # The region runs from this lead to the next, so a membership sentence
-                # standing between the lead and the bold name is this class's own and
-                # counted with the rest rather than falling between two regions.
+                # The region runs from this lead to the next, or to the section's end
+                # after the last, so a membership sentence standing between the lead and
+                # the bold name is this class's own and counted with the rest rather than
+                # falling between two regions.
                 clauses = regions[k + 1]
                 if len(clauses) != 1:
                     findings.append(
