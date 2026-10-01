@@ -659,6 +659,9 @@ def _k119_unreadable_class_sentences_fail_closed() -> None:
 
 
 _K119_LEAD_FINDING = "states 'Where the set is' in a form that opens no reach class"
+_K119_LEAD_FORM = (_K119_LEAD_FINDING + " this rule reads: the four words single-spaced on "
+                   "one line, with no underscore before the first and a space after the "
+                   "last, then the class in bold before a full stop or the line's end")
 
 
 def _k119_every_class_lead_is_read() -> None:
@@ -691,7 +694,21 @@ def _k119_every_class_lead_is_read() -> None:
              _K119_LEAD_FINDING),
             ({"computed": _K119_COMPUTED
               + " Where the set  is located by **marker**, nothing narrows."},
-             _K119_LEAD_FINDING)):
+             _K119_LEAD_FINDING),
+            # the opener needs a space right after `is`, so markup or punctuation there
+            # opens nothing, and the finding states the form that space belongs to
+            ({"name": _K119_NAME.replace("Where the set is found",
+                                         "*Where the set is* found")},
+             _K119_LEAD_FORM),
+            ({"computed": _K119_COMPUTED
+              + " **Where the set is** found by **marker**, nothing narrows."},
+             _K119_LEAD_FORM),
+            ({"computed": _K119_COMPUTED
+              + " Where the set is, as said, **marker**, nothing narrows."},
+             _K119_LEAD_FORM),
+            ({"computed": _K119_COMPUTED
+              + " Where the set is: found by **name**, nothing narrows."},
+             _K119_LEAD_FORM)):
         found, out = _k119(**kwargs)
         ensure(any(want in item for item in found), f"{want!r} must be reported: {found!r}")
         ensure(not any(line.startswith("ok K-119:") for line in out),

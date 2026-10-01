@@ -165,13 +165,14 @@ stays green, and a rule named under two leaves a reader unable to say which reac
 
 **The rules it decides about are the registry's own rows**, the set K-00 reads, so a row
 is inside it the day it is written; the classes are read off the page, each at the
-`Where the set is` opening it, matched in any letter case, by the first bold phrase
-after it, which must spell one of the four names exactly, whatever words or italics
-stand between short of a full stop or the line's end, any `.` counting as a full stop,
-and by one membership sentence standing anywhere from that lead to the next class's,
-`which is what` or `that is what`, either capitalized, single-spaced on one line apart
-from any underscore, a plain list of ids, then `are`. The four class names are fixed
-here rather than read, so a class retitled away and a fifth class opened that way are
+`Where the set is` opening it, matched in any letter case, and named by the first bold
+phrase after it, past a space and whatever words or italics then stand short of a full
+stop or the line's end, any `.` counting as a full stop; that phrase must spell one of
+the four names exactly, and the class's rules are read from one membership sentence
+standing anywhere from that lead to the next class's, `which is what` or
+`that is what`, either capitalized, single-spaced on one line apart from any
+underscore, a plain list of ids, then `are`. The four class names are fixed here
+rather than read, so a class retitled away and a fifth class opened that way are
 each a finding rather than a class this rule stops or never starts reading, and so is a
 `Where the set is` anywhere in the section, one wrapped across a line, spaced apart or
 set in underscore italics included, that opens no class in that form. So is any
@@ -251,18 +252,19 @@ _TIER_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed: Tier (?P<tier>[AB])\b(?P<rest
 
 # K-119's reading of the reach section. A class opens with `Where the set is`, in any
 # letter case so that a lead written mid-sentence is read too, and is named by the first
-# bold phrase after it, whatever words or italics stand between, short of a full stop or
-# the line's end: any `.` ends the lead's reach, one inside a code span or a link
-# included, and every `Where the set is` in the section has to open a class. The four
-# class names are fixed here rather than read off the page and the bold phrase is
+# bold phrase after it, past a space and whatever words or italics then stand, short of
+# a full stop or the line's end: any `.` ends the lead's reach, one inside a code span or
+# a link included, and every `Where the set is` in the section has to open a class. The
+# four class names are fixed here rather than read off the page and the bold phrase is
 # compared with them exactly, the lead alone being matched in any letter case, so a
 # class retitled away, a fifth class opened that way, and a `Where the set is` naming no
 # class are each a finding rather than a class this rule silently stops or never starts
-# reading. The opener takes the lead's four words single-spaced and apart from any word
-# character; the lead-finder is wider, any whitespace between the words, a line break
-# included, and only a letter or digit beside them refused, so a lead wrapped across a
-# line, spaced apart or set in underscore italics is found and, opening nothing, is a
-# finding rather than text read as part of the class before it.
+# reading. The opener takes the lead's four words single-spaced, no word character
+# before them and a space after them; the lead-finder is wider, any whitespace between
+# the words, a line break included, and only a letter or digit beside them refused, so a
+# lead wrapped across a line, spaced apart, set in underscore italics or followed by
+# markup or punctuation is found and, opening nothing, is a finding rather than text
+# read as part of the class before it.
 REACH_HEADING = "## What a passing run does not decide"
 REACH_CLASSES = ("name", "computed value", "pattern", "total")
 _CLASS_LEAD_RE = re.compile(
@@ -814,8 +816,9 @@ def _classes(ctx: Context, registered: set[str]) -> None:
             starts = {m.start() for m in opens}
             findings += [f"{RULES}:{doc.at(m.start())} states 'Where the set is' in a form "
                          "that opens no reach class this rule reads: the four words "
-                         "single-spaced on one line and apart from any underscore, then "
-                         "the class in bold before a full stop or the line's end"
+                         "single-spaced on one line, with no underscore before the first "
+                         "and a space after the last, then the class in bold before a "
+                         "full stop or the line's end"
                          for m in _CLASS_LEAD_RE.finditer(doc.raw, lo, hi)
                          if m.start() not in starts and not doc.is_fenced(m.start())]
             # The membership sentences each region reads: the stretch ahead of the first
