@@ -890,15 +890,17 @@ def _fresh_outputs(path: Path, mark: _NinjaLogMark) -> set[str]:
     The same file grown past the mark holds this build's entries after the mark. Any
     other file, one ninja compacted or started over when it opened the log, holds this
     build's entries and the earlier builds' it kept, and the latter are lines the mark
-    already held."""
+    already held. The file grown past the mark is read only from the mark on."""
     try:
         with path.open("rb") as handle:
             found = os.fstat(handle.fileno())
-            data = handle.read()
+            appended = ((found.st_dev, found.st_ino) == mark.identity
+                        and found.st_size >= mark.size)
+            if appended:
+                handle.seek(mark.size)
+            body = handle.read()
     except FileNotFoundError:
         return set()
-    appended = (found.st_dev, found.st_ino) == mark.identity and len(data) >= mark.size
-    body = data[mark.size:] if appended else data
     lines = body[:body.rfind(b"\n") + 1].splitlines()
     entries = (line.split(b"\t") for line in lines if appended or line not in mark.lines)
     return {fields[3].decode("utf-8", "replace") for fields in entries if len(fields) == 5}
