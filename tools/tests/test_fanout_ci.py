@@ -17,6 +17,11 @@ from unittest.mock import patch
 from tests.harness import Case, ensure, sandbox_tree
 from vos import fanout_ci as ci
 
+# Each case writes only under directories it creates, answers requests from a FakeGitHub
+# of its own where it makes any, and patches only inside a `with`, so the cases share no
+# state, and a sharded run spreads them over every shard (vos/cli/test.py).
+INDEPENDENT_CASES = True
+
 REVISION = "a" * 40
 SUBJECT = "Settle the fixture batch"
 HOST_TITLE = f"host-gates:{SUBJECT}"
