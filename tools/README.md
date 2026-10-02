@@ -63,7 +63,9 @@ The JSON record's `units` add what a member measured inside itself, through
 the selftest's phases and per-case seconds; and the checker's fixed phases before its
 first group (importing the groups' modules, loading the corpus, reading the register
 and the artifacts) and each group's seconds, with the checker process's own CPU
-seconds beside each. A selftest or checker unit also carries its `start`, its offset in
+seconds (`cpu_seconds`) beside each and, except on Windows, whose process accounting
+counts none, those of the processes it started and waited for, such as Git's
+(`child_cpu_seconds`). A selftest or checker unit also carries its `start`, its offset in
 seconds from when that member's clock started, so the parts that ran at once can be
 laid on one timeline. Units overlap the same way and never enter the printed report.
 The CI summary names the slowest of them, and the reporting step prints every unit of

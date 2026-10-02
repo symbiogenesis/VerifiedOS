@@ -52,7 +52,8 @@ A stopped run decides nothing about the later groups and says so.
 
 Under the gate's `--summary`, the seconds of each fixed phase before the first group and
 of each group go to the file [vos/timings.py](vos/timings.py) names, with this process's
-CPU seconds beside them, never into the printed report.
+CPU seconds and, except on Windows, those of the processes it started and waited for
+beside them, never into the printed report.
 
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
@@ -62,7 +63,6 @@ import argparse
 import io
 import re
 import sys
-import time
 from pathlib import Path
 
 # The tools import `vos` without being installed, so each puts its own directory on
@@ -77,15 +77,15 @@ if __name__ == "__main__":
     if code is not None:
         sys.exit(code)
 
-# The wall and CPU readings on either side of importing every group's module, which a
-# run's timings record as its first fixed phase.
-_IMPORTING = time.perf_counter(), time.process_time()
+# The clocks' readings on either side of importing every group's module, which a run's
+# timings record as its first fixed phase.
+_IMPORTING = timings.reading()
 
 from vos.checks import GROUPS, Context  # noqa: E402  (timed by the readings either side)
 from vos.register import read_artifacts, read_register  # noqa: E402
 from vos.report import Reporter  # noqa: E402
 
-_IMPORTED = time.perf_counter(), time.process_time()
+_IMPORTED = timings.reading()
 
 
 def _utf8_output() -> None:
@@ -157,9 +157,8 @@ def main(argv: list[str] | None = None) -> int:
     # The fixed phases' and groups' seconds for the gate's summary, never printed;
     # claimed before any group runs, so nothing a group starts inherits the file.
     record = timings.claim()
-    clock = timings.Clock(cpu=True, origin=_IMPORTING[0])
-    clock.add("phase", "imports", _IMPORTED[0] - _IMPORTING[0], _IMPORTING[0],
-              _IMPORTED[1] - _IMPORTING[1])
+    clock = timings.Clock(cpu=True, origin=_IMPORTING.wall)
+    clock.span("phase", "imports", _IMPORTING, _IMPORTED)
     report = run(corpus_mod.find_root(), fix=args.fix, through=args.through, clock=clock)
     print("\n".join(report.out))
     timings.write(record, clock.units())

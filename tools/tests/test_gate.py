@@ -291,11 +291,20 @@ def _timings_round_trip_and_never_fail_the_run() -> None:
         placed.add("case", "K-03: c", 1.5, 12.25)
         with placed.timing("phase", "baseline"):
             pass
-        added, timed = placed.units()
+        placed.span("phase", "imports", timings.Reading(10.5, 1.0, 0.5),
+                    timings.Reading(11.0, 1.25, 1.0))
+        added, timed, spanned = placed.units()
         ensure(added == {"kind": "case", "name": "K-03: c", "seconds": 1.5, "start": 2.25},
                f"a unit starts at its offset from the clock's origin: {added!r}")
-        ensure(isinstance(cpu := timed.get("cpu_seconds"), float) and cpu >= 0,
+        children = sys.platform != "win32"
+        ensure(isinstance(cpu := timed.get("cpu_seconds"), float) and cpu >= 0
+               and ("child_cpu_seconds" in timed) == children,
                f"a CPU clock records the CPU seconds of each block it times: {timed!r}")
+        ensure(spanned == {"kind": "phase", "name": "imports", "seconds": 0.5, "start": 0.5,
+                           "cpu_seconds": 0.25, **({"child_cpu_seconds": 0.5} if children
+                                                   else {})},
+               "a span records its own CPU seconds and, except on Windows, its waited "
+               f"children's: {spanned!r}")
         timings.write(path, units)
         ensure(timings.read(path) == units, "written units must read back unchanged")
         timings.write(None, units)
