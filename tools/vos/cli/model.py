@@ -843,67 +843,26 @@ def cmd_build(e: env.Environment, args: argparse.Namespace) -> int:
 
 
 # The Sail property test the model's ctest registers (model/model/CMakeLists.txt). Its
-# command is Sail over the model's sources and the configuration configure writes, and
-# the memo cache it reads is the one the C++ emission writes: nothing else the build
-# makes, so it can start once the emission is complete rather than after the last link.
+# command is Sail over the model's sources and the configuration configure writes, with
+# a memo cache of its own, `PROPERTY_MEMO`, that no command the build runs writes:
+# nothing the build makes, so it can start as soon as configure has passed rather than
+# after the last link.
 EARLY_TEST = "smt_properties_rv64d"
 EARLY_STAGE = "ctest-early"
-# The emission's outputs as the tree's ninja log names them, relative to the tree.
-EMIT_OUTPUTS = ("sail_riscv_model.cpp", "sail_riscv_model.h", SCHEMA)
+# That test's memo cache in a build tree, beside the build's own `sail_smt_cache` and
+# seeded as that one is (`_seed_smt_cache`).
+PROPERTY_MEMO = "sail_smt_cache_properties"
 # What a Sail process beside the build is budgeted on top of the build's own budget:
 # the ctest stage, whose largest process is this test's, peaked at 0.77 GB in Guest CI
-# run 37017722599.
+# run 37017722599. Started at configure, the test also runs beside the emission, whose
+# Sail process the build's budget already holds in its generated-unit reserve, the unit
+# compiling only once the emission is complete: the build stage's largest process
+# peaked at 1.71 GB in Guest CI run 37066715700, under that 2 GB reserve.
 EARLY_TEST_MB = 1024
-# How often the build's ninja log is read for the emission's entry.
-EMISSION_POLL_SECONDS = 0.5
 # Ninja prints a status line as each edge finishes; this one carries the seconds since
 # the build began, so the log alone times the emission, the generated unit's compile
 # and the links.
 NINJA_STATUS = "[%f/%t %e] "
-
-
-class _NinjaLogMark(NamedTuple):
-    """The tree's ninja log as it stood before a build, so that what the build records
-    can be told from what earlier builds left."""
-
-    identity: tuple[int, int] | None  # its device and inode; None where there was none
-    size: int
-    lines: frozenset[bytes]
-
-
-def _ninja_log_mark(path: Path) -> _NinjaLogMark:
-    try:
-        with path.open("rb") as handle:
-            found = os.fstat(handle.fileno())
-            data = handle.read()
-    except FileNotFoundError:
-        return _NinjaLogMark(None, 0, frozenset())
-    return _NinjaLogMark((found.st_dev, found.st_ino), len(data),
-                         frozenset(data.splitlines()))
-
-
-def _fresh_outputs(path: Path, mark: _NinjaLogMark) -> set[str]:
-    """The outputs ninja has recorded in its log at `path` since `mark` was taken.
-
-    Ninja writes an edge's entries only after its command exited successfully, one
-    line per output, flushing each, so a line is read only once its newline is there.
-    The same file grown past the mark holds this build's entries after the mark. Any
-    other file, one ninja compacted or started over when it opened the log, holds this
-    build's entries and the earlier builds' it kept, and the latter are lines the mark
-    already held. The file grown past the mark is read only from the mark on."""
-    try:
-        with path.open("rb") as handle:
-            found = os.fstat(handle.fileno())
-            appended = ((found.st_dev, found.st_ino) == mark.identity
-                        and found.st_size >= mark.size)
-            if appended:
-                handle.seek(mark.size)
-            body = handle.read()
-    except FileNotFoundError:
-        return set()
-    lines = body[:body.rfind(b"\n") + 1].splitlines()
-    entries = (line.split(b"\t") for line in lines if appended or line not in mark.lines)
-    return {fields[3].decode("utf-8", "replace") for fields in entries if len(fields) == 5}
 
 
 # A thread's states, as `/proc` spells them, in which it can start no process: stopped,
@@ -977,10 +936,10 @@ class _EarlyRun:
 
     A thread reaps the run as it exits, so its `STAGE` line times the run itself rather
     than the wait for the ctest stage to collect it, and the line says when the run
-    started in the build stage's seconds, `since` being when that stage began. It stays
-    in the build's process group, so whatever ends that group ends it too, the evidence
-    sweep's timeout among them; `kill` ends it, and the Sail process under it, when the
-    build is leaving by an exception."""
+    started in the build stage's seconds, `since` being when that stage is counted
+    from. It stays in the build's process group, so whatever ends that group ends it
+    too, the evidence sweep's timeout among them; `kill` ends it, and the Sail process
+    under it, when the build is leaving by an exception."""
 
     def __init__(self, argv: list[str], since: float) -> None:
         # The file outlives this call, which a context manager would close: the ctest
@@ -1046,57 +1005,6 @@ class _EarlyRun:
             self._output.close()
 
 
-class _EmissionWatch:
-    """Start `EARLY_TEST` once this build's emission is complete, beside whatever the
-    build has still to compile.
-
-    Ninja records the emission in its log only after Sail exited successfully, and Sail
-    writes its memo cache before it exits, so the entry means the generated sources and
-    the memo the test reuses are complete. Only an entry this build wrote counts: the
-    log keeps earlier builds' entries, and an emission that is up to date writes none,
-    which leaves the test to the ctest stage. A log that cannot be read starts
-    nothing."""
-
-    def __init__(self, build_dir: Path, argv: list[str]) -> None:
-        self._path = build_dir / ".ninja_log"
-        self._outputs = {*EMIT_OUTPUTS, *(str(build_dir / name) for name in EMIT_OUTPUTS)}
-        self._argv = argv
-        self._stop = threading.Event()
-        self._run: _EarlyRun | None = None
-        # Read here and not in the thread, so the mark is taken before ninja starts.
-        try:
-            self._mark: _NinjaLogMark | None = _ninja_log_mark(self._path)
-        except OSError:
-            self._mark = None
-        # The build stage starts as this returns, so a run's start is counted from here.
-        self._began = time.perf_counter()
-        self._thread = threading.Thread(target=self._watch, name="emission-watch",
-                                        daemon=True)
-        self._thread.start()
-
-    def _watch(self) -> None:
-        if self._mark is None:
-            return
-        while not self._stop.wait(EMISSION_POLL_SECONDS):
-            try:
-                emitted = bool(_fresh_outputs(self._path, self._mark) & self._outputs)
-            except OSError:
-                continue
-            if emitted and not self._stop.is_set():
-                # A run that cannot start leaves the test to the ctest stage, where the
-                # same command fails as it would have.
-                with contextlib.suppress(OSError):
-                    self._run = _EarlyRun(self._argv, self._began)
-                return
-
-    def stop(self) -> _EarlyRun | None:
-        """Stop watching, and hand back the run if it started, the same run however
-        often this is asked."""
-        self._stop.set()
-        self._thread.join()
-        return self._run
-
-
 def _early_decision(e: env.Environment) -> tuple[bool, str]:
     """Whether `EARLY_TEST` may start beside the build, and the words the log's host
     line gives the answer.
@@ -1105,7 +1013,7 @@ def _early_decision(e: env.Environment) -> tuple[bool, str]:
     the test may start early only where that memory covers the build's budget and the
     test's too; with no reading the guard cannot bind, and the test runs after the
     build. Whether a test allowed to start early did, and when, is its `STAGE` line's
-    to say: an emission that is up to date starts nothing."""
+    to say: a run that cannot start leaves the test to the ctest stage."""
     wanted = e.build_budget_mb + EARLY_TEST_MB
     if e.mem_available_mb <= 0:
         return False, f"{EARLY_TEST} after the build, no memory reading"
@@ -1135,12 +1043,14 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
     """Run the stages while cmd_build holds the lane, then publish their identity.
 
     Configure, build and ctest run in that order, each gating the next. Where memory
-    allows, `_EmissionWatch` starts `EARLY_TEST` as soon as this build's emission is
-    complete, so what follows the emission costs the longer of two paths, the rest of
-    the compile and suite or the Sail test, rather than both end to end; `_ctest_stage`
-    then runs the rest of the suite and places the early run's output in the same
-    ctest section. A build that fails waits for the early run and discards it, leaving
-    the log as a failed build leaves it, and a run leaving by an exception ends it.
+    allows, `EARLY_TEST` starts as soon as configure has passed, beside the whole build,
+    so what follows configure costs the longer of two paths, the build and the rest of
+    the suite or the Sail test, rather than both end to end; `_ctest_stage` then runs
+    the rest of the suite and places the early run's output in the same ctest section.
+    The test's memo is its own, seeded with the tree (`_seed_smt_cache`), so the
+    emission and the test never write one file. A build that fails waits for the early
+    run and discards it, leaving the log as a failed build leaves it, and a run leaving
+    by an exception ends it.
     """
     record_path = log.with_suffix(".json")
     record_path.unlink(missing_ok=True)
@@ -1169,19 +1079,20 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
         code = stages["configure"] = _configure(e, build_dir, extra, handle)
         handle.write(f"CONFIGURE_EXIT={code}\n")
         handle.flush()
-        watch: _EmissionWatch | None = None
+        early: _EarlyRun | None = None
         try:
             if not code:
                 if beside:
-                    watch = _EmissionWatch(build_dir, ["ctest", "--test-dir", str(build_dir),
-                                                       "-R", f"^{EARLY_TEST}$",
-                                                       "--output-on-failure"])
-                try:
-                    code = stages["build"] = env.stage(
-                        "build", ["cmake", "--build", str(build_dir), "-j", str(e.jobs)],
-                        stdout=handle, stderr=handle, add_env={"NINJA_STATUS": NINJA_STATUS})
-                finally:
-                    early = watch.stop() if watch is not None else None
+                    # The build stage starts as the run does, so the run's start is
+                    # counted from here. A run that cannot start leaves the test to the
+                    # ctest stage, where the same command fails as it would have.
+                    with contextlib.suppress(OSError):
+                        early = _EarlyRun(["ctest", "--test-dir", str(build_dir),
+                                           "-R", f"^{EARLY_TEST}$", "--output-on-failure"],
+                                          time.perf_counter())
+                code = stages["build"] = env.stage(
+                    "build", ["cmake", "--build", str(build_dir), "-j", str(e.jobs)],
+                    stdout=handle, stderr=handle, add_env={"NINJA_STATUS": NINJA_STATUS})
                 handle.write(f"BUILD_EXIT={code}\n")
                 handle.flush()
                 if code and early is not None:
@@ -1192,12 +1103,8 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
                     handle.flush()
             handle.write("ALL_DONE\n")
         finally:
-            # The run is asked of the watch again rather than read from `early`, which
-            # an interrupt inside the first `stop` leaves unset; `stop` hands back the
-            # same run each time it is asked.
-            run = watch.stop() if watch is not None else None
-            if run is not None:
-                run.kill()
+            if early is not None:
+                early.kill()
 
     # A build whose stages passed can still be refused its evidence. The reason is kept
     # in the receipt as well as printed, because a background build's stderr goes
@@ -1326,20 +1233,33 @@ def _seed_smt_cache(donors: list[Path], target: Path) -> None:
     reached. What that costs stays on the copy, a lane starting from a prefix or a torn
     record paying the cold cache this seed exists to avoid and no donor paying anything.
 
-    The copy itself is `_seed_cache_file`'s, because a lane keeps two of these caches
-    and only one of them is inside a build tree.
+    A tree keeps two of these caches, the build's and `EARLY_TEST`'s, `PROPERTY_MEMO`,
+    which is the test's alone so that the test can run beside the build's emission. The
+    test's comes from a donor's test cache, and failing one from the tree's own build
+    cache, a warm start whose misses cost time and nothing worse, the solver being the
+    same. That copy has no writer to race: every caller holds the tree's build lock, as
+    does every command here that runs Sail over the tree's caches. A test cache the tree
+    holds is kept rather than refreshed from the build's, because it is the test's own
+    learning, which the build's does not receive.
+
+    The copy itself is `_seed_cache_file`'s, because a lane's other memo caches sit
+    outside any build tree.
     """
-    _seed_cache_file([d / "model" / "sail_smt_cache" for d in donors],
-                     target / "model" / "sail_smt_cache")
+    build_memo = target / "model" / "sail_smt_cache"
+    _seed_cache_file([d / "model" / "sail_smt_cache" for d in donors], build_memo)
+    _seed_cache_file([*(d / "model" / PROPERTY_MEMO for d in donors), build_memo],
+                     target / "model" / PROPERTY_MEMO)
 
 
 def _seed_cache_file(donors: list[Path], target: Path) -> None:
     """Copy the first donor memo cache that exists, and never over one already there.
 
     The file-level half of `_seed_smt_cache`, which states the ground this obeys. It is
-    stated once because a lane keeps **two** memo caches and neither may be shared: the
-    build tree's, at `<tree>/model/sail_smt_cache`, and the typecheck loop's, which sits
-    beside the build trees rather than inside one and so is reached by no `_seed_tree`.
+    stated once because a lane keeps several memo caches and none may be shared: the
+    build tree's two, the build's at `<tree>/model/sail_smt_cache` and its property
+    test's at `<tree>/model/sail_smt_cache_properties`, and those of the typecheck and
+    `smt` loops, which sit beside the build trees rather than inside one and so are
+    reached by no `_seed_tree`.
 
     Two properties are what make this safe to call unconditionally, which is the point
     of it: a target that exists is kept, because a warm cache is this lane's own

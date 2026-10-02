@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 # Native Linux evidence for Sail, Rocq and standalone RTL; tools/ci/README.md
 # defines the scope. Ordinary runs restore toolchains, validated proof inputs and
-# the model lane's Sail solver memo and compiler cache. Monthly and explicitly cold
+# the model lane's Sail solver memos and compiler cache. Monthly and explicitly cold
 # runs install and check everything from scratch.
 # Each lane runs on its own runner. The proofs lane shares no toolchain or output
 # with the others and installs only its own. The rtl lane selects the model lane's
 # toolchains and restores, but never saves, that lane's download, toolchain and Sail
-# memo caches, so the bundle and RTL checks run beside the model evidence sweep. Only
-# the model lane restores its compiler cache. Manual dispatch runs from main;
-# its optional revision input pins checkout to a commit already on main, verified
-# before any checked-out code runs. Its optional reading_base input, verified there
+# build memo caches, so the bundle and RTL checks run beside the model evidence sweep.
+# Only the model lane restores its compiler cache and its property test's memo.
+# Manual dispatch runs from main; its optional revision input pins checkout to a
+# commit already on main, verified before any checked-out code runs. Its optional reading_base input, verified there
 # too, names a proper ancestor of that revision whose proof sources the proofs lane
 # compiles, reads and compares with the passing gate's compile. A refused dispatch
 # runs no checked-out code afterwards: each later step that runs commands after a
@@ -380,6 +380,20 @@ jobs:
           # A cold run discharges every obligation again.
           lookup-only: ${{ env.GUEST_COLD == 'true' }}
 
+      - name: Restore the Sail property memo
+        id: property-memo
+        # The model's Sail property test reads and rewrites a memo of its own, which the
+        # build seeds from the build memo above where none is restored.
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.solver.outcome == 'success' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache_properties
+          key: guest-sail-property-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-${{ hashFiles('model/model/**') }}
+          # An older model's memo costs misses, never a wrong verdict, within one solver.
+          restore-keys: guest-sail-property-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-
+          # A cold run discharges every obligation again.
+          lookup-only: ${{ env.GUEST_COLD == 'true' }}
+
       - name: Model evidence
         id: evidence
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
@@ -423,6 +437,14 @@ jobs:
         with:
           path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
           key: ${{ steps.sail-memo.outputs.cache-primary-key }}
+
+      - name: Save the Sail property memo
+        # The property test is that memo's one writer; it is saved as the build memo is.
+        if: ${{ github.ref == 'refs/heads/main' && matrix.lane == 'model' && !cancelled() && steps.evidence.outcome == 'success' && steps.property-memo.outcome == 'success' && steps.property-memo.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache_properties
+          key: ${{ steps.property-memo.outputs.cache-primary-key }}
 
       - name: Identify the proof context
         id: proof-context
@@ -595,8 +617,9 @@ jobs:
           GUEST_LANE: ${{ matrix.lane }}
           # A restored run is not evidence that the toolchains install cold.
           GUEST_TOOLCHAINS: ${{ env.GUEST_COLD != 'true' && steps.toolchains.outputs.cache-hit == 'true' && 'restored' || 'cold' }}
-          # A restored memo's verdicts were not discharged again in this run.
-          GUEST_SAIL_MEMO: ${{ (matrix.lane == 'model' || matrix.lane == 'rtl') && (env.GUEST_COLD != 'true' && steps.sail-memo.outputs.cache-matched-key != '' && 'restored' || 'cold') || '' }}
+          # A restored memo's verdicts, the build's or the property test's, were not
+          # discharged again in this run.
+          GUEST_SAIL_MEMO: ${{ (matrix.lane == 'model' || matrix.lane == 'rtl') && (env.GUEST_COLD != 'true' && (steps.sail-memo.outputs.cache-matched-key != '' || steps.property-memo.outputs.cache-matched-key != '') && 'restored' || 'cold') || '' }}
           # Only the proofs lane reads proofs against a base.
           GUEST_READING_BASE: ${{ matrix.lane == 'proofs' && inputs.reading_base || '' }}
           STEP_RESULTS: ${{ toJSON(steps) }}

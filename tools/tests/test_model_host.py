@@ -202,17 +202,75 @@ def _seed_smt_cache() -> None:
         bare, warm, target = root / "bare", root / "warm", root / "target"
         (warm / "model").mkdir(parents=True)
         (warm / "model" / "sail_smt_cache").write_bytes(b"warm-records")
+        build, test = Path("model", "sail_smt_cache"), Path("model", _MODEL.PROPERTY_MEMO)
 
-        # the first donor that has a cache wins; a donor without one is passed over
+        # the first donor that has a cache wins; a donor without one is passed over, and
+        # with no donor's test cache the test's comes from the tree's own build cache
         _MODEL._seed_smt_cache([bare, warm], target)
-        ensure((target / "model" / "sail_smt_cache").read_bytes() == b"warm-records",
+        ensure((target / build).read_bytes() == b"warm-records",
                "the cache is copied from the first donor holding one")
+        ensure((target / test).read_bytes() == b"warm-records",
+               "the test's cache is copied from the tree's build cache")
 
         # an existing cache is never overwritten: it is a copy, not a share
-        (target / "model" / "sail_smt_cache").write_bytes(b"already-here")
+        (target / build).write_bytes(b"already-here")
+        (target / test).write_bytes(b"test-learning")
+        (warm / test).write_bytes(b"warm-test-records")
         _MODEL._seed_smt_cache([warm], target)
-        ensure((target / "model" / "sail_smt_cache").read_bytes() == b"already-here",
-               "a tree that has a cache keeps it")
+        ensure((target / build).read_bytes() == b"already-here"
+               and (target / test).read_bytes() == b"test-learning",
+               "a tree that has its caches keeps them")
+
+        # a tree's test cache comes from a donor's before the tree's build cache, and
+        # the build cache it would otherwise come from is read and never written
+        (target / test).unlink()
+        _MODEL._seed_smt_cache([bare, warm], target)
+        ensure((target / test).read_bytes() == b"warm-test-records"
+               and (target / build).read_bytes() == b"already-here",
+               "the test's cache is copied from the first donor holding one")
+        (target / test).unlink()
+        _MODEL._seed_smt_cache([], target)
+        ensure((target / test).read_bytes() == b"already-here"
+               and (target / build).read_bytes() == b"already-here",
+               "the test's cache is a copy of the tree's build cache, which stays as it was")
+
+        # with no build cache to copy, nothing is seeded and the test starts cold
+        cold = root / "cold"
+        _MODEL._seed_smt_cache([bare], cold)
+        ensure(not (cold / build).exists() and not (cold / test).exists(),
+               "no cache is seeded where there is none to copy")
+
+
+def _property_test_keeps_its_own_memo() -> None:
+    """The property test's command passes the model's common Sail flags, which name no
+    memo, and one `--memo-z3-path`, its own, while every other Sail command passes the
+    flags with the build tree's memo. So the test never writes the build's memo, with no
+    reliance on how Sail treats a repeated option, and the memo it names is the one
+    `_seed_smt_cache` seeds."""
+    text = (TOOLS.parent / "model" / "model" / "CMakeLists.txt").read_text(encoding="utf-8")
+    flags = re.search(r"(?ms)^set\(sail_flags\n(.*?)^\)$", text)
+    common = re.search(r"(?ms)^set\(sail_common\n(.*?)^\)$", text)
+    test = re.search(r"(?ms)^ +add_test\(\n +NAME smt_properties_\$\{arch\}\n(.*?)^ +\)$", text)
+    ensure(flags is not None and common is not None and test is not None,
+           "the model's common Sail flags, its shared memo and its property test are "
+           "where they were")
+    if flags is None or common is None or test is None:
+        return
+    ensure(_memo_paths(flags[1]) == [],
+           f"the common flags name no memo, got {_memo_paths(flags[1])}")
+    ensure(common[1].lstrip().startswith("${sail_flags}")
+           and _memo_paths(common[1]) == ["${CMAKE_CURRENT_BINARY_DIR}/sail_smt_cache"],
+           "every other Sail command shares the build tree's memo, "
+           f"got {_memo_paths(common[1])}")
+    ensure("${sail_flags}" in test[1] and "${sail_common}" not in test[1]
+           and _memo_paths(test[1]) == [
+               f"${{CMAKE_CURRENT_BINARY_DIR}}/{_MODEL.PROPERTY_MEMO}"],
+           f"the test passes the flags alone and its own memo, got {_memo_paths(test[1])}")
+
+
+def _memo_paths(block: str) -> list[str]:
+    """The `--memo-z3-path` operands a block of the model's CMake names, in order."""
+    return [str(path) for path in re.findall(r'--memo-z3-path "([^"]*)"', block)]
 
 
 def _seed_cache_file() -> None:
@@ -1242,8 +1300,10 @@ def _build_records_an_unreadable_product() -> None:
         sail = subprocess.CompletedProcess([], 0, "Sail 9.9.9 (fixture)\n", "")
 
         def built() -> tuple[int, dict[str, object]]:
+            # The Sail test runs in the ctest stage, which stands in with the others.
             with (patch.object(_MODEL, "build_identity", return_value={"inputs": {}}),
                   patch.object(_MODEL, "_configure", return_value=0),
+                  patch.object(_MODEL, "_early_decision", return_value=(False, "after")),
                   patch.object(_MODEL, "env", SimpleNamespace(stage=Mock(return_value=0))),
                   patch.object(_MODEL, "subprocess",
                                SimpleNamespace(run=Mock(return_value=sail))),
@@ -1265,33 +1325,13 @@ def _build_records_an_unreadable_product() -> None:
                f"the receipt records the unreadable product, got {code} and {record}")
 
 
-# A tree's ninja log as `_fresh_outputs` reads it: the header, two emission entries
-# earlier builds left, this build's, and an entry for another output.
-_NINJA_HEADER = b"# ninja log v6\n"
-_OLDER_EMISSION = b"9\t35000\t1600000000000000000\tsail_riscv_model.cpp\t1a2b3c\n"
-_STALE_EMISSION = b"10\t36000\t1700000000000000000\tsail_riscv_model.cpp\t1a2b3c\n"
-_FRESH_EMISSION = b"12\t36500\t1800000000000000000\tsail_riscv_model.cpp\t1a2b3c\n"
-_OTHER_OUTPUT = b"40\t900\t1800000000000000001\tc_emulator/CMakeFiles/x.dir/y.cpp.o\t4d5e\n"
-
-
 def _until(done: Callable[[], bool], what: str) -> None:
-    """Wait for the build's emission watch to have done `what`, failing rather than
-    hanging."""
+    """Wait until `done` holds, failing rather than hanging."""
     deadline = time.monotonic() + 30
     while not done():
         if time.monotonic() > deadline:
-            raise AssertionError(f"the emission watch never {what}")
+            raise AssertionError(f"the case never {what}")
         time.sleep(0.002)
-
-
-def _replaced(staged: Path, path: Path) -> bool:
-    """Rename `staged` over `path`, as ninja's compaction does, or say it could not yet:
-    Windows refuses the rename while the watch has the old file open."""
-    try:
-        staged.replace(path)
-    except PermissionError:
-        return False
-    return True
 
 
 class _EarlyStandIn:
@@ -1316,7 +1356,7 @@ class _EarlyStandIn:
 
     def report(self) -> str:
         return (f"{self.printed}"
-                "STAGE ctest-early start=+41.2s wall=26.4s cpu=99% maxrss=790000kB\n")
+                "STAGE ctest-early start=+0.0s wall=26.4s cpu=99% maxrss=790000kB\n")
 
     def kill(self) -> None:
         # `_build_locked` ends every run it started this way, and a reaped run has
@@ -1326,25 +1366,25 @@ class _EarlyStandIn:
 
 class _BuildRig:
     """`_build_locked` with its configure, stages, early run and identity standing in.
-    `run` takes the build stage; the ctest stage prints the summary of the tests it was
-    asked for, fourteen when it excludes the early test and fifteen otherwise. Every
-    read of the ninja log the emission watch makes is kept in `reads`, before it is
-    counted in `polls`, and the time the build stage began is `build_began`."""
+    `run` takes the build stage, and configure exits `configure_code`; the ctest stage
+    prints the summary of the tests it was asked for, fourteen when it excludes the early
+    test and fifteen otherwise. `calls` keeps each stage and each start of the early
+    run in order, the latter as `early`, which raises as a `Popen` that cannot start
+    does under `start_fails`; the time the build stage began is `build_began`."""
 
-    def __init__(self, root: Path, *, memory: int = 8192, early_code: int = 0) -> None:
+    def __init__(self, root: Path, *, memory: int = 8192, early_code: int = 0,
+                 configure_code: int = 0, start_fails: bool = False) -> None:
         self.build = root / "build"
         self.build.mkdir(parents=True, exist_ok=True)
-        self.ninja_log = self.build / ".ninja_log"
         self.env = env.Environment(root, root / "model", root / "build-root", root / "logs",
                                    "", 4, memory, 2, 2)
         self.log = self.env.log("model-build")
         self.early_code = early_code
+        self.configure_code = configure_code
+        self.start_fails = start_fails
         self.calls: list[tuple[str, list[str], object]] = []
         self.runs: list[_EarlyStandIn] = []
-        self.reads: list[set[str]] = []
-        self.polls = 0
         self.build_began = 0.0
-        self._read = _MODEL._fresh_outputs
         self._on_build: Callable[[], int] | None = None
 
     def _stage(self, name: str, argv: list[str], report_to: object = None,
@@ -1361,38 +1401,27 @@ class _BuildRig:
         return 0
 
     def _start(self, argv: list[str], since: float) -> _EarlyStandIn:
+        self.calls.append(("early", argv, None))
+        if self.start_fails:
+            raise FileNotFoundError("no ctest on PATH")
         run = _EarlyStandIn(argv, since, self.build, self.early_code)
         self.runs.append(run)
         return run
-
-    def _counted(self, path: Path, mark: object) -> set[str]:
-        found = cast("set[str]", self._read(path, mark))
-        self.reads.append(found)
-        self.polls += 1
-        return found
-
-    def polled(self, since: int) -> None:
-        """Wait until the watch has read the log twice since `since` reads, counted
-        after a change to it: the second read began after the first ended, and so after
-        the change."""
-        _until(lambda: self.polls >= since + 2, "read the log again")
-
-    def started(self) -> None:
-        _until(lambda: bool(self.runs), "started the early test")
 
     def run(self, on_build: Callable[[], int]) -> int:
         self._on_build = on_build
         sail = subprocess.CompletedProcess([], 0, "Sail 9.9.9 (fixture)\n", "")
         with (patch.object(_MODEL, "build_identity", return_value={"inputs": {}}),
-              patch.object(_MODEL, "_configure", return_value=0),
+              patch.object(_MODEL, "_configure", return_value=self.configure_code),
               patch.object(_MODEL, "build_artifacts", return_value={}),
               patch.object(_MODEL, "env", SimpleNamespace(stage=self._stage)),
               patch.object(_MODEL, "subprocess", SimpleNamespace(run=Mock(return_value=sail))),
               patch.object(_MODEL, "_EarlyRun", self._start),
-              patch.object(_MODEL, "_fresh_outputs", self._counted),
-              patch.object(_MODEL, "EMISSION_POLL_SECONDS", 0.001),
               redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
             return cast("int", _MODEL._build_locked(self.env, self.build, self.log, []))
+
+    def order(self) -> list[str]:
+        return [name for name, _, _ in self.calls]
 
     def ctest_argv(self) -> list[list[str]]:
         return [argv for name, argv, _ in self.calls if name == "ctest"]
@@ -1405,75 +1434,19 @@ class _BuildRig:
         return cast("dict[str, object]", raw)
 
 
-def _fresh_outputs_reads_only_this_builds_entries() -> None:
-    """The outputs a build has recorded since its mark: a log the build created is all
-    the build's, a line is read once its newline is there, a log grown past the mark is
-    read from it, and a log rewritten over the mark, renamed over it or shorter, holds
-    the build's lines and the earlier lines the mark already held."""
-    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
-        path = Path(td) / ".ninja_log"
-        mark = _MODEL._ninja_log_mark(path)
-        ensure(_MODEL._fresh_outputs(path, mark) == set(), "no log records nothing")
-        path.write_bytes(_NINJA_HEADER + _FRESH_EMISSION[:-1])
-        ensure(_MODEL._fresh_outputs(path, mark) == set(),
-               "a line without its newline is still being written")
-        with path.open("ab") as log:
-            log.write(b"\n")
-        got = _MODEL._fresh_outputs(path, mark)
-        ensure(got == {"sail_riscv_model.cpp"},
-               f"a log the build created is all the build's, got {got}")
-
-        path.write_bytes(_NINJA_HEADER + _STALE_EMISSION)
-        mark = _MODEL._ninja_log_mark(path)
-        with path.open("ab") as log:
-            log.write(_OTHER_OUTPUT)
-        got = _MODEL._fresh_outputs(path, mark)
-        ensure(got == {"c_emulator/CMakeFiles/x.dir/y.cpp.o"},
-               f"a log grown past its mark is read from the mark, got {got}")
-
-        staged = path.with_name("staged")
-        staged.write_bytes(_NINJA_HEADER + _STALE_EMISSION
-                           + _FRESH_EMISSION.replace(b".cpp", b".h"))
-        staged.replace(path)
-        got = _MODEL._fresh_outputs(path, mark)
-        ensure(got == {"sail_riscv_model.h"},
-               f"a log renamed over the mark holds the mark's lines again, got {got}")
-
-        mark = _MODEL._ninja_log_mark(path)
-        path.write_bytes(_NINJA_HEADER + _STALE_EMISSION)
-        ensure(_MODEL._fresh_outputs(path, mark) == set(),
-               "a log rewritten shorter in place holds only lines its mark held")
-        path.write_bytes(_NINJA_HEADER + _OTHER_OUTPUT)
-        got = _MODEL._fresh_outputs(path, mark)
-        ensure(got == {"c_emulator/CMakeFiles/x.dir/y.cpp.o"},
-               f"a log rewritten shorter in place is read whole, got {got}")
-
-
-def _early_test_starts_on_this_builds_emission() -> None:
-    """The Sail property test starts beside the build once this build's emission entry
-    is complete in the ninja log, and not on the entry an earlier build left nor on a
-    line still without its newline. The ctest stage then runs the rest of the suite,
+def _early_test_starts_after_configure() -> None:
+    """The Sail property test starts beside the build as soon as configure has passed,
+    before the build stage begins and over a tree holding no memo cache at all, and its
+    start is counted from that stage's. The ctest stage then runs the rest of the suite,
     places the early run's output after it inside the one ctest section, and the
     evidence reads the whole suite's tally. The build stage's ninja prints the elapsed
     seconds on each finished edge."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         rig = _BuildRig(Path(td))
-        rig.ninja_log.write_bytes(_NINJA_HEADER + _STALE_EMISSION)
 
         def build() -> int:
-            with rig.ninja_log.open("ab") as log:
-                log.write(_OTHER_OUTPUT + _FRESH_EMISSION[:-1])
-                log.flush()
-                rig.polled(rig.polls)
-                # The reads themselves, and not only the runs: a read is kept before it
-                # is counted, so one that wrongly found the emission is seen here even
-                # where the run it starts is not yet.
-                emitted = [found for found in rig.reads if found & set(_MODEL.EMIT_OUTPUTS)]
-                ensure(not emitted and not rig.runs,
-                       "an earlier build's entry or a partial line must start nothing, "
-                       f"got {emitted}")
-                log.write(b"\n")
-            rig.started()
+            ensure(len(rig.runs) == 1 and not rig.runs[0].waited,
+                   f"the early test runs as the build stage begins, got {rig.calls}")
             return 0
 
         code = rig.run(build)
@@ -1481,6 +1454,9 @@ def _early_test_starts_on_this_builds_emission() -> None:
         ensure(code == 0 and rig.record().get("stages")
                == {"configure": 0, "build": 0, "ctest": 0},
                f"the build passes every stage, got {code} and {rig.record()}")
+        ensure(rig.order() == ["early", "build", "ctest"] and not any(
+                   path.name.startswith("sail_smt_cache") for path in rig.build.rglob("*")),
+               f"the test starts after configure, before the build, got {rig.order()}")
         ensure([run.argv for run in rig.runs]
                == [["ctest", "--test-dir", str(rig.build), "-R", "^smt_properties_rv64d$",
                     "--output-on-failure"]],
@@ -1507,24 +1483,27 @@ def _early_test_starts_on_this_builds_emission() -> None:
         ensure(verdict == 0, f"wait reads the build as green, got {verdict}")
 
 
-def _early_test_needs_this_builds_emission() -> None:
-    """A log ninja compacts into a new file at its start holds an earlier build's
-    emission entry again, and that starts nothing: the suite runs whole after the build,
-    as it does when the emission is up to date, and the evidence reads the same
-    tally."""
+def _failed_configure_starts_nothing() -> None:
+    """A configure that fails starts neither the early test nor the build: the log ends
+    as a failed configure's does."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
-        rig = _BuildRig(Path(td))
-        rig.ninja_log.write_bytes(_NINJA_HEADER + _OLDER_EMISSION + _STALE_EMISSION)
-        staged = rig.ninja_log.with_name(".ninja_log.recompact")
+        rig = _BuildRig(Path(td), configure_code=1)
+        code = rig.run(lambda: 0)
+        ensure(code == 1 and not rig.calls and rig.record().get("stages") == {"configure": 1},
+               f"nothing runs after a failed configure, got {code}, {rig.calls}")
+        ensure(rig.text().endswith("CONFIGURE_EXIT=1\nALL_DONE\n"),
+               f"the log ends at the configure's exit, got {rig.text()!r}")
 
-        def build() -> int:
-            staged.write_bytes(_NINJA_HEADER + _STALE_EMISSION + _OTHER_OUTPUT)
-            _until(partial(_replaced, staged, rig.ninja_log), "let the log be replaced")
-            rig.polled(rig.polls)
-            return 0
 
-        code = rig.run(build)
-        ensure(code == 0 and not rig.runs, f"nothing starts early, got {code}, {rig.runs}")
+def _unstarted_early_test_runs_in_ctest() -> None:
+    """An early run that cannot start, as where `ctest` is not on PATH, leaves the test
+    to the ctest stage: the build runs, the suite runs whole after it, and the evidence
+    reads the same tally."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        rig = _BuildRig(Path(td), start_fails=True)
+        code = rig.run(lambda: 0)
+        ensure(code == 0 and rig.order() == ["early", "build", "ctest"] and not rig.runs,
+               f"the build and the whole suite run, got {code}, {rig.calls}")
         ensure(rig.ctest_argv() == [["ctest", "--test-dir", str(rig.build), "-j", "2",
                                      "--output-on-failure"]],
                f"the ctest stage runs the whole suite, got {rig.ctest_argv()}")
@@ -1547,14 +1526,8 @@ def _early_test_waits_for_memory() -> None:
         ensure(got == decided, f"at {memory} MB the decision is {decided}, got {got}")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         rig = _BuildRig(Path(td), memory=4095)
-
-        def build() -> int:
-            rig.ninja_log.write_bytes(_NINJA_HEADER + _FRESH_EMISSION)
-            return 0
-
-        with patch.object(_MODEL, "_EmissionWatch", wraps=_MODEL._EmissionWatch) as watch:
-            code = rig.run(build)
-        ensure(code == 0 and not watch.called and not rig.runs
+        code = rig.run(lambda: 0)
+        ensure(code == 0 and rig.order() == ["build", "ctest"]
                and "after the build, 4096 MB wanted beside it" in rig.text()
                and rig.ctest_argv() == [["ctest", "--test-dir", str(rig.build), "-j", "2",
                                          "--output-on-failure"]],
@@ -1568,8 +1541,7 @@ def _failed_build_discards_the_early_test() -> None:
         rig = _BuildRig(Path(td))
 
         def build() -> int:
-            rig.ninja_log.write_bytes(_NINJA_HEADER + _FRESH_EMISSION)
-            rig.started()
+            ensure(len(rig.runs) == 1, "the early test runs before the build stage")
             return 2
 
         code = rig.run(build)
@@ -1588,13 +1560,7 @@ def _failed_early_test_fails_ctest() -> None:
     evidence reads no tally from it."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         rig = _BuildRig(Path(td), early_code=8)
-
-        def build() -> int:
-            rig.ninja_log.write_bytes(_NINJA_HEADER + _FRESH_EMISSION)
-            rig.started()
-            return 0
-
-        code = rig.run(build)
+        code = rig.run(lambda: 0)
         text = rig.text()
         ensure(code == 8 and rig.record().get("stages")
                == {"configure": 0, "build": 0, "ctest": 8},
@@ -1617,8 +1583,7 @@ def _exception_ends_the_early_test() -> None:
         rig = _BuildRig(Path(td))
 
         def build() -> int:
-            rig.ninja_log.write_bytes(_NINJA_HEADER + _FRESH_EMISSION)
-            rig.started()
+            ensure(len(rig.runs) == 1, "the early test runs before the build stage")
             raise RuntimeError("the build was interrupted")
 
         try:
@@ -2138,6 +2103,7 @@ def cases() -> list[Case]:
         Case("check-trace", _check_trace),
         Case("sync-oracle-tree", _sync_oracle_tree),
         Case("seed-smt-cache", _seed_smt_cache),
+        Case("property-test-keeps-its-own-memo", _property_test_keeps_its_own_memo),
         Case("seed-cache-file", _seed_cache_file),
         Case("corpus-listing-format", _corpus_listing_format),
         Case("corpus-digests", _corpus_digests),
@@ -2176,11 +2142,9 @@ def cases() -> list[Case]:
              _receipt_opens_no_sweep_input_after_verifying, lane="guest"),
         Case("trace-diff-compares-what-verified", _trace_diff_compares_what_verified),
         Case("build-records-an-unreadable-product", _build_records_an_unreadable_product),
-        Case("fresh-outputs-reads-only-this-builds-entries",
-             _fresh_outputs_reads_only_this_builds_entries),
-        Case("early-test-starts-on-this-builds-emission",
-             _early_test_starts_on_this_builds_emission),
-        Case("early-test-needs-this-builds-emission", _early_test_needs_this_builds_emission),
+        Case("early-test-starts-after-configure", _early_test_starts_after_configure),
+        Case("failed-configure-starts-nothing", _failed_configure_starts_nothing),
+        Case("unstarted-early-test-runs-in-ctest", _unstarted_early_test_runs_in_ctest),
         Case("early-test-waits-for-memory", _early_test_waits_for_memory),
         Case("failed-build-discards-the-early-test", _failed_build_discards_the_early_test),
         Case("failed-early-test-fails-ctest", _failed_early_test_fails_ctest),

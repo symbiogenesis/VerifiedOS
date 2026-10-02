@@ -238,24 +238,28 @@ bytes and their original timings, not a new kernel execution. Cold runs retain
 periodic installation and full recheck evidence. Model build trees are not restored,
 and every run regenerates its RTL vectors.
 
-The model and rtl lanes each restore one file into their fresh build tree before
+The model and rtl lanes each restore a file into their fresh build tree before
 running Sail, the model lane before its evidence sweep and the rtl lane before its
 bundle comparison: Sail's SMT memo, `model/sail_smt_cache`, which maps each
 typechecking obligation's digest to the solver's verdict. A cold memo re-discharges
-every obligation and turns the model's C++ emission from seconds into minutes. Each
-lane's Sail run seeds itself from that copy exactly as a
+every obligation and turns the model's C++ emission from seconds into minutes. The
+model lane also restores the memo its Sail property test keeps apart from the
+build's, `model/sail_smt_cache_properties`, under a key prefix of its own and
+otherwise as stated below; where none is restored, the build seeds it from the
+build's memo. Each Sail run seeds itself from its copy exactly as a
 [new local lane](../vos/cli/model.py) seeds itself from the primary tree's, with
-one writer per runner. The memo keys obligations, not the solver that answered
+one writer per memo. The memo keys obligations, not the solver that answered
 them, so its key binds the runner image, architecture, and the Sail version, Z3
 version and Sail snapshot recorded in `bootstrap.json`; a fallback within that
 identity supplies an older model's memo, which costs misses and never supplies
-another solver's verdict. Only main's model lane saves it, after a passing evidence
-sweep, under a key that also hashes the model's Sail sources; the rtl lane, whose
-bundle rewrites its own copy in a tree it does not build, never saves it. The monthly
-and manual cold modes look the key up without restoring it, so their Sail runs
-discharge every obligation with the installed solver. In the model and rtl lanes the
-reporter records the memo as `cold` or `restored` in `results.json` and the job
-summary; a restored memo's cached verdicts were not discharged again in that run.
+another solver's verdict. Only main's model lane saves each memo, after a passing
+evidence sweep, under a key that also hashes the model's Sail sources; the rtl lane,
+whose bundle rewrites its own copy in a tree it does not build, never saves one. The
+monthly and manual cold modes look the keys up without restoring them, so their Sail
+runs discharge every obligation with the installed solver. In the model and rtl lanes
+the reporter records the memo as `restored` where either memo was restored and as
+`cold` otherwise, in `results.json` and the job summary; a restored memo's cached
+verdicts were not discharged again in that run.
 
 The [boot signature target campaign](../../firmware/crypto/README.md#hosted-target-campaign)
 restores the model lane's installed toolchains and Sail memo under these same keys and
@@ -369,11 +373,11 @@ working model bytes remain bound by the build manifest. Bundle comparison reloca
 only the selected switch's absolute library hash keys to the canonical locations
 used by the tracked artifact. A private opam root therefore does not change the
 comparison, while changed library digests and model contents still fail it.
-Download and installed-toolchain caches accelerate installation, and the Sail memo
-accelerates emission; native proof reuse requires the proof gate's validation,
-never a cache-action verdict. A cold run must work without any cache. Built model
-outputs remain uncached but for the compiler cache's objects, which ccache returns
-only for an identical compile.
+Download and installed-toolchain caches accelerate installation, and the Sail memos
+accelerate emission and the property test; native proof reuse requires the proof
+gate's validation, never a cache-action verdict. A cold run must work without any
+cache. Built model outputs remain uncached but for the compiler cache's objects,
+which ccache returns only for an identical compile.
 
 ## Acceptance and handoff
 
