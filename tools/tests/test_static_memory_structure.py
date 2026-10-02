@@ -10,6 +10,11 @@ from tests.harness import Case, ensure
 from vos import static_memory as memory
 from vos import static_memory_structure as structure
 
+# Each case builds its own families and draws only from generators it seeds itself, so
+# the cases share no state, and a sharded run spreads them over every shard
+# (vos/cli/test.py).
+INDEPENDENT_CASES = True
+
 
 def _case(intervals: tuple[tuple[int, int], ...],
           sizes: tuple[int, ...]) -> memory.Case:
