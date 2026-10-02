@@ -210,7 +210,7 @@ jobs:
                           f"{m['name']}: {m['elapsed_seconds']:.2f}s" for m in report["members"]))
                   # The parts members measured inside themselves: test modules, selftest
                   # phases and cases. They overlap like members; the slowest show where
-                  # a shard's time went.
+                  # a job's time went.
                   slowest = sorted(((u["seconds"], u["kind"], u["name"])
                                     for m in report["members"] for u in m.get("units") or []),
                                    reverse=True)[:10]
@@ -221,7 +221,7 @@ jobs:
                   shard = report.get("shard", {})
                   label = ("unpartitioned" if report.get("unpartitioned") else
                            f"shard {shard.get('index', '?')}/{shard.get('total', '?')}")
-                  summary.write(f"### Host gates: {label}\n\nAll shards must pass.\n\n"
+                  summary.write(f"### Host gates: {label}\n\nEvery Host CI job must pass.\n\n"
                                 + "\n".join(rows) + "\n"
                                 + (f"\nSlowest units: {units}\n" if units else ""))
           except Exception as err:
