@@ -490,8 +490,9 @@ jobs:
         id: bundle
         if: ${{ matrix.lane == 'rtl' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         # The emission took at most 32 s on a hosted runner over a memo a passing sweep
-        # warmed. An older model's restored memo, or a cold run's empty one, adds at
-        # most about the 6 minutes a cold memo adds to the sweep.
+        # warmed. An older model's restored memo, or a cold run's empty one, is expected
+        # to add about the 6 minutes a cold memo adds to the sweep, an estimate no hosted
+        # run has measured yet.
         timeout-minutes: 15
         # This lane builds no model tree, so the directory holding the memo Sail rewrites
         # at exit stands only where a memo was restored.
