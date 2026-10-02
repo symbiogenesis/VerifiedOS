@@ -3,6 +3,7 @@
 #include "config_utils.h"
 #include "sail_riscv_model.h"
 #include <array>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -119,13 +120,65 @@ public:
   }
 };
 
+// One of `entries` disjoint parts of the campaign. Every case has an ordinal, its
+// place in the enumeration counting the boundary cases and then the idle/validation
+// cases, and part `index` runs the cases whose ordinal is congruent to `index`
+// modulo `entries`. Each case begins by reinitializing the device, which carries
+// over only the epoch's count, and checks the epoch only against its own earlier
+// values, so a part runs each of its cases as the whole campaign does. The whole
+// campaign is part 0 of 1.
+struct Shard {
+  size_t index = 0, entries = 1;
+
+  bool selects(size_t ordinal) const {
+    return ordinal % entries == index;
+  }
+
+  // How many of the ordinals below `enumerated` this part selects.
+  size_t share(size_t enumerated) const {
+    return enumerated / entries + (index < enumerated % entries ? 1 : 0);
+  }
+};
+
+// Reads a nonempty decimal numeral at `text` and advances past it.
+bool numeral(const char *&text, size_t &value) {
+  if (*text < '0' || *text > '9') {
+    return false;
+  }
+  value = 0;
+  for (; *text >= '0' && *text <= '9'; ++text) {
+    const size_t digit = static_cast<size_t>(*text - '0');
+    if (value > (SIZE_MAX - digit) / 10) {
+      return false;
+    }
+    value = value * 10 + digit;
+  }
+  return true;
+}
+
+// `I/N` names part I - 1 of N, for 1 <= I <= N.
+bool parse_shard(const char *text, Shard &shard) {
+  size_t index = 0, entries = 0;
+  if (!numeral(text, index) || *text != '/') {
+    return false;
+  }
+  ++text;
+  if (!numeral(text, entries) || *text != '\0' || index == 0 || index > entries) {
+    return false;
+  }
+  shard.index = index - 1;
+  shard.entries = entries;
+  return true;
+}
+
 class Campaign {
   ResetModel &m;
   size_t block_bytes, block_count;
   std::array<size_t, 4> steps;
   Buffer zero;
   bool negative_byte, negative_volatile;
-  size_t cases = 0, stale_events = 0;
+  Shard shard;
+  size_t enumerated = 0, cases = 0, stale_events = 0;
 
   void write(size_t offset, uint64_t value) {
     Integer at(static_cast<unsigned long>(offset));
@@ -252,6 +305,9 @@ class Campaign {
     Boundary boundary,
     size_t completed_steps
   ) {
+    if (!shard.selects(enumerated++)) {
+      return;
+    }
     context = "command=" + std::to_string(command) + " block=" + std::to_string(block) +
               " mask=" + std::to_string(pattern) + " corrupt=" + std::to_string(corrupt) +
               " error=" + std::to_string(error) + " boundary=" + std::to_string(static_cast<unsigned>(boundary)) +
@@ -304,14 +360,15 @@ class Campaign {
   }
 
 public:
-  Campaign(ResetModel &model, bool bad_byte, bool bad_volatile) :
+  Campaign(ResetModel &model, bool bad_byte, bool bad_volatile, Shard part) :
       m(model),
       block_bytes(count(m.zplat_blkdev_block_bytes)),
       block_count(count(m.zplat_blkdev_block_count)),
       steps{0, count(m.zplat_blkdev_read_steps), count(m.zplat_blkdev_write_steps), count(m.zplat_blkdev_flush_steps)},
       zero(static_cast<size_t>(m.zblkdev_max_block_bytes)),
       negative_byte(bad_byte),
-      negative_volatile(bad_volatile) {
+      negative_volatile(bad_volatile),
+      shard(part) {
     require(m.device_dispatch_enabled(), "device dispatch must be enabled");
     require(
       block_bytes > 0 && block_bytes <= zero.size() && block_bytes % 8 == 0 && block_count >= 2 &&
@@ -341,9 +398,12 @@ public:
         }
       }
     }
-    const size_t boundary_cases = cases;
+    const size_t boundary_enumerated = enumerated, boundary_cases = cases;
     for (unsigned pattern = 0; pattern < 3; ++pattern) {
       for (unsigned failure = 0; failure <= 3; ++failure) {
+        if (!shard.selects(enumerated++)) {
+          continue;
+        }
         context = "idle/validation=" + std::to_string(failure) + " mask=" + std::to_string(pattern);
         m.zblkdev_initializze(UNIT);
         const Bytes expected = bytes(m.zblkdev_medium);
@@ -366,22 +426,32 @@ public:
         finish_reset(epoch, expected, tear, false, false);
       }
     }
+    // The enumeration's totals, and this part's share of each, which is all of them
+    // for the whole campaign.
     const size_t derived = block_count * 3 * 2 * 2 * (steps[1] + steps[2] + steps[3] + 12);
     require(
-      boundary_cases == derived && cases == derived + 12 && stale_events == cases * 20,
+      boundary_enumerated == derived && enumerated == derived + 12 && boundary_cases == shard.share(derived) &&
+        cases == shard.share(derived + 12) && stale_events == cases * 20,
       "generated boundary/callback counts do not match fixture bounds"
     );
+    require(cases > 0, "the part selects no case");
     std::printf(
-      "block reset: block_bytes=%zu blocks=%zu service_steps=%zu/%zu/%zu "
-      "boundary_cases=%zu idle_validation_cases=12 resets=%zu stale_events=%zu PASS\n",
+      "block reset: block_bytes=%zu blocks=%zu service_steps=%zu/%zu/%zu shard=%zu/%zu "
+      "boundary_cases=%zu/%zu idle_validation_cases=%zu/12 resets=%zu/%zu stale_events=%zu/%zu PASS\n",
       block_bytes,
       block_count,
       steps[1],
       steps[2],
       steps[3],
+      shard.index + 1,
+      shard.entries,
       boundary_cases,
+      derived,
+      cases - boundary_cases,
       cases,
-      stale_events
+      derived + 12,
+      stale_events,
+      (derived + 12) * 20
     );
   }
 };
@@ -390,7 +460,10 @@ public:
 int main(int argc, char **argv) {
   const bool bad_byte = argc == 2 && std::strcmp(argv[1], "--negative-byte") == 0;
   const bool bad_volatile = argc == 2 && std::strcmp(argv[1], "--negative-volatile") == 0;
-  if (argc != 1 && !bad_byte && !bad_volatile) {
+  Shard shard;
+  const bool sharded = argc == 3 && std::strcmp(argv[1], "--shard") == 0 && parse_shard(argv[2], shard);
+  if (argc != 1 && !bad_byte && !bad_volatile && !sharded) {
+    std::fputs("usage: block_reset [--negative-byte | --negative-volatile | --shard I/N]\n", stderr);
     return 2;
   }
   sail_config_set_string(get_default_config());
@@ -398,7 +471,7 @@ int main(int argc, char **argv) {
   model.model_init();
   int result = EXIT_SUCCESS;
   try {
-    Campaign(model, bad_byte, bad_volatile).run();
+    Campaign(model, bad_byte, bad_volatile, shard).run();
   } catch (const std::exception &e) {
     std::fprintf(stderr, "block reset: FAIL %s\n", e.what());
     result = EXIT_FAILURE;
