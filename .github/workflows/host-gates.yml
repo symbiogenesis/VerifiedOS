@@ -367,9 +367,10 @@ jobs:
   # require every shard, both unpartitioned jobs and the hooks, whatever their
   # platform, so they fail together, and fail-fast is off so
   # that the second to finish reports that failure rather than being cancelled. The
-  # aggregates check out nothing and only read the other jobs' results, so they take the
-  # generally available ubuntu-24.04 image rather than the shards' preview image, whose
-  # queue has occasionally held them 38-71 s past the last shard.
+  # aggregates check out nothing and only read the other jobs' results, so they take
+  # ubuntu-24.04 rather than the shards' ubuntu-26.04, whose queue held them 38-71 s
+  # past the last shard in runs of 2026-09-30 and 2026-10-01, after that image's
+  # general availability and while ubuntu-latest still named ubuntu-24.04.
   host-gates:
     name: host-gates (${{ matrix.platform }})
     needs: [host-gates-shard, model-hooks]
