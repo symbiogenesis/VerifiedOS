@@ -68,7 +68,7 @@ from queue import Queue
 from typing import cast
 
 from vos import corpus as corpus_mod
-from vos import memplan, proofcites, proofheaders, proofs, sharding
+from vos import memplan, proofcites, proofheaders, proofs, sharding, timings
 from vos.checks import Context, generated, headers
 from vos.checks.ledger import ARTIFACT as PROOF_LEDGER
 from vos.coread import LEDGER
@@ -2625,6 +2625,9 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(str(err))
     if args.shard is not None:
         print(f"shard {args.shard}: {len(selected)} of {len(CASES)} cases; every shard must pass")
+    # Phase and case seconds for the gate's summary, never printed; claimed before any
+    # child starts, so no checker run inherits the file.
+    record, clock = timings.claim(), timings.Clock()
 
     # A private directory per run rather than one path every run reuses. What survives
     # between runs is the template cache, carried file by file under its own rules, so
@@ -2649,7 +2652,8 @@ def main(argv: list[str] | None = None) -> int:
     made: list[Sandbox] = []
     print(f"building {jobs + 1} sandbox(es) at {sandbox}")
     template = sandbox / "template"
-    copied, carried = build_template(repo, template, jobs)
+    with clock.timing("phase", "template"):
+        copied, carried = build_template(repo, template, jobs)
     print(f"placed {copied} file(s), {carried} carried from the previous run, "
           "indexed as the baseline")
     print()
@@ -2659,7 +2663,8 @@ def main(argv: list[str] | None = None) -> int:
         # up before it, using the available setup workers across its directories.
         # The rest land while the baseline runs, one worker per sandbox, each joining
         # the queue as it does, and the case wave draws them out as they arrive.
-        made.append(stand_up(template, sandbox / "w0", jobs=jobs))
+        with clock.timing("phase", "first sandbox"):
+            made.append(stand_up(template, sandbox / "w0", jobs=jobs))
         boxes: Queue[Sandbox] = Queue()
         with ThreadPoolExecutor(max_workers=jobs) as setup:
             def later(i: int) -> Sandbox:
@@ -2670,11 +2675,12 @@ def main(argv: list[str] | None = None) -> int:
                 return box
 
             standing = [setup.submit(later, i) for i in range(1, jobs + 1)]
-            code = _run(selected, made[0], boxes, standing[-1], jobs, repairable)
+            code = _run(selected, made[0], boxes, standing[-1], jobs, repairable, clock)
             for future in standing:
                 future.result()   # a sandbox that failed to stand up is loud, not lost
         return code
     finally:
+        started = time.perf_counter()
         if args.keep:
             print(f"sandboxes kept at {sandbox}")
         else:
@@ -2683,6 +2689,8 @@ def main(argv: list[str] | None = None) -> int:
             _publish(template, _cache_root(repo))
             _across(remove_tree, [box.path for box in made], jobs + 1)
             remove_tree(sandbox)
+        clock.add("phase", "teardown", time.perf_counter() - started)
+        timings.write(record, clock.units())
 
 
 def _verdict(case: Case, box: Sandbox) -> Verdict:
@@ -2718,14 +2726,23 @@ def _verdict(case: Case, box: Sandbox) -> Verdict:
 
 
 def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
-         repair_ready: Future[Sandbox], jobs: int, repairable: bool | None = None) -> int:
+         repair_ready: Future[Sandbox], jobs: int, repairable: bool | None = None,
+         clock: timings.Clock | None = None) -> int:
+    measured = clock or timings.Clock()
+
     def one(case: Case) -> Verdict:
         box = boxes.get()
+        started = time.perf_counter()
         try:
             return _verdict(case, box)
         finally:
             box.reset()
             boxes.put(box)
+            measured.add("case", f"{case[0]}: {case[1]}", time.perf_counter() - started)
+
+    def timed_repair() -> tuple[list[str], list[str]]:
+        with measured.timing("phase", "repair path"):
+            return _repair_path(repair_ready)
 
     # The repair path is five more whole runs of the checker in sequence, the longest
     # chain its shard holds, and depends on nothing the baseline or a case does, so it
@@ -2736,13 +2753,14 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
     if repairable is None:
         repairable = any(rule in REPAIRABLE for rule, _, _ in selected)
     with ThreadPoolExecutor(max_workers=jobs + 1) as pool:
-        repairing = pool.submit(_repair_path, repair_ready) if repairable else None
+        repairing = pool.submit(timed_repair) if repairable else None
 
         # Nothing below means anything against a sandbox that was already failing: a
         # mutant would be reported killed by whatever was broken before it was
         # introduced. That verdict discards the repair path's report, and leaving the
         # pool still waits for it, so no checker is running when the estate is removed.
-        code, out, _ = first.check()
+        with measured.timing("phase", "baseline"):
+            code, out, _ = first.check()
         if code != 0:
             print("FAIL: the unmutated sandbox does not pass, so no case can decide anything:")
             showing = False
@@ -2758,7 +2776,8 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
         print()
         boxes.put(first)
 
-        verdicts = list(pool.map(one, selected))
+        with measured.timing("phase", "cases"):
+            verdicts = list(pool.map(one, selected))
         repair: list[str] = []
         repair_out = ["--- the repair path ---",
                       "  skipped: this selection does not own the repair path"]

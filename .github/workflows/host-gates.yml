@@ -234,10 +234,21 @@ jobs:
                   if report["members"]:
                       annotate("notice", "Timings: " + "; ".join(
                           f"{m['name']}: {m['elapsed_seconds']:.2f}s" for m in report["members"]))
+                  # The parts members measured inside themselves: test modules, selftest
+                  # phases and cases. They overlap like members; the slowest show where
+                  # a shard's time went.
+                  slowest = sorted(((u["seconds"], u["kind"], u["name"])
+                                    for m in report["members"] for u in m.get("units") or []),
+                                   reverse=True)[:10]
+                  units = "; ".join(f"{kind} {name}: {seconds:.2f}s"
+                                    for seconds, kind, name in slowest)
+                  if units:
+                      annotate("notice", "Slowest units: " + units)
                   shard = report.get("shard", {})
                   label = f"shard {shard.get('index', '?')}/{shard.get('total', '?')}"
                   summary.write(f"### Host gates: {label}\n\nAll shards must pass.\n\n"
-                                + "\n".join(rows) + "\n")
+                                + "\n".join(rows) + "\n"
+                                + (f"\nSlowest units: {units}\n" if units else ""))
           except Exception as err:
               # Reporting is diagnostic; the gate, workflow-analysis and model-hook
               # steps own the job's verdict.

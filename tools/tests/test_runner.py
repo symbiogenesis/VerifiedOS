@@ -1,12 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 """Behavioral runner isolation, selection and failure reporting."""
 
-from contextlib import redirect_stderr
+import tempfile
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
+from vos import timings
 from vos.cli import test as runner
 from vos.sharding import Shard
 
@@ -114,6 +117,34 @@ def _shards_execute_the_selected_modules() -> None:
         raise AssertionError("a filter must not silently narrow CI shards")
 
 
+def _module_timings_stay_out_of_the_report() -> None:
+    names = ["test_harness", "test_report"]
+    with tempfile.TemporaryDirectory(prefix="vos-runner-units-") as td:
+        path = Path(td) / "units.json"
+        with patch.object(runner, "_module_names", return_value=names):
+            plain = runner.run(jobs=2)
+            timed = runner.run(jobs=2, record=path)
+        units = timings.read(path) or []
+        claimed = Path(td) / "claimed.json"
+        with (patch.object(runner, "_module_names", return_value=names[1:]),
+              patch.dict(runner.os.environ, {timings.ENV: str(claimed)}),
+              redirect_stdout(StringIO())):
+            code = runner.main(["--jobs", "1"])
+            ensure(timings.ENV not in runner.os.environ,
+                   "the run claims its file before any worker can inherit it")
+        through_main = timings.read(claimed) or []
+    ensure(plain.out == timed.out and plain.findings == timed.findings == 0,
+           f"recording timings changed the report: {timed.out}")
+    ensure([unit["name"] for unit in units] == names
+           and all(unit["kind"] == "module" and isinstance(seconds := unit["seconds"], float)
+                   and seconds >= 0 for unit in units),
+           f"each module is recorded once, in report order, with its seconds: {units!r}")
+    ensure(all(f"ok {unit['name']}: {unit['cases']} case(s)" in timed.out for unit in units),
+           f"each module's recorded case count is the count it reported: {units!r}")
+    ensure(code == 0 and [unit["name"] for unit in through_main] == names[1:],
+           f"the command records to the file its environment names: {through_main!r}")
+
+
 def cases() -> list[Case]:
     return [
         Case("selection-and-failures", _selection_and_failures),
@@ -122,4 +153,5 @@ def cases() -> list[Case]:
         Case("spawn-isolation", _spawn_isolation),
         Case("empty-and-invalid", _empty_and_invalid),
         Case("shards-execute-the-selected-modules", _shards_execute_the_selected_modules),
+        Case("module-timings-stay-out-of-the-report", _module_timings_stay_out_of_the_report),
     ]

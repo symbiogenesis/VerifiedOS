@@ -58,6 +58,10 @@ one finding of its own, which is the only way it reaches the exit code.
 Each member's elapsed wall time, including process launch, appears in its log
 section, JSON record (`elapsed_seconds`) and CI summary. Members run concurrently,
 so these durations overlap and must not be added to obtain the wave's duration.
+The JSON record's `units` add what a member measured inside itself, through
+[vos/timings.py](vos/timings.py): each behavioral test module's cases and seconds,
+and the selftest's phases and per-case seconds. Units overlap the same way, never
+enter the printed report, and the CI summary names the slowest of them.
 
 New commits cancel superseded runs of the same pull request; each push to `main`
 keeps its own run. Ubuntu runs four independent shards and Windows eight, because a
