@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 from contextlib import redirect_stderr
 from pathlib import Path
 from unittest.mock import patch
@@ -285,7 +286,7 @@ def _timings_round_trip_and_never_fail_the_run() -> None:
         ensure([(unit["kind"], unit["name"]) for unit in units]
                == [("case", "K-01: a"), ("case", "K-02: b"), ("phase", "teardown")],
                f"units are listed by kind and name, not by finishing order: {units!r}")
-        ensure(all(set(unit) == {"kind", "name", "seconds", "start"} for unit in units),
+        ensure(all(set(unit) == {"kind", "name", "seconds", "start", "at"} for unit in units),
                f"a wall clock records each unit's start and no CPU seconds: {units!r}")
         placed = timings.Clock(cpu=True, origin=10.0)
         placed.add("case", "K-03: c", 1.5, 12.25)
@@ -294,6 +295,14 @@ def _timings_round_trip_and_never_fail_the_run() -> None:
         placed.span("phase", "imports", timings.Reading(10.5, 1.0, 0.5),
                     timings.Reading(11.0, 1.25, 1.0))
         added, timed, spanned = placed.units()
+        # The wall-clock time at the origin, the `perf_counter` reading 10.0, to which each
+        # unit's `at` adds its start.
+        origin_at = time.time() - (time.perf_counter() - 10.0)
+        for unit in (added, timed, spanned):
+            at, start = unit.pop("at", None), unit.get("start")
+            ensure(isinstance(at, float) and isinstance(start, float)
+                   and abs(at - start - origin_at) < 0.5,
+                   f"a unit's at is the wall-clock time of its start: {at!r}, {unit!r}")
         ensure(added == {"kind": "case", "name": "K-03: c", "seconds": 1.5, "start": 2.25},
                f"a unit starts at its offset from the clock's origin: {added!r}")
         children = sys.platform != "win32"

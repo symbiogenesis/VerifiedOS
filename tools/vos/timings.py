@@ -81,17 +81,19 @@ class Clock:
     order does not depend on which measurement finished first.
 
     Each unit's `start` is its offset in seconds from the clock's origin, the
-    `perf_counter` reading it was made at unless it is given one, so the parts a member
-    ran at once can be laid on one timeline. A clock made with `cpu` also records over
-    each block it times this process's CPU seconds as `cpu_seconds`, and, except on
-    Windows, those of the child processes it waited for as `child_cpu_seconds`: they are
-    the block's own only where nothing else in the process runs beside it, as in the
-    checker.
+    `perf_counter` reading it was made at unless it is given one, which places a member's
+    parts on that member's timeline. Its `at` is the wall-clock time it began, in seconds
+    since the epoch, which places the parts of the members that ran at once on one
+    machine on one timeline. A clock made with `cpu` also records over each block it
+    times this process's CPU seconds as `cpu_seconds`, and, except on Windows, those of
+    the child processes it waited for as `child_cpu_seconds`: they are the block's own
+    only where nothing else in the process runs beside it, as in the checker.
     """
 
     def __init__(self, cpu: bool = False, origin: float | None = None) -> None:
         self._cpu = cpu
         self._origin = time.perf_counter() if origin is None else origin
+        self._origin_at = time.time() - (time.perf_counter() - self._origin)
         self._measured: list[tuple[str, str, float, float, float | None, float | None]] = []
         self._lock = threading.Lock()
 
@@ -127,7 +129,7 @@ class Clock:
         units: list[Unit] = []
         for kind, name, seconds, start, cpu, child in measured:
             unit: Unit = {"kind": kind, "name": name, "seconds": round(seconds, 3),
-                          "start": round(start, 3)}
+                          "start": round(start, 3), "at": round(self._origin_at + start, 3)}
             if cpu is not None:
                 unit["cpu_seconds"] = round(cpu, 3)
             if child is not None:

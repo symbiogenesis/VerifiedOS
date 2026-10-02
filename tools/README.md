@@ -66,12 +66,14 @@ and the artifacts) and each group's seconds, with the checker process's own CPU
 seconds (`cpu_seconds`) beside each and, except on Windows, whose process accounting
 counts none, those of the processes it started and waited for, such as Git's
 (`child_cpu_seconds`). A selftest or checker unit also carries its `start`, its offset in
-seconds from when that member's clock started, so the parts that ran at once can be
-laid on one timeline. Units overlap the same way and never enter the printed report.
-The CI summary names the slowest of them, and the reporting step prints every unit of
-every member to the job log, one JSON line each, by member and then slowest first,
-after one line naming the runner's CPU count and model, in one collapsed group with
-workflow commands stopped.
+seconds from when that member's clock started, which places it on that member's
+timeline, and its `at`, the wall-clock time it began in seconds since the epoch, which
+lays the parts of the members that ran at once on one runner on one timeline; a test
+module's unit carries neither. Units overlap the same way and never enter the printed
+report. The CI summary names the slowest of them, and the reporting step prints every
+unit of every member to the job log, one JSON line each, by member and then slowest
+first, after one line naming the runner's CPU count and model, in one collapsed group
+with workflow commands stopped.
 
 New commits cancel superseded runs of the same pull request; each push to `main`
 keeps its own run. Ubuntu runs four independent shards and Windows eight, because a
