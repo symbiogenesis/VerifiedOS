@@ -116,6 +116,26 @@ def _unlisted_library_use() -> None:
         _refused(root, "Narcissus use requires descriptor bindings")
 
 
+def _library_use_beside_a_comment_refuses() -> None:
+    # A blanked comment separates words, so a name a comment sets off is still read.
+    with _fixture() as (root, _):
+        (root / "proofs" / "Beside.v").write_text(
+            "From(* the library *)Narcissus Require Import Formats.\n",
+            encoding="utf-8", newline="")
+        _refused(root, "Beside.v: Narcissus use requires descriptor bindings")
+
+
+def _referenced_source_library_use_refuses() -> None:
+    # A source an entry references is read once for both its symbols and the absence
+    # scan, and the scan still reads what was added to it.
+    with _fixture() as (root, _):
+        path = root / "proofs" / "ModuleFormats.v"
+        path.write_text(path.read_text(encoding="utf-8")
+                        + "\nFrom Narcissus Require Import Formats.\n",
+                        encoding="utf-8", newline="")
+        _refused(root, "ModuleFormats.v: Narcissus use requires descriptor bindings")
+
+
 def _comments_are_not_descriptors() -> None:
     with _fixture() as (root, _):
         (root / "proofs" / "Comment.v").write_text(
@@ -201,6 +221,8 @@ def cases() -> list[Case]:
             Case("reference cannot become a descriptor", _forged_descriptor),
             Case("missing theorem refuses", _missing_symbol),
             Case("unlisted library use refuses", _unlisted_library_use),
+            Case("library use beside a comment refuses", _library_use_beside_a_comment_refuses),
+            Case("referenced source library use refuses", _referenced_source_library_use_refuses),
             Case("nested comments are not proof evidence", _comments_are_not_descriptors),
             Case("changed crown membership needs review", _changed_crown_membership),
             Case("new owning grammar form reaches the view", _new_grammar_form_is_rendered),

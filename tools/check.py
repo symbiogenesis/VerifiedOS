@@ -50,10 +50,11 @@ what earlier groups computed, so the rule's verdict is the one a whole run reach
 the mutation selftest uses it because each case needs its own rule's verdict alone.
 A stopped run decides nothing about the later groups and says so.
 
-Under the gate's `--summary`, the seconds of each fixed phase before the first group and
-of each group go to the file [vos/timings.py](vos/timings.py) names, with this process's
-CPU seconds and, except on Windows, those of the processes it started and waited for
-beside them, never into the printed report.
+Under the gate's `--summary`, the seconds of each fixed phase before the first group, of
+each group, and of the generated group's staged-blob read and each of its rows go to the
+file [vos/timings.py](vos/timings.py) names, with this process's CPU seconds and, except
+on Windows, those of the processes it started and waited for beside them, never into the
+printed report.
 
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
@@ -105,7 +106,7 @@ def run(root: Path, fix: bool = False, through: str | None = None,
     is what lets the mutation selftest read a run back instead of parsing its
     stdout. `through` stops the run after the group that reports that rule. `clock`
     receives the fixed phases before the first group and each group that ran, by the
-    last part of its module's name."""
+    last part of its module's name, and whatever parts a group measures inside itself."""
     measured = clock or timings.Clock()
     with measured.timing("phase", "corpus load"):
         corpus = corpus_mod.load(root)
@@ -113,7 +114,8 @@ def run(root: Path, fix: bool = False, through: str | None = None,
         reg = read_register(corpus)
     with measured.timing("phase", "artifacts read"):
         art = read_artifacts(corpus)
-    ctx = Context(root=root, corpus=corpus, reg=reg, art=art, rep=Reporter(), fix=fix)
+    ctx = Context(root=root, corpus=corpus, reg=reg, art=art, rep=Reporter(), fix=fix,
+                  clock=measured)
     decided = re.compile(rf"\s*(?:ok|FAIL) {re.escape(through)}:") if through else None
     skipped = 0
     for index, group in enumerate(GROUPS):

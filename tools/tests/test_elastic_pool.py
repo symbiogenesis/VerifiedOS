@@ -3,6 +3,7 @@
 
 from collections.abc import Callable
 from dataclasses import replace
+from itertools import product
 from pathlib import Path
 
 from tests.harness import Case, ensure
@@ -214,6 +215,21 @@ def bounded_sequences_satisfy_the_four_observers() -> None:
                f"generated history violated its contract: {history}")
 
 
+def forked_prefixes_replay_each_word() -> None:
+    # The generator runs each prefix once and forks the pool it left; every word's
+    # history must still be the one replaying the word on a fresh fixture records, in
+    # the words' lexicographic order, refusals included.
+    for depth in (0, 1, 4):
+        replayed: list[list[p.Event]] = []
+        for word in product(range(p.COMMANDS), repeat=depth):
+            pool = p.fixture()
+            for command in word:
+                p.apply_command(pool, command)
+            replayed.append(pool.history)
+        ensure(p.generated_histories(depth) == replayed,
+               f"a forked prefix changed a depth-{depth} history or its order")
+
+
 def each_named_refutation_is_detected() -> None:
     pool = p.fixture()
     grant = pool.allocate(1, 0, 0)
@@ -262,6 +278,7 @@ def cases() -> list[Case]:
         physical_pool_extents_are_disjoint,
         heap_narrowing_and_lifetime_are_exclusive,
         bounded_sequences_satisfy_the_four_observers,
+        forked_prefixes_replay_each_word,
         each_named_refutation_is_detected,
         no_counter_wrap,
         generated_gallina_is_current,

@@ -62,8 +62,9 @@ The JSON record's `units` add what a member measured inside itself, through
 [vos/timings.py](vos/timings.py): each behavioral test module's cases and seconds;
 the selftest's phases and per-case seconds; and the checker's fixed phases before its
 first group (importing the groups' modules, loading the corpus, reading the register
-and the artifacts) and each group's seconds, with the checker process's own CPU
-seconds (`cpu_seconds`) beside each and, except on Windows, whose process accounting
+and the artifacts), each group's seconds and, inside the generated group, its batched
+read of the staged blobs and each generated artifact's row, with the checker process's
+own CPU seconds (`cpu_seconds`) beside each and, except on Windows, whose process accounting
 counts none, those of the processes it started and waited for, such as Git's
 (`child_cpu_seconds`). A selftest or checker unit also carries its `start`, its offset in
 seconds from when that member's clock started, which places it on that member's
