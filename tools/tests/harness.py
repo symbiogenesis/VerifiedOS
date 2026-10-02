@@ -125,6 +125,10 @@ def git_skeleton() -> Skeleton:
     with tempfile.TemporaryDirectory(prefix="vos-test-init-") as td:
         admin = Path(td).resolve() / ".git"
         _git(admin.parent, "init", "-q")
+        # An init sent elsewhere, as by a GIT_DIR in the environment, leaves nothing here
+        # to walk; caching that would hand every later sandbox an empty `.git`.
+        if not (admin / "HEAD").is_file():
+            raise RuntimeError(f"git init wrote no repository at {admin}")
         directories: list[str] = []
         written: list[tuple[str, bytes, int]] = []
         for dirpath, _dirnames, filenames in admin.walk():
