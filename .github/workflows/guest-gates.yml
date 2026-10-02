@@ -114,6 +114,8 @@ jobs:
           echo "unchanged=$unchanged" >> "$GITHUB_OUTPUT"
 
   guest-gates:
+    # The lane alone names a job; its other matrix fields follow from it.
+    name: guest-gates (${{ matrix.lane }})
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.unchanged != 'true' }}
     runs-on: ubuntu-26.04
