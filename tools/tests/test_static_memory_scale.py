@@ -15,6 +15,11 @@ from vos import static_memory as memory
 from vos import static_memory_bounds as bounds
 from vos import static_memory_scale as scale
 
+# Each case generates its own corpus, draws only from generators it seeds itself and
+# patches only inside a `with`, so the cases share no state, and a sharded run spreads
+# them over every shard (vos/cli/test.py).
+INDEPENDENT_CASES = True
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
