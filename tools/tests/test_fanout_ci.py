@@ -547,9 +547,13 @@ def _aggregate_faults(contents: str) -> list[str]:
     """Why the host workflow's aggregate job could pass beside a job that did not succeed.
 
     The aggregate needs every other job of the workflow, listed in a flow sequence, and
-    runs whatever they concluded. Its one step binds one environment variable to each
-    needed job's result, and its single-line run is a `test "$NAME" = success` of each
-    of them, once, joined by `&&` with nothing else."""
+    runs whatever they concluded. No uncommented line of any job, the aggregate's
+    included, spells continue-on-error in any spelling `_spellings` gives it, so a
+    failed step fails its job and a failed job its result. The aggregate's one step
+    states only its name, env and run, so no condition skips it and no shell of its own
+    runs the line. It binds one environment variable to each needed job's result, and
+    its single-line run is a `test "$NAME" = success` of each of them, once, joined by
+    `&&` with nothing else. A shell set by `defaults` is not read."""
     jobs = _workflow_jobs(contents)
     aggregate = jobs.get("host-gates", "")
     others = sorted(job for job in jobs if job != "host-gates")
@@ -560,9 +564,19 @@ def _aggregate_faults(contents: str) -> list[str]:
         faults.append(f"the aggregate needs {needed!r}, not every other job {others!r}")
     if not re.search(r"(?m)^    if: \$\{\{ always\(\) \}\}$", aggregate):
         faults.append("the aggregate does not run whatever the jobs it needs concluded")
+    for job, block in sorted(jobs.items()):
+        uncommented = "\n".join(line for line in block.split("\n")
+                                if not line.lstrip().startswith("#"))
+        if any("continue-on-error" in spelling for spelling in _spellings(uncommented)):
+            faults.append(f"{job} states continue-on-error, so a failure in it can leave a "
+                          "result the aggregate reads green")
     steps = _step_texts(aggregate)
     if len(steps) != 1:
         return [*faults, f"the aggregate runs {len(steps)} step(s), not one"]
+    stated = re.findall(r"(?m)^(?:      - |        )([^\s:][^:\n]*?)[ \t]*:", steps[0])
+    if extra := sorted(set(stated) - {"name", "env", "run"}):
+        faults.append(f"the aggregate's step states {extra!r} beside its name, env and run, "
+                      "so it can be skipped or run its line otherwise")
     bound: dict[str, str] = {}
     for line in _step_block(steps[0], "env")[1:]:
         result = re.fullmatch(r"          ([A-Z][A-Z_]*): \$\{\{ needs\.([\w-]+)\.result \}\}",
@@ -590,7 +604,19 @@ def _workflow_host_aggregate_needs() -> None:
     found = _aggregate_faults(contents)
     ensure(not found, f"{ci.HOST}'s aggregates require every other job: {found!r}")
     hooks = ' && test "$HOOKS_RESULT" = success'
+    bindings = "        env:\n          SHARDS_RESULT:"
     for mutant, fragment in (
+            (contents.replace("    name: model-hooks\n",
+                              "    name: model-hooks\n    continue-on-error: true\n"),
+             "model-hooks states continue-on-error"),
+            (contents.replace("      - name: Model hooks\n",
+                              "      - name: Model hooks\n        continue-on-error: true\n"),
+             "model-hooks states continue-on-error"),
+            (contents.replace("    if: ${{ always() }}\n",
+                              "    if: ${{ always() }}\n    continue-on-error: true\n"),
+             "host-gates states continue-on-error"),
+            (contents.replace(bindings, "        if: ${{ false }}\n" + bindings),
+             "beside its name, env and run"),
             (contents.replace("    needs: [host-gates-shard, model-hooks]\n",
                               "    needs: host-gates-shard\n"), "not every other job"),
             (contents.replace("    if: ${{ always() }}\n", ""), "does not run whatever"),
