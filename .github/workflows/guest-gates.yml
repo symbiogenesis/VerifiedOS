@@ -318,9 +318,9 @@ jobs:
       - name: Restore the compiler cache
         id: ccache
         # The model build compiles through ccache's launchers. The rtl lane's bundle
-        # check compiles nothing, and its RTL checks compile through Verilator's build
-        # and the C compiler directly, under paths the model build never uses, so no
-        # entry of this cache could serve them.
+        # check compiles nothing, and its RTL checks compile other sources, Verilator's
+        # generated C++ and the vector generator's C, under paths the model build never
+        # uses, so no entry of this cache could serve them.
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

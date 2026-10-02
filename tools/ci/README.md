@@ -289,9 +289,10 @@ lane saves the cache, when the key missed, after a passing sweep and a successfu
 The statistics and the trim decide no verdict: printing the statistics never fails
 the step, and a failure to zero them, note the time or trim skips the save alone. The
 monthly and manual cold modes look the key up without restoring it, so their builds
-compile every unit. The rtl lane restores none of it, because no compile it runs goes
-through the model build's launchers and paths. The guest report tests hold these
-steps' order, conditions, key and paths.
+compile every unit. The rtl lane restores none of it, because every compile it runs
+builds other sources, Verilator's generated C++ and the vector generator's C, under
+paths the model build never uses. The guest report tests hold these steps' order,
+conditions, key and paths.
 
 Each command runs under GNU time, whose figures in its retained log end with
 `maxrss_kb`: the peak resident memory of the command's largest single process. The
