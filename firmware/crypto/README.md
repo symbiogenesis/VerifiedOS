@@ -149,12 +149,12 @@ accepts a revision already on `main` and a per-case timeout of at most 9,600 s,
 One campaign runs at a time, and a newer run cancels an older one, queued or
 running, which then joins no receipt. Each interface runs on its own runner with
 `--mode` and `--jobs 4`, so its positive still gates its refusals. Each runner
-verifies the streams, restores Guest CI's
-model-lane toolchains and Sail memo read-only, and builds the model for its
-simulator and build receipt. `boot-crypto join` then composes the five receipts:
-every interface exactly once, identical source, model, manifest, compiler and
-vector identities, verdicts that agree with their cases, and unexecuted cases
-listed. A failed case fails the joined receipt; an inconsistent set is refused.
-The run retains each interface's receipt and logs and the joined `report.json`
-for 30 days. A passing joined receipt is target execution evidence for the staged
-streams at its revision; the firmware join and the limits above remain.
+verifies the streams, restores Guest CI's model-lane toolchains and Sail memo
+read-only, and builds the model for its simulator and build receipt.
+`boot-crypto join` then composes the five receipts: every interface exactly once,
+identical source, model, manifest, compiler and vector identities, verdicts that
+agree with their cases, and unexecuted cases listed. A failed case fails the
+joined receipt; an inconsistent set is refused. The run retains each interface's
+receipt and logs and the joined `report.json` for 30 days. A passing joined
+receipt is target execution evidence for the staged streams at its revision; the
+firmware join and the limits above remain.
