@@ -463,22 +463,23 @@ def _recipe_identity_follows_its_owners() -> None:
         return patch.object(bootstrap.receipts, "digest", side_effect=lambda path: (
             "0" * 64 if Path(path).name == name else digest(path)))
 
+    # Built through lists, so the patched values are typed as the attributes they replace.
+    packages = [*bootstrap.BASE_PACKAGES, "another-package"]
+    repositories = [*bootstrap.opam_client.OPAM_REPOSITORIES, ("mine", "https://example.invalid")]
+    more_packages, more_repositories = tuple(packages), tuple(repositories)
     moved: dict[str, tuple[AbstractContextManager[object], tuple[bool, bool]]] = {
         "sail.lock's bytes": (changed("sail.lock"), (True, False)),
         "rocq.lock's bytes": (changed("rocq.lock"), (False, True)),
         "the prover's packages": (patch.dict(bootstrap.PACKAGES, {
             "rocq": (*bootstrap.SWITCH_PACKAGES, "another-package")}), (False, True)),
-        "every selection's packages": (patch.object(
-            bootstrap, "BASE_PACKAGES", (*bootstrap.BASE_PACKAGES, "another-package")),
-            (True, True)),
+        "every selection's packages": (patch.object(bootstrap, "BASE_PACKAGES", more_packages),
+                                       (True, True)),
         "the client's release": (patch.object(bootstrap.opam_client, "OPAM_VERSION", "9.9.9"),
                                  (True, True)),
         "the client's SHA-256": (patch.dict(bootstrap.opam_client.OPAM_HASHES, {
             "x86_64": ("x86_64", "0" * 64)}), (True, True)),
         "the client's repositories": (patch.object(
-            bootstrap.opam_client, "OPAM_REPOSITORIES",
-            (*bootstrap.opam_client.OPAM_REPOSITORIES, ("mine", "https://example.invalid"))),
-            (True, True)),
+            bootstrap.opam_client, "OPAM_REPOSITORIES", more_repositories), (True, True)),
         "the Sail switch's recipe": (patch.object(bootstrap.env, "SAIL_INSTALL", tuple(
             tuple(argument.replace(bootstrap.env.SAIL_SWITCH, "another-switch")
                   for argument in argv) for argv in bootstrap.env.SAIL_INSTALL)),

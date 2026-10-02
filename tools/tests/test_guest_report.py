@@ -452,7 +452,7 @@ def _lanes_match_the_workflow() -> None:
 
 def _with(step: str, key: str) -> list[str]:
     """Every one-line value a step's `with:` states for `key`."""
-    return re.findall(rf"(?m)^          {re.escape(key)}: (.*)$", step)
+    return [str(value) for value in re.findall(rf"(?m)^          {re.escape(key)}: (.*)$", step)]
 
 
 def _block(text: str, header: str) -> list[str]:
