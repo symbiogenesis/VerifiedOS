@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Native Linux evidence for Sail, Rocq and standalone RTL; tools/ci/README.md
 # defines the scope. Ordinary runs restore toolchains, validated proof inputs and
-# the model lane's Sail solver memo. Monthly and explicitly cold runs install and
-# check everything from scratch.
+# the model lane's Sail solver memo and compiler cache. Monthly and explicitly cold
+# runs install and check everything from scratch.
 # Each lane runs on its own runner. The proofs lane shares no toolchain or output
 # with the others and installs only its own. The rtl lane selects the model lane's
 # toolchains and restores, but never saves, that lane's download, toolchain and Sail
