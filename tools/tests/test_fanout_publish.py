@@ -10,6 +10,11 @@ from tests.harness import Case, ensure
 from vos import fanout_ci, fanout_retire
 from vos.cli import fanout
 
+# Each case builds its own repository, remote and lane through fanout_fixture, and
+# patches only inside a `with`, so the cases share no state, and a sharded run spreads
+# them over every shard (vos/cli/test.py).
+INDEPENDENT_CASES = True
+
 
 def _publish_wait_resume() -> None:
     with fixture() as (root, lane, remote):
