@@ -1,7 +1,7 @@
 set(SAIL_MODULES "--all-modules" CACHE STRING "List of modules to compile into the model (defaults to all)")
 
 # Common Sail flags for all commands.
-set(sail_common
+set(sail_flags
     # Don't allow implicit var declaration (like Python). This is
     # deprecated because it is error-prone.
     --strict-var
@@ -11,16 +11,22 @@ set(sail_common
     --strict-exponentials
     # Minimum required Sail compiler version.
     --require-version ${SAIL_REQUIRED_VER}
-    # Put Sail smt cache in /build directory since by default Sail will
-    # place it in its working directory which is ${CMAKE_CURRENT_SOURCE_DIR}.
-    --memo-z3-path "${CMAKE_CURRENT_BINARY_DIR}/sail_smt_cache"
 )
 
 # Mirroring Sail's PRINT_EFFECTS flag
 option(PRINT_EFFECTS "Pass PRINT_EFFECTS to Sail (used in the Rocq backend)" OFF)
 if(PRINT_EFFECTS)
-    list(APPEND sail_common -D PRINT_EFFECTS)
+    list(APPEND sail_flags -D PRINT_EFFECTS)
 endif()
+
+# The common flags with the memo every Sail command uses but the SMT
+# property test, which passes the flags alone and a memo of its own.
+set(sail_common
+    ${sail_flags}
+    # Put Sail smt cache in /build directory since by default Sail will
+    # place it in its working directory which is ${CMAKE_CURRENT_SOURCE_DIR}.
+    --memo-z3-path "${CMAKE_CURRENT_BINARY_DIR}/sail_smt_cache"
+)
 
 set(project_file "riscv.sail_project")
 
@@ -275,12 +281,11 @@ foreach (xlen IN ITEMS 64)
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
             COMMAND
                 ${SAIL_BIN}
-                ${sail_common}
+                ${sail_flags}
                 # A memo of the test's own, which no command the build runs
                 # writes, so that the test can run beside the build: Sail
                 # rewrites its memo whole at exit, and two writers of one file
-                # lose and tear each other's records. Sail takes the last
-                # --memo-z3-path it is given.
+                # lose and tear each other's records.
                 --memo-z3-path "${CMAKE_CURRENT_BINARY_DIR}/sail_smt_cache_properties"
                 # Generate SMT files.
                 --smt

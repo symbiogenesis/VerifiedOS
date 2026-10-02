@@ -242,24 +242,35 @@ def _seed_smt_cache() -> None:
 
 
 def _property_test_keeps_its_own_memo() -> None:
-    """The property test's command names its own memo after the one every other Sail
-    command of the model shares, and Sail takes the last `--memo-z3-path` it is given,
-    so the test never writes the build's memo; the memo it names is the one
+    """The property test's command passes the model's common Sail flags, which name no
+    memo, and one `--memo-z3-path`, its own, while every other Sail command passes the
+    flags with the build tree's memo. So the test never writes the build's memo, with no
+    reliance on how Sail treats a repeated option, and the memo it names is the one
     `_seed_smt_cache` seeds."""
     text = (TOOLS.parent / "model" / "model" / "CMakeLists.txt").read_text(encoding="utf-8")
+    flags = re.search(r"(?ms)^set\(sail_flags\n(.*?)^\)$", text)
     common = re.search(r"(?ms)^set\(sail_common\n(.*?)^\)$", text)
     test = re.search(r"(?ms)^ +add_test\(\n +NAME smt_properties_\$\{arch\}\n(.*?)^ +\)$", text)
-    ensure(common is not None and test is not None,
-           "the model's shared Sail flags and its property test are where they were")
-    if common is None or test is None:
+    ensure(flags is not None and common is not None and test is not None,
+           "the model's common Sail flags, its shared memo and its property test are "
+           "where they were")
+    if flags is None or common is None or test is None:
         return
-    shared = [str(path) for path in re.findall(r'--memo-z3-path "([^"]*)"', common[1])]
-    own = [str(path) for path in re.findall(r'--memo-z3-path "([^"]*)"', test[1])]
-    ensure(shared == ["${CMAKE_CURRENT_BINARY_DIR}/sail_smt_cache"],
-           f"every Sail command shares the build tree's memo, got {shared}")
-    ensure(own == [f"${{CMAKE_CURRENT_BINARY_DIR}}/{_MODEL.PROPERTY_MEMO}"]
-           and test[1].index("${sail_common}") < test[1].index("--memo-z3-path"),
-           f"the test names its own memo after the shared flags, got {own}")
+    ensure(_memo_paths(flags[1]) == [],
+           f"the common flags name no memo, got {_memo_paths(flags[1])}")
+    ensure(common[1].lstrip().startswith("${sail_flags}")
+           and _memo_paths(common[1]) == ["${CMAKE_CURRENT_BINARY_DIR}/sail_smt_cache"],
+           "every other Sail command shares the build tree's memo, "
+           f"got {_memo_paths(common[1])}")
+    ensure("${sail_flags}" in test[1] and "${sail_common}" not in test[1]
+           and _memo_paths(test[1]) == [
+               f"${{CMAKE_CURRENT_BINARY_DIR}}/{_MODEL.PROPERTY_MEMO}"],
+           f"the test passes the flags alone and its own memo, got {_memo_paths(test[1])}")
+
+
+def _memo_paths(block: str) -> list[str]:
+    """The `--memo-z3-path` operands a block of the model's CMake names, in order."""
+    return [str(path) for path in re.findall(r'--memo-z3-path "([^"]*)"', block)]
 
 
 def _seed_cache_file() -> None:
