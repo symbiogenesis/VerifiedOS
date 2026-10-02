@@ -324,7 +324,7 @@ def _ctest_requires_nonempty_complete_success() -> None:
 
 
 def _ctest_sums_one_builds_runs() -> None:
-    """A build that started the Sail property test beside its compile reports its suite
+    """A build that started the Sail property test beside the build reports its suite
     in two ctest runs, and the tally is their sum."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as temporary:
         path = Path(temporary) / "build.log"

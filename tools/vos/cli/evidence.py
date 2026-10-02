@@ -93,8 +93,8 @@ def _ctest(log: Path) -> str:
     """A complete successful test tally from the verified build's own log.
 
     The tally sums every ctest summary the log carries, each of which must report a
-    nonempty complete success: a build that starts the Sail property test beside its
-    compile runs it in a ctest run of its own beside the rest of the suite's
+    nonempty complete success: a build that starts the Sail property test beside the
+    build runs it in a ctest run of its own beside the rest of the suite's
     (`model._ctest_stage`)."""
     text = log.read_text(encoding="utf-8")
     matches = list(_CTEST_RE.finditer(text))
