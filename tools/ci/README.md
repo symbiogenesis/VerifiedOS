@@ -272,23 +272,25 @@ less its scratch `tmp`, before its evidence sweep, so a compile an earlier main 
 already made, the generated model unit's included, returns that run's object instead
 of compiling again. Under the default configuration [vos/env.py](../vos/env.py) keeps,
 with no sloppiness and no base directory, ccache keys each object on the preprocessed
-source, the compiler and the full command line, and every runner builds from the same
-checkout path into the same `~/verifiedos-guest/build` tree, so a hit is the object
-that compile produces, debug information included. The key binds the runner OS,
-architecture, image version and the model lane's toolchain recipe identity, so an
-entry never crosses an image or toolchain recipe, and hashes `model/**`; a fallback
-within that lineage supplies an older model's objects, which hit only where a unit's
-inputs are unchanged. A configure option changed outside `model/` costs misses, never
-a wrong object, until the model next changes. Before the sweep the lane zeroes ccache's
-statistics and notes the time; after it, the lane prints them, this run's hits and
-misses, to the log and evicts every entry older than that time, which a hit renews, so
-only the objects this build used remain. Only main's model lane saves the cache, when the key
-missed, after a passing sweep and a successful trim. The statistics and the trim decide
-no verdict: a failure in either skips the save alone. The monthly and manual cold modes
-look the key up without restoring it, so their builds compile every unit. The rtl lane
-restores none of it, because no compile it runs goes through the model build's
-launchers and paths. The guest report tests hold these steps' order, conditions, key
-and paths.
+source, the full command line and the compiler's size and modification time, and every
+runner builds from the same checkout path into the same `~/verifiedos-guest/build`
+tree. The build compiles with the image's preinstalled clang, which bootstrap's
+`--no-upgrade` installation leaves in place, so the key's image version binds the
+compiler itself, and a hit is the object that compile produces, debug information
+included. The key binds the runner OS, architecture, image version and the model lane's
+toolchain recipe identity, so an entry never crosses an image or toolchain recipe, and
+hashes `model/**`; a fallback within that lineage supplies an older model's objects,
+which hit only where a unit's inputs are unchanged. A configure option changed outside
+`model/` costs misses, never a wrong object, until the model next changes. Before the
+sweep the lane zeroes ccache's statistics and notes the time; after it, the lane prints
+them, this run's hits and misses, to the log and evicts every entry older than that
+time, which a hit renews, so only the objects this build used remain. Only main's model
+lane saves the cache, when the key missed, after a passing sweep and a successful trim.
+The statistics and the trim decide no verdict: a failure in either skips the save
+alone. The monthly and manual cold modes look the key up without restoring it, so their
+builds compile every unit. The rtl lane restores none of it, because no compile it runs
+goes through the model build's launchers and paths. The guest report tests hold these
+steps' order, conditions, key and paths.
 
 Each command runs under GNU time, whose figures in its retained log end with
 `maxrss_kb`: the peak resident memory of the command's largest single process. The

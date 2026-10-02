@@ -328,10 +328,11 @@ jobs:
           path: |
             ${{ env.CCACHE_DIR }}
             !${{ env.CCACHE_DIR }}/tmp
-          # ccache keys each object on the compiler, the full command line and the
-          # preprocessed source, and every runner builds at the same paths, so a hit is
-          # the object the compile would produce. The lineage still never crosses an
-          # image or toolchain recipe, and the hash names the model a sweep compiled.
+          # ccache keys each object on the preprocessed source, the full command line and
+          # the compiler's size and modification time, and every runner builds at the same
+          # paths. The image's version binds the compiler itself, its preinstalled clang,
+          # so a hit is the object the compile would produce. The lineage never crosses
+          # a toolchain recipe either, and the hash names the model a sweep compiled.
           key: guest-ccache-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}-${{ hashFiles('model/**') }}
           # An older model's objects hit wherever a unit's inputs are unchanged.
           restore-keys: guest-ccache-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}-
