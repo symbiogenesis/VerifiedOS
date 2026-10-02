@@ -530,6 +530,13 @@ def _workflow_host_job_names() -> None:
            "every aggregate platform runs the shards it requires")
     faults = _runner_faults(contents)
     ensure(not faults, f"{ci.HOST} names an explicit runner image per platform: {faults!r}")
+    # A platform's shards and unpartitioned job each state its label, so an image move
+    # that reaches only one of them is refused.
+    moved = re.sub(r"(\{platform: Windows, shard: unpartitioned, runner: [^\s,{}]+)\}",
+                   r"\1-moved}", contents)
+    faults = _runner_faults(moved)
+    ensure(moved != contents and any("not one runner image" in fault for fault in faults),
+           f"Windows's unpartitioned job must share its shards' image: {faults!r}")
     faults = _gate_faults(contents)
     ensure(not faults, f"{ci.HOST} runs the gate once on every runner: {faults!r}")
     # The model's hooks run on the image the Ubuntu shards name, so an image move that
@@ -1085,11 +1092,13 @@ def _runner_faults(contents: str) -> list[str]:
     """Why the host workflow's shard runners are not explicit images per platform.
 
     Every `runner` key the shard job states, in any mapping style, must belong to an
-    include entry naming one platform, every platform of the matrix must have one, and
-    no label may be a moving `-latest` alias. Every `runs-on` is a block line whose
-    value is either the shard job's `${{ matrix.runner }}`, stated once and there alone,
-    or one unquoted label fully matching `[A-Za-z0-9][A-Za-z0-9._-]*` without `latest`,
-    so a YAML alias, a flow sequence, another expression or a trailing comment is refused.
+    include entry naming one platform, every platform of the matrix must have one, the
+    entries naming one platform must all name the same label, so its shards and its
+    unpartitioned job share an image, and no label may be a moving `-latest` alias.
+    Every `runs-on` is a block line whose value is either the shard job's
+    `${{ matrix.runner }}`, stated once and there alone, or one unquoted label fully
+    matching `[A-Za-z0-9][A-Za-z0-9._-]*` without `latest`, so a YAML alias, a flow
+    sequence, another expression or a trailing comment is refused.
     """
     faults: list[str] = []
     shards = _job_text(contents, "host-gates-shard")
@@ -1108,6 +1117,8 @@ def _runner_faults(contents: str) -> list[str]:
     if len(stated) != sum(len(labels) for labels in runners.values()):
         faults.append(f"a runner key stands outside a one-platform include entry: {stated!r}")
     faults += [f"{name} names no runner image" for name in sorted(platforms - set(runners))]
+    faults += [f"{name} names {sorted(set(labels))!r}, not one runner image for all its jobs"
+               for name, labels in sorted(runners.items()) if len(set(labels)) > 1]
     faults += [f"{label!r} is not an explicit image label" for label in stated
                if "latest" in label or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", label)]
     workflow = "\n".join(line for line in contents.split("\n")
@@ -1158,7 +1169,9 @@ def _workflow_runner_labels_any_style() -> None:
             (block.replace("ubuntu-26.04", "ubuntu-latest"), "'ubuntu-latest' is not"),
             (flow.replace("runner: windows", '"runner": windows-latest-'), "not an explicit"),
             (block.rsplit("\n", 1)[0], "Windows names no runner image"),
-            (flow + "\n        runner: [ubuntu-26.04]", "outside a one-platform include")):
+            (flow + "\n        runner: [ubuntu-26.04]", "outside a one-platform include"),
+            (flow + "\n          - {platform: Windows, shard: unpartitioned, runner: windows-2022}",
+             "not one runner image for all its jobs")):
         found = _runner_faults(_SHARD_JOB.replace("INCLUDE", include))
         ensure(any(fragment in fault for fault in found),
                f"a moving or missing runner must be refused ({fragment!r}): {found!r}")

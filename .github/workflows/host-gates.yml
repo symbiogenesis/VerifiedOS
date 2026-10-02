@@ -75,8 +75,8 @@ jobs:
         # count to that platform's combinations. Explicit labels make an image move a
         # reviewed edit; the job names carry the platform alone, so moving an image
         # renames nothing. The last two each name a shard no combination holds, so each
-        # adds a combination of its own, spelled in full: its platform's unpartitioned
-        # job, which takes no partition count.
+        # adds a combination of its own, spelled in full with the label its platform's
+        # shards take: that platform's unpartitioned job, which takes no partition count.
         include:
           - {platform: Ubuntu, runner: ubuntu-26.04, shards: 4}
           - {platform: Windows, runner: windows-2025-vs2026, shards: 8}
