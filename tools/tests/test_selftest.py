@@ -23,6 +23,11 @@ from vos.cli import selftest
 from vos.seeded import KILLED, SURVIVED, UNSEEDED
 from vos.sharding import Shard
 
+# Each case writes only under the sandbox tree it creates, template caches included,
+# and patches only inside a `with`, so the cases share no state, and a sharded run
+# spreads them over every shard (vos/cli/test.py).
+INDEPENDENT_CASES = True
+
 
 def _shards_cover_cases_and_repair_once() -> None:
     shards = [Shard(i, 4) for i in range(1, 5)]

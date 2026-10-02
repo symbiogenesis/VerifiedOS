@@ -11,6 +11,11 @@ from vos import revocation as authority
 from vos import static_memory_envelope as envelope
 from vos import static_memory_reclaim as reclaim
 
+# Each case builds its own instances or reads this tree's sources, writes nothing and
+# patches nothing, so the cases share no state, and a sharded run spreads them over
+# every shard (vos/cli/test.py).
+INDEPENDENT_CASES = True
+
 
 def _seeded_instances() -> list[tuple[reclaim.Envelope, reclaim.Policy, envelope.Limits]]:
     """Small instances derived from an index, so a red run replays exactly."""

@@ -19,6 +19,11 @@ from tests.test_instrument_route import _artifacts, _commit, _git, _peaked_steps
 from vos import fanout_ci
 from vos.cli import instrument_ci as reader
 
+# Each case writes only under directories it creates, answers requests from a FakeGitHub
+# of its own where it makes any, and patches only inside a `with`, so the cases share no
+# state, and a sharded run spreads them over every shard (vos/cli/test.py).
+INDEPENDENT_CASES = True
+
 REPO = "example/verifiedos"
 NONCE = "0123456789abcdef"
 

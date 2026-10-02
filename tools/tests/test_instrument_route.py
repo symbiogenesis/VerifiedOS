@@ -19,6 +19,11 @@ from ci import instrument_route as route
 from tests.harness import Case, ensure, sandbox_tree
 from vos import mutate, seeded
 
+# Each case writes only under directories it creates, reads the module-level fixtures
+# below without changing them, and patches only inside a `with`, so the cases share no
+# state, and a sharded run spreads them over every shard (vos/cli/test.py).
+INDEPENDENT_CASES = True
+
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / route.WORKFLOW
 RUN_ID = "4242"
