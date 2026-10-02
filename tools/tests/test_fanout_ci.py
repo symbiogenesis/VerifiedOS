@@ -504,11 +504,17 @@ def _workflow_titles() -> None:
                f"{workflow} titles a dispatch with its name and the title input, and no token")
 
 
+def _job_text(contents: str, job: str) -> str:
+    """A workflow job's block after its key's line, ended by the next line at the jobs'
+    own indentation, a comment there included."""
+    return re.split(r"\n  (?=\S)", contents.split(f"\n  {job}:\n", 1)[1], maxsplit=1)[0]
+
+
 def _workflow_host_job_names() -> None:
     # The aggregate jobs' names are the evidence _host_status accepts: a renamed job
     # or platform leaves fanout refusing every Host CI run, however green.
     contents = (ROOT / ".github/workflows" / ci.HOST).read_text(encoding="utf-8")
-    shards, aggregate = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)
+    shards, aggregate = _job_text(contents, "host-gates-shard"), _job_text(contents, "host-gates")
     platform_list = re.compile(r"(?m)^        platform: \[([^\]\n]*)\]$")
     named = platform_list.search(aggregate)
     ensure(aggregate.startswith("    name: host-gates (${{ matrix.platform }})\n")
@@ -524,6 +530,112 @@ def _workflow_host_job_names() -> None:
     ensure(not faults, f"{ci.HOST} names an explicit runner image per platform: {faults!r}")
     faults = _gate_faults(contents)
     ensure(not faults, f"{ci.HOST} runs the gate once on every runner: {faults!r}")
+    # The model's hooks run on the image the Ubuntu shards name, so an image move that
+    # leaves the hooks behind is refused.
+    uncommented = {job: [line for line in _job_text(contents, job).split("\n")
+                         if not line.lstrip().startswith("#")]
+                   for job in ("host-gates-shard", "model-hooks")}
+    ubuntu = [_key_values(entry, "runner")
+              for entry in _include_entries(uncommented["host-gates-shard"])
+              if _key_values(entry, "platform") == ["Ubuntu"]]
+    hooks = _key_values("\n".join(uncommented["model-hooks"]), "runs-on")
+    ensure(len(hooks) == 1 and ubuntu == [hooks],
+           f"{ci.HOST}'s model-hooks job runs on the Ubuntu shards' image: {hooks!r}, {ubuntu!r}")
+
+
+# Each aggregate check's command: one `test "$NAME" = success` for each job it needs,
+# joined by `&&`, so it passes only where every one of them succeeded.
+_RESULT_TEST_RE = re.compile(r'test "\$([A-Z][A-Z_]*)" = success')
+
+
+def _aggregate_faults(contents: str) -> list[str]:
+    """Why the host workflow's aggregate job could pass beside a job that did not succeed.
+
+    The aggregate needs every other job of the workflow, listed in a flow sequence, and
+    runs whatever they concluded. No uncommented line of any job, the aggregate's
+    included, spells continue-on-error in any spelling `_spellings` gives it, so a
+    failed step fails its job and a failed job its result. The aggregate's one step
+    states only its name, env and run, so no condition skips it and no shell of its own
+    runs the line. It binds one environment variable to each needed job's result, and
+    its single-line run is a `test "$NAME" = success` of each of them, once, joined by
+    `&&` with nothing else. A shell set by `defaults` is not read."""
+    jobs = _workflow_jobs(contents)
+    aggregate = jobs.get("host-gates", "")
+    others = sorted(job for job in jobs if job != "host-gates")
+    faults: list[str] = []
+    listed = re.search(r"(?m)^    needs: \[([^\]\n]*)\]$", aggregate)
+    needed = sorted(name.strip() for name in listed[1].split(",")) if listed else []
+    if needed != others:
+        faults.append(f"the aggregate needs {needed!r}, not every other job {others!r}")
+    if not re.search(r"(?m)^    if: \$\{\{ always\(\) \}\}$", aggregate):
+        faults.append("the aggregate does not run whatever the jobs it needs concluded")
+    for job, block in sorted(jobs.items()):
+        uncommented = "\n".join(line for line in block.split("\n")
+                                if not line.lstrip().startswith("#"))
+        if any("continue-on-error" in spelling for spelling in _spellings(uncommented)):
+            faults.append(f"{job} states continue-on-error, so a failure in it can leave a "
+                          "result the aggregate reads green")
+    steps = _step_texts(aggregate)
+    if len(steps) != 1:
+        return [*faults, f"the aggregate runs {len(steps)} step(s), not one"]
+    stated = re.findall(r"(?m)^(?:      - |        )([^\s:][^:\n]*?)[ \t]*:", steps[0])
+    if extra := sorted(set(stated) - {"name", "env", "run"}):
+        faults.append(f"the aggregate's step states {extra!r} beside its name, env and run, "
+                      "so it can be skipped or run its line otherwise")
+    bound: dict[str, str] = {}
+    for line in _step_block(steps[0], "env")[1:]:
+        result = re.fullmatch(r"          ([A-Z][A-Z_]*): \$\{\{ needs\.([\w-]+)\.result \}\}",
+                              line)
+        if result is None:
+            faults.append(f"the aggregate's environment line {line!r} binds no job's result")
+        else:
+            bound[result[1]] = result[2]
+    runs = _step_values(steps[0], "run")
+    tested = [m[1] for m in _RESULT_TEST_RE.finditer(runs[0])] if len(runs) == 1 else []
+    if (len(runs) != 1 or _continued(steps[0])
+            or runs[0] != " && ".join(f'test "${name}" = success' for name in tested)):
+        faults.append(f"the aggregate runs {runs!r}, not only a success test of each result")
+    results = sorted(bound.get(name, "") for name in tested)
+    if len(set(tested)) != len(tested) or results != others:
+        faults.append(f"the aggregate tests {tested!r}, bound to {bound!r}, not each result of "
+                      f"{others!r} once")
+    return faults
+
+
+def _workflow_host_aggregate_needs() -> None:
+    # The aggregates are the platforms' verdicts: one that passed beside a failed shard or
+    # a failed model-hooks job would report a run green that one of its jobs refused.
+    contents = (ROOT / ".github/workflows" / ci.HOST).read_text(encoding="utf-8")
+    found = _aggregate_faults(contents)
+    ensure(not found, f"{ci.HOST}'s aggregates require every other job: {found!r}")
+    hooks = ' && test "$HOOKS_RESULT" = success'
+    bindings = "        env:\n          SHARDS_RESULT:"
+    for mutant, fragment in (
+            (contents.replace("    name: model-hooks\n",
+                              "    name: model-hooks\n    continue-on-error: true\n"),
+             "model-hooks states continue-on-error"),
+            (contents.replace("      - name: Model hooks\n",
+                              "      - name: Model hooks\n        continue-on-error: true\n"),
+             "model-hooks states continue-on-error"),
+            (contents.replace("    if: ${{ always() }}\n",
+                              "    if: ${{ always() }}\n    continue-on-error: true\n"),
+             "host-gates states continue-on-error"),
+            (contents.replace(bindings, "        if: ${{ false }}\n" + bindings),
+             "beside its name, env and run"),
+            (contents.replace("    needs: [host-gates-shard, model-hooks]\n",
+                              "    needs: host-gates-shard\n"), "not every other job"),
+            (contents.replace("    if: ${{ always() }}\n", ""), "does not run whatever"),
+            (contents.replace(hooks, ""), "not each result"),
+            (contents.replace(hooks, hooks + " || true"), "not only a success test"),
+            (contents.replace("${{ needs.model-hooks.result }}",
+                              "${{ needs.host-gates-shard.result }}"), "not each result"),
+            (contents.replace("${{ needs.model-hooks.result }}", "success"),
+             "binds no job's result")):
+        ensure(mutant != contents, f"the fixture for {fragment!r} changed nothing")
+        found = _aggregate_faults(mutant)
+        ensure(any(fragment in fault for fault in found),
+               f"an aggregate that can pass beside a failed job must be refused "
+               f"({fragment!r}): {found!r}")
 
 
 # The shard gate's command, and its two platform branches as the workflow spells them:
@@ -683,7 +795,7 @@ def _gate_faults(contents: str) -> list[str]:
     the run read as one separator. Steps other than the gate's are read for those names
     alone, and a name a step builds at run time is not read.
     """
-    shards = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)[0]
+    shards = _job_text(contents, "host-gates-shard")
     gates = [step for step in _step_texts(shards)
              if any(value.startswith(_GATE) for value in _step_values(step, "run"))]
     text = "\n".join(line for line in shards.split("\n") if not line.lstrip().startswith("#"))
@@ -951,7 +1063,7 @@ def _runner_faults(contents: str) -> list[str]:
     so a YAML alias, a flow sequence, another expression or a trailing comment is refused.
     """
     faults: list[str] = []
-    shards = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)[0]
+    shards = _job_text(contents, "host-gates-shard")
     lines = [line for line in shards.split("\n") if not line.lstrip().startswith("#")]
     text = "\n".join(lines)
     listed = re.search(r"(?m)^        platform: \[([^\]\n]*)\]$", text)
@@ -1143,6 +1255,13 @@ def _workflow_checkout_validation() -> None:
         step = contents.split("      - name: Verify dispatched revision belongs to main\n", 1)[1]
         script = step.split("        run: |\n", 1)[1].split("\n      - ", 1)[0]
         scripts[workflow] = textwrap.dedent(script)
+    # Host CI checks a dispatch in each job taking a checkout, every copy the step whose
+    # script runs below, its condition, identifier and environment included.
+    host = (ROOT / ".github/workflows" / ci.HOST).read_text(encoding="utf-8")
+    copies = [step for block in _workflow_jobs(host).values() for step in _step_texts(block)
+              if _step_values(step, "name") == [_GUARD]]
+    ensure(len(copies) == sum(workflow == ci.HOST for workflow, _ in _DISPATCH_JOBS)
+           and len(set(copies)) == 1, f"{ci.HOST}'s jobs check a dispatch with one step")
     instrument, _ = _instrument_guard_faults(
         (ROOT / ".github/workflows" / INSTRUMENT).read_text(encoding="utf-8"))
     ensure(bool(instrument), f"{INSTRUMENT}'s guard steps are read")
@@ -1204,7 +1323,7 @@ def _workflow_checkout_validation() -> None:
                        f"{done.stderr}")
 
 
-# The shard checkout's depth where it is not full history: one commit for push and pull
+# A Host CI checkout's depth where it is not full history: one commit for push and pull
 # request runs and full history for a dispatch, whose check runs `git merge-base
 # --is-ancestor` against main. The dispatch arm is the string '0', because a bare 0 is
 # falsy in an Actions expression and `&& 0 || 1` would give a dispatch depth 1 too.
@@ -1212,30 +1331,34 @@ _DISPATCH_DEPTH = re.compile(
     r"\$\{\{ github\.event_name == 'workflow_dispatch' && '0' \|\| '[1-9][0-9]*' \}\}")
 
 
-def _checkout_depth_faults(contents: str) -> list[str]:
-    """Why a dispatched Host CI shard could check out without the history its ancestry
-    check reads: the shard job takes one checkout, stating one `fetch-depth`, which is
-    either 0 or `_DISPATCH_DEPTH`'s conditional; an absent key is the action's depth 1."""
-    shards = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)[0]
-    checkouts = [step for step in _step_texts(shards)
+def _checkout_depth_faults(contents: str, job: str) -> list[str]:
+    """Why a dispatched Host CI job could check out without the history its ancestry
+    check reads: the job takes one checkout, stating one `fetch-depth`, which is either
+    0 or `_DISPATCH_DEPTH`'s conditional; an absent key is the action's depth 1."""
+    checkouts = [step for step in _step_texts(_job_text(contents, job))
                  if any(value.startswith("actions/checkout@")
                         for value in _step_values(step, "uses"))]
     if len(checkouts) != 1:
-        return [f"the shard job takes {len(checkouts)} checkout(s), not one"]
+        return [f"{job} takes {len(checkouts)} checkout(s), not one"]
     depths = [line.split(":", 1)[1].strip() for line in _step_block(checkouts[0], "with")
               if line.lstrip().startswith("fetch-depth:")]
     if len(depths) != 1:
-        return [f"the shard checkout states {len(depths)} fetch-depth key(s), not one"]
+        return [f"{job}'s checkout states {len(depths)} fetch-depth key(s), not one"]
     if depths[0] != "0" and _DISPATCH_DEPTH.fullmatch(depths[0]) is None:
-        return [f"fetch-depth {depths[0]!r} can check out a dispatch without the history "
-                "its ancestry check reads"]
+        return [f"{job}'s fetch-depth {depths[0]!r} can check out a dispatch without the "
+                "history its ancestry check reads"]
     return []
 
 
 def _workflow_dispatch_checkout_keeps_history() -> None:
+    # Every Host CI job that checks a dispatch, which is every one taking a checkout.
     contents = (ROOT / ".github/workflows" / ci.HOST).read_text(encoding="utf-8")
-    found = _checkout_depth_faults(contents)
-    ensure(not found, f"{ci.HOST} checks out a dispatch with main's history: {found!r}")
+    jobs = [job for workflow, job in _DISPATCH_JOBS if workflow == ci.HOST]
+    ensure(bool(jobs), f"{ci.HOST}'s checking jobs are read: {jobs!r}")
+    for job in jobs:
+        found = _checkout_depth_faults(contents, job)
+        ensure(not found, f"{ci.HOST}'s {job} checks out a dispatch with main's history: "
+                          f"{found!r}")
     depth = re.search(r"(?m)^          fetch-depth: .*\n", contents)
     ensure(depth is not None, f"{ci.HOST}'s shard checkout states its depth")
     line = depth[0] if depth else ""
@@ -1246,11 +1369,13 @@ def _workflow_dispatch_checkout_keeps_history() -> None:
             (contents.replace(line, ""), "states 0 fetch-depth key(s)"),
             (contents.replace(line, line + line), "states 2 fetch-depth key(s)")):
         ensure(workflow != contents, f"the fixture for {fragment!r} changed nothing")
-        found = _checkout_depth_faults(workflow)
-        ensure(any(fragment in fault for fault in found),
-               "a dispatch checked out without main's history must be refused "
-               f"({fragment!r}): {found!r}")
-    found = _checkout_depth_faults(contents.replace(line, "          fetch-depth: 0\n"))
+        for job in jobs:
+            found = _checkout_depth_faults(workflow, job)
+            ensure(any(fragment in fault for fault in found),
+                   f"a dispatch {job} checks out without main's history must be refused "
+                   f"({fragment!r}): {found!r}")
+    found = [fault for job in jobs for fault in _checkout_depth_faults(
+        contents.replace(line, "          fetch-depth: 0\n"), job)]
     ensure(not found, f"full history on every run is accepted: {found!r}")
 
 
@@ -1260,8 +1385,8 @@ def _workflow_dispatch_checkout_keeps_history() -> None:
 _DISPATCH_CHECK = "Verify dispatched revision belongs to main"
 _DISPATCH_GUARD = "steps.dispatch.outcome != 'failure'"
 _CAMPAIGN = "boot-crypto-target.yml"
-_DISPATCH_JOBS = ((ci.HOST, "host-gates-shard"), (ci.GUEST, "guest-gates"),
-                  (_CAMPAIGN, "interface"), (_CAMPAIGN, "campaign"))
+_DISPATCH_JOBS = ((ci.HOST, "host-gates-shard"), (ci.HOST, "model-hooks"),
+                  (ci.GUEST, "guest-gates"), (_CAMPAIGN, "interface"), (_CAMPAIGN, "campaign"))
 
 
 def _conjuncts(condition: str) -> list[str] | None:
@@ -1366,10 +1491,22 @@ def _workflow_refused_dispatch() -> None:
     # failure also requires its job's check not to have failed, in every checking job.
     guard = f" && {_DISPATCH_GUARD}"
     check = "        id: dispatch\n"
-    named = {"host-gates-shard": ("Analyze workflows", "Model hooks", "Report gate results"),
+    named = {"host-gates-shard": ("Analyze workflows", "Report gate results"),
+             "model-hooks": ("Model hooks",),
              "guest-gates": ("Model evidence", "Proof gate",
                              "Read the proofs against the reading base", "Report guest results"),
              "interface": (), "campaign": ("Report the campaign",)}
+    # Every job of those workflows with a step using actions/checkout, its `uses:` on
+    # the step's dash line or beneath it, is read, so a job added with one cannot run
+    # its code after a refusal unread.
+    for workflow in sorted({workflow for workflow, _ in _DISPATCH_JOBS}):
+        contents = (ROOT / ".github/workflows" / workflow).read_text(encoding="utf-8")
+        taking = sorted(job for job, block in _workflow_jobs(contents).items()
+                        if any(value.startswith("actions/checkout@")
+                               for step in _step_texts(block)
+                               for value in _step_values(step, "uses")))
+        listed = sorted(job for read, job in _DISPATCH_JOBS if read == workflow)
+        ensure(taking == listed, f"{workflow}'s jobs taking a checkout are read: {taking!r}")
     for workflow, job in _DISPATCH_JOBS:
         contents = (ROOT / ".github/workflows" / workflow).read_text(encoding="utf-8")
         found = _refused_dispatch_faults(contents, job)
@@ -1480,6 +1617,7 @@ def cases() -> list[Case]:
             Case("dispatch-subject", _dispatch_subject),
             Case("workflow-titles", _workflow_titles),
             Case("workflow-host-job-names", _workflow_host_job_names),
+            Case("workflow-host-aggregate-needs", _workflow_host_aggregate_needs),
             Case("workflow-gate-on-every-runner", _workflow_gate_on_every_runner),
             Case("workflow-runner-labels-any-style", _workflow_runner_labels_any_style),
             Case("workflow-checkout-validation", _workflow_checkout_validation),

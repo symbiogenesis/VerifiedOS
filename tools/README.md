@@ -75,10 +75,10 @@ so each of its cases still runs once and a shard's share may be empty.
 Every mutation runs the checker in a fresh process and private sandbox, through the
 group that decides its rule (`check.py --through`); a survivor runs the whole checker.
 Each shard checks its pristine baseline and registry coverage; shard 1 also runs
-the complete repair path, the ordinary checker and typecheck, Ubuntu's shard 1
-analyzes the workflows as [workflow analysis](#workflow-analysis) describes, and
-Ubuntu's last shard runs [the model's hooks](#model-hooks). Members
-within a shard run concurrently. The gate runs under each
+the complete repair path, the ordinary checker and typecheck, and Ubuntu's shard 1
+analyzes the workflows as [workflow analysis](#workflow-analysis) describes. A
+model-hooks job of its own runs [the model's hooks](#model-hooks) on the Ubuntu shards'
+image beside the shards. Members within a shard run concurrently. The gate runs under each
 platform's native shell, PowerShell on Windows and bash on Ubuntu, as a developer
 there runs `run.py`, and reads its shard and verdict path from the step's environment
 rather than from expressions written into the command. Each platform runs on an explicit
@@ -87,7 +87,8 @@ image, so that an image move renames nothing. `HOST_JOBS` in
 [vos/fanout_ci.py](vos/fanout_ci.py) owns those names as the Host CI evidence fanout
 accepts, and [test_fanout_ci.py](tests/test_fanout_ci.py) holds the workflow's
 aggregate jobs to them. The aggregate checks require every shard
-on both platforms to succeed, including refusal after a skipped or cancelled shard.
+on both platforms and the model-hooks job to succeed, including refusal after a
+skipped or cancelled job.
 One shard alone supplies only a partial verdict. The unsharded local command retains
 the complete suite.
 
@@ -984,7 +985,7 @@ For a WSL-mounted checkout, `run.py model lane` supplies the guest lane root.
 The gate step itself synchronizes only the default dependency groups, and
 [uv.lock](uv.lock) is one resolution covering every group, so each `run.py`
 bootstrap's `uv run --locked` refuses a lockfile the manifest would change. Host CI's
-last Ubuntu shard synchronizes the group alone and runs it, as
+model-hooks job synchronizes the group alone and runs it, as
 [the model's hooks](#model-hooks) describe, which checks that it installs and runs on
 Linux x86_64; no gate installs it on Windows or on either ARM64 platform.
 `uv sync --project tools --locked --group model --dry-run` lists what a
@@ -1006,7 +1007,7 @@ pinned by the full commit of the tag its `# frozen:` comment names, and its
 holds against the configuration; whether the commit is the tag's is read at review
 with `git ls-remote`. clang-format stays at the release upstream's own hooks pin,
 because a later release lays out upstream's code differently and would ask for
-rewrites of upstream bytes. The last Ubuntu shard of
+rewrites of upstream bytes. The model-hooks job of
 [Host CI](../.github/workflows/host-gates.yml) runs the set with `--all-files`, which
 selects the tracked files under `model/` outside `model/dependencies/` and nothing
 else, and with `SKIP=markdown-link-check`, because that hook fetches every external
