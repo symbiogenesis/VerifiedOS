@@ -12,15 +12,15 @@
 # Shards partition mutation cases and behavioral test modules, and the cases of each
 # test module declaring them independent: four on Ubuntu and eight on Windows, whose
 # CPU-bound shards run the same work more slowly. Shard 1 also runs the checker,
-# typecheck and mutation repair path, Ubuntu's shard 1 analyzes the workflows with
-# zizmor and actionlint, and Ubuntu's last shard runs the curated model's pre-commit
-# hooks. All shards must pass.
+# typecheck and mutation repair path, and Ubuntu's shard 1 analyzes the workflows with
+# zizmor and actionlint. The model-hooks job runs the curated model's pre-commit hooks
+# on Ubuntu beside the shards. All shards and the hooks must pass.
 # uv installs locked dependencies into a checkout-local environment;
 # only downloads are cached. K-67 checks dependency pins; K-75 checks the Python floor.
 #
 # Per-member JSON in runner.temp supplies failure annotations and the job summary.
-# Reporting is diagnostic; the gate, workflow-analysis and model-hook steps own the
-# job's verdict.
+# Reporting is diagnostic; the gate and workflow-analysis steps own the shard's
+# verdict.
 
 name: host-gates
 # A blank run-name selects GitHub's own title.
@@ -172,35 +172,6 @@ jobs:
           sh tools/ci/actionlint.sh -shellcheck= -pyflakes= || status=1
           exit "$status"
 
-      # The curated model's pre-commit hooks, as model/.pre-commit-config.yaml pins them
-      # by commit, run over model/ with the pre-commit tools/uv.lock's model group locks,
-      # in an environment of their own; any finding or rewrite fails the job.
-      # markdown-link-check is skipped because it fetches every external link the
-      # model's Markdown names. pip installs each Python hook's dependencies at the
-      # releases tools/ci/model-hooks-constraints.txt fixes and builds its package with
-      # the hashed backends tools/ci/model-hooks-build-constraints.txt fixes, both named
-      # by absolute path because pip runs in each hook's clone, and admits no file
-      # uploaded within three days; a private app-data directory keeps each
-      # environment's pip the one the locked virtualenv embeds. prettier installs from
-      # npm on the runner's Node.js. The step runs on the last shard so that shard 1,
-      # which also runs the checker, typecheck, repair path and workflow analysis, does
-      # not lengthen.
-      - name: Model hooks
-        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' && matrix.platform == 'Ubuntu' && matrix.shard == matrix.shards }}
-        shell: bash
-        env:
-          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/venv-model
-          PRE_COMMIT_HOME: ${{ runner.temp }}/pre-commit
-          VIRTUALENV_OVERRIDE_APP_DATA: ${{ runner.temp }}/virtualenv
-          PIP_CONSTRAINT: ${{ github.workspace }}/tools/ci/model-hooks-constraints.txt
-          PIP_BUILD_CONSTRAINT: ${{ github.workspace }}/tools/ci/model-hooks-build-constraints.txt
-          PIP_UPLOADED_PRIOR_TO: P3D
-          SKIP: markdown-link-check
-        run: |
-          uv run --project tools --locked --exact --only-group model --no-python-downloads \
-            pre-commit run --config model/.pre-commit-config.yaml --all-files \
-            --show-diff-on-failure --color=always
-
       - name: Report gate results
         if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' }}
         shell: python
@@ -251,20 +222,104 @@ jobs:
                                 + "\n".join(rows) + "\n"
                                 + (f"\nSlowest units: {units}\n" if units else ""))
           except Exception as err:
-              # Reporting is diagnostic; the gate, workflow-analysis and model-hook
-              # steps own the job's verdict.
+              # Reporting is diagnostic; the gate and workflow-analysis steps own
+              # the job's verdict.
               annotate("warning", f"Could not render gate results: {err!r}")
+
+  # The curated model's hooks run in a job of their own beside the shards, on the Ubuntu
+  # shards' image, so no shard waits after its gate while the hooks' environments
+  # install. It checks out and verifies a dispatch as the shards do, and sets up the same
+  # Python and uv; only shard 1 saves the uv downloads it restores.
+  model-hooks:
+    name: model-hooks
+    runs-on: ubuntu-26.04
+    # The hooks' step has taken 20-44 s, most of it installing their environments; the
+    # limit leaves room for setup and for slow PyPI and npm downloads.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+          # The shards' depth: a dispatch's check below reads main's history.
+          fetch-depth: ${{ github.event_name == 'workflow_dispatch' && '0' || '1' }}
+          persist-credentials: false
+          # The hooks read tracked files under model/; submodule sources are unnecessary.
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main
+        id: dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: python
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: true
+          save-cache: false
+          cache-suffix: host-gates
+          cache-dependency-glob: |
+            tools/pyproject.toml
+            tools/uv.lock
+
+      # The curated model's pre-commit hooks, as model/.pre-commit-config.yaml pins them
+      # by commit, run over model/ with the pre-commit tools/uv.lock's model group locks,
+      # in an environment of their own; any finding or rewrite fails the job.
+      # markdown-link-check is skipped because it fetches every external link the
+      # model's Markdown names. pip installs each Python hook's dependencies at the
+      # releases tools/ci/model-hooks-constraints.txt fixes and builds its package with
+      # the hashed backends tools/ci/model-hooks-build-constraints.txt fixes, both named
+      # by absolute path because pip runs in each hook's clone, and admits no file
+      # uploaded within three days; a private app-data directory keeps each
+      # environment's pip the one the locked virtualenv embeds. prettier installs from
+      # npm on the runner's Node.js.
+      - name: Model hooks
+        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' }}
+        shell: bash
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/venv-model
+          PRE_COMMIT_HOME: ${{ runner.temp }}/pre-commit
+          VIRTUALENV_OVERRIDE_APP_DATA: ${{ runner.temp }}/virtualenv
+          PIP_CONSTRAINT: ${{ github.workspace }}/tools/ci/model-hooks-constraints.txt
+          PIP_BUILD_CONSTRAINT: ${{ github.workspace }}/tools/ci/model-hooks-build-constraints.txt
+          PIP_UPLOADED_PRIOR_TO: P3D
+          SKIP: markdown-link-check
+        run: |
+          uv run --project tools --locked --exact --only-group model --no-python-downloads \
+            pre-commit run --config model/.pre-commit-config.yaml --all-files \
+            --show-diff-on-failure --color=always
 
   # fanout_ci.HOST_JOBS in tools/vos/fanout_ci.py owns these job names; renaming one
   # changes the evidence fanout accepts. No repository ruleset requires them. A failed,
-  # skipped or cancelled shard cannot leave a successful aggregate, even if its peers
-  # completed successfully. The aggregates check out nothing and only read the shards'
-  # result, so they take the generally available ubuntu-24.04 image rather than the
-  # shards' preview image, whose queue has occasionally held them 38-71 s past the last
-  # shard.
+  # skipped or cancelled shard or model-hooks job cannot leave a successful aggregate,
+  # even if its peers completed successfully. Both aggregates require every shard and
+  # the hooks, whatever their platform, so they fail together. The aggregates check out
+  # nothing and only read the other jobs' results, so they take the generally available
+  # ubuntu-24.04 image rather than the shards' preview image, whose queue has
+  # occasionally held them 38-71 s past the last shard.
   host-gates:
     name: host-gates (${{ matrix.platform }})
-    needs: host-gates-shard
+    needs: [host-gates-shard, model-hooks]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 2
@@ -272,7 +327,8 @@ jobs:
       matrix:
         platform: [Ubuntu, Windows]
     steps:
-      - name: Require every shard on both operating systems
+      - name: Require every shard on both operating systems and the model hooks
         env:
           SHARDS_RESULT: ${{ needs.host-gates-shard.result }}
-        run: test "$SHARDS_RESULT" = success
+          HOOKS_RESULT: ${{ needs.model-hooks.result }}
+        run: test "$SHARDS_RESULT" = success && test "$HOOKS_RESULT" = success
