@@ -507,7 +507,9 @@ def _workflow_titles() -> None:
 def _job_text(contents: str, job: str) -> str:
     """A workflow job's block after its key's line, ended by the next line at the jobs'
     own indentation, a comment there included."""
-    return re.split(r"\n  (?=\S)", contents.split(f"\n  {job}:\n", 1)[1], maxsplit=1)[0]
+    block = contents.split(f"\n  {job}:\n", 1)[1]
+    end = re.search(r"\n  (?=\S)", block)
+    return block if end is None else block[:end.start()]
 
 
 def _workflow_host_job_names() -> None:
