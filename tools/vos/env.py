@@ -276,6 +276,12 @@ class Environment:
         return self.build_root / TYPECHECK_CACHE
 
     @property
+    def build_budget_mb(self) -> int:
+        """The memory a model build of `jobs` jobs is budgeted, on `_jobs`'s figures.
+        A process run beside the build is budgeted on top of it."""
+        return GENERATED_UNIT_MB + JOB_MB * self.jobs
+
+    @property
     def simulator(self) -> Path:
         return self.build_dir / "c_emulator" / "sail_riscv_sim"
 
@@ -336,6 +342,13 @@ def _mem_available_mb() -> int:
     return 0
 
 
+# The model build's memory figures, which `_jobs` sizes a build from and
+# `Environment.build_budget_mb` reads back: the reserve for the generated model unit
+# and the budget for each other concurrent job.
+GENERATED_UNIT_MB = 2048
+JOB_MB = 512
+
+
 def _jobs(cpus: int, mem_mb: int) -> int:
     """CPUs+2 is Ninja's own default and the right shape for this tree: 366 of the 367
     translation units are small and oversubscribing by two keeps cores busy across
@@ -362,7 +375,7 @@ def _jobs(cpus: int, mem_mb: int) -> int:
         return jobs
     jobs = cpus + 2
     if mem_mb > 0:
-        jobs = min(jobs, max(1, (mem_mb - 2048) // 512))
+        jobs = min(jobs, max(1, (mem_mb - GENERATED_UNIT_MB) // JOB_MB))
     return jobs
 
 
@@ -811,11 +824,17 @@ def stage(name: str, argv: list[str], report_to: Writable | None = None, *,
     _, status, usage = os.wait4(proc.pid, 0)
     proc.returncode = os.waitstatus_to_exitcode(status)
 
-    wall = time.perf_counter() - started
-    cpu = (usage.ru_utime + usage.ru_stime) / wall * 100 if wall > 0 else 0
-    print(f"STAGE {name} wall={wall:.1f}s cpu={cpu:.0f}% maxrss={usage.ru_maxrss}kB",
+    print(stage_line(name, time.perf_counter() - started, usage.ru_utime + usage.ru_stime,
+                     usage.ru_maxrss),
           file=_report_stream(report_to, stderr), flush=True)
     return proc.returncode
+
+
+def stage_line(name: str, wall: float, cpu_seconds: float, maxrss_kb: int) -> str:
+    """The one spelling of what a stage cost, for `stage` and for a caller that starts
+    a stage of its own and reaps it later."""
+    cpu = cpu_seconds / wall * 100 if wall > 0 else 0
+    return f"STAGE {name} wall={wall:.1f}s cpu={cpu:.0f}% maxrss={maxrss_kb}kB"
 
 
 def _report_stream(report_to: Writable | None, child_stderr: object) -> Writable:

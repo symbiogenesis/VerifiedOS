@@ -90,16 +90,23 @@ def _launch(member: Member) -> Result:
 
 
 def _ctest(log: Path) -> str:
-    """A complete successful test tally from the verified build's own log."""
+    """A complete successful test tally from the verified build's own log.
+
+    The tally sums every ctest summary the log carries, each of which must report a
+    nonempty complete success: a build that starts the Sail property test beside its
+    compile runs it in a ctest run of its own beside the rest of the suite's
+    (`model._ctest_stage`)."""
     text = log.read_text(encoding="utf-8")
     matches = list(_CTEST_RE.finditer(text))
     if not matches or not text.rstrip().endswith("ALL_DONE"):
         raise ValueError("the verified build log carries no complete ctest result")
-    found = matches[-1]
-    percentage, failed, total = map(int, found.groups(default="0"))
-    if percentage != 100 or failed or total == 0:
-        raise ValueError("the build's ctest result is empty or failing")
-    return f"{total} of {total}"
+    tally = 0
+    for found in matches:
+        percentage, failed, total = map(int, found.groups(default="0"))
+        if percentage != 100 or failed or total == 0:
+            raise ValueError("the build's ctest result is empty or failing")
+        tally += total
+    return f"{tally} of {tally}"
 
 
 def _figures(results: list[Result], log: Path,
