@@ -560,6 +560,11 @@ CCACHE_STEPS = ("Restore the compiler cache", "Count this run's compiler cache u
                 "Model evidence", "Trim the compiler cache", "Save the compiler cache")
 CCACHE_LINEAGE = ("guest-ccache-v1-${{ runner.os }}-${{ runner.arch }}-"
                   "${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}-")
+# The count's commands, which zero the statistics and mark the build's start, and the
+# trim's, which evict every entry older than that mark, the entries this build left unused.
+CCACHE_COUNT = ["ccache --zero-stats", 'date +%s > "$RUNNER_TEMP/ccache-start"']
+CCACHE_TRIM = ['started=$(<"$RUNNER_TEMP/ccache-start")',
+               'ccache --evict-older-than "$(( $(date +%s) - started + 1 ))s"']
 
 
 def _conjuncts(step: str) -> set[str]:
@@ -568,12 +573,19 @@ def _conjuncts(step: str) -> set[str]:
     return set(str(condition[1]).split(" && ")) if condition is not None else set()
 
 
+def _runs(step: str, commands: list[str]) -> bool:
+    """Whether a step's `run:` block holds `commands` as consecutive lines."""
+    lines = _block(step, "        run: |")
+    return commands in [lines[n:n + len(commands)] for n in range(len(lines))]
+
+
 def _compiler_cache_faults(contents: str) -> list[str]:
     """Why guest-gates.yml's compiler cache could serve or keep what it must not: only
     the model lane restores it, a cold run looks its key up without restoring it, the
     key is the lineage and the model's hash, and only main saves the restored key's
-    entry, past a passing sweep and the trim that leaves this build's objects alone. The
-    count and the trim run beside the sweep and never fail the job."""
+    entry, past a passing sweep and the trim that leaves this build's objects alone,
+    cut at the count's mark. The count and the trim run beside the sweep and never fail
+    the job."""
     faults: list[str] = []
     restore, start, _, trim, save = (_workflow_step(contents, name) for name in CCACHE_STEPS)
     places = [contents.find(f"      - name: {name}\n") for name in CCACHE_STEPS]
@@ -599,7 +611,9 @@ def _compiler_cache_faults(contents: str) -> list[str]:
                                         "steps.dispatch.outcome != 'failure'", after}):
             faults.append(f"the step {ident} runs other than beside the model lane's sweep, "
                           "or can fail the job")
-    if "ccache --evict-older-than" not in trim:
+    if not _runs(start, CCACHE_COUNT):
+        faults.append("the count does not zero ccache's statistics and mark the build's start")
+    if not _runs(trim, CCACHE_TRIM):
         faults.append("the trim leaves entries this build did not use")
     if _with(save, "key") != ["${{ steps.ccache.outputs.cache-primary-key }}"] or _conjuncts(
             save) != {"github.ref == 'refs/heads/main'", model, "!cancelled()",
@@ -626,8 +640,12 @@ def _compiler_cache_steps() -> None:
             ("Save the compiler cache", "            !${{ env.CCACHE_DIR }}/tmp\n", ""),
             ("Save the compiler cache", "github.ref == 'refs/heads/main' && ", ""),
             ("Save the compiler cache", " && steps.ccache-trim.outcome == 'success'", ""),
+            ("Count this run's compiler cache use", "          ccache --zero-stats\n", ""),
+            ("Count this run's compiler cache use",
+             '          date +%s > "$RUNNER_TEMP/ccache-start"\n', ""),
             ("Trim the compiler cache", "        continue-on-error: true\n", ""),
-            ("Trim the compiler cache", "ccache --evict-older-than", "ccache --cleanup #")):
+            ("Trim the compiler cache", "ccache --evict-older-than", "ccache --cleanup #"),
+            ("Trim the compiler cache", '"$(( $(date +%s) - started + 1 ))s"', "7d")):
         step = _workflow_step(contents, name)
         mutant = contents.replace(step, step.replace(old, new, 1), 1)
         ensure(mutant != contents and bool(_compiler_cache_faults(mutant)),
