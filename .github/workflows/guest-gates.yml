@@ -5,8 +5,9 @@
 # check everything from scratch.
 # Each lane runs on its own runner. The proofs lane shares no toolchain or output
 # with the others and installs only its own. The rtl lane selects the model lane's
-# toolchains and restores, but never saves, that lane's caches, so the bundle and
-# RTL checks run beside the model evidence sweep. Manual dispatch runs from main;
+# toolchains and restores, but never saves, that lane's download, toolchain and Sail
+# memo caches, so the bundle and RTL checks run beside the model evidence sweep. Only
+# the model lane restores its compiler cache. Manual dispatch runs from main;
 # its optional revision input pins checkout to a commit already on main, verified
 # before any checked-out code runs. Its optional reading_base input, verified there
 # too, names a proper ancestor of that revision whose proof sources the proofs lane
@@ -314,6 +315,39 @@ jobs:
           path: ${{ env.GUEST_TOOLCHAIN_PATHS }}
           key: ${{ steps.toolchains.outputs.cache-primary-key }}
 
+      - name: Restore the compiler cache
+        id: ccache
+        # The model build compiles through ccache's launchers. The rtl lane's bundle
+        # check compiles nothing, and its RTL checks compile through Verilator's build
+        # and the C compiler directly, under paths the model build never uses, so no
+        # entry of this cache could serve them.
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.bootstrap.outcome == 'success' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # ccache's directory without its scratch; the build tree stays uncached.
+          path: |
+            ${{ env.CCACHE_DIR }}
+            !${{ env.CCACHE_DIR }}/tmp
+          # ccache keys each object on the compiler, the full command line and the
+          # preprocessed source, and every runner builds at the same paths, so a hit is
+          # the object the compile would produce. The lineage still never crosses an
+          # image or toolchain recipe, and the hash names the model a sweep compiled.
+          key: guest-ccache-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}-${{ hashFiles('model/**') }}
+          # An older model's objects hit wherever a unit's inputs are unchanged.
+          restore-keys: guest-ccache-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}-
+          # A cold run compiles every unit.
+          lookup-only: ${{ env.GUEST_COLD == 'true' }}
+
+      - name: Count this run's compiler cache use
+        id: ccache-start
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        # The count and the trim's cutoff only serve the log and the save; a failure
+        # here skips the save, never the sweep.
+        continue-on-error: true
+        run: |
+          ccache --zero-stats
+          date +%s > "$RUNNER_TEMP/ccache-start"
+
       - name: Identify the Sail solver
         id: solver
         if: ${{ (matrix.lane == 'model' || matrix.lane == 'rtl') && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
@@ -356,6 +390,29 @@ jobs:
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py evidence --no-proofs \
             --out "$VOS_LOG_DIR/evidence.json" \
             2>&1 | tee "$VOS_LOG_DIR/evidence-console.log"
+
+      - name: Trim the compiler cache
+        id: ccache-trim
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.ccache-start.outcome == 'success' }}
+        # The statistics, this run's hits and misses, decide nothing; a failure here
+        # only skips the save.
+        continue-on-error: true
+        # A hit renews an entry's time, so every entry older than the count's start went
+        # unused in this run and leaves before the save, which then holds one build.
+        run: |
+          ccache --show-stats --verbose || true
+          started=$(<"$RUNNER_TEMP/ccache-start")
+          ccache --evict-older-than "$(( $(date +%s) - started + 1 ))s"
+
+      - name: Save the compiler cache
+        # Only main's model lane saves it, after a passing sweep and its trim.
+        if: ${{ github.ref == 'refs/heads/main' && matrix.lane == 'model' && !cancelled() && steps.evidence.outcome == 'success' && steps.ccache.outcome == 'success' && steps.ccache.outputs.cache-hit != 'true' && steps.ccache-trim.outcome == 'success' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ env.CCACHE_DIR }}
+            !${{ env.CCACHE_DIR }}/tmp
+          key: ${{ steps.ccache.outputs.cache-primary-key }}
 
       - name: Save the Sail memo
         # Sail rewrites the memo whole at exit; one writer per runner keeps it intact.
