@@ -17,6 +17,8 @@ from vos.cli import proof_reading
 from vos.cli import proofs as proofs_cli
 
 WORKFLOW = Path(__file__).resolve().parents[2] / ".github" / "workflows" / "guest-gates.yml"
+# The boot signature target campaign, which restores the model lane's caches.
+CAMPAIGN = WORKFLOW.parent / "boot-crypto-target.yml"
 READING_BASE = "c" * 40
 # The minutes guest-gates.yml's job leaves under its limit, past every lane's step limits.
 LIMIT_MARGIN = 30
@@ -274,10 +276,16 @@ def _reading_outcome_recorded() -> None:
             ensure(False, f"the {lane} lane accepted reading base {base!r}")
 
 
+def _workflow_step(contents: str, name: str) -> str:
+    """One step's text in a workflow, from its name line to the next step; empty where no
+    step bears the name."""
+    parts = contents.split(f"      - name: {name}\n", 1)
+    return parts[1].split("\n      - ", 1)[0] if len(parts) == 2 else ""
+
+
 def _step(name: str) -> str:
     """One guest-gates step's text, from its name line to the next step."""
-    contents = WORKFLOW.read_text(encoding="utf-8")
-    return contents.split(f"      - name: {name}\n", 1)[1].split("\n      - ", 1)[0]
+    return _workflow_step(WORKFLOW.read_text(encoding="utf-8"), name)
 
 
 def _reading(body: str) -> dict[str, object]:
@@ -396,9 +404,10 @@ def _lane_step_limits() -> None:
                "under the job's")
 
 
-def _matrix() -> list[dict[str, str]]:
-    """guest-gates.yml's matrix entries, each as its fields."""
-    block = WORKFLOW.read_text(encoding="utf-8").split("        include:\n", 1)[1]
+def _matrix(contents: str) -> list[dict[str, str]]:
+    """The matrix entries of guest-gates.yml's text, each as its fields."""
+    parts = contents.split("        include:\n", 1)
+    block = parts[1] if len(parts) == 2 else ""
     entries: list[dict[str, str]] = []
     for line in block.split("\n    env:\n", 1)[0].splitlines():
         first = re.fullmatch(r" {10}- (\w+): (.*)", line)
@@ -413,9 +422,8 @@ def _matrix() -> list[dict[str, str]]:
 def _lanes_match_the_workflow() -> None:
     """The reporter's lanes are the workflow's: each lane's commands run in it alone, a
     lane restoring another's caches selects that lane's toolchains and saves none of
-    them, the boot signature campaign selects the model lane's to restore its cache, and
-    a weekly skip needs every lane's artifact."""
-    entries = _matrix()
+    them, and a weekly skip needs every lane's artifact."""
+    entries = _matrix(WORKFLOW.read_text(encoding="utf-8"))
     lanes = {entry["lane"]: entry for entry in entries}
     ensure(set(lanes) == set(LANES) and len(lanes) == len(entries),
            f"the matrix's lanes are the reporter's, once each: {entries}")
@@ -435,16 +443,114 @@ def _lanes_match_the_workflow() -> None:
         step = next((text for text in steps if text.startswith(f"name: {name}\n")), "")
         ensure("matrix.cache_lane == matrix.lane" in step,
                f"{name!r} saves only from the lane whose cache it is")
-    campaign = (WORKFLOW.parent / "boot-crypto-target.yml").read_text(encoding="utf-8")
-    recipe = campaign.split("      - name: Identify the toolchain recipe\n", 1)[1].split(
-        "\n      - ", 1)[0]
-    ensure(f"--print-recipe-identity \\\n            {lanes['model']['toolchains']})" in recipe,
-           "the boot signature campaign keys its restore by the model lane's selection")
     changes = WORKFLOW.read_text(encoding="utf-8").split("\n  changes:\n", 1)[1].split(
         "\n  guest-gates:\n", 1)[0]
     for lane in LANES:
         ensure(f'grep -q "^guest-{lane}-$GITHUB_SHA-"' in changes,
                f"a weekly skip needs the {lane} lane's artifact")
+
+
+def _with(step: str, key: str) -> list[str]:
+    """Every one-line value a step's `with:` states for `key`."""
+    return re.findall(rf"(?m)^          {re.escape(key)}: (.*)$", step)
+
+
+def _block(text: str, header: str) -> list[str]:
+    """The stripped lines of the block scalar the line `header` opens, which end at the
+    first line indented no deeper than it; empty where no line is `header`."""
+    lines = text.split("\n")
+    start = next((n for n, line in enumerate(lines) if line == header), None)
+    depth = len(header) - len(header.lstrip())
+    block: list[str] = []
+    for line in lines[start + 1:] if start is not None else []:
+        if len(line) - len(line.lstrip()) <= depth:
+            break
+        block.append(line.strip())
+    return block
+
+
+def _campaign_restore_faults(gates: str, campaign: str) -> list[str]:
+    """Why the boot signature campaign's restores could miss the caches guest-gates.yml's
+    model lane saves. Each restore's key, fallback and paths must be the model lane's,
+    read with its cache lane and its image component, the runner image's version, which
+    the campaign names directly. Both workflows must compute that version, the Sail
+    solver identity and the recipe identity alike, the last for the model lane's
+    selection, in steps bearing the ids the keys read."""
+    faults: list[str] = []
+    model = next((entry for entry in _matrix(gates) if entry.get("lane") == "model"), {})
+    images = (_workflow_step(gates, "Identify the runner image"),
+              _workflow_step(campaign, "Identify the runner image"))
+    version = "${ImageOS:-unknown}-${ImageVersion:-unknown}"
+    if not (version in images[0] and version in images[1]
+            and '[[ "$GUEST_CACHE_LANE" == proofs ]]' in images[0]
+            and 'echo "toolchain=$version"' in images[0]):
+        faults.append("the model lane's image component is not the image version the "
+                      "campaign computes")
+    for name, ident in (("Identify the runner image", "image"),
+                        ("Identify the toolchain recipe", "recipe"),
+                        ("Identify the Sail solver", "solver")):
+        if not re.search(rf"(?m)^        id: {ident}$", _workflow_step(campaign, name)):
+            faults.append(f"the campaign's {name!r} is not identified as {ident}")
+    recipe = " ".join(_workflow_step(campaign, "Identify the toolchain recipe")
+                      .replace("\\\n", " ").split())
+    if not model.get("toolchains") or (
+            f"$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity "
+            f"{model['toolchains']})") not in recipe:
+        faults.append("the campaign's recipe identity is not the model lane's selection's")
+    restore = (_workflow_step(gates, "Restore installed toolchains"),
+               _workflow_step(campaign, "Restore installed toolchains"))
+    keys = _with(restore[0], "key")
+    key = keys[0] if len(keys) == 1 else ""
+    for lane_value, model_value in (("${{ matrix.cache_lane }}", model.get("cache_lane", "")),
+                                    ("${{ steps.image.outputs.toolchain }}",
+                                     "${{ steps.image.outputs.version }}")):
+        key = key.replace(lane_value, model_value)
+    if not key or _with(restore[1], "key") != [key]:
+        faults.append(f"the campaign's toolchain key {_with(restore[1], 'key')} is not the "
+                      f"model lane's {key!r}")
+    if _with(restore[1], "restore-keys") != _with(restore[0], "restore-keys"):
+        faults.append("the campaign's toolchain fallback is not the model lane's")
+    paths = _block(gates, "      GUEST_TOOLCHAIN_PATHS: |")
+    if (_with(restore[0], "path") != ["${{ env.GUEST_TOOLCHAIN_PATHS }}"] or not paths
+            or _block(restore[1], "          path: |") != paths):
+        faults.append("the campaign's toolchain paths are not GUEST_TOOLCHAIN_PATHS")
+    memo = (_workflow_step(gates, "Restore the Sail memo"),
+            _workflow_step(campaign, "Restore the Sail memo"))
+    for field in ("path", "key", "restore-keys"):
+        stated = _with(memo[0], field)
+        if len(stated) != 1 or _with(memo[1], field) != stated:
+            faults.append(f"the campaign's Sail memo {field} is not the model lane's {stated}")
+    solver = [[line.strip() for line in _workflow_step(text, "Identify the Sail solver")
+               .split("\n") if "identity=" in line] for text in (gates, campaign)]
+    if len(solver[0]) != 1 or solver[1] != solver[0]:
+        faults.append(f"the campaign's Sail solver identity {solver[1]} is not the model "
+                      f"lane's {solver[0]}")
+    return faults
+
+
+def _campaign_restores_the_model_lane() -> None:
+    """The boot signature campaign restores the model lane's installed toolchains and Sail
+    memo under the keys and paths that lane saves them by, and a drift on either side is
+    named."""
+    original = {"gates": WORKFLOW.read_text(encoding="utf-8"),
+                "campaign": CAMPAIGN.read_text(encoding="utf-8")}
+    found = _campaign_restore_faults(original["gates"], original["campaign"])
+    ensure(not found, f"the campaign's restores miss the model lane's caches: {found}")
+    identity = "-${{ steps.recipe.outputs.identity }}\n"
+    for side, old, new in (
+            ("campaign", "key: guest-toolchains-v1-model-", "key: guest-toolchains-v2-model-"),
+            ("gates", identity, identity.replace("\n", "-x\n")),
+            ("campaign", "            !~/verifiedos-guest/opam/log\n", ""),
+            ("gates", "        !~/verifiedos-guest/opam/log\n", ""),
+            ("campaign", "restore-keys: guest-sail-memo-v1-", "restore-keys: guest-sail-memo-v2-"),
+            ("campaign", "--toolchain sail --toolchain rtl)", "--toolchain sail)"),
+            ("gates", 'echo "toolchain=$version"', 'echo "toolchain=${ImageOS:-unknown}"'),
+            ("campaign", "['snapshots']['sail'][:16]", "['snapshots']['sail'][:12]"),
+            ("campaign", "        id: recipe\n", "        id: identity\n")):
+        mutant = dict(original, **{side: original[side].replace(old, new, 1)})
+        ensure(mutant[side] != original[side]
+               and bool(_campaign_restore_faults(mutant["gates"], mutant["campaign"])),
+               f"the campaign's restores must be refused with {old!r} made {new!r} in {side}")
 
 
 def cases() -> list[Case]:
@@ -465,4 +571,6 @@ def cases() -> list[Case]:
         Case("each lane's step limits stay a margin under the job's", _lane_step_limits),
         Case("the reporter's lanes and their caches match the workflow's",
              _lanes_match_the_workflow),
+        Case("the boot signature campaign restores the model lane's caches by their keys",
+             _campaign_restores_the_model_lane),
     ]

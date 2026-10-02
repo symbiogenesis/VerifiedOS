@@ -262,7 +262,9 @@ path lists and saves neither. It computes the recipe identity for the model lane
 selection, `--toolchain sail --toolchain rtl`, though it bootstraps Sail alone,
 because the cache it restores holds that lane's installation. A change to either key,
 path list or the model lane's selection here must change that workflow's restore with
-it, or its runners install and emit cold.
+it, or its runners install and emit cold;
+[the guest report tests](../tests/test_guest_report.py) hold the two workflows' keys,
+fallbacks, paths and identity computations equal.
 
 Each command runs under GNU time, whose figures in its retained log end with
 `maxrss_kb`: the peak resident memory of the command's largest single process. The
