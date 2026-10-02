@@ -173,15 +173,28 @@ toolchains: its opam root without downloads or logs, the Verilator prefix and th
 ownership marker. Bootstrap then runs unchanged: it keeps the restored root, which
 stands complete, and records the repository stamps its switches were resolved against,
 imports each lock into its restored switch, installs the uncached solver, skips a
-Verilator prefix whose receipt matches and probes every tool. The key includes the lane, runner OS, architecture, the Sail
-and Rocq snapshots, bootstrap and [the opam client's owner](../vos/opam_client.py), with the image version for the model lane and only
-the image's release (`ImageOS`) for the proofs lane. Rocq and its checker load only
-the C library, whose ABI a release keeps and whose bytes the proof gate binds. A
-rebuilt switch reproduces those executables but not every installed library file,
-so sharing one switch across a release's images is what lets proof evidence cross
-them. Switch names and the Verilator prefix carry their versions, so other tool
-edits need no key input. Only exact keys restore. A main-branch run that missed the key saves the lane's toolchains after its
-probes pass; a cold run checks the key without restoring it. The reporter records
+Verilator prefix whose receipt matches and probes every tool. The key includes the
+lane, runner OS, architecture and the lane's toolchain recipe identity, with the image
+version for the model lane and only the image's release (`ImageOS`) for the proofs
+lane. `bootstrap_guest.py --print-recipe-identity`, given the lane's `--toolchain`
+selection, prints that identity: the SHA-256 of the owner data that decides the
+installed bytes, which bootstrap's `recipe` states. That data is the selection's Ubuntu
+packages; the opam client's release, per-architecture SHA-256 values, root format,
+repositories and root-creation route from
+[the opam client's owner](../vos/opam_client.py); each selected switch's steps from
+[its owner](../vos/env.py) with the bytes of the snapshot it imports, so the proofs
+lane's key reads `rocq.lock` alone and the model lane's `sail.lock` alone; and for
+`rtl` the Verilator release, archive URL and SHA-256. Other edits to bootstrap or the
+client's owner keep the key. No constant summarizes that data: the key's
+`guest-toolchains-v1` version is the one a reviewer raises by hand for an
+installation-procedure change none of it captures, such as another step in the
+Verilator installer's build or in how bootstrap finishes a root. Rocq and its checker
+load only the C library, whose ABI a release keeps and whose bytes the proof gate
+binds. A rebuilt switch reproduces those executables but not every installed library
+file, so sharing one switch across a release's images is what lets proof evidence
+cross them. Only exact keys restore. A main-branch run that missed the key saves the
+lane's toolchains after its probes pass; a cold run checks the key without restoring
+it. The reporter records
 `cold` or `restored` in `results.json` and the job summary. Only a cold run is
 evidence that the toolchains install.
 
@@ -238,8 +251,11 @@ discharged again in that run.
 
 The [boot signature target campaign](../../firmware/crypto/README.md#hosted-target-campaign)
 restores the model lane's installed toolchains and Sail memo under these same keys and
-path lists and saves neither. A change to either key or path list here must change
-that workflow's restore with it, or its runners install and emit cold.
+path lists and saves neither. It computes the recipe identity for the model lane's
+selection, `--toolchain sail --toolchain rtl`, though it bootstraps Sail alone,
+because the cache it restores holds that lane's installation. A change to either key,
+path list or the model lane's selection here must change that workflow's restore with
+it, or its runners install and emit cold.
 
 Each command runs under GNU time, whose figures in its retained log end with
 `maxrss_kb`: the peak resident memory of the command's largest single process. The

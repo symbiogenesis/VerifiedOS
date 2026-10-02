@@ -3,6 +3,8 @@
 """Install the guest gate's toolchains in one private, native Linux directory."""
 
 import argparse
+import hashlib
+import json
 import os
 import platform
 import shlex
@@ -68,6 +70,67 @@ def packages(selected: tuple[str, ...]) -> tuple[str, ...]:
     """The Ubuntu packages an installation of `selected` needs, each once."""
     return tuple(dict.fromkeys((*BASE_PACKAGES,
                                 *(package for name in selected for package in PACKAGES[name]))))
+
+
+def _checkout_file(argument: str) -> Path | None:
+    """The checkout file a recipe step's argument names, where it names one."""
+    path = Path(argument)
+    return path if path.is_absolute() and path.is_relative_to(TOOLS.parent) else None
+
+
+def _portable(argv: tuple[str, ...]) -> list[str]:
+    """A recipe step as every checkout states it, a path inside the checkout relative to it."""
+    return [path.relative_to(TOOLS.parent).as_posix() if (path := _checkout_file(argument))
+            else argument for argument in argv]
+
+
+def recipe(selected: tuple[str, ...]) -> dict[str, object]:
+    """The owner data that decides what an installation of `selected` leaves in Guest
+    CI's installed-toolchain cache: the selection, its Ubuntu packages, the opam client's
+    release, per-architecture SHA-256 values, root format, repositories and root-creation
+    route from the client's owner, each selected switch's steps from its owner with the
+    bytes of every checkout file they import, and for `rtl` the Verilator release, archive
+    URL and SHA-256 from its installer.
+
+    The cache key hashes this rather than this file and the client's owner, so an edit
+    elsewhere in either keeps a restored installation. The solver is no part of it: it
+    installs into its own uncached prefix on every run. Nor is a hand-kept constant: the
+    key's `guest-toolchains-v1` prefix in the workflows is the version a reviewer raises
+    for a change to the installation procedure that none of this data captures, such as
+    another step in the Verilator installer's build or in how bootstrap finishes a root.
+    """
+    switches: dict[str, object] = {}
+    for name, steps in (("sail", env.SAIL_INSTALL), ("rocq", env.ROCQ_INSTALL)):
+        if name in selected:
+            imported = sorted({path for argv in steps for argument in argv
+                               if (path := _checkout_file(argument))})
+            switches[name] = {
+                "steps": [_portable(argv) for argv in steps],
+                "snapshots": {path.relative_to(TOOLS.parent).as_posix(): receipts.digest(path)
+                              for path in imported}}
+    found: dict[str, object] = {
+        "toolchains": list(selected), "packages": list(packages(selected)),
+        "opam": {"version": opam_client.OPAM_VERSION,
+                 "root_format": opam_client.OPAM_ROOT_FORMAT,
+                 "releases": {machine: [opam_client.release_url(suffix), digest]
+                              for machine, (suffix, digest)
+                              in sorted(opam_client.OPAM_HASHES.items())},
+                 "repositories": [list(pair) for pair in opam_client.OPAM_REPOSITORIES],
+                 "route": [list(argv) for argv in opam_client.CREATE_ROOT]},
+        "switches": switches,
+    }
+    if "rtl" in selected:
+        found["verilator"] = {"release": rtl.VERILATOR_PIN, "url": rtl.VERILATOR_URL,
+                              "sha256": rtl.VERILATOR_SHA256}
+    return found
+
+
+def recipe_identity(selected: tuple[str, ...]) -> str:
+    """The SHA-256 of `recipe(selected)` as canonical JSON, the installed-toolchain
+    cache key's component that `--print-recipe-identity` prints."""
+    text = json.dumps(recipe(selected), sort_keys=True, separators=(",", ":"),
+                      ensure_ascii=True)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def prepare_root(root: Path) -> Path:
@@ -384,8 +447,9 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, required=True,
-                        help="private persistent native directory outside the source checkout")
+    parser.add_argument("--root", type=Path,
+                        help="private persistent native directory outside the source checkout "
+                             "(required to install)")
     parser.add_argument("--jobs", type=cli.positive_int,
                         help="worker override (default: available CPUs limited by memory)")
     parser.add_argument("--toolchain", action="append", choices=TOOLCHAINS, dest="toolchains",
@@ -394,7 +458,19 @@ def main(argv: list[str] | None = None) -> int:
                         help="install absent Ubuntu packages using root or passwordless sudo")
     parser.add_argument("--github-env", type=Path)
     parser.add_argument("--github-path", type=Path)
+    parser.add_argument("--print-recipe-identity", action="store_true",
+                        help="print the selection's installed-toolchain cache identity, "
+                             "install nothing and exit")
     args = parser.parse_args(argv)
+    if args.print_recipe_identity:
+        try:
+            print(recipe_identity(selection(args.toolchains)))
+        except OSError as error:
+            print(f"FAIL recipe identity: {error}", file=sys.stderr)
+            return 1
+        return 0
+    if args.root is None:
+        parser.error("--root is required to install")
     try:
         return bootstrap(args)
     except (OSError, ValueError, subprocess.SubprocessError) as error:

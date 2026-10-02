@@ -125,6 +125,19 @@ jobs:
         id: image
         run: echo "version=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
 
+      - name: Identify the toolchain recipe
+        id: recipe
+        # The model lane's selection, Sail and Verilator, though this job bootstraps Sail
+        # alone: the identity names the installation the restored cache holds.
+        run: |
+          identity=$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity \
+            --toolchain sail --toolchain rtl)
+          if [[ ! "$identity" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::bootstrap printed no toolchain recipe identity: $identity"
+            exit 1
+          fi
+          echo "identity=$identity" >> "$GITHUB_OUTPUT"
+
       - name: Restore installed toolchains
         # Guest CI's model-lane installation, restored read-only: the key and the path
         # list must equal guest-gates.yml's for its saved cache to match.
@@ -136,7 +149,7 @@ jobs:
             !~/verifiedos-guest/opam/download-cache
             !~/verifiedos-guest/opam/log
             ~/verifiedos-guest/build/toolchains
-          key: guest-toolchains-v1-model-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/opam_client.py') }}
+          key: guest-toolchains-v1-model-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}
 
       - name: Bootstrap the Sail toolchain
         id: bootstrap

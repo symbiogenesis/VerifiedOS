@@ -235,16 +235,33 @@ jobs:
             echo "toolchain=$version" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Identify the toolchain recipe
+        id: recipe
+        env:
+          GUEST_TOOLCHAIN_OPTIONS: ${{ matrix.toolchains }}
+        # The SHA-256 of the owner data that decides the selection's installed bytes,
+        # which bootstrap_guest.py's `recipe` states: its packages, the opam client's pin,
+        # each switch's recipe and snapshot bytes and the Verilator pin. Other edits to
+        # bootstrap or the client's owner keep the key; the key's v1 is raised by hand
+        # for an installation-procedure change that data does not capture.
+        run: |
+          read -r -a toolchain_options <<< "$GUEST_TOOLCHAIN_OPTIONS"
+          identity=$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity \
+            "${toolchain_options[@]}")
+          if [[ ! "$identity" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::bootstrap printed no toolchain recipe identity: $identity"
+            exit 1
+          fi
+          echo "identity=$identity" >> "$GITHUB_OUTPUT"
+
       - name: Restore installed toolchains
         id: toolchains
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.GUEST_TOOLCHAIN_PATHS }}
-          # Switch names and the Verilator prefix carry their versions, and bootstrap
-          # imports each lock into a restored switch, so env.py and rtl.py stay out; the
-          # opam client's owner is hashed because that client builds every switch.
+          # Bootstrap imports each lock into a restored switch and probes every tool.
           # Exact keys only: another snapshot's switch is never restored.
-          key: guest-toolchains-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.toolchain }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/opam_client.py') }}
+          key: guest-toolchains-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.toolchain }}-${{ steps.recipe.outputs.identity }}
           # A cold run only learns whether the installation needs saving.
           lookup-only: ${{ env.GUEST_COLD == 'true' }}
 
