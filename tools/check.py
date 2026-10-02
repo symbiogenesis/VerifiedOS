@@ -50,6 +50,10 @@ what earlier groups computed, so the rule's verdict is the one a whole run reach
 the mutation selftest uses it because each case needs its own rule's verdict alone.
 A stopped run decides nothing about the later groups and says so.
 
+Under the gate's `--summary`, the seconds of each fixed phase before the first group and
+of each group go to the file [vos/timings.py](vos/timings.py) names, with this process's
+CPU seconds beside them, never into the printed report.
+
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
 found from this file, never from the working directory.
 """
@@ -58,6 +62,7 @@ import argparse
 import io
 import re
 import sys
+import time
 from pathlib import Path
 
 # The tools import `vos` without being installed, so each puts its own directory on
@@ -65,16 +70,22 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import corpus as corpus_mod
-from vos import toolenv
+from vos import timings, toolenv
 
 if __name__ == "__main__":
     code = toolenv.bootstrap(corpus_mod.find_root(), ["check", *sys.argv[1:]])
     if code is not None:
         sys.exit(code)
 
-from vos.checks import GROUPS, Context
-from vos.register import read_artifacts, read_register
-from vos.report import Reporter
+# The wall and CPU readings on either side of importing every group's module, which a
+# run's timings record as its first fixed phase.
+_IMPORTING = time.perf_counter(), time.process_time()
+
+from vos.checks import GROUPS, Context  # noqa: E402  (timed by the readings either side)
+from vos.register import read_artifacts, read_register  # noqa: E402
+from vos.report import Reporter  # noqa: E402
+
+_IMPORTED = time.perf_counter(), time.process_time()
 
 
 def _utf8_output() -> None:
@@ -88,24 +99,27 @@ def _utf8_output() -> None:
             stream.reconfigure(encoding="utf-8")
 
 
-def run(root: Path, fix: bool = False, through: str | None = None) -> Reporter:
+def run(root: Path, fix: bool = False, through: str | None = None,
+        clock: timings.Clock | None = None) -> Reporter:
     """One whole run, as data. The caller decides what to do with the verdict, which
     is what lets the mutation selftest read a run back instead of parsing its
-    stdout. `through` stops the run after the group that reports that rule."""
-    corpus = corpus_mod.load(root)
-    ctx = Context(
-        root=root,
-        corpus=corpus,
-        reg=read_register(corpus),
-        art=read_artifacts(corpus),
-        rep=Reporter(),
-        fix=fix,
-    )
+    stdout. `through` stops the run after the group that reports that rule. `clock`
+    receives the fixed phases before the first group and each group that ran, by the
+    last part of its module's name."""
+    measured = clock or timings.Clock()
+    with measured.timing("phase", "corpus load"):
+        corpus = corpus_mod.load(root)
+    with measured.timing("phase", "register read"):
+        reg = read_register(corpus)
+    with measured.timing("phase", "artifacts read"):
+        art = read_artifacts(corpus)
+    ctx = Context(root=root, corpus=corpus, reg=reg, art=art, rep=Reporter(), fix=fix)
     decided = re.compile(rf"\s*(?:ok|FAIL) {re.escape(through)}:") if through else None
     skipped = 0
     for index, group in enumerate(GROUPS):
         start = len(ctx.rep.out)
-        group.run(ctx)
+        with measured.timing("group", group.__name__.rpartition(".")[2]):
+            group.run(ctx)
         if decided is not None and any(decided.match(line) for line in ctx.rep.out[start:]):
             skipped = len(GROUPS) - index - 1
             break
@@ -140,8 +154,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.fix and args.through:
         parser.error("--fix repairs the whole run; it cannot stop at one rule's group")
 
-    report = run(corpus_mod.find_root(), fix=args.fix, through=args.through)
+    # The fixed phases' and groups' seconds for the gate's summary, never printed;
+    # claimed before any group runs, so nothing a group starts inherits the file.
+    record = timings.claim()
+    clock = timings.Clock(cpu=True, origin=_IMPORTING[0])
+    clock.add("phase", "imports", _IMPORTED[0] - _IMPORTING[0], _IMPORTING[0],
+              _IMPORTED[1] - _IMPORTING[1])
+    report = run(corpus_mod.find_root(), fix=args.fix, through=args.through, clock=clock)
     print("\n".join(report.out))
+    timings.write(record, clock.units())
     return 1 if report.findings else 0
 
 
