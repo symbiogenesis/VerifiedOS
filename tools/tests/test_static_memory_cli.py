@@ -14,6 +14,11 @@ from tests.harness import Case, ensure
 from vos import static_memory_corpus as witnesses
 from vos.cli import static_memory as cli
 
+# Each case generates its own corpus, writes only to its own temporary directory and
+# patches only inside a `with`, so the cases share no state, and a sharded run spreads
+# them over every shard (vos/cli/test.py).
+INDEPENDENT_CASES = True
+
 
 def _invoke(argv: list[str]) -> tuple[int, dict[str, Any]]:
     output = StringIO()
