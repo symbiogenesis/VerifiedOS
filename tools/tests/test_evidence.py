@@ -310,6 +310,8 @@ def _ctest_requires_nonempty_complete_success() -> None:
                      "100% tests passed, 1 tests failed out of 3\nALL_DONE\n",
                      "100% tests passed out of 3\n"
                      "67% tests passed, 1 tests failed out of 3\nALL_DONE\n",
+                     "0% tests passed, 1 tests failed out of 1\n"
+                     "100% tests passed out of 3\nALL_DONE\n",
                      "100% tests passed, 0 tests failed out of 3\n"
                      "100% tests passed out of 0\nALL_DONE\n",
                      "ALL_DONE\n"):
@@ -319,6 +321,18 @@ def _ctest_requires_nonempty_complete_success() -> None:
             except ValueError:
                 continue
             raise AssertionError(f"invalid ctest evidence was accepted: {text!r}")
+
+
+def _ctest_sums_one_builds_runs() -> None:
+    """A build that started the Sail property test beside its compile reports its suite
+    in two ctest runs, and the tally is their sum."""
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as temporary:
+        path = Path(temporary) / "build.log"
+        path.write_text("100% tests passed, 0 tests failed out of 14\n"
+                        "100% tests passed out of 1\nCTEST_EXIT=0\nALL_DONE\n",
+                        encoding="utf-8")
+        tally = evidence._ctest(path)
+        ensure(tally == "15 of 15", f"the runs of one build sum, got {tally}")
 
 
 def _launch_uses_an_isolated_subprocess() -> None:
@@ -416,6 +430,7 @@ def cases() -> list[Case]:
         Case("lock-refusal-recorded", _lock_refusal_records_failure),
         Case("ctest-summary-formats", _ctest_summary_formats_publish_measurements),
         Case("ctest-complete-nonempty-success", _ctest_requires_nonempty_complete_success),
+        Case("ctest-sums-one-builds-runs", _ctest_sums_one_builds_runs),
         Case("launch-subprocess-isolation", _launch_uses_an_isolated_subprocess),
         Case("launch-failure-recorded", _launch_failure_is_a_result),
         Case("timeout-kills-process-group", _timeout_kills_the_process_group),

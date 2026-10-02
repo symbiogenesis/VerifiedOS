@@ -39,6 +39,7 @@ into it, and `wait` blocks on that lock rather than on a marker or on a sleep.
 """
 
 import argparse
+import contextlib
 import errno
 import fnmatch
 import hashlib
@@ -46,10 +47,12 @@ import json
 import os
 import re
 import shutil
+import signal
 import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import uuid
 from collections.abc import Callable
@@ -839,14 +842,312 @@ def cmd_build(e: env.Environment, args: argparse.Namespace) -> int:
             lock.close()
 
 
+# The Sail property test the model's ctest registers (model/model/CMakeLists.txt). Its
+# command is Sail over the model's sources and the configuration configure writes, and
+# the memo cache it reads is the one the C++ emission writes: nothing else the build
+# makes, so it can start once the emission is complete rather than after the last link.
+EARLY_TEST = "smt_properties_rv64d"
+EARLY_STAGE = "ctest-early"
+# The emission's outputs as the tree's ninja log names them, relative to the tree.
+EMIT_OUTPUTS = ("sail_riscv_model.cpp", "sail_riscv_model.h", SCHEMA)
+# What a Sail process beside the build is budgeted on top of the build's own budget:
+# the ctest stage, whose largest process is this test's, peaked at 0.77 GB in Guest CI
+# run 37017722599.
+EARLY_TEST_MB = 1024
+# How often the build's ninja log is read for the emission's entry.
+EMISSION_POLL_SECONDS = 0.5
+# Ninja prints a status line as each edge finishes; this one carries the seconds since
+# the build began, so the log alone times the emission, the generated unit's compile
+# and the links.
+NINJA_STATUS = "[%f/%t %e] "
+
+
+class _NinjaLogMark(NamedTuple):
+    """The tree's ninja log as it stood before a build, so that what the build records
+    can be told from what earlier builds left."""
+
+    identity: tuple[int, int] | None  # its device and inode; None where there was none
+    size: int
+    lines: frozenset[bytes]
+
+
+def _ninja_log_mark(path: Path) -> _NinjaLogMark:
+    try:
+        with path.open("rb") as handle:
+            found = os.fstat(handle.fileno())
+            data = handle.read()
+    except FileNotFoundError:
+        return _NinjaLogMark(None, 0, frozenset())
+    return _NinjaLogMark((found.st_dev, found.st_ino), len(data),
+                         frozenset(data.splitlines()))
+
+
+def _fresh_outputs(path: Path, mark: _NinjaLogMark) -> set[str]:
+    """The outputs ninja has recorded in its log at `path` since `mark` was taken.
+
+    Ninja writes an edge's entries only after its command exited successfully, one
+    line per output, flushing each, so a line is read only once its newline is there.
+    The same file grown past the mark holds this build's entries after the mark. Any
+    other file, one ninja compacted or started over when it opened the log, holds this
+    build's entries and the earlier builds' it kept, and the latter are lines the mark
+    already held. The file grown past the mark is read only from the mark on."""
+    try:
+        with path.open("rb") as handle:
+            found = os.fstat(handle.fileno())
+            appended = ((found.st_dev, found.st_ino) == mark.identity
+                        and found.st_size >= mark.size)
+            if appended:
+                handle.seek(mark.size)
+            body = handle.read()
+    except FileNotFoundError:
+        return set()
+    lines = body[:body.rfind(b"\n") + 1].splitlines()
+    entries = (line.split(b"\t") for line in lines if appended or line not in mark.lines)
+    return {fields[3].decode("utf-8", "replace") for fields in entries if len(fields) == 5}
+
+
+# A thread's states, as `/proc` spells them, in which it can start no process: stopped,
+# stopped by a tracer, a zombie and dead.
+_AT_REST = frozenset({"T", "t", "Z", "X"})
+
+
+def _stat_fields(path: Path) -> list[str]:
+    """The fields of a `/proc` stat record after the command name, the state first and
+    the parent's pid next, or none where the record is gone. The command name is
+    parenthesized and may hold anything, so the fields are read after its last ")"."""
+    try:
+        record = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    return record[record.rfind(")") + 1:].split()
+
+
+def _children() -> dict[int, list[int]]:
+    """Each process's children, which `/proc` names by parent."""
+    children: dict[int, list[int]] = {}
+    for entry in Path("/proc").iterdir():
+        if entry.name.isdigit():
+            fields = _stat_fields(entry / "stat")
+            if len(fields) > 1 and fields[1].isdigit():
+                children.setdefault(int(fields[1]), []).append(int(entry.name))
+    return children
+
+
+def _at_rest(pid: int) -> bool:
+    """Whether every thread of `pid` has stopped or exited, so that none of them can
+    start a process; a process gone from `/proc` has exited."""
+    try:
+        threads = list(Path(f"/proc/{pid}/task").iterdir())
+    except OSError:
+        return True
+    return all((_stat_fields(thread / "stat") or ["X"])[0] in _AT_REST for thread in threads)
+
+
+def _kill_tree(root: int) -> None:
+    """SIGKILL `root` and every process under it.
+
+    Each process found is stopped before `/proc` is read again, and the readings repeat
+    until one finds nothing new with every thread found stopped or exited. A stopped
+    process starts nothing, so the processes killed are the whole tree, those started
+    while it was being read among them."""
+    if sys.platform == "win32":
+        raise RuntimeError("process trees are ended in the guest")
+    tree: set[int] = set()
+    found = {root}
+    while found != tree or not all(_at_rest(pid) for pid in tree):
+        for pid in found - tree:
+            with contextlib.suppress(ProcessLookupError):
+                os.kill(pid, signal.SIGSTOP)
+        tree |= found
+        children = _children()
+        frontier = list(tree)
+        while frontier:
+            for child in children.get(frontier.pop(), []):
+                if child not in found:
+                    found.add(child)
+                    frontier.append(child)
+    for pid in tree:
+        with contextlib.suppress(ProcessLookupError):
+            os.kill(pid, signal.SIGKILL)
+
+
+class _EarlyRun:
+    """`EARLY_TEST` in a ctest run of its own, started beside the build, its output held
+    aside until the ctest stage places it in the log.
+
+    A thread reaps the run as it exits, so its `STAGE` line times the run itself rather
+    than the wait for the ctest stage to collect it, and the line says when the run
+    started in the build stage's seconds, `since` being when that stage began. It stays
+    in the build's process group, so whatever ends that group ends it too, the evidence
+    sweep's timeout among them; `kill` ends it, and the Sail process under it, when the
+    build is leaving by an exception."""
+
+    def __init__(self, argv: list[str], since: float) -> None:
+        # The file outlives this call, which a context manager would close: the ctest
+        # stage reads it once the run is reaped, and `kill` closes it.
+        self._output = tempfile.TemporaryFile(  # noqa: SIM115
+            "w+", encoding="utf-8", errors="replace")
+        self._since = since
+        self._started = time.perf_counter()
+        try:
+            self._proc = subprocess.Popen(argv, stdout=self._output, stderr=self._output)
+        except OSError:
+            self._output.close()
+            raise
+        self._lock = threading.Lock()
+        self._code: int | None = None
+        self._cost = ""
+        self._reaper = threading.Thread(target=self._reap, name="early-test-reaper",
+                                        daemon=True)
+        self._reaper.start()
+
+    def _reap(self) -> None:
+        """Wait for the run to exit, then reap it and keep what it cost as its `STAGE`
+        line. The exit is waited for without being collected, so the pid stays this
+        run's until the lock is held and `kill` can never signal a pid handed on."""
+        if sys.platform == "win32":
+            raise RuntimeError("build stages run in the guest")
+        os.waitid(os.P_PID, self._proc.pid, os.WEXITED | os.WNOWAIT)
+        ended = time.perf_counter()
+        with self._lock:
+            _, status, usage = os.wait4(self._proc.pid, 0)
+            self._code = self._proc.returncode = os.waitstatus_to_exitcode(status)
+            self._cost = env.stage_line(EARLY_STAGE, ended - self._started,
+                                        usage.ru_utime + usage.ru_stime, usage.ru_maxrss,
+                                        start=self._started - self._since)
+
+    def wait(self) -> int:
+        """Wait until the run is reaped, and give its exit code."""
+        self._reaper.join()
+        if self._code is None:
+            raise RuntimeError(f"the {EARLY_STAGE} run was not reaped")
+        return self._code
+
+    def report(self) -> str:
+        """What the reaped run printed, then what it cost."""
+        self._output.seek(0)
+        printed = self._output.read()
+        if printed and not printed.endswith("\n"):
+            printed += "\n"
+        return f"{printed}{self._cost}\n"
+
+    def kill(self) -> None:
+        """End the run and everything under it unless it was reaped, wait for its
+        reaping, then drop its output."""
+        try:
+            with self._lock:
+                if self._code is None:
+                    if sys.platform == "win32":
+                        self._proc.kill()
+                    else:
+                        _kill_tree(self._proc.pid)
+            self._reaper.join()
+        finally:
+            self._output.close()
+
+
+class _EmissionWatch:
+    """Start `EARLY_TEST` once this build's emission is complete, beside whatever the
+    build has still to compile.
+
+    Ninja records the emission in its log only after Sail exited successfully, and Sail
+    writes its memo cache before it exits, so the entry means the generated sources and
+    the memo the test reuses are complete. Only an entry this build wrote counts: the
+    log keeps earlier builds' entries, and an emission that is up to date writes none,
+    which leaves the test to the ctest stage. A log that cannot be read starts
+    nothing."""
+
+    def __init__(self, build_dir: Path, argv: list[str]) -> None:
+        self._path = build_dir / ".ninja_log"
+        self._outputs = {*EMIT_OUTPUTS, *(str(build_dir / name) for name in EMIT_OUTPUTS)}
+        self._argv = argv
+        self._stop = threading.Event()
+        self._run: _EarlyRun | None = None
+        # Read here and not in the thread, so the mark is taken before ninja starts.
+        try:
+            self._mark: _NinjaLogMark | None = _ninja_log_mark(self._path)
+        except OSError:
+            self._mark = None
+        # The build stage starts as this returns, so a run's start is counted from here.
+        self._began = time.perf_counter()
+        self._thread = threading.Thread(target=self._watch, name="emission-watch",
+                                        daemon=True)
+        self._thread.start()
+
+    def _watch(self) -> None:
+        if self._mark is None:
+            return
+        while not self._stop.wait(EMISSION_POLL_SECONDS):
+            try:
+                emitted = bool(_fresh_outputs(self._path, self._mark) & self._outputs)
+            except OSError:
+                continue
+            if emitted and not self._stop.is_set():
+                # A run that cannot start leaves the test to the ctest stage, where the
+                # same command fails as it would have.
+                with contextlib.suppress(OSError):
+                    self._run = _EarlyRun(self._argv, self._began)
+                return
+
+    def stop(self) -> _EarlyRun | None:
+        """Stop watching, and hand back the run if it started, the same run however
+        often this is asked."""
+        self._stop.set()
+        self._thread.join()
+        return self._run
+
+
+def _early_decision(e: env.Environment) -> tuple[bool, str]:
+    """Whether `EARLY_TEST` may start beside the build, and the words the log's host
+    line gives the answer.
+
+    `_jobs` sizes the build to the memory available and budgets nothing beside it, so
+    the test may start early only where that memory covers the build's budget and the
+    test's too; with no reading the guard cannot bind, and the test runs after the
+    build. Whether a test allowed to start early did, and when, is its `STAGE` line's
+    to say: an emission that is up to date starts nothing."""
+    wanted = e.build_budget_mb + EARLY_TEST_MB
+    if e.mem_available_mb <= 0:
+        return False, f"{EARLY_TEST} after the build, no memory reading"
+    if e.mem_available_mb < wanted:
+        return False, f"{EARLY_TEST} after the build, {wanted} MB wanted beside it"
+    return True, f"{EARLY_TEST} may start beside the build within {wanted} MB"
+
+
+def _ctest_stage(e: env.Environment, build_dir: Path, handle: IO[str],
+                 early: _EarlyRun | None) -> int:
+    """The bundled suite, or, when `EARLY_TEST` started beside the build, the rest of
+    it and then the early run's output once that has finished. Either run failing
+    fails the stage, and each prints its own summary, which `evidence` sums."""
+    argv = ["ctest", "--test-dir", str(build_dir), "-j", str(e.test_jobs),
+            "--output-on-failure"]
+    if early is None:
+        return env.stage("ctest", argv, stdout=handle, stderr=handle)
+    code = env.stage("ctest", [*argv, "-E", f"^{EARLY_TEST}$"], stdout=handle, stderr=handle)
+    early_code = early.wait()
+    handle.write(early.report())
+    handle.flush()
+    return code or early_code
+
+
 def _build_locked(e: env.Environment, build_dir: Path, log: Path,
                   extra: list[str]) -> int:
-    """Run the stages while cmd_build holds the lane, then publish their identity."""
+    """Run the stages while cmd_build holds the lane, then publish their identity.
+
+    Configure, build and ctest run in that order, each gating the next. Where memory
+    allows, `_EmissionWatch` starts `EARLY_TEST` as soon as this build's emission is
+    complete, so what follows the emission costs the longer of two paths, the rest of
+    the compile and suite or the Sail test, rather than both end to end; `_ctest_stage`
+    then runs the rest of the suite and places the early run's output in the same
+    ctest section. A build that fails waits for the early run and discards it, leaving
+    the log as a failed build leaves it, and a run leaving by an exception ends it.
+    """
     record_path = log.with_suffix(".json")
     record_path.unlink(missing_ok=True)
     identity = build_identity(e)
     stages: dict[str, int] = {}
     run_id = uuid.uuid4().hex
+    beside, decision = _early_decision(e)
 
     e.log_dir.mkdir(parents=True, exist_ok=True)
     version = subprocess.run(["sail", "--version"], capture_output=True, text=True, check=False)
@@ -860,26 +1161,43 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
         handle.write(f"== sail: {version.stdout.strip()}\n")
         handle.write(f"== lane: {e.lane or 'primary'} in {build_dir}\n")
         handle.write(f"== host: {e.cpus} cpu, {e.mem_available_mb} MB available; "
-                     f"build -j{e.jobs}, ctest -j{e.test_jobs}\n")
+                     f"build -j{e.jobs}, ctest -j{e.test_jobs}; {decision}\n")
         handle.flush()
 
         # Each stage gates the next: a configure that failed makes the build's error a
         # second symptom of the first, and reporting both hides which one to fix.
-        code = 0
-        for name, argv in (
-            ("configure", None),
-            ("build", ["cmake", "--build", str(build_dir), "-j", str(e.jobs)]),
-            ("ctest", ["ctest", "--test-dir", str(build_dir), "-j", str(e.test_jobs),
-                       "--output-on-failure"]),
-        ):
-            code = (_configure(e, build_dir, extra, handle) if argv is None
-                    else env.stage(name, argv, stdout=handle, stderr=handle))
-            stages[name] = code
-            handle.write(f"{name.upper()}_EXIT={code}\n")
-            handle.flush()
-            if code:
-                break
-        handle.write("ALL_DONE\n")
+        code = stages["configure"] = _configure(e, build_dir, extra, handle)
+        handle.write(f"CONFIGURE_EXIT={code}\n")
+        handle.flush()
+        watch: _EmissionWatch | None = None
+        try:
+            if not code:
+                if beside:
+                    watch = _EmissionWatch(build_dir, ["ctest", "--test-dir", str(build_dir),
+                                                       "-R", f"^{EARLY_TEST}$",
+                                                       "--output-on-failure"])
+                try:
+                    code = stages["build"] = env.stage(
+                        "build", ["cmake", "--build", str(build_dir), "-j", str(e.jobs)],
+                        stdout=handle, stderr=handle, add_env={"NINJA_STATUS": NINJA_STATUS})
+                finally:
+                    early = watch.stop() if watch is not None else None
+                handle.write(f"BUILD_EXIT={code}\n")
+                handle.flush()
+                if code and early is not None:
+                    early.wait()
+                elif not code:
+                    code = stages["ctest"] = _ctest_stage(e, build_dir, handle, early)
+                    handle.write(f"CTEST_EXIT={code}\n")
+                    handle.flush()
+            handle.write("ALL_DONE\n")
+        finally:
+            # The run is asked of the watch again rather than read from `early`, which
+            # an interrupt inside the first `stop` leaves unset; `stop` hands back the
+            # same run each time it is asked.
+            run = watch.stop() if watch is not None else None
+            if run is not None:
+                run.kill()
 
     # A build whose stages passed can still be refused its evidence. The reason is kept
     # in the receipt as well as printed, because a background build's stderr goes
