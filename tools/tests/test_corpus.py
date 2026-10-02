@@ -305,7 +305,7 @@ def _reads_a_checkout_git_cannot_find_by_itself() -> None:
     A linked worktree created by the host's git holds a Windows path in its `.git`
     file, so inside the guest git standing in that tree finds no repository at all and
     exits 128. This parse is the one every rule reads the corpus through, so without
-    the translation `vos.env` already owns, a whole run of the checker in a lane ends
+    the translation `vos.proofenv` already owns, a whole run of the checker in a lane ends
     in a traceback rather than in a verdict. The condition is *git cannot resolve the
     repository from the tree, and the environment can name it*, which needs no WSL to
     stand up: the administrative directory is moved out of the checkout and named

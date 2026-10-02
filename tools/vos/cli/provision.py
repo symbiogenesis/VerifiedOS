@@ -973,7 +973,7 @@ FACTS: tuple[Fact, ...] = (
          "run.py proofs, and the Stdlib-only Gallina harnesses of run.py quickchick "
          "vectors and freeze, run.py kernel vectors, check and mutants, and run.py seed "
          "coq's enumerative mode",
-         "tools/vos/env.py's ROCQ_SWITCH and ROCQ_VERSION",
+         "tools/vos/proofenv.py's ROCQ_SWITCH and ROCQ_VERSION",
          partial(_switch_at, env.ROCQ_SWITCH, "rocq-core", env.ROCQ_VERSION),
          env.ROCQ_INSTALL),
     Fact("the CertiRocq oracle switch", TOOLCHAIN,
@@ -1019,7 +1019,7 @@ FACTS: tuple[Fact, ...] = (
          ((*APT, "ninja-build"),)),
     Fact("git", TOOLCHAIN,
          "cmake's git describe, which stamps the emulator's revision (M0.10, I7)",
-         "tools/vos/env.py's git_dir",
+         "tools/vos/proofenv.py's git_dir",
          partial(_on_path, "git"),
          ((*APT, "git"),)),
     Fact("libgmp-dev", TOOLCHAIN,
@@ -1034,8 +1034,8 @@ FACTS: tuple[Fact, ...] = (
     Fact("guest outputs on the guest's own filesystem", TOOLCHAIN,
          "run.py model build and every loop that writes a build tree, a work directory "
          "or a log",
-         "tools/vos/env.py's BUILD_ROOT and LOG_ROOT, and the placement rule "
-         "tools/README.md states",
+         "tools/vos/proofenv.py's BUILD_ROOT, tools/vos/env.py's LOG_ROOT, and the "
+         "placement rule tools/README.md states",
          _outputs_on_the_guest),
 )
 

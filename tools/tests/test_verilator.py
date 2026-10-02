@@ -11,7 +11,7 @@ from subprocess import CompletedProcess
 from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
-from vos import env
+from vos import env, proofenv
 from vos.cli import provision, rtl
 
 
@@ -60,8 +60,11 @@ def _verified_archive_replaces_stale_source_tree() -> None:
 
 
 def _failed_repair_invalidates_receipt() -> None:
+    # The prefix is read through env's binding of `build_root` and the lane through
+    # `lane_root`, which reads proofenv's own, so the sandbox replaces both.
     with (sandbox_tree({"README.md": "fixture"}) as root,
           patch.object(env, "build_root", return_value=root),
+          patch.object(proofenv, "build_root", return_value=root),
           patch.object(env, "lane_of", return_value="test"),
           patch.object(env, "hold_lock", return_value=nullcontext()),
           patch.object(rtl, "_verilator_version", return_value="0.000"),

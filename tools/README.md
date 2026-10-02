@@ -13,8 +13,8 @@ The system interpreter need not be replaced.
 
 Annotations use Python's lazy evaluation, with cross-module type-only imports under
 `TYPE_CHECKING`; do not add `from __future__ import annotations` or evaluate those
-annotations at runtime. [vos/env.py](vos/env.py) uses `os.process_cpu_count()` to size
-jobs within the process's available CPU allocation.
+annotations at runtime. [vos/proofenv.py](vos/proofenv.py) uses `os.process_cpu_count()`
+to size jobs within the process's available CPU allocation.
 
 ## One entry point, and the commands under it
 
@@ -1374,14 +1374,15 @@ any wave, so a source holding one runs the phase as that wave schedule.
 Without `--jobs`, each phase selects as many workers as the available logical CPUs
 and its memory planning budget permit. The guest samples `MemAvailable` immediately
 before compilation/auditing and again before kernel checking, after acquiring the
-workspace lock. [The resource policy](vos/env.py) owns the headroom, per-worker budgets
+workspace lock. [The resource policy](vos/proofenv.py) owns the headroom, per-worker budgets
 and conservative fallbacks when memory cannot be read. The compile/audit budget is an
 estimate from the [recorded prover measurements](../docs/performance/toolchain-residency.md#the-prover-and-which-of-its-two-acts-the-device-performs).
 The kernel budget is set at or above the peak resident memory of the one kernel worker
 that checks every module on Guest CI's proofs runner, whose recorded runs and margin
 `proof_jobs` states, so that 16 GB runner runs one kernel worker. Guest CI's
 proof log records each run's peak single-process resident memory
-([Guest CI contract](ci/README.md)). The selected limits are printed. An explicit
+([Guest CI contract](ci/README.md)). The selected limits are printed, each automatic one
+beside the usable CPU count and the `MemAvailable` reading it was sized from. An explicit
 `--jobs N` overrides automatic CPU/memory sizing for both phases; the single-process
 fallback for an unknown library identity still applies.
 Help, status, export and whole-set cache hits do not sample worker capacity.

@@ -8,7 +8,9 @@ lane from the checkout's `.git` shape, `_jobs` sizes from cores under the memory
 guard, the proof gate's kernel budget stands at or above the runner peaks
 `proof_jobs` records, and the overrides wave 1 moved to validated call-time reads
 take effect when set after the import, which is the hook a test like this one
-stands on.
+stands on. The proof gate's share of the environment lives in `vos/proofenv.py`,
+whose public names env.py binds as its own; a case that patches what one of those
+functions calls patches it there, where the function looks it up.
 
 One case here runs real `git` over a throwaway checkout rather than reading a
 function's return, because what `git_env` is for is a *child's* answer: the overlay
@@ -20,6 +22,7 @@ win32 returns at the platform refusal before it gets to the preparations, so wha
 `toolchain=False` skips is decidable only where a toolchain could have been prepared.
 """
 
+import ast
 import io
 import json
 import os
@@ -35,7 +38,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure, with_env
-from vos import env
+from vos import env, proofenv
 
 
 def _refuses_win32() -> None:
@@ -193,12 +196,16 @@ def _proof_jobs_use_phase_resources() -> None:
                (12, 0, 1, 1), (None, 64 * 1024, 1, 1),
                (12, None, 4, 1), (None, None, 1, 1))
     for cpus, memory, compilation, kernel in samples:
-        with patch.object(env.os, "process_cpu_count", return_value=cpus), \
-                patch.object(env, "_read_mem_available_mb", return_value=memory), \
+        with patch.object(proofenv.os, "process_cpu_count", return_value=cpus), \
+                patch.object(proofenv, "_read_mem_available_mb", return_value=memory), \
                 patch.dict(os.environ, {"VOS_JOBS": "99"}), \
                 redirect_stderr(io.StringIO()) as warnings:
-            ensure(env.proof_jobs() == compilation, "wrong automatic compile/audit limit")
-            ensure(env.proof_jobs(kernel=True) == kernel, "wrong automatic kernel limit")
+            ensure(proofenv.proof_jobs() == compilation, "wrong automatic compile/audit limit")
+            ensure(proofenv.proof_jobs(kernel=True) == kernel, "wrong automatic kernel limit")
+            # The sample the gate logs is the one the limit was sized from.
+            ensure(proofenv.proof_workers(kernel=True)
+                   == proofenv.Workers(kernel, cpus or 1, memory),
+                   "the kernel limit must come with the CPU count and memory it was sized from")
             ensure(bool(warnings.getvalue()) == (memory is None),
                    "only unavailable memory should produce a fallback diagnostic")
 
@@ -207,11 +214,11 @@ def _kernel_budget_holds_the_recorded_peaks() -> None:
     """The kernel budget stands at or above every runner peak `proof_jobs` records, and
     the margin, the second worker's threshold and the runner's worker counts it states
     are what the budget and the reserve give."""
-    doc = env.proof_jobs.__doc__ or ""
+    doc = proofenv.proof_jobs.__doc__ or ""
     peaks = [int(kib.replace(",", "")) for kib in re.findall(
         r"^\s*run \d{11} at [0-9a-f]{8}\s+([\d,]+) KiB$", doc, re.MULTILINE)]
     ensure(len(peaks) == 3, f"proof_jobs records three runner peaks, read {peaks}")
-    budget = env.PROOF_KERNEL_WORKER_MIB * 1024
+    budget = proofenv.PROOF_KERNEL_WORKER_MIB * 1024
     ensure(all(peak <= budget for peak in peaks),
            f"a recorded kernel peak exceeds the {budget} KiB budget: {peaks}")
     prose = " ".join(doc.split())
@@ -221,27 +228,28 @@ def _kernel_budget_holds_the_recorded_peaks() -> None:
     ensure(f"{budget:,} KiB, sits {margin:,} KiB ({round(margin / 1024)} MiB, "
            f"{100 * margin / budget:.1f}% of the" in prose,
            "the stated margin is not the budget less the largest recorded peak")
-    second = 2048 + 2 * env.PROOF_KERNEL_WORKER_MIB
+    second = 2048 + 2 * proofenv.PROOF_KERNEL_WORKER_MIB
     ensure(f"needs {second:,} MiB available" in prose,
            "the stated second-worker threshold is not the reserve and two budgets")
     # The runner's four vCPUs: four compile/audit workers and one kernel worker over
     # every MemAvailable a 16 GB machine can report, two kernel workers only past it.
     for memory, compilation, kernel in ((6144, 4, 1), (6143, 3, 1), (16 * 1024, 4, 1),
                                         (second - 1, 4, 1), (second, 4, 2)):
-        with patch.object(env.os, "process_cpu_count", return_value=4), \
-                patch.object(env, "_read_mem_available_mb", return_value=memory), \
+        with patch.object(proofenv.os, "process_cpu_count", return_value=4), \
+                patch.object(proofenv, "_read_mem_available_mb", return_value=memory), \
                 redirect_stderr(io.StringIO()):
-            ensure((env.proof_jobs(), env.proof_jobs(kernel=True)) == (compilation, kernel),
+            ensure((proofenv.proof_jobs(), proofenv.proof_jobs(kernel=True))
+                   == (compilation, kernel),
                    f"wrong runner worker counts at {memory} MiB available")
 
 
 def _toolchain_jobs_use_resources() -> None:
     for cpus, memory, expected in ((4, 16384, 4), (64, 8192, 3), (64, 262144, 64),
                                    (12, 0, 1), (None, 16384, 1), (12, None, 1)):
-        with (patch.object(env.os, "process_cpu_count", return_value=cpus),
-              patch.object(env, "_read_mem_available_mb", return_value=memory),
+        with (patch.object(proofenv.os, "process_cpu_count", return_value=cpus),
+              patch.object(proofenv, "_read_mem_available_mb", return_value=memory),
               redirect_stderr(io.StringIO())):
-            ensure(env.worker_jobs(2048) == expected, "wrong CPU or memory worker limit")
+            ensure(proofenv.worker_jobs(2048) == expected, "wrong CPU or memory worker limit")
 
 
 def _memory_reading_distinguishes_exhaustion_from_unknown() -> None:
@@ -250,10 +258,11 @@ def _memory_reading_distinguishes_exhaustion_from_unknown() -> None:
                ("MemAvailable:\n", None), ("MemAvailable: 1024 MB\n", None),
                ("MemTotal: 1048576 kB\n", None))
     for text, expected in samples:
-        with patch.object(env.Path, "read_text", return_value=text):
-            ensure(env._read_mem_available_mb() == expected, "wrong memory availability reading")
-    with patch.object(env.Path, "read_text", side_effect=OSError("unavailable")):
-        ensure(env._read_mem_available_mb() is None, "unreadable memory must be unknown")
+        with patch.object(proofenv.Path, "read_text", return_value=text):
+            ensure(proofenv._read_mem_available_mb() == expected,
+                   "wrong memory availability reading")
+    with patch.object(proofenv.Path, "read_text", side_effect=OSError("unavailable")):
+        ensure(proofenv._read_mem_available_mb() is None, "unreadable memory must be unknown")
 
 
 def _keepalive_hours_reads() -> None:
@@ -394,6 +403,25 @@ def _install_recipes_compose() -> None:
     spaced = ("opam", "switch", "import", "/a checkout/rocq.lock", "--switch=proofs")
     ensure(tuple(shlex.split(env.install_line((spaced,)))) == spaced,
            "a printed install recipe must preserve a checkout path containing spaces")
+
+
+def _binds_the_proof_gate_environment() -> None:
+    """Every public name proofenv.py defines at its top level is env.py's too, as the
+    same object, so env.py's readers reach the proof gate's share of the environment
+    there unchanged. The names are read from proofenv.py's own syntax tree."""
+    tree = ast.parse((TOOLS / "vos" / "proofenv.py").read_text(encoding="utf-8"))
+    names: set[str] = set()
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef | ast.ClassDef):
+            names.add(node.name)
+        elif isinstance(node, ast.Assign):
+            names.update(target.id for target in node.targets if isinstance(target, ast.Name))
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            names.add(node.target.id)
+    public = sorted(name for name in names if not name.startswith("_"))
+    ensure(bool(public), "precondition: proofenv.py defines public names to bind")
+    unbound = [name for name in public if getattr(env, name, None) is not getattr(proofenv, name)]
+    ensure(not unbound, f"env.py does not bind proofenv.py's {unbound}")
 
 
 def _run_git(cwd: Path, *args: str, overlay: dict[str, str] | None = None) -> str:
@@ -574,6 +602,7 @@ def cases() -> list[Case]:
         Case("refuses-win32", _refuses_win32, lane="host"),
         Case("hoisted-lane-constants", _hoisted_lane_constants),
         Case("install-recipes-compose", _install_recipes_compose),
+        Case("binds-the-proof-gate-environment", _binds_the_proof_gate_environment),
         Case("oracle-tree-keys-the-edition", _oracle_tree_keys_the_edition),
         Case("solver-install-is-hashed", _solver_install_is_hashed),
         Case("lane-shapes", _lane_shapes),

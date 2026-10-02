@@ -812,7 +812,7 @@ def _workspace_is_lane_native() -> None:
         (root / ".git").write_text("gitdir: C:/repo/.git/worktrees/first\n", encoding="utf-8")
         native = Path("/root/build/proof-layout-fixture").resolve()
         with patch.dict(os.environ, {"VOS_BUILD_ROOT": str(native)}, clear=True), \
-                patch.object(gate.env, "filesystem", return_value="ext4"):
+                patch.object(gate.proofenv, "filesystem", return_value="ext4"):
             first = gate.workspace(root)
             (root / ".git").write_text("gitdir: C:/repo/.git/worktrees/second\n", encoding="utf-8")
             second = gate.workspace(root)
@@ -821,7 +821,7 @@ def _workspace_is_lane_native() -> None:
                    "proof workspaces must follow the Git worktree identity")
             for path, filesystem in ((root, "ext4"), (native, "9p"), (native, "tmpfs")):
                 with patch.dict(os.environ, {"VOS_BUILD_ROOT": str(path)}), \
-                        patch.object(gate.env, "filesystem", return_value=filesystem):
+                        patch.object(gate.proofenv, "filesystem", return_value=filesystem):
                     try:
                         gate.workspace(root)
                     except ValueError:
@@ -923,9 +923,9 @@ def _release_version_banner_is_exact() -> None:
         answer = subprocess.CompletedProcess(
             ["rocq", "c", "--version"], 0,
             stdout=f"The Rocq Prover, version {banner}\ncompiled with OCaml 5.4.1\n")
-        with patch.object(gate.env, "ROCQ_VERSION", pin), \
-                patch.object(gate.env, "rocq_command", return_value=["rocq", "c"]), \
-                patch.object(gate.env, "rocqchk_command", return_value=["rocqchk"]), \
+        with patch.object(gate.proofenv, "ROCQ_VERSION", pin), \
+                patch.object(gate.proofenv, "rocq_command", return_value=["rocq", "c"]), \
+                patch.object(gate.proofenv, "rocqchk_command", return_value=["rocqchk"]), \
                 patch.object(gate.subprocess, "run", return_value=answer), \
                 patch.object(gate.receipts, "digest", return_value="fixture"):
             try:

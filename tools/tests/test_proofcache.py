@@ -42,7 +42,7 @@ def _incremental_run() -> None:
         compiled_names: list[str] = []
         audited: list[str] = []
         context: dict[str, object] = {"library_hash": "first"}
-        toolchain = {"pin": gate.env.ROCQ_VERSION, "version": "fixture",
+        toolchain = {"pin": gate.proofenv.ROCQ_VERSION, "version": "fixture",
                      "compiler": {"path": "/native/bin/rocq", "sha256": "first"},
                      "checker": {"path": "/native/bin/rocqchk", "sha256": "checker"}}
         failing: set[str] = set()
@@ -245,19 +245,36 @@ def _incremental_run() -> None:
                                                encoding="utf-8")
             with patch.object(gate, "_check_source", side_effect=corrupt_cached):
                 run({"Consumer"}, result=1, kernel=False)
-            with patch.object(gate.env, "proof_jobs", side_effect=[8, 3]) as sizing:
+            samples = [gate.proofenv.Workers(8, 8, 16384), gate.proofenv.Workers(3, 8, 12000)]
+            with patch.object(gate.proofenv, "proof_workers", side_effect=samples) as sizing:
+                said = len(output.getvalue())
                 run(set(texts), fresh=True, jobs=None, kernel_jobs=3, refusal="--fresh")
                 ensure([call.kwargs for call in sizing.call_args_list] == [{}, {"kernel": True}],
                        "automatic sizing must sample compilation and kernel phases separately")
-            with patch.object(gate.env, "proof_jobs", side_effect=AssertionError("unexpected probe")):
+                logged = output.getvalue()[said:]
+                ensure("compile/audit worker limit: 8 (automatic, sized from 8 usable CPU(s) "
+                       "and MemAvailable 16,384 MiB)" in logged
+                       and "with worker limit 3 (automatic, sized from 8 usable CPU(s) and "
+                       "MemAvailable 12,000 MiB)" in logged,
+                       f"each automatic limit must be logged beside its own sample: {logged}")
+            with patch.object(gate.proofenv, "proof_workers",
+                              side_effect=AssertionError("unexpected probe")):
                 run(set(), jobs=None, kernel=False)
                 run(set(texts), fresh=True, refusal="--fresh")
             unbound = "this installed-library context cannot authorize reuse"
             with patch.object(gate, "_cache_context", return_value=None):
                 run(set(texts), kernel_jobs=1, refusal=unbound)
-                with patch.object(gate.env, "proof_jobs", return_value=8) as sizing:
+                with patch.object(gate.proofenv, "proof_workers",
+                                  return_value=gate.proofenv.Workers(8, 8, None)) as sizing:
+                    said = len(output.getvalue())
                     run(set(texts), jobs=None, kernel_jobs=1, refusal=unbound)
                     sizing.assert_called_once_with()
+                    logged = output.getvalue()[said:]
+                    ensure("compile/audit worker limit: 8 (automatic, sized from 8 usable CPU(s) "
+                           "and no MemAvailable reading)" in logged
+                           and "with worker limit 1\n" in logged,
+                           "an unread sample is logged as unread, and a limit no sample "
+                           f"sized carries none: {logged}")
 
 
 _SPAN_LINE = re.compile(r"^  compile/audit (\S+\.v): (\d+\.\d\d)s to (\d+\.\d\d)s$")
@@ -282,7 +299,7 @@ def _the_phase_line_replays_the_wave_schedule() -> None:
                  "Consumer": "Require Base.", "Side": "Definition value := 1."}
         for name, text in texts.items():
             (folder / f"{name}.v").write_text(text, encoding="utf-8")
-        toolchain = {"pin": gate.env.ROCQ_VERSION, "version": "fixture",
+        toolchain = {"pin": gate.proofenv.ROCQ_VERSION, "version": "fixture",
                      "compiler": {"path": "/native/bin/rocq", "sha256": "compiler"},
                      "checker": {"path": "/native/bin/rocqchk", "sha256": "checker"}}
 
@@ -295,8 +312,8 @@ def _the_phase_line_replays_the_wave_schedule() -> None:
             time.sleep(0.3)
             return receipts.snapshot(base, sources)
 
-        def sizing(*, kernel: bool = False) -> int:
-            return 1 if kernel else 3
+        def sizing(*, kernel: bool = False) -> gate.proofenv.Workers:
+            return gate.proofenv.Workers(1 if kernel else 3, 4, 16384)
 
         waves = [[source.stem for source in wave]
                  for wave in gate.proofs_mod.SourceIndex.read(gate._sources(root)).ordered]
@@ -306,7 +323,7 @@ def _the_phase_line_replays_the_wave_schedule() -> None:
                 patch.object(gate, "_cache_context", return_value={"library_hash": "fixed"}), \
                 patch.object(gate, "_check_source", side_effect=check), \
                 patch.object(gate, "_recheck", return_value=""), \
-                patch.object(gate.env, "proof_jobs", side_effect=sizing):
+                patch.object(gate.proofenv, "proof_workers", side_effect=sizing):
             for jobs, edited, compiled in ((2, "", set(texts)),
                                            (3, "Consumer", {"Consumer", "ApexTheorem"}),
                                            (None, "Side", {"Side"})):
@@ -316,7 +333,7 @@ def _the_phase_line_replays_the_wave_schedule() -> None:
                 with patch.object(gate, "wave_makespan", wraps=gate.wave_makespan) as replay, \
                         contextlib.redirect_stdout(io.StringIO()) as output:
                     ensure(gate._run_locked(root, jobs) == 0, "the replay fixture failed")
-                expected_limit = sizing() if jobs is None else jobs
+                expected_limit = sizing().jobs if jobs is None else jobs
                 lines = output.getvalue().splitlines()
                 spans = {match.group(1): (float(match.group(2)), float(match.group(3)))
                          for match in map(_SPAN_LINE.match, lines) if match}
@@ -362,7 +379,7 @@ def _a_wrapped_require_runs_the_wave_schedule() -> None:
                  "Facade": "Require Edge."}
         for name, text in texts.items():
             (folder / f"{name}.v").write_text(text, encoding="utf-8")
-        toolchain = {"pin": gate.env.ROCQ_VERSION, "version": "fixture",
+        toolchain = {"pin": gate.proofenv.ROCQ_VERSION, "version": "fixture",
                      "compiler": {"path": "/native/bin/rocq", "sha256": "compiler"},
                      "checker": {"path": "/native/bin/rocqchk", "sha256": "checker"}}
         lock = threading.Lock()
@@ -454,12 +471,23 @@ def _gate_identity_follows_imports() -> None:
             raise AssertionError("a checkout without the gate module derived an identity")
 
 
+def _gate_identity_leaves_the_build_environment_out() -> None:
+    """env.py changes for model, opam and CI reasons, so the gate reads the environment
+    through proofenv.py alone: an edit to env.py keeps every cached proof's identity."""
+    checkout = Path(__file__).resolve().parents[2]
+    live = {path.relative_to(checkout).as_posix() for path in gate._gate_modules(checkout)}
+    ensure("tools/vos/proofenv.py" in live,
+           "the gate's identity omits the environment it runs on, tools/vos/proofenv.py")
+    ensure("tools/vos/env.py" not in live,
+           "tools/vos/env.py joined the gate's identity, so each edit to it rechecks every proof")
+
+
 def _identity_binds_what_reuse_compares() -> None:
     """A cache keyed by the identity offers only candidates whose context the gate accepts."""
     with tempfile.TemporaryDirectory(prefix="vos-proof-identity-") as temporary:
         root = Path(temporary)
         context: dict[str, object] = {"files": {"/lib/Base.vo": "first"}}
-        toolchain: dict[str, object] = {"pin": gate.env.ROCQ_VERSION, "compiler": {"sha256": "first"}}
+        toolchain: dict[str, object] = {"pin": gate.proofenv.ROCQ_VERSION, "compiler": {"sha256": "first"}}
 
         def identity(value: dict[str, object] | None) -> tuple[int, str, str]:
             with patch.object(gate, "workspace", return_value=root / "work"), \
@@ -490,7 +518,8 @@ def _jobs_cli_defaults_to_auto_without_probing_metadata_commands() -> None:
             patch.object(gate, "_status", return_value=0) as status, \
             patch.object(gate, "_export", return_value=0) as export, \
             patch.object(gate, "_identity", return_value=0) as identity, \
-            patch.object(gate.env, "proof_jobs", side_effect=AssertionError("premature probe")):
+            patch.object(gate.proofenv, "proof_workers",
+                         side_effect=AssertionError("premature probe")):
         ensure(gate.main([]) == 0, "automatic proof invocation failed")
         run.assert_called_once_with(root, None, False)
         run.reset_mock()
@@ -660,7 +689,7 @@ def _joint_kernel_keeps_recursive_targets() -> None:
                 "joint module must load every root, including disconnected cached ones")
             return answer
 
-        with patch.object(gate.env, "rocqchk_command", return_value=["rocqchk"]), \
+        with patch.object(gate.proofenv, "rocqchk_command", return_value=["rocqchk"]), \
                 patch.object(gate, "_compile", side_effect=compile_join), \
                 patch.object(gate.subprocess, "run", return_value=answer) as run:
             ensure(gate._recheck_joint(root, sources, frozenset({"Cached"})) is answer,
@@ -780,8 +809,8 @@ def _context_hashes_library_bytes() -> None:
 
         # Native path parsing is tested in the guest; the incremental state machine
         # above runs on both operating systems.
-        with patch.object(gate.env, "rocq_command", return_value=["rocq", "c"]), \
-                patch.object(gate.env, "rocqchk_command", return_value=["rocqchk"]), \
+        with patch.object(gate.proofenv, "rocq_command", return_value=["rocq", "c"]), \
+                patch.object(gate.proofenv, "rocqchk_command", return_value=["rocqchk"]), \
                 patch.object(gate.subprocess, "run", side_effect=invoke), \
                 patch.dict(os.environ, {"CACHE_TEST_SECRET": "do-not-record-this"}):
             before = gate._cache_context(work, [source])
@@ -1001,6 +1030,7 @@ def cases() -> list[Case]:
             Case("wrapped-require-runs-the-wave-schedule",
                  _a_wrapped_require_runs_the_wave_schedule),
             Case("gate-identity-follows-imports", _gate_identity_follows_imports),
+            Case("gate-identity-leaves-env-out", _gate_identity_leaves_the_build_environment_out),
             Case("proof-identity-binds-reuse-context", _identity_binds_what_reuse_compares),
             Case("proof-jobs-cli-defaults-to-auto",
                  _jobs_cli_defaults_to_auto_without_probing_metadata_commands),

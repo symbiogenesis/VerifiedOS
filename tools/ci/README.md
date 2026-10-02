@@ -45,7 +45,7 @@ reruns always execute them. The history job alone has `actions: read`; the gate 
 They need no repository secrets or initialized submodules. The public repository's standard
 [runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
 has 16 GB of RAM; the proof gate's one kernel worker peaks just under its 10 GiB
-budget there, as the runs [vos/env.py](../vos/env.py)'s `proof_jobs` records
+budget there, as the runs [vos/proofenv.py](../vos/proofenv.py)'s `proof_jobs` records
 measured, so a smaller runner needs a separate resource measurement.
 
 The gate job is a matrix of lanes, and each lane has its own runner. The `model` lane
@@ -271,7 +271,8 @@ Each command runs under GNU time, whose figures in its retained log end with
 reading comparison's log holds the comparison alone, so its figures stand beside it in
 `proof-reading-compare.time`. For
 the proof gate this measures the kernel recheck against the planning budget in
-[vos/env.py](../vos/env.py)'s `proof_jobs`.
+[vos/proofenv.py](../vos/proofenv.py)'s `proof_jobs`, beside the usable CPU count and
+`MemAvailable` reading the gate's log states for each automatic worker limit.
 
 ## Inputs and execution
 

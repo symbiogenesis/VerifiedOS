@@ -1391,9 +1391,9 @@ def _producer_lock_inventory() -> None:
                 f"{path.name}:{call.lineno} flocks a directory other than the proof workspace")
     ensure(callers > 0, "precondition: the proof workspace's lock callers are found")
     lane = Path("/nonexistent/build/lane-worker").resolve()
-    with patch.object(proofs_cli.env, "lane_of", return_value="worker"), \
-            patch.object(proofs_cli.env, "lane_root", return_value=lane), \
-            patch.object(proofs_cli.env, "filesystem", return_value="ext4"):
+    with patch.object(proofs_cli.proofenv, "lane_of", return_value="worker"), \
+            patch.object(proofs_cli.proofenv, "lane_root", return_value=lane), \
+            patch.object(proofs_cli.proofenv, "filesystem", return_value="ext4"):
         held = proofs_cli.workspace(Path("/nonexistent/checkout").resolve())
     ensure(held.parent == lane and held.name in retire._DIRECTORY_LOCKS,
            f"the proof workspace {held} must be a directory lock retirement holds")
