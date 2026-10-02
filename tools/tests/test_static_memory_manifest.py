@@ -15,6 +15,11 @@ from tests.harness import Case, ensure, sandbox_tree
 from vos import static_memory_manifest as manifest
 from vos.cli import static_memory as cli
 
+# Each case reads this tree or copies it into a sandbox of its own, and patches only
+# inside a `with`, so the cases share no state, and a sharded run spreads them over
+# every shard (vos/cli/test.py).
+INDEPENDENT_CASES = True
+
 ROOT = Path(__file__).resolve().parents[2]
 
 SPDX = "# SPDX-License-Identifier: Apache-2.0\n"
