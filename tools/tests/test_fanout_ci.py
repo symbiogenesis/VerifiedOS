@@ -1491,12 +1491,15 @@ def _workflow_refused_dispatch() -> None:
              "guest-gates": ("Model evidence", "Proof gate",
                              "Read the proofs against the reading base", "Report guest results"),
              "interface": (), "campaign": ("Report the campaign",)}
-    # Every job of those workflows taking a checkout is read, so a job added with one
-    # cannot run its code after a refusal unread.
+    # Every job of those workflows with a step using actions/checkout, its `uses:` on
+    # the step's dash line or beneath it, is read, so a job added with one cannot run
+    # its code after a refusal unread.
     for workflow in sorted({workflow for workflow, _ in _DISPATCH_JOBS}):
         contents = (ROOT / ".github/workflows" / workflow).read_text(encoding="utf-8")
         taking = sorted(job for job, block in _workflow_jobs(contents).items()
-                        if re.search(r"(?m)^      - uses: actions/checkout@", block))
+                        if any(value.startswith("actions/checkout@")
+                               for step in _step_texts(block)
+                               for value in _step_values(step, "uses")))
         listed = sorted(job for read, job in _DISPATCH_JOBS if read == workflow)
         ensure(taking == listed, f"{workflow}'s jobs taking a checkout are read: {taking!r}")
     for workflow, job in _DISPATCH_JOBS:
