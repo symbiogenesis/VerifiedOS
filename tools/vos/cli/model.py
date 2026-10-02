@@ -941,9 +941,11 @@ class _EarlyRun:
     """`EARLY_TEST` in a ctest run of its own, started beside the build, its output held
     aside until the ctest stage places it in the log.
 
-    It stays in the build's process group, so whatever ends that group ends it too, the
-    evidence sweep's timeout among them; `kill` ends it, and the Sail process under it,
-    when the build is leaving by an exception."""
+    A thread reaps the run as it exits, so its `STAGE` line times the run itself rather
+    than the wait for the ctest stage to collect it. It stays in the build's process
+    group, so whatever ends that group ends it too, the evidence sweep's timeout among
+    them; `kill` ends it, and the Sail process under it, when the build is leaving by
+    an exception."""
 
     def __init__(self, argv: list[str]) -> None:
         # The file outlives this call, which a context manager would close: the ctest
@@ -956,18 +958,32 @@ class _EarlyRun:
         except OSError:
             self._output.close()
             raise
+        self._lock = threading.Lock()
         self._code: int | None = None
         self._cost = ""
+        self._reaper = threading.Thread(target=self._reap, name="early-test-reaper",
+                                        daemon=True)
+        self._reaper.start()
 
-    def wait(self) -> int:
-        """Reap the run, once, and keep what it cost as its `STAGE` line."""
-        if self._code is None:
-            if sys.platform == "win32":
-                raise RuntimeError("build stages run in the guest")
+    def _reap(self) -> None:
+        """Wait for the run to exit, then reap it and keep what it cost as its `STAGE`
+        line. The exit is waited for without being collected, so the pid stays this
+        run's until the lock is held and `kill` can never signal a pid handed on."""
+        if sys.platform == "win32":
+            raise RuntimeError("build stages run in the guest")
+        os.waitid(os.P_PID, self._proc.pid, os.WEXITED | os.WNOWAIT)
+        ended = time.perf_counter()
+        with self._lock:
             _, status, usage = os.wait4(self._proc.pid, 0)
             self._code = self._proc.returncode = os.waitstatus_to_exitcode(status)
-            self._cost = env.stage_line(EARLY_STAGE, time.perf_counter() - self._started,
+            self._cost = env.stage_line(EARLY_STAGE, ended - self._started,
                                         usage.ru_utime + usage.ru_stime, usage.ru_maxrss)
+
+    def wait(self) -> int:
+        """Wait until the run is reaped, and give its exit code."""
+        self._reaper.join()
+        if self._code is None:
+            raise RuntimeError(f"the {EARLY_STAGE} run was not reaped")
         return self._code
 
     def report(self) -> str:
@@ -979,15 +995,16 @@ class _EarlyRun:
         return f"{printed}{self._cost}\n"
 
     def kill(self) -> None:
-        """End the run and everything under it unless it was reaped, then drop its
-        output."""
+        """End the run and everything under it unless it was reaped, wait for its
+        reaping, then drop its output."""
         try:
-            if self._code is None:
-                if sys.platform == "win32":
-                    self._proc.kill()
-                else:
-                    _kill_tree(self._proc.pid)
-                self._code = self._proc.wait()
+            with self._lock:
+                if self._code is None:
+                    if sys.platform == "win32":
+                        self._proc.kill()
+                    else:
+                        _kill_tree(self._proc.pid)
+            self._reaper.join()
         finally:
             self._output.close()
 

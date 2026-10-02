@@ -1626,18 +1626,29 @@ def _gone(pid: int) -> bool:
 
 def _early_run_reports_and_ends_its_tree() -> None:
     """The early run over a stand-in command: reaped, it reports what it printed and
-    then its `STAGE` line; killed while it runs, the process it started dies with it.
+    then its `STAGE` line, whose wall time ends when the run exited rather than when the
+    ctest stage asked for it; killed while it runs, the process it started dies with it.
     POSIX-only, like the stage it runs beside."""
     if sys.platform == "win32":
         raise AssertionError("os.wait4 is POSIX-only; the early run's case runs in the guest")
+    began = time.perf_counter()
     run = _MODEL._EarlyRun([sys.executable, "-c", "import sys; print('one test'); sys.exit(3)"])
+    pid = cast("int", run._proc.pid)
+    _until(partial(_gone, pid), "saw the stand-in exit")
+    lived = time.perf_counter() - began
+    # the ctest stage asks for the run well after it ended, as the rest of the suite
+    # outlasts the Sail test
+    time.sleep(2.0)
     code = cast("int", run.wait())
     said = cast("str", run.report())
     run.kill()
-    ensure(code == 3 and said.startswith("one test\n")
-           and re.search(r"^STAGE ctest-early wall=\S+ cpu=\d+% maxrss=\d+kB$", said,
-                         re.MULTILINE) is not None,
+    cost = re.search(r"^STAGE ctest-early wall=(\d+\.\d)s cpu=\d+% maxrss=\d+kB$", said,
+                     re.MULTILINE)
+    ensure(code == 3 and said.startswith("one test\n") and cost is not None,
            f"a reaped run reports its output and its cost, got {code} and {said!r}")
+    wall = float(cost.group(1)) if cost is not None else 0.0
+    ensure(wall < lived + 1.0,
+           f"the run's wall time ends at its exit, {lived:.1f}s in, got {said!r}")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         marker = Path(td) / "child"
         script = (
