@@ -65,8 +65,11 @@ first group (importing the groups' modules, loading the corpus, reading the regi
 and the artifacts) and each group's seconds, with the checker process's own CPU
 seconds beside each. A selftest or checker unit also carries its `start`, its offset in
 seconds from when that member's clock started, so the parts that ran at once can be
-laid on one timeline. Units overlap the same way, never enter the printed report, and
-the CI summary names the slowest of them.
+laid on one timeline. Units overlap the same way and never enter the printed report.
+The CI summary names the slowest of them, and the reporting step prints every unit of
+every member to the job log, one JSON line each, by member and then slowest first,
+after one line naming the runner's CPU count and model, in one collapsed group with
+workflow commands stopped.
 
 New commits cancel superseded runs of the same pull request; each push to `main`
 keeps its own run. Ubuntu runs four independent shards and Windows eight, because a

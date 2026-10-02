@@ -178,11 +178,25 @@ jobs:
         run: |
           import json
           import os
+          import platform
+          import secrets
           from pathlib import Path
 
           def annotate(level: str, message: str) -> None:
               message = message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
               print(f"::{level} title=host-gates::{message}")
+
+          def cpu_model() -> str:
+              """The runner's processor, as Linux's /proc/cpuinfo or Windows names it."""
+              try:
+                  cpuinfo = Path("/proc/cpuinfo").read_text(encoding="utf-8", errors="replace")
+              except OSError:
+                  cpuinfo = ""
+              for line in cpuinfo.splitlines():
+                  key, _, value = line.partition(":")
+                  if key.strip() == "model name":
+                      return value.strip()
+              return os.environ.get("PROCESSOR_IDENTIFIER") or platform.processor() or "unknown"
 
           try:
               verdict = Path(os.environ["RUNNER_TEMP"]) / os.environ["VERDICT_FILE"]
@@ -207,8 +221,8 @@ jobs:
                       annotate("notice", "Timings: " + "; ".join(
                           f"{m['name']}: {m['elapsed_seconds']:.2f}s" for m in report["members"]))
                   # The parts members measured inside themselves: test modules, selftest
-                  # phases and cases. They overlap like members; the slowest show where
-                  # a shard's time went.
+                  # phases and cases, checker phases and groups. They overlap like
+                  # members; the slowest show where a shard's time went.
                   slowest = sorted(((u["seconds"], u["kind"], u["name"])
                                     for m in report["members"] for u in m.get("units") or []),
                                    reverse=True)[:10]
@@ -221,6 +235,27 @@ jobs:
                   summary.write(f"### Host gates: {label}\n\nAll shards must pass.\n\n"
                                 + "\n".join(rows) + "\n"
                                 + (f"\nSlowest units: {units}\n" if units else ""))
+
+              # Every unit of every member, one JSON line each, by member and then slowest
+              # first, after one line naming the runner's processors, in a collapsed
+              # group. Workflow commands stay stopped under a fresh token while they
+              # print, so no unit's authored name is read as one.
+              lines = [json.dumps({"logical_cpus": os.cpu_count(),
+                                   "usable_cpus": os.process_cpu_count(),
+                                   "cpu_model": cpu_model()}, ensure_ascii=False)]
+              for member in report["members"]:
+                  measured = sorted(member.get("units") or [],
+                                    key=lambda u: (-u["seconds"], u["kind"], u["name"]))
+                  lines += [json.dumps({"member": member["name"], **u}, ensure_ascii=False)
+                            for u in measured]
+              token = secrets.token_hex(16)
+              print("::group::Measured units: every member's, slowest first")
+              print(f"::stop-commands::{token}")
+              try:
+                  print("\n".join(lines))
+              finally:
+                  print(f"::{token}::")
+                  print("::endgroup::")
           except Exception as err:
               # Reporting is diagnostic; the gate and workflow-analysis steps own
               # the job's verdict.
