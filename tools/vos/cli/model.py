@@ -1242,8 +1242,8 @@ def _seed_smt_cache(donors: list[Path], target: Path) -> None:
     holds is kept rather than refreshed from the build's, because it is the test's own
     learning, which the build's does not receive.
 
-    The copy itself is `_seed_cache_file`'s, because a lane keeps three of these caches
-    and only two of them are inside a build tree.
+    The copy itself is `_seed_cache_file`'s, because a lane's other memo caches sit
+    outside any build tree.
     """
     build_memo = target / "model" / "sail_smt_cache"
     _seed_cache_file([d / "model" / "sail_smt_cache" for d in donors], build_memo)
@@ -1255,11 +1255,11 @@ def _seed_cache_file(donors: list[Path], target: Path) -> None:
     """Copy the first donor memo cache that exists, and never over one already there.
 
     The file-level half of `_seed_smt_cache`, which states the ground this obeys. It is
-    stated once because a lane keeps **three** memo caches and none may be shared: the
+    stated once because a lane keeps several memo caches and none may be shared: the
     build tree's two, the build's at `<tree>/model/sail_smt_cache` and its property
-    test's at `<tree>/model/sail_smt_cache_properties`, and the typecheck loop's, which
-    sits beside the build trees rather than inside one and so is reached by no
-    `_seed_tree`.
+    test's at `<tree>/model/sail_smt_cache_properties`, and those of the typecheck and
+    `smt` loops, which sit beside the build trees rather than inside one and so are
+    reached by no `_seed_tree`.
 
     Two properties are what make this safe to call unconditionally, which is the point
     of it: a target that exists is kept, because a warm cache is this lane's own
