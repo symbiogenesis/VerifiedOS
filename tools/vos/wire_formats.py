@@ -146,6 +146,22 @@ def load(root: Path) -> tuple[Entry, ...]:
     register = _read(root, REGISTER)
     owner_text = _read(root, "docs/assurance/unassigned-proof-map.md") + _read(
         root, "docs/implementation/implementation-checklist.md")
+    # Each proof source is read, and its comments blanked, at most once per call: the
+    # references name a few sources several times, and the absence scan below reads
+    # every source again.
+    texts: dict[str, str] = {}
+    codes: dict[str, str] = {}
+
+    def text_of(relative: str) -> str:
+        if relative not in texts:
+            texts[relative] = _read(root, relative)
+        return texts[relative]
+
+    def code_of(relative: str) -> str:
+        if relative not in codes:
+            codes[relative] = proofs.strip_comments(text_of(relative))
+        return codes[relative]
+
     entries: list[Entry] = []
     seen: set[str] = set()
     covered: set[str] = set()
@@ -175,10 +191,10 @@ def load(root: Path) -> tuple[Entry, ...]:
         references = _strings(entry["references"], key, empty=True)
         for reference in references:
             path, separator, symbol = reference.partition("#")
-            source = _read(root, path)
+            text_of(path)
             if separator and (not path.endswith(".v") or not re.search(
                         r"\b(?:Definition|Fixpoint|Record|Inductive|Theorem|Lemma)\s+"
-                        + re.escape(symbol) + r"\b", proofs.strip_comments(source))):
+                        + re.escape(symbol) + r"\b", code_of(path))):
                 raise InventoryError(f"{key}: missing proof symbol {reference}")
         transcription = _text(entry["transcription"], key)
         if transcription not in {"none authored", "NAS grammar required", "reference codec only"}:
@@ -197,11 +213,14 @@ def load(root: Path) -> tuple[Entry, ...]:
     if not sources:
         raise InventoryError("no proof sources: descriptor absence cannot be inspected")
     for source in sources:
-        code = proofs.strip_comments(_read(root, source.relative_to(root).as_posix()))
+        relative = source.relative_to(root).as_posix()
         # A new library use is a finding, including support modules. It cannot hide
         # behind the old empty inventory. Alias/load-path conventions need review
         # when U-13 selects an import path; no general Rocq semantic scan is claimed.
-        if _NARCISSUS.search(code):
+        # A blanked comment leaves at least a space behind, so it joins no two words:
+        # a name the blanked source carries, the raw source carries too, and a source
+        # naming none needs no blanking.
+        if _NARCISSUS.search(text_of(relative)) and _NARCISSUS.search(code_of(relative)):
             raise InventoryError(f"{source.relative_to(root)}: Narcissus use requires "
                                  "descriptor bindings and the proposed bidirectional rule")
     return tuple(entries)
