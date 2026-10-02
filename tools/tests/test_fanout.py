@@ -9,6 +9,11 @@ from tests.harness import Case, ensure
 from vos import fanout_ci
 from vos.cli import fanout
 
+# Each case builds its own repository, remote and lane through fanout_fixture, so the
+# cases share no state, and a sharded run spreads them over every shard
+# (vos/cli/test.py).
+INDEPENDENT_CASES = True
+
 
 def _roundtrip_and_handoff() -> None:
     with fixture() as (root, lane, _):
