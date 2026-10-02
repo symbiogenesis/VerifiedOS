@@ -249,7 +249,7 @@ def _launch_hands_a_member_its_timings_file() -> None:
     def run(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
         environment = kwargs.get("env")
         if not isinstance(environment, dict):
-            raise AssertionError("a member is launched with an environment of its own")
+            raise TypeError("a member is launched with an environment of its own")
         record = environment.get(timings.ENV)
         named.append(record)
         if record:

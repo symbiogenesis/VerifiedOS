@@ -187,7 +187,7 @@ def run(only: str | None = None, slow: bool = False, jobs: int | None = None,
     rep.line("=== tests ===")
 
     names = _module_names(only)
-    splits: frozenset[str] = frozenset()
+    splits = frozenset[str]()
     if shard is not None:
         total = len(names)
         try:
