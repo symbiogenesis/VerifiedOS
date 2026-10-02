@@ -551,13 +551,71 @@ def _workflow_host_job_names() -> None:
     ensure(len(hooks) == 1 and bool(ubuntu) and all(labels == hooks for labels in ubuntu),
            f"{ci.HOST}'s model-hooks job runs on the Ubuntu shards' image: {hooks!r}, {ubuntu!r}")
     # Each platform runs one unpartitioned job beside its shards, an include entry of its
-    # own that names its runner, so the shards and it together run the whole gate.
-    unpartitioned = sorted(name for entry in entries
-                           if _key_values(entry, "shard") == ["unpartitioned"]
-                           and len(_key_values(entry, "runner")) == 1
-                           for name in _key_values(entry, "platform"))
-    ensure(unpartitioned == sorted(platforms),
-           f"{ci.HOST} runs one unpartitioned job on each platform: {unpartitioned!r}")
+    # own that names its runner, so the shards and it together run the whole gate; the
+    # conditions that pick it out read the literal its entries state.
+    faults = _unpartitioned_faults(contents)
+    ensure(not faults, f"{ci.HOST} runs one unpartitioned job on each platform: {faults!r}")
+    analysis = "matrix.platform == 'Ubuntu' && matrix.shard == 'unpartitioned' }}"
+    saving = "save-cache: ${{ github.event_name == 'push' && matrix.shard == 'unpartitioned' }}"
+    for mutant, fragment in (
+            (contents.replace(analysis, analysis.replace("'unpartitioned'", "1")),
+             "the workflow analysis runs on"),
+            (contents.replace(saving, saving.replace("'unpartitioned'", "'Unpartitioned '")),
+             "setup-uv saves its cache on"),
+            (contents.replace("shard: unpartitioned,", "shard: Unpartitioned,"),
+             "the gate's PART line does not compare"),
+            (contents.replace("{platform: Ubuntu, shard: unpartitioned,",
+                              "{platform: Ubuntu, shard: Unpartitioned,"),
+             "not one unpartitioned value"),
+            (re.sub(r"(?m)^ *- \{platform: Windows, shard: unpartitioned,.*\n", "", contents),
+             "not each of")):
+        ensure(mutant != contents, f"the fixture for {fragment!r} changed nothing")
+        found = _unpartitioned_faults(mutant)
+        ensure(any(fragment in fault for fault in found),
+               f"a drifted unpartitioned literal must be refused ({fragment!r}): {found!r}")
+
+
+def _unpartitioned_faults(contents: str) -> list[str]:
+    """Why the host workflow's unpartitioned jobs need not run once per platform, or need
+    not be the jobs that run the gate's unpartitioned part, save the uv cache and, on
+    Ubuntu, analyze the workflows.
+
+    The include entries stating a shard must state one value between them, once for each
+    platform of the matrix, each entry naming its runner. The gate's PART line, setup-uv's
+    one save-cache line and the Analyze workflows step's one condition must each compare
+    `matrix.shard` with that value: a literal no combination holds leaves every job green
+    while none of them saves the cache or analyzes the workflows."""
+    shards = _job_text(contents, "host-gates-shard")
+    lines = [line for line in shards.split("\n") if not line.lstrip().startswith("#")]
+    listed = re.search(r"(?m)^        platform: \[([^\]\n]*)\]$", "\n".join(lines))
+    platforms = sorted(name.strip() for name in listed[1].split(",")) if listed else []
+    entries = [entry for entry in _include_entries(lines) if _key_values(entry, "shard")]
+    values = sorted({value for entry in entries for value in _key_values(entry, "shard")})
+    if len(values) != 1:
+        return [f"the include entries state the shards {values!r}, not one unpartitioned value"]
+    compared = f"matrix.shard == '{values[0]}'"
+    faults: list[str] = []
+    named = sorted(name for entry in entries if len(_key_values(entry, "runner")) == 1
+                   for name in _key_values(entry, "platform"))
+    if named != platforms:
+        faults.append(f"the {values[0]!r} entries name {named!r}, not each of {platforms!r} "
+                      "once with its runner")
+    if compared not in _GATE_PART:
+        faults.append(f"the gate's PART line does not compare {compared}")
+    steps = _step_texts(shards)
+    saves = [m[1] for step in steps
+             if any(uses.startswith("astral-sh/setup-uv@") for uses in _step_values(step, "uses"))
+             for m in re.finditer(r"(?m)^          save-cache:[ \t]*(.*?)[ \t]*$", step)]
+    saving = f"${{{{ github.event_name == 'push' && {compared} }}}}"
+    if saves != [saving]:
+        faults.append(f"setup-uv saves its cache on {saves!r}, not exactly {saving!r}")
+    analyses = [_step_values(step, "if") for step in steps
+                if _step_values(step, "name") == ["Analyze workflows"]]
+    analyzing = f"&& matrix.platform == 'Ubuntu' && {compared} }}}}"
+    if len(analyses) != 1 or len(analyses[0]) != 1 or not analyses[0][0].endswith(analyzing):
+        faults.append(f"the workflow analysis runs on {analyses!r}, not on Ubuntu's "
+                      f"{values[0]!r} job alone")
+    return faults
 
 
 # Each aggregate check's command: one `test "$NAME" = success` for each job it needs,
