@@ -2580,7 +2580,12 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
 # =====================================================================================
 
 
-def _select_cases(rule: str | None, shard: Shard | None) -> list[Case]:
+def _select_cases(rule: str | None, shard: Shard | None,
+                  repair_only: bool = False) -> list[Case]:
+    if repair_only:
+        if rule is not None or shard is not None:
+            raise ValueError("--repair-only cannot be combined with --rule or --shard")
+        return []
     if shard is not None:
         if rule is not None:
             raise ValueError("--rule cannot be combined with --shard")
@@ -2591,11 +2596,15 @@ def _select_cases(rule: str | None, shard: Shard | None) -> list[Case]:
     return selected
 
 
-def _needs_repair(selected: list[Case], shard: Shard | None) -> bool:
-    # The repair exercises all repairable rules together and belongs to shard 1,
-    # regardless of which individual mutation cases landed in that partition.
+def _needs_repair(selected: list[Case], shard: Shard | None,
+                  repair_only: bool = False) -> bool:
+    # The repair exercises all repairable rules together, so no partition of the cases
+    # runs it, whichever of them it holds: --repair-only runs it instead, and the
+    # shards of one count and that run together are the unsharded run.
+    if repair_only:
+        return True
     if shard is not None:
-        return shard.index == 1
+        return False
     return any(rule in REPAIRABLE for rule, _, _ in selected)
 
 
@@ -2605,7 +2614,10 @@ def main(argv: list[str] | None = None) -> int:
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument("--rule", help="run one rule's case only")
     selection.add_argument("--shard", type=sharding.parse, metavar="INDEX/TOTAL",
-                           help="run a disjoint partition of cases; shard 1 owns the repair path")
+                           help="run a disjoint partition of cases, without the repair path, "
+                                "which --repair-only runs")
+    selection.add_argument("--repair-only", action="store_true",
+                           help="run the repair path beside the unmutated baseline, and no case")
     # Eight, measured rather than assumed: a worker is a whole checker subprocess with
     # a git child under it, so extra workers past eight pay more in contention than
     # their extra sandboxes save even below the core count. Over full passes on a
@@ -2620,11 +2632,13 @@ def main(argv: list[str] | None = None) -> int:
                         help="leave the sandboxes on disk for inspection")
     args = parser.parse_args(argv)
     try:
-        selected = _select_cases(args.rule, args.shard)
+        selected = _select_cases(args.rule, args.shard, args.repair_only)
     except ValueError as err:
         parser.error(str(err))
     if args.shard is not None:
         print(f"shard {args.shard}: {len(selected)} of {len(CASES)} cases; every shard must pass")
+    if args.repair_only:
+        print(f"repair path only: 0 of {len(CASES)} cases")
     # Phase and case seconds for the gate's summary, never printed; claimed before any
     # child starts, so no checker run inherits the file.
     record, clock = timings.claim(), timings.Clock()
@@ -2642,18 +2656,22 @@ def main(argv: list[str] | None = None) -> int:
 
     repo = corpus_mod.find_root()
     jobs = max(1, min(args.jobs, len(selected)))
+    # Placement overlaps file writes rather than checker runs, so a run selecting no
+    # case, the repair path's alone, still places its template and first sandbox
+    # across --jobs workers.
+    width = jobs if selected else max(1, args.jobs)
 
     # One sandbox per worker, and one more the repair path keeps to itself so that its
-    # five runs go beside the cases rather than after them. When no selected rule
-    # carries a --fix branch the lane never runs, so the extra sandbox is stood up
-    # cheap, as links, and joins the case queue instead of holding real copies for
-    # nothing.
-    repairable = _needs_repair(selected, args.shard)
+    # five runs go beside the cases rather than after them. Where the lane never runs,
+    # under a shard or when no selected rule carries a --fix branch, the extra sandbox
+    # is stood up cheap, as links, and joins the case queue instead of holding real
+    # copies for nothing.
+    repairable = _needs_repair(selected, args.shard, args.repair_only)
     made: list[Sandbox] = []
     print(f"building {jobs + 1} sandbox(es) at {sandbox}")
     template = sandbox / "template"
     with clock.timing("phase", "template"):
-        copied, carried = build_template(repo, template, jobs)
+        copied, carried = build_template(repo, template, width)
     print(f"placed {copied} file(s), {carried} carried from the previous run, "
           "indexed as the baseline")
     print()
@@ -2664,7 +2682,7 @@ def main(argv: list[str] | None = None) -> int:
         # The rest land while the baseline runs, one worker per sandbox, each joining
         # the queue as it does, and the case wave draws them out as they arrive.
         with clock.timing("phase", "first sandbox"):
-            made.append(stand_up(template, sandbox / "w0", jobs=jobs))
+            made.append(stand_up(template, sandbox / "w0", jobs=width))
         boxes: Queue[Sandbox] = Queue()
         with ThreadPoolExecutor(max_workers=jobs) as setup:
             def later(i: int) -> Sandbox:
@@ -2745,11 +2763,12 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
             return _repair_path(repair_ready)
 
     # The repair path is five more whole runs of the checker in sequence, the longest
-    # chain its shard holds, and depends on nothing the baseline or a case does, so it
+    # chain a run holds, and depends on nothing the baseline or a case does, so it
     # starts first, beside both, on the sandbox held back for it, and reports where it
     # has always reported: after the cases. Under --rule it runs only when a selected
     # rule carries a --fix branch, because for any other rule it is most of the
-    # iteration path's cost and proves nothing about the rule being iterated on.
+    # iteration path's cost and proves nothing about the rule being iterated on. No
+    # shard runs it; --repair-only runs it beside the baseline alone.
     if repairable is None:
         repairable = any(rule in REPAIRABLE for rule, _, _ in selected)
     with ThreadPoolExecutor(max_workers=jobs + 1) as pool:
@@ -2788,10 +2807,13 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
     # here shares. Two things stay this tool's, because neither is about a mutant: the
     # repair path, which decides about --fix, and the registry coverage, which decides
     # about the rule registry and reads `CASES` rather than the run. Their findings are
-    # OR'd in below, which is what the hand-rolled tally did.
+    # OR'd in below, which is what the hand-rolled tally did. A run selecting no case,
+    # the repair path's alone, has no population to report, and summarize refuses an
+    # empty one as a vacuous pass.
     report: list[str] = []
-    cases_code = summarize(report, verdicts, RULES, "checker")
-    print("\n".join(report))
+    cases_code = summarize(report, verdicts, RULES, "checker") if selected else 0
+    print("\n".join(report) if selected else
+          f"--- the mutation cases ---\n  skipped: none of {len(CASES)} case(s) is selected")
     print()
 
     print("\n".join(repair_out))
@@ -2806,6 +2828,10 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
         return 1
     held = ("the repair path holds" if repairable
             else "the repair path had nothing to prove")
+    if not selected:
+        print(f"{held} and the registry is covered; no case was selected, so this run "
+              "decides no mutant.")
+        return 0
     print(f"every one of {len(verdicts)} rule(s) killed its mutant, {held}, "
           "and the registry is covered.")
     if len(verdicts) < len(CASES):

@@ -537,12 +537,20 @@ def _workflow_host_job_names() -> None:
     uncommented = {job: [line for line in _job_text(contents, job).split("\n")
                          if not line.lstrip().startswith("#")]
                    for job in ("host-gates-shard", "model-hooks")}
-    ubuntu = [_key_values(entry, "runner")
-              for entry in _include_entries(uncommented["host-gates-shard"])
+    entries = _include_entries(uncommented["host-gates-shard"])
+    ubuntu = [_key_values(entry, "runner") for entry in entries
               if _key_values(entry, "platform") == ["Ubuntu"]]
     hooks = _key_values("\n".join(uncommented["model-hooks"]), "runs-on")
-    ensure(len(hooks) == 1 and ubuntu == [hooks],
+    ensure(len(hooks) == 1 and bool(ubuntu) and all(labels == hooks for labels in ubuntu),
            f"{ci.HOST}'s model-hooks job runs on the Ubuntu shards' image: {hooks!r}, {ubuntu!r}")
+    # Each platform runs one unpartitioned job beside its shards, an include entry of its
+    # own that names its runner, so the shards and it together run the whole gate.
+    unpartitioned = sorted(name for entry in entries
+                           if _key_values(entry, "shard") == ["unpartitioned"]
+                           and len(_key_values(entry, "runner")) == 1
+                           for name in _key_values(entry, "platform"))
+    ensure(unpartitioned == sorted(platforms),
+           f"{ci.HOST} runs one unpartitioned job on each platform: {unpartitioned!r}")
 
 
 # Each aggregate check's command: one `test "$NAME" = success` for each job it needs,
@@ -640,25 +648,26 @@ def _workflow_host_aggregate_needs() -> None:
                f"({fragment!r}): {found!r}")
 
 
-# The shard gate's command, and its two platform branches as the workflow spells them:
-# PowerShell on Windows and bash on every other runner, so each runner takes one, each
-# with the exact line its shell runs. A run that merely starts with the command could
-# append `|| true` and finish green without the gate's verdict.
-_GATE = "python tools/run.py --check --tests --shard"
+# The shard job's gate command, and its two platform branches as the workflow spells
+# them: PowerShell on Windows and bash on every other runner, so each runner takes one,
+# each with the exact line its shell runs. A run that merely starts with the command
+# could append `|| true` and finish green without the gate's verdict.
+_GATE = "python tools/run.py --check --tests"
 _GATE_COMMANDS = {
     ("${{ runner.os == 'Windows' }}", "pwsh"):
-        f'{_GATE} "$env:SHARD/$env:SHARDS" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"',
+        f'{_GATE} "$env:PART" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"',
     ("${{ runner.os != 'Windows' }}", "bash"):
-        f'{_GATE} "$SHARD/$SHARDS" --summary "$RUNNER_TEMP/$VERDICT_FILE"',
+        f'{_GATE} "$PART" --summary "$RUNNER_TEMP/$VERDICT_FILE"',
 }
 _GATE_BRANCHES = sorted(_GATE_COMMANDS)
 # A job-level key of the shard job, whose keys sit at four spaces, bare or quoted.
 _JOB_CONTINUE_RE = re.compile(r"""(?m)^    (["']?)continue-on-error\1[ \t]*:""")
 # Each gate step's environment block, exactly as the workflow spells it for both: the
-# shard and the shard count, and nothing a shell or an interpreter would read first.
-_GATE_ENV = ["        env:",
-             "          SHARD: ${{ matrix.shard }}",
-             "          SHARDS: ${{ matrix.shards }}"]
+# job's part of the gate, its shard or the unpartitioned members, and nothing a shell
+# or an interpreter would read first.
+_GATE_PART = ("          PART: ${{ matrix.shard == 'unpartitioned' && '--unpartitioned' || "
+              "format('--shard={0}/{1}', matrix.shard, matrix.shards) }}")
+_GATE_ENV = ["        env:", _GATE_PART]
 # A variable a shell reads before the command it runs: GitHub runs a bash step as
 # non-interactive bash, which sources the file BASH_ENV names and defines a function
 # for each BASH_FUNC_<name>%% variable holding a function body, and sh reads ENV where
@@ -789,7 +798,7 @@ def _gate_faults(contents: str) -> list[str]:
     exactly its branch's command with no continuation line folded into it, and neither a
     gate step nor the shard job may state `continue-on-error`. A shell can run code of
     its own before the command, so each gate step's `env:` block must be exactly its
-    SHARD and SHARDS lines, and no uncommented line of the workflow may spell BASH_ENV,
+    PART line, and no uncommented line of the workflow may spell BASH_ENV,
     ENV or a BASH_FUNC_ variable as a word in any spelling `_spellings` gives it: as
     written, with its numeric escapes decoded, with its quotes, backticks and
     backslashes then dropped, with each backslash or backtick escape read as a
@@ -823,8 +832,8 @@ def _gate_faults(contents: str) -> list[str]:
         environments = _step_values(step, "env")
         if len(environments) != 1 or _step_block(step, "env") != _GATE_ENV:
             faults.append(f"a gate step states {len(environments)} env key(s) and the "
-                          f"block {_step_block(step, 'env')!r}, not exactly its SHARD and "
-                          "SHARDS lines, so its shell can read more than the shard")
+                          f"block {_step_block(step, 'env')!r}, not exactly its PART line, "
+                          "so its shell can read more than its part of the gate")
         conditions, shells = _step_values(step, "if"), _step_values(step, "shell")
         runs = _step_values(step, "run")
         if len(conditions) != 1 or len(shells) != 1 or len(runs) != 1:
@@ -857,17 +866,15 @@ _GATE_JOB = """jobs:
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
         env:
-          SHARD: ${{ matrix.shard }}
-          SHARDS: ${{ matrix.shards }}
-        run: python tools/run.py --check --tests --shard "$env:SHARD/$env:SHARDS" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"
+          PART: ${{ matrix.shard == 'unpartitioned' && '--unpartitioned' || format('--shard={0}/{1}', matrix.shard, matrix.shards) }}
+        run: python tools/run.py --check --tests "$env:PART" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"
 
       - name: Host gates and behavioral tests (Ubuntu)
         if: ${{ runner.os != 'Windows' }}
         shell: bash
         env:
-          SHARD: ${{ matrix.shard }}
-          SHARDS: ${{ matrix.shards }}
-        run: python tools/run.py --check --tests --shard "$SHARD/$SHARDS" --summary "$RUNNER_TEMP/$VERDICT_FILE"
+          PART: ${{ matrix.shard == 'unpartitioned' && '--unpartitioned' || format('--shard={0}/{1}', matrix.shard, matrix.shards) }}
+        run: python tools/run.py --check --tests "$PART" --summary "$RUNNER_TEMP/$VERDICT_FILE"
 
       - name: Report gate results
         if: ${{ !cancelled() }}
@@ -888,8 +895,8 @@ def _workflow_gate_on_every_runner() -> None:
     missing = ubuntu[0] + "      - name: Report" + ubuntu[1].split("      - name: Report", 1)[1]
     verdict = '--summary "$RUNNER_TEMP/$VERDICT_FILE"'
     report = "\n      - name: Report gate results\n"
-    sharded = "          SHARDS: ${{ matrix.shards }}\n"
-    environment = "        env:\n          SHARD: ${{ matrix.shard }}\n" + sharded
+    part = _GATE_PART + "\n"
+    environment = "        env:\n" + part
     job = "    runs-on: ${{ matrix.runner }}\n"
     trap = "${{ runner.temp }}/trap.sh\n"
     export = ("\n      - name: Export\n        if: ${{ runner.os != 'Windows' }}\n"
@@ -901,9 +908,9 @@ def _workflow_gate_on_every_runner() -> None:
              "not the complementary"),
             (_GATE_JOB.replace("shell: bash", "shell: pwsh"), "not the complementary"),
             (missing, "in 1 step(s), not two"),
-            (_GATE_JOB.replace('run: python tools/run.py --check --tests --shard "$SHARD',
+            (_GATE_JOB.replace('run: python tools/run.py --check --tests "$PART"',
                                'run: |\n          python tools/run.py --check --tests '
-                               '--shard "$SHARD'), "outside a step's own single-line run"),
+                               '"$PART"'), "outside a step's own single-line run"),
             (_GATE_JOB.replace("        shell: bash\n",
                                "        shell: bash\n        if: ${{ false }}\n"),
              "states 2 if, 1 shell and 1 run keys"),
@@ -930,20 +937,20 @@ def _workflow_gate_on_every_runner() -> None:
                                f"{verdict}\n        continue-on-error: true\n{report}"),
              "a gate step states continue-on-error"),
             # A gate whose shell runs code of its own first: a step environment beyond
-            # the shard, or a startup file a shell sources, named at the step, the job
-            # or the workflow, bare, quoted or in a flow mapping, or written by a run.
-            (_GATE_JOB.replace(sharded, sharded + "          BASH_ENV: " + trap, 1),
-             "not exactly its SHARD and SHARDS lines"),
-            (_GATE_JOB.replace(sharded, sharded + "          BASH_ENV: " + trap, 1),
+            # its part of the gate, or a startup file a shell sources, named at the step,
+            # the job or the workflow, bare, quoted or in a flow mapping, or written by a
+            # run.
+            (_GATE_JOB.replace(part, part + "          BASH_ENV: " + trap, 1),
+             "not exactly its PART line"),
+            (_GATE_JOB.replace(part, part + "          BASH_ENV: " + trap, 1),
              "the workflow names BASH_ENV"),
-            (_GATE_JOB.replace(sharded, sharded + "          PYTHONPATH: .\n"),
-             "not exactly its SHARD and SHARDS lines"),
+            (_GATE_JOB.replace(part, part + "          PYTHONPATH: .\n"),
+             "not exactly its PART line"),
             (_GATE_JOB.replace("        shell: pwsh\n" + environment, "        shell: pwsh\n"),
              "states 0 env key(s)"),
             (_GATE_JOB.replace("        shell: bash\n" + environment,
-                               "        shell: bash\n        env: {SHARD: ${{ matrix.shard "
-                               "}}, SHARDS: ${{ matrix.shards }}}\n"),
-             "not exactly its SHARD and SHARDS lines"),
+                               "        shell: bash\n        env: {PART: --shard=1/4}\n"),
+             "not exactly its PART line"),
             (_GATE_JOB.replace(job, job + "    env:\n      BASH_ENV: " + trap),
              "the workflow names BASH_ENV"),
             (_GATE_JOB.replace(job, job + '    env:\n      "BASH_ENV": ' + trap),

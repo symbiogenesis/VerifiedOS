@@ -12,6 +12,11 @@ Independent gates run concurrently and report in declaration order. `--tests` ad
 tools' behavioral tests; those stay optional to keep document checks small and avoid
 recursive test launches. Exit 0 means every final gate passed, 1 otherwise.
 
+`--shard INDEX/TOTAL` runs one partition of the selftest's cases and of the tests, and
+nothing else. `--unpartitioned` runs the rest: the checker, typecheck and the
+selftest's repair path; the tests have no unpartitioned part. Every shard of one count
+and that run together are the read-only wave.
+
 `--summary` writes the same verdict as data. The prose below says which member to read
 and is what a person wants; a caller that has only the process's exit code has four
 members collapsed into one number, which is the state a CI run reaches whoever reads it
@@ -91,16 +96,29 @@ TESTS = Launch("test", (), "the tools' own behavior, against the cases that hold
 # reordering the table above cannot quietly move which member the repair wave holds.
 REPAIRS = "check"
 
+# The members a shard partitions, and the selftest's one part no shard holds.
+PARTITIONED = ("selftest", "test")
+REPAIR_PATH = Launch("selftest", ("--repair-only",),
+                     "every --fix branch the checker carries, against its seeded figure")
 
-def _plan(fix: bool, tests: bool, shard: Shard | None = None) -> list[list[Launch]]:
-    """An optional isolated repair, then every read-only gate, including a fresh check."""
+
+def _plan(fix: bool, tests: bool, shard: Shard | None = None,
+          unpartitioned: bool = False) -> list[list[Launch]]:
+    """An optional isolated repair, then every read-only gate, including a fresh check.
+
+    `shard` keeps that partition of the partitioned members alone; `unpartitioned`
+    keeps the rest, with the selftest narrowed to its repair path."""
     members = [*MEMBERS, *([TESTS] if tests else [])]
+    if fix and (shard is not None or unpartitioned):
+        raise ValueError("--fix cannot be combined with --shard or --unpartitioned")
+    if shard is not None and unpartitioned:
+        raise ValueError("--shard cannot be combined with --unpartitioned")
     if shard is not None:
-        if fix:
-            raise ValueError("--shard cannot be combined with --fix")
         members = [Launch(m.tool, (*m.args, "--shard", str(shard)), m.decides)
-                   if m.tool in ("selftest", "test") else m
-                   for m in members if shard.index == 1 or m.tool in ("selftest", "test")]
+                   for m in members if m.tool in PARTITIONED]
+    elif unpartitioned:
+        members = [REPAIR_PATH if m.tool == REPAIR_PATH.tool else m
+                   for m in members if m.tool != TESTS.tool]
     if not fix:
         return [members]
     repair = [Launch(m.tool, (*m.args, "--fix"), m.decides)
@@ -217,14 +235,20 @@ def _write_summary(rep: Reporter, path: Path, data: dict[str, object]) -> None:
 
 
 def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False,
-        summary: Path | None = None, shard: Shard | None = None) -> Reporter:
+        summary: Path | None = None, shard: Shard | None = None,
+        unpartitioned: bool = False) -> Reporter:
     """Run the repair wave, if asked, then decide only the final validation wave."""
     if fix and check:
         raise ValueError("--fix and --check are mutually exclusive")
     rep = Reporter()
-    rep.line(HEADING if shard is None else f"=== gate: shard {shard}; every shard must pass ===")
+    if shard is not None:
+        rep.line(f"=== gate: shard {shard}; every shard must pass ===")
+    elif unpartitioned:
+        rep.line("=== gate: the unpartitioned members; every shard must pass too ===")
+    else:
+        rep.line(HEADING)
 
-    plan = _plan(fix, tests, shard)
+    plan = _plan(fix, tests, shard, unpartitioned)
     if fix:
         repair = _launch(root, plan[0][0])
         _show(rep, repair)
@@ -253,6 +277,8 @@ def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False,
         data = _verdict_data(results)
         if shard is not None:
             data["shard"] = {"index": shard.index, "total": shard.total}
+        if unpartitioned:
+            data["unpartitioned"] = True
         _write_summary(rep, summary, data)
     _verdict(rep, results)
     return rep
@@ -272,14 +298,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--summary", metavar="PATH", type=Path,
                         help="also write the per-member verdict there as JSON, for a "
                              "caller that has only this run's exit code")
-    parser.add_argument("--shard", type=sharding.parse, metavar="INDEX/TOTAL",
-                        help="partition selftest and tests; shard 1 also checks and typechecks; "
-                             "all shards are required for a complete verdict")
+    part = parser.add_mutually_exclusive_group()
+    part.add_argument("--shard", type=sharding.parse, metavar="INDEX/TOTAL",
+                      help="run this partition of the selftest's cases and of the tests, "
+                           "and nothing else")
+    part.add_argument("--unpartitioned", action="store_true",
+                      help="run what no shard holds: check, typecheck and the selftest's "
+                           "repair path; every shard and this run make a complete verdict")
     args = parser.parse_args(argv)
-    if args.fix and args.shard is not None:
-        parser.error("--shard cannot be combined with --fix")
+    if args.fix and (args.shard is not None or args.unpartitioned):
+        parser.error("--fix cannot be combined with --shard or --unpartitioned")
 
-    plan = _plan(args.fix, args.tests, args.shard)
+    plan = _plan(args.fix, args.tests, args.shard, args.unpartitioned)
     # The member reports remain accumulated in declaration order; this preflight
     # states what is running while the wave has not yet returned.
     preflight = "repairing derived facts; " if args.fix else ""
@@ -287,6 +317,6 @@ def main(argv: list[str] | None = None) -> int:
           + ", ".join(m.name for m in plan[-1]), flush=True)
 
     report = run(corpus_mod.find_root(), fix=args.fix, tests=args.tests, check=args.check,
-                 summary=args.summary, shard=args.shard)
+                 summary=args.summary, shard=args.shard, unpartitioned=args.unpartitioned)
     print("\n".join(report.out))
     return 1 if report.findings else 0

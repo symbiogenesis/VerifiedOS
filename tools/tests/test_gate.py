@@ -15,6 +15,7 @@ import tempfile
 import threading
 from contextlib import redirect_stderr
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
@@ -65,33 +66,60 @@ def _tests_join_the_wave_only_when_asked() -> None:
 
 
 def _sharded_plan_and_failures() -> None:
-    for index in range(1, 5):
-        shard = Shard(index, 4)
-        wave = gate._plan(False, True, shard)[0]
-        ensure([m.tool for m in wave] == (["check", "selftest", "typecheck", "test"]
-                                         if index == 1 else ["selftest", "test"]),
-               "only shard 1 owns the unpartitioned checks")
-        ensure(all(m.args == ("--shard", str(shard)) for m in wave
-                   if m.tool in ("selftest", "test")), "both suites need the same shard")
+    def launch(root: Path, member: gate.Launch, record: Path | None = None) -> gate.Result:
+        return gate.Result(member, 1 if member.tool in ("test", "typecheck") else 0, [])
 
-        def launch(root: Path, member: gate.Launch, record: Path | None = None) -> gate.Result:
-            return gate.Result(member, 1 if member.tool == "test" else 0, [])
-
+    def summarized(shard: Shard | None = None,
+                   unpartitioned: bool = False) -> tuple[Reporter, dict[str, Any]]:
         with tempfile.TemporaryDirectory(prefix="vos-shard-") as td:
             path = Path(td) / "verdict.json"
             with patch.object(gate, "_launch", launch):
-                report = gate.run(_ROOT, tests=True, shard=shard, summary=path)
-            data = json.loads(path.read_text(encoding="utf-8"))
+                report = gate.run(_ROOT, tests=True, summary=path, shard=shard,
+                                  unpartitioned=unpartitioned)
+            return report, json.loads(path.read_text(encoding="utf-8"))
+
+    # Every shard of one count and the unpartitioned run together are the whole
+    # read-only wave: each shard both suites' partition and nothing else, and the
+    # unpartitioned run the rest, the selftest narrowed to its repair path.
+    whole = [m.tool for m in gate._plan(False, True)[0]]
+    rest = gate._plan(False, True, unpartitioned=True)[0]
+    ensure([m.name for m in rest] == ["check", "selftest --repair-only", "typecheck"],
+           f"the unpartitioned run is the checker, the repair path and typecheck: {rest!r}")
+    for index in range(1, 5):
+        shard = Shard(index, 4)
+        wave = gate._plan(False, True, shard)[0]
+        ensure([m.name for m in wave] == [f"selftest --shard {shard}", f"test --shard {shard}"],
+               f"a shard runs its partition of both suites and nothing else: {wave!r}")
+        ensure(sorted({*(m.tool for m in wave), *(m.tool for m in rest)}) == sorted(whole),
+               "a shard and the unpartitioned run leave no member of the wave unrun")
+        report, data = summarized(shard=shard)
         ensure(report.findings == 1 and data["green"] is False,
                "a failed partition must fail the gate")
-        ensure(data["shard"] == {"index": index, "total": 4},
+        ensure(data["shard"] == {"index": index, "total": 4} and "unpartitioned" not in data,
                "partial verdicts must identify their shard")
-    try:
-        gate._plan(True, True, Shard(1, 4))
-    except ValueError:
-        pass
-    else:
-        raise AssertionError("repairing a checkout must not overlap sharded readers")
+    report, data = summarized(unpartitioned=True)
+    ensure(report.findings == 1 and data["green"] is False
+           and [m["name"] for m in data["members"]] == [m.name for m in rest],
+           "a failed unpartitioned member must fail the gate")
+    ensure(data.get("unpartitioned") is True and "shard" not in data,
+           "the unpartitioned verdict identifies itself rather than a shard")
+    for fix, shard, unpartitioned in ((True, Shard(1, 4), False), (True, None, True),
+                                      (False, Shard(1, 4), True)):
+        try:
+            gate._plan(fix, True, shard, unpartitioned)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("repairing a checkout must not overlap partial readers, "
+                                 "and a run is one shard or the unpartitioned members")
+    for argv in (["--check", "--shard", "1/4", "--unpartitioned"], ["--fix", "--unpartitioned"]):
+        with redirect_stderr(io.StringIO()):
+            try:
+                gate.main(argv)
+            except SystemExit as err:
+                ensure(err.code == 2, f"{argv!r} must be an argument error")
+            else:
+                raise AssertionError(f"the CLI accepted {argv!r}")
 
 
 def _members_run_in_parallel() -> None:
