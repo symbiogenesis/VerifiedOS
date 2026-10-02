@@ -830,11 +830,14 @@ def stage(name: str, argv: list[str], report_to: Writable | None = None, *,
     return proc.returncode
 
 
-def stage_line(name: str, wall: float, cpu_seconds: float, maxrss_kb: int) -> str:
+def stage_line(name: str, wall: float, cpu_seconds: float, maxrss_kb: int, *,
+               start: float | None = None) -> str:
     """The one spelling of what a stage cost, for `stage` and for a caller that starts
-    a stage of its own and reaps it later."""
+    a stage of its own and reaps it later. `start` places such a stage in the seconds
+    of the stage it ran beside."""
     cpu = cpu_seconds / wall * 100 if wall > 0 else 0
-    return f"STAGE {name} wall={wall:.1f}s cpu={cpu:.0f}% maxrss={maxrss_kb}kB"
+    began = "" if start is None else f" start=+{start:.1f}s"
+    return f"STAGE {name}{began} wall={wall:.1f}s cpu={cpu:.0f}% maxrss={maxrss_kb}kB"
 
 
 def _report_stream(report_to: Writable | None, child_stderr: object) -> Writable:

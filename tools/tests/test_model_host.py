@@ -1297,8 +1297,9 @@ def _replaced(staged: Path, path: Path) -> bool:
 class _EarlyStandIn:
     """`_EarlyRun` without a process: a ctest run of the one test, exiting `code`."""
 
-    def __init__(self, argv: list[str], build: Path, code: int) -> None:
+    def __init__(self, argv: list[str], since: float, build: Path, code: int) -> None:
         self.argv = argv
+        self.since = since
         self.code = code
         self.printed = f"Test project {build}\n    Start 1: smt_properties_rv64d\n" + (
             "1/1 Test #1: smt_properties_rv64d ....   Passed   26.30 sec\n\n"
@@ -1314,7 +1315,8 @@ class _EarlyStandIn:
         return self.code
 
     def report(self) -> str:
-        return f"{self.printed}STAGE ctest-early wall=26.4s cpu=99% maxrss=790000kB\n"
+        return (f"{self.printed}"
+                "STAGE ctest-early start=+41.2s wall=26.4s cpu=99% maxrss=790000kB\n")
 
     def kill(self) -> None:
         # `_build_locked` ends every run it started this way, and a reaped run has
@@ -1326,7 +1328,8 @@ class _BuildRig:
     """`_build_locked` with its configure, stages, early run and identity standing in.
     `run` takes the build stage; the ctest stage prints the summary of the tests it was
     asked for, fourteen when it excludes the early test and fifteen otherwise. Every
-    read of the ninja log the emission watch makes is counted in `polls`."""
+    read of the ninja log the emission watch makes is counted in `polls`, and the time
+    the build stage began is `build_began`."""
 
     def __init__(self, root: Path, *, memory: int = 8192, early_code: int = 0) -> None:
         self.build = root / "build"
@@ -1339,6 +1342,7 @@ class _BuildRig:
         self.calls: list[tuple[str, list[str], object]] = []
         self.runs: list[_EarlyStandIn] = []
         self.polls = 0
+        self.build_began = 0.0
         self._read = _MODEL._fresh_outputs
         self._on_build: Callable[[], int] | None = None
 
@@ -1346,6 +1350,7 @@ class _BuildRig:
                **kw: object) -> int:
         self.calls.append((name, argv, kw.get("add_env")))
         if name == "build":
+            self.build_began = time.perf_counter()
             if self._on_build is None:
                 raise AssertionError("the rig runs a build stage only inside `run`")
             return self._on_build()
@@ -1354,8 +1359,8 @@ class _BuildRig:
             f"Test project {self.build}\n100% tests passed, 0 tests failed out of {tests}\n")
         return 0
 
-    def _start(self, argv: list[str]) -> _EarlyStandIn:
-        run = _EarlyStandIn(argv, self.build, self.early_code)
+    def _start(self, argv: list[str], since: float) -> _EarlyStandIn:
+        run = _EarlyStandIn(argv, since, self.build, self.early_code)
         self.runs.append(run)
         return run
 
@@ -1473,13 +1478,16 @@ def _early_test_starts_on_this_builds_emission() -> None:
                == [["ctest", "--test-dir", str(rig.build), "-R", "^smt_properties_rv64d$",
                     "--output-on-failure"]],
                f"one early run of the one test, got {[run.argv for run in rig.runs]}")
+        ensure(0 < rig.runs[0].since <= rig.build_began,
+               f"the run's start is counted from the build stage's, got "
+               f"{rig.runs[0].since} against {rig.build_began}")
         ensure(rig.ctest_argv() == [["ctest", "--test-dir", str(rig.build), "-j", "2",
                                      "--output-on-failure", "-E", "^smt_properties_rv64d$"]],
                f"the ctest stage runs the rest of the suite, got {rig.ctest_argv()}")
         ensure([add for name, _, add in rig.calls if name == "build"]
                == [{"NINJA_STATUS": "[%f/%t %e] "}],
                f"the build's status lines carry elapsed seconds, got {rig.calls}")
-        ensure("smt_properties_rv64d beside the build within 4096 MB" in text,
+        ensure("smt_properties_rv64d may start beside the build within 4096 MB" in text,
                f"the host line states the decision, got {text!r}")
         ensure(text.index("out of 14\n") < text.index("out of 1\n")
                < text.index("STAGE ctest-early") < text.index("CTEST_EXIT=0\n")
@@ -1519,12 +1527,12 @@ def _early_test_needs_this_builds_emission() -> None:
 
 
 def _early_test_waits_for_memory() -> None:
-    """The test starts beside the build only where the memory available covers the
+    """The test may start beside the build only where the memory available covers the
     build's budget and the test's; otherwise, or with no reading, it runs after the
     build, and the host line says which and why."""
     nowhere = Path("nowhere")
     for memory, decided in (
-            (4096, (True, "smt_properties_rv64d beside the build within 4096 MB")),
+            (4096, (True, "smt_properties_rv64d may start beside the build within 4096 MB")),
             (4095, (False, "smt_properties_rv64d after the build, 4096 MB wanted beside it")),
             (0, (False, "smt_properties_rv64d after the build, no memory reading"))):
         e = env.Environment(nowhere, nowhere, nowhere, nowhere, "", 4, memory, 2, 2)
@@ -1628,13 +1636,15 @@ def _gone(pid: int) -> bool:
 
 def _early_run_reports_and_ends_its_tree() -> None:
     """The early run over a stand-in command: reaped, it reports what it printed and
-    then its `STAGE` line, whose wall time ends when the run exited rather than when the
-    ctest stage asked for it; killed while it runs, the process it started dies with it.
-    POSIX-only, like the stage it runs beside."""
+    then its `STAGE` line, which counts its start from the build stage's and whose wall
+    time ends when the run exited rather than when the ctest stage asked for it; killed
+    while it runs, the process it started dies with it. POSIX-only, like the stage it
+    runs beside."""
     if sys.platform == "win32":
         raise AssertionError("os.wait4 is POSIX-only; the early run's case runs in the guest")
     began = time.perf_counter()
-    run = _MODEL._EarlyRun([sys.executable, "-c", "import sys; print('one test'); sys.exit(3)"])
+    run = _MODEL._EarlyRun([sys.executable, "-c", "import sys; print('one test'); sys.exit(3)"],
+                           began - 5.0)
     pid = cast("int", run._proc.pid)
     _until(partial(_gone, pid), "saw the stand-in exit")
     lived = time.perf_counter() - began
@@ -1644,10 +1654,11 @@ def _early_run_reports_and_ends_its_tree() -> None:
     code = cast("int", run.wait())
     said = cast("str", run.report())
     run.kill()
-    cost = re.search(r"^STAGE ctest-early wall=(\d+\.\d)s cpu=\d+% maxrss=\d+kB$", said,
-                     re.MULTILINE)
+    cost = re.search(r"^STAGE ctest-early start=\+5\.\ds wall=(\d+\.\d)s cpu=\d+% "
+                     r"maxrss=\d+kB$", said, re.MULTILINE)
     ensure(code == 3 and said.startswith("one test\n") and cost is not None,
-           f"a reaped run reports its output and its cost, got {code} and {said!r}")
+           f"a reaped run reports its output, its start and its cost, got {code} and "
+           f"{said!r}")
     wall = float(cost.group(1)) if cost is not None else 0.0
     ensure(wall < lived + 1.0,
            f"the run's wall time ends at its exit, {lived:.1f}s in, got {said!r}")
@@ -1660,7 +1671,7 @@ def _early_run_reports_and_ends_its_tree() -> None:
             "staged.write_text(str(child.pid))\n"
             f"staged.replace({str(marker)!r})\n"
             "time.sleep(600)\n")
-        run = _MODEL._EarlyRun([sys.executable, "-c", script])
+        run = _MODEL._EarlyRun([sys.executable, "-c", script], time.perf_counter())
         try:
             _until(marker.exists, "saw the stand-in start its child")
             child = int(marker.read_text(encoding="utf-8"))
@@ -1692,7 +1703,7 @@ def _early_run_ends_a_tree_still_forking() -> None:
         script = ("import subprocess, time\n"
                   f"subprocess.Popen(['sh', '-c', {loop!r}])\n"
                   "time.sleep(600)\n")
-        run = _MODEL._EarlyRun([sys.executable, "-c", script])
+        run = _MODEL._EarlyRun([sys.executable, "-c", script], time.perf_counter())
         try:
             _until(lambda: len(_pids_in(started)) >= 3, "saw the stand-in start processes")
             run.kill()

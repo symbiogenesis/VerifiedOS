@@ -974,16 +974,18 @@ class _EarlyRun:
     aside until the ctest stage places it in the log.
 
     A thread reaps the run as it exits, so its `STAGE` line times the run itself rather
-    than the wait for the ctest stage to collect it. It stays in the build's process
-    group, so whatever ends that group ends it too, the evidence sweep's timeout among
-    them; `kill` ends it, and the Sail process under it, when the build is leaving by
-    an exception."""
+    than the wait for the ctest stage to collect it, and the line says when the run
+    started in the build stage's seconds, `since` being when that stage began. It stays
+    in the build's process group, so whatever ends that group ends it too, the evidence
+    sweep's timeout among them; `kill` ends it, and the Sail process under it, when the
+    build is leaving by an exception."""
 
-    def __init__(self, argv: list[str]) -> None:
+    def __init__(self, argv: list[str], since: float) -> None:
         # The file outlives this call, which a context manager would close: the ctest
         # stage reads it once the run is reaped, and `kill` closes it.
         self._output = tempfile.TemporaryFile(  # noqa: SIM115
             "w+", encoding="utf-8", errors="replace")
+        self._since = since
         self._started = time.perf_counter()
         try:
             self._proc = subprocess.Popen(argv, stdout=self._output, stderr=self._output)
@@ -1009,7 +1011,8 @@ class _EarlyRun:
             _, status, usage = os.wait4(self._proc.pid, 0)
             self._code = self._proc.returncode = os.waitstatus_to_exitcode(status)
             self._cost = env.stage_line(EARLY_STAGE, ended - self._started,
-                                        usage.ru_utime + usage.ru_stime, usage.ru_maxrss)
+                                        usage.ru_utime + usage.ru_stime, usage.ru_maxrss,
+                                        start=self._started - self._since)
 
     def wait(self) -> int:
         """Wait until the run is reaped, and give its exit code."""
@@ -1063,6 +1066,8 @@ class _EmissionWatch:
             self._mark: _NinjaLogMark | None = _ninja_log_mark(self._path)
         except OSError:
             self._mark = None
+        # The build stage starts as this returns, so a run's start is counted from here.
+        self._began = time.perf_counter()
         self._thread = threading.Thread(target=self._watch, name="emission-watch",
                                         daemon=True)
         self._thread.start()
@@ -1079,7 +1084,7 @@ class _EmissionWatch:
                 # A run that cannot start leaves the test to the ctest stage, where the
                 # same command fails as it would have.
                 with contextlib.suppress(OSError):
-                    self._run = _EarlyRun(self._argv)
+                    self._run = _EarlyRun(self._argv, self._began)
                 return
 
     def stop(self) -> _EarlyRun | None:
@@ -1094,15 +1099,16 @@ def _early_decision(e: env.Environment) -> tuple[bool, str]:
     line gives the answer.
 
     `_jobs` sizes the build to the memory available and budgets nothing beside it, so
-    the test starts early only where that memory covers the build's budget and the
+    the test may start early only where that memory covers the build's budget and the
     test's too; with no reading the guard cannot bind, and the test runs after the
-    build."""
+    build. Whether a test allowed to start early did, and when, is its `STAGE` line's
+    to say: an emission that is up to date starts nothing."""
     wanted = e.build_budget_mb + EARLY_TEST_MB
     if e.mem_available_mb <= 0:
         return False, f"{EARLY_TEST} after the build, no memory reading"
     if e.mem_available_mb < wanted:
         return False, f"{EARLY_TEST} after the build, {wanted} MB wanted beside it"
-    return True, f"{EARLY_TEST} beside the build within {wanted} MB"
+    return True, f"{EARLY_TEST} may start beside the build within {wanted} MB"
 
 
 def _ctest_stage(e: env.Environment, build_dir: Path, handle: IO[str],
