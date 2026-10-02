@@ -668,12 +668,15 @@ def run(ctx: Context) -> None:
         # The order of the table is load-bearing here and nowhere else: a host row's
         # generator reads what an earlier row settled on, so the bundle the run has
         # repaired is the one this decides against rather than a second copy off disk.
-        if row.lane == "host":
-            reading = _host_row(ctx, row, settled)
-        elif row.inspect is not None:
-            reading = row.inspect(ctx, row, staged[row.path])
-        else:
-            reading = _row(ctx, row, staged[row.path])
+        # Each row's seconds go to the run's clock, which is what tells the rows'
+        # shares of this group apart.
+        with ctx.clock.timing("row", row.path):
+            if row.lane == "host":
+                reading = _host_row(ctx, row, settled)
+            elif row.inspect is not None:
+                reading = row.inspect(ctx, row, staged[row.path])
+            else:
+                reading = _row(ctx, row, staged[row.path])
         findings += reading.findings
         fixed += reading.fixed
         owners += reading.owners

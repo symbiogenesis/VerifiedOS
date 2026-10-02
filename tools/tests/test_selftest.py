@@ -389,8 +389,11 @@ def _checker_stops_after_the_rules_group() -> None:
         def run(ctx: Context) -> None:
             ran.append(name)
             named.append(timings.ENV in timings.os.environ)
-            for rule in rules:
-                ctx.rep.report(rule, "finding(s):", ["seeded"] if rule == "K-02" else [], "held")
+            # a part a group measures inside itself, as the generated group does its rows
+            with ctx.clock.timing("row", f"{name}'s part"):
+                for rule in rules:
+                    ctx.rep.report(rule, "finding(s):",
+                                   ["seeded"] if rule == "K-02" else [], "held")
         return SimpleNamespace(__name__=f"vos.checks.{name}", run=run)
 
     groups = [group("first", "K-01"), group("second", "K-02", "K-03"), group("third", "K-04")]
@@ -417,14 +420,17 @@ def _checker_stops_after_the_rules_group() -> None:
                "a run without --through must run every group")
 
         # A clock given the run records its fixed phases and the groups that ran, by
-        # their modules' last names, and changes nothing the run reports.
+        # their modules' last names, with the parts those groups measured through the
+        # run's context, and changes nothing the run reports.
         clock = timings.Clock(cpu=True)
         timed = check.run(Path("unused"), through="K-03", clock=clock)
         units = clock.units()
         ensure([(unit["kind"], unit["name"]) for unit in units]
                == [("group", "first"), ("group", "second"), ("phase", "artifacts read"),
-                   ("phase", "corpus load"), ("phase", "register read")],
-               f"the run's phases and its two groups are measured, got {units!r}")
+                   ("phase", "corpus load"), ("phase", "register read"),
+                   ("row", "first's part"), ("row", "second's part")],
+               "the run's phases, its two groups and their parts are measured, "
+               f"got {units!r}")
         ensure(all("cpu_seconds" in unit for unit in units),
                f"a CPU clock records each block's CPU seconds, got {units!r}")
         ensure(timed.out == check.run(Path("unused"), through="K-03").out,
@@ -444,8 +450,10 @@ def _checker_stops_after_the_rules_group() -> None:
                f"recording timings changed the checker's output: {printed.getvalue()!r}")
         ensure([(unit["kind"], unit["name"]) for unit in recorded]
                == [("group", "first"), ("group", "second"), ("phase", "artifacts read"),
-                   ("phase", "corpus load"), ("phase", "imports"), ("phase", "register read")],
-               f"main records the imports, the phases and the groups, got {recorded!r}")
+                   ("phase", "corpus load"), ("phase", "imports"), ("phase", "register read"),
+                   ("row", "first's part"), ("row", "second's part")],
+               "main records the imports, the phases, the groups and their parts, "
+               f"got {recorded!r}")
         with contextlib.redirect_stderr(io.StringIO()):
             try:
                 check.main(["--fix", "--through", "K-01"])

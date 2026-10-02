@@ -30,6 +30,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from vos import timings
 from vos.corpus import Corpus
 from vos.register import Artifacts, Register
 from vos.report import Reporter
@@ -56,6 +57,9 @@ class Context:
     art: Artifacts
     rep: Reporter
     fix: bool = False
+    # The run's clock, for a group that measures its own parts. Diagnostic only: a
+    # context built without the run's measures into a clock nothing reads.
+    clock: timings.Clock = field(default_factory=timings.Clock)
 
     # file -> its rewritten text, held until the run ends so that a later group reads
     # what an earlier one repaired rather than the text on disk
