@@ -81,15 +81,16 @@ class _Baseline:
 
 
 def _repair_only_runs_beside_the_baseline() -> None:
-    # A run selecting no case reports the repair path and the registry, not an empty
-    # population as a vacuous pass; a failing baseline still discards the repair report.
+    # --repair-only reports the repair path and the registry, not an empty population
+    # as a vacuous pass, and a failing baseline still discards the repair report. Any
+    # other run selecting no case is that vacuous pass, and is refused.
     ran: list[str] = []
 
     def repair(_ready: Future[selftest.Sandbox]) -> tuple[list[str], list[str]]:
         ran.append("repair")
         return [], ["--- the repair path ---", "  ok: held"]
 
-    for code in (0, 1):
+    for code, repair_only in ((0, True), (1, True), (0, False)):
         ran.clear()
         printed = io.StringIO()
         boxes: Queue[selftest.Sandbox] = Queue()
@@ -97,16 +98,31 @@ def _repair_only_runs_beside_the_baseline() -> None:
                 patch.object(selftest, "_registry_coverage", return_value=[]), \
                 contextlib.redirect_stdout(printed):
             result = selftest._run([], cast("selftest.Sandbox", _Baseline(code)), boxes,
-                                   Future(), 1, True)
+                                   Future(), 1, True, repair_only=repair_only)
         out = printed.getvalue()
-        ensure(result == code and ran == ["repair"],
-               f"baseline exit {code} gave {result} with the repair path run {ran}: {out}")
-        if code == 0:
+        expected = code if repair_only else 1
+        ensure(result == expected and ran == ["repair"],
+               f"baseline exit {code}, --repair-only {repair_only}, gave {result} with the "
+               f"repair path run {ran}: {out}")
+        if not repair_only:
+            ensure("FAIL every one of 0 mutant(s) was stillborn" in out,
+                   f"an empty selection outside --repair-only is a vacuous pass: {out}")
+        elif code == 0:
             ensure("FAIL" not in out and "  ok: held" in out
                    and "the repair path holds and the registry is covered" in out,
                    f"the repair path alone decides the run: {out}")
         else:
             ensure("  ok: held" not in out, f"a failing baseline discards the repair: {out}")
+    no_case: list[selftest.Case] = []
+    for selected, repairable in ((no_case, False), ([selftest.CASES[0]], True)):
+        try:
+            selftest._run(selected, cast("selftest.Sandbox", _Baseline(0)), Queue(),
+                          Future(), 1, repairable, repair_only=True)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("--repair-only must run the repair path and no case, "
+                                 f"not {len(selected)} case(s) with repairable {repairable}")
 
 
 def _git(root: Path, *args: str) -> bytes:

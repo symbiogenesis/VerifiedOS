@@ -2693,7 +2693,8 @@ def main(argv: list[str] | None = None) -> int:
                 return box
 
             standing = [setup.submit(later, i) for i in range(1, jobs + 1)]
-            code = _run(selected, made[0], boxes, standing[-1], jobs, repairable, clock)
+            code = _run(selected, made[0], boxes, standing[-1], jobs, repairable, clock,
+                        repair_only=args.repair_only)
             for future in standing:
                 future.result()   # a sandbox that failed to stand up is loud, not lost
         return code
@@ -2745,7 +2746,9 @@ def _verdict(case: Case, box: Sandbox) -> Verdict:
 
 def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
          repair_ready: Future[Sandbox], jobs: int, repairable: bool | None = None,
-         clock: timings.Clock | None = None) -> int:
+         clock: timings.Clock | None = None, *, repair_only: bool = False) -> int:
+    if repair_only and (selected or repairable is False):
+        raise ValueError("--repair-only runs the repair path and no case")
     measured = clock or timings.Clock()
 
     def one(case: Case) -> Verdict:
@@ -2770,7 +2773,7 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
     # iteration path's cost and proves nothing about the rule being iterated on. No
     # shard runs it; --repair-only runs it beside the baseline alone.
     if repairable is None:
-        repairable = any(rule in REPAIRABLE for rule, _, _ in selected)
+        repairable = repair_only or any(rule in REPAIRABLE for rule, _, _ in selected)
     with ThreadPoolExecutor(max_workers=jobs + 1) as pool:
         repairing = pool.submit(timed_repair) if repairable else None
 
@@ -2807,13 +2810,13 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
     # here shares. Two things stay this tool's, because neither is about a mutant: the
     # repair path, which decides about --fix, and the registry coverage, which decides
     # about the rule registry and reads `CASES` rather than the run. Their findings are
-    # OR'd in below, which is what the hand-rolled tally did. A run selecting no case,
-    # the repair path's alone, has no population to report, and summarize refuses an
-    # empty one as a vacuous pass.
+    # OR'd in below, which is what the hand-rolled tally did. --repair-only selects no
+    # case, so it has no population to report; any other run summarizes its cases, and
+    # summarize refuses an empty population as a vacuous pass.
     report: list[str] = []
-    cases_code = summarize(report, verdicts, RULES, "checker") if selected else 0
-    print("\n".join(report) if selected else
-          f"--- the mutation cases ---\n  skipped: none of {len(CASES)} case(s) is selected")
+    cases_code = 0 if repair_only else summarize(report, verdicts, RULES, "checker")
+    print(f"--- the mutation cases ---\n  skipped: --repair-only selects none of "
+          f"{len(CASES)} case(s)" if repair_only else "\n".join(report))
     print()
 
     print("\n".join(repair_out))
@@ -2828,9 +2831,9 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
         return 1
     held = ("the repair path holds" if repairable
             else "the repair path had nothing to prove")
-    if not selected:
-        print(f"{held} and the registry is covered; no case was selected, so this run "
-              "decides no mutant.")
+    if repair_only:
+        print(f"{held} and the registry is covered; --repair-only selects no case, so this "
+              "run decides no mutant.")
         return 0
     print(f"every one of {len(verdicts)} rule(s) killed its mutant, {held}, "
           "and the registry is covered.")
