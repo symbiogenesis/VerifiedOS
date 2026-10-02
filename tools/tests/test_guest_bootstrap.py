@@ -26,7 +26,7 @@ def _missing_dependency_refuses() -> None:
     with (patch.object(bootstrap, "missing_packages", return_value=["device-tree-compiler"]),
           patch.object(bootstrap, "run") as launched):
         try:
-            bootstrap.system_packages(False, io.StringIO())
+            bootstrap.system_packages(False, io.StringIO(), ("device-tree-compiler",))
         except ValueError as error:
             ensure("device-tree-compiler" in str(error), "missing package was not named")
         else:
@@ -40,16 +40,15 @@ def _package_query_is_batched() -> None:
         "installed\tinstall ok installed\n"
         "unconfigured\tinstall ok unpacked\n"
         "multiarch\tinstall ok installed\nmultiarch\tinstall ok installed\n"))
-    with (patch.object(bootstrap, "PACKAGES", packages),
-          patch.object(bootstrap.subprocess, "run", return_value=result) as query):
-        ensure(bootstrap.missing_packages() == list(packages[1:]),
+    with patch.object(bootstrap.subprocess, "run", return_value=result) as query:
+        ensure(bootstrap.missing_packages(packages) == list(packages[1:]),
                "batch query lost missing, unconfigured or ambiguous packages")
         ensure(query.call_count == 1 and query.call_args.args[0][-4:] == packages,
                "package detection did not use one query for every dependency")
     result = subprocess.CompletedProcess([], 2, stdout="", stderr="database unreadable")
     with patch.object(bootstrap.subprocess, "run", return_value=result):
         try:
-            bootstrap.missing_packages()
+            bootstrap.missing_packages(packages)
         except subprocess.CalledProcessError as error:
             ensure(error.returncode == 2, "fatal query failure was changed")
         else:
@@ -63,7 +62,7 @@ def _nonroot_system_install() -> None:
           patch.object(bootstrap, "sys", SimpleNamespace(platform="linux")),
           patch.object(bootstrap.os, "geteuid", return_value=1000, create=True),
           patch.object(bootstrap, "run") as launched):
-        bootstrap.system_packages(True, io.StringIO())
+        bootstrap.system_packages(True, io.StringIO(), ("m4",))
         ensure(len(launched.call_args_list) == 2, "system install did not update and install")
         for call in launched.call_args_list:
             ensure(call.args[0][:2] == ("sudo", "-n"), "non-root install may prompt or lacks sudo")
@@ -382,14 +381,50 @@ def _opam_client_has_one_owner() -> None:
 
 def _root_prerequisites_come_from_the_owner() -> None:
     """The packages `opam init` needs are installed before bootstrap creates the root,
-    and bootstrap reads them from the client's owner rather than restating them."""
-    missing = [package for package in bootstrap.opam_client.ROOT_PREREQUISITES
-               if package not in bootstrap.PACKAGES]
-    ensure(not missing, f"bootstrap installs every root prerequisite, lacking {missing}")
+    whatever the selection, and bootstrap reads them from the client's owner rather than
+    restating them."""
+    for selected in (*((name,) for name in bootstrap.TOOLCHAINS), bootstrap.TOOLCHAINS):
+        missing = [package for package in bootstrap.opam_client.ROOT_PREREQUISITES
+                   if package not in bootstrap.packages(selected)]
+        ensure(not missing, f"bootstrap installs every root prerequisite for {selected}, "
+                            f"lacking {missing}")
     source = Path(bootstrap.__file__).read_text(encoding="utf-8")
     restated = [package for package in bootstrap.opam_client.ROOT_PREREQUISITES
                 if f'"{package}"' in source]
     ensure(not restated, f"bootstrap must read the root prerequisites, not restate {restated}")
+
+
+def _packages_follow_the_selection() -> None:
+    """A selection installs the root's packages and its own toolchains', each once: the
+    Rocq-only lane none of the model build's or Verilator's, and the model lane's
+    selection every package the Sail and Verilator entries name."""
+    rocq = bootstrap.packages(("rocq",))
+    ensure(rocq == (*bootstrap.BASE_PACKAGES, *bootstrap.SWITCH_PACKAGES),
+           f"the prover's selection installs the root's and a switch's packages: {rocq}")
+    for package in ("cmake", "ninja-build", "clang", "ccache", "device-tree-compiler",
+                    "help2man", "libfl-dev"):
+        ensure(package not in rocq, f"the prover's selection installs {package}")
+    for selected in (("sail",), ("rtl",), ("sail", "rtl"), bootstrap.TOOLCHAINS):
+        found = bootstrap.packages(selected)
+        wanted = {*bootstrap.BASE_PACKAGES,
+                  *(package for name in selected for package in bootstrap.PACKAGES[name])}
+        ensure(set(found) == wanted and len(set(found)) == len(found),
+               f"selection {selected} installs {found}, each once, not {sorted(wanted)}")
+    ensure(set(bootstrap.rtl.VERILATOR_PACKAGES) <= set(bootstrap.packages(("rtl",))),
+           "Verilator's build prerequisites come from its installer's owner")
+    # Installation asks the package database for its own selection's packages alone.
+    with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {}, clear=True):
+        args = argparse.Namespace(jobs=2, toolchains=["rocq"], install_system=True,
+                                  github_env=None, github_path=None)
+        with (patch.object(bootstrap, "system_packages", side_effect=subprocess.CalledProcessError(
+                  1, ("apt-get", "install"))) as installed,
+              patch.object(bootstrap, "retain_logs"),
+              patch.object(bootstrap.platform, "platform", return_value="fixture-host"),
+              redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
+            code = bootstrap.install(args, Path(directory), "fixture")
+    ensure(code == 1 and installed.call_args.args[0] is True
+           and installed.call_args.args[2] == rocq,
+           f"the prover's installation asks for its packages alone: {installed.call_args}")
 
 
 def _repositories_come_from_the_owner() -> None:
@@ -676,6 +711,7 @@ def cases() -> list[Case]:
         Case("busy root preserves the active bootstrap's state", _busy_root_is_untouched),
         Case("the opam client has one owner", _opam_client_has_one_owner),
         Case("root prerequisites come from the owner", _root_prerequisites_come_from_the_owner),
+        Case("installed packages follow the toolchain selection", _packages_follow_the_selection),
         Case("repositories come from the owner", _repositories_come_from_the_owner),
         Case("repository state is recorded", _repository_state_is_recorded),
         Case("a complete root is kept without the route", _complete_root_is_kept),

@@ -58,11 +58,14 @@ establish complete guest evidence; Host CI supplies no model, RTL or proof verdi
 The workflow retains results and proof receipts when available.
 
 [bootstrap_guest.py](bootstrap_guest.py) installs only the missing Ubuntu packages
-when passed `--install-system`, using root or passwordless sudo. Its `PACKAGES`
-tuple owns that list, taking the packages `opam init` needs from
-[the opam client's owner](../vos/opam_client.py). One package-database query checks all prerequisites; a fatal
-query error stops installation. Python must satisfy [the manifest](../pyproject.toml),
-and uv must match its exact pin before bootstrap starts. The script checks the downloaded
+when passed `--install-system`, using root or passwordless sudo. Its `BASE_PACKAGES`
+and per-toolchain `PACKAGES` own that list: every selection installs the base, which
+takes the packages `opam init` needs from
+[the opam client's owner](../vos/opam_client.py), and each selected toolchain adds its
+installation's and gates' own, so the Rocq-only proofs lane installs none of the model
+build's or Verilator's. One package-database query checks all of a selection's
+prerequisites; a fatal query error stops installation. Python must satisfy
+[the manifest](../pyproject.toml), and uv must match its exact pin before bootstrap starts. The script checks the downloaded
 opam executable, imports the [package snapshots](../opam/README.md), and calls the
 existing pinned Verilator installer. It installs Z3 first, only from the wheels whose SHA-256
 values [the solver's requirements](../z3-requirements.txt) record and never from source,

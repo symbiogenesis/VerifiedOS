@@ -12,6 +12,7 @@ import sys
 import time
 import tomllib
 from collections import deque
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import IO
@@ -31,16 +32,42 @@ from vos import (  # noqa: E402  (standalone bootstrap precedes the locked envir
 )
 from vos.cli import rtl  # noqa: E402
 
-# The opam root's own prerequisites come from the client's owner, which states why
-# `opam init` needs each; the rest are the toolchains' build and run dependencies.
-PACKAGES: tuple[str, ...] = tuple(dict.fromkeys((
-    "build-essential", *opam_client.ROOT_PREREQUISITES, "patch",
-    "pkg-config", "m4", "cmake", "ninja-build", "libgmp-dev", "clang", "ccache",
-    "device-tree-compiler", "git", "time", *rtl.VERILATOR_PACKAGES,
-)))
 MARKER = ".verifiedos-guest-root"
 # Installation order; the Sail entry includes its solver.
 TOOLCHAINS: tuple[str, ...] = ("sail", "rocq", "rtl")
+
+# The Ubuntu packages every selection installs. Bootstrap creates the opam root whatever
+# the selection, and the root's own prerequisites come from the client's owner, which
+# states why `opam init` needs each. Every toolchain compiles C or C++, git records the
+# checkout's revision, and GNU time times every gate command the workflows run.
+BASE_PACKAGES: tuple[str, ...] = (
+    "build-essential", *opam_client.ROOT_PREREQUISITES, "git", "time")
+# What an opam switch's compiler and package builds need: GNU patch, m4 for findlib's
+# configure, and the pkg-config and GMP headers the locks' conf-pkg-config and conf-gmp
+# require.
+SWITCH_PACKAGES: tuple[str, ...] = ("patch", "pkg-config", "m4", "libgmp-dev")
+# What each toolchain's installation and its gates add. The Sail entry serves the model
+# build and evidence sweep too: cmake and ninja configure and drive the build, clang
+# compiles it through ccache's launchers, and the device-tree check runs dtc. Verilator's
+# build prerequisites come from its installer's owner.
+PACKAGES: dict[str, tuple[str, ...]] = {
+    "sail": (*SWITCH_PACKAGES, "cmake", "ninja-build", "clang", "ccache",
+             "device-tree-compiler"),
+    "rocq": SWITCH_PACKAGES,
+    "rtl": rtl.VERILATOR_PACKAGES,
+}
+
+
+def selection(names: Sequence[str] | None) -> tuple[str, ...]:
+    """The toolchains `--toolchain` options select, in installation order; all of them
+    where none is named."""
+    return tuple(name for name in TOOLCHAINS if name in (names or TOOLCHAINS))
+
+
+def packages(selected: tuple[str, ...]) -> tuple[str, ...]:
+    """The Ubuntu packages an installation of `selected` needs, each once."""
+    return tuple(dict.fromkeys((*BASE_PACKAGES,
+                                *(package for name in selected for package in PACKAGES[name]))))
 
 
 def prepare_root(root: Path) -> Path:
@@ -116,10 +143,10 @@ def run(argv: tuple[str, ...], log: IO[str], *, declining: bool = False) -> None
     done.check_returncode()
 
 
-def missing_packages() -> list[str]:
+def missing_packages(wanted: tuple[str, ...]) -> list[str]:
     """Read the package database once; exit 1 means some requested names are absent."""
     done = subprocess.run(
-        ("dpkg-query", "-W", "-f=${Package}\t${Status}\n", *PACKAGES),
+        ("dpkg-query", "-W", "-f=${Package}\t${Status}\n", *wanted),
         capture_output=True, text=True, check=False, timeout=60)
     if done.returncode not in (0, 1):
         done.check_returncode()
@@ -130,11 +157,11 @@ def missing_packages() -> list[str]:
             raise ValueError(f"unrecognized dpkg-query output: {line!r}")
         statuses.setdefault(name, []).append(status)
     # Preserve the individual query's refusal of ambiguous multiarch results.
-    return [name for name in PACKAGES if statuses.get(name) != ["install ok installed"]]
+    return [name for name in wanted if statuses.get(name) != ["install ok installed"]]
 
 
-def system_packages(install: bool, log: IO[str]) -> None:
-    missing = missing_packages()
+def system_packages(install: bool, log: IO[str], wanted: tuple[str, ...]) -> None:
+    missing = missing_packages(wanted)
     if not missing:
         return
     if not install:
@@ -146,7 +173,7 @@ def system_packages(install: bool, log: IO[str]) -> None:
     run((*prefix, "apt-get", "update"), log)
     run((*prefix, "env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y",
          "--no-upgrade", "--no-install-recommends", *missing), log)
-    if missing := missing_packages():
+    if missing := missing_packages(wanted):
         raise ValueError("packages still absent after installation: " + " ".join(missing))
 
 
@@ -287,7 +314,7 @@ def bootstrap(args: argparse.Namespace) -> int:
 def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
     """Mutate an owned root only while the caller holds its bootstrap lock."""
     jobs = args.jobs if args.jobs is not None else env.worker_jobs(2048, label="toolchain")
-    selected = tuple(name for name in TOOLCHAINS if name in (args.toolchains or TOOLCHAINS))
+    selected = selection(args.toolchains)
     values = environment(root, jobs)
     paths = (root / "z3" / "bin", root / "bin")
     validate_environment(values, paths)
@@ -319,7 +346,7 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
     print(f"Bootstrap log: {log_path}; jobs: {jobs}", flush=True)
     with log_path.open("w", encoding="utf-8", newline="") as log:
         try:
-            system_packages(args.install_system, log)
+            system_packages(args.install_system, log, packages(selected))
             record["source_revision"] = subprocess.run(
                 ("git", "-C", str(TOOLS.parent), "rev-parse", "HEAD"), capture_output=True,
                 text=True, check=True, timeout=60,
