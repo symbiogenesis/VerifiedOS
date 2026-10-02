@@ -50,8 +50,9 @@ measured, so a smaller runner needs a separate resource measurement.
 
 The gate job is a matrix of lanes, and each lane has its own runner. The `model` lane
 installs Z3, Sail and Verilator, then runs the model evidence sweep. The `rtl` lane
-installs the same toolchains, restoring the model lane's caches and saving none, then
-runs the bundle comparison, RTL lint, width check and crosscheck. The `proofs` lane
+installs the same toolchains, restoring the model lane's download, toolchain and Sail
+memo caches and saving none, then runs the bundle comparison, RTL lint, width check
+and crosscheck. The `proofs` lane
 installs Rocq alone, runs the proof gate and, in a run given a `reading_base`, reads
 the proofs against that base. No lane consumes another's outputs, so a run lasts as
 long as its longest lane. One lane's failure does not cancel another. Every lane must
@@ -234,8 +235,8 @@ toolchain part, context entries or gate modules differ; the summary states the
 selected proof policy.
 On an unchanged cache hit the retained receipt identifies the earlier checked
 bytes and their original timings, not a new kernel execution. Cold runs retain
-periodic installation and full recheck evidence. Model build trees and compiler
-caches are not restored, and every run regenerates its RTL vectors.
+periodic installation and full recheck evidence. Model build trees are not restored,
+and every run regenerates its RTL vectors.
 
 The model and rtl lanes each restore one file into their fresh build tree before
 running Sail, the model lane before its evidence sweep and the rtl lane before its
@@ -265,6 +266,33 @@ path list or the model lane's selection here must change that workflow's restore
 it, or its runners install and emit cold;
 [the guest report tests](../tests/test_guest_report.py) hold the two workflows' keys,
 fallbacks, paths and identity computations equal.
+
+The model lane also restores ccache's directory, the `CCACHE_DIR` bootstrap exports,
+less its scratch `tmp`, before its evidence sweep, so a compile an earlier main run
+already made, the generated model unit's included, returns that run's object instead
+of compiling again. Under the default configuration [vos/env.py](../vos/env.py) keeps,
+with no sloppiness and no base directory, ccache keys each object on the preprocessed
+source, the full command line and the compiler's size and modification time, and every
+runner builds from the same checkout path into the same `~/verifiedos-guest/build`
+tree. The build compiles with the image's preinstalled clang, which bootstrap's
+`--no-upgrade` installation leaves in place, so the key's image version binds the
+compiler itself, and a hit is the object that compile produces, debug information
+included. The key binds the runner OS, architecture, image version and the model lane's
+toolchain recipe identity, so an entry never crosses an image or toolchain recipe, and
+hashes `model/**`; a fallback within that lineage supplies an older model's objects,
+which hit only where a unit's inputs are unchanged. A configure option changed outside
+`model/` costs misses, never a wrong object, until the model next changes. Before the
+sweep the lane zeroes ccache's statistics and notes the time; after it, the lane prints
+them, this run's hits and misses, to the log and evicts every entry older than that
+time, which a hit renews, so only the objects this build used remain. Only main's model
+lane saves the cache, when the key missed, after a passing sweep and a successful trim.
+The statistics and the trim decide no verdict: printing the statistics never fails
+the step, and a failure to zero them, note the time or trim skips the save alone. The
+monthly and manual cold modes look the key up without restoring it, so their builds
+compile every unit. The rtl lane restores none of it, because every compile it runs
+builds other sources, Verilator's generated C++ and the vector generator's C, under
+paths the model build never uses. The guest report tests hold these steps' order,
+conditions, key and paths.
 
 Each command runs under GNU time, whose figures in its retained log end with
 `maxrss_kb`: the peak resident memory of the command's largest single process. The
@@ -344,7 +372,8 @@ comparison, while changed library digests and model contents still fail it.
 Download and installed-toolchain caches accelerate installation, and the Sail memo
 accelerates emission; native proof reuse requires the proof gate's validation,
 never a cache-action verdict. A cold run must work without any cache. Built model
-outputs remain uncached.
+outputs remain uncached but for the compiler cache's objects, which ccache returns
+only for an identical compile.
 
 ## Acceptance and handoff
 
