@@ -2636,7 +2636,8 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as err:
         parser.error(str(err))
     if args.shard is not None:
-        print(f"shard {args.shard}: {len(selected)} of {len(CASES)} cases; every shard must pass")
+        print(f"shard {args.shard}: {len(selected)} of {len(CASES)} cases; "
+              "every shard and --repair-only must pass")
     if args.repair_only:
         print(f"repair path only: 0 of {len(CASES)} cases")
     # Phase and case seconds for the gate's summary, never printed; claimed before any
@@ -2694,7 +2695,7 @@ def main(argv: list[str] | None = None) -> int:
 
             standing = [setup.submit(later, i) for i in range(1, jobs + 1)]
             code = _run(selected, made[0], boxes, standing[-1], jobs, repairable, clock,
-                        repair_only=args.repair_only)
+                        sharded=args.shard is not None, repair_only=args.repair_only)
             for future in standing:
                 future.result()   # a sandbox that failed to stand up is loud, not lost
         return code
@@ -2746,7 +2747,8 @@ def _verdict(case: Case, box: Sandbox) -> Verdict:
 
 def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
          repair_ready: Future[Sandbox], jobs: int, repairable: bool | None = None,
-         clock: timings.Clock | None = None, *, repair_only: bool = False) -> int:
+         clock: timings.Clock | None = None, *, sharded: bool = False,
+         repair_only: bool = False) -> int:
     if repair_only and (selected or repairable is False):
         raise ValueError("--repair-only runs the repair path and no case")
     measured = clock or timings.Clock()
@@ -2830,6 +2832,7 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
             print(f"{beside} further finding(s) beside the cases, above.")
         return 1
     held = ("the repair path holds" if repairable
+            else "the repair path is left to --repair-only" if sharded
             else "the repair path had nothing to prove")
     if repair_only:
         print(f"{held} and the registry is covered; --repair-only selects no case, so this "

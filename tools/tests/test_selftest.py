@@ -22,7 +22,7 @@ from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus
 from vos.checks import Context
 from vos.cli import selftest
-from vos.seeded import KILLED, SURVIVED, UNSEEDED
+from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict
 from vos.sharding import Shard
 
 # Each case writes only under the sandbox tree it creates, template caches included,
@@ -79,6 +79,9 @@ class _Baseline:
         ensure(not fix and through is None, "the baseline is one whole read-only run")
         return self.code, ["FAIL K-01: broken before any mutant"] if self.code else [], []
 
+    def reset(self) -> None:
+        pass
+
 
 def _repair_only_runs_beside_the_baseline() -> None:
     # --repair-only reports the repair path and the registry, not an empty population
@@ -123,6 +126,27 @@ def _repair_only_runs_beside_the_baseline() -> None:
         else:
             raise AssertionError("--repair-only must run the repair path and no case, "
                                  f"not {len(selected)} case(s) with repairable {repairable}")
+
+
+def _shard_leaves_the_repair_path_to_repair_only() -> None:
+    # A shard's closing line says whose the repair path is; a --rule run whose rule
+    # carries no --fix branch says the path had nothing to prove.
+    def killed(case: selftest.Case, _box: selftest.Sandbox) -> Verdict:
+        return Verdict(selftest.Seeding(case[0], case[1]), KILLED,
+                       f"the checker reported {case[0]}")
+
+    for sharded, held in ((True, "the repair path is left to --repair-only"),
+                          (False, "the repair path had nothing to prove")):
+        printed = io.StringIO()
+        boxes: Queue[selftest.Sandbox] = Queue()
+        with patch.object(selftest, "_verdict", killed), \
+                patch.object(selftest, "_registry_coverage", return_value=[]), \
+                contextlib.redirect_stdout(printed):
+            result = selftest._run([selftest.CASES[0]], cast("selftest.Sandbox", _Baseline(0)),
+                                   boxes, Future(), 1, False, sharded=sharded)
+        out = printed.getvalue()
+        ensure(result == 0 and f"killed its mutant, {held}, and the registry" in out,
+               f"sharded {sharded} must close on {held!r}, got {result}: {out}")
 
 
 def _git(root: Path, *args: str) -> bytes:
@@ -439,6 +463,8 @@ def cases() -> list[Case]:
     return [
         Case("shards-cover-cases-and-repair-once", _shards_cover_cases_and_repair_once),
         Case("repair-only-runs-beside-the-baseline", _repair_only_runs_beside_the_baseline),
+        Case("shard-leaves-the-repair-path-to-repair-only",
+             _shard_leaves_the_repair_path_to_repair_only),
         Case("checker-stops-after-the-rules-group", _checker_stops_after_the_rules_group),
         Case("case-verdict-reruns-only-survivors", _case_verdict_reruns_only_survivors),
         Case("refresh-index-without-changing-snapshot", _refresh_index_without_changing_snapshot),
