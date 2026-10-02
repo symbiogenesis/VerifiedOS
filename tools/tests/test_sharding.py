@@ -6,6 +6,11 @@ import argparse
 from tests.harness import Case, ensure
 from vos import sharding
 
+# The cases are pure functions of their literals, so a sharded run spreads them over
+# every shard, which also makes this module the runner's live case-sharding control
+# (test_runner).
+INDEPENDENT_CASES = True
+
 
 def _complete_disjoint_partitions() -> None:
     for size in (1, 7, 16, 31):
@@ -23,6 +28,25 @@ def _complete_disjoint_partitions() -> None:
     repeated = ["K-01"] * 9
     ensure(sum(len(sharding.Shard(i, 4).select(repeated)) for i in range(1, 5)) == 9,
            "duplicate-valued cases disappeared")
+
+
+def _shares_of_a_population_every_shard_visits() -> None:
+    for size in (0, 1, 5, 16):
+        items = list(range(size))
+        for count in range(1, 9):
+            parts = [sharding.Shard(index, count).share(items) for index in range(1, count + 1)]
+            ensure(sorted(item for part in parts for item in part) == items,
+                   "shares omitted or duplicated an item")
+            ensure(all(item % count == index - 1
+                       for index, part in enumerate(parts, 1) for item in part)
+                   and all(part == sorted(part) for part in parts),
+                   "a share is the positions j with j % TOTAL == INDEX - 1, in order")
+            ensure(max(map(len, parts)) - min(map(len, parts)) <= 1,
+                   "share sizes differ by more than one")
+            ensure(count > size or parts == [sharding.Shard(index, count).select(items)
+                                             for index in range(1, count + 1)],
+                   "a share is the selection wherever a selection is defined")
+            ensure(count <= size or not parts[-1], "a shard past the population shares nothing")
 
 
 def _invalid_partitions() -> None:
@@ -53,5 +77,7 @@ def _invalid_partitions() -> None:
 def cases() -> list[Case]:
     return [
         Case("complete-disjoint-partitions", _complete_disjoint_partitions),
+        Case("shares-of-a-population-every-shard-visits",
+             _shares_of_a_population_every_shard_visits),
         Case("invalid-partitions", _invalid_partitions),
     ]

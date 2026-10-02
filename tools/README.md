@@ -67,7 +67,10 @@ New commits cancel superseded runs of the same pull request; each push to `main`
 keeps its own run. Ubuntu runs four independent shards and Windows eight, because a
 shard's members are CPU-bound and run the same work more slowly on the Windows
 runner. Mutation cases and sorted behavioral test modules are partitioned by
-position within each OS, with every item assigned once.
+position within each OS, with every item assigned once. A test module that declares
+`INDEPENDENT_CASES = True` keeps its position, so no other module changes shard, but
+every shard runs it with the cases at its own stride through the module's case list,
+so each of its cases still runs once.
 Every mutation runs the checker in a fresh process and private sandbox, through the
 group that decides its rule (`check.py --through`); a survivor runs the whole checker.
 Each shard checks its pristine baseline and registry coverage; shard 1 also runs

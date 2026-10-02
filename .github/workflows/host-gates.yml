@@ -9,11 +9,12 @@
 # dispatched run's title follows the workflow name with the title input, which
 # fanout fills with the commit subject, or else with the checked-out revision.
 #
-# Shards partition mutation cases and behavioral test modules: four on Ubuntu and
-# eight on Windows, whose CPU-bound shards run the same work more slowly. Shard 1
-# also runs the checker, typecheck and mutation repair path, Ubuntu's shard 1
-# analyzes the workflows with zizmor and actionlint, and Ubuntu's last shard runs the
-# curated model's pre-commit hooks. All shards must pass.
+# Shards partition mutation cases and behavioral test modules, and the cases of each
+# test module declaring them independent: four on Ubuntu and eight on Windows, whose
+# CPU-bound shards run the same work more slowly. Shard 1 also runs the checker,
+# typecheck and mutation repair path, Ubuntu's shard 1 analyzes the workflows with
+# zizmor and actionlint, and Ubuntu's last shard runs the curated model's pre-commit
+# hooks. All shards must pass.
 # uv installs locked dependencies into a checkout-local environment;
 # only downloads are cached. K-67 checks dependency pins; K-75 checks the Python floor.
 #
