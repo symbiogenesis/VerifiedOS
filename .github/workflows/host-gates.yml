@@ -20,9 +20,9 @@
 # uv installs locked dependencies into a checkout-local environment;
 # only downloads are cached. K-67 checks dependency pins; K-75 checks the Python floor.
 #
-# Per-member JSON in runner.temp supplies failure annotations and the job summary.
-# Reporting is diagnostic; the gate and workflow-analysis steps own the job's
-# verdict.
+# Per-member JSON in runner.temp supplies failure annotations, the job summary and a
+# collapsed log group listing every measured unit. Reporting is diagnostic; the gate
+# and workflow-analysis steps own the job's verdict.
 
 name: host-gates
 # A blank run-name selects GitHub's own title.
