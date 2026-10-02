@@ -286,10 +286,11 @@ sweep the lane zeroes ccache's statistics and notes the time; after it, the lane
 them, this run's hits and misses, to the log and evicts every entry older than that
 time, which a hit renews, so only the objects this build used remain. Only main's model
 lane saves the cache, when the key missed, after a passing sweep and a successful trim.
-The statistics and the trim decide no verdict: a failure in either skips the save
-alone. The monthly and manual cold modes look the key up without restoring it, so their
-builds compile every unit. The rtl lane restores none of it, because no compile it runs
-goes through the model build's launchers and paths. The guest report tests hold these
+The statistics and the trim decide no verdict: printing the statistics never fails
+the step, and a failure to zero them, note the time or trim skips the save alone. The
+monthly and manual cold modes look the key up without restoring it, so their builds
+compile every unit. The rtl lane restores none of it, because no compile it runs goes
+through the model build's launchers and paths. The guest report tests hold these
 steps' order, conditions, key and paths.
 
 Each command runs under GNU time, whose figures in its retained log end with
