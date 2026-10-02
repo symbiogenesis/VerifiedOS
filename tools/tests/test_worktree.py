@@ -16,9 +16,9 @@ from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from vos import env
 from vos.cli import worktree
 
-# Each case builds its own sandbox repositories and temporary directories, and patches
-# only inside a `with`, so the cases share no state, and a sharded run spreads them over
-# every shard (vos/cli/test.py).
+# Each case writes only under the sandbox repositories and temporary directories it
+# creates, and patches only inside a `with`, so the cases share no state, and a sharded
+# run spreads them over every shard (vos/cli/test.py).
 INDEPENDENT_CASES = True
 
 FILES = {".gitignore": "/.worktrees/\n", "README.md": "fixture\n"}
