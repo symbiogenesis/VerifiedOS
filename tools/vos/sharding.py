@@ -25,6 +25,11 @@ class Shard:
             raise ValueError(f"{self.total} shards exceed the {len(items)} available items")
         return items[self.index - 1::self.total]
 
+    def share[T](self, items: list[T]) -> list[T]:
+        """The same stride over a population every shard visits, where a shard's share
+        may be empty: the items at positions j with j % total == index - 1."""
+        return items[self.index - 1::self.total]
+
 
 def parse(value: str) -> Shard:
     """An argparse type, with the same validation as programmatic callers."""

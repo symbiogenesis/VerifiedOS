@@ -18,6 +18,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
+from vos import timings
 from vos.cli import gate
 from vos.commands import BY_NAME
 from vos.report import Reporter
@@ -73,7 +74,7 @@ def _sharded_plan_and_failures() -> None:
         ensure(all(m.args == ("--shard", str(shard)) for m in wave
                    if m.tool in ("selftest", "test")), "both suites need the same shard")
 
-        def launch(root: Path, member: gate.Launch) -> gate.Result:
+        def launch(root: Path, member: gate.Launch, record: Path | None = None) -> gate.Result:
             return gate.Result(member, 1 if member.tool == "test" else 0, [])
 
         with tempfile.TemporaryDirectory(prefix="vos-shard-") as td:
@@ -97,8 +98,9 @@ def _members_run_in_parallel() -> None:
     barrier = threading.Barrier(len(gate.MEMBERS) + 1)
     calls: list[str] = []
 
-    def launch(root: Path, member: gate.Launch) -> gate.Result:
+    def launch(root: Path, member: gate.Launch, record: Path | None = None) -> gate.Result:
         ensure(root == _ROOT, "a reader used a different checkout")
+        ensure(record is None, "a run asked for no summary names no timings file")
         calls.append(member.name)
         barrier.wait(timeout=10)
         return gate.Result(member, 0, [f"completed {member.name}"])
@@ -121,7 +123,8 @@ def _repair_verdict_comes_from_the_fresh_wave() -> None:
             state.write_text("old", encoding="utf-8")
             calls: list[str] = []
 
-            def launch(found: Path, member: gate.Launch) -> gate.Result:
+            def launch(found: Path, member: gate.Launch,
+                       record: Path | None = None) -> gate.Result:
                 ensure(found == root, "repair used the wrong root")
                 calls.append(member.name)
                 if member.args == ("--fix",):
@@ -151,7 +154,7 @@ def _repair_verdict_comes_from_the_fresh_wave() -> None:
 
 def _crashed_repair_stops_before_readers() -> None:
     def scenario(code: int) -> None:
-        def launch(root: Path, member: gate.Launch) -> gate.Result:
+        def launch(root: Path, member: gate.Launch, record: Path | None = None) -> gate.Result:
             ensure(root == _ROOT and member.args == ("--fix",),
                    "a validation reader ran after a repair without a verdict")
             return gate.Result(member, code, ["repair failed to execute"])
@@ -236,6 +239,63 @@ def _launch_times_success_findings_and_missing_verdicts() -> None:
         ensure(rep.out[1] == "elapsed: 2.75s", "the log must carry the measured duration")
 
 
+def _launch_hands_a_member_its_timings_file() -> None:
+    """A member is named the file the gate asked for, or none, never one this process
+    inherited, and the parts it wrote there come back with its result."""
+    member = next(m for m in gate.MEMBERS if m.tool == "selftest")
+    units: list[timings.Unit] = [{"kind": "phase", "name": "baseline", "seconds": 1.5}]
+    named: list[str | None] = []
+
+    def run(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        environment = kwargs.get("env")
+        if not isinstance(environment, dict):
+            raise TypeError("a member is launched with an environment of its own")
+        record = environment.get(timings.ENV)
+        named.append(record)
+        if record:
+            Path(record).write_text(json.dumps(units), encoding="utf-8")
+        return subprocess.CompletedProcess(argv, 0, "ok\n", "")
+
+    with tempfile.TemporaryDirectory(prefix="vos-gate-units-") as td:
+        outer, record = Path(td) / "outer.json", Path(td) / "member.json"
+        with (patch.object(gate.subprocess, "run", side_effect=run),
+              patch.dict(gate.os.environ, {timings.ENV: str(outer)})):
+            given = gate._launch(_ROOT, member, record)
+            bare = gate._launch(_ROOT, member)
+        ensure(named == [str(record), None] and not outer.exists(),
+               f"a member is named the gate's file or none, never an inherited one: {named!r}")
+    ensure(given.code == 0 and given.out == ["ok"] and given.units == units,
+           f"the member's parts return with its unchanged verdict: {given!r}")
+    ensure(bare.units is None, f"a member given no file records no parts: {bare!r}")
+
+
+def _timings_round_trip_and_never_fail_the_run() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-timings-") as td:
+        path = Path(td) / "units.json"
+        with patch.dict(timings.os.environ, {timings.ENV: str(path)}):
+            ensure(timings.claim() == path and timings.ENV not in timings.os.environ,
+                   "claiming the file takes it out of the environment children inherit")
+            ensure(timings.claim() is None, "a claimed file is not claimed twice")
+        clock = timings.Clock()
+        clock.add("phase", "teardown", 0.25)
+        with clock.timing("case", "K-02: b"):
+            pass
+        clock.add("case", "K-01: a", 2.0)
+        units = clock.units()
+        ensure([(unit["kind"], unit["name"]) for unit in units]
+               == [("case", "K-01: a"), ("case", "K-02: b"), ("phase", "teardown")],
+               f"units are listed by kind and name, not by finishing order: {units!r}")
+        timings.write(path, units)
+        ensure(timings.read(path) == units, "written units must read back unchanged")
+        timings.write(None, units)
+        missing = Path(td) / "absent" / "units.json"
+        timings.write(missing, units)
+        ensure(timings.read(missing) is None, "an unwritable file records nothing, quietly")
+        for text in ("not json", "{}", "[1]"):
+            path.write_text(text, encoding="utf-8")
+            ensure(timings.read(path) is None, f"{text!r} is no list of units")
+
+
 def _verdict_names_the_member_that_reported() -> None:
     results = [gate.Result(gate.MEMBERS[0], 0, ["ok whatever: fine"]),
                gate.Result(gate.MEMBERS[1], 1, ["FAIL K-99: 1 thing"]),
@@ -259,15 +319,26 @@ def _summary_names_every_member_and_its_code() -> None:
     tool rather than a tree with something wrong in it.
     """
     codes = {"check": 0, "selftest": 1, "typecheck": gate.NO_VERDICT, "test": 0}
+    measured: list[timings.Unit] = [{"kind": "module", "name": "test_a", "cases": 2,
+                                     "seconds": 0.5}]
+    records: list[Path | None] = []
 
-    def launch(root: Path, member: gate.Launch) -> gate.Result:
-        return gate.Result(member, codes[member.tool], [], 1.25)
+    def launch(root: Path, member: gate.Launch, record: Path | None = None) -> gate.Result:
+        records.append(record)
+        return gate.Result(member, codes[member.tool], [], 1.25,
+                           measured if member.tool == "test" else None)
 
     with tempfile.TemporaryDirectory(prefix="vos-gate-summary-") as td:
         path = Path(td) / "nested" / "verdict.json"
         with patch.object(gate, "_launch", launch):
             rep = gate.run(_ROOT, tests=True, summary=path)
         written = json.loads(path.read_text(encoding="utf-8"))
+
+    named = [record for record in records if record is not None]
+    ensure(len(named) == len(records) == len(gate.MEMBERS) + 1
+           and len({record.parent for record in named}) == 1 and len(set(named)) == len(named),
+           f"each member is named its own timings file in one directory, got {records!r}")
+    ensure(not named[0].parent.exists(), "the timings directory leaves with the run")
 
     ensure(written["green"] is False and written["stopped"] == "",
            f"a wave that ran and reported is neither green nor stopped, got {written!r}")
@@ -280,8 +351,10 @@ def _summary_names_every_member_and_its_code() -> None:
     selftest = next(m for m in gate.MEMBERS if m.tool == "selftest")
     ensure(by_name["selftest"] == {"name": "selftest", "decides": selftest.decides,
                                    "code": 1, "elapsed_seconds": 1.25,
-                                   "reached_verdict": True, "clean": False},
+                                   "reached_verdict": True, "clean": False, "units": None},
            f"a member that reported findings reached a verdict, got {by_name['selftest']!r}")
+    ensure(by_name["test"]["units"] == measured,
+           f"a member's measured parts reach its record, got {by_name['test']!r}")
     ensure(by_name["typecheck"]["reached_verdict"] is False
            and by_name["typecheck"]["code"] == gate.NO_VERDICT,
            f"a member that never decided says so, got {by_name['typecheck']!r}")
@@ -303,7 +376,7 @@ def _summary_names_a_wave_that_never_ran() -> None:
     member to name and the reason is the whole answer; written as an empty member
     list alone it would be indistinguishable from a wave nobody asked for.
     """
-    def launch(root: Path, member: gate.Launch) -> gate.Result:
+    def launch(root: Path, member: gate.Launch, record: Path | None = None) -> gate.Result:
         return gate.Result(member, 2, ["repair failed to execute"])
 
     with tempfile.TemporaryDirectory(prefix="vos-gate-stopped-") as td:
@@ -321,7 +394,7 @@ def _summary_names_a_wave_that_never_ran() -> None:
 def _unwritable_summary_is_a_finding() -> None:
     """Asked to say what it decided and unable to, the gate says that instead of
     passing over it. Silence here is the exact defect the flag exists to end."""
-    def launch(root: Path, member: gate.Launch) -> gate.Result:
+    def launch(root: Path, member: gate.Launch, record: Path | None = None) -> gate.Result:
         return gate.Result(member, 0, [])
 
     with tempfile.TemporaryDirectory(prefix="vos-gate-unwritable-") as td:
@@ -370,6 +443,9 @@ def cases() -> list[Case]:
              _launch_names_a_member_that_gave_no_verdict, lane="host"),
         Case("launch-times-success-findings-and-missing-verdicts",
              _launch_times_success_findings_and_missing_verdicts),
+        Case("launch-hands-a-member-its-timings-file", _launch_hands_a_member_its_timings_file),
+        Case("timings-round-trip-and-never-fail-the-run",
+             _timings_round_trip_and_never_fail_the_run),
         Case("verdict-names-the-member-that-reported",
              _verdict_names_the_member_that_reported),
         Case("summary-names-every-member-and-its-code",

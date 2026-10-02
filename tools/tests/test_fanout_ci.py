@@ -1199,6 +1199,56 @@ def _workflow_checkout_validation() -> None:
                        f"{done.stderr}")
 
 
+# The shard checkout's depth where it is not full history: one commit for push and pull
+# request runs and full history for a dispatch, whose check runs `git merge-base
+# --is-ancestor` against main. The dispatch arm is the string '0', because a bare 0 is
+# falsy in an Actions expression and `&& 0 || 1` would give a dispatch depth 1 too.
+_DISPATCH_DEPTH = re.compile(
+    r"\$\{\{ github\.event_name == 'workflow_dispatch' && '0' \|\| '[1-9][0-9]*' \}\}")
+
+
+def _checkout_depth_faults(contents: str) -> list[str]:
+    """Why a dispatched Host CI shard could check out without the history its ancestry
+    check reads: the shard job takes one checkout, stating one `fetch-depth`, which is
+    either 0 or `_DISPATCH_DEPTH`'s conditional; an absent key is the action's depth 1."""
+    shards = contents.split("\n  host-gates-shard:\n", 1)[1].split("\n  host-gates:\n", 1)[0]
+    checkouts = [step for step in _step_texts(shards)
+                 if any(value.startswith("actions/checkout@")
+                        for value in _step_values(step, "uses"))]
+    if len(checkouts) != 1:
+        return [f"the shard job takes {len(checkouts)} checkout(s), not one"]
+    depths = [line.split(":", 1)[1].strip() for line in _step_block(checkouts[0], "with")
+              if line.lstrip().startswith("fetch-depth:")]
+    if len(depths) != 1:
+        return [f"the shard checkout states {len(depths)} fetch-depth key(s), not one"]
+    if depths[0] != "0" and _DISPATCH_DEPTH.fullmatch(depths[0]) is None:
+        return [f"fetch-depth {depths[0]!r} can check out a dispatch without the history "
+                "its ancestry check reads"]
+    return []
+
+
+def _workflow_dispatch_checkout_keeps_history() -> None:
+    contents = (ROOT / ".github/workflows" / ci.HOST).read_text(encoding="utf-8")
+    found = _checkout_depth_faults(contents)
+    ensure(not found, f"{ci.HOST} checks out a dispatch with main's history: {found!r}")
+    depth = re.search(r"(?m)^          fetch-depth: .*\n", contents)
+    ensure(depth is not None, f"{ci.HOST}'s shard checkout states its depth")
+    line = depth[0] if depth else ""
+    for workflow, fragment in (
+            (contents.replace(line, "          fetch-depth: ${{ github.event_name == "
+                                    "'workflow_dispatch' && 0 || 1 }}\n"), "can check out"),
+            (contents.replace(line, "          fetch-depth: 1\n"), "can check out"),
+            (contents.replace(line, ""), "states 0 fetch-depth key(s)"),
+            (contents.replace(line, line + line), "states 2 fetch-depth key(s)")):
+        ensure(workflow != contents, f"the fixture for {fragment!r} changed nothing")
+        found = _checkout_depth_faults(workflow)
+        ensure(any(fragment in fault for fault in found),
+               "a dispatch checked out without main's history must be refused "
+               f"({fragment!r}): {found!r}")
+    found = _checkout_depth_faults(contents.replace(line, "          fetch-depth: 0\n"))
+    ensure(not found, f"full history on every run is accepted: {found!r}")
+
+
 # The step that checks a dispatched revision, and the conjunct each later step that runs
 # checked-out code after a failure states, in every job of each workflow that checks one:
 # the two fanout dispatches and the boot signature target campaign's.
@@ -1428,6 +1478,8 @@ def cases() -> list[Case]:
             Case("workflow-gate-on-every-runner", _workflow_gate_on_every_runner),
             Case("workflow-runner-labels-any-style", _workflow_runner_labels_any_style),
             Case("workflow-checkout-validation", _workflow_checkout_validation),
+            Case("workflow-dispatch-checkout-keeps-history",
+                 _workflow_dispatch_checkout_keeps_history),
             Case("workflow-instrument-guards", _workflow_instrument_guards),
             Case("workflow-refused-dispatch", _workflow_refused_dispatch),
             Case("workflow-reading-base-through-environment",

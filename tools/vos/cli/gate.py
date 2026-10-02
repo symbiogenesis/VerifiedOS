@@ -17,20 +17,24 @@ and is what a person wants; a caller that has only the process's exit code has f
 members collapsed into one number, which is the state a CI run reaches whoever reads it
 without opening the log. The file is written outside the checkout, at the path the
 caller names, and the reader decides what to render from it rather than parsing what
-was printed.
+was printed. Each record also carries the member's `units`, the parts it measured
+through [vos/timings.py](../timings.py), or null where it measured none.
 """
 
 import argparse
 import json
+import os
 import subprocess
 import sys
+import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 
 from vos import corpus as corpus_mod
-from vos import sharding
+from vos import sharding, timings
 from vos.report import Reporter
 from vos.sharding import Shard
 
@@ -63,12 +67,14 @@ class Launch:
 
 @dataclass
 class Result:
-    """One member's output, exit code and elapsed wall time, including launch."""
+    """One member's output, exit code and elapsed wall time, including launch, and the
+    parts it measured, where the gate asked it to record them and it did."""
 
     launch: Launch
     code: int
     out: list[str]
     elapsed_seconds: float = 0.0
+    units: list[timings.Unit] | None = None
 
 
 MEMBERS: tuple[Launch, ...] = (
@@ -102,7 +108,7 @@ def _plan(fix: bool, tests: bool, shard: Shard | None = None) -> list[list[Launc
     return [repair, members]
 
 
-def _launch(root: Path, member: Launch) -> Result:
+def _launch(root: Path, member: Launch, record: Path | None = None) -> Result:
     """One member, in its own process, as what it printed and the code it exited.
 
     A subprocess rather than an import, and for reasons rather than for symmetry.
@@ -114,12 +120,19 @@ def _launch(root: Path, member: Launch) -> Result:
     Neither of the two ways a run can fail short of a verdict is allowed to become
     a traceback here: a member that hangs and a member that cannot be executed are
     both findings, on the convention typecheck.py's own runner keeps.
+
+    `record` is the file the member is asked to write its measured parts to, named in
+    its environment alone; without one, the member is given no such file, whatever
+    this process's own environment names.
     """
     argv = [sys.executable, str(root / "tools" / "run.py"), member.tool, *member.args]
+    environment = {key: value for key, value in os.environ.items() if key != timings.ENV}
+    if record is not None:
+        environment[timings.ENV] = str(record)
     started = time.perf_counter()
     try:
-        done = subprocess.run(argv, capture_output=True, encoding="utf-8",
-                              errors="replace", cwd=root, check=False, timeout=TIMEOUT)
+        done = subprocess.run(argv, capture_output=True, encoding="utf-8", errors="replace",
+                              cwd=root, check=False, timeout=TIMEOUT, env=environment)
     except subprocess.TimeoutExpired:
         return Result(member, NO_VERDICT,
                       [f"{member.name} gave no verdict within {TIMEOUT}s"],
@@ -131,7 +144,8 @@ def _launch(root: Path, member: Launch) -> Result:
     # anything on stderr is what it said while dying and belongs under its heading
     # rather than lost.
     return Result(member, done.returncode, (done.stdout + done.stderr).splitlines(),
-                  time.perf_counter() - started)
+                  time.perf_counter() - started,
+                  timings.read(record) if record is not None else None)
 
 
 def _show(rep: Reporter, result: Result) -> None:
@@ -178,7 +192,8 @@ def _verdict_data(results: list[Result], stopped: str = "") -> dict[str, object]
                      "code": r.code,
                      "elapsed_seconds": r.elapsed_seconds,
                      "reached_verdict": r.code in (0, 1),
-                     "clean": r.code == 0}
+                     "clean": r.code == 0,
+                     "units": r.units}
                     for r in results],
     }
 
@@ -224,8 +239,16 @@ def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False,
         rep.line("repair pass complete; the fresh validation below decides the repaired tree")
 
     wave = plan[-1]
-    with ThreadPoolExecutor(max_workers=len(wave)) as pool:
-        results = list(pool.map(lambda member: _launch(root, member), wave))
+    with ExitStack() as stack:
+        # One file per member for the parts it measures, read back as it exits; only a
+        # run asked for its summary has anywhere to put them.
+        scratch = None if summary is None else Path(stack.enter_context(
+            tempfile.TemporaryDirectory(prefix="vos-gate-", ignore_cleanup_errors=True)))
+        records = [None if scratch is None else scratch / f"{n}.json"
+                   for n in range(len(wave))]
+        with ThreadPoolExecutor(max_workers=len(wave)) as pool:
+            results = list(pool.map(lambda member, record: _launch(root, member, record),
+                                    wave, records))
     if summary is not None:
         data = _verdict_data(results)
         if shard is not None:

@@ -21,6 +21,11 @@ from vos.corpus import find_root
 # check accepts.
 _COMMIT = re.compile(r"[0-9a-f]{40}")
 
+# Seconds between Host CI polls under --wait-host. A poll is two or three GitHub GETs
+# and a status read of the integration checkout, so even the longest bound stays far
+# inside the API's hourly request limit, and a completed run is seen within seconds.
+_HOST_POLL_SECONDS = 5
+
 
 class FanoutError(ValueError):
     """Batch completion cannot continue without an explicit correction."""
@@ -352,7 +357,7 @@ def finish(root: Path, state: Batch, path: Path, args: argparse.Namespace) -> bo
               f"{host['url'] if host else 'awaiting dispatch'}", flush=True)
         if time.monotonic() >= deadline:
             return False
-        time.sleep(min(15, max(0, deadline - time.monotonic())))
+        time.sleep(min(_HOST_POLL_SECONDS, max(0, deadline - time.monotonic())))
     state["status"] = "retiring"
     _save(path, state)
     for raw in state["lanes"]:

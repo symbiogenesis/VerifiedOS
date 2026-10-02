@@ -24,6 +24,10 @@ from vos.checks import Context, bindings, compounds, counts, estimates, generate
 from vos.register import read_artifacts, read_register
 from vos.report import Reporter
 
+# Each case builds its own sandbox trees and patches only inside a `with`, so the cases
+# share no state, and a sharded run spreads them over every shard (vos/cli/test.py).
+INDEPENDENT_CASES = True
+
 # enough register for read_register to parse; the groups under test never read it
 _REGISTER_MIN = "# Register\n\n## §1\n\n**R-01-001** MUST x.\n· Trace: t\n"
 

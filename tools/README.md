@@ -58,12 +58,19 @@ one finding of its own, which is the only way it reaches the exit code.
 Each member's elapsed wall time, including process launch, appears in its log
 section, JSON record (`elapsed_seconds`) and CI summary. Members run concurrently,
 so these durations overlap and must not be added to obtain the wave's duration.
+The JSON record's `units` add what a member measured inside itself, through
+[vos/timings.py](vos/timings.py): each behavioral test module's cases and seconds,
+and the selftest's phases and per-case seconds. Units overlap the same way, never
+enter the printed report, and the CI summary names the slowest of them.
 
 New commits cancel superseded runs of the same pull request; each push to `main`
 keeps its own run. Ubuntu runs four independent shards and Windows eight, because a
 shard's members are CPU-bound and run the same work more slowly on the Windows
 runner. Mutation cases and sorted behavioral test modules are partitioned by
-position within each OS, with every item assigned once.
+position within each OS, with every item assigned once. A test module that declares
+`INDEPENDENT_CASES = True` keeps its position, so no other module changes shard, but
+every shard runs it with the cases at its own stride through the module's case list,
+so each of its cases still runs once.
 Every mutation runs the checker in a fresh process and private sandbox, through the
 group that decides its rule (`check.py --through`); a survivor runs the whole checker.
 Each shard checks its pristine baseline and registry coverage; shard 1 also runs

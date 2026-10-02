@@ -9,11 +9,12 @@
 # dispatched run's title follows the workflow name with the title input, which
 # fanout fills with the commit subject, or else with the checked-out revision.
 #
-# Shards partition mutation cases and behavioral test modules: four on Ubuntu and
-# eight on Windows, whose CPU-bound shards run the same work more slowly. Shard 1
-# also runs the checker, typecheck and mutation repair path, Ubuntu's shard 1
-# analyzes the workflows with zizmor and actionlint, and Ubuntu's last shard runs the
-# curated model's pre-commit hooks. All shards must pass.
+# Shards partition mutation cases and behavioral test modules, and the cases of each
+# test module declaring them independent: four on Ubuntu and eight on Windows, whose
+# CPU-bound shards run the same work more slowly. Shard 1 also runs the checker,
+# typecheck and mutation repair path, Ubuntu's shard 1 analyzes the workflows with
+# zizmor and actionlint, and Ubuntu's last shard runs the curated model's pre-commit
+# hooks. All shards must pass.
 # uv installs locked dependencies into a checkout-local environment;
 # only downloads are cached. K-67 checks dependency pins; K-75 checks the Python floor.
 #
@@ -87,7 +88,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.revision || github.sha }}
-          fetch-depth: 0
+          # A dispatch's check below reads main's history; push and pull request runs
+          # read only the checked-out commit, so they fetch it alone. The dispatch arm
+          # is the string '0' because a bare 0 is falsy and would select the other arm.
+          fetch-depth: ${{ github.event_name == 'workflow_dispatch' && '0' || '1' }}
           persist-credentials: false
           # The checker reads gitlinks from the index; submodule sources are unnecessary.
           submodules: false
@@ -231,10 +235,21 @@ jobs:
                   if report["members"]:
                       annotate("notice", "Timings: " + "; ".join(
                           f"{m['name']}: {m['elapsed_seconds']:.2f}s" for m in report["members"]))
+                  # The parts members measured inside themselves: test modules, selftest
+                  # phases and cases. They overlap like members; the slowest show where
+                  # a shard's time went.
+                  slowest = sorted(((u["seconds"], u["kind"], u["name"])
+                                    for m in report["members"] for u in m.get("units") or []),
+                                   reverse=True)[:10]
+                  units = "; ".join(f"{kind} {name}: {seconds:.2f}s"
+                                    for seconds, kind, name in slowest)
+                  if units:
+                      annotate("notice", "Slowest units: " + units)
                   shard = report.get("shard", {})
                   label = f"shard {shard.get('index', '?')}/{shard.get('total', '?')}"
                   summary.write(f"### Host gates: {label}\n\nAll shards must pass.\n\n"
-                                + "\n".join(rows) + "\n")
+                                + "\n".join(rows) + "\n"
+                                + (f"\nSlowest units: {units}\n" if units else ""))
           except Exception as err:
               # Reporting is diagnostic; the gate, workflow-analysis and model-hook
               # steps own the job's verdict.
@@ -243,12 +258,14 @@ jobs:
   # fanout_ci.HOST_JOBS in tools/vos/fanout_ci.py owns these job names; renaming one
   # changes the evidence fanout accepts. No repository ruleset requires them. A failed,
   # skipped or cancelled shard cannot leave a successful aggregate, even if its peers
-  # completed successfully.
+  # completed successfully. The aggregates check out nothing and only read the shards'
+  # result, so they take the generally available ubuntu-24.04 image rather than the
+  # shards' preview image, whose queue has held them over a minute past the last shard.
   host-gates:
     name: host-gates (${{ matrix.platform }})
     needs: host-gates-shard
     if: ${{ always() }}
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     strategy:
       matrix:
