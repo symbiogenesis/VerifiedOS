@@ -60,6 +60,11 @@ from tests.harness import Case, ensure
 from vos.cli import typecheck
 from vos.report import Reporter
 
+# Each case writes its fixtures only under directories it creates and patches only
+# inside a `with`, so the cases share no state, and a sharded run spreads them over
+# every shard (vos/cli/test.py).
+INDEPENDENT_CASES = True
+
 # The fake executable's version banner, independent of installed checkers.
 _STUB_NAME = "vostestfakechk"
 _STUB_PIN = "9.9.9"
