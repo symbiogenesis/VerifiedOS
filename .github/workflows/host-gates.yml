@@ -235,8 +235,9 @@ jobs:
                       annotate("notice", "Timings: " + "; ".join(
                           f"{m['name']}: {m['elapsed_seconds']:.2f}s" for m in report["members"]))
                   # The parts members measured inside themselves: test modules, selftest
-                  # phases and cases, checker phases and groups. They overlap like
-                  # members; the slowest show where a job's time went.
+                  # phases and cases, checker phases and groups, and the generated
+                  # group's blob read and rows. They overlap like members; the slowest
+                  # show where a job's time went.
                   slowest = sorted(((u["seconds"], u["kind"], u["name"])
                                     for m in report["members"] for u in m.get("units") or []),
                                    reverse=True)[:10]
