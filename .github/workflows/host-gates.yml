@@ -251,15 +251,15 @@ jobs:
               # Every unit of every member, one JSON line each, by member and then slowest
               # first, after one line naming the runner's processors, in a collapsed
               # group. Workflow commands stay stopped under a fresh token while they
-              # print, so no unit's authored name is read as one.
+              # print, so no unit's authored name is read as one. The lines are ASCII,
+              # so no output encoding can fail one.
               lines = [json.dumps({"logical_cpus": os.cpu_count(),
                                    "usable_cpus": os.process_cpu_count(),
-                                   "cpu_model": cpu_model()}, ensure_ascii=False)]
+                                   "cpu_model": cpu_model()})]
               for member in report["members"]:
                   measured = sorted(member.get("units") or [],
                                     key=lambda u: (-u["seconds"], u["kind"], u["name"]))
-                  lines += [json.dumps({"member": member["name"], **u}, ensure_ascii=False)
-                            for u in measured]
+                  lines += [json.dumps({"member": member["name"], **u}) for u in measured]
               token = secrets.token_hex(16)
               print("::group::Measured units: every member's, slowest first")
               print(f"::stop-commands::{token}")
