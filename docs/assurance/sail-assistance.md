@@ -139,8 +139,8 @@ the behavior the requirements specify.
    preserving the command's final verdict. `model smt` results have their existing
    scope; they do not become Rocq proof terms by passing through an agent.
 6. Retain decisions and durable evidence in their repository owners, commit the
-   settled change and obtain green Windows/Ubuntu Host CI. Dispatch both Guest CI
-   lanes on GitHub Actions, record the run URL or identifier, revision and pending
+   settled change and obtain green Windows/Ubuntu Host CI. Dispatch every Guest CI
+   lane on GitHub Actions, record the run URL or identifier, revision and pending
    status, and finish without polling or waiting for its verdict. The user monitors
    Guest CI and will report any issues; pending is not passing evidence. A planned
    specification change returns to its owning requirement and acceptance contract;
