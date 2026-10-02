@@ -31,8 +31,8 @@ SOURCE_FILES = ("firmware/crypto/keccak.c", "firmware/crypto/slh256s.c",
                 "firmware/include/vos_keccak.h", "firmware/include/vos_boot.h")
 EVIDENCE_FILES = (*SOURCE_FILES, "tools/vos/boot_crypto.py", "tools/vos/cli/boot_crypto.py",
     "tools/vos/boot_handoff.py", "tools/vos/acvp.py", "tools/vos/receipts.py", "tools/vos/env.py",
-    "proofs/campaigns/mldsa_vectors.py", "proofs/MlDsa.v", "proofs/PqArith.v", "proofs/Keccak.v",
-    "firmware/crypto/fixtures.json")
+    "tools/vos/proofenv.py", "proofs/campaigns/mldsa_vectors.py", "proofs/MlDsa.v",
+    "proofs/PqArith.v", "proofs/Keccak.v", "firmware/crypto/fixtures.json")
 
 
 @dataclass(frozen=True)

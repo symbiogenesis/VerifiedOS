@@ -28,7 +28,7 @@ from tests.harness import TOOLS, Case, cli_argv, ensure, sandbox_tree
 # The live sources the sandbox copy of the tool runs on, relative to the root.
 _SOURCES = ("tools/vos/cli/__init__.py", "tools/vos/cli/blast.py",
             "tools/vos/__init__.py", "tools/vos/apex.py",
-            "tools/vos/fieldbindings.py", "tools/vos/corpus.py", "tools/vos/env.py",
+            "tools/vos/fieldbindings.py", "tools/vos/corpus.py", "tools/vos/proofenv.py",
             "tools/vos/proofcites.py", "tools/vos/proofs.py", "tools/vos/register.py")
 
 # Small enough to derive by hand: witness consumes alpha and beta through its type,

@@ -27,9 +27,9 @@ from tests.harness import TOOLS, Case, ensure, sandbox_tree
 _SOURCES = ("tools/quarantine/bank-dse.py", "tools/quarantine/__init__.py",
             "tools/quarantine/banks.py", "tools/vos/__init__.py",
             "tools/vos/config.py", "tools/vos/jsonc.py", "tools/vos/corpus.py",
-            # `corpus.py` imports `env` for the git reads it takes, so the sandbox
+            # `corpus.py` imports `proofenv` for the git reads it takes, so the sandbox
             # is short a module without it and every fixture case dies on the import
-            "tools/vos/env.py")
+            "tools/vos/proofenv.py")
 
 # The composition, small enough to score by hand. The region is 60000h + 40000h =
 # 100,000 bytes across two second-class regions (the summation is part of what is

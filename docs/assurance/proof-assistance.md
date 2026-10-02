@@ -376,7 +376,7 @@ every solution, which carries no object store, or a fresh
 clone's remote then removed. The agent has no access to the primary checkout, other
 worktrees, network remotes, hosted run artifacts or build lanes holding a solution.
 A tree without a linked-worktree pointer shares the primary checkout's guest lane
-([`lane_of`](../../tools/vos/env.py)), whose proof-gate workspace stages current
+([`lane_of`](../../tools/vos/proofenv.py)), whose proof-gate workspace stages current
 proof sources, so run it with its own `VOS_LANE` or `VOS_BUILD_ROOT` in the guest.
 The trial record names the method, the exported or cloned revision and its relation
 to each solution commit, and the denied locations. It also records an absence check

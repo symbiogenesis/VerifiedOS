@@ -151,7 +151,7 @@ own freshness. Unknown installed-library contexts use one checker process.
 
 Automatic worker sizing uses the guest's usable logical CPUs and available memory
 at each phase, with separate compile/audit and kernel budgets owned by
-[`env.proof_jobs`](vos/env.py). The compile/audit budget is informed by the
+[`proofenv.proof_jobs`](vos/proofenv.py). The compile/audit budget is informed by the
 [historical prover residency measurements](../docs/performance/toolchain-residency.md#the-prover-and-which-of-its-two-acts-the-device-performs).
 The kernel budget is set at or above the measured peak of the one kernel worker that
 checks every module on Guest CI's proofs runner, and `proof_jobs` records those

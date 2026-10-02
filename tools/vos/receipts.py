@@ -15,7 +15,7 @@ from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-from vos import env
+from vos import proofenv
 
 
 def digest(path: Path) -> str:
@@ -80,7 +80,7 @@ disappearing from the manifest. Git's own pathspecs select each command's closur
     done = subprocess.run(
         ["git", "ls-files", "--stage", "--others", "--exclude-standard", "-z",
          "--", *pathspecs], cwd=root, capture_output=True, check=False,
-        env={**os.environ, **env.git_env(root)}, timeout=60)
+        env={**os.environ, **proofenv.git_env(root)}, timeout=60)
     if done.returncode:
         raise RuntimeError(done.stderr.decode("utf-8", errors="replace").strip())
     manifest: dict[str, str] = {}

@@ -21,7 +21,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from vos import env
+from vos import proofenv
 
 # The line-anchored patterns here are matched against one line rather than scanned
 # across the whole text with `(?m)^`. The two decide the same lines, but a multiline
@@ -332,8 +332,8 @@ def _git_environment(root: Path) -> dict[str, str] | None:
     """This process's environment with whatever a `git` run in `root` needs laid over
     it, or `None` where it needs nothing.
 
-    The translation is [env.py](env.py)'s and is reached rather than repeated. A linked
-    worktree created by the *host's* git holds a Windows path in its `.git` file, so
+    The translation is [proofenv.py](proofenv.py)'s and is reached rather than repeated.
+    A linked worktree created by the *host's* git holds a Windows path in its `.git` file, so
     inside the guest a bare `git` in that lane exits 128 with `not a git repository`;
     this parse is the one every rule reads the corpus through, so without the
     translation `python3 tools/check.py` in a lane ends in a traceback rather than in a
@@ -341,7 +341,7 @@ def _git_environment(root: Path) -> dict[str, str] | None:
     host where the pointer is already usable, there is nothing to say and this answers
     `None`, which leaves those lanes exactly as they were.
     """
-    overlay = env.git_env(root)
+    overlay = proofenv.git_env(root)
     return {**os.environ, **overlay} if overlay else None
 
 

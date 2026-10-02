@@ -48,7 +48,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import cast
 
-from vos import env, proofaudit, receipts
+from vos import proofaudit, proofenv, receipts
 from vos import proofs as proofs_mod
 from vos.corpus import find_root
 
@@ -78,12 +78,13 @@ STRICT = ("-w", "+default,-abstract-large-number", "-set", "Default Goal Selecto
 
 def workspace(root: Path) -> Path:
     """The persistent, guest-native area owned exclusively by this proof gate."""
-    target = (env.lane_root(env.lane_of(root)) / "proof-gate").resolve()
+    target = (proofenv.lane_root(proofenv.lane_of(root)) / "proof-gate").resolve()
     if (target.is_relative_to(root.resolve())
             # These are refused locations, never temporary-file destinations.
             or target.is_relative_to(Path("/tmp"))  # noqa: S108
             or target.is_relative_to(Path("/var/tmp"))  # noqa: S108
-            or env.filesystem(target) in env.CROSS_OS_FILESYSTEMS | env.VOLATILE_FILESYSTEMS):
+            or proofenv.filesystem(target)
+            in proofenv.CROSS_OS_FILESYSTEMS | proofenv.VOLATILE_FILESYSTEMS):
         raise ValueError(f"proof outputs need persistent native storage outside the checkout: {target}")
     return target
 
@@ -381,7 +382,7 @@ def _compile(root: Path, source: Path) -> subprocess.CompletedProcess[str]:
     # -Q roots the logical path so a companion's Require Import resolves to the .vo
     # built here, never to an installed one
     return subprocess.run(
-        [*env.rocq_command(), "-q", "-Q", PROOFS, "", *STRICT,
+        [*proofenv.rocq_command(), "-q", "-Q", PROOFS, "", *STRICT,
          source.relative_to(root).as_posix()],
         cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
 
@@ -398,7 +399,7 @@ def _recheck_joint(root: Path, sources: list[Path],
     No -norec or VM trust is used. The caller binds all bytes before and after the run.
     `-o` makes rocqchk report the environment's assumptions; `_worker_fault` reads them.
     """
-    command = [*env.rocqchk_command(), "-silent", "-o", "-Q", PROOFS, ""]
+    command = [*proofenv.rocqchk_command(), "-silent", "-o", "-Q", PROOFS, ""]
     changed = [source.stem for source in sources if source.stem not in admitted]
     if not admitted:
         return subprocess.run([*command, *changed], cwd=root, capture_output=True,
@@ -676,7 +677,7 @@ def _query(root: Path, directory: Path, name: str, text: str) -> str:
     query = directory / f"{name}.v"
     query.write_text(text, encoding="utf-8", newline="")
     done = subprocess.run(
-        [*env.rocq_command(), "-q", "-Q", str(root / PROOFS), "", str(query)],
+        [*proofenv.rocq_command(), "-q", "-Q", str(root / PROOFS), "", str(query)],
         cwd=root, capture_output=True, text=True, encoding="utf-8", check=False)
     if done.returncode or done.stderr.strip():
         raise proofaudit.AuditError(
@@ -904,9 +905,9 @@ def wave_makespan(waves: Sequence[Sequence[float]], jobs: int) -> float:
 
 
 def _toolchain() -> dict[str, object]:
-    compiler = Path(env.rocq_command()[0]).resolve()
-    checker = Path(env.rocqchk_command()[0]).resolve()
-    done = subprocess.run([*env.rocq_command(), "--version"], capture_output=True,
+    compiler = Path(proofenv.rocq_command()[0]).resolve()
+    checker = Path(proofenv.rocqchk_command()[0]).resolve()
+    done = subprocess.run([*proofenv.rocq_command(), "--version"], capture_output=True,
                           text=True, encoding="utf-8", check=False)
     if done.returncode or not done.stdout.strip():
         raise proofaudit.AuditError("cannot identify the Rocq compiler version")
@@ -914,12 +915,12 @@ def _toolchain() -> dict[str, object]:
     # Rocq 9.2.0 printed "9.2" and 9.3.0 prints "9.3.0". Only a zero patch may be
     # omitted: accepting an arbitrary prefix would also admit prereleases or a different
     # patch release.
-    releases = {env.ROCQ_VERSION}
-    if env.ROCQ_VERSION.endswith(".0"):
-        releases.add(env.ROCQ_VERSION.removesuffix(".0"))
+    releases = {proofenv.ROCQ_VERSION}
+    if proofenv.ROCQ_VERSION.endswith(".0"):
+        releases.add(proofenv.ROCQ_VERSION.removesuffix(".0"))
     if version is None or version.group(1) not in releases:
-        raise proofaudit.AuditError(f"Rocq version differs from pin {env.ROCQ_VERSION}")
-    return {"version": done.stdout.strip(), "pin": env.ROCQ_VERSION,
+        raise proofaudit.AuditError(f"Rocq version differs from pin {proofenv.ROCQ_VERSION}")
+    return {"version": done.stdout.strip(), "pin": proofenv.ROCQ_VERSION,
             "compiler": {"path": str(compiler), "sha256": receipts.digest(compiler)},
             "checker": {"path": str(checker), "sha256": receipts.digest(checker)}}
 
@@ -998,7 +999,7 @@ def _validate_receipt(root: Path, *, historical: bool = False) -> None:
     if not total:
         raise ValueError("receipt has no native symbols")
     toolchain = record.get("toolchain")
-    if not isinstance(toolchain, dict) or toolchain.get("pin") != env.ROCQ_VERSION:
+    if not isinstance(toolchain, dict) or toolchain.get("pin") != proofenv.ROCQ_VERSION:
         raise ValueError("receipt does not identify the pinned toolchain")
     if record.get("declared_assumptions") != sorted(DECLARED):
         raise ValueError("receipt uses a different declared assumption set")
@@ -1157,10 +1158,10 @@ def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
     if any(proofaudit.DYNAMIC_SOURCE.match(sentence) for sentence in source_sentences):
         return None
     try:
-        command = env.rocq_command()
+        command = proofenv.rocq_command()
         config = subprocess.run([*command, "-config"], cwd=work, capture_output=True,
                                 text=True, encoding="utf-8", check=False)
-        where = subprocess.run([*env.rocqchk_command(), "-where"], cwd=work,
+        where = subprocess.run([*proofenv.rocqchk_command(), "-where"], cwd=work,
                                capture_output=True, text=True, encoding="utf-8", check=False)
         paths = subprocess.run([*command[:-1], "top", "-q", "-quiet"], cwd=work,
                                input="Print LoadPath.\n", capture_output=True,
@@ -1194,7 +1195,7 @@ def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
                     files[str(path)] = receipts.digest(path)
         if not files:
             return None
-        libraries = _shared_libraries(work, [command[0], env.rocqchk_command()[0],
+        libraries = _shared_libraries(work, [command[0], proofenv.rocqchk_command()[0],
                                              *(path for path in files
                                                if path.endswith((".so", ".cmxs")))])
         if libraries is None:
@@ -1376,7 +1377,7 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
     analysis = ProofAnalysis.read(staged)
     needs = {source.stem: {required.stem for required in required_sources}
              for source, required_sources in analysis.index.needs.items()}
-    compile_jobs = env.proof_jobs() if jobs is None else jobs
+    compile_jobs = proofenv.proof_jobs() if jobs is None else jobs
     print(f"  compile/audit worker limit: {compile_jobs} "
           f"({'automatic' if jobs is None else 'explicit'})", flush=True)
 
@@ -1409,7 +1410,8 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
     recheck_started = time.perf_counter()
     # Same-run kernel admissions need the installed-library identity too. Unknown
     # contexts retain the single-process recursive check, even on a fresh run.
-    kernel_jobs = 1 if context is None else (env.proof_jobs(kernel=True) if jobs is None else jobs)
+    kernel_jobs = 1 if context is None else (proofenv.proof_jobs(kernel=True) if jobs is None
+                                             else jobs)
     replayed = wave_makespan([[spans[source].end - spans[source].start for source in wave]
                               for wave in analysis.index.ordered], compile_jobs)
     print(f"  compile/audit: {compile_seconds:.2f}s; wave schedule replayed over these "

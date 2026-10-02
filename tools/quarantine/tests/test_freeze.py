@@ -806,7 +806,7 @@ def _membership_is_an_instrument_error() -> None:
     # reach in here. This list is hand-written and nothing holds it against the imports,
     # so a module the instrument gains is a sandbox that fails on the import and prints
     # nothing at all rather than a case that says what is missing.
-    for rel in ("__init__.py", "jsonc.py", "corpus.py", "env.py", "freezeschema.py",
+    for rel in ("__init__.py", "jsonc.py", "corpus.py", "proofenv.py", "freezeschema.py",
                 "freezemodel.py"):
         files[f"tools/vos/{rel}"] = (TOOLS / "vos" / rel).read_text(encoding="utf-8")
     with sandbox_tree(files) as root:

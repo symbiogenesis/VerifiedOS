@@ -13,8 +13,8 @@ The system interpreter need not be replaced.
 
 Annotations use Python's lazy evaluation, with cross-module type-only imports under
 `TYPE_CHECKING`; do not add `from __future__ import annotations` or evaluate those
-annotations at runtime. [vos/env.py](vos/env.py) uses `os.process_cpu_count()` to size
-jobs within the process's available CPU allocation.
+annotations at runtime. [vos/proofenv.py](vos/proofenv.py) uses `os.process_cpu_count()`
+to size jobs within the process's available CPU allocation.
 
 ## One entry point, and the commands under it
 
@@ -1374,7 +1374,7 @@ any wave, so a source holding one runs the phase as that wave schedule.
 Without `--jobs`, each phase selects as many workers as the available logical CPUs
 and its memory planning budget permit. The guest samples `MemAvailable` immediately
 before compilation/auditing and again before kernel checking, after acquiring the
-workspace lock. [The resource policy](vos/env.py) owns the headroom, per-worker budgets
+workspace lock. [The resource policy](vos/proofenv.py) owns the headroom, per-worker budgets
 and conservative fallbacks when memory cannot be read. The compile/audit budget is an
 estimate from the [recorded prover measurements](../docs/performance/toolchain-residency.md#the-prover-and-which-of-its-two-acts-the-device-performs).
 The kernel budget is set at or above the peak resident memory of the one kernel worker
