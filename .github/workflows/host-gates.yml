@@ -243,12 +243,14 @@ jobs:
   # fanout_ci.HOST_JOBS in tools/vos/fanout_ci.py owns these job names; renaming one
   # changes the evidence fanout accepts. No repository ruleset requires them. A failed,
   # skipped or cancelled shard cannot leave a successful aggregate, even if its peers
-  # completed successfully.
+  # completed successfully. The aggregates check out nothing and only read the shards'
+  # result, so they take the generally available ubuntu-24.04 image rather than the
+  # shards' preview image, whose queue has held them over a minute past the last shard.
   host-gates:
     name: host-gates (${{ matrix.platform }})
     needs: host-gates-shard
     if: ${{ always() }}
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     strategy:
       matrix:
