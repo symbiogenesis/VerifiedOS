@@ -1381,7 +1381,8 @@ The kernel budget is set at or above the peak resident memory of the one kernel 
 that checks every module on Guest CI's proofs runner, whose recorded runs and margin
 `proof_jobs` states, so that 16 GB runner runs one kernel worker. Guest CI's
 proof log records each run's peak single-process resident memory
-([Guest CI contract](ci/README.md)). The selected limits are printed. An explicit
+([Guest CI contract](ci/README.md)). The selected limits are printed, each automatic one
+beside the usable CPU count and the `MemAvailable` reading it was sized from. An explicit
 `--jobs N` overrides automatic CPU/memory sizing for both phases; the single-process
 fallback for an unknown library identity still applies.
 Help, status, export and whole-set cache hits do not sample worker capacity.

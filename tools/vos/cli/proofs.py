@@ -1316,6 +1316,14 @@ def _reusable(root: Path, work: Path, sources: list[Path], inputs: dict[str, str
         return reusable, ""
 
 
+def _sized_from(workers: proofenv.Workers) -> str:
+    """What an automatic worker limit was sized from, as its log line states it, so a
+    run's log records the CPU count and memory its phase's budget was held against."""
+    memory = ("no MemAvailable reading" if workers.mem_available_mb is None
+              else f"MemAvailable {workers.mem_available_mb:,} MiB")
+    return f"automatic, sized from {workers.cpus} usable CPU(s) and {memory}"
+
+
 def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
     started = time.perf_counter()
     work = workspace(root)
@@ -1377,9 +1385,12 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
     analysis = ProofAnalysis.read(staged)
     needs = {source.stem: {required.stem for required in required_sources}
              for source, required_sources in analysis.index.needs.items()}
-    compile_jobs = proofenv.proof_jobs() if jobs is None else jobs
-    print(f"  compile/audit worker limit: {compile_jobs} "
-          f"({'automatic' if jobs is None else 'explicit'})", flush=True)
+    if jobs is None:
+        sized = proofenv.proof_workers()
+        compile_jobs, compile_basis = sized.jobs, _sized_from(sized)
+    else:
+        compile_jobs, compile_basis = jobs, "explicit"
+    print(f"  compile/audit worker limit: {compile_jobs} ({compile_basis})", flush=True)
 
     def check(source: Path) -> Checked:
         if source.stem in reusable:
@@ -1410,15 +1421,21 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
     recheck_started = time.perf_counter()
     # Same-run kernel admissions need the installed-library identity too. Unknown
     # contexts retain the single-process recursive check, even on a fresh run.
-    kernel_jobs = 1 if context is None else (proofenv.proof_jobs(kernel=True) if jobs is None
-                                             else jobs)
+    kernel_basis = ""
+    if context is None:
+        kernel_jobs = 1
+    elif jobs is None:
+        sized = proofenv.proof_workers(kernel=True)
+        kernel_jobs, kernel_basis = sized.jobs, f" ({_sized_from(sized)})"
+    else:
+        kernel_jobs = jobs
     replayed = wave_makespan([[spans[source].end - spans[source].start for source in wave]
                               for wave in analysis.index.ordered], compile_jobs)
     print(f"  compile/audit: {compile_seconds:.2f}s; wave schedule replayed over these "
           f"modules' seconds at worker limit {compile_jobs}: {replayed:.2f}s; "
           f"{len(reusable)}/{len(staged)} compiled objects and audits reused; "
           f"starting {'incremental' if reusable else 'full'} kernel recheck "
-          f"with worker limit {kernel_jobs}", flush=True)
+          f"with worker limit {kernel_jobs}{kernel_basis}", flush=True)
     fault = _recheck(work, staged, frozenset(reusable), jobs=kernel_jobs)
     recheck_seconds = time.perf_counter() - recheck_started
     if fault:

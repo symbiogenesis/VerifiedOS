@@ -243,7 +243,8 @@ Each command runs under GNU time, whose figures in its retained log end with
 reading comparison's log holds the comparison alone, so its figures stand beside it in
 `proof-reading-compare.time`. For
 the proof gate this measures the kernel recheck against the planning budget in
-[vos/proofenv.py](../vos/proofenv.py)'s `proof_jobs`.
+[vos/proofenv.py](../vos/proofenv.py)'s `proof_jobs`, beside the usable CPU count and
+`MemAvailable` reading the gate's log states for each automatic worker limit.
 
 ## Inputs and execution
 

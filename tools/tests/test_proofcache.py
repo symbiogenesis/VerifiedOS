@@ -245,20 +245,36 @@ def _incremental_run() -> None:
                                                encoding="utf-8")
             with patch.object(gate, "_check_source", side_effect=corrupt_cached):
                 run({"Consumer"}, result=1, kernel=False)
-            with patch.object(gate.proofenv, "proof_jobs", side_effect=[8, 3]) as sizing:
+            samples = [gate.proofenv.Workers(8, 8, 16384), gate.proofenv.Workers(3, 8, 12000)]
+            with patch.object(gate.proofenv, "proof_workers", side_effect=samples) as sizing:
+                said = len(output.getvalue())
                 run(set(texts), fresh=True, jobs=None, kernel_jobs=3, refusal="--fresh")
                 ensure([call.kwargs for call in sizing.call_args_list] == [{}, {"kernel": True}],
                        "automatic sizing must sample compilation and kernel phases separately")
-            with patch.object(gate.proofenv, "proof_jobs",
+                logged = output.getvalue()[said:]
+                ensure("compile/audit worker limit: 8 (automatic, sized from 8 usable CPU(s) "
+                       "and MemAvailable 16,384 MiB)" in logged
+                       and "with worker limit 3 (automatic, sized from 8 usable CPU(s) and "
+                       "MemAvailable 12,000 MiB)" in logged,
+                       f"each automatic limit must be logged beside its own sample: {logged}")
+            with patch.object(gate.proofenv, "proof_workers",
                               side_effect=AssertionError("unexpected probe")):
                 run(set(), jobs=None, kernel=False)
                 run(set(texts), fresh=True, refusal="--fresh")
             unbound = "this installed-library context cannot authorize reuse"
             with patch.object(gate, "_cache_context", return_value=None):
                 run(set(texts), kernel_jobs=1, refusal=unbound)
-                with patch.object(gate.proofenv, "proof_jobs", return_value=8) as sizing:
+                with patch.object(gate.proofenv, "proof_workers",
+                                  return_value=gate.proofenv.Workers(8, 8, None)) as sizing:
+                    said = len(output.getvalue())
                     run(set(texts), jobs=None, kernel_jobs=1, refusal=unbound)
                     sizing.assert_called_once_with()
+                    logged = output.getvalue()[said:]
+                    ensure("compile/audit worker limit: 8 (automatic, sized from 8 usable CPU(s) "
+                           "and no MemAvailable reading)" in logged
+                           and "with worker limit 1\n" in logged,
+                           "an unread sample is logged as unread, and a limit no sample "
+                           f"sized carries none: {logged}")
 
 
 _SPAN_LINE = re.compile(r"^  compile/audit (\S+\.v): (\d+\.\d\d)s to (\d+\.\d\d)s$")
@@ -296,8 +312,8 @@ def _the_phase_line_replays_the_wave_schedule() -> None:
             time.sleep(0.3)
             return receipts.snapshot(base, sources)
 
-        def sizing(*, kernel: bool = False) -> int:
-            return 1 if kernel else 3
+        def sizing(*, kernel: bool = False) -> gate.proofenv.Workers:
+            return gate.proofenv.Workers(1 if kernel else 3, 4, 16384)
 
         waves = [[source.stem for source in wave]
                  for wave in gate.proofs_mod.SourceIndex.read(gate._sources(root)).ordered]
@@ -307,7 +323,7 @@ def _the_phase_line_replays_the_wave_schedule() -> None:
                 patch.object(gate, "_cache_context", return_value={"library_hash": "fixed"}), \
                 patch.object(gate, "_check_source", side_effect=check), \
                 patch.object(gate, "_recheck", return_value=""), \
-                patch.object(gate.proofenv, "proof_jobs", side_effect=sizing):
+                patch.object(gate.proofenv, "proof_workers", side_effect=sizing):
             for jobs, edited, compiled in ((2, "", set(texts)),
                                            (3, "Consumer", {"Consumer", "ApexTheorem"}),
                                            (None, "Side", {"Side"})):
@@ -317,7 +333,7 @@ def _the_phase_line_replays_the_wave_schedule() -> None:
                 with patch.object(gate, "wave_makespan", wraps=gate.wave_makespan) as replay, \
                         contextlib.redirect_stdout(io.StringIO()) as output:
                     ensure(gate._run_locked(root, jobs) == 0, "the replay fixture failed")
-                expected_limit = sizing() if jobs is None else jobs
+                expected_limit = sizing().jobs if jobs is None else jobs
                 lines = output.getvalue().splitlines()
                 spans = {match.group(1): (float(match.group(2)), float(match.group(3)))
                          for match in map(_SPAN_LINE.match, lines) if match}
@@ -502,7 +518,7 @@ def _jobs_cli_defaults_to_auto_without_probing_metadata_commands() -> None:
             patch.object(gate, "_status", return_value=0) as status, \
             patch.object(gate, "_export", return_value=0) as export, \
             patch.object(gate, "_identity", return_value=0) as identity, \
-            patch.object(gate.proofenv, "proof_jobs",
+            patch.object(gate.proofenv, "proof_workers",
                          side_effect=AssertionError("premature probe")):
         ensure(gate.main([]) == 0, "automatic proof invocation failed")
         run.assert_called_once_with(root, None, False)

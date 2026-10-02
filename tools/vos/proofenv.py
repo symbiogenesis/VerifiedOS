@@ -19,6 +19,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 # Where every lane's build trees live, a constant rather than a literal at its use
@@ -161,6 +162,16 @@ PROOF_COMPILE_WORKER_MIB = 1024
 PROOF_KERNEL_WORKER_MIB = 10240
 
 
+@dataclass(frozen=True)
+class Workers:
+    """A worker limit and what it was sized from: the usable CPUs and the MemAvailable
+    reading in MiB, `None` where /proc/meminfo gave none."""
+
+    jobs: int
+    cpus: int
+    mem_available_mb: int | None
+
+
 def proof_jobs(*, kernel: bool = False) -> int:
     """Use available cores subject to a phase-specific memory planning budget.
 
@@ -202,21 +213,34 @@ def proof_jobs(*, kernel: bool = False) -> int:
     runner's 16 GB even read as 16 GiB, 16,777,216 KiB. So HmacDrbg.v keeps no
     literal for them.
     """
-    return worker_jobs(PROOF_KERNEL_WORKER_MIB if kernel else PROOF_COMPILE_WORKER_MIB,
-                       fallback=1 if kernel else 4,
-                       label="kernel" if kernel else "compile/audit")
+    return proof_workers(kernel=kernel).jobs
+
+
+def proof_workers(*, kernel: bool = False) -> Workers:
+    """`proof_jobs`'s limit with the CPU count and MemAvailable reading it was sized
+    from, which the gate logs beside each phase's limit, so a run's log records the
+    memory its kernel budget was held against."""
+    return size_workers(PROOF_KERNEL_WORKER_MIB if kernel else PROOF_COMPILE_WORKER_MIB,
+                        fallback=1 if kernel else 4,
+                        label="kernel" if kernel else "compile/audit")
 
 
 def worker_jobs(memory_mb: int, *, fallback: int = 1, label: str = "worker") -> int:
     """Limit workers to usable CPUs and a per-worker MiB budget after a 2 GiB reserve."""
+    return size_workers(memory_mb, fallback=fallback, label=label).jobs
+
+
+def size_workers(memory_mb: int, *, fallback: int = 1, label: str = "worker") -> Workers:
+    """`worker_jobs`'s limit with the CPU count and MemAvailable reading it was sized
+    from, read once so the limit and what it reports agree."""
     cpus = _cpus()
     available = _read_mem_available_mb()
     if available is None:
         jobs = min(cpus, fallback)
         print(f"WARNING no MemAvailable figure from /proc/meminfo: automatic {label} "
               f"jobs limited to {jobs}; use --jobs to override", file=sys.stderr)
-        return jobs
-    return min(cpus, max(1, (available - 2048) // memory_mb))
+        return Workers(jobs, cpus, None)
+    return Workers(min(cpus, max(1, (available - 2048) // memory_mb)), cpus, available)
 
 
 def build_root() -> Path:

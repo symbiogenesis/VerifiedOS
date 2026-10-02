@@ -202,6 +202,10 @@ def _proof_jobs_use_phase_resources() -> None:
                 redirect_stderr(io.StringIO()) as warnings:
             ensure(proofenv.proof_jobs() == compilation, "wrong automatic compile/audit limit")
             ensure(proofenv.proof_jobs(kernel=True) == kernel, "wrong automatic kernel limit")
+            # The sample the gate logs is the one the limit was sized from.
+            ensure(proofenv.proof_workers(kernel=True)
+                   == proofenv.Workers(kernel, cpus or 1, memory),
+                   "the kernel limit must come with the CPU count and memory it was sized from")
             ensure(bool(warnings.getvalue()) == (memory is None),
                    "only unavailable memory should produce a fallback diagnostic")
 
