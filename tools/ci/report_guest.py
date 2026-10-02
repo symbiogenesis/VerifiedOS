@@ -19,9 +19,13 @@ from vos import receipts  # noqa: E402  (standalone reporting needs no locked en
 # Each lane's workflow step ids, in execution order. The proofs lane's `reading` runs
 # only when a dispatch names a reading base, and is skipped otherwise.
 LANES: dict[str, tuple[str, ...]] = {
-    "model": ("bootstrap", "evidence", "bundle", "lint", "widthcheck", "crosscheck"),
+    "model": ("bootstrap", "evidence"),
+    "rtl": ("bootstrap", "bundle", "lint", "widthcheck", "crosscheck"),
     "proofs": ("bootstrap", "proofs", "reading"),
 }
+# The lanes that run Sail over a restored memo, the model lane's build and the rtl
+# lane's bundle, and so state how that memo started.
+SAIL_LANES: tuple[str, ...] = ("model", "rtl")
 # The files the reading step writes into the log directory the lane's artifact keeps.
 READING_FILES = ("proof-reading-base.json", "proof-reading-candidate.json",
                  "proof-reading-compare.log")
@@ -30,9 +34,9 @@ TOOLCHAINS: dict[str, str] = {
     "cold": "installed cold.",
     "restored": "restored from the installed-toolchain cache; not cold-installation evidence.",
 }
-# How the model lane's Sail memo started; only a cold memo re-discharges every obligation.
+# How a Sail lane's memo started; only a cold memo re-discharges every obligation.
 SAIL_MEMO: dict[str, str] = {
-    "cold": "none restored; the build discharges every solver obligation.",
+    "cold": "none restored; Sail discharges every solver obligation.",
     "restored": "restored from an earlier main run; its cached solver verdicts were "
                 "not discharged again.",
 }
@@ -143,13 +147,13 @@ def main() -> None:
     if toolchains not in TOOLCHAINS:
         raise SystemExit(f"unknown toolchain state {toolchains!r}; "
                          f"expected one of {', '.join(TOOLCHAINS)}")
-    # Only the model lane builds with Sail, so only it may state a memo.
+    # Only the lanes that run Sail may state a memo, and each must.
     sail_memo = os.environ.get("GUEST_SAIL_MEMO", "")
-    if lane == "model" and sail_memo not in SAIL_MEMO:
+    if lane in SAIL_LANES and sail_memo not in SAIL_MEMO:
         raise SystemExit(f"unknown Sail memo state {sail_memo!r}; "
                          f"expected one of {', '.join(SAIL_MEMO)}")
-    if lane != "model" and sail_memo:
-        raise SystemExit(f"the {lane} lane runs no Sail build to state a memo for")
+    if lane not in SAIL_LANES and sail_memo:
+        raise SystemExit(f"the {lane} lane runs no Sail to state a memo for")
     # Only the proofs lane reads proofs against a base, which the dispatch check verified.
     reading_base = os.environ.get("GUEST_READING_BASE", "")
     if reading_base and lane != "proofs":

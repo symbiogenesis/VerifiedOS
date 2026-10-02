@@ -69,7 +69,7 @@ source populations and complete backend join remain required at their existing
 owners. No component report alone closes M1.2f, M1.7 or a downstream boot item.
 
 Host CI checks the changed tools on Windows and Ubuntu. The integrator dispatches
-both Guest CI lanes for the settled revision and records their pending status
+every Guest CI lane for the settled revision and records their pending status
 without waiting. This Wasm/compiler/Sail comparison is a separate acceptance
 experiment outside the Guest CI workflow; dispatch cannot substitute for its
 recorded execution.

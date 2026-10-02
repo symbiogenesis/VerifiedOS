@@ -3,14 +3,14 @@
 The guest pipeline validates the curated model, proof sources and authored RTL on
 Linux. This document owns its execution and acceptance contract. Follow the
 [validation handoff](../../AGENTS.md#tool-execution-and-validation) to publish inputs,
-require Host CI and dispatch both guest lanes without waiting for their verdicts.
+require Host CI and dispatch every guest lane without waiting for their verdicts.
 
 ## Running it
 
 The [`fanout` completion command](../fanout.md) runs from `main`, merges the selected
 local worktrees and publishes only `main`,
-requires Host CI on Windows and Ubuntu for that commit, then dispatches both guest
-lanes with the batch's `cold` policy and, for a batch initialized with
+requires Host CI on Windows and Ubuntu for that commit, then dispatches every guest
+lane with the batch's `cold` policy and, for a batch initialized with
 `--reading-base`, its reading base. It records the dispatch response and returns
 without polling Guest CI. The optional `title` workflow input carries the commit
 subject into the run title, which also identifies an interrupted dispatch for
@@ -38,8 +38,8 @@ force cold toolchain installation and a fresh full proof check. A weekly schedul
 run first reads the latest completed run on the same branch. It skips the guest
 lanes before allocating their runners or installing tools when that run succeeded
 on the current revision: a scheduled run's head commit, or for a dispatched run,
-which may pin an older revision than its head, the revision named by both lanes'
-artifacts. New revisions,
+which may pin an older revision than its head, the revision named by every lane's
+artifact. New revisions,
 failed or canceled runs, absent history and failed history lookups run all gates. Manual dispatch, monthly cold runs and explicit
 reruns always execute them. The history job alone has `actions: read`; the gate lanes keep `contents: read`.
 They need no repository secrets or initialized submodules. The public repository's standard
@@ -48,14 +48,15 @@ has 16 GB of RAM; the proof gate's one kernel worker peaks just under its 10 GiB
 budget there, as the runs [vos/env.py](../vos/env.py)'s `proof_jobs` records
 measured, so a smaller runner needs a separate resource measurement.
 
-The gate job is a two-lane matrix, and each lane has its own runner. The `model` lane
-installs Z3, Sail and Verilator, then runs the model evidence sweep, bundle comparison,
-RTL lint, width check and crosscheck. The `proofs` lane installs Rocq alone, runs the
-proof gate and, in a run given a `reading_base`, reads the proofs against that base.
-Neither lane consumes the other's toolchain or outputs, so a run lasts as long as its
-longer lane. One lane's failure does not cancel the other. Both lanes must pass to
-establish complete guest evidence; Host CI supplies no model, RTL or proof verdict.
-The workflow retains results and proof receipts when available.
+The gate job is a matrix of lanes, and each lane has its own runner. The `model` lane
+installs Z3, Sail and Verilator, then runs the model evidence sweep. The `rtl` lane
+installs the same toolchains, restoring the model lane's caches and saving none, then
+runs the bundle comparison, RTL lint, width check and crosscheck. The `proofs` lane
+installs Rocq alone, runs the proof gate and, in a run given a `reading_base`, reads
+the proofs against that base. No lane consumes another's outputs, so a run lasts as
+long as its longest lane. One lane's failure does not cancel another. Every lane must
+pass to establish complete guest evidence; Host CI supplies no model, RTL or proof
+verdict. The workflow retains results and proof receipts when available.
 
 [bootstrap_guest.py](bootstrap_guest.py) installs only the missing Ubuntu packages
 when passed `--install-system`, using root or passwordless sudo. Its `BASE_PACKAGES`
@@ -112,8 +113,8 @@ python3 tools/run.py rtl widthcheck
 python3 tools/run.py rtl crosscheck
 ```
 
-This runs both lanes' commands on one machine; the complete `evidence` sweep includes
-the proof gate.
+This runs every lane's commands on one machine; the complete `evidence` sweep
+includes the proof gate.
 
 Bootstrap and standalone `rtl install` select workers through [vos/env.py](../vos/env.py).
 `os.process_cpu_count()` supplies usable logical CPUs, including Linux affinity limits;
@@ -141,7 +142,7 @@ The workflow bounds each command and keeps independent checks running after a ga
 failure. [report_guest.py](report_guest.py) reads its lane from `GUEST_LANE`, retains
 that lane's command outcomes in `results.json` and renders the job summary. The proofs
 lane's outcomes include the reading step's, `skipped` in a run given no reading base,
-and a run given one also records that base. The reporter refuses a base in the model
+and a run given one also records that base. The reporter refuses a base in any other
 lane or in any form but a full lowercase commit SHA. It copies
 the checkout's proof receipt only when the proofs lane's proof gate step succeeded; the
 tracked receipt otherwise predates the run. In the model lane it validates all member
@@ -158,23 +159,27 @@ end before it uploads diagnostics.
 uv downloads, opam's source download cache and verified Verilator source archives
 are restored between runs; model evidence is always rebuilt. The source
 cache includes bootstrap's ownership marker so the restored private root can resume.
-Each lane has its own source cache. Its key includes the lane, runner OS and architecture,
-Sail and Rocq snapshots, bootstrap, [the opam client's owner](../vos/opam_client.py), the
-Verilator installer and shared download helper.
+The model and proofs lanes each have their own source cache, and the rtl lane restores
+the model lane's without saving it. Its key includes the lane that saves it, runner OS
+and architecture, Sail and Rocq snapshots, bootstrap,
+[the opam client's owner](../vos/opam_client.py), the Verilator installer and shared
+download helper.
 A prefix fallback reuses the lane's older source downloads, with the installers' checksum
 verification still required. Cache eviction simply means a cold installation. Only the
-model lane saves the uv cache; both lanes restore it. Its `guest-gates` key suffix keeps
+model lane saves the uv cache; every lane restores it. Its `guest-gates` key suffix keeps
 Host CI's smaller download set, saved under Host CI's own suffix, from claiming the key
 when both workflows run on one runner image. Each lane's commands stay
 sequential within its runner's memory budget.
 
 Ordinary weekly and manual runs restore a lane's installed
 toolchains: its opam root without downloads or logs, the Verilator prefix and the
-ownership marker. Bootstrap then runs unchanged: it keeps the restored root, which
+ownership marker. The rtl lane restores the model lane's, under that lane's key, and
+never saves them. Bootstrap then runs unchanged: it keeps the restored root, which
 stands complete, and records the repository stamps its switches were resolved against,
 imports each lock into its restored switch, installs the uncached solver, skips a
 Verilator prefix whose receipt matches and probes every tool. The key includes the
-lane, runner OS, architecture and the lane's toolchain recipe identity, with the image
+lane whose installation it holds, runner OS, architecture and that lane's toolchain
+recipe identity, with the image
 version for the model lane and only the image's release (`ImageOS`) for the proofs
 lane. `bootstrap_guest.py --print-recipe-identity`, given the lane's `--toolchain`
 selection, prints that identity: the SHA-256 of the owner data that decides the
@@ -192,9 +197,9 @@ Verilator installer's build or in how bootstrap finishes a root. Rocq and its ch
 load only the C library, whose ABI a release keeps and whose bytes the proof gate
 binds. A rebuilt switch reproduces those executables but not every installed library
 file, so sharing one switch across a release's images is what lets proof evidence
-cross them. Only exact keys restore. A main-branch run that missed the key saves the
-lane's toolchains after its probes pass; a cold run checks the key without restoring
-it. The reporter records
+cross them. Only exact keys restore. A main-branch run of the model or proofs lane that
+missed the key saves that lane's toolchains after its probes pass; a cold run checks
+the key without restoring it. The reporter records
 `cold` or `restored` in `results.json` and the job summary. Only a cold run is
 evidence that the toolchains install.
 
@@ -232,22 +237,24 @@ bytes and their original timings, not a new kernel execution. Cold runs retain
 periodic installation and full recheck evidence. Model build trees and compiler
 caches are not restored, and every run regenerates its RTL vectors.
 
-The model lane restores one file into its fresh build tree before the evidence
-sweep: Sail's SMT memo, `model/sail_smt_cache`, which maps each typechecking
-obligation's digest to the solver's verdict. A cold memo re-discharges every
-obligation and turns the model's C++ emission from seconds into minutes. The build
-seeds itself from that copy exactly as a
+The model and rtl lanes each restore one file into their fresh build tree before
+running Sail, the model lane before its evidence sweep and the rtl lane before its
+bundle comparison: Sail's SMT memo, `model/sail_smt_cache`, which maps each
+typechecking obligation's digest to the solver's verdict. A cold memo re-discharges
+every obligation and turns the model's C++ emission from seconds into minutes. The
+build seeds itself from that copy exactly as a
 [new local lane](../vos/cli/model.py) seeds itself from the primary tree's, with
 one writer per runner. The memo keys obligations, not the solver that answered
 them, so its key binds the runner image, architecture, and the Sail version, Z3
 version and Sail snapshot recorded in `bootstrap.json`; a fallback within that
 identity supplies an older model's memo, which costs misses and never supplies
-another solver's verdict. Only main saves it, after a passing evidence sweep, under
-a key that also hashes the model's Sail sources. The monthly and manual cold modes
-look the key up without restoring it, so their build discharges every obligation
-with the installed solver. The reporter records the memo as `cold` or `restored` in
-`results.json` and the job summary; a restored memo's cached verdicts were not
-discharged again in that run.
+another solver's verdict. Only main's model lane saves it, after a passing evidence
+sweep, under a key that also hashes the model's Sail sources; the rtl lane, whose
+bundle rewrites its own copy in a tree it does not build, never saves it. The monthly
+and manual cold modes look the key up without restoring it, so their Sail runs
+discharge every obligation with the installed solver. In each of the two lanes the
+reporter records the memo as `cold` or `restored` in `results.json` and the job
+summary; a restored memo's cached verdicts were not discharged again in that run.
 
 The [boot signature target campaign](../../firmware/crypto/README.md#hosted-target-campaign)
 restores the model lane's installed toolchains and Sail memo under these same keys and
@@ -289,6 +296,9 @@ The pipeline runs the existing commands. In the model lane:
   a backing image, with complete-medium comparisons and refusal controls. Its
   failure fails the corpus member. The manifest's trace tally stays separate
   from this generated multi-process campaign.
+
+In the rtl lane:
+
 - `python3 tools/run.py model bundle --check` compares the emitted model bundle.
 - `python3 tools/run.py rtl lint` checks the standalone authored and generated RTL.
 - `python3 tools/run.py rtl widthcheck` builds the scalar-width testbench from the
