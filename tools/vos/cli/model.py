@@ -1088,7 +1088,8 @@ class _EmissionWatch:
                 return
 
     def stop(self) -> _EarlyRun | None:
-        """Stop watching, and hand back the run if it started."""
+        """Stop watching, and hand back the run if it started, the same run however
+        often this is asked."""
         self._stop.set()
         self._thread.join()
         return self._run
@@ -1166,13 +1167,13 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
         code = stages["configure"] = _configure(e, build_dir, extra, handle)
         handle.write(f"CONFIGURE_EXIT={code}\n")
         handle.flush()
-        early: _EarlyRun | None = None
+        watch: _EmissionWatch | None = None
         try:
             if not code:
-                watch = (_EmissionWatch(build_dir, ["ctest", "--test-dir", str(build_dir),
-                                                    "-R", f"^{EARLY_TEST}$",
-                                                    "--output-on-failure"])
-                         if beside else None)
+                if beside:
+                    watch = _EmissionWatch(build_dir, ["ctest", "--test-dir", str(build_dir),
+                                                       "-R", f"^{EARLY_TEST}$",
+                                                       "--output-on-failure"])
                 try:
                     code = stages["build"] = env.stage(
                         "build", ["cmake", "--build", str(build_dir), "-j", str(e.jobs)],
@@ -1189,8 +1190,12 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
                     handle.flush()
             handle.write("ALL_DONE\n")
         finally:
-            if early is not None:
-                early.kill()
+            # The run is asked of the watch again rather than read from `early`, which
+            # an interrupt inside the first `stop` leaves unset; `stop` hands back the
+            # same run each time it is asked.
+            run = watch.stop() if watch is not None else None
+            if run is not None:
+                run.kill()
 
     # A build whose stages passed can still be refused its evidence. The reason is kept
     # in the receipt as well as printed, because a background build's stderr goes
