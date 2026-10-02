@@ -241,8 +241,8 @@ The model and rtl lanes each restore one file into their fresh build tree before
 running Sail, the model lane before its evidence sweep and the rtl lane before its
 bundle comparison: Sail's SMT memo, `model/sail_smt_cache`, which maps each
 typechecking obligation's digest to the solver's verdict. A cold memo re-discharges
-every obligation and turns the model's C++ emission from seconds into minutes. The
-build seeds itself from that copy exactly as a
+every obligation and turns the model's C++ emission from seconds into minutes. Each
+lane's Sail run seeds itself from that copy exactly as a
 [new local lane](../vos/cli/model.py) seeds itself from the primary tree's, with
 one writer per runner. The memo keys obligations, not the solver that answered
 them, so its key binds the runner image, architecture, and the Sail version, Z3
@@ -252,7 +252,7 @@ another solver's verdict. Only main's model lane saves it, after a passing evide
 sweep, under a key that also hashes the model's Sail sources; the rtl lane, whose
 bundle rewrites its own copy in a tree it does not build, never saves it. The monthly
 and manual cold modes look the key up without restoring it, so their Sail runs
-discharge every obligation with the installed solver. In each of the two lanes the
+discharge every obligation with the installed solver. In the model and rtl lanes the
 reporter records the memo as `cold` or `restored` in `results.json` and the job
 summary; a restored memo's cached verdicts were not discharged again in that run.
 
