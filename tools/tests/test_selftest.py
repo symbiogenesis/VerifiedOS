@@ -9,7 +9,9 @@ import io
 import json
 import stat
 import subprocess
+from concurrent.futures import Future
 from pathlib import Path
+from queue import Queue
 from threading import Barrier, Lock
 from types import SimpleNamespace
 from typing import cast
@@ -20,7 +22,7 @@ from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus
 from vos.checks import Context
 from vos.cli import selftest
-from vos.seeded import KILLED, SURVIVED, UNSEEDED
+from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict
 from vos.sharding import Shard
 
 # Each case writes only under the sandbox tree it creates, template caches included,
@@ -30,22 +32,121 @@ INDEPENDENT_CASES = True
 
 
 def _shards_cover_cases_and_repair_once() -> None:
+    # The shards and --repair-only together are the unsharded run: every case once,
+    # and the repair path once, in the run that selects no case.
     shards = [Shard(i, 4) for i in range(1, 5)]
     parts = [selftest._select_cases(None, shard) for shard in shards]
     ensure(sorted(id(case) for part in parts for case in part)
            == sorted(id(case) for case in selftest.CASES),
            "each authored mutant must run exactly once across shards")
-    ensure([selftest._needs_repair(part, shard)
-            for part, shard in zip(parts, shards, strict=True)] == [True, False, False, False],
-           "the complete repair path must run on shard 1 alone")
+    ensure(not any(selftest._needs_repair(part, shard)
+                   for part, shard in zip(parts, shards, strict=True)),
+           "no shard runs the repair path, whichever cases its partition holds")
+    alone = selftest._select_cases(None, None, repair_only=True)
+    ensure(alone == [] and selftest._needs_repair(alone, None, repair_only=True),
+           "--repair-only runs the repair path and no case")
+    ensure(selftest._needs_repair(selftest.CASES, None),
+           "the unsharded run carries the repair path the shards leave to --repair-only")
     ensure(selftest._select_cases(None, Shard(1, 1)) == selftest.CASES,
            "one shard must select the full suite")
-    try:
-        selftest._select_cases("K-01", Shard(1, 4))
-    except ValueError:
+    for rule, shard, repair_only in (("K-01", Shard(1, 4), False), ("K-01", None, True),
+                                     (None, Shard(1, 4), True)):
+        try:
+            selftest._select_cases(rule, shard, repair_only)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("a rule filter or a shard must not silently narrow or "
+                                 "widen another selection")
+    for argv in (["--repair-only", "--shard", "1/4"], ["--repair-only", "--rule", "K-01"]):
+        with contextlib.redirect_stderr(io.StringIO()):
+            try:
+                selftest.main(argv)
+            except SystemExit as err:
+                ensure(err.code == 2, f"{argv!r} must be an argument error")
+            else:
+                raise AssertionError(f"the CLI accepted {argv!r}")
+
+
+class _Baseline:
+    """An unmutated sandbox whose checker answers with one exit code."""
+
+    def __init__(self, code: int) -> None:
+        self.code = code
+
+    def check(self, fix: bool = False,
+              through: str | None = None) -> tuple[int, list[str], list[str]]:
+        ensure(not fix and through is None, "the baseline is one whole read-only run")
+        return self.code, ["FAIL K-01: broken before any mutant"] if self.code else [], []
+
+    def reset(self) -> None:
         pass
-    else:
-        raise AssertionError("a rule filter must not silently narrow CI shards")
+
+
+def _repair_only_runs_beside_the_baseline() -> None:
+    # --repair-only reports the repair path and the registry, not an empty population
+    # as a vacuous pass, and a failing baseline still discards the repair report. Any
+    # other run selecting no case is that vacuous pass, and is refused.
+    ran: list[str] = []
+
+    def repair(_ready: Future[selftest.Sandbox]) -> tuple[list[str], list[str]]:
+        ran.append("repair")
+        return [], ["--- the repair path ---", "  ok: held"]
+
+    for code, repair_only in ((0, True), (1, True), (0, False)):
+        ran.clear()
+        printed = io.StringIO()
+        boxes: Queue[selftest.Sandbox] = Queue()
+        with patch.object(selftest, "_repair_path", repair), \
+                patch.object(selftest, "_registry_coverage", return_value=[]), \
+                contextlib.redirect_stdout(printed):
+            result = selftest._run([], cast("selftest.Sandbox", _Baseline(code)), boxes,
+                                   Future(), 1, True, repair_only=repair_only)
+        out = printed.getvalue()
+        expected = code if repair_only else 1
+        ensure(result == expected and ran == ["repair"],
+               f"baseline exit {code}, --repair-only {repair_only}, gave {result} with the "
+               f"repair path run {ran}: {out}")
+        if not repair_only:
+            ensure("FAIL every one of 0 mutant(s) was stillborn" in out,
+                   f"an empty selection outside --repair-only is a vacuous pass: {out}")
+        elif code == 0:
+            ensure("FAIL" not in out and "  ok: held" in out
+                   and "the repair path holds and the registry is covered" in out,
+                   f"the repair path alone decides the run: {out}")
+        else:
+            ensure("  ok: held" not in out, f"a failing baseline discards the repair: {out}")
+    no_case: list[selftest.Case] = []
+    for selected, repairable in ((no_case, False), ([selftest.CASES[0]], True)):
+        try:
+            selftest._run(selected, cast("selftest.Sandbox", _Baseline(0)), Queue(),
+                          Future(), 1, repairable, repair_only=True)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("--repair-only must run the repair path and no case, "
+                                 f"not {len(selected)} case(s) with repairable {repairable}")
+
+
+def _shard_leaves_the_repair_path_to_repair_only() -> None:
+    # A shard's closing line says whose the repair path is; a --rule run whose rule
+    # carries no --fix branch says the path had nothing to prove.
+    def killed(case: selftest.Case, _box: selftest.Sandbox) -> Verdict:
+        return Verdict(selftest.Seeding(case[0], case[1]), KILLED,
+                       f"the checker reported {case[0]}")
+
+    for sharded, held in ((True, "the repair path is left to --repair-only"),
+                          (False, "the repair path had nothing to prove")):
+        printed = io.StringIO()
+        boxes: Queue[selftest.Sandbox] = Queue()
+        with patch.object(selftest, "_verdict", killed), \
+                patch.object(selftest, "_registry_coverage", return_value=[]), \
+                contextlib.redirect_stdout(printed):
+            result = selftest._run([selftest.CASES[0]], cast("selftest.Sandbox", _Baseline(0)),
+                                   boxes, Future(), 1, False, sharded=sharded)
+        out = printed.getvalue()
+        ensure(result == 0 and f"killed its mutant, {held}, and the registry" in out,
+               f"sharded {sharded} must close on {held!r}, got {result}: {out}")
 
 
 def _git(root: Path, *args: str) -> bytes:
@@ -361,6 +462,9 @@ def _case_verdict_reruns_only_survivors() -> None:
 def cases() -> list[Case]:
     return [
         Case("shards-cover-cases-and-repair-once", _shards_cover_cases_and_repair_once),
+        Case("repair-only-runs-beside-the-baseline", _repair_only_runs_beside_the_baseline),
+        Case("shard-leaves-the-repair-path-to-repair-only",
+             _shard_leaves_the_repair_path_to_repair_only),
         Case("checker-stops-after-the-rules-group", _checker_stops_after_the_rules_group),
         Case("case-verdict-reruns-only-survivors", _case_verdict_reruns_only_survivors),
         Case("refresh-index-without-changing-snapshot", _refresh_index_without_changing_snapshot),

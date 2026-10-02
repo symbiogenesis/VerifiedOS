@@ -74,25 +74,28 @@ shard, but every shard runs it with the cases at its own stride through that lis
 so each of its cases still runs once and a shard's share may be empty.
 Every mutation runs the checker in a fresh process and private sandbox, through the
 group that decides its rule (`check.py --through`); a survivor runs the whole checker.
-Each shard checks its pristine baseline and registry coverage; shard 1 also runs
-the complete repair path, the ordinary checker and typecheck, and Ubuntu's shard 1
-analyzes the workflows as [workflow analysis](#workflow-analysis) describes. A
+Each shard checks its pristine baseline and registry coverage, and every one of its
+sandboxes runs cases. Beside the shards, one unpartitioned job per OS runs what no
+partition holds: the ordinary checker, typecheck and the complete repair path, beside a
+pristine baseline of its own; Ubuntu's also analyzes the workflows as
+[workflow analysis](#workflow-analysis) describes. A
 model-hooks job of its own runs [the model's hooks](#model-hooks) on the Ubuntu shards'
-image beside the shards. Members within a shard run concurrently. The gate runs under each
+image beside the shards. Members within a job run concurrently. The gate runs under each
 platform's native shell, PowerShell on Windows and bash on Ubuntu, as a developer
-there runs `run.py`, and reads its shard and verdict path from the step's environment
+there runs `run.py`, and reads its part of the gate, a shard or the unpartitioned
+members, and its verdict path from the step's environment
 rather than from expressions written into the command. Each platform runs on an explicit
 runner image label, and its aggregate check is named for the platform rather than the
 image, so that an image move renames nothing. `HOST_JOBS` in
 [vos/fanout_ci.py](vos/fanout_ci.py) owns those names as the Host CI evidence fanout
 accepts, and [test_fanout_ci.py](tests/test_fanout_ci.py) holds the workflow's
-aggregate jobs to them. The aggregate checks require every shard
+aggregate jobs to them. The aggregate checks require every shard and unpartitioned job
 on both platforms and the model-hooks job to succeed, including refusal after a
 skipped or cancelled job.
-One shard alone supplies only a partial verdict. The unsharded local command retains
-the complete suite.
+One shard, or one unpartitioned job, alone supplies only a partial verdict. The
+unsharded local command retains the complete suite.
 
-<a id="workflow-analysis"></a>**Ubuntu's shard 1 analyzes every workflow**, in a
+<a id="workflow-analysis"></a>**Ubuntu's unpartitioned job analyzes every workflow**, in a
 step of its own that runs whatever the gate's verdict and fails the job on either
 analyzer's finding. zizmor, pinned in [pyproject.toml](pyproject.toml)'s `workflows`
 group and locked outside the gate's environment, runs its offline security audits,
@@ -107,11 +110,11 @@ that `run.py worktree list --json` reports for the checkout, then run
 `uv run --project tools --locked --exact --only-group workflows --no-python-downloads zizmor --offline .github/workflows`
 and `sh tools/ci/actionlint.sh -shellcheck= -pyflakes=` from the checkout.
 
-Shards cache uv downloads keyed by the manifest and lockfile under Host CI's own key
-suffix, with only shard 1 of each OS on pushes to `main` saving caches; other jobs
-restore them. Environments
-and gate results are rebuilt on every run. Windows shards set `TMP` and `TEMP` to
-`runner.temp`, on the checkout's drive, because the image's default temporary
+Host CI's jobs cache uv downloads keyed by the manifest and lockfile under Host CI's
+own key suffix, with only each OS's unpartitioned job saving caches on pushes to
+`main`; other jobs restore them. Environments
+and gate results are rebuilt on every run. The Windows gate step sets `TMP` and `TEMP`
+to `runner.temp`, on the checkout's drive, because the image's default temporary
 directory is on a
 [slower system drive](https://github.com/actions/runner-images/issues/8755).
 Per-member timing notices are also available through the public check-run
@@ -141,7 +144,7 @@ caught by nothing, which is a residue the findings register carries.
 
 | Command | Lane | What it does |
 | --- | --- | --- |
-| `gate` | host | Runs the three gates below in parallel. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. `--shard INDEX/TOTAL` partitions the suites, with the ordinary checker and typecheck on shard 1; every shard must pass, and `--fix` cannot be sharded. `--summary PATH` additionally writes the wave's verdict as JSON, one record per member carrying its exit code and whether that code is a verdict at all, for a caller that has only this run's exit code; a wave that never ran writes the reason instead, and a verdict that cannot be written there is one finding of its own. A bare `run.py` selects this workflow. |
+| `gate` | host | Runs the three gates below in parallel. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. `--shard INDEX/TOTAL` runs one partition of the selftest's cases and, with `--tests`, of the behavioral tests, and nothing else, and `--unpartitioned` runs the rest: the ordinary checker, typecheck and the selftest's repair path (`selftest --repair-only`); every shard and the unpartitioned run, each with the same `--tests`, must pass, and `--fix` takes neither. `--summary PATH` additionally writes the wave's verdict as JSON, one record per member carrying its exit code and whether that code is a verdict at all, for a caller that has only this run's exit code; a wave that never ran writes the reason instead, and a verdict that cannot be written there is one finding of its own. A bare `run.py` selects this workflow. |
 | `check` | host | Checks every derived fact against the artifact that owns it. `--fix` rewrites the figures that are arithmetic. It is also [check.py](check.py), the one command that is still a path, because the register, the coverage matrix, the crown jewels, the field bindings and the findings register all cite that path for what it decides. |
 | `selftest` | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
 | `typecheck` | host | Holds this directory's own Python to the discipline it holds the documents to. |
@@ -918,8 +921,9 @@ A bare `run.py` first validates the shared instructions and restores a missing
 import, then runs `check`, `selftest` and `typecheck` in parallel. Their reports are collected in a fixed order
 and produce one exit code. `--tests` adds the behavioral suite; `--check --tests`
 is the same complete validation without tracked writes. CI partitions that work
-with `--shard INDEX/TOTAL`, four shards on Ubuntu and eight on Windows, and requires
-every shard on each OS. `--rule` and `--only` cannot narrow a shard, and a
+with `--shard INDEX/TOTAL`, four shards on Ubuntu and eight on Windows, runs the rest
+with `--unpartitioned` in a job of its own on each OS, and requires every one of those
+jobs. `--rule` and `--only` cannot narrow a shard, and a
 partition count larger than its mutation or module population is refused.
 
 `--fix` validates instructions, restores a missing import and repairs derived

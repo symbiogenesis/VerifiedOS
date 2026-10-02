@@ -530,6 +530,13 @@ def _workflow_host_job_names() -> None:
            "every aggregate platform runs the shards it requires")
     faults = _runner_faults(contents)
     ensure(not faults, f"{ci.HOST} names an explicit runner image per platform: {faults!r}")
+    # A platform's shards and unpartitioned job each state its label, so an image move
+    # that reaches only one of them is refused.
+    moved = re.sub(r"(\{platform: Windows, shard: unpartitioned, runner: [^\s,{}]+)\}",
+                   r"\1-moved}", contents)
+    faults = _runner_faults(moved)
+    ensure(moved != contents and any("not one runner image" in fault for fault in faults),
+           f"Windows's unpartitioned job must share its shards' image: {faults!r}")
     faults = _gate_faults(contents)
     ensure(not faults, f"{ci.HOST} runs the gate once on every runner: {faults!r}")
     # The model's hooks run on the image the Ubuntu shards name, so an image move that
@@ -537,12 +544,78 @@ def _workflow_host_job_names() -> None:
     uncommented = {job: [line for line in _job_text(contents, job).split("\n")
                          if not line.lstrip().startswith("#")]
                    for job in ("host-gates-shard", "model-hooks")}
-    ubuntu = [_key_values(entry, "runner")
-              for entry in _include_entries(uncommented["host-gates-shard"])
+    entries = _include_entries(uncommented["host-gates-shard"])
+    ubuntu = [_key_values(entry, "runner") for entry in entries
               if _key_values(entry, "platform") == ["Ubuntu"]]
     hooks = _key_values("\n".join(uncommented["model-hooks"]), "runs-on")
-    ensure(len(hooks) == 1 and ubuntu == [hooks],
+    ensure(len(hooks) == 1 and bool(ubuntu) and all(labels == hooks for labels in ubuntu),
            f"{ci.HOST}'s model-hooks job runs on the Ubuntu shards' image: {hooks!r}, {ubuntu!r}")
+    # Each platform runs one unpartitioned job beside its shards, an include entry of its
+    # own that names its runner, so the shards and it together run the whole gate; the
+    # conditions that pick it out read the literal its entries state.
+    faults = _unpartitioned_faults(contents)
+    ensure(not faults, f"{ci.HOST} runs one unpartitioned job on each platform: {faults!r}")
+    analysis = "matrix.platform == 'Ubuntu' && matrix.shard == 'unpartitioned' }}"
+    saving = "save-cache: ${{ github.event_name == 'push' && matrix.shard == 'unpartitioned' }}"
+    for mutant, fragment in (
+            (contents.replace(analysis, analysis.replace("'unpartitioned'", "1")),
+             "the workflow analysis runs on"),
+            (contents.replace(saving, saving.replace("'unpartitioned'", "'Unpartitioned '")),
+             "setup-uv saves its cache on"),
+            (contents.replace("shard: unpartitioned,", "shard: Unpartitioned,"),
+             "the gate's PART line does not compare"),
+            (contents.replace("{platform: Ubuntu, shard: unpartitioned,",
+                              "{platform: Ubuntu, shard: Unpartitioned,"),
+             "not one unpartitioned value"),
+            (re.sub(r"(?m)^ *- \{platform: Windows, shard: unpartitioned,.*\n", "", contents),
+             "not each of")):
+        ensure(mutant != contents, f"the fixture for {fragment!r} changed nothing")
+        found = _unpartitioned_faults(mutant)
+        ensure(any(fragment in fault for fault in found),
+               f"a drifted unpartitioned literal must be refused ({fragment!r}): {found!r}")
+
+
+def _unpartitioned_faults(contents: str) -> list[str]:
+    """Why the host workflow's unpartitioned jobs need not run once per platform, or need
+    not be the jobs that run the gate's unpartitioned part, save the uv cache and, on
+    Ubuntu, analyze the workflows.
+
+    The include entries stating a shard must state one value between them, once for each
+    platform of the matrix, each entry naming its runner. The gate's PART line, setup-uv's
+    one save-cache line and the Analyze workflows step's one condition must each compare
+    `matrix.shard` with that value: a literal no combination holds leaves every job green
+    while none of them saves the cache or analyzes the workflows."""
+    shards = _job_text(contents, "host-gates-shard")
+    lines = [line for line in shards.split("\n") if not line.lstrip().startswith("#")]
+    listed = re.search(r"(?m)^        platform: \[([^\]\n]*)\]$", "\n".join(lines))
+    platforms = sorted(name.strip() for name in listed[1].split(",")) if listed else []
+    entries = [entry for entry in _include_entries(lines) if _key_values(entry, "shard")]
+    values = sorted({value for entry in entries for value in _key_values(entry, "shard")})
+    if len(values) != 1:
+        return [f"the include entries state the shards {values!r}, not one unpartitioned value"]
+    compared = f"matrix.shard == '{values[0]}'"
+    faults: list[str] = []
+    named = sorted(name for entry in entries if len(_key_values(entry, "runner")) == 1
+                   for name in _key_values(entry, "platform"))
+    if named != platforms:
+        faults.append(f"the {values[0]!r} entries name {named!r}, not each of {platforms!r} "
+                      "once with its runner")
+    if compared not in _GATE_PART:
+        faults.append(f"the gate's PART line does not compare {compared}")
+    steps = _step_texts(shards)
+    saves = [m[1] for step in steps
+             if any(uses.startswith("astral-sh/setup-uv@") for uses in _step_values(step, "uses"))
+             for m in re.finditer(r"(?m)^          save-cache:[ \t]*(.*?)[ \t]*$", step)]
+    saving = f"${{{{ github.event_name == 'push' && {compared} }}}}"
+    if saves != [saving]:
+        faults.append(f"setup-uv saves its cache on {saves!r}, not exactly {saving!r}")
+    analyses = [_step_values(step, "if") for step in steps
+                if _step_values(step, "name") == ["Analyze workflows"]]
+    analyzing = f"&& matrix.platform == 'Ubuntu' && {compared} }}}}"
+    if len(analyses) != 1 or len(analyses[0]) != 1 or not analyses[0][0].endswith(analyzing):
+        faults.append(f"the workflow analysis runs on {analyses!r}, not on Ubuntu's "
+                      f"{values[0]!r} job alone")
+    return faults
 
 
 # Each aggregate check's command: one `test "$NAME" = success` for each job it needs,
@@ -640,25 +713,32 @@ def _workflow_host_aggregate_needs() -> None:
                f"({fragment!r}): {found!r}")
 
 
-# The shard gate's command, and its two platform branches as the workflow spells them:
-# PowerShell on Windows and bash on every other runner, so each runner takes one, each
-# with the exact line its shell runs. A run that merely starts with the command could
-# append `|| true` and finish green without the gate's verdict.
-_GATE = "python tools/run.py --check --tests --shard"
+# The shard job's gate command, and its two platform branches as the workflow spells
+# them: PowerShell on Windows and bash on every other runner, so each runner takes one,
+# each with the exact line its shell runs. A run that merely starts with the command
+# could append `|| true` and finish green without the gate's verdict.
+_GATE = "python tools/run.py --check --tests"
 _GATE_COMMANDS = {
     ("${{ runner.os == 'Windows' }}", "pwsh"):
-        f'{_GATE} "$env:SHARD/$env:SHARDS" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"',
+        f'{_GATE} "$env:PART" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"',
     ("${{ runner.os != 'Windows' }}", "bash"):
-        f'{_GATE} "$SHARD/$SHARDS" --summary "$RUNNER_TEMP/$VERDICT_FILE"',
+        f'{_GATE} "$PART" --summary "$RUNNER_TEMP/$VERDICT_FILE"',
 }
 _GATE_BRANCHES = sorted(_GATE_COMMANDS)
 # A job-level key of the shard job, whose keys sit at four spaces, bare or quoted.
 _JOB_CONTINUE_RE = re.compile(r"""(?m)^    (["']?)continue-on-error\1[ \t]*:""")
-# Each gate step's environment block, exactly as the workflow spells it for both: the
-# shard and the shard count, and nothing a shell or an interpreter would read first.
-_GATE_ENV = ["        env:",
-             "          SHARD: ${{ matrix.shard }}",
-             "          SHARDS: ${{ matrix.shards }}"]
+# Each gate step's environment block, exactly as the workflow spells it for its branch:
+# the job's part of the gate, its shard or the unpartitioned members, and on Windows the
+# temporary directories on the checkout's drive, and nothing a shell or an interpreter
+# would read first.
+_GATE_PART = ("          PART: ${{ matrix.shard == 'unpartitioned' && '--unpartitioned' || "
+              "format('--shard={0}/{1}', matrix.shard, matrix.shards) }}")
+_GATE_ENVS = {
+    ("${{ runner.os == 'Windows' }}", "pwsh"):
+        ["        env:", _GATE_PART, "          TMP: ${{ runner.temp }}",
+         "          TEMP: ${{ runner.temp }}"],
+    ("${{ runner.os != 'Windows' }}", "bash"): ["        env:", _GATE_PART],
+}
 # A variable a shell reads before the command it runs: GitHub runs a bash step as
 # non-interactive bash, which sources the file BASH_ENV names and defines a function
 # for each BASH_FUNC_<name>%% variable holding a function body, and sh reads ENV where
@@ -789,7 +869,8 @@ def _gate_faults(contents: str) -> list[str]:
     exactly its branch's command with no continuation line folded into it, and neither a
     gate step nor the shard job may state `continue-on-error`. A shell can run code of
     its own before the command, so each gate step's `env:` block must be exactly its
-    SHARD and SHARDS lines, and no uncommented line of the workflow may spell BASH_ENV,
+    branch's PART line and, on Windows, its TMP and TEMP lines, and no uncommented line
+    of the workflow may spell BASH_ENV,
     ENV or a BASH_FUNC_ variable as a word in any spelling `_spellings` gives it: as
     written, with its numeric escapes decoded, with its quotes, backticks and
     backslashes then dropped, with each backslash or backtick escape read as a
@@ -820,13 +901,16 @@ def _gate_faults(contents: str) -> list[str]:
         if _continued(step):
             faults.append("a gate step's run continues past its line, so the command it "
                           "runs is not the line read")
-        environments = _step_values(step, "env")
-        if len(environments) != 1 or _step_block(step, "env") != _GATE_ENV:
-            faults.append(f"a gate step states {len(environments)} env key(s) and the "
-                          f"block {_step_block(step, 'env')!r}, not exactly its SHARD and "
-                          "SHARDS lines, so its shell can read more than the shard")
         conditions, shells = _step_values(step, "if"), _step_values(step, "shell")
         runs = _step_values(step, "run")
+        # A step whose branch is not one of the pair states no block that is its own.
+        environments = _step_values(step, "env")
+        stated = (_GATE_ENVS.get((conditions[0], shells[0]))
+                  if len(conditions) == 1 and len(shells) == 1 else None)
+        if len(environments) != 1 or _step_block(step, "env") != stated:
+            faults.append(f"a gate step states {len(environments)} env key(s) and the "
+                          f"block {_step_block(step, 'env')!r}, not exactly the lines its "
+                          "branch states, so its shell can read more than its part of the gate")
         if len(conditions) != 1 or len(shells) != 1 or len(runs) != 1:
             faults.append(f"a gate step states {len(conditions)} if, {len(shells)} shell "
                           f"and {len(runs)} run keys, not one of each")
@@ -846,7 +930,7 @@ _GATE_JOB = """jobs:
   host-gates-shard:
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Keep temporary files on the checkout drive
+      - name: Export a setting
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
         run: |
@@ -857,17 +941,17 @@ _GATE_JOB = """jobs:
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
         env:
-          SHARD: ${{ matrix.shard }}
-          SHARDS: ${{ matrix.shards }}
-        run: python tools/run.py --check --tests --shard "$env:SHARD/$env:SHARDS" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"
+          PART: ${{ matrix.shard == 'unpartitioned' && '--unpartitioned' || format('--shard={0}/{1}', matrix.shard, matrix.shards) }}
+          TMP: ${{ runner.temp }}
+          TEMP: ${{ runner.temp }}
+        run: python tools/run.py --check --tests "$env:PART" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"
 
       - name: Host gates and behavioral tests (Ubuntu)
         if: ${{ runner.os != 'Windows' }}
         shell: bash
         env:
-          SHARD: ${{ matrix.shard }}
-          SHARDS: ${{ matrix.shards }}
-        run: python tools/run.py --check --tests --shard "$SHARD/$SHARDS" --summary "$RUNNER_TEMP/$VERDICT_FILE"
+          PART: ${{ matrix.shard == 'unpartitioned' && '--unpartitioned' || format('--shard={0}/{1}', matrix.shard, matrix.shards) }}
+        run: python tools/run.py --check --tests "$PART" --summary "$RUNNER_TEMP/$VERDICT_FILE"
 
       - name: Report gate results
         if: ${{ !cancelled() }}
@@ -888,8 +972,9 @@ def _workflow_gate_on_every_runner() -> None:
     missing = ubuntu[0] + "      - name: Report" + ubuntu[1].split("      - name: Report", 1)[1]
     verdict = '--summary "$RUNNER_TEMP/$VERDICT_FILE"'
     report = "\n      - name: Report gate results\n"
-    sharded = "          SHARDS: ${{ matrix.shards }}\n"
-    environment = "        env:\n          SHARD: ${{ matrix.shard }}\n" + sharded
+    part = _GATE_PART + "\n"
+    environment = "        env:\n" + part
+    temporary = "          TMP: ${{ runner.temp }}\n          TEMP: ${{ runner.temp }}\n"
     job = "    runs-on: ${{ matrix.runner }}\n"
     trap = "${{ runner.temp }}/trap.sh\n"
     export = ("\n      - name: Export\n        if: ${{ runner.os != 'Windows' }}\n"
@@ -901,9 +986,9 @@ def _workflow_gate_on_every_runner() -> None:
              "not the complementary"),
             (_GATE_JOB.replace("shell: bash", "shell: pwsh"), "not the complementary"),
             (missing, "in 1 step(s), not two"),
-            (_GATE_JOB.replace('run: python tools/run.py --check --tests --shard "$SHARD',
+            (_GATE_JOB.replace('run: python tools/run.py --check --tests "$PART"',
                                'run: |\n          python tools/run.py --check --tests '
-                               '--shard "$SHARD'), "outside a step's own single-line run"),
+                               '"$PART"'), "outside a step's own single-line run"),
             (_GATE_JOB.replace("        shell: bash\n",
                                "        shell: bash\n        if: ${{ false }}\n"),
              "states 2 if, 1 shell and 1 run keys"),
@@ -930,20 +1015,27 @@ def _workflow_gate_on_every_runner() -> None:
                                f"{verdict}\n        continue-on-error: true\n{report}"),
              "a gate step states continue-on-error"),
             # A gate whose shell runs code of its own first: a step environment beyond
-            # the shard, or a startup file a shell sources, named at the step, the job
-            # or the workflow, bare, quoted or in a flow mapping, or written by a run.
-            (_GATE_JOB.replace(sharded, sharded + "          BASH_ENV: " + trap, 1),
-             "not exactly its SHARD and SHARDS lines"),
-            (_GATE_JOB.replace(sharded, sharded + "          BASH_ENV: " + trap, 1),
+            # its part of the gate, or a startup file a shell sources, named at the step,
+            # the job or the workflow, bare, quoted or in a flow mapping, or written by a
+            # run.
+            (_GATE_JOB.replace(part, part + "          BASH_ENV: " + trap, 1),
+             "not exactly the lines its branch states"),
+            (_GATE_JOB.replace(part, part + "          BASH_ENV: " + trap, 1),
              "the workflow names BASH_ENV"),
-            (_GATE_JOB.replace(sharded, sharded + "          PYTHONPATH: .\n"),
-             "not exactly its SHARD and SHARDS lines"),
-            (_GATE_JOB.replace("        shell: pwsh\n" + environment, "        shell: pwsh\n"),
-             "states 0 env key(s)"),
+            (_GATE_JOB.replace(part, part + "          PYTHONPATH: .\n"),
+             "not exactly the lines its branch states"),
+            (_GATE_JOB.replace("        shell: pwsh\n" + environment + temporary,
+                               "        shell: pwsh\n"), "states 0 env key(s)"),
             (_GATE_JOB.replace("        shell: bash\n" + environment,
-                               "        shell: bash\n        env: {SHARD: ${{ matrix.shard "
-                               "}}, SHARDS: ${{ matrix.shards }}}\n"),
-             "not exactly its SHARD and SHARDS lines"),
+                               "        shell: bash\n        env: {PART: --shard=1/4}\n"),
+             "not exactly the lines its branch states"),
+            # Each branch's own lines: Windows without its temporary directories on the
+            # checkout's drive, or bash with Windows's.
+            (_GATE_JOB.replace("          TEMP: ${{ runner.temp }}\n", ""),
+             "not exactly the lines its branch states"),
+            (_GATE_JOB.replace("        shell: bash\n" + environment,
+                               "        shell: bash\n" + environment + temporary),
+             "not exactly the lines its branch states"),
             (_GATE_JOB.replace(job, job + "    env:\n      BASH_ENV: " + trap),
              "the workflow names BASH_ENV"),
             (_GATE_JOB.replace(job, job + '    env:\n      "BASH_ENV": ' + trap),
@@ -1058,11 +1150,13 @@ def _runner_faults(contents: str) -> list[str]:
     """Why the host workflow's shard runners are not explicit images per platform.
 
     Every `runner` key the shard job states, in any mapping style, must belong to an
-    include entry naming one platform, every platform of the matrix must have one, and
-    no label may be a moving `-latest` alias. Every `runs-on` is a block line whose
-    value is either the shard job's `${{ matrix.runner }}`, stated once and there alone,
-    or one unquoted label fully matching `[A-Za-z0-9][A-Za-z0-9._-]*` without `latest`,
-    so a YAML alias, a flow sequence, another expression or a trailing comment is refused.
+    include entry naming one platform, every platform of the matrix must have one, the
+    entries naming one platform must all name the same label, so its shards and its
+    unpartitioned job share an image, and no label may be a moving `-latest` alias.
+    Every `runs-on` is a block line whose value is either the shard job's
+    `${{ matrix.runner }}`, stated once and there alone, or one unquoted label fully
+    matching `[A-Za-z0-9][A-Za-z0-9._-]*` without `latest`, so a YAML alias, a flow
+    sequence, another expression or a trailing comment is refused.
     """
     faults: list[str] = []
     shards = _job_text(contents, "host-gates-shard")
@@ -1081,6 +1175,8 @@ def _runner_faults(contents: str) -> list[str]:
     if len(stated) != sum(len(labels) for labels in runners.values()):
         faults.append(f"a runner key stands outside a one-platform include entry: {stated!r}")
     faults += [f"{name} names no runner image" for name in sorted(platforms - set(runners))]
+    faults += [f"{name} names {sorted(set(labels))!r}, not one runner image for all its jobs"
+               for name, labels in sorted(runners.items()) if len(set(labels)) > 1]
     faults += [f"{label!r} is not an explicit image label" for label in stated
                if "latest" in label or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", label)]
     workflow = "\n".join(line for line in contents.split("\n")
@@ -1131,7 +1227,9 @@ def _workflow_runner_labels_any_style() -> None:
             (block.replace("ubuntu-26.04", "ubuntu-latest"), "'ubuntu-latest' is not"),
             (flow.replace("runner: windows", '"runner": windows-latest-'), "not an explicit"),
             (block.rsplit("\n", 1)[0], "Windows names no runner image"),
-            (flow + "\n        runner: [ubuntu-26.04]", "outside a one-platform include")):
+            (flow + "\n        runner: [ubuntu-26.04]", "outside a one-platform include"),
+            (flow + "\n          - {platform: Windows, shard: unpartitioned, runner: windows-2022}",
+             "not one runner image for all its jobs")):
         found = _runner_faults(_SHARD_JOB.replace("INCLUDE", include))
         ensure(any(fragment in fault for fault in found),
                f"a moving or missing runner must be refused ({fragment!r}): {found!r}")

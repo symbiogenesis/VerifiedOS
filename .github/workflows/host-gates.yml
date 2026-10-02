@@ -11,15 +11,17 @@
 #
 # Shards partition mutation cases and behavioral test modules, and the cases of each
 # test module declaring them independent: four on Ubuntu and eight on Windows, whose
-# CPU-bound shards run the same work more slowly. Shard 1 also runs the checker,
-# typecheck and mutation repair path, and Ubuntu's shard 1 analyzes the workflows with
-# zizmor and actionlint. The model-hooks job runs the curated model's pre-commit hooks
-# on Ubuntu beside the shards. All shards and the hooks must pass.
+# CPU-bound shards run the same work more slowly. Beside them, one unpartitioned job per
+# platform runs what no shard holds, the checker, typecheck and mutation repair path,
+# and Ubuntu's analyzes the workflows with zizmor and actionlint. The model-hooks job
+# runs the curated model's pre-commit hooks on Ubuntu beside them. Those 15 jobs run at
+# once, and Guest CI's three lanes make 18, under the Free plan's 20 concurrent jobs.
+# Every shard, both unpartitioned jobs and the hooks must pass.
 # uv installs locked dependencies into a checkout-local environment;
 # only downloads are cached. K-67 checks dependency pins; K-75 checks the Python floor.
 #
 # Per-member JSON in runner.temp supplies failure annotations and the job summary.
-# Reporting is diagnostic; the gate and workflow-analysis steps own the shard's
+# Reporting is diagnostic; the gate and workflow-analysis steps own the job's
 # verdict.
 
 name: host-gates
@@ -56,7 +58,7 @@ env:
 
 jobs:
   host-gates-shard:
-    name: host-gates (${{ matrix.platform }}, shard ${{ matrix.shard }}/${{ matrix.shards }})
+    name: host-gates (${{ matrix.platform }}, ${{ matrix.shard == 'unpartitioned' && 'unpartitioned' || format('shard {0}/{1}', matrix.shard, matrix.shards) }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
@@ -69,22 +71,18 @@ jobs:
           - {platform: Ubuntu, shard: 6}
           - {platform: Ubuntu, shard: 7}
           - {platform: Ubuntu, shard: 8}
-        # Each include adds its platform's image label and partition count to that
-        # platform's combinations. Explicit labels make an image move a reviewed edit;
-        # the job names carry the platform alone, so moving an image renames nothing.
+        # Each of the first two includes adds its platform's image label and partition
+        # count to that platform's combinations. Explicit labels make an image move a
+        # reviewed edit; the job names carry the platform alone, so moving an image
+        # renames nothing. The last two each name a shard no combination holds, so each
+        # adds a combination of its own, spelled in full with the label its platform's
+        # shards take: that platform's unpartitioned job, which takes no partition count.
         include:
           - {platform: Ubuntu, runner: ubuntu-26.04, shards: 4}
           - {platform: Windows, runner: windows-2025-vs2026, shards: 8}
+          - {platform: Ubuntu, shard: unpartitioned, runner: ubuntu-26.04}
+          - {platform: Windows, shard: unpartitioned, runner: windows-2025-vs2026}
     steps:
-      # Windows images keep the checkout and runner.temp on D: but TEMP on the slower
-      # C: drive; selftest sandboxes and test scratch trees follow TMP and TEMP.
-      - name: Keep temporary files on the checkout drive
-        if: ${{ runner.os == 'Windows' }}
-        shell: pwsh
-        run: |
-          "TMP=$env:RUNNER_TEMP" >> $env:GITHUB_ENV
-          "TEMP=$env:RUNNER_TEMP" >> $env:GITHUB_ENV
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.revision || github.sha }}
@@ -127,7 +125,7 @@ jobs:
           version-file: tools/pyproject.toml
           enable-cache: true
           # PRs reuse main's downloads without uploading a cache for each merge ref.
-          save-cache: ${{ github.event_name == 'push' && matrix.shard == 1 }}
+          save-cache: ${{ github.event_name == 'push' && matrix.shard == 'unpartitioned' }}
           # The key names the runner image but no workflow; the suffix keeps Guest
           # CI's larger download set and this one apart on a shared image.
           cache-suffix: host-gates
@@ -137,30 +135,34 @@ jobs:
 
       # Each platform's native shell runs the gate, PowerShell on Windows and bash on
       # Ubuntu, as a developer there runs it; Git Bash would put its own tools ahead of
-      # the runner's PATH for the whole Windows suite. Both read the shard and the
-      # verdict path from the environment rather than from expressions in the body.
+      # the runner's PATH for the whole Windows suite. Both read their part of the gate,
+      # one shard or the unpartitioned members, and the verdict path from the
+      # environment rather than from expressions in the body. Windows images keep the
+      # checkout and runner.temp on D: but TEMP on the slower C: drive; selftest
+      # sandboxes and test scratch trees follow TMP and TEMP, so the Windows gate names
+      # runner.temp for both.
       - name: Host gates and behavioral tests (Windows)
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
         env:
-          SHARD: ${{ matrix.shard }}
-          SHARDS: ${{ matrix.shards }}
-        run: python tools/run.py --check --tests --shard "$env:SHARD/$env:SHARDS" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"
+          PART: ${{ matrix.shard == 'unpartitioned' && '--unpartitioned' || format('--shard={0}/{1}', matrix.shard, matrix.shards) }}
+          TMP: ${{ runner.temp }}
+          TEMP: ${{ runner.temp }}
+        run: python tools/run.py --check --tests "$env:PART" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"
 
       - name: Host gates and behavioral tests (Ubuntu)
         if: ${{ runner.os != 'Windows' }}
         shell: bash
         env:
-          SHARD: ${{ matrix.shard }}
-          SHARDS: ${{ matrix.shards }}
-        run: python tools/run.py --check --tests --shard "$SHARD/$SHARDS" --summary "$RUNNER_TEMP/$VERDICT_FILE"
+          PART: ${{ matrix.shard == 'unpartitioned' && '--unpartitioned' || format('--shard={0}/{1}', matrix.shard, matrix.shards) }}
+        run: python tools/run.py --check --tests "$PART" --summary "$RUNNER_TEMP/$VERDICT_FILE"
 
       # The analyzers read only the checked-out workflow files, so one runner decides
       # them. zizmor is locked in tools/uv.lock's workflows group, outside the gate's
       # environment; actionlint.sh verifies its pinned release archive. No pinned
       # shellcheck or pyflakes is provisioned, so actionlint runs without either.
       - name: Analyze workflows
-        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' && matrix.platform == 'Ubuntu' && matrix.shard == 1 }}
+        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' && matrix.platform == 'Ubuntu' && matrix.shard == 'unpartitioned' }}
         shell: bash
         env:
           UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/venv-workflows
@@ -208,7 +210,7 @@ jobs:
                           f"{m['name']}: {m['elapsed_seconds']:.2f}s" for m in report["members"]))
                   # The parts members measured inside themselves: test modules, selftest
                   # phases and cases. They overlap like members; the slowest show where
-                  # a shard's time went.
+                  # a job's time went.
                   slowest = sorted(((u["seconds"], u["kind"], u["name"])
                                     for m in report["members"] for u in m.get("units") or []),
                                    reverse=True)[:10]
@@ -217,8 +219,9 @@ jobs:
                   if units:
                       annotate("notice", "Slowest units: " + units)
                   shard = report.get("shard", {})
-                  label = f"shard {shard.get('index', '?')}/{shard.get('total', '?')}"
-                  summary.write(f"### Host gates: {label}\n\nAll shards must pass.\n\n"
+                  label = ("unpartitioned" if report.get("unpartitioned") else
+                           f"shard {shard.get('index', '?')}/{shard.get('total', '?')}")
+                  summary.write(f"### Host gates: {label}\n\nEvery Host CI job must pass.\n\n"
                                 + "\n".join(rows) + "\n"
                                 + (f"\nSlowest units: {units}\n" if units else ""))
           except Exception as err:
@@ -229,7 +232,7 @@ jobs:
   # The curated model's hooks run in a job of their own beside the shards, on the Ubuntu
   # shards' image, so no shard waits after its gate while the hooks' environments
   # install. It checks out and verifies a dispatch as the shards do, and sets up the same
-  # Python and uv; only shard 1 saves the uv downloads it restores.
+  # Python and uv; only Ubuntu's unpartitioned job saves the uv downloads it restores.
   model-hooks:
     name: model-hooks
     runs-on: ubuntu-26.04
@@ -311,9 +314,10 @@ jobs:
 
   # fanout_ci.HOST_JOBS in tools/vos/fanout_ci.py owns these job names; renaming one
   # changes the evidence fanout accepts. No repository ruleset requires them. A failed,
-  # skipped or cancelled shard or model-hooks job cannot leave a successful aggregate,
-  # even if its peers completed successfully. Both aggregates require every shard and
-  # the hooks, whatever their platform, so they fail together, and fail-fast is off so
+  # skipped or cancelled shard, unpartitioned or model-hooks job cannot leave a
+  # successful aggregate, even if its peers completed successfully. Both aggregates
+  # require every shard, both unpartitioned jobs and the hooks, whatever their
+  # platform, so they fail together, and fail-fast is off so
   # that the second to finish reports that failure rather than being cancelled. The
   # aggregates check out nothing and only read the other jobs' results, so they take the
   # generally available ubuntu-24.04 image rather than the shards' preview image, whose
@@ -329,7 +333,7 @@ jobs:
       matrix:
         platform: [Ubuntu, Windows]
     steps:
-      - name: Require every shard on both operating systems and the model hooks
+      - name: Require every shard and unpartitioned job on both operating systems and the model hooks
         env:
           SHARDS_RESULT: ${{ needs.host-gates-shard.result }}
           HOOKS_RESULT: ${{ needs.model-hooks.result }}
