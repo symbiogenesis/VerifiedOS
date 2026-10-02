@@ -27,6 +27,11 @@ from vos.cli import model as model_cli
 from vos.cli import proofs as proofs_cli
 from vos.cli import worktree
 
+# Each case builds its own sandbox repository, lane and native tree, and patches only
+# inside a `with`, so the cases share no state, and a sharded run spreads them over
+# every shard (vos/cli/test.py).
+INDEPENDENT_CASES = True
+
 FILES = {".gitignore": "/.worktrees/\n/out/\n", "README.md": "fixture\n"}
 
 
