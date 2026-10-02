@@ -17,6 +17,8 @@ from vos.cli import proof_reading
 from vos.cli import proofs as proofs_cli
 
 WORKFLOW = Path(__file__).resolve().parents[2] / ".github" / "workflows" / "guest-gates.yml"
+# The boot signature target campaign, which restores the model lane's caches.
+CAMPAIGN = WORKFLOW.parent / "boot-crypto-target.yml"
 READING_BASE = "c" * 40
 # The minutes guest-gates.yml's job leaves under its limit, past every lane's step limits.
 LIMIT_MARGIN = 30
@@ -101,12 +103,15 @@ def _sail_memo_state_recorded() -> None:
                        "STEP_RESULTS": "{}", "GITHUB_SHA": "b" * 40, "GUEST_REVISION": "",
                        "GUEST_TOOLCHAINS": "cold",
                        "GITHUB_STEP_SUMMARY": str(root / "summary.md")}
-        with patch.dict(os.environ, {**environment, "GUEST_LANE": "model",
-                                     "GUEST_SAIL_MEMO": "restored"}):
-            main()
-        result = json.loads((root / "main" / "results.json").read_text(encoding="utf-8"))
-        ensure(result["sail_memo"] == "restored", "the workflow's memo state was not retained")
-        for lane, memo in (("model", ""), ("model", "warm"), ("proofs", "cold")):
+        # The model lane's build and the rtl lane's bundle each run Sail over a memo.
+        for lane, memo in (("model", "restored"), ("rtl", "cold")):
+            with patch.dict(os.environ, {**environment, "GUEST_LANE": lane,
+                                         "GUEST_SAIL_MEMO": memo}):
+                main()
+            result = json.loads((root / "main" / "results.json").read_text(encoding="utf-8"))
+            ensure(result["lane"] == lane and result["sail_memo"] == memo,
+                   f"the {lane} lane's memo state was not retained")
+        for lane, memo in (("model", ""), ("model", "warm"), ("rtl", ""), ("proofs", "cold")):
             with patch.dict(os.environ, {**environment, "GUEST_LANE": lane,
                                          "GUEST_SAIL_MEMO": memo}):
                 try:
@@ -271,10 +276,16 @@ def _reading_outcome_recorded() -> None:
             ensure(False, f"the {lane} lane accepted reading base {base!r}")
 
 
+def _workflow_step(contents: str, name: str) -> str:
+    """One step's text in a workflow, from its name line to the next step; empty where no
+    step bears the name."""
+    parts = contents.split(f"      - name: {name}\n", 1)
+    return parts[1].split("\n      - ", 1)[0] if len(parts) == 2 else ""
+
+
 def _step(name: str) -> str:
     """One guest-gates step's text, from its name line to the next step."""
-    contents = WORKFLOW.read_text(encoding="utf-8")
-    return contents.split(f"      - name: {name}\n", 1)[1].split("\n      - ", 1)[0]
+    return _workflow_step(WORKFLOW.read_text(encoding="utf-8"), name)
 
 
 def _reading(body: str) -> dict[str, object]:
@@ -353,29 +364,193 @@ def _reading_step() -> None:
                    f"the step must accept exactly a comparison naming differences: {first!r}")
 
 
+def _runs_in(lane: str, step: str) -> bool:
+    """Whether a guest-gates step can run in `lane`: a condition naming lanes runs only in
+    those, one excluding a lane never in it, and a step without either in every lane."""
+    guard = re.search(r"(?m)^        if: (.*)$", step)
+    condition = guard[1] if guard is not None else ""
+    named = set(re.findall(r"matrix\.lane == '(\w+)'", condition))
+    return (not named or lane in named) and f"matrix.lane != '{lane}'" not in condition
+
+
+def _guest_steps() -> list[str]:
+    """The guest-gates job's steps, each from its name line to the next step."""
+    job = WORKFLOW.read_text(encoding="utf-8").split("\n  guest-gates:\n", 1)[1]
+    return job.split("\n      - ")[1:]
+
+
 def _lane_step_limits() -> None:
     # A job that reaches its own limit is cancelled, so its report and upload never run:
     # the limits of the steps each lane can run stay the margin the job states under its
     # limit, which the steps without a limit of their own share.
     job = WORKFLOW.read_text(encoding="utf-8").split("\n  guest-gates:\n", 1)[1]
     job_limit = re.search(r"(?m)^    timeout-minutes: (\d+)$", job)
-    for lane, other, steps in (
-            ("model", "proofs", ("Bootstrap guest toolchains", "Model evidence",
-                                 "Check generated model bundle", "Lint standalone RTL",
-                                 "Check frozen RTL widths and store lanes",
-                                 "Crosscheck RTL against fresh model vectors")),
-            ("proofs", "model", ("Bootstrap guest toolchains", "Proof gate",
-                                 "Read the proofs against the reading base"))):
+    named = {"model": ("Bootstrap guest toolchains", "Model evidence"),
+             "rtl": ("Bootstrap guest toolchains", "Check generated model bundle",
+                     "Lint standalone RTL", "Check frozen RTL widths and store lanes",
+                     "Crosscheck RTL against fresh model vectors"),
+             "proofs": ("Bootstrap guest toolchains", "Proof gate",
+                        "Read the proofs against the reading base")}
+    ensure(set(named) == set(LANES), f"every lane's limits are read: {sorted(LANES)}")
+    for lane, steps in named.items():
         limits: dict[str, int] = {}
-        for lane_step in job.split("\n      - ")[1:]:
-            guard = re.search(r"(?m)^        if: (.*)$", lane_step)
+        for lane_step in _guest_steps():
             limit = re.search(r"(?m)^        timeout-minutes: (\d+)$", lane_step)
-            if limit is not None and (guard is None or f"matrix.lane == '{other}'" not in guard[1]):
+            if limit is not None and _runs_in(lane, lane_step):
                 limits[lane_step.split("\n", 1)[0].removeprefix("name: ")] = int(limit[1])
         ensure(set(steps) <= set(limits) and job_limit is not None
                and sum(limits.values()) + LIMIT_MARGIN <= int(job_limit[1]),
                f"the {lane} lane's step limits {limits} must stay {LIMIT_MARGIN} minutes "
                "under the job's")
+
+
+def _matrix(contents: str) -> list[dict[str, str]]:
+    """The matrix entries of guest-gates.yml's text, each as its fields."""
+    parts = contents.split("        include:\n", 1)
+    block = parts[1] if len(parts) == 2 else ""
+    entries: list[dict[str, str]] = []
+    for line in block.split("\n    env:\n", 1)[0].splitlines():
+        first = re.fullmatch(r" {10}- (\w+): (.*)", line)
+        later = re.fullmatch(r" {12}(\w+): (.*)", line)
+        if first is not None:
+            entries.append({first[1]: first[2]})
+        elif later is not None and entries:
+            entries[-1][later[1]] = later[2]
+    return entries
+
+
+def _lanes_match_the_workflow() -> None:
+    """The reporter's lanes are the workflow's: each lane's commands run in it alone, a
+    lane restoring another's caches selects that lane's toolchains and saves none of
+    them, and a weekly skip needs every lane's artifact."""
+    entries = _matrix(WORKFLOW.read_text(encoding="utf-8"))
+    lanes = {entry["lane"]: entry for entry in entries}
+    ensure(set(lanes) == set(LANES) and len(lanes) == len(entries),
+           f"the matrix's lanes are the reporter's, once each: {entries}")
+    for lane, entry in lanes.items():
+        owner = lanes.get(entry["cache_lane"], {})
+        ensure(owner.get("cache_lane") == owner.get("lane")
+               and owner.get("toolchains") == entry["toolchains"],
+               f"the {lane} lane restores caches its own toolchain selection fills: {entry}")
+    steps = _guest_steps()
+    for lane, ids in LANES.items():
+        for step_id in ids:
+            step = next((text for text in steps if f"\n        id: {step_id}\n" in text), "")
+            others = [other for other in LANES if other != lane and _runs_in(other, step)]
+            ensure(_runs_in(lane, step) and (step_id == "bootstrap" or not others),
+                   f"step {step_id} runs in the {lane} lane alone, also running in {others}")
+    for name in ("Save installed toolchains", "Cache guest source downloads"):
+        step = next((text for text in steps if text.startswith(f"name: {name}\n")), "")
+        ensure("matrix.cache_lane == matrix.lane" in step,
+               f"{name!r} saves only from the lane whose cache it is")
+    changes = WORKFLOW.read_text(encoding="utf-8").split("\n  changes:\n", 1)[1].split(
+        "\n  guest-gates:\n", 1)[0]
+    for lane in LANES:
+        ensure(f'grep -q "^guest-{lane}-$GITHUB_SHA-"' in changes,
+               f"a weekly skip needs the {lane} lane's artifact")
+
+
+def _with(step: str, key: str) -> list[str]:
+    """Every one-line value a step's `with:` states for `key`."""
+    return re.findall(rf"(?m)^          {re.escape(key)}: (.*)$", step)
+
+
+def _block(text: str, header: str) -> list[str]:
+    """The stripped lines of the block scalar the line `header` opens, which end at the
+    first line indented no deeper than it; empty where no line is `header`."""
+    lines = text.split("\n")
+    start = next((n for n, line in enumerate(lines) if line == header), None)
+    depth = len(header) - len(header.lstrip())
+    block: list[str] = []
+    for line in lines[start + 1:] if start is not None else []:
+        if len(line) - len(line.lstrip()) <= depth:
+            break
+        block.append(line.strip())
+    return block
+
+
+def _campaign_restore_faults(gates: str, campaign: str) -> list[str]:
+    """Why the boot signature campaign's restores could miss the caches guest-gates.yml's
+    model lane saves. Each restore's key, fallback and paths must be the model lane's,
+    read with its cache lane and its image component, the runner image's version, which
+    the campaign names directly. Both workflows must compute that version, the Sail
+    solver identity and the recipe identity alike, the last for the model lane's
+    selection, in steps bearing the ids the keys read."""
+    faults: list[str] = []
+    model = next((entry for entry in _matrix(gates) if entry.get("lane") == "model"), {})
+    images = (_workflow_step(gates, "Identify the runner image"),
+              _workflow_step(campaign, "Identify the runner image"))
+    version = "${ImageOS:-unknown}-${ImageVersion:-unknown}"
+    if not (version in images[0] and version in images[1]
+            and '[[ "$GUEST_CACHE_LANE" == proofs ]]' in images[0]
+            and 'echo "toolchain=$version"' in images[0]):
+        faults.append("the model lane's image component is not the image version the "
+                      "campaign computes")
+    for name, ident in (("Identify the runner image", "image"),
+                        ("Identify the toolchain recipe", "recipe"),
+                        ("Identify the Sail solver", "solver")):
+        if not re.search(rf"(?m)^        id: {ident}$", _workflow_step(campaign, name)):
+            faults.append(f"the campaign's {name!r} is not identified as {ident}")
+    recipe = " ".join(_workflow_step(campaign, "Identify the toolchain recipe")
+                      .replace("\\\n", " ").split())
+    if not model.get("toolchains") or (
+            f"$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity "
+            f"{model['toolchains']})") not in recipe:
+        faults.append("the campaign's recipe identity is not the model lane's selection's")
+    restore = (_workflow_step(gates, "Restore installed toolchains"),
+               _workflow_step(campaign, "Restore installed toolchains"))
+    keys = _with(restore[0], "key")
+    key = keys[0] if len(keys) == 1 else ""
+    for lane_value, model_value in (("${{ matrix.cache_lane }}", model.get("cache_lane", "")),
+                                    ("${{ steps.image.outputs.toolchain }}",
+                                     "${{ steps.image.outputs.version }}")):
+        key = key.replace(lane_value, model_value)
+    if not key or _with(restore[1], "key") != [key]:
+        faults.append(f"the campaign's toolchain key {_with(restore[1], 'key')} is not the "
+                      f"model lane's {key!r}")
+    if _with(restore[1], "restore-keys") != _with(restore[0], "restore-keys"):
+        faults.append("the campaign's toolchain fallback is not the model lane's")
+    paths = _block(gates, "      GUEST_TOOLCHAIN_PATHS: |")
+    if (_with(restore[0], "path") != ["${{ env.GUEST_TOOLCHAIN_PATHS }}"] or not paths
+            or _block(restore[1], "          path: |") != paths):
+        faults.append("the campaign's toolchain paths are not GUEST_TOOLCHAIN_PATHS")
+    memo = (_workflow_step(gates, "Restore the Sail memo"),
+            _workflow_step(campaign, "Restore the Sail memo"))
+    for field in ("path", "key", "restore-keys"):
+        stated = _with(memo[0], field)
+        if len(stated) != 1 or _with(memo[1], field) != stated:
+            faults.append(f"the campaign's Sail memo {field} is not the model lane's {stated}")
+    solver = [[line.strip() for line in _workflow_step(text, "Identify the Sail solver")
+               .split("\n") if "identity=" in line] for text in (gates, campaign)]
+    if len(solver[0]) != 1 or solver[1] != solver[0]:
+        faults.append(f"the campaign's Sail solver identity {solver[1]} is not the model "
+                      f"lane's {solver[0]}")
+    return faults
+
+
+def _campaign_restores_the_model_lane() -> None:
+    """The boot signature campaign restores the model lane's installed toolchains and Sail
+    memo under the keys and paths that lane saves them by, and a drift on either side is
+    named."""
+    original = {"gates": WORKFLOW.read_text(encoding="utf-8"),
+                "campaign": CAMPAIGN.read_text(encoding="utf-8")}
+    found = _campaign_restore_faults(original["gates"], original["campaign"])
+    ensure(not found, f"the campaign's restores miss the model lane's caches: {found}")
+    identity = "-${{ steps.recipe.outputs.identity }}\n"
+    for side, old, new in (
+            ("campaign", "key: guest-toolchains-v1-model-", "key: guest-toolchains-v2-model-"),
+            ("gates", identity, identity.replace("\n", "-x\n")),
+            ("campaign", "            !~/verifiedos-guest/opam/log\n", ""),
+            ("gates", "        !~/verifiedos-guest/opam/log\n", ""),
+            ("campaign", "restore-keys: guest-sail-memo-v1-", "restore-keys: guest-sail-memo-v2-"),
+            ("campaign", "--toolchain sail --toolchain rtl)", "--toolchain sail)"),
+            ("gates", 'echo "toolchain=$version"', 'echo "toolchain=${ImageOS:-unknown}"'),
+            ("campaign", "['snapshots']['sail'][:16]", "['snapshots']['sail'][:12]"),
+            ("campaign", "        id: recipe\n", "        id: identity\n")):
+        mutant = dict(original, **{side: original[side].replace(old, new, 1)})
+        ensure(mutant[side] != original[side]
+               and bool(_campaign_restore_faults(mutant["gates"], mutant["campaign"])),
+               f"the campaign's restores must be refused with {old!r} made {new!r} in {side}")
 
 
 def cases() -> list[Case]:
@@ -394,4 +569,8 @@ def cases() -> list[Case]:
         Case("reading step runs in the gate's environment and reads compare's verdict",
              _reading_step),
         Case("each lane's step limits stay a margin under the job's", _lane_step_limits),
+        Case("the reporter's lanes and their caches match the workflow's",
+             _lanes_match_the_workflow),
+        Case("the boot signature campaign restores the model lane's caches by their keys",
+             _campaign_restores_the_model_lane),
     ]

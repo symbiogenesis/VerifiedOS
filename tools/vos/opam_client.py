@@ -25,8 +25,10 @@ The route has system prerequisites of its own, which this module also owns, beca
 `opam init` refuses to create a root without them and every switch recipe then fails
 in a root that does not stand.
 
-Guest CI's download and installed-toolchain caches must hash this file, because an
-opam root restored under another client is another root.
+Guest CI's download cache must hash this file, and its installed-toolchain cache this
+module's release, SHA-256 values, root format, repositories and root-creation route,
+which guest bootstrap's recipe identity reads, because an opam root restored under
+another client is another root.
 """
 
 import re

@@ -5,12 +5,13 @@ import argparse
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 from collections.abc import Callable, Mapping
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import AbstractContextManager, redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
@@ -26,7 +27,7 @@ def _missing_dependency_refuses() -> None:
     with (patch.object(bootstrap, "missing_packages", return_value=["device-tree-compiler"]),
           patch.object(bootstrap, "run") as launched):
         try:
-            bootstrap.system_packages(False, io.StringIO())
+            bootstrap.system_packages(False, io.StringIO(), ("device-tree-compiler",))
         except ValueError as error:
             ensure("device-tree-compiler" in str(error), "missing package was not named")
         else:
@@ -40,16 +41,15 @@ def _package_query_is_batched() -> None:
         "installed\tinstall ok installed\n"
         "unconfigured\tinstall ok unpacked\n"
         "multiarch\tinstall ok installed\nmultiarch\tinstall ok installed\n"))
-    with (patch.object(bootstrap, "PACKAGES", packages),
-          patch.object(bootstrap.subprocess, "run", return_value=result) as query):
-        ensure(bootstrap.missing_packages() == list(packages[1:]),
+    with patch.object(bootstrap.subprocess, "run", return_value=result) as query:
+        ensure(bootstrap.missing_packages(packages) == list(packages[1:]),
                "batch query lost missing, unconfigured or ambiguous packages")
         ensure(query.call_count == 1 and query.call_args.args[0][-4:] == packages,
                "package detection did not use one query for every dependency")
     result = subprocess.CompletedProcess([], 2, stdout="", stderr="database unreadable")
     with patch.object(bootstrap.subprocess, "run", return_value=result):
         try:
-            bootstrap.missing_packages()
+            bootstrap.missing_packages(packages)
         except subprocess.CalledProcessError as error:
             ensure(error.returncode == 2, "fatal query failure was changed")
         else:
@@ -63,7 +63,7 @@ def _nonroot_system_install() -> None:
           patch.object(bootstrap, "sys", SimpleNamespace(platform="linux")),
           patch.object(bootstrap.os, "geteuid", return_value=1000, create=True),
           patch.object(bootstrap, "run") as launched):
-        bootstrap.system_packages(True, io.StringIO())
+        bootstrap.system_packages(True, io.StringIO(), ("m4",))
         ensure(len(launched.call_args_list) == 2, "system install did not update and install")
         for call in launched.call_args_list:
             ensure(call.args[0][:2] == ("sudo", "-n"), "non-root install may prompt or lacks sudo")
@@ -382,14 +382,137 @@ def _opam_client_has_one_owner() -> None:
 
 def _root_prerequisites_come_from_the_owner() -> None:
     """The packages `opam init` needs are installed before bootstrap creates the root,
-    and bootstrap reads them from the client's owner rather than restating them."""
-    missing = [package for package in bootstrap.opam_client.ROOT_PREREQUISITES
-               if package not in bootstrap.PACKAGES]
-    ensure(not missing, f"bootstrap installs every root prerequisite, lacking {missing}")
+    whatever the selection, and bootstrap reads them from the client's owner rather than
+    restating them."""
+    for selected in (*((name,) for name in bootstrap.TOOLCHAINS), bootstrap.TOOLCHAINS):
+        missing = [package for package in bootstrap.opam_client.ROOT_PREREQUISITES
+                   if package not in bootstrap.packages(selected)]
+        ensure(not missing, f"bootstrap installs every root prerequisite for {selected}, "
+                            f"lacking {missing}")
     source = Path(bootstrap.__file__).read_text(encoding="utf-8")
     restated = [package for package in bootstrap.opam_client.ROOT_PREREQUISITES
                 if f'"{package}"' in source]
     ensure(not restated, f"bootstrap must read the root prerequisites, not restate {restated}")
+
+
+def _packages_follow_the_selection() -> None:
+    """A selection installs the root's packages and its own toolchains', each once: the
+    Rocq-only lane none of the model build's or Verilator's, and the model lane's
+    selection every package the Sail and Verilator entries name."""
+    rocq = bootstrap.packages(("rocq",))
+    ensure(rocq == (*bootstrap.BASE_PACKAGES, *bootstrap.SWITCH_PACKAGES),
+           f"the prover's selection installs the root's and a switch's packages: {rocq}")
+    for package in ("cmake", "ninja-build", "clang", "ccache", "device-tree-compiler",
+                    "help2man", "libfl-dev"):
+        ensure(package not in rocq, f"the prover's selection installs {package}")
+    for selected in (("sail",), ("rtl",), ("sail", "rtl"), bootstrap.TOOLCHAINS):
+        found = bootstrap.packages(selected)
+        wanted = {*bootstrap.BASE_PACKAGES,
+                  *(package for name in selected for package in bootstrap.PACKAGES[name])}
+        ensure(set(found) == wanted and len(set(found)) == len(found),
+               f"selection {selected} installs {found}, each once, not {sorted(wanted)}")
+    ensure(set(bootstrap.rtl.VERILATOR_PACKAGES) <= set(bootstrap.packages(("rtl",))),
+           "Verilator's build prerequisites come from its installer's owner")
+    # Installation asks the package database for its own selection's packages alone.
+    with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {}, clear=True):
+        args = argparse.Namespace(jobs=2, toolchains=["rocq"], install_system=True,
+                                  github_env=None, github_path=None)
+        with (patch.object(bootstrap, "system_packages", side_effect=subprocess.CalledProcessError(
+                  1, ("apt-get", "install"))) as installed,
+              patch.object(bootstrap, "retain_logs"),
+              patch.object(bootstrap.platform, "platform", return_value="fixture-host"),
+              redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
+            code = bootstrap.install(args, Path(directory), "fixture")
+    ensure(code == 1 and installed.call_args.args[0] is True
+           and installed.call_args.args[2] == rocq,
+           f"the prover's installation asks for its packages alone: {installed.call_args}")
+
+
+def _recipe_identity_follows_its_owners() -> None:
+    """The installed-toolchain cache identity is a SHA-256 of the owner data deciding a
+    selection's installed bytes: stable and independent of the checkout's location, moved
+    by a selected snapshot's bytes, the selection's packages, the client's pin, a
+    switch's recipe or Verilator's pin, and by nothing an unselected toolchain or other
+    code owns."""
+    model_lane, proofs_lane = ("sail", "rtl"), ("rocq",)
+
+    def identities() -> tuple[str, str]:
+        return bootstrap.recipe_identity(model_lane), bootstrap.recipe_identity(proofs_lane)
+
+    model, proofs = identities()
+    ensure(all(re.fullmatch(r"[0-9a-f]{64}", found) for found in (model, proofs))
+           and model != proofs and identities() == (model, proofs),
+           f"each selection has one stable SHA-256 identity, got {model} and {proofs}")
+    text = json.dumps(bootstrap.recipe(bootstrap.TOOLCHAINS))
+    ensure('"tools/opam/sail.lock"' in text and '"tools/opam/rocq.lock"' in text
+           and json.dumps(str(bootstrap.TOOLS.parent))[1:-1] not in text,
+           f"the recipe names checkout files relative to the checkout: {text}")
+    digest = bootstrap.receipts.digest
+    read: list[str] = []
+
+    def reading(path: Path) -> str:
+        read.append(Path(path).name)
+        return digest(path)
+
+    with patch.object(bootstrap.receipts, "digest", side_effect=reading):
+        identities()
+    ensure(read == ["sail.lock", "rocq.lock"],
+           f"each selection reads its own switch's snapshot and no source file, read {read}")
+
+    def changed(name: str) -> AbstractContextManager[object]:
+        return patch.object(bootstrap.receipts, "digest", side_effect=lambda path: (
+            "0" * 64 if Path(path).name == name else digest(path)))
+
+    moved: dict[str, tuple[AbstractContextManager[object], tuple[bool, bool]]] = {
+        "sail.lock's bytes": (changed("sail.lock"), (True, False)),
+        "rocq.lock's bytes": (changed("rocq.lock"), (False, True)),
+        "the prover's packages": (patch.dict(bootstrap.PACKAGES, {
+            "rocq": (*bootstrap.SWITCH_PACKAGES, "another-package")}), (False, True)),
+        "every selection's packages": (patch.object(
+            bootstrap, "BASE_PACKAGES", (*bootstrap.BASE_PACKAGES, "another-package")),
+            (True, True)),
+        "the client's release": (patch.object(bootstrap.opam_client, "OPAM_VERSION", "9.9.9"),
+                                 (True, True)),
+        "the client's SHA-256": (patch.dict(bootstrap.opam_client.OPAM_HASHES, {
+            "x86_64": ("x86_64", "0" * 64)}), (True, True)),
+        "the client's repositories": (patch.object(
+            bootstrap.opam_client, "OPAM_REPOSITORIES",
+            (*bootstrap.opam_client.OPAM_REPOSITORIES, ("mine", "https://example.invalid"))),
+            (True, True)),
+        "the Sail switch's recipe": (patch.object(bootstrap.env, "SAIL_INSTALL", tuple(
+            tuple(argument.replace(bootstrap.env.SAIL_SWITCH, "another-switch")
+                  for argument in argv) for argv in bootstrap.env.SAIL_INSTALL)),
+            (True, False)),
+        "Verilator's pin": (patch.object(bootstrap.rtl, "VERILATOR_SHA256", "0" * 64),
+                            (True, False)),
+        # The solver installs uncached on every run; tag identities and code decide no
+        # installed byte.
+        "the solver's version": (patch.object(bootstrap.env, "Z3_VERSION", "0.0.0"),
+                                 (False, False)),
+        "Verilator's tag identities": (patch.object(bootstrap.rtl, "VERILATOR_TAGS", {}),
+                                       (False, False)),
+        "the client's root reading": (patch.object(bootstrap.opam_client, "root_gaps",
+                                                   lambda root: []), (False, False)),
+    }
+    for what, (edit, expected) in moved.items():
+        with edit:
+            found = identities()
+        ensure((found[0] != model, found[1] != proofs) == expected,
+               f"an edit to {what} moves the model and proofs lanes' identities "
+               f"{expected}, moved {(found[0] != model, found[1] != proofs)}")
+    with redirect_stdout(io.StringIO()) as said:
+        code = bootstrap.main(["--print-recipe-identity", "--toolchain", "rocq"])
+    ensure(code == 0 and said.getvalue() == proofs + "\n",
+           f"the command prints the selection's identity alone, without a root: "
+           f"{said.getvalue()!r}")
+    with patch.object(bootstrap, "bootstrap") as install, redirect_stderr(io.StringIO()):
+        try:
+            bootstrap.main(["--toolchain", "rocq"])
+        except SystemExit as error:
+            ensure(error.code == 2, "an installation without a root must be an argument error")
+        else:
+            raise AssertionError("an installation without a root was accepted")
+        ensure(not install.called, "an installation without a root reached installation")
 
 
 def _repositories_come_from_the_owner() -> None:
@@ -676,6 +799,9 @@ def cases() -> list[Case]:
         Case("busy root preserves the active bootstrap's state", _busy_root_is_untouched),
         Case("the opam client has one owner", _opam_client_has_one_owner),
         Case("root prerequisites come from the owner", _root_prerequisites_come_from_the_owner),
+        Case("installed packages follow the toolchain selection", _packages_follow_the_selection),
+        Case("the recipe identity follows its owners' data alone",
+             _recipe_identity_follows_its_owners),
         Case("repositories come from the owner", _repositories_come_from_the_owner),
         Case("repository state is recorded", _repository_state_is_recorded),
         Case("a complete root is kept without the route", _complete_root_is_kept),

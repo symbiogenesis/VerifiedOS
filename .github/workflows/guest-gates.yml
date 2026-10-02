@@ -3,8 +3,10 @@
 # defines the scope. Ordinary runs restore toolchains, validated proof inputs and
 # the model lane's Sail solver memo. Monthly and explicitly cold runs install and
 # check everything from scratch.
-# The model and proof lanes share no toolchain or output, so each installs only
-# its own toolchains and runs on its own runner. Manual dispatch runs from main;
+# Each lane runs on its own runner. The proofs lane shares no toolchain or output
+# with the others and installs only its own. The rtl lane selects the model lane's
+# toolchains and restores, but never saves, that lane's caches, so the bundle and
+# RTL checks run beside the model evidence sweep. Manual dispatch runs from main;
 # its optional revision input pins checkout to a commit already on main, verified
 # before any checked-out code runs. Its optional reading_base input, verified there
 # too, names a proper ancestor of that revision whose proof sources the proofs lane
@@ -91,10 +93,11 @@ jobs:
               fi
             elif [[ "$conclusion" == success && "$event" == workflow_dispatch ]]; then
               # A dispatched run can pin an older revision than its main head_sha, so
-              # both lanes' artifact names must carry the checked-out revision.
+              # every lane's artifact name must carry the checked-out revision.
               if names=$(gh api --method GET "$api/runs/$run/artifacts" -F per_page=100 \
                 --jq '.artifacts[].name'); then
                 if grep -q "^guest-model-$GITHUB_SHA-" <<< "$names" \
+                  && grep -q "^guest-rtl-$GITHUB_SHA-" <<< "$names" \
                   && grep -q "^guest-proofs-$GITHUB_SHA-" <<< "$names"; then
                   unchanged=true
                 fi
@@ -111,6 +114,8 @@ jobs:
           echo "unchanged=$unchanged" >> "$GITHUB_OUTPUT"
 
   guest-gates:
+    # The lane alone names a job; its other matrix fields follow from it.
+    name: guest-gates (${{ matrix.lane }})
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.unchanged != 'true' }}
     runs-on: ubuntu-26.04
@@ -120,15 +125,28 @@ jobs:
     # under a minute in total in every measured hosted run.
     timeout-minutes: 360
     strategy:
-      # One lane's failure must not cancel the other lane's verdict.
+      # One lane's failure must not cancel another lane's verdict.
       fail-fast: false
       matrix:
+        # A lane restores the download and installed-toolchain caches of its cache_lane,
+        # whose toolchains it selects, and saves them only when that lane is its own.
         include:
           - lane: model
+            cache_lane: model
+            toolchains: --toolchain sail --toolchain rtl
+          - lane: rtl
+            cache_lane: model
             toolchains: --toolchain sail --toolchain rtl
           - lane: proofs
+            cache_lane: proofs
             toolchains: --toolchain rocq
     env:
+      # Source downloads and the ownership marker that lets bootstrap resume the root;
+      # no installed switches, build outputs or verdicts.
+      GUEST_DOWNLOAD_PATHS: |
+        ~/verifiedos-guest/.verifiedos-guest-root
+        ~/verifiedos-guest/opam/download-cache
+        ~/verifiedos-guest/build/verilator-*-source/*.tar.gz
       # Installed toolchains and the ownership marker that lets bootstrap resume
       # them; never download caches, build trees, logs or evidence.
       GUEST_TOOLCHAIN_PATHS: |
@@ -195,7 +213,7 @@ jobs:
         with:
           version-file: tools/pyproject.toml
           enable-cache: true
-          # Both lanes resolve the same lockfile; one saver avoids a racing upload.
+          # Every lane resolves the same lockfile; one saver avoids a racing upload.
           save-cache: ${{ github.ref == 'refs/heads/main' && matrix.lane == 'model' }}
           # The key names the runner image but no workflow; the suffix keeps Host CI's
           # smaller download set from claiming it on a shared image. The boot
@@ -206,45 +224,70 @@ jobs:
             tools/uv.lock
 
       - name: Cache guest source downloads
+        if: ${{ matrix.cache_lane == matrix.lane }}
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          # The ownership marker lets bootstrap resume this private root.
-          # No installed switches, build outputs or verdicts are restored.
-          path: |
-            ~/verifiedos-guest/.verifiedos-guest-root
-            ~/verifiedos-guest/opam/download-cache
-            ~/verifiedos-guest/build/verilator-*-source/*.tar.gz
-          key: guest-downloads-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/opam_client.py', 'tools/vos/cli/rtl.py', 'tools/vos/receipts.py') }}
-          restore-keys: guest-downloads-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-
+          path: ${{ env.GUEST_DOWNLOAD_PATHS }}
+          key: guest-downloads-v1-${{ matrix.cache_lane }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/opam_client.py', 'tools/vos/cli/rtl.py', 'tools/vos/receipts.py') }}
+          restore-keys: guest-downloads-v1-${{ matrix.cache_lane }}-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Restore another lane's source downloads
+        # The same key as the step above, restored without the save that would race
+        # the cache lane's own.
+        if: ${{ matrix.cache_lane != matrix.lane }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.GUEST_DOWNLOAD_PATHS }}
+          key: guest-downloads-v1-${{ matrix.cache_lane }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/opam_client.py', 'tools/vos/cli/rtl.py', 'tools/vos/receipts.py') }}
+          restore-keys: guest-downloads-v1-${{ matrix.cache_lane }}-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Identify the runner image
         id: image
         env:
-          GUEST_LANE: ${{ matrix.lane }}
+          GUEST_CACHE_LANE: ${{ matrix.cache_lane }}
         # Installed toolchains link the image's system libraries. The Rocq switch links
         # only the C library, whose ABI a release keeps and whose bytes the proof gate
         # binds, so the proofs lane shares one switch across the release's images. A
         # rebuilt switch reproduces its executables but not every library file, so no
-        # earlier proof evidence would validate against it.
+        # earlier proof evidence would validate against it. The component follows the
+        # cache's lane, whose installation a lane restores.
         run: |
           version="${ImageOS:-unknown}-${ImageVersion:-unknown}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          if [[ "$GUEST_LANE" == proofs ]]; then
+          if [[ "$GUEST_CACHE_LANE" == proofs ]]; then
             echo "toolchain=${ImageOS:-unknown}" >> "$GITHUB_OUTPUT"
           else
             echo "toolchain=$version" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Identify the toolchain recipe
+        id: recipe
+        env:
+          GUEST_TOOLCHAIN_OPTIONS: ${{ matrix.toolchains }}
+        # The SHA-256 of the owner data that decides the selection's installed bytes,
+        # which bootstrap_guest.py's `recipe` states: its packages, the opam client's pin,
+        # each switch's recipe and snapshot bytes and the Verilator pin. Other edits to
+        # bootstrap or the client's owner keep the key; the key's v1 is raised by hand
+        # for an installation-procedure change that data does not capture. A lane
+        # selects its cache lane's toolchains, so the identity is that lane's.
+        run: |
+          read -r -a toolchain_options <<< "$GUEST_TOOLCHAIN_OPTIONS"
+          identity=$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity \
+            "${toolchain_options[@]}")
+          if [[ ! "$identity" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::bootstrap printed no toolchain recipe identity: $identity"
+            exit 1
+          fi
+          echo "identity=$identity" >> "$GITHUB_OUTPUT"
 
       - name: Restore installed toolchains
         id: toolchains
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.GUEST_TOOLCHAIN_PATHS }}
-          # Switch names and the Verilator prefix carry their versions, and bootstrap
-          # imports each lock into a restored switch, so env.py and rtl.py stay out; the
-          # opam client's owner is hashed because that client builds every switch.
+          # Bootstrap imports each lock into a restored switch and probes every tool.
           # Exact keys only: another snapshot's switch is never restored.
-          key: guest-toolchains-v1-${{ matrix.lane }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.toolchain }}-${{ hashFiles('tools/opam/sail.lock', 'tools/opam/rocq.lock', 'tools/ci/bootstrap_guest.py', 'tools/vos/opam_client.py') }}
+          key: guest-toolchains-v1-${{ matrix.cache_lane }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.toolchain }}-${{ steps.recipe.outputs.identity }}
           # A cold run only learns whether the installation needs saving.
           lookup-only: ${{ env.GUEST_COLD == 'true' }}
 
@@ -263,8 +306,9 @@ jobs:
             2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
 
       - name: Save installed toolchains
-        # Saved from main once the probes pass, so a later gate failure keeps them.
-        if: ${{ github.ref == 'refs/heads/main' && steps.bootstrap.outcome == 'success' && steps.toolchains.outputs.cache-hit != 'true' }}
+        # Saved from main once the probes pass, so a later gate failure keeps them, and
+        # only by the lane whose cache it is.
+        if: ${{ github.ref == 'refs/heads/main' && matrix.cache_lane == matrix.lane && steps.bootstrap.outcome == 'success' && steps.toolchains.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.GUEST_TOOLCHAIN_PATHS }}
@@ -272,7 +316,7 @@ jobs:
 
       - name: Identify the Sail solver
         id: solver
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        if: ${{ (matrix.lane == 'model' || matrix.lane == 'rtl') && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         # The memo only accelerates the build; without an identity the build runs cold.
         continue-on-error: true
         # Sail's memo keys each obligation, not the solver that answered it, so a
@@ -289,10 +333,11 @@ jobs:
 
       - name: Restore the Sail memo
         id: sail-memo
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.solver.outcome == 'success' }}
+        # The model lane's build and the rtl lane's bundle each read a private copy.
+        if: ${{ (matrix.lane == 'model' || matrix.lane == 'rtl') && !cancelled() && steps.solver.outcome == 'success' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          # A private copy the build seeds itself from; the build tree stays uncached.
+          # A private copy Sail seeds itself from; the build tree stays uncached.
           path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
           key: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-${{ hashFiles('model/model/**') }}
           # An older model's memo costs misses, never a wrong verdict, within one solver.
@@ -305,7 +350,8 @@ jobs:
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         # The sweep took at most 12.1 minutes on a hosted runner, with a cold Sail memo.
         timeout-minutes: 150
-        # The proofs lane runs the proof gate on its own runner.
+        # The proofs lane runs the proof gate, and the rtl lane the bundle and RTL
+        # checks, each on its own runner.
         run: |
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py evidence --no-proofs \
             --out "$VOS_LOG_DIR/evidence.json" \
@@ -313,7 +359,8 @@ jobs:
 
       - name: Save the Sail memo
         # Sail rewrites the memo whole at exit; one writer per runner keeps it intact.
-        if: ${{ github.ref == 'refs/heads/main' && !cancelled() && steps.evidence.outcome == 'success' && steps.sail-memo.outcome == 'success' && steps.sail-memo.outputs.cache-hit != 'true' }}
+        # Only the model lane saves it, after a passing sweep; the rtl lane never does.
+        if: ${{ github.ref == 'refs/heads/main' && matrix.lane == 'model' && !cancelled() && steps.evidence.outcome == 'success' && steps.sail-memo.outcome == 'success' && steps.sail-memo.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
@@ -443,18 +490,22 @@ jobs:
 
       - name: Check generated model bundle
         id: bundle
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
-        # The emission took at most 32 s on a hosted runner over the memo a passing
-        # sweep warms. Where the sweep failed first, a cold memo adds at most about the
-        # 6 minutes it adds to the sweep.
+        if: ${{ matrix.lane == 'rtl' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        # The emission took at most 32 s on a hosted runner over a memo a passing sweep
+        # warmed. An older model's restored memo, or a cold run's empty one, is expected
+        # to add about the 6 minutes a cold memo adds to the sweep, an estimate no hosted
+        # run has measured yet.
         timeout-minutes: 15
+        # This lane builds no model tree, so the directory holding the memo Sail rewrites
+        # at exit stands only where a memo was restored.
         run: |
+          mkdir -p -- "$VOS_BUILD_DIR/model"
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py model bundle --check \
             2>&1 | tee "$VOS_LOG_DIR/bundle.log"
 
       - name: Lint standalone RTL
         id: lint
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'rtl' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         # Lint took at most a second on a hosted runner.
         timeout-minutes: 5
         run: |
@@ -463,7 +514,7 @@ jobs:
 
       - name: Check frozen RTL widths and store lanes
         id: widthcheck
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'rtl' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         # Building and running the testbench took at most 14 s on a hosted runner.
         timeout-minutes: 5
         run: |
@@ -472,7 +523,7 @@ jobs:
 
       - name: Crosscheck RTL against fresh model vectors
         id: crosscheck
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'rtl' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
         # Building the vector generator, emitting the vectors and replaying them took
         # at most 98 s on a hosted runner.
         timeout-minutes: 30
@@ -487,7 +538,7 @@ jobs:
           # A restored run is not evidence that the toolchains install cold.
           GUEST_TOOLCHAINS: ${{ env.GUEST_COLD != 'true' && steps.toolchains.outputs.cache-hit == 'true' && 'restored' || 'cold' }}
           # A restored memo's verdicts were not discharged again in this run.
-          GUEST_SAIL_MEMO: ${{ matrix.lane == 'model' && (env.GUEST_COLD != 'true' && steps.sail-memo.outputs.cache-matched-key != '' && 'restored' || 'cold') || '' }}
+          GUEST_SAIL_MEMO: ${{ (matrix.lane == 'model' || matrix.lane == 'rtl') && (env.GUEST_COLD != 'true' && steps.sail-memo.outputs.cache-matched-key != '' && 'restored' || 'cold') || '' }}
           # Only the proofs lane reads proofs against a base.
           GUEST_READING_BASE: ${{ matrix.lane == 'proofs' && inputs.reading_base || '' }}
           STEP_RESULTS: ${{ toJSON(steps) }}

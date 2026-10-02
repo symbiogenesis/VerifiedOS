@@ -23,5 +23,5 @@ repair, calibration-table repair, missing enumeration owners, valid zero status
 buckets, stable duplicate-count detection when unrelated inventories grow, and
 preservation of historical evidence. The checker registry and mutation cases must
 describe the resulting rules. Host CI must pass on Windows and Ubuntu for the
-published revision; both Guest CI lanes are dispatched under the repository's
+published revision; every Guest CI lane is dispatched under the repository's
 validation handoff.

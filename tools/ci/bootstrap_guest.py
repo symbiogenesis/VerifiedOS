@@ -3,6 +3,8 @@
 """Install the guest gate's toolchains in one private, native Linux directory."""
 
 import argparse
+import hashlib
+import json
 import os
 import platform
 import shlex
@@ -12,6 +14,7 @@ import sys
 import time
 import tomllib
 from collections import deque
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import IO
@@ -31,16 +34,108 @@ from vos import (  # noqa: E402  (standalone bootstrap precedes the locked envir
 )
 from vos.cli import rtl  # noqa: E402
 
-# The opam root's own prerequisites come from the client's owner, which states why
-# `opam init` needs each; the rest are the toolchains' build and run dependencies.
-PACKAGES: tuple[str, ...] = tuple(dict.fromkeys((
-    "build-essential", *opam_client.ROOT_PREREQUISITES, "patch",
-    "pkg-config", "m4", "cmake", "ninja-build", "libgmp-dev", "clang", "ccache",
-    "device-tree-compiler", "git", "time", *rtl.VERILATOR_PACKAGES,
-)))
 MARKER = ".verifiedos-guest-root"
 # Installation order; the Sail entry includes its solver.
 TOOLCHAINS: tuple[str, ...] = ("sail", "rocq", "rtl")
+
+# The Ubuntu packages every selection installs. Bootstrap creates the opam root whatever
+# the selection, and the root's own prerequisites come from the client's owner, which
+# states why `opam init` needs each. Every toolchain compiles C or C++, git records the
+# checkout's revision, and GNU time times every gate command the workflows run.
+BASE_PACKAGES: tuple[str, ...] = (
+    "build-essential", *opam_client.ROOT_PREREQUISITES, "git", "time")
+# What an opam switch's compiler and package builds need: GNU patch, m4 for findlib's
+# configure, and the pkg-config and GMP headers the locks' conf-pkg-config and conf-gmp
+# require.
+SWITCH_PACKAGES: tuple[str, ...] = ("patch", "pkg-config", "m4", "libgmp-dev")
+# What each toolchain's installation and its gates add. The Sail entry serves the model
+# build and evidence sweep too: cmake and ninja configure and drive the build, clang
+# compiles it through ccache's launchers, and the device-tree check runs dtc. Verilator's
+# build prerequisites come from its installer's owner.
+PACKAGES: dict[str, tuple[str, ...]] = {
+    "sail": (*SWITCH_PACKAGES, "cmake", "ninja-build", "clang", "ccache",
+             "device-tree-compiler"),
+    "rocq": SWITCH_PACKAGES,
+    "rtl": rtl.VERILATOR_PACKAGES,
+}
+
+
+def selection(names: Sequence[str] | None) -> tuple[str, ...]:
+    """The toolchains `--toolchain` options select, in installation order; all of them
+    where none is named."""
+    return tuple(name for name in TOOLCHAINS if name in (names or TOOLCHAINS))
+
+
+def packages(selected: tuple[str, ...]) -> tuple[str, ...]:
+    """The Ubuntu packages an installation of `selected` needs, each once."""
+    return tuple(dict.fromkeys((*BASE_PACKAGES,
+                                *(package for name in selected for package in PACKAGES[name]))))
+
+
+def _checkout_file(argument: str) -> Path | None:
+    """The checkout file a recipe step's argument names, where it names one."""
+    path = Path(argument)
+    return path if path.is_absolute() and path.is_relative_to(TOOLS.parent) else None
+
+
+def _portable(argument: str) -> str:
+    """A recipe step's argument as every checkout states it, a path inside the checkout
+    relative to it."""
+    path = _checkout_file(argument)
+    return argument if path is None else path.relative_to(TOOLS.parent).as_posix()
+
+
+def _imported(steps: tuple[tuple[str, ...], ...]) -> list[Path]:
+    """The checkout files a recipe's steps name, such as the snapshot a switch imports."""
+    found = {_checkout_file(argument) for argv in steps for argument in argv}
+    return sorted(path for path in found if path is not None)
+
+
+def recipe(selected: tuple[str, ...]) -> dict[str, object]:
+    """The owner data that decides what an installation of `selected` leaves in Guest
+    CI's installed-toolchain cache: the selection, its Ubuntu packages, the opam client's
+    release, per-architecture SHA-256 values, root format, repositories and root-creation
+    route from the client's owner, each selected switch's steps from its owner with the
+    bytes of every checkout file they import, and for `rtl` the Verilator release, archive
+    URL and SHA-256 from its installer.
+
+    The cache key hashes this rather than this file and the client's owner, so an edit
+    elsewhere in either keeps a restored installation. The solver is no part of it: it
+    installs into its own uncached prefix on every run. Nor is a hand-kept constant: the
+    key's `guest-toolchains-v1` prefix in the workflows is the version a reviewer raises
+    for a change to the installation procedure that none of this data captures, such as
+    another step in the Verilator installer's build or in how bootstrap finishes a root.
+    """
+    switches: dict[str, object] = {}
+    for name, steps in (("sail", env.SAIL_INSTALL), ("rocq", env.ROCQ_INSTALL)):
+        if name in selected:
+            switches[name] = {
+                "steps": [[_portable(argument) for argument in argv] for argv in steps],
+                "snapshots": {_portable(str(path)): receipts.digest(path)
+                              for path in _imported(steps)}}
+    found: dict[str, object] = {
+        "toolchains": list(selected), "packages": list(packages(selected)),
+        "opam": {"version": opam_client.OPAM_VERSION,
+                 "root_format": opam_client.OPAM_ROOT_FORMAT,
+                 "releases": {machine: [opam_client.release_url(suffix), digest]
+                              for machine, (suffix, digest)
+                              in sorted(opam_client.OPAM_HASHES.items())},
+                 "repositories": [list(pair) for pair in opam_client.OPAM_REPOSITORIES],
+                 "route": [list(argv) for argv in opam_client.CREATE_ROOT]},
+        "switches": switches,
+    }
+    if "rtl" in selected:
+        found["verilator"] = {"release": rtl.VERILATOR_PIN, "url": rtl.VERILATOR_URL,
+                              "sha256": rtl.VERILATOR_SHA256}
+    return found
+
+
+def recipe_identity(selected: tuple[str, ...]) -> str:
+    """The SHA-256 of `recipe(selected)` as canonical JSON, the installed-toolchain
+    cache key's component that `--print-recipe-identity` prints."""
+    text = json.dumps(recipe(selected), sort_keys=True, separators=(",", ":"),
+                      ensure_ascii=True)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def prepare_root(root: Path) -> Path:
@@ -116,10 +211,10 @@ def run(argv: tuple[str, ...], log: IO[str], *, declining: bool = False) -> None
     done.check_returncode()
 
 
-def missing_packages() -> list[str]:
+def missing_packages(wanted: tuple[str, ...]) -> list[str]:
     """Read the package database once; exit 1 means some requested names are absent."""
     done = subprocess.run(
-        ("dpkg-query", "-W", "-f=${Package}\t${Status}\n", *PACKAGES),
+        ("dpkg-query", "-W", "-f=${Package}\t${Status}\n", *wanted),
         capture_output=True, text=True, check=False, timeout=60)
     if done.returncode not in (0, 1):
         done.check_returncode()
@@ -130,11 +225,11 @@ def missing_packages() -> list[str]:
             raise ValueError(f"unrecognized dpkg-query output: {line!r}")
         statuses.setdefault(name, []).append(status)
     # Preserve the individual query's refusal of ambiguous multiarch results.
-    return [name for name in PACKAGES if statuses.get(name) != ["install ok installed"]]
+    return [name for name in wanted if statuses.get(name) != ["install ok installed"]]
 
 
-def system_packages(install: bool, log: IO[str]) -> None:
-    missing = missing_packages()
+def system_packages(install: bool, log: IO[str], wanted: tuple[str, ...]) -> None:
+    missing = missing_packages(wanted)
     if not missing:
         return
     if not install:
@@ -146,7 +241,7 @@ def system_packages(install: bool, log: IO[str]) -> None:
     run((*prefix, "apt-get", "update"), log)
     run((*prefix, "env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y",
          "--no-upgrade", "--no-install-recommends", *missing), log)
-    if missing := missing_packages():
+    if missing := missing_packages(wanted):
         raise ValueError("packages still absent after installation: " + " ".join(missing))
 
 
@@ -287,7 +382,7 @@ def bootstrap(args: argparse.Namespace) -> int:
 def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
     """Mutate an owned root only while the caller holds its bootstrap lock."""
     jobs = args.jobs if args.jobs is not None else env.worker_jobs(2048, label="toolchain")
-    selected = tuple(name for name in TOOLCHAINS if name in (args.toolchains or TOOLCHAINS))
+    selected = selection(args.toolchains)
     values = environment(root, jobs)
     paths = (root / "z3" / "bin", root / "bin")
     validate_environment(values, paths)
@@ -319,7 +414,7 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
     print(f"Bootstrap log: {log_path}; jobs: {jobs}", flush=True)
     with log_path.open("w", encoding="utf-8", newline="") as log:
         try:
-            system_packages(args.install_system, log)
+            system_packages(args.install_system, log, packages(selected))
             record["source_revision"] = subprocess.run(
                 ("git", "-C", str(TOOLS.parent), "rev-parse", "HEAD"), capture_output=True,
                 text=True, check=True, timeout=60,
@@ -357,8 +452,9 @@ def install(args: argparse.Namespace, root: Path, uv_version: str) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, required=True,
-                        help="private persistent native directory outside the source checkout")
+    parser.add_argument("--root", type=Path,
+                        help="private persistent native directory outside the source checkout "
+                             "(required to install)")
     parser.add_argument("--jobs", type=cli.positive_int,
                         help="worker override (default: available CPUs limited by memory)")
     parser.add_argument("--toolchain", action="append", choices=TOOLCHAINS, dest="toolchains",
@@ -367,7 +463,19 @@ def main(argv: list[str] | None = None) -> int:
                         help="install absent Ubuntu packages using root or passwordless sudo")
     parser.add_argument("--github-env", type=Path)
     parser.add_argument("--github-path", type=Path)
+    parser.add_argument("--print-recipe-identity", action="store_true",
+                        help="print the selection's installed-toolchain cache identity, "
+                             "install nothing and exit")
     args = parser.parse_args(argv)
+    if args.print_recipe_identity:
+        try:
+            print(recipe_identity(selection(args.toolchains)))
+        except OSError as error:
+            print(f"FAIL recipe identity: {error}", file=sys.stderr)
+            return 1
+        return 0
+    if args.root is None:
+        parser.error("--root is required to install")
     try:
         return bootstrap(args)
     except (OSError, ValueError, subprocess.SubprocessError) as error:

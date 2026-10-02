@@ -138,7 +138,7 @@ caught by nothing, which is a residue the findings register carries.
 | `typecheck` | host | Holds this directory's own Python to the discipline it holds the documents to. |
 | `test` | host | Runs the tools' own behavioral tests, one module per subject under [tests/](tests/). |
 | `worktree` | host | Lists registered checkouts, creates a fresh branch at an explicit base under the primary checkout's `.worktrees/`, and verifies assigned worktrees, including host-provisioned locations. `--json` produces handoff data, including each lane's name and `lane_root`, the guest directory its outputs land in. |
-| `fanout` | host | Records explicit worker handoffs, merges their commits, repairs derived facts, publishes settled inputs, requires Host CI on both platforms, dispatches both Guest CI lanes and retires integrated batch-owned lanes. Journals support resume without waiting for Guest CI. See the [completion contract and usage](fanout.md). |
+| `fanout` | host | Records explicit worker handoffs, merges their commits, repairs derived facts, publishes settled inputs, requires Host CI on both platforms, dispatches every Guest CI lane and retires integrated batch-owned lanes. Journals support resume without waiting for Guest CI. See the [completion contract and usage](fanout.md). |
 | `instrument-ci` | host | `dispatch` sends one dispatch of [the instrument switch route](ci/README.md#instrument-switch-route), refusing nothing its plan job refuses, with a nonce in the run title and its intent journalled first; `--resume NONCE` recovers an interrupted dispatch by that nonce without posting again. `read --run ID` follows each artifact's redirect without credentials, extracts it under `out/instrument-ci/<run id>/`, holds its members to the staging allowlist and its inputs to the run, re-joins the run's verdict and says whether the run is closing evidence for a `--closing` commit. `fanout` never runs it. |
 | `proof-search` | host | Retrieves current local proof examples by query words, script tokens or authored requirement references, with bounded excerpts, source locations and SHA-256 identities. `--json` follows the tracked [JSON Schema](proof-search.schema.json). Results are advisory; the [portable workflow](../docs/assurance/proof-assistance.md) defines bounded repair and the unchanged fresh proof gate. |
 | `sail-context` | host | Retrieves compiler-emitted Sail declarations, scattered clauses and recorded incoming references. Checks the bundle's recorded local source hashes before returning bounded context and SHA-256 identities; omitted sources and the freshness boundary remain explicit. `search`, `symbol` and `references` accept `--json` under the tracked [JSON Schema](sail-context.schema.json). The [portable Sail workflow](../docs/assurance/sail-assistance.md) defines repair, validation and upstream adoption decisions. |
@@ -878,7 +878,7 @@ The integrator closes the batch in this order:
    answer affects the next integration decision.
 3. Follow the [validation handoff](../AGENTS.md#tool-execution-and-validation) to
    merge all session work into `main`, publish only `main`, require Host CI,
-   dispatch both Guest CI lanes and
+   dispatch every Guest CI lane and
    record their revision-bound status without waiting for Guest CI. Required
    experiments and measurements outside the [Guest CI contract](ci/README.md)
    retain their separate acceptance checks.

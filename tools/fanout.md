@@ -18,7 +18,7 @@ checkout stays pinned even if another session advances the remote branch. Requir
 that revision to be on remote `main` before dispatch, bind hosted evidence to the
 checked-out revision, and refuse a changed local integration revision. Completion
 requires all selected owned handoffs to be merged into `main`, published, validated
-by Host CI, handed to both Guest CI lanes, and retired with their outputs retained.
+by Host CI, handed to every Guest CI lane, and retired with their outputs retained.
 Tests must demonstrate refusal off `main`, publication of only `main`, rejection of
 old branch/tag journals, exact-revision dispatch and preserved retirement behavior.
 
@@ -120,7 +120,7 @@ When a completed batch's integration revision changes, initialize a new batch.
   bounded pauses in `fanout_ci.PUSH_RUN_WAITS` and starts Host CI only when no such
   push run appears.
   Pending, failed, skipped or canceled checks supply no passing evidence.
-- After Host CI passes, dispatch Guest CI with both model and proofs lanes for the
+- After Host CI passes, dispatch Guest CI, which runs every lane of its matrix, for the
   same revision, forwarding the explicit cold policy and, when the batch names one,
   its reading base as the `reading_base` input; a batch naming none sends no such
   input, and Host CI's dispatch never carries it. Record run identifiers or
@@ -145,7 +145,7 @@ revision or incomplete Host CI evidence, failed dispatch and interrupted resume,
 a reading base refused at init or at publication, forwarded with Guest CI's dispatch
 alone, and read as none from a journal without the field.
 Run focused tests and typecheck during implementation, then require hosted Host CI
-and dispatch both Guest CI lanes for the settled revision. Host CI analyzes workflow
+and dispatch every Guest CI lane for the settled revision. Host CI analyzes workflow
 edits with zizmor and actionlint, as the tools guide's
 [workflow analysis](README.md#workflow-analysis) describes. No local model or proof
 gate is needed for this orchestration tool.

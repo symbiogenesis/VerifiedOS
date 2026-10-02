@@ -351,7 +351,7 @@ def _dispatch(client: GitHub, state: CIState, record: RunState, subject: str,
     save()
     inputs: dict[str, object] = {"revision": state["revision"], "title": subject}
     if record["workflow"] == GUEST:
-        # guest-gates owns a mandatory model/proofs matrix; there is no lane filter.
+        # guest-gates owns a mandatory lane matrix; there is no lane filter.
         inputs["cold"] = state["cold"]
         # Sent only when the batch names one; the input's empty default reads none.
         reading_base = state.get("reading_base")
