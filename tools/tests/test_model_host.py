@@ -1328,8 +1328,8 @@ class _BuildRig:
     """`_build_locked` with its configure, stages, early run and identity standing in.
     `run` takes the build stage; the ctest stage prints the summary of the tests it was
     asked for, fourteen when it excludes the early test and fifteen otherwise. Every
-    read of the ninja log the emission watch makes is counted in `polls`, and the time
-    the build stage began is `build_began`."""
+    read of the ninja log the emission watch makes is kept in `reads`, before it is
+    counted in `polls`, and the time the build stage began is `build_began`."""
 
     def __init__(self, root: Path, *, memory: int = 8192, early_code: int = 0) -> None:
         self.build = root / "build"
@@ -1341,6 +1341,7 @@ class _BuildRig:
         self.early_code = early_code
         self.calls: list[tuple[str, list[str], object]] = []
         self.runs: list[_EarlyStandIn] = []
+        self.reads: list[set[str]] = []
         self.polls = 0
         self.build_began = 0.0
         self._read = _MODEL._fresh_outputs
@@ -1366,6 +1367,7 @@ class _BuildRig:
 
     def _counted(self, path: Path, mark: object) -> set[str]:
         found = cast("set[str]", self._read(path, mark))
+        self.reads.append(found)
         self.polls += 1
         return found
 
@@ -1463,8 +1465,13 @@ def _early_test_starts_on_this_builds_emission() -> None:
                 log.write(_OTHER_OUTPUT + _FRESH_EMISSION[:-1])
                 log.flush()
                 rig.polled(rig.polls)
-                ensure(not rig.runs,
-                       "an earlier build's entry or a partial line must start nothing")
+                # The reads themselves, and not only the runs: a read is kept before it
+                # is counted, so one that wrongly found the emission is seen here even
+                # where the run it starts is not yet.
+                emitted = [found for found in rig.reads if found & set(_MODEL.EMIT_OUTPUTS)]
+                ensure(not emitted and not rig.runs,
+                       "an earlier build's entry or a partial line must start nothing, "
+                       f"got {emitted}")
                 log.write(b"\n")
             rig.started()
             return 0
@@ -1479,7 +1486,7 @@ def _early_test_starts_on_this_builds_emission() -> None:
                     "--output-on-failure"]],
                f"one early run of the one test, got {[run.argv for run in rig.runs]}")
         ensure(0 < rig.runs[0].since <= rig.build_began,
-               f"the run's start is counted from the build stage's, got "
+               "the run's start is counted from the build stage's, got "
                f"{rig.runs[0].since} against {rig.build_began}")
         ensure(rig.ctest_argv() == [["ctest", "--test-dir", str(rig.build), "-j", "2",
                                      "--output-on-failure", "-E", "^smt_properties_rv64d$"]],
