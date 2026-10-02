@@ -428,6 +428,7 @@ public:
     }
     // The enumeration's totals, and this part's share of each, which is all of them
     // for the whole campaign.
+    context = "shard=" + std::to_string(shard.index + 1) + "/" + std::to_string(shard.entries);
     const size_t derived = block_count * 3 * 2 * 2 * (steps[1] + steps[2] + steps[3] + 12);
     require(
       boundary_enumerated == derived && enumerated == derived + 12 && boundary_cases == shard.share(derived) &&
