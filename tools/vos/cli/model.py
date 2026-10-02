@@ -904,34 +904,66 @@ def _fresh_outputs(path: Path, mark: _NinjaLogMark) -> set[str]:
     return {fields[3].decode("utf-8", "replace") for fields in entries if len(fields) == 5}
 
 
-def _kill_tree(root: int) -> None:
-    """SIGKILL `root` and every process under it, which `/proc` names by parent. The
-    root is stopped first, so it starts nothing between the reading and the kill."""
-    if sys.platform == "win32":
-        raise RuntimeError("process trees are ended in the guest")
+# A thread's states, as `/proc` spells them, in which it can start no process: stopped,
+# stopped by a tracer, a zombie and dead.
+_AT_REST = frozenset({"T", "t", "Z", "X"})
+
+
+def _stat_fields(path: Path) -> list[str]:
+    """The fields of a `/proc` stat record after the command name, the state first and
+    the parent's pid next, or none where the record is gone. The command name is
+    parenthesized and may hold anything, so the fields are read after its last ")"."""
     try:
-        os.kill(root, signal.SIGSTOP)
-    except ProcessLookupError:
-        return
+        record = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    return record[record.rfind(")") + 1:].split()
+
+
+def _children() -> dict[int, list[int]]:
+    """Each process's children, which `/proc` names by parent."""
     children: dict[int, list[int]] = {}
     for entry in Path("/proc").iterdir():
-        if not entry.name.isdigit():
-            continue
-        try:
-            record = (entry / "stat").read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
-        # The command name is parenthesized and may hold anything, so the fields are
-        # read after its last ")": the state, then the parent's pid.
-        fields = record[record.rfind(")") + 1:].split()
-        if len(fields) > 1 and fields[1].isdigit():
-            children.setdefault(int(fields[1]), []).append(int(entry.name))
-    tree: list[int] = []
-    frontier = [root]
-    while frontier:
-        pid = frontier.pop()
-        tree.append(pid)
-        frontier.extend(children.get(pid, []))
+        if entry.name.isdigit():
+            fields = _stat_fields(entry / "stat")
+            if len(fields) > 1 and fields[1].isdigit():
+                children.setdefault(int(fields[1]), []).append(int(entry.name))
+    return children
+
+
+def _at_rest(pid: int) -> bool:
+    """Whether every thread of `pid` has stopped or exited, so that none of them can
+    start a process; a process gone from `/proc` has exited."""
+    try:
+        threads = list(Path(f"/proc/{pid}/task").iterdir())
+    except OSError:
+        return True
+    return all((_stat_fields(thread / "stat") or ["X"])[0] in _AT_REST for thread in threads)
+
+
+def _kill_tree(root: int) -> None:
+    """SIGKILL `root` and every process under it.
+
+    Each process found is stopped before `/proc` is read again, and the readings repeat
+    until one finds nothing new with every thread found stopped or exited. A stopped
+    process starts nothing, so the processes killed are the whole tree, those started
+    while it was being read among them."""
+    if sys.platform == "win32":
+        raise RuntimeError("process trees are ended in the guest")
+    tree: set[int] = set()
+    found = {root}
+    while found != tree or not all(_at_rest(pid) for pid in tree):
+        for pid in found - tree:
+            with contextlib.suppress(ProcessLookupError):
+                os.kill(pid, signal.SIGSTOP)
+        tree |= found
+        children = _children()
+        frontier = list(tree)
+        while frontier:
+            for child in children.get(frontier.pop(), []):
+                if child not in found:
+                    found.add(child)
+                    frontier.append(child)
     for pid in tree:
         with contextlib.suppress(ProcessLookupError):
             os.kill(pid, signal.SIGKILL)

@@ -22,7 +22,9 @@ import io
 import json
 import os
 import re
+import shlex
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -1668,6 +1670,43 @@ def _early_run_reports_and_ends_its_tree() -> None:
             run.kill()
 
 
+def _pids_in(path: Path) -> list[int]:
+    """The pids a stand-in has written to `path`, one per line."""
+    try:
+        return [int(word) for word in path.read_text(encoding="utf-8").split()]
+    except FileNotFoundError:
+        return []
+
+
+def _early_run_ends_a_tree_still_forking() -> None:
+    """Killed while a process under it keeps starting more, as Sail starts a solver for
+    each property, the early run ends every process that process started, those started
+    while the tree was being read among them. POSIX-only, like the stage it runs
+    beside."""
+    if sys.platform == "win32":
+        raise AssertionError("/proc is Linux's; the early run's case runs in the guest")
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        started = Path(td) / "started"
+        loop = (f"while :; do sleep 600 & echo $! >> {shlex.quote(str(started))}; "
+                "sleep 0.002; done")
+        script = ("import subprocess, time\n"
+                  f"subprocess.Popen(['sh', '-c', {loop!r}])\n"
+                  "time.sleep(600)\n")
+        run = _MODEL._EarlyRun([sys.executable, "-c", script])
+        try:
+            _until(lambda: len(_pids_in(started)) >= 3, "saw the stand-in start processes")
+            run.kill()
+            pids = _pids_in(started)
+            _until(lambda: all(_gone(pid) for pid in pids),
+                   "saw every process the stand-in started end")
+        finally:
+            run.kill()
+            # what a failure left running, so that it does not outlive the case
+            for pid in _pids_in(started):
+                with suppress(OSError):
+                    os.kill(pid, signal.SIGKILL)
+
+
 def _trace_diff_compares_what_verified() -> None:
     """`trace-diff --corpus` compares the rv64ui programs its suite's verification
     found, and not an ELF added beside them once the suite has verified. The oracle's
@@ -2129,6 +2168,8 @@ def cases() -> list[Case]:
         Case("failed-early-test-fails-ctest", _failed_early_test_fails_ctest),
         Case("exception-ends-the-early-test", _exception_ends_the_early_test),
         Case("early-run-reports-and-ends-its-tree", _early_run_reports_and_ends_its_tree,
+             lane="guest"),
+        Case("early-run-ends-a-tree-still-forking", _early_run_ends_a_tree_still_forking,
              lane="guest"),
 
         # Only where cmake is on PATH: the runner has no skipped verdict, and a case
