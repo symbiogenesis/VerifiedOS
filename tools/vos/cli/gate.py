@@ -12,10 +12,10 @@ Independent gates run concurrently and report in declaration order. `--tests` ad
 tools' behavioral tests; those stay optional to keep document checks small and avoid
 recursive test launches. Exit 0 means every final gate passed, 1 otherwise.
 
-`--shard INDEX/TOTAL` runs one partition of the selftest's cases and of the tests, and
-nothing else. `--unpartitioned` runs the rest: the checker, typecheck and the
-selftest's repair path; the tests have no unpartitioned part. Every shard of one count
-and that run together are the read-only wave.
+`--shard INDEX/TOTAL` runs one partition of the selftest's cases and, with `--tests`, of
+the tests, and nothing else. `--unpartitioned` runs the rest: the checker, typecheck and
+the selftest's repair path; the tests have no unpartitioned part. Every shard of one
+count and that run, each with the same `--tests`, together are the read-only wave.
 
 `--summary` writes the same verdict as data. The prose below says which member to read
 and is what a person wants; a caller that has only the process's exit code has four
@@ -242,7 +242,7 @@ def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False,
         raise ValueError("--fix and --check are mutually exclusive")
     rep = Reporter()
     if shard is not None:
-        rep.line(f"=== gate: shard {shard}; every shard must pass ===")
+        rep.line(f"=== gate: shard {shard}; every shard and the unpartitioned run must pass ===")
     elif unpartitioned:
         rep.line("=== gate: the unpartitioned members; every shard must pass too ===")
     else:
@@ -300,11 +300,12 @@ def main(argv: list[str] | None = None) -> int:
                              "caller that has only this run's exit code")
     part = parser.add_mutually_exclusive_group()
     part.add_argument("--shard", type=sharding.parse, metavar="INDEX/TOTAL",
-                      help="run this partition of the selftest's cases and of the tests, "
-                           "and nothing else")
+                      help="run this partition of the selftest's cases and, with --tests, "
+                           "of the tests, and nothing else")
     part.add_argument("--unpartitioned", action="store_true",
                       help="run what no shard holds: check, typecheck and the selftest's "
-                           "repair path; every shard and this run make a complete verdict")
+                           "repair path; every shard and this run, with the same --tests, "
+                           "make a complete verdict")
     args = parser.parse_args(argv)
     if args.fix and (args.shard is not None or args.unpartitioned):
         parser.error("--fix cannot be combined with --shard or --unpartitioned")
