@@ -345,10 +345,10 @@ working model bytes remain bound by the build manifest. Bundle comparison reloca
 only the selected switch's absolute library hash keys to the canonical locations
 used by the tracked artifact. A private opam root therefore does not change the
 comparison, while changed library digests and model contents still fail it.
-Download and installed-toolchain caches accelerate installation, and the Sail memo
-accelerates emission; native proof reuse requires the proof gate's validation,
-never a cache-action verdict. A cold run must work without any cache. Built model
-outputs remain uncached.
+Download and installed-toolchain caches accelerate installation, and the Sail memos
+accelerate emission and the property test; native proof reuse requires the proof
+gate's validation, never a cache-action verdict. A cold run must work without any
+cache. Built model outputs remain uncached.
 
 ## Acceptance and handoff
 
