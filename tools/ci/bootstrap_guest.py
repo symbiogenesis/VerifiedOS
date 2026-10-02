@@ -78,10 +78,17 @@ def _checkout_file(argument: str) -> Path | None:
     return path if path.is_absolute() and path.is_relative_to(TOOLS.parent) else None
 
 
-def _portable(argv: tuple[str, ...]) -> list[str]:
-    """A recipe step as every checkout states it, a path inside the checkout relative to it."""
-    return [path.relative_to(TOOLS.parent).as_posix() if (path := _checkout_file(argument))
-            else argument for argument in argv]
+def _portable(argument: str) -> str:
+    """A recipe step's argument as every checkout states it, a path inside the checkout
+    relative to it."""
+    path = _checkout_file(argument)
+    return argument if path is None else path.relative_to(TOOLS.parent).as_posix()
+
+
+def _imported(steps: tuple[tuple[str, ...], ...]) -> list[Path]:
+    """The checkout files a recipe's steps name, such as the snapshot a switch imports."""
+    found = {_checkout_file(argument) for argv in steps for argument in argv}
+    return sorted(path for path in found if path is not None)
 
 
 def recipe(selected: tuple[str, ...]) -> dict[str, object]:
@@ -102,12 +109,10 @@ def recipe(selected: tuple[str, ...]) -> dict[str, object]:
     switches: dict[str, object] = {}
     for name, steps in (("sail", env.SAIL_INSTALL), ("rocq", env.ROCQ_INSTALL)):
         if name in selected:
-            imported = sorted({path for argv in steps for argument in argv
-                               if (path := _checkout_file(argument))})
             switches[name] = {
-                "steps": [_portable(argv) for argv in steps],
-                "snapshots": {path.relative_to(TOOLS.parent).as_posix(): receipts.digest(path)
-                              for path in imported}}
+                "steps": [[_portable(argument) for argument in argv] for argv in steps],
+                "snapshots": {_portable(str(path)): receipts.digest(path)
+                              for path in _imported(steps)}}
     found: dict[str, object] = {
         "toolchains": list(selected), "packages": list(packages(selected)),
         "opam": {"version": opam_client.OPAM_VERSION,

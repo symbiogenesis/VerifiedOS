@@ -427,12 +427,12 @@ def _lanes_match_the_workflow() -> None:
     steps = _guest_steps()
     for lane, ids in LANES.items():
         for step_id in ids:
-            step = next((step for step in steps if f"\n        id: {step_id}\n" in step), "")
+            step = next((text for text in steps if f"\n        id: {step_id}\n" in text), "")
             others = [other for other in LANES if other != lane and _runs_in(other, step)]
             ensure(_runs_in(lane, step) and (step_id == "bootstrap" or not others),
                    f"step {step_id} runs in the {lane} lane alone, also running in {others}")
     for name in ("Save installed toolchains", "Cache guest source downloads"):
-        step = next((step for step in steps if step.startswith(f"name: {name}\n")), "")
+        step = next((text for text in steps if text.startswith(f"name: {name}\n")), "")
         ensure("matrix.cache_lane == matrix.lane" in step,
                f"{name!r} saves only from the lane whose cache it is")
     campaign = (WORKFLOW.parent / "boot-crypto-target.yml").read_text(encoding="utf-8")
