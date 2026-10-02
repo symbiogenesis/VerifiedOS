@@ -946,7 +946,10 @@ class _EarlyRun:
     when the build is leaving by an exception."""
 
     def __init__(self, argv: list[str]) -> None:
-        self._output = tempfile.TemporaryFile("w+", encoding="utf-8", errors="replace")
+        # The file outlives this call, which a context manager would close: the ctest
+        # stage reads it once the run is reaped, and `kill` closes it.
+        self._output = tempfile.TemporaryFile(  # noqa: SIM115
+            "w+", encoding="utf-8", errors="replace")
         self._started = time.perf_counter()
         try:
             self._proc = subprocess.Popen(argv, stdout=self._output, stderr=self._output)
