@@ -59,9 +59,21 @@ Each member's elapsed wall time, including process launch, appears in its log
 section, JSON record (`elapsed_seconds`) and CI summary. Members run concurrently,
 so these durations overlap and must not be added to obtain the wave's duration.
 The JSON record's `units` add what a member measured inside itself, through
-[vos/timings.py](vos/timings.py): each behavioral test module's cases and seconds,
-and the selftest's phases and per-case seconds. Units overlap the same way, never
-enter the printed report, and the CI summary names the slowest of them.
+[vos/timings.py](vos/timings.py): each behavioral test module's cases and seconds;
+the selftest's phases and per-case seconds; and the checker's fixed phases before its
+first group (importing the groups' modules, loading the corpus, reading the register
+and the artifacts) and each group's seconds, with the checker process's own CPU
+seconds (`cpu_seconds`) beside each and, except on Windows, whose process accounting
+counts none, those of the processes it started and waited for, such as Git's
+(`child_cpu_seconds`). A selftest or checker unit also carries its `start`, its offset in
+seconds from when that member's clock started, which places it on that member's
+timeline, and its `at`, the wall-clock time it began in seconds since the epoch, which
+lays the parts of the members that ran at once on one runner on one timeline; a test
+module's unit carries neither. Units overlap the same way and never enter the printed
+report. The CI summary names the slowest of them, and the reporting step prints every
+unit of every member to the job log, one JSON line each, by member and then slowest
+first, after one line naming the runner's CPU count and model, in one collapsed group
+with workflow commands stopped.
 
 New commits cancel superseded runs of the same pull request; each push to `main`
 keeps its own run. Ubuntu runs four independent shards and Windows eight, because a

@@ -2640,8 +2640,8 @@ def main(argv: list[str] | None = None) -> int:
               "every shard and --repair-only must pass")
     if args.repair_only:
         print(f"repair path only: 0 of {len(CASES)} cases")
-    # Phase and case seconds for the gate's summary, never printed; claimed before any
-    # child starts, so no checker run inherits the file.
+    # Phase and case seconds for the gate's summary, each with its start from here, never
+    # printed; claimed before any child starts, so no checker run inherits the file.
     record, clock = timings.claim(), timings.Clock()
 
     # A private directory per run rather than one path every run reuses. What survives
@@ -2709,7 +2709,7 @@ def main(argv: list[str] | None = None) -> int:
             _publish(template, _cache_root(repo))
             _across(remove_tree, [box.path for box in made], jobs + 1)
             remove_tree(sandbox)
-        clock.add("phase", "teardown", time.perf_counter() - started)
+        clock.add("phase", "teardown", time.perf_counter() - started, started)
         timings.write(record, clock.units())
 
 
@@ -2761,7 +2761,8 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
         finally:
             box.reset()
             boxes.put(box)
-            measured.add("case", f"{case[0]}: {case[1]}", time.perf_counter() - started)
+            measured.add("case", f"{case[0]}: {case[1]}", time.perf_counter() - started,
+                         started)
 
     def timed_repair() -> tuple[list[str], list[str]]:
         with measured.timing("phase", "repair path"):

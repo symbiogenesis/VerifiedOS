@@ -9,6 +9,7 @@ import io
 import json
 import stat
 import subprocess
+import tempfile
 from concurrent.futures import Future
 from pathlib import Path
 from queue import Queue
@@ -19,7 +20,7 @@ from unittest.mock import patch
 
 import check
 from tests.harness import Case, ensure, sandbox_tree
-from vos import corpus
+from vos import corpus, timings
 from vos.checks import Context
 from vos.cli import selftest
 from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict
@@ -382,13 +383,15 @@ def _parallel_work_is_complete_ordered_and_bounded() -> None:
 
 def _checker_stops_after_the_rules_group() -> None:
     ran: list[str] = []
+    named: list[bool] = []
 
     def group(name: str, *rules: str) -> SimpleNamespace:
         def run(ctx: Context) -> None:
             ran.append(name)
+            named.append(timings.ENV in timings.os.environ)
             for rule in rules:
                 ctx.rep.report(rule, "finding(s):", ["seeded"] if rule == "K-02" else [], "held")
-        return SimpleNamespace(run=run)
+        return SimpleNamespace(__name__=f"vos.checks.{name}", run=run)
 
     groups = [group("first", "K-01"), group("second", "K-02", "K-03"), group("third", "K-04")]
     expectations = {
@@ -412,6 +415,37 @@ def _checker_stops_after_the_rules_group() -> None:
         ran.clear()
         ensure(check.run(Path("unused")).out[-1] == "1 finding(s)." and len(ran) == 3,
                "a run without --through must run every group")
+
+        # A clock given the run records its fixed phases and the groups that ran, by
+        # their modules' last names, and changes nothing the run reports.
+        clock = timings.Clock(cpu=True)
+        timed = check.run(Path("unused"), through="K-03", clock=clock)
+        units = clock.units()
+        ensure([(unit["kind"], unit["name"]) for unit in units]
+               == [("group", "first"), ("group", "second"), ("phase", "artifacts read"),
+                   ("phase", "corpus load"), ("phase", "register read")],
+               f"the run's phases and its two groups are measured, got {units!r}")
+        ensure(all("cpu_seconds" in unit for unit in units),
+               f"a CPU clock records each block's CPU seconds, got {units!r}")
+        ensure(timed.out == check.run(Path("unused"), through="K-03").out,
+               "measuring a run changed its report")
+
+        # Under the gate's file, main prints the same report and records the import of
+        # the groups' modules besides.
+        with tempfile.TemporaryDirectory(prefix="vos-check-timings-") as td:
+            path = Path(td) / "units.json"
+            printed = io.StringIO()
+            with (patch.dict(timings.os.environ, {timings.ENV: str(path)}),
+                  contextlib.redirect_stdout(printed)):
+                code = check.main(["--through", "K-03"])
+            recorded = timings.read(path) or []
+        ensure(not any(named), "the checker claims its file before any group can inherit it")
+        ensure(code == 1 and printed.getvalue() == "\n".join(timed.out) + "\n",
+               f"recording timings changed the checker's output: {printed.getvalue()!r}")
+        ensure([(unit["kind"], unit["name"]) for unit in recorded]
+               == [("group", "first"), ("group", "second"), ("phase", "artifacts read"),
+                   ("phase", "corpus load"), ("phase", "imports"), ("phase", "register read")],
+               f"main records the imports, the phases and the groups, got {recorded!r}")
         with contextlib.redirect_stderr(io.StringIO()):
             try:
                 check.main(["--fix", "--through", "K-01"])
