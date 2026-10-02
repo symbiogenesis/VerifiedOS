@@ -87,7 +87,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.revision || github.sha }}
-          fetch-depth: 0
+          # A dispatch's check below reads main's history; push and pull request runs
+          # read only the checked-out commit, so they fetch it alone. The dispatch arm
+          # is the string '0' because a bare 0 is falsy and would select the other arm.
+          fetch-depth: ${{ github.event_name == 'workflow_dispatch' && '0' || '1' }}
           persist-credentials: false
           # The checker reads gitlinks from the index; submodule sources are unnecessary.
           submodules: false
