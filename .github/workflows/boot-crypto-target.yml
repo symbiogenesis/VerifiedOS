@@ -37,10 +37,11 @@ permissions:
   contents: read
 
 concurrency:
-  # One campaign at a time: each occupies five runners for hours. A newer queued
-  # revision replaces an older one still waiting; a running campaign is never cut.
+  # One campaign at a time: each occupies five runners for hours. A newer run cancels
+  # an older one, queued or running, so no runner keeps executing a campaign a later
+  # push or dispatch has superseded.
   group: ${{ github.workflow }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   PYTHONUTF8: "1"

@@ -146,7 +146,8 @@ the complete campaign from the staged streams on GitHub-hosted Linux. Pushes to
 `main` that change [target/](target/) or the workflow start it; manual dispatch
 accepts a revision already on `main` and a per-case timeout of at most 9,600 s,
 9,000 s by default, so that a positive and its refusals fit the execution step.
-Each interface runs on its own runner with `--mode` and `--jobs 4`, so its positive
+One campaign runs at a time, and a newer run cancels an older one, queued or
+running, which then joins no receipt. Each interface runs on its own runner with `--mode` and `--jobs 4`, so its positive
 still gates its refusals. Each runner verifies the streams, restores Guest CI's
 model-lane toolchains and Sail memo read-only, and builds the model for its
 simulator and build receipt. `boot-crypto join` then composes the five receipts:
