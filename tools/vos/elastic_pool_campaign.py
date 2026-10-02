@@ -39,12 +39,17 @@ def histories() -> list[list[p.Event]]:
         pool.sweep_end()
         pool.allocate(4, 0, 0)
         result.append(pool.history)
+    # The observer is a function of the plan and the history alone, so each distinct
+    # history is checked once, in first-occurrence order: the first violation found is
+    # the one checking every history in order finds first.
     unique: dict[tuple[p.Event, ...], list[p.Event]] = {}
     for history in result:
-        errors = p.history_errors(p.fixture().plan, history)
+        unique.setdefault(tuple(history), history)
+    plan = p.fixture().plan
+    for history in unique.values():
+        errors = p.history_errors(plan, history)
         if errors:
             raise p.PoolError(f"campaign violates {sorted(errors)}: {history}")
-        unique[tuple(history)] = history
     return list(unique.values())
 
 
