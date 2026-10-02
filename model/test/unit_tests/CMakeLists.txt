@@ -49,7 +49,9 @@ set_tests_properties(watchdog_join_no_reset PROPERTIES
 # runs the cases whose ordinal in the campaign's enumeration is congruent to I - 1
 # modulo N, so the entries registered here run every case exactly once between
 # them, and each checks its own share and the enumeration's totals. With no
-# argument the binary runs every case.
+# argument the binary runs every case. The inverted expectations are registered by
+# the check each must reach in the campaign's first case, as watchdog_join's are,
+# so a crash or a usage error cannot pass as the expected failure.
 add_executable(block_reset "block_reset.cpp")
 target_link_libraries(block_reset PRIVATE riscv_model default_config)
 set(BLOCK_RESET_SHARDS 4)
@@ -59,7 +61,12 @@ foreach(shard RANGE 1 ${BLOCK_RESET_SHARDS})
 endforeach()
 add_test(NAME "block_reset_wrong_byte" COMMAND $<TARGET_FILE:block_reset> --negative-byte)
 add_test(NAME "block_reset_residual_volatile" COMMAND $<TARGET_FILE:block_reset> --negative-volatile)
-set_tests_properties(block_reset_wrong_byte block_reset_residual_volatile PROPERTIES WILL_FAIL TRUE)
+set_tests_properties(block_reset_wrong_byte PROPERTIES
+    PASS_REGULAR_EXPRESSION "block reset: FAIL command=[^:]*: whole-medium byte comparison failed"
+    FAIL_REGULAR_EXPRESSION "block reset: block_bytes=")
+set_tests_properties(block_reset_residual_volatile PROPERTIES
+    PASS_REGULAR_EXPRESSION "block reset: FAIL command=[^:]*: reset left a volatile buffer byte"
+    FAIL_REGULAR_EXPRESSION "block reset: block_bytes=")
 
 # M5.3d: the host backing image across process exit, and the emulator's own
 # image options. The inverted expectations are registered by the comparison
