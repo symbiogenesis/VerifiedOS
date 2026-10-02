@@ -7,8 +7,9 @@ there as a JSON list once it has reported, and the gate folds that list into the
 member's record as `units`. A member claims the variable as it starts, removing it from
 the environment its own children inherit, so a nested run cannot write over its
 parent's file. The durations are diagnostic: they never reach a member's printed report
-or its exit code, and a file that cannot be written or read records nothing rather than
-failing the run.
+or its exit code, and a member's file that cannot be written or read records nothing
+rather than failing the run. The gate's scratch directory for those files is a temporary
+directory like the others a run needs.
 """
 
 import json

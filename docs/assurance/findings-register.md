@@ -1444,7 +1444,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-581** measurement: HmacDrbg.v's `pr_true_run` and `first_draw` keep no literal, with which the module's recheck counted 2,042.8e9 retired instructions against 2,019.9e9 while its one-run peak was 8,125,480 KB against 9,312,124 KB
 · Raised: Q38i
-· Disposition: standing, Q38j finding that two kernel workers at the runner's 10,030,124 KiB peak less the literals' 1,186,644 KB saving, with env.py's 2 GiB reserve, would need 19,784,112 KiB against the runner's 16 GB, so the literals would buy no second worker
+· Disposition: standing, Q38j finding that two kernel workers at the runner's 10,030,124 KiB peak less the literals' 1,186,644 KB saving, with proofenv.py's 2 GiB reserve, would need 19,784,112 KiB against the runner's 16 GB, so the literals would buy no second worker
 
 **F-582** measurement: values two Examples evaluate inside a `forallb` over a family, PqArith.v's ML-DSA-ring transforms of both probes and StorageBridge.v's decode and walk of the medium flipped at offsets 272 and 144, keep no literal, and three round-trip Examples over PqArith's probes are not rewritten through its lemmas
 · Raised: Q38i

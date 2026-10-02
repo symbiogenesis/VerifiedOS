@@ -42,8 +42,8 @@ VOLATILE_FILESYSTEMS: frozenset[str] = frozenset({"tmpfs", "ramfs"})
 # Where the kernel says what is mounted where, read by `filesystem`.
 MOUNTINFO = Path("/proc/self/mountinfo")
 
-# The OCaml release every project switch builds on, which env.py's findlib pin holds
-# there, and the lock snapshots the switches import.
+# The OCaml release the project's switches build on, all but the CertiRocq oracle's,
+# which env.py's findlib pin holds there, and the lock snapshots the switches import.
 OCAML_VERSION = "5.4.1"
 OPAM_LOCKS = Path(__file__).resolve().parents[1] / "opam"
 

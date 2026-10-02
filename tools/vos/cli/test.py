@@ -18,7 +18,8 @@ Under the gate's `--summary`, each module's case count and seconds go to the fil
 [vos/timings.py](../timings.py) names, never into the printed report.
 
 `--shard INDEX/TOTAL` strides over the sorted modules. A module whose cases share no
-state may say so with the line `INDEPENDENT_CASES = True`; it keeps its place in that
+state, and whose `cases()` returns the same ordered list on every run, may say so with
+the line `INDEPENDENT_CASES = True`; it keeps its place in that
 stride, so no other module moves, but every shard runs it with the cases at positions
 j of its own list where j % TOTAL == INDEX - 1. Each case still runs once across the
 shards, and a share may be empty.

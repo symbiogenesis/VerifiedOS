@@ -4,7 +4,7 @@ Read [README.md](README.md) first for the project's purpose, design goals, and c
 
 AGENTS.md owns shared agent instructions. Edit shared rules here. The linked artifacts own the detailed contracts summarized below; check them before changing the relevant area and resolve disagreements at their source.
 
-Follow the [validation handoff](#tool-execution-and-validation): require Host CI, dispatch both Guest CI lanes, and finish without waiting for Guest CI.
+Follow the [validation handoff](#tool-execution-and-validation): require Host CI, dispatch every Guest CI lane, and finish without waiting for Guest CI.
 
 ## Repository map
 
@@ -125,8 +125,8 @@ the command records Guest CI dispatch and safe retirement; never wait for Guest 
 2. Require [Host CI](.github/workflows/host-gates.yml) to pass on Windows and Ubuntu.
    If no automatic event starts it, dispatch it from `main` with the published commit
    as its `revision` input.
-3. Dispatch [Guest CI](.github/workflows/guest-gates.yml) with both model and proofs
-   lanes for the same revision. Use `cold: true` when acceptance requires
+3. Dispatch [Guest CI](.github/workflows/guest-gates.yml), every lane of its matrix,
+   for the same revision. Use `cold: true` when acceptance requires
    `proofs --fresh` or cold installation evidence. The [Guest CI contract](tools/ci/README.md)
    owns its scope and proof-reuse rules; checks outside it retain their acceptance requirements.
 4. Record both run URLs or identifiers, tested revisions, available verdicts and

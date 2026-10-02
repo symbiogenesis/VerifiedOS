@@ -21,9 +21,10 @@ from vos.corpus import find_root
 # check accepts.
 _COMMIT = re.compile(r"[0-9a-f]{40}")
 
-# Seconds between Host CI polls under --wait-host. A poll is two or three GitHub GETs
-# and a status read of the integration checkout, so even the longest bound stays far
-# inside the API's hourly request limit, and a completed run is seen within seconds.
+# Seconds between Host CI polls under --wait-host. A poll is two or three GitHub GETs,
+# a credential read and a status read of the integration checkout, each a short local
+# process, so even the longest bound stays far inside the API's hourly request limit,
+# and a completed run is seen within seconds.
 _HOST_POLL_SECONDS = 5
 
 

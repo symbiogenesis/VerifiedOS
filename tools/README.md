@@ -68,9 +68,10 @@ keeps its own run. Ubuntu runs four independent shards and Windows eight, becaus
 shard's members are CPU-bound and run the same work more slowly on the Windows
 runner. Mutation cases and sorted behavioral test modules are partitioned by
 position within each OS, with every item assigned once. A test module that declares
-`INDEPENDENT_CASES = True` keeps its position, so no other module changes shard, but
-every shard runs it with the cases at its own stride through the module's case list,
-so each of its cases still runs once.
+`INDEPENDENT_CASES = True`, stating that its cases share no state and that its case
+list has the same order on every run, keeps its position, so no other module changes
+shard, but every shard runs it with the cases at its own stride through that list,
+so each of its cases still runs once and a shard's share may be empty.
 Every mutation runs the checker in a fresh process and private sandbox, through the
 group that decides its rule (`check.py --through`); a survivor runs the whole checker.
 Each shard checks its pristine baseline and registry coverage; shard 1 also runs
@@ -801,7 +802,7 @@ edits, checks, staging and commits target that checkout: set the shell's working
 directory on every call, use `git -C <worktree>`, and use absolute paths rooted there
 for file tools and scripted writes. A previous `Set-Location` is not a guarantee
 about the next tool call's directory. Build and log outputs use that checkout's lane,
-which [the build environment](vos/env.py) derives from Git's administrative identity,
+which [the lane derivation](vos/proofenv.py) derives from Git's administrative identity,
 and sit on the guest's own filesystem under `/root/build/lane-<name>` and `/root/logs`,
 never in the checkout.
 Coordinate shared mutable toolchain state separately. Report an accidental write
@@ -918,7 +919,7 @@ and produce one exit code. `--tests` adds the behavioral suite; `--check --tests
 is the same complete validation without tracked writes. CI partitions that work
 with `--shard INDEX/TOTAL`, four shards on Ubuntu and eight on Windows, and requires
 every shard on each OS. `--rule` and `--only` cannot narrow a shard, and a
-partition count larger than its population is refused.
+partition count larger than its mutation or module population is refused.
 
 `--fix` validates instructions, restores a missing import and repairs derived
 artifacts before starting the readers. The checker runs again afterward, so a

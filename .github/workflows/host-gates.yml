@@ -260,7 +260,8 @@ jobs:
   # skipped or cancelled shard cannot leave a successful aggregate, even if its peers
   # completed successfully. The aggregates check out nothing and only read the shards'
   # result, so they take the generally available ubuntu-24.04 image rather than the
-  # shards' preview image, whose queue has held them over a minute past the last shard.
+  # shards' preview image, whose queue has occasionally held them 38-71 s past the last
+  # shard.
   host-gates:
     name: host-gates (${{ matrix.platform }})
     needs: host-gates-shard
