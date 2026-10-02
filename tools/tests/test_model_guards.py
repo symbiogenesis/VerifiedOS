@@ -172,8 +172,10 @@ def _refused_evidence_is_recorded() -> None:
         version = subprocess.CompletedProcess([], 0, "Sail 9.9.9 (fixture)\n", "")
         for identities, why in (([identity, identity], "has no riscv-tests.manifest"),
                                 ([identity, moved], "the inputs changed during the build")):
+            # The Sail test runs in the ctest stage, which stands in with the others.
             with (patch.object(model, "build_identity", side_effect=identities),
                   patch.object(model, "_configure", return_value=0),
+                  patch.object(model, "_early_decision", return_value=(False, "after")),
                   patch.object(model, "env", SimpleNamespace(stage=Mock(return_value=0))),
                   patch.object(model, "subprocess",
                                SimpleNamespace(run=Mock(return_value=version))),

@@ -276,6 +276,12 @@ foreach (xlen IN ITEMS 64)
             COMMAND
                 ${SAIL_BIN}
                 ${sail_common}
+                # A memo of the test's own, which no command the build runs
+                # writes, so that the test can run beside the build: Sail
+                # rewrites its memo whole at exit, and two writers of one file
+                # lose and tear each other's records. Sail takes the last
+                # --memo-z3-path it is given.
+                --memo-z3-path "${CMAKE_CURRENT_BINARY_DIR}/sail_smt_cache_properties"
                 # Generate SMT files.
                 --smt
                 # Also prove them.
