@@ -6,8 +6,9 @@ maps and barriers use the existing revocation reference. This is a host referenc
 not a native pool service or a claim of source-to-binary correspondence.
 """
 
+from contextlib import suppress
+from copy import copy
 from dataclasses import dataclass, field
-from itertools import product
 from typing import Literal
 
 from vos import revocation as rev
@@ -340,33 +341,67 @@ class DomainPools:
         return self.pools[island, memory_class].allocate(holder, cls, island)
 
 
+# The bounded campaign's command alphabet: two allocations, a write and release, a
+# register clear, a barrier, and a sweep's two ends.
+COMMANDS = 7
+
+
+def apply_command(pool: Pool, command: int) -> None:
+    """One letter of the command alphabet. A refused command keeps whatever it recorded
+    before the refusal, which is the deterministic refusal a history retains."""
+    with suppress(PoolError, rev.RevocationError, StopIteration):
+        if command < 2:
+            pool.allocate(1 + command, command, 0)
+        elif command == 2:
+            grant = next(s.grant for s in pool.slots if s.phase == "live")
+            if grant is not None:
+                pool.write(grant, 0, 7)
+                pool.release(grant)
+        elif command == 3:
+            for i, slot in enumerate(pool.slots):
+                if slot.phase == "pending":
+                    pool.clear_registers(i)
+        elif command == 4:
+            pool.barrier()
+        elif command == 5:
+            pool.sweep_begin()
+        else:
+            pool.sweep_end()
+
+
+def _fork(pool: Pool) -> Pool:
+    """An independent continuation of a fixture pool.
+
+    The slots, the history and the memory are copied, the only state a command mutates
+    in place; everything else a command replaces rather than mutates, so it is shared.
+    The alphabet builds no heap, so no slot carries a child pool to share.
+    """
+    branch = copy(pool)
+    branch.slots = [copy(slot) for slot in pool.slots]
+    branch.history = list(pool.history)
+    branch.memory = dict(pool.memory)
+    return branch
+
+
 def generated_histories(depth: int = 4) -> list[list[Event]]:
-    """Enumerate every bounded command word, retaining deterministic refusals."""
+    """Enumerate every bounded command word, retaining deterministic refusals.
+
+    The words come in lexicographic order and each prefix runs once: every continuation
+    forks the pool its prefix left, so each word's history is the one replaying the word
+    on a fresh fixture records.
+    """
     if not 0 <= depth <= 5:
         raise PoolError("campaign depth outside finite budget")
     histories: list[list[Event]] = []
-    for commands in product(range(7), repeat=depth):
-        pool = fixture()
-        for command in commands:
-            try:
-                if command < 2:
-                    pool.allocate(1 + command, command, 0)
-                elif command == 2:
-                    grant = next(s.grant for s in pool.slots if s.phase == "live")
-                    if grant is not None:
-                        pool.write(grant, 0, 7)
-                        pool.release(grant)
-                elif command == 3:
-                    for i, slot in enumerate(pool.slots):
-                        if slot.phase == "pending":
-                            pool.clear_registers(i)
-                elif command == 4:
-                    pool.barrier()
-                elif command == 5:
-                    pool.sweep_begin()
-                else:
-                    pool.sweep_end()
-            except (PoolError, rev.RevocationError, StopIteration):
-                pass
-        histories.append(pool.history)
+
+    def extend(pool: Pool, remaining: int) -> None:
+        if not remaining:
+            histories.append(pool.history)
+            return
+        for command in range(COMMANDS):
+            branch = _fork(pool)
+            apply_command(branch, command)
+            extend(branch, remaining - 1)
+
+    extend(fixture(), depth)
     return histories
