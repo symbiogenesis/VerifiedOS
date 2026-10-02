@@ -662,8 +662,11 @@ def run(ctx: Context) -> None:
                         "nothing; a rule quantified over no members reports agreement "
                         "about nothing")
     settled: sailbundle.Bundle | None = None
-    staged = corpus_mod.staged_blobs(ctx.root,
-                                   (row.path for row in GENERATED if row.lane != "host"))
+    # The rows' batched Git read is timed apart from the rows, so its share of the group
+    # shows even where, as on Windows, a child's CPU seconds are not counted.
+    with ctx.clock.timing("part", "staged blobs"):
+        staged = corpus_mod.staged_blobs(
+            ctx.root, (row.path for row in GENERATED if row.lane != "host"))
     for row in GENERATED:
         # The order of the table is load-bearing here and nowhere else: a host row's
         # generator reads what an earlier row settled on, so the bundle the run has

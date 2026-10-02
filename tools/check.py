@@ -51,9 +51,9 @@ the mutation selftest uses it because each case needs its own rule's verdict alo
 A stopped run decides nothing about the later groups and says so.
 
 Under the gate's `--summary`, the seconds of each fixed phase before the first group, of
-each group and of each generated artifact's row go to the file
-[vos/timings.py](vos/timings.py) names, with this process's CPU seconds and, except on
-Windows, those of the processes it started and waited for beside them, never into the
+each group, and of the generated group's staged-blob read and each of its rows go to the
+file [vos/timings.py](vos/timings.py) names, with this process's CPU seconds and, except
+on Windows, those of the processes it started and waited for beside them, never into the
 printed report.
 
 Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
