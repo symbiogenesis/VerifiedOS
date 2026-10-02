@@ -180,6 +180,7 @@ jobs:
           import os
           import platform
           import secrets
+          import sys
           from pathlib import Path
 
           def annotate(level: str, message: str) -> None:
@@ -187,7 +188,18 @@ jobs:
               print(f"::{level} title=host-gates::{message}")
 
           def cpu_model() -> str:
-              """The runner's processor, as Linux's /proc/cpuinfo or Windows names it."""
+              """The runner's processor, by the name the Windows registry or Linux's
+              /proc/cpuinfo gives it, else as the platform identifies it."""
+              if sys.platform == "win32":
+                  try:
+                      import winreg
+                      processor = r"HARDWARE\DESCRIPTION\System\CentralProcessor\0"
+                      with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, processor) as key:
+                          name = str(winreg.QueryValueEx(key, "ProcessorNameString")[0]).strip()
+                      if name:
+                          return name
+                  except OSError:
+                      pass
               try:
                   cpuinfo = Path("/proc/cpuinfo").read_text(encoding="utf-8", errors="replace")
               except OSError:
