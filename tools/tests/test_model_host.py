@@ -1445,7 +1445,8 @@ def _early_test_starts_on_this_builds_emission() -> None:
     is complete in the ninja log, and not on the entry an earlier build left nor on a
     line still without its newline. The ctest stage then runs the rest of the suite,
     places the early run's output after it inside the one ctest section, and the
-    evidence reads the whole suite's tally."""
+    evidence reads the whole suite's tally. The build stage's ninja prints the elapsed
+    seconds on each finished edge."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         rig = _BuildRig(Path(td))
         rig.ninja_log.write_bytes(_NINJA_HEADER + _STALE_EMISSION)
@@ -1473,6 +1474,9 @@ def _early_test_starts_on_this_builds_emission() -> None:
         ensure(rig.ctest_argv() == [["ctest", "--test-dir", str(rig.build), "-j", "2",
                                      "--output-on-failure", "-E", "^smt_properties_rv64d$"]],
                f"the ctest stage runs the rest of the suite, got {rig.ctest_argv()}")
+        ensure([add for name, _, add in rig.calls if name == "build"]
+               == [{"NINJA_STATUS": "[%f/%t %e] "}],
+               f"the build's status lines carry elapsed seconds, got {rig.calls}")
         ensure("smt_properties_rv64d beside the build within 4096 MB" in text,
                f"the host line states the decision, got {text!r}")
         ensure(text.index("out of 14\n") < text.index("out of 1\n")

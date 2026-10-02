@@ -856,6 +856,10 @@ EMIT_OUTPUTS = ("sail_riscv_model.cpp", "sail_riscv_model.h", SCHEMA)
 EARLY_TEST_MB = 1024
 # How often the build's ninja log is read for the emission's entry.
 EMISSION_POLL_SECONDS = 0.5
+# Ninja prints a status line as each edge finishes; this one carries the seconds since
+# the build began, so the log alone times the emission, the generated unit's compile
+# and the links.
+NINJA_STATUS = "[%f/%t %e] "
 
 
 class _NinjaLogMark(NamedTuple):
@@ -1114,7 +1118,7 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
                 try:
                     code = stages["build"] = env.stage(
                         "build", ["cmake", "--build", str(build_dir), "-j", str(e.jobs)],
-                        stdout=handle, stderr=handle)
+                        stdout=handle, stderr=handle, add_env={"NINJA_STATUS": NINJA_STATUS})
                 finally:
                     early = watch.stop() if watch is not None else None
                 handle.write(f"BUILD_EXIT={code}\n")
