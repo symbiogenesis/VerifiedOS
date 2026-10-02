@@ -83,15 +83,6 @@ jobs:
           - {platform: Ubuntu, shard: unpartitioned, runner: ubuntu-26.04}
           - {platform: Windows, shard: unpartitioned, runner: windows-2025-vs2026}
     steps:
-      # Windows images keep the checkout and runner.temp on D: but TEMP on the slower
-      # C: drive; selftest sandboxes and test scratch trees follow TMP and TEMP.
-      - name: Keep temporary files on the checkout drive
-        if: ${{ runner.os == 'Windows' }}
-        shell: pwsh
-        run: |
-          "TMP=$env:RUNNER_TEMP" >> $env:GITHUB_ENV
-          "TEMP=$env:RUNNER_TEMP" >> $env:GITHUB_ENV
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.revision || github.sha }}
@@ -146,12 +137,17 @@ jobs:
       # Ubuntu, as a developer there runs it; Git Bash would put its own tools ahead of
       # the runner's PATH for the whole Windows suite. Both read their part of the gate,
       # one shard or the unpartitioned members, and the verdict path from the
-      # environment rather than from expressions in the body.
+      # environment rather than from expressions in the body. Windows images keep the
+      # checkout and runner.temp on D: but TEMP on the slower C: drive; selftest
+      # sandboxes and test scratch trees follow TMP and TEMP, so the Windows gate names
+      # runner.temp for both.
       - name: Host gates and behavioral tests (Windows)
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
         env:
           PART: ${{ matrix.shard == 'unpartitioned' && '--unpartitioned' || format('--shard={0}/{1}', matrix.shard, matrix.shards) }}
+          TMP: ${{ runner.temp }}
+          TEMP: ${{ runner.temp }}
         run: python tools/run.py --check --tests "$env:PART" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"
 
       - name: Host gates and behavioral tests (Ubuntu)

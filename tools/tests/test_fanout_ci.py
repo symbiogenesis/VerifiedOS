@@ -662,12 +662,18 @@ _GATE_COMMANDS = {
 _GATE_BRANCHES = sorted(_GATE_COMMANDS)
 # A job-level key of the shard job, whose keys sit at four spaces, bare or quoted.
 _JOB_CONTINUE_RE = re.compile(r"""(?m)^    (["']?)continue-on-error\1[ \t]*:""")
-# Each gate step's environment block, exactly as the workflow spells it for both: the
-# job's part of the gate, its shard or the unpartitioned members, and nothing a shell
-# or an interpreter would read first.
+# Each gate step's environment block, exactly as the workflow spells it for its branch:
+# the job's part of the gate, its shard or the unpartitioned members, and on Windows the
+# temporary directories on the checkout's drive, and nothing a shell or an interpreter
+# would read first.
 _GATE_PART = ("          PART: ${{ matrix.shard == 'unpartitioned' && '--unpartitioned' || "
               "format('--shard={0}/{1}', matrix.shard, matrix.shards) }}")
-_GATE_ENV = ["        env:", _GATE_PART]
+_GATE_ENVS = {
+    ("${{ runner.os == 'Windows' }}", "pwsh"):
+        ["        env:", _GATE_PART, "          TMP: ${{ runner.temp }}",
+         "          TEMP: ${{ runner.temp }}"],
+    ("${{ runner.os != 'Windows' }}", "bash"): ["        env:", _GATE_PART],
+}
 # A variable a shell reads before the command it runs: GitHub runs a bash step as
 # non-interactive bash, which sources the file BASH_ENV names and defines a function
 # for each BASH_FUNC_<name>%% variable holding a function body, and sh reads ENV where
@@ -798,7 +804,8 @@ def _gate_faults(contents: str) -> list[str]:
     exactly its branch's command with no continuation line folded into it, and neither a
     gate step nor the shard job may state `continue-on-error`. A shell can run code of
     its own before the command, so each gate step's `env:` block must be exactly its
-    PART line, and no uncommented line of the workflow may spell BASH_ENV,
+    branch's PART line and, on Windows, its TMP and TEMP lines, and no uncommented line
+    of the workflow may spell BASH_ENV,
     ENV or a BASH_FUNC_ variable as a word in any spelling `_spellings` gives it: as
     written, with its numeric escapes decoded, with its quotes, backticks and
     backslashes then dropped, with each backslash or backtick escape read as a
@@ -829,13 +836,16 @@ def _gate_faults(contents: str) -> list[str]:
         if _continued(step):
             faults.append("a gate step's run continues past its line, so the command it "
                           "runs is not the line read")
-        environments = _step_values(step, "env")
-        if len(environments) != 1 or _step_block(step, "env") != _GATE_ENV:
-            faults.append(f"a gate step states {len(environments)} env key(s) and the "
-                          f"block {_step_block(step, 'env')!r}, not exactly its PART line, "
-                          "so its shell can read more than its part of the gate")
         conditions, shells = _step_values(step, "if"), _step_values(step, "shell")
         runs = _step_values(step, "run")
+        # A step whose branch is not one of the pair states no block that is its own.
+        environments = _step_values(step, "env")
+        stated = (_GATE_ENVS.get((conditions[0], shells[0]))
+                  if len(conditions) == 1 and len(shells) == 1 else None)
+        if len(environments) != 1 or _step_block(step, "env") != stated:
+            faults.append(f"a gate step states {len(environments)} env key(s) and the "
+                          f"block {_step_block(step, 'env')!r}, not exactly the lines its "
+                          "branch states, so its shell can read more than its part of the gate")
         if len(conditions) != 1 or len(shells) != 1 or len(runs) != 1:
             faults.append(f"a gate step states {len(conditions)} if, {len(shells)} shell "
                           f"and {len(runs)} run keys, not one of each")
@@ -855,7 +865,7 @@ _GATE_JOB = """jobs:
   host-gates-shard:
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Keep temporary files on the checkout drive
+      - name: Export a setting
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
         run: |
@@ -867,6 +877,8 @@ _GATE_JOB = """jobs:
         shell: pwsh
         env:
           PART: ${{ matrix.shard == 'unpartitioned' && '--unpartitioned' || format('--shard={0}/{1}', matrix.shard, matrix.shards) }}
+          TMP: ${{ runner.temp }}
+          TEMP: ${{ runner.temp }}
         run: python tools/run.py --check --tests "$env:PART" --summary "$env:RUNNER_TEMP/$env:VERDICT_FILE"
 
       - name: Host gates and behavioral tests (Ubuntu)
@@ -897,6 +909,7 @@ def _workflow_gate_on_every_runner() -> None:
     report = "\n      - name: Report gate results\n"
     part = _GATE_PART + "\n"
     environment = "        env:\n" + part
+    temporary = "          TMP: ${{ runner.temp }}\n          TEMP: ${{ runner.temp }}\n"
     job = "    runs-on: ${{ matrix.runner }}\n"
     trap = "${{ runner.temp }}/trap.sh\n"
     export = ("\n      - name: Export\n        if: ${{ runner.os != 'Windows' }}\n"
@@ -941,16 +954,23 @@ def _workflow_gate_on_every_runner() -> None:
             # the job or the workflow, bare, quoted or in a flow mapping, or written by a
             # run.
             (_GATE_JOB.replace(part, part + "          BASH_ENV: " + trap, 1),
-             "not exactly its PART line"),
+             "not exactly the lines its branch states"),
             (_GATE_JOB.replace(part, part + "          BASH_ENV: " + trap, 1),
              "the workflow names BASH_ENV"),
             (_GATE_JOB.replace(part, part + "          PYTHONPATH: .\n"),
-             "not exactly its PART line"),
-            (_GATE_JOB.replace("        shell: pwsh\n" + environment, "        shell: pwsh\n"),
-             "states 0 env key(s)"),
+             "not exactly the lines its branch states"),
+            (_GATE_JOB.replace("        shell: pwsh\n" + environment + temporary,
+                               "        shell: pwsh\n"), "states 0 env key(s)"),
             (_GATE_JOB.replace("        shell: bash\n" + environment,
                                "        shell: bash\n        env: {PART: --shard=1/4}\n"),
-             "not exactly its PART line"),
+             "not exactly the lines its branch states"),
+            # Each branch's own lines: Windows without its temporary directories on the
+            # checkout's drive, or bash with Windows's.
+            (_GATE_JOB.replace("          TEMP: ${{ runner.temp }}\n", ""),
+             "not exactly the lines its branch states"),
+            (_GATE_JOB.replace("        shell: bash\n" + environment,
+                               "        shell: bash\n" + environment + temporary),
+             "not exactly the lines its branch states"),
             (_GATE_JOB.replace(job, job + "    env:\n      BASH_ENV: " + trap),
              "the workflow names BASH_ENV"),
             (_GATE_JOB.replace(job, job + '    env:\n      "BASH_ENV": ' + trap),

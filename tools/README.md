@@ -113,8 +113,8 @@ and `sh tools/ci/actionlint.sh -shellcheck= -pyflakes=` from the checkout.
 Host CI's jobs cache uv downloads keyed by the manifest and lockfile under Host CI's
 own key suffix, with only each OS's unpartitioned job saving caches on pushes to
 `main`; other jobs restore them. Environments
-and gate results are rebuilt on every run. Windows shards set `TMP` and `TEMP` to
-`runner.temp`, on the checkout's drive, because the image's default temporary
+and gate results are rebuilt on every run. The Windows gate step sets `TMP` and `TEMP`
+to `runner.temp`, on the checkout's drive, because the image's default temporary
 directory is on a
 [slower system drive](https://github.com/actions/runner-images/issues/8755).
 Per-member timing notices are also available through the public check-run
