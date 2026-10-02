@@ -60,8 +60,10 @@ section, JSON record (`elapsed_seconds`) and CI summary. Members run concurrentl
 so these durations overlap and must not be added to obtain the wave's duration.
 The JSON record's `units` add what a member measured inside itself, through
 [vos/timings.py](vos/timings.py): each behavioral test module's cases and seconds,
-and the selftest's phases and per-case seconds. Units overlap the same way, never
-enter the printed report, and the CI summary names the slowest of them.
+and the selftest's phases and per-case seconds. A selftest unit also carries its
+`start`, its offset in seconds from when that member's clock started, so the parts
+that ran at once can be laid on one timeline. Units overlap the same way, never enter
+the printed report, and the CI summary names the slowest of them.
 
 New commits cancel superseded runs of the same pull request; each push to `main`
 keeps its own run. Ubuntu runs four independent shards and Windows eight, because a

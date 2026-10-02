@@ -57,27 +57,48 @@ def read(path: Path) -> list[Unit] | None:
 
 class Clock:
     """Durations measured from any thread, listed by kind, name and duration, so their
-    order does not depend on which measurement finished first."""
+    order does not depend on which measurement finished first.
 
-    def __init__(self) -> None:
-        self._measured: list[tuple[str, str, float]] = []
+    Each unit's `start` is its offset in seconds from the clock's origin, the
+    `perf_counter` reading it was made at unless it is given one, so the parts a member
+    ran at once can be laid on one timeline. A clock made with `cpu` also records this
+    process's CPU seconds over each block it times as `cpu_seconds`: they are the block's
+    own only where nothing else in the process runs beside it, as in the checker, and
+    they exclude any process the block starts.
+    """
+
+    def __init__(self, cpu: bool = False, origin: float | None = None) -> None:
+        self._cpu = cpu
+        self._origin = time.perf_counter() if origin is None else origin
+        self._measured: list[tuple[str, str, float, float, float | None]] = []
         self._lock = threading.Lock()
 
-    def add(self, kind: str, name: str, seconds: float) -> None:
+    def add(self, kind: str, name: str, seconds: float, started: float | None = None,
+            cpu_seconds: float | None = None) -> None:
+        """Record a duration that began at the `perf_counter` reading `started`, or,
+        where none is given, one that ends as it is recorded."""
+        begun = time.perf_counter() - seconds if started is None else started
         with self._lock:
-            self._measured.append((kind, name, seconds))
+            self._measured.append((kind, name, seconds, begun - self._origin, cpu_seconds))
 
     @contextmanager
     def timing(self, kind: str, name: str) -> Iterator[None]:
         """Measure the block, whether it returns or raises."""
-        started = time.perf_counter()
+        started, cpu = time.perf_counter(), time.process_time()
         try:
             yield
         finally:
-            self.add(kind, name, time.perf_counter() - started)
+            self.add(kind, name, time.perf_counter() - started, started,
+                     time.process_time() - cpu if self._cpu else None)
 
     def units(self) -> list[Unit]:
         with self._lock:
-            measured = sorted(self._measured)
-        return [{"kind": kind, "name": name, "seconds": round(seconds, 3)}
-                for kind, name, seconds in measured]
+            measured = sorted(self._measured, key=lambda m: m[:4])
+        units: list[Unit] = []
+        for kind, name, seconds, start, cpu in measured:
+            unit: Unit = {"kind": kind, "name": name, "seconds": round(seconds, 3),
+                          "start": round(start, 3)}
+            if cpu is not None:
+                unit["cpu_seconds"] = round(cpu, 3)
+            units.append(unit)
+        return units

@@ -285,6 +285,17 @@ def _timings_round_trip_and_never_fail_the_run() -> None:
         ensure([(unit["kind"], unit["name"]) for unit in units]
                == [("case", "K-01: a"), ("case", "K-02: b"), ("phase", "teardown")],
                f"units are listed by kind and name, not by finishing order: {units!r}")
+        ensure(all(set(unit) == {"kind", "name", "seconds", "start"} for unit in units),
+               f"a wall clock records each unit's start and no CPU seconds: {units!r}")
+        placed = timings.Clock(cpu=True, origin=10.0)
+        placed.add("case", "K-03: c", 1.5, 12.25)
+        with placed.timing("phase", "baseline"):
+            pass
+        added, timed = placed.units()
+        ensure(added == {"kind": "case", "name": "K-03: c", "seconds": 1.5, "start": 2.25},
+               f"a unit starts at its offset from the clock's origin: {added!r}")
+        ensure(isinstance(cpu := timed.get("cpu_seconds"), float) and cpu >= 0,
+               f"a CPU clock records the CPU seconds of each block it times: {timed!r}")
         timings.write(path, units)
         ensure(timings.read(path) == units, "written units must read back unchanged")
         timings.write(None, units)
