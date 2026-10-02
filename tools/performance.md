@@ -241,3 +241,19 @@ passes replace the JSONC reader's per-character Python state machine, preserving
 exact output and error offsets. Configuration scanning and JSON parsing took a
 median 4.842 ms against 13.534 ms before on the measured corpus. This is a
 component improvement; no whole-gate or proof-compilation speedup is claimed.
+
+## October 2 checker fixed cost
+
+The [recorded comparison](../docs/performance/tool-benchmarks-2026-10-02/README.md)
+retains the replay script and raw samples. Every checker run, and so every selftest
+mutation case, regenerates the K-88 host rows in its generated group. The
+[elastic-pool campaign](vos/elastic_pool_campaign.py) runs each command prefix once
+and forks the pool for each continuation, and its observer checks each distinct
+history once; [its test](tests/test_elastic_pool.py) holds the forked histories
+equal to fresh replays. The [wire-format inventory](vos/wire_formats.py) reads and
+blanks each proof source at most once, and blanks only a source whose text contains
+a Narcissus name. The [test harness](tests/harness.py) runs one `git init` per
+process and copies that repository into each sandbox tree, except a tree whose files
+reach into `.git`. Component medians fell from 60.1 to 25.9 ms for the campaign,
+186.1 to 100.7 ms for the inventory and 164.9 to 85.7 ms for a one-file sandbox
+tree. No whole-gate speedup is claimed.
