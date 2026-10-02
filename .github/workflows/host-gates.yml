@@ -232,7 +232,7 @@ jobs:
   # The curated model's hooks run in a job of their own beside the shards, on the Ubuntu
   # shards' image, so no shard waits after its gate while the hooks' environments
   # install. It checks out and verifies a dispatch as the shards do, and sets up the same
-  # Python and uv; only the unpartitioned jobs save the uv downloads it restores.
+  # Python and uv; only Ubuntu's unpartitioned job saves the uv downloads it restores.
   model-hooks:
     name: model-hooks
     runs-on: ubuntu-26.04
