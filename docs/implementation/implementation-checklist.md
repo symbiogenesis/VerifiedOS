@@ -401,20 +401,20 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,199.9 |
-| Total estimate range h | 2,693.8–5,706 |
-| Completed scope h | 783.4 |
+| Total estimate midpoint h | 4,193.7 |
+| Total estimate range h | 2,691.6–5,695.8 |
+| Completed scope h | 785.2 |
 | Complete by estimate % | 18.7 |
-| Remaining h | 3,416.5 |
+| Remaining h | 3,408.5 |
 | Open class I h | 681.5 |
-| Open class X h | 2,735 |
+| Open class X h | 2,727 |
 | Retained completion estimate h | 186 |
 | Unmeasured completed items | 22 |
-| Calibrated total h | 5,151 |
+| Calibrated total h | 5,141.4 |
 | Committed M8a open h | 73 |
 | Committed M8b open h | 90.5 |
 | Other committed open h | 2,027.5 |
-| Conditional open h | 811.5 |
+| Conditional open h | 803.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
 | Committed M8a open range h | 47–99 |
@@ -1073,9 +1073,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
   * [ ] **Q35h · Reduce and report the kernel checker's anomaly on VST's Floyd closure** · 6 h, range 3–9 · X
     * **Dispatch. Start:** F-486; VST 2.17 as [the qualification switches](../../tools/opam/c-refinement-qualification-switches.md) build it, in the private vst2 and vst3 switches or recreated from their recipes under M1.1a's containment; the 9.2.0 checker's sources at `V9.2.0` and the locked checker's at `V9.3.0`. **Owns:** an authored standalone Rocq reproduction of the "Incompatible resolver roots" anomaly that copies no VST source, through nested module aliases under a functor application in the shape `SeparationLogicAsLogicSoundness` has; its result under `rocqchk` 9.2.0 and under the locked 9.3.0 checker; an upstream report; and a reading of whether any released checker produces VST 2.17's client summary. **Check:** the reproduction compiles with `rocq c` and aborts `rocqchk -silent -o`; a variant without the triggering alias checks; every figure carries its predicate, revision and checker binary identity. **Join:** F-486's disposition; F-463's review-gate act, for VST's summary; Q35i.
     * **Estimate basis:** reduction 2–4 h, the 9.3.0 reading 1–3 h, report and record 0–2 h.
-  * [ ] **Q35i · Decide the gate's reading of alias-sealed and functor-sealed module fields** · 8 h, range 4–12 · X
-    * **Dispatch. Start:** F-487; the proof gate's kernel recheck in `tools/vos/cli/proofs.py` and `tools/vos/proofaudit.py`; the pinned checker's `check_stat.ml`, `mod_checking.ml` and `safe_checking.ml` at `V9.3.0`; [Q35e's record](../assurance/c-refinement-foundation-qualification.md), its summaries and its sealed-module scan. **Owns:** the rule for when `rocqchk` names a field of a module it checked; and either a gate cover for such fields backed by the same run's checking evidence, with behavioural tests, a mutant the tests kill and a negative control, or a recorded finding that no sound cover exists, leaving an R-05-164 enumeration as the only route. **Check:** a reduced alias-sealed module and a reduced functor-sealed module each name their fields; an `Admitted` field in each is still refused; the mutant results are reported with stillborn, killed and survived counts apart. **Join:** F-487; VST's admission; the review gate's R-05-164 act.
-    * **Estimate basis:** checker reading 2–3 h, reductions 1–2 h, cover or refusal 1–5 h, tests and mutant 0–2 h.
+  * [x] **Q35i · Decide the gate's reading of alias-sealed and functor-sealed module fields** · 1.8 h actual · agent-parallel
+    * The checker names every field of a module sealed by an alias or a functor application as an axiom whether or not it checked the library, and the gate covers such a name of a checked library by the compiler's reading of the implementation its seal hides, refusing an admitted implementation, a hidden assumption and a genuine axiom alike. ([note](completion-log.md#q35i-decide-the-gates-reading-of-alias-sealed-and-functor-sealed-module-fields))
   * [ ] **Q35j · State the bridge from a source-level foundation's C semantics to the contained compiler's Clight** · 16 h, range 9–23 · X
     * **Dispatch. Start:** F-464, F-489, F-495, R-05-019, R-05-019a, R-05-020 and R-05-164; the contained compiler's `cfrontend/Clight.v` and `common/Values.v` at its accepted revision, under M1.1a's containment; stock Clight 3.17 as VST's bundled subset carries it; Caesium at RefinedC `2e89846b`; the kernel's cold executive C. **Owns:** a statement, not a proof, of a forward simulation from one chosen foundation's semantics, stock Clight or Caesium, to SECOMP's compartment Clight over the capability-free fragment the executive C uses, naming how the compartment argument and the `Vcap` constructor are treated, compiled in a private switch and held outside `proofs/`, since the proof switch carries neither semantics; the front-end correspondence premise between the foundation's input, `clightgen`'s AST or RefinedC's generated code, and the contained compiler's parse of the same C, naming for VST which producer of that input it assumes (F-489); a per-pass proof plan with a range, or `unpriced` with its reason; and the R-05-020 and R-05-019a argument the bridge would supply. **Check:** the statement compiles against both semantics; a program whose execution creates a capability value is a refuted instance of the fragment; a non-vacuity witness inhabits the premise; no figure is stated where none is defensible. **Join:** the review gate's F-464 act and the R-05-020 record; the admission of VST or RefinedC; M6.2b-ii, M6.2c, R-10-008's L0 refinement and the crypto refinements to C.
     * **Estimate basis:** reading both semantics and the fragment 3–6 h, statement 4–8 h, refutation and witness 1–3 h, plan and pricing 1–6 h.
@@ -1129,7 +1128,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,396.4 h · 57% · 171.4 h complete · open range 1,259–3,191 h.
+**Q subtotal:** 2,390.2 h · 57% · 173.2 h complete · open range 1,255–3,179 h.
 
 ### M0 · Hardware reference
 
@@ -2004,8 +2003,8 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 | attended | All | 63 | 323.9 | 238.4 | 0.74 |
 | agent-parallel | I | 40 | 335 | 129.8 | 0.39 |
 | agent-parallel | X-read | 10 | 101.5 | 34.7 | 0.34 |
-| agent-parallel | X-authored | 23 | 270.5 | 40.3 | 0.15 |
-| agent-parallel | All | 73 | 707 | 204.8 | 0.29 |
+| agent-parallel | X-authored | 24 | 278.5 | 42.1 | 0.15 |
+| agent-parallel | All | 74 | 715 | 206.6 | 0.29 |
 <!-- calibration-results:end -->
 
 ### Calibration record
@@ -2175,6 +2174,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q35a | n/a | n/a |
 | Q35e | X-read | 14 |
 | Q35f | I | 18 |
+| Q35i | X-authored | 8 |
 | Q38a | I | 3 |
 | Q38b | I | 5 |
 | Q38c | I | 8 |

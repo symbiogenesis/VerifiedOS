@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 999 of them across 157 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 1002 of them across 158 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1015,7 +1015,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-487** owed-act: the kernel checker's summary names checked fields of alias-sealed and functor-sealed modules as axioms, 204 fields of VST's `Share` and `R` in the recursively checked `SequentialClight` closure, and no rule decides whether the gate covers them by the same run's checking evidence or an R-05-164 amendment enumerates them
 · Raised: Q35e
-· Disposition: open, Q35i at the proof gate's owner
+· Disposition: closed at Q35i: the checker replaces a sealed field with what its implementation uses only where it checks a bodied constant of that canonical name under the seal, so every field of an alias-sealed or functor-sealed module is named whether or not the library was checked, and the gate covers such a field of a checked library by the compiler's reading of the implementation its seal hides; whether VST's 204 fields are closed under that reading is unmeasured, and the 16 declared names of its closure remain F-463's act
 
 **F-488** measurement: VST's Iris line does not build at the locked prover, the solver refusing `rocq-vst` 3.2beta, `coq-vst` 3.1beta and `coq-vst-iris` and the 3.2beta archive stopping at `shared/resource_map.v` line 611
 · Raised: Q35e
@@ -1072,6 +1072,18 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-737** upstream-defect: upstream sail-riscv still spells the prelude's quotient and remainder externs under the `rocq:` key, which Sail 0.20.3's Rocq backend does not read
 · Raised: Q35f
 · Disposition: standing, the model spelling them `coq:` and no upstream report taken
+
+**F-774** method: for an assumption a seal hides from the loaded environment the compiler's `Print Assumptions` is the proof gate's only reading, rocqchk's summary naming no such constant unless a field it checked under an interactive seal uses it
+· Raised: Q35i
+· Disposition: standing, a residual of the cover's design recorded in the tool guide's proof-gate passage; the hidden case refuses through the compiler's reading, as every such field refused outright before the cover
+
+**F-775** measurement: the proof gate's assumption parser refuses a `Print Assumptions` entry carrying Rocq's `used in … to prove` lines and an entry printed without a type, so a hidden admission or axiom reached in either form refuses as a parse fault rather than by name
+· Raised: Q35i
+· Disposition: standing, both forms refusing; a declared axiom printed in either form would refuse as unframed, which R-05-164's declared set meets when it grows
+
+**F-776** owed-act: the proof gate compares a declared entry with the kernel summary by fully qualified name and with `Print Assumptions` by the printed entry, whose name is the shortest unambiguous path in the query's environment, so no declared spelling satisfies both readings
+· Raised: Q35i
+· Disposition: open, owed before R-05-164's declared set grows a name; latent while that set is empty, on F-487 and F-463's join path
 
 **F-496** owed-act: every project switch recipe creates its switch empty and imports its lock, and `opam switch import` records no switch invariant, so a provisioned switch's `opam switch export` omits the lock's `compiler:` section and a lock re-exported from it would drop that section
 · Raised: Q36
