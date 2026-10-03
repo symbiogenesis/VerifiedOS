@@ -240,7 +240,7 @@ The results:
 - Every emission compiles against the changed library, and the switch's emissions against the release too.
 - With the changed library, `rocqchk -silent -o` names only the five emulator-memory axioms for the concurrency-interface model without reals; Sail's library declares them, and the canonical model guards them out since Q35f. It names none for the plain model without reals, and exactly the four real-number axioms for each of the two models with reals that it checked. With the release, the first model's summary names the five Stdlib axioms as well.
 
-An earlier version of the declarations model held a real-typed register and compiled with neither library nor plugin: the backend's register encoding requires `Countable` for each register type, and `R` has no instance (F-NEW-4).
+An earlier version of the declarations model held a real-typed register and compiled with neither library nor plugin: the backend's register encoding requires `Countable` for each register type, and `R` has no instance (F-NEW-3).
 
 ### Routes that take the five out
 
