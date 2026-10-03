@@ -749,7 +749,7 @@ capture is a mismatch rather than an input.
 | Run kind | Composition and entry | How it ends with a verdict |
 | --- | --- | --- |
 | boot run | the RoT composition; the ROM program at the reset vector, which enters the runtime at `chain.rot_runtime_base` on the ROM's release | a `RELEASE` line and a capture (the runtime wrote the release door); or one `SUCCESS` line and a capture whose `capture.verdict` is a refusal (a completed refusal); or the emulator's bite line and no capture |
-| runtime-only run | the RoT composition; the stage-0 payload placed by the harness at `chain.rot_runtime_base` with a state record the ROM would leave, entered at that base | as a boot run; the watchdog cases of section 9.10 end on the bite line, and the detached-clock control on its instruction limit |
+| runtime-only run | the RoT composition; the stage-0 payload placed by the harness at `chain.rot_runtime_base` with a state record the ROM would leave, entered at that base after a harness-composed preamble performs the ROM's two device acts, the entropy root's start-up tests and counter 0's advance to F, so the runtime meets the devices a boot run's runtime meets | as a boot run; the watchdog cases of section 9.10 end on the bite line, and the detached-clock control on its instruction limit |
 | service run | the RoT composition; the same payload with a `run.service` state record and a request at `state.request_at` | one `SUCCESS` line and a capture holding the response |
 | main-die run | the main-die composition; the placed M-mode window, the record, the mailbox and the kernel store, entered at `chain.mmode_load_base` | `SUCCESS` from the kernel stage's report after its eleven checks, with the signature region captured; or `FAILURE: n`, n the fixture's check or 64 plus the M-mode stage's refusal code |
 
@@ -1144,12 +1144,14 @@ The observations owed, each a case of section 9.12:
   rewritten to a bit the health word never sets, so the step never becomes ready
   and no pet is issued; under the external clock the model bites at the first
   tick past the late bound and the emulator's join asserts the die reset and
-  prints its bite line, the run ending there with no release and no capture;
+  prints its bite line, the run ending there with no release and no capture,
+  and the line's tick count is above the late bound;
 - `watchdog-early-pet`: a runtime that pets at `step.arm`'s completion without
   reading the tick door, so the pet is early and the model bites at once; the
   join takes the reset on its next pump with no tick due, as
   [watchdog_join.cpp](../../../model/test/unit_tests/watchdog_join.cpp)'s
-  unmatched-pet case shows the path;
+  unmatched-pet case shows the path, and the bite line's tick count is below the
+  early bound, which separates this bite from a late one;
 - `watchdog-stalled-no-clock`: the stalled runtime with no external clock, run
   to `chain.control_inst_limit`, which must end on the limit with no bite line
   and no HTIF line; it attributes the bite above to the clock and not to the
