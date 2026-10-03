@@ -146,8 +146,8 @@ The constraint-programming and pseudo-Boolean literature carries proof
 checkers whose soundness is machine-checked, so a solver's answer can be
 re-established without trusting the solver. The register already decides most
 of what this repository may do with them, and the decision is not uniform.
-The entries F06 through F11 are qualified on 2026-09-13 and are recorded
-under that decision, not against it.
+The entries F06 through F11 are qualified on 2026-09-13 and F12 on 2026-10-02,
+and all are recorded under that decision, not against it.
 
 **What the pattern admits, and what of it is built.** R-05-066 names the
 asymmetric-trust pattern and keeps it: an untrusted producer whose output the
@@ -202,10 +202,10 @@ and retiring an interim it replaces. Two members are Rocq-side, FznDrcpCheck
 at F06 and the Rocq LRAT checker at F08, and only the first addresses the
 constraint and optimization problems at issue, the second being a SAT proof
 checker. CakePB and the colouring and enumeration results built over it are
-HOL4; LeanCSP, PBLean and lrat-catcher are Lean, and F05 already records that
-this inventory does not introduce Lean as a project trust language; SCIP,
-cvc5 and the proof-logging and trimming papers carry no proof assistant at
-all. None of them retires an interim.
+HOL4; LeanCSP, PBLean, lrat-catcher and Ordeal's checker are Lean, and F05
+already records that this inventory does not introduce Lean as a project
+trust language; SCIP, cvc5 and the proof-logging and trimming papers carry no
+proof assistant at all. None of them retires an interim.
 
 **The infeasibility proposal is declined on present evidence.** A checked
 *infeasibility* certificate would move a verdict from "the search found no
@@ -410,6 +410,46 @@ design and is not shown certified. Trimming is proof compression with
 no formally verified component, the trimmer being untrusted and soundness in
 practice coming from re-checking the trimmed proof, so it is an engineering
 result about proof size and not evidence of anything a checker holds.
+
+## F12: Ordeal, a certificate-checked bit-vector solver, reference
+
+**Source and authors.** PulseEngine's
+[ordeal](https://github.com/pulseengine/ordeal/tree/97d314fc3cbf1868969fe3617bb7df4555cc4e29)
+at its `v0.27.0` tag, read on 2026-10-02. It is a tool repository, not a paper.
+It decides a closed QF_BV fragment at widths 1 to 128 by bit-blasting to CNF
+for its own SAT solver. An `unsat` answer carries an LRAT certificate and a
+`sat` answer an assignment. The trusted part is the `ordeal-lrat` crate. Charon
+and Aeneas translate it from Rust to Lean 4 at pinned revisions, and the
+soundness theorems are about that Lean model. `lrat_check_sound` makes an
+accepted certificate refute the CNF, and `check_sat_sound` makes an accepted
+assignment satisfy it. A certificate in the second format carries the term DAG,
+which `check_query_sound` re-encodes inside the trusted crate, so an accepted
+bundle refutes that DAG rather than a CNF taken on faith. The repository's
+`AxiomCheck.lean` holds those theorems to Lean's three classical axioms.
+Building the DAG from the input terms, rewriting, the derived operations and
+the SMT-LIB front end stay outside the proof. Tests and a differential against
+Z3 defend them, and the upstream cites an earlier translation bug, its issue
+182, that produced a wrong answer under a valid certificate. Its own
+trusted-base statement adds the Charon and Aeneas translation, which is not
+verified end to end. The terms are `Apache-2.0`, as
+[the third-party record](../../../THIRD-PARTY.md#webassembly-toolchain-and-rocq-extraction-readings)
+reads them.
+
+**Fit and disposition.** Reference. The checker's soundness is a Lean theorem
+about an Aeneas model, so R-05-020's first condition fails as it does for
+[F09](#f09-the-lean-certificate-checkers-unqualified-lead). Shipping it as an
+admission checker meets the no-new-checker refusals above, and an imported
+verdict would be a second checker R-05-016 excludes. As an untrusted producer
+under R-05-066 it would need an existing checker to decide its output, and none
+here decides a bit-vector equivalence.
+[The LRAT experiment](../../implementation/static-memory/certificates.md)'s
+Isabelle-LLVM checker would check a CNF alone, and it is evidence-producing
+machinery under R-05-011b that grounds no admitted claim. Searching for a
+rewrite candidate needs no certificate at all, and accepting one needs the
+kernel-checked proof term R-05-015 names, which a Lean verdict does not supply.
+Upstream, Ordeal validates a Wasm optimizer's and an Arm lowering's rewrites, a
+role with no counterpart here: R-05-085 makes Wasm no native execution target.
+No local build or replay is claimed.
 
 ## Discovery collections and search limits
 

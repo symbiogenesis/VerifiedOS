@@ -1,6 +1,6 @@
 # Proof reuse: parsing, formats, media and WebAssembly
 
-This inventory qualifies published proof developments against this project's actual obligations. Research and source inspection date: **2026-09-10**, except the EverParse front-end scope recorded below, which is read on **2026-09-13**, and the Vest record, read on **2026-09-19**. A strong published example is not an already discharged VerifiedOS requirement. No external parser, interpreter or proof term is incorporated by this document, and no candidate below is rebuilt in the project's Rocq switch. Source inspection, upstream claims and local qualification are distinguished explicitly.
+This inventory qualifies published proof developments against this project's actual obligations. Research and source inspection date: **2026-09-10**, except the EverParse front-end scope recorded below, which is read on **2026-09-13**, the Vest record, read on **2026-09-19**, and the Scry record, read on **2026-10-02**. A strong published example is not an already discharged VerifiedOS requirement. No external parser, interpreter or proof term is incorporated by this document, and no candidate below is rebuilt in the project's Rocq switch. Source inspection, upstream claims and local qualification are distinguished explicitly.
 
 ## Local consumers and the qualification boundary
 
@@ -143,6 +143,14 @@ before that bridge is demonstrated. No collector source is incorporated.
 The [shared Wasm corpus](../../implementation/contracts/wasm-execution.md#shared-upstream-corpus)
 records the official tests and wasm-tools as untrusted engineering start-froms,
 distinct from the semantics and theorem sources above.
+
+### Scry: Wasm abstract domains proved over their own models
+
+**Reading dated 2026-10-02. Authority and artifact.** Ralf Anton Beier and scry contributors, PulseEngine; [pulseengine/scry](https://github.com/pulseengine/scry/tree/8e6bed142052bd94446716a36cd523f663001c20), one commit past its `v3.3.0` tag, a tool repository with no paper of its own. It is a sound abstract interpreter for Core Wasm modules, written in Rust. Its `proofs/rocq/` holds twenty files for Rocq 9.0. They import only Stdlib and declare no `Axiom`, global `Parameter`, `Admitted` or `admit`; their only assumptions are section variables and hypotheses, discharged at each section's end. They prove lattice laws and transfer soundness for its interval, region, reachability, call-graph, octagon, pentagon, polyhedra, known-bits, float, segment and handle-state domains, each over a model the file defines. `Soundness.v`'s interval `add_sound` is stated over unbounded integers. `WrapAdd.v`'s `i32_add_wrap_sound` proves the shipped `i32.add` transfer sound against two's-complement wrapping, which the file models directly; it is the only transfer stated against wrapping semantics. The upstream README lists float rounding, known-bits at 32 and 64 bits and the polyhedra entailment as tested rather than mechanized, and it defers importing WasmCert-Coq as the concrete model.
+
+**Use and limits.** No obligation here asks for an analysis of Wasm. R-14-013a confines a guest by pure interpretation, and R-14-013e admits a bundle by verified validation, so neither reads an analysis verdict. [The selected execution representation](../../implementation/contracts/wasm-execution.md#selected-execution-representation) elides no check on an inferred invariant. Native admission is the CHERI-TAL check over the final RV64 binary, and R-05-085 makes Wasm no native target. The theorems concern scry's own transfer functions over its own models, not WasmCert-Coq or the pinned Core 3.0 semantics, so they would not serve Q34g's refinement even if an elision pass were selected. The interval and wrapping lemmas are short Stdlib arguments that a local proof would restate over its own definitions.
+
+**Terms and disposition.** `MIT OR Apache-2.0`, as [the third-party record](../../../THIRD-PARTY.md#webassembly-toolchain-and-rocq-extraction-readings) reads them; its Apache appendix names a sibling project's contributors. Reference only; nothing is copied.
 
 ### Other source leads
 
