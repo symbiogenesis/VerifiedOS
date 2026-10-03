@@ -1349,9 +1349,34 @@ roots: a peer's recursive check in the same run or an earlier accepted run of th
 gate, where a worker checked that library and named its axioms exactly. Only such a
 worker pays for the load-only pass, and workers admitting the same roots share one.
 A proof module's axiom is never covered, and the run prints the covered names.
-This enumeration is independent of the compiler's Print Assumptions, so neither
-reading's omission hides an axiom from the gate. It does not report definitional
-UIP, which the Print Assumptions audit does.
+The checker names a module's fields by the module's type: it lists every constant
+without a body in the environment it loaded, and replaces one with the assumptions
+its implementation uses only where it checked that implementation as a structure body
+under the sealing type, `Module M : T. ... End M.`, which is what the `PeanoNat` and
+`ssrunder` reading above rests on. A module sealed by an alias, `Module M : T := N`,
+or by a functor application, `Module M : T := F X` or `F X` for a functor whose own
+result type seals it, gets no such entry, so the checker names each of its fields as
+an axiom whether or not it checked the library (the pinned checker's
+`mod_checking.ml`, `check_module` and `constants_of_opaques`); a field a `with`
+constraint defines, a transparent alias or application, and an `Include` of such a
+module add no name. What the kernel checked there is the implementation: its bodies,
+an application's argument against the functor's parameter, and the sealed type
+against the implementation's. For such a name of a library the worker checked, which
+is every installed name the load-only pass does not repeat, the gate asks the
+compiler `Print Assumptions` about the name in the environment that Requires the
+worker's roots. The compiler resolves a sealed field through its module expression to
+the implementation and traverses that implementation's body and type, reporting an
+assumption the seal hides from the environment under the sealed path and an admitted
+implementation as the field itself. The name is covered when that reading is closed
+under the global context or lists only declared entries, so an admitted proof, an
+`Axiom` or a `Parameter` anywhere under the seal refuses, and so does a genuine
+axiom, which reports itself; a reading that fails or omits a name covers nothing, and
+the run prints these covered names apart from the admission's.
+For every name in the loaded environment this enumeration is independent of the
+compiler's Print Assumptions, so neither reading's omission hides a loaded axiom from
+the gate; for an assumption a seal hides from the environment, the compiler's reading
+is the only one the gate has. The summary does not report definitional UIP, which the
+Print Assumptions audit does.
 The summary ends with the inductives that rely on indices not mattering, Corelib's
 `eq` among them. The gate requires that section with qualified names and accepts
 them, because the checker profile fixes `indices_matter=false`.
@@ -1439,8 +1464,10 @@ whole run succeeds.
 This follows the pinned checker's
 [selection algorithm](https://github.com/rocq-prover/rocq/blob/V9.3.0/checker/checkLibrary.ml);
 the native regressions exercise incremental success, incompatible objects,
-contradictory universe constraints across separately valid libraries, and an admitted
-root that loads a sealed installed module.
+contradictory universe constraints across separately valid libraries, an admitted
+root that loads a sealed installed module, and a checked library whose alias-sealed
+and functor-sealed fields the compiler's reading covers or, over an admitted
+implementation or a genuine axiom, refuses.
 
 The launcher groups changed modules by connected local dependency components and
 distributes them within the selected kernel-worker limit. Components stay
