@@ -182,6 +182,3 @@ function read_ram(rk, Physaddr(addr), width, read_meta) = {
 }
 
 instantiation sail_barrier with 'barrier = barrier_kind
-
-val __TraceMemoryWrite : forall 'n 'm. (int('n), bits('m), bits(8 * 'n)) -> unit
-val __TraceMemoryRead  : forall 'n 'm. (int('n), bits('m), bits(8 * 'n)) -> unit
