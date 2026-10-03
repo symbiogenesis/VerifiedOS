@@ -107,3 +107,33 @@ val riscv_f64Lt = pure {cpp: "softfloat_f64lt", lem: "softfloat_f64_lt"} : (bits
 val riscv_f64Lt_quiet = pure {cpp: "softfloat_f64lt_quiet", lem: "softfloat_f64_lt_quiet"} : (bits_D, bits_D) -> (bits_fflags, bool)
 val riscv_f64Le = pure {cpp: "softfloat_f64le", lem: "softfloat_f64_le"} : (bits_D, bits_D) -> (bits_fflags, bool)
 val riscv_f64Eq = pure {cpp: "softfloat_f64eq", lem: "softfloat_f64_eq"} : (bits_D, bits_D) -> (bits_fflags, bool)
+
+// ***************************************************************
+// HALF WIDTH IN THE ROCQ TERM
+//
+// Every call of a half-width operation sits in an element-width-16 arm, or a
+// width-8 source of a widening conversion, that the vector decode and validity
+// guards reach only with `Zvfh` or `Zvfhmin` enabled. No shipped composition
+// enables either, and the Rocq term is emitted at the frozen profile's
+// primary composition, so the term never executes these. Rather than leave
+// each an axiom, the term gives each the model's internal error: a half-width
+// operation stops the machine there, where the emulator would call SoftFloat.
+
+$iftarget rocq
+function riscv_f16Add(_, _, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Sub(_, _, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Mul(_, _, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Div(_, _, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16MulAdd(_, _, _, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Sqrt(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16ToI32(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16ToUi32(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_i32ToF16(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_ui32ToF16(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16ToF32(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f32ToF16(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Lt(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Lt_quiet(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Le(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Eq(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+$endif
