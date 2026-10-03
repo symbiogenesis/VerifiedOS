@@ -69,10 +69,6 @@ val riscv_f16ToI32 = pure {cpp: "softfloat_f16toi32", lem: "softfloat_f16_to_i32
 val riscv_f16ToUi32 = pure {cpp: "softfloat_f16toui32", lem: "softfloat_f16_to_ui32"} : (bits_rm, bits_H) -> (bits_fflags, bits_WU)
 val riscv_i32ToF16 = pure {cpp: "softfloat_i32tof16", lem: "softfloat_i32_to_f16"} : (bits_rm, bits_W) -> (bits_fflags, bits_H)
 val riscv_ui32ToF16 = pure {cpp: "softfloat_ui32tof16", lem: "softfloat_ui32_to_f16"} : (bits_rm, bits_WU) -> (bits_fflags, bits_H)
-val riscv_f16ToI64 = pure {cpp: "softfloat_f16toi64", lem: "softfloat_f16_to_i64"} : (bits_rm, bits_H) -> (bits_fflags, bits_L)
-val riscv_f16ToUi64 = pure {cpp: "softfloat_f16toui64", lem: "softfloat_f16_to_ui64"} : (bits_rm, bits_H) -> (bits_fflags, bits_LU)
-val riscv_i64ToF16 = pure {cpp: "softfloat_i64tof16", lem: "softfloat_i64_to_f16"} : (bits_rm, bits_L) -> (bits_fflags, bits_H)
-val riscv_ui64ToF16 = pure {cpp: "softfloat_ui64tof16", lem: "softfloat_ui64_to_f16"} : (bits_rm, bits_LU) -> (bits_fflags, bits_H)
 
 val riscv_f32ToI32 = pure {cpp: "softfloat_f32toi32", lem: "softfloat_f32_to_i32"} : (bits_rm, bits_S) -> (bits_fflags, bits_W)
 val riscv_f32ToUi32 = pure {cpp: "softfloat_f32toui32", lem: "softfloat_f32_to_ui32"} : (bits_rm, bits_S) -> (bits_fflags, bits_WU)
@@ -91,10 +87,8 @@ val riscv_f64ToUi64 = pure {cpp: "softfloat_f64toui64", lem: "softfloat_f64_to_u
 val riscv_i64ToF64 = pure {cpp: "softfloat_i64tof64", lem: "softfloat_i64_to_f64"} : (bits_rm, bits_L) -> (bits_fflags, bits_D)
 val riscv_ui64ToF64 = pure {cpp: "softfloat_ui64tof64", lem: "softfloat_ui64_to_f64"} : (bits_rm, bits_LU) -> (bits_fflags, bits_D)
 val riscv_f16ToF32 = pure {cpp: "softfloat_f16tof32", lem: "softfloat_f16_to_f32"} : (bits_rm, bits_H) -> (bits_fflags, bits_S)
-val riscv_f16ToF64 = pure {cpp: "softfloat_f16tof64", lem: "softfloat_f16_to_f64"} : (bits_rm, bits_H) -> (bits_fflags, bits_D)
 val riscv_f32ToF64 = pure {cpp: "softfloat_f32tof64", lem: "softfloat_f32_to_f64"} : (bits_rm, bits_S) -> (bits_fflags, bits_D)
 val riscv_f32ToF16 = pure {cpp: "softfloat_f32tof16", lem: "softfloat_f32_to_f16"} : (bits_rm, bits_S) -> (bits_fflags, bits_H)
-val riscv_f64ToF16 = pure {cpp: "softfloat_f64tof16", lem: "softfloat_f64_to_f16"} : (bits_rm, bits_D) -> (bits_fflags, bits_H)
 val riscv_f64ToF32 = pure {cpp: "softfloat_f64tof32", lem: "softfloat_f64_to_f32"} : (bits_rm, bits_D) -> (bits_fflags, bits_S)
 val riscv_f32ToBF16 = pure {cpp: "softfloat_f32tobf16", lem: "softfloat_f32_to_bf16"} : (bits_rm, bits_S) -> (bits_fflags, bits_BF16)
 
@@ -104,18 +98,86 @@ val riscv_f32ToBF16 = pure {cpp: "softfloat_f32tobf16", lem: "softfloat_f32_to_b
 val riscv_f16Lt = pure {cpp: "softfloat_f16lt", lem: "softfloat_f16_lt"} : (bits_H, bits_H) -> (bits_fflags, bool)
 val riscv_f16Lt_quiet = pure {cpp: "softfloat_f16lt_quiet", lem: "softfloat_f16_lt_quiet"} : (bits_H, bits_H) -> (bits_fflags, bool)
 val riscv_f16Le = pure {cpp: "softfloat_f16le", lem: "softfloat_f16_le"} : (bits_H, bits_H) -> (bits_fflags, bool)
-val riscv_f16Le_quiet = pure {cpp: "softfloat_f16le_quiet", lem: "softfloat_f16_le_quiet"} : (bits_H, bits_H) -> (bits_fflags, bool)
 val riscv_f16Eq = pure {cpp: "softfloat_f16eq", lem: "softfloat_f16_eq"} : (bits_H, bits_H) -> (bits_fflags, bool)
 val riscv_f32Lt = pure {cpp: "softfloat_f32lt", lem: "softfloat_f32_lt"} : (bits_S, bits_S) -> (bits_fflags, bool)
 val riscv_f32Lt_quiet = pure {cpp: "softfloat_f32lt_quiet", lem: "softfloat_f32_lt_quiet"} : (bits_S, bits_S) -> (bits_fflags, bool)
 val riscv_f32Le = pure {cpp: "softfloat_f32le", lem: "softfloat_f32_le"} : (bits_S, bits_S) -> (bits_fflags, bool)
-val riscv_f32Le_quiet = pure {cpp: "softfloat_f32le_quiet", lem: "softfloat_f32_le_quiet"} : (bits_S, bits_S) -> (bits_fflags, bool)
 val riscv_f32Eq = pure {cpp: "softfloat_f32eq", lem: "softfloat_f32_eq"} : (bits_S, bits_S) -> (bits_fflags, bool)
 val riscv_f64Lt = pure {cpp: "softfloat_f64lt", lem: "softfloat_f64_lt"} : (bits_D, bits_D) -> (bits_fflags, bool)
 val riscv_f64Lt_quiet = pure {cpp: "softfloat_f64lt_quiet", lem: "softfloat_f64_lt_quiet"} : (bits_D, bits_D) -> (bits_fflags, bool)
 val riscv_f64Le = pure {cpp: "softfloat_f64le", lem: "softfloat_f64_le"} : (bits_D, bits_D) -> (bits_fflags, bool)
-val riscv_f64Le_quiet = pure {cpp: "softfloat_f64le_quiet", lem: "softfloat_f64_le_quiet"} : (bits_D, bits_D) -> (bits_fflags, bool)
 val riscv_f64Eq = pure {cpp: "softfloat_f64eq", lem: "softfloat_f64_eq"} : (bits_D, bits_D) -> (bits_fflags, bool)
-val riscv_f16roundToInt = pure {cpp: "softfloat_f16roundToInt", lem: "softfloat_f16_round_to_int"} : (bits_rm, bits_H, bool) -> (bits_fflags, bits_H)
-val riscv_f32roundToInt = pure {cpp: "softfloat_f32roundToInt", lem: "softfloat_f32_round_to_int"} : (bits_rm, bits_S, bool) -> (bits_fflags, bits_S)
-val riscv_f64roundToInt = pure {cpp: "softfloat_f64roundToInt", lem: "softfloat_f64_round_to_int"} : (bits_rm, bits_D, bool) -> (bits_fflags, bits_D)
+
+// ***************************************************************
+// COMPARISONS THROUGH SAIL'S FLOAT LIBRARY
+//
+// Sail's own float library, which the prelude includes, defines the single-
+// and double-width comparisons over bit vectors. It returns the result first
+// and orders its five exception flags inexact, underflow, overflow, divide by
+// zero, invalid from bit 4 down to bit 0, where this interface returns the
+// flags first in the opposite order, invalid at bit 4 (nvFlag). `float_fflags`
+// reverses the five bits, and each comparison below is the library's with
+// that adapter. The Rocq term binds the eight comparisons above to these; the
+// emulator keeps SoftFloat 3e, and tools/oracle-specs/fpcompare.json states
+// the population the two were compared over.
+
+val float_fflags : fp_exception_flags -> bits_fflags
+function float_fflags(f) = f[0 .. 0] @ f[1 .. 1] @ f[2 .. 2] @ f[3 .. 3] @ f[4 .. 4]
+
+val float_f32Lt : (bits_S, bits_S) -> (bits_fflags, bool)
+function float_f32Lt(a, b) = { let (r, f) = float_is_lt(a, b); (float_fflags(f), r) }
+val float_f32Lt_quiet : (bits_S, bits_S) -> (bits_fflags, bool)
+function float_f32Lt_quiet(a, b) = { let (r, f) = float_is_lt_quiet(a, b); (float_fflags(f), r) }
+val float_f32Le : (bits_S, bits_S) -> (bits_fflags, bool)
+function float_f32Le(a, b) = { let (r, f) = float_is_le(a, b); (float_fflags(f), r) }
+val float_f32Eq : (bits_S, bits_S) -> (bits_fflags, bool)
+function float_f32Eq(a, b) = { let (r, f) = float_is_eq(a, b); (float_fflags(f), r) }
+val float_f64Lt : (bits_D, bits_D) -> (bits_fflags, bool)
+function float_f64Lt(a, b) = { let (r, f) = float_is_lt(a, b); (float_fflags(f), r) }
+val float_f64Lt_quiet : (bits_D, bits_D) -> (bits_fflags, bool)
+function float_f64Lt_quiet(a, b) = { let (r, f) = float_is_lt_quiet(a, b); (float_fflags(f), r) }
+val float_f64Le : (bits_D, bits_D) -> (bits_fflags, bool)
+function float_f64Le(a, b) = { let (r, f) = float_is_le(a, b); (float_fflags(f), r) }
+val float_f64Eq : (bits_D, bits_D) -> (bits_fflags, bool)
+function float_f64Eq(a, b) = { let (r, f) = float_is_eq(a, b); (float_fflags(f), r) }
+
+$iftarget rocq
+function riscv_f32Lt(a, b) = float_f32Lt(a, b)
+function riscv_f32Lt_quiet(a, b) = float_f32Lt_quiet(a, b)
+function riscv_f32Le(a, b) = float_f32Le(a, b)
+function riscv_f32Eq(a, b) = float_f32Eq(a, b)
+function riscv_f64Lt(a, b) = float_f64Lt(a, b)
+function riscv_f64Lt_quiet(a, b) = float_f64Lt_quiet(a, b)
+function riscv_f64Le(a, b) = float_f64Le(a, b)
+function riscv_f64Eq(a, b) = float_f64Eq(a, b)
+$endif
+
+// ***************************************************************
+// HALF WIDTH IN THE ROCQ TERM
+//
+// Every call of a half-width operation sits in an element-width-16 arm, or a
+// width-8 source of a widening conversion, that the vector decode and validity
+// guards reach only with `Zvfh` or `Zvfhmin` enabled. No shipped composition
+// enables either, and the Rocq term is emitted at the frozen profile's
+// primary composition, so the term never executes these. Rather than leave
+// each an axiom, the term gives each the model's internal error: a half-width
+// operation stops the machine there, where the emulator would call SoftFloat.
+
+$iftarget rocq
+function riscv_f16Add(_, _, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Sub(_, _, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Mul(_, _, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Div(_, _, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16MulAdd(_, _, _, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Sqrt(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16ToI32(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16ToUi32(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_i32ToF16(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_ui32ToF16(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16ToF32(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f32ToF16(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Lt(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Lt_quiet(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Le(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+function riscv_f16Eq(_, _) = internal_error(__FILE__, __LINE__, "half-width floating point is outside the Rocq term")
+$endif

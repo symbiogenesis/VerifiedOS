@@ -1,0 +1,19 @@
+== model/model/core/softfloat_interface.sail against the fpcompare vector oracle
+   scope: over the whole population of 15 mutant(s)
+   one line per verdict, as it is decided, and any note the loop writes on lines opening `-- `; the closing line is written only by a run that finished
+    1  stillborn model/model/core/softfloat_interface.sail:125 `0` -> `1`: the mutated model did not compile
+    2  stillborn model/model/core/softfloat_interface.sail:125 `0` -> `1`: the mutated model did not compile
+    3  stillborn model/model/core/softfloat_interface.sail:125 `1` -> `2`: the mutated model did not compile
+    4  stillborn model/model/core/softfloat_interface.sail:125 `1` -> `2`: the mutated model did not compile
+    5  stillborn model/model/core/softfloat_interface.sail:125 `2` -> `3`: the mutated model did not compile
+    6  stillborn model/model/core/softfloat_interface.sail:125 `2` -> `3`: the mutated model did not compile
+    7  stillborn model/model/core/softfloat_interface.sail:125 `3` -> `4`: the mutated model did not compile
+    8  stillborn model/model/core/softfloat_interface.sail:125 `3` -> `4`: the mutated model did not compile
+    9  stillborn model/model/core/softfloat_interface.sail:125 `4` -> `5`: the mutated model did not compile
+   10  stillborn model/model/core/softfloat_interface.sail:125 `4` -> `5`: the mutated model did not compile
+   11  stillborn model/model/core/softfloat_interface.sail:125 `[0 .. 0]` -> `[-1 .. -1]`: the mutated model did not compile
+   12  killed    model/model/core/softfloat_interface.sail:125 `[1 .. 1]` -> `[0 .. 0]`: 3513 of 207200 vector(s) moved
+   13  survived  model/model/core/softfloat_interface.sail:125 `[2 .. 2]` -> `[1 .. 1]`: every vector reproduced
+   14  survived  model/model/core/softfloat_interface.sail:125 `[3 .. 3]` -> `[2 .. 2]`: every vector reproduced
+   15  survived  model/model/core/softfloat_interface.sail:125 `[4 .. 4]` -> `[3 .. 3]`: every vector reproduced
+== complete: 15 verdict(s) decided, exit 1

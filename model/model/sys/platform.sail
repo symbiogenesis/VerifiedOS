@@ -578,10 +578,17 @@ function watchdog_store(paddr, width, data) = {
   else Err(paddr, E_SAMO_Access_Fault())
 }
 
-// Basic terminal character I/O.
+// Basic terminal character output. Nothing reads the terminal: the HTIF
+// device leaves its input command unhandled.
 
 val plat_term_write = impure {cpp: "plat_term_write", lem: "plat_term_write"} : bits(8) -> unit
-val plat_term_read  = impure {cpp: "plat_term_read", lem: "plat_term_read"}  : unit -> bits(8)
+
+// The Rocq term models the machine and not its host's terminal: the byte
+// leaves the machine, and the HTIF register effects around the write stay in
+// the term. The emulator writes it to the host's terminal descriptor.
+$iftarget rocq
+function plat_term_write(_) = ()
+$endif
 
 // Spike's HTIF device interface, which multiplexes the above MMIO devices.
 

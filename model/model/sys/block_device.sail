@@ -39,6 +39,14 @@ register blkdev_epoch : nat = 0
 val blkdev_host_trace_enabled = impure {cpp: "blkdev_host_trace_enabled"} : unit -> bool
 val blkdev_host_input = impure {cpp: "blkdev_host_input"} : (string, string) -> unit
 
+// The Rocq term has no evidence sink: tracing is off and an input entry has no
+// effect. A failing sink reaches the device only through the persistence
+// answer below, whose choice already covers it.
+$iftarget rocq
+function blkdev_host_trace_enabled() = false
+function blkdev_host_input(_, _) = ()
+$endif
+
 function blkdev_trace_bytes(bytes : blkdev_buffer) -> string = {
   var text = "[";
   assert(plat_blkdev_block_bytes <= blkdev_max_block_bytes);
@@ -137,6 +145,17 @@ function blkdev_access_valid forall 'n, 0 < 'n <= max_mem_access .
 // false for the run. With no bound image the register is the whole medium and
 // the platform layer answers true.
 val blkdev_host_persist = impure {cpp: "blkdev_host_persist"} : (bits(8), bits(64), bits(64)) -> bool
+
+// The Rocq term leaves the host's answer open: each call is the monad's own
+// choice, so the term admits every answer sequence the emulator's adapter can
+// give, bound or unbound, and also a true after a false, which the adapter's
+// sticky failure excludes.
+$iftarget rocq
+function blkdev_host_persist(_, _, _) = {
+  let durable : bool = undefined;
+  durable
+}
+$endif
 
 function blkdev_tear(mask : blkdev_buffer, kind : bits(8)) -> bool = {
   let offset = unsigned(blkdev_pending_block) * plat_blkdev_block_bytes;

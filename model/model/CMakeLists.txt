@@ -303,9 +303,14 @@ foreach (xlen IN ITEMS 64)
 
     ############# Rocq #############
 
-    # Build Rocq (formerly Coq) definitions.
+    # Build Rocq (formerly Coq) definitions. The emission fixes every
+    # configuration leaf into the term, so it reads the frozen profile's
+    # primary composition rather than the configuration generated above:
+    # R-05-019b's term is the frozen machine's, and the generated file differs
+    # from the profile in leaves the term carries.
+    set(rocq_config_file "${PROJECT_SOURCE_DIR}/config/verifiedos.json")
     add_custom_command(
-        DEPENDS ${sail_srcs} ${project_file} ${config_file}
+        DEPENDS ${sail_srcs} ${project_file} ${rocq_config_file}
         VERBATIM
         OUTPUT "${CMAKE_BINARY_DIR}/rocq/${arch}.v" "${CMAKE_BINARY_DIR}/rocq/${arch}_types.v"
         COMMENT "Building Rocq definitions from Sail model (${arch})"
@@ -319,7 +324,7 @@ foreach (xlen IN ITEMS 64)
             --rocq-output-dir "${CMAKE_BINARY_DIR}/rocq"
             # The prefix of the output files.
             -o "${arch}"
-            --config ${config_file}
+            --config ${rocq_config_file}
             # Input files.
             ${SAIL_MODULES}
             ${project_file}

@@ -1,0 +1,10 @@
+# rocq --version
+The Rocq Prover, version 9.3.0
+compiled with OCaml 5.4.1
+# rocq c QuotRem.v
+     = 2024
+     : Z
+     = (0, 5, 0, -5)
+     : Z * Z * Z * Z
+Closed under the global context
+# exit 0
