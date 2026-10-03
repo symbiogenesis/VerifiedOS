@@ -703,6 +703,28 @@ comparison, reference check and post-trial tool equivalence run. The reading
 behind F-476 took `-lib`'s handling from the retained source in place and
 copied none of it.
 
+**Contained switch rewrite trial.** M6.1b-iv re-reads both selected license files
+as timestamped, hashed stages that print each file in full, once before
+authoring-time runs of the retained producer and once at provisioning; Sections
+2, 3, 4 and 7 read as recorded above, and the license and binary hashes match
+M6.1b-i's receipt. The [switch result](supervisor/route/switch-result.json) binds
+them. This finite research/evaluation use re-emits the node's printed Clight and
+M6.1b-iii's control program's, and emits an authored switch control program's.
+An authored rewrite lowers the five declared `switch` shapes of that text, after
+the normalizer's erasure, to `if` chains; the accepted purecap compiler then
+compiles the node and the control program, and both agree with their expected
+answers on target, so the trial passes. It composes no compiler theorem and
+re-accepts nothing bound to the accepted compiler. The rewrite, its comparison,
+the probe splitter, the control program, its generator and the orchestration are
+authored here and copy no Vélus or CompCert source. The declared shapes and the
+two source hashes come from reading Vélus's Obc-to-Clight translation site and
+the Clight printer in the retained tree, copying none of it. Printed and
+rewritten Clight, drivers, images and the other Vélus and compiler products stay
+in the native output lane, and the checkout records their hashes. It retains JSON
+receipts: the trial's `compiler-diff` reports, which quote the contained
+compiler's diagnostics as M6.1b-i's receipt does, and the stage records and the
+records of the authored rewrite, comparison, splitter and generator.
+
 #### seL4
 
 The seL4 proof repository assigns `GPL-2.0-only` to `spec/` and `proof/`, and `BSD-2-Clause` to `lib/` and `tools/`. The executable-specification objects considered for translation are in the GPL-covered directories. Translating them into Gallina would not remove their derivative-work obligations.

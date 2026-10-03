@@ -19,6 +19,15 @@ Vélus prints the node's conditionals as six `switch` statements (F-472). The
 probe still agrees with the C oracle on all 576 rows natively. No target image
 or target comparison verdict exists for the node, and the M8a route stays C.
 
+**Switch rewrite: target agreement.** M6.1b-iv's
+[source-bound result](switch-result.json) repeats the target legs with a
+[declared switch rewrite](#switch-rewrite-trial) applied to the normalizer's output.
+The accepted typed route compiles the rewritten node. The unchanged probe, split
+into 24 programs that fit `compiler-diff`'s text window, agrees with the C oracle
+on all 576 rows natively and on target, and its perturbed program fails on target.
+An authored control program carrying every declared switch shape agrees on all 576
+of its seeded rows natively and on target. The trial passes. The M8a route stays C.
+
 This is M6.1b-i's bounded experiment over the existing immutable M8a manifest,
 supervisor effect interface and lifecycle comparison fixtures. Its source node
 is a real start/restart planner for that manifest. It emits acceptance, the
@@ -166,6 +175,109 @@ records each run's argv. The orchestration script that ran them is untracked
 lane scratch, and its recorded hash postdates the verdict, so a reproduction is
 checked against the bound driver, variant and product hashes. Every product
 stays in the native lane.
+
+## Switch rewrite trial
+
+[switch_rewrite.py](switch_rewrite.py) is the exchange's second rewrite, applied
+to the normalizer's output. Vélus turns an Obc `Switch` into a Clight `switch` at
+one site, `translate_stmt` in `src/ObcToClight/Generation.v` (SHA-256
+`0edb3ffad07e250fb84319d95666277a9eaa4033dca2c862f06a83bbd8dfce8d` at Vélus
+`27ba860c`). That site writes one `case` for each present branch, in increasing
+order, each ending in `break`, then a last `default` with no `break`; the Clight
+printer `CompCert/cfrontend/PrintClight.ml` (SHA-256
+`25a3f8489ae6444356262f3f4fc6f3bb1e3b3303f5fbf22ce0228c1cb25305db`) writes an
+empty body as nothing. The rewrite declares five shapes of that layout, by case
+count and empty bodies:
+
+| Shape | Cases | Default |
+| --- | --- | --- |
+| `if-else` | one, non-empty | non-empty |
+| `if-only` | one, non-empty | empty |
+| `else-only` | one labelled 0, empty | non-empty |
+| `chain-else` | two or more, non-empty | non-empty |
+| `chain-only` | two or more, non-empty | empty |
+
+Labels are decimal and strictly increase, and a body may hold further declared
+switches. Each declared group becomes
+`if ((E) == K1) {B1} else if ((E) == K2) {B2} ... else {D}`: every byte outside
+the switch and every body's bytes are kept, and only the label and `break` text
+between them is replaced. A Clight expression has no side effect and no body runs
+between comparisons, so each evaluation of `E` reads one value, and the layout has
+no fall-through, so the body whose label equals that value runs, or the default.
+Every other `switch` is refused: one with no case, an empty case body outside
+`else-only`, labels out of order or not in decimal, a `break` that does not end a
+case, a label after the default, or a brace, label, conditional, `if`, loop,
+`goto`, `continue` or `return` in a body. Input with no `switch` comes back
+byte-identically. Vélus, its printer, the normalizer and the accepted compiler are
+unchanged.
+
+[switch_compare.py](switch_compare.py) checks a rewrite through clang's token
+stream without reading the rewrite. It parses each normalized `switch` by its own
+grammar, classifies its shape, and requires the rewritten stream to hold that
+group's declared `if` chain and to equal the normalized stream elsewhere, token for
+token and byte for byte outside the groups. Its control predicate also requires
+every declared shape, a nested group and labels other than 0, 1, ... in order.
+[switch_control.lus](switch_control.lus) is the control program that carries them;
+its printed Clight holds eleven switches. [switch_control.py](switch_control.py)
+generates its rows, 128 edge rows over every constructor and 32- and 64-bit edge
+values followed by seeded rows, and computes their answers from its own reading of
+the program. [split_probe.py](split_probe.py) splits the unchanged probe's
+straight-line driver into programs of consecutive rows whose row blocks rejoin
+into the driver byte for byte; the node has no memory, so no answer moves. The
+control generator writes its programs the same way, each resetting the node and
+each answered from that reset. The
+[route tests](../../tools/tests/test_supervisor_switch.py) hold all four on an
+authored fixture in the printer's layout. [switch_trial.py](switch_trial.py)
+orchestrates the trial: `freeze` hashes itself, every frozen input and every tool
+identity, `provision` prints and hashes both licence files as timestamped stages,
+and `run` records each check clause as its own stage and stops after the first
+failure.
+
+The [result](switch-result.json) passes every check. The freeze at the authoring
+commit `1f90ae78` hashed the script, 38 inputs and 15 tool identities, among them
+clang's `libclang-cpp` and the native compiler's `cc1`. The trial finished 52 s
+after provisioning, inside its two-hour bound:
+
+1. Every identity M6.1b-iii's check 1 held matches, the opam switch export
+   matches M6.1b-i's, the Vélus site and printer have the declared hashes, the node
+   re-emits the recorded Clight and header, and the unnormalized driver is still
+   refused natively and by the accepted compiler for its alignment.
+2. The rewrite lowers the node's six switches, all `if-else`, three of them nested
+   to depth three inside the delay group, and the control program's eleven, which
+   carry every shape. `switch_compare.py` passes both, and fails a moved label and
+   a changed statement. The rewrite refuses eight authored undeclared-shape
+   variants of the node and writes nothing, and returns M6.1b-iii's normalized
+   control program and both rewritten programs byte-identically.
+3. Both rewritten programs compile through the accepted typed route.
+4. The reference comparison passes with 656 cases and 3,088 equalities, and the
+   regenerated fixtures reproduce the recorded digest. The probe's 24 programs of
+   24 rows agree natively and through `compiler-diff program`, the largest at 8,956
+   bytes of text against the 32,768-byte window. The perturbed program fails at its
+   moved check natively and on target. The control program's 24 programs agree on
+   its 576 rows, seed 20261002, natively and on target, the largest at 16,040 bytes.
+5. Every frozen input and tool identity rehashes unchanged.
+
+The checkout's `model/config/verifiedos.json` was reformatted after M6.1b-iii and
+no longer has the recorded profile hash, so the simulator ran under that file's
+bytes at M6.1b-iii's revision, written to the native lane; both read as the same
+JSON value. The control program was fitted to the site's printed shapes before
+provisioning, by running Vélus, the normalizer, the rewrite and the comparison in
+the native authoring lane after a recorded licence read. The accepted compiler and
+the simulator first ran after provisioning.
+
+A pass decides only that the normalized and rewritten exchange carries the tested
+node through the accepted compiler to target agreement. It composes no Vélus or
+purecap compiler theorem (F-467), re-accepts nothing bound to the accepted
+compiler and does not re-select the M8a route. A switch shape no declared rewrite
+carries meets this rewrite's refusal rather than a compiler change.
+
+To reproduce, check out `1f90ae78`, confirm the result's input and tool hashes,
+write `model/config/verifiedos.json` as it stands at `d590c463`, whose hash the
+result binds, to a native file, and run
+`python3 switch_trial.py COMMAND --lane DIR --worktree CHECKOUT --revision SHA
+--profile FILE` with `freeze`, `provision` and `run` in turn, `DIR` in the native
+lane. The result binds by hash every stage record and report it cites, and their
+retained copies keep them readable after the lane is retired.
 
 ## Integration boundary
 
