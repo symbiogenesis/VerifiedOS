@@ -103,6 +103,9 @@ public:
   uint64_t mepc() const;
   uint64_t htif_exit_code() const;
   bool htif_done() const;
+  // The RoT's release latch (sys/rot.sail's `rot_released`): set by the store
+  // that wrote the boot-control window's release door, and cleared by nothing.
+  bool rot_released() const;
   bool had_exception() const;
   uint64_t pc() const;
 

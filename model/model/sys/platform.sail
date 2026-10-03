@@ -355,7 +355,9 @@ function memory_sequencer_store(paddr, _width, _data) = Err(paddr, E_SAMO_Access
 
 // The Root of Trust's four register slaves (R-09-001, sys/rot.sail): the OTP
 // fuse bank holding the lifecycle state, the entropy root, the monotonic counter
-// file, and the windowed watchdog.
+// file, and the windowed watchdog. The boot-control window (R-09-028, R-09-029,
+// R-09-006) is a fifth slave decoded on exactly the same terms, and everything
+// said of the four below is said of it.
 //
 // **All four are in the address map of every composition and all four answer the
 // RoT alone.** The die has one management processor (R-15-194) and one RoT class
@@ -399,6 +401,9 @@ private function within_monotonic forall 'n, 0 < 'n <= max_mem_access . (addr : 
 
 private function within_watchdog forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
   within_rot_window(plat_have_watchdog, plat_watchdog_base, plat_watchdog_size, addr, width)
+
+private function within_boot_control forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
+  within_rot_window(plat_have_boot_control, plat_boot_control_base, plat_boot_control_size, addr, width)
 
 // The fuse bank's word index, or `None` where the offset is not one of its
 // doors. Written as a bounds check rather than as a mask because the bank's
@@ -578,6 +583,38 @@ function watchdog_store(paddr, width, data) = {
   else Err(paddr, E_SAMO_Access_Fault())
 }
 
+// The boot-control window (sys/rot.sail). The latch reads and is never written,
+// so a store to it faults like a store to any offset that is not a door; the
+// release door is written and never read, so a load from it faults the same way.
+private val boot_control_load : forall 'n, 'n > 0. (MemoryAccessType(mem_payload), physaddr, int('n)) -> MemoryOpResult(bits(8 * 'n))
+function boot_control_load(access, paddr, width) = {
+  let Physaddr(addr) = paddr;
+  let offset = unsigned(addr - plat_boot_control_base);
+  let rot = rot_is_composed_hart();
+  if rot & ('n == 8) & offset == ROT_BOOT_TARGET then Ok(zero_extend(64, boot_target_latch))
+  else if rot & ('n == 8) & offset == ROT_BOOT_SLOT then Ok(zero_extend(64, boot_active_slot))
+  else if rot & ('n == 8) & offset == ROT_BOOT_ATTEMPTS then Ok(zero_extend(64, boot_attempts))
+  else Err(paddr, accessFaultFromAccessType(access))
+}
+
+private val boot_control_store : forall 'n, 'n > 0. (physaddr, int('n), bits(8 * 'n)) -> MemoryOpResult(bool)
+function boot_control_store(paddr, width, data) = {
+  let Physaddr(addr) = paddr;
+  let offset = unsigned(addr - plat_boot_control_base);
+  let rot = rot_is_composed_hart();
+  if rot & ('n == 8) & offset == ROT_BOOT_SLOT then
+    // A slot outside the A/B pair is refused rather than stored (R-09-028).
+    if boot_slot_write(zero_extend(64, data)) then Ok(true) else Err(paddr, E_SAMO_Access_Fault())
+  else if rot & ('n == 8) & offset == ROT_BOOT_ATTEMPTS then {
+    boot_attempts = zero_extend(64, data);
+    Ok(true)
+  }
+  else if rot & ('n == 8) & offset == ROT_BOOT_RELEASE then
+    // Any word but 1 is refused rather than read as a release (R-09-006).
+    if boot_release(zero_extend(64, data)) then Ok(true) else Err(paddr, E_SAMO_Access_Fault())
+  else Err(paddr, E_SAMO_Access_Fault())
+}
+
 // Basic terminal character output. Nothing reads the terminal: the HTIF
 // device leaves its input command unhandled.
 
@@ -718,6 +755,7 @@ function within_mmio_readable forall 'n, 0 < 'n <= max_mem_access . (addr : phys
        | within_memory_sequencer(addr, width)
        | within_otp(addr, width) | within_trng(addr, width)
        | within_monotonic(addr, width) | within_watchdog(addr, width)
+       | within_boot_control(addr, width)
        | (within_htif_readable(addr, width) & 1 <= 'n)
 
 function within_mmio_writable forall 'n, 0 < 'n <= max_mem_access . (addr : physaddr, width : int('n)) -> bool =
@@ -727,6 +765,7 @@ function within_mmio_writable forall 'n, 0 < 'n <= max_mem_access . (addr : phys
        | within_memory_sequencer(addr, width)
        | within_otp(addr, width) | within_trng(addr, width)
        | within_monotonic(addr, width) | within_watchdog(addr, width)
+       | within_boot_control(addr, width)
        | (within_htif_writable(addr, width) & 'n <= 8)
 
 function mmio_read forall 'n, 0 < 'n <= max_mem_access . (access : MemoryAccessType(mem_payload), paddr : physaddr, width : int('n)) -> MemoryOpResult(bits(8 * 'n)) =
@@ -747,6 +786,8 @@ function mmio_read forall 'n, 0 < 'n <= max_mem_access . (access : MemoryAccessT
   then monotonic_load(access, paddr, width)
   else if within_watchdog(paddr, width)
   then watchdog_load(access, paddr, width)
+  else if within_boot_control(paddr, width)
+  then boot_control_load(access, paddr, width)
   else if within_htif_readable(paddr, width)
   then htif_load(access, paddr, width)
   else Err(paddr, accessFaultFromAccessType(access))
@@ -769,6 +810,8 @@ function mmio_write forall 'n, 0 < 'n <= max_mem_access . (paddr : physaddr, wid
   then monotonic_store(paddr, width, data)
   else if within_watchdog(paddr, width)
   then watchdog_store(paddr, width, data)
+  else if within_boot_control(paddr, width)
+  then boot_control_store(paddr, width, data)
   else if within_htif_writable(paddr, width)
   then htif_store(paddr, width, data)
   else Err(paddr, E_SAMO_Access_Fault())

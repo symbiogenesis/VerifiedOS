@@ -516,6 +516,24 @@ void run_sail(
       run_info.total_insns++;
     }
 
+    // The RoT's release of the boot core (R-09-006, sys/rot.sail's
+    // `rot_released`). In a one-hart emulator the boot core is another run, so
+    // the run ends on the step whose store wrote the release door: nothing the
+    // RoT executes follows its own release, and that rests on this loop rather
+    // than on the firmware's account of itself. The retired count includes the
+    // releasing store. The signature is written as an HTIF success writes it and
+    // the run exits as one does, through `finish`, before this iteration reaches
+    // the HTIF verdict, the clock or the watchdog's pump, so a run never prints
+    // a release beside an HTIF verdict or a bite.
+    if (model.rot_released()) {
+      fprintf(
+        stdout,
+        "RELEASE: the RoT released the boot core after %" PRIu64 " instructions retired\n",
+        run_info.total_insns
+      );
+      finish(model, opts, elf_info, run_info);
+    }
+
     if (opts.do_show_times && (run_info.total_insns & 0xfffff) == 0) {
       const auto now = steady_clock::now();
       const auto interval = now - interval_start;
@@ -548,11 +566,11 @@ void run_sail(
     // nothing delivers exactly as many ticks as one that retires steadily and
     // nothing here is a ratio to retirement. What this arm does not cover is a
     // core that stops the loop rather than stalling inside it: a Sail exception,
-    // HTIF completion, the instruction limit, or a step that never returns ends
-    // the external clock with the loop, since both live on this one thread. The
-    // core that has stopped entirely is carried by test/unit_tests/
-    // watchdog_join.cpp, which drives the same join from an injected schedule
-    // with the model's step function never called.
+    // HTIF completion, the RoT's release, the instruction limit, or a step that
+    // never returns ends the external clock with the loop, since both live on
+    // this one thread. The core that has stopped entirely is carried by
+    // test/unit_tests/watchdog_join.cpp, which drives the same join from an
+    // injected schedule with the model's step function never called.
     //
     // A run whose machine has already reported its own completion this
     // iteration is not pumped: the loop is about to end on `htif_done`, and a

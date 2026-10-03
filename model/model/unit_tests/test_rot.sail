@@ -388,7 +388,7 @@ function test_a_stopped_entropy_root_leaves_the_watchdog_no_challenge() -> unit 
 // reads as zero. Claiming the window is what makes the refusal a thing a program
 // can run into rather than a silence (sys/mem.sail, M0.16).
 // The walk is a recursion rather than a loop body because Sail's `foreach` runs
-// over an integer range and the four bases are a list; it is here rather than in
+// over an integer range and the window bases are a list; it is here rather than in
 // sys/platform.sail because it is a property's helper and not the machine's.
 function each_rot_door_refuses(doors : list(physaddrbits)) -> unit =
   match doors {
@@ -419,10 +419,12 @@ function each_rot_door_refuses(doors : list(physaddrbits)) -> unit =
 $[test]
 function test_the_rot_windows_refuse_every_other_class() -> unit = {
   assert(plat_have_otp & plat_have_trng & plat_have_monotonic & plat_have_watchdog);
+  assert(plat_have_boot_control);
   assert(not(rot_is_composed_hart()));
 
   each_rot_door_refuses([|
-    plat_otp_base, plat_trng_base, plat_monotonic_base, plat_watchdog_base
+    plat_otp_base, plat_trng_base, plat_monotonic_base, plat_watchdog_base,
+    plat_boot_control_base
   |])
 }
 
@@ -481,4 +483,170 @@ function test_the_rot_windows_answer_the_rot() -> unit = {
     _ :: rest => core_roster = rest,
     [||]      => assert(false, "the installed roster entry must still be there"),
   }
+}
+
+// *****************************************************************
+// The boot-control window (R-09-028, R-09-029, R-09-006).
+
+// **These properties install the class they are about and drop it again**, as
+// the property above does, so each holds under the harness's C-class
+// composition and under the RoT composition alike. The second matters more than
+// the first: test/unit_tests/boot_control.cpp runs them under verifiedos-rot.json
+// and under a variant whose latch, slot and count are not zero, which is the
+// composition in which a door that answered zero for everything would be seen.
+function install_roster_head(class : CoreClass) -> unit =
+  core_roster = struct {
+    hartid = plat_hartid, class = class, island = 5,
+    pinned = false, fec_units = false
+  } :: core_roster
+
+function drop_roster_head() -> unit =
+  match core_roster {
+    _ :: rest => core_roster = rest,
+    [||]      => assert(false, "the installed roster entry must still be there"),
+  }
+
+function boot_door_addr(offset : int) -> physaddr =
+  Physaddr(plat_boot_control_base + to_bits_truncate(64, offset))
+
+// A doubleword load that answers, and answers `expected`.
+function boot_door_reads(offset : int, expected : bits(64)) -> bool =
+  match mmio_read(Load(Data), boot_door_addr(offset), 8) {
+    Ok(v)     => v == expected,
+    Err(_, _) => false,
+  }
+
+function boot_door_load_faults(offset : int) -> bool =
+  match mmio_read(Load(Data), boot_door_addr(offset), 8) {
+    Ok(_)     => false,
+    Err(_, _) => true,
+  }
+
+// A doubleword store, and whether it retired rather than faulted.
+function boot_door_writes(offset : int, value : bits(64)) -> bool =
+  match mmio_write(boot_door_addr(offset), 8, value) {
+    Ok(_)     => true,
+    Err(_, _) => false,
+  }
+
+// **The doors read what the composition latched and loaded at power-on.** The
+// latch is the configuration's one bit at reset and for the whole run
+// (R-09-029); the slot and the count are the RoT's retained state as this run
+// found it (R-09-028); and no release has happened yet (R-09-006).
+$[test]
+function test_the_boot_control_doors_read_their_power_on_values() -> unit = {
+  assert(plat_have_boot_control);
+  assert(unsigned(plat_boot_control_size) >= ROT_BOOT_BYTES);
+  install_roster_head(CoreClass_RoT);
+  assert(rot_is_composed_hart());
+
+  assert(boot_target_latch == to_bits_truncate(64, plat_boot_target));
+  assert(boot_door_reads(ROT_BOOT_TARGET, boot_target_latch),
+         "the latch door reads the latched signal");
+  assert(boot_door_reads(ROT_BOOT_SLOT, to_bits_truncate(64, plat_boot_active_slot)),
+         "the slot door reads the power-on slot");
+  assert(boot_door_reads(ROT_BOOT_ATTEMPTS, to_bits_truncate(64, plat_boot_attempts)),
+         "the attempt door reads the power-on count");
+  assert(not(rot_released));
+
+  drop_roster_head()
+}
+
+// **A write to the slot or the count takes effect at once, and the die reset
+// does not undo it** (R-09-028). The die reset is the cores' (postlude/model.sail);
+// the RoT's retained boot state is not its to reset. The count takes any word,
+// so one with its top bit set comes back whole rather than truncated.
+$[test]
+function test_the_boot_slot_and_count_take_writes_and_survive_a_die_reset() -> unit = {
+  install_roster_head(CoreClass_RoT);
+
+  let other : bits(64) = if boot_active_slot == zeros() then 0x0000000000000001 else zeros();
+  let count : bits(64) = 0x8000000000000003;
+  assert(boot_door_writes(ROT_BOOT_SLOT, other), "the slot door takes A or B");
+  assert(boot_door_reads(ROT_BOOT_SLOT, other));
+  assert(boot_door_writes(ROT_BOOT_ATTEMPTS, count), "the attempt door takes any word");
+  assert(boot_door_reads(ROT_BOOT_ATTEMPTS, count));
+
+  reset();
+  assert(boot_door_reads(ROT_BOOT_SLOT, other), "the slot survives a die reset");
+  assert(boot_door_reads(ROT_BOOT_ATTEMPTS, count), "the count survives a die reset");
+  assert(boot_door_reads(ROT_BOOT_TARGET, boot_target_latch), "the latch survives a die reset");
+
+  drop_roster_head()
+}
+
+// **A slot outside the A/B pair and a release word other than 1 fault, and
+// neither changes anything** (R-09-028, R-09-006). The latch has no write and
+// the release has no read, so each of those faults too, as does an offset inside
+// the window that is not a door. Then the one release: it latches, and a die
+// reset does not clear it.
+$[test]
+function test_a_slot_outside_the_pair_and_a_release_word_other_than_one_fault() -> unit = {
+  install_roster_head(CoreClass_RoT);
+  let held = boot_active_slot;
+
+  assert(not(boot_door_writes(ROT_BOOT_SLOT, 0x0000000000000002)), "slot 2 is refused");
+  assert(not(boot_door_writes(ROT_BOOT_SLOT, ones())), "a slot of all ones is refused");
+  assert(boot_door_reads(ROT_BOOT_SLOT, held), "a refused slot write leaves the slot");
+
+  assert(not(boot_door_writes(ROT_BOOT_RELEASE, zeros())), "release word 0 is refused");
+  assert(not(boot_door_writes(ROT_BOOT_RELEASE, 0x0000000000000002)), "release word 2 is refused");
+  assert(not(rot_released), "a refused release word releases nothing");
+
+  assert(not(boot_door_writes(ROT_BOOT_TARGET, boot_target_latch)), "the latch takes no write");
+  assert(boot_door_load_faults(ROT_BOOT_RELEASE), "the release door does not read");
+  assert(boot_door_load_faults(ROT_BOOT_BYTES), "past the doors is not a door");
+  assert(not(boot_door_writes(ROT_BOOT_BYTES, zeros())));
+
+  assert(boot_door_writes(ROT_BOOT_RELEASE, 0x0000000000000001), "release word 1 is taken");
+  assert(rot_released);
+  reset();
+  assert(rot_released, "a die reset does not withdraw a release");
+
+  drop_roster_head()
+}
+
+// **The window answers the RoT alone and doublewords alone**, on the four
+// windows' terms (R-15-194). A requester on any other class is refused at every
+// door in both directions, the release door included; the RoT is refused any
+// narrower access, so no sub-word of the slot, the count or the release word is
+// a way in.
+$[test]
+function test_the_boot_control_window_answers_the_rot_alone_and_doublewords_only() -> unit = {
+  install_roster_head(CoreClass_C);
+  assert(not(rot_is_composed_hart()));
+  assert(boot_door_load_faults(ROT_BOOT_TARGET));
+  assert(boot_door_load_faults(ROT_BOOT_SLOT));
+  assert(boot_door_load_faults(ROT_BOOT_ATTEMPTS));
+  assert(not(boot_door_writes(ROT_BOOT_SLOT, zeros())), "another class writes no slot");
+  assert(not(boot_door_writes(ROT_BOOT_ATTEMPTS, zeros())), "another class writes no count");
+  assert(not(boot_door_writes(ROT_BOOT_RELEASE, 0x0000000000000001)), "another class releases nothing");
+  assert(not(rot_released));
+  drop_roster_head();
+
+  install_roster_head(CoreClass_RoT);
+  let held = boot_active_slot;
+  match mmio_read(Load(Data), boot_door_addr(ROT_BOOT_SLOT), 4) {
+    Err(_, _) => (),
+    Ok(_)     => assert(false, "a word load of the slot is refused"),
+  };
+  match mmio_read(Load(Data), boot_door_addr(ROT_BOOT_TARGET), 1) {
+    Err(_, _) => (),
+    Ok(_)     => assert(false, "a byte load of the latch is refused"),
+  };
+  match mmio_write(boot_door_addr(ROT_BOOT_SLOT), 4, 0x00000001) {
+    Err(_, _) => (),
+    Ok(_)     => assert(false, "a word store to the slot is refused"),
+  };
+  match mmio_write(boot_door_addr(ROT_BOOT_RELEASE), 4, 0x00000001) {
+    Err(_, _) => (),
+    Ok(_)     => assert(false, "a word store to the release door is refused"),
+  };
+  match mmio_write(boot_door_addr(ROT_BOOT_RELEASE), 1, 0x01) {
+    Err(_, _) => (),
+    Ok(_)     => assert(false, "a byte store to the release door is refused"),
+  };
+  assert(boot_active_slot == held, "a refused narrow store leaves the slot");
+  assert(not(rot_released), "a refused narrow store releases nothing");
+  drop_roster_head()
 }

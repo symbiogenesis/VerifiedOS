@@ -46,6 +46,11 @@ Definition watchdog_bitten_offset : N := 24.
 Definition watchdog_early_offset : N := 32.
 Definition watchdog_late_offset : N := 40.
 Definition watchdog_arm_offset : N := 48.
+(* boot_control: registers. *)
+Definition boot_control_boot_target_offset : N := 0.
+Definition boot_control_slot_offset : N := 8.
+Definition boot_control_attempts_offset : N := 16.
+Definition boot_control_release_offset : N := 24.
 (* boot_rom: memory. *)
 (* uart: external. *)
 (* blkdev: registers. *)
@@ -310,6 +315,42 @@ Definition watchdog_late_value_get (word : N) : N :=
   N.land (N.shiftr word 0) 18446744073709551615.
 Theorem watchdog_late_value_correct : forall word : N,
   watchdog_late_value_get word = declared_extract word watchdog_late_value_shift watchdog_late_value_width.
+Proof. intro word; change (N.land (N.shiftr word 0) (N.ones 64)
+  = declared_extract word 0 64); apply shift_mask_correct. Qed.
+
+Definition boot_control_boot_target_value_shift : N := 0.
+Definition boot_control_boot_target_value_width : N := 64.
+Definition boot_control_boot_target_value_get (word : N) : N :=
+  N.land (N.shiftr word 0) 18446744073709551615.
+Theorem boot_control_boot_target_value_correct : forall word : N,
+  boot_control_boot_target_value_get word = declared_extract word boot_control_boot_target_value_shift boot_control_boot_target_value_width.
+Proof. intro word; change (N.land (N.shiftr word 0) (N.ones 64)
+  = declared_extract word 0 64); apply shift_mask_correct. Qed.
+
+Definition boot_control_slot_value_shift : N := 0.
+Definition boot_control_slot_value_width : N := 64.
+Definition boot_control_slot_value_get (word : N) : N :=
+  N.land (N.shiftr word 0) 18446744073709551615.
+Theorem boot_control_slot_value_correct : forall word : N,
+  boot_control_slot_value_get word = declared_extract word boot_control_slot_value_shift boot_control_slot_value_width.
+Proof. intro word; change (N.land (N.shiftr word 0) (N.ones 64)
+  = declared_extract word 0 64); apply shift_mask_correct. Qed.
+
+Definition boot_control_attempts_value_shift : N := 0.
+Definition boot_control_attempts_value_width : N := 64.
+Definition boot_control_attempts_value_get (word : N) : N :=
+  N.land (N.shiftr word 0) 18446744073709551615.
+Theorem boot_control_attempts_value_correct : forall word : N,
+  boot_control_attempts_value_get word = declared_extract word boot_control_attempts_value_shift boot_control_attempts_value_width.
+Proof. intro word; change (N.land (N.shiftr word 0) (N.ones 64)
+  = declared_extract word 0 64); apply shift_mask_correct. Qed.
+
+Definition boot_control_release_value_shift : N := 0.
+Definition boot_control_release_value_width : N := 64.
+Definition boot_control_release_value_get (word : N) : N :=
+  N.land (N.shiftr word 0) 18446744073709551615.
+Theorem boot_control_release_value_correct : forall word : N,
+  boot_control_release_value_get word = declared_extract word boot_control_release_value_shift boot_control_release_value_width.
 Proof. intro word; change (N.land (N.shiftr word 0) (N.ones 64)
   = declared_extract word 0 64); apply shift_mask_correct. Qed.
 

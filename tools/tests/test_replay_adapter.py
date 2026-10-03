@@ -40,7 +40,7 @@ _SITES = {
 # What the composed die's RoT windows carry today, stated so that a door added, an
 # offset moved or a third draw site introduced fails here rather than silently
 # changing what a record accounts for.
-_WINDOWS = ("otp", "trng", "monotonic_counters", "watchdog")
+_WINDOWS = ("otp", "trng", "monotonic_counters", "watchdog", "boot_control")
 _OBSERVED = {("trng", "ROT_TRNG_DRAW")}
 _INTERNAL = {("watchdog", "ROT_WDT_PET"), ("watchdog", "ROT_WDT_ARM")}
 

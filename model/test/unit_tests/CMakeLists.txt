@@ -45,6 +45,21 @@ set_tests_properties(watchdog_join_no_reset PROPERTIES
         "watchdog join: FAIL stopped main clock: the bite did not assert the die reset with the core stopped"
     FAIL_REGULAR_EXPRESSION "watchdog join: window=")
 
+# The RoT's boot-control window under the shipped RoT composition and a variant
+# whose latch, slot and count are not zero, with the validator's refusals. The
+# inverted expectation is registered by the comparison it must reach, as
+# watchdog_join's are.
+add_executable(boot_control "boot_control.cpp")
+target_link_libraries(boot_control PRIVATE riscv_model default_config)
+add_test(NAME "boot_control"
+    COMMAND $<TARGET_FILE:boot_control> --config "${PROJECT_SOURCE_DIR}/config/verifiedos-rot.json")
+add_test(NAME "boot_control_wrong_latch"
+    COMMAND $<TARGET_FILE:boot_control> --config "${PROJECT_SOURCE_DIR}/config/verifiedos-rot.json"
+            --negative-latch)
+set_tests_properties(boot_control_wrong_latch PROPERTIES
+    PASS_REGULAR_EXPRESSION "boot control: FAIL variant: the latch is not its configured value"
+    FAIL_REGULAR_EXPRESSION "boot control: shipped")
+
 # The reset campaign runs as BLOCK_RESET_SHARDS entries in parallel. `--shard I/N`
 # runs the cases whose ordinal in the campaign's enumeration is congruent to I - 1
 # modulo N, so the entries registered here run every case exactly once between
