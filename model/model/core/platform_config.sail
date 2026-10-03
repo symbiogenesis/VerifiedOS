@@ -147,6 +147,15 @@ let plat_have_watchdog : bool = config platform.watchdog.supported
 let plat_watchdog_base : physaddrbits = to_bits_checked(config platform.watchdog.base : int)
 let plat_watchdog_size : physaddrbits = to_bits_checked(config platform.watchdog.size : int)
 
+// The RoT's fifth window, the boot-control window (R-09-028, R-09-029,
+// R-09-006, sys/rot.sail), on the same terms: in the address map of every
+// composition and answering the RoT alone. The latch and the two counts it
+// holds at power-on are read in sys/rot.sail for the reason the watchdog's
+// bounds are.
+let plat_have_boot_control : bool = config platform.boot_control.supported
+let plat_boot_control_base : physaddrbits = to_bits_checked(config platform.boot_control.base : int)
+let plat_boot_control_size : physaddrbits = to_bits_checked(config platform.boot_control.size : int)
+
 // The three devices beside the core (R-15-002b): the SoC boot ROM, the serial
 // port, and the block device. What obliges each to exist is the implementation
 // plan's R1; what obliges its placement to be declared is R-15-002b, which puts

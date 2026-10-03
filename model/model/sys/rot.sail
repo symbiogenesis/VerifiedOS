@@ -9,6 +9,9 @@
 // The Root of Trust's four peripherals: the OTP fuse bank that holds the
 // lifecycle state (R-09-003, R-09-032), the entropy root (R-15-241), the
 // monotonic counter file (R-10-013), and the windowed watchdog (R-15-240).
+// Beside them is a fifth window, the boot-control window, which holds the RoT's
+// retained boot state (R-09-028), the latched boot-time signal (R-09-029) and
+// the door that releases the boot core (R-09-006).
 //
 // **No instruction, no access type, no CSR, and nothing on the decode surface.**
 // Every one of these is reached by an ordinary load or store through a
@@ -631,7 +634,64 @@ function watchdog_arm() -> unit =
   else { watchdog_ticks = zeros(); watchdog_issue_nonce() }
 
 // *****************************************************************
-// The four windows' layout.
+// The boot-control window (R-09-028, R-09-029, R-09-006).
+
+// **What is here is the state the RoT's boot decisions read and write, and the
+// one act that ends its boot phase; the decisions are not here.** R-09-028 has
+// the RoT count boot attempts against the active slot and revert at a bound,
+// R-09-029 has it select the recovery generation on a latched boot-time signal,
+// and R-09-006 has it release the boot core only after the stage it verified is
+// placed. Which slot to verify, when to charge an attempt and when to revert are
+// the RoT firmware's (proofs/RotFirmware.v, firmware/chain/); a model of them
+// here would be a model of the firmware rather than of the machine, which is
+// where the counters stop at the advance and the watchdog at the bite.
+//
+// **The latch and the two counts are emulation facts at power-on**, of the kind
+// the entropy seed is: a real part latches the signal from its pin at reset and
+// keeps the slot and the count in retained state, and a configuration standing
+// for both is not emitted into the attested devicetree
+// (postlude/device_tree.sail). Their types are wider than the values the doors
+// admit so that a latch or a slot above 1 reaches the validator's refusal
+// (postlude/validate_config.sail) rather than stopping at schema conformance.
+let plat_boot_target      : nat                  = config platform.boot_control.boot_target
+let plat_boot_active_slot : nat                  = config platform.boot_control.active_slot
+let plat_boot_attempts    : range(0, 4294967295) = config platform.boot_control.attempts
+
+// The latched boot-time signal's one bit (R-09-029). It is a binding and not a
+// register: nothing in the model can write it, so it holds the value latched at
+// reset for the whole run.
+let boot_target_latch : bits(64) = to_bits_truncate(64, plat_boot_target)
+
+// The active slot and its attempt count (R-09-028). A write takes effect at
+// once. **Both survive a die reset within a run and not across runs**: the die
+// reset (`reset()`, postlude/model.sail) leaves the RoT's state alone, the RoT
+// being a failure domain disjoint from the cores, and a run is one power-on
+// whose values are the configuration's, as the counters' are.
+register boot_active_slot : bits(64) = to_bits_truncate(64, plat_boot_active_slot)
+register boot_attempts    : bits(64) = to_bits_truncate(64, plat_boot_attempts)
+
+// Slots A and B are 0 and 1. The recovery generation stands outside the A/B
+// pair (R-09-029) and is never the active slot, so a write naming any other
+// value is refused rather than stored.
+function boot_slot_write(slot : bits(64)) -> bool =
+  if unsigned(slot) > 1 then false else { boot_active_slot = slot; true }
+
+// The release (R-09-006). **The boot core runs only after the RoT writes this
+// door, and in a one-hart emulator the boot core is another run**: the emulator
+// ends the RoT's run on the step that latched this (c_emulator/riscv_sim.cpp),
+// so nothing the RoT executes follows its own release, and that observation
+// rests on the emulator rather than on the firmware's report of itself. The
+// latch is absorbing: nothing in the model clears it, a die reset included.
+register rot_released : bool = false
+
+// The release word is exactly 1. Any other word is refused rather than read as
+// a release, so a stray store is a fault the firmware sees rather than a boot
+// core it did not mean to start.
+function boot_release(word : bits(64)) -> bool =
+  if word != 0x0000000000000001 then false else { rot_released = true; true }
+
+// *****************************************************************
+// The five windows' layout.
 
 // The doors, at doubleword offsets, and the extent each set of doors needs. They
 // are here beside the semantics rather than in the decode that reads them
@@ -671,20 +731,29 @@ let ROT_WDT_LATE        : int = 40   // read: the late bound
 let ROT_WDT_ARM         : int = 48   // write: open the window with a fresh challenge
 let ROT_WDT_BYTES       : int = 56
 
-// **There is no offset in any of the four that disables anything.** The watchdog
+// firmware/chain/vos_chain.h mirrors these as `VOS_CHAIN_DOOR_*`, and
+// `run.py boot-handoff layout` holds the two together.
+let ROT_BOOT_TARGET     : int = 0    // read: the latched boot-time signal's one bit
+let ROT_BOOT_SLOT       : int = 8    // read/write: the active slot, 0 or 1
+let ROT_BOOT_ATTEMPTS   : int = 16   // read/write: the active slot's attempt count
+let ROT_BOOT_RELEASE    : int = 24   // write: the word 1, releasing the boot core
+let ROT_BOOT_BYTES      : int = 32
+
+// **There is no offset in any of the five that disables anything.** The watchdog
 // has no door that stops it (R-15-240's non-deletable), the entropy root has no
 // door that clears its latch or reduces its rate (R-15-241b's no degraded path),
 // the counters have no door that writes a value or decrements (R-12-017's
-// nothing rolls it back), and the OTP has no door that unburns a fuse or reverses
-// a lifecycle edge (R-09-033). Each of those is an absence rather than a
-// mechanism, so a reader auditing this device set reads this list and then reads
-// the decode in sys/platform.sail, which claims exactly these offsets and faults
-// on every other one.
+// nothing rolls it back), the OTP has no door that unburns a fuse or reverses
+// a lifecycle edge (R-09-033), and the boot-control window has no door that
+// rewrites the boot-time latch or withdraws a release. Each of those is an
+// absence rather than a mechanism, so a reader auditing this device set reads
+// this list and then reads the decode in sys/platform.sail, which claims exactly
+// these offsets and faults on every other one.
 
 // *****************************************************************
-// Who the four windows answer.
+// Who the five windows answer.
 
-// **There is exactly one management processor** (R-15-194), so these four
+// **There is exactly one management processor** (R-15-194), so these five
 // windows answer the RoT and refuse every other class. It is derived from the
 // composed hart's roster entry rather than declared as a fifth configuration
 // key, because the roster already says which core this run is and a second

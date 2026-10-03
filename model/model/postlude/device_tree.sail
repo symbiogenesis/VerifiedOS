@@ -501,6 +501,20 @@ private function generate_dts_watchdog() -> string =
   ^ "      verifiedos,late-ticks = <" ^ generate_dts_u64(plat_rot_watchdog_late) ^ ">;\n"
   ^ "    };\n"
 
+// The boot-control window (R-09-028, R-09-029, R-09-006), its placement and
+// nothing else. **The latch, the active slot and the attempt count are not
+// here and their absence is deliberate**: they are the composition's power-on
+// values standing for a pin and for retained state, emulation facts of the kind
+// the entropy seed is (sys/rot.sail), and an attested tree carrying them would
+// attest one boot's inputs as a property of the part.
+private function generate_dts_boot_control() -> string =
+  if not(plat_have_boot_control) then ""
+  else
+    "    boot-control@" ^ string_drop(hex_str(unsigned(plat_boot_control_base)), 2) ^ " {\n"
+  ^ "      compatible = \"verifiedos,boot-control\";\n"
+  ^ generate_dts_reg(plat_boot_control_base, plat_boot_control_size)
+  ^ "    };\n"
+
 function generate_dts() -> string = {
   let clock_freq : nat = plat_clock_frequency;
 
@@ -582,6 +596,7 @@ function generate_dts() -> string = {
 ^ generate_dts_watchdog()
 ^ generate_dts_uart()
 ^ generate_dts_blkdev()
+^ generate_dts_boot_control()
 ^ "  };\n"
 ^ "  htif {\n"
 ^ "    compatible = \"ucb,htif0\";\n"

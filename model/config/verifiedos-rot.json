@@ -651,6 +651,24 @@
       "early_ticks": 1024,
       "late_ticks": 65536
     },
+    // The RoT's fifth window, the boot-control window (R-09-028, R-09-029,
+    // R-09-006, model/sys/rot.sail): the latched boot-time signal, the active
+    // slot and its attempt count, and the door that releases the boot core.
+    // The row is byte for byte the other two files' row, and it answers here.
+    //
+    // **The three values below are emulation facts and not architectural
+    // ones**: they stand for a pin latched at reset and for the RoT's retained
+    // state at power-on, the boot chain's harness varies them per case through
+    // configuration variants, and none is emitted into the attested
+    // devicetree. The validator refuses a latch or a slot above 1.
+    "boot_control": {
+      "supported": true,
+      "base": 44040192,
+      "size": 4096,
+      "boot_target": 0,
+      "active_slot": 0,
+      "attempts": 0
+    },
     // Boot ROM and UART are declared placements; the block device implements
     // interfaces/block-device-contract.md in sys/block_device.sail. Every
     // aperture is bounded, disjoint and published in the attested device tree.

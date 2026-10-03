@@ -350,6 +350,7 @@ private function ranges_overlap(base_a : bits(64), size_a : bits(64), base_b : b
 private function declared_apertures() -> list((string, bits(64), bits(64))) = {
   var aps : list((string, bits(64), bits(64))) = [||];
   if plat_have_blkdev then aps = ("block device (platform.blkdev)", plat_blkdev_base, plat_blkdev_size) :: aps;
+  if plat_have_boot_control then aps = ("boot-control window (platform.boot_control)", plat_boot_control_base, plat_boot_control_size) :: aps;
   if plat_have_uart then aps = ("serial port (platform.uart)", plat_uart_base, plat_uart_size) :: aps;
   if plat_have_boot_rom then aps = ("boot ROM (platform.boot_rom)", plat_boot_rom_base, plat_boot_rom_size) :: aps;
   if plat_have_watchdog then aps = ("watchdog window (platform.watchdog)", plat_watchdog_base, plat_watchdog_size) :: aps;
@@ -460,7 +461,7 @@ private function check_mem_layout() -> bool =
       zicclsm  = config extensions.Zicclsm.supported,
     };
     let pmas_ok  = check_pma_regions(pma_regions, zeros(), zeros(), check_opts);
-    // The CLINT's clause reads the same three keys the eleven below it read, and by the
+    // The CLINT's clause reads the same three keys the clauses below it read, and by the
     // same names: `core/platform_config.sail` already binds each of them once, and a
     // second reading of `config platform.clint.base` here would be the one fact in two
     // places every other window in this function is written to avoid.
@@ -484,11 +485,11 @@ private function check_mem_layout() -> bool =
     let sequencer_window_ok = not(plat_have_memory_sequencer) |
                    within_configured_pma_memory("memory sequencer window (platform.memory_sequencer)", Some(IOMemory),
                                                 plat_memory_sequencer_base, plat_memory_sequencer_size);
-    // The Root of Trust's four peripherals are register slaves like the four
-    // above, so all four belong in IO memory (R-09-001, sys/rot.sail). That
-    // three of them answer only the RoT and refuse every other class is a
-    // property of the slave and not of where it sits, exactly as the
-    // sequencer's refusal is (R-15-194).
+    // The Root of Trust's four peripherals and its boot-control window are
+    // register slaves like the four above, so all five belong in IO memory
+    // (R-09-001, sys/rot.sail). That they answer only the RoT and refuse every
+    // other class is a property of the slave and not of where it sits, exactly
+    // as the sequencer's refusal is (R-15-194).
     let otp_window_ok = not(plat_have_otp) |
                    within_configured_pma_memory("OTP window (platform.otp)", Some(IOMemory),
                                                 plat_otp_base, plat_otp_size);
@@ -501,12 +502,15 @@ private function check_mem_layout() -> bool =
     let watchdog_window_ok = not(plat_have_watchdog) |
                    within_configured_pma_memory("watchdog window (platform.watchdog)", Some(IOMemory),
                                                 plat_watchdog_base, plat_watchdog_size);
+    let boot_control_window_ok = not(plat_have_boot_control) |
+                   within_configured_pma_memory("boot-control window (platform.boot_control)", Some(IOMemory),
+                                                plat_boot_control_base, plat_boot_control_size);
     // The three devices beside the core (R1c-i). Where each is placed is
     // exactly what R-15-002b
     // makes a stated constraint, and IO memory is where a device endpoint is:
     // the boot ROM's region is the one the attested tree is itself written into
     // and is IO memory for that reason, and the serial port and the block device
-    // are in the MMIO region beside the eight windows above.
+    // are in the MMIO region beside the nine windows above.
     let boot_rom_ok = not(plat_have_boot_rom) |
                    within_configured_pma_memory("boot ROM (platform.boot_rom)", Some(IOMemory),
                                                 plat_boot_rom_base, plat_boot_rom_size);
@@ -518,6 +522,7 @@ private function check_mem_layout() -> bool =
                                                 plat_blkdev_base, plat_blkdev_size);
     pmas_ok & clint_ok & imsic_ok & revocation_window_ok & sequencer_window_ok
     & otp_window_ok & trng_window_ok & monotonic_window_ok & watchdog_window_ok
+    & boot_control_window_ok
     & boot_rom_ok & uart_ok & blkdev_ok
   }
 
@@ -1225,7 +1230,8 @@ private function check_memory_sequencer() -> bool = {
   valid
 }
 
-// The Root of Trust's four peripherals (R-09-001, sys/rot.sail).
+// The Root of Trust's four peripherals (R-09-001, sys/rot.sail) and its
+// boot-control window (R-09-028, R-09-029).
 //
 // **What is held here is the shape a composition may declare and never a
 // value**, which is the register every other geometry in this file is checked
@@ -1281,6 +1287,25 @@ private function check_rot() -> bool = {
   if plat_have_watchdog & unsigned(plat_watchdog_size) < ROT_WDT_BYTES then {
     valid = false;
     print_endline("`platform.watchdog.size` is " ^ dec_str(unsigned(plat_watchdog_size)) ^ " bytes but the watchdog's doors run to " ^ dec_str(ROT_WDT_BYTES) ^ ".");
+  };
+
+  if not(plat_have_boot_control) then () else {
+    if unsigned(plat_boot_control_size) < ROT_BOOT_BYTES then {
+      valid = false;
+      print_endline("`platform.boot_control.size` is " ^ dec_str(unsigned(plat_boot_control_size)) ^ " bytes but the boot-control window's doors run to " ^ dec_str(ROT_BOOT_BYTES) ^ ".");
+    };
+    // The latch is one bit (R-09-029) and the active slot is A or B, the
+    // recovery generation standing outside the A/B pair (R-09-028). A power-on
+    // value no door could hold is refused here, the types in sys/rot.sail being
+    // wide enough that the refusal is this clause's rather than the schema's.
+    if plat_boot_target > 1 then {
+      valid = false;
+      print_endline("`platform.boot_control.boot_target` is " ^ dec_str(plat_boot_target) ^ "; the latched boot-time signal is one bit.");
+    };
+    if plat_boot_active_slot > 1 then {
+      valid = false;
+      print_endline("`platform.boot_control.active_slot` is " ^ dec_str(plat_boot_active_slot) ^ "; the active slot is A (0) or B (1), the recovery generation standing outside the A/B pair.");
+    };
   };
 
   if not(plat_have_trng) then () else {

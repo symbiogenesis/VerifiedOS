@@ -783,6 +783,134 @@
         }
       ]
     },
+    "boot_control": {
+      "kind": "registers",
+      "rationale": "RoT-only boot state. The latch is read-only, slot writes above 1 fault, and the release door takes only the word 1.",
+      "registers": [
+        {
+          "name": "boot_target",
+          "offset": 0,
+          "access": "ro",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_BOOT_TARGET",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "boot_control_load",
+                  "contains": "zero_extend(${width}, boot_target_latch)"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "slot",
+          "offset": 8,
+          "access": "rw",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_BOOT_SLOT",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "boot_control_load",
+                  "contains": "zero_extend(${width}, boot_active_slot)"
+                },
+                {
+                  "kind": "function",
+                  "symbol": "boot_control_store",
+                  "contains": "boot_slot_write(zero_extend(${width}, data))"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "attempts",
+          "offset": 16,
+          "access": "rw",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_BOOT_ATTEMPTS",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "boot_control_load",
+                  "contains": "zero_extend(${width}, boot_attempts)"
+                },
+                {
+                  "kind": "function",
+                  "symbol": "boot_control_store",
+                  "contains": "boot_attempts = zero_extend(${width}, data)"
+                }
+              ]
+            }
+          ],
+          "views": []
+        },
+        {
+          "name": "release",
+          "offset": 24,
+          "access": "wo",
+          "repeat": "single word",
+          "bindings": [
+            {
+              "kind": "let",
+              "symbol": "ROT_BOOT_RELEASE",
+              "contains": "= ${offset}"
+            }
+          ],
+          "fields": [
+            {
+              "name": "value",
+              "lsb": 0,
+              "width": 64,
+              "bindings": [
+                {
+                  "kind": "function",
+                  "symbol": "boot_control_store",
+                  "contains": "boot_release(zero_extend(${width}, data))"
+                }
+              ]
+            }
+          ],
+          "views": []
+        }
+      ]
+    },
     "boot_rom": {
       "kind": "memory",
       "rationale": "Memory bytes, with no platform.sail register reader.",
@@ -1193,6 +1321,8 @@
   "reviewed_functions": {
     "blkdev_load": "c5d29bf7bed35fd2a4623d755e68ff0fa4552935b54f20ee7450250b721630c9",
     "blkdev_store": "f6ce5c95475e8501270ba7ceadc7043e94de5c433f83624f989cf9ce3d0cccfa",
+    "boot_control_load": "77a220407088490f22fd5f94056ba43ac8206eb90702514a76a3a385def80b4b",
+    "boot_control_store": "af2c89baea5abbae529e9ccb8b4b04e1405f7378b0bbeee06cbd1d83a8bebec5",
     "clint_load": "db8e949ee19115e370a4b550e5dc3f8db2cb6b024c6535abf304a05e2119b6bf",
     "clint_store": "d1b86ccc405891bae30958265662b46c22c510f1a26e8baf701b86b72c09f904",
     "htif_load": "035e1a5d89183a32c6af26d46ba705977db04a5970b727169509008939c25cda",
@@ -1201,8 +1331,8 @@
     "imsic_store": "549bc26ad5b254ba14bee83ecfa690ff2a347067e46358cc866bc93587902f0c",
     "memory_sequencer_load": "e4fb00fb8ba2ae2941521d0c470aa7c7f95e63fdb7fe1e5b6e5dd241f340a545",
     "memory_sequencer_store": "f0ec45975c67838ef7167961f5889774d98537776dc74092919a0cceed542170",
-    "mmio_read": "fc60175214471ddd1e25b7a16457a0884513c871b20e36bd451d50073ca45a46",
-    "mmio_write": "440711ae22c1cf31110d51e7a4cd7310c9e3f5a9adb742f94e589a954356d75b",
+    "mmio_read": "70cfc49e51efd8f6e441e78b23a633717b34a01a7d7602130adfe72e08b04f4e",
+    "mmio_write": "e9eafbce8564b1756fd17b26492e9b1bc8ffbeff87b70d333bad7fcf78708d0e",
     "monotonic_door_index": "4cfcb05ba55e7b96f06548d8ea82ad61c0f1935a1bcda0aeb104d5da85ed192d",
     "monotonic_load": "5ba53b2d280a7d7dab14cbef25a7acc7d5a3bb3fe4f101d82a7ba32b75684da6",
     "monotonic_store": "3e1e21cfbe00b1ad8ff773e0690fc42761e53036990218d5f75a63af12779d1d",
@@ -1217,5 +1347,5 @@
     "watchdog_load": "86c2f16d561c60190648390651b4b0cbc2f4c37b1e3cb373653c7beacd7986c4",
     "watchdog_store": "f0a3b6b1f0f670611c07c77ce811b3062dd11e7a13352c2eceff24bb43be1ea5"
   },
-  "reviewed_layout_sha256": "5b12c9b8539cfdceb2e065f60203f8b46c2ad375fa076b05be2f29f3f6a1aafd"
+  "reviewed_layout_sha256": "d60456c839f2cdb9939fc06d5ee7112b4174dcf6310cf87504f21d3a08dd9d63"
 }

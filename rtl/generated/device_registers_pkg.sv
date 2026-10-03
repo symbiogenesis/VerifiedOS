@@ -35,6 +35,11 @@ package device_registers_pkg;
   localparam logic [63:0] WATCHDOG_EARLY_OFFSET = 64'h0000000000000020;
   localparam logic [63:0] WATCHDOG_LATE_OFFSET = 64'h0000000000000028;
   localparam logic [63:0] WATCHDOG_ARM_OFFSET = 64'h0000000000000030;
+  // boot_control: registers.
+  localparam logic [63:0] BOOT_CONTROL_BOOT_TARGET_OFFSET = 64'h0000000000000000;
+  localparam logic [63:0] BOOT_CONTROL_SLOT_OFFSET = 64'h0000000000000008;
+  localparam logic [63:0] BOOT_CONTROL_ATTEMPTS_OFFSET = 64'h0000000000000010;
+  localparam logic [63:0] BOOT_CONTROL_RELEASE_OFFSET = 64'h0000000000000018;
   // boot_rom: memory.
   // uart: external.
   // blkdev: registers.
@@ -133,6 +138,18 @@ package device_registers_pkg;
   localparam int unsigned WATCHDOG_LATE_VALUE_SHIFT = 0;
   localparam int unsigned WATCHDOG_LATE_VALUE_WIDTH = 64;
   localparam logic [63:0] WATCHDOG_LATE_VALUE_MASK = 64'hffffffffffffffff;
+  localparam int unsigned BOOT_CONTROL_BOOT_TARGET_VALUE_SHIFT = 0;
+  localparam int unsigned BOOT_CONTROL_BOOT_TARGET_VALUE_WIDTH = 64;
+  localparam logic [63:0] BOOT_CONTROL_BOOT_TARGET_VALUE_MASK = 64'hffffffffffffffff;
+  localparam int unsigned BOOT_CONTROL_SLOT_VALUE_SHIFT = 0;
+  localparam int unsigned BOOT_CONTROL_SLOT_VALUE_WIDTH = 64;
+  localparam logic [63:0] BOOT_CONTROL_SLOT_VALUE_MASK = 64'hffffffffffffffff;
+  localparam int unsigned BOOT_CONTROL_ATTEMPTS_VALUE_SHIFT = 0;
+  localparam int unsigned BOOT_CONTROL_ATTEMPTS_VALUE_WIDTH = 64;
+  localparam logic [63:0] BOOT_CONTROL_ATTEMPTS_VALUE_MASK = 64'hffffffffffffffff;
+  localparam int unsigned BOOT_CONTROL_RELEASE_VALUE_SHIFT = 0;
+  localparam int unsigned BOOT_CONTROL_RELEASE_VALUE_WIDTH = 64;
+  localparam logic [63:0] BOOT_CONTROL_RELEASE_VALUE_MASK = 64'hffffffffffffffff;
   localparam int unsigned BLKDEV_VERSION_VALUE_SHIFT = 0;
   localparam int unsigned BLKDEV_VERSION_VALUE_WIDTH = 64;
   localparam logic [63:0] BLKDEV_VERSION_VALUE_MASK = 64'hffffffffffffffff;
