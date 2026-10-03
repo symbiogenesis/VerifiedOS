@@ -45,6 +45,10 @@ mapping ma_flag : string <-> bits(1) = {
 val vtr_mnemonic : bits(3) <-> string
 function vtr_mnemonic_forwards(_vtr) = ""
 function vtr_mnemonic_forwards_matches(_vtr) = true
+// Parsing reads the implicit vtr back: only the empty text matches, and the
+// mnemonic form of `vtype_assembly` is the one with vtr = 0b000.
+function vtr_mnemonic_backwards(_s) = 0b000
+function vtr_mnemonic_backwards_matches(s) = s == ""
 
 mapping vtype_assembly : (bits(3), bits(1), bits(1), bits(3), bits(3)) <-> string = {
   // Mnemonics are preferable but there's no mnemonic for lmul=0b100.
