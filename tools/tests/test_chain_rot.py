@@ -15,7 +15,7 @@ ROOT = TOOLS.parent
 STUB = ("vos_chain_rom:\n        cincoffsetimm c2, c2, -32\n        li a0, 0\n        ret\n"
         "vos_chain_runtime_admit:\n        ret\nvos_chain_runtime_verify:\n        ret\n"
         "vos_chain_select:\n        ret\nvos_chain_pet_due:\n        ret\n"
-        "vos_chain_service_item6:\n        ret\n")
+        "vos_chain_step_ready:\n        ret\nvos_chain_service_item6:\n        ret\n")
 
 
 def _lay() -> bh.Layout:
@@ -126,19 +126,25 @@ def _payload_is_flat() -> None:
 
 
 def _mutants_occur_once() -> None:
-    text = (ROOT / chain_rot.RUNTIME_ASSEMBLY).read_text(encoding="utf-8")
+    text = (ROOT / chain_rot.RUNTIME_SOURCE).read_text(encoding="utf-8")
     ensure(set(chain_rot.RUNTIME_MUTANTS) == {"stall", "early-pet"}, "section 9.10's mutants are not the two")
-    plain = chain_rot.runtime_payload(ROOT, STUB)
     for name, (old, new) in chain_rot.RUNTIME_MUTANTS.items():
         ensure(text.count(old) == 1, f"the {name} mutant's text occurs {text.count(old)} times")
         ensure(new not in text, f"the {name} mutant's replacement is already in the runtime")
-        mutated = chain_rot.runtime_assembly(ROOT, STUB, name)
-        ensure(new in mutated and old not in mutated, f"the {name} mutant was not applied")
-        ensure(chain_rot.runtime_payload(ROOT, STUB, name) != plain, f"the {name} mutant changed no byte")
-    ensure("ROT_WDT_TICKS" not in chain_rot.RUNTIME_MUTANTS["early-pet"][1],
-           "the early-pet mutant still reads the tick door")
+        mutated = chain_rot.mutated_source(ROOT, name)
+        ensure(new in mutated and old not in mutated and len(mutated) == len(text) - len(old) + len(new),
+               f"the {name} mutant was not applied exactly once")
+    stall_old, stall_new = chain_rot.RUNTIME_MUTANTS["stall"]
+    ensure(">> 32)" in stall_old and ">> 32)" not in stall_new,
+           "the stall mutant does not move step.entropy's completion bit")
+    early_old, early_new = chain_rot.RUNTIME_MUTANTS["early-pet"]
+    ensure("ticks >=" in early_old and "ticks >=" not in early_new and "return 1u" in early_new,
+           "the early-pet mutant still consults the tick count")
+    entry = (ROOT / chain_rot.RUNTIME_ASSEMBLY).read_text(encoding="utf-8")
+    ensure(entry.count("call    vos_chain_step_ready") == 3 and entry.count("call    vos_chain_pet_due") == 4,
+           "the assembly does not ask the C decisions at three steps and four pet points")
     try:
-        chain_rot.runtime_payload(ROOT, STUB, "absent")
+        chain_rot.mutated_source(ROOT, "absent")
     except ValueError:
         pass
     else:
@@ -197,6 +203,6 @@ def cases() -> list[Case]:
     return [Case("the ROM program places every window at its address", _rom_layout),
             Case("the ROM composer refuses malformed inputs", _rom_refuses_bad_inputs),
             Case("the stage-0 payload is flat with its data at its offset", _payload_is_flat),
-            Case("each runtime mutant names one line and changes the image", _mutants_occur_once),
+            Case("each runtime mutant names one line of runtime.c's decisions", _mutants_occur_once),
             Case("runtime-only and service runs place payload, state and request", _runtime_only_and_service),
             Case("the assembly's constants come from their owners", _equates_follow_owners)]

@@ -4,21 +4,23 @@
 # The image is entered at its base with PCC the reset execute root and c1 the
 # store-side root; it reads the state record and nothing else from the ROM.
 #
-# A boot run arms the watchdog and walks the bring-up reset table, pets at each
-# completion inside the window, reads the slot and attempt doors, selects and
-# charges through vos_chain_select, writes the slot door and then the attempt
-# door, verifies the selected stage-1 image through vos_chain_runtime_verify,
-# pets once more, records what it read last and either writes the release door
-# or completes its refusal through HTIF. A service run calls
-# vos_chain_service_item6 and touches no door.
+# A boot run arms the watchdog and walks the bring-up reset table, polling each
+# step's door until vos_chain_step_ready answers, pets at each completion that
+# vos_chain_pet_due puts inside the window, reads the slot and attempt doors,
+# selects and charges through vos_chain_select, writes the slot door and then
+# the attempt door, verifies the selected stage-1 image through
+# vos_chain_runtime_verify, pets once more, records what it read last and
+# either writes the release door or completes its refusal through HTIF. A
+# service run calls vos_chain_service_item6 and touches no door.
 #
 # The composer (tools/vos/chain_rot.py) places this text at the runtime base
 # ahead of rot_policy.s and the compiled runtime.c, with the data below at
 # chain.rot_runtime_data_at, and supplies every upper-case name as an `.equ`.
 # Window capabilities live in c18 to c24 and are derived again by __rt_windows
 # after every call into C, so nothing here rests on a callee preserving them.
-# The two watchdog mutants of section 9.10 are text substitutions of this file
-# (chain_rot.RUNTIME_MUTANTS), each naming a line that occurs once.
+# The two watchdog mutants of section 9.10 are text substitutions of
+# runtime.c's two decisions (chain_rot.RUNTIME_MUTANTS), so this file is the
+# same in every runtime image.
 
         .text
         .globl _start
@@ -78,30 +80,36 @@ _start:
         call    __chain_policy
 
         # The bring-up reset table (section 9.6). Each step polls its ready
-        # indication and never pets while it waits, so a step that never becomes
-        # ready is ended by the bite and by nothing here.
+        # indication, decided by vos_chain_step_ready over the door it names, and
+        # never pets while it waits, so a step that never becomes ready is ended
+        # by the bite and by nothing here. Each completion is a pet point.
 
-        # step.arm: open the window; ready when the challenge reads nonzero.
+        # step.arm: open the window; ready when the challenge reads nonzero. The
+        # capture keeps the challenge the step completed on.
         sd      zero, ROT_WDT_ARM(c20)
 __rt_step_arm_wait:
-        ld      t1, ROT_WDT_NONCE(c20)
-        beqz    t1, __rt_step_arm_wait
-        sd      t1, VOS_CHAIN_CAPTURE_NONCE_AT_ARM_AT(c19)
+        ld      a1, ROT_WDT_NONCE(c20)
+        sd      a1, VOS_CHAIN_CAPTURE_NONCE_AT_ARM_AT(c19)
+        li      a0, VOS_CHAIN_STEP_ARM
+        call    vos_chain_step_ready
+        call    __rt_windows
+        beqz    a0, __rt_step_arm_wait
         call    __rt_step_completed
-        ld      a0, ROT_WDT_TICKS(c20)          # step.arm's pet point reads the tick door
+        ld      a0, ROT_WDT_TICKS(c20)
         ld      a1, ROT_WDT_EARLY(c20)
         ld      a2, ROT_WDT_LATE(c20)
         call    vos_chain_pet_due
         call    __rt_windows
         call    __rt_pet_or_skip
 
-        # step.entropy: no action, the ROM ran the start-up tests.
+        # step.entropy: no action, the ROM ran the start-up tests; ready on the
+        # health word.
 __rt_step_entropy_wait:
-        ld      t1, ROT_TRNG_HEALTH(c21)
-        srli    t1, t1, 32                      # step.entropy ready: bit 32 set and bit 33 clear
-        andi    t1, t1, 3
-        li      t2, 1
-        bne     t1, t2, __rt_step_entropy_wait
+        ld      a1, ROT_TRNG_HEALTH(c21)
+        li      a0, VOS_CHAIN_STEP_ENTROPY
+        call    vos_chain_step_ready
+        call    __rt_windows
+        beqz    a0, __rt_step_entropy_wait
         call    __rt_step_completed
         ld      a0, ROT_WDT_TICKS(c20)
         ld      a1, ROT_WDT_EARLY(c20)
@@ -112,8 +120,11 @@ __rt_step_entropy_wait:
 
         # step.floor: no action; ready when counter 0 reads nonzero.
 __rt_step_floor_wait:
-        ld      t1, ROT_CTR_BASE(c22)
-        beqz    t1, __rt_step_floor_wait
+        ld      a1, ROT_CTR_BASE(c22)
+        li      a0, VOS_CHAIN_STEP_FLOOR
+        call    vos_chain_step_ready
+        call    __rt_windows
+        beqz    a0, __rt_step_floor_wait
         call    __rt_step_completed
         ld      a0, ROT_WDT_TICKS(c20)
         ld      a1, ROT_WDT_EARLY(c20)

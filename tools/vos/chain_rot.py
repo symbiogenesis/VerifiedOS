@@ -61,22 +61,22 @@ SOURCES = (ROM_SOURCE, RUNTIME_SOURCE, COMMON_SOURCE, ROM_ASSEMBLY, RUNTIME_ASSE
 # templates over `{root}`. None is needed; `compile_args` formats the whole list.
 COMPILE_ARGS: tuple[str, ...] = ()
 
-# Section 9.10's two runtime mutants, text substitutions of RUNTIME_ASSEMBLY (the table
-# walk and the pets are assembly, so the mutations live there and the compiled stream is
-# the unmutated runtime.c's). Each `old` occurs exactly once in that file.
+# Section 9.10's two runtime mutants, text substitutions of RUNTIME_SOURCE: the
+# assembly polls and pets, and runtime.c's vos_chain_step_ready and vos_chain_pet_due
+# decide, so a mutant is the compiled stream of the substituted source composed by the
+# unchanged `runtime_payload`. Each `old` occurs exactly once in runtime.c.
 RUNTIME_MUTANTS: dict[str, tuple[str, str]] = {
     # watchdog-stalled-step: step.entropy's ready predicate reads bit 62, which the
     # health word never sets, so the step never completes and no pet is issued.
     "stall": (
-        "        srli    t1, t1, 32                      # step.entropy ready: bit 32 set and bit 33 clear\n",
-        "        srli    t1, t1, 62                      # stall: bit 62, which the health word never sets\n"),
-    # watchdog-early-pet: step.arm's completion pets without reading the tick door.
+        "    uint64_t completed = (value >> 32) & 1u;  // the start-up tests completed for every source\n",
+        "    uint64_t completed = (value >> 62) & 1u;  // stall: a bit the health word never sets\n"),
+    # watchdog-early-pet: the pet decision consults no tick count, so step.arm's
+    # completion, the first pet point, pets before the early bound.
     "early-pet": (
-        "        ld      a0, ROT_WDT_TICKS(c20)          # step.arm's pet point reads the tick door\n"
-        "        ld      a1, ROT_WDT_EARLY(c20)\n"
-        "        ld      a2, ROT_WDT_LATE(c20)\n"
-        "        call    vos_chain_pet_due\n",
-        "        li      a0, 1                           # early pet: step.arm pets without the tick door\n"),
+        "  return (ticks >= early && ticks <= late) ? 1u : 0u;\n",
+        "  (void)ticks;\n  (void)early;\n  (void)late;\n"
+        "  return 1u;  // early pet: no tick count is consulted\n"),
 }
 
 # The ROM program and the runtime-only preamble: the reset entry the emulator takes from
@@ -266,14 +266,16 @@ def _capture(lay: bh.Layout) -> tuple[list[image.Section], dict[str, tuple[str, 
     return sections, symbols
 
 
-def _mutated(text: str, mutant: str | None) -> str:
-    if mutant is None:
-        return text
+def mutated_source(root: Path, mutant: str) -> str:
+    """RUNTIME_SOURCE with one of RUNTIME_MUTANTS applied, refusing a substitution that
+    does not occur exactly once. Compile it beside runtime.c's directory on the include
+    path so its quoted includes resolve as the runtime's do."""
     if mutant not in RUNTIME_MUTANTS:
         raise ValueError(f"no runtime mutant {mutant}")
+    text = _read(root, RUNTIME_SOURCE)
     old, new = RUNTIME_MUTANTS[mutant]
     if text.count(old) != 1:
-        raise ValueError(f"the {mutant} mutant's text occurs {text.count(old)} times in {RUNTIME_ASSEMBLY}")
+        raise ValueError(f"the {mutant} mutant's text occurs {text.count(old)} times in {RUNTIME_SOURCE}")
     return text.replace(old, new, 1)
 
 
@@ -325,20 +327,19 @@ def compose_rom(root: Path, rom_stream: str, inputs: RomInputs) -> Program:
     return Program(source, sections + capture, {**symbols, **named}, entry)
 
 
-def runtime_assembly(root: Path, runtime_stream: str, mutant: str | None = None) -> str:
-    """The runtime's composed assembly, with one of RUNTIME_MUTANTS applied if named."""
-    entry = _mutated(_read(root, RUNTIME_ASSEMBLY), mutant)
-    return (_equ_block(equates(root)) + entry + _read(root, POLICY_ASSEMBLY)
+def runtime_assembly(root: Path, runtime_stream: str) -> str:
+    """The runtime's composed assembly over one compiled runtime.c, mutant or not."""
+    return (_equ_block(equates(root)) + _read(root, RUNTIME_ASSEMBLY) + _read(root, POLICY_ASSEMBLY)
             + "# --- the compiled runtime body ---\n" + _body(runtime_stream, "runtime"))
 
 
-def runtime_payload(root: Path, runtime_stream: str, mutant: str | None = None) -> bytes:
+def runtime_payload(root: Path, runtime_stream: str) -> bytes:
     """Stage 0's payload: the runtime laid out for chain.rot_runtime_base, its text from
     the base and its data from chain.rot_runtime_data_at, the gap zero (section 9.3)."""
     lay = layout(root)
     base = lay["CHAIN_ROT_RUNTIME_BASE"]
     data_base = base + lay["CHAIN_ROT_RUNTIME_DATA_AT"]
-    sections, _, _ = _assemble(runtime_assembly(root, runtime_stream, mutant), "chain-runtime",
+    sections, _, _ = _assemble(runtime_assembly(root, runtime_stream), "chain-runtime",
                                base, data_base)
     text = next(s for s in sections if s.name == ".text")
     data = next(s for s in sections if s.name == ".data")

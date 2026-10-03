@@ -46,8 +46,24 @@ uint64_t vos_chain_select(uint64_t boot_target, uint64_t slot, uint64_t attempts
   return active;
 }
 
+// The bring-up reset table's ready indications (section 9.6), over the door
+// value the assembly polled for `step`: step.arm's challenge door, step.entropy's
+// health word and step.floor's counter 0. The assembly polls until this answers
+// 1 and never pets while it waits. Section 9.10's stall mutant rewrites the
+// completion bit read below to one the health word never sets.
+uint64_t vos_chain_step_ready(uint64_t step, uint64_t value) {
+  if (step == VOS_CHAIN_STEP_ENTROPY) {
+    uint64_t completed = (value >> 32) & 1u;  // the start-up tests completed for every source
+    uint64_t stopped = (value >> 33) & 1u;    // the fail-stop latched
+    return (completed == 1u && stopped == 0u) ? 1u : 0u;
+  }
+  return value != 0u ? 1u : 0u;
+}
+
 // A pet is due inside the window and never before it: an early pet is a bite
 // (R-15-240). After the late bound nothing runs, the bite having ended the run.
+// Section 9.10's early-pet mutant answers 1 without consulting the tick count,
+// so the first pet point, step.arm's completion, pets early.
 uint64_t vos_chain_pet_due(uint64_t ticks, uint64_t early, uint64_t late) {
   return (ticks >= early && ticks <= late) ? 1u : 0u;
 }
