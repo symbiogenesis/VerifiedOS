@@ -1,0 +1,155 @@
+started 2026-10-03T17:51:13Z
+[WARNING] Running as root is not recommended
+[WARNING] Running as root is not recommended
+[WARNING] Running as root is not recommended
+rocq /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq 9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac The Rocq Prover, version 9.3.0 compiled with OCaml 5.4.1 
+[WARNING] Running as root is not recommended
+sail /root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail 547f755c390610304fc5ebd87e9cf53cbef9b79311f5c44b88f0768b88c36826 Sail 0.20.3 (sail @ opam-v2.5.0 0.20.3) 
+== the release's src-stdpp symbolic links
+Base.v -> ../src/Base.v
+GenericValue.v -> ../src/GenericValue.v
+Hoare.v -> ../src/Hoare.v
+Impl_base.v -> ../src/Impl_base.v
+Instr_kinds.v -> ../src/Instr_kinds.v
+MachineWordInterface.v -> ../src/MachineWordInterface.v
+Operators_mwords.v -> ../src/Operators_mwords.v
+Prompt.v -> ../src/Prompt.v
+Prompt_monad.v -> ../src/Prompt_monad.v
+Real.v -> ../src/Real.v
+State.v -> ../src/State.v
+State_lemmas.v -> ../src/State_lemmas.v
+State_lifting.v -> ../src/State_lifting.v
+State_monad.v -> ../src/State_monad.v
+State_monad_lemmas.v -> ../src/State_monad_lemmas.v
+String.v -> ../src/String.v
+TypeCasts.v -> ../src/TypeCasts.v
+Undefined.v -> ../src/Undefined.v
+Values.v -> ../src/Values.v
+Values_lemmas.v -> ../src/Values_lemmas.v
+symlinks: 20 of 30 .v entries
+== Onto.v compile
+1b27c863889ec3d4ef864b2ec58acf580b90816f9da1c719bc6f957b485b5472  /root/build/lane-q35g-20261003/repair/onto/Onto.v
+onto rc=0
+[WARNING] Running as root is not recommended
+Axioms:
+ClassicalDedekindReals.sig_forall_dec :
+  forall P : nat -> Prop,
+  (forall n : nat, {P n} + {~ P n}) ->
+  {n : nat | ~ P n} + {forall n : nat, P n}
+FunctionalExtensionality.functional_extensionality_dep :
+  forall (A : Type) (B : A -> Type) (f g : forall x : A, B x),
+  (forall x : A, f x = g x) -> f = g
+wall=1.26 maxrss_kb=453284
+== real-typed register model
+60866c63fed64f9f8d8799e35272f574414c921b72a4acf094247f937552728e  /root/build/lane-q35g-20261003/repair/models/realregister.sail
+emit installed/realregister rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.Real. Require Import out_types. 
+[WARNING] Running as root is not recommended
+612e232f642be790664695ac303f013f8998c73292b6c58a070f3f29f0fd7626  /root/build/lane-q35g-20261003/repair/emit/installed/realregister/out.v
+37716bb015bc42946c3139635bb2c3afee257cc8a739be047355ecac2ba37526  /root/build/lane-q35g-20261003/repair/emit/installed/realregister/out_types.v
+compile installed/realregister out_types.v against pristine rc=1
+[WARNING] Running as root is not recommended
+File "./out_types.v", line 35, characters 2-26:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 38, characters 2-8:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 44, characters 2-169:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 53, characters 2-27:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 58, characters 0-41:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 60, characters 0-55:
+Warning: Implicitly declaring Rewrite hint databases is deprecated. Please
+explicitly create "register_beq_iffs"
+[implicit-create-rewrite-hint-db,deprecated-since-9.2,deprecated,default]
+File "./out_types.v", line 61, characters 0-57:
+Warning: Implicitly declaring Rewrite hint databases is deprecated. Please
+explicitly create "register_beq_refls"
+[implicit-create-rewrite-hint-db,deprecated-since-9.2,deprecated,default]
+File "./out_types.v", line 67, characters 60-168:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 111, characters 2-163:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 124, characters 0-77:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 146, characters 0-68:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 176, characters 0-43:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 198, characters 0-123:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 206, characters 28-41:
+Error:
+In environment:
+r : register
+r0 : register_real
+Unable to satisfy the following constraints:
+?Goal0 : Countable (type_of_register r0)[r] [x] |- 
+                                          ?Goal@{r:=R_real r; r0:=r} ==
+                                          ?Goal0@{r:=R_real r; r0:=r}
+
+compile installed/realregister out_types.v against patched rc=1
+[WARNING] Running as root is not recommended
+File "./out_types.v", line 35, characters 2-26:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 38, characters 2-8:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 44, characters 2-169:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 53, characters 2-27:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 58, characters 0-41:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 60, characters 0-55:
+Warning: Implicitly declaring Rewrite hint databases is deprecated. Please
+explicitly create "register_beq_iffs"
+[implicit-create-rewrite-hint-db,deprecated-since-9.2,deprecated,default]
+File "./out_types.v", line 61, characters 0-57:
+Warning: Implicitly declaring Rewrite hint databases is deprecated. Please
+explicitly create "register_beq_refls"
+[implicit-create-rewrite-hint-db,deprecated-since-9.2,deprecated,default]
+File "./out_types.v", line 67, characters 60-168:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 111, characters 2-163:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 124, characters 0-77:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 146, characters 0-68:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 176, characters 0-43:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 198, characters 0-123:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "./out_types.v", line 206, characters 28-41:
+Error:
+In environment:
+r : register
+r0 : register_real
+Unable to satisfy the following constraints:
+?Goal0 : Countable (type_of_register r0)[r] [x] |- 
+                                          ?Goal@{r:=R_real r; r0:=r} ==
+                                          ?Goal0@{r:=R_real r; r0:=r}
+
+finished 2026-10-03T17:51:18Z
