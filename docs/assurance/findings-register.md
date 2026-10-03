@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 975 of them across 157 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 980 of them across 157 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -2803,23 +2803,23 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Disposition: standing, the unit test retaining the observation
 
 **F-758** method: the main-die HTIF word is the kernel data extent's first word inside the kernel region the M-mode stage places, measures and zeroes, the emulator answers it to aligned four- and eight-byte accesses alone, and the typed route refuses both a byte-pointer cast and a call to an unadmitted helper, so the body reaches the region by doublewords and a payload whose doubleword at `kernel.data` is nonzero issues an HTIF command at placement, before the digest comparison
-· Raised: M3.5b
+· Raised: M3.5b, in prose
 · Disposition: standing, the stage placing, measuring and zeroing by doublewords and a corrupted-payload case flipping a byte outside the HTIF word
 
 **F-759** owed-act: section 9 fixed no stack for the M-mode stage's compiled body, whose frame sum of 19,136 bytes exceeds the compiler harness's 16 KiB
-· Raised: M3.5b
+· Raised: M3.5b, in prose
 · Disposition: closed, section 9.8 states the stack the entry assembly fixes at the top of the M-mode region, outside every stage-1 payload
 
 **F-760** measurement: the emulator writes `--test-signature` only on an HTIF success or a release, so a main-die refusal's request, M-mode capture and zeroed kernel region are never exported
-· Raised: M3.5b
+· Raised: M3.5b, in prose
 · Disposition: standing, section 9.11 deciding a main-die refusal by its exit code alone
 
 **F-761** method: a trap reaching the M-mode stage's own handler reports HTIF exit 256 plus `mcause`, which is neither a fixture check nor 64 plus a refusal code
-· Raised: M3.5b
+· Raised: M3.5b, in prose
 · Disposition: standing, section 9.11 treating that exit as no verdict
 
 **F-762** measurement: one main-die run executes a full ML-DSA-87 verification, which a commit trace cannot practically hold, so the kernel entry's observation rests on the kernel stage's `SUCCESS`, a value no M-mode stage path writes
-· Raised: M3.5b
+· Raised: M3.5b, in prose
 · Disposition: standing, section 9.12 naming that observation
 
 **F-156a** owed-act: the data-plane disjunction has no arm selected, one entry admitting a deterministic clear or a confirmed discharge while another commits both planes atomically at the granule and a third insists the two are two boundaries
