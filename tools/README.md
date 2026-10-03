@@ -382,7 +382,10 @@ built and run in, and [its own README](wasm-oracle/README.md) states what it pin
 in the Rupicola switch M1.6 created: the sources it derives, a hand-run driver, and the
 digest of what it emits, with [its own README](bedrock2-lowering/README.md) stating the
 recipe and the boundary audit. No `run.py` command reaches it, on the same ground as the
-Wasm oracle.
+Wasm oracle. [checker-reproductions/](checker-reproductions/README.md) holds standalone
+Rocq sources that reproduce a behaviour of `rocqchk` met on an upstream library, each
+with its controls and a runner that marks a result differing from its README's
+statement; they sit outside the proof set, and no `run.py` command reaches them.
 
 [quarantine/](quarantine/) is the exception to the one entry point, and deliberately:
 it holds the two instruments whose decisions are deferred, the two rules that hold

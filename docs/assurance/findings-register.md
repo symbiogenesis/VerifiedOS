@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 1005 of them across 159 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 1007 of them across 160 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -955,7 +955,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-463** owed-act: every VST or CompCert Clight development loads axioms and parameters outside R-05-164's empty declared set, and no entry decides whether they enter R-06-011 or the *Ax* ledger
 · Raised: Q35a
-· Disposition: open, a register act at the review gate with Q35e's measured summary as its input
+· Disposition: open, a register act at the review gate with Q35e's measured summary and Q35h's bounded admission (F-781) as its inputs: no released checker from 9.1 produces a Floyd client's summary without admitting VST's soundness module, 9.0.x being unmeasured; the source-side route, twelve of VST's functor-body seals made transparent ascriptions, is an unmeasured option conditional on M1.1a's and the opam guide's reading of a carried patch
 
 **F-464** owed-act: stock VST's theorems are stated over a host-configured stock Clight rather than the compartment-annotated Clight over a capability-widened value type the contained compiler consumes, and no entry decides whether VST enters as a program logic under R-05-020 or over which C semantics
 · Raised: Q35a
@@ -1011,7 +1011,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-486** upstream-defect: `rocqchk` 9.2.0 raises an "Incompatible resolver roots" anomaly checking VST 2.17's `VST.floyd.SeparationLogicAsLogicSoundness`, which every Verifiable C client loads, so the gate reads no summary for any Floyd client over either CompCert route
 · Raised: Q35e
-· Disposition: open, Q35h reducing it to a standalone reproduction, reporting it upstream and reading which checker accepts VST 2.17
+· Disposition: open, upstream: Q35h reduces it to [a standalone reproduction](../../tools/checker-reproductions/resolver-roots/README.md), a functor whose body seals a module holding a submodule, applied once, on which every released checker in the guest from 9.1 and rocq master at `981bb63f` abort while the control without the submodule checks, so no released checker from 9.1 produces VST 2.17's client summary and 9.0.x is unmeasured; reported as [rocq-prover/rocq#22555](https://github.com/rocq-prover/rocq/issues/22555); [Q35h's record](checker-resolver-anomaly.md)
 
 **F-487** owed-act: the kernel checker's summary names checked fields of alias-sealed and functor-sealed modules as axioms, 204 fields of VST's `Share` and `R` in the recursively checked `SequentialClight` closure, and no rule decides whether the gate covers them by the same run's checking evidence or an R-05-164 amendment enumerates them
 · Raised: Q35e
@@ -1084,6 +1084,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-779** upstream-defect: Sail 0.20.3's Rocq backend emits a model with a real-typed register that does not compile, because its register encoding requires `Countable` of each register type and `R` has no instance
 · Raised: Q35g
 · Disposition: standing: the model declares no real-typed register, and no upstream report is taken; Sail's `sail2` changed theorem-prover register naming after 0.20.3 (#1759, fixing #1757), and whether the defect persists there is unread
+
+**F-780** upstream-defect: `rocqchk` 9.2, 9.3.0 and master at `981bb63f` abort with `Type error: IllFormedConstant` on a constant typed through the alias field of a sealed module inside an applied functor, where 9.1.1 raises the "Incompatible resolver roots" anomaly on the same file and `rocq c` accepts it
+· Raised: Q35h
+· Disposition: open, upstream: carried in [rocq-prover/rocq#22555](https://github.com/rocq-prover/rocq/issues/22555) as a symptom of F-486's defect; the same constant typed through the functor's parameter restores the resolver-roots message at every release
+
+**F-781** measurement: the kernel checker's `-admit M` leaves M's whole dependency closure unchecked except the libraries named on the command line, which it checks even inside that closure, so the smallest admission over VST 2.17's client, the soundness module admitted and its 653 other interned libraries named, names 282 constants, 60 of them the admitted module's own sealed fields
+· Raised: Q35h
+· Disposition: standing: an input to F-463's review-gate act; Q35e's admitted summaries counted 98 fields of unchecked libraries beneath the admitted module, and [Q35h's record](checker-resolver-anomaly.md) cites the receipt listing the 282 names
 
 **F-774** method: for an assumption a seal hides from the loaded environment the compiler's `Print Assumptions` is the proof gate's only reading, rocqchk's summary naming no such constant unless a field it checked under an interactive seal uses it
 · Raised: Q35i

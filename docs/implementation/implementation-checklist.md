@@ -401,20 +401,20 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,190.2 |
-| Total estimate range h | 2,690.6–5,689.8 |
-| Completed scope h | 787.2 |
-| Complete by estimate % | 18.8 |
-| Remaining h | 3,403 |
+| Total estimate midpoint h | 4,186.4 |
+| Total estimate range h | 2,689.8–5,683 |
+| Completed scope h | 789.4 |
+| Complete by estimate % | 18.9 |
+| Remaining h | 3,397 |
 | Open class I h | 681.5 |
-| Open class X h | 2,721.5 |
+| Open class X h | 2,715.5 |
 | Retained completion estimate h | 186 |
 | Unmeasured completed items | 22 |
-| Calibrated total h | 5,135.6 |
+| Calibrated total h | 5,129.3 |
 | Committed M8a open h | 73 |
 | Committed M8b open h | 90.5 |
 | Other committed open h | 2,027.5 |
-| Conditional open h | 798 |
+| Conditional open h | 792 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
 | Committed M8a open range h | 47–99 |
@@ -1069,9 +1069,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
     * The model's Rocq target emits at the frozen profile's primary composition through `run.py model rocq`, which writes the term's generation identity, and the 54 model-side axioms leave the term, the comparisons on a checked agreement with SoftFloat 3e, leaving F-480's 31 floating-point operations. ([note](completion-log.md#q35f-remove-the-canonical-terms-model-side-axioms-and-bind-its-target-to-the-frozen-profile))
   * [x] **Q35g · Remove the support library's Stdlib axioms from the canonical term's closure** · 2 h actual · agent-parallel
     * A change to the support library confines Stdlib's Reals to its `Real` module and drops `Eqdep`, a probe of the term's modules over it at the locked prover names none of the five axioms while its positive control adds exactly the one it loads, and Sail's existing `--rocq-alt-modules` can drop the term's `Real` import; neither change goes upstream or into a switch, and by the owner's act the term's compile against the changed library moved to Q35b's owed compile. ([note](completion-log.md#q35g-remove-the-support-librarys-stdlib-axioms-from-the-canonical-terms-closure))
-  * [ ] **Q35h · Reduce and report the kernel checker's anomaly on VST's Floyd closure** · 6 h, range 3–9 · X
-    * **Dispatch. Start:** F-486; VST 2.17 as [the qualification switches](../../tools/opam/c-refinement-qualification-switches.md) build it, in the private vst2 and vst3 switches or recreated from their recipes under M1.1a's containment; the 9.2.0 checker's sources at `V9.2.0` and the locked checker's at `V9.3.0`. **Owns:** an authored standalone Rocq reproduction of the "Incompatible resolver roots" anomaly that copies no VST source, through nested module aliases under a functor application in the shape `SeparationLogicAsLogicSoundness` has; its result under `rocqchk` 9.2.0 and under the locked 9.3.0 checker; an upstream report; and a reading of whether any released checker produces VST 2.17's client summary. **Check:** the reproduction compiles with `rocq c` and aborts `rocqchk -silent -o`; a variant without the triggering alias checks; every figure carries its predicate, revision and checker binary identity. **Join:** F-486's disposition; F-463's review-gate act, for VST's summary; Q35i.
-    * **Estimate basis:** reduction 2–4 h, the 9.3.0 reading 1–3 h, report and record 0–2 h.
+  * [x] **Q35h · Reduce and report the kernel checker's anomaly on VST's Floyd closure** · 2.2 h actual · agent-parallel
+    * The anomaly reduces to a functor that seals a module holding a submodule, on which every released checker the guest holds from 9.1 and rocq master abort once the functor is applied while the control without the submodule checks, so no released checker from 9.1 produces VST 2.17's client summary and 9.0.x is unmeasured; the report is filed upstream, and admitting the one module leaves VST's soundness module unchecked with its sealed fields named. ([note](completion-log.md#q35h-reduce-and-report-the-kernel-checkers-anomaly-on-vsts-floyd-closure))
   * [x] **Q35i · Decide the gate's reading of alias-sealed and functor-sealed module fields** · 1.8 h actual · agent-parallel
     * The checker names every field of a module sealed by an alias or a functor application as an axiom whether or not it checked the library, and the gate covers such a name of a checked library by the compiler's reading of the implementation its seal hides, refusing an admitted implementation, a hidden assumption and a genuine axiom alike. ([note](completion-log.md#q35i-decide-the-gates-reading-of-alias-sealed-and-functor-sealed-module-fields))
   * [ ] **Q35j · State the bridge from a source-level foundation's C semantics to the contained compiler's Clight** · 16 h, range 9–23 · X
@@ -1127,7 +1126,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,386.7 h · 57% · 175.2 h complete · open range 1,252–3,171 h.
+**Q subtotal:** 2,382.9 h · 57% · 177.4 h complete · open range 1,249–3,162 h.
 
 ### M0 · Hardware reference
 
@@ -2001,9 +2000,9 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 | attended | X-authored | 3 | 18 | 25.5 | 1.42 |
 | attended | All | 63 | 323.9 | 238.4 | 0.74 |
 | agent-parallel | I | 40 | 335 | 129.8 | 0.39 |
-| agent-parallel | X-read | 10 | 101.5 | 34.7 | 0.34 |
+| agent-parallel | X-read | 11 | 107.5 | 36.9 | 0.34 |
 | agent-parallel | X-authored | 25 | 284 | 44.1 | 0.16 |
-| agent-parallel | All | 75 | 720.5 | 208.6 | 0.29 |
+| agent-parallel | All | 76 | 726.5 | 210.8 | 0.29 |
 <!-- calibration-results:end -->
 
 ### Calibration record
@@ -2174,6 +2173,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q35e | X-read | 14 |
 | Q35f | I | 18 |
 | Q35g | X-authored | 5.5 |
+| Q35h | X-read | 6 |
 | Q35i | X-authored | 8 |
 | Q38a | I | 3 |
 | Q38b | I | 5 |

@@ -8,8 +8,10 @@ The anomaly is raised by `add_delta_resolver` in the kernel's `mod_subst.ml`, a 
 check PR #20124 added on 2025-01-27 and every release from 9.1 carries. VST 2.17's
 `floyd/SeparationLogicAsLogicSoundness.v` has this shape, which is how the proof gate
 met it. [The record](../../../docs/assurance/checker-resolver-anomaly.md) holds the
-reduction, the readings of released checkers and the upstream state; this directory
-holds the files and the runner.
+reduction, the readings of released checkers and of rocq master, which gives the 9.3.0
+column's results at `981bb63f`, and the upstream state; the report is
+[rocq-prover/rocq#22555](https://github.com/rocq-prover/rocq/issues/22555). This
+directory holds the files and the runner.
 
 Every file is authored here from scratch and carries none of VST's content.
 

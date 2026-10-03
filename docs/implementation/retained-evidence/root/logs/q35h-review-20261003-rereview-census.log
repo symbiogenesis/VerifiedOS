@@ -1,0 +1,80 @@
+== certirocq-0.9.1
+[WARNING] Running as root is not recommended
+Minimal	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.Minimal.R.M.N is not a subpath of Repro.Minimal.F.M.N" Please report at http://rocq-prover.org/bugs/. 
+MinimalTransparent	rocq c 0	rocqchk 0	summary written
+VstShape	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.VstShape.DeepEmbeddedSoundness.DeepEmbedded.CConseq.CSHL_Def is not a subpath of Repro.VstShape.DeepEmbedded.CConseq.CSHL_Def" Please report at http://rocq-prover.org/bugs/. 
+VstShapeTransparent	rocq c 0	rocqchk 0	summary written
+SealedNoSubmodule	rocq c 0	rocqchk 0	summary written
+AliasTypedField	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.AliasTypedField.DeepEmbeddedSoundness.DeepEmbedded.CConseq.CSHL_Def is not a subpath of Repro.AliasTypedField.DeepEmbedded.CConseq.CSHL_Def" Please report at http://rocq-prover.org/bugs/. 
+run.sh exit 0
+d4c81ea82346852100aae95b7a28d2fb562d9779abfae04439044df39c2fd672  /root/.opam/certirocq-0.9.1/bin/rocqchk
+== quickchick-9.1.1
+[WARNING] Running as root is not recommended
+Minimal	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.Minimal.R.M.N is not a subpath of Repro.Minimal.F.M.N" Please report at http://rocq-prover.org/bugs/. 
+MinimalTransparent	rocq c 0	rocqchk 0	summary written
+VstShape	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.VstShape.DeepEmbeddedSoundness.DeepEmbedded.CConseq.CSHL_Def is not a subpath of Repro.VstShape.DeepEmbedded.CConseq.CSHL_Def" Please report at http://rocq-prover.org/bugs/. 
+VstShapeTransparent	rocq c 0	rocqchk 0	summary written
+SealedNoSubmodule	rocq c 0	rocqchk 0	summary written
+AliasTypedField	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.AliasTypedField.DeepEmbeddedSoundness.DeepEmbedded.CConseq.CSHL_Def is not a subpath of Repro.AliasTypedField.DeepEmbedded.CConseq.CSHL_Def" Please report at http://rocq-prover.org/bugs/. 
+run.sh exit 0
+a643ce584b8739ebd22e65b809893c261d94b43dc0001e7d7c95dcb8c4d7eaec  /root/.opam/quickchick-9.1.1/bin/rocqchk
+== rupicola-9.1.1
+[WARNING] Running as root is not recommended
+Minimal	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.Minimal.R.M.N is not a subpath of Repro.Minimal.F.M.N" Please report at http://rocq-prover.org/bugs/. 
+MinimalTransparent	rocq c 0	rocqchk 0	summary written
+VstShape	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.VstShape.DeepEmbeddedSoundness.DeepEmbedded.CConseq.CSHL_Def is not a subpath of Repro.VstShape.DeepEmbedded.CConseq.CSHL_Def" Please report at http://rocq-prover.org/bugs/. 
+VstShapeTransparent	rocq c 0	rocqchk 0	summary written
+SealedNoSubmodule	rocq c 0	rocqchk 0	summary written
+AliasTypedField	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.AliasTypedField.DeepEmbeddedSoundness.DeepEmbedded.CConseq.CSHL_Def is not a subpath of Repro.AliasTypedField.DeepEmbedded.CConseq.CSHL_Def" Please report at http://rocq-prover.org/bugs/. 
+run.sh exit 0
+99f8d75374b04ddbe48b53af198473619b0eb9a83a0975773e98d7af5bb505dd  /root/.opam/rupicola-9.1.1/bin/rocqchk
+== verifiedos-certirocq-0.9.1-ocaml-5.1.1
+[WARNING] Running as root is not recommended
+Minimal	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.Minimal.R.M.N is not a subpath of Repro.Minimal.F.M.N" Please report at http://rocq-prover.org/bugs/. 
+MinimalTransparent	rocq c 0	rocqchk 0	summary written
+VstShape	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.VstShape.DeepEmbeddedSoundness.DeepEmbedded.CConseq.CSHL_Def is not a subpath of Repro.VstShape.DeepEmbedded.CConseq.CSHL_Def" Please report at http://rocq-prover.org/bugs/. 
+VstShapeTransparent	rocq c 0	rocqchk 0	summary written
+SealedNoSubmodule	rocq c 0	rocqchk 0	summary written
+AliasTypedField	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.AliasTypedField.DeepEmbeddedSoundness.DeepEmbedded.CConseq.CSHL_Def is not a subpath of Repro.AliasTypedField.DeepEmbedded.CConseq.CSHL_Def" Please report at http://rocq-prover.org/bugs/. 
+run.sh exit 0
+0400b7996cc1f95a508834c4c9bd3426ae7b67253bc8f4189ef1357ce6abd3a7  /root/.opam/verifiedos-certirocq-0.9.1-ocaml-5.1.1/bin/rocqchk
+== verifiedos-certirocq-0.9.1-ocaml-5.4.1
+[WARNING] Running as root is not recommended
+Minimal	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.Minimal.R.M.N is not a subpath of Repro.Minimal.F.M.N" Please report at http://rocq-prover.org/bugs/. 
+MinimalTransparent	rocq c 0	rocqchk 0	summary written
+VstShape	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.VstShape.DeepEmbeddedSoundness.DeepEmbedded.CConseq.CSHL_Def is not a subpath of Repro.VstShape.DeepEmbedded.CConseq.CSHL_Def" Please report at http://rocq-prover.org/bugs/. 
+VstShapeTransparent	rocq c 0	rocqchk 0	summary written
+SealedNoSubmodule	rocq c 0	rocqchk 0	summary written
+AliasTypedField	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.AliasTypedField.DeepEmbeddedSoundness.DeepEmbedded.CConseq.CSHL_Def is not a subpath of Repro.AliasTypedField.DeepEmbedded.CConseq.CSHL_Def" Please report at http://rocq-prover.org/bugs/. 
+run.sh exit 0
+926d946fd46566382c6c6210a9636cd4f4be78ba6fd772e0549788fedcbe489e  /root/.opam/verifiedos-certirocq-0.9.1-ocaml-5.4.1/bin/rocqchk
+== verifiedos-q35e-refinedc-20260928
+[WARNING] Running as root is not recommended
+Minimal	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.Minimal.R.M.N is not a subpath of Repro.Minimal.F.M.N" Please report at http://rocq-prover.org/bugs/. 
+MinimalTransparent	rocq c 0	rocqchk 0	summary written
+VstShape	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.VstShape.DeepEmbeddedSoundness.DeepEmbedded.CConseq.CSHL_Def is not a subpath of Repro.VstShape.DeepEmbedded.CConseq.CSHL_Def" Please report at http://rocq-prover.org/bugs/. 
+VstShapeTransparent	rocq c 0	rocqchk 0	summary written
+SealedNoSubmodule	rocq c 0	rocqchk 0	summary written
+AliasTypedField	rocq c 0	rocqchk 129	Fatal Error: Type error: IllFormedConstant 
+run.sh exit 0
+1a201967f6d401395ed5ec0d2619c6b379605c7c765c7ff56d8d9dacb112b454  /root/.opam/verifiedos-q35e-refinedc-20260928/bin/rocqchk
+== verifiedos-rupicola-9.2.0-ocaml-5.4.1
+[WARNING] Running as root is not recommended
+Minimal	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.Minimal.R.M.N is not a subpath of Repro.Minimal.F.M.N" Please report at http://rocq-prover.org/bugs/. 
+MinimalTransparent	rocq c 0	rocqchk 0	summary written
+VstShape	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.VstShape.DeepEmbeddedSoundness.DeepEmbedded.CConseq.CSHL_Def is not a subpath of Repro.VstShape.DeepEmbedded.CConseq.CSHL_Def" Please report at http://rocq-prover.org/bugs/. 
+VstShapeTransparent	rocq c 0	rocqchk 0	summary written
+SealedNoSubmodule	rocq c 0	rocqchk 0	summary written
+AliasTypedField	rocq c 0	rocqchk 129	Fatal Error: Type error: IllFormedConstant 
+run.sh exit 0
+ecd45fd59ef01cb28dec5f5ccbc95a7d9f93a38d4fe5662a59f49b44e59294cd  /root/.opam/verifiedos-rupicola-9.2.0-ocaml-5.4.1/bin/rocqchk
+== verifiedos-rocq-9.3.0-ocaml-5.4.1
+[WARNING] Running as root is not recommended
+Minimal	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.Minimal.R.M.N is not a subpath of Repro.Minimal.F.M.N" Please report at http://rocq-prover.org/bugs/. 
+MinimalTransparent	rocq c 0	rocqchk 0	summary written
+VstShape	rocq c 0	rocqchk 129	Fatal Error: Anomaly "Incompatible resolver roots: Repro.VstShape.DeepEmbeddedSoundness.DeepEmbedded.CConseq.CSHL_Def is not a subpath of Repro.VstShape.DeepEmbedded.CConseq.CSHL_Def" Please report at http://rocq-prover.org/bugs/. 
+VstShapeTransparent	rocq c 0	rocqchk 0	summary written
+SealedNoSubmodule	rocq c 0	rocqchk 0	summary written
+AliasTypedField	rocq c 0	rocqchk 129	Fatal Error: Type error: IllFormedConstant 
+run.sh exit 0
+46aae2e2a655bec07928a94df91b028bf1eeb899b2df8d8e277d942e57ff5412  /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocqchk

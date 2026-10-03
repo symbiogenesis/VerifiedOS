@@ -1,0 +1,92 @@
+start 2026-10-03T12:25:10-05:00 master 981bb63fb076b8fe9efd4bee12e0167357ac9d1b
+build exit 0 after 48 s
+csdpcert
+ocamllibdep
+rocq
+rocq.byte
+rocqchk
+votour
+7903f012a2c5ded2c805c7bce764f364173dce173c679632efd0505eb27ddce1  /root/build/integrator-20261003/rocq-master/_build/install/default/bin/rocq
+4569209266a0482b07542696944e5dc062ab4a41da9226081ad6f089bbe00d1b  /root/build/integrator-20261003/rocq-master/_build/install/default/bin/rocqchk
+The Rocq Prover, version 9.4+alpha
+compiled with OCaml 5.4.1
+== Minimal: rocq c exit 0; rocqchk exit 129
+Fatal Error: Anomaly
+             "Incompatible resolver roots: Repro.Minimal.R.M.N is not a subpath of Repro.Minimal.F.M.N"
+             Please report at http://rocq-prover.org/bugs/.
+
+== MinimalTransparent: rocq c exit 0; rocqchk exit 0
+
+CONTEXT SUMMARY
+===============
+
+* Theory: Set is predicative
+  
+* Theory: Rewrite rules are not allowed
+  
+* Axioms: <none>
+  
+* Constants/Inductives relying on type-in-type: <none>
+  
+* Constants/Inductives relying on unsafe (co)fixpoints: <none>
+  
+* Inductives whose positivity is assumed: <none>
+  
+* Inductives relying on indices not mattering:
+    Corelib.Init.Datatypes.eq_true
+    Corelib.Init.Logic.eq
+  
+
+== VstShape: rocq c exit 0; rocqchk exit 129
+Fatal Error: Anomaly
+             "Incompatible resolver roots: Repro.VstShape.DeepEmbeddedSoundness.DeepEmbedded.CConseq.CSHL_Def is not a subpath of Repro.VstShape.DeepEmbedded.CConseq.CSHL_Def"
+             Please report at http://rocq-prover.org/bugs/.
+
+== VstShapeTransparent: rocq c exit 0; rocqchk exit 0
+
+CONTEXT SUMMARY
+===============
+
+* Theory: Set is predicative
+  
+* Theory: Rewrite rules are not allowed
+  
+* Axioms: <none>
+  
+* Constants/Inductives relying on type-in-type: <none>
+  
+* Constants/Inductives relying on unsafe (co)fixpoints: <none>
+  
+* Inductives whose positivity is assumed: <none>
+  
+* Inductives relying on indices not mattering:
+    Corelib.Init.Datatypes.eq_true
+    Corelib.Init.Logic.eq
+  
+
+== SealedNoSubmodule: rocq c exit 0; rocqchk exit 0
+
+CONTEXT SUMMARY
+===============
+
+* Theory: Set is predicative
+  
+* Theory: Rewrite rules are not allowed
+  
+* Axioms: <none>
+  
+* Constants/Inductives relying on type-in-type: <none>
+  
+* Constants/Inductives relying on unsafe (co)fixpoints: <none>
+  
+* Inductives whose positivity is assumed: <none>
+  
+* Inductives relying on indices not mattering:
+    Corelib.Init.Datatypes.eq_true
+    Corelib.Init.Logic.eq
+  
+
+== AliasTypedField: rocq c exit 0; rocqchk exit 129
+Fatal Error: Type error: IllFormedConstant
+
+end 2026-10-03T12:26:00-05:00
