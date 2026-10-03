@@ -1060,7 +1060,13 @@ hand-lowered assembly beside a compiled C body, the C lowering of `cspecialrw`
 and `csealentry` being outside this item (M1.2d, purecap-abi.md gap l); the
 assembly derives bounded capabilities to the record, the kernel store, the
 kernel region, the mailbox and the capture from the store-side root and hands
-them to the body. In order, stopping at the first refusal:
+them to the body, which runs on a stack at the top of the M-mode region that the
+assembly fixes and no stage-1 payload reaches (F-759). The body reaches the
+kernel region by aligned doublewords alone, because `chain.tohost_base` lies
+inside it and the emulator's HTIF device answers that word to aligned four- and
+eight-byte accesses only; a payload whose doubleword at `kernel.data` is nonzero
+therefore issues an HTIF command at placement, before the digest comparison
+(F-758). In order, stopping at the first refusal:
 
 1. Refuse a record whose magic or version is not section 6's (`refuse-record`).
 2. ReadHeader over the kernel store window with section 9.3's stage-2 layout:
@@ -1188,7 +1194,11 @@ the unit test's (F-745).
 **Byte comparisons.** The oracle computes, and the harness compares byte for
 byte: R1's state record, handoff record and placed window and its head's
 verdict, phase, input, selection and measurement fields; R2's response and
-state; R3's request, response and M-mode capture. The head's watchdog fields
+state; R3's request, response and M-mode capture on a run that reaches the
+kernel. The emulator writes no capture on an HTIF failure, so a main-die refusal
+is decided by its exit code alone, and a main-die exit that is neither the
+kernel stage's report nor 64 plus a refusal code, the stage's own trap report
+of 256 plus `mcause` included, supplies no verdict (F-760, F-761). The head's watchdog fields
 are compared against predicates, the challenge at arming nonzero, the accepted
 and skipped counts at least and at most what the period admits, the bitten door
 zero at release, because their values are the clock's and the entropy root's.
@@ -1272,10 +1282,12 @@ images: R1 ends on a `RELEASE` line with a capture whose verdict is 0, phase
 `phase.released`, log 1, 2, 3, 4, 5 in that order, selected slot A, final slot
 A with one attempt, at least one accepted pet and bitten 0, whose state record,
 handoff record and placed window equal the oracle's; R2 ends on `SUCCESS` with
-the oracle's response, its log 1 to 6; R3 retires its first instruction at
-`chain.mmode_load_base`, its request equals the oracle's, the kernel entry is
-reached, and the run reports `SUCCESS`, which the kernel stage writes after its
-eleven checks. `recovery-latched` and `revert-past-bound` release likewise with
+the oracle's response, its log 1 to 6; R3, entered at `chain.mmode_load_base`,
+reports `SUCCESS`, which the kernel stage alone writes, after its eleven checks,
+and its request and M-mode capture equal the oracle's. A commit trace across an
+ML-DSA-87 verification is impractical, so that `SUCCESS` is the observation that
+the kernel entry was reached; no M-mode stage path writes the value it reports
+(F-762). `recovery-latched` and `revert-past-bound` release likewise with
 the selection and counts the table gives.
 
 **Refusal.** For each refusal row, the run named ends with the named verdict
