@@ -8,7 +8,9 @@ nested modules and generated obligations. Claims must resolve to compiled propos
 The existing record-witness check remains the decidable part of the non-vacuity gate.
 Sources compile under STRICT and must print no diagnostic; rocqchk's own context
 summary must name no undeclared axiom and no unsafe assumption anywhere it loaded,
-except an admitted installed library's axioms, which the admitting evidence covers.
+except an admitted installed library's axioms, which the admitting evidence covers,
+and a checked installed library's alias-sealed or functor-sealed fields, which the
+compiler's reading of the implementations their seals hide covers.
 
 Each module compiles and is audited once every module it Requires has been, beside
 any other ready module within the worker limit, under one directory lock. The log
@@ -461,10 +463,35 @@ def _admitted_axioms(root: Path, roots: list[Path],
     return fault, frozenset(axioms)
 
 
+# The compiler's reading of the sealed fields a worker's summary names for libraries it
+# checked: each name's Print Assumptions entries, empty where the name is closed under
+# the global context, or why the reading supplies none.
+SealedReading = Callable[[list[Path], list[str]], tuple[str, dict[str, list[str]]]]
+
+
+def _sealed_reading(root: Path, roots: list[Path],
+                    names: list[str]) -> tuple[str, dict[str, list[str]]]:
+    """What the compiler's Print Assumptions reports for each name, asked in the
+    environment that Requires exactly `roots`, the roots the worker's rocqchk loaded.
+
+    A query that fails, prints a diagnostic or answers out of frame is a fault and
+    covers nothing.
+    """
+    with tempfile.TemporaryDirectory(prefix="sealed-", dir=root) as temporary:
+        try:
+            output = _query(root, Path(temporary), "SealedFields",
+                            proofaudit.sealed_field_query([path.stem for path in roots], names))
+            return "", proofaudit.sealed_field_assumptions(output, names)
+        except proofaudit.AuditError as err:
+            return str(err), {}
+
+
 def _worker_fault(sources: list[Path], admitted: frozenset[str],
                   result: subprocess.CompletedProcess[str],
-                  admitted_axioms: AdmittedAxioms) -> tuple[str, frozenset[str]]:
-    """One worker's verdict, and the axiom names its admissions answered for.
+                  admitted_axioms: AdmittedAxioms,
+                  sealed_reading: SealedReading) -> tuple[str, frozenset[str], frozenset[str]]:
+    """One worker's verdict, the axiom names its admissions answered for, and the
+    sealed-field names the compiler's reading of their implementations answered for.
 
     rocqchk records which axioms a sealed module's hidden bodies use only while it
     checks them, so an admitted library names each field of such a module as an axiom:
@@ -476,20 +503,52 @@ def _worker_fault(sources: list[Path], admitted: frozenset[str],
     undeclared installed-library name is covered when the admitted roots' closure,
     loaded alone, names it too. An installed library is never an explicit target, so
     that closure admits exactly the installed libraries the worker admitted. Only a
-    worker whose summary names such an axiom pays for that load-only run. A proof
-    module's axiom is never covered.
+    worker whose summary names such an axiom pays for that load-only run.
+
+    The checker records what a seal hides only for a structure body it checks under
+    that seal (the pinned Rocq 9.3.0's checker/mod_checking.ml, lines 288-304): a
+    module sealed by an alias, `Module M : T := N`, or by a functor application,
+    `Module M : T := F X` or `F X` for a sealing functor, has no such entry (line 305),
+    so its fields are listed as axioms where the library was checked (lines 17-26).
+    The kernel did establish the whole of the implementation there: its bodies were
+    type-checked where the module holding them was checked, an application's argument
+    against the functor's parameter (line 263), and the sealed type against the
+    implementation's (lines 308-316). What it did not report is which assumptions the
+    implementation reaches, and the compiler's Print Assumptions reads exactly that
+    (`proofaudit.sealed_field_query`). An installed name the admission cover leaves is
+    a name of a library this worker checked, since an admitted library's names the
+    load-only pass repeats. Such a name is covered when the compiler's reading of it,
+    taken over this worker's roots, is closed or lists only declared entries: an
+    admitted implementation reports the field itself, a hidden assumption reports
+    under the sealed path, and a genuine axiom reports itself, so none is covered. A
+    reading that fails, omits a name or lists an undeclared entry covers nothing for
+    it. A proof module's axiom is never covered or read.
     """
+    none = frozenset[str]()
     fault, undeclared = _kernel_axioms(result)
     stems = {source.stem for source in sources}
     installed = frozenset(axiom for axiom in undeclared if axiom.split(".", 1)[0] not in stems)
-    if fault or not installed or not admitted:
-        return fault or _undeclared(undeclared), frozenset[str]()
-    fault, named = admitted_axioms([source for source in sources if source.stem in admitted],
-                                   admitted)
-    if fault:
-        return "the admitted roots' own context summary failed: " + fault, frozenset[str]()
-    covered = installed & named
-    return _undeclared([axiom for axiom in undeclared if axiom not in covered]), covered
+    if fault or not installed:
+        return fault or _undeclared(undeclared), none, none
+    by_admission = none
+    if admitted:
+        fault, named = admitted_axioms([source for source in sources if source.stem in admitted],
+                                       admitted)
+        if fault:
+            return "the admitted roots' own context summary failed: " + fault, none, none
+        by_admission = installed & named
+    checked = sorted(installed - by_admission)
+    by_reading = none
+    if checked:
+        fault, readings = sealed_reading(sources, checked)
+        if fault:
+            return ("the compiler's reading of the checked libraries' sealed fields failed: "
+                    + fault, none, none)
+        by_reading = frozenset(name for name in checked if name in readings
+                               and all(entry in DECLARED for entry in readings[name]))
+    covered = by_admission | by_reading
+    return (_undeclared([axiom for axiom in undeclared if axiom not in covered]),
+            by_admission, by_reading)
 
 
 def _kernel_batches(sources: list[Path], reused: frozenset[str], jobs: int) -> list[list[Path]]:
@@ -541,9 +600,11 @@ def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset
     those peer targets, admitting only the caller's byte-validated reusable roots.
     Thus every skipped dependency is covered by a peer's recursive check or prior
     evidence, and so are the installed-library axioms rocqchk names for it
-    (`_worker_fault`). An explicit target overrides only its own admission: a library
-    an admitted root reaches stays admitted inside a target's closure, so a component's
-    changed modules are targets together.
+    (`_worker_fault`); the alias-sealed and functor-sealed fields it names for a
+    library a worker checked are covered by the compiler's reading of what their seals
+    hide, asked over that worker's roots. An explicit target overrides only its own
+    admission: a library an admitted root reaches stays admitted inside a target's
+    closure, so a component's changed modules are targets together.
     The joint worker checks dependency identities and combined universe constraints;
     ALL workers must succeed silently before their combined verdict can be accepted.
 
@@ -567,16 +628,25 @@ def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset
                 named[admitted] = _admitted_axioms(root, roots, admitted)
             return named[admitted]
 
-    def verdict(members: list[Path], admitted: frozenset[str]) -> tuple[str, frozenset[str]]:
-        return _worker_fault(members, admitted, _recheck_joint(root, members, admitted),
-                             admitted_axioms)
+    def sealed_reading(roots: list[Path], names: list[str]) -> tuple[str, dict[str, list[str]]]:
+        return _sealed_reading(root, roots, names)
 
-    def report(fault: str, covered: frozenset[str]) -> str:
-        if not fault and covered:
-            modules = sorted({name.rsplit(".", 1)[0] for name in covered})
-            print(f"  kernel: {len(covered)} axiom name(s) from admitted installed libraries "
-                  f"are covered by the evidence that admitted them: {', '.join(modules)}",
-                  flush=True)
+    def verdict(members: list[Path],
+                admitted: frozenset[str]) -> tuple[str, frozenset[str], frozenset[str]]:
+        return _worker_fault(members, admitted, _recheck_joint(root, members, admitted),
+                             admitted_axioms, sealed_reading)
+
+    def report(fault: str, by_admission: frozenset[str], by_reading: frozenset[str]) -> str:
+        if not fault and by_admission:
+            modules = sorted({name.rsplit(".", 1)[0] for name in by_admission})
+            print(f"  kernel: {len(by_admission)} axiom name(s) from admitted installed "
+                  "libraries are covered by the evidence that admitted them: "
+                  f"{', '.join(modules)}", flush=True)
+        if not fault and by_reading:
+            modules = sorted({name.rsplit(".", 1)[0] for name in by_reading})
+            print(f"  kernel: {len(by_reading)} sealed-field name(s) of checked installed "
+                  "libraries are covered by the compiler's reading of what their seals "
+                  f"hide: {', '.join(modules)}", flush=True)
         return fault
 
     if jobs == 1 or len(stems - reused) < 2:
@@ -595,7 +665,7 @@ def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset
     joint = min(range(len(batches)), key=lambda index: sum(
         source.with_suffix(".vo").stat().st_size for source in batches[index]))
 
-    def check(item: tuple[int, list[Path]]) -> tuple[str, frozenset[str]]:
+    def check(item: tuple[int, list[Path]]) -> tuple[str, frozenset[str], frozenset[str]]:
         index, batch = item
         if index == joint:
             return verdict(sources, stems - {source.stem for source in batch})
@@ -603,13 +673,14 @@ def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset
 
     with ThreadPoolExecutor(max_workers=min(jobs, len(batches))) as pool:
         verdicts = list(pool.map(check, enumerate(batches)))
-    for batch, (fault, _) in zip(batches, verdicts, strict=True):
+    for batch, (fault, _, _) in zip(batches, verdicts, strict=True):
         if fault:
             names = ", ".join(source.stem for source in batch)
             return f"kernel batch [{names}] failed:\n{fault}"
     if receipts.snapshot(root, products) != before:
         raise ValueError("compiled proof artifacts changed during parallel kernel checking")
-    return report("", frozenset[str]().union(*(covered for _, covered in verdicts)))
+    return report("", frozenset[str]().union(*(by_admission for _, by_admission, _ in verdicts)),
+                  frozenset[str]().union(*(by_reading for _, _, by_reading in verdicts)))
 
 
 def _gate_modules(root: Path) -> list[Path]:

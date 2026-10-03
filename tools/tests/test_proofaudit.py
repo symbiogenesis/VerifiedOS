@@ -190,18 +190,30 @@ def _audit_goals_open_with_proof() -> None:
 
 
 def _kernel_verdict_needs_a_clean_summary() -> None:
+    asked: list[list[str]] = []
+
     def fault(code: int, stdout: str, stderr: str) -> str:
         # With nothing admitted, a worker answers for every library it loaded.
         def unreachable(*_: object) -> tuple[str, frozenset[str]]:
             raise AssertionError("a worker that admitted nothing ran a load-only pass")
+
+        # A genuine axiom reports itself to the compiler's reading, so it is never covered.
+        def self_reporting(_roots: list[Path], names: list[str]) -> tuple[str, dict[str, list[str]]]:
+            asked.append(list(names))
+            return "", {name: [f"{name} : Prop"] for name in names}
         result = subprocess.CompletedProcess([], code, stdout=stdout, stderr=stderr)
-        verdict, covered = gate._worker_fault([Path("M.v")], frozenset(), result, unreachable)
-        ensure(not covered, "a worker that admitted nothing covered an axiom")
+        verdict, by_admission, by_reading = gate._worker_fault(
+            [Path("M.v")], frozenset(), result, unreachable, self_reporting)
+        ensure(not by_admission and not by_reading,
+               "a worker that admitted nothing covered an axiom")
         return verdict
 
     ensure(fault(0, "", KERNEL_CLEAN) == "", "a clean kernel run was refused")
     ensure(bool(fault(0, "", _KERNEL_HEAD)), "a summary without the indices section passed")
     ensure("eq_rect_eq" in fault(0, "", _LOADED_AXIOM), "a loaded but unused axiom passed")
+    # Only the installed name is read; the proof module's own axiom is refused unread.
+    ensure(asked == [["Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq"]],
+           f"the compiler's reading was asked {asked}, not the installed name alone")
     for code, stdout, stderr in ((1, "", KERNEL_CLEAN), (0, "chatter", KERNEL_CLEAN),
                                  (0, "", ""), (0, "", "Fatal Error: Type error")):
         ensure(bool(fault(code, stdout, stderr)),
@@ -209,6 +221,40 @@ def _kernel_verdict_needs_a_clean_summary() -> None:
     with patch.object(gate, "DECLARED", {"Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq : Prop",
                                          "M.a : False"}):
         ensure(fault(0, "", _LOADED_AXIOM) == "", "a declared axiom was refused by name")
+    ensure(len(asked) == 1, "a run without an undeclared installed name asked the compiler")
+
+
+def _sealed_field_queries_are_framed() -> None:
+    """The compiler's reading of sealed fields Requires exactly the worker's roots and
+    frames each name as the assumption audit does, and its answers are read as exactly."""
+    query = proofaudit.sealed_field_query(["ApexTheorem", "Base"], ["Lib.Alias.x_le", "Lib.App.x"])
+    ensure(query.startswith("Require ApexTheorem.\nRequire Base.\n" + proofaudit.SETTINGS),
+           f"the sealed-field query does not Require the roots first: {query!r}")
+    for name in ("Lib.Alias.x_le", "Lib.App.x"):
+        ensure(f'idtac "{proofaudit.MARKER}{name}". Abort.\nPrint Assumptions {name}.\n' in query,
+               f"the sealed-field query does not frame {name}: {query!r}")
+    ensure(query.count("Print Assumptions") == 2, "the query asks about more than its names")
+    for roots, names in ((["ApexTheorem"], ["unqualified"]), (["Apex-Theorem"], ["Lib.x"]),
+                         (["ApexTheorem"], []), ([""], ["Lib.x"])):
+        try:
+            proofaudit.sealed_field_query(roots, names)
+        except proofaudit.AuditError:
+            continue
+        raise AssertionError(f"an unreadable sealed-field query was built: {roots} {names}")
+    marker = proofaudit.MARKER
+    answered = (f"{marker}Lib.Alias.x_le\nClosed under the global context\n"
+                f"{marker}Lib.App.x\nAxioms:\nLib.App.hidden : False\n")
+    ensure(proofaudit.sealed_field_assumptions(answered, ["Lib.Alias.x_le", "Lib.App.x"])
+           == {"Lib.Alias.x_le": [], "Lib.App.x": ["Lib.App.hidden : False"]},
+           "the sealed-field answers were not read as the audit reads them")
+    for output in (answered.split(f"{marker}Lib.App.x", maxsplit=1)[0], "",
+                   answered.replace("Closed under the global context", "chatter"),
+                   answered + f"{marker}Lib.Alias.x_le\nClosed under the global context\n"):
+        try:
+            proofaudit.sealed_field_assumptions(output, ["Lib.Alias.x_le", "Lib.App.x"])
+        except proofaudit.AuditError:
+            continue
+        raise AssertionError(f"an incomplete sealed-field answer was accepted: {output!r}")
 
 
 def _pinned_settings_cannot_be_overridden() -> None:
@@ -949,6 +995,7 @@ def cases() -> list[Case]:
             Case("kernel-context-is-exact", _kernel_context_is_exact),
             Case("audit-goals-open-with-proof", _audit_goals_open_with_proof),
             Case("kernel-verdict-needs-a-clean-summary", _kernel_verdict_needs_a_clean_summary),
+            Case("sealed-field-queries-are-framed", _sealed_field_queries_are_framed),
             Case("pinned-settings-cannot-be-overridden", _pinned_settings_cannot_be_overridden),
             Case("rocq-93-settings-are-pinned", _rocq_93_settings_are_pinned),
             Case("settings-read-as-the-lexer-reads-them", _settings_read_as_the_lexer_reads_them),
