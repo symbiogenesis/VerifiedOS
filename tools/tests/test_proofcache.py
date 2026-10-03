@@ -949,7 +949,7 @@ def _the_sealed_reading_runs_one_framed_query() -> None:
                    f"a failed query covered something: {fault!r} {readings!r}")
         with patch.object(gate, "_query", return_value=f"{marker}Lib.Alias.x_le\nClosed under the global context\n"):
             fault, readings = gate._sealed_reading(root, roots, names)
-            ensure(fault and not readings, "an answer missing a name was accepted")
+            ensure(bool(fault) and not readings, "an answer missing a name was accepted")
 
 
 def _context_hashes_library_bytes() -> None:
