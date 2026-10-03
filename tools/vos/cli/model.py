@@ -19,8 +19,9 @@ builds that reference. `devicetree` generates the attested tree, compiles it, an
 the blob against the region it is written into, which is three things the Sail emitter
 cannot decide about its own output. `reference` prints what the frozen golden model is,
 which is what a downstream artifact records when it says which model it was stated
-against. Two more commands answer questions about the configuration alone and need no
-build: `config-keys` and `validate-config`.
+against. `rocq` emits the canonical machine term through the model's own Rocq target
+and writes its generation identity beside it. Two more commands answer questions about
+the configuration alone and need no build: `config-keys` and `validate-config`.
 
 These run inside WSL, where the Sail toolchain lives:
 
@@ -71,6 +72,7 @@ from vos import (
     env,
     freezeschema,
     receipts,
+    rocqterm,
     sailbundle,
     trace,
 )
@@ -798,6 +800,118 @@ def cmd_emit(e: env.Environment, args: argparse.Namespace) -> int:
         code, lines = config.validate(build_dir / SCHEMA, e.profile)
         print("\n".join(lines))
         return code
+    finally:
+        if lock is not None:
+            lock.close()
+
+
+def _ninja_commands(build_dir: Path) -> str:
+    """Every command the Rocq target's closure runs, as the configured tree states it."""
+    done = subprocess.run(["ninja", "-C", str(build_dir), "-t", "commands",
+                           rocqterm.TARGET], capture_output=True, encoding="utf-8",
+                          errors="replace", check=False, timeout=120)
+    if done.returncode != 0:
+        raise rocqterm.TermError(f"ninja could not list {rocqterm.TARGET}'s commands: "
+                                 f"{done.stderr.strip()}")
+    return done.stdout
+
+
+def _utc() -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def _settled(e: env.Environment, code: int, listed: list[str], before: rocqterm.Inputs,
+             sail: str, z3: str, tools: rocqterm.Toolchain) -> None:
+    """Refuse an emission whose build failed, wrote nothing, or ran while its inputs or
+    its toolchain moved."""
+    out = rocqterm.output_dir(e.build_dir)
+    if code:
+        raise rocqterm.TermError(f"{rocqterm.TARGET} exited {code}")
+    missing = [name for name in rocqterm.OUTPUTS if not (out / name).is_file()]
+    if missing:
+        raise rocqterm.TermError(f"{rocqterm.TARGET} exited 0 and wrote no "
+                                 f"{', '.join(missing)} under {out}")
+    if rocqterm.inputs(e.root, listed, e.profile) != before:
+        raise rocqterm.TermError("the configuration or a source changed while the term "
+                                 "was emitted; emit again from a still tree")
+    if rocqterm.toolchain(sail, z3) != tools:
+        raise rocqterm.TermError("the toolchain changed while the term was emitted")
+
+
+def cmd_rocq(e: env.Environment, args: argparse.Namespace) -> int:
+    """Emit the canonical machine term through the model's own Rocq target and write its
+    generation-identity receipt beside it. [vos/rocqterm.py](../rocqterm.py) states what
+    the receipt binds and why.
+
+    The term's outputs and receipt are deleted first, before the tree is touched: the
+    target's dependencies do not name the Sail binary, library or plugin, so outputs it
+    left earlier would satisfy it without an emission. The tree is then seeded and
+    configured as `emit` configures it, and the configured Sail command is read back
+    out of the tree and refused unless it emits at this checkout's frozen profile. The
+    configuration and the sources are hashed before and after the build, and a run in
+    which either moved is refused. Every refusal after the build deletes what it
+    emitted, so no output stands without its receipt.
+    """
+    del args
+    _require("sail", SAIL_HOW)
+    if e.model.resolve() != (e.root / "model").resolve():
+        print("the term's identity names this checkout's model; unset VOS_MODEL",
+              file=sys.stderr)
+        return 1
+    build_dir = e.build_dir
+    out = rocqterm.output_dir(build_dir)
+    # The tree `build` and `emit` lock: this drives the same cmake state.
+    lock = env.build_lock(build_dir)
+    try:
+        removed = rocqterm.clear(build_dir)
+        if removed:
+            print(f"removed stale {', '.join(removed)} from {out}")
+        if not e.profile.is_file():
+            print(f"no frozen profile at {e.profile}; the Rocq target emits at it and at "
+                  "nothing else", file=sys.stderr)
+            return 1
+        _seed_tree(e, build_dir)
+        if _configure(e, build_dir):
+            return 1
+        sail = shutil.which("sail") or "sail"
+        z3 = shutil.which("z3") or "z3"
+        try:
+            argv = rocqterm.target_command(_ninja_commands(build_dir))
+            rocqterm.require_profile(argv, e.profile)
+            listed = rocqterm.listed_sources(sail, e.model)
+            before = rocqterm.inputs(e.root, listed, e.profile)
+            tools = rocqterm.toolchain(sail, z3)
+            checkout = rocqterm.revision(e.root, env.git_env(e.root))
+        except (OSError, rocqterm.TermError) as err:
+            print(str(err), file=sys.stderr)
+            return 1
+        started, clock = _utc(), time.perf_counter()
+        # One job: the emission is one Sail process, and nothing else is out of date.
+        code = env.stage("rocq", ["cmake", "--build", str(build_dir), "-j", "1",
+                                  "--target", rocqterm.TARGET])
+        elapsed, finished = time.perf_counter() - clock, _utc()
+        try:
+            _settled(e, code, listed, before, sail, z3, tools)
+            payload = rocqterm.receipt(
+                command=rocqterm.placeheld(argv, build_dir, e.root), tools=tools,
+                read=before, checkout=checkout, tree=build_dir, started=started,
+                finished=finished, elapsed=elapsed)
+            receipts.write(out / rocqterm.RECEIPT, payload)
+        except (OSError, rocqterm.TermError) as err:
+            rocqterm.clear(build_dir)
+            print(str(err), file=sys.stderr)
+            return 1
+        for name in rocqterm.OUTPUTS:
+            got = rocqterm.file_identity(out / name)
+            print(f"{name}: sha256 {got['sha256']}, {got['bytes']} bytes, "
+                  f"{got['lines']} lines")
+        names = rocqterm.axioms((out / rocqterm.OUTPUTS[0]).read_text(
+            encoding="utf-8", errors="replace"))
+        print(f"{len(names)} axiom(s) declared; configuration "
+              f"{before['configuration']['sha256']}; sources "
+              f"{before['sources']['aggregate']} over {before['sources']['files']} files")
+        print(f"ok the canonical term and its receipt are under {out}")
+        return 0
     finally:
         if lock is not None:
             lock.close()
@@ -2750,6 +2864,10 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("emit", help="emit C++, then validate the profile config").set_defaults(
         run=cmd_emit)
+
+    sub.add_parser("rocq", help="emit the canonical Rocq term through the model's own "
+                                "target and write its generation-identity receipt"
+                   ).set_defaults(run=cmd_rocq)
 
     build = sub.add_parser("build", help="configure, build, and run the bundled suite")
     build.add_argument("--fast", action="store_true",
