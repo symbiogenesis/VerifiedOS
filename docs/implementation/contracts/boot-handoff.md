@@ -643,7 +643,12 @@ the model's first-class RAM. The store windows stand for the raw-NAND boot
 region R-09-004 fixes, the state window for the RoT's retained SRAM, and the
 capture window for the RoT's view of main SRAM and for what it exports to the
 harness (section 9.11). The attested devicetree owes the production values of
-every constant here (R-09-007, R-15-002b); none is architecture.
+every constant here (R-09-007, R-15-002b); none is architecture. The RoT runs'
+remaining placements, the ROM's root table both RoT programs read, their HTIF
+word, the ROM program's and the runtime-only preamble's text and data, and the
+health word the `entropy-halt` case injects, are
+[chain_rot.py](../../../tools/vos/chain_rot.py)'s composition choices, which no
+other section restates (F-750, F-751).
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
@@ -773,7 +778,8 @@ region, measured as one flat extent from the base to the end of the data with
 the gap zero. Its entry is its base. The ROM enters it with the RoT's own
 authority, PCC the reset execute root and `c1` the store-side root, because the
 RoT runtime is RoT firmware and not a less-trusted stage; it reads the state
-record at `chain.rot_state_base` and nothing else from the ROM.
+record at `chain.rot_state_base` and the ROM's root table, the same roots under
+R-09-036a, and nothing else from the ROM.
 
 **Stage 1, the M-mode image.** Section 4's header with `header.stage` 1, signed
 under the same ROM root, payload length from 1 to `chain.mmode_region_bytes`,
@@ -963,8 +969,10 @@ pet is a bite. The pet points are the three completions and the point after the
 stage-1 signature verification below. The capture records the challenge read at
 arming, the two counts, and the bitten and tick doors read last.
 
-**Selection and counting.** The runtime reads the A, B and recovery store
-windows' headers and the slot and attempt doors. Selection and counting follow
+**Selection and counting.** After the table, the runtime reads the slot and
+attempt doors, its first boot-control access, and selects without reading any
+header; it reads only the selected store window's header, at that window's
+verification (F-752). Selection and counting follow
 RotFirmware.v: with the latch 1 the recovery generation is selected (R-09-029),
 the A/B state is left as read and no attempt is charged, the recovery generation
 standing outside the A/B count (F-738). With the latch 0: if the attempt count is
@@ -1155,8 +1163,9 @@ The observations owed, each a case of section 9.12:
   tick past the late bound and the emulator's join asserts the die reset and
   prints its bite line, the run ending there with no release and no capture,
   and the line's tick count is above the late bound;
-- `watchdog-early-pet`: a runtime that pets at `step.arm`'s completion without
-  reading the tick door, so the pet is early and the model bites at once; the
+- `watchdog-early-pet`: a runtime whose pet decision answers yes without
+  consulting the tick count it read, so it pets at `step.arm`'s completion and
+  the pet is early (F-753) and the model bites at once; the
   join takes the reset on its next pump with no tick due, as
   [watchdog_join.cpp](../../../model/test/unit_tests/watchdog_join.cpp)'s
   unmatched-pet case shows the path, and the bite line's tick count is below the
@@ -1219,8 +1228,8 @@ Fields a run does not reach are zero on both sides.
 | `capture.health` | 32 | 8 | the health word read |
 | `capture.boot_target` | 40 | 8 | the latch read |
 | `capture.floor` | 48 | 8 | the floor read |
-| `capture.slot_initial` | 56 | 8 | the slot door at the runtime's start |
-| `capture.attempts_initial` | 64 | 8 | the attempt door at the runtime's start |
+| `capture.slot_initial` | 56 | 8 | the slot door when selection begins |
+| `capture.attempts_initial` | 64 | 8 | the attempt door when selection begins |
 | `capture.slot_selected` | 72 | 8 | the slot code verified |
 | `capture.slot_final` | 80 | 8 | the slot door read last |
 | `capture.attempts_final` | 88 | 8 | the attempt door read last |
@@ -1298,7 +1307,9 @@ the selection and counts the table gives.
 
 **Refusal.** For each refusal row, the run named ends with the named verdict
 and the capture, response or exit code the table gives, the log holds exactly
-the items listed, the boot-control values read last are the table's, no release
+the items listed, the boot-control values read last are the table's (a ROM
+refusal reads no boot-control door, so its capture's boot-control words are zero
+and the table's values are its configuration variant's, F-755), no release
 door is written, and no later run of the case starts; where R1 refuses, its
 M-mode window is zero and its record slot zero.
 

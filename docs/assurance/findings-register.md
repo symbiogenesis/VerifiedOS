@@ -2822,6 +2822,34 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M3.5b, in prose
 · Disposition: standing, section 9.12 naming that observation
 
+**F-750** owed-act: section 9 verified stage 1 under the root the state's lifecycle accepts and gave the ROM and runtime the same roots, but named no place the runtime reads them while section 9.3 said it read nothing from the ROM but the state record
+· Raised: M3.5b, in prose
+· Disposition: closed, section 9.3 admits the runtime's read of the ROM's root table and section 9.1 names `chain_rot.py` as its placement's owner
+
+**F-751** owed-act: section 9 named no HTIF word for the RoT runs, no placement for the ROM program or the runtime-only preamble, and no injected health word for `entropy-halt`
+· Raised: M3.5b, in prose
+· Disposition: closed, section 9.1 names `chain_rot.py`'s composition choices as their owner
+
+**F-752** method: section 9.6 had the runtime read the A, B and recovery headers and the boot-control doors for selection, where RotFirmware.v's selection reads no header and the doors are first read when selection begins, after the reset table
+· Raised: M3.5b, in prose
+· Disposition: closed, sections 9.6 and 9.11 state the selected header read at verification and the doors read when selection begins
+
+**F-753** method: section 9.10's early-pet runtime was said to pet without reading the tick door, where the mutant is a substitution of the C pet decision and the assembly still reads the door
+· Raised: M3.5b, in prose
+· Disposition: closed, section 9.10 says the decision does not consult the tick count it read
+
+**F-754** measurement: a boot run spends about 1,468 s locally outside its two SLH-DSA verifications, in stage 0's digest, the two 256 KiB copies and zeroings and the squeezes, which sections 9.10 and 9.14 did not size
+· Raised: M3.5b, in prose
+· Disposition: standing, the campaign's per-run timeouts and the slow clock's window holding it
+
+**F-755** method: section 9.12 had a refusal's last-read boot-control values equal the table's, where a ROM refusal reads no boot-control door
+· Raised: M3.5b, in prose
+· Disposition: closed, section 9.12 names the configuration variant as a ROM refusal's boot-control source
+
+**F-756** method: section 9.5 bounds no `state.measure_count`, and the oracle reads a count beyond the log as a malformed record while the runtime and service read it as a full log; no case reaches it
+· Raised: M3.5b, in prose
+· Disposition: open, section 9.5 or 9.7 fixing the reading
+
 **F-766** method: section 9.11 compares a refusal's capture head byte for byte without saying whether a refusal writes the digest, security version or payload length it computed before refusing, or whether a ROM refusal leaves the state record wholly zero or only its magic, so the campaign admits zero or the reached value for exactly those fields and requires the state record zero
 · Raised: M3.5b, in prose
 · Disposition: open, a section 9.11 clause fixing which head fields a refusal writes
