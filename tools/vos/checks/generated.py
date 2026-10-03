@@ -57,6 +57,11 @@ receipt or restores old generated code over a changed recipe. Native replay runs
 each recipe twice using the identified external binary. The host gate verifies
 record consistency, not that a binary was built from its claimed source archives.
 
+The target chain campaign's staged inputs are guest rows written by the integrator
+after the chain's lanes land, so their whole set may be absent; `_chain_row` admits that
+one state while `boot_chain.STAGED_REQUIRED` is false and names it in K-88's line, and
+holds a present set to its manifest, its sources and section 9.13's freeze.
+
 The device-register package is a guest row too: `run.py rtl device-regs` reads its
 UART owners behind the `upstream/mocha` gitlink, which no hosted gate populates, and
 stamps the header with the commit that checkout stood at. Its host inspector holds the
@@ -111,6 +116,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 import fiat_crypto_emit as fiat
 from vos import (
+    boot_chain,
     boot_crypto_target,
     calibration,
     device_registers,
@@ -178,6 +184,50 @@ def _signature_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
             ctx.shared["signature_staging"] = str(exc)
             out.findings.append(f"{boot_crypto_target.STAGED} no longer matches its manifest "
                                 f"and sources: {exc}")
+    return out
+
+
+CHAIN_PATHS = tuple(f"{boot_chain.STAGED}/{name}" for name in boot_chain.STAGED_FILES)
+
+
+def _chain_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
+    """Hold one staged chain member to its index, and the set to its manifest and freeze.
+
+    The target chain's staging (the boot-handoff contract's section 9.14) is written where
+    the contained compiler is, once the lanes that compose the chain have landed, so
+    until then the directory is absent from the index and the working tree alike. That
+    one state, every member absent, is admitted while `boot_chain.STAGED_REQUIRED` is
+    false and is named in this rule's own `ok` line rather than passed over; a member
+    the index or the tree lacks while another is present is a finding, and so is
+    absence once the staging commit has set that flag. A present set is decided as far
+    as this lane can by `boot_chain.staged`: every member against its manifest, the
+    bound sources and include listings against this checkout, each image's header, the
+    recorded OpenSSL verdicts and section 9.13's freeze with M7.1f's manifest. The
+    composers' re-derivation of the payloads is `chain-verify`'s. No repair restages.
+    """
+    out = Reading(findings=[], fixed=[])
+    if "chain_staging" not in ctx.shared:
+        if not any(path in ctx.corpus.indexed for path in CHAIN_PATHS) and not boot_chain.present(ctx.root):
+            ctx.shared["chain_staging"] = "absent"
+            if boot_chain.STAGED_REQUIRED:
+                out.findings.append(f"{boot_chain.STAGED} is required and is not staged; run "
+                                    f"`{row.generator}` where the contained compiler is")
+            return out
+        try:
+            boot_chain.staged(ctx.root)
+            ctx.shared["chain_staging"] = ""
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            ctx.shared["chain_staging"] = str(exc)
+            out.findings.append(f"{boot_chain.STAGED} no longer matches its manifest, sources "
+                                f"and freeze: {exc}")
+    if ctx.shared["chain_staging"] == "absent":
+        return out
+    try:
+        if staged is None or (ctx.root / row.path).read_bytes() != staged:
+            out.findings.append(f"{row.path} differs from its indexed staging; run and review "
+                                f"`{row.checker}` before staging")
+    except OSError as exc:
+        out.findings.append(f"{row.path} cannot be read: {exc}")
     return out
 
 
@@ -435,6 +485,17 @@ GENERATED: tuple[Row, ...] = (
           checker="run.py boot-crypto stage --check",
           inspect=_signature_row)
       for name in ("manifest.json", *(f"{mode}.s" for mode in boot_crypto_target.MODES))),
+    # The target chain campaign's staged streams, signed images and manifest, which its
+    # hosted runners execute without the compiler or the private keys; absent until the
+    # integrator first stages them, which `_chain_row` admits and names.
+    *(Row(path=path,
+          generator="run.py boot-handoff chain-stage",
+          lane="guest",
+          owners="the contained compiler build, the chain sources, the composers and the "
+                 "campaign's disposable keys the manifest binds",
+          checker="run.py boot-handoff chain-verify",
+          inspect=_chain_row)
+      for path in CHAIN_PATHS),
 )
 
 
@@ -690,15 +751,20 @@ def run(ctx: Context) -> None:
     ctx.shared["bundle_owners"] = owners
     hosted = sum(1 for r in GENERATED if r.lane == "host")
     guest = ", ".join(sorted({r.checker for r in GENERATED if r.lane == "guest"}))
+    absent = ctx.shared.get("chain_staging") == "absent"
+    chain = (f"the target chain's staging under {boot_chain.STAGED} is absent, which is admitted "
+             "until it is first staged" if absent else
+             "the target chain's staged inputs against their manifest and section 9.13's freeze")
     rep.report(
         "K-88", "generated artifact(s) that are not what their generator wrote:",
         findings,
-        f"all {len(GENERATED)} generated artifact(s) are carried by the git index, "
+        f"all {len(GENERATED) - (len(CHAIN_PATHS) if absent else 0)} present generated "
+        f"artifact(s) are carried by the git index, "
         f"{hosted} of them held against what their generator writes here and now, and "
         f"the rest against their indexed bytes and host-readable provenance, including "
         f"{owners} Sail owner(s), the Fiat source pin/recipe/wrapper/hashes, the "
         f"device-register package's Mocha revision and every byte outside its UART "
-        f"values, and the staged signature streams' manifest; "
+        f"values, the staged signature streams' manifest and {chain}; "
         f"guest regeneration remains `{guest}`")
     for line in fixed:
         rep.line(line)

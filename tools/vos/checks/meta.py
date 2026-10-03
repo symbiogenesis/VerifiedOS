@@ -239,6 +239,7 @@ PROVISION = "tools/vos/cli/provision.py"
 _HOST_WORKFLOW = ".github/workflows/host-gates.yml"
 _GUEST_WORKFLOW = ".github/workflows/guest-gates.yml"
 _CAMPAIGN_WORKFLOW = ".github/workflows/boot-crypto-target.yml"
+_CHAIN_WORKFLOW = ".github/workflows/boot-chain-target.yml"
 _INSTRUMENT_WORKFLOW = ".github/workflows/instrument-switches.yml"
 
 TY_CONF = "tools/ty.toml"
@@ -396,6 +397,8 @@ _FLOOR_SITES: list[tuple[str, str, re.Pattern[str], Callable[[str], str]]] = [
     ("workflow interpreter", _GUEST_WORKFLOW,
      re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
     ("workflow interpreter", _CAMPAIGN_WORKFLOW,
+     re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
+    ("workflow interpreter", _CHAIN_WORKFLOW,
      re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
     ("workflow interpreter", _INSTRUMENT_WORKFLOW,
      re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),

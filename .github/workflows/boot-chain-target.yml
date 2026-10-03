@@ -1,0 +1,791 @@
+# SPDX-License-Identifier: Apache-2.0
+# M3.5b's target chain campaign on hosted Linux; docs/implementation/contracts/
+# boot-handoff.md section 9 is its predicate and section 9.14 its hosted execution. The
+# contained compiler and the campaign's private keys never reach a runner:
+# firmware/chain/target/ holds the staged streams, the signed images, the public keys
+# and the manifest binding them, which `run.py boot-handoff chain-verify` holds to the
+# checkout before any runner time is spent. Each boot case runs on its own runner, which
+# builds the model and runs the case's R1, R2 and R3 in turn; cold-boot has a job of its
+# own because the main-die job depends on it alone and takes its R1 capture and R2
+# response as an artifact whose SHA-256 both receipts record; the watchdog group runs on
+# one more runner; the campaign job joins the eleven shards. Pushes to main that
+# change the staged inputs or this workflow start it; manual dispatch runs from main,
+# and its optional revision input pins checkout to a commit already on main, verified
+# before any checked-out code runs. A refused dispatch runs no checked-out code
+# afterwards: each later step that runs commands after a failure also requires its
+# job's check not to have failed. A push run keeps GitHub's title, the commit subject;
+# a dispatched run's title ends with the checked-out revision.
+#
+# Sizing. A boot run holds two SLH-DSA-SHAKE-256s verifications, at up to 5,000 s each
+# on these runners, with its reads and placement, so its timeout, the case_timeout
+# input, defaults to 10,800 s and is capped at 12,000 s; a service run and a
+# runtime-only run have 2,400 s and a main-die run, one ML-DSA-87 verification at up to
+# 600 s, 1,800 s. The execution step of a boot case allows 280 minutes, the cap's R1
+# plus R2 plus R3 with ten to spare, inside a 355-minute job that leaves 75 minutes for
+# checkout, the restored or bootstrapped toolchain and the model build, under the
+# six-hour job cap. The main-die and watchdog groups run their three cases at once.
+
+name: boot-chain-target
+# A blank run-name selects GitHub's own title.
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('{0}:{1}', github.workflow, inputs.revision || github.sha) || '' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full commit SHA already on main (empty selects current main)
+        type: string
+        default: ""
+      case_timeout:
+        description: Seconds each boot run may take
+        type: number
+        default: 10800
+  push:
+    branches: [main]
+    paths:
+      - firmware/chain/target/**
+      - .github/workflows/boot-chain-target.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  # One campaign at a time: each occupies eleven runners for hours. A newer run cancels
+  # an older one, queued or running, so no runner keeps executing a campaign a later
+  # push or dispatch has superseded.
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUTF8: "1"
+  PYTHONUNBUFFERED: "1"
+  CAMPAIGN_REVISION: ${{ inputs.revision || github.sha }}
+  CASE_TIMEOUT: ${{ inputs.case_timeout || 10800 }}
+  GUEST_TIME: 'real %e\nuser %U\nsys %S\nmaxrss_kb %M'
+
+defaults:
+  run:
+    # Explicit bash enables pipefail, so tee cannot hide a failure.
+    shell: bash
+
+jobs:
+  cold-boot:
+    name: boot-chain-target (cold-boot)
+    runs-on: ubuntu-26.04
+    # R1, R2 and R3 of at most their timeouts each, after bootstrap and the model build.
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main
+        id: dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: python
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      # run.py enters the locked tool environment for every command, so uv comes first.
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: true
+          # Guest CI owns the saved caches this workflow reads, under its own suffix.
+          save-cache: false
+          cache-suffix: guest-gates
+          cache-dependency-glob: |
+            tools/pyproject.toml
+            tools/uv.lock
+
+      - name: Verify the staged chain and the case timeout
+        # Stale or altered staged inputs refuse before any runner time is spent on them.
+        # A boot run's timeout with a service and a main-die run must fit the execution
+        # step's 280 minutes.
+        run: |
+          if ! [[ "$CASE_TIMEOUT" =~ ^[0-9]+$ ]] || (( CASE_TIMEOUT < 1 || CASE_TIMEOUT > 12000 )); then
+            echo "::error::case_timeout must be a whole number of seconds from 1 to 12000"
+            exit 1
+          fi
+          python3 tools/run.py boot-handoff chain-verify
+
+      - name: Identify the runner image
+        id: image
+        run: echo "version=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+
+      - name: Identify the toolchain recipe
+        id: recipe
+        # The model lane's selection, Sail and Verilator, though this job bootstraps Sail
+        # alone: the identity names the installation the restored cache holds.
+        run: |
+          identity=$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity \
+            --toolchain sail --toolchain rtl)
+          if [[ ! "$identity" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::bootstrap printed no toolchain recipe identity: $identity"
+            exit 1
+          fi
+          echo "identity=$identity" >> "$GITHUB_OUTPUT"
+
+      - name: Restore installed toolchains
+        # Guest CI's model-lane installation, restored read-only: the key and the path
+        # list must equal guest-gates.yml's for its saved cache to match.
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/verifiedos-guest/.verifiedos-guest-root
+            ~/verifiedos-guest/opam
+            !~/verifiedos-guest/opam/download-cache
+            !~/verifiedos-guest/opam/log
+            ~/verifiedos-guest/build/toolchains
+          key: guest-toolchains-v1-model-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}
+
+      - name: Bootstrap the Sail toolchain
+        id: bootstrap
+        timeout-minutes: 120
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/ci/bootstrap_guest.py \
+            --root "$HOME/verifiedos-guest" --install-system --toolchain sail \
+            --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
+            2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
+
+      - name: Identify the Sail solver
+        id: solver
+        # The memo only accelerates the build; without an identity the build runs cold.
+        continue-on-error: true
+        run: |
+          python3 - >> "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          record = json.loads((Path(os.environ["VOS_LOG_DIR"]) / "bootstrap.json").read_text(encoding="utf-8"))
+          print(f"identity=sail-{record['sail']}-z3-{record['z3']}-{record['snapshots']['sail'][:16]}")
+          PY
+
+      - name: Restore the Sail memo
+        if: ${{ steps.solver.outcome == 'success' }}
+        # guest-gates.yml's memo under the same solver identity; misses cost time only.
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
+          key: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-${{ hashFiles('model/model/**') }}
+          restore-keys: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-
+
+      - name: Build the model
+        timeout-minutes: 60
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py model build \
+            2>&1 | tee "$VOS_LOG_DIR/model-build-console.log"
+
+      - name: Execute the case
+        timeout-minutes: 280
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py boot-handoff chain-target --staged \
+            --case cold-boot --timeout "$CASE_TIMEOUT" \
+            --simulator "$VOS_BUILD_DIR/c_emulator/sail_riscv_sim" \
+            --build-receipt "$VOS_LOG_DIR/model-build.json" \
+            --out "$VOS_BUILD_ROOT/boot-chain-target" \
+            2>&1 | tee "$VOS_LOG_DIR/boot-chain-target.log"
+
+      - name: Preserve the case receipt, its R1 capture and R2 response, and logs
+        # always(): a job that reaches its time limit still keeps its progress and logs.
+        # The pinned action runs no checked-out code; after a refused dispatch no step
+        # has written these paths, so it finds no files and uploads nothing.
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          # One name per shard and revision; a rerun of a failed shard replaces it.
+          name: boot-chain-shard-cold-boot-${{ env.CAMPAIGN_REVISION }}
+          path: |
+            ~/verifiedos-guest/build/boot-chain-target/report.json
+            ~/verifiedos-guest/build/boot-chain-target/progress.json
+            ~/verifiedos-guest/build/boot-chain-target/*/*.log
+            ~/verifiedos-guest/build/boot-chain-target/*/rot-config.json
+            ~/verifiedos-guest/build/boot-chain-target/cold-boot/r1-capture.bin
+            ~/verifiedos-guest/build/boot-chain-target/cold-boot/r2-response.bin
+            ~/verifiedos-guest/logs/
+          # A shard refused before bootstrap has nothing to keep; the join names it.
+          if-no-files-found: warn
+          overwrite: true
+          retention-days: 30
+
+  boot:
+    name: boot-chain-target (${{ matrix.case }})
+    runs-on: ubuntu-26.04
+    # One boot case: R1, and on a release R2 and R3, after bootstrap and the model build.
+    timeout-minutes: 355
+    strategy:
+      # Every case keeps its own verdict when another fails.
+      fail-fast: false
+      matrix:
+        case: [recovery-latched, revert-past-bound, entropy-halt, lifecycle-raw,
+               runtime-signature-corrupt, runtime-digest-mismatch, mmode-below-floor,
+               mmode-signature-corrupt]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main
+        id: dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: python
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: true
+          save-cache: false
+          cache-suffix: guest-gates
+          cache-dependency-glob: |
+            tools/pyproject.toml
+            tools/uv.lock
+
+      - name: Verify the staged chain and the case timeout
+        run: |
+          if ! [[ "$CASE_TIMEOUT" =~ ^[0-9]+$ ]] || (( CASE_TIMEOUT < 1 || CASE_TIMEOUT > 12000 )); then
+            echo "::error::case_timeout must be a whole number of seconds from 1 to 12000"
+            exit 1
+          fi
+          python3 tools/run.py boot-handoff chain-verify
+
+      - name: Identify the runner image
+        id: image
+        run: echo "version=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+
+      - name: Identify the toolchain recipe
+        id: recipe
+        run: |
+          identity=$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity \
+            --toolchain sail --toolchain rtl)
+          if [[ ! "$identity" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::bootstrap printed no toolchain recipe identity: $identity"
+            exit 1
+          fi
+          echo "identity=$identity" >> "$GITHUB_OUTPUT"
+
+      - name: Restore installed toolchains
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/verifiedos-guest/.verifiedos-guest-root
+            ~/verifiedos-guest/opam
+            !~/verifiedos-guest/opam/download-cache
+            !~/verifiedos-guest/opam/log
+            ~/verifiedos-guest/build/toolchains
+          key: guest-toolchains-v1-model-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}
+
+      - name: Bootstrap the Sail toolchain
+        id: bootstrap
+        timeout-minutes: 120
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/ci/bootstrap_guest.py \
+            --root "$HOME/verifiedos-guest" --install-system --toolchain sail \
+            --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
+            2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
+
+      - name: Identify the Sail solver
+        id: solver
+        continue-on-error: true
+        run: |
+          python3 - >> "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          record = json.loads((Path(os.environ["VOS_LOG_DIR"]) / "bootstrap.json").read_text(encoding="utf-8"))
+          print(f"identity=sail-{record['sail']}-z3-{record['z3']}-{record['snapshots']['sail'][:16]}")
+          PY
+
+      - name: Restore the Sail memo
+        if: ${{ steps.solver.outcome == 'success' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
+          key: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-${{ hashFiles('model/model/**') }}
+          restore-keys: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-
+
+      - name: Build the model
+        timeout-minutes: 60
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py model build \
+            2>&1 | tee "$VOS_LOG_DIR/model-build-console.log"
+
+      - name: Execute the case
+        timeout-minutes: 280
+        env:
+          CASE: ${{ matrix.case }}
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py boot-handoff chain-target --staged \
+            --case "$CASE" --timeout "$CASE_TIMEOUT" \
+            --simulator "$VOS_BUILD_DIR/c_emulator/sail_riscv_sim" \
+            --build-receipt "$VOS_LOG_DIR/model-build.json" \
+            --out "$VOS_BUILD_ROOT/boot-chain-target" \
+            2>&1 | tee "$VOS_LOG_DIR/boot-chain-target.log"
+
+      - name: Preserve the case receipt and logs
+        # always(): a job that reaches its time limit still keeps its progress and logs.
+        # The pinned action runs no checked-out code; after a refused dispatch no step
+        # has written these paths, so it finds no files and uploads nothing.
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: boot-chain-shard-${{ matrix.case }}-${{ env.CAMPAIGN_REVISION }}
+          path: |
+            ~/verifiedos-guest/build/boot-chain-target/report.json
+            ~/verifiedos-guest/build/boot-chain-target/progress.json
+            ~/verifiedos-guest/build/boot-chain-target/*/*.log
+            ~/verifiedos-guest/build/boot-chain-target/*/rot-config.json
+            ~/verifiedos-guest/logs/
+          if-no-files-found: warn
+          overwrite: true
+          retention-days: 30
+
+  main-die:
+    name: boot-chain-target (main-die)
+    # cold-boot's R1 capture and R2 response are this job's inputs: a cold-boot that
+    # did not pass skips it, and the join lists its three cases unexecuted.
+    needs: cold-boot
+    runs-on: ubuntu-26.04
+    # Three main-die runs at once, one ML-DSA-87 verification each, after bootstrap and
+    # the model build.
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main
+        id: dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: python
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: true
+          save-cache: false
+          cache-suffix: guest-gates
+          cache-dependency-glob: |
+            tools/pyproject.toml
+            tools/uv.lock
+
+      - name: Verify the staged chain and the case timeout
+        run: |
+          if ! [[ "$CASE_TIMEOUT" =~ ^[0-9]+$ ]] || (( CASE_TIMEOUT < 1 || CASE_TIMEOUT > 12000 )); then
+            echo "::error::case_timeout must be a whole number of seconds from 1 to 12000"
+            exit 1
+          fi
+          python3 tools/run.py boot-handoff chain-verify
+
+      - name: Identify the runner image
+        id: image
+        run: echo "version=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+
+      - name: Identify the toolchain recipe
+        id: recipe
+        run: |
+          identity=$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity \
+            --toolchain sail --toolchain rtl)
+          if [[ ! "$identity" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::bootstrap printed no toolchain recipe identity: $identity"
+            exit 1
+          fi
+          echo "identity=$identity" >> "$GITHUB_OUTPUT"
+
+      - name: Restore installed toolchains
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/verifiedos-guest/.verifiedos-guest-root
+            ~/verifiedos-guest/opam
+            !~/verifiedos-guest/opam/download-cache
+            !~/verifiedos-guest/opam/log
+            ~/verifiedos-guest/build/toolchains
+          key: guest-toolchains-v1-model-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}
+
+      - name: Bootstrap the Sail toolchain
+        id: bootstrap
+        timeout-minutes: 120
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/ci/bootstrap_guest.py \
+            --root "$HOME/verifiedos-guest" --install-system --toolchain sail \
+            --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
+            2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
+
+      - name: Identify the Sail solver
+        id: solver
+        continue-on-error: true
+        run: |
+          python3 - >> "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          record = json.loads((Path(os.environ["VOS_LOG_DIR"]) / "bootstrap.json").read_text(encoding="utf-8"))
+          print(f"identity=sail-{record['sail']}-z3-{record['z3']}-{record['snapshots']['sail'][:16]}")
+          PY
+
+      - name: Restore the Sail memo
+        if: ${{ steps.solver.outcome == 'success' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
+          key: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-${{ hashFiles('model/model/**') }}
+          restore-keys: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-
+
+      - name: Build the model
+        timeout-minutes: 60
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py model build \
+            2>&1 | tee "$VOS_LOG_DIR/model-build-console.log"
+
+      - name: Collect cold-boot's outputs
+        # The receipt, R1 capture and R2 response the cold-boot job uploaded; the run
+        # below holds each file to the SHA-256 that receipt records.
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: boot-chain-shard-cold-boot-${{ env.CAMPAIGN_REVISION }}
+          path: ${{ runner.temp }}/cold-boot
+
+      - name: Execute the main-die group
+        timeout-minutes: 60
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py boot-handoff chain-target --staged \
+            --group main-die --jobs 3 --timeout "$CASE_TIMEOUT" \
+            --cold-boot "$RUNNER_TEMP/cold-boot/build/boot-chain-target" \
+            --simulator "$VOS_BUILD_DIR/c_emulator/sail_riscv_sim" \
+            --build-receipt "$VOS_LOG_DIR/model-build.json" \
+            --out "$VOS_BUILD_ROOT/boot-chain-target" \
+            2>&1 | tee "$VOS_LOG_DIR/boot-chain-target.log"
+
+      - name: Preserve the group receipt and logs
+        # always(): a job that reaches its time limit still keeps its progress and logs.
+        # The pinned action runs no checked-out code; after a refused dispatch no step
+        # has written these paths, so it finds no files and uploads nothing.
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: boot-chain-shard-main-die-${{ env.CAMPAIGN_REVISION }}
+          path: |
+            ~/verifiedos-guest/build/boot-chain-target/report.json
+            ~/verifiedos-guest/build/boot-chain-target/progress.json
+            ~/verifiedos-guest/build/boot-chain-target/*/*.log
+            ~/verifiedos-guest/logs/
+          if-no-files-found: warn
+          overwrite: true
+          retention-days: 30
+
+  watchdog:
+    name: boot-chain-target (watchdog)
+    runs-on: ubuntu-26.04
+    # Three runtime-only runs at once, after bootstrap and the model build.
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main
+        id: dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: python
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: true
+          save-cache: false
+          cache-suffix: guest-gates
+          cache-dependency-glob: |
+            tools/pyproject.toml
+            tools/uv.lock
+
+      - name: Verify the staged chain and the case timeout
+        run: |
+          if ! [[ "$CASE_TIMEOUT" =~ ^[0-9]+$ ]] || (( CASE_TIMEOUT < 1 || CASE_TIMEOUT > 12000 )); then
+            echo "::error::case_timeout must be a whole number of seconds from 1 to 12000"
+            exit 1
+          fi
+          python3 tools/run.py boot-handoff chain-verify
+
+      - name: Identify the runner image
+        id: image
+        run: echo "version=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+
+      - name: Identify the toolchain recipe
+        id: recipe
+        run: |
+          identity=$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity \
+            --toolchain sail --toolchain rtl)
+          if [[ ! "$identity" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::bootstrap printed no toolchain recipe identity: $identity"
+            exit 1
+          fi
+          echo "identity=$identity" >> "$GITHUB_OUTPUT"
+
+      - name: Restore installed toolchains
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/verifiedos-guest/.verifiedos-guest-root
+            ~/verifiedos-guest/opam
+            !~/verifiedos-guest/opam/download-cache
+            !~/verifiedos-guest/opam/log
+            ~/verifiedos-guest/build/toolchains
+          key: guest-toolchains-v1-model-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}
+
+      - name: Bootstrap the Sail toolchain
+        id: bootstrap
+        timeout-minutes: 120
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/ci/bootstrap_guest.py \
+            --root "$HOME/verifiedos-guest" --install-system --toolchain sail \
+            --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
+            2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
+
+      - name: Identify the Sail solver
+        id: solver
+        continue-on-error: true
+        run: |
+          python3 - >> "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          record = json.loads((Path(os.environ["VOS_LOG_DIR"]) / "bootstrap.json").read_text(encoding="utf-8"))
+          print(f"identity=sail-{record['sail']}-z3-{record['z3']}-{record['snapshots']['sail'][:16]}")
+          PY
+
+      - name: Restore the Sail memo
+        if: ${{ steps.solver.outcome == 'success' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
+          key: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-${{ hashFiles('model/model/**') }}
+          restore-keys: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-
+
+      - name: Build the model
+        timeout-minutes: 60
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py model build \
+            2>&1 | tee "$VOS_LOG_DIR/model-build-console.log"
+
+      - name: Execute the watchdog group
+        timeout-minutes: 50
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py boot-handoff chain-target --staged \
+            --group watchdog --jobs 3 --timeout "$CASE_TIMEOUT" \
+            --simulator "$VOS_BUILD_DIR/c_emulator/sail_riscv_sim" \
+            --build-receipt "$VOS_LOG_DIR/model-build.json" \
+            --out "$VOS_BUILD_ROOT/boot-chain-target" \
+            2>&1 | tee "$VOS_LOG_DIR/boot-chain-target.log"
+
+      - name: Preserve the group receipt and logs
+        # always(): a job that reaches its time limit still keeps its progress and logs.
+        # The pinned action runs no checked-out code; after a refused dispatch no step
+        # has written these paths, so it finds no files and uploads nothing.
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: boot-chain-shard-watchdog-${{ env.CAMPAIGN_REVISION }}
+          path: |
+            ~/verifiedos-guest/build/boot-chain-target/report.json
+            ~/verifiedos-guest/build/boot-chain-target/progress.json
+            ~/verifiedos-guest/build/boot-chain-target/*/*.log
+            ~/verifiedos-guest/logs/
+          if-no-files-found: warn
+          overwrite: true
+          retention-days: 30
+
+  campaign:
+    name: boot-chain-target
+    needs: [cold-boot, boot, main-die, watchdog]
+    # A shard that failed or was skipped still leaves the join to record or refuse it.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main
+        id: dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: python
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: true
+          save-cache: false
+          cache-suffix: guest-gates
+          cache-dependency-glob: |
+            tools/pyproject.toml
+            tools/uv.lock
+
+      - name: Collect the shard receipts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: boot-chain-shard-*-${{ env.CAMPAIGN_REVISION }}
+          path: ${{ runner.temp }}/shards
+
+      - name: Join the campaign
+        run: |
+          shopt -s nullglob
+          reports=("$RUNNER_TEMP"/shards/*/build/boot-chain-target/report.json)
+          python3 tools/run.py boot-handoff chain-join --out "$RUNNER_TEMP/campaign" "${reports[@]}"
+
+      - name: Report the campaign
+        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' }}
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+
+          report = Path(os.environ["RUNNER_TEMP"]) / "campaign" / "report.json"
+          data = json.loads(report.read_text(encoding="utf-8")) if report.is_file() else {"error": "no joined report"}
+          lines = [f"### Target chain campaign: {data.get('status', 'failed')}", ""]
+          if "error" in data:
+              lines.append(f"Refused: {data['error']}")
+          else:
+              lines += ["| Case | Run kind | Endings | Seconds | Passed |", "| --- | --- | --- | --- | --- |"]
+              for row in data["cases"]:
+                  endings = ", ".join(f"{run['run']} {run.get('ending', 'not run')}" for run in row["runs"])
+                  lines.append(f"| `{row['case']}` | {row['run']} | {endings} | {row['seconds']} | {row['passed']} |")
+              if data["unexecuted_cases"]:
+                  lines.append(f"\nUnexecuted: {', '.join(data['unexecuted_cases'])}")
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as summary:
+              summary.write("\n".join(lines) + "\n")
+
+      - name: Preserve the campaign receipt
+        # The pinned action runs no checked-out code; after a refused dispatch the join
+        # has not run, so it finds no receipt and uploads nothing.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: boot-chain-campaign-${{ env.CAMPAIGN_REVISION }}
+          path: ${{ runner.temp }}/campaign/report.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30

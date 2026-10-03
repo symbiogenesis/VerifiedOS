@@ -1631,6 +1631,12 @@ CASES: list[Case] = [
      _first_match(".github/workflows/boot-crypto-target.yml",
                   r'(python-version: "3\.14".*)python-version: "3\.14"',
                   lambda m: m[1] + 'python-version: "3.13"', flags=re.DOTALL)),
+    # The chain campaign installs the interpreter in each of its five jobs; its last
+    # job's copy, the join's, is the one a first-match reading would pass.
+    ("K-75", "the chain campaign workflow's last interpreter below the floor ty.toml fixes",
+     _first_match(".github/workflows/boot-chain-target.yml",
+                  r'(.*)python-version: "3\.14"',
+                  lambda m: m[1] + 'python-version: "3.13"', flags=re.DOTALL)),
     # The instrument switch route installs the interpreter in each of its five jobs, so
     # each job's copy is seeded on its own, found within that job's block.
     *(("K-75", f"the instrument switch route's {job} job interpreter below the floor "
