@@ -953,7 +953,8 @@ def _generated_rows_admit_only_whole_absence() -> None:
                                               corpus=SimpleNamespace(indexed=set(indexed))))
             found = [finding for row in rows for finding in generated._chain_row(ctx, row, None).findings]
             return found, ctx.shared.get("chain_staging")
-        found, state = read()
+        with patch.object(bc, "STAGED_REQUIRED", False):
+            found, state = read()
         ensure(not found and state == "absent", f"a wholly absent staging was a finding: {found}")
         with patch.object(bc, "STAGED_REQUIRED", True):
             found, _ = read()

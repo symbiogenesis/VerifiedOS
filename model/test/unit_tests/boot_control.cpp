@@ -109,8 +109,7 @@ struct Property {
 };
 
 const Property PROPERTIES[] = {
-  {"power-on values",
-   [](hart::Model &m) { m.ztest_the_boot_control_doors_read_their_power_on_values(UNIT); }},
+  {"power-on values", [](hart::Model &m) { m.ztest_the_boot_control_doors_read_their_power_on_values(UNIT); }},
   {"writes and die reset",
    [](hart::Model &m) { m.ztest_the_boot_slot_and_count_take_writes_and_survive_a_die_reset(UNIT); }},
   {"refusals and release",
@@ -122,8 +121,13 @@ const Property PROPERTIES[] = {
 // A valid composition: it validates, the composed hart is the RoT, the model's
 // power-on state holds what the composition wrote, nothing is released, and
 // every property holds on it.
-void run_valid(hart::Model &model, const jsoncons::json &shipped, const Composition &c, const char *name,
-               uint64_t expected_latch) {
+void run_valid(
+  hart::Model &model,
+  const jsoncons::json &shipped,
+  const Composition &c,
+  const char *name,
+  uint64_t expected_latch
+) {
   const std::string json = compose(shipped, c);
   context = name;
   {
