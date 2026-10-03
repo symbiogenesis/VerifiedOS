@@ -158,3 +158,16 @@ joined receipt; an inconsistent set is refused. The run retains each interface's
 receipt and logs and the joined `report.json` for 30 days. A passing joined
 receipt is target execution evidence for the staged streams at its revision; the
 firmware join and the limits above remain.
+
+The retained passing receipt for the manifest with SHA-256
+`bdd11e25e9dc00692d8f4cac17049c402c49f6062875a55bb45893a1164fbd05` is run
+36954830093's at `b906dbdd`: the joined
+[`out/boot-crypto-target/36954830093/report.json`](../../docs/implementation/retained-evidence/out/boot-crypto-target/36954830093/report.json),
+SHA-256 `aaae5ece67b69a24328e39b74a41804077dcb3d58c9080e2825663a091df9c67`, and
+the interface receipts whose digests it binds,
+[`out/boot-crypto-target/36954830093/slh/report.json`](../../docs/implementation/retained-evidence/out/boot-crypto-target/36954830093/slh/report.json),
+[`out/boot-crypto-target/36954830093/slh-internal/report.json`](../../docs/implementation/retained-evidence/out/boot-crypto-target/36954830093/slh-internal/report.json),
+[`out/boot-crypto-target/36954830093/mldsa/report.json`](../../docs/implementation/retained-evidence/out/boot-crypto-target/36954830093/mldsa/report.json),
+[`out/boot-crypto-target/36954830093/mldsa-internal/report.json`](../../docs/implementation/retained-evidence/out/boot-crypto-target/36954830093/mldsa-internal/report.json)
+and
+[`out/boot-crypto-target/36954830093/mldsa-mu/report.json`](../../docs/implementation/retained-evidence/out/boot-crypto-target/36954830093/mldsa-mu/report.json).
