@@ -2131,7 +2131,7 @@ The model's Rocq target now emits the canonical term at the frozen profile's pri
   * The four host hooks get Rocq-target bodies.
   * The sixteen half-width operations become Rocq-target internal-error definitions.
   * The eight single- and double-width comparisons route through Sail's float library.
-* **Quotient and remainder evaluation.** With Rocq 9.3.0 `vm_compute` ([`QuotRem.v`](retained-evidence/root/build/lane-q35f-axioms-20261002/q35f/quotrem/QuotRem.v)), `Z.quot` and `Z.rem` meet the prelude's round-toward-zero contract on:
+* **Quotient and remainder evaluation.** With Rocq 9.3.0 `vm_compute` ([`/root/build/lane-q35f-axioms-20261002/q35f/quotrem/QuotRem.v`](retained-evidence/root/build/lane-q35f-axioms-20261002/q35f/quotrem/QuotRem.v)), `Z.quot` and `Z.rem` meet the prelude's round-toward-zero contract on:
   * all 2,024 pairs of 46 signed dividends and 44 nonzero divisors, covering zero and ±1 divisors and the 8- to 65-bit boundaries;
   * the most negative 64- and 32-bit dividends over ±1;
   * every sign quadrant.
@@ -2150,10 +2150,10 @@ The model's Rocq target now emits the canonical term at the frozen profile's pri
   | The adapter | 15 | 1 | 3 | 11 |
   | The library's comparison path | 53 | 28 | 6 | 19 |
 
-  The adapter's survivors move flag bits no comparison raises. Four of the library's survivors sit in width arms and predicates no comparison reaches, and two are equivalent rewrites ([adapter journal](retained-evidence/root/build/lane-q35f-axioms-20261002/seed/sail-fpcompare.journal), [library journal](retained-evidence/root/build/lane-q35f-axioms-20261002/seed/sail-fpcomparelib.journal)).
+  The adapter's survivors move flag bits no comparison raises. Four of the library's survivors sit in width arms and predicates no comparison reaches, and two are equivalent rewrites ([`/root/build/lane-q35f-axioms-20261002/seed/sail-fpcompare.journal`](retained-evidence/root/build/lane-q35f-axioms-20261002/seed/sail-fpcompare.journal), [`/root/build/lane-q35f-axioms-20261002/seed/sail-fpcomparelib.journal`](retained-evidence/root/build/lane-q35f-axioms-20261002/seed/sail-fpcomparelib.journal)).
 * **No shipped composition enables `Zvfh` or `Zvfhmin`.** The primary, V and RoT compositions each set both false. Only the emulator's default template, `config.json.in`, sets them true.
 * **Model behavioural checks.** Both candidates pass `sail-assist typecheck`. Every non-Rocq change is behind `$iftarget rocq`, deletes an uncalled declaration, or adds a definition that is consistent with its existing forward direction. The model build, CTest including `$[test]`, the corpus and `bundle --check` are Guest CI's model and RTL lanes at the published revision, which were pending at landing. The tracked model bundle is regenerated, and `check --fix` regenerated the encoder table, whose `vsetvl` sites moved four lines.
-* **Retained evidence.** The [receipt](retained-evidence/root/build/lane-q35f-axioms-20261002/verifiedos-model/rocq/receipt.json), SHA-256 `f50c72d6…`, binds `rv64d.v` `65db6f87…` (3,807,006 bytes) and `rv64d_types.v` `d63859df…`, unchanged from Q35b, at `04c35541`.
+* **Retained evidence.** The receipt [`/root/build/lane-q35f-axioms-20261002/verifiedos-model/rocq/receipt.json`](retained-evidence/root/build/lane-q35f-axioms-20261002/verifiedos-model/rocq/receipt.json), SHA-256 `f50c72d6…`, binds `rv64d.v` `65db6f87…` (3,807,006 bytes) and `rv64d_types.v` `d63859df…`, unchanged from Q35b, at `04c35541`.
 * Six findings.
   * **Guarding the library's emulator-memory file for Rocq is not enough on its own.** Sail typechecks the library's emulator implementation of the memory outcomes for every target, and that implementation calls the primitives. So the model restates the declarations for Rocq under `$sail_internal`, as internal-error definitions. Closed at the item. F-732.
   * **The half-width arms cannot be guarded, so their sixteen names leave the axiom list but not the term.** `$iftarget` works only between top-level definitions, and deleting the arms would remove `Zvfh` and `Zvfhmin` from the emulator's default template. Standing: the term carries them as internal-error definitions behind guards no shipped composition opens. F-733.
