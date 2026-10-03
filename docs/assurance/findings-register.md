@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 953 of them across 154 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 961 of them across 155 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -3178,11 +3178,11 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-472** owed-act: the accepted typed purecap route refuses every Clight `switch`, and Vélus prints each Obc conditional as one, so no Vélus node with a conditional reaches the target through the normalized exchange
 · Raised: M6.1b-iii
-· Disposition: open, M6.1b-iv declaring a second exchange rewrite that lowers the printed `switch` shapes and repeating the target legs, a shape no declared rewrite carries being priced as a separate compiler-side cell
+· Disposition: closed for the tested exchange at M6.1b-iv, whose declared rewrite lowers the five printed `switch` shapes and passes the target legs; the contained compiler's `switch` typing is unchanged, and a shape no declared rewrite carries is priced as a separate compiler-side cell
 
 **F-473** owed-act: the control driver's single straight-line `main` overflows `compiler-diff program`'s 32,768-byte text window, and the unchanged probe has the same form, unmeasured behind F-472
 · Raised: M6.1b-iii
-· Disposition: open, M6.1b-iv splitting both row sets into programs that fit the window, generated from the same rows, and recording the split
+· Disposition: closed at M6.1b-iv, whose split drivers fit the window at 8,956 and 16,040 bytes of text and whose result records the split
 
 **F-474** measurement: on the switch-free control program the alignment erasure suffices for the accepted typed frontend, and the normalized node's diagnostics carry no alignment error
 · Raised: M6.1b-iii
@@ -3195,6 +3195,38 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-476** measurement: under `-nomain`, Vélus's Clight generation ignores `-lib`, so no printed byte distinguishes `-nomain -lib` output and the normalizer decides acceptance from the main-node markers it refuses
 · Raised: M6.1b-iii
 · Disposition: standing, a reading of the pinned source that the exchange result binds by hash, stated in the normalizer and the route README
+
+**F-724** measurement: the checkout's profile no longer has the bytes M6.1b-iii recorded, so the switch trial's simulator ran under the recorded bytes, which parse to the same value as the current file
+· Raised: M6.1b-iv
+· Disposition: standing, the switch result recording the substitution
+
+**F-725** owed-act: THIRD-PARTY.md's Vélus and CompCert records list Sections 2, 3, 4 and 7 of each selected licence and omit Section 6's publication credit
+· Raised: M6.1b-iv
+· Disposition: open, the licence record states Section 6's condition
+
+**F-726** measurement: the switch rewrite's declared shapes are a subset of what Vélus's translation site could print, refusing a switch with no case and an empty case body outside the `else-only` position
+· Raised: M6.1b-iv
+· Disposition: standing, M6.1b-ii's complete producer declaring or refusing any further shape it meets
+
+**F-727** measurement: Vélus's Obc switch normalization, two-way default insertion and fusion decide which `switch` shapes reach the Clight printer
+· Raised: M6.1b-iv
+· Disposition: standing, measured on the switch control program
+
+**F-728** measurement: Vélus emits no semantic-existence warning for the switch control program, unlike F-475's control program
+· Raised: M6.1b-iv
+· Disposition: standing
+
+**F-729** measurement: Vélus ran on the switch trial's authoring drafts before provisioning, after a recorded licence read, while the accepted compiler and simulator first ran after provisioning
+· Raised: M6.1b-iv
+· Disposition: standing, the switch result recording both licence reads
+
+**F-730** measurement: each switch control driver resets the node at its start, so the control program's state is exercised only over runs of 24 instants
+· Raised: M6.1b-iv
+· Disposition: standing
+
+**F-731** measurement: the switch rewrite's soundness is an argument resting on side-effect-free Clight expressions and the site's fall-through-free layout, and the rewritten text stays outside every theorem
+· Raised: M6.1b-iv
+· Disposition: standing, under F-467
 
 **F-166** owed-act: whether a statically composed image re-admits on device or measured boot covers it is unruled, and the split of the admission-checker milestone rests on it
 · Raised: M6.2, in prose

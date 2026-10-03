@@ -4662,6 +4662,44 @@ The repeated exchange trial fails at its fourth check. The declared alignment er
   The interrupted review passes ran from 2026-09-28 15:54 UTC until interruptions at 16:44 and 16:59 UTC. Integration review and hosted validation fall outside every interval.
 * Landed: Tier A. The integrator's read covers the normalizer's enumerated positions and refusals against the cell, the token comparison's independence from the normalizer, the result's first failed predicate, its retained evidence and its `post_trial` amendments, the tool repair's equivalence record, the five findings against the register, and M6.1b-iv's cell, which takes the rewrite route and leaves the contained compiler unchanged. No checker rule was added; `test_supervisor_route` and `test_retained_evidence` hold the tools and the retained copies.
 
+##### M6.1b-iv · Rewrite the exchange's Clight `switch` and repeat the bounded target legs
+
+The repeated target trial passes every check. The declared switch rewrite, applied after the alignment erasure, carries the tested start/restart node through the accepted typed purecap compiler to target agreement. C stays the M8a route and nothing is re-selected.
+
+* The authored [switch rewrite](../../supervisor/route/switch_rewrite.py) lowers to `if` chains only the five `switch` shapes printed by Vélus's one Obc `Switch` translation site, distinguished by case count and empty bodies: `if-else`, `if-only`, `else-only`, `chain-else` and `chain-only`. It declares them with the site's hash (`Generation.v`, `0edb3ffa…`) and the Clight printer's (`25a3f848…`) at Vélus `27ba860c`. It keeps every other byte, refuses every other `switch`, and returns `switch`-free input byte-identical. The [switch tests](../../tools/tests/test_supervisor_switch.py) exercise it on an authored fixture, together with the independent [token comparison](../../supervisor/route/switch_compare.py), the [probe splitter](../../supervisor/route/split_probe.py) and the [control generator](../../supervisor/route/switch_control.py). The normalizer, the probe and M6.1b-iii's tools are unchanged.
+* The [source-bound result](../../supervisor/route/switch-result.json) freezes 38 inputs, the tracked [orchestration](../../supervisor/route/switch_trial.py) and 15 tool identities at `1f90ae78` before provisioning. The tool identities include clang's `libclang-cpp` and gcc's `cc1`. Checks 1 to 5 pass in the 52 s after provisioning, 2026-10-03 01:53:45–01:54:37 UTC ([`/root/build/lane-m61biv-switch-20261002/trial/state/trial.json`](retained-evidence/root/build/lane-m61biv-switch-20261002/trial/state/trial.json)):
+  * Check 1: every identity that M6.1b-iii's check 1 held matches, the node re-emits the recorded Clight and header, and the unnormalized driver is still refused for its alignment.
+  * Check 2:
+    * The comparison places the node's six `if-else` groups and the [control program](../../supervisor/route/switch_control.lus)'s eleven, which carry every declared shape, a nested group and out-of-order labels.
+    * It fails a moved label and a changed statement.
+    * The rewrite refuses eight undeclared variants, and `switch`-free input comes back byte-identical.
+  * Check 3: both rewritten programs compile through the accepted typed route.
+  * Check 4:
+    * The reference comparison passes with 656 cases and 3,088 equalities, and the fixtures reproduce the recorded digest.
+    * The unchanged probe, split into 24 programs of 24 rows, agrees on all 576 rows natively and through `compiler-diff program`, and its perturbed program fails on target.
+    * The control program's 24 programs agree on its 576 seeded rows natively and on target.
+  * Check 5: every frozen input and tool identity rehashes unchanged.
+* The integration read checked the declared layout against the site itself. `make_labeled_statements` emits one `case z: s; break;` for each present branch, with strictly increasing labels and absent branches skipped, then the default with no `break`. Obc prints no `if` or loop.
+* The largest split program holds 8,956 bytes of text for the probe and 16,040 for the control program, against the 32,768-byte window (F-473).
+* Eight findings.
+  * **The checkout's profile no longer has the bytes M6.1b-iii recorded.** A later commit reformatted `model/config/verifiedos.json`. The simulator ran under the recorded bytes, written from `d590c463` into the native lane, and the profile reader parses the recorded and current files to the same value. Standing: the result records the substitution. F-724.
+  * **The Vélus and CompCert records in [THIRD-PARTY.md](../../THIRD-PARTY.md) list Sections 2, 3, 4 and 7 of each selected licence and omit Section 6, whose publication credit both licences ask for.** Open: the licence record states Section 6's condition. F-725.
+  * **The declared shapes are a subset of what the site could print.** A switch with no case, and an empty case body anywhere but the `else-only` position, are refused. Neither occurs in this trial. Standing: M6.1b-ii's complete producer declares or refuses any further shape it meets. F-726.
+  * **Vélus's Obc passes decide which shapes reach the printer.** Switch normalization moves a complete switch's last branch into the default, the two-way default insertion prints `case 0: break;`, and fusion merges adjacent switches on the same scrutinee. Measured on the control program. Standing. F-727.
+  * **Vélus emits no semantic-existence warning for the switch control program**, unlike the control program of F-475. Standing. F-728.
+  * **Vélus ran on authoring drafts before provisioning.** The runs came after a recorded licence read, in the authoring lane. The accepted compiler and the simulator first ran after provisioning. Standing: the result records both reads. F-729.
+  * **Each control driver resets the node at its start**, so the control program's state is exercised only over runs of 24 instants. Standing. F-730.
+  * **The rewrite's soundness is an argument, not a proof.** It rests on Clight expressions having no side effects and on the site's layout having no fall-through. The rewritten text, like the printed text, stays outside every theorem (F-467). Standing. F-731.
+* F-472 closes for the tested exchange by the declared rewrite; the contained compiler's `switch` typing is unchanged. F-473 closes by the split drivers.
+* Calibration: 0.7 h agent-parallel actual against the 3.5 h estimate, range 2–5, class X. The implementation pass ran 2026-10-03 from 01:20 UTC for 42 min 46 s of agent-session wall-clock, of which authoring took about 33 min. Integration review and hosted validation fall outside it.
+* Landed: Tier A. The integrator's read covers four things:
+  * the declared shapes against the translation site and the printer;
+  * the comparison's independence from the rewrite, since it neither imports nor repeats the rewrite's parser and reads clang's tokens;
+  * the rewrite's refusal set and its lowering;
+  * the result's stages, retained copies, profile substitution and findings, checked against the register.
+
+  No checker rule was added; `test_supervisor_switch` and `test_retained_evidence` hold the tools and the retained copies.
+
 #### M6.2a · Specify the composition-time admission path
 
 The completion audit records specification completion only. M7.1 owns executable composition-time admission for its actual roster and must compare accepted/refused decisions and retain the image-bound admission record. This assignment does not close or replace M6.2b's separately deferred on-device CIC checker.

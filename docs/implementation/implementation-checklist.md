@@ -401,19 +401,19 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,219.3 |
-| Total estimate range h | 2,697.2–5,741.4 |
-| Completed scope h | 759.8 |
+| Total estimate midpoint h | 4,216.5 |
+| Total estimate range h | 2,695.9–5,737.1 |
+| Completed scope h | 760.5 |
 | Complete by estimate % | 18.0 |
-| Remaining h | 3,459.5 |
+| Remaining h | 3,456 |
 | Open class I h | 721 |
-| Open class X h | 2,738.5 |
+| Open class X h | 2,735 |
 | Retained completion estimate h | 164.5 |
 | Unmeasured completed items | 20 |
-| Calibrated total h | 5,160.4 |
+| Calibrated total h | 5,156.1 |
 | Committed M8a open h | 94.5 |
 | Committed M8b open h | 90.5 |
-| Other committed open h | 2,049 |
+| Other committed open h | 2,045.5 |
 | Conditional open h | 811.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1603,9 +1603,8 @@ The ring data plane is brought up in its contract order: the common ring schema 
       * M6.1b-iii owns the exchange normalizer and M6.1b-iv its `switch` rewrite; this cell prices the rest of the complete producer.
     * [x] **M6.1b-iii · Normalize the Vélus Clight exchange and repeat its bounded exchange trial** · 2.5 h retained estimate, actual n/a · agent-parallel
       * The declared alignment erasure clears the accepted frontend's alignment refusal, but the normalized node fails the bounded exchange at Clight `switch` typing on the accepted typed route; C stays the M8a route. ([note](completion-log.md#m61b-iii-normalize-the-vélus-clight-exchange-and-repeat-its-bounded-exchange-trial))
-    * [ ] **M6.1b-iv · Rewrite the exchange's Clight `switch` and repeat the bounded target legs** · 3.5 h, range 2–5 · X
-      * **Dispatch. Start:** M6.1b-iii's [exchange result](../../supervisor/route/exchange-result.json) with its normalizer, control program, generator, token comparison and retained contained toolchain, F-472's refusal site and F-473's text window, and both selected license files, each re-read as a timestamped, hashed stage before use. **Owns:** an authored second exchange rewrite with behavioural tests, applied to the normalizer's output, that lowers to `if` chains only the `switch` shapes Vélus's one Obc `Switch` translation site prints, declared at authoring with that site's source hash, and refuses every other `switch`; an authored control program carrying every declared shape; drivers generated from the unchanged fixtures and seeded rows and split into programs that fit `compiler-diff program`'s text window, with the split recorded; an orchestration script frozen and hashed with the inputs before provisioning, recording each clause as its own stage and running none after the first failure; and a new source-bound result beside the existing two, whose tool identities include clang's `libclang-cpp` and the native compiler's `cc1`. Vélus, its printer, the normalizer and the accepted compiler stay unchanged. **Check:** in order, stopping at the first failure: (1) M6.1b-iii's check 1 after a fresh freeze; (2) an independent C-token comparison shows the rewritten node and control program differing from their normalized forms only at declared `switch` groups, and the rewrite refuses an undeclared shape and returns `switch`-free input byte-identically; (3) the rewritten node and control program compile through the accepted typed route; (4) M6.1b-iii's check 4 over the rewritten node with the split drivers; (5) every frozen input and tool identity rehashes unchanged. Authoring precedes provisioning; the trial stops two attended agent-session hours after provisioning, and the first failed predicate or the exhausted bound is the verdict. **Join:** M6.1b-ii consumes the rewritten exchange; M7.1b keeps the C route for M8a.
-      * **Done when:** the new result, the route README and the Vélus third-party record state a pass or the first failed predicate, with every artifact identity and the declared rewrite. A pass decides only that the normalized and rewritten exchange carries the tested node through the accepted compiler to target agreement. It composes no Vélus or purecap compiler theorem (F-467), re-accepts nothing bound to the accepted compiler and does not re-select the M8a route. Clight `switch` typing in the contained compiler is outside this cell because it would change a build other products bind: a shape no declared rewrite carries is recorded as this trial's refusal and priced as a separate compiler-side cell.
+    * [x] **M6.1b-iv · Rewrite the exchange's Clight `switch` and repeat the bounded target legs** · 0.7 h actual · agent-parallel
+      * The declared switch rewrite lowers the normalized node's Clight `switch` statements to `if` chains, and the node agrees with the C oracle on target on all 576 rows through the accepted typed route; C stays the M8a route. ([note](completion-log.md#m61b-iv-rewrite-the-exchanges-clight-switch-and-repeat-the-bounded-target-legs))
 * [ ] **M6.2 · Refine admission checkers to CompCert-C**
   * **Split at entry on a ruling S1 has now taken: measured boot covers a statically composed image, and the device does not re-admit it.** Admission of a composed image is an offline act and the device verifies a signature, so the on-device CIC kernel is not on the boot path and only the composition-time half is pre-gate. R-13-001c is what decides it rather than convenience: that entry already makes the composer an untrusted producer joining no trust base, and already states the device's own act as naming the roster, fetching what it lacks, and admitting the result through the ordinary checks. The bring-up reading points the same way, the derivations being thin or stubbed until the Tier-0/1/2 proofs exist, so the arm not taken would put a proof-term checker on the boot path with nothing to check.
   * Composition-time admission keeps the on-device checker's qualification and implementation behind M8a. M6.2b's children price the remaining checker work; neither its source survey nor M6.2a's statement artifact supplies an implemented checker.
@@ -1716,7 +1715,7 @@ The ring data plane is brought up in its contract order: the common ring schema 
   * **Check:** both generations admitted by the ordinary path and booted by the transactor with health-gated rollback intact, the mint reachable only through the consent act, the composition mode entered and left as R-11-018 requires, and the install's proof checking staying inside R-06-015a's declared budget. **Join:** Q26 prices the occupancy and the storage this act needs; Q9 measures its turnaround beside the remote path's.
   * **Done when** the device composes, signs, admits and boots its own generation twice over, once for a package change and once for the base image, with nothing reachable and no artifact another machine produced, and the run records what it occupied rather than only that it finished.
 
-**M6 subtotal:** 668.5 h · 16% · 52 h complete · open range 297–936 h.
+**M6 subtotal:** 665.7 h · 16% · 52.7 h complete · open range 295–931 h.
 
 ### M7 · Full emulated system
 
@@ -2026,8 +2025,8 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 | attended | All | 63 | 323.9 | 238.4 | 0.74 |
 | agent-parallel | I | 39 | 317 | 128.4 | 0.41 |
 | agent-parallel | X-read | 10 | 101.5 | 34.7 | 0.34 |
-| agent-parallel | X-authored | 22 | 267 | 39.6 | 0.15 |
-| agent-parallel | All | 71 | 685.5 | 202.7 | 0.30 |
+| agent-parallel | X-authored | 23 | 270.5 | 40.3 | 0.15 |
+| agent-parallel | All | 72 | 689 | 203.4 | 0.30 |
 <!-- calibration-results:end -->
 
 ### Calibration record
@@ -2240,6 +2239,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | M6.0b | X-authored | 16 |
 | M6.1b-i | n/a | n/a |
 | M6.1b-iii | n/a | n/a |
+| M6.1b-iv | X-authored | 3.5 |
 | M6.2a | I | 8 |
 | M6.2b-i | n/a | n/a |
 | M6.3a | X-authored | 6 |
