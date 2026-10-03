@@ -717,8 +717,9 @@ The predicate is decided over these instruments and nothing else:
   [verifiedos-rot.json](../../../model/config/verifiedos-rot.json) for every RoT
   run and on [verifiedos.json](../../../model/config/verifiedos.json) for the
   main-die run, read through its verdict lines and its `--test-signature`
-  capture, which it writes on an HTIF success and on a release and on nothing
-  else;
+  capture, which it writes on an HTIF success, on a release and at the
+  instruction limit, so a run ending on the limit is decided by its lines and
+  its retired count and never by its capture (F-769);
 - the RoT composition's four device windows
   ([rot.sail](../../../model/model/sys/rot.sail)) and the boot-control window
   section 9.4 adds, each varied per case through a per-case variant of the
@@ -1106,7 +1107,9 @@ refusals write the same word, so the main-die run has one HTIF word.
 
 ### 9.9 The measurement and the record in the chain
 
-The registers and encoding are section 5's. The chain extends items 1, 2 and 3
+The registers and encoding are section 5's. Items 1, 2 and 3 each extend one
+byte, the lifecycle index, the verdict as 0 or 1 and the latch's bit, as section
+3's release extends them (F-767). The chain extends items 1, 2 and 3
 into the device register in the ROM, item 4 into the generation register in the
 ROM, item 5 in the runtime and item 6 in the service run, in that order, which
 is RotFirmware.v's specification chain through its sixth extension; item 7 and
@@ -1199,9 +1202,12 @@ kernel. The emulator writes no capture on an HTIF failure, so a main-die refusal
 is decided by its exit code alone, and a main-die exit that is neither the
 kernel stage's report nor 64 plus a refusal code, the stage's own trap report
 of 256 plus `mcause` included, supplies no verdict (F-760, F-761). The head's watchdog fields
-are compared against predicates, the challenge at arming nonzero, the accepted
-and skipped counts at least and at most what the period admits, the bitten door
-zero at release, because their values are the clock's and the entropy root's.
+are compared against predicates, because their values are the clock's and the
+entropy root's: the challenge at arming nonzero; on a release at least one
+accepted pet, the accepted and skipped counts summing to the table's steps plus
+one, the bitten door zero and the tick door at or below the late bound; on a
+runtime refusal the two counts summing to the steps or the steps plus one
+(F-770).
 Fields a run does not reach are zero on both sides.
 
 | Field | Offset | Bytes | Value |
@@ -1393,8 +1399,8 @@ join composes the shard receipts into one, refusing a shard whose source,
 model, manifest, compiler, period, instruction-limit or timeout identities
 differ from the others' (F-718), listing unexecuted cases, and failing on any
 failed case. Each job's per-case timeout and the execution step's limit are set
-so that two SLH-DSA verifications at 4,300 s each and one ML-DSA-87
-verification at 600 s fit under the runner's six-hour cap with the model build;
+so that two SLH-DSA verifications at 5,000 s each, above the slowest
+hosted case F-719 records, and one ML-DSA-87 verification at 600 s fit under the runner's six-hour cap with the model build;
 a case that reaches its timeout supplies no verdict. Guest CI does not run the
 campaign.
 

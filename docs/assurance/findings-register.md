@@ -2822,6 +2822,26 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M3.5b, in prose
 · Disposition: standing, section 9.12 naming that observation
 
+**F-766** method: section 9.11 compares a refusal's capture head byte for byte without saying whether a refusal writes the digest, security version or payload length it computed before refusing, or whether a ROM refusal leaves the state record wholly zero or only its magic, so the campaign admits zero or the reached value for exactly those fields and requires the state record zero
+· Raised: M3.5b, in prose
+· Disposition: open, a section 9.11 clause fixing which head fields a refusal writes
+
+**F-767** method: section 9.5 did not fix the data width of items 1 to 3, and the oracle adopted the bring-up release's one-byte extensions of the lifecycle index, the entropy verdict and the latch
+· Raised: M3.5b, in prose
+· Disposition: closed, section 9.9 fixes one byte each
+
+**F-768** method: section 9.11 compares a service run's response and state but names no head field beyond its verdict and phase, so the campaign compares R2's verdict, phase and released words and leaves the rest of its head uncompared
+· Raised: M3.5b, in prose
+· Disposition: standing, each R2 row recording what it compared
+
+**F-769** measurement: section 9.2 said the emulator writes the `--test-signature` capture on an HTIF success or a release and on nothing else, where it also writes it at the instruction limit
+· Raised: M3.5b, in prose
+· Disposition: closed, section 9.2 corrected and the detached-clock control decided by its lines and retired count
+
+**F-770** method: section 9.11's watchdog predicates were not quantified and did not say whether a refused verification reaches its pet point
+· Raised: M3.5b, in prose
+· Disposition: closed, section 9.11 quantifies them for a release and for a runtime refusal
+
 **F-156a** owed-act: the data-plane disjunction has no arm selected, one entry admitting a deterministic clear or a confirmed discharge while another commits both planes atomically at the granule and a third insists the two are two boundaries
 · Raised: M3.6a
 · Disposition: closed, taken at R-15-247d: the disjunction resolves to one pass over both planes, so the transition carries one dwell and one read rather than two of each
