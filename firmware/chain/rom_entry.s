@@ -137,16 +137,9 @@ __rom_floor_read:
         cjr     c5
 
 __rom_refused:
-        # A completed refusal: the boot-control values read last, then HTIF
-        # success, which is the completed attempt the capture decides.
-        li      t0, VOS_CHAIN_BOOT_CONTROL_BASE
-        csetaddr c19, c4, t0
-        li      t0, VOS_CHAIN_ROT_CAPTURE_BASE
-        csetaddr c20, c4, t0
-        ld      t1, VOS_CHAIN_DOOR_SLOT(c19)
-        sd      t1, VOS_CHAIN_CAPTURE_SLOT_FINAL_AT(c20)
-        ld      t1, VOS_CHAIN_DOOR_ATTEMPTS(c19)
-        sd      t1, VOS_CHAIN_CAPTURE_ATTEMPTS_FINAL_AT(c20)
+        # A completed refusal ends with HTIF success, the completed attempt the
+        # capture decides. The ROM reads no slot or attempt door: they are the
+        # runtime's, and a refusal here leaves them as the run found them.
         li      t0, 1
         j       __rom_exit
 
