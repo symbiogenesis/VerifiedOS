@@ -10,7 +10,8 @@ existing implementation owners, not completed work or additional engines.
 
 ## Research selection
 
-Primary sources reviewed on 2026-09-24 are below. A source is a design or
+Primary sources reviewed on 2026-09-24 are below, except Kiln's, read on
+2026-10-02. A source is a design or
 experimental reference, never admission evidence. No source code, dependency
 or runtime from this survey is incorporated. At incorporation, read the selected
 revision's own licence closure and record it in THIRD-PARTY.md.
@@ -26,6 +27,7 @@ revision's own licence closure and record it in THIRD-PARTY.md.
 | [weval, Partial Evaluation, Whole-Program Compilation, PLDI 2025](https://cfallin.org/pubs/pldi2025_weval.pdf) and [producer interface](https://github.com/bytecodealliance/weval) | Specialization removes an inner interpreter by producing Wasm from Wasm | Conditional Q34h candidate under the selection gate below: specialize guest-language interpreters into ordinary validated Wasm, still executed by the one pure platform engine. Its reported SpiderMonkey gains use a different outer engine and are not this target's forecast. No guest-to-native output or new verified specialization tool is admitted. |
 | [Wasm 3.0 release](https://webassembly.org/news/2025-09-17-wasm-3.0/), [standard profiles](https://webassembly.github.io/spec/core/appendix/profiles.html) and [implementation limits](https://webassembly.github.io/spec/core/appendix/implementation.html) | Typed references, tail calls and managed guest objects can avoid emulated language machinery; the standard permits implementation resource limits | Require the full Core 3.0 binary language. Standard quantitative limits and explicit imports preserve the host boundary; missing proofs block release, not features in the advertised language. |
 | [Denis, Performance of WebAssembly runtimes in 2026](https://00f.net/2026/06/23/webassembly-runtimes-2026/) | Reproducible workload comparisons distinguish runtime modes and enabled language features | The WAMR result uses AOT and some variants use features outside the freeze. Neither is a pure-interpreter target estimate; use the comparison discipline, not its numbers. |
+| [Kiln at `b4a0b2d8`](https://github.com/pulseengine/kiln/tree/b4a0b2d86e48713b715bdec27c90d6ab58c01269), read 2026-10-02 | A `no_std` Rust runtime with bounded collections, fuel and memory limits, aimed at Component Model and WASI 0.2 execution. Its README rests correctness on the official spec suite and on Kani harnesses over selected components, and claims no proof of the interpreter, decoder or instruction core | No representation result this contract lacks. The Component Model and WASI lie outside R-14-013b's Core 3.0 compatibility, R-14-013 lets no WASI runtime supply ambient authority, and Wasmi remains the [bring-up interim](../userspace-porting.md#the-bring-up-wasm-interim-the-pin-and-what-its-ranking-reads-as-here). No runtime substitution or source import. |
 
 This design spends engineering on the already required interpreter's
 representation, host binding and proof. It does not add a trusted optimizer,
