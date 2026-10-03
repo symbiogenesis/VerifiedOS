@@ -2770,6 +2770,38 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: M3.5, in prose
 · Disposition: standing, the race control holding the verified message and the surviving mutant named at the cell
 
+**F-738** owed-act: the register does not say whether a recovery-generation boot under R-09-029's latch is charged by R-09-028's boot counting, so the chain composition charges none and leaves the A/B state as read
+· Raised: M3.5b, in prose
+· Disposition: open, a register act at R-09-028 or R-09-029
+
+**F-739** owed-act: RotFirmware.v's `Outcome` has no success (its gap c) and no entry names the act that clears the attempt count after a successful boot, so the chain never clears it and a device that boots successfully `boot_bound` times reverts
+· Raised: M3.5b, in prose
+· Disposition: open, R-09-028's owner and RotFirmware.v's outcome enumeration
+
+**F-740** measurement: the external slow clock's host period is a per-run-kind harness parameter, the positive path's window in host time is a function of it, and the stall and early-pet observations run runtime-only at a shorter period, so no run observes a bite after a complete ROM phase
+· Raised: M3.5b, in prose
+· Disposition: standing, every chain receipt recording the period and run kind
+
+**F-741** owed-act: the kernel-stage root is carried inside the measured M-mode image by the contract's selection, where R-09-036a places the roots that admit a generation in the RoT's enrolled set; no enrolled set exists in the chain composition and the RoT measures none
+· Raised: M3.5b, in prose
+· Disposition: open, the enrolled-set mechanism's owner (R-09-036a), beside F-440's item code
+
+**F-742** owed-act: `vos_signature.h` carries no boot callback for ML-DSA and cannot change while the staged manifest binds it, so the chain binds `vos_mldsa87_verify_internal` over the signed prefix from outside the bound trees
+· Raised: M3.5b, in prose
+· Disposition: open, M7.1f's next staging may place the binding beside `vos_boot_slh256s_verify`
+
+**F-743** method: the item-6 binding check is a recomputation anyone holding the handoff record can perform, so it decides that the response answers this request and not that the RoT produced it
+· Raised: M3.5b, in prose
+· Disposition: standing, stated as what the boot-handoff contract's section 9.15 does not decide; the mailbox's authority is the composition's
+
+**F-744** owed-act: the handoff record handed to the kernel holds the generation register after item 5, and the registers after item 6 reach the main die in the mailbox response alone, which the kernel stage does not read, so no consumer of the post-item-6 registers exists in the chain composition
+· Raised: M3.5b, in prose
+· Disposition: open, M4.4's and M7.1's kernel consumer
+
+**F-745** measurement: the emulator exits on the pump that asserted the die reset, so a chain run cannot observe the die at its reset vector or the ROM reading the bitten latch; the reset-vector observation is watchdog_join.cpp's
+· Raised: M3.5b, in prose
+· Disposition: standing, the unit test retaining the observation
+
 **F-156a** owed-act: the data-plane disjunction has no arm selected, one entry admitting a deterministic clear or a confirmed discharge while another commits both planes atomically at the granule and a third insists the two are two boundaries
 · Raised: M3.6a
 · Disposition: closed, taken at R-15-247d: the disjunction resolves to one pass over both planes, so the transition carries one dwell and one read rather than two of each
@@ -3460,7 +3492,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-723** owed-act: the boot-handoff contract's open joins still read the target signature-verifier binding as unbuilt and its run as fixture-only after M3.5b's release-target campaign bound it
 · Raised: M7.1f
-· Disposition: open, M3.5b's owner restates that bullet
+· Disposition: closed, the contract's section 8 now states that `release-target` binds `vos_boot_slh256s_verify` through the contained backend, and section 9.13 states the chain's identity equality
 
 ## RTL track
 
