@@ -551,29 +551,31 @@ harness run holds the kernel-entry state through the fixture's checks.
 
 ## 8. Open joins and findings
 
-- **The bring-up release runs host-compiled, and the chain's stages are owed as
-  target programs.** `boot-handoff run` compiles the release stage for the host
-  and says so in every report. `boot-handoff release-target` compiles the
-  preparation body `vos_rot_prepare_mmode` through the contained backend and runs
-  it on the RoT composition, with assembly supplying the device reads the
-  compiler does not lower; at `0f61470a` its seven cases passed and the released
-  capture ran the main die to `SUCCESS`. The ROM, runtime, item-6 service and
-  M-mode chain stage of section 9 are the target programs still owed.
+- **The bring-up release runs host-compiled; the chain's stages run on the
+  target.** `boot-handoff run` compiles the release stage for the host and says
+  so in every report. `boot-handoff release-target` compiles the preparation body
+  `vos_rot_prepare_mmode` through the contained backend and runs it on the RoT
+  composition, with assembly supplying the device reads the compiler does not
+  lower; at `0f61470a` its seven cases passed and the released capture ran the
+  main die to `SUCCESS`. The ROM, runtime, item-6 service and M-mode chain stage
+  of section 9 are compiled through the same backend, and their hosted campaign
+  passes section 9.12's fifteen cases, as
+  [M3.5b's record](../completion-log.md#m35b-lower-and-compose-the-remaining-measured-boot-chain)
+  states.
 - **The target signature-verifier binding is built for the release body and
   frozen by identity for the chain.** `release-target` binds
   `vos_boot_slh256s_verify` through the contained backend over the unchanged
   `keccak.c` and `slh256s.c`; `boot-handoff run` keeps the fixture verifier by
   default and binds the real one under `--signature-scheme slh256s`, so a default
-  run's success establishes no signature verification. No record yet holds a
-  chain unit's verifier identities to M7.1f's staged manifest; section 9.13
-  states the equality the chain campaign must show (F-722).
-- **The model has no boot-core release door, no boot-target latch door and no
-  boot-control state.** The emulator composes one hart per run, so in the
-  bring-up composition release is realized as starting the main-die run and the
-  latch (R-09-029) is a harness constant (F-435). Section 9.4 specifies the
-  boot-control window that adds the latch, slot, attempt and release doors; until
-  it lands, `layout` reports that `rot.sail` declares none of them. Where the
-  reset table's release points live is Q33's (R-15-198a).
+  run's success establishes no signature verification. The chain campaign's
+  receipts hold every chain unit's verifier identities to M7.1f's staged
+  manifest, the equality section 9.13 states (F-722).
+- **The bring-up composition realizes release and the latch in the harness.**
+  The emulator composes one hart per run, so in the bring-up composition release
+  is realized as starting the main-die run and the latch (R-09-029) is a harness
+  constant (F-435). Section 9.4's boot-control window gives the chain the latch,
+  slot, attempt and release doors, and `layout` reports all five declared. Where
+  the reset table's release points live is Q33's (R-15-198a).
 - **RomVerifier.v's `Header` carries no security version.** Its floor comparison
   reads a version the statement's header has no field for; this layout adds
   one, with the magic and the stage.
@@ -608,7 +610,7 @@ harness run holds the kernel-entry state through the fixture's checks.
   RoT firmware executes, and R-15-240's pets are RoT-nonce challenge-responses;
   the release of section 3 neither arms nor pets the watchdog. Section 9.6's
   runtime arms and pets it over the bring-up reset table, which is not Q33's
-  table, and section 9.10 states the observations owed.
+  table, and the chain campaign makes section 9.10's observations.
 - **A/B selection and boot counting are not exercised by the bring-up release**
   (R-09-028, R-09-029); section 9.6 states both for the chain, and section 9.15
   the two counting questions the register leaves open (F-738, F-739).

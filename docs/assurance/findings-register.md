@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 996 of them across 157 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 999 of them across 157 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -2885,6 +2885,19 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-770** method: section 9.11's watchdog predicates were not quantified and did not say whether a refused verification reaches its pet point
 · Raised: M3.5b, in prose
 · Disposition: closed, section 9.11 quantifies them for a release and for a runtime refusal
+
+**F-771** measurement: the eleven shards of one hosted chain campaign built eleven distinct simulators from one model source map, where the boot signature runs agreed within each run
+· Raised: M3.5b
+· Disposition: standing, the join holding the model source map shared and each shard receipt binding its own simulator and build receipt
+· Restates: F-720
+
+**F-772** measurement: the hosted main-die ML-DSA-87 runs took up to 568 s, 95% of the 600 s per verification the chain contract's section 9.14 sizes, and the releasing boot runs up to 7,224 s, 60% of their timeout
+· Raised: M3.5b
+· Disposition: standing, every chain receipt recording each run's seconds and timeout
+
+**F-773** measurement: the watchdog challenge read after arming is one value in every chain boot run that arms, the composition's entropy source being seeded, so the campaign shows it nonzero and not that it varies between boots
+· Raised: M3.5b
+· Disposition: standing, section 9.11 deciding the challenge by a nonzero predicate
 
 **F-156a** owed-act: the data-plane disjunction has no arm selected, one entry admitting a deterministic clear or a confirmed discharge while another commits both planes atomically at the granule and a third insists the two are two boundaries
 · Raised: M3.6a
