@@ -2112,6 +2112,66 @@ Calibration: original estimate 14 h, range 8–20, class X; 3.6 h actual on the 
 
 Landed: Tier A. The integrator's read covers the ten findings against their register entries, the proposed amendment's three names and types against the retained summaries and the pinned sources, the refusal of VST against R-06-012, R-10-008 and R-18-026, both receipts for upstream content (which they carry by path, hash, line number and matched token only), the predicates and ranges of Q35h to Q35j, and the proof map's two rows. No checker rule was added; K-12, K-82 and the retained-evidence test hold the entry's links, finding count and receipt hashes, and none holds its readings.
 
+#### Q35f · Remove the canonical term's model-side axioms and bind its target to the frozen profile
+
+The model's Rocq target now emits the canonical term at the frozen profile's primary composition, and every model-side axiom Q35b classified as removable has left it. The 31 that remain are exactly F-480's irremovable floating-point operations. The compile, the exact closure and the compiled size stay Q35b's.
+
+* **Binding.** `generated_rocq_rv64d`'s `--config` reads `model/config/verifiedos.json`. The target's output equals the canonical command's, compared by `cmp` on both files twice: emissions 10 and 11 over the model bytes of `23749346` give `rv64d.v` `f70b41fd…`, and emissions 12 and 13 over those of `04c35541` give `65db6f87…`.
+* **Emission command.** [`run.py model rocq`](../../tools/vos/rocqterm.py):
+  * deletes the term's outputs and receipt before anything else, because the target's dependencies name neither the Sail binary, its library nor its Rocq plugin;
+  * refuses a missing frozen profile, a configured target whose `--config` is another file, and a run whose configuration, sources or toolchain moved while Sail read them;
+  * writes the generation-identity receipt beside the term, and deletes the term on any refusal after the build.
+
+  The [command's tests](../../tools/tests/test_model_rocq.py) have seven cases: a positive emission, a missing configuration, a stale configuration, a configuration changed mid-emission, stale outputs from a build that emits nothing, a failed build, and command parsing.
+* **Axioms removed.** Emission 12 at `04c35541` declares 31 `Axiom` lines where Q35b's emission declared 85, and adds none. Emission 9 is the canonical command over the base revision's `model/` and is byte-identical to Q35b's. The 54 removals:
+  * The four quotient and remainder externs are spelled `coq:`, the key the Rocq backend reads, so the term calls `Z.quot` and `Z.rem`.
+  * The five emulator-memory primitives become definitions whose body is the model's internal error. The model restates the library's declarations for Rocq alone.
+  * The fifteen uncalled declarations are deleted for every target.
+  * `vtr_mnemonic` gains its parsing direction for every target, so both of its names leave.
+  * The four host hooks get Rocq-target bodies.
+  * The sixteen half-width operations become Rocq-target internal-error definitions.
+  * The eight single- and double-width comparisons route through Sail's float library.
+* **Quotient and remainder evaluation.** With Rocq 9.3.0 `vm_compute` ([`QuotRem.v`](retained-evidence/root/build/lane-q35f-axioms-20261002/q35f/quotrem/QuotRem.v)), `Z.quot` and `Z.rem` meet the prelude's round-toward-zero contract on:
+  * all 2,024 pairs of 46 signed dividends and 44 nonzero divisors, covering zero and ±1 divisors and the 8- to 65-bit boundaries;
+  * the most negative 64- and 32-bit dividends over ±1;
+  * every sign quadrant.
+
+  `Z.div` and `Z.modulo`, as a negative control, fail the contract.
+* **Host hooks.** The term models the machine and not its host:
+  * tracing is off, and an input entry and a terminal byte have no effect;
+  * the persistence answer is the monad's own choice on each call.
+
+  [The record](../assurance/canonical-machine-term.md) compares this statement by statement with the emulator. Every answer sequence the emulator's adapter gives, bound or unbound, is one the term admits, and machine state is otherwise equal on the block-device and terminal paths.
+* **Comparisons.** `float_fflags` reverses the float library's five-bit flag order, and the Rocq term binds each comparison to the library's through it, while the emulator keeps SoftFloat 3e. Over the [stated population](../../tools/oracle-specs/fpcompare.json), every ordered pair of 30 special values per width plus 25,000 drawn pairs per comparison, the Sail side and a SoftFloat 3e driver linked against the model's own `softfloat` target write byte-identical files. That is 207,200 vectors, 3,513 of them raising the invalid flag. The agreement is finite evidence over that population and not a proof.
+* **Mutation runs over the comparison path.**
+
+  | Scope | Mutants | Killed | Survived | Stillborn |
+  | --- | --- | --- | --- | --- |
+  | The adapter | 15 | 1 | 3 | 11 |
+  | The library's comparison path | 53 | 28 | 6 | 19 |
+
+  The adapter's survivors move flag bits no comparison raises. Four of the library's survivors sit in width arms and predicates no comparison reaches, and two are equivalent rewrites ([adapter journal](retained-evidence/root/build/lane-q35f-axioms-20261002/seed/sail-fpcompare.journal), [library journal](retained-evidence/root/build/lane-q35f-axioms-20261002/seed/sail-fpcomparelib.journal)).
+* **No shipped composition enables `Zvfh` or `Zvfhmin`.** The primary, V and RoT compositions each set both false. Only the emulator's default template, `config.json.in`, sets them true.
+* **Model behavioural checks.** Both candidates pass `sail-assist typecheck`. Every non-Rocq change is behind `$iftarget rocq`, deletes an uncalled declaration, or adds a definition that is consistent with its existing forward direction. The model build, CTest including `$[test]`, the corpus and `bundle --check` are Guest CI's model and RTL lanes at the published revision, which were pending at landing. The tracked model bundle is regenerated, and `check --fix` regenerated the encoder table, whose `vsetvl` sites moved four lines.
+* **Retained evidence.** The [receipt](retained-evidence/root/build/lane-q35f-axioms-20261002/verifiedos-model/rocq/receipt.json), SHA-256 `f50c72d6…`, binds `rv64d.v` `65db6f87…` (3,807,006 bytes) and `rv64d_types.v` `d63859df…`, unchanged from Q35b, at `04c35541`.
+* Six findings.
+  * **Guarding the library's emulator-memory file for Rocq is not enough on its own.** Sail typechecks the library's emulator implementation of the memory outcomes for every target, and that implementation calls the primitives. So the model restates the declarations for Rocq under `$sail_internal`, as internal-error definitions. Closed at the item. F-732.
+  * **The half-width arms cannot be guarded, so their sixteen names leave the axiom list but not the term.** `$iftarget` works only between top-level definitions, and deleting the arms would remove `Zvfh` and `Zvfhmin` from the emulator's default template. Standing: the term carries them as internal-error definitions behind guards no shipped composition opens. F-733.
+  * **The term's persistence choice over-approximates the emulator.** It admits a `true` after a `false`, and a `false` with no host failure, so any property needing a block command to complete `DONE` needs an assumption on the choice. Standing: Q35c's breakdown reads it. F-734.
+  * **No CI runs `run.py model rocq` or the comparison differential.** The binding, the 31-axiom list and the SoftFloat agreement are lane evidence, not standing gates. Open: a hosted lane runs the emission and holds the term's digest and axiom list to the record. F-735.
+  * **Q35b's record named a stale profile digest.** `verifiedos.json` was reformatted between Q35b's base and this one without moving the term. Closed at the item: the record states both digests. F-736.
+  * **F-479 is fixed in this model only.** Upstream `sail-riscv` still spells the `rocq:` keys, which Sail 0.20.3's Rocq backend does not read. Standing: no upstream report is taken. F-737.
+* Calibration: 1.4 h agent-parallel actual against the 18 h estimate, range 11–25, class I, from 83 min of agent-session wall-clock on 2026-10-03 UTC. Integration review and hosted validation fall outside it.
+* Landed: Tier A. The item takes a new modelling decision, F-485's. The integrator's read covers:
+  * every model diff against the cell's **Owns** list;
+  * the half-width and emulator-memory definitions against the compositions that reach them;
+  * the flag adapter's bit order;
+  * the host-hook decision against the record's comparison;
+  * the emission command's refusals and documentation;
+  * the findings against the register.
+
+  No checker rule was added, and nothing in the checker holds the term's axiom list (F-735). `test_model_rocq`, `test_oracle` and `test_retained_evidence` hold the command, the differential's specification and the retained copies.
+
 ### Q36 · Upgrade the proof switch to Rocq 9.3.0
 
 The proof switch is `verifiedos-rocq-9.3.0-ocaml-5.4.1`, and [rocq.lock](../../tools/opam/rocq.lock) was exported from it. Every reading below was taken on 2026-09-29 from base `6a06a87d` in the lane `q36-rocq93-20260929`, in the WSL guest (`aarch64` Ubuntu, 12 logical CPUs, opam 2.5.0), against opam metadata refreshed that day after [ocaml/opam-repository#30776](https://github.com/ocaml/opam-repository/pull/30776) had added `rocq-core` and `rocq-runtime` 9.3.0 to the default repository. The 9.2.0 switch stays in the guest for checkouts on the earlier lock.

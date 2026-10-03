@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 961 of them across 155 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 967 of them across 156 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -979,15 +979,15 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-478** owed-act: the model's `generated_rocq_rv64d` target emits at the configuration CMake generates rather than the frozen profile, 19 of 254 configuration leaves differing, so its term describes another machine
 · Raised: Q35b
-· Disposition: open, Q35f binding the target to the primary composition's configuration, consumers citing the frozen-profile identity until then
+· Disposition: closed at Q35f, whose target reads the primary composition's configuration and whose `run.py model rocq` refuses another
 
 **F-479** upstream-defect: the vendored prelude's four integer quotient and remainder declarations carry `rocq:` extern keys that the Rocq backend of Sail 0.20.2 and 0.20.3 does not read, so each is emitted as an axiom
 · Raised: Q35b
-· Disposition: open, Q35f spelling the keys `coq:`, which a measured emission shows removing all four, and checking `Z.quot` and `Z.rem` against the prelude's round-toward-zero contract
+· Disposition: closed at Q35f, which spells the keys `coq:` and checks `Z.quot` and `Z.rem` against the prelude's round-toward-zero contract by Rocq evaluation
 
 **F-480** owed-act: 31 floating-point operations the adopted instructions call have no definition at the pinned toolchain and are irremovable without a new IEEE 754 semantics, the eight called comparisons joining them if their SoftFloat agreement fails
 · Raised: Q35b
-· Disposition: open, a review-gate act under R-05-164 admitting them by name or commissioning a semantics with its agreement to SoftFloat 3e shown
+· Disposition: open, a review-gate act under R-05-164 admitting them by name or commissioning a semantics with its agreement to SoftFloat 3e shown; after Q35f these 31 are the term's whole axiom list
 
 **F-481** upstream-defect: `rocq-sail-stdpp` 0.20.2 and 0.20.3 require Stdlib's Reals and `Eqdep` in the modules the canonical term loads, loading five Stdlib axioms the term does not use, outside R-05-164's empty declared set
 · Raised: Q35b
@@ -1007,7 +1007,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-485** owed-act: four called host-interface hooks, the block-device trace, input and persistence and the terminal write, are uninterpreted monadic axioms in the term, and removing them needs a decision on how the term models the host
 · Raised: Q35b
-· Disposition: open, Q35f taking the decision and comparing it with the emulator's observable behaviour, Q35c's breakdown reading what the logic observes
+· Disposition: closed at Q35f, whose term models the machine and not its host and whose record compares that with the emulator statement by statement; Q35c's breakdown reads what the logic observes
 
 **F-486** upstream-defect: `rocqchk` 9.2.0 raises an "Incompatible resolver roots" anomaly checking VST 2.17's `VST.floyd.SeparationLogicAsLogicSoundness`, which every Verifiable C client loads, so the gate reads no summary for any Floyd client over either CompCert route
 · Raised: Q35e
@@ -1048,6 +1048,30 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-495** owed-act: every source-level foundation's theorem is about an input an unverified front end produced, over a C semantics the contained compiler does not consume, and no relation connects that input to the compartment-annotated, capability-widened Clight the contained compiler parses from the same C
 · Raised: Q35e
 · Disposition: open, Q35j and the review gate's F-464 act
+
+**F-732** upstream-defect: Sail typechecks its library's emulator implementation of the memory outcomes for every target, so guarding the library's emulator-memory file for Rocq leaves its primitives' callers unresolved
+· Raised: Q35f
+· Disposition: closed at the item, the model restating the declarations for Rocq as internal-error definitions
+
+**F-733** measurement: the half-width arms cannot be guarded by target, so the sixteen half-width names leave the canonical term's axiom list but stay in the term as internal-error definitions
+· Raised: Q35f
+· Disposition: standing, behind guards no shipped composition opens
+
+**F-734** measurement: the canonical term's block-device persistence choice over-approximates the emulator, so a property needing a command to complete needs an assumption on the choice
+· Raised: Q35f
+· Disposition: standing, Q35c's breakdown reading it
+
+**F-735** owed-act: no CI runs `run.py model rocq` or the float comparison differential, so the canonical term's binding, axiom list and SoftFloat agreement are lane evidence rather than standing gates
+· Raised: Q35f
+· Disposition: open, a hosted lane running the emission and holding the term's digest and axiom list to the record
+
+**F-736** measurement: Q35b's canonical-term record named a profile digest the profile's reformatting had moved without moving the term
+· Raised: Q35f
+· Disposition: closed at the item, the record stating both digests
+
+**F-737** upstream-defect: upstream sail-riscv still spells the prelude's quotient and remainder externs under the `rocq:` key, which Sail 0.20.3's Rocq backend does not read
+· Raised: Q35f
+· Disposition: standing, the model spelling them `coq:` and no upstream report taken
 
 **F-496** owed-act: every project switch recipe creates its switch empty and imports its lock, and `opam switch import` records no switch invariant, so a provisioned switch's `opam switch export` omits the lock's `compiler:` section and a lock re-exported from it would drop that section
 · Raised: Q36

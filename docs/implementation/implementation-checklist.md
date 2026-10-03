@@ -401,19 +401,19 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,216.5 |
-| Total estimate range h | 2,695.9–5,737.1 |
-| Completed scope h | 760.5 |
-| Complete by estimate % | 18.0 |
-| Remaining h | 3,456 |
-| Open class I h | 721 |
+| Total estimate midpoint h | 4,199.9 |
+| Total estimate range h | 2,686.3–5,713.5 |
+| Completed scope h | 761.9 |
+| Complete by estimate % | 18.1 |
+| Remaining h | 3,438 |
+| Open class I h | 703 |
 | Open class X h | 2,735 |
 | Retained completion estimate h | 164.5 |
 | Unmeasured completed items | 20 |
-| Calibrated total h | 5,156.1 |
+| Calibrated total h | 5,144.7 |
 | Committed M8a open h | 94.5 |
 | Committed M8b open h | 90.5 |
-| Other committed open h | 2,045.5 |
+| Other committed open h | 2,027.5 |
 | Conditional open h | 811.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1045,14 +1045,14 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
       The target emits at the configuration CMake generates, not at the frozen profile (F-478). The model-side removals, with that binding, are accepted as Q35f and the support library's as Q35g at this partial landing. The opam guide returns the library to the proof switch only once a release admits Rocq 9.3, and none does (F-483). Three things therefore stay owed: the compile at the locked prover with [the opam guide's](../../tools/opam/README.md) library, the exact assumption closure as the gate reads it, and the compiled size.
     * Nine findings.
       * **The emitted term fixes its composition's configuration, hart identity included, so the frozen profile's compositions emit different terms.** The canonical term is the primary composition's hart 0; the V composition at hart 6 and the root-of-trust composition at hart 15 emit terms of their own, and R-05-019b's one term does not say whether it admits one term per composition. Open: a register question at the review gate; the record identifies the primary composition's term only. F-477.
-      * **The target emits the term at the configuration CMake generates, not at the frozen profile.** Its term differs from the frozen profile's in 19 of 254 configuration leaves, so it describes another machine. Open: Q35f binds the target to the primary composition's configuration, and until then consumers cite the frozen-profile identity. F-478.
-      * **The Rocq backend of Sail 0.20.2 and 0.20.3 does not read the prelude's `rocq:` extern keys.** The four integer quotient and remainder declarations are emitted as axioms as a result, and all four leave when the keys are spelled `coq:`. Open: Q35f. F-479.
-      * **31 floating-point operations the adopted instructions call are irremovable at the pinned toolchain.** The single- and double-width arithmetic, fused multiply-add, square root and conversions the model binds to SoftFloat 3e, and the bfloat16 conversion the register adopts, have no definition there. The eight called comparisons join them by name if their SoftFloat agreement fails; the sixteen half-width names leave with the arms `Zvfh` and `Zvfhmin` guard, and the nine uncalled conversions and roundings by deletion. Open: a review-gate act under R-05-164, either admitting them by name or commissioning a semantics with its agreement to SoftFloat 3e shown. F-480.
+      * **The target emits the term at the configuration CMake generates, not at the frozen profile.** Its term differs from the frozen profile's in 19 of 254 configuration leaves, so it describes another machine. Closed at Q35f, whose target reads the primary composition's configuration and whose `run.py model rocq` refuses another. F-478.
+      * **The Rocq backend of Sail 0.20.2 and 0.20.3 does not read the prelude's `rocq:` extern keys.** The four integer quotient and remainder declarations are emitted as axioms as a result, and all four leave when the keys are spelled `coq:`. Closed at Q35f, which spells them so. F-479.
+      * **31 floating-point operations the adopted instructions call are irremovable at the pinned toolchain.** The single- and double-width arithmetic, fused multiply-add, square root and conversions the model binds to SoftFloat 3e, and the bfloat16 conversion the register adopts, have no definition there. Q35f routes the eight called comparisons through Sail's float library on a checked agreement with SoftFloat 3e, gives the sixteen half-width names internal-error bodies in the term and deletes the nine uncalled conversions and roundings, so these 31 are the term's whole axiom list. Open: a review-gate act under R-05-164, either admitting them by name or commissioning a semantics with its agreement to SoftFloat 3e shown. F-480.
       * **The support library loads five Stdlib axioms the emitted term does not use.** `rocq-sail-stdpp` 0.20.2 and 0.20.3 require Stdlib's Reals and `Eqdep` in the modules the term loads, outside R-05-164's empty declared set. Open: Q35g, or else a review-gate act under R-05-164. F-481.
       * **The tracked model bundle's MD5 map omits eleven of the 132 sources the model's project lists.** K-88's host half and the Sail context tool read that map, so they cannot see an edit to those eleven; the guest half's byte comparison can. Open: K-88's owner states the residue or closes it. F-482.
       * **No `rocq-sail-stdpp` release admits Rocq 9.3.** 0.20.3, tagged on 2026-09-24 and published in `rocq-released` on 2026-09-28, joined 0.20.2 with the same published `rocq-core` bound, which its source's own opam file does not carry, and pairs with Sail 0.20.3, locked since Q37, so neither installs beside the locked Rocq 9.3.0. Standing: this is the blocking input of this cell's owed compile, and the opam guide records both releases. (Corrected 2026-09-30: this bullet first dated the publication by the tag; [rocq-prover/opam#3872](https://github.com/rocq-prover/opam/pull/3872) merged the package into `rocq-released` on 2026-09-28.) F-483.
       * **Most of the emitted interactive proofs open without `Proof`.** `rv64d_types.v` has 587 `Qed.` and 322 `Defined.` lines against 23 `Proof` lines, and `rv64d.v` closes two with `Defined.` and opens none with `Proof`. Rocq 9.3 reports the omission by default, and the gate's settings make it an error. Open: the owed compile reads them at the locked Rocq 9.3.0. F-484.
-      * **Removing the four called host hooks needs a decision on how the term models the host.** The block-device trace, input and persistence hooks and the terminal write are uninterpreted monadic axioms in the term. Open: Q35f takes the decision and compares it with the emulator's observable behaviour, and Q35c's breakdown reads what the logic observes. F-485.
+      * **Removing the four called host hooks needs a decision on how the term models the host.** The block-device trace, input and persistence hooks and the terminal write are uninterpreted monadic axioms in the term. Closed at Q35f, whose term models the machine and not its host and whose record compares that decision with the emulator statement by statement; Q35c's breakdown reads what the logic observes. F-485.
   * [ ] **Q35c · State the logic route's reviewed breakdown** · 16 h, range 9–23 · X
     * This cell owns the proof map's U-22, whose range moves here and is not counted twice.
     * **Dispatch. Start:** Q35b's term and identity, R-13-016, R-13-017, R-05-020, the Cerise and Katamaran pins and [the foundation map's](../hardware/cheri-foundation-map.md#foundation-ownership-ledger) `machine-logic` key. **Owns:** Islaris's source and licence reading, its pin and locked-prover build or failure, the required Isla interface and an assumption audit on the selected example; the Iris instance and version; R-13-016's Katamaran route with its μSail agreement theorem, any direct-over-term alternative requiring a register amendment; per theory the Start, Owns, Check and Join with a range or `unpriced`; and, as separately proposed cells each with a range or `unpriced`, the first unary-safety increment with its adequacy constants and the `byte-instance` read, write, bounded-advance and memory-frame laws Q35d's two functions need. Accepting those proposals as cells is an owner act at this item's landing. **Check:** the Islaris receipt names source identity, terms, build result, example and assumption closure; each theory names its first checkable increment and consumer; no establishment figure is stated where none is defensible. **Join:** Q2b's machine-connection comparison, which reads the same lineages; Q2c's re-entry package; the establishment cells the breakdown proposes; Q35d.
@@ -1067,9 +1067,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
     * **Estimate basis:** byte binding and entry states 1–2 h, Stage 0 2–4 h, contract statements with layout, capability and overflow premises 3–6 h, the first contract 4–10 h, the second with its invariant 4–12 h, refutations 1–3 h, the recompilation measurement 1–3 h. The range excludes Q35b, Q35c, the logic's establishment and every instruction rule and byte law, which are priced at their owners or `unpriced`, and credits no source reuse.
   * [x] **Q35e · Qualify a source-level C-refinement foundation at the locked prover** · 3.6 h actual · agent-parallel
     * No foundation passes the gate's kernel reading unchanged: the record proposes an R-05-164 amendment naming RefinedC's closure, refuses VST with Q35h to Q35j as its priced repairs, and refuses CN-to-Coq on its solver placeholder, without moving a register entry. ([note](completion-log.md#q35e-qualify-a-source-level-c-refinement-foundation-at-the-locked-prover))
-  * [ ] **Q35f · Remove the canonical term's model-side axioms and bind its target to the frozen profile** · 18 h, range 11–25 · I
-    * **Dispatch. Start:** Q35b's [canonical-term record](../assurance/canonical-machine-term.md) and its canonical identity, the [portable Sail workflow](../assurance/sail-assistance.md), F-478, F-479 and F-485, and for the comparisons the locked Sail's float library interface and SoftFloat 3e as the emulator links it. **Owns:** `generated_rocq_${arch}`'s `--config` bound to `model/config/verifiedos.json`, the primary composition's configuration; the four prelude quotient and remainder extern keys spelled for the locked backend's Rocq key; a Rocq-target guard around the Sail library's emulator-memory declarations (`read_mem_`, `read_mem_ifetch_`, `read_mem_exclusive_`, `write_mem_`, `write_mem_exclusive_`); the fifteen uncalled declarations deleted or guarded from the Rocq target, `__TraceMemoryWrite` and `__TraceMemoryRead` alternatively defined as no-ops; the half-width arms that only `Zvfh` and `Zvfhmin` reach deleted or guarded, taking the sixteen half-width floating-point names with them; `vtr_mnemonic_backwards` defined or guarded for the Rocq target; Rocq-target bodies for the four called host hooks, with F-485's modeling decision recorded; the eight called single- and double-width floating-point comparisons routed for the Rocq target through Sail's float library with a flag-order adapter, landing only on a checked agreement with SoftFloat 3e over the vector compare instructions and otherwise recorded under F-480 as irremovable; a `run.py` emission command that runs the model's own target, deletes stale outputs first and writes the generation-identity receipt, with behavioural tests; and the re-emitted identity and axiom list in Q35b's record. It owns neither the 31 irremovable floating-point axioms (F-480), the support library's five Stdlib axioms (Q35g) nor the compile and exact closure (Q35b). **Check:** the re-emitted term declares none of the removed names, compared by name with Q35b's list; the target's output digest equals the canonical command's at the primary composition; the model's existing behavioural checks pass unchanged under the Sail workflow, which shows only that the non-Rocq paths are unchanged; by Rocq evaluation, `Z.quot` and `Z.rem` meet the prelude's round-toward-zero contract over signed boundary inputs, including zero and ±1 divisors and the most negative dividend; the host hooks' modeling decision is compared, statement by statement, with the emulator's observable behaviour on the block-device and terminal paths; the comparisons' agreement is a checked differential over a stated input population, with stillborn, killed and survived mutants reported apart; no shipped composition enables `Zvfh` or `Zvfhmin`; and the emission command's tests cover a positive emission and its refusals, a missing or stale configuration and stale outputs the target's dependencies do not see. **Join:** Q35b's compile and closure, Q35d's Stage 0 stop condition, Q35c.
-    * **Estimate basis:** target binding 0.5–1 h, extern keys with the evaluation check 1–1.5 h, emulator-memory guard 1–2 h, uncalled declarations 0.5–1 h, half-width arms 1–2 h, mnemonic direction 0.5–1.5 h, host hooks with the decision and its comparison 1.5–3.5 h, emission command with tests 2–4 h, comparisons with adapter and agreement 2–6 h, re-emission, record and behavioural checks 1–2.5 h. The range credits no source reuse and excludes F-480's semantics and the support library's change.
+  * [x] **Q35f · Remove the canonical term's model-side axioms and bind its target to the frozen profile** · 1.4 h actual · agent-parallel
+    * The model's Rocq target emits at the frozen profile's primary composition through `run.py model rocq`, which writes the term's generation identity, and the 54 model-side axioms leave the term, the comparisons on a checked agreement with SoftFloat 3e, leaving F-480's 31 floating-point operations. ([note](completion-log.md#q35f-remove-the-canonical-terms-model-side-axioms-and-bind-its-target-to-the-frozen-profile))
   * [ ] **Q35g · Remove the support library's Stdlib axioms from the canonical term's closure** · 5.5 h, range 3–8 · X
     * **Dispatch. Start:** Q35b's record, its section 5, and F-481; `rocq-sail-stdpp`'s source at the release the opam guide returns to the proof switch; Sail's Rocq backend at the locked Sail. **Owns:** upstream changes proposed to `rems-project/coq-sail`: the `Rbase`, `Reals` and `ROrderedType` requires moved out of `Values`, `State_monad` and `Instances` into `Real`, and out of the concurrency-interface modules `ConcurrencyInterfaceTypes` and `ConcurrencyInterfaceBuiltins`; the real-valued choice in `Values` and the concurrency interface's `choose_real` and `undefined_real` made conditional on `Real`; and `Values`' use of `Eqdep.EqdepTheory.eq_dep_eq` replaced by `Eqdep_dec` over the decidable index type; the matching upstream change to Sail's Rocq backend, so that it emits `Require Import SailStdpp.Real` only for a model that uses reals; and a probe of the kind Q35b ran over the patched sources. It owns neither the upstream's acceptance and release timing, the opam guide's re-lock of the proof and Sail switches, nor any project carriage of a patched library, which is the guide's act. **Check:** the probe, compiled by the proof switch's `rocq` and checked by its `rocqchk -silent -o`, names none of the five, and a positive control loading one of them adds exactly that name; the canonical term compiles against the patched library once the guide's act admits it. **Join:** Q35b's closure, F-481's disposition, the opam guide.
     * **Estimate basis:** library patch 1–3 h, backend patch 1–2.5 h, probe with control 0.5–1.5 h, submission and record 0.5–1 h. The range excludes upstream review latency and the guide's re-lock.
@@ -1132,7 +1131,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,413 h · 57% · 170 h complete · open range 1,270–3,216 h.
+**Q subtotal:** 2,396.4 h · 57% · 171.4 h complete · open range 1,259–3,191 h.
 
 ### M0 · Hardware reference
 
@@ -1944,7 +1943,7 @@ Each task starts with a concrete witness and a refuted alternative, then extends
   * **No compatible combined reduction is qualified by the survey.** VERICA/FIVER and related tools provide external checker evidence; CAPA, M&M and CINI-class constructions have their own models and are not the selected countermeasure. The Coq theorem shape at CompCert's RTL level, recorded in [the fault lineage](../background/inspirations.md#the-masking-and-fault-countermeasure-lineage-dom-to-matchi-the-netlist-level-discharge-and-the-theorem-shapes-the-two-axioms-import), informs the detection side and supplies no complete proof of the combined case.
   * **The range prices the reduction over accepted premises.** Its case split still needs the actual R-16-008f detection theorem and countermeasure construction, whose full implementations are not costed by this cell. [The unassigned proof map](../assurance/unassigned-proof-map.md) prices the detection theorem's construction model as U-19 and records the countermeasure's authoring route as a register act outside its total; a source-level template or a conditional theorem cannot be counted as their implementation.
 
-**M8–M10 subtotal:** 231.9 h · 5% · 0.4 h complete · open range 134–329 h.
+**M8–M10 subtotal:** 231.9 h · 6% · 0.4 h complete · open range 134–329 h.
 
 ## Build-loop instruments
 
@@ -2023,10 +2022,10 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 | attended | X-read | 14 | 45.5 | 26.9 | 0.59 |
 | attended | X-authored | 3 | 18 | 25.5 | 1.42 |
 | attended | All | 63 | 323.9 | 238.4 | 0.74 |
-| agent-parallel | I | 39 | 317 | 128.4 | 0.41 |
+| agent-parallel | I | 40 | 335 | 129.8 | 0.39 |
 | agent-parallel | X-read | 10 | 101.5 | 34.7 | 0.34 |
 | agent-parallel | X-authored | 23 | 270.5 | 40.3 | 0.15 |
-| agent-parallel | All | 72 | 689 | 203.4 | 0.30 |
+| agent-parallel | All | 73 | 707 | 204.8 | 0.29 |
 <!-- calibration-results:end -->
 
 ### Calibration record
@@ -2195,6 +2194,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q34a | I | 12 |
 | Q35a | n/a | n/a |
 | Q35e | X-read | 14 |
+| Q35f | I | 18 |
 | Q38a | I | 3 |
 | Q38b | I | 5 |
 | Q38c | I | 8 |
