@@ -24,6 +24,10 @@ from tests.test_proofaudit import KERNEL_CLEAN
 from vos import proofaudit, proofenv, receipts
 from vos.cli import proofs as gate
 
+# The compiler's reading of sealed fields: each queried name's Print Assumptions entries,
+# empty where the name is closed under the global context.
+Reading = dict[str, list[str]]
+
 
 def _incremental_run() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-proof-cache-") as temporary:
@@ -813,7 +817,6 @@ def _the_compilers_reading_covers_checked_sealed_fields() -> None:
     hidden, admitted, genuine = "Lib.App.hidden : False", "Lib.Admitted.x_le", "Lib.genuine"
     sealed = "Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.testbit_odd_0"
     summary = _kernel_summary
-    Reading = dict[str, list[str]]
     # Each worker's axioms, the compiler's readings (a string is a fault), the names a
     # refusal must carry, the names it must not, and the names covered by the reading.
     samples: tuple[tuple[tuple[str, ...], Reading | str, tuple[str, ...], tuple[str, ...],
