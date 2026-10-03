@@ -109,6 +109,39 @@ val riscv_f64Le = pure {cpp: "softfloat_f64le", lem: "softfloat_f64_le"} : (bits
 val riscv_f64Eq = pure {cpp: "softfloat_f64eq", lem: "softfloat_f64_eq"} : (bits_D, bits_D) -> (bits_fflags, bool)
 
 // ***************************************************************
+// COMPARISONS THROUGH SAIL'S FLOAT LIBRARY
+//
+// Sail's own float library, which the prelude includes, defines the single-
+// and double-width comparisons over bit vectors. It returns the result first
+// and orders its five exception flags inexact, underflow, overflow, divide by
+// zero, invalid from bit 4 down to bit 0, where this interface returns the
+// flags first in the opposite order, invalid at bit 4 (nvFlag). `float_fflags`
+// reverses the five bits, and each comparison below is the library's with
+// that adapter. The Rocq term binds the eight comparisons above to these; the
+// emulator keeps SoftFloat 3e, and tools/oracle-specs/fpcompare.json states
+// the population the two were compared over.
+
+val float_fflags : fp_exception_flags -> bits_fflags
+function float_fflags(f) = f[0 .. 0] @ f[1 .. 1] @ f[2 .. 2] @ f[3 .. 3] @ f[4 .. 4]
+
+val float_f32Lt : (bits_S, bits_S) -> (bits_fflags, bool)
+function float_f32Lt(a, b) = { let (r, f) = float_is_lt(a, b); (float_fflags(f), r) }
+val float_f32Lt_quiet : (bits_S, bits_S) -> (bits_fflags, bool)
+function float_f32Lt_quiet(a, b) = { let (r, f) = float_is_lt_quiet(a, b); (float_fflags(f), r) }
+val float_f32Le : (bits_S, bits_S) -> (bits_fflags, bool)
+function float_f32Le(a, b) = { let (r, f) = float_is_le(a, b); (float_fflags(f), r) }
+val float_f32Eq : (bits_S, bits_S) -> (bits_fflags, bool)
+function float_f32Eq(a, b) = { let (r, f) = float_is_eq(a, b); (float_fflags(f), r) }
+val float_f64Lt : (bits_D, bits_D) -> (bits_fflags, bool)
+function float_f64Lt(a, b) = { let (r, f) = float_is_lt(a, b); (float_fflags(f), r) }
+val float_f64Lt_quiet : (bits_D, bits_D) -> (bits_fflags, bool)
+function float_f64Lt_quiet(a, b) = { let (r, f) = float_is_lt_quiet(a, b); (float_fflags(f), r) }
+val float_f64Le : (bits_D, bits_D) -> (bits_fflags, bool)
+function float_f64Le(a, b) = { let (r, f) = float_is_le(a, b); (float_fflags(f), r) }
+val float_f64Eq : (bits_D, bits_D) -> (bits_fflags, bool)
+function float_f64Eq(a, b) = { let (r, f) = float_is_eq(a, b); (float_fflags(f), r) }
+
+// ***************************************************************
 // HALF WIDTH IN THE ROCQ TERM
 //
 // Every call of a half-width operation sits in an element-width-16 arm, or a

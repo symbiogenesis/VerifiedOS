@@ -1,0 +1,1036 @@
+{
+  "name": "fpcompare",
+  "what": "the eight single- and double-width comparisons the vector compare, min and max instructions call, routed through Sail's float library with the flag-order adapter, as the model's own answers",
+  "answers": "Q35f: the Rocq term's comparisons, held line by line to SoftFloat 3e as the emulator links and calls it",
+  "sources": [
+    "model/model/prelude/prelude.sail",
+    "model/model/prelude/errors.sail",
+    "model/model/core/softfloat_interface.sail"
+  ],
+  "probes": [
+    {
+      "kind": "slt",
+      "what": "f32 less than, signalling on any NaN, over every ordered pair of the table's zeros, subnormals, normals, infinities, quiet and signalling NaNs of both signs",
+      "params": [
+        {
+          "name": "a",
+          "width": 32,
+          "over": "table",
+          "rows": [
+            "0x00000000",
+            "0x80000000",
+            "0x00000001",
+            "0x80000001",
+            "0x00000002",
+            "0x007fffff",
+            "0x807fffff",
+            "0x00800000",
+            "0x80800000",
+            "0x3f000000",
+            "0x3f800000",
+            "0x3f800001",
+            "0xbf800000",
+            "0xbf800001",
+            "0x3fc00000",
+            "0xc0000000",
+            "0x40000000",
+            "0x7f7fffff",
+            "0xff7fffff",
+            "0x7f800000",
+            "0xff800000",
+            "0x7fc00000",
+            "0xffc00000",
+            "0x7fc00001",
+            "0x7fffffff",
+            "0x7f800001",
+            "0x7fbfffff",
+            "0xff800001",
+            "0xffbfffff",
+            "0x7fa00000"
+          ],
+          "show": "h8"
+        },
+        {
+          "name": "b",
+          "width": 32,
+          "over": "table",
+          "rows": [
+            "0x00000000",
+            "0x80000000",
+            "0x00000001",
+            "0x80000001",
+            "0x00000002",
+            "0x007fffff",
+            "0x807fffff",
+            "0x00800000",
+            "0x80800000",
+            "0x3f000000",
+            "0x3f800000",
+            "0x3f800001",
+            "0xbf800000",
+            "0xbf800001",
+            "0x3fc00000",
+            "0xc0000000",
+            "0x40000000",
+            "0x7f7fffff",
+            "0xff7fffff",
+            "0x7f800000",
+            "0xff800000",
+            "0x7fc00000",
+            "0xffc00000",
+            "0x7fc00001",
+            "0x7fffffff",
+            "0x7f800001",
+            "0x7fbfffff",
+            "0xff800001",
+            "0xffbfffff",
+            "0x7fa00000"
+          ],
+          "show": "h8"
+        }
+      ],
+      "body": [
+        "let (fl, r) = float_f32Lt(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "sltq",
+      "what": "f32 quiet less than, signalling on a signalling NaN, over every ordered pair of the table's zeros, subnormals, normals, infinities, quiet and signalling NaNs of both signs",
+      "params": [
+        {
+          "name": "a",
+          "width": 32,
+          "over": "table",
+          "rows": [
+            "0x00000000",
+            "0x80000000",
+            "0x00000001",
+            "0x80000001",
+            "0x00000002",
+            "0x007fffff",
+            "0x807fffff",
+            "0x00800000",
+            "0x80800000",
+            "0x3f000000",
+            "0x3f800000",
+            "0x3f800001",
+            "0xbf800000",
+            "0xbf800001",
+            "0x3fc00000",
+            "0xc0000000",
+            "0x40000000",
+            "0x7f7fffff",
+            "0xff7fffff",
+            "0x7f800000",
+            "0xff800000",
+            "0x7fc00000",
+            "0xffc00000",
+            "0x7fc00001",
+            "0x7fffffff",
+            "0x7f800001",
+            "0x7fbfffff",
+            "0xff800001",
+            "0xffbfffff",
+            "0x7fa00000"
+          ],
+          "show": "h8"
+        },
+        {
+          "name": "b",
+          "width": 32,
+          "over": "table",
+          "rows": [
+            "0x00000000",
+            "0x80000000",
+            "0x00000001",
+            "0x80000001",
+            "0x00000002",
+            "0x007fffff",
+            "0x807fffff",
+            "0x00800000",
+            "0x80800000",
+            "0x3f000000",
+            "0x3f800000",
+            "0x3f800001",
+            "0xbf800000",
+            "0xbf800001",
+            "0x3fc00000",
+            "0xc0000000",
+            "0x40000000",
+            "0x7f7fffff",
+            "0xff7fffff",
+            "0x7f800000",
+            "0xff800000",
+            "0x7fc00000",
+            "0xffc00000",
+            "0x7fc00001",
+            "0x7fffffff",
+            "0x7f800001",
+            "0x7fbfffff",
+            "0xff800001",
+            "0xffbfffff",
+            "0x7fa00000"
+          ],
+          "show": "h8"
+        }
+      ],
+      "body": [
+        "let (fl, r) = float_f32Lt_quiet(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "sle",
+      "what": "f32 less or equal, signalling on any NaN, over every ordered pair of the table's zeros, subnormals, normals, infinities, quiet and signalling NaNs of both signs",
+      "params": [
+        {
+          "name": "a",
+          "width": 32,
+          "over": "table",
+          "rows": [
+            "0x00000000",
+            "0x80000000",
+            "0x00000001",
+            "0x80000001",
+            "0x00000002",
+            "0x007fffff",
+            "0x807fffff",
+            "0x00800000",
+            "0x80800000",
+            "0x3f000000",
+            "0x3f800000",
+            "0x3f800001",
+            "0xbf800000",
+            "0xbf800001",
+            "0x3fc00000",
+            "0xc0000000",
+            "0x40000000",
+            "0x7f7fffff",
+            "0xff7fffff",
+            "0x7f800000",
+            "0xff800000",
+            "0x7fc00000",
+            "0xffc00000",
+            "0x7fc00001",
+            "0x7fffffff",
+            "0x7f800001",
+            "0x7fbfffff",
+            "0xff800001",
+            "0xffbfffff",
+            "0x7fa00000"
+          ],
+          "show": "h8"
+        },
+        {
+          "name": "b",
+          "width": 32,
+          "over": "table",
+          "rows": [
+            "0x00000000",
+            "0x80000000",
+            "0x00000001",
+            "0x80000001",
+            "0x00000002",
+            "0x007fffff",
+            "0x807fffff",
+            "0x00800000",
+            "0x80800000",
+            "0x3f000000",
+            "0x3f800000",
+            "0x3f800001",
+            "0xbf800000",
+            "0xbf800001",
+            "0x3fc00000",
+            "0xc0000000",
+            "0x40000000",
+            "0x7f7fffff",
+            "0xff7fffff",
+            "0x7f800000",
+            "0xff800000",
+            "0x7fc00000",
+            "0xffc00000",
+            "0x7fc00001",
+            "0x7fffffff",
+            "0x7f800001",
+            "0x7fbfffff",
+            "0xff800001",
+            "0xffbfffff",
+            "0x7fa00000"
+          ],
+          "show": "h8"
+        }
+      ],
+      "body": [
+        "let (fl, r) = float_f32Le(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "seq",
+      "what": "f32 equal, signalling on a signalling NaN, over every ordered pair of the table's zeros, subnormals, normals, infinities, quiet and signalling NaNs of both signs",
+      "params": [
+        {
+          "name": "a",
+          "width": 32,
+          "over": "table",
+          "rows": [
+            "0x00000000",
+            "0x80000000",
+            "0x00000001",
+            "0x80000001",
+            "0x00000002",
+            "0x007fffff",
+            "0x807fffff",
+            "0x00800000",
+            "0x80800000",
+            "0x3f000000",
+            "0x3f800000",
+            "0x3f800001",
+            "0xbf800000",
+            "0xbf800001",
+            "0x3fc00000",
+            "0xc0000000",
+            "0x40000000",
+            "0x7f7fffff",
+            "0xff7fffff",
+            "0x7f800000",
+            "0xff800000",
+            "0x7fc00000",
+            "0xffc00000",
+            "0x7fc00001",
+            "0x7fffffff",
+            "0x7f800001",
+            "0x7fbfffff",
+            "0xff800001",
+            "0xffbfffff",
+            "0x7fa00000"
+          ],
+          "show": "h8"
+        },
+        {
+          "name": "b",
+          "width": 32,
+          "over": "table",
+          "rows": [
+            "0x00000000",
+            "0x80000000",
+            "0x00000001",
+            "0x80000001",
+            "0x00000002",
+            "0x007fffff",
+            "0x807fffff",
+            "0x00800000",
+            "0x80800000",
+            "0x3f000000",
+            "0x3f800000",
+            "0x3f800001",
+            "0xbf800000",
+            "0xbf800001",
+            "0x3fc00000",
+            "0xc0000000",
+            "0x40000000",
+            "0x7f7fffff",
+            "0xff7fffff",
+            "0x7f800000",
+            "0xff800000",
+            "0x7fc00000",
+            "0xffc00000",
+            "0x7fc00001",
+            "0x7fffffff",
+            "0x7f800001",
+            "0x7fbfffff",
+            "0xff800001",
+            "0xffbfffff",
+            "0x7fa00000"
+          ],
+          "show": "h8"
+        }
+      ],
+      "body": [
+        "let (fl, r) = float_f32Eq(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "dlt",
+      "what": "f64 less than, signalling on any NaN, over every ordered pair of the table's zeros, subnormals, normals, infinities, quiet and signalling NaNs of both signs",
+      "params": [
+        {
+          "name": "a",
+          "width": 64,
+          "over": "table",
+          "rows": [
+            "0x0000000000000000",
+            "0x8000000000000000",
+            "0x0000000000000001",
+            "0x8000000000000001",
+            "0x0000000000000002",
+            "0x000fffffffffffff",
+            "0x800fffffffffffff",
+            "0x0010000000000000",
+            "0x8010000000000000",
+            "0x3fe0000000000000",
+            "0x3ff0000000000000",
+            "0x3ff0000000000001",
+            "0xbff0000000000000",
+            "0xbff0000000000001",
+            "0x3ff8000000000000",
+            "0xc000000000000000",
+            "0x4000000000000000",
+            "0x7fefffffffffffff",
+            "0xffefffffffffffff",
+            "0x7ff0000000000000",
+            "0xfff0000000000000",
+            "0x7ff8000000000000",
+            "0xfff8000000000000",
+            "0x7ff8000000000001",
+            "0x7fffffffffffffff",
+            "0x7ff0000000000001",
+            "0x7ff7ffffffffffff",
+            "0xfff0000000000001",
+            "0xfff7ffffffffffff",
+            "0x7ff4000000000000"
+          ],
+          "show": "h16"
+        },
+        {
+          "name": "b",
+          "width": 64,
+          "over": "table",
+          "rows": [
+            "0x0000000000000000",
+            "0x8000000000000000",
+            "0x0000000000000001",
+            "0x8000000000000001",
+            "0x0000000000000002",
+            "0x000fffffffffffff",
+            "0x800fffffffffffff",
+            "0x0010000000000000",
+            "0x8010000000000000",
+            "0x3fe0000000000000",
+            "0x3ff0000000000000",
+            "0x3ff0000000000001",
+            "0xbff0000000000000",
+            "0xbff0000000000001",
+            "0x3ff8000000000000",
+            "0xc000000000000000",
+            "0x4000000000000000",
+            "0x7fefffffffffffff",
+            "0xffefffffffffffff",
+            "0x7ff0000000000000",
+            "0xfff0000000000000",
+            "0x7ff8000000000000",
+            "0xfff8000000000000",
+            "0x7ff8000000000001",
+            "0x7fffffffffffffff",
+            "0x7ff0000000000001",
+            "0x7ff7ffffffffffff",
+            "0xfff0000000000001",
+            "0xfff7ffffffffffff",
+            "0x7ff4000000000000"
+          ],
+          "show": "h16"
+        }
+      ],
+      "body": [
+        "let (fl, r) = float_f64Lt(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "dltq",
+      "what": "f64 quiet less than, signalling on a signalling NaN, over every ordered pair of the table's zeros, subnormals, normals, infinities, quiet and signalling NaNs of both signs",
+      "params": [
+        {
+          "name": "a",
+          "width": 64,
+          "over": "table",
+          "rows": [
+            "0x0000000000000000",
+            "0x8000000000000000",
+            "0x0000000000000001",
+            "0x8000000000000001",
+            "0x0000000000000002",
+            "0x000fffffffffffff",
+            "0x800fffffffffffff",
+            "0x0010000000000000",
+            "0x8010000000000000",
+            "0x3fe0000000000000",
+            "0x3ff0000000000000",
+            "0x3ff0000000000001",
+            "0xbff0000000000000",
+            "0xbff0000000000001",
+            "0x3ff8000000000000",
+            "0xc000000000000000",
+            "0x4000000000000000",
+            "0x7fefffffffffffff",
+            "0xffefffffffffffff",
+            "0x7ff0000000000000",
+            "0xfff0000000000000",
+            "0x7ff8000000000000",
+            "0xfff8000000000000",
+            "0x7ff8000000000001",
+            "0x7fffffffffffffff",
+            "0x7ff0000000000001",
+            "0x7ff7ffffffffffff",
+            "0xfff0000000000001",
+            "0xfff7ffffffffffff",
+            "0x7ff4000000000000"
+          ],
+          "show": "h16"
+        },
+        {
+          "name": "b",
+          "width": 64,
+          "over": "table",
+          "rows": [
+            "0x0000000000000000",
+            "0x8000000000000000",
+            "0x0000000000000001",
+            "0x8000000000000001",
+            "0x0000000000000002",
+            "0x000fffffffffffff",
+            "0x800fffffffffffff",
+            "0x0010000000000000",
+            "0x8010000000000000",
+            "0x3fe0000000000000",
+            "0x3ff0000000000000",
+            "0x3ff0000000000001",
+            "0xbff0000000000000",
+            "0xbff0000000000001",
+            "0x3ff8000000000000",
+            "0xc000000000000000",
+            "0x4000000000000000",
+            "0x7fefffffffffffff",
+            "0xffefffffffffffff",
+            "0x7ff0000000000000",
+            "0xfff0000000000000",
+            "0x7ff8000000000000",
+            "0xfff8000000000000",
+            "0x7ff8000000000001",
+            "0x7fffffffffffffff",
+            "0x7ff0000000000001",
+            "0x7ff7ffffffffffff",
+            "0xfff0000000000001",
+            "0xfff7ffffffffffff",
+            "0x7ff4000000000000"
+          ],
+          "show": "h16"
+        }
+      ],
+      "body": [
+        "let (fl, r) = float_f64Lt_quiet(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "dle",
+      "what": "f64 less or equal, signalling on any NaN, over every ordered pair of the table's zeros, subnormals, normals, infinities, quiet and signalling NaNs of both signs",
+      "params": [
+        {
+          "name": "a",
+          "width": 64,
+          "over": "table",
+          "rows": [
+            "0x0000000000000000",
+            "0x8000000000000000",
+            "0x0000000000000001",
+            "0x8000000000000001",
+            "0x0000000000000002",
+            "0x000fffffffffffff",
+            "0x800fffffffffffff",
+            "0x0010000000000000",
+            "0x8010000000000000",
+            "0x3fe0000000000000",
+            "0x3ff0000000000000",
+            "0x3ff0000000000001",
+            "0xbff0000000000000",
+            "0xbff0000000000001",
+            "0x3ff8000000000000",
+            "0xc000000000000000",
+            "0x4000000000000000",
+            "0x7fefffffffffffff",
+            "0xffefffffffffffff",
+            "0x7ff0000000000000",
+            "0xfff0000000000000",
+            "0x7ff8000000000000",
+            "0xfff8000000000000",
+            "0x7ff8000000000001",
+            "0x7fffffffffffffff",
+            "0x7ff0000000000001",
+            "0x7ff7ffffffffffff",
+            "0xfff0000000000001",
+            "0xfff7ffffffffffff",
+            "0x7ff4000000000000"
+          ],
+          "show": "h16"
+        },
+        {
+          "name": "b",
+          "width": 64,
+          "over": "table",
+          "rows": [
+            "0x0000000000000000",
+            "0x8000000000000000",
+            "0x0000000000000001",
+            "0x8000000000000001",
+            "0x0000000000000002",
+            "0x000fffffffffffff",
+            "0x800fffffffffffff",
+            "0x0010000000000000",
+            "0x8010000000000000",
+            "0x3fe0000000000000",
+            "0x3ff0000000000000",
+            "0x3ff0000000000001",
+            "0xbff0000000000000",
+            "0xbff0000000000001",
+            "0x3ff8000000000000",
+            "0xc000000000000000",
+            "0x4000000000000000",
+            "0x7fefffffffffffff",
+            "0xffefffffffffffff",
+            "0x7ff0000000000000",
+            "0xfff0000000000000",
+            "0x7ff8000000000000",
+            "0xfff8000000000000",
+            "0x7ff8000000000001",
+            "0x7fffffffffffffff",
+            "0x7ff0000000000001",
+            "0x7ff7ffffffffffff",
+            "0xfff0000000000001",
+            "0xfff7ffffffffffff",
+            "0x7ff4000000000000"
+          ],
+          "show": "h16"
+        }
+      ],
+      "body": [
+        "let (fl, r) = float_f64Le(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "deq",
+      "what": "f64 equal, signalling on a signalling NaN, over every ordered pair of the table's zeros, subnormals, normals, infinities, quiet and signalling NaNs of both signs",
+      "params": [
+        {
+          "name": "a",
+          "width": 64,
+          "over": "table",
+          "rows": [
+            "0x0000000000000000",
+            "0x8000000000000000",
+            "0x0000000000000001",
+            "0x8000000000000001",
+            "0x0000000000000002",
+            "0x000fffffffffffff",
+            "0x800fffffffffffff",
+            "0x0010000000000000",
+            "0x8010000000000000",
+            "0x3fe0000000000000",
+            "0x3ff0000000000000",
+            "0x3ff0000000000001",
+            "0xbff0000000000000",
+            "0xbff0000000000001",
+            "0x3ff8000000000000",
+            "0xc000000000000000",
+            "0x4000000000000000",
+            "0x7fefffffffffffff",
+            "0xffefffffffffffff",
+            "0x7ff0000000000000",
+            "0xfff0000000000000",
+            "0x7ff8000000000000",
+            "0xfff8000000000000",
+            "0x7ff8000000000001",
+            "0x7fffffffffffffff",
+            "0x7ff0000000000001",
+            "0x7ff7ffffffffffff",
+            "0xfff0000000000001",
+            "0xfff7ffffffffffff",
+            "0x7ff4000000000000"
+          ],
+          "show": "h16"
+        },
+        {
+          "name": "b",
+          "width": 64,
+          "over": "table",
+          "rows": [
+            "0x0000000000000000",
+            "0x8000000000000000",
+            "0x0000000000000001",
+            "0x8000000000000001",
+            "0x0000000000000002",
+            "0x000fffffffffffff",
+            "0x800fffffffffffff",
+            "0x0010000000000000",
+            "0x8010000000000000",
+            "0x3fe0000000000000",
+            "0x3ff0000000000000",
+            "0x3ff0000000000001",
+            "0xbff0000000000000",
+            "0xbff0000000000001",
+            "0x3ff8000000000000",
+            "0xc000000000000000",
+            "0x4000000000000000",
+            "0x7fefffffffffffff",
+            "0xffefffffffffffff",
+            "0x7ff0000000000000",
+            "0xfff0000000000000",
+            "0x7ff8000000000000",
+            "0xfff8000000000000",
+            "0x7ff8000000000001",
+            "0x7fffffffffffffff",
+            "0x7ff0000000000001",
+            "0x7ff7ffffffffffff",
+            "0xfff0000000000001",
+            "0xfff7ffffffffffff",
+            "0x7ff4000000000000"
+          ],
+          "show": "h16"
+        }
+      ],
+      "body": [
+        "let (fl, r) = float_f64Eq(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "rslt",
+      "what": "f32 less than, signalling on any NaN, over drawn bit patterns",
+      "params": [
+        {
+          "name": "a",
+          "width": 32,
+          "over": "draw",
+          "show": "h8"
+        },
+        {
+          "name": "b",
+          "width": 32,
+          "over": "draw",
+          "show": "h8"
+        }
+      ],
+      "repeat": 25000,
+      "seed": "0x0a5c3f19d",
+      "body": [
+        "let (fl, r) = float_f32Lt(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "rsltq",
+      "what": "f32 quiet less than, signalling on a signalling NaN, over drawn bit patterns",
+      "params": [
+        {
+          "name": "a",
+          "width": 32,
+          "over": "draw",
+          "show": "h8"
+        },
+        {
+          "name": "b",
+          "width": 32,
+          "over": "draw",
+          "show": "h8"
+        }
+      ],
+      "repeat": 25000,
+      "seed": "0x0c0ffee12",
+      "body": [
+        "let (fl, r) = float_f32Lt_quiet(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "rsle",
+      "what": "f32 less or equal, signalling on any NaN, over drawn bit patterns",
+      "params": [
+        {
+          "name": "a",
+          "width": 32,
+          "over": "draw",
+          "show": "h8"
+        },
+        {
+          "name": "b",
+          "width": 32,
+          "over": "draw",
+          "show": "h8"
+        }
+      ],
+      "repeat": 25000,
+      "seed": "0x013579bdf",
+      "body": [
+        "let (fl, r) = float_f32Le(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "rseq",
+      "what": "f32 equal, signalling on a signalling NaN, over drawn bit patterns",
+      "params": [
+        {
+          "name": "a",
+          "width": 32,
+          "over": "draw",
+          "show": "h8"
+        },
+        {
+          "name": "b",
+          "width": 32,
+          "over": "draw",
+          "show": "h8"
+        }
+      ],
+      "repeat": 25000,
+      "seed": "0x02468ace1",
+      "body": [
+        "let (fl, r) = float_f32Eq(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "rdlt",
+      "what": "f64 less than, signalling on any NaN, over drawn bit patterns",
+      "params": [
+        {
+          "name": "a",
+          "width": 64,
+          "over": "draw",
+          "show": "h16"
+        },
+        {
+          "name": "b",
+          "width": 64,
+          "over": "draw",
+          "show": "h16"
+        }
+      ],
+      "repeat": 25000,
+      "seed": "0x0deadbe05",
+      "body": [
+        "let (fl, r) = float_f64Lt(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "rdltq",
+      "what": "f64 quiet less than, signalling on a signalling NaN, over drawn bit patterns",
+      "params": [
+        {
+          "name": "a",
+          "width": 64,
+          "over": "draw",
+          "show": "h16"
+        },
+        {
+          "name": "b",
+          "width": 64,
+          "over": "draw",
+          "show": "h16"
+        }
+      ],
+      "repeat": 25000,
+      "seed": "0x0f00dfac3",
+      "body": [
+        "let (fl, r) = float_f64Lt_quiet(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "rdle",
+      "what": "f64 less or equal, signalling on any NaN, over drawn bit patterns",
+      "params": [
+        {
+          "name": "a",
+          "width": 64,
+          "over": "draw",
+          "show": "h16"
+        },
+        {
+          "name": "b",
+          "width": 64,
+          "over": "draw",
+          "show": "h16"
+        }
+      ],
+      "repeat": 25000,
+      "seed": "0x0badc0de7",
+      "body": [
+        "let (fl, r) = float_f64Le(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    },
+    {
+      "kind": "rdeq",
+      "what": "f64 equal, signalling on a signalling NaN, over drawn bit patterns",
+      "params": [
+        {
+          "name": "a",
+          "width": 64,
+          "over": "draw",
+          "show": "h16"
+        },
+        {
+          "name": "b",
+          "width": 64,
+          "over": "draw",
+          "show": "h16"
+        }
+      ],
+      "repeat": 25000,
+      "seed": "0x05eed1e55",
+      "body": [
+        "let (fl, r) = float_f64Eq(a, b)"
+      ],
+      "shows": [
+        {
+          "expr": "fl",
+          "show": "h2"
+        },
+        {
+          "expr": "r",
+          "show": "b1"
+        }
+      ]
+    }
+  ]
+}
