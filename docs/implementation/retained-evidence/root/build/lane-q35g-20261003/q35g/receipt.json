@@ -1,0 +1,794 @@
+{
+ "backend_probe": {
+  "altmodules_argument": "--rocq-alt-modules \"SailStdpp.Base SailStdpp.ConcurrencyInterfaceTypes SailStdpp.ConcurrencyInterface SailStdpp.ConcurrencyInterfaceBuiltins\"",
+  "checks": {
+   "altmodules-patched/cinoreal": {
+    "axioms": [
+     "out.read_mem_",
+     "out.read_mem_exclusive_",
+     "out.read_mem_ifetch_",
+     "out.write_mem_",
+     "out.write_mem_exclusive_"
+    ],
+    "exit": 0
+   },
+   "installed-pristine/cinoreal": {
+    "axioms": [
+     "Stdlib.Logic.Classical_Prop.classic",
+     "Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq",
+     "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep",
+     "Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec",
+     "Stdlib.Reals.ClassicalDedekindReals.sig_not_dec",
+     "out.read_mem_",
+     "out.read_mem_exclusive_",
+     "out.read_mem_ifetch_",
+     "out.write_mem_",
+     "out.write_mem_exclusive_"
+    ],
+    "exit": 0
+   },
+   "patched-patched/cinoreal": {
+    "axioms": [
+     "out.read_mem_",
+     "out.read_mem_exclusive_",
+     "out.read_mem_ifetch_",
+     "out.write_mem_",
+     "out.write_mem_exclusive_"
+    ],
+    "exit": 0
+   },
+   "patched-patched/cireal": {
+    "axioms": [
+     "Stdlib.Logic.Classical_Prop.classic",
+     "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep",
+     "Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec",
+     "Stdlib.Reals.ClassicalDedekindReals.sig_not_dec",
+     "out.read_mem_",
+     "out.read_mem_exclusive_",
+     "out.read_mem_ifetch_",
+     "out.write_mem_",
+     "out.write_mem_exclusive_"
+    ],
+    "exit": 0
+   },
+   "patched-patched/noreal": {
+    "axioms": [
+     "<none>"
+    ],
+    "exit": 0
+   },
+   "patched-patched/realtyped": {
+    "axioms": [
+     "Stdlib.Logic.Classical_Prop.classic",
+     "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep",
+     "Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec",
+     "Stdlib.Reals.ClassicalDedekindReals.sig_not_dec"
+    ],
+    "exit": 0
+   }
+  },
+  "compiles": {
+   "altmodules/cinoreal against patched": 0,
+   "installed/cinoreal against patched": 0,
+   "installed/cinoreal against pristine": 0,
+   "installed/cireal against patched": 0,
+   "installed/cireal against pristine": 0,
+   "installed/noreal against patched": 0,
+   "installed/noreal against pristine": 0,
+   "installed/realinternal against patched": 0,
+   "installed/realinternal against pristine": 0,
+   "installed/realtyped against patched": 0,
+   "installed/realtyped against pristine": 0,
+   "patched/cinoreal against patched": 0,
+   "patched/cireal against patched": 0,
+   "patched/noreal against patched": 0,
+   "patched/realinternal against patched": 0,
+   "patched/realtyped against patched": 0
+  },
+  "emissions": {
+   "altmodules/cinoreal": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.ConcurrencyInterfaceTypes.",
+     "Require Import SailStdpp.ConcurrencyInterface.",
+     "Require Import SailStdpp.ConcurrencyInterfaceBuiltins.",
+     "Require Import out_types."
+    ]
+   },
+   "installed/cinoreal": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.Real.",
+     "Require Import SailStdpp.ConcurrencyInterfaceTypes.",
+     "Require Import SailStdpp.ConcurrencyInterface.",
+     "Require Import SailStdpp.ConcurrencyInterfaceBuiltins.",
+     "Require Import out_types."
+    ]
+   },
+   "installed/cireal": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.Real.",
+     "Require Import SailStdpp.ConcurrencyInterfaceTypes.",
+     "Require Import SailStdpp.ConcurrencyInterface.",
+     "Require Import SailStdpp.ConcurrencyInterfaceBuiltins.",
+     "Require Import out_types."
+    ]
+   },
+   "installed/noreal": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.Real.",
+     "Require Import out_types."
+    ]
+   },
+   "installed/realinternal": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.Real.",
+     "Require Import out_types."
+    ]
+   },
+   "installed/realtyped": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.Real.",
+     "Require Import out_types."
+    ]
+   },
+   "patched/cinoreal": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.ConcurrencyInterfaceTypes.",
+     "Require Import SailStdpp.ConcurrencyInterface.",
+     "Require Import SailStdpp.ConcurrencyInterfaceBuiltins.",
+     "Require Import out_types."
+    ]
+   },
+   "patched/cireal": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.Real.",
+     "Require Import SailStdpp.ConcurrencyInterfaceTypes.",
+     "Require Import SailStdpp.ConcurrencyInterface.",
+     "Require Import SailStdpp.ConcurrencyInterfaceBuiltins.",
+     "Require Import out_types."
+    ]
+   },
+   "patched/noreal": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import out_types."
+    ]
+   },
+   "patched/realinternal": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.Real.",
+     "Require Import out_types."
+    ]
+   },
+   "patched/realtyped": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.Real.",
+     "Require Import out_types."
+    ]
+   },
+   "pristine/cinoreal": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.Real.",
+     "Require Import SailStdpp.ConcurrencyInterfaceTypes.",
+     "Require Import SailStdpp.ConcurrencyInterface.",
+     "Require Import SailStdpp.ConcurrencyInterfaceBuiltins.",
+     "Require Import out_types."
+    ]
+   },
+   "pristine/cireal": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.Real.",
+     "Require Import SailStdpp.ConcurrencyInterfaceTypes.",
+     "Require Import SailStdpp.ConcurrencyInterface.",
+     "Require Import SailStdpp.ConcurrencyInterfaceBuiltins.",
+     "Require Import out_types."
+    ]
+   },
+   "pristine/noreal": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.Real.",
+     "Require Import out_types."
+    ]
+   },
+   "pristine/realinternal": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.Real.",
+     "Require Import out_types."
+    ]
+   },
+   "pristine/realtyped": {
+    "exit": 0,
+    "requires": [
+     "Require Import SailStdpp.Base.",
+     "Require Import SailStdpp.Real.",
+     "Require Import out_types."
+    ]
+   }
+  },
+  "emit_command": "sail --rocq --rocq-undef-axioms --strict-bitvector --rocq-output-dir <dir> -o out <model>.sail",
+  "models": [
+   {
+    "path": "/root/build/lane-q35g-20261003/models/cinoreal.sail",
+    "sha256": "4f10934e905dda580adfdf65956673a0fef5d63d648e3a48c4ba3689cce03b4e"
+   },
+   {
+    "path": "/root/build/lane-q35g-20261003/models/cireal.sail",
+    "sha256": "f25762ea2ab0b045ace4f16146dd81506132d480b10434ad58892f820f67f170"
+   },
+   {
+    "path": "/root/build/lane-q35g-20261003/models/noreal.sail",
+    "sha256": "b94e35e5b972c6ce77e901a72d2418fb1cbff4b271d1f726e9f1a3702b4e9599"
+   },
+   {
+    "path": "/root/build/lane-q35g-20261003/models/realinternal.sail",
+    "sha256": "7613584a187010c82636e4696ec0fcac0c052ca12f8736fe4cb335295711ca4f"
+   },
+   {
+    "path": "/root/build/lane-q35g-20261003/models/realtyped.sail",
+    "sha256": "9593f483552db7d4e9431821b92916bf8f1d46c7b7da1645061bda5530e8e2b7"
+   }
+  ],
+  "plugins": {
+   "built": "dune build of src/sail_coq_backend at tag 0.20.3 against the Sail switch's installed libsail; loaded with SAIL_PLUGIN_DIR",
+   "installed": "the Sail switch's own",
+   "patched": {
+    "path": "/root/build/lane-q35g-20261003/plugins-patched/sail_plugin_coq.cmxs",
+    "sha256": "1b1b318c76143285eb8b3ec9cd17570c9f697e5bbc9251b75cf6306d0ac8078a"
+   },
+   "pristine": {
+    "path": "/root/build/lane-q35g-20261003/plugins-pristine/sail_plugin_coq.cmxs",
+    "sha256": "67934e7834b2f3fa53388635159e5ce308ea562418e75ddffbdffd47810b046b"
+   }
+  }
+ },
+ "base": "6ccda872371a3774ca6683218ee2b6a373d82dce",
+ "date_utc": "2026-10-03",
+ "item": "Q35g",
+ "lane": "q35g-20261003",
+ "library_compile_command": "rocq c -q -Q <stdpp-bitvector> stdpp.bitvector -R <src-stdpp> SailStdpp <module>.v, in rocq dep order",
+ "library_compiles": {
+  "patched": [
+   {
+    "exit": 0,
+    "module": "MachineWordInterface.v",
+    "seconds": 0.4
+   },
+   {
+    "exit": 0,
+    "module": "Inhabited.v",
+    "seconds": 0.6
+   },
+   {
+    "exit": 0,
+    "module": "TypeCasts.v",
+    "seconds": 0.7
+   },
+   {
+    "exit": 0,
+    "module": "MachineWord.v",
+    "seconds": 2.0
+   },
+   {
+    "exit": 0,
+    "module": "Values.v",
+    "seconds": 3.6
+   },
+   {
+    "exit": 0,
+    "module": "Instances.v",
+    "seconds": 2.5
+   },
+   {
+    "exit": 0,
+    "module": "Instr_kinds.v",
+    "seconds": 1.4
+   },
+   {
+    "exit": 0,
+    "module": "Prompt_monad.v",
+    "seconds": 1.9
+   },
+   {
+    "exit": 0,
+    "module": "String.v",
+    "seconds": 1.8
+   },
+   {
+    "exit": 0,
+    "module": "Prompt.v",
+    "seconds": 2.2
+   },
+   {
+    "exit": 0,
+    "module": "Operators_mwords.v",
+    "seconds": 2.3
+   },
+   {
+    "exit": 0,
+    "module": "State_monad.v",
+    "seconds": 0.8
+   },
+   {
+    "exit": 0,
+    "module": "State.v",
+    "seconds": 0.7
+   },
+   {
+    "exit": 0,
+    "module": "Undefined.v",
+    "seconds": 0.6
+   },
+   {
+    "exit": 0,
+    "module": "Base.v",
+    "seconds": 0.7
+   },
+   {
+    "exit": 0,
+    "module": "GenericValue.v",
+    "seconds": 1.0
+   },
+   {
+    "exit": 0,
+    "module": "ConcurrencyInterfaceTypes.v",
+    "seconds": 0.9
+   },
+   {
+    "exit": 0,
+    "module": "ConcurrencyInterface.v",
+    "seconds": 0.7
+   },
+   {
+    "exit": 0,
+    "module": "ConcurrencyInterfaceBuiltins.v",
+    "seconds": 0.8
+   },
+   {
+    "exit": 0,
+    "module": "ConcurrencyInterfaceTypesV2.v",
+    "seconds": 0.6
+   },
+   {
+    "exit": 0,
+    "module": "ConcurrencyInterfaceV2.v",
+    "seconds": 0.9
+   },
+   {
+    "exit": 0,
+    "module": "ConcurrencyInterfaceBuiltinsV2.v",
+    "seconds": 0.8
+   },
+   {
+    "exit": 0,
+    "module": "State_lifting.v",
+    "seconds": 0.9
+   },
+   {
+    "exit": 0,
+    "module": "State_monad_lemmas.v",
+    "seconds": 5.6
+   },
+   {
+    "exit": 0,
+    "module": "State_lemmas.v",
+    "seconds": 11.1
+   },
+   {
+    "exit": 0,
+    "module": "Hoare.v",
+    "seconds": 1.1
+   },
+   {
+    "exit": 0,
+    "module": "Impl_base.v",
+    "seconds": 0.2
+   },
+   {
+    "exit": 0,
+    "module": "MachineWordTest.v",
+    "seconds": 0.7
+   },
+   {
+    "exit": 0,
+    "module": "Real.v",
+    "seconds": 0.7
+   },
+   {
+    "exit": 0,
+    "module": "Values_lemmas.v",
+    "seconds": 0.6
+   }
+  ],
+  "pristine": [
+   {
+    "exit": 0,
+    "module": "MachineWordInterface.v",
+    "seconds": 0.9
+   },
+   {
+    "exit": 0,
+    "module": "Inhabited.v",
+    "seconds": 0.6
+   },
+   {
+    "exit": 0,
+    "module": "TypeCasts.v",
+    "seconds": 0.5
+   },
+   {
+    "exit": 0,
+    "module": "MachineWord.v",
+    "seconds": 0.9
+   },
+   {
+    "exit": 0,
+    "module": "Values.v",
+    "seconds": 0.9
+   },
+   {
+    "exit": 0,
+    "module": "Instances.v",
+    "seconds": 0.7
+   },
+   {
+    "exit": 0,
+    "module": "Instr_kinds.v",
+    "seconds": 0.4
+   },
+   {
+    "exit": 0,
+    "module": "Prompt_monad.v",
+    "seconds": 0.7
+   },
+   {
+    "exit": 0,
+    "module": "String.v",
+    "seconds": 0.6
+   },
+   {
+    "exit": 0,
+    "module": "Prompt.v",
+    "seconds": 0.7
+   },
+   {
+    "exit": 0,
+    "module": "Operators_mwords.v",
+    "seconds": 0.8
+   },
+   {
+    "exit": 0,
+    "module": "State_monad.v",
+    "seconds": 0.7
+   },
+   {
+    "exit": 0,
+    "module": "State.v",
+    "seconds": 0.7
+   },
+   {
+    "exit": 0,
+    "module": "Undefined.v",
+    "seconds": 0.6
+   },
+   {
+    "exit": 0,
+    "module": "Base.v",
+    "seconds": 0.6
+   },
+   {
+    "exit": 0,
+    "module": "GenericValue.v",
+    "seconds": 0.8
+   },
+   {
+    "exit": 0,
+    "module": "Real.v",
+    "seconds": 0.6
+   },
+   {
+    "exit": 0,
+    "module": "ConcurrencyInterfaceTypes.v",
+    "seconds": 0.9
+   },
+   {
+    "exit": 0,
+    "module": "ConcurrencyInterface.v",
+    "seconds": 0.8
+   },
+   {
+    "exit": 0,
+    "module": "ConcurrencyInterfaceBuiltins.v",
+    "seconds": 0.8
+   },
+   {
+    "exit": 0,
+    "module": "ConcurrencyInterfaceTypesV2.v",
+    "seconds": 0.9
+   },
+   {
+    "exit": 0,
+    "module": "ConcurrencyInterfaceV2.v",
+    "seconds": 1.8
+   },
+   {
+    "exit": 0,
+    "module": "ConcurrencyInterfaceBuiltinsV2.v",
+    "seconds": 0.9
+   },
+   {
+    "exit": 0,
+    "module": "State_lifting.v",
+    "seconds": 0.9
+   },
+   {
+    "exit": 0,
+    "module": "State_monad_lemmas.v",
+    "seconds": 2.7
+   },
+   {
+    "exit": 0,
+    "module": "State_lemmas.v",
+    "seconds": 4.5
+   },
+   {
+    "exit": 0,
+    "module": "Hoare.v",
+    "seconds": 1.0
+   },
+   {
+    "exit": 0,
+    "module": "Impl_base.v",
+    "seconds": 0.1
+   },
+   {
+    "exit": 0,
+    "module": "MachineWordTest.v",
+    "seconds": 0.7
+   },
+   {
+    "exit": 0,
+    "module": "Values_lemmas.v",
+    "seconds": 0.6
+   }
+  ]
+ },
+ "library_source": {
+  "LICENSE_sha256": "9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0",
+  "equals_tag_tree": true,
+  "sha256": "1a0e226608ac84add6cd1f61a11637ea9db5e00e1551b2070945310078c9e031",
+  "sha512": "6fed1bb47425339bd0353a81a703dcbb2addf31cc7fe0f059d8891d13c7e110d5e304571b44060660285cfa322d9e351595bc2a7321296aed5255cc8d3bad0a5",
+  "stdpp_bitvector": [
+   {
+    "path": "/root/build/lane-q35g-20261003/stdpp-bitvector/bitvector.v",
+    "sha256": "27156687d4e18170af74351deeb3805ccc7b9dd1da8cb652d7a7d390d8b0ceb7"
+   },
+   {
+    "path": "/root/build/lane-q35g-20261003/stdpp-bitvector/definitions.v",
+    "sha256": "2fb3e429545c82fc342b258fa8158ef22d2c6dea1db60bab98d608f9b5b7a76e"
+   },
+   {
+    "path": "/root/build/lane-q35g-20261003/stdpp-bitvector/tactics.v",
+    "sha256": "8080bff5d18c305aef857400940dcf1afd335f98237c4cedf03ec03496a42695"
+   }
+  ],
+  "stdpp_bitvector_origin": "rocq-stdpp 1.13.0 source in the proof switch's opam source cache, compiled in the lane",
+  "url": "https://github.com/rems-project/coq-sail/archive/refs/tags/0.20.3.tar.gz"
+ },
+ "patches": {
+  "backend": {
+   "against": "sail master c795c25b; applies to tag 0.20.3",
+   "path": "/root/build/lane-q35g-20261003/q35g/sail-rocq-real-import.patch",
+   "sha256": "f53587160f4227f7fdf78140b88a1751dcfee38ec53f647314c270873e855dc1"
+  },
+  "library": {
+   "against": "coq-sail main e7b914cd = tag 0.20.3",
+   "path": "/root/build/lane-q35g-20261003/q35g/coq-sail-reals-eqdep.patch",
+   "sha256": "a74749c56f38127371cb748de26ffcc1d1f0bf65bbcbb8ab1d0e9c278ba202a5"
+  },
+  "retained": "not tracked: BSD-2-Clause-derived diffs, which the licensing map gives no tracked path"
+ },
+ "probe_command": {
+  "check": "rocqchk -silent -o -Q <stdpp-bitvector> stdpp.bitvector -R <src-stdpp> SailStdpp -Q <probe-dir> \"\" <probe>",
+  "compile": "rocq c -q -Q <stdpp-bitvector> stdpp.bitvector -R <src-stdpp> SailStdpp -Q <probe-dir> \"\" <probe>.v"
+ },
+ "probes": [
+  {
+   "axioms": [],
+   "check_exit": 0,
+   "check_log": {
+    "path": "/root/build/lane-q35g-20261003/probe/patched/TermProbe.check.log",
+    "sha256": "9b1c00b3a98ee85f5d7f26c5a1e3fedac7161051ba2e95236602c898836be0f6"
+   },
+   "check_max_rss_kb": 1358424,
+   "check_wall": "0:32.81",
+   "compile_exit": 0,
+   "library": "patched",
+   "source": {
+    "path": "/root/build/lane-q35g-20261003/probe/src/TermProbe.v",
+    "sha256": "e7bf603e829d0dfcccfc551b5e49da549043bb140efcd355e226530a532deacf"
+   }
+  },
+  {
+   "axioms": [
+    "Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq"
+   ],
+   "check_exit": 0,
+   "check_log": {
+    "path": "/root/build/lane-q35g-20261003/probe/patched/ControlEqdep.check.log",
+    "sha256": "96f89dcf23c62e274198f31527b01d04c6b71de172cac2375fed1864a7feb693"
+   },
+   "check_max_rss_kb": 1396240,
+   "check_wall": "0:54.47",
+   "compile_exit": 0,
+   "library": "patched",
+   "source": {
+    "path": "/root/build/lane-q35g-20261003/probe/src/ControlEqdep.v",
+    "sha256": "fd9af747547f7c4ed849923e73b6b979681ae4968e5bfbb9a20561d59c3d4003"
+   }
+  },
+  {
+   "axioms": [
+    "Stdlib.Logic.Classical_Prop.classic",
+    "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep",
+    "Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec",
+    "Stdlib.Reals.ClassicalDedekindReals.sig_not_dec"
+   ],
+   "check_exit": 0,
+   "check_log": {
+    "path": "/root/build/lane-q35g-20261003/probe/patched/TermProbeWithReal.check.log",
+    "sha256": "17800d4d98ba945615cbeb0b32a5d24637662a61f3c3564a21bb55f9ba367b89"
+   },
+   "check_max_rss_kb": 1668756,
+   "check_wall": "1:03.64",
+   "compile_exit": 0,
+   "library": "patched",
+   "source": {
+    "path": "/root/build/lane-q35g-20261003/probe/src/TermProbeWithReal.v",
+    "sha256": "fe3aa97b968ed5c3e674c8a12f42902d8c847502737d354f284d68b518e06776"
+   }
+  },
+  {
+   "axioms": [],
+   "check_exit": 0,
+   "check_log": {
+    "path": "/root/build/lane-q35g-20261003/probe/patched/ControlCReal.check.log",
+    "sha256": "34525e3ae068715c3cd2e29c69ad4d9d7a0c70161f99d49b1b4cb0a3b4e60cda"
+   },
+   "check_max_rss_kb": 1004272,
+   "check_wall": "0:42.32",
+   "compile_exit": 0,
+   "library": "patched",
+   "source": {
+    "path": "/root/build/lane-q35g-20261003/probe/src/ControlCReal.v",
+    "sha256": "ed7d98859bd6eaa171c06e4af6e4ffe2f7e176b38989d8a719cbef31f5b11e9b"
+   }
+  },
+  {
+   "axioms": [
+    "Stdlib.Logic.Classical_Prop.classic",
+    "Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq",
+    "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep",
+    "Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec",
+    "Stdlib.Reals.ClassicalDedekindReals.sig_not_dec"
+   ],
+   "check_exit": 0,
+   "check_log": {
+    "path": "/root/build/lane-q35g-20261003/probe/pristine/TermProbeWithReal.check.log",
+    "sha256": "24d83003f0dba11cc0c11dc997484b92a3cbda250ad8da78f75a6a75c2d18fc9"
+   },
+   "check_max_rss_kb": 1546084,
+   "check_wall": "1:11.69",
+   "compile_exit": 0,
+   "library": "pristine",
+   "source": {
+    "path": "/root/build/lane-q35g-20261003/probe/src/TermProbeWithReal.v",
+    "sha256": "fe3aa97b968ed5c3e674c8a12f42902d8c847502737d354f284d68b518e06776"
+   }
+  },
+  {
+   "axioms": [
+    "Stdlib.Logic.Classical_Prop.classic",
+    "Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq",
+    "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep",
+    "Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec",
+    "Stdlib.Reals.ClassicalDedekindReals.sig_not_dec"
+   ],
+   "check_exit": 0,
+   "check_log": {
+    "path": "/root/build/lane-q35g-20261003/probe/pristine/TermProbe.check.log",
+    "sha256": "24d83003f0dba11cc0c11dc997484b92a3cbda250ad8da78f75a6a75c2d18fc9"
+   },
+   "check_max_rss_kb": 1414880,
+   "check_wall": "0:30.20",
+   "compile_exit": 0,
+   "library": "pristine",
+   "source": {
+    "path": "/root/build/lane-q35g-20261003/probe/src/TermProbe.v",
+    "sha256": "e7bf603e829d0dfcccfc551b5e49da549043bb140efcd355e226530a532deacf"
+   }
+  }
+ ],
+ "schema": "q35g-lane-receipt-1",
+ "toolchain": {
+  "rocq": {
+   "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+   "sha256": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+   "version": "The Rocq Prover, version 9.3.0"
+  },
+  "rocqchk": {
+   "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocqchk",
+   "sha256": "46aae2e2a655bec07928a94df91b028bf1eeb899b2df8d8e277d942e57ff5412",
+   "version": "The Rocq Proof Checker, version 9.3.0"
+  },
+  "sail": {
+   "installed_rocq_plugin_sha256": "244227b1a3bcf9329d9feeb34a4c0d90d6d950a140c1495660c7c4a340d418a4",
+   "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail",
+   "sha256": "547f755c390610304fc5ebd87e9cf53cbef9b79311f5c44b88f0768b88c36826"
+  },
+  "switch": "verifiedos-rocq-9.3.0-ocaml-5.4.1, used by path, nothing installed"
+ },
+ "upstream_readings": {
+  "coq_sail": {
+   "issues_and_pull_requests": 13,
+   "main": "e7b914cddc032e3676eebd87a808229828013e9c",
+   "main_date": "2026-09-24T15:58:18+01:00",
+   "read": "2026-10-03",
+   "repository": "https://github.com/rems-project/coq-sail",
+   "tag_0.20.3": "e7b914cddc032e3676eebd87a808229828013e9c"
+  },
+  "opam_repository": {
+   "master": "31d6bdf1e7c3683d43b5dbd00bfe3159f9ae0fad",
+   "master_date": "2026-10-03T14:20:43Z",
+   "read": "2026-10-03",
+   "repository": "https://github.com/ocaml/opam-repository",
+   "rocq-sail-stdpp": []
+  },
+  "rocq_released": {
+   "master": "33acf34b6ae9a57a63d75b9381df258b2cc80e0f",
+   "master_date": "2026-10-02T07:28:19Z",
+   "read": "2026-10-03",
+   "repository": "https://github.com/rocq-prover/opam",
+   "rocq-core_bound": ">= 9.0 & < 9.3~",
+   "rocq-sail-stdpp": [
+    "0.20.2",
+    "0.20.3"
+   ]
+  },
+  "sail": {
+   "commits_after_0.20.3": 43,
+   "master": "c795c25b4c0bbb8ea6b7aacc71c2b400f8d49cdd",
+   "master_date": "2026-10-03T15:18:56+01:00",
+   "read": "2026-10-03",
+   "repository": "https://github.com/rems-project/sail",
+   "tag_0.20.3": "3df54034910b31a1e00d948ee965b2e9603d68e0"
+  }
+ }
+}
