@@ -238,7 +238,7 @@ The results, which [`/root/build/lane-q35g-20261003/final-emit.txt`](../implemen
 - The changed plugin drops `Require Import SailStdpp.Real.` from both files of the two models without reals and changes nothing else. The three models with reals emit byte for byte as before.
 - `--rocq-alt-modules` with the switch's own Sail emits the concurrency-interface model without reals byte for byte as the changed plugin does.
 - Every emission compiles against the changed library, and the switch's emissions against the release too.
-- With the changed library, `rocqchk -silent -o` names only the five emulator-memory axioms for the concurrency-interface model without reals; Sail's library declares them, and the canonical model guards them out since Q35f. It names none for the plain model without reals, and exactly the four real-number axioms for each of the two models with reals that it checked. With the release, the first model's summary names the five Stdlib axioms as well.
+- With the changed library, `rocqchk -silent -o` names only the five emulator-memory axioms for the concurrency-interface model without reals; Sail's library declares them, and the canonical model guards them out since Q35f. It names none for the plain model without reals. For each of the two models with reals that it checked it names exactly the four real-number Stdlib axioms, and for the concurrency-interface one the same five emulator-memory axioms beside them. With the release, the first model's summary names the five Stdlib axioms as well.
 
 An earlier version of the declarations model held a real-typed register and compiled with neither library nor plugin: the backend's register encoding requires `Countable` for each register type, and `R` has no instance (F-NEW-3).
 
