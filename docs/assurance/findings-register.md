@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 947 of them across 153 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 953 of them across 154 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -3381,6 +3381,30 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-398** owed-act: the differential corpus calls an `I` record a retired instruction and `order` a count of retires, where the emulator writes one record per traced step, a trapping step and the interrupt-taking step included
 · Raised: M7.1, in prose
 · Disposition: open, the corpus contract's trace-record wording is repaired; the boot harness already counts `I` records rather than retirements
+
+**F-718** owed-act: the boot signature campaign's receipts record no per-case timeout and the join's shared keys omit it, so a join would accept interfaces run under different timeouts
+· Raised: M7.1f
+· Disposition: open, each interface receipt records its timeout and instruction limit and the join holds both shared
+
+**F-719** measurement: hosted boot signature case runtimes vary by runner by up to 1.56 times over one staged manifest, the longest case reaching 55% of the 9,000 s case timeout
+· Raised: M7.1f
+· Disposition: standing, only run 36954830093's receipts are retained
+
+**F-720** measurement: identical model source maps built different simulators across hosted boot signature runs, while the interfaces within each run agree
+· Raised: M7.1f
+· Disposition: standing, each receipt binds its simulator and build-receipt digests
+
+**F-721** owed-act: the hosted campaign executed the ML-DSA interfaces on the RoT composition, while their consumer is the M-mode stage on the main die
+· Raised: M7.1f
+· Disposition: open, M3.5b's separately signed stage executes them there
+
+**F-722** owed-act: no record holds M3.5b's release-target unit to the staged manifest's verifier identities, and the hosted campaign exercises the internal SLH-DSA verifier rather than the boot callback
+· Raised: M7.1f
+· Disposition: open, the parallel producer boundary's identity freeze with M3.5b
+
+**F-723** owed-act: the boot-handoff contract's open joins still read the target signature-verifier binding as unbuilt and its run as fixture-only after M3.5b's release-target campaign bound it
+· Raised: M7.1f
+· Disposition: open, M3.5b's owner restates that bullet
 
 ## RTL track
 

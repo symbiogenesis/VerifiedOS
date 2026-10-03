@@ -107,9 +107,11 @@ the full campaign rechecks its positive and corrupted signatures against
 OpenSSL and, for ML-DSA, Gallina when selected.
 
 The qualified vector/oracle campaign is separate from Host CI and
-Guest CI. Host execution and comparison are functional evidence. Target
-lowering, firmware execution on the RoT composition, binary refinement,
-constant-time and masking claims remain open under M7.1f and its joins.
+Guest CI. Host execution and comparison are functional evidence; the
+[hosted target campaign](#hosted-target-campaign) supplies target execution
+evidence for the staged streams. Firmware execution on the RoT composition,
+binary refinement, constant-time and masking claims remain open under M7.1f's
+joins.
 
 ## Staged target streams
 
