@@ -6,9 +6,9 @@ shape and carries none of its content, so nothing of the upstream enters the che
 Each directory holds one behaviour: the trigger, the controls that differ from it by
 one construct and check, a `run.sh` that compiles every file with a named switch's
 `rocq c` and checks it with that switch's `rocqchk -silent -o`, and a README stating
-the expected result per file and release. The record that reads the results lives
-under `docs/assurance/`, indexed by [the document index](../../docs/README.md), and
-cites the files here.
+the expected result per file and release, and its `run.sh` exits 1 when a result differs
+from that statement, which marks a new measurement. The record that reads the results
+lives under `docs/assurance/` and cites the files here.
 
 These files are not proof artifacts. The proof gate compiles only `proofs/`; the
 citation, ledger and header rules (K-103, K-105, K-109) read the shipped proof set
