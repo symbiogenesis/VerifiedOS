@@ -59,9 +59,9 @@ MUTANTS = {"runtime-stall": "stall", "runtime-early-pet": "early-pet"}
 # below-floor variant and the stage-2 kernel image.
 IMAGE_NAMES = ("stage0", "mmode-a", "mmode-b", "mmode-recovery", "mmode-a-below-floor", "kernel")
 STAGED_FILES = ("manifest.json", "images.json", *(f"{unit}.s" for unit in UNITS))
-# Absence of the whole staged directory is admitted until the integrator first stages
-# it; the commit that stages sets this, after which absence is K-88's finding.
-STAGED_REQUIRED = False
+# The staged directory is tracked, so its absence is K-88's finding; false admits a
+# wholly absent directory, the state before a first staging.
+STAGED_REQUIRED: bool = True
 # F: the floor the ROM establishes by advancing counter 0 in the same power-on, and the
 # security version every image is signed at (section 9.12). The campaign's choice.
 FLOOR = 2

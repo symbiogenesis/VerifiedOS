@@ -52,7 +52,7 @@ INST_LIMITS = {"boot": 4_000_000_000, "service": 500_000_000, "main": 2_000_000_
 # at up to 5,000 s each with its reads and placement; a main-die run one ML-DSA
 # verification at up to 600 s; a service run, a runtime-only run and the control are
 # shorter, the control's 50,000,000 instructions included.
-TIMEOUTS = {"boot": 10_800, "main": 1_800, "short": 2_400}
+TIMEOUTS = {"boot": 12_000, "main": 1_800, "short": 2_400}
 CAPTURE_GRANULARITY = 8
 
 

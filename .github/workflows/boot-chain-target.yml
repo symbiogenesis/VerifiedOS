@@ -17,8 +17,8 @@
 # a dispatched run's title ends with the checked-out revision.
 #
 # Sizing. A boot run holds two SLH-DSA-SHAKE-256s verifications, at up to 5,000 s each
-# on these runners, with its reads and placement, so its timeout, the case_timeout
-# input, defaults to 10,800 s and is capped at 12,000 s; a service run and a
+# on these runners, with about 1,500 s of reads, placement and zeroing beside them
+# (F-754), so its timeout, the case_timeout input, defaults to its 12,000 s cap; a service run and a
 # runtime-only run have 2,400 s and a main-die run, one ML-DSA-87 verification at up to
 # 600 s, 1,800 s. The execution step of a boot case allows 280 minutes, the cap's R1
 # plus R2 plus R3 with ten to spare, inside a 355-minute job that leaves 75 minutes for
@@ -39,7 +39,7 @@ on:
       case_timeout:
         description: Seconds each boot run may take
         type: number
-        default: 10800
+        default: 12000
   push:
     branches: [main]
     paths:
@@ -60,7 +60,7 @@ env:
   PYTHONUTF8: "1"
   PYTHONUNBUFFERED: "1"
   CAMPAIGN_REVISION: ${{ inputs.revision || github.sha }}
-  CASE_TIMEOUT: ${{ inputs.case_timeout || 10800 }}
+  CASE_TIMEOUT: ${{ inputs.case_timeout || 12000 }}
   GUEST_TIME: 'real %e\nuser %U\nsys %S\nmaxrss_kb %M'
 
 defaults:

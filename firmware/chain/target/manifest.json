@@ -1,0 +1,314 @@
+{
+  "compiler_inputs_sha256": {
+    "compcert.ini": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f"
+  },
+  "compiler_provenance": {
+    "compiler_sha256": "ecaa5ce0cd29d1099016dc1b62a93d16ecab1fe1bcb3a0e363c2697f6294ddca",
+    "kind": "clean native build from committed source archive; no compiled seed reused",
+    "revision": "e1f824401c98e6616ec865ead3e51eee05c7d24d",
+    "source_count": 548
+  },
+  "compiler_receipts_sha256": {
+    "build-inputs.json": "4c3250fe80cc979d449d2ed92f25604e357d3a64b31e4f1779296ace2cc8b912",
+    "build-result.json": "b33cbda2a6f45848a3e0b807ddf6721fa9b6feb187120118d29c38e91de30f29"
+  },
+  "contract": "docs/implementation/contracts/boot-handoff.md",
+  "files_sha256": {
+    "images.json": "3a16aed45e986151db08b82d13d859d3d8218eabc18f89c67cd3e37476eaacf0",
+    "mmode.s": "af370b153ab559c3fcc597d2496782275017e5bf170bc988836c6e09fb5d52af",
+    "rom.s": "98f3c3cf5c607ad36543e4da6d65f51ff85be8761f2d44b5fb39aeae8148975b",
+    "runtime-early-pet.s": "d6c3273d69a27607f2ac30aa3ed9c740609d21d003f3b17d5cbe05ff1a41c8cf",
+    "runtime-stall.s": "44aef17b2dbfb5ea8dc666d279eb53770fc1b8e381b8e7c525c024be05f928de",
+    "runtime.s": "7c6459361d5a315582bf883b93de496186adb04a027799f0ef94e5d4877c91c8"
+  },
+  "floor": 2,
+  "freeze": {
+    "compcert_ini_sha256": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f",
+    "compiler": {
+      "compiler_sha256": "ecaa5ce0cd29d1099016dc1b62a93d16ecab1fe1bcb3a0e363c2697f6294ddca",
+      "revision": "e1f824401c98e6616ec865ead3e51eee05c7d24d"
+    },
+    "crypto_sources_sha256": {
+      "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+      "firmware/crypto/mldsa87.c": "8a71504305a89f2515b1fbe19943a0398411d9d8757f61d7b58998c4bfd800c5",
+      "firmware/crypto/slh256s.c": "9138f83951aa9c4d8bbb72c0a8f6f56c916584064887451ffa65ef2062a9764f",
+      "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+      "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+      "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329"
+    },
+    "manifest": "firmware/crypto/target/manifest.json",
+    "required_arguments": [
+      "-fverifiedos-typed",
+      "-Ifirmware/include"
+    ],
+    "sources_sha256": {
+      "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+      "firmware/crypto/mldsa87.c": "8a71504305a89f2515b1fbe19943a0398411d9d8757f61d7b58998c4bfd800c5",
+      "firmware/crypto/slh256s.c": "9138f83951aa9c4d8bbb72c0a8f6f56c916584064887451ffa65ef2062a9764f",
+      "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+      "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+      "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329"
+    }
+  },
+  "generator": "run.py boot-handoff chain-stage",
+  "images": {
+    "kernel": {
+      "payload_length": 6352,
+      "security_version": 2,
+      "sha256": "9df3c2d9aff04a64b3154164b66622426ad984d77cb1415ed77e169692f00b50",
+      "stage": 2
+    },
+    "mmode-a": {
+      "payload_length": 133672,
+      "security_version": 2,
+      "sha256": "d5b84157fbabd56bee8c9664d94466188a111eabd83df9cff6f86b8dd901b45a",
+      "stage": 1
+    },
+    "mmode-a-below-floor": {
+      "payload_length": 133672,
+      "security_version": 1,
+      "sha256": "b3065d4ef90a592e5909779179ffba478dc4e48f4730b50ceec2b146e9d23927",
+      "stage": 1
+    },
+    "mmode-b": {
+      "payload_length": 133672,
+      "security_version": 2,
+      "sha256": "dd78d9d5e483e7f7e6ac181227e2efaee51e9944f58695bbe71711c9eaf62be4",
+      "stage": 1
+    },
+    "mmode-recovery": {
+      "payload_length": 133672,
+      "security_version": 2,
+      "sha256": "3b64f6471fd5c048b3bdbe933f5e57f668bf1a8853eade6864f4958a003cbfc1",
+      "stage": 1
+    },
+    "stage0": {
+      "payload_length": 147528,
+      "security_version": 2,
+      "sha256": "953925ba55fe2513e425741f36b72be2ea89f109d470bb142d7a1fd3d4b7ddff",
+      "stage": 0
+    }
+  },
+  "keys": {
+    "kernel_root": "a5a5e67827dba263cedf881721208d2046e94ba155c12823034cc7b1dfdb45dcab5d9722b8f1829efbd5088376f72e8c994fa15e72cb1b32cc36a9331054618fd85fa7b0f501dd2430f5fc580f8f0a221ffecb7219129ae6270f90f6e31701866216bdd083e881b894643af5cb14928c404475553b26ee0f55c4b509142f44b5bd5ae5f228e2a8391e92e581264f727342baa1a4b75b8fbb28fe20da4c8e645f98daae77cf6ddfc331c61ddf36c7ede60fb7522b16fa3b12d18424484aab0d516eec4666ac9a1b1d5c773ba13f0f6d3446e1fc12af7c9496a9c6cd1ae8997e28991ff7addb150a3eaf11d434f27cd7f30ed33d667e6f527de2d8bf7da79cd686361952a252dbe74aeddd5ba7b5dcbcdbf1326beb137716b44909673f543e77cc8495262b85d0719e8fd785f5b77a7a4457847ec24959ccc0845a9f4621fc7e7c400f854f552cfa2c55be50095428f5822342bed42a6950158934dd72f8f59b0baefaf5da648505af09741ecdd7a15888cd16cddbf61a8de6c3c048cc10f6887aa7d2dce16d920aa8e290543e4351ba10882e10be7bdcaaf3150befb5d82a9a034c7064c4f20b879ab0aa3c713071dc7605cab94e1ae0dd4c3b726dcf05570ac838c9fb969198a4698b6fa9d6cfcd56e90410930833189564b27df49b4aed289c429e6c2db5802eba17789c96b0e6944fded4fc40974755259dfdd17bf8a527ba8c034a4a919b928ebc3ba1e6d6d83466548263bbfc72b32ed53603362368cb03b1839b6533f31336180bf5eeabdf4c49c17a8ce151c4a9c39d66057e2e162814af3a842a2ae5c0e3776c4b26cef59b112c5fda6240a73f44723b3497fd071c6cd2718f3c99b503571dd2b51013363da47690b237c854ae2af01d7d9585848f6f27eaa53247ff6ec4cf7d16b7c4b1da981eddafc7991f87aa302c3ea3bd9bd4f94268bbb17e37f2cc54c22e198cee466a1635b548a7bfa26e4cf0aac5ab70a80d283dd77fa20848d77062d33e30c18d7f7b371abce7c2c1354b3452db7898964a63cd5df363f5e18711f6ca83135711de3ebb7fcf556f1c7e34b9d07e666e2c4c4cd796831a0ab66e6d379fadee81c8df719b519d7dc82ef4b6a0a359faecfc378313adb45fc3a501099c2bd3bf691bc0d62c2c1162ee0684f9901d7a58bcf220cfc38ab39bc3c88f2272b15cb3ed342619a41c0b54044239f8aec47615916f44a4221035e29ec1a604ca2c0792d7f66465144c528f0bf819f77380c8e7e7d0e95cee9caf1d32fe30e1460057efcee50e16b71f15fcb11256413f11e01dee8dc8d92bddaf4fb7e98e7bc9043fccb9d7f60ae6a94357c6a88d17f919dec3c2d36d6c70df514d6e9d5d18ffe81defc102fd691ca6344a436784d26ac9f15bacec796a8a14d7ffa19728efe74088e9c4a1c80b9326989346febdee48aba45890f0d28ea30faca228455b25ab987db241c0d3bb5c472d27809f5afbb8a98ecc42eff1a94052a005a9a7a7d0597581ca371283c2c0ee84f9f87035f91265f6a5a7285ec78d12b1b861525ee5287ecf56a16f9f7b3fcb42da86d4a977525d23b32447550f2c06206ed0986736700ee81d318242d88c5cf865fc82b34ff63f946fd7f856277da1428973267818d76db8e9595419ea04bc0cdd7b4f9aa17919bc81d610fdc89d2c7236e67b3ecb1237f43114078eacded21a572e4c1ea1d9a8ef58489c3865f42b66a055c645763966c400e8eb9f2accf38f174db32d1b1d9884ed72953db648581a883a0ecf3b8d76f6cd5052f4a342ac2cbbe45f00a0d4d4d5e3813af2c68180ef92e4a4a0c543b7bf1d5d53369cd0b86e44aba5e8104e7ddbff13c1511757b63140c8311227e99bc9415e392d9502992e87ee6bf8a0c96b870045c745259716fc2de79f3190045601c0969c0a017766e8f3b567766014cf97f867215af7ff3cedae435188e4e7e6bf4b6802407ff1a95c85bde6642bc0a9b5f4c24a45931b2cee732fd3073f9bf65f2084f66f56c8c823c208f8ef111b5ce683393f22e0a64cb390ce544f91570502ba968a3bddc643398fa9eb6da71dbfda3e2299474d5c9dd1b5bb9f0c302ccc0551cd27a4ed8396775657ceca1089c7c6fa583ec2c55776327f195bbb40f75b8681fde251dfade9af18ede6522079b8e3ef9772e9ab7202e1cd98de253714b49e5f147040217b44d5d0efc0cde771bde3578d92695d2d1c8e6116a9801e28b14cc8b1227614b0ac764c60607ed1fd6c24ecb39f7c55ed54485231bb620d7dac85528e595e23b84500dda4131628dec46a83405b11137ea9fa54e731cf721f1f07fa21dbfab8c4b6bf6c181a6fe6a470b87809ef0f966643a380d078dce11add2710c79d49ca6bd2f23e9d2a98ec95ccea1d3b0aea59a67a0546b0dfacafd364f6c2365035516d1c41ae8ea0e6049ef083e2c9ec6db6eb368cdf9bf4155ced3d6d1bcfec02aabe3036bb94b3dfa5a057ec464d688ab4c48839d2bd07619a723fbb4308361d83cf7e0fe7982409f464859312ed7027e0e98df4e0fe9fe0660b8caee5f771c6ab5f2a7cf878355e03ec894c572c8bf8de5042992100122ae0c9943464804ca261e15176de34536a4d3e9d23484889ee626ba5170bd45472392d4564d877013731e4566223fe87de21042470a5280a62ecb0eed12f0f4fe199fb26f6a08c272559f96b0d1bc89783a3a50eb38abf9e2f72463f6f0d17ce602f1367812c2ee39aa7df2c1bc0a7d2e173623495be6997a069f66b949abb4b3a93e37d1fcab548ef726a46289fe6ac289ae80afbb75845f853137bb75e933846082a56a96966aa1004c7745c8c00060d91b54b1bb29a4c00cff458667e04d17f61149d319f0b189edfa57a8a225b78a747a67556fdc5e6af5dc2d988bc5e0b929fa1979451a9c2a0c959e7910b82cc910237be1bc928c11fdd64158ddde74f95b8ddfb6d5554700bc50b4000b2b901df4c0603b7f724d8cb5ebf2c90fb230d7b75f9cca8d4a789c17b0d041b8fe339f97257b5f34d8b93ef8857489c174ac0392a4d1c4b77b56e94b2f78c8a1d2ae98148525c9a4de0af5ffea3bf273cbcfa16b4d8b0909a0448b9611ef1e7c29c6042045829751bd433b1a1d822814ca0332d1040edc8abd4ffbfb04ae200f9362ee2e059ca09098f9b2f33df17c945484608e4ca92b37c28737f8b6c70333c24d6f4c6fae4085d31a873d040348a5e859e5ccd8245886dce25639c5729feb1636e8171b5c5e5762d01c806e92d11cd5124a458d542201e7500672ed65772e156268b959349364e6000a0400075ec5fb020b012a6114d7f772714e9dafa47670eb77258a63500ba23c75c9ba75381a2761e68df4ac4de626e0db8356dfb47e713e6fe5c0cca056cd62c3475453e25df001a81b8414ac45114387fab583e905a7d8d7e4fe86f44ab545f0e61868a376711e689d8e0d2654ed9817567587c7c6e4c2c5ec867ef4cae17c39cbadb4c3366cfc2baa5b2e67f083e44b9e2a8da861beaf52d2f6eedc538285bd5a9e450c404b13c1ae8416b56d4d1cce2e0ddc5207d60b918a5d238c4c8809689fac85285f74d7a129af5bd365d8f68e0c62d7f27ffe2008f6a3fb165e8b61248b8b3cd7d75fee1b70f960261f622fd89c74aa348c62083a2c967aa484ef1425d",
+    "rom_roots": {
+      "development": "a71c2d143332993d9d7649ed5ae88ff431405905963e2eff08a556f68f3babb8c8d86054b6228691ea8bab05e8916c085bf886f742a43a63db231ab48630be45",
+      "production": "9bd5c1c3e66067063b7930f05a65f262591cc31934e3d5c3aa0a4c1caddf89593f32601170ea163ad65470e4849cda4e920f9ee80dda12ce3ee28c93125e10a4",
+      "rma": "dd3f5224828a89e25d8309640e386752780d24cbae076afba04bc3f336ca7b3aa8339f7f72e1af069ec26c2f66e24d94272ab0da29e35d861b0d5d32cb4d3b4e",
+      "test": "fe220bc0f798d6498c72605d8f97cb0844e916a720d05745e3725d9ae74648c66fc6524769da3308f0e55e45ab60bbf4784de2915385c4b22690907058670fdb"
+    },
+    "signed_under": "production"
+  },
+  "schema": 1,
+  "search_directories": {
+    "firmware/chain": [
+      "chain_common.c",
+      "kernel_stage.s",
+      "mmode.c",
+      "mmode_entry.s",
+      "preamble.s",
+      "rom.c",
+      "rom_entry.s",
+      "rot_policy.s",
+      "runtime.c",
+      "runtime_entry.s",
+      "vos_chain.h"
+    ],
+    "firmware/crypto": [
+      "README.md",
+      "check_signature.c",
+      "fixtures.json",
+      "keccak.c",
+      "mldsa87.c",
+      "signature_target.c",
+      "slh256s.c"
+    ],
+    "firmware/include": [
+      "vos_boot.h",
+      "vos_keccak.h",
+      "vos_signature.h"
+    ],
+    "firmware/rot": [
+      "boot_verify.c"
+    ]
+  },
+  "signature_verdicts": [
+    {
+      "accepted": true,
+      "image": "stage0",
+      "key": "slh-internal/740380028cf8843fbf62f250ef06a434d37777825d3a4acb2e631900bb25aeb9/06c0914a42ad3bb24bdd71a157d0e42c0fc298e7cf46c3704178adcaf8aa031b/6f4141e2fab1256ad03bfb2bfff40f9ac1efe15a6a6aba4d15e2aa0d6361f2f3",
+      "variant": "valid"
+    },
+    {
+      "accepted": false,
+      "image": "stage0",
+      "key": "slh-internal/740380028cf8843fbf62f250ef06a434d37777825d3a4acb2e631900bb25aeb9/06c0914a42ad3bb24bdd71a157d0e42c0fc298e7cf46c3704178adcaf8aa031b/33e9eab7c4a4f18738bdbc94cb81a06ff6be4cfda614b8c00b1da2076bd5ed27",
+      "variant": "signature-flipped"
+    },
+    {
+      "accepted": true,
+      "image": "mmode-a",
+      "key": "slh-internal/740380028cf8843fbf62f250ef06a434d37777825d3a4acb2e631900bb25aeb9/8a21beecf9b99aa8dd2c56b0e8890c10a00d5fb06b111db0c60df87665c5c2f4/3bbe06b4befae6a5f420465a025463a4677769c15e2dd1412639e423e7de9fce",
+      "variant": "valid"
+    },
+    {
+      "accepted": false,
+      "image": "mmode-a",
+      "key": "slh-internal/740380028cf8843fbf62f250ef06a434d37777825d3a4acb2e631900bb25aeb9/8a21beecf9b99aa8dd2c56b0e8890c10a00d5fb06b111db0c60df87665c5c2f4/24a8aae8398b72d9ab0cbb19b0119ddaad489dc43084f6c9e2000770efc44757",
+      "variant": "signature-flipped"
+    },
+    {
+      "accepted": true,
+      "image": "mmode-b",
+      "key": "slh-internal/740380028cf8843fbf62f250ef06a434d37777825d3a4acb2e631900bb25aeb9/bd060eb7c511a6aa49350baa1123917046718762e24419c50048e04bfc7f1ce4/aa4c2dfb22bf9a52cf89fafc0f15ad0b07cce157a89aa148c8797f877bdfdfc3",
+      "variant": "valid"
+    },
+    {
+      "accepted": true,
+      "image": "mmode-recovery",
+      "key": "slh-internal/740380028cf8843fbf62f250ef06a434d37777825d3a4acb2e631900bb25aeb9/a7a923a8dba4032c6f44fee54eea6f594c85d62295982e1504480f9206da5a33/cc3169e487f5a7b28a487a6bf0adf5fb83a975a3f90e0c92484344b34abe9e79",
+      "variant": "valid"
+    },
+    {
+      "accepted": true,
+      "image": "mmode-a-below-floor",
+      "key": "slh-internal/740380028cf8843fbf62f250ef06a434d37777825d3a4acb2e631900bb25aeb9/d58c7533e2463e5027191fbb546a5fdac1f05bb79701808732ee66ec3a63caa5/3367d051729ce0f28a9f8dfe79a06ed524fd6926fa2d06bb0ffc3b5557d9280a",
+      "variant": "valid"
+    },
+    {
+      "accepted": true,
+      "image": "kernel",
+      "key": "mldsa-internal/734da0cbee6dcb537d274e8db9bbfb12880bd62bdde36a776bf8e5d884e5d7ac/37b7c9c2a72c591b81587b85be7ee1fe18e40eaaf9e7a5066a7c23ee61637e40/aadf41856388d14547a09f7e9a7ad805114b6dce66295aa95a21e0f18909044c",
+      "variant": "valid"
+    },
+    {
+      "accepted": false,
+      "image": "kernel",
+      "key": "mldsa-internal/734da0cbee6dcb537d274e8db9bbfb12880bd62bdde36a776bf8e5d884e5d7ac/37b7c9c2a72c591b81587b85be7ee1fe18e40eaaf9e7a5066a7c23ee61637e40/8a112d3d8d124a47fd3f4b1242ea555029b3da54c90d11609bef8f37b3ceae84",
+      "variant": "signature-flipped"
+    }
+  ],
+  "sources_sha256": {
+    "firmware/chain/chain_common.c": "c86313341a9cc83871254abf0d2bc0d95ed4e36fd7d0b291575c1ba2d50804c4",
+    "firmware/chain/mmode.c": "fab18e306ba3585781b454ed5fe73b7cec4498d2db6ed6605ed53f7a23d0692b",
+    "firmware/chain/rom.c": "1fce07f2c434ba867bb24ab19476a79a471537f96d79656c220945f4569c0116",
+    "firmware/chain/runtime.c": "2f585d7d836eba2e5ac114c361f309387b67928cbc09eab5962296a3ffabf752",
+    "firmware/chain/vos_chain.h": "e01a03ad104292b09a4d89e7826fae7ad70e01c91e5021a2274f82f271dd4ae8",
+    "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+    "firmware/crypto/mldsa87.c": "8a71504305a89f2515b1fbe19943a0398411d9d8757f61d7b58998c4bfd800c5",
+    "firmware/crypto/slh256s.c": "9138f83951aa9c4d8bbb72c0a8f6f56c916584064887451ffa65ef2062a9764f",
+    "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+    "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+    "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329",
+    "firmware/rot/boot_verify.c": "543c003e2e8446f74297fa4ed029a2c3363f4cb2cfee60698b2e17701095e344"
+  },
+  "units": {
+    "mmode": {
+      "argv": [
+        "ccomp",
+        "-conf",
+        "compcert.ini",
+        "-fverifiedos-typed",
+        "-Ifirmware/include",
+        "-S",
+        "mmode.i",
+        "-o",
+        "mmode.s"
+      ],
+      "assembly_sha256": "3108761220eaf3d3c51128acf7e0a12b7bd74148e6b7a24b1aa31886f8a54668",
+      "file": "mmode.s",
+      "lines": 4671,
+      "mutant": null,
+      "source": "firmware/chain/mmode.c",
+      "sum_of_function_frames": 19136
+    },
+    "rom": {
+      "argv": [
+        "ccomp",
+        "-conf",
+        "compcert.ini",
+        "-fverifiedos-typed",
+        "-Ifirmware/include",
+        "-S",
+        "rom.i",
+        "-o",
+        "rom.s"
+      ],
+      "assembly_sha256": "8a9ddae638c702c023372ffd3ac148943ce42b5d548aea6f6038980e744817f1",
+      "file": "rom.s",
+      "lines": 4846,
+      "mutant": null,
+      "source": "firmware/chain/rom.c",
+      "sum_of_function_frames": 6992
+    },
+    "runtime": {
+      "argv": [
+        "ccomp",
+        "-conf",
+        "compcert.ini",
+        "-fverifiedos-typed",
+        "-Ifirmware/include",
+        "-S",
+        "runtime.i",
+        "-o",
+        "runtime.s"
+      ],
+      "assembly_sha256": "88adbf89650c9d1383f1f13a713f421d78f6ccca1a558130bbe3cab15dd15099",
+      "file": "runtime.s",
+      "lines": 5326,
+      "mutant": null,
+      "source": "firmware/chain/runtime.c",
+      "sum_of_function_frames": 7616
+    },
+    "runtime-early-pet": {
+      "argv": [
+        "ccomp",
+        "-conf",
+        "compcert.ini",
+        "-fverifiedos-typed",
+        "-Ifirmware/include",
+        "-Ifirmware/chain",
+        "-S",
+        "runtime.i",
+        "-o",
+        "runtime.s"
+      ],
+      "assembly_sha256": "8645ea4980df0e7e3a24d9479826f78120a9ac74bdb0a0e8740fd234b6dbf570",
+      "file": "runtime-early-pet.s",
+      "lines": 5306,
+      "mutant": {
+        "name": "early-pet",
+        "new_sha256": "3379987a42348276082f8e59d176a5dbbcd8a17bea3a5de8b42a8d84a82047ed",
+        "old_sha256": "43dcc826602b29e5472d8cdf8ab72cf17a3fae222e32cc3a4c974383c9eea7f6",
+        "source": "firmware/chain/runtime.c"
+      },
+      "source": "firmware/chain/runtime.c",
+      "sum_of_function_frames": 7616
+    },
+    "runtime-stall": {
+      "argv": [
+        "ccomp",
+        "-conf",
+        "compcert.ini",
+        "-fverifiedos-typed",
+        "-Ifirmware/include",
+        "-Ifirmware/chain",
+        "-S",
+        "runtime.i",
+        "-o",
+        "runtime.s"
+      ],
+      "assembly_sha256": "19a27d2e48d012243816a9df7c6172fc9fdefd3f61084d6c04645b9f25b60f17",
+      "file": "runtime-stall.s",
+      "lines": 5326,
+      "mutant": {
+        "name": "stall",
+        "new_sha256": "3cdfc89340e2e959fdcea03226cf5ae82daa0fa844d2297f05ed6435b70f0aa4",
+        "old_sha256": "818c34fce833b2fdf8787e58a7611bcd50fba215627f685f9aede7b67b5807b2",
+        "source": "firmware/chain/runtime.c"
+      },
+      "source": "firmware/chain/runtime.c",
+      "sum_of_function_frames": 7616
+    }
+  }
+}
