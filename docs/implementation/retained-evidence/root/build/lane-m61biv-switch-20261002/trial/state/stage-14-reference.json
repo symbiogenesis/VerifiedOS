@@ -1,0 +1,70 @@
+{
+  "check": 4,
+  "stage": "reference",
+  "predicate": "The reference comparison passes.",
+  "start_utc": "2026-10-03T01:54:03+00:00",
+  "end_utc": "2026-10-03T01:54:06+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "argv": [
+      "/usr/bin/python3",
+      "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/tools/run.py",
+      "supervisor",
+      "check"
+    ],
+    "exit": 0,
+    "start_utc": "2026-10-03T01:54:03+00:00",
+    "end_utc": "2026-10-03T01:54:06+00:00",
+    "log": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/reference/supervisor-check.log",
+      "sha256": "5f7dc27b03758ba0ad6ac34ab69b54e3520f9873f22f492ef4bcf18387224b4a",
+      "bytes": 493
+    },
+    "output": "== executable supervisor host core\nok 31 fixed consumer controls (not Gallina comparisons)\nok 9249 generated effect executions (64340 checks; host bindings only)\nok locked Gallina conversion agrees with 656 generated C answers (3088 equalities)\nreport: /root/build/lane-m61biv-switch-20261002/supervisor/report.json\nlogs: /root/logs/m61biv-switch-20261002/supervisor\nHost C/reference agreement only; M1.2f's accepted backend, M4.4's kernel effect bindings and M7.1a's target boot remain open.\n",
+    "report": {
+      "path": "/root/build/lane-m61biv-switch-20261002/supervisor/report.json",
+      "sha256": "e8a8341397e182e631886e584d7e544c0757699e399489a6202c8f60f1e2ca0e",
+      "bytes": 2343
+    },
+    "report_body": {
+      "schema": 1,
+      "comparison": "passed",
+      "milestone_acceptance": "open",
+      "cases": 656,
+      "equalities": 3088,
+      "prover": "The Rocq Prover, version 9.3.0",
+      "prover_sha256": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+      "compiler": "/usr/bin/cc",
+      "compiler_sha256": "5b06a5b85cab901e2af3e8f351a6d4e8e6a93af24797bd8c01e5391ac6b4e63b",
+      "cflags": [
+        "-std=c11",
+        "-O1",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pedantic"
+      ],
+      "inputs": {
+        "proofs/SupervisionTree.v": "b9542c049fcabc9083096ce21ac18a19a8de657828b0563f14d4b04b5686ac51",
+        "tools/vos/supervisor.py": "698c919f332ad50e5dc91643c9fc5580793b4fdaa4fcff9e34979cc12b3697c9",
+        "supervisor/include/vos_supervisor.h": "9b21363299a00b5b872db57922ac0b49bdf7d4d72b20b726fc0ca5c15b7a3c28",
+        "supervisor/include/vos_supervisor_effects.h": "d4788e16aa95049351527f631b040f5dd5c97986d82a52ff075e19954b5ec1cd",
+        "kernel/src/context.c": "cc21437a5b2de43182a417181ce0d9d011385b493a518d1b3350c9b95f5975d7",
+        "kernel/include/vos_kernel.h": "06e6c2296493cd3d3a96be57694148739138de8f6560e8e40315cecb1e9fd301",
+        "kernel/include/vos_platform.h": "23eeb34f4c6c239391dbec8a304a9eb0af0aa4b55153b633b523478bfcbaf2b0",
+        "supervisor/src/supervisor.c": "98b3c2fc154d2992ea3994f3cf99b6ab29ad2c7e9c434743debb58522a4e2dfd",
+        "supervisor/src/manifest.c": "825bf58cb0c62d82a4e56dcea8156ab65212dbeef41d7085751a47d08421630d",
+        "supervisor/src/effects.c": "1d4296de8664d5db017cc47c57fcf91506ee31904c20fe6a67f35c7c8d6f0715",
+        "supervisor/test/host.c": "34b0413fb698f373b2f65ce34d1256892e45f4d8ad5e488558e9c43c9dfc4e29",
+        "supervisor/test/effects.c": "61797d6596626a07427ff7e0e7a766bb26d3dd83ccb75478fdbe9968e7d9e4da"
+      },
+      "logs": "/root/logs/m61biv-switch-20261002/supervisor",
+      "binary_sha256": "0d63dbf194cb681a3e2d12ad4259eb353e38ad0451abc96576b0b3a66d1d20ea",
+      "answers_sha256": "4dca4e5efb9d71d6a0a34e706257eeae9a7869dcf55202a4fcde15de760df14c",
+      "effect_controls": "ok 31 fixed consumer controls (not Gallina comparisons)\nok 9249 generated effect executions (64340 checks; host bindings only)",
+      "comparison_sha256": "bdfd9064e788d5843b150d4c8d80ddfb3746e0317b532fdf34dc3142dd79b8e1",
+      "limits": "Host C/reference agreement only; M1.2f's accepted backend, M4.4's kernel effect bindings and M7.1a's target boot remain open."
+    }
+  }
+}

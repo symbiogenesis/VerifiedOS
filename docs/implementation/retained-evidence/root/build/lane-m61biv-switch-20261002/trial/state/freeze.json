@@ -1,0 +1,291 @@
+{
+  "stage": "freeze",
+  "start_utc": "2026-10-03T01:53:27+00:00",
+  "end_utc": "2026-10-03T01:53:27+00:00",
+  "revision": "1f90ae780519a65b9efa2d7bd6a4455d7c47a72f",
+  "worktree": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002",
+  "lane": "/root/build/lane-m61biv-switch-20261002/trial",
+  "script": {
+    "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_trial.py",
+    "sha256": "4f10b5896ba4288298a745f5fb3e810f5d1964e9bfa127148a798455c2b6928b",
+    "bytes": 48312
+  },
+  "frozen_inputs": {
+    "supervisor/route/start_restart.lus": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/start_restart.lus",
+      "sha256": "db96e2c055416f9bf9783e31346977bd590c4624632233f983876d74b57f35e9",
+      "bytes": 1277
+    },
+    "supervisor/route/oracle.c": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/oracle.c",
+      "sha256": "bf3348d800fe947dfb5b88dd7a7882c1d4e7748c38aec45d72a940c6d45d84f4",
+      "bytes": 3281
+    },
+    "supervisor/route/probe.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/probe.py",
+      "sha256": "f101b76dba09220ee6cac323c788aae6b23f55e7c41768420918c9dbd0917a6b",
+      "bytes": 3471
+    },
+    "supervisor/route/result.json": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/result.json",
+      "sha256": "1185fae5cf6179d8e6a8a5735baaacb49e8d072feca493bbff5902864cd5f388",
+      "bytes": 8613
+    },
+    "supervisor/route/exchange-result.json": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/exchange-result.json",
+      "sha256": "ddf7b177800af1abb2582bed30856ad345a54f4cbca983ad7a761f58100d1437",
+      "bytes": 66997
+    },
+    "supervisor/route/normalize.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/normalize.py",
+      "sha256": "88f03c2d69e16057e8568b7f7b0909312995429b603e31d867cec1d1992b5af8",
+      "bytes": 17269
+    },
+    "supervisor/route/token_compare.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/token_compare.py",
+      "sha256": "580d377b8e94ff7a91f58d243236c157db482ebf5e1d8a850b45d20d56fc5b1f",
+      "bytes": 13772
+    },
+    "supervisor/route/control.lus": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/control.lus",
+      "sha256": "470bb7ff6d28059d2b42473f17b303a5a7e12a9088075c4f17434d0c88c70ee3",
+      "bytes": 1129
+    },
+    "supervisor/route/control.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/control.py",
+      "sha256": "7d49edffbe2337675d1b742fb73fbba338d88b98fe60b1e71baa968d884b683a",
+      "bytes": 7341
+    },
+    "supervisor/route/switch_rewrite.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_rewrite.py",
+      "sha256": "0fcd2ad0466dea0b7317bf7457cf2564a5bf91f9d9770ac0e8f5f39d885bd9ad",
+      "bytes": 17775
+    },
+    "supervisor/route/switch_compare.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_compare.py",
+      "sha256": "816c4807b9fe6a92df330e3cba1690be123d5abaaa97c11fa0c58db921238ebf",
+      "bytes": 17579
+    },
+    "supervisor/route/switch_control.lus": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_control.lus",
+      "sha256": "873a4720aae4632aba5834bbec0ea379cf5eb9fe1fa5fd4c0a3de67376db87af",
+      "bytes": 2644
+    },
+    "supervisor/route/switch_control.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_control.py",
+      "sha256": "5012879a415bdae00eeb8da1a02191c6cfedfda8d2b367f953120277570a1c0d",
+      "bytes": 9704
+    },
+    "supervisor/route/split_probe.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/split_probe.py",
+      "sha256": "3b4db934d4ee78773b0f467188a3d0d10784607f3ca017f5a8d2f68700cb4ba4",
+      "bytes": 5211
+    },
+    "supervisor/route/switch_trial.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_trial.py",
+      "sha256": "4f10b5896ba4288298a745f5fb3e810f5d1964e9bfa127148a798455c2b6928b",
+      "bytes": 48312
+    },
+    "supervisor/include/vos_supervisor.h": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/include/vos_supervisor.h",
+      "sha256": "9b21363299a00b5b872db57922ac0b49bdf7d4d72b20b726fc0ca5c15b7a3c28",
+      "bytes": 3590
+    },
+    "supervisor/include/vos_supervisor_effects.h": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/include/vos_supervisor_effects.h",
+      "sha256": "d4788e16aa95049351527f631b040f5dd5c97986d82a52ff075e19954b5ec1cd",
+      "bytes": 3419
+    },
+    "supervisor/src/supervisor.c": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/src/supervisor.c",
+      "sha256": "98b3c2fc154d2992ea3994f3cf99b6ab29ad2c7e9c434743debb58522a4e2dfd",
+      "bytes": 4396
+    },
+    "supervisor/src/effects.c": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/src/effects.c",
+      "sha256": "1d4296de8664d5db017cc47c57fcf91506ee31904c20fe6a67f35c7c8d6f0715",
+      "bytes": 2732
+    },
+    "supervisor/src/manifest.c": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/src/manifest.c",
+      "sha256": "825bf58cb0c62d82a4e56dcea8156ab65212dbeef41d7085751a47d08421630d",
+      "bytes": 676
+    },
+    "supervisor/test/host.c": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/test/host.c",
+      "sha256": "34b0413fb698f373b2f65ce34d1256892e45f4d8ad5e488558e9c43c9dfc4e29",
+      "bytes": 5783
+    },
+    "supervisor/test/effects.c": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/test/effects.c",
+      "sha256": "61797d6596626a07427ff7e0e7a766bb26d3dd83ccb75478fdbe9968e7d9e4da",
+      "bytes": 10783
+    },
+    "proofs/SupervisionTree.v": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/proofs/SupervisionTree.v",
+      "sha256": "b9542c049fcabc9083096ce21ac18a19a8de657828b0563f14d4b04b5686ac51",
+      "bytes": 79755
+    },
+    "tools/vos/supervisor.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/tools/vos/supervisor.py",
+      "sha256": "698c919f332ad50e5dc91643c9fc5580793b4fdaa4fcff9e34979cc12b3697c9",
+      "bytes": 11237
+    },
+    "tools/vos/cli/supervisor.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/tools/vos/cli/supervisor.py",
+      "sha256": "102bb643228ae38bc3d959d4916848bee593e7e86ddaac49e6dc64ba217be7b2",
+      "bytes": 2101
+    },
+    "tools/vos/cli/compiler_diff.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/tools/vos/cli/compiler_diff.py",
+      "sha256": "43c3dbde5bf1426751da2e8758b9eeda6a1f1102bdb6e81c870d874cc3a1e7b7",
+      "bytes": 88613
+    },
+    "tools/vos/asm.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/tools/vos/asm.py",
+      "sha256": "0de2f6ac03769c80764e16ba7bdd02f6aa3c23f2c4edb1dbf27801b6edba5384",
+      "bytes": 36993
+    },
+    "tools/vos/image.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/tools/vos/image.py",
+      "sha256": "417cda8b7a12af64c4cfe5a67c43b80d5092ccd6e948bcddd605c11f3911b4a6",
+      "bytes": 6960
+    },
+    "tools/generated/dialect-table.json": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/tools/generated/dialect-table.json",
+      "sha256": "58f8ed08800814a949ed21e8b1a374acbf54edefbec521ad6dd3f38007879d1a",
+      "bytes": 652855
+    },
+    "docs/assurance/differential-corpus.md": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/docs/assurance/differential-corpus.md",
+      "sha256": "a837f51a1e4022bfb90260a17ffc6f70d874ffe4401d63ba4f4dd28c1043777b",
+      "bytes": 45527
+    },
+    "docs/implementation/contracts/purecap-abi.md": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/docs/implementation/contracts/purecap-abi.md",
+      "sha256": "1e4ab8e65d7fef144eafdc8664818a34e3b6dc76de17701fc791fcad4d19966a",
+      "bytes": 71278
+    },
+    "model/model/core/cap_common.sail": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/model/model/core/cap_common.sail",
+      "sha256": "26c179273e4ca3001d3fd92fbe7643a6e94a2a136c76fa89256516971437c773",
+      "bytes": 27320
+    },
+    "kernel/src/context.c": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/kernel/src/context.c",
+      "sha256": "cc21437a5b2de43182a417181ce0d9d011385b493a518d1b3350c9b95f5975d7",
+      "bytes": 5826
+    },
+    "kernel/include/vos_kernel.h": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/kernel/include/vos_kernel.h",
+      "sha256": "06e6c2296493cd3d3a96be57694148739138de8f6560e8e40315cecb1e9fd301",
+      "bytes": 10528
+    },
+    "kernel/include/vos_platform.h": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/kernel/include/vos_platform.h",
+      "sha256": "23eeb34f4c6c239391dbec8a304a9eb0af0aa4b55153b633b523478bfcbaf2b0",
+      "bytes": 2001
+    },
+    "model/config/verifiedos.json": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/model/config/verifiedos.json",
+      "sha256": "84e8febedf548233317f9ac3172c2bdffc3bb9d385bda3ec25cfb4a958bbeab9",
+      "bytes": 30559
+    },
+    "tools/tests/test_supervisor_route.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/tools/tests/test_supervisor_route.py",
+      "sha256": "ce5ccd213fbd2ec4fbbcf1d03cbb450db0c026b3b7cebfdc6b81457212f5fdd4",
+      "bytes": 15268
+    },
+    "tools/tests/test_supervisor_switch.py": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/tools/tests/test_supervisor_switch.py",
+      "sha256": "a64c2af8806a7141ab6d531992a87f45765dccd9e7b57e74703d8b1da2133925",
+      "bytes": 18016
+    }
+  },
+  "tools": {
+    "velus": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/velus",
+      "sha256": "ca69a076e83891ced822802210df01ef740e7de597af3a7929f01f4e4b80a804",
+      "bytes": 15764256,
+      "resolved": "/root/build/lane-supervisor-velus-20260926/source/_build/src/velusmain.native"
+    },
+    "velus_license": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/LICENSE",
+      "sha256": "0b7e4a5d10d61118ad89fe71597a04c6621178a9f5ec42cbe6a0051c99a567c4",
+      "bytes": 5884
+    },
+    "compcert_license": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/CompCert/LICENSE",
+      "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648",
+      "bytes": 43807
+    },
+    "velus_site": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/src/ObcToClight/Generation.v",
+      "sha256": "0edb3ffad07e250fb84319d95666277a9eaa4033dca2c862f06a83bbd8dfce8d",
+      "bytes": 23742
+    },
+    "velus_printer": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/CompCert/cfrontend/PrintClight.ml",
+      "sha256": "25a3f8489ae6444356262f3f4fc6f3bb1e3b3303f5fbf22ce0228c1cb25305db",
+      "bytes": 10923
+    },
+    "opam_switch": {
+      "path": "/root/build/lane-supervisor-velus-20260926/switch.export",
+      "sha256": "495b456716753e1691f294384eb961275e411f6804483b7779592add9dba0b29",
+      "bytes": 936
+    },
+    "ccomp": {
+      "path": "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+      "sha256": "ecaa5ce0cd29d1099016dc1b62a93d16ecab1fe1bcb3a0e363c2697f6294ddca",
+      "bytes": 15794520
+    },
+    "compiler_config": {
+      "path": "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+      "sha256": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f",
+      "bytes": 389
+    },
+    "simulator": {
+      "path": "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+      "sha256": "25196ad08c3e787363e078269b696476403d8e63348e68a9525f36e02484f793",
+      "bytes": 6506592
+    },
+    "profile": {
+      "path": "/root/build/lane-m61biv-switch-20261002/profile/verifiedos.json",
+      "sha256": "f157070982b84795252b5acdf27221177bf38e3d16b61c2a34011114b91bf424",
+      "bytes": 29781
+    },
+    "native_cc": {
+      "path": "/usr/bin/aarch64-linux-gnu-gcc-15",
+      "sha256": "5b06a5b85cab901e2af3e8f351a6d4e8e6a93af24797bd8c01e5391ac6b4e63b",
+      "bytes": 1251912
+    },
+    "native_cc1": {
+      "path": "/usr/libexec/gcc/aarch64-linux-gnu/15/cc1",
+      "sha256": "4b4806b78c3921f2cefece2531a68e6b0280fb2b3a135a3cff66f298c182fccf",
+      "bytes": 34495664
+    },
+    "clang": {
+      "path": "/usr/bin/clang",
+      "sha256": "3d91c53a01052091b2d6624ff1008f89748ac45d7cfb2709ad618bf399882eb1",
+      "bytes": 131832,
+      "resolved": "/usr/lib/llvm-21/bin/clang"
+    },
+    "libclang_cpp": {
+      "path": "/usr/lib/llvm-21/bin/../lib/libclang-cpp.so.21.1",
+      "sha256": "0b53990ecdf637d21a5dc6a24fc8c49fd798ddfa3a432469a62a4eb4e4e880eb",
+      "bytes": 60206800,
+      "resolved": "/usr/lib/aarch64-linux-gnu/libclang-cpp.so.21.1"
+    },
+    "python3": {
+      "path": "/usr/bin/python3",
+      "sha256": "d1b87c365d0cf5a985cfedfc227ff613a5bc6ff56e841202eb9330d263bbeee9",
+      "bytes": 7503184,
+      "resolved": "/usr/bin/python3.14"
+    }
+  },
+  "versions": {
+    "clang": "Ubuntu clang version 21.1.8 (6ubuntu1)",
+    "native_cc": "aarch64-linux-gnu-gcc-15 (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+    "python3": "Python 3.14.4"
+  }
+}

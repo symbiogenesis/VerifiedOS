@@ -1,0 +1,120 @@
+{
+  "rewrite": "supervisor/route/switch_rewrite.py",
+  "site": {
+    "velus_revision": "27ba860c2624ba232816591290c6c119b9ead88a",
+    "file": "src/ObcToClight/Generation.v",
+    "sha256": "0edb3ffad07e250fb84319d95666277a9eaa4033dca2c862f06a83bbd8dfce8d",
+    "construct": "translate_stmt's Switch arm, through make_labeled_statements"
+  },
+  "printer": {
+    "file": "CompCert/cfrontend/PrintClight.ml",
+    "sha256": "25a3f8489ae6444356262f3f4fc6f3bb1e3b3303f5fbf22ce0228c1cb25305db",
+    "construct": "print_stmt's Sswitch arm and print_cases"
+  },
+  "shapes": {
+    "if-else": "one case with a non-empty body, a non-empty default",
+    "if-only": "one case with a non-empty body, an empty default",
+    "else-only": "one case labelled 0 with an empty body, a non-empty default",
+    "chain-else": "two or more cases with non-empty bodies, a non-empty default",
+    "chain-only": "two or more cases with non-empty bodies, an empty default"
+  },
+  "input": {
+    "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.c",
+    "sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
+    "bytes": 2281
+  },
+  "output": {
+    "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c",
+    "sha256": "084bde3b99acfbfdfab28907e71104dc275a22031e24da9ae8ff07f63a7bca8b",
+    "bytes": 2113
+  },
+  "identical": false,
+  "lowered": 6,
+  "by_shape": {
+    "if-else": 6,
+    "if-only": 0,
+    "else-only": 0,
+    "chain-else": 0,
+    "chain-only": 0
+  },
+  "groups": [
+    {
+      "line": 25,
+      "column": 3,
+      "depth": 0,
+      "owner": "fun$step$start_restart",
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "scrutinee": "(*obc2c$out).accepted & !storage_edge_retired",
+      "empty_cases": 0,
+      "default_empty": false
+    },
+    {
+      "line": 33,
+      "column": 3,
+      "depth": 0,
+      "owner": "fun$step$start_restart",
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "scrutinee": "(*obc2c$out).accepted & restart_requested == 1U",
+      "empty_cases": 0,
+      "default_empty": false
+    },
+    {
+      "line": 39,
+      "column": 7,
+      "depth": 1,
+      "owner": "fun$step$start_restart",
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "scrutinee": "attempts == 0U",
+      "empty_cases": 0,
+      "default_empty": false
+    },
+    {
+      "line": 41,
+      "column": 11,
+      "depth": 2,
+      "owner": "fun$step$start_restart",
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "scrutinee": "attempts == 1U",
+      "empty_cases": 0,
+      "default_empty": false
+    },
+    {
+      "line": 43,
+      "column": 15,
+      "depth": 3,
+      "owner": "fun$step$start_restart",
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "scrutinee": "attempts == 2U",
+      "empty_cases": 0,
+      "default_empty": false
+    },
+    {
+      "line": 64,
+      "column": 3,
+      "depth": 0,
+      "owner": "fun$step$start_restart",
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "scrutinee": "(*obc2c$out).accepted",
+      "empty_cases": 0,
+      "default_empty": false
+    }
+  ]
+}

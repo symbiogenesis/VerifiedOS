@@ -1,0 +1,41 @@
+{
+  "check": 2,
+  "stage": "control-emits",
+  "predicate": "Velus emits the switch control program's Clight.",
+  "start_utc": "2026-10-03T01:53:59+00:00",
+  "end_utc": "2026-10-03T01:53:59+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "velus": {
+      "argv": [
+        "/root/build/lane-supervisor-velus-20260926/source/velus",
+        "-nomain",
+        "-lib",
+        "-header",
+        "-dclight",
+        "-o",
+        "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.lus",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_control.lus"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:53:59+00:00",
+      "end_utc": "2026-10-03T01:53:59+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.velus.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "clight": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.light.c",
+        "sha256": "1c86e1ec16a8b72efd6c0ee746747330dab05a63303d75a08ea43452a567020a",
+        "bytes": 3852
+      },
+      "header": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.h",
+        "sha256": "434276d633823c0c34c0107940a2a836b6ca15887836586084835d2694f4aebd",
+        "bytes": 902
+      }
+    }
+  }
+}

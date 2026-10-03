@@ -1,0 +1,18 @@
+{
+  "check": 4,
+  "stage": "fixtures",
+  "predicate": "The regenerated fixtures reproduce the recorded digest.",
+  "start_utc": "2026-10-03T01:54:06+00:00",
+  "end_utc": "2026-10-03T01:54:06+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "fixtures": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/oracle/fixtures.txt",
+      "sha256": "2c2ddcf675a05a5d5a2afd819d00d00c096b246ada96d9b1ee7bc01fa6044ebc",
+      "bytes": 24120
+    },
+    "rows": 576,
+    "recorded_sha256": "2c2ddcf675a05a5d5a2afd819d00d00c096b246ada96d9b1ee7bc01fa6044ebc"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "verdict": "passed",
+  "first_failed": null,
+  "provisioned_utc": "2026-10-03T01:53:45+00:00",
+  "ended_utc": "2026-10-03T01:54:37+00:00",
+  "elapsed_seconds": 52,
+  "budget_seconds": 7200,
+  "stages": [
+    "state/stage-01-identities.json",
+    "state/stage-02-node-emits.json",
+    "state/stage-03-unnormalized-refused.json",
+    "state/stage-04-control-emits.json",
+    "state/stage-05-normalize.json",
+    "state/stage-06-rewrite.json",
+    "state/stage-07-node-comparison.json",
+    "state/stage-08-control-comparison.json",
+    "state/stage-09-comparison-controls.json",
+    "state/stage-10-refusals.json",
+    "state/stage-11-identity.json",
+    "state/stage-12-node-compiles.json",
+    "state/stage-13-control-compiles.json",
+    "state/stage-14-reference.json",
+    "state/stage-15-fixtures.json",
+    "state/stage-16-probe-native.json",
+    "state/stage-17-probe-target.json",
+    "state/stage-18-perturbed.json",
+    "state/stage-19-control-native.json",
+    "state/stage-20-control-target.json",
+    "state/stage-21-rehash.json"
+  ],
+  "not_run": []
+}

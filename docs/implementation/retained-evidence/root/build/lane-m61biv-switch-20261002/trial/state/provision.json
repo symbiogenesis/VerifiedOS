@@ -1,0 +1,32 @@
+{
+  "stage": "provision",
+  "provisioned_utc": "2026-10-03T01:53:45+00:00",
+  "licence_reads": {
+    "velus": {
+      "stage": "licence-velus",
+      "path": "/root/build/lane-supervisor-velus-20260926/source/LICENSE",
+      "read_utc": "2026-10-03T01:53:45+00:00",
+      "end_utc": "2026-10-03T01:53:45+00:00",
+      "sha256": "0b7e4a5d10d61118ad89fe71597a04c6621178a9f5ec42cbe6a0051c99a567c4",
+      "bytes": 5884,
+      "copy": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/provision/licence-velus.txt",
+        "sha256": "0b7e4a5d10d61118ad89fe71597a04c6621178a9f5ec42cbe6a0051c99a567c4",
+        "bytes": 5884
+      }
+    },
+    "compcert": {
+      "stage": "licence-compcert",
+      "path": "/root/build/lane-supervisor-velus-20260926/source/CompCert/LICENSE",
+      "read_utc": "2026-10-03T01:53:45+00:00",
+      "end_utc": "2026-10-03T01:53:45+00:00",
+      "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648",
+      "bytes": 43807,
+      "copy": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/provision/licence-compcert.txt",
+        "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648",
+        "bytes": 43807
+      }
+    }
+  }
+}

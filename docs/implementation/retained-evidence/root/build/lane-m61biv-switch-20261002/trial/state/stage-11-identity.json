@@ -1,0 +1,152 @@
+{
+  "check": 2,
+  "stage": "identity",
+  "predicate": "The rewrite returns switch-free input byte-identically: M6.1b-iii's normalized control program and both rewritten programs.",
+  "start_utc": "2026-10-03T01:54:02+00:00",
+  "end_utc": "2026-10-03T01:54:02+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "velus_old_control": {
+      "argv": [
+        "/root/build/lane-supervisor-velus-20260926/source/velus",
+        "-nomain",
+        "-lib",
+        "-header",
+        "-dclight",
+        "-o",
+        "/root/build/lane-m61biv-switch-20261002/trial/identity/control.lus",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/control.lus"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:54:02+00:00",
+      "end_utc": "2026-10-03T01:54:02+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/control.velus.log",
+        "sha256": "efa9df86033a5e7e0953458aead6a30a6c0da1cdb650dc16d664719a0fb819c9",
+        "bytes": 73
+      },
+      "clight": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/control.light.c",
+        "sha256": "bb39c18a3d4faa6831235434af4921e2a90fe8b1b75b659d05099f1de054cf0f",
+        "bytes": 2032
+      },
+      "header": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/control.h",
+        "sha256": "73da74fd9d38df67f52c0b18101f44842c89175736526991234915779c0a69fb",
+        "bytes": 841
+      }
+    },
+    "normalize_old_control": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/normalize.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/identity/control.light.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/identity/control.norm.c"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:54:02+00:00",
+      "end_utc": "2026-10-03T01:54:02+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/control.norm.log",
+        "sha256": "3e4cde0d50ff3986934f90218407403823b47d4bd501eef5371bf9b2342c57dc",
+        "bytes": 41
+      }
+    },
+    "old_control_matches_m61biii_normalized": true,
+    "old-control": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_rewrite.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/identity/control.norm.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/identity/old-control.identity.c",
+        "--record",
+        "/root/build/lane-m61biv-switch-20261002/trial/identity/old-control.identity.json"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:54:02+00:00",
+      "end_utc": "2026-10-03T01:54:02+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/old-control.identity.log",
+        "sha256": "317d919bf81135e0baf019461d9da9db03768c083d18a4e625656bbbe11304db",
+        "bytes": 28
+      },
+      "input": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/control.norm.c",
+        "sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760",
+        "bytes": 1804
+      },
+      "output": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/old-control.identity.c",
+        "sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760",
+        "bytes": 1804
+      },
+      "lowered": 0,
+      "byte_identical": true
+    },
+    "node": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_rewrite.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/identity/node.identity.c",
+        "--record",
+        "/root/build/lane-m61biv-switch-20261002/trial/identity/node.identity.json"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:54:02+00:00",
+      "end_utc": "2026-10-03T01:54:02+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/node.identity.log",
+        "sha256": "317d919bf81135e0baf019461d9da9db03768c083d18a4e625656bbbe11304db",
+        "bytes": 28
+      },
+      "input": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c",
+        "sha256": "084bde3b99acfbfdfab28907e71104dc275a22031e24da9ae8ff07f63a7bca8b",
+        "bytes": 2113
+      },
+      "output": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/node.identity.c",
+        "sha256": "084bde3b99acfbfdfab28907e71104dc275a22031e24da9ae8ff07f63a7bca8b",
+        "bytes": 2113
+      },
+      "lowered": 0,
+      "byte_identical": true
+    },
+    "control": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_rewrite.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/identity/control.identity.c",
+        "--record",
+        "/root/build/lane-m61biv-switch-20261002/trial/identity/control.identity.json"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:54:02+00:00",
+      "end_utc": "2026-10-03T01:54:02+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/control.identity.log",
+        "sha256": "317d919bf81135e0baf019461d9da9db03768c083d18a4e625656bbbe11304db",
+        "bytes": 28
+      },
+      "input": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c",
+        "sha256": "460a7719cc38e796e5090ced4f3c4a85278bd8d4170ee6e896d41f71f3e79bbc",
+        "bytes": 3632
+      },
+      "output": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/control.identity.c",
+        "sha256": "460a7719cc38e796e5090ced4f3c4a85278bd8d4170ee6e896d41f71f3e79bbc",
+        "bytes": 3632
+      },
+      "lowered": 0,
+      "byte_identical": true
+    }
+  }
+}

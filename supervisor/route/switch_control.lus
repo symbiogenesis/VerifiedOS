@@ -1,0 +1,55 @@
+-- SPDX-License-Identifier: Apache-2.0
+-- Control program for the bounded Clight switch rewrite trial. Vélus prints
+-- each Obc conditional as one Clight switch, and this program is shaped so
+-- that its printed Clight carries every switch shape the rewrite declares:
+--   pick      a two-way choice in a single-output function (if-else);
+--   b, e      a case and a merge over every constructor of m (chain-else);
+--   c         a case with a wildcard over j (chain-else, labels 1 and 3);
+--   f         a wildcard case over the fby state p (if-else, label 2);
+--   g, s      a two-way choice nested in a merge over go (if-else in if-else);
+--   k1        a clocked fby update on go (else-only);
+--   q, r1, r2 a merge over k, then two clocked fby updates (chain-only);
+--   h, r0     a merge over n holding r0's clocked fby update (chain-else);
+--   r3        a clocked fby update on Fault(m) (if-only, label 3).
+-- An update that reads a value computed after its merge, outside any switch,
+-- is printed as a switch of its own; r0's reads only its merge's output and
+-- is fused into it. The trial's token comparison decides which shapes the
+-- printed program carries. It exercises the exchange only; it is not a
+-- supervisor decision.
+type mode = Idle | Run | Hold | Fault
+
+node pick(c : bool; u, v : uint32) returns (o : uint32)
+let
+  o = if c then u else v;
+tel
+
+node switch_control(m, j, k, n : mode; go : bool; x, y : uint32; w : uint64)
+returns (a, b, c, q, z, s, v, h, e : uint32; f : uint64; g : bool)
+var p : mode;
+    k1 : uint32 when go;
+    r1 : uint32 when Run(k);
+    r2 : uint32 when Hold(k);
+    r0 : uint32 when Idle(n);
+    r3 : uint32 when Fault(m);
+let
+  a = pick(go, x, y);
+  b = case m of (Idle => 0u) (Run => x + 1u) (Hold => y lxor x) (Fault => 7u);
+  c = case j of (Run => x) (Fault => y) (_ => 9u);
+  p = Idle fby m;
+  f = case p of (Hold => w + 1llu) (_ => w);
+  g = if go then (if x < y then true else false) else false;
+  k1 = (0u when go) fby ((v + 1u) when go);
+  s = merge go (true => k1) (false => 0u when not go);
+  v = s lxor x;
+  r1 = (0u when Run(k)) fby (z when Run(k));
+  r2 = (0u when Hold(k)) fby ((z + 1u) when Hold(k));
+  q = merge k (Idle => 0u when Idle(k)) (Run => r1) (Hold => r2)
+              (Fault => 1u when Fault(k));
+  z = q + y;
+  r0 = (5u when Idle(n)) fby ((h + x) when Idle(n));
+  h = merge n (Idle => r0) (Run => 2u when Run(n)) (Hold => 3u when Hold(n))
+              (Fault => 4u when Fault(n));
+  r3 = (6u when Fault(m)) fby ((h + z) when Fault(m));
+  e = merge m (Idle => 10u when Idle(m)) (Run => 11u when Run(m))
+              (Hold => 12u when Hold(m)) (Fault => r3);
+tel
