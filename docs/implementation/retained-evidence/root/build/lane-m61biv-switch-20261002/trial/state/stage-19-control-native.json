@@ -1,0 +1,1242 @@
+{
+  "check": 4,
+  "stage": "control-native",
+  "predicate": "The split control drivers agree natively on every row of the seeded generated set.",
+  "start_utc": "2026-10-03T01:54:20+00:00",
+  "end_utc": "2026-10-03T01:54:24+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "emit": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_control.py",
+        "--seed",
+        "20261002",
+        "--count",
+        "576",
+        "--rows",
+        "24",
+        "--emitted",
+        "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c",
+        "--memory",
+        "switch_control",
+        "--output",
+        "fun$step$switch_control",
+        "--step",
+        "fun$step$switch_control",
+        "--reset",
+        "fun$reset$switch_control",
+        "--out-dir",
+        "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+        "--summary",
+        "/root/build/lane-m61biv-switch-20261002/trial/control-driver/summary.json"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:54:20+00:00",
+      "end_utc": "2026-10-03T01:54:20+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/emit.log",
+        "sha256": "925e74d51d3ddbd9c7985170438fc78c938b7f26d1d30542148c4e4cec8ae802",
+        "bytes": 36
+      }
+    },
+    "summary": {
+      "generator": "supervisor/route/switch_control.py",
+      "seed": 20261002,
+      "count": 576,
+      "edge_rows": 128,
+      "seeded_rows": 448,
+      "rows_per_program": 24,
+      "programs_split": 24,
+      "reset_per_program": true,
+      "edges": {
+        "m": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "j": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "k": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "n": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "go": [
+          0,
+          1
+        ],
+        "x": [
+          0,
+          1,
+          2147483648,
+          4294967295
+        ],
+        "y": [
+          0,
+          1,
+          2147483648,
+          4294967295
+        ],
+        "w": [
+          0,
+          1,
+          9223372036854775808,
+          18446744073709551615
+        ]
+      },
+      "rows_sha256": "387ed76cdd18310f1a2c3d5c1bf162e70173fb883cb8fd2335716458bd48c9be",
+      "perturb": false,
+      "programs": [
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-00.c",
+          "sha256": "78d1833376d85c39e754c5b47c2d7e89a711b825747d0251fbc32503853b7d81",
+          "bytes": 9229,
+          "first_row": 0,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-01.c",
+          "sha256": "d3805302e3ab75df43fe97c0461b06463a8879872ffb8c66d787ad99f1a36b6e",
+          "bytes": 9249,
+          "first_row": 24,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-02.c",
+          "sha256": "1f04cce654a3dc50622fc2dd77a2e864a9c336871a8c6b5b6d86ba1c0b22ad33",
+          "bytes": 9309,
+          "first_row": 48,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-03.c",
+          "sha256": "3e1dfb93c5ccaf6ab886fb5059e29b4260d9d12a87817b8fe303fd3f00a71e31",
+          "bytes": 9393,
+          "first_row": 72,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-04.c",
+          "sha256": "d539006db01e874d5e5247a0d15d0e0ba18568bdf7d24760f6a8301fca56ed7b",
+          "bytes": 9565,
+          "first_row": 96,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-05.c",
+          "sha256": "70c76c9a95974886a4ec314a8b3b51e6145f41a06056b4e7b5018183e7486e05",
+          "bytes": 9672,
+          "first_row": 120,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-06.c",
+          "sha256": "94b6fa9d45eb10e2e9d14604bc29a9ea308ccbd165d397ba748398b505c670b9",
+          "bytes": 9921,
+          "first_row": 144,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-07.c",
+          "sha256": "52e36e084868aabe388677392ea427f7705ce326404b9db5a6f66dc63d5a36b5",
+          "bytes": 9972,
+          "first_row": 168,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-08.c",
+          "sha256": "1d3ff69a43a3bc2cb7b324de49f0e630b7cfdcb67622f53ae23aaba164ab3e13",
+          "bytes": 10106,
+          "first_row": 192,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-09.c",
+          "sha256": "e1beeb90f2adb1f836f18d0c7ebe6b94f15760424947c64be24b09653b45b8c1",
+          "bytes": 10028,
+          "first_row": 216,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-10.c",
+          "sha256": "8b35ff392bedf0ad56e430eb6179d30ab7a281c4af1428e2502f8ba03b7c53aa",
+          "bytes": 10331,
+          "first_row": 240,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-11.c",
+          "sha256": "90494c49f7fb9e62b7f9cbb2d851c2ca023461af8df1d21b59e89b76cde3e43c",
+          "bytes": 10074,
+          "first_row": 264,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-12.c",
+          "sha256": "2cbab91dae8689c6802a3744a5f4b683a2811f624a5ebfa518cf7ec89d29f01d",
+          "bytes": 10311,
+          "first_row": 288,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-13.c",
+          "sha256": "a92a68a3e3dc83cd94bad6f0de29921cf2f99120a2c3c51c7884138cf9788ac6",
+          "bytes": 10133,
+          "first_row": 312,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-14.c",
+          "sha256": "2fa3475dce15978de1f7694d171ab3595f658144445bb3e8f8c5111d12658d57",
+          "bytes": 10107,
+          "first_row": 336,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-15.c",
+          "sha256": "ebdc239fdb308b69e5a56617a5e314a3cae6084e54c5a474fc5f0c8671f2384d",
+          "bytes": 10166,
+          "first_row": 360,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-16.c",
+          "sha256": "cd68110564282a4b9e9a4b0e75d6746e77d09f0ece3fe049b9460b49f7452499",
+          "bytes": 10076,
+          "first_row": 384,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-17.c",
+          "sha256": "76b906e2985605890f4d0e6d508cef708210afa369cbd713a84758dee47f36e6",
+          "bytes": 10012,
+          "first_row": 408,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-18.c",
+          "sha256": "acb209068b1b29775b3d82db9a9d331d29cb85b037cd5bbd4af263a4a4a99739",
+          "bytes": 10341,
+          "first_row": 432,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-19.c",
+          "sha256": "e015969e25d94fe93f3b2a477fca889fd3cfe93f1c0c1e6f1c0322b11b14e263",
+          "bytes": 10205,
+          "first_row": 456,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-20.c",
+          "sha256": "2aa23ef2a3a25ce24d6d49ef769ee323d5afdd361625c549291dfff3bc384bed",
+          "bytes": 10012,
+          "first_row": 480,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-21.c",
+          "sha256": "fb896069447c050e700830dd81eaadfb51800f3908aaccef587733c0c785bfdf",
+          "bytes": 10098,
+          "first_row": 504,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-22.c",
+          "sha256": "f5efdaef2eacf8f4f84848390d119dfe72bc1fe3857ea76e4e6a2a139960151a",
+          "bytes": 10256,
+          "first_row": 528,
+          "rows": 24
+        },
+        {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-23.c",
+          "sha256": "25968b156bdf809299da8a5c33b95a69c827356ba1ef9b0fd0d112b47eb5a3ca",
+          "bytes": 10102,
+          "first_row": 552,
+          "rows": 24
+        }
+      ]
+    },
+    "summary_identity": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/summary.json",
+      "sha256": "7cc11ccf8f82398b3711dec6c32b836e321bc9ef1243c300429a973f41956ff1",
+      "bytes": 7061
+    },
+    "native": {
+      "control-00.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-00.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-00"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:20+00:00",
+          "end_utc": "2026-10-03T01:54:20+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-00.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-00",
+          "sha256": "bbfc64f7fbdfb709f523a2a74cf9b50945ce6eb91874a4407b61a2ceca4b259d",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-00"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:20+00:00",
+          "end_utc": "2026-10-03T01:54:20+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-00.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-01.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-01.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-01"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:20+00:00",
+          "end_utc": "2026-10-03T01:54:20+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-01.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-01",
+          "sha256": "9399a340a8e11d81b338427709b8642a11f45de98987899cb57166a174bb479f",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-01"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:20+00:00",
+          "end_utc": "2026-10-03T01:54:20+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-01.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-02.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-02.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-02"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:20+00:00",
+          "end_utc": "2026-10-03T01:54:20+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-02.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-02",
+          "sha256": "09d86fbbf9afca4552b83e8bde71a32033507bf555f598b784fcb2d96f1d4d3f",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-02"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:20+00:00",
+          "end_utc": "2026-10-03T01:54:20+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-02.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-03.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-03.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-03"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:20+00:00",
+          "end_utc": "2026-10-03T01:54:21+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-03.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-03",
+          "sha256": "6df9f1f0d705f637dc5ed63257a186d24006e902232377196eece750918a03da",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-03"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:21+00:00",
+          "end_utc": "2026-10-03T01:54:21+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-03.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-04.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-04.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-04"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:21+00:00",
+          "end_utc": "2026-10-03T01:54:21+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-04.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-04",
+          "sha256": "3441e1f4a25da8aefb8d9353b1eb4d7f40596fd1fd380f360f4246f300a8e972",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-04"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:21+00:00",
+          "end_utc": "2026-10-03T01:54:21+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-04.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-05.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-05.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-05"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:21+00:00",
+          "end_utc": "2026-10-03T01:54:21+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-05.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-05",
+          "sha256": "a4f65864a17dd8b677d26cb70e92bb83a9cc82d7b6248b4974f94480717e835c",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-05"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:21+00:00",
+          "end_utc": "2026-10-03T01:54:21+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-05.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-06.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-06.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-06"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:21+00:00",
+          "end_utc": "2026-10-03T01:54:21+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-06.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-06",
+          "sha256": "66cb3e2dfc1ae5376b19352a3e79d83bc9db8c56c452e58f4c8f5864451d4fb8",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-06"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:21+00:00",
+          "end_utc": "2026-10-03T01:54:21+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-06.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-07.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-07.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-07"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:21+00:00",
+          "end_utc": "2026-10-03T01:54:21+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-07.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-07",
+          "sha256": "692f53e4edb8e322051cc40ca6763bfd1ae458a70be0806bfd1c56de6ffbbd79",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-07"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:21+00:00",
+          "end_utc": "2026-10-03T01:54:21+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-07.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-08.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-08.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-08"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:21+00:00",
+          "end_utc": "2026-10-03T01:54:21+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-08.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-08",
+          "sha256": "ca1e564b7bd13220ad7e1c0909c67d832efef1a6fc91771f8122ab4206c90f0b",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-08"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:21+00:00",
+          "end_utc": "2026-10-03T01:54:21+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-08.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-09.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-09.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-09"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:21+00:00",
+          "end_utc": "2026-10-03T01:54:22+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-09.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-09",
+          "sha256": "c1222a19434582330f17a595b247ed20fe3f7ee137aa7af621ac582e0488f02a",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-09"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:22+00:00",
+          "end_utc": "2026-10-03T01:54:22+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-09.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-10.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-10.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-10"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:22+00:00",
+          "end_utc": "2026-10-03T01:54:22+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-10.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-10",
+          "sha256": "1d2054bbb86139726bc52769d9ea969dc432f22ba2657db7f56f0c952de9351b",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-10"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:22+00:00",
+          "end_utc": "2026-10-03T01:54:22+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-10.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-11.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-11.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-11"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:22+00:00",
+          "end_utc": "2026-10-03T01:54:22+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-11.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-11",
+          "sha256": "758501c607050f27d0f81d545d7299df3985932be5747467e3548ebf4f2d90c3",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-11"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:22+00:00",
+          "end_utc": "2026-10-03T01:54:22+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-11.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-12.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-12.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-12"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:22+00:00",
+          "end_utc": "2026-10-03T01:54:22+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-12.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-12",
+          "sha256": "08255a0c6e7f7afb19d42b3eef0754028c7a661f96d50e48d23574fea5bac284",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-12"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:22+00:00",
+          "end_utc": "2026-10-03T01:54:22+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-12.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-13.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-13.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-13"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:22+00:00",
+          "end_utc": "2026-10-03T01:54:22+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-13.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-13",
+          "sha256": "5e20759c94bbed9e43aa23c7ca2f369d4e15760a837192c2c17adc0924f3d1ff",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-13"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:22+00:00",
+          "end_utc": "2026-10-03T01:54:22+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-13.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-14.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-14.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-14"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:22+00:00",
+          "end_utc": "2026-10-03T01:54:23+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-14.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-14",
+          "sha256": "3f65fd79e69a7f54e2c1a81d43dc9e41968676f1664ff8ae40c4a6f6dfcb47ef",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-14"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:23+00:00",
+          "end_utc": "2026-10-03T01:54:23+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-14.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-15.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-15.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-15"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:23+00:00",
+          "end_utc": "2026-10-03T01:54:23+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-15.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-15",
+          "sha256": "8c4e7bfea6063260e58f0ccca46a5ad1e76dde7d6a529d7cfdea89f512db2a86",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-15"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:23+00:00",
+          "end_utc": "2026-10-03T01:54:23+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-15.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-16.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-16.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-16"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:23+00:00",
+          "end_utc": "2026-10-03T01:54:23+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-16.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-16",
+          "sha256": "7e1ec82ba750422da5a17da651fcc25206a8dfd1376921e7ab4bf090f2c683f9",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-16"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:23+00:00",
+          "end_utc": "2026-10-03T01:54:23+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-16.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-17.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-17.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-17"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:23+00:00",
+          "end_utc": "2026-10-03T01:54:23+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-17.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-17",
+          "sha256": "19c09f415178494fb3273673627e5a952950d4e1e16a7814017657421da9b12d",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-17"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:23+00:00",
+          "end_utc": "2026-10-03T01:54:23+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-17.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-18.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-18.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-18"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:23+00:00",
+          "end_utc": "2026-10-03T01:54:23+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-18.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-18",
+          "sha256": "b5ea13b8cb76506ab078c63291afc5be271bfe82a2af6b272a486bc55dd96ba2",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-18"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:23+00:00",
+          "end_utc": "2026-10-03T01:54:23+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-18.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-19.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-19.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-19"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:23+00:00",
+          "end_utc": "2026-10-03T01:54:24+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-19.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-19",
+          "sha256": "e963d77e66442867e7ea61d135f7b4b6a255ae6693a27a48125cbbe3233f0d93",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-19"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:24+00:00",
+          "end_utc": "2026-10-03T01:54:24+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-19.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-20.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-20.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-20"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:24+00:00",
+          "end_utc": "2026-10-03T01:54:24+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-20.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-20",
+          "sha256": "5ed6454ee7f43eb596e565432524f15c6d8897c63770f7cdb85d4ccd0d44cacb",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-20"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:24+00:00",
+          "end_utc": "2026-10-03T01:54:24+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-20.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-21.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-21.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-21"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:24+00:00",
+          "end_utc": "2026-10-03T01:54:24+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-21.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-21",
+          "sha256": "bc41b8fba3d2911a0e098446dbfd2c274858f74b2a4602a2e9679723f5dee747",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-21"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:24+00:00",
+          "end_utc": "2026-10-03T01:54:24+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-21.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-22.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-22.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-22"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:24+00:00",
+          "end_utc": "2026-10-03T01:54:24+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-22.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-22",
+          "sha256": "cd6cfc5d2cd16b80cf51680a96079791aef0d22c5c90d1e0b0e33e0febd07451",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-22"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:24+00:00",
+          "end_utc": "2026-10-03T01:54:24+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-22.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "control-23.c": {
+        "compile": {
+          "argv": [
+            "/usr/bin/aarch64-linux-gnu-gcc-15",
+            "-std=c11",
+            "-O2",
+            "-fsanitize=undefined",
+            "-fno-sanitize-recover=undefined",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-23.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-23"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:24+00:00",
+          "end_utc": "2026-10-03T01:54:24+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-23.native.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-23",
+          "sha256": "5703c0011a66008ac532a8e0792b9563b7453c3b4c33f1519cd599d868cc61bb",
+          "bytes": 71616
+        },
+        "run": {
+          "argv": [
+            "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-23"
+          ],
+          "exit": 0,
+          "start_utc": "2026-10-03T01:54:24+00:00",
+          "end_utc": "2026-10-03T01:54:24+00:00",
+          "log": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs/control-23.run.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      }
+    }
+  }
+}

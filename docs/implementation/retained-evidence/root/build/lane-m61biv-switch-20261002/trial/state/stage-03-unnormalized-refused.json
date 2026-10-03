@@ -1,0 +1,166 @@
+{
+  "check": 1,
+  "stage": "unnormalized-refused",
+  "predicate": "The probe driver over the unnormalized Clight is still refused, natively and by the accepted compiler for its alignment.",
+  "start_utc": "2026-10-03T01:53:58+00:00",
+  "end_utc": "2026-10-03T01:53:59+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "oracle_build": {
+      "argv": [
+        "/usr/bin/aarch64-linux-gnu-gcc-15",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-I",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/include",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/oracle.c",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/src/supervisor.c",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/src/manifest.c",
+        "-o",
+        "/root/build/lane-m61biv-switch-20261002/trial/oracle/oracle"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:53:58+00:00",
+      "end_utc": "2026-10-03T01:53:58+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/oracle/build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    "oracle_binary": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/oracle/oracle",
+      "sha256": "2bf5256fb5a9899ae7363958604922a96aa1042b3406383c90cef28b017f0e04",
+      "bytes": 71184
+    },
+    "oracle_run": {
+      "argv": [
+        "/root/build/lane-m61biv-switch-20261002/trial/oracle/oracle"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:53:58+00:00",
+      "end_utc": "2026-10-03T01:53:58+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/oracle/run.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "stdout": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/oracle/fixtures.txt",
+        "sha256": "2c2ddcf675a05a5d5a2afd819d00d00c096b246ada96d9b1ee7bc01fa6044ebc",
+        "bytes": 24120
+      }
+    },
+    "emit": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/probe.py",
+        "--fixtures",
+        "/root/build/lane-m61biv-switch-20261002/trial/oracle/fixtures.txt",
+        "--emitted",
+        "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c",
+        "--memory",
+        "start_restart",
+        "--output",
+        "fun$step$start_restart",
+        "--step",
+        "fun$step$start_restart",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/probe.c"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:53:58+00:00",
+      "end_utc": "2026-10-03T01:53:58+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/emit.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    "driver": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/probe.c",
+      "sha256": "6492f0f1d3d0b8402db515f20f66ff865d08b154ae50420da001aad35661270b",
+      "bytes": 196574
+    },
+    "native": {
+      "compile": {
+        "argv": [
+          "/usr/bin/aarch64-linux-gnu-gcc-15",
+          "-std=c11",
+          "-O2",
+          "-fsanitize=undefined",
+          "-fno-sanitize-recover=undefined",
+          "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/probe.c",
+          "-o",
+          "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/probe"
+        ],
+        "exit": 1,
+        "start_utc": "2026-10-03T01:53:58+00:00",
+        "end_utc": "2026-10-03T01:53:58+00:00",
+        "log": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/probe.native.log",
+          "sha256": "72295ea98127460d7efcb2f5288272c3dce31d40f16829fc144bee957b91fa45",
+          "bytes": 1990
+        }
+      }
+    },
+    "target": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/tools/run.py",
+        "compiler-diff",
+        "program",
+        "--ccomp",
+        "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+        "--ccomp-arg=-conf",
+        "--ccomp-arg=/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+        "--ccomp-arg=-fverifiedos-typed",
+        "--simulator",
+        "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+        "--profile",
+        "/root/build/lane-m61biv-switch-20261002/profile/verifiedos.json",
+        "--keep",
+        "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/purecap",
+        "--timeout",
+        "900",
+        "--run-timeout",
+        "600",
+        "--json",
+        "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/probe.c"
+      ],
+      "exit": 1,
+      "start_utc": "2026-10-03T01:53:58+00:00",
+      "end_utc": "2026-10-03T01:53:59+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/purecap-report.log",
+        "sha256": "70cd75cfd950e985d3c03e8fd4bb93a3cf517b9e2b4bff04660aaa11dd24d561",
+        "bytes": 134
+      },
+      "stdout": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/purecap-report.json",
+        "sha256": "e55f3778923b6fc2a05c126ac7e4b273ca3a992522bf838e8cbfa40fbd87d1a9",
+        "bytes": 4717
+      }
+    },
+    "target_programs": [
+      {
+        "name": "probe",
+        "verdict": "ccomp-refused",
+        "detail": "ccomp exited 2: /root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:17: error: alignment specified for unnamed parameter\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:17: error: alignment specified for unnamed parameter\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:19: error: alignment specified for parameter 'snapshot_epoch'\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:19",
+        "source_sha256": "6492f0f1d3d0b8402db515f20f66ff865d08b154ae50420da001aad35661270b",
+        "ccomp_exit": 2,
+        "stream_lines": 0,
+        "stream_sha256": "",
+        "preprocessed_sha256": "cb0cded581f38330f94321b5e7114c6a75f281561c09b9b3df40703540de6843",
+        "image_bytes": 0,
+        "refusals": [],
+        "run_code": null,
+        "records": null,
+        "trace_digest": null
+      }
+    ],
+    "target_diagnostic": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:17: error: alignment specified for unnamed parameter\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:17: error: alignment specified for unnamed parameter\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:19: error: alignment specified for parameter 'snapshot_epoch'\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:19"
+  }
+}

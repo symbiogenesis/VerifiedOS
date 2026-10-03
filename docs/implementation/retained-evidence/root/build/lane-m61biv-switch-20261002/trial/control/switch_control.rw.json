@@ -1,0 +1,193 @@
+{
+  "rewrite": "supervisor/route/switch_rewrite.py",
+  "site": {
+    "velus_revision": "27ba860c2624ba232816591290c6c119b9ead88a",
+    "file": "src/ObcToClight/Generation.v",
+    "sha256": "0edb3ffad07e250fb84319d95666277a9eaa4033dca2c862f06a83bbd8dfce8d",
+    "construct": "translate_stmt's Switch arm, through make_labeled_statements"
+  },
+  "printer": {
+    "file": "CompCert/cfrontend/PrintClight.ml",
+    "sha256": "25a3f8489ae6444356262f3f4fc6f3bb1e3b3303f5fbf22ce0228c1cb25305db",
+    "construct": "print_stmt's Sswitch arm and print_cases"
+  },
+  "shapes": {
+    "if-else": "one case with a non-empty body, a non-empty default",
+    "if-only": "one case with a non-empty body, an empty default",
+    "else-only": "one case labelled 0 with an empty body, a non-empty default",
+    "chain-else": "two or more cases with non-empty bodies, a non-empty default",
+    "chain-only": "two or more cases with non-empty bodies, an empty default"
+  },
+  "input": {
+    "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.norm.c",
+    "sha256": "8e99e10ed03cce50fda116405b521ead6259cd9120cff1fd6f33ae6499a52abe",
+    "bytes": 3828
+  },
+  "output": {
+    "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c",
+    "sha256": "460a7719cc38e796e5090ced4f3c4a85278bd8d4170ee6e896d41f71f3e79bbc",
+    "bytes": 3632
+  },
+  "identical": false,
+  "lowered": 11,
+  "by_shape": {
+    "if-else": 4,
+    "if-only": 1,
+    "else-only": 1,
+    "chain-else": 4,
+    "chain-only": 1
+  },
+  "groups": [
+    {
+      "line": 38,
+      "column": 3,
+      "depth": 0,
+      "owner": "fun$step$pick",
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "scrutinee": "c",
+      "empty_cases": 0,
+      "default_empty": false
+    },
+    {
+      "line": 59,
+      "column": 3,
+      "depth": 0,
+      "owner": "fun$step$switch_control",
+      "shape": "chain-else",
+      "labels": [
+        0,
+        1,
+        2
+      ],
+      "scrutinee": "m",
+      "empty_cases": 0,
+      "default_empty": false
+    },
+    {
+      "line": 77,
+      "column": 3,
+      "depth": 0,
+      "owner": "fun$step$switch_control",
+      "shape": "chain-else",
+      "labels": [
+        1,
+        3
+      ],
+      "scrutinee": "j",
+      "empty_cases": 0,
+      "default_empty": false
+    },
+    {
+      "line": 88,
+      "column": 3,
+      "depth": 0,
+      "owner": "fun$step$switch_control",
+      "shape": "chain-else",
+      "labels": [
+        0,
+        1,
+        2
+      ],
+      "scrutinee": "k",
+      "empty_cases": 0,
+      "default_empty": false
+    },
+    {
+      "line": 103,
+      "column": 3,
+      "depth": 0,
+      "owner": "fun$step$switch_control",
+      "shape": "chain-only",
+      "labels": [
+        1,
+        2
+      ],
+      "scrutinee": "k",
+      "empty_cases": 0,
+      "default_empty": true
+    },
+    {
+      "line": 113,
+      "column": 3,
+      "depth": 0,
+      "owner": "fun$step$switch_control",
+      "shape": "chain-else",
+      "labels": [
+        0,
+        1,
+        2
+      ],
+      "scrutinee": "n",
+      "empty_cases": 0,
+      "default_empty": false
+    },
+    {
+      "line": 128,
+      "column": 3,
+      "depth": 0,
+      "owner": "fun$step$switch_control",
+      "shape": "if-only",
+      "labels": [
+        3
+      ],
+      "scrutinee": "m",
+      "empty_cases": 0,
+      "default_empty": true
+    },
+    {
+      "line": 135,
+      "column": 3,
+      "depth": 0,
+      "owner": "fun$step$switch_control",
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "scrutinee": "go",
+      "empty_cases": 0,
+      "default_empty": false
+    },
+    {
+      "line": 142,
+      "column": 7,
+      "depth": 1,
+      "owner": "fun$step$switch_control",
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "scrutinee": "x < y",
+      "empty_cases": 0,
+      "default_empty": false
+    },
+    {
+      "line": 153,
+      "column": 3,
+      "depth": 0,
+      "owner": "fun$step$switch_control",
+      "shape": "else-only",
+      "labels": [
+        0
+      ],
+      "scrutinee": "go",
+      "empty_cases": 1,
+      "default_empty": false
+    },
+    {
+      "line": 160,
+      "column": 3,
+      "depth": 0,
+      "owner": "fun$step$switch_control",
+      "shape": "if-else",
+      "labels": [
+        2
+      ],
+      "scrutinee": "(*obc2c$self).p",
+      "empty_cases": 0,
+      "default_empty": false
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "check": 5,
+  "stage": "rehash",
+  "predicate": "Every frozen input and tool identity rehashes unchanged.",
+  "start_utc": "2026-10-03T01:54:36+00:00",
+  "end_utc": "2026-10-03T01:54:37+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "inputs_rehashed": 38,
+    "tools_rehashed": 15,
+    "changed": []
+  }
+}

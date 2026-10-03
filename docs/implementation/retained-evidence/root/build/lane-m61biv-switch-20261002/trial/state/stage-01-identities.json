@@ -1,0 +1,59 @@
+{
+  "check": 1,
+  "stage": "identities",
+  "predicate": "After the fresh freeze, the Velus, licence, compiler, configuration, simulator, profile and native-compiler hashes match M6.1b-iii's recorded identities, the opam switch export matches M6.1b-i's, and the Velus translation site and printer hash to the values the rewrite declares.",
+  "start_utc": "2026-10-03T01:53:58+00:00",
+  "end_utc": "2026-10-03T01:53:58+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "recorded_hashes_match": {
+      "velus": true,
+      "velus_license": true,
+      "compcert_license": true,
+      "ccomp": true,
+      "compiler_config": true,
+      "simulator": true,
+      "profile": true,
+      "native_cc": true,
+      "opam_switch": true,
+      "velus_site": true,
+      "velus_printer": true
+    },
+    "freeze": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/state/freeze.json",
+      "sha256": "c7dea7f2380f4e2d91538213d15cd8d3d4848e2ed038eeebada74e0f9cd4990c",
+      "bytes": 14620
+    },
+    "changed_since_prior_freeze": {
+      "supervisor/route/normalize.py": {
+        "prior": "ed8ad840ad23dbe2858a17bd0354db80c6b66948ab5193ea383542b46f893601",
+        "frozen": "88f03c2d69e16057e8568b7f7b0909312995429b603e31d867cec1d1992b5af8"
+      },
+      "supervisor/route/token_compare.py": {
+        "prior": "ef86954923eccae82aecadbecb5993eeac4cddcc3e2ca1539e3bc5bcf1d1e0e5",
+        "frozen": "580d377b8e94ff7a91f58d243236c157db482ebf5e1d8a850b45d20d56fc5b1f"
+      },
+      "supervisor/route/control.py": {
+        "prior": "30314c0090aed494eb28d664dc350717a13fb47279d73965e61dcd731c4f32aa",
+        "frozen": "7d49edffbe2337675d1b742fb73fbba338d88b98fe60b1e71baa968d884b683a"
+      },
+      "tools/vos/asm.py": {
+        "prior": "e190290cbb2908b893a69fe6a32aba7867d8dfc15678c1a53b203b0f32a8db22",
+        "frozen": "0de2f6ac03769c80764e16ba7bdd02f6aa3c23f2c4edb1dbf27801b6edba5384"
+      },
+      "tools/vos/image.py": {
+        "prior": "4ad7bf934d8026e05080c9db55808a763d5eea0bf5e2cafd48c50d1c141c71fc",
+        "frozen": "417cda8b7a12af64c4cfe5a67c43b80d5092ccd6e948bcddd605c11f3911b4a6"
+      },
+      "model/config/verifiedos.json": {
+        "prior": "f157070982b84795252b5acdf27221177bf38e3d16b61c2a34011114b91bf424",
+        "frozen": "84e8febedf548233317f9ac3172c2bdffc3bb9d385bda3ec25cfb4a958bbeab9"
+      },
+      "tools/tests/test_supervisor_route.py": {
+        "prior": "4b02bc0340a6a48f7320c25469a3d459fa40abad0fe0890f92b5264994c80069",
+        "frozen": "ce5ccd213fbd2ec4fbbcf1d03cbb450db0c026b3b7cebfdc6b81457212f5fdd4"
+      }
+    }
+  }
+}

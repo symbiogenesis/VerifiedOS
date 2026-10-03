@@ -1,0 +1,1449 @@
+{
+  "scope": "program-level",
+  "milestone_acceptance": "open",
+  "sources_sha256": {
+    "tools/vos/cli/compiler_diff.py": "43c3dbde5bf1426751da2e8758b9eeda6a1f1102bdb6e81c870d874cc3a1e7b7",
+    "tools/vos/asm.py": "0de2f6ac03769c80764e16ba7bdd02f6aa3c23f2c4edb1dbf27801b6edba5384",
+    "tools/vos/image.py": "417cda8b7a12af64c4cfe5a67c43b80d5092ccd6e948bcddd605c11f3911b4a6",
+    "tools/generated/dialect-table.json": "58f8ed08800814a949ed21e8b1a374acbf54edefbec521ad6dd3f38007879d1a",
+    "docs/assurance/differential-corpus.md": "a837f51a1e4022bfb90260a17ffc6f70d874ffe4401d63ba4f4dd28c1043777b",
+    "docs/implementation/contracts/purecap-abi.md": "1e4ab8e65d7fef144eafdc8664818a34e3b6dc76de17701fc791fcad4d19966a",
+    "model/model/core/cap_common.sail": "26c179273e4ca3001d3fd92fbe7643a6e94a2a136c76fa89256516971437c773"
+  },
+  "ccomp": {
+    "path": "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+    "sha256": "ecaa5ce0cd29d1099016dc1b62a93d16ecab1fe1bcb3a0e363c2697f6294ddca"
+  },
+  "simulator": {
+    "path": "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+    "sha256": "25196ad08c3e787363e078269b696476403d8e63348e68a9525f36e02484f793"
+  },
+  "profile": {
+    "path": "/root/build/lane-m61biv-switch-20261002/profile/verifiedos.json",
+    "sha256": "f157070982b84795252b5acdf27221177bf38e3d16b61c2a34011114b91bf424"
+  },
+  "campaign": {
+    "seed": 1,
+    "generated": 0,
+    "perturb": false,
+    "patterns": [
+      "memory",
+      "struct",
+      "call",
+      "stack",
+      "nullable",
+      "spill",
+      "narrow"
+    ],
+    "given": [
+      "probe-00",
+      "probe-01",
+      "probe-02",
+      "probe-03",
+      "probe-04",
+      "probe-05",
+      "probe-06",
+      "probe-07",
+      "probe-08",
+      "probe-09",
+      "probe-10",
+      "probe-11",
+      "probe-12",
+      "probe-13",
+      "probe-14",
+      "probe-15",
+      "probe-16",
+      "probe-17",
+      "probe-18",
+      "probe-19",
+      "probe-20",
+      "probe-21",
+      "probe-22",
+      "probe-23"
+    ]
+  },
+  "interp": false,
+  "expect": "pass",
+  "programs": [
+    {
+      "name": "probe-00",
+      "pattern": "given",
+      "source_sha256": "1397ddefec416500120a2b7d7762cddad5918ae0eefbd43646a75f3555527f2c",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-00.i",
+          "-o",
+          "probe-00.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "920279df94bf25dcaabd1cc68addf53cc5cb981298c8ec4bda79f95245da3cea",
+        "lines": 2525,
+        "preprocessed_sha256": "f7db7f12aef8d6bee263c518d0e53aef76fb960e6f79033055784b6f170c764d",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-00.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-00/probe-00.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "1397ddefec416500120a2b7d7762cddad5918ae0eefbd43646a75f3555527f2c"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25468,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7514,
+        "digest": "1731b8b7ae266091",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-01",
+      "pattern": "given",
+      "source_sha256": "6d913199799e7429435a6cf66ef4eef8e4d94ba3ca1bad6af711ce0bfa48293a",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-01.i",
+          "-o",
+          "probe-01.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "45e39ec16818bb783523b9c21ade6d4b9c199e6dee020df3f7949dd4942f4777",
+        "lines": 2525,
+        "preprocessed_sha256": "e066b3b8c54823a726e308ee8940c7a8b4b461d3478ab219aa93b80dd5ef2795",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-01.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-01/probe-01.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "6d913199799e7429435a6cf66ef4eef8e4d94ba3ca1bad6af711ce0bfa48293a"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25468,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7514,
+        "digest": "0a9e84da91bd356e",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-02",
+      "pattern": "given",
+      "source_sha256": "759e4ef6e8b6f89ca76b5850aa27e13bce311deb92c4dfc3096ad3742323cf3f",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-02.i",
+          "-o",
+          "probe-02.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "f82dbfca72def3fc633fc9fa95007155cd52b7d42d2e0fbb9615377fd81bc3bd",
+        "lines": 2525,
+        "preprocessed_sha256": "f24bc415a3d9a6a96a0fefaaa187f04dc3a963eaad0b550f4389cfcb784c1c9c",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-02.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-02/probe-02.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "759e4ef6e8b6f89ca76b5850aa27e13bce311deb92c4dfc3096ad3742323cf3f"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25468,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7514,
+        "digest": "655ee6496994f219",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-03",
+      "pattern": "given",
+      "source_sha256": "ea8537b3ad71a0e493d45bbf5d60b2f876d3302e5d9cd11e4b3ae5efe2fe0fa5",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-03.i",
+          "-o",
+          "probe-03.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "88092fa3e2f8a98147b1a6b1a9f05472bf5d0f6a502029a3e8e70278f6611c86",
+        "lines": 2525,
+        "preprocessed_sha256": "1d9d61971a5e4842204dcfa694367a26659c8a19092d5f9f4485928ee2a97dc9",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-03.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-03/probe-03.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "ea8537b3ad71a0e493d45bbf5d60b2f876d3302e5d9cd11e4b3ae5efe2fe0fa5"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25468,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7514,
+        "digest": "40d63880abe426f8",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-04",
+      "pattern": "given",
+      "source_sha256": "15bfca807e05a60ed76206aa2b6dc5469a30b020334033abbc6b99435d71b72e",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-04.i",
+          "-o",
+          "probe-04.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "b58bf04c7ca7d4738048fe377607a00c99fda9fb144a47fcf43e5908ba7f2b65",
+        "lines": 2525,
+        "preprocessed_sha256": "e328630abe6fb6a8c5797d91fb33f16284fa1d3a91445ec3a67a074eb866d23a",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-04.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-04/probe-04.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "15bfca807e05a60ed76206aa2b6dc5469a30b020334033abbc6b99435d71b72e"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25468,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7514,
+        "digest": "239ae0fae2c491aa",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-05",
+      "pattern": "given",
+      "source_sha256": "c4e3011004326d4286d9f7e6212b8610fb877471d0369fd21a4b5de8e9a71963",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-05.i",
+          "-o",
+          "probe-05.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "7c38fadf06c65a338f70b439bce02fb314b7f649d28a31cd51440ccf4f1133d9",
+        "lines": 2525,
+        "preprocessed_sha256": "9bdd5d43bae820e29615a6f636ff6fafe86cd8c5c56f88c8563ff4ab99d7bd01",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-05.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-05/probe-05.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "c4e3011004326d4286d9f7e6212b8610fb877471d0369fd21a4b5de8e9a71963"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25468,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7514,
+        "digest": "14968a5e9b88ab81",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-06",
+      "pattern": "given",
+      "source_sha256": "971539cc98c435f021dc78fb5114f87b993f2cd38727fbc1947b4205517bbe63",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-06.i",
+          "-o",
+          "probe-06.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "acf8c14ad432ab408c9125bf2561cdd8aa798573b0a9b999696c943006199587",
+        "lines": 2525,
+        "preprocessed_sha256": "f80cd3d6ceee4afa82cfe6b21addf098b1b2bad15b97f8c8e36e0b3171fdc722",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-06.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-06/probe-06.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "971539cc98c435f021dc78fb5114f87b993f2cd38727fbc1947b4205517bbe63"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25468,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7514,
+        "digest": "a3e21f1bd4df21f6",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-07",
+      "pattern": "given",
+      "source_sha256": "b21dd2af035bdbe3f41038498659222b0576308c92dba6889e114bbef356f221",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-07.i",
+          "-o",
+          "probe-07.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "66e23d7ba0a311ffea0af0b72f3c78396ca53e1a47306382575675e1f60e8a5e",
+        "lines": 2525,
+        "preprocessed_sha256": "75d068eb001a34dcb60cd40705739affc21ce500182ffa298967bab667da1b30",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-07.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-07/probe-07.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "b21dd2af035bdbe3f41038498659222b0576308c92dba6889e114bbef356f221"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25468,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7514,
+        "digest": "a1e8826403535812",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-08",
+      "pattern": "given",
+      "source_sha256": "58f2fcf2fb0be9389c9481973a404679e8ddef6322edbaa4c474821fa2dbf469",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-08.i",
+          "-o",
+          "probe-08.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "beab92a5fb6301597c14056e5dbf553597ff8aeb3ee3a6098422bf56082ea0c2",
+        "lines": 2557,
+        "preprocessed_sha256": "26a42c0580e40b28ce7b3bb575e6d9f8754b59ec18dcd91922c3468bf35fed78",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-08.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-08/probe-08.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "58f2fcf2fb0be9389c9481973a404679e8ddef6322edbaa4c474821fa2dbf469"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25596,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7610,
+        "digest": "53ab29626476dc80",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-09",
+      "pattern": "given",
+      "source_sha256": "865272ba836dfdc8f2f3e2fce3f2d1d056c00124d58945dbeefd4c807e9c629b",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-09.i",
+          "-o",
+          "probe-09.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "6ea34cb8faab6120af18051bacf63f3a941af36d91a81ccf462ed5fe505fb934",
+        "lines": 2557,
+        "preprocessed_sha256": "4863a00bc46de6953b4b3502963ac8e9504ad24acea45e096e06f7a5c0e0c7bd",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-09.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-09/probe-09.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "865272ba836dfdc8f2f3e2fce3f2d1d056c00124d58945dbeefd4c807e9c629b"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25596,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7658,
+        "digest": "d6a617e3b261e6d2",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-10",
+      "pattern": "given",
+      "source_sha256": "5e78c369021ef8de2e3f318bb65ea9beccd00081de2f1b43e37f618700235ec2",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-10.i",
+          "-o",
+          "probe-10.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "393f253db93352a95adbc72c27d1ad5537331d95adc0a014fe64f57b6e3bcf04",
+        "lines": 2557,
+        "preprocessed_sha256": "1574f10b75576d9be6f1a81324420e0d9b01234b5a8b3c3fb7cedaf4bb752b28",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-10.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-10/probe-10.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "5e78c369021ef8de2e3f318bb65ea9beccd00081de2f1b43e37f618700235ec2"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25596,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7698,
+        "digest": "31d1f39565d728a7",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-11",
+      "pattern": "given",
+      "source_sha256": "f81cc2b338eecc0ca733cd4465102a6d43c9a4f8ce7828f272b09e4cfdd96a8a",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-11.i",
+          "-o",
+          "probe-11.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "113c5c861c53c4336729db9abe930a94877ac5705e597521f8c65fb9f7db2f3d",
+        "lines": 2557,
+        "preprocessed_sha256": "7937e6710681cb4ee703ebfa43daa1637d14424783114fa0ad413c6853f3c9b1",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-11.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-11/probe-11.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "f81cc2b338eecc0ca733cd4465102a6d43c9a4f8ce7828f272b09e4cfdd96a8a"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25596,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7698,
+        "digest": "04dfce6306590176",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-12",
+      "pattern": "given",
+      "source_sha256": "b65d12a391bd8ca1731819f09cfec53c0ec782031afad4705c99b17c2bd7db55",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-12.i",
+          "-o",
+          "probe-12.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "57cf230ab6ea7c256943528f82c651655ea1482a7fd6b4633413f6700c8ac7b5",
+        "lines": 2557,
+        "preprocessed_sha256": "81291fe65a127dc530a15fea8fb0c7d69808d6591cbddec524924ab0c1578ddc",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-12.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-12/probe-12.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "b65d12a391bd8ca1731819f09cfec53c0ec782031afad4705c99b17c2bd7db55"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25596,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7698,
+        "digest": "2b9fc54275e39557",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-13",
+      "pattern": "given",
+      "source_sha256": "8904c18fd8dcb447add419b7f99337ebd293278f7780432001429120fbff5ab6",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-13.i",
+          "-o",
+          "probe-13.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "de45a524f9a1de34df0d8aeb51b7de20131a63e23ca46242bf0b761cf789b18c",
+        "lines": 2557,
+        "preprocessed_sha256": "4b0007189b8112a0b048d35c230dd8455ea7e9a964b45f8f9337e7c14e3d6310",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-13.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-13/probe-13.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "8904c18fd8dcb447add419b7f99337ebd293278f7780432001429120fbff5ab6"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25596,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7698,
+        "digest": "1b90b87008c3b9ef",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-14",
+      "pattern": "given",
+      "source_sha256": "13a0e15ce6aa354a5cc9a775d60079ec36e2a3c803ff0efb53e411449d3bff6a",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-14.i",
+          "-o",
+          "probe-14.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "374e5dd855ce8440a3433584bb72f393bbcedf3d87dad5a266418669d7bf5dd0",
+        "lines": 2557,
+        "preprocessed_sha256": "52d63dfa2d6adc4a0904d63889352d99aa656547a353004bdf645033f317efba",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-14.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-14/probe-14.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "13a0e15ce6aa354a5cc9a775d60079ec36e2a3c803ff0efb53e411449d3bff6a"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25596,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7698,
+        "digest": "2320e20e9c785ffe",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-15",
+      "pattern": "given",
+      "source_sha256": "5061168f6f2037a853b5db95be10914c9a3a0511e6f322a9d409af6beb25e04c",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-15.i",
+          "-o",
+          "probe-15.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "0d5a1aab24b2e1b52471d46b944bca169f0445d8171f7900d70efd3162cc4ff7",
+        "lines": 2557,
+        "preprocessed_sha256": "1c755e1e27afa04af7beb7336e8f7a40ef2c706c1da29309d27a0381c3b50909",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-15.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-15/probe-15.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "5061168f6f2037a853b5db95be10914c9a3a0511e6f322a9d409af6beb25e04c"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25596,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7698,
+        "digest": "05aaedb3d4edcdab",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-16",
+      "pattern": "given",
+      "source_sha256": "ff0942f6bf0337da152a7394a1fd150f1f53894ab522e794149168483969ba43",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-16.i",
+          "-o",
+          "probe-16.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "4492424582e8d212da0a2881019537f1b2b87f9aafa864c738a55f54be33744f",
+        "lines": 2461,
+        "preprocessed_sha256": "d3425d69066860f991411c96996660f063f12113e8006800b2f12344afd81489",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-16.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-16/probe-16.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "ff0942f6bf0337da152a7394a1fd150f1f53894ab522e794149168483969ba43"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25212,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7374,
+        "digest": "ddac81d519ee53cc",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-17",
+      "pattern": "given",
+      "source_sha256": "2634594ebd8353ed1b9ec6f5524d4e0176825ab973b66189481f142f3a7fa699",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-17.i",
+          "-o",
+          "probe-17.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "872f8acc251c93a8262fa824b963abbfac320a7037ad37a87e117f7abc363da6",
+        "lines": 2461,
+        "preprocessed_sha256": "3571512b3cea965a73d6191a528e959e547d4b0ea8d88e17df15d7aa5dd50e33",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-17.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-17/probe-17.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "2634594ebd8353ed1b9ec6f5524d4e0176825ab973b66189481f142f3a7fa699"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25212,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7374,
+        "digest": "3ad6706654928f8c",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-18",
+      "pattern": "given",
+      "source_sha256": "1a33c5a663151153390ad30dce4fd5006e38d4b76a0ebc16ef3f1eac0766bbbf",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-18.i",
+          "-o",
+          "probe-18.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "002385077ca2242772d499f46d4b84d3bae9797c003cc3bb370ccedf5fdfd4c3",
+        "lines": 2461,
+        "preprocessed_sha256": "d41edea781d674444aaa43a6e6cb66ceffd413e87f3035c5eb2bf11be328aa5b",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-18.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-18/probe-18.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "1a33c5a663151153390ad30dce4fd5006e38d4b76a0ebc16ef3f1eac0766bbbf"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25212,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7374,
+        "digest": "a23a536d8de240d8",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-19",
+      "pattern": "given",
+      "source_sha256": "7e84d9d7c341effa56656523d05e99a99b93df047521d9b64300ab6eba933a24",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-19.i",
+          "-o",
+          "probe-19.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "3045c8941c9bc37f0d761dd4544b4a146ab4d95d9879285e9ddae1f5d9a991c6",
+        "lines": 2461,
+        "preprocessed_sha256": "a3650eb8b51f5bea2b7640653a9c299e46654a5d26f1fd196162f59db19bf854",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-19.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-19/probe-19.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "7e84d9d7c341effa56656523d05e99a99b93df047521d9b64300ab6eba933a24"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25212,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7374,
+        "digest": "103a6b4743f301f9",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-20",
+      "pattern": "given",
+      "source_sha256": "67d149a1a6f7ee45e32e57fc7901c0b6061e799485bf197ec133a444d146b2d1",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-20.i",
+          "-o",
+          "probe-20.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "b7d3287b8cb5cddd1fbf14b851c16f8e8a61f63ca983cf94097d443ae133e661",
+        "lines": 2461,
+        "preprocessed_sha256": "59ae1132318b728bcaa808289d36e8ac604de2c1bdfcefd8083febabff28d615",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-20.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-20/probe-20.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "67d149a1a6f7ee45e32e57fc7901c0b6061e799485bf197ec133a444d146b2d1"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25212,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7374,
+        "digest": "a3aa793fd151afeb",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-21",
+      "pattern": "given",
+      "source_sha256": "62caf378b6ca6da942f221d849e0e67368f655bb1e62029303757452a00ac8ed",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-21.i",
+          "-o",
+          "probe-21.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "513a5db5e9c3d8653b1f6e87558e4061d2b921b39d1a2243f1af99a9e5c0a041",
+        "lines": 2461,
+        "preprocessed_sha256": "49c4384cb7cd95f31c60f42ea8a955f7a557d974030abee57f84a4a7122e2bd6",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-21.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-21/probe-21.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "62caf378b6ca6da942f221d849e0e67368f655bb1e62029303757452a00ac8ed"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25212,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7374,
+        "digest": "cc47795671db621a",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-22",
+      "pattern": "given",
+      "source_sha256": "e37193b0d1e22728d745a19310d50eb15bb1cc1c1fb14ba7d203cedf9716faa3",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-22.i",
+          "-o",
+          "probe-22.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "5cd232737f3356a65f18e7e1312d8729757fd9366a9ea367fb50aa84dc04aaad",
+        "lines": 2461,
+        "preprocessed_sha256": "3bf8967f8eecf914a94927ff6ebd62dfc024fc8b8b2ad6ec9922371b8593e77e",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-22.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-22/probe-22.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "e37193b0d1e22728d745a19310d50eb15bb1cc1c1fb14ba7d203cedf9716faa3"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25212,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7374,
+        "digest": "efe3bcab6878bba8",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "probe-23",
+      "pattern": "given",
+      "source_sha256": "55b1e9dab3bbe056cd7e80359f14a4b772e8234a7e27ac8658bdc9e935c51b37",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe-23.i",
+          "-o",
+          "probe-23.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "1e44234f69c5cb42b9724d0f6c55cc75082cc4e62603ff8ae582e94892fb5e59",
+        "lines": 2461,
+        "preprocessed_sha256": "8e5659698ad4a6c136395345b80462ff14f1596507912265f525f12db8e891b7",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe-23.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap/probe-23/probe-23.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/probe/split",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "55b1e9dab3bbe056cd7e80359f14a4b772e8234a7e27ac8658bdc9e935c51b37"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 25212,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 7374,
+        "digest": "2625a91052e9c86c",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    }
+  ],
+  "summary": {
+    "ccomp-refused": 0,
+    "dialect-refused": 0,
+    "assembled": 0,
+    "pass": 24,
+    "fail": 0,
+    "trap": 0,
+    "source-disagrees": 0,
+    "no-verdict": 0
+  },
+  "against": null,
+  "green": true
+}

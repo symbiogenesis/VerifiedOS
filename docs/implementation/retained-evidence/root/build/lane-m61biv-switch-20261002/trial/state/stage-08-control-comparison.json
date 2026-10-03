@@ -1,0 +1,178 @@
+{
+  "check": 2,
+  "stage": "control-comparison",
+  "predicate": "The same comparison shows the rewritten control program differing only at declared switch groups and carrying every declared shape, a nested group and labels out of plain order.",
+  "start_utc": "2026-10-03T01:54:00+00:00",
+  "end_utc": "2026-10-03T01:54:00+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "argv": [
+      "/usr/bin/python3",
+      "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_compare.py",
+      "--clang",
+      "/usr/bin/clang",
+      "--normalized",
+      "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.norm.c",
+      "--rewritten",
+      "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c",
+      "--control",
+      "--out",
+      "/root/build/lane-m61biv-switch-20261002/trial/compare/control.json"
+    ],
+    "exit": 0,
+    "start_utc": "2026-10-03T01:54:00+00:00",
+    "end_utc": "2026-10-03T01:54:00+00:00",
+    "log": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/compare/control.log",
+      "sha256": "b9dd072dbccd973e8575230426ec4de6c35586f0b70d21c92d46ff06305a2c5e",
+      "bytes": 28
+    },
+    "report": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/compare/control.json",
+      "sha256": "acb89552c72695d391b23a39545b5c61a0559f5428348bed60b4af3e06a14bfe",
+      "bytes": 3313
+    },
+    "verdict": "pass",
+    "failures": [],
+    "lowered": 11,
+    "by_shape": {
+      "if-else": 4,
+      "if-only": 1,
+      "else-only": 1,
+      "chain-else": 4,
+      "chain-only": 1
+    },
+    "groups": [
+      {
+        "line": 38,
+        "column": 3,
+        "owner": "fun$step$pick",
+        "depth": 0,
+        "shape": "if-else",
+        "labels": [
+          0
+        ],
+        "in_order": true
+      },
+      {
+        "line": 59,
+        "column": 3,
+        "owner": "fun$step$switch_control",
+        "depth": 0,
+        "shape": "chain-else",
+        "labels": [
+          0,
+          1,
+          2
+        ],
+        "in_order": true
+      },
+      {
+        "line": 77,
+        "column": 3,
+        "owner": "fun$step$switch_control",
+        "depth": 0,
+        "shape": "chain-else",
+        "labels": [
+          1,
+          3
+        ],
+        "in_order": false
+      },
+      {
+        "line": 88,
+        "column": 3,
+        "owner": "fun$step$switch_control",
+        "depth": 0,
+        "shape": "chain-else",
+        "labels": [
+          0,
+          1,
+          2
+        ],
+        "in_order": true
+      },
+      {
+        "line": 103,
+        "column": 3,
+        "owner": "fun$step$switch_control",
+        "depth": 0,
+        "shape": "chain-only",
+        "labels": [
+          1,
+          2
+        ],
+        "in_order": false
+      },
+      {
+        "line": 113,
+        "column": 3,
+        "owner": "fun$step$switch_control",
+        "depth": 0,
+        "shape": "chain-else",
+        "labels": [
+          0,
+          1,
+          2
+        ],
+        "in_order": true
+      },
+      {
+        "line": 128,
+        "column": 3,
+        "owner": "fun$step$switch_control",
+        "depth": 0,
+        "shape": "if-only",
+        "labels": [
+          3
+        ],
+        "in_order": false
+      },
+      {
+        "line": 135,
+        "column": 3,
+        "owner": "fun$step$switch_control",
+        "depth": 0,
+        "shape": "if-else",
+        "labels": [
+          0
+        ],
+        "in_order": true
+      },
+      {
+        "line": 142,
+        "column": 7,
+        "owner": "fun$step$switch_control",
+        "depth": 1,
+        "shape": "if-else",
+        "labels": [
+          0
+        ],
+        "in_order": true
+      },
+      {
+        "line": 153,
+        "column": 3,
+        "owner": "fun$step$switch_control",
+        "depth": 0,
+        "shape": "else-only",
+        "labels": [
+          0
+        ],
+        "in_order": true
+      },
+      {
+        "line": 160,
+        "column": 3,
+        "owner": "fun$step$switch_control",
+        "depth": 0,
+        "shape": "if-else",
+        "labels": [
+          2
+        ],
+        "in_order": false
+      }
+    ]
+  }
+}

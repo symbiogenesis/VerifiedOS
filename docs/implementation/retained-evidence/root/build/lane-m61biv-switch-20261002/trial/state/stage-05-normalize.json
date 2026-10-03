@@ -1,0 +1,70 @@
+{
+  "check": 2,
+  "stage": "normalize",
+  "predicate": "The normalizer accepts the node's and the control program's printed Clight.",
+  "start_utc": "2026-10-03T01:53:59+00:00",
+  "end_utc": "2026-10-03T01:54:00+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "node": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/normalize.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.c",
+        "--record",
+        "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.json"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:53:59+00:00",
+      "end_utc": "2026-10-03T01:53:59+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.log",
+        "sha256": "ae7d825a615c309a0378d73d6339b5388a56fcfd5b38fc4623de4036a928352b",
+        "bytes": 40
+      },
+      "output": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.c",
+        "sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
+        "bytes": 2281
+      },
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.json",
+        "sha256": "e0ebf4f237f1b13aed9b4eb981b0b6c7eea95276da8eec546f371efd066b8ea4",
+        "bytes": 1376
+      }
+    },
+    "control": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/normalize.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.light.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.norm.c",
+        "--record",
+        "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.norm.json"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:53:59+00:00",
+      "end_utc": "2026-10-03T01:54:00+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.norm.log",
+        "sha256": "8e75c8bdb36bad2f0b9c8c624b69b3c1f21ea96b4f3b2bc5cfadd31660a66551",
+        "bytes": 40
+      },
+      "output": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.norm.c",
+        "sha256": "8e99e10ed03cce50fda116405b521ead6259cd9120cff1fd6f33ae6499a52abe",
+        "bytes": 3828
+      },
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.norm.json",
+        "sha256": "36f2d25b8160a270090fcb775c732352a7956b75bf0fdbbc203f8112fd3f9704",
+        "bytes": 1167
+      }
+    },
+    "node_matches_m61biii_normalized": true
+  }
+}

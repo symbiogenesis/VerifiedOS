@@ -1,0 +1,106 @@
+{
+  "scope": "program-level",
+  "milestone_acceptance": "open",
+  "sources_sha256": {
+    "tools/vos/cli/compiler_diff.py": "43c3dbde5bf1426751da2e8758b9eeda6a1f1102bdb6e81c870d874cc3a1e7b7",
+    "tools/vos/asm.py": "0de2f6ac03769c80764e16ba7bdd02f6aa3c23f2c4edb1dbf27801b6edba5384",
+    "tools/vos/image.py": "417cda8b7a12af64c4cfe5a67c43b80d5092ccd6e948bcddd605c11f3911b4a6",
+    "tools/generated/dialect-table.json": "58f8ed08800814a949ed21e8b1a374acbf54edefbec521ad6dd3f38007879d1a",
+    "docs/assurance/differential-corpus.md": "a837f51a1e4022bfb90260a17ffc6f70d874ffe4401d63ba4f4dd28c1043777b",
+    "docs/implementation/contracts/purecap-abi.md": "1e4ab8e65d7fef144eafdc8664818a34e3b6dc76de17701fc791fcad4d19966a",
+    "model/model/core/cap_common.sail": "26c179273e4ca3001d3fd92fbe7643a6e94a2a136c76fa89256516971437c773"
+  },
+  "ccomp": {
+    "path": "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+    "sha256": "ecaa5ce0cd29d1099016dc1b62a93d16ecab1fe1bcb3a0e363c2697f6294ddca"
+  },
+  "simulator": {
+    "path": "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+    "sha256": "25196ad08c3e787363e078269b696476403d8e63348e68a9525f36e02484f793"
+  },
+  "profile": {
+    "path": "/root/build/lane-m61biv-switch-20261002/profile/verifiedos.json",
+    "sha256": "f157070982b84795252b5acdf27221177bf38e3d16b61c2a34011114b91bf424"
+  },
+  "campaign": {
+    "seed": 1,
+    "generated": 0,
+    "perturb": false,
+    "patterns": [
+      "memory",
+      "struct",
+      "call",
+      "stack",
+      "nullable",
+      "spill",
+      "narrow"
+    ],
+    "given": [
+      "probe"
+    ]
+  },
+  "interp": false,
+  "expect": "pass",
+  "programs": [
+    {
+      "name": "probe",
+      "pattern": "given",
+      "source_sha256": "6492f0f1d3d0b8402db515f20f66ff865d08b154ae50420da001aad35661270b",
+      "checks": 0,
+      "verdict": "ccomp-refused",
+      "detail": "ccomp exited 2: /root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:17: error: alignment specified for unnamed parameter\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:17: error: alignment specified for unnamed parameter\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:19: error: alignment specified for parameter 'snapshot_epoch'\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:19",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "probe.i",
+          "-o",
+          "probe.s"
+        ],
+        "exit": 2,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:17: error: alignment specified for unnamed parameter\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:17: error: alignment specified for unnamed parameter\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:19: error: alignment specified for parameter 'snapshot_epoch'\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:19",
+        "stream_sha256": "",
+        "lines": 0,
+        "preprocessed_sha256": "cb0cded581f38330f94321b5e7114c6a75f281561c09b9b3df40703540de6843",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "probe.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/purecap/probe/probe.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/unnormalized",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "6492f0f1d3d0b8402db515f20f66ff865d08b154ae50420da001aad35661270b"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 0,
+      "run": null,
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    }
+  ],
+  "summary": {
+    "ccomp-refused": 1,
+    "dialect-refused": 0,
+    "assembled": 0,
+    "pass": 0,
+    "fail": 0,
+    "trap": 0,
+    "source-disagrees": 0,
+    "no-verdict": 0
+  },
+  "against": null,
+  "green": false
+}

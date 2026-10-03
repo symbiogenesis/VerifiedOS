@@ -1,0 +1,115 @@
+{
+  "check": 2,
+  "stage": "node-comparison",
+  "predicate": "An independent clang-token comparison shows the rewritten node differing from its normalized form only at declared switch groups.",
+  "start_utc": "2026-10-03T01:54:00+00:00",
+  "end_utc": "2026-10-03T01:54:00+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "argv": [
+      "/usr/bin/python3",
+      "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_compare.py",
+      "--clang",
+      "/usr/bin/clang",
+      "--normalized",
+      "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.c",
+      "--rewritten",
+      "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c",
+      "--node",
+      "--out",
+      "/root/build/lane-m61biv-switch-20261002/trial/compare/node.json"
+    ],
+    "exit": 0,
+    "start_utc": "2026-10-03T01:54:00+00:00",
+    "end_utc": "2026-10-03T01:54:00+00:00",
+    "log": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/compare/node.log",
+      "sha256": "71f00e81dab7207d162e5c1b77bc15715a994d6a41b53e5995c4828ff7d86a83",
+      "bytes": 27
+    },
+    "report": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/compare/node.json",
+      "sha256": "877ea2d4353c58e396d5be166336fa035f77876f9081081eb62faf4514c8d856",
+      "bytes": 2210
+    },
+    "verdict": "pass",
+    "failures": [],
+    "lowered": 6,
+    "by_shape": {
+      "if-else": 6,
+      "if-only": 0,
+      "else-only": 0,
+      "chain-else": 0,
+      "chain-only": 0
+    },
+    "groups": [
+      {
+        "line": 25,
+        "column": 3,
+        "owner": "fun$step$start_restart",
+        "depth": 0,
+        "shape": "if-else",
+        "labels": [
+          0
+        ],
+        "in_order": true
+      },
+      {
+        "line": 33,
+        "column": 3,
+        "owner": "fun$step$start_restart",
+        "depth": 0,
+        "shape": "if-else",
+        "labels": [
+          0
+        ],
+        "in_order": true
+      },
+      {
+        "line": 39,
+        "column": 7,
+        "owner": "fun$step$start_restart",
+        "depth": 1,
+        "shape": "if-else",
+        "labels": [
+          0
+        ],
+        "in_order": true
+      },
+      {
+        "line": 41,
+        "column": 11,
+        "owner": "fun$step$start_restart",
+        "depth": 2,
+        "shape": "if-else",
+        "labels": [
+          0
+        ],
+        "in_order": true
+      },
+      {
+        "line": 43,
+        "column": 15,
+        "owner": "fun$step$start_restart",
+        "depth": 3,
+        "shape": "if-else",
+        "labels": [
+          0
+        ],
+        "in_order": true
+      },
+      {
+        "line": 64,
+        "column": 3,
+        "owner": "fun$step$start_restart",
+        "depth": 0,
+        "shape": "if-else",
+        "labels": [
+          0
+        ],
+        "in_order": true
+      }
+    ]
+  }
+}

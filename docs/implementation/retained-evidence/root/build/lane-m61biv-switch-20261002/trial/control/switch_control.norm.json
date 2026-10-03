@@ -1,0 +1,44 @@
+{
+  "normalizer": "supervisor/route/normalize.py",
+  "input": {
+    "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.light.c",
+    "sha256": "1c86e1ec16a8b72efd6c0ee746747330dab05a63303d75a08ea43452a567020a",
+    "bytes": 3852
+  },
+  "output": {
+    "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.norm.c",
+    "sha256": "8e99e10ed03cce50fda116405b521ead6259cd9120cff1fd6f33ae6499a52abe",
+    "bytes": 3828
+  },
+  "removed": 2,
+  "kept": 1,
+  "sites": [
+    {
+      "line": 27,
+      "column": 22,
+      "kind": "member",
+      "declaration": "struct",
+      "owner": "struct fun$step$switch_control",
+      "type": "unsigned long long",
+      "action": "kept"
+    },
+    {
+      "line": 33,
+      "column": 211,
+      "kind": "parameter",
+      "declaration": "prototype",
+      "owner": "fun$step$switch_control",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 54,
+      "column": 245,
+      "kind": "parameter",
+      "declaration": "definition",
+      "owner": "fun$step$switch_control",
+      "type": "unsigned long long",
+      "action": "removed"
+    }
+  ]
+}

@@ -1,0 +1,1449 @@
+{
+  "scope": "program-level",
+  "milestone_acceptance": "open",
+  "sources_sha256": {
+    "tools/vos/cli/compiler_diff.py": "43c3dbde5bf1426751da2e8758b9eeda6a1f1102bdb6e81c870d874cc3a1e7b7",
+    "tools/vos/asm.py": "0de2f6ac03769c80764e16ba7bdd02f6aa3c23f2c4edb1dbf27801b6edba5384",
+    "tools/vos/image.py": "417cda8b7a12af64c4cfe5a67c43b80d5092ccd6e948bcddd605c11f3911b4a6",
+    "tools/generated/dialect-table.json": "58f8ed08800814a949ed21e8b1a374acbf54edefbec521ad6dd3f38007879d1a",
+    "docs/assurance/differential-corpus.md": "a837f51a1e4022bfb90260a17ffc6f70d874ffe4401d63ba4f4dd28c1043777b",
+    "docs/implementation/contracts/purecap-abi.md": "1e4ab8e65d7fef144eafdc8664818a34e3b6dc76de17701fc791fcad4d19966a",
+    "model/model/core/cap_common.sail": "26c179273e4ca3001d3fd92fbe7643a6e94a2a136c76fa89256516971437c773"
+  },
+  "ccomp": {
+    "path": "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+    "sha256": "ecaa5ce0cd29d1099016dc1b62a93d16ecab1fe1bcb3a0e363c2697f6294ddca"
+  },
+  "simulator": {
+    "path": "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+    "sha256": "25196ad08c3e787363e078269b696476403d8e63348e68a9525f36e02484f793"
+  },
+  "profile": {
+    "path": "/root/build/lane-m61biv-switch-20261002/profile/verifiedos.json",
+    "sha256": "f157070982b84795252b5acdf27221177bf38e3d16b61c2a34011114b91bf424"
+  },
+  "campaign": {
+    "seed": 1,
+    "generated": 0,
+    "perturb": false,
+    "patterns": [
+      "memory",
+      "struct",
+      "call",
+      "stack",
+      "nullable",
+      "spill",
+      "narrow"
+    ],
+    "given": [
+      "control-00",
+      "control-01",
+      "control-02",
+      "control-03",
+      "control-04",
+      "control-05",
+      "control-06",
+      "control-07",
+      "control-08",
+      "control-09",
+      "control-10",
+      "control-11",
+      "control-12",
+      "control-13",
+      "control-14",
+      "control-15",
+      "control-16",
+      "control-17",
+      "control-18",
+      "control-19",
+      "control-20",
+      "control-21",
+      "control-22",
+      "control-23"
+    ]
+  },
+  "interp": false,
+  "expect": "pass",
+  "programs": [
+    {
+      "name": "control-00",
+      "pattern": "given",
+      "source_sha256": "78d1833376d85c39e754c5b47c2d7e89a711b825747d0251fbc32503853b7d81",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-00.i",
+          "-o",
+          "control-00.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "f4ecd441f9305e18ffbf893d5140079a26f6066541a416ee5b2006c98c2770e6",
+        "lines": 4059,
+        "preprocessed_sha256": "71a744fc9f6df80be7874e93604486b0059d3397c8b76c917c055fe35850ba20",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-00.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-00/control-00.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "78d1833376d85c39e754c5b47c2d7e89a711b825747d0251fbc32503853b7d81"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 30876,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 17096,
+        "digest": "223e4b5188a0f2bd",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-01",
+      "pattern": "given",
+      "source_sha256": "d3805302e3ab75df43fe97c0461b06463a8879872ffb8c66d787ad99f1a36b6e",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-01.i",
+          "-o",
+          "control-01.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "91eedcbf212a3ac403dba66c191a871cb97a0b6301fe1be38263f9bd1cc13ac1",
+        "lines": 4085,
+        "preprocessed_sha256": "d0791b3ee638ca1773e384920a69cd3789027725bd7e49600c4bd993a05bf047",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-01.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-01/control-01.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "d3805302e3ab75df43fe97c0461b06463a8879872ffb8c66d787ad99f1a36b6e"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 30972,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 17112,
+        "digest": "8328bc437a26204f",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-02",
+      "pattern": "given",
+      "source_sha256": "1f04cce654a3dc50622fc2dd77a2e864a9c336871a8c6b5b6d86ba1c0b22ad33",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-02.i",
+          "-o",
+          "control-02.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "2402cedf3c50e89b7cdcb54ff6d7d8f0d44b1a28988f36532b22713287c797c0",
+        "lines": 4119,
+        "preprocessed_sha256": "60cd448334cbf5014a3bbefe84998a45919b46a0b22491cf5a6c1d1cfc3b3f7d",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-02.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-02/control-02.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "1f04cce654a3dc50622fc2dd77a2e864a9c336871a8c6b5b6d86ba1c0b22ad33"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 31092,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 17625,
+        "digest": "2d89e6ee1358aa88",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-03",
+      "pattern": "given",
+      "source_sha256": "3e1dfb93c5ccaf6ab886fb5059e29b4260d9d12a87817b8fe303fd3f00a71e31",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-03.i",
+          "-o",
+          "control-03.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "4e426ee0212fa24cd011fd68ef6d16cce258bca01f544b8ae4392cd9c066d75b",
+        "lines": 4132,
+        "preprocessed_sha256": "1cea55ce9c013ea835a2b8ce68e1c646c48a8ccf3ec46b5b9905fe52bc9233fa",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-03.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-03/control-03.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "3e1dfb93c5ccaf6ab886fb5059e29b4260d9d12a87817b8fe303fd3f00a71e31"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 31168,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18223,
+        "digest": "edc1250d00a976e4",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-04",
+      "pattern": "given",
+      "source_sha256": "d539006db01e874d5e5247a0d15d0e0ba18568bdf7d24760f6a8301fca56ed7b",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-04.i",
+          "-o",
+          "control-04.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "427e07394f330dd6760b4f256d1e56e4ae5c97b13b09efe43c1018585af6bda4",
+        "lines": 4137,
+        "preprocessed_sha256": "81339259ae73d7d8857a603a4a74edbc7599b44108346438f36ea4be2c6aec6b",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-04.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-04/control-04.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "d539006db01e874d5e5247a0d15d0e0ba18568bdf7d24760f6a8301fca56ed7b"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 31188,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18884,
+        "digest": "344da55c989cb824",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-05",
+      "pattern": "given",
+      "source_sha256": "70c76c9a95974886a4ec314a8b3b51e6145f41a06056b4e7b5018183e7486e05",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-05.i",
+          "-o",
+          "control-05.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "edb356f62a08c08706b98ea1fcc2f806864428ed0891f6d00e75786db791a38b",
+        "lines": 4211,
+        "preprocessed_sha256": "6ba326d3376954cdee43243561b154d8a039079c7030401233cbdc9959c222de",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-05.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-05/control-05.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "70c76c9a95974886a4ec314a8b3b51e6145f41a06056b4e7b5018183e7486e05"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 31988,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18438,
+        "digest": "2cb90dddfcfb6d1c",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-06",
+      "pattern": "given",
+      "source_sha256": "94b6fa9d45eb10e2e9d14604bc29a9ea308ccbd165d397ba748398b505c670b9",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-06.i",
+          "-o",
+          "control-06.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "e452b240728109663ab84feb5279afeadd24d9debe6ab00d23457e9b8a937031",
+        "lines": 4261,
+        "preprocessed_sha256": "89ae8ba5374a2c45425baebcfbac3bd681abd73dbe04178e141f39ba594ba54c",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-06.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-06/control-06.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "94b6fa9d45eb10e2e9d14604bc29a9ea308ccbd165d397ba748398b505c670b9"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32396,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18357,
+        "digest": "f107efdc08bf8504",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-07",
+      "pattern": "given",
+      "source_sha256": "52e36e084868aabe388677392ea427f7705ce326404b9db5a6f66dc63d5a36b5",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-07.i",
+          "-o",
+          "control-07.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "0c33af5a8d2a85001a3b7a5d2681eab6b6001130b9d993dd420bd6243dc25a34",
+        "lines": 4257,
+        "preprocessed_sha256": "4e36d22ca2bf7806b847a465c8034d6190448fa3616c14534c14eab4a2f1ac2f",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-07.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-07/control-07.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "52e36e084868aabe388677392ea427f7705ce326404b9db5a6f66dc63d5a36b5"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32548,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18491,
+        "digest": "6aa16e861d0d44ac",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-08",
+      "pattern": "given",
+      "source_sha256": "1d3ff69a43a3bc2cb7b324de49f0e630b7cfdcb67622f53ae23aaba164ab3e13",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-08.i",
+          "-o",
+          "control-08.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "1a4f2dbf652ea4175b464e6569118ef891fa089ec64178aae4c88081a9518616",
+        "lines": 4273,
+        "preprocessed_sha256": "5cfcc675577f4bbf74613331107af22ae8d42f4365ea999266f9309f74efc949",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-08.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-08/control-08.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "1d3ff69a43a3bc2cb7b324de49f0e630b7cfdcb67622f53ae23aaba164ab3e13"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32304,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18488,
+        "digest": "378890e4c36e7ac0",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-09",
+      "pattern": "given",
+      "source_sha256": "e1beeb90f2adb1f836f18d0c7ebe6b94f15760424947c64be24b09653b45b8c1",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-09.i",
+          "-o",
+          "control-09.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "baf25eaeff8fcc2bde5457113f2225fea5d4580b3cabdb33d5cb2350abcf6467",
+        "lines": 4259,
+        "preprocessed_sha256": "57cbc6b09eb3349bb44964928e77a057c33b599a35ff9a5205df43ce87f9c733",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-09.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-09/control-09.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "e1beeb90f2adb1f836f18d0c7ebe6b94f15760424947c64be24b09653b45b8c1"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32364,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18420,
+        "digest": "ece69aeb40db254f",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-10",
+      "pattern": "given",
+      "source_sha256": "8b35ff392bedf0ad56e430eb6179d30ab7a281c4af1428e2502f8ba03b7c53aa",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-10.i",
+          "-o",
+          "control-10.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "7b5ed4c3c1dca3de8f60734a1aedbd7b5b5c9ba065c00a2cde0b92d713c1fbc3",
+        "lines": 4272,
+        "preprocessed_sha256": "09bec0f8ef650f0907932a6041bf9b6f12930fed1eb8ed97f7969df1efffba91",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-10.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-10/control-10.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "8b35ff392bedf0ad56e430eb6179d30ab7a281c4af1428e2502f8ba03b7c53aa"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32680,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18338,
+        "digest": "f72f7e85cd2b0d05",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-11",
+      "pattern": "given",
+      "source_sha256": "90494c49f7fb9e62b7f9cbb2d851c2ca023461af8df1d21b59e89b76cde3e43c",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-11.i",
+          "-o",
+          "control-11.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "fb6a1e7ac9182b3413ca9ebd5bf496f13f243392f951452d3f68b389588b8515",
+        "lines": 4263,
+        "preprocessed_sha256": "3b34ec62a06b2d9fd4a168d35f21c9983696c5de8b8c9d455236cdf4b41e2768",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-11.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-11/control-11.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "90494c49f7fb9e62b7f9cbb2d851c2ca023461af8df1d21b59e89b76cde3e43c"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32496,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18593,
+        "digest": "6d2ebf448b26edf3",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-12",
+      "pattern": "given",
+      "source_sha256": "2cbab91dae8689c6802a3744a5f4b683a2811f624a5ebfa518cf7ec89d29f01d",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-12.i",
+          "-o",
+          "control-12.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "341c9513fd3bb4b966fb7a03caf203b59437055ce5f313b5f9def00a3edd66db",
+        "lines": 4297,
+        "preprocessed_sha256": "070a13c8c4c1ce44d756865d11b10de24168acd9c2856309753d787de29ba954",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-12.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-12/control-12.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "2cbab91dae8689c6802a3744a5f4b683a2811f624a5ebfa518cf7ec89d29f01d"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32520,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18623,
+        "digest": "fd7fd9bebc9a7462",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-13",
+      "pattern": "given",
+      "source_sha256": "a92a68a3e3dc83cd94bad6f0de29921cf2f99120a2c3c51c7884138cf9788ac6",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-13.i",
+          "-o",
+          "control-13.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "ee1568a6d2d21c029704d88f52e56c22269c03dbaecee8ed3daa297f2df51410",
+        "lines": 4293,
+        "preprocessed_sha256": "b3dd957423f9629a1ea5a50c914d036592bf875fc8b05c51cbb44ea59df6919a",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-13.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-13/control-13.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "a92a68a3e3dc83cd94bad6f0de29921cf2f99120a2c3c51c7884138cf9788ac6"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32368,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18910,
+        "digest": "5b1881c99407538b",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-14",
+      "pattern": "given",
+      "source_sha256": "2fa3475dce15978de1f7694d171ab3595f658144445bb3e8f8c5111d12658d57",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-14.i",
+          "-o",
+          "control-14.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "ddec19c7c7bd5c928c5dce15f1d9bb1c905989741c8ad2e7ee0b5302b1242be7",
+        "lines": 4264,
+        "preprocessed_sha256": "d2ca0ea389392ee4657a42b0631fcbe004d72b3b423c12551a16e40f18b9fa94",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-14.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-14/control-14.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "2fa3475dce15978de1f7694d171ab3595f658144445bb3e8f8c5111d12658d57"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32404,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18579,
+        "digest": "c605bf236ff45b1c",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-15",
+      "pattern": "given",
+      "source_sha256": "ebdc239fdb308b69e5a56617a5e314a3cae6084e54c5a474fc5f0c8671f2384d",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-15.i",
+          "-o",
+          "control-15.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "e7a5552d9464fa54c8c7d16613871aa2aeed8aae6d88d2581fbe5d3cbbae63a9",
+        "lines": 4264,
+        "preprocessed_sha256": "8b3cf1fcbe4d9ece9a66521fce8461fa73a3c59921dbc00835fde23bf749d8e6",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-15.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-15/control-15.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "ebdc239fdb308b69e5a56617a5e314a3cae6084e54c5a474fc5f0c8671f2384d"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32208,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18239,
+        "digest": "b9c22d7b0d24bf36",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-16",
+      "pattern": "given",
+      "source_sha256": "cd68110564282a4b9e9a4b0e75d6746e77d09f0ece3fe049b9460b49f7452499",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-16.i",
+          "-o",
+          "control-16.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "bfaa45a94cc491bf4849776ed675ba20a8ac083f242b76f0ea235bfadd752ff9",
+        "lines": 4260,
+        "preprocessed_sha256": "490b5d2ad36381464b8802b807989a796449c67fe690cd28436bcf2e9546ce18",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-16.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-16/control-16.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "cd68110564282a4b9e9a4b0e75d6746e77d09f0ece3fe049b9460b49f7452499"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32476,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18396,
+        "digest": "3dc1d2eae3af8532",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-17",
+      "pattern": "given",
+      "source_sha256": "76b906e2985605890f4d0e6d508cef708210afa369cbd713a84758dee47f36e6",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-17.i",
+          "-o",
+          "control-17.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "5c381071e331a4aebd18f89c4f6ad6eca8b306cebefe017886980ac4be854c43",
+        "lines": 4254,
+        "preprocessed_sha256": "50023a0bba0a9cd14d603e1d834f64eca24e0753aa8cdd436fb1ffa38b2ac1f0",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-17.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-17/control-17.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "76b906e2985605890f4d0e6d508cef708210afa369cbd713a84758dee47f36e6"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32372,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18376,
+        "digest": "d68dafb5e341c242",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-18",
+      "pattern": "given",
+      "source_sha256": "acb209068b1b29775b3d82db9a9d331d29cb85b037cd5bbd4af263a4a4a99739",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-18.i",
+          "-o",
+          "control-18.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "aa5efde173e33968e343c3f070ec56e50506c08983abe16fda85403232aae724",
+        "lines": 4306,
+        "preprocessed_sha256": "4acce1dda3303d1bbc396e4a18a9b950f744dde45eda7a35e9c4cb2290ec5b7c",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-18.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-18/control-18.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "acb209068b1b29775b3d82db9a9d331d29cb85b037cd5bbd4af263a4a4a99739"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32580,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18745,
+        "digest": "6b9017b05ffca654",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-19",
+      "pattern": "given",
+      "source_sha256": "e015969e25d94fe93f3b2a477fca889fd3cfe93f1c0c1e6f1c0322b11b14e263",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-19.i",
+          "-o",
+          "control-19.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "a2935622a72ddc66d727c0fce30b9a931a84b822278ea6828fd71f8a4fdc21d5",
+        "lines": 4258,
+        "preprocessed_sha256": "91c0c4393ebd0d5e93136f10a70a91b0c5587b38b749e2dfcb70ac5592dffb57",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-19.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-19/control-19.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "e015969e25d94fe93f3b2a477fca889fd3cfe93f1c0c1e6f1c0322b11b14e263"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32376,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18156,
+        "digest": "9f5bcae8eca8d270",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-20",
+      "pattern": "given",
+      "source_sha256": "2aa23ef2a3a25ce24d6d49ef769ee323d5afdd361625c549291dfff3bc384bed",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-20.i",
+          "-o",
+          "control-20.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "db410996232f7a0f6a64f1e5b44b6a5c42ba9736b35551ffa94e3c0a90a31be3",
+        "lines": 4244,
+        "preprocessed_sha256": "6c06a5f412af060c37c345d886cf4c8d553ba195ea56c076e635561f94f79b64",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-20.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-20/control-20.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "2aa23ef2a3a25ce24d6d49ef769ee323d5afdd361625c549291dfff3bc384bed"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32272,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18161,
+        "digest": "c643863c9f782464",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-21",
+      "pattern": "given",
+      "source_sha256": "fb896069447c050e700830dd81eaadfb51800f3908aaccef587733c0c785bfdf",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-21.i",
+          "-o",
+          "control-21.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "6be372b8b1a00989b0edce5b7006cd9f6f1096d0111319fc48a99d2e3f2a3787",
+        "lines": 4269,
+        "preprocessed_sha256": "28cdc4626c0377b63315cf95248ca7a2ff6f6399a144137b771c1ab391069316",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-21.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-21/control-21.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "fb896069447c050e700830dd81eaadfb51800f3908aaccef587733c0c785bfdf"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32412,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18374,
+        "digest": "12361bb10dc1588f",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-22",
+      "pattern": "given",
+      "source_sha256": "f5efdaef2eacf8f4f84848390d119dfe72bc1fe3857ea76e4e6a2a139960151a",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-22.i",
+          "-o",
+          "control-22.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "30e2e84cac26aea07e26393927598879147e3096493fa132d1cfe05a2d2b3256",
+        "lines": 4293,
+        "preprocessed_sha256": "3a3e33893759ac7360b02b80cb4ea577772b2700448a6faa0f2d5fd4e92bab53",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-22.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-22/control-22.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "f5efdaef2eacf8f4f84848390d119dfe72bc1fe3857ea76e4e6a2a139960151a"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32640,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18980,
+        "digest": "233912f35f6d855e",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    },
+    {
+      "name": "control-23",
+      "pattern": "given",
+      "source_sha256": "25968b156bdf809299da8a5c33b95a69c827356ba1ef9b0fd0d112b47eb5a3ca",
+      "checks": 0,
+      "verdict": "pass",
+      "detail": "HTIF 0",
+      "ccomp": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "control-23.i",
+          "-o",
+          "control-23.s"
+        ],
+        "exit": 0,
+        "said": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "4a6e8d50346d94a19d06b578e89b772eb1d1eb7a1532f44cac8cc0425364cd94",
+        "lines": 4269,
+        "preprocessed_sha256": "5a59c1db2983cd110ee5bc4139fbb9a51c981461999733f63dea0d761895a94a",
+        "preprocess": {
+          "argv": [
+            "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+            "-conf",
+            "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+            "-fverifiedos-typed",
+            "-E",
+            "control-23.c",
+            "-o",
+            "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap/control-23/control-23.i"
+          ],
+          "cwd": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/programs",
+          "exit": 0,
+          "said": "",
+          "source_sha256": "25968b156bdf809299da8a5c33b95a69c827356ba1ef9b0fd0d112b47eb5a3ca"
+        }
+      },
+      "refusals": [],
+      "image_bytes": 32492,
+      "run": {
+        "verdict": "pass",
+        "code": 0,
+        "records": 18768,
+        "digest": "3b7b305e44001147",
+        "capability_roundtrip": true,
+        "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_length": 0,
+        "detail": "HTIF 0"
+      },
+      "expect": 0,
+      "narrowing": 0,
+      "narrowing_files": null,
+      "interp": null
+    }
+  ],
+  "summary": {
+    "ccomp-refused": 0,
+    "dialect-refused": 0,
+    "assembled": 0,
+    "pass": 24,
+    "fail": 0,
+    "trap": 0,
+    "source-disagrees": 0,
+    "no-verdict": 0
+  },
+  "against": null,
+  "green": true
+}

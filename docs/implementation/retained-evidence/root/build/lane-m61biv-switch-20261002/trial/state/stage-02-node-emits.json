@@ -1,0 +1,41 @@
+{
+  "check": 1,
+  "stage": "node-emits",
+  "predicate": "Velus re-emits the recorded printed Clight and header for the start/restart node.",
+  "start_utc": "2026-10-03T01:53:58+00:00",
+  "end_utc": "2026-10-03T01:53:58+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "velus": {
+      "argv": [
+        "/root/build/lane-supervisor-velus-20260926/source/velus",
+        "-nomain",
+        "-lib",
+        "-header",
+        "-dclight",
+        "-o",
+        "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.lus",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/start_restart.lus"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:53:58+00:00",
+      "end_utc": "2026-10-03T01:53:58+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.velus.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "clight": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c",
+        "sha256": "e7bd477906c103d1910a9bdf9cf78b0fd394b27cb07841afe3987a8b27b13d7c",
+        "bytes": 2329
+      },
+      "header": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.h",
+        "sha256": "a8bf7abc5397a955cf6de4a069d9fc54cff105625e70617180fc01a8d5d59042",
+        "bytes": 575
+      }
+    }
+  }
+}

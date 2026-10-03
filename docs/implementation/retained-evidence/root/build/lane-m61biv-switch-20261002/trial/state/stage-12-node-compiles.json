@@ -1,0 +1,43 @@
+{
+  "check": 3,
+  "stage": "node-compiles",
+  "predicate": "The rewritten node compiles through the accepted typed route.",
+  "start_utc": "2026-10-03T01:54:02+00:00",
+  "end_utc": "2026-10-03T01:54:03+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "start_utc": "2026-10-03T01:54:03+00:00",
+    "end_utc": "2026-10-03T01:54:03+00:00",
+    "argv": [
+      "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+      "-conf",
+      "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+      "-fverifiedos-typed",
+      "-S",
+      "start_restart.rw.i",
+      "-o",
+      "start_restart.rw.s"
+    ],
+    "exit": 0,
+    "said": "start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+    "stream_sha256": "10bc276c9451483c6e1769269be38c64ff93b73dc02afcac39b067cca0f1808d",
+    "lines": 168,
+    "preprocess_argv": [
+      "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+      "-conf",
+      "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+      "-fverifiedos-typed",
+      "-E",
+      "start_restart.rw.c",
+      "-o",
+      "/root/build/lane-m61biv-switch-20261002/trial/compile/node/start_restart.rw.i"
+    ],
+    "preprocessed_sha256": "5655175c71f8d7648ae3e87987aba6150b2bd6df112dfa65f6e4cd9ed7afc150",
+    "source": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c",
+      "sha256": "084bde3b99acfbfdfab28907e71104dc275a22031e24da9ae8ff07f63a7bca8b",
+      "bytes": 2113
+    }
+  }
+}

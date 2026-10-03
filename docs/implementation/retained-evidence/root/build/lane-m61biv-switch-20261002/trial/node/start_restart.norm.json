@@ -1,0 +1,53 @@
+{
+  "normalizer": "supervisor/route/normalize.py",
+  "input": {
+    "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c",
+    "sha256": "e7bd477906c103d1910a9bdf9cf78b0fd394b27cb07841afe3987a8b27b13d7c",
+    "bytes": 2329
+  },
+  "output": {
+    "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.c",
+    "sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
+    "bytes": 2281
+  },
+  "removed": 4,
+  "kept": 0,
+  "sites": [
+    {
+      "line": 17,
+      "column": 133,
+      "kind": "parameter",
+      "declaration": "prototype",
+      "owner": "fun$step$start_restart",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 17,
+      "column": 165,
+      "kind": "parameter",
+      "declaration": "prototype",
+      "owner": "fun$step$start_restart",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 19,
+      "column": 179,
+      "kind": "parameter",
+      "declaration": "definition",
+      "owner": "fun$step$start_restart",
+      "type": "unsigned long long",
+      "action": "removed"
+    },
+    {
+      "line": 19,
+      "column": 226,
+      "kind": "parameter",
+      "declaration": "definition",
+      "owner": "fun$step$start_restart",
+      "type": "unsigned long long",
+      "action": "removed"
+    }
+  ]
+}

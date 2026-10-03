@@ -1,0 +1,2173 @@
+{
+  "schema": 1,
+  "item": "M6.1b-iv",
+  "trial_verdict": "passed",
+  "first_failed_predicate": null,
+  "decides": "The normalized and switch-rewritten exchange carries the tested start/restart node through the accepted typed purecap compiler to target agreement: the unchanged probe, split into 24 programs, agrees with the C oracle on all 576 rows natively and through compiler-diff program, its perturbed program fails on target, and the switch control program agrees on all 576 of its seeded rows natively and on target. It composes no Velus or purecap compiler theorem (F-467), re-accepts nothing bound to the accepted compiler and does not re-select the M8a route, which stays C.",
+  "source_revision": "1f90ae780519a65b9efa2d7bd6a4455d7c47a72f",
+  "prior_results": {
+    "supervisor/route/result.json": "1185fae5cf6179d8e6a8a5735baaacb49e8d072feca493bbff5902864cd5f388",
+    "supervisor/route/exchange-result.json": "ddf7b177800af1abb2582bed30856ad345a54f4cbca983ad7a761f58100d1437"
+  },
+  "orchestration": {
+    "path": "supervisor/route/switch_trial.py",
+    "sha256": "4f10b5896ba4288298a745f5fb3e810f5d1964e9bfa127148a798455c2b6928b",
+    "bytes": 48312,
+    "tracked": true,
+    "note": "committed at source_revision and hashed by the freeze before provisioning; run refuses unless the script still has that hash, and check 5 rehashes it"
+  },
+  "frozen_inputs": {
+    "supervisor/route/start_restart.lus": "db96e2c055416f9bf9783e31346977bd590c4624632233f983876d74b57f35e9",
+    "supervisor/route/oracle.c": "bf3348d800fe947dfb5b88dd7a7882c1d4e7748c38aec45d72a940c6d45d84f4",
+    "supervisor/route/probe.py": "f101b76dba09220ee6cac323c788aae6b23f55e7c41768420918c9dbd0917a6b",
+    "supervisor/route/result.json": "1185fae5cf6179d8e6a8a5735baaacb49e8d072feca493bbff5902864cd5f388",
+    "supervisor/route/exchange-result.json": "ddf7b177800af1abb2582bed30856ad345a54f4cbca983ad7a761f58100d1437",
+    "supervisor/route/normalize.py": "88f03c2d69e16057e8568b7f7b0909312995429b603e31d867cec1d1992b5af8",
+    "supervisor/route/token_compare.py": "580d377b8e94ff7a91f58d243236c157db482ebf5e1d8a850b45d20d56fc5b1f",
+    "supervisor/route/control.lus": "470bb7ff6d28059d2b42473f17b303a5a7e12a9088075c4f17434d0c88c70ee3",
+    "supervisor/route/control.py": "7d49edffbe2337675d1b742fb73fbba338d88b98fe60b1e71baa968d884b683a",
+    "supervisor/route/switch_rewrite.py": "0fcd2ad0466dea0b7317bf7457cf2564a5bf91f9d9770ac0e8f5f39d885bd9ad",
+    "supervisor/route/switch_compare.py": "816c4807b9fe6a92df330e3cba1690be123d5abaaa97c11fa0c58db921238ebf",
+    "supervisor/route/switch_control.lus": "873a4720aae4632aba5834bbec0ea379cf5eb9fe1fa5fd4c0a3de67376db87af",
+    "supervisor/route/switch_control.py": "5012879a415bdae00eeb8da1a02191c6cfedfda8d2b367f953120277570a1c0d",
+    "supervisor/route/split_probe.py": "3b4db934d4ee78773b0f467188a3d0d10784607f3ca017f5a8d2f68700cb4ba4",
+    "supervisor/route/switch_trial.py": "4f10b5896ba4288298a745f5fb3e810f5d1964e9bfa127148a798455c2b6928b",
+    "supervisor/include/vos_supervisor.h": "9b21363299a00b5b872db57922ac0b49bdf7d4d72b20b726fc0ca5c15b7a3c28",
+    "supervisor/include/vos_supervisor_effects.h": "d4788e16aa95049351527f631b040f5dd5c97986d82a52ff075e19954b5ec1cd",
+    "supervisor/src/supervisor.c": "98b3c2fc154d2992ea3994f3cf99b6ab29ad2c7e9c434743debb58522a4e2dfd",
+    "supervisor/src/effects.c": "1d4296de8664d5db017cc47c57fcf91506ee31904c20fe6a67f35c7c8d6f0715",
+    "supervisor/src/manifest.c": "825bf58cb0c62d82a4e56dcea8156ab65212dbeef41d7085751a47d08421630d",
+    "supervisor/test/host.c": "34b0413fb698f373b2f65ce34d1256892e45f4d8ad5e488558e9c43c9dfc4e29",
+    "supervisor/test/effects.c": "61797d6596626a07427ff7e0e7a766bb26d3dd83ccb75478fdbe9968e7d9e4da",
+    "proofs/SupervisionTree.v": "b9542c049fcabc9083096ce21ac18a19a8de657828b0563f14d4b04b5686ac51",
+    "tools/vos/supervisor.py": "698c919f332ad50e5dc91643c9fc5580793b4fdaa4fcff9e34979cc12b3697c9",
+    "tools/vos/cli/supervisor.py": "102bb643228ae38bc3d959d4916848bee593e7e86ddaac49e6dc64ba217be7b2",
+    "tools/vos/cli/compiler_diff.py": "43c3dbde5bf1426751da2e8758b9eeda6a1f1102bdb6e81c870d874cc3a1e7b7",
+    "tools/vos/asm.py": "0de2f6ac03769c80764e16ba7bdd02f6aa3c23f2c4edb1dbf27801b6edba5384",
+    "tools/vos/image.py": "417cda8b7a12af64c4cfe5a67c43b80d5092ccd6e948bcddd605c11f3911b4a6",
+    "tools/generated/dialect-table.json": "58f8ed08800814a949ed21e8b1a374acbf54edefbec521ad6dd3f38007879d1a",
+    "docs/assurance/differential-corpus.md": "a837f51a1e4022bfb90260a17ffc6f70d874ffe4401d63ba4f4dd28c1043777b",
+    "docs/implementation/contracts/purecap-abi.md": "1e4ab8e65d7fef144eafdc8664818a34e3b6dc76de17701fc791fcad4d19966a",
+    "model/model/core/cap_common.sail": "26c179273e4ca3001d3fd92fbe7643a6e94a2a136c76fa89256516971437c773",
+    "kernel/src/context.c": "cc21437a5b2de43182a417181ce0d9d011385b493a518d1b3350c9b95f5975d7",
+    "kernel/include/vos_kernel.h": "06e6c2296493cd3d3a96be57694148739138de8f6560e8e40315cecb1e9fd301",
+    "kernel/include/vos_platform.h": "23eeb34f4c6c239391dbec8a304a9eb0af0aa4b55153b633b523478bfcbaf2b0",
+    "model/config/verifiedos.json": "84e8febedf548233317f9ac3172c2bdffc3bb9d385bda3ec25cfb4a958bbeab9",
+    "tools/tests/test_supervisor_route.py": "ce5ccd213fbd2ec4fbbcf1d03cbb450db0c026b3b7cebfdc6b81457212f5fdd4",
+    "tools/tests/test_supervisor_switch.py": "a64c2af8806a7141ab6d531992a87f45765dccd9e7b57e74703d8b1da2133925"
+  },
+  "changed_since_prior_freeze": {
+    "supervisor/route/normalize.py": {
+      "prior": "ed8ad840ad23dbe2858a17bd0354db80c6b66948ab5193ea383542b46f893601",
+      "frozen": "88f03c2d69e16057e8568b7f7b0909312995429b603e31d867cec1d1992b5af8"
+    },
+    "supervisor/route/token_compare.py": {
+      "prior": "ef86954923eccae82aecadbecb5993eeac4cddcc3e2ca1539e3bc5bcf1d1e0e5",
+      "frozen": "580d377b8e94ff7a91f58d243236c157db482ebf5e1d8a850b45d20d56fc5b1f"
+    },
+    "supervisor/route/control.py": {
+      "prior": "30314c0090aed494eb28d664dc350717a13fb47279d73965e61dcd731c4f32aa",
+      "frozen": "7d49edffbe2337675d1b742fb73fbba338d88b98fe60b1e71baa968d884b683a"
+    },
+    "tools/vos/asm.py": {
+      "prior": "e190290cbb2908b893a69fe6a32aba7867d8dfc15678c1a53b203b0f32a8db22",
+      "frozen": "0de2f6ac03769c80764e16ba7bdd02f6aa3c23f2c4edb1dbf27801b6edba5384"
+    },
+    "tools/vos/image.py": {
+      "prior": "4ad7bf934d8026e05080c9db55808a763d5eea0bf5e2cafd48c50d1c141c71fc",
+      "frozen": "417cda8b7a12af64c4cfe5a67c43b80d5092ccd6e948bcddd605c11f3911b4a6"
+    },
+    "model/config/verifiedos.json": {
+      "prior": "f157070982b84795252b5acdf27221177bf38e3d16b61c2a34011114b91bf424",
+      "frozen": "84e8febedf548233317f9ac3172c2bdffc3bb9d385bda3ec25cfb4a958bbeab9"
+    },
+    "tools/tests/test_supervisor_route.py": {
+      "prior": "4b02bc0340a6a48f7320c25469a3d459fa40abad0fe0890f92b5264994c80069",
+      "frozen": "ce5ccd213fbd2ec4fbbcf1d03cbb450db0c026b3b7cebfdc6b81457212f5fdd4"
+    }
+  },
+  "changed_since_prior_freeze_scope": "the inputs M6.1b-iii's exchange result froze that this freeze also holds; the normalizer, token comparison and control generator changes are M6.1b-iii's post-trial repair, whose equivalence run that result binds, and the asm.py and image.py changes are docstring-only",
+  "harness_sources_changed_since_prior_report": {
+    "prior_report": {
+      "path": "/root/build/lane-m61biii-impl-20260928/exchange/probe/purecap-report.json",
+      "sha256": "e01c1ce19e922252a736f1602f8206f4d6d2ab9e9cf5f04b27b63ee14bc82362",
+      "bytes": 4028
+    },
+    "trial_report": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap-report.json",
+      "sha256": "d8655e5b6b3ce9366dcc997cec1659c65ffb42eba92d19dcd937eb940e2025f6",
+      "bytes": 52890
+    },
+    "changed": {
+      "docs/assurance/differential-corpus.md": {
+        "prior": "dc19f187fdcb763970d3c73dbed57bd2ec6944ba65e1e143f721e5e790e17fec",
+        "trial": "a837f51a1e4022bfb90260a17ffc6f70d874ffe4401d63ba4f4dd28c1043777b"
+      },
+      "docs/implementation/contracts/purecap-abi.md": {
+        "prior": "088f652936ed2cf816c1d6a2e8fff3f96a7b077bed4f23a169dca06ad3edd559",
+        "trial": "1e4ab8e65d7fef144eafdc8664818a34e3b6dc76de17701fc791fcad4d19966a"
+      },
+      "tools/vos/asm.py": {
+        "prior": "e190290cbb2908b893a69fe6a32aba7867d8dfc15678c1a53b203b0f32a8db22",
+        "trial": "0de2f6ac03769c80764e16ba7bdd02f6aa3c23f2c4edb1dbf27801b6edba5384"
+      },
+      "tools/vos/image.py": {
+        "prior": "4ad7bf934d8026e05080c9db55808a763d5eea0bf5e2cafd48c50d1c141c71fc",
+        "trial": "417cda8b7a12af64c4cfe5a67c43b80d5092ccd6e948bcddd605c11f3911b4a6"
+      }
+    },
+    "note": "compiler-diff's own source digests, as M6.1b-iii's probe report and this trial's probe report record them; every program report in this trial records one source set"
+  },
+  "tools": {
+    "velus": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/velus",
+      "sha256": "ca69a076e83891ced822802210df01ef740e7de597af3a7929f01f4e4b80a804",
+      "bytes": 15764256,
+      "resolved": "/root/build/lane-supervisor-velus-20260926/source/_build/src/velusmain.native"
+    },
+    "velus_license": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/LICENSE",
+      "sha256": "0b7e4a5d10d61118ad89fe71597a04c6621178a9f5ec42cbe6a0051c99a567c4",
+      "bytes": 5884
+    },
+    "compcert_license": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/CompCert/LICENSE",
+      "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648",
+      "bytes": 43807
+    },
+    "velus_site": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/src/ObcToClight/Generation.v",
+      "sha256": "0edb3ffad07e250fb84319d95666277a9eaa4033dca2c862f06a83bbd8dfce8d",
+      "bytes": 23742
+    },
+    "velus_printer": {
+      "path": "/root/build/lane-supervisor-velus-20260926/source/CompCert/cfrontend/PrintClight.ml",
+      "sha256": "25a3f8489ae6444356262f3f4fc6f3bb1e3b3303f5fbf22ce0228c1cb25305db",
+      "bytes": 10923
+    },
+    "opam_switch": {
+      "path": "/root/build/lane-supervisor-velus-20260926/switch.export",
+      "sha256": "495b456716753e1691f294384eb961275e411f6804483b7779592add9dba0b29",
+      "bytes": 936
+    },
+    "ccomp": {
+      "path": "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+      "sha256": "ecaa5ce0cd29d1099016dc1b62a93d16ecab1fe1bcb3a0e363c2697f6294ddca",
+      "bytes": 15794520
+    },
+    "compiler_config": {
+      "path": "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+      "sha256": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f",
+      "bytes": 389
+    },
+    "simulator": {
+      "path": "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+      "sha256": "25196ad08c3e787363e078269b696476403d8e63348e68a9525f36e02484f793",
+      "bytes": 6506592
+    },
+    "profile": {
+      "path": "/root/build/lane-m61biv-switch-20261002/profile/verifiedos.json",
+      "sha256": "f157070982b84795252b5acdf27221177bf38e3d16b61c2a34011114b91bf424",
+      "bytes": 29781
+    },
+    "native_cc": {
+      "path": "/usr/bin/aarch64-linux-gnu-gcc-15",
+      "sha256": "5b06a5b85cab901e2af3e8f351a6d4e8e6a93af24797bd8c01e5391ac6b4e63b",
+      "bytes": 1251912
+    },
+    "native_cc1": {
+      "path": "/usr/libexec/gcc/aarch64-linux-gnu/15/cc1",
+      "sha256": "4b4806b78c3921f2cefece2531a68e6b0280fb2b3a135a3cff66f298c182fccf",
+      "bytes": 34495664
+    },
+    "clang": {
+      "path": "/usr/bin/clang",
+      "sha256": "3d91c53a01052091b2d6624ff1008f89748ac45d7cfb2709ad618bf399882eb1",
+      "bytes": 131832,
+      "resolved": "/usr/lib/llvm-21/bin/clang"
+    },
+    "libclang_cpp": {
+      "path": "/usr/lib/llvm-21/bin/../lib/libclang-cpp.so.21.1",
+      "sha256": "0b53990ecdf637d21a5dc6a24fc8c49fd798ddfa3a432469a62a4eb4e4e880eb",
+      "bytes": 60206800,
+      "resolved": "/usr/lib/aarch64-linux-gnu/libclang-cpp.so.21.1"
+    },
+    "python3": {
+      "path": "/usr/bin/python3",
+      "sha256": "d1b87c365d0cf5a985cfedfc227ff613a5bc6ff56e841202eb9330d263bbeee9",
+      "bytes": 7503184,
+      "resolved": "/usr/bin/python3.14"
+    },
+    "clang_version": "Ubuntu clang version 21.1.8 (6ubuntu1)",
+    "native_cc_version": "aarch64-linux-gnu-gcc-15 (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+    "python3_version": "3.14.4",
+    "velus_revision": "27ba860c2624ba232816591290c6c119b9ead88a",
+    "velus_compcert_revision": "22c33b91d42c7df986c97b13b6cd630866a56494",
+    "compiler_arguments": [
+      "-conf",
+      "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+      "-fverifiedos-typed"
+    ],
+    "native_flags": [
+      "-std=c11",
+      "-O2",
+      "-fsanitize=undefined",
+      "-fno-sanitize-recover=undefined"
+    ],
+    "identity_scope": "Each identity is the file's bytes at freeze and again at check 5. clang is bound with libclang-cpp, which holds the lexer the token comparison reads, and the native compiler with cc1, which compiles every native driver; their assemblers, linkers and the sanitizer runtime are bound only through the recorded versions. The profile is the lane copy of the recorded bytes, not the checkout's file (see profile)."
+  },
+  "profile": {
+    "used": {
+      "path": "/root/build/lane-m61biv-switch-20261002/profile/verifiedos.json",
+      "sha256": "f157070982b84795252b5acdf27221177bf38e3d16b61c2a34011114b91bf424",
+      "bytes": 29781
+    },
+    "recorded": "f157070982b84795252b5acdf27221177bf38e3d16b61c2a34011114b91bf424",
+    "checkout": {
+      "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/model/config/verifiedos.json",
+      "sha256": "84e8febedf548233317f9ac3172c2bdffc3bb9d385bda3ec25cfb4a958bbeab9",
+      "bytes": 30559
+    },
+    "note": "Formatting commit c3b0023d rewrote model/config/verifiedos.json after M6.1b-iii, so the checkout's file no longer has the recorded profile hash. Its bytes at M6.1b-iii's source revision d590c463 were written to the lane with git show before the freeze; they have the recorded hash, and vos.jsonc reads them and the checkout's file as the same JSON value. The simulator ran under the lane copy."
+  },
+  "licence_reads": {
+    "basis": "Each read printed the whole file in the provisioning log, which the implementer read; the stage records hash each file and its lane copy and time the read. Sections 2, 3, 4 and 7 of each read as THIRD-PARTY.md records them.",
+    "provisioning": {
+      "velus": {
+        "path": "/root/build/lane-supervisor-velus-20260926/source/LICENSE",
+        "read_utc": "2026-10-03T01:53:45+00:00",
+        "end_utc": "2026-10-03T01:53:45+00:00",
+        "sha256": "0b7e4a5d10d61118ad89fe71597a04c6621178a9f5ec42cbe6a0051c99a567c4",
+        "bytes": 5884,
+        "copy": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/provision/licence-velus.txt",
+          "sha256": "0b7e4a5d10d61118ad89fe71597a04c6621178a9f5ec42cbe6a0051c99a567c4",
+          "bytes": 5884
+        }
+      },
+      "compcert": {
+        "path": "/root/build/lane-supervisor-velus-20260926/source/CompCert/LICENSE",
+        "read_utc": "2026-10-03T01:53:45+00:00",
+        "end_utc": "2026-10-03T01:53:45+00:00",
+        "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648",
+        "bytes": 43807,
+        "copy": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/provision/licence-compcert.txt",
+          "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648",
+          "bytes": 43807
+        }
+      }
+    },
+    "provisioned_utc": "2026-10-03T01:53:45+00:00",
+    "authoring": {
+      "reads": {
+        "velus": {
+          "path": "/root/build/lane-supervisor-velus-20260926/source/LICENSE",
+          "sha256": "0b7e4a5d10d61118ad89fe71597a04c6621178a9f5ec42cbe6a0051c99a567c4",
+          "bytes": 5884,
+          "read_utc": "2026-10-03T01:30:05+00:00",
+          "copy": "/root/build/lane-m61biv-switch-20261002/authoring/licence-velus.txt"
+        },
+        "compcert": {
+          "path": "/root/build/lane-supervisor-velus-20260926/source/CompCert/LICENSE",
+          "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648",
+          "bytes": 43807,
+          "read_utc": "2026-10-03T01:30:05+00:00",
+          "copy": "/root/build/lane-m61biv-switch-20261002/authoring/licence-compcert.txt"
+        }
+      },
+      "note": "an authoring-time read, before Velus ran on authoring drafts of the control program in the authoring lane; the accepted compiler and the simulator did not run before provisioning"
+    }
+  },
+  "rewrite": {
+    "tool": "supervisor/route/switch_rewrite.py",
+    "site": {
+      "velus_revision": "27ba860c2624ba232816591290c6c119b9ead88a",
+      "file": "src/ObcToClight/Generation.v",
+      "sha256": "0edb3ffad07e250fb84319d95666277a9eaa4033dca2c862f06a83bbd8dfce8d",
+      "construct": "translate_stmt's Switch arm, through make_labeled_statements"
+    },
+    "printer": {
+      "file": "CompCert/cfrontend/PrintClight.ml",
+      "sha256": "25a3f8489ae6444356262f3f4fc6f3bb1e3b3303f5fbf22ce0228c1cb25305db",
+      "construct": "print_stmt's Sswitch arm and print_cases"
+    },
+    "shapes": {
+      "if-else": "one case with a non-empty body, a non-empty default",
+      "if-only": "one case with a non-empty body, an empty default",
+      "else-only": "one case labelled 0 with an empty body, a non-empty default",
+      "chain-else": "two or more cases with non-empty bodies, a non-empty default",
+      "chain-only": "two or more cases with non-empty bodies, an empty default"
+    },
+    "lowering": "if ((E) == K1) {B1} else if ((E) == K2) {B2} ... else {D}: every byte outside a switch and every body's bytes kept, only the label and break text replaced",
+    "refused": "every other switch: no case, an empty case body outside else-only, labels not strictly increasing or not decimal, a break that does not end a case, a case or default after the default, and a brace, label, conditional, if, loop, goto, continue or return in a body; case, default or break outside a switch",
+    "node": {
+      "input": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.c",
+        "sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
+        "bytes": 2281
+      },
+      "output": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c",
+        "sha256": "084bde3b99acfbfdfab28907e71104dc275a22031e24da9ae8ff07f63a7bca8b",
+        "bytes": 2113
+      },
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.json",
+        "sha256": "c40ce9bd391a6fb79aa520ea9c38f3b23a8fc0dd68f08e299c660fd369b84b37",
+        "bytes": 3178
+      },
+      "by_shape": {
+        "if-else": 6,
+        "if-only": 0,
+        "else-only": 0,
+        "chain-else": 0,
+        "chain-only": 0
+      },
+      "groups": [
+        {
+          "line": 25,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$start_restart",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "(*obc2c$out).accepted & !storage_edge_retired",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 33,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$start_restart",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "(*obc2c$out).accepted & restart_requested == 1U",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 39,
+          "column": 7,
+          "depth": 1,
+          "owner": "fun$step$start_restart",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "attempts == 0U",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 41,
+          "column": 11,
+          "depth": 2,
+          "owner": "fun$step$start_restart",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "attempts == 1U",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 43,
+          "column": 15,
+          "depth": 3,
+          "owner": "fun$step$start_restart",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "attempts == 2U",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 64,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$start_restart",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "(*obc2c$out).accepted",
+          "empty_cases": 0,
+          "default_empty": false
+        }
+      ]
+    },
+    "control": {
+      "input": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.norm.c",
+        "sha256": "8e99e10ed03cce50fda116405b521ead6259cd9120cff1fd6f33ae6499a52abe",
+        "bytes": 3828
+      },
+      "output": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c",
+        "sha256": "460a7719cc38e796e5090ced4f3c4a85278bd8d4170ee6e896d41f71f3e79bbc",
+        "bytes": 3632
+      },
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.json",
+        "sha256": "f7db2ac5a35be2a3019227b15e49f5f26f16373eac37fee4e1caa21b18ea9179",
+        "bytes": 4412
+      },
+      "by_shape": {
+        "if-else": 4,
+        "if-only": 1,
+        "else-only": 1,
+        "chain-else": 4,
+        "chain-only": 1
+      },
+      "groups": [
+        {
+          "line": 38,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$pick",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "c",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 59,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "chain-else",
+          "labels": [
+            0,
+            1,
+            2
+          ],
+          "scrutinee": "m",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 77,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "chain-else",
+          "labels": [
+            1,
+            3
+          ],
+          "scrutinee": "j",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 88,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "chain-else",
+          "labels": [
+            0,
+            1,
+            2
+          ],
+          "scrutinee": "k",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 103,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "chain-only",
+          "labels": [
+            1,
+            2
+          ],
+          "scrutinee": "k",
+          "empty_cases": 0,
+          "default_empty": true
+        },
+        {
+          "line": 113,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "chain-else",
+          "labels": [
+            0,
+            1,
+            2
+          ],
+          "scrutinee": "n",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 128,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "if-only",
+          "labels": [
+            3
+          ],
+          "scrutinee": "m",
+          "empty_cases": 0,
+          "default_empty": true
+        },
+        {
+          "line": 135,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "go",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 142,
+          "column": 7,
+          "depth": 1,
+          "owner": "fun$step$switch_control",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "x < y",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 153,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "else-only",
+          "labels": [
+            0
+          ],
+          "scrutinee": "go",
+          "empty_cases": 1,
+          "default_empty": false
+        },
+        {
+          "line": 160,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "if-else",
+          "labels": [
+            2
+          ],
+          "scrutinee": "(*obc2c$self).p",
+          "empty_cases": 0,
+          "default_empty": false
+        }
+      ]
+    }
+  },
+  "split": {
+    "text_window_bytes": 32768,
+    "rows_per_program": 24,
+    "probe": {
+      "splitter": "supervisor/route/split_probe.py",
+      "driver": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/probe/probe.c",
+        "sha256": "d0a8a3bd5ed16678e9695b5c0d5d9027d5a1758655027449bd0724091e0d5ec1",
+        "bytes": 196571
+      },
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/probe/split/split.json",
+        "sha256": "a418985472b63dc2a63a28d8d58db95513bd7c514c9c6449b4eb5ae752fd0cf9",
+        "bytes": 6257
+      },
+      "programs": 24,
+      "rows": 576,
+      "first_rows": [
+        0,
+        24,
+        48,
+        72,
+        96,
+        120,
+        144,
+        168,
+        192,
+        216,
+        240,
+        264,
+        288,
+        312,
+        336,
+        360,
+        384,
+        408,
+        432,
+        456,
+        480,
+        504,
+        528,
+        552
+      ],
+      "rejoins_byte_for_byte": true,
+      "state": "the node's memory is empty, so a program boundary changes no answer",
+      "largest_text_bytes": 8956,
+      "smallest_text_bytes": 8572
+    },
+    "control": {
+      "generator": "supervisor/route/switch_control.py",
+      "summary": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control-driver/summary.json",
+        "sha256": "7cc11ccf8f82398b3711dec6c32b836e321bc9ef1243c300429a973f41956ff1",
+        "bytes": 7061
+      },
+      "seed": 20261002,
+      "count": 576,
+      "edge_rows": 128,
+      "seeded_rows": 448,
+      "programs": 24,
+      "rows_sha256": "387ed76cdd18310f1a2c3d5c1bf162e70173fb883cb8fd2335716458bd48c9be",
+      "state": "each program resets the node first and its answers are computed from that reset",
+      "largest_text_bytes": 16040,
+      "smallest_text_bytes": 14236
+    }
+  },
+  "checks": [
+    {
+      "check": 1,
+      "stage": "identities",
+      "predicate": "After the fresh freeze, the Velus, licence, compiler, configuration, simulator, profile and native-compiler hashes match M6.1b-iii's recorded identities, the opam switch export matches M6.1b-i's, and the Velus translation site and printer hash to the values the rewrite declares.",
+      "start_utc": "2026-10-03T01:53:58+00:00",
+      "end_utc": "2026-10-03T01:53:58+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-01-identities.json",
+        "sha256": "bd6546158d5d0526c1629a4742c4ff841673394af3980fa499d361b4382bbb38",
+        "bytes": 2588
+      }
+    },
+    {
+      "check": 1,
+      "stage": "node-emits",
+      "predicate": "Velus re-emits the recorded printed Clight and header for the start/restart node.",
+      "start_utc": "2026-10-03T01:53:58+00:00",
+      "end_utc": "2026-10-03T01:53:58+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-02-node-emits.json",
+        "sha256": "546a620e24503248d642a7bd4547684adb9c6928202c92a27211f9bbe48a2928",
+        "bytes": 1473
+      }
+    },
+    {
+      "check": 1,
+      "stage": "unnormalized-refused",
+      "predicate": "The probe driver over the unnormalized Clight is still refused, natively and by the accepted compiler for its alignment.",
+      "start_utc": "2026-10-03T01:53:58+00:00",
+      "end_utc": "2026-10-03T01:53:59+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-03-unnormalized-refused.json",
+        "sha256": "96be5dea1f14a9825d054f2d823c001ee42275ebe619f8fa6c63be8d26fb6ebe",
+        "bytes": 7496
+      }
+    },
+    {
+      "check": 2,
+      "stage": "control-emits",
+      "predicate": "Velus emits the switch control program's Clight.",
+      "start_utc": "2026-10-03T01:53:59+00:00",
+      "end_utc": "2026-10-03T01:53:59+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-04-control-emits.json",
+        "sha256": "73d7280f36ffa44cbd0f3bd7bb031ea76ad88d1a650a354800866be79e579a82",
+        "bytes": 1460
+      }
+    },
+    {
+      "check": 2,
+      "stage": "normalize",
+      "predicate": "The normalizer accepts the node's and the control program's printed Clight.",
+      "start_utc": "2026-10-03T01:53:59+00:00",
+      "end_utc": "2026-10-03T01:54:00+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-05-normalize.json",
+        "sha256": "c158f74c57f2261f7a3109e463f0077b205d6183519e42f7831960df4a403358",
+        "bytes": 2892
+      }
+    },
+    {
+      "check": 2,
+      "stage": "rewrite",
+      "predicate": "The switch rewrite accepts both normalized programs.",
+      "start_utc": "2026-10-03T01:54:00+00:00",
+      "end_utc": "2026-10-03T01:54:00+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-06-rewrite.json",
+        "sha256": "bc6ff6b1e4e12489abac25347c49afddab3f9870f3905acb4233d23621be03b6",
+        "bytes": 8585
+      }
+    },
+    {
+      "check": 2,
+      "stage": "node-comparison",
+      "predicate": "An independent clang-token comparison shows the rewritten node differing from its normalized form only at declared switch groups.",
+      "start_utc": "2026-10-03T01:54:00+00:00",
+      "end_utc": "2026-10-03T01:54:00+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-07-node-comparison.json",
+        "sha256": "f4297d373f6cc226fd7355d41130897411b8602206e0b291168d28d129c9a8b5",
+        "bytes": 2891
+      }
+    },
+    {
+      "check": 2,
+      "stage": "control-comparison",
+      "predicate": "The same comparison shows the rewritten control program differing only at declared switch groups and carrying every declared shape, a nested group and labels out of plain order.",
+      "start_utc": "2026-10-03T01:54:00+00:00",
+      "end_utc": "2026-10-03T01:54:00+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-08-control-comparison.json",
+        "sha256": "cb6fb6b198a0b380ba6f8c946cb3e10d4df84c95f7db82976144c26f349c49c5",
+        "bytes": 4179
+      }
+    },
+    {
+      "check": 2,
+      "stage": "comparison-controls",
+      "predicate": "The comparison fails on a rewritten node with one comparison label moved and on one with a statement changed outside every group.",
+      "start_utc": "2026-10-03T01:54:00+00:00",
+      "end_utc": "2026-10-03T01:54:01+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-09-comparison-controls.json",
+        "sha256": "1acead59197cc526f4448046ba18af4aa34fdd8cfc0781adf72a180a062eafe2",
+        "bytes": 3651
+      }
+    },
+    {
+      "check": 2,
+      "stage": "refusals",
+      "predicate": "The rewrite refuses every authored undeclared-shape variant of the normalized node, writing nothing.",
+      "start_utc": "2026-10-03T01:54:01+00:00",
+      "end_utc": "2026-10-03T01:54:02+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-10-refusals.json",
+        "sha256": "8890dd56bb4d8db22facc1b368cec1a9d57cb4a1518450f653e45b6b3490fa49",
+        "bytes": 9525
+      }
+    },
+    {
+      "check": 2,
+      "stage": "identity",
+      "predicate": "The rewrite returns switch-free input byte-identically: M6.1b-iii's normalized control program and both rewritten programs.",
+      "start_utc": "2026-10-03T01:54:02+00:00",
+      "end_utc": "2026-10-03T01:54:02+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-11-identity.json",
+        "sha256": "bc50c777ea64e066f76cabab0799f762ea7ec25b295188e24e6957b8ea48ecc2",
+        "bytes": 6274
+      }
+    },
+    {
+      "check": 3,
+      "stage": "node-compiles",
+      "predicate": "The rewritten node compiles through the accepted typed route.",
+      "start_utc": "2026-10-03T01:54:02+00:00",
+      "end_utc": "2026-10-03T01:54:03+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-12-node-compiles.json",
+        "sha256": "967e2ad82d4d240289dbc625c974f1a76eeb86fef8260cb021f95a6fbb7709b0",
+        "bytes": 1574
+      }
+    },
+    {
+      "check": 3,
+      "stage": "control-compiles",
+      "predicate": "The rewritten control program compiles through the accepted typed route.",
+      "start_utc": "2026-10-03T01:54:03+00:00",
+      "end_utc": "2026-10-03T01:54:03+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-13-control-compiles.json",
+        "sha256": "5735470e60dec174fe8ea83d1f0adedc6a22cf37c349dab75b7d591f64b38097",
+        "bytes": 1600
+      }
+    },
+    {
+      "check": 4,
+      "stage": "reference",
+      "predicate": "The reference comparison passes.",
+      "start_utc": "2026-10-03T01:54:03+00:00",
+      "end_utc": "2026-10-03T01:54:06+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-14-reference.json",
+        "sha256": "cf94b593eb9e3a0d4394780a3aa838e80524e628451280ffd85e4bb19daf965f",
+        "bytes": 3981
+      }
+    },
+    {
+      "check": 4,
+      "stage": "fixtures",
+      "predicate": "The regenerated fixtures reproduce the recorded digest.",
+      "start_utc": "2026-10-03T01:54:06+00:00",
+      "end_utc": "2026-10-03T01:54:06+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-15-fixtures.json",
+        "sha256": "e3bb1543fc560ed94603e5e932fc059e864c68a5f44133bddb46782b5a975e16",
+        "bytes": 582
+      }
+    },
+    {
+      "check": 4,
+      "stage": "probe-native",
+      "predicate": "The unchanged probe over the rewritten node, split into programs that fit the text window, agrees on every row natively.",
+      "start_utc": "2026-10-03T01:54:06+00:00",
+      "end_utc": "2026-10-03T01:54:12+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-16-probe-native.json",
+        "sha256": "d3366b8f94ed34c655dac6a833d728e46cc58f60eb004f7d1c0098610e80d451",
+        "bytes": 47699
+      }
+    },
+    {
+      "check": 4,
+      "stage": "probe-target",
+      "predicate": "Every split probe program agrees on every row through compiler-diff program.",
+      "start_utc": "2026-10-03T01:54:12+00:00",
+      "end_utc": "2026-10-03T01:54:18+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-17-probe-target.json",
+        "sha256": "6382b978ce09d188227dd3c8ed2fe9f1fb327bb342736c072719192cf0ce5ce8",
+        "bytes": 18535
+      }
+    },
+    {
+      "check": 4,
+      "stage": "perturbed",
+      "predicate": "The perturbed probe program holding the moved check fails natively and yields a failing comparison verdict on target.",
+      "start_utc": "2026-10-03T01:54:18+00:00",
+      "end_utc": "2026-10-03T01:54:20+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-18-perturbed.json",
+        "sha256": "a0b7e68a9057006438172d7c2924db0dbdd3737f0fc13fe8a86440942839ab55",
+        "bytes": 12907
+      }
+    },
+    {
+      "check": 4,
+      "stage": "control-native",
+      "predicate": "The split control drivers agree natively on every row of the seeded generated set.",
+      "start_utc": "2026-10-03T01:54:20+00:00",
+      "end_utc": "2026-10-03T01:54:24+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-19-control-native.json",
+        "sha256": "ec889971248cdf9c94852b88ef035f9c3a7cc5e4a21d4db52c826977ab3af638",
+        "bytes": 49193
+      }
+    },
+    {
+      "check": 4,
+      "stage": "control-target",
+      "predicate": "Every split control program agrees on every row through compiler-diff program.",
+      "start_utc": "2026-10-03T01:54:24+00:00",
+      "end_utc": "2026-10-03T01:54:36+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-20-control-target.json",
+        "sha256": "629adbce320a4767a1d15dce8a28643bcc4d2f57046ecd71bbb21082eaa8b032",
+        "bytes": 18953
+      }
+    },
+    {
+      "check": 5,
+      "stage": "rehash",
+      "predicate": "Every frozen input and tool identity rehashes unchanged.",
+      "start_utc": "2026-10-03T01:54:36+00:00",
+      "end_utc": "2026-10-03T01:54:37+00:00",
+      "verdict": "passed",
+      "failures": [],
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/state/stage-21-rehash.json",
+        "sha256": "bf63064d6b0e7ea54aceba6c82d359fb7057ee151c366685c8bfc1da1a83ba02",
+        "bytes": 332
+      }
+    }
+  ],
+  "evidence": {
+    "check1": {
+      "recorded_hashes_match": {
+        "velus": true,
+        "velus_license": true,
+        "compcert_license": true,
+        "ccomp": true,
+        "compiler_config": true,
+        "simulator": true,
+        "profile": true,
+        "native_cc": true,
+        "opam_switch": true,
+        "velus_site": true,
+        "velus_printer": true
+      },
+      "velus_node": {
+        "argv": [
+          "/root/build/lane-supervisor-velus-20260926/source/velus",
+          "-nomain",
+          "-lib",
+          "-header",
+          "-dclight",
+          "-o",
+          "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.lus",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/start_restart.lus"
+        ],
+        "exit": 0,
+        "log": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.velus.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "clight": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c",
+          "sha256": "e7bd477906c103d1910a9bdf9cf78b0fd394b27cb07841afe3987a8b27b13d7c",
+          "bytes": 2329
+        },
+        "header": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.h",
+          "sha256": "a8bf7abc5397a955cf6de4a069d9fc54cff105625e70617180fc01a8d5d59042",
+          "bytes": 575
+        }
+      },
+      "oracle": {
+        "build_argv": [
+          "/usr/bin/aarch64-linux-gnu-gcc-15",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-I",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/include",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/oracle.c",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/src/supervisor.c",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/src/manifest.c",
+          "-o",
+          "/root/build/lane-m61biv-switch-20261002/trial/oracle/oracle"
+        ],
+        "binary": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/oracle/oracle",
+          "sha256": "2bf5256fb5a9899ae7363958604922a96aa1042b3406383c90cef28b017f0e04",
+          "bytes": 71184
+        },
+        "fixtures": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/oracle/fixtures.txt",
+          "sha256": "2c2ddcf675a05a5d5a2afd819d00d00c096b246ada96d9b1ee7bc01fa6044ebc",
+          "bytes": 24120
+        }
+      },
+      "unnormalized_driver": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/probe.c",
+        "sha256": "6492f0f1d3d0b8402db515f20f66ff865d08b154ae50420da001aad35661270b",
+        "bytes": 196574
+      },
+      "unnormalized_native_exit": 1,
+      "unnormalized_target": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/tools/run.py",
+          "compiler-diff",
+          "program",
+          "--ccomp",
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "--ccomp-arg=-conf",
+          "--ccomp-arg=/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "--ccomp-arg=-fverifiedos-typed",
+          "--simulator",
+          "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+          "--profile",
+          "/root/build/lane-m61biv-switch-20261002/profile/verifiedos.json",
+          "--keep",
+          "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/purecap",
+          "--timeout",
+          "900",
+          "--run-timeout",
+          "600",
+          "--json",
+          "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/probe.c"
+        ],
+        "report": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/unnormalized/purecap-report.json",
+          "sha256": "e55f3778923b6fc2a05c126ac7e4b273ca3a992522bf838e8cbfa40fbd87d1a9",
+          "bytes": 4717
+        },
+        "programs": [
+          {
+            "name": "probe",
+            "verdict": "ccomp-refused",
+            "detail": "ccomp exited 2: /root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:17: error: alignment specified for unnamed parameter\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:17: error: alignment specified for unnamed parameter\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:19: error: alignment specified for parameter 'snapshot_epoch'\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:19",
+            "source_sha256": "6492f0f1d3d0b8402db515f20f66ff865d08b154ae50420da001aad35661270b",
+            "ccomp_exit": 2,
+            "stream_lines": 0,
+            "image_bytes": 0,
+            "run_code": null,
+            "records": null,
+            "trace_digest": null
+          }
+        ],
+        "diagnostic": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:17: error: alignment specified for unnamed parameter\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:17: error: alignment specified for unnamed parameter\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:19: error: alignment specified for parameter 'snapshot_epoch'\n/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.light.c:19"
+      }
+    },
+    "check2": {
+      "velus_control": {
+        "argv": [
+          "/root/build/lane-supervisor-velus-20260926/source/velus",
+          "-nomain",
+          "-lib",
+          "-header",
+          "-dclight",
+          "-o",
+          "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.lus",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_control.lus"
+        ],
+        "exit": 0,
+        "log": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.velus.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "clight": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.light.c",
+          "sha256": "1c86e1ec16a8b72efd6c0ee746747330dab05a63303d75a08ea43452a567020a",
+          "bytes": 3852
+        },
+        "header": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.h",
+          "sha256": "434276d633823c0c34c0107940a2a836b6ca15887836586084835d2694f4aebd",
+          "bytes": 902
+        }
+      },
+      "normalized": {
+        "node": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.c",
+          "sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
+          "bytes": 2281
+        },
+        "node_record": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.json",
+          "sha256": "e0ebf4f237f1b13aed9b4eb981b0b6c7eea95276da8eec546f371efd066b8ea4",
+          "bytes": 1376
+        },
+        "control_record": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.norm.json",
+          "sha256": "36f2d25b8160a270090fcb775c732352a7956b75bf0fdbbc203f8112fd3f9704",
+          "bytes": 1167
+        },
+        "control": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.norm.c",
+          "sha256": "8e99e10ed03cce50fda116405b521ead6259cd9120cff1fd6f33ae6499a52abe",
+          "bytes": 3828
+        },
+        "node_matches_m61biii_normalized": true
+      },
+      "node_comparison": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_compare.py",
+          "--clang",
+          "/usr/bin/clang",
+          "--normalized",
+          "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.c",
+          "--rewritten",
+          "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c",
+          "--node",
+          "--out",
+          "/root/build/lane-m61biv-switch-20261002/trial/compare/node.json"
+        ],
+        "exit": 0,
+        "report": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/compare/node.json",
+          "sha256": "877ea2d4353c58e396d5be166336fa035f77876f9081081eb62faf4514c8d856",
+          "bytes": 2210
+        },
+        "verdict": "pass",
+        "lowered": 6,
+        "by_shape": {
+          "if-else": 6,
+          "if-only": 0,
+          "else-only": 0,
+          "chain-else": 0,
+          "chain-only": 0
+        }
+      },
+      "control_comparison": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_compare.py",
+          "--clang",
+          "/usr/bin/clang",
+          "--normalized",
+          "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.norm.c",
+          "--rewritten",
+          "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c",
+          "--control",
+          "--out",
+          "/root/build/lane-m61biv-switch-20261002/trial/compare/control.json"
+        ],
+        "exit": 0,
+        "report": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/compare/control.json",
+          "sha256": "acb89552c72695d391b23a39545b5c61a0559f5428348bed60b4af3e06a14bfe",
+          "bytes": 3313
+        },
+        "verdict": "pass",
+        "lowered": 11,
+        "by_shape": {
+          "if-else": 4,
+          "if-only": 1,
+          "else-only": 1,
+          "chain-else": 4,
+          "chain-only": 1
+        }
+      },
+      "comparison_controls": {
+        "label-moved": {
+          "variant": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/compare/controls/label-moved.c",
+            "sha256": "85294d136d756e3f2a063d3af820e4e7bab65a0aaa2469199619c6f273d35094",
+            "bytes": 2113
+          },
+          "exit": 1,
+          "verdict": "fail",
+          "failures": [
+            "not a declared lowering: rewritten line 25: expected numeric_constant 0, found numeric_constant '1'"
+          ]
+        },
+        "outside-changed": {
+          "variant": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/compare/controls/outside-changed.c",
+            "sha256": "b3e940b1693c7e51536c848e2b1ba31735d7ce788fd25381f17ce3c5cdaf5858",
+            "bytes": 2113
+          },
+          "exit": 1,
+          "verdict": "fail",
+          "failures": [
+            "not a declared lowering: normalized line 21 ('numeric_constant', '0U') differs from rewritten ('numeric_constant', '1U')"
+          ]
+        }
+      },
+      "refusals": {
+        "fall-through": {
+          "variant": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/fall-through.c",
+            "sha256": "e7f0801623704b3365de4c87ec79ca87f0c107246b716dcb95f11f38e27e6d03",
+            "bytes": 2268
+          },
+          "exit": 2,
+          "said": "line 28 column 5: `default` inside a case body: a fall-through",
+          "wrote_output": false
+        },
+        "no-case": {
+          "variant": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/no-case.c",
+            "sha256": "d0cb7d9f44749319110ff33990488ba64db828c503538747cf5c680edea2b3fb",
+            "bytes": 2217
+          },
+          "exit": 2,
+          "said": "line 25 column 3: a switch with no case: not a declared shape",
+          "wrote_output": false
+        },
+        "case-after-default": {
+          "variant": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/case-after-default.c",
+            "sha256": "63be5e0d9dca5cbd45770da4191c61dee7489d90eecc987903257d327363db1e",
+            "bytes": 2306
+          },
+          "exit": 2,
+          "said": "line 31 column 5: `case` after the default",
+          "wrote_output": false
+        },
+        "labels-out-of-order": {
+          "variant": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/labels-out-of-order.c",
+            "sha256": "d70793afe42093679a3620f6c1ff9a0871e8559945150b7f4caf476d67beffc7",
+            "bytes": 2345
+          },
+          "exit": 2,
+          "said": "line 29 column 10: case label 0 does not increase on 1",
+          "wrote_output": false
+        },
+        "hexadecimal-label": {
+          "variant": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/hexadecimal-label.c",
+            "sha256": "3715ab34397dbdeefd72ff52f44b327c3e581619cc7d33564935516d64a35d19",
+            "bytes": 2283
+          },
+          "exit": 2,
+          "said": "line 26 column 10: case label `0x0` is not the printer's decimal",
+          "wrote_output": false
+        },
+        "empty-case-in-chain": {
+          "variant": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/empty-case-in-chain.c",
+            "sha256": "9f10cb76bc14b6de7671c9bd044bf114d47335c50dad0cca3f65e109caed2f4b",
+            "bytes": 2306
+          },
+          "exit": 2,
+          "said": "line 26 column 5: an empty case body outside the declared else-only shape",
+          "wrote_output": false
+        },
+        "break-in-default": {
+          "variant": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/break-in-default.c",
+            "sha256": "8bd57c447c2e151c8c69130051688998f3194df430694abd728a01af27f60104",
+            "bytes": 2294
+          },
+          "exit": 2,
+          "said": "line 31 column 7: a `break` in the default body: the site ends only cases with one",
+          "wrote_output": false
+        },
+        "brace-in-body": {
+          "variant": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/brace-in-body.c",
+            "sha256": "f4bd8a52aa63e77704fedf072b7237f3f7ab542ec9e1e279866996720bdccf74",
+            "bytes": 2285
+          },
+          "exit": 2,
+          "said": "line 27 column 7: a brace in a switch body that opens no switch",
+          "wrote_output": false
+        }
+      },
+      "switch_free": {
+        "m61biii_control_clight": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/control.light.c",
+          "sha256": "bb39c18a3d4faa6831235434af4921e2a90fe8b1b75b659d05099f1de054cf0f",
+          "bytes": 2032
+        },
+        "m61biii_control_matches_recorded_normalized": true,
+        "old-control": {
+          "input": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/control.norm.c",
+            "sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760",
+            "bytes": 1804
+          },
+          "output": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/old-control.identity.c",
+            "sha256": "cd20fd77e431887ecb68ea1429de1e8c0cfd69ab612b0be4159bedfbab06f760",
+            "bytes": 1804
+          },
+          "byte_identical": true,
+          "lowered": 0
+        },
+        "node": {
+          "input": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c",
+            "sha256": "084bde3b99acfbfdfab28907e71104dc275a22031e24da9ae8ff07f63a7bca8b",
+            "bytes": 2113
+          },
+          "output": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/node.identity.c",
+            "sha256": "084bde3b99acfbfdfab28907e71104dc275a22031e24da9ae8ff07f63a7bca8b",
+            "bytes": 2113
+          },
+          "byte_identical": true,
+          "lowered": 0
+        },
+        "control": {
+          "input": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c",
+            "sha256": "460a7719cc38e796e5090ced4f3c4a85278bd8d4170ee6e896d41f71f3e79bbc",
+            "bytes": 3632
+          },
+          "output": {
+            "path": "/root/build/lane-m61biv-switch-20261002/trial/identity/control.identity.c",
+            "sha256": "460a7719cc38e796e5090ced4f3c4a85278bd8d4170ee6e896d41f71f3e79bbc",
+            "bytes": 3632
+          },
+          "byte_identical": true,
+          "lowered": 0
+        }
+      }
+    },
+    "check3": {
+      "node": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "start_restart.rw.i",
+          "-o",
+          "start_restart.rw.s"
+        ],
+        "exit": 0,
+        "said": "start_restart.rw.c:3: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "10bc276c9451483c6e1769269be38c64ff93b73dc02afcac39b067cca0f1808d",
+        "lines": 168,
+        "preprocess_argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-E",
+          "start_restart.rw.c",
+          "-o",
+          "/root/build/lane-m61biv-switch-20261002/trial/compile/node/start_restart.rw.i"
+        ],
+        "preprocessed_sha256": "5655175c71f8d7648ae3e87987aba6150b2bd6df112dfa65f6e4cd9ed7afc150",
+        "source": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c",
+          "sha256": "084bde3b99acfbfdfab28907e71104dc275a22031e24da9ae8ff07f63a7bca8b",
+          "bytes": 2113
+        }
+      },
+      "control": {
+        "argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-S",
+          "switch_control.rw.i",
+          "-o",
+          "switch_control.rw.s"
+        ],
+        "exit": 0,
+        "said": "switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+        "stream_sha256": "1696a2bb6686ad47508eaa722576157959ea9041d233fb218efb36d348fa5e09",
+        "lines": 533,
+        "preprocess_argv": [
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "-conf",
+          "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "-fverifiedos-typed",
+          "-E",
+          "switch_control.rw.c",
+          "-o",
+          "/root/build/lane-m61biv-switch-20261002/trial/compile/control/switch_control.rw.i"
+        ],
+        "preprocessed_sha256": "7d92da51d402e9e7dc0151731e681096e3745b1e74a2e90a6e96b3be03469adc",
+        "source": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c",
+          "sha256": "460a7719cc38e796e5090ced4f3c4a85278bd8d4170ee6e896d41f71f3e79bbc",
+          "bytes": 3632
+        }
+      }
+    },
+    "check4": {
+      "reference": {
+        "argv": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/tools/run.py",
+          "supervisor",
+          "check"
+        ],
+        "exit": 0,
+        "report": {
+          "path": "/root/build/lane-m61biv-switch-20261002/supervisor/report.json",
+          "sha256": "e8a8341397e182e631886e584d7e544c0757699e399489a6202c8f60f1e2ca0e",
+          "bytes": 2343
+        },
+        "comparison": "passed",
+        "cases": 656,
+        "equalities": 3088,
+        "effect_controls": "ok 31 fixed consumer controls (not Gallina comparisons)\nok 9249 generated effect executions (64340 checks; host bindings only)"
+      },
+      "fixtures": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/oracle/fixtures.txt",
+        "sha256": "2c2ddcf675a05a5d5a2afd819d00d00c096b246ada96d9b1ee7bc01fa6044ebc",
+        "bytes": 24120,
+        "rows": 576,
+        "recorded_sha256": "2c2ddcf675a05a5d5a2afd819d00d00c096b246ada96d9b1ee7bc01fa6044ebc"
+      },
+      "probe_driver": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/probe/probe.c",
+        "sha256": "d0a8a3bd5ed16678e9695b5c0d5d9027d5a1758655027449bd0724091e0d5ec1",
+        "bytes": 196571
+      },
+      "probe_unsplit_native_exit": 0,
+      "probe_split_native_exits": [
+        0
+      ],
+      "probe_target": {
+        "argv_head": [
+          "/usr/bin/python3",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/tools/run.py",
+          "compiler-diff",
+          "program",
+          "--ccomp",
+          "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+          "--ccomp-arg=-conf",
+          "--ccomp-arg=/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+          "--ccomp-arg=-fverifiedos-typed",
+          "--simulator",
+          "/root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim",
+          "--profile",
+          "/root/build/lane-m61biv-switch-20261002/profile/verifiedos.json",
+          "--keep",
+          "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap",
+          "--timeout",
+          "900",
+          "--run-timeout",
+          "600",
+          "--json"
+        ],
+        "report": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/probe-target/purecap-report.json",
+          "sha256": "d8655e5b6b3ce9366dcc997cec1659c65ffb42eba92d19dcd937eb940e2025f6",
+          "bytes": 52890
+        },
+        "green": true,
+        "harness_sources_sha256": {
+          "tools/vos/cli/compiler_diff.py": "43c3dbde5bf1426751da2e8758b9eeda6a1f1102bdb6e81c870d874cc3a1e7b7",
+          "tools/vos/asm.py": "0de2f6ac03769c80764e16ba7bdd02f6aa3c23f2c4edb1dbf27801b6edba5384",
+          "tools/vos/image.py": "417cda8b7a12af64c4cfe5a67c43b80d5092ccd6e948bcddd605c11f3911b4a6",
+          "tools/generated/dialect-table.json": "58f8ed08800814a949ed21e8b1a374acbf54edefbec521ad6dd3f38007879d1a",
+          "docs/assurance/differential-corpus.md": "a837f51a1e4022bfb90260a17ffc6f70d874ffe4401d63ba4f4dd28c1043777b",
+          "docs/implementation/contracts/purecap-abi.md": "1e4ab8e65d7fef144eafdc8664818a34e3b6dc76de17701fc791fcad4d19966a",
+          "model/model/core/cap_common.sail": "26c179273e4ca3001d3fd92fbe7643a6e94a2a136c76fa89256516971437c773"
+        },
+        "programs": [
+          {
+            "name": "probe-00",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "1397ddefec416500120a2b7d7762cddad5918ae0eefbd43646a75f3555527f2c",
+            "ccomp_exit": 0,
+            "stream_lines": 2525,
+            "image_bytes": 25468,
+            "run_code": 0,
+            "records": 7514,
+            "trace_digest": "1731b8b7ae266091"
+          },
+          {
+            "name": "probe-01",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "6d913199799e7429435a6cf66ef4eef8e4d94ba3ca1bad6af711ce0bfa48293a",
+            "ccomp_exit": 0,
+            "stream_lines": 2525,
+            "image_bytes": 25468,
+            "run_code": 0,
+            "records": 7514,
+            "trace_digest": "0a9e84da91bd356e"
+          },
+          {
+            "name": "probe-02",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "759e4ef6e8b6f89ca76b5850aa27e13bce311deb92c4dfc3096ad3742323cf3f",
+            "ccomp_exit": 0,
+            "stream_lines": 2525,
+            "image_bytes": 25468,
+            "run_code": 0,
+            "records": 7514,
+            "trace_digest": "655ee6496994f219"
+          },
+          {
+            "name": "probe-03",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "ea8537b3ad71a0e493d45bbf5d60b2f876d3302e5d9cd11e4b3ae5efe2fe0fa5",
+            "ccomp_exit": 0,
+            "stream_lines": 2525,
+            "image_bytes": 25468,
+            "run_code": 0,
+            "records": 7514,
+            "trace_digest": "40d63880abe426f8"
+          },
+          {
+            "name": "probe-04",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "15bfca807e05a60ed76206aa2b6dc5469a30b020334033abbc6b99435d71b72e",
+            "ccomp_exit": 0,
+            "stream_lines": 2525,
+            "image_bytes": 25468,
+            "run_code": 0,
+            "records": 7514,
+            "trace_digest": "239ae0fae2c491aa"
+          },
+          {
+            "name": "probe-05",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "c4e3011004326d4286d9f7e6212b8610fb877471d0369fd21a4b5de8e9a71963",
+            "ccomp_exit": 0,
+            "stream_lines": 2525,
+            "image_bytes": 25468,
+            "run_code": 0,
+            "records": 7514,
+            "trace_digest": "14968a5e9b88ab81"
+          },
+          {
+            "name": "probe-06",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "971539cc98c435f021dc78fb5114f87b993f2cd38727fbc1947b4205517bbe63",
+            "ccomp_exit": 0,
+            "stream_lines": 2525,
+            "image_bytes": 25468,
+            "run_code": 0,
+            "records": 7514,
+            "trace_digest": "a3e21f1bd4df21f6"
+          },
+          {
+            "name": "probe-07",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "b21dd2af035bdbe3f41038498659222b0576308c92dba6889e114bbef356f221",
+            "ccomp_exit": 0,
+            "stream_lines": 2525,
+            "image_bytes": 25468,
+            "run_code": 0,
+            "records": 7514,
+            "trace_digest": "a1e8826403535812"
+          },
+          {
+            "name": "probe-08",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "58f2fcf2fb0be9389c9481973a404679e8ddef6322edbaa4c474821fa2dbf469",
+            "ccomp_exit": 0,
+            "stream_lines": 2557,
+            "image_bytes": 25596,
+            "run_code": 0,
+            "records": 7610,
+            "trace_digest": "53ab29626476dc80"
+          },
+          {
+            "name": "probe-09",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "865272ba836dfdc8f2f3e2fce3f2d1d056c00124d58945dbeefd4c807e9c629b",
+            "ccomp_exit": 0,
+            "stream_lines": 2557,
+            "image_bytes": 25596,
+            "run_code": 0,
+            "records": 7658,
+            "trace_digest": "d6a617e3b261e6d2"
+          },
+          {
+            "name": "probe-10",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "5e78c369021ef8de2e3f318bb65ea9beccd00081de2f1b43e37f618700235ec2",
+            "ccomp_exit": 0,
+            "stream_lines": 2557,
+            "image_bytes": 25596,
+            "run_code": 0,
+            "records": 7698,
+            "trace_digest": "31d1f39565d728a7"
+          },
+          {
+            "name": "probe-11",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "f81cc2b338eecc0ca733cd4465102a6d43c9a4f8ce7828f272b09e4cfdd96a8a",
+            "ccomp_exit": 0,
+            "stream_lines": 2557,
+            "image_bytes": 25596,
+            "run_code": 0,
+            "records": 7698,
+            "trace_digest": "04dfce6306590176"
+          },
+          {
+            "name": "probe-12",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "b65d12a391bd8ca1731819f09cfec53c0ec782031afad4705c99b17c2bd7db55",
+            "ccomp_exit": 0,
+            "stream_lines": 2557,
+            "image_bytes": 25596,
+            "run_code": 0,
+            "records": 7698,
+            "trace_digest": "2b9fc54275e39557"
+          },
+          {
+            "name": "probe-13",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "8904c18fd8dcb447add419b7f99337ebd293278f7780432001429120fbff5ab6",
+            "ccomp_exit": 0,
+            "stream_lines": 2557,
+            "image_bytes": 25596,
+            "run_code": 0,
+            "records": 7698,
+            "trace_digest": "1b90b87008c3b9ef"
+          },
+          {
+            "name": "probe-14",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "13a0e15ce6aa354a5cc9a775d60079ec36e2a3c803ff0efb53e411449d3bff6a",
+            "ccomp_exit": 0,
+            "stream_lines": 2557,
+            "image_bytes": 25596,
+            "run_code": 0,
+            "records": 7698,
+            "trace_digest": "2320e20e9c785ffe"
+          },
+          {
+            "name": "probe-15",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "5061168f6f2037a853b5db95be10914c9a3a0511e6f322a9d409af6beb25e04c",
+            "ccomp_exit": 0,
+            "stream_lines": 2557,
+            "image_bytes": 25596,
+            "run_code": 0,
+            "records": 7698,
+            "trace_digest": "05aaedb3d4edcdab"
+          },
+          {
+            "name": "probe-16",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "ff0942f6bf0337da152a7394a1fd150f1f53894ab522e794149168483969ba43",
+            "ccomp_exit": 0,
+            "stream_lines": 2461,
+            "image_bytes": 25212,
+            "run_code": 0,
+            "records": 7374,
+            "trace_digest": "ddac81d519ee53cc"
+          },
+          {
+            "name": "probe-17",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "2634594ebd8353ed1b9ec6f5524d4e0176825ab973b66189481f142f3a7fa699",
+            "ccomp_exit": 0,
+            "stream_lines": 2461,
+            "image_bytes": 25212,
+            "run_code": 0,
+            "records": 7374,
+            "trace_digest": "3ad6706654928f8c"
+          },
+          {
+            "name": "probe-18",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "1a33c5a663151153390ad30dce4fd5006e38d4b76a0ebc16ef3f1eac0766bbbf",
+            "ccomp_exit": 0,
+            "stream_lines": 2461,
+            "image_bytes": 25212,
+            "run_code": 0,
+            "records": 7374,
+            "trace_digest": "a23a536d8de240d8"
+          },
+          {
+            "name": "probe-19",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "7e84d9d7c341effa56656523d05e99a99b93df047521d9b64300ab6eba933a24",
+            "ccomp_exit": 0,
+            "stream_lines": 2461,
+            "image_bytes": 25212,
+            "run_code": 0,
+            "records": 7374,
+            "trace_digest": "103a6b4743f301f9"
+          },
+          {
+            "name": "probe-20",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "67d149a1a6f7ee45e32e57fc7901c0b6061e799485bf197ec133a444d146b2d1",
+            "ccomp_exit": 0,
+            "stream_lines": 2461,
+            "image_bytes": 25212,
+            "run_code": 0,
+            "records": 7374,
+            "trace_digest": "a3aa793fd151afeb"
+          },
+          {
+            "name": "probe-21",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "62caf378b6ca6da942f221d849e0e67368f655bb1e62029303757452a00ac8ed",
+            "ccomp_exit": 0,
+            "stream_lines": 2461,
+            "image_bytes": 25212,
+            "run_code": 0,
+            "records": 7374,
+            "trace_digest": "cc47795671db621a"
+          },
+          {
+            "name": "probe-22",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "e37193b0d1e22728d745a19310d50eb15bb1cc1c1fb14ba7d203cedf9716faa3",
+            "ccomp_exit": 0,
+            "stream_lines": 2461,
+            "image_bytes": 25212,
+            "run_code": 0,
+            "records": 7374,
+            "trace_digest": "efe3bcab6878bba8"
+          },
+          {
+            "name": "probe-23",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "55b1e9dab3bbe056cd7e80359f14a4b772e8234a7e27ac8658bdc9e935c51b37",
+            "ccomp_exit": 0,
+            "stream_lines": 2461,
+            "image_bytes": 25212,
+            "run_code": 0,
+            "records": 7374,
+            "trace_digest": "2625a91052e9c86c"
+          }
+        ]
+      },
+      "perturbed": {
+        "driver": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/probe-perturbed/probe.c",
+          "sha256": "c5b469a66910b7f86e4b0b22dab8bee3e3bf18b1f6e10dcbfaa3bc8bd619dd18",
+          "bytes": 196571
+        },
+        "programs_differing": [
+          "probe-00.c"
+        ],
+        "split_record": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/probe-perturbed/split/split.json",
+          "sha256": "8c0d03744d61a1f2f7d9f95899f1fcdf79f8837664fe67248cecd6928db89f9b",
+          "bytes": 6507
+        },
+        "native_exit": 1,
+        "report": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/probe-perturbed/purecap-report.json",
+          "sha256": "fc029fe8f20085cb3d2328b2865a70800e2d513a33c71b179808e393b1af8947",
+          "bytes": 4061
+        },
+        "programs": [
+          {
+            "name": "probe-00",
+            "verdict": "fail",
+            "detail": "HTIF 1: main returned 1",
+            "source_sha256": "4994e778d791aaf27276ab8fe611d5052f42b4a2cb841db2f2f6c2c858f2cb56",
+            "ccomp_exit": 0,
+            "stream_lines": 2525,
+            "image_bytes": 25468,
+            "run_code": 1,
+            "records": 327,
+            "trace_digest": "835a3107cf7a449d"
+          }
+        ]
+      },
+      "control_native_exits": [
+        0
+      ],
+      "control_target": {
+        "report": {
+          "path": "/root/build/lane-m61biv-switch-20261002/trial/control-target/purecap-report.json",
+          "sha256": "c996d09c9d314725ec7db35c2547fea500dcef7feb487fdea0b2130d2c6cc19c",
+          "bytes": 53682
+        },
+        "green": true,
+        "programs": [
+          {
+            "name": "control-00",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "78d1833376d85c39e754c5b47c2d7e89a711b825747d0251fbc32503853b7d81",
+            "ccomp_exit": 0,
+            "stream_lines": 4059,
+            "image_bytes": 30876,
+            "run_code": 0,
+            "records": 17096,
+            "trace_digest": "223e4b5188a0f2bd"
+          },
+          {
+            "name": "control-01",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "d3805302e3ab75df43fe97c0461b06463a8879872ffb8c66d787ad99f1a36b6e",
+            "ccomp_exit": 0,
+            "stream_lines": 4085,
+            "image_bytes": 30972,
+            "run_code": 0,
+            "records": 17112,
+            "trace_digest": "8328bc437a26204f"
+          },
+          {
+            "name": "control-02",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "1f04cce654a3dc50622fc2dd77a2e864a9c336871a8c6b5b6d86ba1c0b22ad33",
+            "ccomp_exit": 0,
+            "stream_lines": 4119,
+            "image_bytes": 31092,
+            "run_code": 0,
+            "records": 17625,
+            "trace_digest": "2d89e6ee1358aa88"
+          },
+          {
+            "name": "control-03",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "3e1dfb93c5ccaf6ab886fb5059e29b4260d9d12a87817b8fe303fd3f00a71e31",
+            "ccomp_exit": 0,
+            "stream_lines": 4132,
+            "image_bytes": 31168,
+            "run_code": 0,
+            "records": 18223,
+            "trace_digest": "edc1250d00a976e4"
+          },
+          {
+            "name": "control-04",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "d539006db01e874d5e5247a0d15d0e0ba18568bdf7d24760f6a8301fca56ed7b",
+            "ccomp_exit": 0,
+            "stream_lines": 4137,
+            "image_bytes": 31188,
+            "run_code": 0,
+            "records": 18884,
+            "trace_digest": "344da55c989cb824"
+          },
+          {
+            "name": "control-05",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "70c76c9a95974886a4ec314a8b3b51e6145f41a06056b4e7b5018183e7486e05",
+            "ccomp_exit": 0,
+            "stream_lines": 4211,
+            "image_bytes": 31988,
+            "run_code": 0,
+            "records": 18438,
+            "trace_digest": "2cb90dddfcfb6d1c"
+          },
+          {
+            "name": "control-06",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "94b6fa9d45eb10e2e9d14604bc29a9ea308ccbd165d397ba748398b505c670b9",
+            "ccomp_exit": 0,
+            "stream_lines": 4261,
+            "image_bytes": 32396,
+            "run_code": 0,
+            "records": 18357,
+            "trace_digest": "f107efdc08bf8504"
+          },
+          {
+            "name": "control-07",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "52e36e084868aabe388677392ea427f7705ce326404b9db5a6f66dc63d5a36b5",
+            "ccomp_exit": 0,
+            "stream_lines": 4257,
+            "image_bytes": 32548,
+            "run_code": 0,
+            "records": 18491,
+            "trace_digest": "6aa16e861d0d44ac"
+          },
+          {
+            "name": "control-08",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "1d3ff69a43a3bc2cb7b324de49f0e630b7cfdcb67622f53ae23aaba164ab3e13",
+            "ccomp_exit": 0,
+            "stream_lines": 4273,
+            "image_bytes": 32304,
+            "run_code": 0,
+            "records": 18488,
+            "trace_digest": "378890e4c36e7ac0"
+          },
+          {
+            "name": "control-09",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "e1beeb90f2adb1f836f18d0c7ebe6b94f15760424947c64be24b09653b45b8c1",
+            "ccomp_exit": 0,
+            "stream_lines": 4259,
+            "image_bytes": 32364,
+            "run_code": 0,
+            "records": 18420,
+            "trace_digest": "ece69aeb40db254f"
+          },
+          {
+            "name": "control-10",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "8b35ff392bedf0ad56e430eb6179d30ab7a281c4af1428e2502f8ba03b7c53aa",
+            "ccomp_exit": 0,
+            "stream_lines": 4272,
+            "image_bytes": 32680,
+            "run_code": 0,
+            "records": 18338,
+            "trace_digest": "f72f7e85cd2b0d05"
+          },
+          {
+            "name": "control-11",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "90494c49f7fb9e62b7f9cbb2d851c2ca023461af8df1d21b59e89b76cde3e43c",
+            "ccomp_exit": 0,
+            "stream_lines": 4263,
+            "image_bytes": 32496,
+            "run_code": 0,
+            "records": 18593,
+            "trace_digest": "6d2ebf448b26edf3"
+          },
+          {
+            "name": "control-12",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "2cbab91dae8689c6802a3744a5f4b683a2811f624a5ebfa518cf7ec89d29f01d",
+            "ccomp_exit": 0,
+            "stream_lines": 4297,
+            "image_bytes": 32520,
+            "run_code": 0,
+            "records": 18623,
+            "trace_digest": "fd7fd9bebc9a7462"
+          },
+          {
+            "name": "control-13",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "a92a68a3e3dc83cd94bad6f0de29921cf2f99120a2c3c51c7884138cf9788ac6",
+            "ccomp_exit": 0,
+            "stream_lines": 4293,
+            "image_bytes": 32368,
+            "run_code": 0,
+            "records": 18910,
+            "trace_digest": "5b1881c99407538b"
+          },
+          {
+            "name": "control-14",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "2fa3475dce15978de1f7694d171ab3595f658144445bb3e8f8c5111d12658d57",
+            "ccomp_exit": 0,
+            "stream_lines": 4264,
+            "image_bytes": 32404,
+            "run_code": 0,
+            "records": 18579,
+            "trace_digest": "c605bf236ff45b1c"
+          },
+          {
+            "name": "control-15",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "ebdc239fdb308b69e5a56617a5e314a3cae6084e54c5a474fc5f0c8671f2384d",
+            "ccomp_exit": 0,
+            "stream_lines": 4264,
+            "image_bytes": 32208,
+            "run_code": 0,
+            "records": 18239,
+            "trace_digest": "b9c22d7b0d24bf36"
+          },
+          {
+            "name": "control-16",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "cd68110564282a4b9e9a4b0e75d6746e77d09f0ece3fe049b9460b49f7452499",
+            "ccomp_exit": 0,
+            "stream_lines": 4260,
+            "image_bytes": 32476,
+            "run_code": 0,
+            "records": 18396,
+            "trace_digest": "3dc1d2eae3af8532"
+          },
+          {
+            "name": "control-17",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "76b906e2985605890f4d0e6d508cef708210afa369cbd713a84758dee47f36e6",
+            "ccomp_exit": 0,
+            "stream_lines": 4254,
+            "image_bytes": 32372,
+            "run_code": 0,
+            "records": 18376,
+            "trace_digest": "d68dafb5e341c242"
+          },
+          {
+            "name": "control-18",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "acb209068b1b29775b3d82db9a9d331d29cb85b037cd5bbd4af263a4a4a99739",
+            "ccomp_exit": 0,
+            "stream_lines": 4306,
+            "image_bytes": 32580,
+            "run_code": 0,
+            "records": 18745,
+            "trace_digest": "6b9017b05ffca654"
+          },
+          {
+            "name": "control-19",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "e015969e25d94fe93f3b2a477fca889fd3cfe93f1c0c1e6f1c0322b11b14e263",
+            "ccomp_exit": 0,
+            "stream_lines": 4258,
+            "image_bytes": 32376,
+            "run_code": 0,
+            "records": 18156,
+            "trace_digest": "9f5bcae8eca8d270"
+          },
+          {
+            "name": "control-20",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "2aa23ef2a3a25ce24d6d49ef769ee323d5afdd361625c549291dfff3bc384bed",
+            "ccomp_exit": 0,
+            "stream_lines": 4244,
+            "image_bytes": 32272,
+            "run_code": 0,
+            "records": 18161,
+            "trace_digest": "c643863c9f782464"
+          },
+          {
+            "name": "control-21",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "fb896069447c050e700830dd81eaadfb51800f3908aaccef587733c0c785bfdf",
+            "ccomp_exit": 0,
+            "stream_lines": 4269,
+            "image_bytes": 32412,
+            "run_code": 0,
+            "records": 18374,
+            "trace_digest": "12361bb10dc1588f"
+          },
+          {
+            "name": "control-22",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "f5efdaef2eacf8f4f84848390d119dfe72bc1fe3857ea76e4e6a2a139960151a",
+            "ccomp_exit": 0,
+            "stream_lines": 4293,
+            "image_bytes": 32640,
+            "run_code": 0,
+            "records": 18980,
+            "trace_digest": "233912f35f6d855e"
+          },
+          {
+            "name": "control-23",
+            "verdict": "pass",
+            "detail": "HTIF 0",
+            "source_sha256": "25968b156bdf809299da8a5c33b95a69c827356ba1ef9b0fd0d112b47eb5a3ca",
+            "ccomp_exit": 0,
+            "stream_lines": 4269,
+            "image_bytes": 32492,
+            "run_code": 0,
+            "records": 18768,
+            "trace_digest": "3b7b305e44001147"
+          }
+        ]
+      }
+    },
+    "check5": {
+      "inputs_rehashed": 38,
+      "tools_rehashed": 15,
+      "changed": []
+    }
+  },
+  "observations": [
+    "The node prints six switches, all if-else with label 0, three of them nested to depth three inside the delay group; the rewrite lowers all six, and the node's normalized form is byte-identical to M6.1b-iii's recorded one.",
+    "The switch control program prints eleven switches: four if-else, one if-only (label 3), one else-only, four chain-else (two over 0 to 2 with a default, one over 1 and 3) and one chain-only (labels 1 and 2), with one if-else nested in another.",
+    "Velus emits the switch control program with an empty log, without the semantic-existence warning it gives M6.1b-iii's control program (F-475).",
+    "Both rewritten programs compile through the accepted typed route with only the empty-struct warning the normalized node already drew.",
+    "The largest split program's text is 8956 bytes for the probe and 16040 for the control program, against the 32768-byte window.",
+    "The perturbed probe program fails natively (exit 1) and on target (HTIF 1: main returned 1), after 327 commit records against the plain program's 7514.",
+    "Velus's Obc passes decide which shapes print: switch normalization makes a complete switch's last branch its default, the two-way default insertion prints a skip branch as case 0: break;, and fusion merges adjacent switches on one scrutinee, so a clocked update prints as its own guard only when it reads a value computed outside its merge."
+  ],
+  "timing": {
+    "authoring_started_utc": "2026-10-03T01:20:45+00:00",
+    "freeze_utc": "2026-10-03T01:53:27+00:00",
+    "provisioned_utc": "2026-10-03T01:53:45+00:00",
+    "trial_finished_utc": "2026-10-03T01:54:37+00:00",
+    "provision_to_trial_end_seconds": 52,
+    "interval_kind": "attended agent-session provisioning-to-verdict interval; authoring before the freeze and the result and documents after the verdict are outside it",
+    "budget_seconds": 7200,
+    "budget_exhausted": false
+  },
+  "post_run_rehash": {
+    "stage": "check 5",
+    "inputs_rehashed": 38,
+    "tools_rehashed": 15,
+    "changed": [],
+    "verdict": "unchanged"
+  },
+  "limits": [
+    "No Velus or purecap compiler theorem is composed; neither Velus theorem covers library-mode output (F-467), and the printed, normalized and rewritten text the accepted compiler parses stays outside every theorem",
+    "The rewrite's soundness rests on its stated reading: Clight expressions have no side effect and Velus's layout has no fall-through; it is validated on the node and the control program only",
+    "Shapes outside the five declared ones are refused, not lowered; a producer that prints one meets this rewrite's refusal",
+    "Nothing bound to the accepted compiler is re-accepted, and Clight switch typing in the contained compiler is unchanged",
+    "No complete supervisor, lifecycle, transport or roster result; the M8a route is not re-selected and stays C",
+    "Velus, its printer, the normalizer and the accepted compiler are unchanged; their products stay in the native lane"
+  ],
+  "stage_records": {
+    "freeze": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/state/freeze.json",
+      "sha256": "c7dea7f2380f4e2d91538213d15cd8d3d4848e2ed038eeebada74e0f9cd4990c",
+      "bytes": 14620
+    },
+    "provision": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/state/provision.json",
+      "sha256": "80bb9acebb968f50a074ddc5e59420314b0045b34bb8ef38fbb244765a39be5d",
+      "bytes": 1226
+    },
+    "licence-velus": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/state/licence-velus.json",
+      "sha256": "3658cfaf36fdde7fd5f8369dcf876c700a39ba3f9af317451cddfd4d05ceeaa5",
+      "bytes": 490
+    },
+    "licence-compcert": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/state/licence-compcert.json",
+      "sha256": "df5beaad2a1474412859646ae807d94d80e2cc42e90cf2bd526a30092f5a7aa1",
+      "bytes": 507
+    },
+    "trial": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/state/trial.json",
+      "sha256": "2d5bb4a061e24f587361e9dbd9e602a3cff170a7f826f2da8ac3c0122e7f05c5",
+      "bytes": 1068
+    }
+  }
+}

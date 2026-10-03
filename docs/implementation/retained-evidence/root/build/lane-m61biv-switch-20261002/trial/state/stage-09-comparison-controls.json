@@ -1,0 +1,91 @@
+{
+  "check": 2,
+  "stage": "comparison-controls",
+  "predicate": "The comparison fails on a rewritten node with one comparison label moved and on one with a statement changed outside every group.",
+  "start_utc": "2026-10-03T01:54:00+00:00",
+  "end_utc": "2026-10-03T01:54:01+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "label-moved": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_compare.py",
+        "--clang",
+        "/usr/bin/clang",
+        "--normalized",
+        "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.c",
+        "--rewritten",
+        "/root/build/lane-m61biv-switch-20261002/trial/compare/controls/label-moved.c",
+        "--node",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/compare/controls/label-moved.json"
+      ],
+      "exit": 1,
+      "start_utc": "2026-10-03T01:54:00+00:00",
+      "end_utc": "2026-10-03T01:54:00+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/compare/controls/label-moved.log",
+        "sha256": "1c7285c4500a0b2367361021aa226604a1528d55a7a3a50fb01e8a73e632cf4f",
+        "bytes": 126
+      },
+      "report": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/compare/controls/label-moved.json",
+        "sha256": "e675d2fb5e851ab481bddb5a44c6389f8bdf85b7b81ba337c0ce3b070e95f8e7",
+        "bytes": 1002
+      },
+      "verdict": "fail",
+      "failures": [
+        "not a declared lowering: rewritten line 25: expected numeric_constant 0, found numeric_constant '1'"
+      ],
+      "lowered": null,
+      "by_shape": null,
+      "groups": null,
+      "variant": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/compare/controls/label-moved.c",
+        "sha256": "85294d136d756e3f2a063d3af820e4e7bab65a0aaa2469199619c6f273d35094",
+        "bytes": 2113
+      }
+    },
+    "outside-changed": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_compare.py",
+        "--clang",
+        "/usr/bin/clang",
+        "--normalized",
+        "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.c",
+        "--rewritten",
+        "/root/build/lane-m61biv-switch-20261002/trial/compare/controls/outside-changed.c",
+        "--node",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/compare/controls/outside-changed.json"
+      ],
+      "exit": 1,
+      "start_utc": "2026-10-03T01:54:00+00:00",
+      "end_utc": "2026-10-03T01:54:01+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/compare/controls/outside-changed.log",
+        "sha256": "cb2f0240833e6aaad178dd7d0821351c6773216e0011642a0e09e4dffc304dfb",
+        "bytes": 147
+      },
+      "report": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/compare/controls/outside-changed.json",
+        "sha256": "7dc79f96bcccd12139f3f9028a5ef2d8a2e673af2aa4ba5a252963bb6fc9eae6",
+        "bytes": 1027
+      },
+      "verdict": "fail",
+      "failures": [
+        "not a declared lowering: normalized line 21 ('numeric_constant', '0U') differs from rewritten ('numeric_constant', '1U')"
+      ],
+      "lowered": null,
+      "by_shape": null,
+      "groups": null,
+      "variant": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/compare/controls/outside-changed.c",
+        "sha256": "b3e940b1693c7e51536c848e2b1ba31735d7ce788fd25381f17ce3c5cdaf5858",
+        "bytes": 2113
+      }
+    }
+  }
+}

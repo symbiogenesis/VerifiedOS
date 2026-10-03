@@ -1,0 +1,43 @@
+{
+  "check": 3,
+  "stage": "control-compiles",
+  "predicate": "The rewritten control program compiles through the accepted typed route.",
+  "start_utc": "2026-10-03T01:54:03+00:00",
+  "end_utc": "2026-10-03T01:54:03+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "start_utc": "2026-10-03T01:54:03+00:00",
+    "end_utc": "2026-10-03T01:54:03+00:00",
+    "argv": [
+      "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+      "-conf",
+      "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+      "-fverifiedos-typed",
+      "-S",
+      "switch_control.rw.i",
+      "-o",
+      "switch_control.rw.s"
+    ],
+    "exit": 0,
+    "said": "switch_control.rw.c:4: warning: empty struct is a GNU extension [-Wgnu-empty-struct]",
+    "stream_sha256": "1696a2bb6686ad47508eaa722576157959ea9041d233fb218efb36d348fa5e09",
+    "lines": 533,
+    "preprocess_argv": [
+      "/root/build/lane-backend-accept-20260925/compiler-final/ccomp",
+      "-conf",
+      "/root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini",
+      "-fverifiedos-typed",
+      "-E",
+      "switch_control.rw.c",
+      "-o",
+      "/root/build/lane-m61biv-switch-20261002/trial/compile/control/switch_control.rw.i"
+    ],
+    "preprocessed_sha256": "7d92da51d402e9e7dc0151731e681096e3745b1e74a2e90a6e96b3be03469adc",
+    "source": {
+      "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c",
+      "sha256": "460a7719cc38e796e5090ced4f3c4a85278bd8d4170ee6e896d41f71f3e79bbc",
+      "bytes": 3632
+    }
+  }
+}

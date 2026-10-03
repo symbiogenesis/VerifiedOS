@@ -1,0 +1,108 @@
+{
+  "predicate": "node",
+  "lexer": {
+    "path": "/usr/lib/llvm-21/bin/clang",
+    "sha256": "3d91c53a01052091b2d6624ff1008f89748ac45d7cfb2709ad618bf399882eb1",
+    "bytes": 131832,
+    "version": "Ubuntu clang version 21.1.8 (6ubuntu1)",
+    "argv": [
+      "/usr/bin/clang",
+      "-std=c11",
+      "-fsyntax-only",
+      "-Xclang",
+      "-dump-tokens",
+      "-x",
+      "c"
+    ]
+  },
+  "normalized": {
+    "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.c",
+    "sha256": "1d8deabf4036cce05afeb3e9be86b835cba7e59bc4c941459b8a04c2ec892706",
+    "bytes": 2281,
+    "tokens": 407
+  },
+  "rewritten": {
+    "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c",
+    "sha256": "084bde3b99acfbfdfab28907e71104dc275a22031e24da9ae8ff07f63a7bca8b",
+    "bytes": 2113,
+    "tokens": 407
+  },
+  "failures": [],
+  "lowered": 6,
+  "by_shape": {
+    "if-else": 6,
+    "if-only": 0,
+    "else-only": 0,
+    "chain-else": 0,
+    "chain-only": 0
+  },
+  "groups": [
+    {
+      "line": 25,
+      "column": 3,
+      "owner": "fun$step$start_restart",
+      "depth": 0,
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "in_order": true
+    },
+    {
+      "line": 33,
+      "column": 3,
+      "owner": "fun$step$start_restart",
+      "depth": 0,
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "in_order": true
+    },
+    {
+      "line": 39,
+      "column": 7,
+      "owner": "fun$step$start_restart",
+      "depth": 1,
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "in_order": true
+    },
+    {
+      "line": 41,
+      "column": 11,
+      "owner": "fun$step$start_restart",
+      "depth": 2,
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "in_order": true
+    },
+    {
+      "line": 43,
+      "column": 15,
+      "owner": "fun$step$start_restart",
+      "depth": 3,
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "in_order": true
+    },
+    {
+      "line": 64,
+      "column": 3,
+      "owner": "fun$step$start_restart",
+      "depth": 0,
+      "shape": "if-else",
+      "labels": [
+        0
+      ],
+      "in_order": true
+    }
+  ],
+  "verdict": "pass"
+}

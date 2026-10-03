@@ -1,0 +1,203 @@
+{
+  "check": 2,
+  "stage": "refusals",
+  "predicate": "The rewrite refuses every authored undeclared-shape variant of the normalized node, writing nothing.",
+  "start_utc": "2026-10-03T01:54:01+00:00",
+  "end_utc": "2026-10-03T01:54:02+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "fall-through": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_rewrite.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/fall-through.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/fall-through.out.c"
+      ],
+      "exit": 2,
+      "start_utc": "2026-10-03T01:54:01+00:00",
+      "end_utc": "2026-10-03T01:54:01+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/fall-through.log",
+        "sha256": "8b5b3c59d42d0503e7ff9cf023db50f37c4be7fec7f150694dd0ef97f51b9e90",
+        "bytes": 143
+      },
+      "variant": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/fall-through.c",
+        "sha256": "e7f0801623704b3365de4c87ec79ca87f0c107246b716dcb95f11f38e27e6d03",
+        "bytes": 2268
+      },
+      "said": "refused: /root/build/lane-m61biv-switch-20261002/trial/refusals/fall-through.c: line 28 column 5: `default` inside a case body: a fall-through",
+      "wrote_output": false
+    },
+    "no-case": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_rewrite.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/no-case.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/no-case.out.c"
+      ],
+      "exit": 2,
+      "start_utc": "2026-10-03T01:54:01+00:00",
+      "end_utc": "2026-10-03T01:54:01+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/no-case.log",
+        "sha256": "281ff6d25d2efbbf4ad62f95c472b2c9792680c5cc923213f0c52deae43fd36d",
+        "bytes": 137
+      },
+      "variant": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/no-case.c",
+        "sha256": "d0cb7d9f44749319110ff33990488ba64db828c503538747cf5c680edea2b3fb",
+        "bytes": 2217
+      },
+      "said": "refused: /root/build/lane-m61biv-switch-20261002/trial/refusals/no-case.c: line 25 column 3: a switch with no case: not a declared shape",
+      "wrote_output": false
+    },
+    "case-after-default": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_rewrite.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/case-after-default.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/case-after-default.out.c"
+      ],
+      "exit": 2,
+      "start_utc": "2026-10-03T01:54:01+00:00",
+      "end_utc": "2026-10-03T01:54:01+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/case-after-default.log",
+        "sha256": "961f25f2b012178268c10c27a1a6f1c44238dc3231cdc6ea5a340fbf9db08a08",
+        "bytes": 129
+      },
+      "variant": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/case-after-default.c",
+        "sha256": "63be5e0d9dca5cbd45770da4191c61dee7489d90eecc987903257d327363db1e",
+        "bytes": 2306
+      },
+      "said": "refused: /root/build/lane-m61biv-switch-20261002/trial/refusals/case-after-default.c: line 31 column 5: `case` after the default",
+      "wrote_output": false
+    },
+    "labels-out-of-order": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_rewrite.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/labels-out-of-order.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/labels-out-of-order.out.c"
+      ],
+      "exit": 2,
+      "start_utc": "2026-10-03T01:54:01+00:00",
+      "end_utc": "2026-10-03T01:54:01+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/labels-out-of-order.log",
+        "sha256": "63858d754907bc261d49104d2969b72259ef32c4894675f0715e25f3bdd21f66",
+        "bytes": 142
+      },
+      "variant": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/labels-out-of-order.c",
+        "sha256": "d70793afe42093679a3620f6c1ff9a0871e8559945150b7f4caf476d67beffc7",
+        "bytes": 2345
+      },
+      "said": "refused: /root/build/lane-m61biv-switch-20261002/trial/refusals/labels-out-of-order.c: line 29 column 10: case label 0 does not increase on 1",
+      "wrote_output": false
+    },
+    "hexadecimal-label": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_rewrite.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/hexadecimal-label.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/hexadecimal-label.out.c"
+      ],
+      "exit": 2,
+      "start_utc": "2026-10-03T01:54:01+00:00",
+      "end_utc": "2026-10-03T01:54:01+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/hexadecimal-label.log",
+        "sha256": "5830bfab94edef73c3d5484441b575a384867e655f708d79ee61c0e31fd25a9e",
+        "bytes": 150
+      },
+      "variant": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/hexadecimal-label.c",
+        "sha256": "3715ab34397dbdeefd72ff52f44b327c3e581619cc7d33564935516d64a35d19",
+        "bytes": 2283
+      },
+      "said": "refused: /root/build/lane-m61biv-switch-20261002/trial/refusals/hexadecimal-label.c: line 26 column 10: case label `0x0` is not the printer's decimal",
+      "wrote_output": false
+    },
+    "empty-case-in-chain": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_rewrite.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/empty-case-in-chain.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/empty-case-in-chain.out.c"
+      ],
+      "exit": 2,
+      "start_utc": "2026-10-03T01:54:01+00:00",
+      "end_utc": "2026-10-03T01:54:01+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/empty-case-in-chain.log",
+        "sha256": "a09ab20f53a01a8b17ad0edf95a94258850838f5e91e5d57c928628c4dc3ba52",
+        "bytes": 161
+      },
+      "variant": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/empty-case-in-chain.c",
+        "sha256": "9f10cb76bc14b6de7671c9bd044bf114d47335c50dad0cca3f65e109caed2f4b",
+        "bytes": 2306
+      },
+      "said": "refused: /root/build/lane-m61biv-switch-20261002/trial/refusals/empty-case-in-chain.c: line 26 column 5: an empty case body outside the declared else-only shape",
+      "wrote_output": false
+    },
+    "break-in-default": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_rewrite.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/break-in-default.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/break-in-default.out.c"
+      ],
+      "exit": 2,
+      "start_utc": "2026-10-03T01:54:01+00:00",
+      "end_utc": "2026-10-03T01:54:02+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/break-in-default.log",
+        "sha256": "43f8d4cfa38d755e8c598c6efb501666386d0fd6daaf9e2bab46e71e13430b39",
+        "bytes": 167
+      },
+      "variant": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/break-in-default.c",
+        "sha256": "8bd57c447c2e151c8c69130051688998f3194df430694abd728a01af27f60104",
+        "bytes": 2294
+      },
+      "said": "refused: /root/build/lane-m61biv-switch-20261002/trial/refusals/break-in-default.c: line 31 column 7: a `break` in the default body: the site ends only cases with one",
+      "wrote_output": false
+    },
+    "brace-in-body": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_rewrite.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/brace-in-body.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/refusals/brace-in-body.out.c"
+      ],
+      "exit": 2,
+      "start_utc": "2026-10-03T01:54:02+00:00",
+      "end_utc": "2026-10-03T01:54:02+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/brace-in-body.log",
+        "sha256": "3987b0e8a8f6a8796f06c259de9400f65407a9dc031b3e24c4e31c9808977668",
+        "bytes": 145
+      },
+      "variant": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/refusals/brace-in-body.c",
+        "sha256": "f4bd8a52aa63e77704fedf072b7237f3f7ab542ec9e1e279866996720bdccf74",
+        "bytes": 2285
+      },
+      "said": "refused: /root/build/lane-m61biv-switch-20261002/trial/refusals/brace-in-body.c: line 27 column 7: a brace in a switch body that opens no switch",
+      "wrote_output": false
+    }
+  }
+}

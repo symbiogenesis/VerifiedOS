@@ -1,0 +1,316 @@
+{
+  "check": 2,
+  "stage": "rewrite",
+  "predicate": "The switch rewrite accepts both normalized programs.",
+  "start_utc": "2026-10-03T01:54:00+00:00",
+  "end_utc": "2026-10-03T01:54:00+00:00",
+  "verdict": "passed",
+  "failures": [],
+  "evidence": {
+    "node": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_rewrite.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.norm.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c",
+        "--record",
+        "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.json"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:54:00+00:00",
+      "end_utc": "2026-10-03T01:54:00+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.log",
+        "sha256": "90923510a631238d5b0a0dd75dd442c2c6519dffe69aefe7eb6d064e2b84694d",
+        "bytes": 37
+      },
+      "output": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.c",
+        "sha256": "084bde3b99acfbfdfab28907e71104dc275a22031e24da9ae8ff07f63a7bca8b",
+        "bytes": 2113
+      },
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/node/start_restart.rw.json",
+        "sha256": "c40ce9bd391a6fb79aa520ea9c38f3b23a8fc0dd68f08e299c660fd369b84b37",
+        "bytes": 3178
+      },
+      "by_shape": {
+        "if-else": 6,
+        "if-only": 0,
+        "else-only": 0,
+        "chain-else": 0,
+        "chain-only": 0
+      },
+      "groups": [
+        {
+          "line": 25,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$start_restart",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "(*obc2c$out).accepted & !storage_edge_retired",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 33,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$start_restart",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "(*obc2c$out).accepted & restart_requested == 1U",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 39,
+          "column": 7,
+          "depth": 1,
+          "owner": "fun$step$start_restart",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "attempts == 0U",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 41,
+          "column": 11,
+          "depth": 2,
+          "owner": "fun$step$start_restart",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "attempts == 1U",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 43,
+          "column": 15,
+          "depth": 3,
+          "owner": "fun$step$start_restart",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "attempts == 2U",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 64,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$start_restart",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "(*obc2c$out).accepted",
+          "empty_cases": 0,
+          "default_empty": false
+        }
+      ]
+    },
+    "control": {
+      "argv": [
+        "/usr/bin/python3",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/m61biv-switch-20261002/supervisor/route/switch_rewrite.py",
+        "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.norm.c",
+        "--out",
+        "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c",
+        "--record",
+        "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.json"
+      ],
+      "exit": 0,
+      "start_utc": "2026-10-03T01:54:00+00:00",
+      "end_utc": "2026-10-03T01:54:00+00:00",
+      "log": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.log",
+        "sha256": "25511d3ad8d04ef274d4974bb8ce17a2c19346d9fe573cb4b1b789f598daa6a7",
+        "bytes": 90
+      },
+      "output": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.c",
+        "sha256": "460a7719cc38e796e5090ced4f3c4a85278bd8d4170ee6e896d41f71f3e79bbc",
+        "bytes": 3632
+      },
+      "record": {
+        "path": "/root/build/lane-m61biv-switch-20261002/trial/control/switch_control.rw.json",
+        "sha256": "f7db2ac5a35be2a3019227b15e49f5f26f16373eac37fee4e1caa21b18ea9179",
+        "bytes": 4412
+      },
+      "by_shape": {
+        "if-else": 4,
+        "if-only": 1,
+        "else-only": 1,
+        "chain-else": 4,
+        "chain-only": 1
+      },
+      "groups": [
+        {
+          "line": 38,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$pick",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "c",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 59,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "chain-else",
+          "labels": [
+            0,
+            1,
+            2
+          ],
+          "scrutinee": "m",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 77,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "chain-else",
+          "labels": [
+            1,
+            3
+          ],
+          "scrutinee": "j",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 88,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "chain-else",
+          "labels": [
+            0,
+            1,
+            2
+          ],
+          "scrutinee": "k",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 103,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "chain-only",
+          "labels": [
+            1,
+            2
+          ],
+          "scrutinee": "k",
+          "empty_cases": 0,
+          "default_empty": true
+        },
+        {
+          "line": 113,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "chain-else",
+          "labels": [
+            0,
+            1,
+            2
+          ],
+          "scrutinee": "n",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 128,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "if-only",
+          "labels": [
+            3
+          ],
+          "scrutinee": "m",
+          "empty_cases": 0,
+          "default_empty": true
+        },
+        {
+          "line": 135,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "go",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 142,
+          "column": 7,
+          "depth": 1,
+          "owner": "fun$step$switch_control",
+          "shape": "if-else",
+          "labels": [
+            0
+          ],
+          "scrutinee": "x < y",
+          "empty_cases": 0,
+          "default_empty": false
+        },
+        {
+          "line": 153,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "else-only",
+          "labels": [
+            0
+          ],
+          "scrutinee": "go",
+          "empty_cases": 1,
+          "default_empty": false
+        },
+        {
+          "line": 160,
+          "column": 3,
+          "depth": 0,
+          "owner": "fun$step$switch_control",
+          "shape": "if-else",
+          "labels": [
+            2
+          ],
+          "scrutinee": "(*obc2c$self).p",
+          "empty_cases": 0,
+          "default_empty": false
+        }
+      ]
+    }
+  }
+}
