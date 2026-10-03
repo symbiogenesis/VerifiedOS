@@ -152,7 +152,7 @@ COMMANDS: tuple[Command, ...] = (
             "generate and check the block-device architectural authority corpus"),
     Command("boot-handoff", "vos.cli.boot_handoff",
             "M3.5's measured release of the boot core, against the golden emulator",
-            lane="guest", host_ok=frozenset({"layout"})),
+            lane="guest", host_ok=frozenset({"layout", "chain-join"})),
     Command("device-registers", "vos.cli.device_registers",
             "generate and check declared device-register field accessors"),
     Command("provision", "vos.cli.provision",

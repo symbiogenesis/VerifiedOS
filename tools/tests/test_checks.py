@@ -454,7 +454,8 @@ _INSTRUMENT_JOBS = ''.join(f'  {job}:\n    python-version: "3.14"\n'
 def _k75(provision: str, project: str =
          '[project]\nrequires-python = ">=3.14,<3.15"\n',
          readme: str = "# Tools\n\nUse `uv python install --no-config 3.14`.\n",
-         campaign: str = _CAMPAIGN_JOBS, instrument: str = _INSTRUMENT_JOBS) -> Context:
+         campaign: str = _CAMPAIGN_JOBS, instrument: str = _INSTRUMENT_JOBS,
+         chain: str = _CAMPAIGN_JOBS) -> Context:
     files = {"docs/requirements-register.md": _REGISTER_MIN,
              "tools/README.md": readme,
              "tools/ty.toml": _TY_CONF,
@@ -463,6 +464,7 @@ def _k75(provision: str, project: str =
              ".github/workflows/host-gates.yml": 'python-version: "3.14"\n',
              ".github/workflows/guest-gates.yml": 'python-version: "3.14"\n',
              ".github/workflows/boot-crypto-target.yml": campaign,
+             ".github/workflows/boot-chain-target.yml": chain,
              ".github/workflows/instrument-switches.yml": instrument,
              "tools/vos/cli/provision.py": provision}
     with sandbox_tree(files) as root:
@@ -516,6 +518,10 @@ def _k75_every_workflow_job_is_held() -> None:
     ensure(".github/workflows/boot-crypto-target.yml's workflow interpreter states 3.13, "
            "tools/ty.toml fixes 3.14" in found,
            f"a later job's interpreter below the floor must report: {found!r}")
+    found = _findings_under(_k75(_PROVISION_AT, chain=drifted), "K-75")
+    ensure(".github/workflows/boot-chain-target.yml's workflow interpreter states 3.13, "
+           "tools/ty.toml fixes 3.14" in found,
+           f"the chain campaign's later job below the floor must report: {found!r}")
     # The instrument switch route's every job is held, the last as the first.
     for job in ("plan", "join"):
         drifted = _INSTRUMENT_JOBS.replace(f'{job}:\n    python-version: "3.14"',

@@ -36,6 +36,7 @@ from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
 from tests.test_boot_attachments import _attached_recipe
+from tests.test_boot_chain import _chain_reports
 from tests.test_boot_crypto import _shard
 from vos import admission, boot_crypto_target, composer, kernelrun, memory_planner, rtltrace, rvfi
 from vos.commands import COMMANDS
@@ -220,6 +221,9 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("admission", "emit-reference"): lambda scratch: ["--out", str(scratch / "AdmissionComparison.v")],
     ("kernel", "reader"): _kernel_vectors,
     ("boot-handoff", "layout"): lambda _: [],
+    # `chain-join` composes shard receipts written here, one per campaign job.
+    ("boot-handoff", "chain-join"): lambda scratch: [
+        "--out", str(scratch / "chain-campaign"), *_chain_reports(scratch)],
     # `verify` reads this checkout's staged streams, which K-88 already holds current.
     ("boot-crypto", "verify"): lambda _: [],
     ("boot-crypto", "join"): _signature_shards,
