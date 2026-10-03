@@ -90,6 +90,97 @@ def _drift_is_reported() -> None:
             raise AssertionError("an undefined macro was evaluated")
 
 
+def _chain_owners_agree() -> None:
+    found = (bh.chain_contract_findings(ROOT) + bh.chain_layout_findings(ROOT)
+             + bh.door_declarations(ROOT)[1] + bh.chain_case_findings(ROOT))
+    ensure(found == [], f"chain contract drift: {found}")
+    chain = bh.chain_layout(ROOT)
+    ensure(chain["CHAIN_KSTAGE_HEADER_BYTES"] == 72 + 4627, "not FIPS 204's ML-DSA-87 signature size")
+    ensure(chain["CHAIN_KSTAGE_PUBLIC_KEY_BYTES"] == 2592, "not FIPS 204's ML-DSA-87 key size")
+    ensure(chain["BOOT_HEADER_BYTES"] == bh.layout(ROOT)["BOOT_HEADER_BYTES"],
+           "the chain namespace changed a vos_boot.h constant")
+    codes = bh.verdict_codes(ROOT)
+    ensure(codes["release"] == 0 and codes["refuse-signature"] == 10 and codes["refuse-response"] == 17,
+           f"verdict codes were not read from their owners: {codes}")
+    ensure(len(codes) == 18 and len(set(codes.values())) == 18, "the chain's verdict roster is not 18 codes")
+    rows = bh.chain_cases(ROOT)
+    names = {row.name for row in rows}
+    ensure({"cold-boot", "watchdog-stalled-step", "item6-response-nonbinding"} <= names,
+           f"the chain case table lost a required case: {sorted(names)}")
+    ensure(all(row.run in bh.CHAIN_RUN_KINDS for row in rows), "a chain case has no run kind")
+
+
+def _chain_drift_is_reported() -> None:
+    holder, root = _sandbox((bh.HEADER, bh.CHAIN_HEADER, bh.CONTRACT, bh.ROT_MODEL, bh.ROT_STAGE,
+                             bh.ROT_CONFIG, bh.MAIN_CONFIG))
+    with holder:
+        contract = root / bh.CONTRACT
+        original = contract.read_text(encoding="utf-8")
+        edits = (
+            ("| `kstage.signature` | 72 | 4627 |", "| `kstage.signature` | 72 | 4628 |", "kstage.signature"),
+            ("| `chain.kernel_load_base` | 0x80100000 |", "| `chain.kernel_load_base` | 0x80200000 |",
+             "chain.kernel_load_base"),
+            ("| `kernel.trap_at` | 0x800 |", "| `kernel.trap_at` | 0x400 |", "kernel.trap_at"),
+            ("| `door.release` | 24 |", "| `door.release` | 32 |", "door.release"),
+            ("| `capture.window_at` | 0x1000 |", "", "capture.window_at"),
+        )
+        for old, new, name in edits:
+            ensure(old in original, f"the drift anchor for {name} is gone from the contract")
+            contract.write_text(original.replace(old, new, 1), encoding="utf-8", newline="\n")
+            found = bh.chain_contract_findings(root)
+            ensure(any(name in finding for finding in found), f"changing {name} was not reported: {found}")
+        case_edits = (
+            ("| `watchdog-early-pet` | runtime-only |", "| `watchdog-early-pet` | split |", "no run kind"),
+            ("| `watchdog-early-pet` | runtime-only |", "| `watchdog-early-pet` | joined |",
+             "outside a runtime-only run"),
+            ("| `kernel-digest-mismatch` | main-die | one stage-2 payload byte flipped | `release` |",
+             "| `kernel-digest-mismatch` | main-die | one stage-2 payload byte flipped | `refuse-nothing` |",
+             "no owner names"),
+            ("| `FAILURE: 81` |", "| `FAILURE: 99` |", "names no M-mode refusal"),
+            ("| `revert-past-bound` | joined |", "| `cold-boot` | joined |", "repeats"),
+        )
+        for old, new, phrase in case_edits:
+            ensure(old in original, f"the case anchor {old!r} is gone from the contract")
+            contract.write_text(original.replace(old, new, 1), encoding="utf-8", newline="\n")
+            found = bh.chain_case_findings(root)
+            ensure(any(phrase in finding for finding in found), f"a case-table defect was not reported: {found}")
+        contract.write_text(original, encoding="utf-8", newline="\n")
+        ensure(bh.chain_contract_findings(root) == [] and bh.chain_case_findings(root) == [],
+               "the restored sandbox still reports chain drift")
+        header = root / bh.CHAIN_HEADER
+        header_text = header.read_text(encoding="utf-8")
+        header.write_text(header_text.replace("#define VOS_CHAIN_CAPTURE_STATE_AT 0x500u",
+                                              "#define VOS_CHAIN_CAPTURE_STATE_AT 0x380u"),
+                          encoding="utf-8", newline="\n")
+        found = bh.chain_layout_findings(root)
+        ensure(any("runs into" in finding for finding in found), f"an overlapping capture slot passed: {found}")
+        header.write_text(header_text.replace("#define VOS_CHAIN_STATE_MAGIC 0x3154415453534F56u",
+                                              "#define VOS_CHAIN_STATE_MAGIC 0x3154415453534F57u"),
+                          encoding="utf-8", newline="\n")
+        found = bh.chain_layout_findings(root)
+        ensure(any("VOSSTAT1" in finding for finding in found), f"a wrong magic word passed: {found}")
+        header.write_text(header_text, encoding="utf-8", newline="\n")
+        model = root / bh.ROT_MODEL
+        model_text = model.read_text(encoding="utf-8")
+        ensure(bh.door_declarations(root)[0] == {} or bh.door_declarations(root)[1] == [],
+               "the shipped model's doors disagree with the header")
+        model.write_text(model_text + "\nlet ROT_BOOT_RELEASE : int = 16\nlet ROT_BOOT_EXTRA : int = 40\n",
+                         encoding="utf-8", newline="\n")
+        declared, found = bh.door_declarations(root)
+        ensure(declared.get("RELEASE") == 16 and declared.get("EXTRA") == 40, "door declarations were not read")
+        ensure(any("ROT_BOOT_RELEASE is 16" in finding for finding in found)
+               and any("ROT_BOOT_EXTRA" in finding for finding in found),
+               f"a disagreeing or unknown door was not reported: {found}")
+        model.write_text(model_text, encoding="utf-8", newline="\n")
+        stage = root / bh.ROT_STAGE
+        stage.write_text(stage.read_text(encoding="utf-8").replace('return "refuse-digest"', 'return "refuse-hash"'),
+                         encoding="utf-8", newline="\n")
+        ensure(bh.verdict_codes(root)["refuse-hash"] == 12, "verdict names are not read from boot_verify.c")
+        found = bh.chain_case_findings(root)
+        ensure(any("refuse-digest" in finding for finding in found),
+               f"a verdict the owner no longer names passed in the case table: {found}")
+
+
 def _descriptor_counts_are_held() -> None:
     lay = bh.layout(ROOT)
     built = bh.assemble_mmode(ROOT)
@@ -329,6 +420,8 @@ def _harness_run() -> None:
 def cases() -> list[Case]:
     return [Case("contract, image and vos_boot.h agree", _owners_agree),
             Case("table, case and macro drift is reported", _drift_is_reported),
+            Case("the chain contract, vos_chain.h and the model's doors agree", _chain_owners_agree),
+            Case("chain table, case and door drift is reported", _chain_drift_is_reported),
             Case("the descriptor's counts and magic are held", _descriptor_counts_are_held),
             Case("the image builder places every field", _image_builder),
             Case("an explicit signer receives the exact prefix", _explicit_signer),

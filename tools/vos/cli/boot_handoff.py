@@ -9,8 +9,10 @@ the placed bytes of each release. It writes `report.json` beside the per-case fi
 and exits 0 only when every row matches the contract. `layout` checks the contract's
 header, record, composition and initialization-descriptor tables and its case table
 against `firmware/include/vos_boot.h` and the harness's cases, the kernel-entry
-table's permission column against the assembled image's constants, and the
-fixture's initialization descriptor against its layout, and prints the payload's
+table's permission column against the assembled image's constants, the
+fixture's initialization descriptor against its layout, and the contract's chain
+tables (section 9) against `firmware/chain/vos_chain.h`, the model's boot-control
+door declarations and the RoT configuration, and prints the payload's
 measurement; it needs no toolchain and answers on either lane.
 
 A green run says the host-compiled stage, the selected signature binding and this
@@ -34,15 +36,29 @@ def cmd_layout(args: argparse.Namespace) -> int:
     root = find_root()
     lay = boot_handoff.layout(root)
     built = boot_handoff.assemble_mmode(root)
+    chain = boot_handoff.chain_layout(root)
+    doors, door_findings = boot_handoff.door_declarations(root)
     findings = (boot_handoff.contract_findings(root)
                 + boot_handoff.composition_findings(lay, built)
-                + boot_handoff.entry_table_findings(root, built))
+                + boot_handoff.entry_table_findings(root, built)
+                + boot_handoff.chain_contract_findings(root)
+                + boot_handoff.chain_layout_findings(root)
+                + door_findings
+                + boot_handoff.chain_case_findings(root))
     print(f"header {lay['BOOT_HEADER_BYTES']} bytes, signed prefix "
           f"{lay['BOOT_SIGNED_BYTES']}, record {lay['HANDOFF_BYTES']} bytes")
     print(f"payload {len(built.payload)} bytes from {lay['BRINGUP_MMODE_LOAD_BASE']:#x}, "
           f"shake256 {hashlib.shake_256(built.payload).hexdigest(32)}")
     print(f"kernel entry {built.symbols['kernel_entry']:#x}, "
           f"handoff record at {lay['BRINGUP_HANDOFF_BASE']:#x}")
+    print(f"chain: stage-2 header {chain['CHAIN_KSTAGE_HEADER_BYTES']} bytes, capture "
+          f"{chain['CHAIN_CAPTURE_BYTES']:#x} bytes, kernel stage at "
+          f"{chain['CHAIN_KERNEL_LOAD_BASE']:#x}, {len(boot_handoff.chain_cases(root))} cases")
+    # The doors are the model lane's to land; their absence is reported, never passed over.
+    print(f"chain: boot-control doors: rot.sail declares {len(doors)} of "
+          f"{len(boot_handoff.DOORS)}; the RoT configuration "
+          f"{'declares' if boot_handoff.boot_control_declared(root) else 'lacks'} "
+          "platform.boot_control")
     for finding in findings:
         print(f"FAIL {finding}")
     print("ok boot-handoff layout" if not findings else
@@ -146,7 +162,7 @@ def cmd_release_target(args: argparse.Namespace) -> int:
 
 
 TABLE: Table = {
-    "layout": (cmd_layout, "the contract's tables and the image against vos_boot.h"),
+    "layout": (cmd_layout, "the contract's tables and the image against vos_boot.h and vos_chain.h"),
     "run": (cmd_run, "every contract case through the RoT stage and the golden emulator"),
     "signature-target": (cmd_signature_target, "real SLH verification on the RoT profile"),
     "release-target": (cmd_release_target, "RoT target release and captured main-die handoff"),

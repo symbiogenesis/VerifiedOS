@@ -33,9 +33,14 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import asm, boot_signing, image, jsonc, kernel_restore, receipts, trace
+from . import asm, boot_signing, config, image, jsonc, kernel_restore, receipts, trace
 
 HEADER = "firmware/include/vos_boot.h"
+# The target chain composition's owner (the contract's section 9), beside vos_boot.h and
+# never inside the trees M7.1f's staged manifest binds.
+CHAIN_HEADER = "firmware/chain/vos_chain.h"
+ROT_MODEL = "model/model/sys/rot.sail"
+ROT_STAGE = "firmware/rot/boot_verify.c"
 SOURCES = ("firmware/include/vos_keccak.h", "firmware/include/vos_boot.h",
            "firmware/include/vos_signature.h", "firmware/crypto/slh256s.c",
            "firmware/crypto/keccak.c", "firmware/rot/boot_verify.c",
@@ -84,29 +89,32 @@ def _evaluate(node: ast.expr) -> int:
     raise ValueError(f"{HEADER}: unsupported expression {ast.dump(node)}")
 
 
-def header_constants(root: Path) -> dict[str, int]:
-    """Every integer macro of vos_boot.h, evaluated over the ones before it.
+def header_constants(root: Path, header: str = HEADER,
+                     seed: dict[str, int] | None = None) -> dict[str, int]:
+    """Every integer macro of `header`, evaluated over the ones before it and `seed`.
 
     String macros are skipped; an expression naming a macro not yet defined, or using
-    an operator other than +, - and *, is refused rather than guessed.
+    an operator other than +, - and *, is refused rather than guessed. `seed` is the
+    namespace a header that includes another evaluates over: vos_chain.h's over
+    vos_boot.h's.
     """
-    values: dict[str, int] = {}
-    for line in (root / HEADER).read_text(encoding="utf-8").splitlines():
+    values: dict[str, int] = dict(seed or {})
+    for line in (root / header).read_text(encoding="utf-8").splitlines():
         match = _DEFINE.match(line.strip())
         if not match or match.group(2).startswith('"'):
             continue
         text = _SUFFIX.sub(r"\1", match.group(2))
         for name in sorted(re.findall(r"\bVOS_\w+\b", text), key=len, reverse=True):
             if name not in values:
-                raise ValueError(f"{HEADER}: {match.group(1)} names {name} before it is defined")
+                raise ValueError(f"{header}: {match.group(1)} names {name} before it is defined")
             text = re.sub(rf"\b{name}\b", str(values[name]), text)
         values[match.group(1)] = _evaluate(ast.parse(text, mode="eval").body)
     return values
 
 
-def string_constants(root: Path) -> dict[str, str]:
+def string_constants(root: Path, header: str = HEADER) -> dict[str, str]:
     values: dict[str, str] = {}
-    for line in (root / HEADER).read_text(encoding="utf-8").splitlines():
+    for line in (root / header).read_text(encoding="utf-8").splitlines():
         match = _DEFINE.match(line.strip())
         if match and match.group(2).startswith('"') and match.group(2).endswith('"'):
             values[match.group(1)] = match.group(2)[1:-1]
@@ -125,6 +133,11 @@ class Layout:
 
 def layout(root: Path) -> Layout:
     return Layout(header_constants(root))
+
+
+def chain_layout(root: Path) -> Layout:
+    """vos_chain.h's constants over vos_boot.h's, under one namespace."""
+    return Layout(header_constants(root, CHAIN_HEADER, header_constants(root)))
 
 
 def expected_registers(root: Path, lay: Layout, inputs: RotInputs,
@@ -802,6 +815,441 @@ def case_table_findings(root: Path) -> list[str]:
         elif table[name] != declared[name]:
             findings.append(f"{CONTRACT} says {name} is {table[name]}; the harness "
                             f"expects {declared[name]}")
+    return findings
+
+
+# --- the chain's tables against vos_chain.h (section 9) --------------------------------
+
+# Section 9's qualified fields and the macro pair (offset, width) each must agree with,
+# over the combined vos_boot.h and vos_chain.h namespace; a literal width is bytes.
+_CHAIN_FIELDS: dict[str, tuple[str, str | int]] = {
+    "kstage.magic": ("BOOT_HDR_MAGIC", 8),
+    "kstage.stage": ("BOOT_HDR_STAGE", 8),
+    "kstage.security_version": ("BOOT_HDR_SECURITY_VERSION", 8),
+    "kstage.payload_offset": ("BOOT_HDR_PAYLOAD_OFFSET", 8),
+    "kstage.payload_length": ("BOOT_HDR_PAYLOAD_LENGTH", 8),
+    "kstage.payload_digest": ("BOOT_HDR_PAYLOAD_DIGEST", "BOOT_DIGEST_BYTES"),
+    "kstage.signature": ("BOOT_HDR_SIGNATURE", "CHAIN_KSTAGE_SIGNATURE_BYTES"),
+    "kernel.text": ("CHAIN_KERNEL_TEXT_AT", "CHAIN_KERNEL_TEXT_BYTES"),
+    "kernel.data": ("CHAIN_KERNEL_DATA_AT", "CHAIN_KERNEL_DATA_BYTES"),
+    "kernel.stack": ("CHAIN_KERNEL_STACK_AT", "CHAIN_KERNEL_STACK_BYTES"),
+    "kernel.root_table": ("CHAIN_KERNEL_ROOT_TABLE_AT", "CHAIN_KERNEL_ROOT_TABLE_BYTES"),
+    "kernel.init": ("CHAIN_KERNEL_INIT_AT", "CHAIN_KERNEL_INIT_BYTES"),
+    "state.magic": ("CHAIN_STATE_MAGIC_AT", 8),
+    "state.version": ("CHAIN_STATE_VERSION_AT", 8),
+    "state.run_kind": ("CHAIN_STATE_RUN_KIND_AT", 8),
+    "state.lifecycle": ("CHAIN_STATE_LIFECYCLE_AT", 8),
+    "state.entropy_ok": ("CHAIN_STATE_ENTROPY_AT", 8),
+    "state.boot_target": ("CHAIN_STATE_BOOT_TARGET_AT", 8),
+    "state.floor": ("CHAIN_STATE_FLOOR_AT", 8),
+    "state.measure_count": ("CHAIN_STATE_MEASURE_COUNT_AT", 8),
+    "state.log": ("CHAIN_STATE_LOG_AT", "CHAIN_STATE_LOG_BYTES"),
+    "state.generation": ("CHAIN_STATE_GENERATION_AT", "MEASURE_BYTES"),
+    "state.device": ("CHAIN_STATE_DEVICE_AT", "MEASURE_BYTES"),
+    "request.magic": ("CHAIN_REQUEST_MAGIC_AT", 8),
+    "request.stage": ("CHAIN_REQUEST_STAGE_AT", 8),
+    "request.digest": ("CHAIN_REQUEST_DIGEST_AT", "BOOT_DIGEST_BYTES"),
+    "response.magic": ("CHAIN_RESPONSE_MAGIC_AT", 8),
+    "response.stage": ("CHAIN_RESPONSE_STAGE_AT", 8),
+    "response.digest": ("CHAIN_RESPONSE_DIGEST_AT", "BOOT_DIGEST_BYTES"),
+    "response.generation": ("CHAIN_RESPONSE_GENERATION_AT", "MEASURE_BYTES"),
+    "response.device": ("CHAIN_RESPONSE_DEVICE_AT", "MEASURE_BYTES"),
+    "response.chain": ("CHAIN_RESPONSE_CHAIN_AT", "MEASURE_BYTES"),
+    "response.measure_count": ("CHAIN_RESPONSE_MEASURE_COUNT_AT", 8),
+    "response.log": ("CHAIN_RESPONSE_LOG_AT", "CHAIN_STATE_LOG_BYTES"),
+    "capture.verdict": ("CHAIN_CAPTURE_VERDICT_AT", 8),
+    "capture.phase": ("CHAIN_CAPTURE_PHASE_AT", 8),
+    "capture.released": ("CHAIN_CAPTURE_RELEASED_AT", 8),
+    "capture.lifecycle": ("CHAIN_CAPTURE_LIFECYCLE_AT", 8),
+    "capture.health": ("CHAIN_CAPTURE_HEALTH_AT", 8),
+    "capture.boot_target": ("CHAIN_CAPTURE_BOOT_TARGET_AT", 8),
+    "capture.floor": ("CHAIN_CAPTURE_FLOOR_AT", 8),
+    "capture.slot_initial": ("CHAIN_CAPTURE_SLOT_INITIAL_AT", 8),
+    "capture.attempts_initial": ("CHAIN_CAPTURE_ATTEMPTS_INITIAL_AT", 8),
+    "capture.slot_selected": ("CHAIN_CAPTURE_SLOT_SELECTED_AT", 8),
+    "capture.slot_final": ("CHAIN_CAPTURE_SLOT_FINAL_AT", 8),
+    "capture.attempts_final": ("CHAIN_CAPTURE_ATTEMPTS_FINAL_AT", 8),
+    "capture.pets_accepted": ("CHAIN_CAPTURE_PETS_ACCEPTED_AT", 8),
+    "capture.pets_skipped": ("CHAIN_CAPTURE_PETS_SKIPPED_AT", 8),
+    "capture.nonce_at_arm": ("CHAIN_CAPTURE_NONCE_AT_ARM_AT", 8),
+    "capture.bitten": ("CHAIN_CAPTURE_BITTEN_AT", 8),
+    "capture.ticks_at_end": ("CHAIN_CAPTURE_TICKS_AT_END_AT", 8),
+    "capture.steps_completed": ("CHAIN_CAPTURE_STEPS_COMPLETED_AT", 8),
+    "capture.measure_count": ("CHAIN_CAPTURE_MEASURE_COUNT_AT", 8),
+    "capture.log": ("CHAIN_CAPTURE_LOG_AT", "CHAIN_STATE_LOG_BYTES"),
+    "capture.generation": ("CHAIN_CAPTURE_GENERATION_AT", "MEASURE_BYTES"),
+    "capture.device": ("CHAIN_CAPTURE_DEVICE_AT", "MEASURE_BYTES"),
+    "capture.chain": ("CHAIN_CAPTURE_CHAIN_AT", "MEASURE_BYTES"),
+    "capture.runtime_digest": ("CHAIN_CAPTURE_RUNTIME_DIGEST_AT", "BOOT_DIGEST_BYTES"),
+    "capture.mmode_digest": ("CHAIN_CAPTURE_MMODE_DIGEST_AT", "BOOT_DIGEST_BYTES"),
+    "capture.mmode_security_version": ("CHAIN_CAPTURE_MMODE_SECURITY_VERSION_AT", 8),
+    "capture.mmode_payload_length": ("CHAIN_CAPTURE_MMODE_PAYLOAD_LENGTH_AT", 8),
+    "mcapture.verdict": ("CHAIN_MCAPTURE_VERDICT_AT", 8),
+    "mcapture.kernel_digest": ("CHAIN_MCAPTURE_KERNEL_DIGEST_AT", "BOOT_DIGEST_BYTES"),
+    "mcapture.security_version": ("CHAIN_MCAPTURE_SECURITY_VERSION_AT", 8),
+    "mcapture.payload_length": ("CHAIN_MCAPTURE_PAYLOAD_LENGTH_AT", 8),
+    "mcapture.request_written": ("CHAIN_MCAPTURE_REQUEST_WRITTEN_AT", 8),
+    "mcapture.response_bound": ("CHAIN_MCAPTURE_RESPONSE_BOUND_AT", 8),
+}
+_CHAIN_VALUES: dict[str, str] = {
+    "chain.rot_state_base": "CHAIN_ROT_STATE_BASE",
+    "chain.rot_state_window_bytes": "CHAIN_ROT_STATE_WINDOW_BYTES",
+    "chain.rot_runtime_base": "CHAIN_ROT_RUNTIME_BASE",
+    "chain.rot_runtime_region_bytes": "CHAIN_ROT_RUNTIME_REGION_BYTES",
+    "chain.rot_runtime_data_at": "CHAIN_ROT_RUNTIME_DATA_AT",
+    "chain.rot_capture_base": "CHAIN_ROT_CAPTURE_BASE",
+    "chain.rot_capture_window_bytes": "CHAIN_ROT_CAPTURE_WINDOW_BYTES",
+    "chain.store_runtime_base": "CHAIN_STORE_RUNTIME_BASE",
+    "chain.store_runtime_bytes": "CHAIN_STORE_RUNTIME_BYTES",
+    "chain.store_a_base": "CHAIN_STORE_A_BASE",
+    "chain.store_b_base": "CHAIN_STORE_B_BASE",
+    "chain.store_recovery_base": "CHAIN_STORE_RECOVERY_BASE",
+    "chain.store_mmode_bytes": "CHAIN_STORE_MMODE_BYTES",
+    "chain.mmode_load_base": "CHAIN_MMODE_LOAD_BASE",
+    "chain.mmode_region_bytes": "CHAIN_MMODE_REGION_BYTES",
+    "chain.mmode_data_at": "CHAIN_MMODE_DATA_AT",
+    "chain.handoff_base": "CHAIN_HANDOFF_BASE",
+    "chain.mailbox_base": "CHAIN_MAILBOX_BASE",
+    "chain.mmode_capture_base": "CHAIN_MMODE_CAPTURE_BASE",
+    "chain.main_signature_bytes": "CHAIN_MAIN_SIGNATURE_BYTES",
+    "chain.kernel_store_base": "CHAIN_KERNEL_STORE_BASE",
+    "chain.kernel_store_bytes": "CHAIN_KERNEL_STORE_BYTES",
+    "chain.kernel_load_base": "CHAIN_KERNEL_LOAD_BASE",
+    "chain.kernel_region_bytes": "CHAIN_KERNEL_REGION_BYTES",
+    "chain.tohost_base": "CHAIN_TOHOST_BASE",
+    "chain.boot_control_base": "CHAIN_BOOT_CONTROL_BASE",
+    "chain.boot_control_bytes": "CHAIN_BOOT_CONTROL_BYTES",
+    "chain.boot_attempt_bound": "CHAIN_BOOT_ATTEMPT_BOUND",
+    "chain.reset_steps": "CHAIN_RESET_STEPS",
+    "chain.measure_extensions": "CHAIN_MEASURE_EXTENSIONS",
+    "chain.slow_clock_boot_ns": "CHAIN_SLOW_CLOCK_BOOT_NS",
+    "chain.slow_clock_watchdog_ns": "CHAIN_SLOW_CLOCK_WATCHDOG_NS",
+    "chain.control_inst_limit": "CHAIN_CONTROL_INST_LIMIT",
+    "chain.mmode_exit_base": "CHAIN_MMODE_EXIT_BASE",
+    "verdict.refuse_state": "CHAIN_REFUSE_STATE",
+    "verdict.refuse_record": "CHAIN_REFUSE_RECORD",
+    "verdict.refuse_request": "CHAIN_REFUSE_REQUEST",
+    "verdict.refuse_response": "CHAIN_REFUSE_RESPONSE",
+    "slot.a": "CHAIN_SLOT_A",
+    "slot.b": "CHAIN_SLOT_B",
+    "slot.recovery": "CHAIN_SLOT_RECOVERY",
+    "phase.rom": "CHAIN_PHASE_ROM",
+    "phase.runtime": "CHAIN_PHASE_RUNTIME",
+    "phase.released": "CHAIN_PHASE_RELEASED",
+    "phase.service": "CHAIN_PHASE_SERVICE",
+    "run.boot": "CHAIN_RUN_BOOT",
+    "run.service": "CHAIN_RUN_SERVICE",
+    "kstage.bytes": "CHAIN_KSTAGE_HEADER_BYTES",
+    "kstage.signed_bytes": "CHAIN_KSTAGE_SIGNED_BYTES",
+    "kstage.public_key_bytes": "CHAIN_KSTAGE_PUBLIC_KEY_BYTES",
+    "kernel.entry_at": "CHAIN_KERNEL_ENTRY_AT",
+    "kernel.trap_at": "CHAIN_KERNEL_TRAP_AT",
+    "door.boot_target": "CHAIN_DOOR_BOOT_TARGET",
+    "door.slot": "CHAIN_DOOR_SLOT",
+    "door.attempts": "CHAIN_DOOR_ATTEMPTS",
+    "door.release": "CHAIN_DOOR_RELEASE",
+    "door.bytes": "CHAIN_DOOR_BYTES",
+    "step.arm": "CHAIN_STEP_ARM",
+    "step.entropy": "CHAIN_STEP_ENTROPY",
+    "step.floor": "CHAIN_STEP_FLOOR",
+    "state.bytes": "CHAIN_STATE_BYTES",
+    "state.request_at": "CHAIN_STATE_REQUEST_AT",
+    "request.bytes": "CHAIN_REQUEST_BYTES",
+    "response.bytes": "CHAIN_RESPONSE_BYTES",
+    "mailbox.request_at": "CHAIN_MAILBOX_REQUEST_AT",
+    "mailbox.response_at": "CHAIN_MAILBOX_RESPONSE_AT",
+    "mailbox.bytes": "CHAIN_MAILBOX_BYTES",
+    "capture.head_bytes": "CHAIN_CAPTURE_HEAD_BYTES",
+    "capture.record_at": "CHAIN_CAPTURE_RECORD_AT",
+    "capture.response_at": "CHAIN_CAPTURE_RESPONSE_AT",
+    "capture.request_at": "CHAIN_CAPTURE_REQUEST_AT",
+    "capture.state_at": "CHAIN_CAPTURE_STATE_AT",
+    "capture.window_at": "CHAIN_CAPTURE_WINDOW_AT",
+    "capture.bytes": "CHAIN_CAPTURE_BYTES",
+    "mcapture.bytes": "CHAIN_MCAPTURE_BYTES",
+}
+# The magics the contract spells as bytes and the header as little-endian words.
+_CHAIN_MAGICS: dict[str, bytes] = {
+    "CHAIN_KSTAGE_MAGIC": b"VOSKERN1",
+    "CHAIN_STATE_MAGIC": b"VOSSTAT1",
+    "CHAIN_REQUEST_MAGIC": b"VOSITM6Q",
+    "CHAIN_RESPONSE_MAGIC": b"VOSITM6R",
+}
+_SLOT_TAGS = ("VOS_CHAIN_SLOT_TAG_A", "VOS_CHAIN_SLOT_TAG_B", "VOS_CHAIN_SLOT_TAG_RECOVERY")
+# rot.sail's boot-control door names against the header's mirror of them.
+DOORS: dict[str, str] = {
+    "TARGET": "CHAIN_DOOR_BOOT_TARGET",
+    "SLOT": "CHAIN_DOOR_SLOT",
+    "ATTEMPTS": "CHAIN_DOOR_ATTEMPTS",
+    "RELEASE": "CHAIN_DOOR_RELEASE",
+    "BYTES": "CHAIN_DOOR_BYTES",
+}
+_DOOR_LET = re.compile(r"^let ROT_BOOT_(\w+)\s*:\s*int\s*=\s*(\d+)", re.MULTILINE)
+
+
+def chain_contract_findings(root: Path) -> list[str]:
+    """Where section 9's tables and vos_chain.h disagree, or a row is missing."""
+    lay = chain_layout(root)
+    seen: set[str] = set()
+    findings: list[str] = []
+    for line in (root / CONTRACT).read_text(encoding="utf-8").splitlines():
+        match = _ROW.match(line)
+        if not match:
+            continue
+        name, first, second = match.groups()
+        if name in _CHAIN_FIELDS:
+            seen.add(name)
+            offset_macro, width = _CHAIN_FIELDS[name]
+            want_width = width if isinstance(width, int) else lay[width]
+            if _number(first) != lay[offset_macro] or _number(second) != want_width:
+                findings.append(f"{CONTRACT}: {name} is at {first} for {second} bytes; "
+                                f"{CHAIN_HEADER} has {lay[offset_macro]} for {want_width}")
+        elif name in _CHAIN_VALUES:
+            seen.add(name)
+            if _number(first) != lay[_CHAIN_VALUES[name]]:
+                findings.append(f"{CONTRACT}: {name} is {first}; {CHAIN_HEADER} has "
+                                f"{lay[_CHAIN_VALUES[name]]:#x}")
+    missing = sorted((set(_CHAIN_FIELDS) | set(_CHAIN_VALUES)) - seen)
+    findings += [f"{CONTRACT} has no row for {name}" for name in missing]
+    return findings
+
+
+def _extent_findings(name: str, parts: list[tuple[str, int, int]], extent: int) -> list[str]:
+    """Where `parts`, each (label, offset, bytes), overlap or leave `extent`."""
+    findings: list[str] = []
+    ordered = sorted(parts, key=lambda part: part[1])
+    for (label, at, size), following in zip(ordered, [*ordered[1:], ("", extent, 0)], strict=True):
+        if at + size > following[1]:
+            findings.append(f"{CHAIN_HEADER}: {name}'s {label} at {at:#x} for {size:#x} bytes "
+                            f"runs into {following[0] or 'its extent'} at {following[1]:#x}")
+    return findings
+
+
+def chain_layout_findings(root: Path) -> list[str]:
+    """Where vos_chain.h disagrees with itself or with vos_boot.h.
+
+    The header's static assertions hold the sizes a C compiler sees; this holds the
+    relations the contract states in prose, on a lane with no compiler.
+    """
+    lay = chain_layout(root)
+    findings: list[str] = []
+    for macro, spelled in _CHAIN_MAGICS.items():
+        if lay[macro] != int.from_bytes(spelled, "little"):
+            findings.append(f"{CHAIN_HEADER}: VOS_{macro} is not the bytes {spelled.decode()}")
+    tags = string_constants(root, CHAIN_HEADER)
+    values = [tags.get(tag, "") for tag in _SLOT_TAGS]
+    if any(len(value) != lay["CHAIN_SLOT_TAG_BYTES"] for value in values) or len(set(values)) != 3:
+        findings.append(f"{CHAIN_HEADER}: the three slot tags are not distinct eight-byte strings")
+    if lay["CHAIN_KSTAGE_SIGNED_BYTES"] != lay["BOOT_HDR_SIGNATURE"] or lay[
+            "CHAIN_KSTAGE_HEADER_BYTES"] != lay["BOOT_HDR_SIGNATURE"] + lay["CHAIN_KSTAGE_SIGNATURE_BYTES"]:
+        findings.append(f"{CHAIN_HEADER}: the stage-2 header is not the signed prefix plus its signature")
+    if lay["CHAIN_MEASURE_EXTENSIONS"] > lay["MEASURE_LOG_CAPACITY"]:
+        findings.append(f"{CHAIN_HEADER}: the chain's extensions exceed the measurement log")
+    if lay["CHAIN_MMODE_EXIT_BASE"] <= 63:
+        findings.append(f"{CHAIN_HEADER}: the M-mode exit base collides with the fixture's codes")
+    if not 0 < lay["CHAIN_SLOW_CLOCK_WATCHDOG_NS"] < lay["CHAIN_SLOW_CLOCK_BOOT_NS"]:
+        findings.append(f"{CHAIN_HEADER}: the watchdog period is not shorter than the boot period")
+    if lay["CHAIN_TOHOST_BASE"] != lay["CHAIN_KERNEL_LOAD_BASE"] + lay["CHAIN_KERNEL_DATA_AT"]:
+        findings.append(f"{CHAIN_HEADER}: tohost is not the kernel data extent's first word")
+    if lay["CHAIN_KERNEL_INIT_BYTES"] != lay["INIT_HEADER_BYTES"]:
+        findings.append(f"{CHAIN_HEADER}: the kernel's descriptor is not section 6's header alone")
+    if not lay["CHAIN_KERNEL_TRAP_AT"] < lay["CHAIN_KERNEL_TEXT_BYTES"] or lay["CHAIN_KERNEL_ENTRY_AT"] != 0:
+        findings.append(f"{CHAIN_HEADER}: the kernel's entry or trap offset is outside its text")
+    for region, data_at in (("CHAIN_ROT_RUNTIME_REGION_BYTES", "CHAIN_ROT_RUNTIME_DATA_AT"),
+                            ("CHAIN_MMODE_REGION_BYTES", "CHAIN_MMODE_DATA_AT")):
+        if not 0 < lay[data_at] < lay[region]:
+            findings.append(f"{CHAIN_HEADER}: VOS_{data_at} is outside VOS_{region}")
+    for store, header, region in (("CHAIN_STORE_RUNTIME_BYTES", "BOOT_HEADER_BYTES", "CHAIN_ROT_RUNTIME_REGION_BYTES"),
+                                  ("CHAIN_STORE_MMODE_BYTES", "BOOT_HEADER_BYTES", "CHAIN_MMODE_REGION_BYTES"),
+                                  ("CHAIN_KERNEL_STORE_BYTES", "CHAIN_KSTAGE_HEADER_BYTES", "CHAIN_KERNEL_REGION_BYTES")):
+        if lay[store] < lay[header] + lay[region]:
+            findings.append(f"{CHAIN_HEADER}: VOS_{store} cannot hold a region-filling image")
+    doors = [(name, lay[macro], 8) for name, macro in DOORS.items() if name != "BYTES"]
+    findings += _extent_findings("the boot-control window", doors, lay["CHAIN_DOOR_BYTES"])
+    if lay["CHAIN_DOOR_BYTES"] > lay["CHAIN_BOOT_CONTROL_BYTES"] or lay["CHAIN_BOOT_CONTROL_BASE"] % 8:
+        findings.append(f"{CHAIN_HEADER}: the boot-control aperture cannot hold its doors")
+
+    def fields(prefix: str) -> list[tuple[str, int, int]]:
+        parts = []
+        for name, (offset_macro, width) in _CHAIN_FIELDS.items():
+            if name.startswith(prefix):
+                parts.append((name, lay[offset_macro], width if isinstance(width, int) else lay[width]))
+        return parts
+
+    findings += _extent_findings("the state record", fields("state."), lay["CHAIN_STATE_BYTES"])
+    findings += _extent_findings("the request", fields("request."), lay["CHAIN_REQUEST_BYTES"])
+    findings += _extent_findings("the response", fields("response."), lay["CHAIN_RESPONSE_BYTES"])
+    findings += _extent_findings("the capture head", fields("capture."), lay["CHAIN_CAPTURE_HEAD_BYTES"])
+    findings += _extent_findings("the M-mode capture", fields("mcapture."), lay["CHAIN_MCAPTURE_BYTES"])
+    findings += _extent_findings("the kernel region", fields("kernel."), lay["CHAIN_KERNEL_REGION_BYTES"])
+    findings += _extent_findings("the state window", [
+        ("record", 0, lay["CHAIN_STATE_BYTES"]),
+        ("request", lay["CHAIN_STATE_REQUEST_AT"], lay["CHAIN_REQUEST_BYTES"])],
+        lay["CHAIN_ROT_STATE_WINDOW_BYTES"])
+    findings += _extent_findings("the capture", [
+        ("head", 0, lay["CHAIN_CAPTURE_HEAD_BYTES"]),
+        ("record", lay["CHAIN_CAPTURE_RECORD_AT"], lay["HANDOFF_BYTES"]),
+        ("response", lay["CHAIN_CAPTURE_RESPONSE_AT"], lay["CHAIN_RESPONSE_BYTES"]),
+        ("request", lay["CHAIN_CAPTURE_REQUEST_AT"], lay["CHAIN_REQUEST_BYTES"]),
+        ("state", lay["CHAIN_CAPTURE_STATE_AT"], lay["CHAIN_STATE_BYTES"]),
+        ("window", lay["CHAIN_CAPTURE_WINDOW_AT"], lay["CHAIN_MMODE_REGION_BYTES"])],
+        lay["CHAIN_CAPTURE_BYTES"])
+    if lay["CHAIN_CAPTURE_BYTES"] > lay["CHAIN_ROT_CAPTURE_WINDOW_BYTES"]:
+        findings.append(f"{CHAIN_HEADER}: the capture overruns its window")
+    findings += _extent_findings("the mailbox", [
+        ("request", lay["CHAIN_MAILBOX_REQUEST_AT"], lay["CHAIN_REQUEST_BYTES"]),
+        ("response", lay["CHAIN_MAILBOX_RESPONSE_AT"], lay["CHAIN_RESPONSE_BYTES"])],
+        lay["CHAIN_MAILBOX_BYTES"])
+    findings += _extent_findings("the main-die signature region", [
+        ("mailbox", lay["CHAIN_MAILBOX_BASE"], lay["CHAIN_MAILBOX_BYTES"]),
+        ("M-mode capture", lay["CHAIN_MMODE_CAPTURE_BASE"], lay["CHAIN_MCAPTURE_BYTES"])],
+        lay["CHAIN_MAILBOX_BASE"] + lay["CHAIN_MAIN_SIGNATURE_BYTES"])
+    findings += _extent_findings("the RoT composition", [
+        ("state window", lay["CHAIN_ROT_STATE_BASE"], lay["CHAIN_ROT_STATE_WINDOW_BYTES"]),
+        ("runtime region", lay["CHAIN_ROT_RUNTIME_BASE"], lay["CHAIN_ROT_RUNTIME_REGION_BYTES"]),
+        ("capture window", lay["CHAIN_ROT_CAPTURE_BASE"], lay["CHAIN_ROT_CAPTURE_WINDOW_BYTES"]),
+        ("stage-0 store", lay["CHAIN_STORE_RUNTIME_BASE"], lay["CHAIN_STORE_RUNTIME_BYTES"]),
+        ("slot A store", lay["CHAIN_STORE_A_BASE"], lay["CHAIN_STORE_MMODE_BYTES"]),
+        ("slot B store", lay["CHAIN_STORE_B_BASE"], lay["CHAIN_STORE_MMODE_BYTES"]),
+        ("recovery store", lay["CHAIN_STORE_RECOVERY_BASE"], lay["CHAIN_STORE_MMODE_BYTES"])],
+        1 << 36)
+    findings += _extent_findings("the main die", [
+        ("M-mode region", lay["CHAIN_MMODE_LOAD_BASE"], lay["CHAIN_MMODE_REGION_BYTES"]),
+        ("handoff record", lay["CHAIN_HANDOFF_BASE"], lay["HANDOFF_BYTES"]),
+        ("signature region", lay["CHAIN_MAILBOX_BASE"], lay["CHAIN_MAIN_SIGNATURE_BYTES"]),
+        ("kernel store", lay["CHAIN_KERNEL_STORE_BASE"], lay["CHAIN_KERNEL_STORE_BYTES"]),
+        ("kernel region", lay["CHAIN_KERNEL_LOAD_BASE"], lay["CHAIN_KERNEL_REGION_BYTES"])],
+        1 << 36)
+    if lay["CHAIN_MMODE_LOAD_BASE"] != asm.TEXT_BASE:
+        findings.append(f"the assembler's text base {asm.TEXT_BASE:#x} is not the chain's M-mode "
+                        f"load base {lay['CHAIN_MMODE_LOAD_BASE']:#x}")
+    return findings
+
+
+def door_declarations(root: Path) -> tuple[dict[str, int], list[str]]:
+    """rot.sail's `ROT_BOOT_*` doors and where they or the configuration disagree with
+    vos_chain.h. The doors are the model lane's to land; until then the first value is
+    empty and `layout` says so rather than passing silently."""
+    lay = chain_layout(root)
+    declared: dict[str, int] = {}
+    findings: list[str] = []
+    for name, value in _DOOR_LET.findall((root / ROT_MODEL).read_text(encoding="utf-8")):
+        declared[name] = int(value)
+        if name not in DOORS:
+            findings.append(f"{ROT_MODEL} declares ROT_BOOT_{name}, which {CHAIN_HEADER} lacks")
+        elif lay[DOORS[name]] != int(value):
+            findings.append(f"{ROT_MODEL}'s ROT_BOOT_{name} is {value}; {CHAIN_HEADER} has "
+                            f"{lay[DOORS[name]]}")
+    for config_path in (ROT_CONFIG, MAIN_CONFIG):
+        for key, macro in (("base", "CHAIN_BOOT_CONTROL_BASE"), ("size", "CHAIN_BOOT_CONTROL_BYTES")):
+            found = config.integer(root / config_path, "platform", "boot_control", key)
+            if found is not None and found != lay[macro]:
+                findings.append(f"{config_path}'s platform.boot_control.{key} is {found}; "
+                                f"{CHAIN_HEADER} has {lay[macro]}")
+    return declared, findings
+
+
+def boot_control_declared(root: Path) -> bool:
+    return config.integer(root / ROT_CONFIG, "platform", "boot_control", "base") is not None
+
+
+_VERDICT_MEMBER = re.compile(r"^\s*(VOS_BOOT_\w+)\s*=\s*(\d+),")
+_VERDICT_NAME = re.compile(r'case (VOS_BOOT_\w+): return "([a-z-]+)";')
+_CHAIN_REFUSAL = re.compile(r"^#define (VOS_CHAIN_REFUSE_\w+) (\d+)u")
+
+
+def verdict_codes(root: Path) -> dict[str, int]:
+    """Every verdict name the chain may report, with its code, from the owners.
+
+    The fourteen shared ones pair vos_boot.h's enum with boot_verify.c's names; the
+    chain's four are vos_chain.h's `VOS_CHAIN_REFUSE_*` macros under the name their
+    suffix spells. A member without a name, or a name without a member, is refused.
+    """
+    members: dict[str, int] = {}
+    for line in (root / HEADER).read_text(encoding="utf-8").splitlines():
+        match = _VERDICT_MEMBER.match(line)
+        if match:
+            members[match.group(1)] = int(match.group(2))
+    names: dict[str, str] = {str(member): str(name) for member, name
+                             in _VERDICT_NAME.findall((root / ROT_STAGE).read_text(encoding="utf-8"))}
+    if set(members) != set(names):
+        raise ValueError(f"{HEADER} and {ROT_STAGE} name different verdicts: "
+                         f"{sorted(set(members) ^ set(names))}")
+    codes: dict[str, int] = {names[member]: code for member, code in members.items()}
+    for line in (root / CHAIN_HEADER).read_text(encoding="utf-8").splitlines():
+        match = _CHAIN_REFUSAL.match(line)
+        if match:
+            codes[match.group(1).removeprefix("VOS_CHAIN_").lower().replace("_", "-")] = int(match.group(2))
+    if len(set(codes.values())) != len(codes):
+        raise ValueError("two verdict names share one code")
+    return codes
+
+
+CHAIN_RUN_KINDS = ("joined", "runtime-only", "main-die")
+# The endings a RoT run has beside a verdict code: the emulator's bite line, and the
+# instruction limit the detached-clock control ends on.
+CHAIN_ENDINGS = ("bite", "no-verdict")
+
+
+@dataclass(frozen=True)
+class ChainCase:
+    """One row of section 9's case table, as the chain harness must realize it."""
+
+    name: str
+    run: str
+    inputs: str
+    verdict: str
+    items: str
+    boot_control: str
+    main_die: str
+
+
+_CHAIN_CASE_ROW = re.compile(r"^\|\s*`([a-z0-9-]+)`\s*\|\s*([a-z-]+)\s*\|\s*([^|]*?)\s*\|\s*"
+                             r"`([a-z-]+)`\s*\|\s*([^|]*?)\s*\|\s*([^|]*?)\s*\|\s*([^|]*?)\s*\|\s*$")
+_MAIN_CELL = re.compile(r"^(?:`SUCCESS`|`FAILURE: (\d+)`|none)$")
+
+
+def chain_cases(root: Path) -> list[ChainCase]:
+    rows = []
+    for line in (root / CONTRACT).read_text(encoding="utf-8").splitlines():
+        match = _CHAIN_CASE_ROW.match(line)
+        if match:
+            rows.append(ChainCase(match.group(1), match.group(2), match.group(3), match.group(4),
+                                  match.group(5), match.group(6), match.group(7)))
+    return rows
+
+
+def chain_case_findings(root: Path) -> list[str]:
+    """Where section 9's case table is not a table a harness can realize: a repeated
+    name, an unknown run kind, a verdict no owner names, a main-die cell of the wrong
+    shape, or a refusal code the exit base cannot carry."""
+    codes = verdict_codes(root)
+    lay = chain_layout(root)
+    rows = chain_cases(root)
+    findings: list[str] = []
+    names = [row.name for row in rows]
+    findings += [f"{CONTRACT}'s chain case table repeats {name}" for name in sorted(set(names))
+                 if names.count(name) > 1]
+    if not rows:
+        findings.append(f"{CONTRACT} has no chain case table")
+    for row in rows:
+        if row.run not in CHAIN_RUN_KINDS:
+            findings.append(f"{CONTRACT}: {row.name} runs as {row.run}, which is no run kind")
+        if row.verdict not in codes and row.verdict not in CHAIN_ENDINGS:
+            findings.append(f"{CONTRACT}: {row.name} ends in {row.verdict}, which no owner names")
+        if row.verdict in CHAIN_ENDINGS and row.run != "runtime-only":
+            findings.append(f"{CONTRACT}: {row.name} ends without a verdict outside a runtime-only run")
+        cell = _MAIN_CELL.match(row.main_die)
+        if cell is None:
+            findings.append(f"{CONTRACT}: {row.name}'s main-die cell {row.main_die!r} is not "
+                            "`SUCCESS`, `FAILURE: n` or none")
+            continue
+        if row.main_die != "none" and row.verdict != "release":
+            findings.append(f"{CONTRACT}: {row.name} runs the main die without a release")
+        if cell.group(1) is not None:
+            code = int(cell.group(1))
+            if code >= lay["CHAIN_MMODE_EXIT_BASE"] and code - lay["CHAIN_MMODE_EXIT_BASE"] not in codes.values():
+                findings.append(f"{CONTRACT}: {row.name}'s exit {code} names no M-mode refusal")
     return findings
 
 

@@ -18,13 +18,16 @@ This document is read after all of them and is defective wherever it disagrees
 with one.
 
 **Implementation owners.** [vos_boot.h](../../../firmware/include/vos_boot.h)
-owns the constants the layout tables below state. `run.py boot-handoff layout`
-holds the header, record, composition and initialization-descriptor tables
-against it, the case table against the harness's case list, and the permission
-column of the kernel-entry table against the assembled image's constants
-(section 7); the operations table and the other kernel-entry cells are prose no
-command reads. The release is
-[boot_verify.c](../../../firmware/rot/boot_verify.c) over
+owns the constants the layout tables of sections 4 and 6 state, and
+[vos_chain.h](../../../firmware/chain/vos_chain.h) owns the target chain
+composition's constants, verdicts, records and C entry points (section 9).
+`run.py boot-handoff layout` holds the header, record, composition and
+initialization-descriptor tables against `vos_boot.h`, section 9's tables
+against `vos_chain.h` and the model's door declarations, the case table of
+section 2 against the harness's case list, and the permission column of the
+kernel-entry table against the assembled image's constants (section 7); the
+operations table and the other kernel-entry cells are prose no command reads.
+The release is [boot_verify.c](../../../firmware/rot/boot_verify.c) over
 [keccak.c](../../../firmware/crypto/keccak.c); the M-mode stage is
 [handoff.s](../../../firmware/mmode/handoff.s). The
 [firmware README](../../../firmware/README.md) states what each file is and is not.
@@ -33,14 +36,20 @@ command reads. The release is
 
 This contract owns the predicate (section 2), the release sequence (section 3),
 the image layout (section 4), the measurement and the assignment of every
-cryptographic operation the boot image's stages call (section 5), and the
-handoff layout, the initialization descriptor's included (section 6). It does
+cryptographic operation the boot image's stages call (section 5), the
+handoff layout, the initialization descriptor's included (section 6), and the
+target chain composition and its acceptance predicate, which M3.5b owns
+(section 9). It does
 not own the kernel body, which is M4.4's; the compiler, the
 backend and `compiler-diff`, which are M1.2f's; the target path, which is M1.7's;
 the reset table's release points (R-15-198a), which are Q33's; or the executable
 SLH-DSA verifier, which section 5 assigns to M7.1f. The real kernel joins at M7.1.
 
 ## 2. The acceptance predicate
+
+This section is the bring-up composition's predicate, which M3.5a landed; the
+target chain's predicate is section 9's, decided over a second composition, and
+nothing in this section or its case table changes for it.
 
 The predicate is decided over two existing instruments and the two this item
 adds, and over nothing else:
@@ -275,17 +284,17 @@ and where each one's executable form is:
 
 | Operation | Caller and use | Executable form | Owner of what is missing |
 | --- | --- | --- | --- |
-| SHAKE256 | the release: the payload digest, each extension, the chain digest | [keccak.c](../../../firmware/crypto/keccak.c), functional layer only | the target build (M1.7) and the constant-time layer (R-05-062, R-05-067) |
-| SLH-DSA-SHAKE-256s verification | the release: the signature over the signed bytes | [slh256s.c](../../../firmware/crypto/slh256s.c), with the release-policy callback; `boot-handoff run --signature-scheme slh256s` binds it in the host stage | M7.1f's target lowering and M3.5's target binding, under FIPS 205 with the parameter set RomVerifier.v states |
+| SHAKE256 | the release: the payload digest, each extension, the chain digest; in the chain (section 9), the ROM's and runtime's digests and extensions, and the M-mode chain stage's kernel-stage digest and item-6 binding check | [keccak.c](../../../firmware/crypto/keccak.c), functional layer only | the target build (M1.7) and the constant-time layer (R-05-062, R-05-067) |
+| SLH-DSA-SHAKE-256s verification | the release: the signature over the signed bytes; in the chain, the ROM's verification of stage 0 and the runtime's of stage 1, both under the ROM root (R-09-036a) | [slh256s.c](../../../firmware/crypto/slh256s.c) through the release-policy callback `vos_boot_slh256s_verify`; `boot-handoff run --signature-scheme slh256s` binds it in the host stage and `boot-handoff release-target` binds it on the RoT composition through the contained backend | M7.1f's target lowering under FIPS 205 with the parameter set RomVerifier.v states; section 9.13's identity freeze with its staged manifest |
 | Counter read | the release: the floor, counter 0 of R-10-013's enumeration | the RoT composition's counter window | n/a |
-| Entropy draw | none: the release reads the start-up verdict and draws nothing | n/a | n/a |
-| ML-DSA verification | the M-mode stage: the core-kernel stage's signature, before any core kernel runs; none at the ROM (R-05-058c, R-09-002) | [mldsa87.c](../../../firmware/crypto/mldsa87.c), functional host implementation | M7.1f's target lowering and M3.5's separately signed-stage integration |
-| Item-6 extension request | the M-mode stage: asking the RoT to extend the generation register with the core-kernel stage's measurement before that stage runs (R-09-002, R-09-025a) | none: no main-die interface to the RoT's registers exists | M3.5 |
+| Entropy draw | none: the release reads the start-up verdict and draws nothing; the chain's runtime draws through the watchdog's challenge alone (R-15-240) | n/a | n/a |
+| ML-DSA-87 verification | the M-mode chain stage: the kernel stage's signature over its signed prefix, under the kernel-stage root the measured M-mode image carries, before any byte of that stage runs; none at the ROM (R-05-058c, R-09-002) | [mldsa87.c](../../../firmware/crypto/mldsa87.c): the chain binds `vos_mldsa87_verify_internal` over the 72 signed bytes (section 9.8); the hosted boot-crypto campaign executed it on the RoT composition | section 9's execution on the main die (F-721); a boot callback in `vos_signature.h`, which the staged manifest freezes until M7.1f stages again (F-742) |
+| Item-6 extension request | the M-mode chain stage: asking the RoT to extend the generation register with the kernel stage's measurement before that stage runs (R-09-002, R-09-025a) | section 9.7's mailbox exchange: a request record the stage writes, a response record the RoT's item-6 service writes in its own run, and the stage's binding check over both | the two-hart realization, the mailbox's authority and the response's authentication (section 9.15) |
 
 The bring-up M-mode image carries the kernel-entry fixture inside itself, so the
 fixture is measured as part of item 5, and neither the ML-DSA verification nor
-the item-6 request occurs; both are owed once the core kernels are a separately
-signed stage.
+the item-6 request occurs in it; both belong to the chain composition's M-mode
+stage (section 9), where the core kernels are a separately signed stage.
 
 The SHAKE256 implementation is compared with Python's `hashlib.shake_256`, an
 independent implementation, on every run of the harness, over input lengths
@@ -531,23 +540,40 @@ composition and initialization-descriptor tables of sections 4 and 6 against
 `vos_boot.h`, the case table of section 2 against the harness's case list, the
 permission column of section 6's kernel-entry table against the assembled
 image's constants, and the fixture's initialization descriptor against its
-layout. Section 5's operations table and the kernel-entry table's other cells
-are prose no command reads; the harness run holds the kernel-entry state
-through the fixture's checks.
+layout. It also holds section 9's constant tables against `vos_chain.h`, the
+boot-control door offsets against `rot.sail`'s declarations and the window's
+base against the RoT composition where either declares them, and reports how
+many of the doors the model declares; and it parses section 9's case table,
+refusing a duplicate name, an unknown run kind or an unknown verdict, so the
+chain harness can hold its case list against it. Section 5's operations table
+and the kernel-entry table's other cells are prose no command reads; the
+harness run holds the kernel-entry state through the fixture's checks.
 
 ## 8. Open joins and findings
 
-- **The RoT hart does not execute the release.** The stage runs host-compiled
-  until the purecap backend (M1.2f) and M1.7's target path build it for the RoT
-  composition.
-- **The target signature-verifier binding is unbuilt.** M7.1f's bounded C
-  implementation and release-policy callback have a separate host comparison
-  campaign. This contract's existing boot-handoff run still uses the fixture;
-  its success does not establish signature verification or target lowering.
-- **The model has no boot-core release door and no boot-target latch door.**
-  The emulator composes one hart per run, so release is realized as starting the
-  main-die run, and the latch (R-09-029) is a harness constant. Where the reset
-  table's release points live is Q33's (R-15-198a).
+- **The bring-up release runs host-compiled, and the chain's stages are owed as
+  target programs.** `boot-handoff run` compiles the release stage for the host
+  and says so in every report. `boot-handoff release-target` compiles the
+  preparation body `vos_rot_prepare_mmode` through the contained backend and runs
+  it on the RoT composition, with assembly supplying the device reads the
+  compiler does not lower; at `0f61470a` its seven cases passed and the released
+  capture ran the main die to `SUCCESS`. The ROM, runtime, item-6 service and
+  M-mode chain stage of section 9 are the target programs still owed.
+- **The target signature-verifier binding is built for the release body and
+  frozen by identity for the chain.** `release-target` binds
+  `vos_boot_slh256s_verify` through the contained backend over the unchanged
+  `keccak.c` and `slh256s.c`; `boot-handoff run` keeps the fixture verifier by
+  default and binds the real one under `--signature-scheme slh256s`, so a default
+  run's success establishes no signature verification. No record yet holds a
+  chain unit's verifier identities to M7.1f's staged manifest; section 9.13
+  states the equality the chain campaign must show (F-722).
+- **The model has no boot-core release door, no boot-target latch door and no
+  boot-control state.** The emulator composes one hart per run, so in the
+  bring-up composition release is realized as starting the main-die run and the
+  latch (R-09-029) is a harness constant (F-435). Section 9.4 specifies the
+  boot-control window that adds the latch, slot, attempt and release doors; until
+  it lands, `layout` reports that `rot.sail` declares none of them. Where the
+  reset table's release points live is Q33's (R-15-198a).
 - **RomVerifier.v's `Header` carries no security version.** Its floor comparison
   reads a version the statement's header has no field for; this layout adds
   one, with the magic and the stage.
@@ -563,12 +589,12 @@ through the fixture's checks.
   the per-unit calibration R-15-126 measures in the device register, and
   R-09-036a measures the enrolled root set into it at every boot. RotFirmware.v's
   `all_items` gives neither an item code, and this release extends neither.
-- **Item 4 and the later stages are not measured here.** The ROM's measurement
-  of the RoT runtime, which falls between items 3 and 5, is left out, so a
-  released record's generation register is not the one a full chain produces for
-  the same image. The M-mode stage's item-6 request and its ML-DSA verification
-  of the core-kernel stage are not integrated into that stage. M7.1f owns the
-  executable ML-DSA verifier and its target lowering (section 5).
+- **Item 4 and the later stages are not measured in the bring-up composition.**
+  The ROM's measurement of the RoT runtime, which falls between items 3 and 5,
+  is left out of sections 2 and 3, so a released record's generation register is
+  not the one the chain produces for the same image. Section 9 measures items 4
+  and 6 and integrates the ML-DSA verification into the chain's M-mode stage;
+  M7.1f owns the executable verifiers (section 5).
 - **M4.4's target entry must bind the decoded records to actual capabilities.** Its
   `struct vos_init_desc` carries no magic or version, a `has_context` flag
   where section 6 declares the planned save area's extent, and narrower
@@ -577,8 +603,834 @@ through the fixture's checks.
   the actual c10/c11/c12 capabilities, establishes their provenance and extent,
   and constructs the initial contexts before dispatch. Host byte-reader checks
   supply no target capability or authentication evidence.
-- **The firmware's watchdog duty is not discharged.** R-15-198 puts every
-  sequencing step under a watchdog-bounded timeout that the RoT firmware
-  executes, and R-15-240's pets are RoT-nonce challenge-responses; this release
-  neither arms nor pets the watchdog.
-- **A/B selection and boot counting are not exercised** (R-09-028, R-09-029).
+- **The firmware's watchdog duty is not discharged by the bring-up release.**
+  R-15-198 puts every sequencing step under a watchdog-bounded timeout that the
+  RoT firmware executes, and R-15-240's pets are RoT-nonce challenge-responses;
+  the release of section 3 neither arms nor pets the watchdog. Section 9.6's
+  runtime arms and pets it over the bring-up reset table, which is not Q33's
+  table, and section 9.10 states the observations owed.
+- **A/B selection and boot counting are not exercised by the bring-up release**
+  (R-09-028, R-09-029); section 9.6 states both for the chain, and section 9.15
+  the two counting questions the register leaves open (F-738, F-739).
+
+## 9. The target chain
+
+This section is M3.5b's acceptance predicate: R-09-002's measured chain from the
+RoT's ROM through the RoT runtime, an A/B-selected M-mode image and a separately
+signed kernel stage, executed by the golden emulator built from this tree's
+model sources and decided from receipts. It is a second composition beside the
+bring-up one of sections 2 to 7: that composition's constants, its 28-case
+`boot-handoff run`, its 7-case `release-target`, `boot_handoff.scheduled_mmode`
+and every M4.4 consumer keep their values, cases and verdicts, and nothing in
+this section changes them. M3.5b's implementation starts after this section is
+landed and is accepted when section 9.12's predicate holds on hosted runners
+under section 9.14.
+
+### 9.1 Owners and the composition's constants
+
+[vos_chain.h](../../../firmware/chain/vos_chain.h) owns every constant below,
+the verdict codes, the record layouts and the C entry points of section 9.11; it
+includes `vos_boot.h` and changes none of its names. The chain's C and assembly
+live beside it under `firmware/chain/`, or under `firmware/rot/`,
+`firmware/mmode/` and `firmware/harness/`, and never under `firmware/include/`
+or `firmware/crypto/`: M7.1f's staged manifest binds those two trees byte for
+byte and by listing, and section 9.13's identity freeze is an equality with it.
+A chain translation unit includes the bound sources unchanged, as
+[rot_release_target.c](../../../firmware/harness/rot_release_target.c) does.
+
+Both compositions share one address map, so the windows below are addresses in
+the model's first-class RAM. The store windows stand for the raw-NAND boot
+region R-09-004 fixes, the state window for the RoT's retained SRAM, and the
+capture window for the RoT's view of main SRAM and for what it exports to the
+harness (section 9.11). The attested devicetree owes the production values of
+every constant here (R-09-007, R-15-002b); none is architecture.
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| `chain.rot_state_base` | 0x80380000 | the RoT state record window (section 9.5) |
+| `chain.rot_state_window_bytes` | 0x1000 | its extent: the record at 0, a service run's request at `state.request_at` |
+| `chain.rot_runtime_base` | 0x80400000 | where the ROM places stage 0 and enters it |
+| `chain.rot_runtime_region_bytes` | 0x40000 | the RoT runtime execute region |
+| `chain.rot_runtime_data_at` | 0x20000 | the runtime image's data half, measured with its text |
+| `chain.rot_capture_base` | 0x80500000 | the RoT run's capture (section 9.11) |
+| `chain.rot_capture_window_bytes` | 0x80000 | the capture capability's extent |
+| `chain.store_runtime_base` | 0x80600000 | the boot-store window holding the stage-0 image |
+| `chain.store_runtime_bytes` | 0x80000 | its capacity |
+| `chain.store_a_base` | 0x80700000 | slot A's stage-1 image |
+| `chain.store_b_base` | 0x80780000 | slot B's stage-1 image |
+| `chain.store_recovery_base` | 0x80800000 | the recovery generation's stage-1 image (R-09-029) |
+| `chain.store_mmode_bytes` | 0x80000 | each stage-1 store window's capacity |
+| `chain.mmode_load_base` | 0x80000000 | where the runtime places the M-mode image and the released core starts |
+| `chain.mmode_region_bytes` | 0x40000 | the M-mode image region |
+| `chain.mmode_data_at` | 0x20000 | the M-mode image's data half |
+| `chain.handoff_base` | 0x80040000 | where the runtime writes the handoff record |
+| `chain.mailbox_base` | 0x80041000 | the item-6 mailbox (section 9.7) |
+| `chain.mmode_capture_base` | 0x80042000 | the M-mode chain stage's capture |
+| `chain.main_signature_bytes` | 0x2000 | the main-die run's signature region from the mailbox base |
+| `chain.kernel_store_base` | 0x80080000 | the kernel stage's input window |
+| `chain.kernel_store_bytes` | 0x20000 | its capacity |
+| `chain.kernel_load_base` | 0x80100000 | where the M-mode stage places the kernel stage |
+| `chain.kernel_region_bytes` | 0x10000 | the kernel stage region |
+| `chain.tohost_base` | 0x80101000 | the main-die run's HTIF word: the kernel data extent's first word |
+| `chain.boot_control_base` | 0x2A00000 | the boot-control window (section 9.4) |
+| `chain.boot_control_bytes` | 0x1000 | its aperture |
+| `chain.boot_attempt_bound` | 3 | RotFirmware.v's `boot_bound` for this composition |
+| `chain.reset_steps` | 3 | the bring-up reset table's steps (section 9.6) |
+| `chain.measure_extensions` | 6 | items 1 to 6, against `VOS_MEASURE_LOG_CAPACITY` |
+| `chain.slow_clock_boot_ns` | 160000000 | the external slow clock's host period for boot runs |
+| `chain.slow_clock_watchdog_ns` | 1000000 | its period for the watchdog cases' runtime-only runs |
+| `chain.control_inst_limit` | 50000000 | the detached-clock control's instruction limit |
+| `chain.mmode_exit_base` | 64 | the M-mode stage reports a refusal as HTIF exit 64 plus its code |
+
+The chain's verdict codes are `vos_boot_verdict`'s 0 to 13 with their names
+and meanings, and four more; every refusal names the first check that failed.
+
+| Verdict | Code | Meaning |
+| --- | --- | --- |
+| `verdict.refuse_state` | 14 | the RoT state record's magic, version or run kind is not the run's |
+| `verdict.refuse_record` | 15 | the handoff record's magic or version at the M-mode stage |
+| `verdict.refuse_request` | 16 | an item-6 request not for stage 2, or a log that cannot record item 6 |
+| `verdict.refuse_response` | 17 | an item-6 response that does not bind this request |
+
+Slots are `slot.a` 0, `slot.b` 1 and `slot.recovery` 2; the phases a RoT run
+reports are `phase.rom` 0, `phase.runtime` 1, `phase.released` 2 and
+`phase.service` 3; the run kinds a state record carries are `run.boot` 1 and
+`run.service` 2. Each is a macro of `vos_chain.h` under the name the row gives.
+
+| Code | Value | Meaning |
+| --- | --- | --- |
+| `slot.a` | 0 | slot A |
+| `slot.b` | 1 | slot B |
+| `slot.recovery` | 2 | the recovery generation, outside the A/B count |
+| `phase.rom` | 0 | the run ended in the ROM |
+| `phase.runtime` | 1 | the run ended in the runtime before release |
+| `phase.released` | 2 | the runtime wrote the release door |
+| `phase.service` | 3 | an item-6 service run |
+| `run.boot` | 1 | a boot run's state record |
+| `run.service` | 2 | a service run's state record |
+
+### 9.2 Instruments and run kinds
+
+The predicate is decided over these instruments and nothing else:
+
+- the golden emulator built from this tree's model sources, on
+  [verifiedos-rot.json](../../../model/config/verifiedos-rot.json) for every RoT
+  run and on [verifiedos.json](../../../model/config/verifiedos.json) for the
+  main-die run, read through its verdict lines and its `--test-signature`
+  capture, which it writes on an HTIF success and on a release and on nothing
+  else;
+- the RoT composition's four device windows
+  ([rot.sail](../../../model/model/sys/rot.sail)) and the boot-control window
+  section 9.4 adds, each varied per case through a per-case variant of the
+  configuration file whose every other key is the shipped file's;
+- the external slow clock, `--rot-slow-clock-ns`
+  ([rot_slow_clock.h](../../../model/c_emulator/rot_slow_clock.h)), whose
+  period is section 9.10's per run kind and is recorded in every receipt;
+- the contained compiler, which compiles every chain unit where it is
+  provisioned and never on a hosted runner (section 9.14);
+- a host oracle: Python over `hashlib`'s SHAKE256 and the campaign's disposable
+  OpenSSL keys, computing from each case's inputs every byte that crosses a run
+  boundary and every verdict, by sections 9.5 to 9.8 and independently of the C;
+- the chain harness and the hosted campaign that runs it (section 9.14).
+
+**One hart per process, run boundaries as hart boundaries.** The emulator
+composes one hart per run (R-15-005). Every point where the chain crosses from
+one hart to another, or where the RoT waits on another hart, is a run boundary
+with the harness as the channel, and every byte that crosses a boundary is
+captured and compared with the oracle. The RoT state that persists between RoT
+runs, the measurement registers and log and the boot inputs, travels in the
+state record (section 9.5) that every RoT capture exports and the harness
+supplies to the next RoT run; that carry stands for the RoT's retained SRAM, and
+the predicate does not decide its privacy. The boot-control doors' values after
+a run are read back into the capture by the firmware, and the harness starts
+the next run from the oracle's expected values, not the capture's, so a lying
+capture is a mismatch rather than an input.
+
+| Run kind | Composition and entry | How it ends with a verdict |
+| --- | --- | --- |
+| boot run | the RoT composition; the ROM program at the reset vector, which enters the runtime at `chain.rot_runtime_base` on the ROM's release | a `RELEASE` line and a capture (the runtime wrote the release door); or one `SUCCESS` line and a capture whose `capture.verdict` is a refusal (a completed refusal); or the emulator's bite line and no capture |
+| runtime-only run | the RoT composition; the stage-0 payload placed by the harness at `chain.rot_runtime_base` with a state record the ROM would leave, entered at that base | as a boot run; the watchdog cases of section 9.10 end on the bite line, and the detached-clock control on its instruction limit |
+| service run | the RoT composition; the same payload with a `run.service` state record and a request at `state.request_at` | one `SUCCESS` line and a capture holding the response |
+| main-die run | the main-die composition; the placed M-mode window, the record, the mailbox and the kernel store, entered at `chain.mmode_load_base` | `SUCCESS` from the kernel stage's report after its eleven checks, with the signature region captured; or `FAILURE: n`, n the fixture's check or 64 plus the M-mode stage's refusal code |
+
+Any other ending, a timeout, an instruction limit outside the control case, a
+Sail exception, a trap loop, two verdict lines, a `RELEASE` line beside an HTIF
+line, or a missing or short capture, supplies no verdict, and a case with no
+verdict fails. The emulator ends a RoT run at the instruction that writes the
+release door, so nothing follows the release, and a bite ends it at the pump
+that asserted the die reset, so nothing follows a bite; neither rests on the
+firmware's own report.
+
+### 9.3 The images
+
+**Stage 0, the RoT runtime image.** Section 4's header with `header.stage` 0,
+signed with SLH-DSA-SHAKE-256s under the lifecycle state's ROM root
+(R-09-036a), payload length from 1 to `chain.rot_runtime_region_bytes`. The
+payload is the runtime program laid out for its placement: text from
+`chain.rot_runtime_base`, data from `chain.rot_runtime_data_at` within the
+region, measured as one flat extent from the base to the end of the data with
+the gap zero. Its entry is its base. The ROM enters it with the RoT's own
+authority, PCC the reset execute root and `c1` the store-side root, because the
+RoT runtime is RoT firmware and not a less-trusted stage; it reads the state
+record at `chain.rot_state_base` and nothing else from the ROM.
+
+**Stage 1, the M-mode image.** Section 4's header with `header.stage` 1, signed
+under the same ROM root, payload length from 1 to `chain.mmode_region_bytes`,
+in three store windows: slot A, slot B and the recovery generation. Each payload
+is the chain's M-mode stage, the hand-lowered assembly of section 9.8 beside its
+compiled body with the kernel-stage root key as data, laid out from
+`chain.mmode_load_base` with data from `chain.mmode_data_at`, followed by one
+eight-byte slot tag that nothing on the target reads: `VOSSLOTA`, `VOSSLOTB` or
+`VOSRCVRY`, so the three images' digests and item 5 differ and the record says
+which slot booted. Their security versions are the floor F for every slot.
+
+**The kernel-stage root is carried inside the measured M-mode image.** This is
+the contract's bring-up selection: the ML-DSA-87 public key that admits the
+kernel stage is data of the stage-1 payload and so bound by item 5 and by the
+ROM root's signature over that image. R-09-036a places the roots that admit a
+generation in an enrolled set the RoT holds under counter-protected state; no
+enrolled set exists in this composition, and section 9.15 records the gap
+(F-741).
+
+**Stage 2, the kernel stage.** Section 4's field order at section 4's offsets,
+with the magic, stage and signature sizes below; the signed prefix is the 72
+bytes before the signature, as for the SLH headers. The reader is the M-mode
+stage, which refuses every stage but 2 before reading further, so its header
+length is one constant and no field locates another (R-09-005).
+
+| Field | Offset | Bytes | Check |
+| --- | --- | --- | --- |
+| `kstage.magic` | 0 | 8 | equals the bytes `VOSKERN1` |
+| `kstage.stage` | 8 | 8 | equals 2, the core kernels in R-09-002's order |
+| `kstage.security_version` | 16 | 8 | at least `record.floor` |
+| `kstage.payload_offset` | 24 | 8 | equals `kstage.bytes`; checked, never followed |
+| `kstage.payload_length` | 32 | 8 | from 1 to `chain.kernel_region_bytes` |
+| `kstage.payload_digest` | 40 | 32 | SHAKE256 of the payload at 256 bits |
+| `kstage.signature` | 72 | 4627 | ML-DSA-87 over the signed bytes (FIPS 204) |
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| `kstage.bytes` | 4699 | the header's length and the payload's offset |
+| `kstage.signed_bytes` | 72 | the signed prefix |
+| `kstage.public_key_bytes` | 2592 | the kernel-stage root's length |
+
+The kernel-stage payload is the existing kernel-entry fixture
+([kernel_entry_fixture.s](../../../firmware/harness/kernel_entry_fixture.s))
+moved into its own image, its eleven checks unchanged, laid out inside the
+kernel region as the table below fixes so that the M-mode stage derives the
+kernel-entry state from constants and reads no entry point or extent from the
+image. The fixture's initialization descriptor declares the kernel region as its
+root extent and the kernel text as its switch text.
+
+| Field | Offset | Bytes | Check |
+| --- | --- | --- | --- |
+| `kernel.text` | 0 | 0x1000 | the fixture's text; the entry is its first instruction |
+| `kernel.data` | 0x1000 | 0x400 | the kernel data extent; its first word is `tohost` |
+| `kernel.stack` | 0x1400 | 0x400 | the kernel stack region |
+| `kernel.root_table` | 0x1800 | 8 | one slot, the kernel data root |
+| `kernel.init` | 0x1840 | 144 | the initialization descriptor, section 6's header alone |
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| `kernel.entry_at` | 0 | the kernel entry's offset in the text |
+| `kernel.trap_at` | 0x800 | the trap entry's offset in the text, where MTCC points |
+
+### 9.4 The model's boot-control window
+
+The RoT composition gains a fifth device window beside the OTP, the entropy
+root, the counters and the watchdog, answering the RoT hart alone and faulting
+every other requester and every width but a doubleword, as the four do.
+[rot.sail](../../../model/model/sys/rot.sail) owns the offsets as `ROT_BOOT_*`
+beside the four windows' layouts, and `vos_chain.h` mirrors them; `layout` holds
+the two together. The configuration declares the window under
+`platform.boot_control` with `supported`, `base`, `size`, `boot_target`,
+`active_slot` and `attempts`, in every shipped configuration and in
+`config.json.in`, because the three shipped files carry one key set; the
+validator refuses `boot_target` or `active_slot` above 1, a `size` under
+`door.bytes` and an aperture overlapping another. The shipped values are
+`boot_target` 0, `active_slot` 0 and `attempts` 0; the harness varies them per
+case through configuration variants, and the latch and the counts are emulation
+facts like the entropy seed, not emitted into the attested devicetree.
+
+| Door | Offset | Access | Meaning |
+| --- | --- | --- | --- |
+| `door.boot_target` | 0 | read | the latched boot-time signal's one bit (R-09-029), `boot_target` at reset and constant through the run |
+| `door.slot` | 8 | read, write 0 or 1 | the active slot; `active_slot` at power-on |
+| `door.attempts` | 16 | read, write | the active slot's attempt count; `attempts` at power-on |
+| `door.release` | 24 | write 1 | releases the boot core: the run ends at this instruction |
+| `door.bytes` | 32 | n/a | the doors' extent |
+
+The slot and attempt doors hold the RoT's retained boot state (R-09-028): a
+write to either takes effect at once, a write of a slot value above 1 or of a
+release word other than 1 faults, and both values survive a die reset within a
+run and not across runs, as F-438 records of the counters. The release door is
+the model's realization of R-09-006's release in a one-hart emulator: the
+emulator, on the step that wrote it, prints `RELEASE: the RoT released the boot
+core` with the retired count, writes the `--test-signature` capture as it does
+on an HTIF success, and exits 0; the Sail side latches `rot_released`, which
+nothing clears. A release on a bitten watchdog is unreachable, the bite having
+ended the run. The window exists so that the release observation and *nothing
+follows the release* rest on the emulator and not on the firmware's count of
+its own hook, which is what `release-target` relies on today.
+
+### 9.5 The ROM
+
+The ROM program is harness-composed for the RoT composition, the ROM body of
+section 9.11 compiled through the contained compiler with the bound SLH verifier
+and `vos_boot_slh256s_verify`, and its assembly reading the devices it names;
+the emulator loads it as the run's program because R-09-003's metal-mask ROM has
+no aperture in any composition. The floor is established in the same power-on
+by advancing counter 0, as section 2's probe does (F-438). The ROM neither arms
+nor pets the watchdog, which counts from power-on (R-15-240's always-on), so the
+ROM phase runs under the window before the runtime opens it; section 9.10 sizes
+the clock so that it fits. In order, stopping at the first refusal:
+
+1. Read the lifecycle index from the OTP window and extend the device register
+   with it (item 1), before any byte of any image is read (R-09-037).
+2. Run the start-up health tests through the entropy root's door, read the
+   health word, and extend the verdict, 1 where bit 32 is set and bit 33 clear
+   and 0 otherwise (item 2, R-09-006a).
+3. Read the boot-target latch door and extend its one bit (item 3, R-09-029).
+   An extension the log cannot record refuses (`refuse-measurement`), here and
+   at every later extension; `vos_chain.h`'s static assertion holds the log's
+   capacity against the chain's six, so no case reaches it.
+4. Refuse a failed verdict (`refuse-entropy`): the halt, which charges no
+   attempt and touches no boot-control door (R-09-006a). Refuse a lifecycle
+   state with no root (`refuse-no-root`, R-09-036).
+5. ReadHeader over the stage-0 store window, as section 3's step 3, with the
+   stage 0 and the region `chain.rot_runtime_region_bytes`; the signed prefix is
+   copied once and every field is read from the copy.
+6. CheckFloor against counter 0 (`refuse-floor`).
+7. VerifySignature: SLH-DSA-SHAKE-256s over the copied prefix under the
+   lifecycle state's root (`refuse-signature`).
+8. Place the payload at `chain.rot_runtime_base`, zero the rest of the region,
+   SHAKE256 the placed bytes and refuse a digest other than the copied header's
+   (`refuse-digest`); extend the generation register with it (item 4).
+9. Write the state record at `chain.rot_state_base`: `run.boot`, the inputs it
+   read, the registers and log after item 4; write the capture head's input,
+   measurement and `phase.rom` fields.
+10. Enter the runtime at `chain.rot_runtime_base` (R-09-002's `Run RotRuntime`).
+    Every refusal zeroes the runtime region, leaves the state record's magic
+    zero, writes the capture head with the verdict and ends the run with an
+    HTIF success, which is the completed attempt the capture decides.
+
+| Field | Offset | Bytes | Value |
+| --- | --- | --- | --- |
+| `state.magic` | 0 | 8 | the bytes `VOSSTAT1` |
+| `state.version` | 8 | 8 | 1 |
+| `state.run_kind` | 16 | 8 | `run.boot` or `run.service` |
+| `state.lifecycle` | 24 | 8 | the lifecycle index the ROM read |
+| `state.entropy_ok` | 32 | 8 | the verdict it measured |
+| `state.boot_target` | 40 | 8 | the latch's one bit |
+| `state.floor` | 48 | 8 | the floor it read |
+| `state.measure_count` | 56 | 8 | extensions so far |
+| `state.log` | 64 | 16 | the item codes in order, zero beyond the count |
+| `state.generation` | 80 | 32 | the generation register |
+| `state.device` | 112 | 32 | the device register |
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| `state.bytes` | 256 | the record's extent; bytes from 144 to 255 are zero |
+| `state.request_at` | 256 | where a service run finds its request in the state window |
+
+### 9.6 The RoT runtime
+
+The runtime reads the state record and refuses a magic, version or run kind
+other than `run.boot` (`refuse-state`). Then it arms and walks the table,
+selects and charges, verifies, writes the record and releases, in that order.
+
+**The bring-up reset table.** The table is this composition's and not Q33's:
+R-15-198a's release points and the production table are Q33's, and this table
+exercises the mechanism R-15-198 states, an action, a ready indication over an
+existing RoT device and the watchdog window as the step's timeout, with a pet
+point at each completion. A step waits by polling its ready indication and never
+pets while it waits, so a step that never becomes ready is ended by the bite and
+by nothing in the firmware.
+
+| Step | Code | Action | Ready indication |
+| --- | --- | --- | --- |
+| `step.arm` | 0 | write the watchdog's arm door | the challenge door reads nonzero |
+| `step.entropy` | 1 | none: the ROM ran the tests | the health word's bit 32 set and bit 33 clear |
+| `step.floor` | 2 | none | counter 0 reads nonzero |
+
+**Pets.** At a pet point the runtime reads the tick door; where the count is at
+or above the early bound and at or below the late bound it reads the challenge
+door and writes the response door with that value, which is R-15-240's
+RoT-nonce challenge-response, and counts an accepted pet; where the count is
+below the early bound it counts a skipped pet and does not pet, because an early
+pet is a bite. The pet points are the three completions and the point after the
+stage-1 signature verification below. The capture records the challenge read at
+arming, the two counts, and the bitten and tick doors read last.
+
+**Selection and counting.** The runtime reads the A, B and recovery store
+windows' headers and the slot and attempt doors. Selection and counting follow
+RotFirmware.v: with the latch 1 the recovery generation is selected (R-09-029),
+the A/B state is left as read and no attempt is charged, the recovery generation
+standing outside the A/B count (F-738). With the latch 0: if the attempt count is
+at or above `chain.boot_attempt_bound`, revert, the other slot becoming active
+with a count of zero (`spec_revert`, `RevertsPastTheBound`); then charge, the
+count becoming one more (`spec_charge`'s `OrdinaryFailure` arm,
+`AdmitsBelowTheBound`); write the slot door and then the attempt door, and only
+then verify the active slot's image, so the attempt is charged before the
+verification it gates and a refusal leaves it charged (R-12-017's order, applied
+to boots). A release leaves the count where the charge put it: nothing in this
+composition clears it, and section 9.15 records that the register names no
+clearing act (F-739).
+
+**Verification, record and release.** The selected image is verified as section
+3's steps 3 to 7 over its store window, with the stage 1, the region
+`chain.mmode_region_bytes`, the root the state's lifecycle accepts and the
+capture's M-mode window as the main SRAM image window: ReadHeader, CheckFloor
+against `state.floor`, VerifySignature, placement with the tail zeroed, Measure,
+item 5. A pet point follows the verification, which is the window that
+verification spent. The runtime then writes the handoff record into the
+capture's record slot (section 9.9) and the capture head's selection,
+measurement and watchdog fields with `phase.released`, and writes 1 to the
+release door; the emulator ends the run there.
+
+Every refusal zeroes the M-mode window, leaves the record slot zero, writes the
+capture head with the verdict and `phase.runtime`, and ends the run with an HTIF
+success. RomVerifier.v's `spec_order` holds at both verifications.
+
+### 9.7 The item-6 exchange
+
+R-09-002 has the kernel stage measured before it runs and R-09-025a puts that
+measurement in the RoT's generation register, which the main die cannot reach.
+On the die the M-mode stage asks the RoT and waits; in a one-hart emulator the
+ask is a run boundary. The choreography is:
+
+- the M-mode stage computes the request on the main die from the kernel-stage
+  payload it placed, and writes it to the mailbox's request slot before it reads
+  the response slot;
+- the RoT's item-6 service runs as a service run, its request computed by the
+  host oracle from the kernel-stage image the campaign signed and its state
+  record carried from the boot run's capture; it refuses a request whose magic
+  or stage is not stage 2's or a log that cannot record item 6
+  (`refuse-request`), extends the generation register with item 6 over the
+  request's digest, and writes the response;
+- the harness places that response in the mailbox before the main-die run, and
+  the M-mode stage enters the kernel only when the response binds exactly its
+  own request: the magic and stage are the response's, the echoed digest equals
+  the digest it computed, the generation register equals
+  SHAKE256(`VOS-EXT1` || `record.generation` || 6 || 32 as four little-endian
+  bytes || digest), the device register equals `record.device`, and the chain
+  digest equals SHAKE256(`VOS-CHN1` || generation || device); otherwise it
+  refuses (`refuse-response`). The harness also compares the request the stage
+  wrote with the oracle's byte for byte.
+
+The binding check is a recomputation anyone holding the record can perform. It
+decides that the response answers this request over this record and not that
+the RoT produced it; the response's authentication, the mailbox's privacy and
+the concurrency of a two-hart die are what section 9.15 leaves undecided
+(F-743).
+
+| Field | Offset | Bytes | Value |
+| --- | --- | --- | --- |
+| `request.magic` | 0 | 8 | the bytes `VOSITM6Q` |
+| `request.stage` | 8 | 8 | 2 |
+| `request.digest` | 16 | 32 | SHAKE256 of the placed kernel-stage payload |
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| `request.bytes` | 64 | the request's extent; bytes from 48 to 63 are zero |
+
+| Field | Offset | Bytes | Value |
+| --- | --- | --- | --- |
+| `response.magic` | 0 | 8 | the bytes `VOSITM6R` |
+| `response.stage` | 8 | 8 | the request's stage, 2 |
+| `response.digest` | 16 | 32 | the request's digest, echoed |
+| `response.generation` | 48 | 32 | the generation register after item 6 |
+| `response.device` | 80 | 32 | the device register, unchanged |
+| `response.chain` | 112 | 32 | the chain digest after item 6 |
+| `response.measure_count` | 144 | 8 | 6 |
+| `response.log` | 152 | 16 | the item codes 1 to 6, zero beyond |
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| `response.bytes` | 256 | the response's extent; bytes from 168 to 255 are zero |
+| `mailbox.request_at` | 0 | the request slot in the mailbox |
+| `mailbox.response_at` | 256 | the response slot |
+| `mailbox.bytes` | 512 | the mailbox's used extent |
+
+### 9.8 The M-mode chain stage and the kernel entry
+
+The M-mode chain stage runs from `chain.mmode_load_base` under the model's reset
+distribution, as section 6's stage does. Its special-register work stays
+hand-lowered assembly beside a compiled C body, the C lowering of `cspecialrw`
+and `csealentry` being outside this item (M1.2d, purecap-abi.md gap l); the
+assembly derives bounded capabilities to the record, the kernel store, the
+kernel region, the mailbox and the capture from the store-side root and hands
+them to the body. In order, stopping at the first refusal:
+
+1. Refuse a record whose magic or version is not section 6's (`refuse-record`).
+2. ReadHeader over the kernel store window with section 9.3's stage-2 layout:
+   an input shorter than `kstage.bytes` (`refuse-truncated`), a magic other than
+   `VOSKERN1` (`refuse-magic`), a stage other than 2 (`refuse-stage`), an offset
+   other than `kstage.bytes` (`refuse-offset`), a length of zero or beyond
+   `chain.kernel_region_bytes` (`refuse-length`), an input shorter than the
+   header plus the length (`refuse-truncated`); the signed prefix is copied once.
+3. CheckFloor: a security version below `record.floor` (`refuse-floor`).
+4. VerifySignature: `vos_mldsa87_verify_internal` over the copied 72-byte prefix
+   with the signature in place and the kernel-stage root the image carries,
+   FIPS 204's internal algorithm with no context prefix, as the SLH binding uses
+   FIPS 205's (`refuse-signature`). This is the chain's ML-DSA boot binding;
+   `vos_signature.h` carries no boot callback for ML-DSA and cannot gain one
+   while the staged manifest binds it (F-742).
+5. Place the payload at `chain.kernel_load_base`, zero the rest of the region,
+   SHAKE256 the placed bytes, refuse a digest other than the copied header's
+   (`refuse-digest`).
+6. Write the request to the mailbox and read the response; refuse a response
+   that does not bind the request (section 9.7, `refuse-response`).
+7. Write the M-mode capture, install the kernel-entry state and enter.
+
+A refusal zeroes the kernel region, writes its code to the M-mode capture and
+reports it through HTIF as `chain.mmode_exit_base` plus the code, so the
+fixture's codes 1 to 11 and 32 to 63 and the stage's 64 and above never meet.
+
+**The kernel entry.** Section 6's table holds with these values: PCC and `c5`
+over `kernel.text` from `chain.kernel_load_base`, the entry at `kernel.entry_at`
+and MTCC at `kernel.trap_at`; `csp` over `kernel.stack` with the cursor at its
+top; `c10` over `kernel.root_table`, its one slot the kernel data root over
+`kernel.data`, which is also MTDC; `c11` the handoff record at
+`chain.handoff_base`, `record.bytes` long; `c12` the descriptor at `kernel.init`;
+MEPCC null, the boundary timer unarmed, every other register null. The
+permissions are section 6's. The kernel stage's report writes `tohost` at
+`chain.tohost_base`, the first word of its data extent, and the M-mode stage's
+refusals write the same word, so the main-die run has one HTIF word.
+
+### 9.9 The measurement and the record in the chain
+
+The registers and encoding are section 5's. The chain extends items 1, 2 and 3
+into the device register in the ROM, item 4 into the generation register in the
+ROM, item 5 in the runtime and item 6 in the service run, in that order, which
+is RotFirmware.v's specification chain through its sixth extension; item 7 and
+the static image are outside this composition. The handoff record is section
+6's layout at version 1, written by the runtime before release, with
+`record.load_base` equal to `chain.mmode_load_base`, `record.generation` the
+generation register after item 5, holding items 4 and 5, `record.device` the
+device register after item 3, and `record.chain` the chain digest over both. The
+record handed to the kernel in `c11` therefore predates item 6; the registers
+after item 6 reach the main die in the response alone, which the kernel stage
+does not read (F-744).
+
+### 9.10 Watchdog and reset observations
+
+The external slow clock is the host's, with no ratio to retirement
+(R-15-196), and the window is the composition's, 1024 to 65536 ticks in the
+shipped configurations. Which host period a run gets is this contract's, per run
+kind, and every receipt records it:
+
+- **Boot runs** run at `chain.slow_clock_boot_ns` (160 ms a tick). The late bound is then 10,486 s of host time, which holds the
+  ROM phase, one SLH verification observed at 2,100 to 4,300 s on hosted runners
+  plus its reads and placement, under the window before the runtime arms; after
+  arming, the runtime's verification of stage 1 takes 13,000 to 27,000 ticks,
+  inside the window, so the pet point after it is an accepted pet, and the
+  three step completions, microseconds apart, are skipped pets. A boot run that
+  releases therefore records at least one accepted pet, no bite and a bitten
+  door reading zero.
+- **The watchdog cases** run runtime-only at `chain.slow_clock_watchdog_ns` (1 ms
+  a tick), where the late bound is 65.5 s after arming and the stall is reached
+  in microseconds. No one period serves both: at the boot period a stall bites
+  three hours after the ROM phase, and at the watchdog period the ROM phase
+  itself would bite, so no run observes a bite after a complete ROM phase
+  (F-740).
+- **Service runs and the main-die run** run with no external clock. The main
+  die's doors refuse every requester, and a service run pets nothing.
+
+The observations owed, each a case of section 9.12:
+
+- the positive path above: pets accepted in window and no bite;
+- `watchdog-stalled-step`: a runtime whose `step.entropy` ready predicate is
+  rewritten to a bit the health word never sets, so the step never becomes ready
+  and no pet is issued; under the external clock the model bites at the first
+  tick past the late bound and the emulator's join asserts the die reset and
+  prints its bite line, the run ending there with no release and no capture;
+- `watchdog-early-pet`: a runtime that pets at `step.arm`'s completion without
+  reading the tick door, so the pet is early and the model bites at once; the
+  join takes the reset on its next pump with no tick due, as
+  [watchdog_join.cpp](../../../model/test/unit_tests/watchdog_join.cpp)'s
+  unmatched-pet case shows the path;
+- `watchdog-stalled-no-clock`: the stalled runtime with no external clock, run
+  to `chain.control_inst_limit`, which must end on the limit with no bite line
+  and no HTIF line; it attributes the bite above to the clock and not to the
+  harness's stepping, as that unit test's detached-clock control does.
+
+The mutations are text substitutions of the runtime source, named and recorded
+in the receipt as section 2's handoff mutants are; a runtime-only run verifies
+no signature, so the mutants are placed unsigned. How these runs end is
+decisive because the emulator exits on the pump that asserted the reset and
+prints the bite line only then, and because a run on the instruction limit
+prints no verdict line. What the run cannot observe is the die back at its
+reset vector and the ROM reading the bitten latch after the reset: the emulator
+exits before another instruction retires, and the reset-vector observation is
+the unit test's (F-745).
+
+### 9.11 Run choreography, captures and work packages
+
+**The runs of a case**, each on its own emulator process:
+
+- **R1**, the boot run: the ROM program with the campaign's stage-0 image in the
+  runtime store window, the three stage-1 images in theirs, the ROM roots as
+  data and the per-case configuration variant. On release its capture holds the
+  state record, the handoff record and the placed M-mode window.
+- **R2**, the service run: the stage-0 payload placed by the harness at
+  `chain.rot_runtime_base`, R1's captured state record with `run.service` at
+  `chain.rot_state_base`, and the oracle's request at `state.request_at`. Its
+  capture holds the response and the state after item 6.
+- **R3**, the main-die run: R1's placed window at `chain.mmode_load_base`, R1's
+  record at `chain.handoff_base`, the mailbox with its request slot zero and
+  R2's response in its response slot, the stage-2 image in the kernel store, a
+  zero kernel region and `tohost` at `chain.tohost_base`, under
+  `--test-signature` over `chain.main_signature_bytes` from the mailbox base.
+
+**Byte comparisons.** The oracle computes, and the harness compares byte for
+byte: R1's state record, handoff record and placed window and its head's
+verdict, phase, input, selection and measurement fields; R2's response and
+state; R3's request, response and M-mode capture. The head's watchdog fields
+are compared against predicates, the challenge at arming nonzero, the accepted
+and skipped counts at least and at most what the period admits, the bitten door
+zero at release, because their values are the clock's and the entropy root's.
+Fields a run does not reach are zero on both sides.
+
+| Field | Offset | Bytes | Value |
+| --- | --- | --- | --- |
+| `capture.verdict` | 0 | 8 | the run's verdict code |
+| `capture.phase` | 8 | 8 | the phase reached |
+| `capture.released` | 16 | 8 | 1 where the release door was written |
+| `capture.lifecycle` | 24 | 8 | the lifecycle index read |
+| `capture.health` | 32 | 8 | the health word read |
+| `capture.boot_target` | 40 | 8 | the latch read |
+| `capture.floor` | 48 | 8 | the floor read |
+| `capture.slot_initial` | 56 | 8 | the slot door at the runtime's start |
+| `capture.attempts_initial` | 64 | 8 | the attempt door at the runtime's start |
+| `capture.slot_selected` | 72 | 8 | the slot code verified |
+| `capture.slot_final` | 80 | 8 | the slot door read last |
+| `capture.attempts_final` | 88 | 8 | the attempt door read last |
+| `capture.pets_accepted` | 96 | 8 | pets the model accepted |
+| `capture.pets_skipped` | 104 | 8 | pet points before the early bound |
+| `capture.nonce_at_arm` | 112 | 8 | the challenge read after arming |
+| `capture.bitten` | 120 | 8 | the bitten door read last |
+| `capture.ticks_at_end` | 128 | 8 | the tick door read last |
+| `capture.steps_completed` | 136 | 8 | reset-table steps completed |
+| `capture.measure_count` | 144 | 8 | extensions made |
+| `capture.log` | 152 | 16 | the item codes in order |
+| `capture.generation` | 168 | 32 | the generation register |
+| `capture.device` | 200 | 32 | the device register |
+| `capture.chain` | 232 | 32 | the chain digest |
+| `capture.runtime_digest` | 264 | 32 | SHAKE256 of the placed stage-0 payload |
+| `capture.mmode_digest` | 296 | 32 | SHAKE256 of the placed stage-1 payload |
+| `capture.mmode_security_version` | 328 | 8 | the selected image's version |
+| `capture.mmode_payload_length` | 336 | 8 | the selected image's payload length |
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| `capture.head_bytes` | 0x200 | the head's extent |
+| `capture.record_at` | 0x200 | the handoff record, `record.bytes` long |
+| `capture.response_at` | 0x300 | a service run's response |
+| `capture.request_at` | 0x400 | the request a service run read, echoed |
+| `capture.state_at` | 0x500 | the state record as the run left it |
+| `capture.window_at` | 0x1000 | the placed M-mode window, `chain.mmode_region_bytes` long |
+| `capture.bytes` | 0x41000 | the capture's extent |
+
+| Field | Offset | Bytes | Value |
+| --- | --- | --- | --- |
+| `mcapture.verdict` | 0 | 8 | the M-mode stage's verdict code |
+| `mcapture.kernel_digest` | 8 | 32 | SHAKE256 of the placed kernel-stage payload |
+| `mcapture.security_version` | 40 | 8 | the kernel stage's version |
+| `mcapture.payload_length` | 48 | 8 | its payload length |
+| `mcapture.request_written` | 56 | 8 | 1 after the request was written |
+| `mcapture.response_bound` | 64 | 8 | 1 after the response bound the request |
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| `mcapture.bytes` | 128 | the M-mode capture's extent |
+
+**Work packages.** Four lanes implement this section against `vos_chain.h`'s
+prototypes, each leaving `firmware/include/` and `firmware/crypto/` byte for
+byte as they are:
+
+| Lane | Owns | Entry symbols and records |
+| --- | --- | --- |
+| model doors | `rot.sail`'s boot-control doors and `rot_released`, `platform.sail`'s decode, the validator clauses, the configuration key in the three shipped files and `config.json.in`, the emulator's `RELEASE` ending, a unit test beside `watchdog_join.cpp` | `ROT_BOOT_TARGET`, `ROT_BOOT_SLOT`, `ROT_BOOT_ATTEMPTS`, `ROT_BOOT_RELEASE`, `ROT_BOOT_BYTES`; `layout` reports 5 of 5 declared |
+| RoT ROM and runtime | the ROM body and its device-reading assembly, the runtime image's assembly entry, table walk, pets, door writes and release, the item-6 service entry | `vos_chain_rom`, `vos_chain_select`, `vos_chain_pet_due`, `vos_chain_runtime_verify`, `vos_chain_service_item6`; the state record, the capture |
+| M-mode chain stage and kernel stage | the stage's assembly and body, the kernel-stage image laid out by `kernel.*` from the fixture, the ML-DSA binding | `vos_chain_mmode`; the request, the M-mode capture, the kernel-entry state of section 9.8 |
+| hosted campaign | the harness module and `boot-handoff` subcommand, the oracle, image and key production, configuration variants, the runs, receipts and join, the workflow | section 9.12's case table held against its case list; section 9.13's equality; section 9.14's receipts |
+
+### 9.12 The acceptance predicate and the case table
+
+Let F be the floor the ROM reads, established in the same power-on. The
+campaign's keys are disposable: one SLH-DSA-SHAKE-256s root per lifecycle state
+that accepts one, bound into the ROM as its roots, and one ML-DSA-87 key whose
+public half the stage-1 payloads carry. The stage-0 image, the three stage-1
+images and the stage-2 image are signed at version F.
+
+**Release.** For `cold-boot`'s inputs, a latch of 0, slot A active with zero
+attempts, the production lifecycle and a passing verdict, and well-formed
+images: R1 ends on a `RELEASE` line with a capture whose verdict is 0, phase
+`phase.released`, log 1, 2, 3, 4, 5 in that order, selected slot A, final slot
+A with one attempt, at least one accepted pet and bitten 0, whose state record,
+handoff record and placed window equal the oracle's; R2 ends on `SUCCESS` with
+the oracle's response, its log 1 to 6; R3 retires its first instruction at
+`chain.mmode_load_base`, its request equals the oracle's, the kernel entry is
+reached, and the run reports `SUCCESS`, which the kernel stage writes after its
+eleven checks. `recovery-latched` and `revert-past-bound` release likewise with
+the selection and counts the table gives.
+
+**Refusal.** For each refusal row, the run named ends with the named verdict
+and the capture, response or exit code the table gives, the log holds exactly
+the items listed, the boot-control values read last are the table's, no release
+door is written, and no later run of the case starts; where R1 refuses, its
+M-mode window is zero and its record slot zero.
+
+**Order and gating.** `cold-boot` must pass before the three main-die refusals
+run, which take its R1 capture and R2 response, identified by SHA-256 in both
+receipts; the other boot cases and the watchdog cases depend on no other case
+and may run beside it, and the campaign fails whenever `cold-boot` does,
+whatever the other rows show. Every case's inputs, period,
+instruction limit, timeout, configuration variant, assembly and ELF digests are
+in its receipt; a timeout, a trap, an instruction limit outside the control, a
+missing or short capture and contradictory verdict lines supply no verdict.
+
+| Case | Run | Inputs | RoT verdict | Items (device; generation) | Boot control after | Main die |
+| --- | --- | --- | --- | --- | --- | --- |
+| `cold-boot` | joined | latch 0, A active, 0 attempts, every image valid | `release` | 1,2,3; 4,5 then 6 | A, 1 | `SUCCESS` |
+| `recovery-latched` | joined | latch 1, A active, 0 attempts | `release` | 1,2,3; 4,5 then 6 | A, 0 | `SUCCESS` |
+| `revert-past-bound` | joined | latch 0, A active, 3 attempts | `release` | 1,2,3; 4,5 then 6 | B, 1 | `SUCCESS` |
+| `entropy-halt` | joined | the health word read by the assembly injected as failed | `refuse-entropy` | 1,2,3; none | A, 0 | none |
+| `lifecycle-raw` | joined | `platform.otp.lifecycle_state` raw | `refuse-no-root` | 1,2,3; none | A, 0 | none |
+| `runtime-signature-corrupt` | joined | one stage-0 signature byte flipped | `refuse-signature` | 1,2,3; none | A, 0 | none |
+| `runtime-digest-mismatch` | joined | one stage-0 payload byte flipped | `refuse-digest` | 1,2,3; none | A, 0 | none |
+| `mmode-below-floor` | joined | slot A's header at version F - 1, signed | `refuse-floor` | 1,2,3; 4 | A, 1 | none |
+| `mmode-signature-corrupt` | joined | one byte of slot A's signature flipped | `refuse-signature` | 1,2,3; 4 | A, 1 | none |
+| `kernel-signature-corrupt` | main-die | one stage-2 signature byte flipped, over `cold-boot`'s R1 and R2 | `release` | 1,2,3; 4,5 then 6 | A, 1 | `FAILURE: 74` |
+| `kernel-digest-mismatch` | main-die | one stage-2 payload byte flipped | `release` | 1,2,3; 4,5 then 6 | A, 1 | `FAILURE: 76` |
+| `item6-response-nonbinding` | main-die | a self-consistent response computed for a digest one byte off | `release` | 1,2,3; 4,5 then 6 | A, 1 | `FAILURE: 81` |
+| `watchdog-stalled-step` | runtime-only | the stall mutant at the watchdog period | `bite` | n/a | n/a | none |
+| `watchdog-early-pet` | runtime-only | the early-pet mutant at the watchdog period | `bite` | n/a | n/a | none |
+| `watchdog-stalled-no-clock` | runtime-only | the stall mutant with no external clock | `no-verdict` | n/a | n/a | none |
+
+The main-die exit codes are `chain.mmode_exit_base` plus `refuse-signature`
+(10), `refuse-digest` (12) and `refuse-response` (17). The entropy halt's
+verdict is injected in the assembly that supplies the device reads, because the
+shipped RoT composition's seeded source passes its start-up tests and no
+configuration makes it fail, as section 2 records of the same input; the raw
+lifecycle is a configuration variant and so a real device input here. The
+three main-die refusals reuse `cold-boot`'s R1 capture and R2 response, so each
+costs one ML-DSA verification; `item6-response-nonbinding`'s response is the
+oracle's response for a digest with one byte flipped, with its own consistent
+generation and chain digests, so what refuses it is the digest echo and the
+generation recomputation and not a malformed record. A boot run costs at most
+two SLH-DSA verifications and the whole campaign eleven.
+
+**Controls against vacuity.** The release observation is the emulator's
+`RELEASE` line and not the capture's `capture.released` word, and the two must
+agree. `watchdog-stalled-no-clock` shows the bite is the clock's. `mmode-below-floor`
+and `mmode-signature-corrupt` leave the attempt charged while
+`entropy-halt` and `lifecycle-raw` leave it at zero, so the count is the
+counting's and not an artifact of reaching the runtime. `recovery-latched`
+and `revert-past-bound` release images whose tags differ from `cold-boot`'s, so
+their records' image digests and generation registers differ from `cold-boot`'s
+and from each other, while `revert-past-bound`'s device register equals
+`cold-boot`'s and `recovery-latched`'s differs from it in item 3 alone, so the
+selection is read off the measurement and not off the report.
+`item6-response-nonbinding` is a self-consistent response, so the binding
+check is shown to compare against the stage's own request. The ROM's
+verification of stage 0 is shown load-bearing by `runtime-signature-corrupt`
+and `runtime-digest-mismatch` refusing before item 4, and the runtime's by the
+two `mmode-` refusals charging an attempt and extending no item 5.
+
+### 9.13 The verifier identity freeze
+
+The chain compiles its verifiers from the unchanged
+[keccak.c](../../../firmware/crypto/keccak.c),
+[slh256s.c](../../../firmware/crypto/slh256s.c) and
+[mldsa87.c](../../../firmware/crypto/mldsa87.c), the SLH-DSA one through
+`vos_boot_slh256s_verify` as `release-target` does and the ML-DSA one through
+`vos_mldsa87_verify_internal` (section 9.8). Every chain receipt records, under
+`sources_sha256`, the SHA-256 of `firmware/crypto/keccak.c`,
+`firmware/crypto/slh256s.c`, `firmware/crypto/mldsa87.c`,
+`firmware/include/vos_boot.h`, `firmware/include/vos_keccak.h` and
+`firmware/include/vos_signature.h` as compiled, and under `compiler_provenance`
+and `compiler_inputs_sha256` the contained compiler's `revision`,
+`compiler_sha256` and `compcert.ini` digest. The campaign passes only if, for
+the tracked [manifest.json](../../../firmware/crypto/target/manifest.json) at
+the campaign's revision, each of those six digests equals the manifest's
+`sources_sha256` entry for the same path, the three compiler identities equal
+the manifest's, and every chain unit's recorded compile arguments carry
+`-fverifiedos-typed` and `-Ifirmware/include` as the manifest's modes do; and
+`boot-crypto verify` passes at that revision, which is what holds the manifest's
+digests to the tracked files. The chain's streams are other translation units,
+so no equality with the manifest's `assembly_sha256` values is claimed; the
+freeze is of source bytes and compiler identity. A passing campaign closes
+F-722 and, by executing the ML-DSA binding on the main-die composition, F-721.
+
+### 9.14 Hosted execution
+
+The campaign follows [the boot-crypto staged pattern](../../../firmware/crypto/README.md#hosted-target-campaign):
+the contained compiler, whose license keeps it on the machine that holds it,
+compiles the ROM, runtime, M-mode and kernel-stage units locally and a staging
+command writes their streams, the signed images, the disposable public keys and
+a manifest binding every input identity into a tracked directory; a workflow on
+GitHub-hosted Linux verifies the staged inputs against the checkout, builds the
+model, and runs one job per boot case and one job each for the main-die and the
+watchdog groups, the main-die job depending on `cold-boot`'s job and taking its
+R1 capture and R2 response as artifacts whose SHA-256 both receipts record; a
+join composes the shard receipts into one, refusing a shard whose source,
+model, manifest, compiler, period, instruction-limit or timeout identities
+differ from the others' (F-718), listing unexecuted cases, and failing on any
+failed case. Each job's per-case timeout and the execution step's limit are set
+so that two SLH-DSA verifications at 4,300 s each and one ML-DSA-87
+verification at 600 s fit under the runner's six-hour cap with the model build;
+a case that reaches its timeout supplies no verdict. Guest CI does not run the
+campaign.
+
+### 9.15 What the predicate does not decide, and findings
+
+A passing campaign says the ROM, runtime, service and M-mode chain programs
+compiled from this tree, the model's RoT devices and boot-control window, the
+fixture kernel and this emulator agree with this section over the listed cases,
+with the verifier identities frozen to M7.1f's manifest. It does not decide:
+two harts running concurrently, the RoT waiting on the main die or the main die
+on the RoT, which the run boundaries stand in for; the privacy of the RoT's
+retained state, of the store windows, of the handoff record or of the mailbox,
+and the RoT's authority over main SRAM, which the composition's authority
+supplies and no harness shows; the authentication of the item-6 response beyond
+that authority; any timing, including R-09-006b's figures; Q33's production
+reset table and release points; the clearing of the attempt count by a booted
+generation; the enrolled root set; the die's return to its reset vector after a
+bite within a run; the static image and item 7; and that M4.4's kernel accepts
+the handoff. Every report carries `milestone_acceptance: open` until the
+integrator records the campaign's receipt against this section.
+
+Findings this section raises, each recorded in
+[the findings register](../../assurance/findings-register.md):
+
+- **F-738.** The register does not say whether a recovery-generation boot under
+  R-09-029's latch is charged by R-09-028's boot counting; this composition
+  charges none and leaves the A/B state as read.
+- **F-739.** RotFirmware.v's `Outcome` has no success (its gap c), and no entry
+  names the act that clears the attempt count after a successful boot; this
+  composition never clears it, so a device that boots successfully
+  `chain.boot_attempt_bound` times reverts.
+- **F-740.** The external slow clock's host period is a per-run-kind harness
+  parameter; the positive path's window in host time is a function of it, and
+  the stall and early-pet observations run runtime-only at a shorter period, so
+  no run observes a bite after a complete ROM phase.
+- **F-741.** The kernel-stage root is carried inside the measured M-mode image
+  by this contract's selection, where R-09-036a places the roots that admit a
+  generation in the RoT's enrolled set; no enrolled set exists in this
+  composition and the RoT measures none.
+- **F-742.** `vos_signature.h` carries no boot callback for ML-DSA and cannot
+  change while the staged manifest binds it, so the chain binds
+  `vos_mldsa87_verify_internal` over the signed prefix from outside the bound
+  trees; a later staging may move the binding beside `vos_boot_slh256s_verify`.
+- **F-743.** The item-6 binding check is a recomputation anyone holding the
+  handoff record can perform; it decides that the response answers this request
+  and not that the RoT produced it.
+- **F-744.** The record handed to the kernel holds the generation register after
+  item 5; the registers after item 6 reach the main die in the mailbox response
+  alone, which the kernel stage does not read, so no consumer of the post-item-6
+  registers exists in this composition.
+- **F-745.** The emulator exits on the pump that asserted the die reset, so a
+  run cannot observe the die at its reset vector or the ROM reading the bitten
+  latch; the reset-vector observation is `watchdog_join.cpp`'s.
