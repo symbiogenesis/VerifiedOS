@@ -1,0 +1,334 @@
+{
+  "ended": "2026-10-03T16:45:10Z",
+  "files": {
+    "AliasAdmitted.assumptions.stdout": {
+      "path": "/root/build/lane-q35i-20261003/reduce/AliasAdmitted.assumptions.stdout",
+      "sha256": "ce144d3928227f7614e0e5c21ac855622fafa2077428d1a821695e378090025b"
+    },
+    "AliasAdmitted.rocqchk.stderr": {
+      "path": "/root/build/lane-q35i-20261003/reduce/AliasAdmitted.rocqchk.stderr",
+      "sha256": "06ee66c4713ea1d7153e264d90f9e7e66c1c6662daaec767a2a08c8d42a54302"
+    },
+    "AliasAdmitted.v": {
+      "path": "/root/build/lane-q35i-20261003/reduce/AliasAdmitted.v",
+      "sha256": "15510f29c1158b04acc29947a597b4ea7631bda8cab0f7d56a1f0af279df1149"
+    },
+    "AliasSealed.assumptions.stdout": {
+      "path": "/root/build/lane-q35i-20261003/reduce/AliasSealed.assumptions.stdout",
+      "sha256": "bbb6956347e7d9ad48b73ed4359c0b7f5bd958b37a6794e8840c135d9eae0c33"
+    },
+    "AliasSealed.rocqchk.stderr": {
+      "path": "/root/build/lane-q35i-20261003/reduce/AliasSealed.rocqchk.stderr",
+      "sha256": "2747319a8cebbf5b816a8001e6419b8bad75646484d21223fc34adc78572a2e2"
+    },
+    "AliasSealed.v": {
+      "path": "/root/build/lane-q35i-20261003/reduce/AliasSealed.v",
+      "sha256": "469606922637ece321932f9efc6c4e05e2250b31ca5c852c2cac339c02d9ab74"
+    },
+    "FunctorAdmitted.assumptions.stdout": {
+      "path": "/root/build/lane-q35i-20261003/reduce/FunctorAdmitted.assumptions.stdout",
+      "sha256": "23ba49a826c255c444c26e870641612aa7a7214c95f7f707de626dc140a310b7"
+    },
+    "FunctorAdmitted.rocqchk.stderr": {
+      "path": "/root/build/lane-q35i-20261003/reduce/FunctorAdmitted.rocqchk.stderr",
+      "sha256": "558a4188f9dcc63a5fbcfbb948bf92317f5d5ee4ab79836ae95ff8505026fb9f"
+    },
+    "FunctorAdmitted.v": {
+      "path": "/root/build/lane-q35i-20261003/reduce/FunctorAdmitted.v",
+      "sha256": "926bbba1dd1f8366b99752a233aeddcd87a6d31c4c3a7e529f3d92218e720896"
+    },
+    "FunctorHidden.assumptions.stdout": {
+      "path": "/root/build/lane-q35i-20261003/reduce/FunctorHidden.assumptions.stdout",
+      "sha256": "ceae03bb171f2eeb632bc6242791f3a836c01073964e57b68c99fe26e2dd2a07"
+    },
+    "FunctorHidden.rocqchk.stderr": {
+      "path": "/root/build/lane-q35i-20261003/reduce/FunctorHidden.rocqchk.stderr",
+      "sha256": "bcd7091366283921c615bf17ebbf16c619357f10e5a882a93ef21bc6f8eb4bc2"
+    },
+    "FunctorHidden.v": {
+      "path": "/root/build/lane-q35i-20261003/reduce/FunctorHidden.v",
+      "sha256": "566e3c9818f586f7efe2de0e4e62706ace71b3218642878e7d727010cc54cdff"
+    },
+    "FunctorSealed.assumptions.stdout": {
+      "path": "/root/build/lane-q35i-20261003/reduce/FunctorSealed.assumptions.stdout",
+      "sha256": "6f521f44528c28a6c79e64edf01a2ce79aa00d14cb772cc41a05b5bf42b3cc8a"
+    },
+    "FunctorSealed.rocqchk.stderr": {
+      "path": "/root/build/lane-q35i-20261003/reduce/FunctorSealed.rocqchk.stderr",
+      "sha256": "34f1bd3c9ae09b37457a71524c8af1b419fe91ae44dc3dcdc95d0ac5097790c0"
+    },
+    "FunctorSealed.v": {
+      "path": "/root/build/lane-q35i-20261003/reduce/FunctorSealed.v",
+      "sha256": "1aa23f71354847a11c025b68741e168cd5c5ea999ca989efa7939005aa5619ab"
+    },
+    "GenuineAxiom.assumptions.stdout": {
+      "path": "/root/build/lane-q35i-20261003/reduce/GenuineAxiom.assumptions.stdout",
+      "sha256": "751816a6c06f6fd69357d8962c06b29297bf1eb72d2dc8cae22f57d7a68648eb"
+    },
+    "GenuineAxiom.rocqchk.stderr": {
+      "path": "/root/build/lane-q35i-20261003/reduce/GenuineAxiom.rocqchk.stderr",
+      "sha256": "3b738cb2954f014770c1c725ade6a8785fed9c56f23b458fdd725e115cfaeb54"
+    },
+    "GenuineAxiom.v": {
+      "path": "/root/build/lane-q35i-20261003/reduce/GenuineAxiom.v",
+      "sha256": "6ad4dc620e140256728dc940177fac55e0e72aa6fac5841f34e323228a9144fe"
+    },
+    "InterHidden.assumptions.stdout": {
+      "path": "/root/build/lane-q35i-20261003/reduce/InterHidden.assumptions.stdout",
+      "sha256": "fb4167601cd4c00bb714eca6d09c10525414e936f71e5a851c2be05db06f709f"
+    },
+    "InterHidden.rocqchk.stderr": {
+      "path": "/root/build/lane-q35i-20261003/reduce/InterHidden.rocqchk.stderr",
+      "sha256": "9c1faa5e96ec6a4ee54b062bf07f1bc1c151dab3e7100189162ea7cd40326071"
+    },
+    "InterHidden.v": {
+      "path": "/root/build/lane-q35i-20261003/reduce/InterHidden.v",
+      "sha256": "7d969987f59f6e5ed92215dfd19e05128f3797174a8eeb31e47dc5d9bbde80ac"
+    },
+    "Query_AliasAdmitted.v": {
+      "path": "/root/build/lane-q35i-20261003/reduce/Query_AliasAdmitted.v",
+      "sha256": "ca13b42f93eff5766a3fa82191c98287a6c7d86ea3e689a37669e72511458c27"
+    },
+    "Query_AliasSealed.v": {
+      "path": "/root/build/lane-q35i-20261003/reduce/Query_AliasSealed.v",
+      "sha256": "984359ad12e0dc1a2e485c9d2952482789d4cf5c5819acbad30fdcf42da48e12"
+    },
+    "Query_FunctorAdmitted.v": {
+      "path": "/root/build/lane-q35i-20261003/reduce/Query_FunctorAdmitted.v",
+      "sha256": "75906990e78f1c9c46c63136178c28cc95e9577bc19e023a14a60813f5f0e6bb"
+    },
+    "Query_FunctorHidden.v": {
+      "path": "/root/build/lane-q35i-20261003/reduce/Query_FunctorHidden.v",
+      "sha256": "97e5cc478f9558bfe0b7778de7176069e20b1066487db2e6d991c0b63689677c"
+    },
+    "Query_FunctorSealed.v": {
+      "path": "/root/build/lane-q35i-20261003/reduce/Query_FunctorSealed.v",
+      "sha256": "52ae230f16e32aefc249b04772b522389ba9956377fa9cd4878e6875b8f18974"
+    },
+    "Query_GenuineAxiom.v": {
+      "path": "/root/build/lane-q35i-20261003/reduce/Query_GenuineAxiom.v",
+      "sha256": "70d9d38f0c407256b0be9fd1dc2bf0cec65f881128a7770df915d2df752e21ec"
+    },
+    "Query_InterHidden.v": {
+      "path": "/root/build/lane-q35i-20261003/reduce/Query_InterHidden.v",
+      "sha256": "2d8104a538aa8f503edba6e69e00e76752e5af035bf9eb62d3853f3c7af636bb"
+    },
+    "q35i-20261003-reduce.log": {
+      "path": "/root/logs/q35i-20261003-reduce.log",
+      "sha256": "c4e1254220a75c4e55dfe443f004ac980bdf8ea58838fc38c1341db1bf8b759c"
+    },
+    "queries.txt": {
+      "path": "/root/build/lane-q35i-20261003/reduce/queries.txt",
+      "sha256": "bf139353cede4e2125f42513c7f3e985b352a665f2f452dec0c92dd418f908f5"
+    }
+  },
+  "item": "Q35i",
+  "lane": "q35i-20261003",
+  "modules": {
+    "AliasAdmitted": {
+      "assumptions_exit": 0,
+      "compile_exit": 0,
+      "print_assumptions": {
+        "Q35i.AliasAdmitted.Alias.x": [
+          "Closed under the global context"
+        ],
+        "Q35i.AliasAdmitted.Alias.x_le": [
+          "Axioms:",
+          "AliasAdmitted.Alias.x_le : le AliasAdmitted.Alias.x AliasAdmitted.Alias.x"
+        ],
+        "Q35i.AliasAdmitted.Impl.x_le": [
+          "Axioms:",
+          "AliasAdmitted.Impl.x_le : le AliasAdmitted.Impl.x AliasAdmitted.Impl.x"
+        ],
+        "Q35i.AliasAdmitted.use": [
+          "Axioms:",
+          "AliasAdmitted.Alias.x_le : le AliasAdmitted.Alias.x AliasAdmitted.Alias.x"
+        ]
+      },
+      "rocqchk_exit": 0,
+      "summary_axioms": [
+        "Q35i.AliasAdmitted.Alias.x_le",
+        "Q35i.AliasAdmitted.Alias.x",
+        "Q35i.AliasAdmitted.Impl.x_le"
+      ]
+    },
+    "AliasSealed": {
+      "assumptions_exit": 0,
+      "compile_exit": 0,
+      "print_assumptions": {
+        "Q35i.AliasSealed.Alias.f": [
+          "Closed under the global context"
+        ],
+        "Q35i.AliasSealed.Alias.x": [
+          "Closed under the global context"
+        ],
+        "Q35i.AliasSealed.Alias.x_le": [
+          "Closed under the global context"
+        ],
+        "Q35i.AliasSealed.Constrained.x_le": [
+          "Closed under the global context"
+        ],
+        "Q35i.AliasSealed.Included.x_le": [
+          "Closed under the global context"
+        ],
+        "Q35i.AliasSealed.Inter.x_le": [
+          "Closed under the global context"
+        ],
+        "Q35i.AliasSealed.Nested.x_le": [
+          "Closed under the global context"
+        ],
+        "Q35i.AliasSealed.use": [
+          "Closed under the global context"
+        ]
+      },
+      "rocqchk_exit": 0,
+      "summary_axioms": [
+        "Q35i.AliasSealed.Nested.x_le",
+        "Q35i.AliasSealed.Nested.x",
+        "Q35i.AliasSealed.Nested.f",
+        "Q35i.AliasSealed.Alias.x_le",
+        "Q35i.AliasSealed.Alias.x",
+        "Q35i.AliasSealed.Alias.f",
+        "Q35i.AliasSealed.Constrained.x_le",
+        "Q35i.AliasSealed.Constrained.f"
+      ]
+    },
+    "FunctorAdmitted": {
+      "assumptions_exit": 0,
+      "compile_exit": 0,
+      "print_assumptions": {
+        "Q35i.FunctorAdmitted.App.x": [
+          "Closed under the global context"
+        ],
+        "Q35i.FunctorAdmitted.App.x_le": [
+          "Axioms:",
+          "FunctorAdmitted.App.x_le : le FunctorAdmitted.App.x FunctorAdmitted.App.x"
+        ],
+        "Q35i.FunctorAdmitted.use": [
+          "Axioms:",
+          "FunctorAdmitted.App.x_le : le FunctorAdmitted.App.x FunctorAdmitted.App.x"
+        ]
+      },
+      "rocqchk_exit": 0,
+      "summary_axioms": [
+        "Q35i.FunctorAdmitted.App.x_le",
+        "Q35i.FunctorAdmitted.App.x"
+      ]
+    },
+    "FunctorHidden": {
+      "assumptions_exit": 0,
+      "compile_exit": 0,
+      "print_assumptions": {
+        "Q35i.FunctorHidden.App.x": [
+          "Closed under the global context"
+        ],
+        "Q35i.FunctorHidden.App.x_le": [
+          "Axioms:",
+          "Q35i.FunctorHidden.App.hidden : False"
+        ],
+        "Q35i.FunctorHidden.use": [
+          "Axioms:",
+          "Q35i.FunctorHidden.App.hidden : False"
+        ]
+      },
+      "rocqchk_exit": 0,
+      "summary_axioms": [
+        "Q35i.FunctorHidden.App.x_le",
+        "Q35i.FunctorHidden.App.x"
+      ]
+    },
+    "FunctorSealed": {
+      "assumptions_exit": 0,
+      "compile_exit": 0,
+      "print_assumptions": {
+        "Q35i.FunctorSealed.App.x": [
+          "Closed under the global context"
+        ],
+        "Q35i.FunctorSealed.App.x_le": [
+          "Closed under the global context"
+        ],
+        "Q35i.FunctorSealed.AppSealed.x_le": [
+          "Closed under the global context"
+        ],
+        "Q35i.FunctorSealed.AppT.x_le": [
+          "Closed under the global context"
+        ],
+        "Q35i.FunctorSealed.AppTSealed.x_le": [
+          "Closed under the global context"
+        ],
+        "Q35i.FunctorSealed.use": [
+          "Closed under the global context"
+        ]
+      },
+      "rocqchk_exit": 0,
+      "summary_axioms": [
+        "Q35i.FunctorSealed.AppTSealed.x_le",
+        "Q35i.FunctorSealed.AppTSealed.x",
+        "Q35i.FunctorSealed.App.x_le",
+        "Q35i.FunctorSealed.App.x",
+        "Q35i.FunctorSealed.AppSealed.x_le",
+        "Q35i.FunctorSealed.AppSealed.x"
+      ]
+    },
+    "GenuineAxiom": {
+      "assumptions_exit": 0,
+      "compile_exit": 0,
+      "print_assumptions": {
+        "Q35i.GenuineAxiom.Alias.x": [
+          "Axioms:",
+          "GenuineAxiom.genuine : False",
+          "used in x to prove",
+          "nat"
+        ],
+        "Q35i.GenuineAxiom.AliasP.x": [
+          "Axioms:",
+          "GenuineAxiom.AliasP.x : nat"
+        ],
+        "Q35i.GenuineAxiom.ParamImpl.x": [
+          "Axioms:",
+          "GenuineAxiom.ParamImpl.x : nat"
+        ],
+        "Q35i.GenuineAxiom.genuine": [
+          "Axioms:",
+          "GenuineAxiom.genuine : False"
+        ],
+        "Q35i.GenuineAxiom.use": [
+          "Axioms:",
+          "GenuineAxiom.genuine : False"
+        ]
+      },
+      "rocqchk_exit": 0,
+      "summary_axioms": [
+        "Q35i.GenuineAxiom.Alias.x",
+        "Q35i.GenuineAxiom.AliasP.x",
+        "Q35i.GenuineAxiom.ParamImpl.x",
+        "Q35i.GenuineAxiom.genuine"
+      ]
+    },
+    "InterHidden": {
+      "assumptions_exit": 0,
+      "compile_exit": 0,
+      "print_assumptions": {
+        "Q35i.InterHidden.M.x": [
+          "Closed under the global context"
+        ],
+        "Q35i.InterHidden.M.x_le": [
+          "Axioms:",
+          "Q35i.InterHidden.M.hidden : False"
+        ],
+        "Q35i.InterHidden.use": [
+          "Axioms:",
+          "Q35i.InterHidden.M.hidden : False"
+        ]
+      },
+      "rocqchk_exit": 0,
+      "summary_axioms": [
+        "Q35i.InterHidden.M.hidden"
+      ]
+    }
+  },
+  "reading": "rocq c -q -Q . Q35i <module>.v; rocqchk -silent -o -Q . Q35i Q35i.<module>; rocq c -q -Q . Q35i Query_<module>.v",
+  "rocq_version": "The Rocq Prover, version 9.3.0",
+  "started": "2026-10-03T16:45:03Z",
+  "switch": "verifiedos-rocq-9.3.0-ocaml-5.4.1"
+}
