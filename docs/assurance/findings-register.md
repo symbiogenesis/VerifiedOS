@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 1002 of them across 158 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 1005 of them across 159 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -991,7 +991,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-481** upstream-defect: `rocq-sail-stdpp` 0.20.2 and 0.20.3 require Stdlib's Reals and `Eqdep` in the modules the canonical term loads, loading five Stdlib axioms the term does not use, outside R-05-164's empty declared set
 · Raised: Q35b
-· Disposition: open, Q35g's upstream change, or else a review-gate act under R-05-164
+· Disposition: open: Q35g's library change removes all five from a term that loads it without `SailStdpp.Real`, measured at the locked prover; they leave the canonical term's closure when the opam guide carries the changed library (F-778) and the model target drops the import (F-777), or by a review-gate act under R-05-164
 
 **F-482** owed-act: the tracked model bundle's MD5 map records 121 of the 132 source files the model's project lists, so K-88's host half and the Sail context tool cannot see an edit to the other eleven
 · Raised: Q35b
@@ -999,7 +999,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-483** measurement: no `rocq-sail-stdpp` release admits Rocq 9.3, 0.20.3 having joined 0.20.2 with the same published `rocq-core` bound and paired with the locked Sail 0.20.3, so neither installs beside the locked Rocq 9.3.0
 · Raised: Q35b
-· Disposition: standing, the blocking input of Q35b's owed compile, which the opam guide records
+· Disposition: standing, the blocking input of Q35b's owed compile, which the opam guide records; the 0.20.3 release's 30 `src-stdpp` modules compile at Rocq 9.3.0 unchanged (Q35g), so its published `rocq-core` bound alone keeps it out
 
 **F-484** owed-act: most of the emitted term's interactive proofs open without `Proof`, which Rocq 9.3 reports by default and the gate's settings make an error
 · Raised: Q35b
@@ -1071,7 +1071,19 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-737** upstream-defect: upstream sail-riscv still spells the prelude's quotient and remainder externs under the `rocq:` key, which Sail 0.20.3's Rocq backend does not read
 · Raised: Q35f
-· Disposition: standing, the model spelling them `coq:` and no upstream report taken
+· Disposition: standing, the model spelling them `coq:` and no upstream report taken; Sail's default branch `sail2` accepts `coq:` and `rocq:` extern keys alike since `51799150` (2026-09-30), in no release (Q35g)
+
+**F-777** owed-act: the model's Rocq target still emits `Require Import SailStdpp.Real` in the canonical term, which Sail 0.20.3's existing `--rocq-alt-modules` can remove with no Sail change, as Q35g's backend change does on a probe model
+· Raised: Q35g
+· Disposition: open: a change to `generated_rocq_rv64d` passing one space-separated `--rocq-alt-modules` list without `Real`, made with the opam guide's carriage of the changed library; it moves the term's generation identity and the record's section 2
+
+**F-778** owed-act: Q35g's changed `rocq-sail-stdpp` reaches the proof switch only by the opam guide's act, whose rule admits commit pins in QuickChick's recipe alone and returns this library only by a release
+· Raised: Q35g
+· Disposition: open: the opam guide carries the changed 0.20.3 release with a recorded exception and a hosted re-lock, the diff already tracked under the licensing map, or awaits an upstream release carrying the change, whose submission needs the user's approval; Q35b's owed compile waits on it
+
+**F-779** upstream-defect: Sail 0.20.3's Rocq backend emits a model with a real-typed register that does not compile, because its register encoding requires `Countable` of each register type and `R` has no instance
+· Raised: Q35g
+· Disposition: standing: the model declares no real-typed register, and no upstream report is taken; Sail's `sail2` changed theorem-prover register naming after 0.20.3 (#1759, fixing #1757), and whether the defect persists there is unread
 
 **F-774** method: for an assumption a seal hides from the loaded environment the compiler's `Print Assumptions` is the proof gate's only reading, rocqchk's summary naming no such constant unless a field it checked under an interactive seal uses it
 · Raised: Q35i

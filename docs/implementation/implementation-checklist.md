@@ -401,20 +401,20 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,193.7 |
-| Total estimate range h | 2,691.6–5,695.8 |
-| Completed scope h | 785.2 |
-| Complete by estimate % | 18.7 |
-| Remaining h | 3,408.5 |
+| Total estimate midpoint h | 4,190.2 |
+| Total estimate range h | 2,690.6–5,689.8 |
+| Completed scope h | 787.2 |
+| Complete by estimate % | 18.8 |
+| Remaining h | 3,403 |
 | Open class I h | 681.5 |
-| Open class X h | 2,727 |
+| Open class X h | 2,721.5 |
 | Retained completion estimate h | 186 |
 | Unmeasured completed items | 22 |
-| Calibrated total h | 5,141.4 |
+| Calibrated total h | 5,135.6 |
 | Committed M8a open h | 73 |
 | Committed M8b open h | 90.5 |
 | Other committed open h | 2,027.5 |
-| Conditional open h | 803.5 |
+| Conditional open h | 798 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
 | Committed M8a open range h | 47–99 |
@@ -1040,15 +1040,15 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
       * The emitted size.
       * The decision not to track the term.
 
-      The target emits at the configuration CMake generates, not at the frozen profile (F-478). The model-side removals, with that binding, are accepted as Q35f and the support library's as Q35g at this partial landing. The opam guide returns the library to the proof switch only once a release admits Rocq 9.3, and none does (F-483). Three things therefore stay owed: the compile at the locked prover with [the opam guide's](../../tools/opam/README.md) library, the exact assumption closure as the gate reads it, and the compiled size.
+      The target emits at the configuration CMake generates, not at the frozen profile (F-478). The model-side removals, with that binding, are accepted as Q35f and the support library's as Q35g at this partial landing. The opam guide returns the library to the proof switch only once a release admits Rocq 9.3, and none does (F-483). Three things therefore stay owed: the compile at the locked prover with [the opam guide's](../../tools/opam/README.md) library, the exact assumption closure as the gate reads it, and the compiled size. Q35g's second check, the term's compile against Q35g's changed library, joined that compile by the owner's act at Q35g's landing; it waits on the guide carrying the changed library (F-778) and on the model target dropping its `Real` import (F-777).
     * Nine findings.
       * **The emitted term fixes its composition's configuration, hart identity included, so the frozen profile's compositions emit different terms.** The canonical term is the primary composition's hart 0; the V composition at hart 6 and the root-of-trust composition at hart 15 emit terms of their own, and R-05-019b's one term does not say whether it admits one term per composition. Open: a register question at the review gate; the record identifies the primary composition's term only. F-477.
       * **The target emits the term at the configuration CMake generates, not at the frozen profile.** Its term differs from the frozen profile's in 19 of 254 configuration leaves, so it describes another machine. Closed at Q35f, whose target reads the primary composition's configuration and whose `run.py model rocq` refuses another. F-478.
       * **The Rocq backend of Sail 0.20.2 and 0.20.3 does not read the prelude's `rocq:` extern keys.** The four integer quotient and remainder declarations are emitted as axioms as a result, and all four leave when the keys are spelled `coq:`. Closed at Q35f, which spells them so. F-479.
       * **31 floating-point operations the adopted instructions call are irremovable at the pinned toolchain.** The single- and double-width arithmetic, fused multiply-add, square root and conversions the model binds to SoftFloat 3e, and the bfloat16 conversion the register adopts, have no definition there. Q35f routes the eight called comparisons through Sail's float library on a checked agreement with SoftFloat 3e, gives the sixteen half-width names internal-error bodies in the term and deletes the nine uncalled conversions and roundings, so these 31 are the term's whole axiom list. Open: a review-gate act under R-05-164, either admitting them by name or commissioning a semantics with its agreement to SoftFloat 3e shown. F-480.
-      * **The support library loads five Stdlib axioms the emitted term does not use.** `rocq-sail-stdpp` 0.20.2 and 0.20.3 require Stdlib's Reals and `Eqdep` in the modules the term loads, outside R-05-164's empty declared set. Open: Q35g, or else a review-gate act under R-05-164. F-481.
+      * **The support library loads five Stdlib axioms the emitted term does not use.** `rocq-sail-stdpp` 0.20.2 and 0.20.3 require Stdlib's Reals and `Eqdep` in the modules the term loads, outside R-05-164's empty declared set. Open: Q35g's library change removes all five from a term that loads it without `SailStdpp.Real`; they leave the canonical term's closure when the opam guide carries the changed library (F-778) and the model target drops the import (F-777), or by a review-gate act under R-05-164. F-481.
       * **The tracked model bundle's MD5 map omits eleven of the 132 sources the model's project lists.** K-88's host half and the Sail context tool read that map, so they cannot see an edit to those eleven; the guest half's byte comparison can. Open: K-88's owner states the residue or closes it. F-482.
-      * **No `rocq-sail-stdpp` release admits Rocq 9.3.** 0.20.3, tagged on 2026-09-24 and published in `rocq-released` on 2026-09-28, joined 0.20.2 with the same published `rocq-core` bound, which its source's own opam file does not carry, and pairs with Sail 0.20.3, locked since Q37, so neither installs beside the locked Rocq 9.3.0. Standing: this is the blocking input of this cell's owed compile, and the opam guide records both releases. (Corrected 2026-09-30: this bullet first dated the publication by the tag; [rocq-prover/opam#3872](https://github.com/rocq-prover/opam/pull/3872) merged the package into `rocq-released` on 2026-09-28.) F-483.
+      * **No `rocq-sail-stdpp` release admits Rocq 9.3.** 0.20.3, tagged on 2026-09-24 and published in `rocq-released` on 2026-09-28, joined 0.20.2 with the same published `rocq-core` bound, which its source's own opam file does not carry, and pairs with Sail 0.20.3, locked since Q37, so neither installs beside the locked Rocq 9.3.0. Standing: this is the blocking input of this cell's owed compile, and the opam guide records both releases. (Corrected 2026-09-30: this bullet first dated the publication by the tag; [rocq-prover/opam#3872](https://github.com/rocq-prover/opam/pull/3872) merged the package into `rocq-released` on 2026-09-28.) Q35g compiled the 0.20.3 release's 30 `src-stdpp` modules at Rocq 9.3.0 unchanged, so its published bound alone keeps it out. F-483.
       * **Most of the emitted interactive proofs open without `Proof`.** `rv64d_types.v` has 587 `Qed.` and 322 `Defined.` lines against 23 `Proof` lines, and `rv64d.v` closes two with `Defined.` and opens none with `Proof`. Rocq 9.3 reports the omission by default, and the gate's settings make it an error. Open: the owed compile reads them at the locked Rocq 9.3.0. F-484.
       * **Removing the four called host hooks needs a decision on how the term models the host.** The block-device trace, input and persistence hooks and the terminal write are uninterpreted monadic axioms in the term. Closed at Q35f, whose term models the machine and not its host and whose record compares that decision with the emulator statement by statement; Q35c's breakdown reads what the logic observes. F-485.
   * [ ] **Q35c · State the logic route's reviewed breakdown** · 16 h, range 9–23 · X
@@ -1067,9 +1067,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
     * No foundation passes the gate's kernel reading unchanged: the record proposes an R-05-164 amendment naming RefinedC's closure, refuses VST with Q35h to Q35j as its priced repairs, and refuses CN-to-Coq on its solver placeholder, without moving a register entry. ([note](completion-log.md#q35e-qualify-a-source-level-c-refinement-foundation-at-the-locked-prover))
   * [x] **Q35f · Remove the canonical term's model-side axioms and bind its target to the frozen profile** · 1.4 h actual · agent-parallel
     * The model's Rocq target emits at the frozen profile's primary composition through `run.py model rocq`, which writes the term's generation identity, and the 54 model-side axioms leave the term, the comparisons on a checked agreement with SoftFloat 3e, leaving F-480's 31 floating-point operations. ([note](completion-log.md#q35f-remove-the-canonical-terms-model-side-axioms-and-bind-its-target-to-the-frozen-profile))
-  * [ ] **Q35g · Remove the support library's Stdlib axioms from the canonical term's closure** · 5.5 h, range 3–8 · X
-    * **Dispatch. Start:** Q35b's record, its section 5, and F-481; `rocq-sail-stdpp`'s source at the release the opam guide returns to the proof switch; Sail's Rocq backend at the locked Sail. **Owns:** upstream changes proposed to `rems-project/coq-sail`: the `Rbase`, `Reals` and `ROrderedType` requires moved out of `Values`, `State_monad` and `Instances` into `Real`, and out of the concurrency-interface modules `ConcurrencyInterfaceTypes` and `ConcurrencyInterfaceBuiltins`; the real-valued choice in `Values` and the concurrency interface's `choose_real` and `undefined_real` made conditional on `Real`; and `Values`' use of `Eqdep.EqdepTheory.eq_dep_eq` replaced by `Eqdep_dec` over the decidable index type; the matching upstream change to Sail's Rocq backend, so that it emits `Require Import SailStdpp.Real` only for a model that uses reals; and a probe of the kind Q35b ran over the patched sources. It owns neither the upstream's acceptance and release timing, the opam guide's re-lock of the proof and Sail switches, nor any project carriage of a patched library, which is the guide's act. **Check:** the probe, compiled by the proof switch's `rocq` and checked by its `rocqchk -silent -o`, names none of the five, and a positive control loading one of them adds exactly that name; the canonical term compiles against the patched library once the guide's act admits it. **Join:** Q35b's closure, F-481's disposition, the opam guide.
-    * **Estimate basis:** library patch 1–3 h, backend patch 1–2.5 h, probe with control 0.5–1.5 h, submission and record 0.5–1 h. The range excludes upstream review latency and the guide's re-lock.
+  * [x] **Q35g · Remove the support library's Stdlib axioms from the canonical term's closure** · 2 h actual · agent-parallel
+    * A change to the support library confines Stdlib's Reals to its `Real` module and drops `Eqdep`, a probe of the term's modules over it at the locked prover names none of the five axioms while its positive control adds exactly the one it loads, and Sail's existing `--rocq-alt-modules` can drop the term's `Real` import; neither change goes upstream or into a switch, and by the owner's act the term's compile against the changed library moved to Q35b's owed compile. ([note](completion-log.md#q35g-remove-the-support-librarys-stdlib-axioms-from-the-canonical-terms-closure))
   * [ ] **Q35h · Reduce and report the kernel checker's anomaly on VST's Floyd closure** · 6 h, range 3–9 · X
     * **Dispatch. Start:** F-486; VST 2.17 as [the qualification switches](../../tools/opam/c-refinement-qualification-switches.md) build it, in the private vst2 and vst3 switches or recreated from their recipes under M1.1a's containment; the 9.2.0 checker's sources at `V9.2.0` and the locked checker's at `V9.3.0`. **Owns:** an authored standalone Rocq reproduction of the "Incompatible resolver roots" anomaly that copies no VST source, through nested module aliases under a functor application in the shape `SeparationLogicAsLogicSoundness` has; its result under `rocqchk` 9.2.0 and under the locked 9.3.0 checker; an upstream report; and a reading of whether any released checker produces VST 2.17's client summary. **Check:** the reproduction compiles with `rocq c` and aborts `rocqchk -silent -o`; a variant without the triggering alias checks; every figure carries its predicate, revision and checker binary identity. **Join:** F-486's disposition; F-463's review-gate act, for VST's summary; Q35i.
     * **Estimate basis:** reduction 2–4 h, the 9.3.0 reading 1–3 h, report and record 0–2 h.
@@ -1128,7 +1127,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,390.2 h · 57% · 173.2 h complete · open range 1,255–3,179 h.
+**Q subtotal:** 2,386.7 h · 57% · 175.2 h complete · open range 1,252–3,171 h.
 
 ### M0 · Hardware reference
 
@@ -2003,8 +2002,8 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 | attended | All | 63 | 323.9 | 238.4 | 0.74 |
 | agent-parallel | I | 40 | 335 | 129.8 | 0.39 |
 | agent-parallel | X-read | 10 | 101.5 | 34.7 | 0.34 |
-| agent-parallel | X-authored | 24 | 278.5 | 42.1 | 0.15 |
-| agent-parallel | All | 74 | 715 | 206.6 | 0.29 |
+| agent-parallel | X-authored | 25 | 284 | 44.1 | 0.16 |
+| agent-parallel | All | 75 | 720.5 | 208.6 | 0.29 |
 <!-- calibration-results:end -->
 
 ### Calibration record
@@ -2174,6 +2173,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q35a | n/a | n/a |
 | Q35e | X-read | 14 |
 | Q35f | I | 18 |
+| Q35g | X-authored | 5.5 |
 | Q35i | X-authored | 8 |
 | Q38a | I | 3 |
 | Q38b | I | 5 |
