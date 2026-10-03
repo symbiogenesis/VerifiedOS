@@ -57,7 +57,7 @@ package vos_soc_map_pkg;
   // composition gains arrives here without an edit; what obliges each one to
   // sit where it sits is R-15-002b, and what obliges the devices to exist at
   // all is the implementation plan rather than the register.
-  localparam int unsigned VosApertureCount = 10;
+  localparam int unsigned VosApertureCount = 11;
 
   typedef struct packed {
     logic [63:0] base;
@@ -72,6 +72,7 @@ package vos_soc_map_pkg;
     '{ base: 64'h0000_0000_0250_0000, size: 64'h0000_0000_0000_1000 },
     '{ base: 64'h0000_0000_0260_0000, size: 64'h0000_0000_0000_1000 },
     '{ base: 64'h0000_0000_0270_0000, size: 64'h0000_0000_0000_1000 },
+    '{ base: 64'h0000_0000_02a0_0000, size: 64'h0000_0000_0000_1000 },
     '{ base: 64'h0000_0000_0000_5000, size: 64'h0000_0000_0000_4000 },
     '{ base: 64'h0000_0000_0280_0000, size: 64'h0000_0000_0000_1000 },
     '{ base: 64'h0000_0000_0290_0000, size: 64'h0000_0000_0000_1000 }
@@ -86,9 +87,10 @@ package vos_soc_map_pkg;
   localparam int unsigned VosApTrng = 4;
   localparam int unsigned VosApMonotonicCounters = 5;
   localparam int unsigned VosApWatchdog = 6;
-  localparam int unsigned VosApBootRom = 7;
-  localparam int unsigned VosApUart = 8;
-  localparam int unsigned VosApBlkdev = 9;
+  localparam int unsigned VosApBootControl = 7;
+  localparam int unsigned VosApBootRom = 8;
+  localparam int unsigned VosApUart = 9;
+  localparam int unsigned VosApBlkdev = 10;
 
   // The window or windows whose extent the composition does not state.
   // An extent that is not a configuration key is a fact some other

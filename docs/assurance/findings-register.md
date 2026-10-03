@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 985 of them across 157 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 996 of them across 157 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -2736,7 +2736,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-435** owed-act: the model has no boot-core release door and no boot-target latch door, so the harness realizes release as starting the main-die run and supplies the latch as constant 0
 · Raised: M3.5, in prose
-· Disposition: open, the release points Q33's (R-15-198a) and the latch door the RoT model's (R-09-029)
+· Disposition: open for Q33's release points (R-15-198a) and for the bring-up composition, which keeps the harness realization; M3.5b's boot-control window answers the rest for the chain composition, its latch door replacing the constant latch and the emulator ending a RoT run at its release door
 
 **F-436** owed-act: no entry fixes the measurement extension function, the item encoding or the chain digest, RotFirmware.v taking them as machine fields and the contract selecting SHAKE256 forms for bring-up
 · Raised: M3.5, in prose
@@ -2821,6 +2821,22 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-762** measurement: one main-die run executes a full ML-DSA-87 verification, which a commit trace cannot practically hold, so the kernel entry's observation rests on the kernel stage's `SUCCESS`, a value no M-mode stage path writes
 · Raised: M3.5b, in prose
 · Disposition: standing, section 9.12 naming that observation
+
+**F-746** measurement: the Sail typecheck and C++ emission twice stopped with a locationless "SMT solver returned no results" while other lanes loaded the guest, and the same sources then typechecked and emitted cleanly, including a run tracing every SMT query, so the failing query was not isolated
+· Raised: M3.5b, in prose
+· Disposition: open, the toolchain's owner; a recurrence is diagnosed as guest load before it is diagnosed in source
+
+**F-747** method: the release door does not consult `watchdog_bitten`, and with no external slow clock the emulator never consumes a bite, so a clock-less RoT run that bit on the pet path and then wrote the release door would end on a RELEASE line; section 9.4's unreachability of a release on a bitten watchdog holds only for runs carrying the clock
+· Raised: M3.5b, in prose
+· Disposition: standing, section 9.10 giving every boot run the external clock and every receipt recording its period
+
+**F-748** owed-act: the validator holds the four RoT peripherals declared together or not at all as R-09-001's one block and leaves the boot-control window outside that rule, and no entry or contract clause says whether the window, R-09-028's boot-attempt state, belongs to that block
+· Raised: M3.5b, in prose
+· Disposition: open, the register (R-09-001, R-09-028) or the boot-handoff contract's section 9.4
+
+**F-749** owed-act: corpus/platform-rot.s checks the refusal of the four RoT windows from the C class and not the boot-control window's, so that refusal is held by test_rot.sail's properties and boot_control.cpp and by no corpus member's trap evidence
+· Raised: M3.5b, in prose
+· Disposition: open, the corpus owner; adding the check re-measures platform-rot's trace digest
 
 **F-750** owed-act: section 9 verified stage 1 under the root the state's lifecycle accepts and gave the ROM and runtime the same roots, but named no place the runtime reads them while section 9.3 said it read nothing from the ROM but the state record
 · Raised: M3.5b, in prose
