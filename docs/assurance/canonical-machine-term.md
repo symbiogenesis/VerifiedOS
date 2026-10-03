@@ -195,7 +195,7 @@ No package builds the library's BBV variant, which needs `coq-bbv`, and no modul
 
 The term itself requires `SailStdpp.Real`, which Sail emits for every model. Sail 0.20.3's `--rocq-alt-modules` option replaces the emitted import list, so the model's list less `Real` removes the import with no Sail change. Q35g's backend change instead decides whether a model uses reals and imports `Real` only then. It reads the types of the model's type definitions, registers, top-level lets, function bodies, outcome instantiations and declarations other than external ones.
 
-The two diffs stay in the lane, under their upstreams' BSD-2-Clause terms, because [the licensing map](../../COPYRIGHT.md) gives no tracked path for such a diff. The receipt binds them by SHA-256:
+The two diffs stay in the lane, under their upstreams' BSD-2-Clause terms, untracked. [The licensing map](../../COPYRIGHT.md#the-map) names one upstream-derived diff, `tools/sail-lsp/dependency-refresh.patch`, beside its upstream's notice, so tracking these needs a row of their own with their upstreams' notices beside them and [THIRD-PARTY.md](../../THIRD-PARTY.md)'s reading of that use. The receipt binds them by SHA-256:
 
 - the library's, 278 lines against `main` at `e7b914cddc032e3676eebd87a808229828013e9c`, `a74749c56f38127371cb748de26ffcc1d1f0bf65bbcbb8ab1d0e9c278ba202a5`;
 - the backend's, 70 lines against `sail2` at `c795c25b4c0bbb8ea6b7aacc71c2b400f8d49cdd`, which also applies to the 0.20.3 tag, `f53587160f4227f7fdf78140b88a1751dcfee38ec53f647314c270873e855dc1`.
