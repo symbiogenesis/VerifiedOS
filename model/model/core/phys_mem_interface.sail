@@ -13,6 +13,43 @@
 // to physical memory.  For models that do not require this metadata,
 // a unit type can be used.
 
+// The Sail library declares the emulator's memory primitives without a body
+// for every target but Isla, C, C++, OCaml and SystemVerilog, and the Rocq
+// backend would emit each as an axiom. The Rocq term reaches memory through
+// the `sail_mem_read` and `sail_mem_write` outcomes instead; the primitives'
+// only caller is the library's emulator implementation of those outcomes,
+// which that target does not instantiate but still typechecks. So for Rocq
+// alone the library's emulator-memory file is skipped and its declarations
+// are restated here, the five primitives with the model's internal error as
+// their body and the two tag primitives as the library binds them.
+$iftarget rocq
+$sail_internal
+$define _EMULATOR_MEMORY
+
+val read_mem# : forall ('a: Type) 'n 'addrsize, 'n >= 0 & 'addrsize in {32, 64}.
+    ('a, int('addrsize), bits('addrsize), int('n)) -> bits(8 * 'n)
+function read_mem#(_, _, _, _) = internal_error(__FILE__, __LINE__, "emulator memory primitive in the Rocq term")
+
+val read_mem_ifetch# : forall ('a: Type) 'n 'addrsize, 'n >= 0 & 'addrsize in {32, 64}.
+    ('a, int('addrsize), bits('addrsize), int('n)) -> bits(8 * 'n)
+function read_mem_ifetch#(_, _, _, _) = internal_error(__FILE__, __LINE__, "emulator memory primitive in the Rocq term")
+
+val read_mem_exclusive# : forall ('a: Type) 'n 'addrsize, 'n >= 0 & 'addrsize in {32, 64}.
+    ('a, int('addrsize), bits('addrsize), int('n)) -> bits(8 * 'n)
+function read_mem_exclusive#(_, _, _, _) = internal_error(__FILE__, __LINE__, "emulator memory primitive in the Rocq term")
+
+val write_mem# : forall ('a: Type) 'n 'addrsize, 'n > 0 & 'addrsize in {32, 64}.
+    ('a, int('addrsize), bits('addrsize), int('n), bits(8 * 'n)) -> bool
+function write_mem#(_, _, _, _, _) = internal_error(__FILE__, __LINE__, "emulator memory primitive in the Rocq term")
+
+val write_mem_exclusive# : forall ('a: Type) 'n 'addrsize, 'n > 0 & 'addrsize in {32, 64}.
+    ('a, int('addrsize), bits('addrsize), int('n), bits(8 * 'n)) -> bool
+function write_mem_exclusive#(_, _, _, _, _) = internal_error(__FILE__, __LINE__, "emulator memory primitive in the Rocq term")
+
+val read_tag# = impure "emulator_read_tag" : forall 'addrsize, 'addrsize in {32, 64}. (int('addrsize), bits('addrsize)) -> bool
+val write_tag# = impure "emulator_write_tag" : forall 'addrsize, 'addrsize in {32, 64}. (int('addrsize), bits('addrsize), bool) -> unit
+$endif
+
 $include <concurrency_interface.sail>
 
 enum write_kind = {
