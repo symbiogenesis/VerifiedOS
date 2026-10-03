@@ -806,7 +806,8 @@ def _the_compilers_reading_covers_checked_sealed_fields() -> None:
     The readings stand for the pinned Rocq 9.3.0's answers, taken over the Q35i
     reductions: a proved implementation is closed, an assumption a sealing functor
     hides reports under the sealed path, an admitted implementation and a genuine axiom
-    report themselves.
+    report themselves. A proof module's own name, its first component being a proof
+    module's stem whatever modules nest beneath it, is refused without being read.
     """
     alias, app = "Lib.Alias.x_le", "Lib.App.x_le"
     hidden, admitted, genuine = "Lib.App.hidden : False", "Lib.Admitted.x_le", "Lib.genuine"
@@ -823,6 +824,8 @@ def _the_compilers_reading_covers_checked_sealed_fields() -> None:
          (admitted,), (), ()),
         ((genuine,), {genuine: [f"{genuine} : False"]}, (genuine,), (), ()),
         ((alias, "Right.a"), {alias: [], "Right.a": []}, ("Right.a",), (alias,), (alias,)),
+        ((alias, "Right.Inner.a"), {alias: [], "Right.Inner.a": []}, ("Right.Inner.a",),
+         (alias,), (alias,)),
         ((alias,), {}, (alias,), (), ()),
         ((alias,), "the query exited 1", ("compiler's reading of the checked libraries' "
                                           "sealed fields failed: the query exited 1",), (), ()))
