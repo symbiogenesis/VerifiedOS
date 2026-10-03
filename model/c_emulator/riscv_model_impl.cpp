@@ -478,6 +478,10 @@ bool ModelImpl::htif_done() const {
   return zhtif_done;
 }
 
+bool ModelImpl::rot_released() const {
+  return zrot_released;
+}
+
 bool ModelImpl::had_exception() const {
   return have_exception;
 }
