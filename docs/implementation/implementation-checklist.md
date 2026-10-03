@@ -402,22 +402,22 @@ These figures sum the full priced reference-build, assessment and named hardenin
 | Measure | Value |
 | --- | --- |
 | Total estimate midpoint h | 4,199.9 |
-| Total estimate range h | 2,688.8–5,711 |
-| Completed scope h | 770.4 |
-| Complete by estimate % | 18.3 |
-| Remaining h | 3,429.5 |
-| Open class I h | 694.5 |
+| Total estimate range h | 2,693.8–5,706 |
+| Completed scope h | 783.4 |
+| Complete by estimate % | 18.7 |
+| Remaining h | 3,416.5 |
+| Open class I h | 681.5 |
 | Open class X h | 2,735 |
-| Retained completion estimate h | 173 |
-| Unmeasured completed items | 21 |
-| Calibrated total h | 5,147.2 |
-| Committed M8a open h | 86 |
+| Retained completion estimate h | 186 |
+| Unmeasured completed items | 22 |
+| Calibrated total h | 5,151 |
+| Committed M8a open h | 73 |
 | Committed M8b open h | 90.5 |
 | Other committed open h | 2,027.5 |
 | Conditional open h | 811.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
-| Committed M8a open range h | 55–117 |
+| Committed M8a open range h | 47–99 |
 <!-- estimate-summary:end -->
 
 The generated summary derives from the item cells and [calibration records](#calibration-record). Completed scope includes retained estimates whose actual time is unavailable. The calibrated total applies the attended authority-pool ratios reported in [the schedule basis](#estimate-and-schedule-basis); it does not combine execution clocks.
@@ -436,11 +436,10 @@ The generated view below reports the explicit M8a leaf joins in [the work-order 
 | Leaf | Authoring inputs | Open acceptance joins |
 | --- | --- | --- |
 | M5.3d | available for authoring | n/a |
-| M7.1a | available for authoring | M5.3d: storage and separate crypto compartment; M7.1b: target supervisor; M7.1c: image-bound admission record; M7.1d: typed graph and package descriptors; M7.1f: target signature verifiers |
+| M7.1a | available for authoring | M5.3d: storage and separate crypto compartment; M7.1b: target supervisor; M7.1c: image-bound admission record; M7.1d: typed graph and package descriptors |
 | M7.1b | available for authoring | M7.1a: shared target call, completion and restart observations |
 | M7.1c | available for authoring | M7.1d: real package graph; M7.1a: real image and member derivation records |
 | M7.1d | available for authoring | M7.1a: real member package descriptors |
-| M7.1f | available for authoring | n/a |
 | M7.2 | available for authoring | M7.1a: accepted roster and complete allocation capture |
 | M7.3 | available for authoring | M7.1a: accepted roster and complete queue capture |
 | M8a | blocked: M7.1a; M7.2; M7.3 | M7.1a: accepted image and corpus verdict; M7.2: allocation-churn verdict; M7.3: ring-parameter verdict |
@@ -1735,18 +1734,8 @@ The same roster carries the ring-parameter measurement: queue depths, batch size
     * **Start:** [HandlerGraph.v](../../proofs/HandlerGraph.v)'s edge conjuncts and its closure, determinism and recomposition obligations. **Owns:** the executable composer, which emits the typed handler graph into the image and boot record, compared with the reference on accepted and refused compositions. **Check:** agreement on the spoiled-edge and dropped-conjunct families, and the graph bound by digest. **Join:** real package descriptors. The intent vocabulary and ambiguity discipline stay register gaps, and M6.3b's router stays outside the roster.
   * [x] **M7.1e · Realize the copy-based service** · 14 h retained estimate, actual n/a · agent-parallel
     * The bounded C service passes its component campaigns and the final joint target campaign through the contained supervisor and trusted lifecycle consumer. ([note](completion-log.md#m71e-realize-the-copy-based-service))
-  * [ ] **M7.1f · Realize the boot verifier's executable crypto** · 13 h, range 8–18 · I
-    * **Parallel producer boundary:** finish this boot-signature producer independently of M5.3d's storage seal/open/keyed-digest compartment. Freeze their distinct call signatures and source/output identities with M3.5 and M5.3d respectively; reuse compatible hash primitives and generated oracle cases through one named owner without merging key custody or making either producer wait for the other's consumers. Target joins remain M3.5's measured boot and M5.3d's storage, and only the final roster requires both.
-    * **Executable crypto checkpoint:** [The bounded signature C](../../firmware/crypto/README.md) implements SLH-DSA-SHAKE-256s and ML-DSA-87, including a callback for the RoT release policy. The host campaign passes 184 comparisons across pinned NIST inputs, OpenSSL, the ML-DSA Gallina reference, direct SHAKE256 boundary cases against Keccak.v and hashlib, and real-signature release/refusal cases. `boot-crypto target` compiles all five signature interfaces with exact bounded input capabilities and a separately bounded 32 KiB stack, then compares one pinned positive per interface and every applicable authored refusal family. A positive gates its interface's refusals; traps, timeouts, omitted cases and ambiguous HTIF output supply no acceptance. Receipts bind retained compiler provenance, source and tool inputs, generated dialect, ELF and log identities. The firmware join remains open.
-    * **Target evidence:** at `0f61470a`, the host campaign passed all 184 comparisons ([`/root/build/lane-bootcrypto-20260927/host-common-final/report.json`](retained-evidence/root/build/lane-bootcrypto-20260927/host-common-final/report.json)). The local six-job target campaign over the 57 selected cases failed when `slh-tg29-tc399-wrong-root` reached its 2,400 s timeout with no HTIF verdict; that receipt, retained at [`/root/build/lane-bootcrypto-20260927/target-common-final/report.json`](retained-evidence/root/build/lane-bootcrypto-20260927/target-common-final/report.json), supplies no acceptance. The [hosted campaign](../../firmware/crypto/README.md#hosted-target-campaign) executes the [staged streams](../../firmware/crypto/README.md#staged-target-streams), which carry that receipt's five compiled assembly SHA256 values, one interface per runner with a 9,000 s case timeout; Guest CI does not run it. [Run 36954830093](https://github.com/symbiogenesis/VerifiedOS/actions/runs/36954830093) at `b906dbdd`, over the staged manifest with SHA-256 `bdd11e25e9dc00692d8f4cac17049c402c49f6062875a55bb45893a1164fbd05`, joined each interface exactly once and matched all 57 selected cases, the local campaign's population with identical per-case inputs, leaving none unexecuted: 11 `slh`, 9 `slh-internal`, 14 `mldsa`, 12 `mldsa-internal` and 11 `mldsa-mu`. `slh-tg29-tc399-wrong-root` refused in 3,198 s, and the longest case, `slh-tg36-tc491-message-flipped`, took 4,276 s. Its joined receipt is retained at [`out/boot-crypto-target/36954830093/report.json`](retained-evidence/out/boot-crypto-target/36954830093/report.json), SHA-256 `aaae5ece67b69a24328e39b74a41804077dcb3d58c9080e2825663a091df9c67`, beside the five interface receipts whose digests it binds. Its bound sources, streams, compiler and vector identities equal those at `d71529eb`, where `boot-crypto verify` passes; its model and tool identities are `b906dbdd`'s, which differ there only in model build and test files and in tooling outside the campaign's execution. It is target execution evidence for the staged streams; the firmware join remains open.
-    * Six findings.
-      * **The campaign's receipts record no per-case timeout, and the join's shared keys omit it, so a join would accept interfaces run under different timeouts.** The 9,000 s value is read from the job logs, and the instruction limit appears only in each case's argv. A passing receipt is unaffected, every case having returned an HTIF verdict. Closed: each interface receipt now records its case timeout and instruction limit, and `boot-crypto join` refuses a shard lacking either or differing from the others in either; run 36954830093's retained receipts predate the fields. F-718.
-      * **Hosted case runtimes vary by runner by up to 1.56 times.** Across runs 36349072848, 36907039358 and 36954830093 over the same staged manifest, `slh-tg29-tc399-wrong-root` took between 3,198 and 4,990 s; the longest case reached 55% of the 9,000 s case timeout and the slowest interface 40% of the execution step's 320-minute limit. Standing: only run 36954830093's receipts are retained. F-719.
-      * **Identical model source maps built different simulators across runs.** Runs 36907039358 and 36954830093 record the same 756-file model map and different simulator digests, while the five interfaces within each run agree. Standing: each receipt binds its simulator and build-receipt digests. F-720.
-      * **The ML-DSA interfaces executed on the RoT composition, while their consumer is the M-mode stage on the main die.** Open: M3.5b's separately signed stage executes them there. F-721.
-      * **No record holds M3.5b's release-target unit to the staged manifest's verifier identities.** [rot_release_target.c](../../firmware/harness/rot_release_target.c) compiles its own unit over `keccak.c` and `slh256s.c`, and the hosted campaign exercises `vos_slh256s_verify_internal` rather than the `vos_boot_slh256s_verify` callback. Open: the parallel producer boundary's identity freeze with M3.5b. F-722.
-      * **[The boot-handoff contract's open joins](contracts/boot-handoff.md#8-open-joins-and-findings) still read the target signature-verifier binding as unbuilt and its run as fixture-only**, where M3.5b's `boot-handoff release-target` campaign at `0f61470a` binds `vos_boot_slh256s_verify` through the contained backend. Closed: section 8 now states that binding, and section 9.13 the chain's identity equality. F-723.
-    * **Start:** the calls M3.5 identifies over [Keccak.v](../../proofs/Keccak.v)'s `shake256`, [RomVerifier.v](../../proofs/RomVerifier.v)'s SLH-DSA-SHAKE-256s parameter set and call census, and [MlDsa.v](../../proofs/MlDsa.v). **Owns:** GC-free C for SHAKE256, SLH-DSA-SHAKE-256s verification as the RoT's scalar integer code (R-09-005a, R-15-059) and ML-DSA verification for the stages above the ROM (R-09-002), compared against Keccak.v and MlDsa.v and, for SLH-DSA, whose verification RomVerifier.v does not author, against FIPS 205 vectors and an independent oracle lineage under M3.4's rule for newly authored schemes. **Check:** accepted and refused signatures agree on every comparison family, including a corrupted signature, a wrong root and an over-length header field. **Join:** M1.2f's backend, M3.5's firmware lowering and the RoT composition. Constant time and masking stay deferred with the crypto core's hardened form; a signature statement alone is not an executable verifier.
+  * [x] **M7.1f · Realize the boot verifier's executable crypto** · 13 h retained estimate, actual n/a · agent-parallel
+    * Bounded scalar C verifies SLH-DSA-SHAKE-256s and ML-DSA-87 on the target, and M3.5b's chain executes both from the frozen sources on the RoT and the main die. ([note](completion-log.md#m71f-realize-the-boot-verifiers-executable-crypto))
 * [ ] **M7.2 · Measure allocation churn across the composed roster** · 4.5 h, range 3–6 · I
   * **Instrumentation checkpoint:** the host analyzer binds the capture to independently supplied identities and reports teardown rates, attributed swept bytes, quarantine peaks and per-period sweep service against declared reservations. Boundary and refusal fixtures pass, including ASCII-safe text diagnostics on narrow Windows output streams; structured output preserves captured identifiers and exact arithmetic. Generated comparisons against independent tick counting cover overlapping domain pools, distinct periods and unordered records; executable capture production and M7.1's accepted roster remain required.
   * **Execute:** Prepare teardown and swept-footprint instrumentation beside M7.1. Analyze the accepted roster independently of M7.3, sharing workload captures where they satisfy both predicates. Collect distinct activity only where required; do not repeat the full boot acceptance for an unchanged capture.
@@ -1758,7 +1747,7 @@ The same roster carries the ring-parameter measurement: queue depths, batch size
   * **Dispatch. Start:** the [roster measurement contract](contracts/roster-measurement.md#ring-parameters) and existing ring declaration fix the analyzer's inputs and limits. **Owns:** ring capture analysis and per-operation accounting tests. **Check:** `run.py test --only ring_measurement` for host instrumentation, then the measurement below over the accepted capture. **Join:** M7.1's accepted roster and its executable queue/notification producer. Abstract declaration costs supply no target WCET or progress proof.
   * Queue depths, batch sizes, notification cadence, and slot budgets read off the composed system against the §12 per-operation accounting.
 
-**M7 subtotal:** 86 h · 2% · 14 h complete · open range 46–98 h.
+**M7 subtotal:** 86 h · 2% · 27 h complete · open range 38–80 h.
 
 ### RTL track
 
@@ -2238,6 +2227,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | M6.4 | I | 9 |
 | M6.5a | X-authored | 14 |
 | M7.1e | n/a | n/a |
+| M7.1f | n/a | n/a |
 | R4 | X-authored | 20 |
 | Post-M10 | I | 6 |
 | I15 | n/a | n/a |

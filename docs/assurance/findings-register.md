@@ -3581,11 +3581,11 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-721** owed-act: the hosted campaign executed the ML-DSA interfaces on the RoT composition, while their consumer is the M-mode stage on the main die
 · Raised: M7.1f
-· Disposition: open, M3.5b's separately signed stage executes them there
+· Disposition: closed, M3.5b's chain campaign, run 37103959681, verified the stage-2 image with ML-DSA-87 on the main die
 
 **F-722** owed-act: no record holds M3.5b's release-target unit to the staged manifest's verifier identities, and the hosted campaign exercises the internal SLH-DSA verifier rather than the boot callback
 · Raised: M7.1f
-· Disposition: open, the parallel producer boundary's identity freeze with M3.5b
+· Disposition: closed, section 9.13's identity freeze held in run 37103959681, the chain compiling `vos_boot_slh256s_verify` and the ML-DSA binding from sources and a compiler equal to the staged manifest's
 
 **F-723** owed-act: the boot-handoff contract's open joins still read the target signature-verifier binding as unbuilt and its run as fixture-only after M3.5b's release-target campaign bound it
 · Raised: M7.1f
