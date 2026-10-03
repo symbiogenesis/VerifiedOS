@@ -10,6 +10,11 @@ directory also call the actual generated Sail model:
   ([`rot_slow_clock.h`](../../c_emulator/rot_slow_clock.h)) and follows the
   latched bite to the die reset, with a stopped petter, a stopped main clock,
   a detached-clock control and two deliberately inverted expectations.
+- `boot_control` runs the RoT boot-control window's Sail properties under
+  [`verifiedos-rot.json`](../../config/verifiedos-rot.json) and under a variant
+  whose latch, slot and attempt count are not zero, holds the power-on state
+  against the variant, checks the validator's four refusals, and carries one
+  deliberately inverted expectation.
 - `block_payload` generates byte/bit-distinguishing PIO payload and incomplete
   staging cases from the admitted block geometry.
 - `block_reset` enumerates command progress and reset boundaries, tear masks,
