@@ -1,0 +1,57 @@
+== out/q35f-floatlib/prelude.sail against the fpcomparelib vector oracle
+   scope: over 53 of 199 mutant(s), which is a sample and not the population
+   one line per verdict, as it is decided, and any note the loop writes on lines opening `-- `; the closing line is written only by a run that finished
+    1  survived  out/q35f-floatlib/prelude.sail:256 `<` -> `<=`: every vector reproduced
+    2  killed    out/q35f-floatlib/prelude.sail:124 `==` -> `!=`: 151982 of 207200 vector(s) moved
+    3  survived  out/q35f-floatlib/prelude.sail:127 `==` -> `!=`: every vector reproduced
+    4  killed    out/q35f-floatlib/prelude.sail:130 `==` -> `!=`: 187335 of 207200 vector(s) moved
+    5  killed    out/q35f-floatlib/prelude.sail:136 `==` -> `!=`: 1934 of 207200 vector(s) moved
+    6  killed    out/q35f-floatlib/prelude.sail:139 `==` -> `!=`: 95510 of 207200 vector(s) moved
+    7  killed    out/q35f-floatlib/prelude.sail:270 `==` -> `!=`: 67782 of 207200 vector(s) moved
+    8  killed    out/q35f-floatlib/prelude.sail:258 `!=` -> `==`: 62974 of 207200 vector(s) moved
+    9  killed    out/q35f-floatlib/prelude.sail:260 `!=` -> `==`: 75980 of 207200 vector(s) moved
+   10  stillborn out/q35f-floatlib/prelude.sail:127 ` - ` -> ` + `: the mutated model did not compile
+   11  stillborn out/q35f-floatlib/prelude.sail:136 ` - ` -> ` + `: the mutated model did not compile
+   12  killed    out/q35f-floatlib/prelude.sail:160 `&` -> `|`: 185361 of 207200 vector(s) moved
+   13  killed    out/q35f-floatlib/prelude.sail:168 `&` -> `|`: 77176 of 207200 vector(s) moved
+   14  survived  out/q35f-floatlib/prelude.sail:176 `&` -> `|`: every vector reproduced
+   15  killed    out/q35f-floatlib/prelude.sail:200 `&` -> `|`: 1058 of 207200 vector(s) moved
+   16  killed    out/q35f-floatlib/prelude.sail:252 `&` -> `|`: 114 of 207200 vector(s) moved
+   17  killed    out/q35f-floatlib/prelude.sail:253 `&` -> `|`: 37762 of 207200 vector(s) moved
+   18  killed    out/q35f-floatlib/prelude.sail:257 `&` -> `|`: 13237 of 207200 vector(s) moved
+   19  killed    out/q35f-floatlib/prelude.sail:257 `&` -> `|`: 13237 of 207200 vector(s) moved
+   20  killed    out/q35f-floatlib/prelude.sail:258 `&` -> `|`: 13273 of 207200 vector(s) moved
+   21  killed    out/q35f-floatlib/prelude.sail:269 `&` -> `|`: 228 of 207200 vector(s) moved
+   22  killed    out/q35f-floatlib/prelude.sail:539 `&` -> `|`: 50700 of 207200 vector(s) moved
+   23  killed    out/q35f-floatlib/prelude.sail:566 `&` -> `|`: 17679 of 207200 vector(s) moved
+   24  killed    out/q35f-floatlib/prelude.sail:594 `&` -> `|`: 17503 of 207200 vector(s) moved
+   25  killed    out/q35f-floatlib/prelude.sail:621 `&` -> `|`: 17622 of 207200 vector(s) moved
+   26  killed    out/q35f-floatlib/prelude.sail:257 `|` -> `&`: 62938 of 207200 vector(s) moved
+   27  killed    out/q35f-floatlib/prelude.sail:270 `|` -> `&`: 84 of 207200 vector(s) moved
+   28  killed    out/q35f-floatlib/prelude.sail:281 `|` -> `&`: 33666 of 207200 vector(s) moved
+   29  killed    out/q35f-floatlib/prelude.sail:533 `|` -> `&`: 599 of 207200 vector(s) moved
+   30  survived  out/q35f-floatlib/prelude.sail:538 `|` -> `&`: every vector reproduced
+   31  killed    out/q35f-floatlib/prelude.sail:562 `|` -> `&`: 874 of 207200 vector(s) moved
+   32  killed    out/q35f-floatlib/prelude.sail:589 `|` -> `&`: 448 of 207200 vector(s) moved
+   33  killed    out/q35f-floatlib/prelude.sail:590 `|` -> `&`: 606 of 207200 vector(s) moved
+   34  killed    out/q35f-floatlib/prelude.sail:617 `|` -> `&`: 882 of 207200 vector(s) moved
+   35  survived  out/q35f-floatlib/prelude.sail:85 `16` -> `17`: every vector reproduced
+   36  stillborn out/q35f-floatlib/prelude.sail:86 `15` -> `16`: the mutated model did not compile
+   37  stillborn out/q35f-floatlib/prelude.sail:87 `14` -> `15`: the mutated model did not compile
+   38  stillborn out/q35f-floatlib/prelude.sail:88 `9` -> `10`: the mutated model did not compile
+   39  stillborn out/q35f-floatlib/prelude.sail:90 `32` -> `33`: the mutated model did not compile
+   40  stillborn out/q35f-floatlib/prelude.sail:91 `31` -> `32`: the mutated model did not compile
+   41  stillborn out/q35f-floatlib/prelude.sail:92 `30` -> `31`: the mutated model did not compile
+   42  stillborn out/q35f-floatlib/prelude.sail:93 `22` -> `23`: the mutated model did not compile
+   43  stillborn out/q35f-floatlib/prelude.sail:95 `64` -> `65`: the mutated model did not compile
+   44  stillborn out/q35f-floatlib/prelude.sail:96 `63` -> `64`: the mutated model did not compile
+   45  stillborn out/q35f-floatlib/prelude.sail:97 `62` -> `63`: the mutated model did not compile
+   46  stillborn out/q35f-floatlib/prelude.sail:98 `51` -> `52`: the mutated model did not compile
+   47  survived  out/q35f-floatlib/prelude.sail:100 `128` -> `129`: every vector reproduced
+   48  stillborn out/q35f-floatlib/prelude.sail:101 `127` -> `128`: the mutated model did not compile
+   49  stillborn out/q35f-floatlib/prelude.sail:102 `126` -> `127`: the mutated model did not compile
+   50  stillborn out/q35f-floatlib/prelude.sail:103 `111` -> `112`: the mutated model did not compile
+   51  stillborn out/q35f-floatlib/prelude.sail:124 `0` -> `1`: the mutated model did not compile
+   52  stillborn out/q35f-floatlib/prelude.sail:127 `1` -> `2`: the mutated model did not compile
+   53  stillborn out/q35f-floatlib/prelude.sail:136 `1` -> `2`: the mutated model did not compile
+== complete: 53 verdict(s) decided, exit 1
