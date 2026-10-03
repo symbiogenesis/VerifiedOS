@@ -154,8 +154,9 @@ running, which then joins no receipt. Each interface runs on its own runner with
 verifies the streams, restores Guest CI's model-lane toolchains and Sail memo
 read-only, and builds the model for its simulator and build receipt.
 `boot-crypto join` then composes the five receipts: every interface exactly once,
-identical source, model, manifest, compiler and vector identities, verdicts that
-agree with their cases, and unexecuted cases listed. A failed case fails the
+identical source, model, manifest, compiler and vector identities, the same
+recorded per-case timeout and instruction limit, verdicts that agree with their
+cases, and unexecuted cases listed. A failed case fails the
 joined receipt; an inconsistent set is refused. The run retains each interface's
 receipt and logs and the joined `report.json` for 30 days. A passing joined
 receipt is target execution evidence for the staged streams at its revision; the

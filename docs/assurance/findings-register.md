@@ -3556,7 +3556,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-718** owed-act: the boot signature campaign's receipts record no per-case timeout and the join's shared keys omit it, so a join would accept interfaces run under different timeouts
 · Raised: M7.1f
-· Disposition: open, each interface receipt records its timeout and instruction limit and the join holds both shared
+· Disposition: closed, each interface receipt records its case timeout and instruction limit and the join refuses a shard lacking either or differing in either
 
 **F-719** measurement: hosted boot signature case runtimes vary by runner by up to 1.56 times over one staged manifest, the longest case reaching 55% of the 9,000 s case timeout
 · Raised: M7.1f

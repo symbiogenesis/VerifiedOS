@@ -30,7 +30,10 @@ _MARKER = re.compile(r'^# \d+ "([^"]+)"', re.MULTILINE)
 # Every shard of one joined campaign must agree on these fields.
 SHARED = ("source_sha256", "model_source_sha256", "compiler_provenance", "compiler_inputs_sha256",
           "compilation", "staged_manifest_sha256", "acvp_revision", "acvp_sources",
-          "acvp_notice_sha256", "stack_bytes", "population_scope", "scope", "limits")
+          "acvp_notice_sha256", "stack_bytes", "population_scope", "scope", "limits",
+          "case_timeout", "inst_limit")
+# The per-case bounds each shard ran under, which it must record as positive integers.
+BOUNDS = ("case_timeout", "inst_limit")
 
 
 def compiler_provenance(ccomp: Path) -> tuple[dict[str, object], dict[str, str]]:
@@ -477,7 +480,8 @@ def run(root: Path, out: Path, ccomp: Path | None, compiler_args: list[str], sim
         "host_binary_sha256": host_identity, "host_compiler": host_compiler,
         "acvp_revision": boot_crypto.REVISION, "acvp_sources": boot_crypto.SOURCES,
         "acvp_notice_sha256": boot_crypto.NOTICE_SHA,
-        "stack_bytes": STACK_BYTES, "jobs": jobs, "seconds": round(time.monotonic() - started, 3),
+        "stack_bytes": STACK_BYTES, "case_timeout": timeout, "inst_limit": inst_limit,
+        "jobs": jobs, "seconds": round(time.monotonic() - started, 3),
         "scope": "real signature interfaces on the scalar RoT profile",
         "milestone_acceptance": "open", "limits": ["firmware release join separate",
             "no binary refinement, constant-time or masking claim"]}
@@ -506,6 +510,9 @@ def join(reports: dict[str, Any]) -> dict[str, Any]:
             raise ValueError(f"{name} is not a completed target report")
         if report.get("first_positive_only") is not False:
             raise ValueError(f"{name} selected positives only")
+        for key in BOUNDS:
+            if type(report.get(key)) is not int or report[key] < 1:
+                raise ValueError(f"{name} records no {key}")
         for key in SHARED:
             if report.get(key) != reference.get(key):
                 raise ValueError(f"{name} differs from the other shards in {key}")

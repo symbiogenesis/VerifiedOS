@@ -418,7 +418,8 @@ def _shard(mode: str, **changes: object) -> dict[str, Any]:
         "cases": [{"case": case, "mode": mode, "expected": case == names[0], "passed": True}
                   for case in names],
         "seconds": 1.0, "jobs": 4, "inputs_sha256": {"simulator": mode},
-        **{key: f"shared {key}" for key in target.SHARED}}
+        **{key: f"shared {key}" for key in target.SHARED}, "case_timeout": 9000,
+        "inst_limit": 500_000_000}
     report.update(changes)
     return report
 
@@ -454,6 +455,14 @@ def joined_campaigns_are_complete_and_consistent() -> None:
          "differs from the other shards in source_sha256"),
         ("a different staged manifest", {**shards, "slh": _shard("slh", staged_manifest_sha256="other")},
          "in staged_manifest_sha256"),
+        ("a different case timeout", {**shards, "slh": _shard("slh", case_timeout=9600)},
+         "differs from the other shards in case_timeout"),
+        ("a different instruction limit", {**shards, "slh": _shard("slh", inst_limit=1)},
+         "differs from the other shards in inst_limit"),
+        ("a receipt without its timeout", {**shards, "slh": _shard("slh", case_timeout=None)},
+         "slh records no case_timeout"),
+        ("a boolean instruction limit", {**shards, "slh": _shard("slh", inst_limit=True)},
+         "slh records no inst_limit"),
         ("a positives-only shard", {**shards, "slh": _shard("slh", first_positive_only=True)},
          "selected positives only"),
         ("an incomplete shard", {**shards, "slh": _shard("slh", status="incomplete")},
