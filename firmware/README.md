@@ -17,6 +17,7 @@ file is and what it is not.
 | [harness/rot_inputs.s](harness/rot_inputs.s) | A probe that reads the RoT's lifecycle state, entropy verdict and floor under the RoT composition | Firmware |
 | [harness/slh_target.c](harness/slh_target.c) | One translation unit for compiling the existing SHAKE and SLH callback through the selected purecap backend | The complete RoT release stage or a passing target execution claim |
 | [harness/rot_release_target.c](harness/rot_release_target.c) | The target measurement, signature decision, placement and handoff-record preparation, with captured results for comparison | The model's missing release/latch doors, ROM/A-B/counting or the separately signed kernel stage |
+| [chain/vos_chain.h](chain/vos_chain.h) | The target chain composition's constants, verdicts, records and C entry points, which [the contract's section 9](../docs/implementation/contracts/boot-handoff.md#9-the-target-chain) states and its four implementation lanes share; the chain's own C and assembly land beside it | A change to `include/` or `crypto/`, which M7.1f's staged manifest binds byte for byte; an implementation of any chain stage |
 
 **Where each runs today.** The boot-handoff harness
 runs the release host-compiled in place of the RoT hart and says so in every
@@ -35,7 +36,8 @@ successful build receipt. A crash cannot supply a release or refusal verdict.
 `python tools/run.py
 boot-handoff layout` checks the contract's layout, case and permission tables and
 the assembled image against `vos_boot.h`, the harness and the image's constants
-without a toolchain.
+without a toolchain, and the contract's chain tables against `chain/vos_chain.h`
+and the model's boot-control door declarations.
 
 `boot_handoff.scheduled_mmode` emits the reviewed scheduled composition's exact
 timer windows and ASR-free partition execute roots before the final handoff.
