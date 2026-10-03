@@ -1,0 +1,478 @@
+start 2026-10-03T17:39:36Z
+switch verifiedos-rocq-9.3.0-ocaml-5.4.1
+[WARNING] Running as root is not recommended
+The Rocq Prover, version 9.3.0
+compiled with OCaml 5.4.1
+[WARNING] Running as root is not recommended
+/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq
+[WARNING] Running as root is not recommended
+/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocqchk
+=== AliasSealed: compile ===
+exit=0
+[WARNING] Running as root is not recommended
+=== AliasSealed: rocqchk -silent -o ===
+exit=0
+[WARNING] Running as root is not recommended
+
+CONTEXT SUMMARY
+===============
+
+* Theory: Set is predicative
+  
+* Theory: Rewrite rules are not allowed
+  
+* Axioms:
+    Q35i.AliasSealed.Nested.x_le
+    Q35i.AliasSealed.Nested.x
+    Q35i.AliasSealed.Nested.f
+    Q35i.AliasSealed.Alias.x_le
+    Q35i.AliasSealed.Alias.x
+    Q35i.AliasSealed.Alias.f
+    Q35i.AliasSealed.Constrained.x_le
+    Q35i.AliasSealed.Constrained.f
+  
+* Constants/Inductives relying on type-in-type: <none>
+  
+* Constants/Inductives relying on unsafe (co)fixpoints: <none>
+  
+* Inductives whose positivity is assumed: <none>
+  
+* Inductives relying on indices not mattering:
+    Corelib.Init.Datatypes.eq_true
+    Corelib.Init.Logic.eq
+  
+=== AliasSealed: Print Assumptions ===
+exit=0
+VOS_PROOF_AUDIT|Q35i.AliasSealed.Alias.x
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.AliasSealed.Alias.x_le
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.AliasSealed.Alias.f
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.AliasSealed.Nested.x
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.AliasSealed.Nested.x_le
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.AliasSealed.Nested.f
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.AliasSealed.Constrained.x_le
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.AliasSealed.Constrained.f
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.AliasSealed.Included.x_le
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.AliasSealed.Inter.x_le
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.AliasSealed.use
+Closed under the global context
+[WARNING] Running as root is not recommended
+=== AliasAdmitted: compile ===
+exit=0
+[WARNING] Running as root is not recommended
+File "./AliasAdmitted.v", line 11, characters 23-32:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+=== AliasAdmitted: rocqchk -silent -o ===
+exit=0
+[WARNING] Running as root is not recommended
+
+CONTEXT SUMMARY
+===============
+
+* Theory: Set is predicative
+  
+* Theory: Rewrite rules are not allowed
+  
+* Axioms:
+    Q35i.AliasAdmitted.Alias.x_le
+    Q35i.AliasAdmitted.Alias.x
+    Q35i.AliasAdmitted.Impl.x_le
+  
+* Constants/Inductives relying on type-in-type: <none>
+  
+* Constants/Inductives relying on unsafe (co)fixpoints: <none>
+  
+* Inductives whose positivity is assumed: <none>
+  
+* Inductives relying on indices not mattering:
+    Corelib.Init.Datatypes.eq_true
+    Corelib.Init.Logic.eq
+  
+=== AliasAdmitted: Print Assumptions ===
+exit=0
+VOS_PROOF_AUDIT|Q35i.AliasAdmitted.Alias.x
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.AliasAdmitted.Alias.x_le
+Axioms:
+AliasAdmitted.Alias.x_le : le AliasAdmitted.Alias.x AliasAdmitted.Alias.x
+VOS_PROOF_AUDIT|Q35i.AliasAdmitted.Impl.x_le
+Axioms:
+AliasAdmitted.Impl.x_le : le AliasAdmitted.Impl.x AliasAdmitted.Impl.x
+VOS_PROOF_AUDIT|Q35i.AliasAdmitted.use
+Axioms:
+AliasAdmitted.Alias.x_le : le AliasAdmitted.Alias.x AliasAdmitted.Alias.x
+[WARNING] Running as root is not recommended
+=== FunctorSealed: compile ===
+exit=0
+[WARNING] Running as root is not recommended
+=== FunctorSealed: rocqchk -silent -o ===
+exit=0
+[WARNING] Running as root is not recommended
+
+CONTEXT SUMMARY
+===============
+
+* Theory: Set is predicative
+  
+* Theory: Rewrite rules are not allowed
+  
+* Axioms:
+    Q35i.FunctorSealed.AppTSealed.x_le
+    Q35i.FunctorSealed.AppTSealed.x
+    Q35i.FunctorSealed.App.x_le
+    Q35i.FunctorSealed.App.x
+    Q35i.FunctorSealed.AppSealed.x_le
+    Q35i.FunctorSealed.AppSealed.x
+  
+* Constants/Inductives relying on type-in-type: <none>
+  
+* Constants/Inductives relying on unsafe (co)fixpoints: <none>
+  
+* Inductives whose positivity is assumed: <none>
+  
+* Inductives relying on indices not mattering:
+    Corelib.Init.Datatypes.eq_true
+    Corelib.Init.Logic.eq
+  
+=== FunctorSealed: Print Assumptions ===
+exit=0
+VOS_PROOF_AUDIT|Q35i.FunctorSealed.App.x
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.FunctorSealed.App.x_le
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.FunctorSealed.AppSealed.x
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.FunctorSealed.AppSealed.x_le
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.FunctorSealed.AppTSealed.x
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.FunctorSealed.AppTSealed.x_le
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.FunctorSealed.AppT.x_le
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.FunctorSealed.use
+Closed under the global context
+[WARNING] Running as root is not recommended
+=== FunctorAdmitted: compile ===
+exit=0
+[WARNING] Running as root is not recommended
+File "./FunctorAdmitted.v", line 15, characters 23-32:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+=== FunctorAdmitted: rocqchk -silent -o ===
+exit=0
+[WARNING] Running as root is not recommended
+
+CONTEXT SUMMARY
+===============
+
+* Theory: Set is predicative
+  
+* Theory: Rewrite rules are not allowed
+  
+* Axioms:
+    Q35i.FunctorAdmitted.App.x_le
+    Q35i.FunctorAdmitted.App.x
+  
+* Constants/Inductives relying on type-in-type: <none>
+  
+* Constants/Inductives relying on unsafe (co)fixpoints: <none>
+  
+* Inductives whose positivity is assumed: <none>
+  
+* Inductives relying on indices not mattering:
+    Corelib.Init.Datatypes.eq_true
+    Corelib.Init.Logic.eq
+  
+=== FunctorAdmitted: Print Assumptions ===
+exit=0
+VOS_PROOF_AUDIT|Q35i.FunctorAdmitted.App.x
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.FunctorAdmitted.App.x_le
+Axioms:
+FunctorAdmitted.App.x_le : le FunctorAdmitted.App.x FunctorAdmitted.App.x
+VOS_PROOF_AUDIT|Q35i.FunctorAdmitted.use
+Axioms:
+FunctorAdmitted.App.x_le : le FunctorAdmitted.App.x FunctorAdmitted.App.x
+[WARNING] Running as root is not recommended
+=== FunctorHidden: compile ===
+exit=0
+[WARNING] Running as root is not recommended
+=== FunctorHidden: rocqchk -silent -o ===
+exit=0
+[WARNING] Running as root is not recommended
+
+CONTEXT SUMMARY
+===============
+
+* Theory: Set is predicative
+  
+* Theory: Rewrite rules are not allowed
+  
+* Axioms:
+    Q35i.FunctorHidden.App.x_le
+    Q35i.FunctorHidden.App.x
+  
+* Constants/Inductives relying on type-in-type: <none>
+  
+* Constants/Inductives relying on unsafe (co)fixpoints: <none>
+  
+* Inductives whose positivity is assumed: <none>
+  
+* Inductives relying on indices not mattering:
+    Corelib.Init.Datatypes.eq_true
+    Corelib.Init.Logic.eq
+  
+=== FunctorHidden: Print Assumptions ===
+exit=0
+VOS_PROOF_AUDIT|Q35i.FunctorHidden.App.x
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.FunctorHidden.App.x_le
+Axioms:
+Q35i.FunctorHidden.App.hidden : False
+VOS_PROOF_AUDIT|Q35i.FunctorHidden.use
+Axioms:
+Q35i.FunctorHidden.App.hidden : False
+[WARNING] Running as root is not recommended
+=== InterHidden: compile ===
+exit=0
+[WARNING] Running as root is not recommended
+=== InterHidden: rocqchk -silent -o ===
+exit=0
+[WARNING] Running as root is not recommended
+
+CONTEXT SUMMARY
+===============
+
+* Theory: Set is predicative
+  
+* Theory: Rewrite rules are not allowed
+  
+* Axioms:
+    Q35i.InterHidden.M.hidden
+  
+* Constants/Inductives relying on type-in-type: <none>
+  
+* Constants/Inductives relying on unsafe (co)fixpoints: <none>
+  
+* Inductives whose positivity is assumed: <none>
+  
+* Inductives relying on indices not mattering:
+    Corelib.Init.Datatypes.eq_true
+    Corelib.Init.Logic.eq
+  
+=== InterHidden: Print Assumptions ===
+exit=0
+VOS_PROOF_AUDIT|Q35i.InterHidden.M.x
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.InterHidden.M.x_le
+Axioms:
+Q35i.InterHidden.M.hidden : False
+VOS_PROOF_AUDIT|Q35i.InterHidden.use
+Axioms:
+Q35i.InterHidden.M.hidden : False
+[WARNING] Running as root is not recommended
+=== GenuineAxiom: compile ===
+exit=0
+[WARNING] Running as root is not recommended
+=== GenuineAxiom: rocqchk -silent -o ===
+exit=0
+[WARNING] Running as root is not recommended
+
+CONTEXT SUMMARY
+===============
+
+* Theory: Set is predicative
+  
+* Theory: Rewrite rules are not allowed
+  
+* Axioms:
+    Q35i.GenuineAxiom.Alias.x
+    Q35i.GenuineAxiom.AliasP.x
+    Q35i.GenuineAxiom.ParamImpl.x
+    Q35i.GenuineAxiom.genuine
+  
+* Constants/Inductives relying on type-in-type: <none>
+  
+* Constants/Inductives relying on unsafe (co)fixpoints: <none>
+  
+* Inductives whose positivity is assumed: <none>
+  
+* Inductives relying on indices not mattering:
+    Corelib.Init.Datatypes.eq_true
+    Corelib.Init.Logic.eq
+  
+=== GenuineAxiom: Print Assumptions ===
+exit=0
+VOS_PROOF_AUDIT|Q35i.GenuineAxiom.genuine
+Axioms:
+GenuineAxiom.genuine : False
+VOS_PROOF_AUDIT|Q35i.GenuineAxiom.Alias.x
+Axioms:
+GenuineAxiom.genuine : False
+used in x to prove
+ nat
+VOS_PROOF_AUDIT|Q35i.GenuineAxiom.AliasP.x
+Axioms:
+GenuineAxiom.AliasP.x : nat
+VOS_PROOF_AUDIT|Q35i.GenuineAxiom.ParamImpl.x
+Axioms:
+GenuineAxiom.ParamImpl.x : nat
+VOS_PROOF_AUDIT|Q35i.GenuineAxiom.use
+Axioms:
+GenuineAxiom.genuine : False
+[WARNING] Running as root is not recommended
+=== NestedSealed: compile ===
+exit=0
+[WARNING] Running as root is not recommended
+=== NestedSealed: rocqchk -silent -o ===
+exit=0
+[WARNING] Running as root is not recommended
+
+CONTEXT SUMMARY
+===============
+
+* Theory: Set is predicative
+  
+* Theory: Rewrite rules are not allowed
+  
+* Axioms:
+    Q35i.NestedSealed.O5.Inner.x_le
+    Q35i.NestedSealed.O5.Inner.x
+    Q35i.NestedSealed.O4.Inner.x_le
+    Q35i.NestedSealed.O4.Inner.x
+    Q35i.NestedSealed.O.Inner.x_le
+    Q35i.NestedSealed.O.Inner.x
+  
+* Constants/Inductives relying on type-in-type: <none>
+  
+* Constants/Inductives relying on unsafe (co)fixpoints: <none>
+  
+* Inductives whose positivity is assumed: <none>
+  
+* Inductives relying on indices not mattering:
+    Corelib.Init.Datatypes.eq_true
+    Corelib.Init.Logic.eq
+  
+=== NestedSealed: Print Assumptions ===
+exit=0
+VOS_PROOF_AUDIT|Q35i.NestedSealed.O.Inner.x
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.NestedSealed.O.Inner.x_le
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.NestedSealed.O2.Inner.x_le
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.NestedSealed.O3.Inner.x_le
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.NestedSealed.O4.Inner.x
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.NestedSealed.O4.Inner.x_le
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.NestedSealed.O5.Inner.x
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.NestedSealed.O5.Inner.x_le
+Closed under the global context
+VOS_PROOF_AUDIT|Q35i.NestedSealed.use
+Closed under the global context
+[WARNING] Running as root is not recommended
+=== sha256 of every file ===
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  AliasAdmitted.assumptions.exit
+73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a  AliasAdmitted.assumptions.stderr
+ce144d3928227f7614e0e5c21ac855622fafa2077428d1a821695e378090025b  AliasAdmitted.assumptions.stdout
+c4ad68fc4fe88442c278a3f347c9021904915a01b7785b9158fbb47d7962f29a  AliasAdmitted.compile.err
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  AliasAdmitted.compile.exit
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  AliasAdmitted.compile.out
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  AliasAdmitted.rocqchk.exit
+06ee66c4713ea1d7153e264d90f9e7e66c1c6662daaec767a2a08c8d42a54302  AliasAdmitted.rocqchk.stderr
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  AliasAdmitted.rocqchk.stdout
+7da6f27aaa7bf27679c684e168fd4bb3e4b07b238132dddae4736967b31785e5  AliasAdmitted.v
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  AliasSealed.assumptions.exit
+73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a  AliasSealed.assumptions.stderr
+6bc1cb13d2c02e26f2cc85e08d5e72d9029ff4f89ebcfe0561ebea97fddd2f81  AliasSealed.assumptions.stdout
+73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a  AliasSealed.compile.err
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  AliasSealed.compile.exit
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  AliasSealed.compile.out
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  AliasSealed.rocqchk.exit
+2747319a8cebbf5b816a8001e6419b8bad75646484d21223fc34adc78572a2e2  AliasSealed.rocqchk.stderr
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  AliasSealed.rocqchk.stdout
+e5bb1ff1924ab54c6234f0713369165b68b7a9b57a8fe26614d545d1e53f90a2  AliasSealed.v
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  FunctorAdmitted.assumptions.exit
+73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a  FunctorAdmitted.assumptions.stderr
+23ba49a826c255c444c26e870641612aa7a7214c95f7f707de626dc140a310b7  FunctorAdmitted.assumptions.stdout
+1d9ce28177d1c48fd88ef0dc08f88f94a6876356bc61157b0ac0c7da387bad8f  FunctorAdmitted.compile.err
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  FunctorAdmitted.compile.exit
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  FunctorAdmitted.compile.out
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  FunctorAdmitted.rocqchk.exit
+558a4188f9dcc63a5fbcfbb948bf92317f5d5ee4ab79836ae95ff8505026fb9f  FunctorAdmitted.rocqchk.stderr
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  FunctorAdmitted.rocqchk.stdout
+71922dbf60689ada296ef584f6ad260648d991a5201516b04ed813c698c4574d  FunctorAdmitted.v
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  FunctorHidden.assumptions.exit
+73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a  FunctorHidden.assumptions.stderr
+ceae03bb171f2eeb632bc6242791f3a836c01073964e57b68c99fe26e2dd2a07  FunctorHidden.assumptions.stdout
+73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a  FunctorHidden.compile.err
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  FunctorHidden.compile.exit
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  FunctorHidden.compile.out
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  FunctorHidden.rocqchk.exit
+bcd7091366283921c615bf17ebbf16c619357f10e5a882a93ef21bc6f8eb4bc2  FunctorHidden.rocqchk.stderr
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  FunctorHidden.rocqchk.stdout
+50aca2d356c40b3e4c3c50cb6d10acfc9764563123b5b5a5319999a7ce54262a  FunctorHidden.v
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  FunctorSealed.assumptions.exit
+73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a  FunctorSealed.assumptions.stderr
+43ddd3433acc3d990dbf42150c6216dac3b3e980c4e98c288d6554662083eba0  FunctorSealed.assumptions.stdout
+73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a  FunctorSealed.compile.err
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  FunctorSealed.compile.exit
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  FunctorSealed.compile.out
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  FunctorSealed.rocqchk.exit
+34f1bd3c9ae09b37457a71524c8af1b419fe91ae44dc3dcdc95d0ac5097790c0  FunctorSealed.rocqchk.stderr
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  FunctorSealed.rocqchk.stdout
+173fa834800da2890f9cfdc9f946f0120498834a463ff7550ee7eed5515d4aaa  FunctorSealed.v
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  GenuineAxiom.assumptions.exit
+73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a  GenuineAxiom.assumptions.stderr
+751816a6c06f6fd69357d8962c06b29297bf1eb72d2dc8cae22f57d7a68648eb  GenuineAxiom.assumptions.stdout
+73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a  GenuineAxiom.compile.err
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  GenuineAxiom.compile.exit
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  GenuineAxiom.compile.out
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  GenuineAxiom.rocqchk.exit
+3b738cb2954f014770c1c725ade6a8785fed9c56f23b458fdd725e115cfaeb54  GenuineAxiom.rocqchk.stderr
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  GenuineAxiom.rocqchk.stdout
+f7f5bf92313077620d2f58de52a63c12f2f84680dd2537fce835506e46742648  GenuineAxiom.v
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  InterHidden.assumptions.exit
+73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a  InterHidden.assumptions.stderr
+fb4167601cd4c00bb714eca6d09c10525414e936f71e5a851c2be05db06f709f  InterHidden.assumptions.stdout
+73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a  InterHidden.compile.err
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  InterHidden.compile.exit
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  InterHidden.compile.out
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  InterHidden.rocqchk.exit
+9c1faa5e96ec6a4ee54b062bf07f1bc1c151dab3e7100189162ea7cd40326071  InterHidden.rocqchk.stderr
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  InterHidden.rocqchk.stdout
+941fd61a722ef4571cd3f2fdea483fdef16638563cabdaac0929712140d532a6  InterHidden.v
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  NestedSealed.assumptions.exit
+73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a  NestedSealed.assumptions.stderr
+a90b3e3491b22d1a86d41fd38b1870a0d0fd547c9cf3f62f1bf843d038e0d334  NestedSealed.assumptions.stdout
+73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a  NestedSealed.compile.err
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  NestedSealed.compile.exit
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  NestedSealed.compile.out
+19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061  NestedSealed.rocqchk.exit
+ec1799577176ab5e38aa4f215e5d9e9a8b1b7caf74f8b9be676d22be18184b58  NestedSealed.rocqchk.stderr
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  NestedSealed.rocqchk.stdout
+a580315029a2babafd2c2d27f1236d2145dde07b78da51be003e518e6ae79bf9  NestedSealed.v
+ca13b42f93eff5766a3fa82191c98287a6c7d86ea3e689a37669e72511458c27  Query_AliasAdmitted.v
+6a3deff6e404a6ae59c3b0e56611deb5d98eed8a728ed16b279a4ac76676503f  Query_AliasSealed.v
+75906990e78f1c9c46c63136178c28cc95e9577bc19e023a14a60813f5f0e6bb  Query_FunctorAdmitted.v
+97e5cc478f9558bfe0b7778de7176069e20b1066487db2e6d991c0b63689677c  Query_FunctorHidden.v
+7699640c71853d8e53d11cc3f9697532c377192a07f5eb997487c35992d7339a  Query_FunctorSealed.v
+70d9d38f0c407256b0be9fd1dc2bf0cec65f881128a7770df915d2df752e21ec  Query_GenuineAxiom.v
+2d8104a538aa8f503edba6e69e00e76752e5af035bf9eb62d3853f3c7af636bb  Query_InterHidden.v
+b46803bd5aa5c9364e62ef56ec53d672f59b23b2bab6448b88fe573150cda58d  Query_NestedSealed.v
+a4d47cf238ee1ca468d5999cd7e2b7e29559be5ea32cc0b114298bfb27068cea  queries.txt
+end 2026-10-03T17:39:49Z

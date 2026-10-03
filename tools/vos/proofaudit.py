@@ -190,22 +190,67 @@ def bind_claims(text: str, symbols: list[Symbol]) -> None:
         symbol["claims"] = entries
 
 
+def _assumption_block(name: str) -> list[str]:
+    """One framed Print Assumptions, after the marker the response parse keys on."""
+    if not QUALIFIED.fullmatch(name):
+        raise AuditError(f"invalid native symbol name {name!r}")
+    # Each interactive proof opens with Proof: Rocq 9.3 warns by default otherwise,
+    # and the gate refuses any diagnostic.
+    return [f'Goal True. Proof. idtac "{MARKER}{name}". Abort.\n',
+            f"Print Assumptions {name}.\n"]
+
+
 def assumption_query(module: str, symbols: list[Symbol]) -> str:
     lines = [f"Require {module}.\n", SETTINGS]
     for symbol in symbols:
         name = symbol["name"]
-        if not QUALIFIED.fullmatch(name):
-            raise AuditError(f"invalid native symbol name {name!r}")
-        # Each interactive proof opens with Proof: Rocq 9.3 warns by default otherwise,
-        # and the gate refuses any diagnostic.
-        lines += [f'Goal True. Proof. idtac "{MARKER}{name}". Abort.\n',
-                  f"Print Assumptions {name}.\n"]
+        lines += _assumption_block(name)
         if symbol["claims"]:
             # The source keyword Theorem can introduce a term of type nat. The
             # kernel, rather than that keyword, must decide that a claim is a Prop.
             lines.append(f"Goal True. Proof. let T := type of (@{name}) in "
                          "let K := type of T in unify K Prop. exact I. Qed.\n")
     return "".join(lines)
+
+
+# A proof module's stem, as `Require` names it: the module of a file under proofs/.
+_ROOT = re.compile(r"[\w']+")
+
+
+def sealed_field_query(roots: list[str], names: list[str]) -> str:
+    """Print Assumptions over each of `names`, in the environment that Requires exactly
+    `roots`, framed as the assumption audit frames its queries.
+
+    The names are kernel names the checker's summary printed for fields of sealed
+    modules in libraries a worker checked. The compiler answers for such a field with
+    the assumptions of the implementation its module expression names, resolving an
+    alias and a functor application alike (the pinned Rocq 9.3.0's
+    vernac/assumptions.ml, `lookup_constant_in_impl`, `fields_of_mp` and
+    `fields_of_expr`), and traversing that implementation's body and type
+    (`traverse_object`). It reports an assumption the seal hides from the environment
+    under the sealed path, and an admitted implementation as the field itself. The
+    kernel summary cannot give that reading (`kernel_context`); this query asks the
+    compiler for it over the same roots the checker loaded.
+    """
+    for root in roots:
+        if not _ROOT.fullmatch(root):
+            raise AuditError(f"invalid proof module name {root!r}")
+    if not names:
+        raise AuditError("a sealed-field query needs at least one name")
+    lines = [f"Require {root}.\n" for root in roots] + [SETTINGS]
+    for name in names:
+        lines += _assumption_block(name)
+    return "".join(lines)
+
+
+def sealed_field_assumptions(stdout: str, names: list[str]) -> dict[str, list[str]]:
+    """Each queried name's assumption entries, empty where the compiler reports the
+    name closed under the global context, read exactly as `assumptions` reads a proof
+    module's: one complete framed answer per name, in order, or the reading is refused."""
+    symbols: list[Symbol] = [{"name": name, "type": "", "assumptions": [], "claims": []}
+                             for name in names]
+    assumptions(stdout, symbols)
+    return {symbol["name"]: symbol["assumptions"] for symbol in symbols}
 
 
 def assumptions(stdout: str, symbols: list[Symbol]) -> None:

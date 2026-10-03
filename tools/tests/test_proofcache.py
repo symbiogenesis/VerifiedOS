@@ -21,8 +21,12 @@ from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from tests.test_proofaudit import KERNEL_CLEAN
-from vos import receipts
+from vos import proofaudit, proofenv, receipts
 from vos.cli import proofs as gate
+
+# The compiler's reading of sealed fields: each queried name's Print Assumptions entries,
+# empty where the name is closed under the global context.
+Reading = dict[str, list[str]]
 
 
 def _incremental_run() -> None:
@@ -703,39 +707,59 @@ def _joint_kernel_keeps_recursive_targets() -> None:
                    "joint environment was not an explicit kernel target")
 
 
+def _kernel_summary(*axioms: str) -> str:
+    """A clean kernel summary naming exactly these axioms."""
+    listed = "".join(f"    {axiom}\n" for axiom in axioms)
+    return KERNEL_CLEAN.replace("* Axioms: <none>\n", f"* Axioms:\n{listed}") if axioms \
+        else KERNEL_CLEAN
+
+
+def _fixture_proof_set(root: Path) -> tuple[list[Path], frozenset[str]]:
+    """Four proof modules with pretend objects: Cached, which Left and Middle Require,
+    and Right alone, so three changed components stand beside one reusable root."""
+    folder = root / "proofs"
+    folder.mkdir()
+    texts = {"Cached": "Definition value := 0.", "Left": "Require Cached.",
+             "Middle": "Require Cached.", "Right": "Definition value := 1."}
+    for name, text in texts.items():
+        (folder / f"{name}.v").write_text(text, encoding="utf-8")
+        (folder / f"{name}.vo").write_bytes(b"object" * len(name))
+    return gate._sources(root), frozenset(texts)
+
+
+def _self_reporting(asked: list[list[str]]) -> object:
+    """A compiler reading in which every name is a genuine axiom reporting itself, and
+    so is never covered; it records the names each worker asked about."""
+    def reading(_root: Path, _roots: list[Path], names: list[str]) -> tuple[str, dict[str, list[str]]]:
+        asked.append(list(names))
+        return "", {name: [f"{name} : Prop"] for name in names}
+    return reading
+
+
 def _admission_covers_only_the_installed_names_it_repeats() -> None:
     """A load-only pass over admitted roots covers installed names, never a proof's own."""
     sealed = "Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.testbit_odd_0"
     loaded = "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep"
-
-    def summary(*axioms: str) -> str:
-        listed = "".join(f"    {axiom}\n" for axiom in axioms)
-        return KERNEL_CLEAN.replace("* Axioms: <none>\n", f"* Axioms:\n{listed}") if axioms \
-            else KERNEL_CLEAN
+    summary = _kernel_summary
 
     with tempfile.TemporaryDirectory(prefix="vos-kernel-admission-") as temporary:
         root = Path(temporary)
-        folder = root / "proofs"
-        folder.mkdir()
-        texts = {"Cached": "Definition value := 0.", "Left": "Require Cached.",
-                 "Middle": "Require Cached.", "Right": "Definition value := 1."}
-        for name, text in texts.items():
-            (folder / f"{name}.v").write_text(text, encoding="utf-8")
-            (folder / f"{name}.vo").write_bytes(b"object" * len(name))
-        sources = gate._sources(root)
-        stems = frozenset(texts)
+        sources, stems = _fixture_proof_set(root)
         reused = frozenset({"Cached"})
-        # Each worker's axioms, the load-only pass's (None when that pass fails) and the
-        # text a refusal must carry. `sealed` is never refused while that pass names it.
-        samples: tuple[tuple[tuple[str, ...], tuple[str, ...] | None, str], ...] = (
-            ((sealed,), (sealed,), ""),
-            ((sealed, loaded), (sealed,), loaded),
-            ((sealed, "Cached.a"), (sealed, "Cached.a"), "Cached.a"),
-            ((sealed,), None, "own context summary failed"),
-            ((), (sealed,), ""))
-        for worker, alone, refusal in samples:
+        # Each worker's axioms, the load-only pass's (None when that pass fails), the
+        # text a refusal must carry and whether the compiler's reading is asked about
+        # the residue the admission leaves. `sealed` is never refused while that pass
+        # names it; `loaded` is a genuine axiom the reading cannot cover.
+        samples: tuple[tuple[tuple[str, ...], tuple[str, ...] | None, str, bool], ...] = (
+            ((sealed,), (sealed,), "", False),
+            ((sealed, loaded), (sealed,), loaded, True),
+            ((sealed, "Cached.a"), (sealed, "Cached.a"), "Cached.a", False),
+            ((sealed,), None, "own context summary failed", False),
+            ((), (sealed,), "", False))
+        for worker, alone, refusal, read in samples:
             for jobs in (1, 3):
                 passes: list[frozenset[str]] = []
+                asked: list[list[str]] = []
 
                 def recheck(_base: Path, members: list[Path], admitted: frozenset[str],
                             worker: tuple[str, ...] = worker, alone: tuple[str, ...] | None = alone,
@@ -748,6 +772,7 @@ def _admission_covers_only_the_installed_names_it_repeats() -> None:
                         stderr="Error: unreadable" if alone is None else summary(*alone))
 
                 with patch.object(gate, "_recheck_joint", side_effect=recheck), \
+                        patch.object(gate, "_sealed_reading", side_effect=_self_reporting(asked)), \
                         contextlib.redirect_stdout(io.StringIO()) as said:
                     fault = gate._recheck(root, sources, reused, jobs=jobs)
                 ensure(bool(fault) == bool(refusal) and refusal in fault,
@@ -761,12 +786,170 @@ def _admission_covers_only_the_installed_names_it_repeats() -> None:
                             else [reused, stems - {"Left"}])
                 ensure(sorted(passes, key=sorted) == sorted(expected, key=sorted),
                        f"load-only passes {passes} differ from {expected}")
-        # With nothing admitted the worker checked every library it names.
+                # The compiler is asked about exactly the installed residue the admission
+                # leaves, by every worker that has one, and about nothing a proof owns.
+                workers = 1 if jobs == 1 else 3
+                ensure(asked == ([[loaded]] * workers if read else []),
+                       f"the compiler's reading was asked {asked} for {worker} with {jobs} job(s)")
+        # With nothing admitted the worker checked every library it names, and a genuine
+        # axiom of such a library reports itself to the compiler.
+        asked = []
         with patch.object(gate, "_recheck_joint", side_effect=lambda *_: subprocess.CompletedProcess(
-                [], 0, stdout="", stderr=summary(sealed))) as run:
+                [], 0, stdout="", stderr=summary(sealed))) as run, \
+                patch.object(gate, "_sealed_reading", side_effect=_self_reporting(asked)):
             ensure(sealed in gate._recheck(root, sources, frozenset(), jobs=1),
                    "an axiom of a checked installed library was covered")
             ensure(run.call_count == 1, "a worker that admitted nothing ran a load-only pass")
+            ensure(asked == [[sealed]], f"the checked library's name was not read: {asked}")
+
+
+def _the_compilers_reading_covers_checked_sealed_fields() -> None:
+    """A sealed field of a library the worker checked is covered exactly when the
+    compiler's reading of what its seal hides is closed or lists only declared entries.
+
+    The readings stand for the pinned Rocq 9.3.0's answers, taken over the Q35i
+    reductions: a proved implementation is closed, an assumption a sealing functor
+    hides reports under the sealed path, an admitted implementation and a genuine axiom
+    report themselves. A proof module's own name, its first component being a proof
+    module's stem whatever modules nest beneath it, is refused without being read.
+    """
+    alias, app = "Lib.Alias.x_le", "Lib.App.x_le"
+    hidden, admitted, genuine = "Lib.App.hidden : False", "Lib.Admitted.x_le", "Lib.genuine"
+    sealed = "Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.testbit_odd_0"
+    summary = _kernel_summary
+    # Each worker's axioms, the compiler's readings (a string is a fault), the names a
+    # refusal must carry, the names it must not, and the names covered by the reading.
+    samples: tuple[tuple[tuple[str, ...], Reading | str, tuple[str, ...], tuple[str, ...],
+                         tuple[str, ...]], ...] = (
+        ((alias,), {alias: []}, (), (alias,), (alias,)),
+        ((alias, app), {alias: [], app: [hidden]}, (app,), (alias,), (alias,)),
+        ((admitted,), {admitted: [f"{admitted} : le Lib.Admitted.x Lib.Admitted.x"]},
+         (admitted,), (), ()),
+        ((genuine,), {genuine: [f"{genuine} : False"]}, (genuine,), (), ()),
+        ((alias, "Right.a"), {alias: [], "Right.a": []}, ("Right.a",), (alias,), (alias,)),
+        ((alias, "Right.Inner.a"), {alias: [], "Right.Inner.a": []}, ("Right.Inner.a",),
+         (alias,), (alias,)),
+        ((alias,), {}, (alias,), (), ()),
+        ((alias,), "the query exited 1", ("compiler's reading of the checked libraries' "
+                                          "sealed fields failed: the query exited 1",), (), ()))
+    with tempfile.TemporaryDirectory(prefix="vos-kernel-sealed-") as temporary:
+        root = Path(temporary)
+        sources, proofs = _fixture_proof_set(root)
+        for worker, readings, refused, accepted, covered in samples:
+            for jobs in (1, 3):
+                asked: list[list[str]] = []
+
+                def reading(_root: Path, roots: list[Path], names: list[str],
+                            readings: Reading | str = readings, jobs: int = jobs,
+                            asked: list[list[str]] = asked) -> tuple[str, dict[str, list[str]]]:
+                    # A single worker loads every root; a peer loads its batch and the
+                    # reusable roots, the joint worker every root.
+                    loaded = {path.stem for path in roots}
+                    ensure(loaded == {"Cached", "Left", "Middle", "Right"} if jobs == 1
+                           else "Cached" in loaded and loaded <= {"Cached", "Left", "Middle", "Right"},
+                           f"the reading was not asked over the worker's roots: {loaded}")
+                    asked.append(list(names))
+                    return (readings, {}) if isinstance(readings, str) else ("", dict(readings))
+
+                def recheck(_base: Path, members: list[Path], admitted: frozenset[str],
+                            worker: tuple[str, ...] = worker) -> subprocess.CompletedProcess[str]:
+                    # The joint worker's load-only pass over the peer's targets names
+                    # nothing, so every name below is one of a library it checked; a
+                    # proof module's own constant is named only where that module is
+                    # loaded, as the checker loads only the worker's roots.
+                    loaded = {member.stem for member in members}
+                    named = [name for name in worker
+                             if name.split(".", 1)[0] not in proofs or name.split(".", 1)[0] in loaded]
+                    return subprocess.CompletedProcess(
+                        [], 0, stdout="", stderr=summary() if loaded == admitted else summary(*named))
+
+                with patch.object(gate, "_recheck_joint", side_effect=recheck), \
+                        patch.object(gate, "_sealed_reading", side_effect=reading), \
+                        contextlib.redirect_stdout(io.StringIO()) as said:
+                    fault = gate._recheck(root, sources, frozenset(), jobs=jobs)
+                ensure(bool(fault) == bool(refused),
+                       f"wrong verdict for {worker} with {jobs} job(s): {fault!r}")
+                for name in refused:
+                    ensure(name in fault, f"{name} was not refused for {worker}: {fault!r}")
+                for name in accepted:
+                    ensure(name not in fault, f"{name} was refused for {worker}: {fault!r}")
+                # The reading is asked about the installed names alone, sorted, by every
+                # worker, never about a proof module's own. With nothing reused, Cached,
+                # Left and Middle are one changed component beside Right: two workers.
+                installed = sorted(name for name in worker if not name.startswith("Right."))
+                ensure(asked == [installed] * (1 if jobs == 1 else 2),
+                       f"the reading was asked {asked} for {worker} with {jobs} job(s)")
+                reported = said.getvalue()
+                modules = sorted({name.rsplit(".", 1)[0] for name in covered})
+                ensure((f"{len(covered)} sealed-field name(s) of checked installed libraries are "
+                        "covered by the compiler's reading of what their seals hide: "
+                        f"{', '.join(modules)}" in reported) == bool(covered and not fault),
+                       f"the covered sealed fields were misreported for {worker}: {reported!r}")
+        # A declared entry is matched whole, type included, and every entry must be declared.
+        with patch.object(gate, "DECLARED", {"Lib.D : False"}):
+            for entries, verdict in (([], True), (["Lib.D : False"], True),
+                                     (["Lib.D : True"], False), (["Lib.D : False", "Lib.E : False"], False),
+                                     ([f"{alias} : Prop"], False)):
+                with patch.object(gate, "_recheck_joint", return_value=subprocess.CompletedProcess(
+                        [], 0, stdout="", stderr=summary(alias))), \
+                        patch.object(gate, "_sealed_reading", return_value=("", {alias: entries})), \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    fault = gate._recheck(root, sources, frozenset(), jobs=1)
+                ensure((fault == "") == verdict, f"reading {entries} gave {fault!r}")
+        # The admission cover goes first: a name the admitted roots repeat is not read, and
+        # a worker whose residue is empty asks nothing.
+        reused = frozenset({"Cached"})
+        for worker, residue in (((sealed, alias), [alias]), ((sealed,), [])):
+            asked = []
+
+            def recheck(_base: Path, members: list[Path], admitted: frozenset[str],
+                        worker: tuple[str, ...] = worker) -> subprocess.CompletedProcess[str]:
+                alone = {member.stem for member in members} == admitted
+                return subprocess.CompletedProcess(
+                    [], 0, stdout="", stderr=summary(sealed) if alone else summary(*worker))
+
+            with patch.object(gate, "_recheck_joint", side_effect=recheck), \
+                    patch.object(gate, "_sealed_reading", side_effect=lambda _r, _p, names, asked=asked: (
+                        asked.append(list(names)), ("", {alias: []}))[1]), \
+                    contextlib.redirect_stdout(io.StringIO()) as said:
+                fault = gate._recheck(root, sources, reused, jobs=1)
+            ensure(fault == "", f"an admission-covered and reading-covered run was refused: {fault!r}")
+            ensure(asked == ([residue] if residue else []),
+                   f"the reading was asked {asked}, not the admission's residue {residue}")
+            ensure(("by the evidence that admitted them: " in said.getvalue())
+                   and (("what their seals hide: Lib.Alias" in said.getvalue()) == bool(residue)),
+                   f"the two covers were misreported: {said.getvalue()!r}")
+
+
+def _the_sealed_reading_runs_one_framed_query() -> None:
+    """The compiler is asked once, over the worker's roots, and a query that fails or
+    answers out of frame is a fault that covers nothing."""
+    marker = proofaudit.MARKER
+    with tempfile.TemporaryDirectory(prefix="vos-sealed-reading-") as temporary:
+        root = Path(temporary)
+        roots = [root / "proofs" / "Base.v", root / "proofs" / "ApexTheorem.v"]
+        names = ["Lib.Alias.x_le", "Lib.App.x"]
+        queries: list[str] = []
+
+        def query(_root: Path, _directory: Path, _name: str, text: str) -> str:
+            queries.append(text)
+            return (f"{marker}Lib.Alias.x_le\nClosed under the global context\n"
+                    f"{marker}Lib.App.x\nAxioms:\nLib.App.hidden : False\n")
+
+        with patch.object(gate, "_query", side_effect=query):
+            ensure(gate._sealed_reading(root, roots, names)
+                   == ("", {"Lib.Alias.x_le": [], "Lib.App.x": ["Lib.App.hidden : False"]}),
+                   "the sealed reading did not return the compiler's framed answers")
+        ensure(len(queries) == 1 and queries[0].startswith("Require Base.\nRequire ApexTheorem.\n")
+               and queries[0].count("Print Assumptions") == 2,
+               f"the sealed reading ran a query other than one over the roots: {queries!r}")
+        with patch.object(gate, "_query", side_effect=proofaudit.AuditError("SealedFields failed (exit 1)")):
+            fault, readings = gate._sealed_reading(root, roots, names)
+            ensure("SealedFields failed" in fault and not readings,
+                   f"a failed query covered something: {fault!r} {readings!r}")
+        with patch.object(gate, "_query", return_value=f"{marker}Lib.Alias.x_le\nClosed under the global context\n"):
+            fault, readings = gate._sealed_reading(root, roots, names)
+            ensure(fault and not readings, "an answer missing a name was accepted")
 
 
 def _context_hashes_library_bytes() -> None:
@@ -988,6 +1171,87 @@ def _native_admitted_installed_axioms() -> None:
                            "the edit did not admit the root that loads the sealed module")
 
 
+def _native_sealed_fields_are_read_through_their_seals() -> None:
+    """A checked library's alias-sealed and functor-sealed fields, which rocqchk names
+    as axioms, pass through the compiler's reading of what their seals hide; an admitted
+    implementation, an admission a sealing functor hides and a genuine axiom are refused.
+
+    The libraries are authored here, compiled under the empty logical prefix and
+    reached through ROCQPATH, which the pinned compiler and rocqchk both read as a
+    recursive root (the Rocq 9.3.0 sources' sysinit/coqloadpath.ml and
+    checker/coqchk_main.ml). Each theorem below is closed under the global context, so
+    the kernel recheck is what decides each step.
+    """
+    signatures = ("Module Type SIG. Parameter x : nat. Axiom x_le : x <= x. End SIG.\n"
+                  "Module Type ARG. Parameter a : nat. End ARG.\n"
+                  "Module Arg. Definition a := 2. End Arg.\n")
+    libraries = {
+        "VosSealedLib": signatures
+        + "Module Impl. Definition x := 1. Lemma x_le : x <= x. Proof. apply le_n. Qed. End Impl.\n"
+          "Module Alias : SIG := Impl.\n"
+          "Module F (A : ARG) : SIG. Definition x := A.a. "
+          "Lemma x_le : x <= x. Proof. apply le_n. Qed. End F.\n"
+          "Module App := F Arg.\n",
+        "VosAdmittedLib": signatures
+        + "Module Impl. Definition x := 1. Lemma x_le : x <= x. Proof. Admitted. End Impl.\n"
+          "Module Alias : SIG := Impl.\n",
+        "VosHiddenLib": signatures
+        + "Module F (A : ARG) : SIG. Definition x := A.a. Lemma x_le : x <= x. Proof. Admitted. End F.\n"
+          "Module App := F Arg.\n",
+        # The axiom is eliminated through False_rect: for a bare `match genuine with end`
+        # Rocq prints where the axiom is used beside its entry, which the assumption
+        # parser refuses as unframed, a refusal all the same.
+        "VosGenuineLib": "Axiom genuine : False.\nModule Type SIG. Parameter x : nat. End SIG.\n"
+                         "Module Impl. Definition x : nat := False_rect nat genuine. End Impl.\n"
+                         "Module Alias : SIG := Impl.\n"}
+    # Each step's library, theorem, verdict, the refused names (the whole list) or the
+    # cover's report, and a name that must not be refused.
+    closed = "Theorem t : True. Proof. exact I. Qed.\n"
+    steps = (
+        ("VosSealedLib",
+         "Theorem t : VosSealedLib.Alias.x <= VosSealedLib.Alias.x /\\ VosSealedLib.App.x <= "
+         "VosSealedLib.App.x.\nProof. exact (conj VosSealedLib.Alias.x_le VosSealedLib.App.x_le). Qed.\n",
+         0, None, "4 sealed-field name(s) of checked installed libraries are covered by the "
+                  "compiler's reading of what their seals hide: VosSealedLib.Alias, VosSealedLib.App"),
+        ("VosAdmittedLib", closed, 1, {"VosAdmittedLib.Alias.x_le", "VosAdmittedLib.Impl.x_le"},
+         "VosAdmittedLib.Alias.x,"),
+        ("VosHiddenLib", closed, 1, {"VosHiddenLib.App.x_le"}, "VosHiddenLib.App.x,"),
+        ("VosGenuineLib", closed, 1, {"VosGenuineLib.genuine", "VosGenuineLib.Alias.x"}, ""))
+    lane = gate.workspace(Path(__file__).resolve().parents[2])
+    lane.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="sealed-test-", dir=lane) as temporary:
+        library = Path(temporary) / "library"
+        library.mkdir()
+        for name, text in libraries.items():
+            (library / f"{name}.v").write_text(text, encoding="utf-8")
+            done = subprocess.run([*proofenv.rocq_command(), "-q", "-Q", str(library), "",
+                                   str(library / f"{name}.v")], cwd=library, capture_output=True,
+                                  text=True, encoding="utf-8", check=False)
+            ensure(done.returncode == 0, f"the authored library {name} did not compile: {done.stderr}")
+        root = Path(temporary) / "source"
+        folder = root / "proofs"
+        folder.mkdir(parents=True)
+        work = Path(temporary) / "output"
+        with patch.dict(os.environ, {"ROCQPATH": str(library)}), \
+                patch.object(gate, "workspace", return_value=work), \
+                patch.object(gate, "_inputs", side_effect=receipts.snapshot):
+            os.environ.pop("COQPATH", None)
+            for name, theorem, verdict, refused, said in steps:
+                (folder / "ApexTheorem.v").write_text(f"Require {name}.\n{theorem}", encoding="utf-8")
+                with contextlib.redirect_stdout(io.StringIO()) as output:
+                    ensure(gate._run(root, 1) == verdict,
+                           f"wrong verdict for {name}, {verdict} expected: {output.getvalue()}")
+                text = output.getvalue()
+                if refused is None:
+                    ensure(said in text, f"{name} did not report the cover: {text}")
+                    continue
+                listed = re.search(r"undeclared axioms: (.*)", text)
+                ensure(listed is not None and set(listed.group(1).split(", ")) == refused,
+                       f"{name} refused {listed.group(1) if listed else None}, not {refused}: {text}")
+                ensure(not said or said not in text.split("FAIL", 1)[1],
+                       f"{name}: a covered sealed field was refused: {text}")
+
+
 def _hold_while_retired(td: Path, recreated: bool) -> None:
     if sys.platform == "win32":
         raise AssertionError("flock is POSIX-only; the workspace lock cases run in the guest")
@@ -1043,9 +1307,14 @@ def cases() -> list[Case]:
             Case("joint-kernel-recursive-targets", _joint_kernel_keeps_recursive_targets),
             Case("kernel-admission-covers-installed-names",
                  _admission_covers_only_the_installed_names_it_repeats),
+            Case("kernel-reading-covers-checked-sealed-fields",
+                 _the_compilers_reading_covers_checked_sealed_fields),
+            Case("sealed-reading-runs-one-framed-query", _the_sealed_reading_runs_one_framed_query),
             Case("proof-cache-library-identities", _context_hashes_library_bytes, lane="guest"),
             Case("proof-workspace-lock-follows-a-move", _the_lock_follows_a_moved_workspace,
                  lane="guest"),
             Case("native-incremental-kernel", _native_incremental_kernel, lane="toolchain"),
             Case("native-admitted-installed-axioms", _native_admitted_installed_axioms,
-                 lane="toolchain")]
+                 lane="toolchain"),
+            Case("native-sealed-fields-read-through-seals",
+                 _native_sealed_fields_are_read_through_their_seals, lane="toolchain")]
