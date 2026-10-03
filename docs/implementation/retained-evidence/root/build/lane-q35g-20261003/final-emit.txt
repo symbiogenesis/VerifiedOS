@@ -1,0 +1,110 @@
+started 2026-10-03T17:03:48Z
+TermProbe compile_rc=0 check_rc=0 check_wall=0:32.81 check_maxrss_kb=1358424 axioms=0
+ControlEqdep compile_rc=0 check_rc=0 check_wall=0:54.47 check_maxrss_kb=1396240 axioms=1
+    Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq
+TermProbeWithReal compile_rc=0 check_rc=0 check_wall=1:03.64 check_maxrss_kb=1668756 axioms=4
+    Stdlib.Logic.Classical_Prop.classic
+    Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep
+    Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec
+    Stdlib.Reals.ClassicalDedekindReals.sig_not_dec
+ControlCReal compile_rc=0 check_rc=0 check_wall=0:42.32 check_maxrss_kb=1004272 axioms=0
+TermProbeWithReal compile_rc=0 check_rc=0 check_wall=1:11.69 check_maxrss_kb=1546084 axioms=5
+    Stdlib.Logic.Classical_Prop.classic
+    Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq
+    Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep
+    Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec
+    Stdlib.Reals.ClassicalDedekindReals.sig_not_dec
+TermProbe compile_rc=0 check_rc=0 check_wall=0:30.20 check_maxrss_kb=1414880 axioms=5
+    Stdlib.Logic.Classical_Prop.classic
+    Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq
+    Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep
+    Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec
+    Stdlib.Reals.ClassicalDedekindReals.sig_not_dec
+4f10934e905dda580adfdf65956673a0fef5d63d648e3a48c4ba3689cce03b4e  /root/build/lane-q35g-20261003/models/cinoreal.sail
+f25762ea2ab0b045ace4f16146dd81506132d480b10434ad58892f820f67f170  /root/build/lane-q35g-20261003/models/cireal.sail
+b94e35e5b972c6ce77e901a72d2418fb1cbff4b271d1f726e9f1a3702b4e9599  /root/build/lane-q35g-20261003/models/noreal.sail
+7613584a187010c82636e4696ec0fcac0c052ca12f8736fe4cb335295711ca4f  /root/build/lane-q35g-20261003/models/realinternal.sail
+9593f483552db7d4e9431821b92916bf8f1d46c7b7da1645061bda5530e8e2b7  /root/build/lane-q35g-20261003/models/realtyped.sail
+emit installed/noreal rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.Real. Require Import out_types. 
+emit pristine/noreal rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.Real. Require Import out_types. 
+emit patched/noreal rc=0; requires: Require Import SailStdpp.Base. Require Import out_types. 
+emit installed/realtyped rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.Real. Require Import out_types. 
+emit pristine/realtyped rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.Real. Require Import out_types. 
+emit patched/realtyped rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.Real. Require Import out_types. 
+emit installed/realinternal rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.Real. Require Import out_types. 
+emit pristine/realinternal rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.Real. Require Import out_types. 
+emit patched/realinternal rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.Real. Require Import out_types. 
+emit installed/cinoreal rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.Real. Require Import SailStdpp.ConcurrencyInterfaceTypes. Require Import SailStdpp.ConcurrencyInterface. Require Import SailStdpp.ConcurrencyInterfaceBuiltins. Require Import out_types. 
+emit pristine/cinoreal rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.Real. Require Import SailStdpp.ConcurrencyInterfaceTypes. Require Import SailStdpp.ConcurrencyInterface. Require Import SailStdpp.ConcurrencyInterfaceBuiltins. Require Import out_types. 
+emit patched/cinoreal rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.ConcurrencyInterfaceTypes. Require Import SailStdpp.ConcurrencyInterface. Require Import SailStdpp.ConcurrencyInterfaceBuiltins. Require Import out_types. 
+emit installed/cireal rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.Real. Require Import SailStdpp.ConcurrencyInterfaceTypes. Require Import SailStdpp.ConcurrencyInterface. Require Import SailStdpp.ConcurrencyInterfaceBuiltins. Require Import out_types. 
+emit pristine/cireal rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.Real. Require Import SailStdpp.ConcurrencyInterfaceTypes. Require Import SailStdpp.ConcurrencyInterface. Require Import SailStdpp.ConcurrencyInterfaceBuiltins. Require Import out_types. 
+emit patched/cireal rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.Real. Require Import SailStdpp.ConcurrencyInterfaceTypes. Require Import SailStdpp.ConcurrencyInterface. Require Import SailStdpp.ConcurrencyInterfaceBuiltins. Require Import out_types. 
+emit altmodules/cinoreal rc=0; requires: Require Import SailStdpp.Base. Require Import SailStdpp.ConcurrencyInterfaceTypes. Require Import SailStdpp.ConcurrencyInterface. Require Import SailStdpp.ConcurrencyInterfaceBuiltins. Require Import out_types. 
+== installed and rebuilt-pristine emissions identical?
+noreal identical
+realtyped identical
+realinternal identical
+cinoreal identical
+cireal identical
+== patched emission differs from installed only in the Require line?
+-- noreal
+3d2
+< Require Import SailStdpp.Real.
+6d5
+< Require Import SailStdpp.Real.
+-- realtyped
+-- realinternal
+-- cinoreal
+3d2
+< Require Import SailStdpp.Real.
+6d5
+< Require Import SailStdpp.Real.
+-- cireal
+-- altmodules cinoreal vs installed
+3d2
+< Require Import SailStdpp.Real.
+6d5
+< Require Import SailStdpp.Real.
+compile installed/noreal against pristine rc=0
+compile installed/noreal against patched rc=0
+compile patched/noreal against patched rc=0
+compile installed/realtyped against pristine rc=0
+compile installed/realtyped against patched rc=0
+compile patched/realtyped against patched rc=0
+compile installed/realinternal against pristine rc=0
+compile installed/realinternal against patched rc=0
+compile patched/realinternal against patched rc=0
+compile installed/cinoreal against pristine rc=0
+compile installed/cinoreal against patched rc=0
+compile patched/cinoreal against patched rc=0
+compile installed/cireal against pristine rc=0
+compile installed/cireal against patched rc=0
+compile patched/cireal against patched rc=0
+compile altmodules/cinoreal against patched rc=0
+altmodules and patched-plugin emissions of cinoreal are identical
+== uses of undefined_real / choose_real in emissions
+/root/build/lane-q35g-20261003/emit/installed/cinoreal/out.v:0
+/root/build/lane-q35g-20261003/emit/installed/cireal/out.v:1
+/root/build/lane-q35g-20261003/emit/installed/noreal/out.v:0
+/root/build/lane-q35g-20261003/emit/installed/realinternal/out.v:0
+/root/build/lane-q35g-20261003/emit/installed/realtyped/out.v:1
+/root/build/lane-q35g-20261003/emit/installed/cinoreal/out.v:93:Axiom read_mem_ :
+/root/build/lane-q35g-20261003/emit/installed/cinoreal/out.v:101:Axiom read_mem_ifetch_ :
+/root/build/lane-q35g-20261003/emit/installed/cinoreal/out.v:109:Axiom read_mem_exclusive_ :
+/root/build/lane-q35g-20261003/emit/installed/cinoreal/out.v:117:Axiom write_mem_ :
+/root/build/lane-q35g-20261003/emit/installed/cinoreal/out.v:125:Axiom write_mem_exclusive_ :
+/root/build/lane-q35g-20261003/emit/installed/cireal/out.v:93:Axiom read_mem_ :
+/root/build/lane-q35g-20261003/emit/installed/cireal/out.v:101:Axiom read_mem_ifetch_ :
+/root/build/lane-q35g-20261003/emit/installed/cireal/out.v:109:Axiom read_mem_exclusive_ :
+/root/build/lane-q35g-20261003/emit/installed/cireal/out.v:117:Axiom write_mem_ :
+/root/build/lane-q35g-20261003/emit/installed/cireal/out.v:125:Axiom write_mem_exclusive_ :
+check installed-pristine/cinoreal rc=0 axioms: out.write_mem_ out.read_mem_exclusive_ out.write_mem_exclusive_ Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep Stdlib.Reals.ClassicalDedekindReals.sig_not_dec Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq out.read_mem_ifetch_ Stdlib.Logic.Classical_Prop.classic out.read_mem_ 
+check patched-patched/cinoreal rc=0 axioms: out.write_mem_ out.read_mem_exclusive_ out.write_mem_exclusive_ out.read_mem_ifetch_ out.read_mem_ 
+check altmodules-patched/cinoreal rc=0 axioms: out.write_mem_ out.read_mem_exclusive_ out.write_mem_exclusive_ out.read_mem_ifetch_ out.read_mem_ 
+check patched-patched/noreal rc=0 axioms: <none> 
+check patched-patched/cireal rc=0 axioms: out.write_mem_ out.read_mem_exclusive_ out.write_mem_exclusive_ Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep Stdlib.Reals.ClassicalDedekindReals.sig_not_dec Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec out.read_mem_ifetch_ Stdlib.Logic.Classical_Prop.classic out.read_mem_ 
+check patched-patched/realtyped rc=0 axioms: Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep Stdlib.Reals.ClassicalDedekindReals.sig_not_dec Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec Stdlib.Logic.Classical_Prop.classic 
+67934e7834b2f3fa53388635159e5ce308ea562418e75ddffbdffd47810b046b  /root/build/lane-q35g-20261003/plugins-pristine/sail_plugin_coq.cmxs
+1b1b318c76143285eb8b3ec9cd17570c9f697e5bbc9251b75cf6306d0ac8078a  /root/build/lane-q35g-20261003/plugins-patched/sail_plugin_coq.cmxs
+finished 2026-10-03T17:15:35Z
