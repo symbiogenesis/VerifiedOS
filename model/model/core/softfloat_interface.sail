@@ -141,6 +141,17 @@ function float_f64Le(a, b) = { let (r, f) = float_is_le(a, b); (float_fflags(f),
 val float_f64Eq : (bits_D, bits_D) -> (bits_fflags, bool)
 function float_f64Eq(a, b) = { let (r, f) = float_is_eq(a, b); (float_fflags(f), r) }
 
+$iftarget rocq
+function riscv_f32Lt(a, b) = float_f32Lt(a, b)
+function riscv_f32Lt_quiet(a, b) = float_f32Lt_quiet(a, b)
+function riscv_f32Le(a, b) = float_f32Le(a, b)
+function riscv_f32Eq(a, b) = float_f32Eq(a, b)
+function riscv_f64Lt(a, b) = float_f64Lt(a, b)
+function riscv_f64Lt_quiet(a, b) = float_f64Lt_quiet(a, b)
+function riscv_f64Le(a, b) = float_f64Le(a, b)
+function riscv_f64Eq(a, b) = float_f64Eq(a, b)
+$endif
+
 // ***************************************************************
 // HALF WIDTH IN THE ROCQ TERM
 //
