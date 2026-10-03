@@ -371,8 +371,13 @@ uint64_t vos_chain_service_item6(uint8_t *state, const uint8_t *request, uint8_t
 // the stage-2 header, floor, ML-DSA-87 signature under `root_key`, placement
 // into `kernel_region`, measurement, the request, the response's binding. On
 // VOS_CHAIN_RELEASE the assembly installs section 6's state and enters the kernel.
+// The kernel region is handed as doublewords and `kernel_region_bytes` is its
+// extent in bytes: the main-die run's HTIF word, TOHOST_BASE, lies inside the
+// region and the emulator answers it to aligned four- and eight-byte accesses
+// alone, and the typed route admits no cast from a byte pointer, so the body
+// places, measures and zeroes the region one doubleword at a time.
 uint64_t vos_chain_mmode(const uint8_t *record, const uint8_t *root_key, const uint8_t *store,
-                         uint64_t store_len, uint8_t *kernel_region, uint64_t kernel_region_bytes,
+                         uint64_t store_len, uint64_t *kernel_region, uint64_t kernel_region_bytes,
                          uint8_t *request, const uint8_t *response, uint8_t *capture);
 
 #endif
