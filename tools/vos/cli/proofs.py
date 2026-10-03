@@ -505,24 +505,33 @@ def _worker_fault(sources: list[Path], admitted: frozenset[str],
     that closure admits exactly the installed libraries the worker admitted. Only a
     worker whose summary names such an axiom pays for that load-only run.
 
-    The checker records what a seal hides only for a structure body it checks under
-    that seal (the pinned Rocq 9.3.0's checker/mod_checking.ml, lines 288-304): a
-    module sealed by an alias, `Module M : T := N`, or by a functor application,
-    `Module M : T := F X` or `F X` for a sealing functor, has no such entry (line 305),
-    so its fields are listed as axioms where the library was checked (lines 17-26).
-    The kernel did establish the whole of the implementation there: its bodies were
-    type-checked where the module holding them was checked, an application's argument
-    against the functor's parameter (line 263), and the sealed type against the
-    implementation's (lines 308-316). What it did not report is which assumptions the
-    implementation reaches, and the compiler's Print Assumptions reads exactly that
-    (`proofaudit.sealed_field_query`). An installed name the admission cover leaves is
-    a name of a library this worker checked, since an admitted library's names the
-    load-only pass repeats. Such a name is covered when the compiler's reading of it,
-    taken over this worker's roots, is closed or lists only declared entries: an
-    admitted implementation reports the field itself, a hidden assumption reports
-    under the sealed path, and a genuine axiom reports itself, so none is covered. A
-    reading that fails, omits a name or lists an undeclared entry covers nothing for
-    it. A proof module's axiom is never covered or read.
+    The checker replaces a body-less field of a sealing type with what its
+    implementation uses only when, checking under that seal, it meets a constant with a
+    body whose canonical name is that field (the pinned Rocq 9.3.0's
+    checker/mod_checking.ml: line 330 tests the delta-resolved name's canonical form
+    against the seal's body-less fields, collected at lines 242-252 and 290, and line
+    107 registers only a constant with a body). A structure body checked under its seal
+    supplies such constants (lines 289-304), and so does the strengthened type of a
+    transparent functor application nested inside one (line 286). An algebraic module's
+    own fields under its ascription, `Module M : T := N` or `Module M : T := F X`, and
+    the fields of `F X` for a functor whose result type seals it have no body, and an
+    alias's constants keep the aliased module's canonical names, so none is registered
+    (line 305 registers nothing either) and each such field is listed as an axiom where
+    the library was checked (lines 17-26), at top level or nested under a seal whose
+    type declares the module. The kernel did establish the whole of the implementation
+    there: its bodies were type-checked where the module holding them was checked, an
+    application's argument against the functor's parameter (line 263), and the sealed
+    type against the implementation's (lines 308-316). What it did not report is which
+    assumptions the implementation reaches, and the compiler's Print Assumptions reads
+    exactly that (`proofaudit.sealed_field_query`). An installed name the admission
+    cover leaves is a name of a library this worker checked, since an admitted
+    library's names the load-only pass repeats. Such a name is covered when the
+    compiler's reading of it, taken over this worker's roots, is closed or lists only
+    declared entries: an admitted implementation reports the field itself, a hidden
+    assumption reports under the sealed path, and a genuine axiom reports itself, so
+    none is covered. A reading that fails, omits a name or lists an undeclared entry
+    covers nothing for it. A proof module's axiom, whatever modules nest beneath the
+    module's stem, is never covered or read.
     """
     none = frozenset[str]()
     fault, undeclared = _kernel_axioms(result)

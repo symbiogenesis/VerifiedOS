@@ -1351,27 +1351,34 @@ worker pays for the load-only pass, and workers admitting the same roots share o
 A proof module's axiom is never covered, and the run prints the covered names.
 The checker names a module's fields by the module's type: it lists every constant
 without a body in the environment it loaded, and replaces one with the assumptions
-its implementation uses only where it checked that implementation as a structure body
-under the sealing type, `Module M : T. ... End M.`, which is what the `PeanoNat` and
-`ssrunder` reading above rests on. A module sealed by an alias, `Module M : T := N`,
-or by a functor application, `Module M : T := F X` or `F X` for a functor whose own
-result type seals it, gets no such entry, so the checker names each of its fields as
-an axiom whether or not it checked the library (the pinned checker's
-`mod_checking.ml`, `check_module` and `constants_of_opaques`); a field a `with`
-constraint defines, a transparent alias or application, and an `Include` of such a
-module add no name. What the kernel checked there is the implementation: its bodies,
-an application's argument against the functor's parameter, and the sealed type
-against the implementation's. For such a name of a library the worker checked, which
-is every installed name the load-only pass does not repeat, the gate asks the
-compiler `Print Assumptions` about the name in the environment that Requires the
-worker's roots. The compiler resolves a sealed field through its module expression to
-the implementation and traverses that implementation's body and type, reporting an
-assumption the seal hides from the environment under the sealed path and an admitted
-implementation as the field itself. The name is covered when that reading is closed
-under the global context or lists only declared entries, so an admitted proof, an
-`Axiom` or a `Parameter` anywhere under the seal refuses, and so does a genuine
-axiom, which reports itself; a reading that fails or omits a name covers nothing, and
-the run prints these covered names apart from the admission's.
+its implementation uses only where, checking under the sealing type, it met a
+constant with a body whose canonical name is that field (the pinned checker's
+`mod_checking.ml`: `check_structure_field` tests the delta-resolved name's canonical
+form against the seal's body-less fields, `check_constant_declaration` registers only
+a constant with a body, and `constants_of_opaques` prints the list). A structure body
+checked under its seal, `Module M : T. ... End M.`, supplies such constants, which is
+what the `PeanoNat` and `ssrunder` reading above rests on, and so does the
+strengthened type of a transparent functor application nested inside one. An
+algebraic module's own fields under its ascription, `Module M : T := N` or
+`Module M : T := F X`, and the fields of `F X` for a functor whose own result type
+seals it have no body, and an alias's constants keep the aliased module's canonical
+names, so none is registered and the checker names each such field as an axiom
+whether or not it checked the library, at top level or nested under a seal whose
+type declares the module. At top level a transparent alias or application, a field a
+`with` constraint defines and an `Include` of a sealed module add no name, their
+constants keeping their bodies. What the kernel checked there is the implementation:
+its bodies, an application's argument against the functor's parameter, and the
+sealed type against the implementation's. For such a name of a library the worker
+checked, which is every installed name the load-only pass does not repeat, the gate
+asks the compiler `Print Assumptions` about the name in the environment that
+Requires the worker's roots. The compiler resolves a sealed field through its module
+expression to the implementation and traverses that implementation's body and type,
+reporting an assumption the seal hides from the environment under the sealed path
+and an admitted implementation as the field itself. The name is covered when that
+reading is closed under the global context or lists only declared entries, so an
+admitted proof, an `Axiom` or a `Parameter` anywhere under the seal refuses, and so
+does a genuine axiom, which reports itself; a reading that fails or omits a name
+covers nothing, and the run prints these covered names apart from the admission's.
 For every name in the loaded environment this enumeration is independent of the
 compiler's Print Assumptions, so neither reading's omission hides a loaded axiom from
 the gate; for an assumption a seal hides from the environment, the compiler's reading
