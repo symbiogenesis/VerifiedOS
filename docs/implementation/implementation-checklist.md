@@ -401,19 +401,19 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,200.4 |
-| Total estimate range h | 2,697.8–5,703 |
+| Total estimate midpoint h | 4,210.4 |
+| Total estimate range h | 2,703.8–5,717 |
 | Completed scope h | 789.4 |
-| Complete by estimate % | 18.8 |
-| Remaining h | 3,411 |
-| Open class I h | 681.5 |
+| Complete by estimate % | 18.7 |
+| Remaining h | 3,421 |
+| Open class I h | 691.5 |
 | Open class X h | 2,729.5 |
 | Retained completion estimate h | 186 |
 | Unmeasured completed items | 22 |
-| Calibrated total h | 5,149.2 |
+| Calibrated total h | 5,156.3 |
 | Committed M8a open h | 73 |
 | Committed M8b open h | 90.5 |
-| Other committed open h | 2,041.5 |
+| Other committed open h | 2,051.5 |
 | Conditional open h | 792 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -989,7 +989,7 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
   * **Done when:** the sequence statement refutes the retained re-entry's two failure readings, composition rejects both malformed inputs by test, the composed image on the emulator boots through a staged release with every image-derived domain re-verified and every session-derived one discharged across a lock and an unlock, and the constant's per-domain and per-release-point terms are stated in the devicetree with the emulator reading recorded beside them; the ceilings stay proposed and this item ratifies nothing.
 
 * [ ] **Q34 · Specify, prove and qualify the laptop's elastic desktop domain**
-  * The general-purpose laptop's elastic domain (R-07-037e through R-07-037i, R-08-047a through R-08-047e, R-11-006c) and same-session interpreted app path (R-14-013e) need the kernel and pool proofs, yield-point pass, precomposed host and desktop qualification priced below. The elastic-domain contract is crown-jewel row 31. Application ports, the deferred browser, and the existing kernel, revocation and compiler obligations keep their owners (M4.4, R2, M1). The handset's cellular, eUICC and emergency program remains outside the first release under R-02-003b.
+  * The general-purpose laptop's elastic domain (R-07-037e through R-07-037i, R-08-047a through R-08-047e, R-11-006c) and same-session interpreted app path (R-14-013e) need the kernel and pool proofs, yield-point pass, precomposed host, isolated-domain composition (R-14-011c) and desktop qualification priced below. The elastic-domain contract is crown-jewel row 31. Application ports, the deferred browser, and the existing kernel, revocation and compiler obligations keep their owners (M4.4, R2, M1). The handset's cellular, eUICC and emergency program remains outside the first release under R-02-003b.
   * [x] **Q34a · Author the elastic-domain contract** · 2.4 h actual · agent-parallel
     * [ElasticDomain.v](../../proofs/ElasticDomain.v) and [the elastic-domain contract](contracts/elastic-domain.md) state the envelope and its confinement, the EEVDF dispatch rule with the tentative yield and the boundary rule, the share bound, the yield-bound obligation with the sink's reach to a real yield, and the pool service's four guarantees with the heap library's narrowing, each with its refutations, and row 31 is `partial`; a conforming trace refutes the share bound as R-07-037g states it, and three further register questions wait for Q34b's proof. ([note](completion-log.md#q34a-author-the-elastic-domain-contract))
   * [ ] **Q34b · Extend the kernel statements to elastic dispatch and prove the share bound** · 36 h, range 24–48 · I
@@ -1022,6 +1022,9 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
     * **Reuse and estimate basis:** qualify [xcc's native wcc route](contracts/application-host.md#resident-producer-starting-point) before writing a frontend, preprocessor, Wasm emitter or linker. Use its declared source subset and required library closure; omit browser packaging and other architecture backends. WCPL is a fallback only after a named wcc refusal, not a second simultaneous port. The retained range carries qualification, native CHERI/ABI/resource/TAL adaptation and producer-specific tests; any selected specialization scope is separated and re-priced at entry without an assumed saving. Shared core conformance tooling stays charged to Q34g. A failed native admission or bounded-resource trial returns a separately priced prerequisite before expanding the port. This is an engineering forecast, not measured porting productivity.
     * The resident compiler targets ordinary Core 3.0 accepted by Q34g; external producers need no custom feature flags, and SIMD is part of full-engine acceptance. Record the source/flags/module identity for Q34f's scalar and vector comparisons; no private prepared-data format becomes a guest dialect, and no producer optimization establishes source correspondence or guest object safety by itself.
     * The [untrusted Wasm-to-Wasm specialization path](contracts/wasm-execution.md#remove-a-nested-language-interpreter-at-build) is commissioned only after the contract's selection gate identifies a named nested-language workload and measured penalty or missed target, bounded investigation, priced scope and owner, and acceptance predicates. Without that selection, record `n/a` and deliver the ordinary native source-to-Wasm bundle producer. A selected specialization tool may run as a guest beneath that producer; retain the inner interpreter's dynamic fallback and compare specialized/unspecialized observable results. Bound initialization, specialization, output growth and cancellation. On-device snapshot initialization uses the existing pure engine without live app grants; output contains only guest data, is fully validated and receives fresh activation authority. Upstream native-compiling Wizer is not an admitted on-device route. Read any selected producer's licence at incorporation; no new verified specialization checker is included. Selection does not release the applicable engine proofs or qualification before shipping.
+  * [ ] **Q34i · Compose isolated desktop domains and price their pool split** · 10 h, range 6–14 · I
+    * **Start:** R-14-011c and R-17-007b as amended, landed Q34a's contract and its statements in [ElasticDomain.v](../../proofs/ElasticDomain.v), and R-18-004b's comparisons. **Owns:** the composition rule mapping an application's isolation declaration, from its manifest or the holder's composition input, to a one-application elastic domain with its own label, envelope, pools and session manager; the admission checks that a declared-isolated application sits in no other domain, that an isolated domain holds one application's manifest, and that the general domain's session manager reaches each isolated one over a one-way endpoint with no other edge between their members; a reading of the elastic-domain contract confirming that none of its statements assumes one domain per profile, an assumption found being a finding against Q34a's contract rather than an edit here; and the capacity pricing of the composed first-release roster with two isolated applications against R-18-004b's comparisons, the general domain's floored pool unchanged. **Check:** a composition placing a declared-isolated application in the general domain, two applications' manifests in one isolated domain, or an edge from an isolated member back to a general member each fails admission; the contract's envelope-confinement statement instantiated with a general and an isolated domain on one core holds, and a mutant letting either domain's dispatch or pool read the other's state is refuted. **Join:** Q34e, which measures the general domain's focus dispatch bound and input-to-response with the isolated domains composed beside it, and Q10's product judgment of what isolation costs a user.
+    * **Estimate basis:** the composition rule and admission checks 2–4 h; the contract reading 1–2 h; the two-domain instantiation and its mutant 2–5 h; the capacity pricing 1–3 h. Class I: every input is a register entry or an artifact this repository owns.
 
 * [ ] **Q35 · Qualify the trusted C's proof routes at the locked prover**
   * R-05-001 puts the whole TCB on verified C compiled by CHERI-CompCert, R-07-051 keeps the kernel's cold paths there, and R-06-012, R-10-008 and R-18-026 name VST/Iris as that route's program logic. [Q35a's record](completion-log.md#q35a-record-the-verified-c-routes-blockers-and-assign-the-authored-c) finds no VST configuration qualified at the locked prover: the gate refuses the axioms and parameters a Clight development loads, VST's theorems are stated over another Clight than the one the contained compiler consumes, and the backend beneath it carries no correctness proof yet. R-07-050 and R-05-023a already require the other route, a proof over the emitted Sail term in the one Iris-over-Sail logic, for the fast path and for every post-CompCert step. This item commissions that route's canonical term and its logic's reviewed breakdown, trials it on two live cold executive functions whose Gallina counterparts are whole definitions, one loop-free and one whose nested loops call it, and reads the source-level foundations beside it, where [Q35e's record](../assurance/c-refinement-foundation-qualification.md) finds none that passes the gate unchanged. C stays the source language on both.
@@ -1130,7 +1133,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,396.9 h · 57% · 177.4 h complete · open range 1,257–3,182 h.
+**Q subtotal:** 2,406.9 h · 57% · 177.4 h complete · open range 1,263–3,196 h.
 
 ### M0 · Hardware reference
 
