@@ -2516,6 +2516,20 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: a wrong migration costs availability and never integrity, every object it points at being hash-verified against the signed root (R-10-009), so the migration joins no trust base; the forward half of the same boundary, what a predecessor reads in order to install its successor, is R-11-005b.
 · Trace: CJ-DEVTREE, CJ-FORMAT
 
+**R-10-038** MUST: The holder can take a **backup** of a profile's declared durable state and restore it onto a device the holder unlocks. The backup is the profile's rollbackable durable regions (R-10-035a), read through the verified stack as typed data under each region's declared schema and image generation (R-10-036), sealed end to end under a **backup key**, and written as one opaque object to storage the holder chooses and the platform does not trust. A restore authenticates the whole object and checks every region's schema before writing any region, and writes the regions beside the existing state as a carried migration writes (R-10-036a), so a restore that fails leaves the profile as it was. Taking a backup and restoring one are each a security action gated by the credential and unlock service and witnessed on the trusted consent path, as authorizing a rollback is (R-12-022).
+· Accept: the backup key carries at least 256 bits of entropy from the platform's DRBG and reaches the holder only as a recovery secret shown once on the trusted path, or wrapped to the RoT of a second device the holder enrols; it is never derived from the primary credential alone, because the object leaves R-12-017's attempt counter behind and a credential-derived key would make every copy an offline guessing target; and no vendor, service or escrowed party holds a key or share that opens it, which is R-09-036b's rule against an escrowed root applied to data.
+· Accept: the object's format is a Narcissus descriptor with its canonicity theorem, enumerated in R-05-042's wire-format inventory, and the object names the exporting generation, the profile it was taken from and every region's schema; a truncated, reordered, substituted or foreign-profile object fails authentication or the schema check before any region is written, and a region whose schema the receiving generation does not carry takes that generation's checked migration or is discarded (R-10-036).
+· Accept: a backup is a retained replica under R-17-049g's horizon, sealed with the at-rest stack's AEAD (R-10-024) under a 256-bit key, so its confidentiality rests on no public-key assumption; what it puts outside the device is booked at R-17-054a.
+· Trace: CJ-FORMAT, CJ-CRYPTO-SPEC, CJ-DEVTREE
+
+**R-10-039** MUST NOT: A backup never carries what R-10-037 keeps out of a checkpoint (execution state, capabilities or tags, keys, DRBG state or nonces, leases, consent grants or powerbox decisions, or connection, session or device state), a protocol credential the sealing service brokers (R-12-015a), anything sealed to the RoT or to measured state, the consent-record store (R-10-037a), or any `Fresh` region (R-10-035a).
+· Accept: decided by the export's construction: it reads only rollbackable durable regions through their declared schemas, so no path in it reaches a key, a credential capability, a sealed object, a consent record or a `Fresh` region. A restore therefore re-derives authority as a restart does (R-10-037) and gives each `Fresh` region the state its owner's manifest declares for a fresh install on the receiving device, so no restore resurrects a spent payment, a consumed token, an application's attempt counter, a revoked grant or a superseded revocation list: the replays R-10-013 blocks are excluded by absence rather than by a freshness check an off-device object could not carry. Protocol credentials are re-enrolled with their relying parties after a restore, the cost R-12-020 books.
+· Trace: CJ-CERISE, CJ-CRYPTO-SPEC, CJ-DEVTREE
+
+**R-10-040** MUST: Device migration is a restore whose object travels over an attested session rather than through storage: the source and receiving devices authenticate each other by attestation evidence appraised against their running generations, under a construction and model R-12-015c names, the holder's credential is presented on both, and the backup key travels inside that session rather than being shown, so a migration needs no recovery secret and leaves no object on storage.
+· Accept: the source sends no region to a receiving device whose evidence does not appraise, or whose quoted enrolled root set (R-09-036a) the holder has not confirmed on the source's trusted path, so a migration to an impostor device needs the holder's own confirmation of the impostor's roots; R-10-038's sealing and schema checks and R-10-039's exclusions bind the object a migration carries exactly as they bind a backup.
+· Trace: CJ-ATTEST, CJ-DEVTREE
+
 ---
 
 ## §11. Updates
@@ -6284,6 +6298,10 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Fail-closed: the duress credential erases rather than unlocking (R-17-030h); the cost is irreversible on accidental entry.
 · Trace: CJ-CRYPTO-SPEC
 
+**R-17-054a** IS: A backup (R-10-038) is a copy of a profile's durable state outside the device, and the device's protections stop at its edge: the duress erase (R-12-018) does not reach it, the lock state and the credential's rate limiter (R-12-017) do not guard it, and its confidentiality is that of the recovery secret and of the storage the holder chose, so a holder compelled to reveal the recovery secret, or careless with it, discloses everything the backup holds.
+· Accept: booked rather than closed: R-10-038's credential gate and consent witness limit who can take a backup and say nothing about who opens one later. A holder who takes none keeps R-17-054's limits as they stand, and a holder who takes one trades the duress erase's protection of future recoverability for recoverability after loss, a trade the platform states and leaves to the holder.
+· Trace: CJ-CRYPTO-SPEC
+
 **R-17-055** IS: Hardware-random link-layer addressing is necessary but not sufficient for unlinkability: RF fingerprinting, frame sequence numbers and timing, and higher-layer identifiers each re-link sessions a random address alone would separate; and because framing is SoftMAC the address is inserted by a memory-safe but not functionally-proven compartment.
 · Accept: the guarantee is *no persistent identifier, randomness from the platform RNG root*, a privacy floor, not a complete unlinkability proof.
 · Trace: CJ-NI
@@ -6692,14 +6710,14 @@ The table below records the extracted normative sections and their entry counts,
 | **§7 Kernel** | **extracted** | **70** |
 | **§8 Authority Model** | **extracted** | **96** |
 | **§9 Boot & Root of Trust** | **extracted** | **45** |
-| **§10 Storage & State** | **extracted** | **55** |
+| **§10 Storage & State** | **extracted** | **58** |
 | **§11 Updates** | **extracted** | **41** |
 | **§12 System Servers** | **extracted** | **139** |
 | **§13 Packaging & Supply Chain** | **extracted** | **46** |
 | **§14 Userland** | **extracted** | **40** |
 | **§15 Hardware Platform** | **extracted** | **431** |
 | **§16 Reliability** | **extracted** | **36** |
-| **§17 Residual Risks** | **extracted** | **155** |
+| **§17 Residual Risks** | **extracted** | **156** |
 | **§18 Realization** | **extracted** | **59** |
 
 §19 is non-normative and yields no requirements.

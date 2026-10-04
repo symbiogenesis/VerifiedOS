@@ -401,19 +401,19 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,210.4 |
-| Total estimate range h | 2,703.8–5,717 |
+| Total estimate midpoint h | 4,222.4 |
+| Total estimate range h | 2,711.8–5,733 |
 | Completed scope h | 789.4 |
 | Complete by estimate % | 18.7 |
-| Remaining h | 3,421 |
-| Open class I h | 691.5 |
+| Remaining h | 3,433 |
+| Open class I h | 703.5 |
 | Open class X h | 2,729.5 |
 | Retained completion estimate h | 186 |
 | Unmeasured completed items | 22 |
-| Calibrated total h | 5,156.3 |
+| Calibrated total h | 5,164.8 |
 | Committed M8a open h | 73 |
 | Committed M8b open h | 90.5 |
-| Other committed open h | 2,051.5 |
+| Other committed open h | 2,063.5 |
 | Conditional open h | 792 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1124,6 +1124,9 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
   * **Dispatch. Start:** R-16-008g, read with R-16-008b, R-17-030n and R-17-058b beside it; the power-domain and reset table R-15-198 fixes, the clock spine R-15-195 fixes and the RoT's independent slow clock R-15-196 names; R-16-005's last-resort bite; [the protected-sequence fault model](../hardware/protected-sequence-fault-model.md), so the sensors' account and Q3c's in-model relation do not disagree about which faults each reaches; and, read for structure under its own licence at this repository's pin, OpenTitan's alert handler, sensor controller and analog sensor top, whose analog block upstream is a placeholder for a foundry design. **Owns:** a sensor contract under `docs/hardware/` stating per rail, clock, core datapath and logic-tier region the sensor kind, the band or threshold field the devicetree carries with its qualification owner, the trip path into the RoT's latch, and the single fail-stop boundary; the argument that no sensor holds architectural state or adds ISA surface; the RoT's response to a trip on its own supply, clock or region; the characterization plan, with glitch, clock, electromagnetic and laser campaigns each carrying its refutation cases, and the false-trip measurement over the declared operating envelope; and the residual account naming which R-16-008b cases each sensor narrows and what it leaves at R-17-058b. It owns no analog circuit design, no RTL and no measurement. **Check:** every rail and clock that R-15-198's table and R-15-195's spine assign to the RoT, the sentinel pair and the core islands maps to a sensor row, an unmapped one being a finding; every threshold field names its qualification owner; the contract states no detection probability and claims no mode above detected; R-16-008e's profile, the Sail model and R-18-010's obligation are unchanged by it; and each campaign carries a negative control, an excursion inside the band that the plan expects not to trip. **Join:** the RTL track's RoT and island integration, M3's RoT firmware for the trip latch and its attested event class (R-17-030m), and the bring-up characterization R-05-150 reviews.
   * **Execute:** read OpenTitan's sensor and alert sources for their structure and select each sensor kind from published glitch, clock-monitor and laser-detector families before designing any. State the process-specific analog designs and their thresholds as an external prerequisite with a named owner rather than authoring them.
   * **Estimate basis:** the rail, clock and region inventory mapping 2–4 h; the contract and the no-architectural-state argument 2–5 h; the characterization plan with its negative controls 3–7 h; the residual account and its review 1–4 h. Class X: the sensors' circuits, thresholds and coverage are process-specific designs and measurements no artifact here reaches.
+* [ ] **Q42 · Author the backup and device-migration contract** · 12 h, range 8–16 · I
+  * **Dispatch. Start:** R-10-038, R-10-039, R-10-040 and R-17-054a, read with the durable-state entries they extend (R-10-035, R-10-035a, R-10-036, R-10-036a, R-10-037, R-10-037a), R-12-015a's credential broker, R-12-015c's session-binding rule and R-12-022's consent gate; Q22c's classification of replay, substitution and relay and [the session-binding qualification](../assurance/session-binding-qualification.md), for the migration session; and the Narcissus descriptor workflow R-05-046 confers. **Owns:** a contract under `docs/implementation/contracts/` stating the backup object's Narcissus descriptor, its canonicity obligation and its R-05-042 inventory entry; the recovery secret's encoding, entropy, one-time display on the trusted path and wrap to a second device's RoT; the placement of the export and restore service in the fixed tier, since it holds the backup key (R-07-037f); the restore's authentication, schema check, migration and discard path; the fresh-install state each kind of `Fresh` region takes at a restore; the migration session's construction and reference model named under R-12-015c; and an acceptance predicate for each implementation owner it names. It owns no implementation: the export and restore service, its trusted-path screens and the migration session are priced separately when it lands. **Check:** every criterion of R-10-038 to R-10-040 maps to a contract clause and an acceptance case; each negative case (a truncated, reordered, substituted, foreign-profile or wrong-key object, a region whose schema the receiving generation lacks, and a migration target whose evidence does not appraise or whose roots the holder does not confirm) names an outcome that writes nothing; the export's type is shown to reach no key, credential capability, sealed object, consent record or `Fresh` region, and the contract names the mutant the implementation's check must reject, an export reading a `Fresh` region; and the contract claims nothing against R-17-054a's residual. **Join:** M5.3d's user-data instance and the trusted consent path's implementation owner, which consume the contract, and Q10's product judgment.
+  * **Estimate basis:** the descriptor, key and placement clauses 3–5 h; the restore, schema and `Fresh` clauses 2–4 h; the migration session clause and its model 2–4 h; the acceptance predicates and negative cases 1–3 h. Class I: every input is a register entry or an artifact this repository owns.
 
 **Evidence and cost stay with their owners.** Q2b owns the target connection and Q3b its selected functional/fault evidence; existing compiler, admission and image-validation owners retain the mandatory exact-artifact duties. The canceled Q20c comparison owns no production implementation. Share source/configuration/image identities and baseline records across them, adding each task's distinct check. Changed semantics or bytes invalidate affected evidence. Each missing theorem, port, primitive or executable gets one implementation owner and one estimate; Q2c's foundation map remains the shared prerequisite record for Q21b, Q25d and any separately commissioned generic-library proposal.
 
@@ -1133,7 +1136,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,406.9 h · 57% · 177.4 h complete · open range 1,263–3,196 h.
+**Q subtotal:** 2,418.9 h · 57% · 177.4 h complete · open range 1,271–3,212 h.
 
 ### M0 · Hardware reference
 
@@ -1927,7 +1930,7 @@ Each task starts with a concrete witness and a refuted alternative, then extends
   * **No compatible combined reduction is qualified by the survey.** VERICA/FIVER and related tools provide external checker evidence; CAPA, M&M and CINI-class constructions have their own models and are not the selected countermeasure. The Coq theorem shape at CompCert's RTL level, recorded in [the fault lineage](../background/inspirations.md#the-masking-and-fault-countermeasure-lineage-dom-to-matchi-the-netlist-level-discharge-and-the-theorem-shapes-the-two-axioms-import), informs the detection side and supplies no complete proof of the combined case.
   * **The range prices the reduction over accepted premises.** Its case split still needs the actual R-16-008f detection theorem and countermeasure construction, whose full implementations are not costed by this cell. [The unassigned proof map](../assurance/unassigned-proof-map.md) prices the detection theorem's construction model as U-19 and records the countermeasure's authoring route as a register act outside its total; a source-level template or a conditional theorem cannot be counted as their implementation.
 
-**M8–M10 subtotal:** 231.9 h · 6% · 0.4 h complete · open range 134–329 h.
+**M8–M10 subtotal:** 231.9 h · 5% · 0.4 h complete · open range 134–329 h.
 
 ## Build-loop instruments
 
