@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 1007 of them across 160 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 1009 of them across 161 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -948,6 +948,14 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-433** owed-act: which members are live for the share bound is unstated
 · Raised: Q34a
 · Disposition: open, a register question, the reading taken being every enumerated member accruing entitlement only while it competes
+
+**F-782** owed-act: R-08-047b bounds a heap allocation to its size class rather than to the length requested, `HeapNarrows`'s grant carrying no requested length, and no entry decides which of the two "exactly that one allocation" means
+· Raised: Q34c
+· Disposition: open, a register question at R-08-047b, a bound at the request staying exact under R-15-007k from the table's granules; `HeapNarrows` and the reference allocator's interface follow its answer
+
+**F-783** owed-act: `HeapNarrows` omits zeroing, so the heap library's stated obligation does not carry R-05-126's eager zeroize into reuse inside a member's chunk, R-05-126's acceptance being worded over slots while R-17-045's relies on it
+· Raised: Q34c
+· Disposition: open, a register question at R-05-126 and R-08-047b, `HeapNarrows` gaining the zeroing conjunct if the entry binds; the reference allocator zeroes every grant meanwhile
 
 **F-462** owed-act: no VST configuration is qualified at the locked prover, the VST/Iris line three register entries name not installing beside the prover and VST's non-Iris line, which those entries do not name, installing only with a CompCert that bounds the prover below its motivated upgrade
 · Raised: Q35a
