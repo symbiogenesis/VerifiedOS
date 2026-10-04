@@ -115,8 +115,8 @@ Four say the bug class cannot occur at all:
 
 - 🕳️ **Absent**: the bug's enabling mechanism is deleted.
 - 🛡️ **Enforced**: the CHERI hardware checks every access.
-- ✋ **Rejected**: CHERI-TAL admission refuses the binary before installation.
-- ✅ **Proved**: what ships carries a machine-checked theorem, subject to the [proof-artifact gates](#the-proof-artifacts-themselves).
+- ✋ **Rejected**: a mechanical check refuses the artifact before it installs or ships: CHERI-TAL admission for a binary, the proof gate for a proof artifact.
+- ✅ **Proved**: what ships carries a machine-checked theorem, subject to the [proof-artifact gates](#the-proof-artifacts-themselves). Like every mode here it names the target; the [crown-jewel inventory](docs/assurance/crown-jewels.md) records which specifications and theorems exist today.
 
 Three claim something weaker:
 
@@ -303,7 +303,7 @@ These rows follow a single doctrine: *detect, correct, or contain, never shield*
 | An uncorrectable error | The access fails stop rather than returning a value | **🔔&nbsp;Detected** |
 | SRAM disturb and half-select upsets | The same end-to-end ECC corrects these operationally induced flips, the far weaker analogs of the deleted DRAM disturbance classes | **🔔&nbsp;Detected** |
 | A dead or degraded noise source weakening the one entropy root | Independent sources spanning at least two physical mechanisms are health-tested at startup and continuously after; failure is fail-stop, never a degraded draw. A failure the tests miss remains a recorded residual | **🔔&nbsp;Detected**<br>**🚩&nbsp;Residual** |
-| Physical fault injection, glitching to laser to EM | ECC corrects stored-state faults, capability corruption traps on tag and bounds checks, the multikernel confines live-kernel faults for crash-only restart, and layered watchdogs reach wedged cores | **🔔&nbsp;Detected** |
+| Physical fault injection, glitching to laser to EM | ECC corrects stored-state faults, capability corruption traps on tag and bounds checks, the multikernel confines live-kernel faults for crash-only restart, and layered watchdogs reach wedged cores; a strike that corrupts a datapath result without landing in any of these is the residual below | **🔔&nbsp;Detected**<br>**🚩&nbsp;Residual** |
 | A fault the layered detectors miss | Coverage beyond the stated single-fault model is evidence rather than theorem, and consumer-grade transient datapath strikes are unclaimed; both are recorded residuals | **🚩&nbsp;Residual** |
 | Skipped critical instructions under an injected fault | The certifying compiler maintains control-flow signatures over boot verification, credential comparison, and lifecycle transitions; acceptance requires a comparison-derived token that fall-through or truncation cannot produce, and its absence under every fault in the protected-sequence single-fault model is a theorem | **🔔&nbsp;Detected**<br>**✅&nbsp;Proved** |
 | A fault-corrupted detector that cannot report itself | The sentinel is a detection-only lockstepped pair whose divergence latches fail-stop to the root of trust, with no third replicated core and no voting | **🔔&nbsp;Detected** |
@@ -325,12 +325,12 @@ Each row names the owner of a real obligation met outside the platform; an unnam
 
 ### The proof artifacts themselves
 
-**Proved** means a machine-checked theorem, which can verify while establishing too little. The following mechanical checks apply to proof artifacts rather than the machine and are prerequisites for every use of that mode.
+**Proved** means a machine-checked theorem, which can verify while establishing too little. The following checks apply to proof artifacts rather than the machine and are prerequisites for every use of that mode: two are build refusals, and the third is a refutation each proof artifact carries.
 
 | Potential bug class | Construction | Mode |
 | --- | --- | --- |
-| A shipped theorem resting on more than its declared assumptions | The proof term enumerates each theorem's axioms and assumptions for exact comparison with the requirements-register declaration; any extra or missing member fails the build | **✅&nbsp;Proved** |
-| A theorem that is true and empty: a premise nothing satisfies or a quantifier ranging over nothing | The build gate refuses a proof artifact whose theorems quantify over a record the artifact never constructs, and reports each artifact's constructed witnesses beside its constants; because general vacuity is undecidable, that a witness satisfies its theorem's hypotheses stays a per-theorem obligation read at review, and its residue is booked in the [residual-risks section](docs/spec.md#17-residual-risks-the-honest-ceiling) | **✅&nbsp;Proved**<br>**🚩&nbsp;Residual** |
+| A shipped theorem resting on more than its declared assumptions | The proof term enumerates each theorem's axioms and assumptions for exact comparison with the requirements-register declaration; any extra or missing member fails the build | **✋&nbsp;Rejected** |
+| A theorem that is true and empty: a premise nothing satisfies or a quantifier ranging over nothing | The build gate refuses a proof artifact whose theorems quantify over a record the artifact never constructs, and reports each artifact's constructed witnesses beside its constants; because general vacuity is undecidable, that a witness satisfies its theorem's hypotheses stays a per-theorem obligation read at review, and its residue is booked in the [residual-risks section](docs/spec.md#17-residual-risks-the-honest-ceiling) | **✋&nbsp;Rejected**<br>**🚩&nbsp;Residual** |
 | A specification so weak that anything refines it | Every refinement and policy claim exhibits an instance the specification rejects, a construction the proof artifact carries and the review gate reads; no build check decides that the rejected instance is a telling one, and that judgement is booked in the [residual-risks section](docs/spec.md#17-residual-risks-the-honest-ceiling) | **✅&nbsp;Proved**<br>**🚩&nbsp;Residual** |
 
 
