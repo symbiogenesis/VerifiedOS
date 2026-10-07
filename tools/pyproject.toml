@@ -6,23 +6,14 @@ requires-python = ">=3.14,<3.15"
 dependencies = ["jsonschema"]
 
 [dependency-groups]
-dev = ["ty==0.0.84", "ruff==0.16.9"]
+dev = ["ty==0.0.84", "ruff==0.16.10"]
 model = ["pre-commit==4.6.2"]
 workflows = ["zizmor==1.30.1"]
 
 [tool.uv]
 package = false
-required-version = "==0.12.19"
+required-version = "==0.12.23"
 python-downloads = "never"
 no-build = true
 # The release cooldown; tools/README.md gives the policy.
 exclude-newer = "3 days"
-
-# Locked releases younger than the cooldown when it was adopted, each capped at the
-# first whole second after its last file's upload. Each line's comment is the moment
-# its entry can be deleted, three days after its cutoff; tools/README.md gives the rule
-# and how to read the lock after the deletion.
-[tool.uv.exclude-newer-package]
-filelock = "2026-09-29T23:04:06Z"  # delete after 2026-10-02T23:04:06Z
-platformdirs = "2026-09-29T18:27:57Z"  # delete after 2026-10-02T18:27:57Z
-virtualenv = "2026-09-29T20:25:32Z"  # delete after 2026-10-02T20:25:32Z
