@@ -13,7 +13,7 @@ Every site below is read from the tree at a pin, not from a description of it.
 | Definition | `model/model/core/cap_format.sail`, `cap_common.sail`, `cap_causes.sail` | this repository's curated model | 2026-08-23 |
 | Implementation | `upstream/cva6-cheri`, `core/` | `0c7b3adf` | 2026-09-24 |
 | Interconnect | The `axi-cheri-tagcontroller` edition selected by CVA6-CHERI's `vendor/zero-day/axi_tagcontroller` gitlink | `173646d5` | 2026-08-23 |
-| Integration | `upstream/mocha`, `hw/top_chip/` | `4b9bec92`, on `main` | 2026-09-29 |
+| Integration | `upstream/mocha`, `hw/top_chip/` | `c7a88820`, on `main` | 2026-10-06 |
 
 The standalone tag-controller gitlink follows current upstream work. The interconnect reading here concerns the nested edition the imported datapath actually selects, which retains the flat store and wrapper described below. Mocha's current pin retains that tag-controller lock, adding only an output-assertion patch to its vendored wrapper, and its CVA6-CHERI vendor lock selects the implementation revision above; its platform and testbench changes do not change this capability-format delta.
 

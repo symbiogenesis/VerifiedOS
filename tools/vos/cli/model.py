@@ -1865,7 +1865,7 @@ def _solve_each(out: Path, picked: list[str], timeout: int, e: env.Environment) 
 def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
     """Build the M0.4 capability oracle, then run the RV64 suite bundled with it.
 
-    The oracle is stock `sail-cheri-riscv` at the pinned `bb07488d`, built against the
+    The oracle is stock `sail-cheri-riscv` at the pinned `cf36cfd4`, built against the
     older `sail-riscv` embedded in it. `trace-diff` refuses to run without it, so the
     recipe belongs here rather than in a shell script on one machine: the tree is
     disposable and the machine is replaceable, and what has to survive both is how to

@@ -1,30 +1,22 @@
 {
   "tflite_micro": {
-    "license_url": "https://github.com/tensorflow/tflite-micro/blob/d0318206cf438df7d60708b49559777225ebacda/LICENSE",
+    "license_url": "https://github.com/tensorflow/tflite-micro/blob/ff8cff73024a520a6549c412cbd3c673a839c22a/LICENSE",
     "license_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
     "boundary": "MicroMemoryPlanner C++ virtual interface",
     "license": "Apache-2.0",
-    "commit": "d0318206cf438df7d60708b49559777225ebacda",
+    "commit": "ff8cff73024a520a6549c412cbd3c673a839c22a",
     "headers": [
       {
         "path": "tensorflow/lite/micro/memory_planner/micro_memory_planner.h",
-        "sha256": "af02aff633f44ceffe902c8eedf9222571075cb988a02de18603cb37928ecb45"
+        "sha256": "0faa19f310fa2d55f742de3213b658b62db3702b9396fada2a7b6a5a3400ac2e"
       },
       {
-        "path": "tensorflow/lite/c/common.h",
-        "sha256": "d4f74e60f635753bf5dc8ea1200cc5b2a196c8b6004372b2106a4a3f518d18ac"
+        "path": "tensorflow/lite/micro/c/common.h",
+        "sha256": "20a201e706b3ffe9397949ed4c745b2fa15dc610dd03c16a6db5abd9fcf2c195"
       },
       {
-        "path": "tensorflow/lite/core/c/common.h",
-        "sha256": "c3b754ad7599bd309ed5b88e5bf7c640e88f754d0664cdf722fd03fcd54a723a"
-      },
-      {
-        "path": "tensorflow/lite/core/c/c_api_types.h",
-        "sha256": "07b114901685808313247f84c5d37e6b29c95fb6ff5b2a8a950eb564844c45b0"
-      },
-      {
-        "path": "tensorflow/compiler/mlir/lite/core/c/tflite_types.h",
-        "sha256": "af1f579621406bdc5d98caea5c4e35bc798b5f248c150b561aa656d951be0d9f"
+        "path": "tensorflow/lite/micro/c/c_api_types.h",
+        "sha256": "d16cc203f2c520404278086c526ea2131c0fb57971586a4b890c5b620375e03f"
       }
     ]
   },

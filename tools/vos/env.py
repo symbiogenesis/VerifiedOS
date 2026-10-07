@@ -167,7 +167,7 @@ BUILD_LOCK_HELD = "VOS_BUILD_LOCK_HELD"
 
 # The M0.4 oracle's build tree, carrying the upstream pin in its name. Both the tree and
 # the simulator inside it derive from this, so the pin is written once.
-ORACLE_TREE = "sail-cheri-riscv-bb07488d"
+ORACLE_TREE = "sail-cheri-riscv-cf36cfd4"
 
 # OCaml 5.5.1 requires ocamlfind 1.9.9~preview; the latest stable findlib release
 # constrains OCaml below 5.5.0~. `OCAML_VERSION` keeps a released toolchain until

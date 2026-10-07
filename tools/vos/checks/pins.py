@@ -938,6 +938,7 @@ RESIDUE: dict[str, str] = {
 # The gitlinks of September 2026's native receipts, which record the index they ran
 # against rather than restating the current pins.
 _CAPTURED_GITLINKS: dict[str, str] = {
+    "bb07488dac8322fc4a653a01d049e16fa05c9065": "sail-cheri-riscv",
     "3243f93905c1de3504e910f76c07f96fef1394d7": "sail-riscv",
     "90cebef1411617fc3eedd359bdf00cb44b1c2439": "llvm-project",
     "5d37f8567667a3c699d2730574c35dfbe772dd67": "rupicola",
@@ -961,6 +962,21 @@ _CAPTURING_RECEIPTS: dict[str, str] = {
 # These sites retain measured or external editions, or record identifiers that
 # resemble object ids. They do not state this repository's current top-level pin.
 SITE_RESIDUE: dict[tuple[str, str], str] = {
+    **{(file, "bb07488d"): "the historical CHERI source transplanted into the curated model"
+       for file in (
+           "model/model/core/addr_checks.sail",
+           "model/model/core/cap_common.sail",
+           "model/model/core/cap_causes.sail",
+           "model/model/core/cap_regs.sail",
+           "model/model/core/cap_format.sail",
+           "model/model/core/mem_metadata.sail",
+           "model/model/core/reg_type.sail",
+           "model/model/extensions/CHERI/cheri_mem.sail",
+           "model/model/extensions/CHERI/cheri_insts.sail",
+           "model/model/postlude/cap_traps.sail",
+       )},
+    ("docs/implementation/completion-log.md", "bb07488d"):
+        "the CHERI oracle edition recorded at the completed M0 reconciliation",
     **{(file, ident): f"the {name} gitlink captured by {receipt}"
        for file, receipt in _CAPTURING_RECEIPTS.items()
        for ident, name in _CAPTURED_GITLINKS.items()},
