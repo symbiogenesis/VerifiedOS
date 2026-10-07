@@ -919,7 +919,8 @@ def _the_quickchick_lock_is_the_recipes_switch() -> None:
 def _the_recipe_pins_whole_commits_and_is_asked_by_name() -> None:
     """QuickChick's recipe pins each upstream to one whole commit, creates the switch the
     recipe's constants name at the repository's OCaml, pins before it installs, and
-    installs every pinned package beside the Rocq, Stdlib and dune it states; and
+    installs the released ExtLib and every pinned package beside the Rocq, Stdlib and
+    dune it states; and
     `check --recipe` asks that switch alone and holds the pinned commit, a release
     refused there."""
     convention = (f"verifiedos-quickchick-{gallina.QUICKCHICK_RECIPE_ROCQ_VERSION}-ocaml-"
@@ -927,23 +928,25 @@ def _the_recipe_pins_whole_commits_and_is_asked_by_name() -> None:
     ensure(convention == gallina.QUICKCHICK_RECIPE_SWITCH,
            "the recipe's switch does not follow the project's naming convention")
     pins = {name: (url, commit) for name, url, commit in quickchick.PINS}
-    ensure(set(pins) == {"coq-ext-lib", "coq-simple-io", quickchick.PACKAGE}
+    ensure(set(pins) == {"coq-simple-io", quickchick.PACKAGE}
            and all(re.fullmatch(r"[0-9a-f]{40}", commit) for _, commit in pins.values()),
-           f"the recipe pins the three upstreams, each to one whole commit: {pins}")
+           f"the recipe pins the two unreleased upstreams, each to one whole commit: {pins}")
     switch = gallina.QUICKCHICK_RECIPE_SWITCH
     create, *pinning, install = quickchick.RECIPE
     ensure(create[:4] == ("opam", "switch", "create", switch)
            and f"--packages=ocaml-base-compiler.{env.OCAML_VERSION}" in create,
            f"the recipe creates its switch at the repository's OCaml: {create}")
-    ensure([step[:4] for step in pinning] == [("opam", "pin", "add", f"--switch={switch}")] * 3
+    ensure([step[:4] for step in pinning] == [("opam", "pin", "add", f"--switch={switch}")] * len(pins)
            and [step[-2:] for step in pinning]
            == [(f"{name}.dev", f"git+{url}#{commit}") for name, (url, commit) in pins.items()],
            f"the recipe pins each package to its commit before installing: {pinning}")
     ensure(install[:3] == ("opam", "install", f"--switch={switch}")
            and {f"rocq-core.{gallina.QUICKCHICK_RECIPE_ROCQ_VERSION}",
                 f"rocq-stdlib.{quickchick.STDLIB}", f"dune.{quickchick.DUNE}",
-                *(f"{name}.dev" for name in pins)} <= set(install),
-           f"the recipe installs the pinned packages beside its Rocq and dune: {install}")
+                f"coq-ext-lib.{quickchick.EXTLIB}",
+                *(f"{name}.dev" for name in pins)} <= set(install)
+           and "coq-ext-lib.dev" not in install,
+           f"the recipe installs released ExtLib and pinned packages beside its Rocq and dune: {install}")
     url, commit = pins[quickchick.PACKAGE]
     ensure(f"git+{url}#{commit}" == quickchick.RECIPE_PIN,
            "the pin a check holds is QuickChick's in the recipe")
