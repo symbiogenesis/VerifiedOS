@@ -1,0 +1,178 @@
+{
+  "differing_sides": [],
+  "dispatching_commit": "1f11f2be8a5c44fb3600675bd03e620ef0102f81",
+  "jobs": {
+    "build": {
+      "artifact": "instrument-build-1f11f2be8a5c44fb3600675bd03e620ef0102f81",
+      "export": {
+        "bytes": 4568,
+        "path": "export/quickchick.lock",
+        "sha256": "91bf54af8abad50f2809f7a1797e4e8f84cd36653cc77c073681c6036e7cd7d0"
+      },
+      "flag": "--recipe",
+      "opam_client": "2.6.0",
+      "recipe": "RECIPE",
+      "result": "success",
+      "runner_image": "ubuntu26-20260927.149.1",
+      "source_revision": "1f11f2be8a5c44fb3600675bd03e620ef0102f81",
+      "steps": {
+        "check": {
+          "exit": 0,
+          "limit_s": 600,
+          "maxrss_kb": 155380,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 155380,
+          "reason": "exit 0",
+          "sampled_rss_kb": null,
+          "sampled_tree_rss_kb": null,
+          "seconds": 0.8,
+          "verdict": "passed"
+        },
+        "export": {
+          "exit": 0,
+          "limit_s": 600,
+          "maxrss_kb": 155380,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 155380,
+          "reason": "exit 0",
+          "sampled_rss_kb": null,
+          "sampled_tree_rss_kb": null,
+          "seconds": 0.2,
+          "verdict": "passed"
+        },
+        "properties": {
+          "exit": 0,
+          "limit_s": 2100,
+          "maxrss_kb": 622144,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 622144,
+          "reason": "exit 0",
+          "sampled_rss_kb": null,
+          "sampled_tree_rss_kb": null,
+          "seconds": 19.5,
+          "verdict": "passed"
+        },
+        "provision": {
+          "exit": 0,
+          "limit_s": 9600,
+          "maxrss_kb": 1803308,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 1803308,
+          "reason": "exit 0",
+          "sampled_rss_kb": 1498600,
+          "sampled_tree_rss_kb": 2741532,
+          "seconds": 761.9,
+          "verdict": "passed"
+        }
+      },
+      "switch": "verifiedos-quickchick-9.3.0-ocaml-5.4.1",
+      "uname_m": "x86_64",
+      "verdict": "passed"
+    },
+    "import": {
+      "artifact": "instrument-import-1f11f2be8a5c44fb3600675bd03e620ef0102f81",
+      "comparison": {
+        "check": "passed",
+        "closure_equal": true,
+        "pins": {
+          "coq-quickchick": {
+            "commit": "3d4d6c0e9f72172a9f0b26db61c5496ec8e0f568",
+            "url": "git+https://github.com/QuickChick/QuickChick.git"
+          },
+          "coq-simple-io": {
+            "commit": "d035c0a85f0bde4ad56c31a9fa9ef3cb5e8d0f18",
+            "url": "git+https://github.com/Lysxia/rocq-simple-io.git"
+          }
+        },
+        "pins_equal": true,
+        "reasons": [],
+        "reexport": {
+          "bytes": 4310,
+          "difference": [
+            "--- export",
+            "+++ reexport",
+            "@@ -2,13 +1,0 @@",
+            "-compiler: [",
+            "-  \"base-bigarray.base\"",
+            "-  \"base-domains.base\"",
+            "-  \"base-effects.base\"",
+            "-  \"base-nnp.base\"",
+            "-  \"base-threads.base\"",
+            "-  \"base-unix.base\"",
+            "-  \"ocaml.5.4.1\"",
+            "-  \"ocaml-base-compiler.5.4.1\"",
+            "-  \"ocaml-compiler.5.4.1\"",
+            "-  \"ocaml-config.3\"",
+            "-  \"ocaml-options-vanilla.1\"",
+            "-]"
+          ],
+          "identical": false,
+          "sha256": "962b3a38b0c8cb9a3bed19d8b8591fb5e5c66828af267daf9b94c3510cc404b9"
+        },
+        "verdict": "passed"
+      },
+      "flag": "--recipe",
+      "opam_client": "2.6.0",
+      "recipe": "import into RECIPE's switch",
+      "result": "success",
+      "runner_image": "ubuntu26-20260927.149.1",
+      "source_revision": "1f11f2be8a5c44fb3600675bd03e620ef0102f81",
+      "steps": {
+        "check": {
+          "exit": 0,
+          "limit_s": 600,
+          "maxrss_kb": 155380,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 155380,
+          "reason": "exit 0",
+          "sampled_rss_kb": null,
+          "sampled_tree_rss_kb": null,
+          "seconds": 0.9,
+          "verdict": "passed"
+        },
+        "compare": {
+          "exit": 0,
+          "limit_s": 300,
+          "maxrss_kb": 27688,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 27688,
+          "reason": "exit 0",
+          "sampled_rss_kb": null,
+          "sampled_tree_rss_kb": null,
+          "seconds": 0.1,
+          "verdict": "passed"
+        },
+        "import": {
+          "exit": 0,
+          "limit_s": 9600,
+          "maxrss_kb": 1803216,
+          "peak_from": "GNU time",
+          "peak_rss_kb": 1803216,
+          "reason": "exit 0",
+          "sampled_rss_kb": 1202716,
+          "sampled_tree_rss_kb": 2409064,
+          "seconds": 740.9,
+          "verdict": "passed"
+        }
+      },
+      "switch": "verifiedos-quickchick-9.3.0-ocaml-5.4.1",
+      "uname_m": "x86_64",
+      "verdict": "passed"
+    }
+  },
+  "passed_over": [],
+  "refusals": [],
+  "request": {
+    "base_revision": "",
+    "build": "recipe",
+    "ref": "refs/heads/main",
+    "revision": "1f11f2be8a5c44fb3600675bd03e620ef0102f81",
+    "sample": "20",
+    "title": "ic-d006c2dd9a63ee49 ExtLib 0.13.2 dependency refresh"
+  },
+  "run_attempt": "1",
+  "run_id": "37571154640",
+  "schema": 1,
+  "seed": {},
+  "verdict": "passed"
+}

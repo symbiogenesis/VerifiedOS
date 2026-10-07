@@ -893,17 +893,21 @@ def _quickchick_rejects_another_source() -> None:
 
 def _the_quickchick_lock_is_the_recipes_switch() -> None:
     """The QuickChick snapshot is the recipe's switch, exported: at the Rocq release and
-    OCaml the switch's name states, with each of the recipe's packages pinned to its
-    commit, and the install imports it into the switch the recipe builds. A lock exported
-    without its recipe, or the reverse, is caught here."""
+    OCaml the switch's name states, with released ExtLib and exactly the recipe's
+    two commit pins, and the install imports it into the switch the recipe builds. A lock
+    exported without its recipe, or the reverse, is caught here."""
     text = (env.OPAM_LOCKS / "quickchick.lock").read_text(encoding="utf-8")
     installed = text.split("installed:", 1)[1].split("]", 1)[0]
     ensure(f'"rocq-core.{gallina.QUICKCHICK_ROCQ_VERSION}"' in installed
            and f'"ocaml-base-compiler.{env.OCAML_VERSION}"' in installed
            and f'"dune.{quickchick.DUNE}"' in installed
-           and f'"rocq-stdlib.{quickchick.STDLIB}"' in installed,
-           "the QuickChick lock is not at the Rocq, OCaml, dune and Stdlib its recipe states")
+           and f'"rocq-stdlib.{quickchick.STDLIB}"' in installed
+           and f'"coq-ext-lib.{quickchick.EXTLIB}"' in installed,
+           "the QuickChick lock is not at the Rocq, OCaml, dune, Stdlib and ExtLib its recipe states")
     pinned = text.split("pinned:", 1)[-1].split("]", 1)[0]
+    ensure(set(re.findall(r'"([^" ]+)"', pinned))
+           == {f"{name}.dev" for name, _, _ in quickchick.PINS},
+           "the QuickChick lock does not carry exactly the recipe's two commit pins")
     for name, url, commit in quickchick.PINS:
         block = text.split(f'package "{name}" {{', 1)
         ensure(len(block) == 2 and f'"git+{url}#{commit}"' in block[1].split("\n}", 1)[0]

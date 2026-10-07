@@ -750,8 +750,8 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
                                 (_pin("quickchick", "coq-quickchick"),)),)),
     DevTool("coq-simple-io", (Site("the pinned commit", rf"built from the commit {_COMMIT}",
                                    (_pin("quickchick", "coq-simple-io"),)),)),
-    DevTool("coq-ext-lib", (Site("the pinned commit", rf"built from the commit {_COMMIT}",
-                                 (_pin("quickchick", "coq-ext-lib"),)),)),
+    DevTool("coq-ext-lib", (Site("the released version", rf"released version \*\*{_V}\*\*",
+                                 (_snap("quickchick", "coq-ext-lib"),)),)),
     DevTool("Rupicola, Bedrock2, and the Bedrock2 compiler", (
         Site("Rupicola's release", rf"Rupicola \*\*{_V}\*\*", (_snap("rupicola", "coq-rupicola"),)),
         Site("Bedrock2's and its compiler's release", rf"Bedrock2 and its compiler \*\*{_V}\*\*",
@@ -891,6 +891,11 @@ DEV_TOOL_PROSE = DevTool("the section's paragraphs", (
     Site("Sail Rocq support library's licence tag",
          rf"\[LICENSE\]\(https://github\.com/rems-project/coq-sail/blob/{_V}/LICENSE\)",
          (_snap("sail", "sail"),)),
+    Site("ExtLib's reviewed release", rf"released `coq-ext-lib` {_V}'s licence was read",
+         (_snap("quickchick", "coq-ext-lib"),)),
+    Site("ExtLib's licence release", rf"\[{_V} LICENSE\]"
+         r"\(https://github\.com/rocq-community/coq-ext-lib/blob/[0-9a-f]{40}/LICENSE\)",
+         (_snap("quickchick", "coq-ext-lib"),)),
     Site("riscv-coq's release", rf"`coq-riscv\.{_V}` uses", (_snap("rupicola", "coq-riscv"),)),
     Site("lowering snapshot's compiler", rf"fixes OCaml {_V}, Rocq",
          (_snap("rupicola", "ocaml-base-compiler"),)),
