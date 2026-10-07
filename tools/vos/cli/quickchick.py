@@ -73,20 +73,18 @@ INSTALL: tuple[tuple[str, ...], ...] = (
      f"--switch={gallina.QUICKCHICK_SWITCH}", "-y"),
 )
 
-# QuickChick's commit-pinned recipe, at Rocq 9.3.0. No QuickChick, coq-simple-io or
-# coq-ext-lib release installs beside that release: coq-simple-io's latest caps Coq below
-# 9.2 and coq-ext-lib's latest fails to build there. Each is pinned to the commit Rocq
+# QuickChick's recipe, at Rocq 9.3.0. coq-ext-lib 0.13.2 carries the source fixes
+# that admit that release. No QuickChick or coq-simple-io release installs beside it:
+# coq-simple-io's latest caps Coq below 9.2. Each remaining pin is the commit Rocq
 # V9.3.0's own CI overlay builds, which tools/opam/README.md lists with the release that
-# retires it, and dune to 3.23.1, below the 3.24 that rocq-elpi in QuickChick's closure
-# admits. A pinned build calls itself `dev`, so what a check holds is the source opam
-# says the switch's QuickChick was built from, `git+URL#commit`.
+# retires it, and dune stays at 3.23.1, below the 3.24 that rocq-elpi in QuickChick's
+# closure admits. A pinned build calls itself `dev`, so what a check holds is the source
+# opam says the switch's QuickChick was built from, `git+URL#commit`.
 #
 # Stated as argv for the reason INSTALL is. A hosted run builds the switch from it, runs
 # the randomized half's checks there and exports the lock, which is tracked only once
 # those checks pass; a refresh of the pins moves this recipe first and its lock after.
 PINS: tuple[tuple[str, str, str], ...] = (
-    ("coq-ext-lib", "https://github.com/rocq-community/coq-ext-lib.git",
-     "ddd03d257f6b85a93bfaa0ed4d03658e0ddf5075"),
     ("coq-simple-io", "https://github.com/Lysxia/rocq-simple-io.git",
      "d035c0a85f0bde4ad56c31a9fa9ef3cb5e8d0f18"),
     (PACKAGE, "https://github.com/QuickChick/QuickChick.git",
@@ -94,6 +92,7 @@ PINS: tuple[tuple[str, str, str], ...] = (
 )
 STDLIB = "9.2.0"
 DUNE = "3.23.1"
+EXTLIB = "0.13.2"
 RECIPE_PIN = next(f"git+{url}#{commit}" for name, url, commit in PINS if name == PACKAGE)
 RECIPE: tuple[tuple[str, ...], ...] = (
     ("opam", "switch", "create", gallina.QUICKCHICK_RECIPE_SWITCH,
@@ -104,7 +103,7 @@ RECIPE: tuple[tuple[str, ...], ...] = (
     ("opam", "install", f"--switch={gallina.QUICKCHICK_RECIPE_SWITCH}", "-y",
      f"ocamlfind.{env.OCAMLFIND_VERSION}",
      f"rocq-core.{gallina.QUICKCHICK_RECIPE_ROCQ_VERSION}", f"rocq-stdlib.{STDLIB}",
-     f"dune.{DUNE}", *(f"{name}.dev" for name, _, _ in PINS)),
+     f"dune.{DUNE}", f"coq-ext-lib.{EXTLIB}", *(f"{name}.dev" for name, _, _ in PINS)),
 )
 
 
