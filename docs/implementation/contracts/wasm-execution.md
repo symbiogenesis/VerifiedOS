@@ -65,6 +65,18 @@ validated Wasm and claims no source correspondence without its own evidence.
 Q34f owns any selected end-to-end comparison, including preparation, the complete
 guest frontend and residual dispatch; Q34h owns producer-side integration. An
 unselected lead stays in this table rather than expanding their priced scope.
+
+The [integer 3SUM/APSP formalization](../../background/open-math-conjectures.md#integer-3sum-and-apsp-formalization)
+changes the matching hardness hypotheses' research status. It supplies no
+finite-size optimization selection: the formal construction has an enormous
+fast-branch threshold, existential choices and no headline space bound. Before
+using such an algorithm, identify a matching integer workload, construct its
+program and account for word width, overflow, memory initialization, backing,
+preprocessing and maximum work between polls. Compare against the selected
+workload's baseline on the target evidence tier. A one-way hardness reduction
+does not transfer a faster solver back to every problem called 3SUM-hard or
+APSP-hard, and the real-input and online variants retain their own contracts.
+
 The [compute research handoff](compute-semantic.md#arithmetic-research-handoff)
 owns algebraic rewrite candidates, and the [inference handoff](../../performance/inference-demand.md#research-handoff-to-unwritten-inference-proofs)
 owns attention and matrix-kernel demand implications.

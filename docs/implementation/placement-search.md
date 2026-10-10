@@ -121,6 +121,15 @@ reduction from the actual finite instance followed by sound decoding through the
 existing checks; any approximation or optimality claim additionally needs its own
 objective and completeness argument.
 
+The [eleven-square optimality artifact](../background/open-math-conjectures.md#eleven-square-packing-and-certificate-trust)
+is a method reference for separating a feasible witness from exhaustive exclusion
+and checker soundness. Its rotatable planar geometry supplies no reduction to
+this address-and-lifetime problem. A future optimality claim here would need a
+complete case cover of the declared legal placements and sound exclusions under
+the existing proof assumptions; a better feasible candidate needs only the
+standing admission checks. The external artifact's native numerical trust does
+not enter either route or reopen Q27a's certificate-checker disposition.
+
 | Research input | Remaining bridge and useful witness |
 | --- | --- |
 | [ETH and SETH](../background/open-math-conjectures.md#exponential-time-hypothesis-and-strong-exponential-time-hypothesis) | A conditional search lower bound needs a reduction preserving the actual instance-size parameter, binary encoding and deterministic or randomized model. The high-multiplicity bin-packing result does not automatically cover this constrained planner, nor do the September algorithms making that problem fixed-parameter tractable in the number of distinct sizes, whose doubly exponential parameter dependence is optimal under ETH. Distinguish a proved infeasible finite instance from exhausted search, and compare a recognized restricted family before assigning a worst-case barrier to it. Neither hypothesis enters candidate soundness or supplies an optimality certificate. |

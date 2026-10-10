@@ -411,6 +411,20 @@ accepted Rocq proof. Qualification still follows the existing incorporation,
 non-vacuity and fresh-gate boundaries. This applies equally to new, AI-assisted
 and established repositories.
 
+Two [surveyed formalizations](../background/open-math-conjectures.md#eleven-square-packing-and-certificate-trust)
+make that distinction concrete. Eleven-square packing combines geometric
+arguments and checked numerical cases, with native compiler trust explicitly
+inherited by the final theorem. The
+[3SUM/APSP package](../background/open-math-conjectures.md#integer-3sum-and-apsp-formalization)
+offers a small standalone machine statement, separate solution proofs and
+Comparator checks of statements, dependencies and allowed axioms. Its upstream
+CI reports successful checks; reproduction and correspondence to our own
+requirements remain separate acts. Use these as review patterns for a selected
+producer: freeze the actual statement and definitions, distinguish a witness
+from a complete exclusion argument, and record every computational assumption.
+Neither case selects a Lean dependency, a new checker or a native-evaluation
+exception to the locked Rocq acceptance route.
+
 The survey's PolaritySAT audit supplies a concrete statement-level check:
 `(x OR y) AND (NOT x OR NOT y)` is satisfiable with neither variable pure,
 and the largest variable has no unique polarity under the claimed definition.
