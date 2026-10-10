@@ -1,0 +1,24 @@
+# Packages matching: installed
+# Name                # Version
+base-bigarray         base
+base-domains          base
+base-effects          base
+base-nnp              base
+base-threads          base
+base-unix             base
+conf-gmp              5
+conf-linux-libc-dev   0
+conf-pkg-config       5
+dune                  3.24.2
+ocaml                 5.4.1
+ocaml-base-compiler   5.4.1
+ocaml-compiler        5.4.1
+ocaml-config          3
+ocaml-options-vanilla 1
+ocamlfind             1.9.8
+rocq-core             9.3.0
+rocq-runtime          9.3.0
+rocq-stdlib           9.2.0
+rocq-stdpp            1.13.0
+zarith                1.14
+[WARNING] Running as root is not recommended

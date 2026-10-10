@@ -1,0 +1,205 @@
+[
+  {
+    "path": "islaris/theories/aarch64/aarch64.v",
+    "sha256": "492e32ec0aa426a27e7f954c0d504b72d88bb6c803460e6ae54932f14876364e",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "Require Export isla.isla.",
+      "From isla.aarch64 Require Export arch sys_regs calling_convention specs."
+    ]
+  },
+  {
+    "path": "islaris/theories/aarch64/arch.v",
+    "sha256": "0e9a3be4eec13d0941d9e993c94eaeb306a867715df432fa641218e4a928ad2a",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "Require Import isla.lifting."
+    ]
+  },
+  {
+    "path": "islaris/theories/aarch64/calling_convention.v",
+    "sha256": "adacb43490f79c1f2d3d9c70d89474ae3bea8ea76b542df0922ee09e922be4ab",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "Require Import isla.base.",
+      "Require Import isla.opsem.",
+      "Require Import isla.automation.",
+      "Require Import isla.aarch64.arch.",
+      "Require Import isla.aarch64.sys_regs."
+    ]
+  },
+  {
+    "path": "islaris/theories/aarch64/specs.v",
+    "sha256": "1ee079eb77d851608bbe0a0ded53d5614260e74802409968ac6da735b27ccd29",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "Require Import isla.automation.",
+      "Require Import isla.aarch64.arch.",
+      "Require Import isla.aarch64.sys_regs."
+    ]
+  },
+  {
+    "path": "islaris/theories/aarch64/sys_regs.v",
+    "sha256": "7bf51f25d42c78d6e2661b312916b6dcefc0c7b8c92c741cd4da9da05f931c66",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "Require Import isla.base.",
+      "Require Import isla.automation."
+    ]
+  },
+  {
+    "path": "islaris/theories/adequacy.v",
+    "sha256": "f9c8d70ccbc26b16fbbc2fbdbb56fc6d09c5fb4d7c7e25b186c2e6a316e1f630",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "From iris.proofmode Require Import tactics.",
+      "From iris.program_logic Require Export adequacy weakestpre.",
+      "From iris.algebra Require Import csum excl auth cmra_big_op gmap dfrac_agree.",
+      "From iris.base_logic.lib Require Import ghost_map ghost_var.",
+      "From isla Require Export ghost_state lifting."
+    ]
+  },
+  {
+    "path": "islaris/theories/automation.v",
+    "sha256": "8fa828b190127824204cce77653bd0060d0f96d5e49a2033dca274af351b9e13",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "From iris.proofmode Require Import coq_tactics reduction.",
+      "From lithium Require Import hooks.",
+      "From lithium Require Export all.",
+      "From stdpp.bitvector Require Export bitvector.",
+      "From isla Require Export lifting."
+    ]
+  },
+  {
+    "path": "islaris/theories/base.v",
+    "sha256": "89fda7caf6c6ce05a193690e50e5f0d2bd6477f9511aa9c8e588f35b146c734e",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "From Coq Require Export ssreflect.",
+      "From stdpp Require Export prelude strings gmap.",
+      "From stdpp.unstable Require Export bitblast.",
+      "From RecordUpdate Require Export RecordSet.",
+      "From iris.proofmode Require Import tactics.",
+      "From lithium Require Export base.",
+      "From stdpp.bitvector Require Export definitions.",
+      "From iris.bi Require Import bi."
+    ]
+  },
+  {
+    "path": "islaris/theories/ghost_state.v",
+    "sha256": "24bb08ee1148b8bbda770d1ffebf39a5739b1943437c1e13b7157a6aeaf293bf",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "From stdpp Require Import coPset.",
+      "From Coq Require Import QArith Qcanon.",
+      "From iris.algebra Require Import big_op gmap frac agree dfrac_agree.",
+      "From iris.algebra Require Import csum excl auth cmra_big_op numbers.",
+      "From iris.bi Require Import fractional.",
+      "From iris.base_logic Require Export lib.own.",
+      "From iris.base_logic.lib Require Import ghost_map ghost_var.",
+      "From iris.proofmode Require Export tactics.",
+      "From stdpp.bitvector Require Import bitvector.",
+      "From isla Require Export opsem spec."
+    ]
+  },
+  {
+    "path": "islaris/theories/isla.v",
+    "sha256": "1ad48a1aceca6f8e8b2541f297d1a0b0357f355dddaaacd16df5f2644674b3f4",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "Require Export isla.base.",
+      "Require Export isla.opsem.",
+      "Require Export isla.automation.",
+      "Require Export isla.adequacy."
+    ]
+  },
+  {
+    "path": "islaris/theories/lifting.v",
+    "sha256": "28986e114495d6601c21ed4f8d0496ceca9649dbd432a7103d48bd6b996115e0",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "From iris.proofmode Require Import tactics.",
+      "From iris.program_logic Require Export weakestpre.",
+      "From iris.program_logic Require Import ectx_lifting.",
+      "From isla Require Export opsem ghost_state."
+    ]
+  },
+  {
+    "path": "islaris/theories/opsem.v",
+    "sha256": "65f592fd77f4186eb2e4f81ea038cf6d5f52c9d4ed007f9aa1e5e04dd4866139",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "Require Export isla.isla_lang.",
+      "Require Export isla.base.",
+      "From iris.program_logic Require Export language."
+    ]
+  },
+  {
+    "path": "islaris/theories/riscv64/arch.v",
+    "sha256": "afe8d96468b1c33befd2af6f7944c3ace616b11b3ad98094a6f94ab58847ca41",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "Require Import isla.lifting."
+    ]
+  },
+  {
+    "path": "islaris/theories/riscv64/calling_convention.v",
+    "sha256": "8439ff0f1b51398f8b541436cf5193be349e23a96183801d9346b1221dc4d168",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "Require Import isla.base.",
+      "Require Import isla.opsem.",
+      "Require Import isla.automation.",
+      "Require Import isla.riscv64.arch.",
+      "Require Import isla.riscv64.sys_regs."
+    ]
+  },
+  {
+    "path": "islaris/theories/riscv64/riscv64.v",
+    "sha256": "fd545c025c599db1ec64ecf57a322b78ad63945affbade9b3b4e82a6737d64b8",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "Require Export isla.isla.",
+      "From isla.riscv64 Require Export arch sys_regs specs calling_convention."
+    ]
+  },
+  {
+    "path": "islaris/theories/riscv64/specs.v",
+    "sha256": "b9f7a822f2a3566ae9348ed51cfabce68676ba8fd0683f714c7254df1ff0c7f5",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "Require Import isla.automation.",
+      "Require Import isla.riscv64.arch.",
+      "Require Import isla.riscv64.sys_regs."
+    ]
+  },
+  {
+    "path": "islaris/theories/riscv64/sys_regs.v",
+    "sha256": "34998508a7a144f585931b6b5073eaa0b379ff43af80fd1e109a7508f9691700",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "Require Import isla.base.",
+      "Require Import isla.automation."
+    ]
+  },
+  {
+    "path": "islaris/theories/spec.v",
+    "sha256": "1c186b76a7889e9d313a54d5e66c46c426c6b56265f8a4bcf3b5efdbc29edd84",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "Require Import lithium.pure_definitions.",
+      "Require Import lithium.simpl_classes.",
+      "Require Import isla.opsem."
+    ]
+  },
+  {
+    "path": "islaris/examples/riscv64_test.v",
+    "sha256": "0fb6b00a444bf7250517980a06aa8f76372c2cc97a8cc4bc631880e90ec3932f",
+    "lexical_assumption_matches": [],
+    "imports": [
+      "Require Import isla.riscv64.riscv64.",
+      "From isla.instructions.riscv64_test Require Import instrs."
+    ]
+  }
+]

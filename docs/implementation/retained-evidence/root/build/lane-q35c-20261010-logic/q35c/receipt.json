@@ -1,0 +1,373 @@
+{
+  "schema": "q35c-source-qualification-v1",
+  "checkout": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/q35c-20261010-logic",
+  "base_revision": "b238c3c5f8c216efa85ec0f413868e810a6aeeb8",
+  "lane": "/root/build/lane-q35c-20261010-logic",
+  "started_utc": "2026-10-10T07:00:28.074337+00:00",
+  "ended_utc": "2026-10-10T07:09:54.219760+00:00",
+  "sources": {
+    "islaris": {
+      "revision": "c978e10f50db5c40f0fdf113f5f76a779782c6f9",
+      "tracked_files": 388,
+      "aggregate_sha256": "67210fa292e1c60a3943a0a4dc8fcda22ce5ab02647d2141804a0584628778a7",
+      "worktree_status": "",
+      "license_files": {
+        "LICENSE": "d43eeae8b2e1639534f8d095d3b3231f1fc193cfc172b98069adf41bf9684fb9",
+        "THIRD_PARTY_FILES.md": "b07313f37d4d0b6c36ae55d01211d46275412f3419c656e22cef16216f9ed91a"
+      }
+    },
+    "isla-lang": {
+      "revision": "bda86c9f0bd28bbaa2481f50ddc986ede342805a",
+      "tracked_files": 20,
+      "aggregate_sha256": "294c5ad0255fa5a72f650d0a7660345e2da6edf7ae4467289f611fd471ef489a",
+      "worktree_status": "",
+      "license_files": {
+        "LICENSE": "0faa544bb919253727d14e4048da0426f66c1db522726c9de28523050b789953"
+      }
+    },
+    "katamaran": {
+      "revision": "47bc545117348495f71aad9e20d5c9bb9ed3a757",
+      "tracked_files": 163,
+      "aggregate_sha256": "540056d411d4d97c97aa5903188182a3b2c6e22a911529356eab780c6751800e",
+      "worktree_status": "",
+      "license_files": {
+        "LICENSE": "6b961710f8d256461e624d0659fbaade43505b2ae709f91c8f0c3e34a08d010a"
+      }
+    },
+    "sail-backend": {
+      "revision": "c9b1cd0234d7d4ee839b8d07bad7db601e6a5a40",
+      "tracked_files": 2393,
+      "aggregate_sha256": "4b35e38748a649c81fa7eeb33314fe51238bd10bbee81d5bbad17e9a5ec1c18f",
+      "worktree_status": "",
+      "license_files": {}
+    },
+    "iris-4.5.0": {
+      "revision": "b909adcc698a6c38f4c3b2645936bdd0d870d412",
+      "tracked_files": 314,
+      "aggregate_sha256": "167178b895c09e3c1a8a55c5cf7d17917341e874468d93630eeb86dfdc3043f6",
+      "worktree_status": "",
+      "license_files": {
+        "LICENSE": "b8db39b9a49ba7a283437f8b63d35903ad7169f824af10763e9b4cb6ddf70486",
+        "LICENSE-CODE": "33a506f1d35644a275cd3e04045d67e87087ae700a6ccd9e7d468f9525a38f71",
+        "LICENSE-DOCS": "68391acad70d88fe498384dd67da5b07ad151ae45b496031daef5fcd9f3ed3bb"
+      }
+    }
+  },
+  "runs": [
+    {
+      "name": "prover-version",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "-v"
+      ],
+      "cwd": "/root/build/lane-q35c-20261010-logic/q35c",
+      "start_utc": "2026-10-10T07:00:28.074387+00:00",
+      "elapsed_seconds": 0.03731889900001306,
+      "exit_code": 0,
+      "log": "prover-version.log",
+      "log_sha256": "bed18c6aed8995deb0f7988289c882981df1dc032ea306912c9b81bd96cd3907"
+    },
+    {
+      "name": "switch-export-before",
+      "argv": [
+        "opam",
+        "switch",
+        "export",
+        "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+        "/root/build/lane-q35c-20261010-logic/q35c/switch-before.export"
+      ],
+      "cwd": "/root/build/lane-q35c-20261010-logic/q35c",
+      "start_utc": "2026-10-10T07:00:28.111839+00:00",
+      "elapsed_seconds": 0.3109035859999949,
+      "exit_code": 0,
+      "log": "switch-export-before.log",
+      "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+    },
+    {
+      "name": "switch-inventory",
+      "argv": [
+        "opam",
+        "list",
+        "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+        "--installed",
+        "--columns=name,version",
+        "--color=never"
+      ],
+      "cwd": "/root/build/lane-q35c-20261010-logic/q35c",
+      "start_utc": "2026-10-10T07:00:28.422846+00:00",
+      "elapsed_seconds": 0.5295470779999789,
+      "exit_code": 0,
+      "log": "switch-inventory.log",
+      "log_sha256": "9817de3255df937ce2368f253164ebb40a7df96044c811191aa393029f05ed01"
+    },
+    {
+      "name": "solver",
+      "argv": [
+        "opam",
+        "install",
+        "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+        "--deps-only",
+        "--dry-run",
+        "--show-actions",
+        "--color=never",
+        "./islaris",
+        "rocq-core.9.3.0"
+      ],
+      "cwd": "/root/build/lane-q35c-20261010-logic/q35c",
+      "start_utc": "2026-10-10T07:00:28.952582+00:00",
+      "elapsed_seconds": 4.618398309000014,
+      "exit_code": 20,
+      "log": "solver.log",
+      "log_sha256": "a5333427dd5f39a5fd56105544bcabf0fab0480381a924e836a6fcd960663cca"
+    },
+    {
+      "name": "build",
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+        "--",
+        "make"
+      ],
+      "cwd": "/root/build/lane-q35c-20261010-logic/q35c/islaris",
+      "start_utc": "2026-10-10T07:00:33.571100+00:00",
+      "elapsed_seconds": 0.13835500100000786,
+      "exit_code": 2,
+      "log": "build.log",
+      "log_sha256": "1ceead1b8c6948a020fbcb81a97020f065f4ab6a46cadbd22f0ec69da55826f3"
+    },
+    {
+      "name": "assumptions",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-q",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "-Q",
+        "/root/build/lane-q35c-20261010-logic/q35c/islaris/theories",
+        "isla",
+        "-Q",
+        "/root/build/lane-q35c-20261010-logic/q35c/islaris/instructions",
+        "isla.instructions",
+        "-Q",
+        "/root/build/lane-q35c-20261010-logic/q35c/islaris/examples",
+        "isla.examples",
+        "/root/build/lane-q35c-20261010-logic/q35c/SelectedExampleAudit.v"
+      ],
+      "cwd": "/root/build/lane-q35c-20261010-logic/q35c",
+      "start_utc": "2026-10-10T07:00:33.709661+00:00",
+      "elapsed_seconds": 0.15949140199998624,
+      "exit_code": 1,
+      "log": "assumptions.log",
+      "log_sha256": "7552530853d8a565dff3a5af8ad68022fdb076a2b5b600bb4c78b5267bb0d723"
+    },
+    {
+      "name": "kernel",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocqchk",
+        "-silent",
+        "-o",
+        "-Q",
+        "/root/build/lane-q35c-20261010-logic/q35c/islaris/theories",
+        "isla",
+        "-Q",
+        "/root/build/lane-q35c-20261010-logic/q35c/islaris/instructions",
+        "isla.instructions",
+        "-Q",
+        "/root/build/lane-q35c-20261010-logic/q35c/islaris/examples",
+        "isla.examples",
+        "isla.examples.riscv64_test"
+      ],
+      "cwd": "/root/build/lane-q35c-20261010-logic/q35c",
+      "start_utc": "2026-10-10T07:00:33.869282+00:00",
+      "elapsed_seconds": 0.035824599999983775,
+      "exit_code": 1,
+      "log": "kernel.log",
+      "log_sha256": "cc2af61d4db2f6190aef91dfded063e0b6dfe85fb406c061b8a401c8c6374ea5"
+    },
+    {
+      "name": "switch-export-after",
+      "argv": [
+        "opam",
+        "switch",
+        "export",
+        "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+        "/root/build/lane-q35c-20261010-logic/q35c/switch-after.export"
+      ],
+      "cwd": "/root/build/lane-q35c-20261010-logic/q35c",
+      "start_utc": "2026-10-10T07:00:33.905269+00:00",
+      "elapsed_seconds": 0.26033310200000415,
+      "exit_code": 0,
+      "log": "switch-export-after.log",
+      "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+    },
+    {
+      "name": "iris-build-incremental",
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+        "--",
+        "./make-package",
+        "iris",
+        "-j2"
+      ],
+      "cwd": "/root/build/lane-q35c-20261010-logic/q35c/iris-4.5.0",
+      "start_utc": "2026-10-10T07:09:18.187799+00:00",
+      "elapsed_seconds": 0.6784067000000005,
+      "exit_code": 0,
+      "log": "iris-build-incremental.log",
+      "log_sha256": "47b67e4c0303bb3d3a19264993c88b1866eb7e06586228a4ff6b4b6d2a746440"
+    },
+    {
+      "name": "iris-strict-import",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-q",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "-Q",
+        "/root/build/lane-q35c-20261010-logic/q35c/iris-4.5.0/iris",
+        "iris",
+        "-Q",
+        "/root/build/lane-q35c-20261010-logic/q35c",
+        "",
+        "/root/build/lane-q35c-20261010-logic/q35c/IrisProbe.v"
+      ],
+      "cwd": "/root/build/lane-q35c-20261010-logic/q35c",
+      "start_utc": "2026-10-10T07:09:18.866399+00:00",
+      "elapsed_seconds": 2.1972798000000004,
+      "exit_code": 0,
+      "log": "iris-strict-import.log",
+      "log_sha256": "188ff29b8a0705f491438ebf47623e533fe60658944f3f1f58e1f9b5badb1bcf"
+    },
+    {
+      "name": "iris-kernel",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocqchk",
+        "-silent",
+        "-o",
+        "-Q",
+        "/root/build/lane-q35c-20261010-logic/q35c/iris-4.5.0/iris",
+        "iris",
+        "-Q",
+        "/root/build/lane-q35c-20261010-logic/q35c",
+        "",
+        "IrisProbe"
+      ],
+      "cwd": "/root/build/lane-q35c-20261010-logic/q35c",
+      "start_utc": "2026-10-10T07:09:21.063798+00:00",
+      "elapsed_seconds": 33.054704490000006,
+      "exit_code": 0,
+      "log": "iris-kernel.log",
+      "log_sha256": "47f5aacb5a94870241a59fa521c45af4c155a27d2867be7c60a1d22e800fde88"
+    }
+  ],
+  "switch": {
+    "name": "verifiedos-rocq-9.3.0-ocaml-5.4.1",
+    "before_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "after_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "unchanged": true
+  },
+  "tools": {
+    "rocq": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+    "rocqchk": "46aae2e2a655bec07928a94df91b028bf1eeb899b2df8d8e277d942e57ff5412",
+    "dune": "36f9660567cc2ba516f0a542a50c9db57e8e461b98b7bc7686030b866af551b6"
+  },
+  "selected_example": {
+    "source": "islaris/examples/riscv64_test.v",
+    "theorems": [
+      "isla.examples.riscv64_test.riscv_test",
+      "isla.examples.riscv64_test.riscv_test_adequate"
+    ],
+    "exact_assumption_closure": null,
+    "audit_status": "unavailable: failed build and missing compiled root; refused, not empty",
+    "source_review_status": "source-only; no lexical Axiom/Parameter/Admitted/Conjecture in reviewed local theories or selected example; dependencies not enumerated"
+  },
+  "files": {
+    "source-identities.json": "839351d0d67c54631cae2a6fa6e8b6f4fcfb22a80e553738e3dcc3dc81f5e172",
+    "source-review.json": "e2a4b23a6b304748aa6725c7c693cfc3e2419de1ddda36e1ce25ced3039f8e7e",
+    "SelectedExampleAudit.v": "795424af1de229c4a0d5b9b981b7de5a327b1423ced420cba73ab801350b678a",
+    "switch-before.export": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "switch-after.export": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "IrisProbe.v": "0aa8b76f7cce4083181ec47b85f508b8818c361a35cbe083171a4a9f572ead5d",
+    "assumptions.log": "7552530853d8a565dff3a5af8ad68022fdb076a2b5b600bb4c78b5267bb0d723",
+    "build.log": "1ceead1b8c6948a020fbcb81a97020f065f4ab6a46cadbd22f0ec69da55826f3",
+    "iris-build-incremental.log": "47b67e4c0303bb3d3a19264993c88b1866eb7e06586228a4ff6b4b6d2a746440",
+    "iris-build.log": "03e65e4fc4a69c4209f936e82c550fe58d587c0c4cfe48fde47e28be1fd52e60",
+    "iris-kernel.log": "47f5aacb5a94870241a59fa521c45af4c155a27d2867be7c60a1d22e800fde88",
+    "iris-metadata.opam": "2aa6fde505ddec258f651ba2f96a9cc598d3aa774e38ec3713f8287bd4db4474",
+    "iris-strict-import.log": "188ff29b8a0705f491438ebf47623e533fe60658944f3f1f58e1f9b5badb1bcf",
+    "kernel.log": "cc2af61d4db2f6190aef91dfded063e0b6dfe85fb406c061b8a401c8c6374ea5",
+    "prover-version.log": "bed18c6aed8995deb0f7988289c882981df1dc032ea306912c9b81bd96cd3907",
+    "solver.log": "a5333427dd5f39a5fd56105544bcabf0fab0480381a924e836a6fcd960663cca",
+    "switch-export-after.log": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+    "switch-export-before.log": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+    "switch-inventory.log": "9817de3255df937ce2368f253164ebb40a7df96044c811191aa393029f05ed01"
+  },
+  "q35d_source_census": {
+    "path": "corpus/kernel-instance.s",
+    "sha256": "7c7d6689bd46328bdfadcf898a6cb1be8e702c70563f7bc48b325b92509ce625",
+    "functions": {
+      "vos_slot_disjoint": {
+        "source_instruction_count": 40,
+        "source_mnemonics": [
+          "add",
+          "addi",
+          "addiw",
+          "bltu",
+          "cincoffset",
+          "cincoffsetimm",
+          "cjalr",
+          "cmove",
+          "j",
+          "lc",
+          "ld",
+          "sc"
+        ],
+        "predicate": "nonempty non-directive non-label lines following the function label until the next .text; source pseudo-operations retained; not a decoded ISA inventory"
+      },
+      "vos_frame_pairwise_disjoint": {
+        "source_instruction_count": 86,
+        "source_mnemonics": [
+          "add",
+          "addi",
+          "addiw",
+          "beq",
+          "bgeu",
+          "bne",
+          "cincoffset",
+          "cincoffsetimm",
+          "cjal",
+          "cjalr",
+          "cmove",
+          "j",
+          "lc",
+          "lw",
+          "mv",
+          "sc",
+          "slli",
+          "sltiu",
+          "srli",
+          "sw"
+        ],
+        "predicate": "nonempty non-directive non-label lines following the function label until the next .text; source pseudo-operations retained; not a decoded ISA inventory"
+      }
+    }
+  },
+  "iris_candidate": {
+    "version": "4.5.0",
+    "published_metadata": "iris-metadata.opam",
+    "source_build": "first native source build retained as iris-build.log; no exit status was preserved by its tail-printing shell",
+    "confirmation": "iris-build-incremental retains explicit exit status; existing products from first build are reused",
+    "acceptance": "standalone qualification only; no Islaris/Katamaran/Iris combination or canonical-term logic accepted"
+  }
+}
