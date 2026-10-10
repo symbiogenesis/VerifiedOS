@@ -1,0 +1,29 @@
+[WARNING] Running as root is not recommended
+File "/root/build/lane-solve-20261010-b/c-semantics/check92/Contained/common/Memory.v", line 3322, characters 9-20:
+Error:
+In environment
+m : mem
+b : block
+lo, hi : Z
+p : permission
+cp : compartment
+m' : mem
+DROP : drop_perm m b lo hi p cp = Some m'
+ofs, n : Z
+cp' : compartment
+n0 : block_compartment m b ⊆ cp' -> False
+r : range_perm m b ofs (ofs + n) Cur Readable
+l : n <= 0
+ofs0 : Z
+g : ofs0 >= lo
+g0 : hi > ofs0
+H1 : ofs <= ofs0
+H2 : ofs0 < ofs + n
+H : ofs + n <= lo
+Unable to unify
+ "match (mem_access m') # ?b' ?ofs ?k with
+  | Some p' => perm_order p' ?p'
+  | None => False
+  end"
+with "perm_order p Readable".
+
