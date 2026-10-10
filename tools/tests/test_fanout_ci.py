@@ -51,6 +51,7 @@ class FakeGitHub:
         self.calls: list[tuple[str, str, dict[str, object] | None]] = []
         self.host_runs = [_run()]
         self.host = _run()
+        self.host_peers: dict[int, dict[str, object]] = {}
         self.jobs: list[dict[str, object]] = [
             {"name": name, "status": "completed", "conclusion": "success"}
             for name in sorted(ci.HOST_JOBS)]
@@ -99,9 +100,14 @@ class FakeGitHub:
             return {"workflow_runs": self.host_runs}
         if f"workflows/{ci.GUEST}/runs?" in path:
             return {"workflow_runs": self.guest_runs}
-        if path == "actions/runs/10":
-            return self.host
-        if path.startswith("actions/runs/10/jobs?"):
+        observed = re.fullmatch(r"actions/runs/(\d+)", path)
+        if observed:
+            number = int(observed[1])
+            if number in self.host_peers:
+                return self.host_peers[number]
+            if number == 10 or number == self.host.get("id"):
+                return self.host
+        if re.fullmatch(r"actions/runs/\d+/jobs\?.*", path):
             return {"jobs": self.jobs}
         raise AssertionError(f"unexpected GitHub request: {method} {path}")
 
@@ -251,6 +257,96 @@ def _late_push_run_adopted() -> None:
            == dict.fromkeys(ci.HOST_JOBS, "success"), "adopt the push run's host evidence")
     fake = FakeGitHub(_state())
     ensure(fake.advance() and not fake.slept, "an already listed push run needs no wait")
+
+
+def _duplicate_push_runs_reused() -> None:
+    fake = FakeGitHub(_state())
+    fake.host_runs = [_run(9), _run(10)]
+    ensure(fake.advance(), "one exact push run can establish the host verdict")
+    host = fake.state["host"]
+    ensure(host is not None and host["run_id"] == 10,
+           "the handoff binds one run rather than combining duplicate evidence")
+    ensure(len(fake.posts()) == 1 and ci.GUEST in fake.posts()[0][1],
+           "duplicate automatic push runs must not authorize another Host CI dispatch")
+
+
+def _cancelled_push_peer_recovery() -> None:
+    for peer_id in (9, 11):
+        fake = FakeGitHub(_state())
+        fake.host.update(status="in_progress", conclusion=None)
+        ensure(not fake.advance(), "the selected push is initially pending")
+        fake.host.update(status="completed", conclusion="cancelled")
+        peer = _run(peer_id, status="in_progress", conclusion=None)
+        fake.host_peers[peer_id] = peer
+        fake.host_runs = [fake.host, peer]
+        ensure(not fake.advance(), "rebinding a canceled duplicate supplies no passing verdict")
+        host = fake.state["host"]
+        ensure(host is not None and host["run_id"] == peer_id and host["status"] == "pending"
+               and host["conclusion"] is None and not host["jobs"],
+               "either run-ID ordering can survive; the replacement awaits its own evidence")
+        ensure(not fake.posts() and fake.state["guest"] is None,
+               "a surviving duplicate must not cause a Host dispatch or premature Guest dispatch")
+        peer.update(status="completed", conclusion="success")
+        ensure(fake.advance(), "the surviving peer's complete host evidence can dispatch Guest")
+        ensure(host is not None and host["jobs"] == dict.fromkeys(ci.HOST_JOBS, "success"),
+               "normal aggregate evidence is required from the surviving run")
+        ensure(len(fake.posts()) == 1 and ci.GUEST in fake.posts()[0][1],
+               "recovery dispatches Guest once and never dispatches Host")
+        fake.calls.clear()
+        ensure(fake.advance() and not fake.calls, "a completed handoff never queries Guest")
+
+
+def _cancelled_push_peer_identity_and_verdict() -> None:
+    for change in ("absent", "revision", "branch", "workflow", "event", "failure",
+                   "cancelled", "skipped"):
+        fake = FakeGitHub(_state())
+        fake.host.update(status="completed", conclusion="cancelled")
+        peer = _run(9)
+        if change == "revision":
+            peer["head_sha"] = "b" * 40
+        elif change == "branch":
+            peer["head_branch"] = "work/unrelated"
+        elif change == "workflow":
+            peer["path"] = ".github/workflows/another.yml"
+        elif change == "event":
+            peer["event"] = "workflow_dispatch"
+        elif change in {"failure", "cancelled", "skipped"}:
+            peer["conclusion"] = change
+        fake.host_runs = [fake.host] + ([] if change == "absent" else [peer])
+        _refuses(fake.advance, f"a canceled push cannot pass through a {change} peer")
+        ensure(not fake.posts() and fake.state["guest"] is None,
+               "without a valid surviving push there is no dispatch or passing evidence")
+    for change in ("revision", "workflow", "incomplete-jobs", "cancelled"):
+        fake = FakeGitHub(_state())
+        fake.host.update(status="completed", conclusion="cancelled")
+        peer = _run(9)
+        fake.host_runs = [fake.host, peer]
+        fake.host_peers[9] = peer
+        ensure(not fake.advance(), "a listed peer is rebound before accepting its verdict")
+        if change == "revision":
+            peer["head_sha"] = "b" * 40
+        elif change == "workflow":
+            peer["path"] = ".github/workflows/another.yml"
+        elif change == "incomplete-jobs":
+            fake.jobs.pop()
+        else:
+            peer["conclusion"] = "cancelled"
+        _refuses(fake.advance, f"the replacement's own {change} evidence must refuse")
+        ensure(not fake.posts() and fake.state["guest"] is None,
+               "run-list success cannot bypass identity and aggregate checks")
+
+
+def _cancelled_dispatch_never_rebinds_push() -> None:
+    fake = FakeGitHub(_state())
+    fake.host_runs = []
+    ensure(not fake.advance(), "the manual Host dispatch is initially pending")
+    fake.host.update(status="completed", conclusion="cancelled")
+    fake.host_runs = [_run(9)]
+    lookups = fake.host_lookups()
+    _refuses(fake.advance, "a canceled pinned dispatch cannot adopt another push's head")
+    ensure(fake.host_lookups() == lookups and len(fake.posts()) == 1
+           and fake.state["guest"] is None,
+           "dispatch cancellation neither searches for a peer nor repeats a dispatch")
 
 
 def _main_ancestry() -> None:
@@ -1704,6 +1800,10 @@ def cases() -> list[Case]:
             Case("host-revision-binding", _host_revision_binding),
             Case("host-dispatch", _host_dispatch),
             Case("late-push-run-adopted", _late_push_run_adopted),
+            Case("duplicate-push-runs-reused", _duplicate_push_runs_reused),
+            Case("cancelled-push-peer-recovery", _cancelled_push_peer_recovery),
+            Case("cancelled-push-peer-identity-verdict", _cancelled_push_peer_identity_and_verdict),
+            Case("cancelled-dispatch-never-rebinds-push", _cancelled_dispatch_never_rebinds_push),
             Case("main-ancestry", _main_ancestry),
             Case("dispatch-revision-survives-main-advance", _dispatch_revision_survives_main_advance),
             Case("guest-interrupt-recovery", _guest_interrupt_recovery),
