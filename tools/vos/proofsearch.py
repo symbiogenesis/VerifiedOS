@@ -3,9 +3,10 @@
 
 This is a limited lexical reader, not Gallina elaboration. It recognizes the named
 declarations in proofcites.DEFINERS, optional attributes/locality modifiers, direct
-bodies and ordinary Qed/Defined/Admitted/Abort endings. It does not resolve modules,
-notation, generated obligations, mutual secondary names or tactic semantics. A
-script token can be a variable or term as well as a tactic. In particular, lexical
+bodies, named Ltac definitions and ordinary Qed/Defined/Admitted/Abort endings.
+It does not resolve modules, notation, generated obligations, mutual secondary
+names, Ltac redefinitions, Ltac2 or tactic semantics. A script token can be a
+variable or term as well as a tactic. In particular, lexical
 completion is no evidence that a file compiles or meets its assumption contract.
 
 Offsets survive comment/string masking, so an excerpt, location and raw-byte hash
@@ -30,6 +31,9 @@ _HEAD = re.compile(
     r"^(?:#\[[^\]]*\]\s*|(?:Local|Global|Program|Polymorphic|Monomorphic|"
     r"Cumulative|NonCumulative)\s+)*"
     rf"(?P<kind>{'|'.join(proofcites.DEFINERS)})\s+(?P<name>[\w']+)")
+_TACTIC_HEAD = re.compile(
+    r"^(?:#\[[^\]]*\]\s*|(?:Local|Global)\s+)*"
+    r"Ltac\s+(?P<name>[\w']+)(?:\s+[\w']+)*\s*:=")
 _CLOSE = re.compile(r"^[\s{}]*?(Qed|Defined|Admitted|Abort)\s*\.$")
 _BODY_TOKEN = re.compile(r"[\w']+|:=|[()[\]{}]")
 
@@ -181,6 +185,17 @@ def _declarations(code: str) -> list[_Declaration]:
     pending: tuple[_Sentence, str, str] | None = None
     pending_end = 0
     for sentence in _sentences(code):
+        tactic = _TACTIC_HEAD.match(sentence.code)
+        if tactic:
+            # A tactic definition may be a command inside an open proof. Keep
+            # that proof pending until its own close while exposing the helper.
+            if pending:
+                pending_end = sentence.end
+            result.append(_Declaration(
+                sentence.start, sentence.start + tactic.end(), sentence.end,
+                str(tactic["name"]), "Ltac",
+                "definition" if sentence.terminated else "incomplete"))
+            continue
         head = _HEAD.match(sentence.code)
         if head:
             if pending:
@@ -264,8 +279,8 @@ def search(root: Path, query: str = "", *, tactics: tuple[str, ...] = (),
     """Read current sources and rank lexical matches; errors never yield partial output.
 
     Query words are ORed, each contributing its strongest weight: name 8, statement
-    4, script 1. Every tactic-token and requirement filter must match, contributing
-    2 and 1 respectively. Ties sort by path, line, column and name. Requirement references
+    4, script/Ltac body 1. Every tactic-token and requirement filter must match,
+    contributing 2 and 1 respectively. Ties sort by path, line, column and name. Requirement references
     belong to the whole file and exclude proofcites' derived manifest regions.
     """
     validate(query, tactics, requirements, exclude, limit, max_chars)

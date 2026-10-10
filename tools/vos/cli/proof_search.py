@@ -16,7 +16,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("query", nargs="?", default="",
                         help="query words (OR); name matches rank above statements and scripts")
     parser.add_argument("--tactic", action="append", default=[], metavar="WORD",
-                        help="require an exact script identifier token (repeatable, AND)")
+                        help="require an exact proof-script or Ltac-body identifier token "
+                        "(repeatable, AND)")
     parser.add_argument("--requirement", action="append", default=[], metavar="ID",
                         help="require a file-level authored requirement citation (repeatable, AND)")
     parser.add_argument("--exclude", action="append", default=[], metavar="proofs/Name.v",
