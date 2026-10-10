@@ -48,10 +48,10 @@ permissions:
   contents: read
 
 # Superseded PR runs are disposable. Main runs share only their tested revision:
-# duplicate push events or a dispatch for that revision cancel redundant work,
-# while different main revisions keep separate runs.
+# duplicate push events cancel redundant work; different revisions and explicit
+# manual dispatches keep separate groups.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('revision-{0}', inputs.revision || github.sha) }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('{0}-{1}', github.event_name, inputs.revision || github.sha) }}
   cancel-in-progress: true
 
 env:

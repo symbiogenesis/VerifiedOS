@@ -79,6 +79,8 @@ The commands use the native source directory; none changes the locked switch.
 | Locked `rocq c` over `SelectedExampleAudit.v`, with the gate's `STRICT` arguments and explicit source mappings | 1; cannot locate `riscv64_test` with prefix `isla.examples`. The requested queries are `Print Assumptions` of `isla.examples.riscv64_test.riscv_test` and `isla.examples.riscv64_test.riscv_test_adequate`. Neither query executes. |
 | Locked `rocqchk -silent -o` over `isla.examples.riscv64_test`, with the same mappings and no admitted module | 1; cannot find the compiled library. There is no whole-environment context summary or accepted assumption reading. |
 
+The requested audit client is [`/root/build/lane-q35c-20261010-logic/q35c/SelectedExampleAudit.v`](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/SelectedExampleAudit.v), SHA256 `795424af1de229c4a0d5b9b981b7de5a327b1423ced420cba73ab801350b678a`.
+
 The logs are [build](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/build.log),
 [solver](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/solver.log),
 [compiler audit](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/assumptions.log)
@@ -99,9 +101,10 @@ compiler audit and whole-environment kernel reading.
 **The selected Iris closure has separate positive evidence.** Iris 4.5.0's source
 was built locally with `make-package iris -j2` under the locked prover and its
 own compile flags, which suppress notation/projection warnings and leave Rocq
-9.3 deprecations as warnings. The first source-build log is retained; its
-tail-printing shell preserved no process exit status. The receipt therefore
-identifies the subsequent explicit incremental confirmation, exit 0, as such.
+9.3 deprecations as warnings. The first source-build log is
+[`/root/build/lane-q35c-20261010-logic/q35c/iris-build.log`](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/iris-build.log), SHA256 `03e65e4fc4a69c4209f936e82c550fe58d587c0c4cfe48fde47e28be1fd52e60`; its shell wrapper did not preserve the exit
+status. The receipt identifies the subsequent explicit incremental confirmation,
+exit 0, as such: [`/root/build/lane-q35c-20261010-logic/q35c/iris-build-incremental.log`](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/iris-build-incremental.log), SHA256 `47b67e4c0303bb3d3a19264993c88b1866eb7e06586228a4ff6b4b6d2a746440`.
 The [strict import probe](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/IrisProbe.v)
 loads `weakestpre` and `adequacy`; locked `rocq c` with the gate's strict flags
 exits 0 and `Print Assumptions wp_adequacy` reports a closed global context.
@@ -124,6 +127,15 @@ the merged capability/integer register file, the purecap ABI, local attestation,
 relational constant-time or cycle cost. Its `isla_adequacy` dependency establishes
 safety for Islaris's trace semantics; naming that theorem supplies no adequacy of
 the canonical Sail term.
+
+The published Iris package constraints are retained as [`/root/build/lane-q35c-20261010-logic/q35c/iris-metadata.opam`](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/iris-metadata.opam), SHA256 `2aa6fde505ddec258f651ba2f96a9cc598d3aa774e38ec3713f8287bd4db4474`.
+The strict compiler output for the positive probe is [`/root/build/lane-q35c-20261010-logic/q35c/iris-strict-import.log`](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/iris-strict-import.log), SHA256 `188ff29b8a0705f491438ebf47623e533fe60658944f3f1f58e1f9b5badb1bcf`.
+
+The locked prover and installed package inventory are [`/root/build/lane-q35c-20261010-logic/q35c/prover-version.log`](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/prover-version.log), SHA256 `bed18c6aed8995deb0f7988289c882981df1dc032ea306912c9b81bd96cd3907`
+and [`/root/build/lane-q35c-20261010-logic/q35c/switch-inventory.log`](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/switch-inventory.log), SHA256 `9817de3255df937ce2368f253164ebb40a7df96044c811191aa393029f05ed01`.
+The byte-identical switch snapshots are [`/root/build/lane-q35c-20261010-logic/q35c/switch-before.export`](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/switch-before.export), SHA256 `3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32`
+and [`/root/build/lane-q35c-20261010-logic/q35c/switch-after.export`](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/switch-after.export), SHA256 `3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32`; their command logs are
+[`/root/build/lane-q35c-20261010-logic/q35c/switch-export-before.log`](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/switch-export-before.log), SHA256 `73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a` and [`/root/build/lane-q35c-20261010-logic/q35c/switch-export-after.log`](../implementation/retained-evidence/root/build/lane-q35c-20261010-logic/q35c/switch-export-after.log), SHA256 `73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a`.
 
 ## 2. The one machine subject and required Isla interface
 

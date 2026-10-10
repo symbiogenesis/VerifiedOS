@@ -80,8 +80,9 @@ first, after one line naming the runner's CPU count and model, in one collapsed 
 with workflow commands stopped.
 
 New commits cancel superseded runs of the same pull request. Main runs share a
-concurrency group only when their tested revision is the same: the dispatch's
-explicit revision, or the event SHA. Duplicate runs cancel redundant work;
+concurrency group only when their trigger and tested revision are the same:
+the dispatch's explicit revision, or the event SHA. Duplicate automatic push
+runs cancel redundant work; manual dispatches keep their own trigger group;
 different revisions of `main` keep separate runs. Ubuntu runs four independent
 shards and Windows eight, because a shard's members are CPU-bound and run the same work more slowly on the Windows
 runner. Mutation cases and sorted behavioral test modules are partitioned by
