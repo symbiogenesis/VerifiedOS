@@ -19,4 +19,4 @@ in an existing switch, never an install.
 
 | Directory | Behaviour | Record |
 | --- | --- | --- |
-| [resolver-roots/](resolver-roots/README.md) | `rocqchk` aborts with the anomaly "Incompatible resolver roots" on a functor whose body opaquely ascribes a module holding a submodule, once the functor is applied; VST 2.17's `floyd/SeparationLogicAsLogicSoundness.v` has that shape | [checker-resolver-anomaly.md](../../docs/assurance/checker-resolver-anomaly.md) |
+| [resolver-roots/](resolver-roots/README.md) | `rocqchk` aborts with the anomaly "Incompatible resolver roots" on a functor whose body opaquely ascribes a module holding a submodule, once the functor is applied; VST 2.17's `floyd/SeparationLogicAsLogicSoundness.v` has that shape. Upstream fixed the reported defect in [#22556](https://github.com/rocq-prover/rocq/pull/22556) on 2026-10-08; no fixed release is published as of 2026-10-10, and the locked 9.3.0 checker remains affected | [checker-resolver-anomaly.md](../../docs/assurance/checker-resolver-anomaly.md) |

@@ -13,6 +13,8 @@ column's results at `981bb63f`, and the upstream state; the report is
 [rocq-prover/rocq#22555](https://github.com/rocq-prover/rocq/issues/22555). This
 directory holds the files and the runner.
 
+[Upstream fixed #22555 in #22556](https://github.com/rocq-prover/rocq/pull/22556) on 2026-10-08; as of 2026-10-10 no release carries the fix, so the locked 9.3.0 checker remains affected and VST requalification remains pending. The table and runner retain their expectations for the measured releases; a run with a fixed checker is a new measurement, including the related `AliasTypedField.v` symptom.
+
 Every file is authored here from scratch and carries none of VST's content.
 
 | File | What it holds | `rocq c` | `rocqchk -silent -o` at 9.1.1, 9.2.0 and 9.3.0 |

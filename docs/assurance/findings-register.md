@@ -1019,7 +1019,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-486** upstream-defect: `rocqchk` 9.2.0 raises an "Incompatible resolver roots" anomaly checking VST 2.17's `VST.floyd.SeparationLogicAsLogicSoundness`, which every Verifiable C client loads, so the gate reads no summary for any Floyd client over either CompCert route
 · Raised: Q35e
-· Disposition: open, upstream: Q35h reduces it to [a standalone reproduction](../../tools/checker-reproductions/resolver-roots/README.md), a functor whose body seals a module holding a submodule, applied once, on which every released checker in the guest from 9.1 and rocq master at `981bb63f` abort while the control without the submodule checks, so no released checker from 9.1 produces VST 2.17's client summary and 9.0.x is unmeasured; reported as [rocq-prover/rocq#22555](https://github.com/rocq-prover/rocq/issues/22555); [Q35h's record](checker-resolver-anomaly.md)
+· Disposition: open for release adoption and VST requalification: upstream resolved [#22555](https://github.com/rocq-prover/rocq/issues/22555#event-32794329058) through [#22556](https://github.com/rocq-prover/rocq/pull/22556), merged 2026-10-08 at `33ec1b11dbf2af4be99d53adeb275c5924e37e41` and milestoned 9.2.1; no fixed release is published as of 2026-10-10, so the locked 9.3.0 checker remains affected; [Q35h's record](checker-resolver-anomaly.md)
 
 **F-487** owed-act: the kernel checker's summary names checked fields of alias-sealed and functor-sealed modules as axioms, 204 fields of VST's `Share` and `R` in the recursively checked `SequentialClight` closure, and no rule decides whether the gate covers them by the same run's checking evidence or an R-05-164 amendment enumerates them
 · Raised: Q35e
@@ -1095,7 +1095,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-780** upstream-defect: `rocqchk` 9.2, 9.3.0 and master at `981bb63f` abort with `Type error: IllFormedConstant` on a constant typed through the alias field of a sealed module inside an applied functor, where 9.1.1 raises the "Incompatible resolver roots" anomaly on the same file and `rocq c` accepts it
 · Raised: Q35h
-· Disposition: open, upstream: carried in [rocq-prover/rocq#22555](https://github.com/rocq-prover/rocq/issues/22555) as a symptom of F-486's defect; the same constant typed through the functor's parameter restores the resolver-roots message at every release
+· Disposition: open for post-fix qualification: carried in [#22555](https://github.com/rocq-prover/rocq/issues/22555#event-32794329058) as a symptom of F-486's defect; upstream closed the report through [#22556](https://github.com/rocq-prover/rocq/pull/22556) on 2026-10-08, but no fixed release or post-fix measurement of this symptom is available as of 2026-10-10; [Q35h's record](checker-resolver-anomaly.md)
 
 **F-781** measurement: the kernel checker's `-admit M` leaves M's whole dependency closure unchecked except the libraries named on the command line, which it checks even inside that closure, so the smallest admission over VST 2.17's client, the soundness module admitted and its 653 other interned libraries named, names 282 constants, 60 of them the admitted module's own sealed fields
 · Raised: Q35h
