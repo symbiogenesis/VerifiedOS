@@ -1,0 +1,1 @@
+{"argv": ["/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq", "c", "-q", "-Q", "proofs", "", "-w", "+default,-abstract-large-number", "-set", "Default Goal Selector=!", "-disallow-sprop", "proofs/IsolatedDesktop.v"], "returncode": 0, "stdout": "", "stderr": "", "elapsed_seconds": 72.47509860299999}

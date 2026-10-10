@@ -127,6 +127,17 @@ assumption audit, native inventory and kernel gate remain pending cold Guest CI
 at the integrator's settled revision. Host CI and that Guest CI handoff remain
 the integrator's gates.
 
+The verbatim native records are retained as
+[`/root/build/lane-solve-20261010-a/desktop-candidate/candidate-result.json`](retained-evidence/root/build/lane-solve-20261010-a/desktop-candidate/candidate-result.json),
+SHA256 `1bc9e4a5799d8e7c01dff71f69799f276c798ac04cbdb9162c759c85a31be1e0`,
+[`/root/build/lane-solve-20261010-a/desktop-candidate/focused-audit.json`](retained-evidence/root/build/lane-solve-20261010-a/desktop-candidate/focused-audit.json),
+SHA256 `d6e0a34076e356b6cb4004d8c929107d0f83859eca414ad0b899d9a0098529de`,
+and
+[`/root/build/lane-solve-20261010-a/desktop-candidate/kernel-context.txt`](retained-evidence/root/build/lane-solve-20261010-a/desktop-candidate/kernel-context.txt),
+SHA256 `6ab673b318a00623c62cd191789fc8932cdf30981865a3044a9538e75c9cd204`.
+These copies preserve the scoped observation after lane retirement and are not
+current proof receipts.
+
 ## Dispatch decision
 
 On 2026-10-10 the acceptance reading identified the missing actual first-release
