@@ -251,6 +251,124 @@ def _unambiguous_locations_and_exclusions() -> None:
                    "a misspelled exclusion must not silently expose a held-out solution")
 
 
+def _ltac_names_bodies_and_filters() -> None:
+    source = (f"(* R-01-001a\n{proofcites.DERIVED_BEGIN}\n"
+              f"R-02-002\n{proofcites.DERIVED_END}\n*)\n"
+              "Local Ltac normalize_goal hypothesis unused :=\n"
+              "  let remembered := constr:(Library.value) in\n"
+              "  lazymatch goal with\n"
+              "  | [ witness : ?P |- _ ] => pose proof hypothesis; exact witness\n"
+              "  end.\n"
+              "Global Ltac caller _ := apply Library.normalize_goal.\n"
+              "Ltac normalize_direct := idtac.\n")
+    with sandbox_tree({"proofs/A.v": source}) as root:
+        result = proofsearch.search(root, "normalize")
+        ensure(_names(result) == ["normalize_goal", "normalize_direct", "caller"],
+               "Ltac names must rank above body tokens, with deterministic source-order ties")
+        ensure(result == proofsearch.search(root, "normalize"),
+               "Ltac rankings must remain deterministic")
+        hits = proofsearch.search(root, "remembered", tactics=("exact", "hypothesis"),
+                                  requirements=("R-01-001a",))["matches"]
+        ensure(len(hits) == 1 and hits[0]["kind"] == "Ltac"
+               and hits[0]["status"] == "definition", "retrieve the multiline body and its arguments")
+        ensure(hits[0]["requirements"] == ["R-01-001a"], "Ltac uses authored citations only")
+        ensure(_names(proofsearch.search(root, tactics=("normalize_goal",))) == ["caller"],
+               "tactic filters match Ltac body tokens, not the definition's name")
+        for token in ("unused", "Local", "Global", "remember"):
+            ensure(not proofsearch.search(root, tactics=(token,))["matches"],
+                   f"headers and partial identifiers cannot satisfy body filters: {token}")
+        ensure(not proofsearch.search(root, requirements=("R-02-002",))["matches"],
+               "derived references cannot satisfy Ltac requirement filters")
+        ensure(not proofsearch.search(root, "normalize", exclude=("proofs/A.v",))["matches"],
+               "target exclusion must also exclude its reusable tactics")
+
+
+def _ltac_comments_strings_and_spans() -> None:
+    source = ('(* Ltac invented := auto. (* nested *) *)\r\n'
+              'Definition text := "Ltac fabricated := auto.". '
+              'Local Ltac helper argument :=\r\n'
+              '  (* auto *) idtac "auto. Ltac fake := fail.";\r\n'
+              '  exact Library.value. Global Ltac neighbor := idtac.\r\n')
+    with sandbox_tree({"proofs/A.v": source}) as root:
+        ensure(not proofsearch.search(root, "invented fabricated fake")["matches"],
+               "masked comments and strings must not create tactics or query matches")
+        for token in ("auto", "fail"):
+            ensure(not proofsearch.search(root, tactics=(token,))["matches"],
+                   "masked comments and strings must not satisfy Ltac body filters")
+        hit = proofsearch.search(root, "helper")["matches"][0]
+        ensure(hit["line"] == 2 and hit["end_line"] == 4 and
+               hit["column"] == source.splitlines()[1].index("Local Ltac") + 1,
+               "Ltac spans must retain raw source lines and the modifier's column")
+        start, end = source.index("Local Ltac"), source.index(" Global Ltac")
+        ensure(hit["excerpt"] == source[start:end] and hit["status"] == "definition",
+               "qualified identifiers must not truncate a command or absorb the following command")
+        ensure(hit["source_sha256"] == hashlib.sha256(source.encode("utf-8")).hexdigest(),
+               "Ltac identities must bind original bytes, including CRLF")
+        ensure(_names(proofsearch.search(root, "neighbor")) == ["neighbor"],
+               "the next tactic on the same line must remain independently retrievable")
+
+
+def _ltac_inside_proofs_and_incomplete() -> None:
+    source = ("Lemma outer : True. Proof.\n"
+              "  Local Ltac helper := exact I.\n"
+              "  helper. Qed.\n"
+              "Definition transparent : True. Proof.\n"
+              "  Ltac another := exact I. another. Defined.\n"
+              "Lemma ordinary : True. Proof. exact I. Qed.\n"
+              "Ltac unfinished arg :=\n"
+              '  lazymatch goal with | _ => idtac "final string"')
+    with sandbox_tree({"proofs/A.v": source}) as root:
+        result = proofsearch.search(root, tactics=("exact",), limit=50)
+        hits = {hit["name"]: hit for hit in result["matches"]}
+        ensure(set(hits) == {"outer", "helper", "transparent", "another", "ordinary"},
+               "Ltac retrieval must retain both enclosing and ordinary theorem results")
+        ensure(hits["outer"]["status"] == hits["transparent"]["status"] == "complete"
+               and hits["outer"]["excerpt"].endswith("Qed.")
+               and hits["transparent"]["excerpt"].endswith("Defined."),
+               "tactic commands inside proofs must not interrupt their enclosing declaration")
+        ensure(hits["helper"]["excerpt"] == "Local Ltac helper := exact I.",
+               "a nested tactic's excerpt stops before its caller and the proof ending")
+        hit = proofsearch.search(root, "unfinished")["matches"][0]
+        ensure(hit["kind"] == "Ltac" and hit["status"] == "incomplete"
+               and hit["excerpt"].endswith('"final string"'),
+               "an unterminated tactic retains its final string and is visibly incomplete")
+        ensure(_names(proofsearch.search(root, tactics=("lazymatch",))) == ["unfinished"],
+               "unfinished tactics remain searchable through their visible body tokens")
+
+
+def _ltac_unsupported_forms() -> None:
+    source = ("Ltac replaced ::= fail.\n"
+              "Ltac2 newer () := exact.\n"
+              "Ltac primary := idtac with secondary := fail.\n"
+              "Lemma unaffected : True. Proof. exact I. Qed.\n")
+    with sandbox_tree({"proofs/A.v": source}) as root:
+        ensure(not proofsearch.search(root, "replaced newer")["matches"],
+               "redefinitions and Ltac2 are not recognized Ltac definitions")
+        ensure(_names(proofsearch.search(root, "secondary")) == ["primary"],
+               "mutual secondary names may occur in a body but are not independent declarations")
+        ensure(_names(proofsearch.search(root, tactics=("exact",))) == ["unaffected"],
+               "unsupported commands must not hide an ordinary theorem")
+
+
+def _ltac_bounded_json() -> None:
+    source = "".join(f"Ltac helper_{n} argument := (* {'x' * 400} *) exact argument.\n"
+                     for n in range(3))
+    schema = json.loads((TOOLS / "proof-search.schema.json").read_text(encoding="utf-8"))
+    with sandbox_tree({"proofs/A.v": source}) as root:
+        status, stdout, stderr = _call(
+            root, ["helper", "--tactic", "exact", "--limit", "2", "--max-chars", "256", "--json"])
+        ensure(status == 0 and not stderr, f"Ltac JSON command failed: {stderr}")
+        result = json.loads(stdout)
+        Draft202012Validator(schema).validate(result)
+        ensure(result["version"] == 1 and result["advisory_only"]
+               and result["total_matches"] == 3 and result["truncated"],
+               "Ltac results retain the v1 advisory contract and explicit result truncation")
+        ensure(len(result["matches"]) == 2 and all(
+            hit["kind"] == "Ltac" and hit["status"] == "definition"
+            and len(hit["excerpt"]) == 256 and hit["excerpt_truncated"]
+            for hit in result["matches"]), "Ltac excerpts obey the existing output bound")
+
+
 def cases() -> list[Case]:
     return [
         Case("ranking-and-exclusion", _ranking_and_exclusion),
@@ -265,4 +383,9 @@ def cases() -> list[Case]:
         Case("source-errors", _source_errors),
         Case("corpus-boundaries", _corpus_boundaries),
         Case("unambiguous-locations-and-exclusions", _unambiguous_locations_and_exclusions),
+        Case("ltac-names-bodies-and-filters", _ltac_names_bodies_and_filters),
+        Case("ltac-comments-strings-and-spans", _ltac_comments_strings_and_spans),
+        Case("ltac-inside-proofs-and-incomplete", _ltac_inside_proofs_and_incomplete),
+        Case("ltac-unsupported-forms", _ltac_unsupported_forms),
+        Case("ltac-bounded-json", _ltac_bounded_json),
     ]
