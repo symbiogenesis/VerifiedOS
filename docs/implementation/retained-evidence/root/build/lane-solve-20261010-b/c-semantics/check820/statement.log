@@ -1,0 +1,145 @@
+[WARNING] Running as root is not recommended
+bridge_statement : Prop
+
+bridge_statement is not universe polymorphic
+bridge_statement is transparent
+Expands to: Constant BridgeTrial.Bridge.bridge_statement
+Axioms:
+ClassicalDedekindReals.sig_not_dec : forall P : Prop, {~ ~ P} + {~ P}
+ClassicalDedekindReals.sig_forall_dec :
+  forall P : nat -> Prop,
+  (forall n : nat, {P n} + {~ P n}) ->
+  {n : nat | ~ P n} + {forall n : nat, P n}
+Archi.ptr64 : bool
+Stock.common.Events.inline_assembly_sem :
+  string -> Stock.common.AST.signature -> Stock.common.Events.extcall_sem
+Events.inline_assembly_sem : string -> AST.signature -> Events.extcall_sem
+FunctionalExtensionality.functional_extensionality_dep :
+  forall (A : Type) (B : A -> Type) (f g : forall x : A, B x),
+  (forall x : A, f x = g x) -> f = g
+Stock.common.Events.external_functions_sem :
+  string -> Stock.common.AST.signature -> Stock.common.Events.extcall_sem
+Events.external_functions_sem : string -> AST.signature -> Events.extcall_sem
+Classical_Prop.classic : forall P : Prop, P \/ ~ P
+witness_FrontendCorrespondence :
+FrontendCorrespondence HandAuthored zero_stock_produces zero_contained_parses
+
+witness_FrontendCorrespondence is not universe polymorphic
+witness_FrontendCorrespondence is transparent
+Expands to: Constant BridgeTrial.Bridge.witness_FrontendCorrespondence
+Axioms:
+Archi.ptr64 : bool
+capability_call_entry_step :
+T.step2 TA.COMP.bottom (T.globalenv bad_program) bad_call Events.E0 bad_entry
+
+capability_call_entry_step is not universe polymorphic
+capability_call_entry_step is opaque
+Expands to: Constant BridgeTrial.Bridge.capability_call_entry_step
+Axioms:
+ClassicalDedekindReals.sig_not_dec : forall P : Prop, {~ ~ P} + {~ P}
+ClassicalDedekindReals.sig_forall_dec :
+  forall P : nat -> Prop,
+  (forall n : nat, {P n} + {~ P n}) ->
+  {n : nat | ~ P n} + {forall n : nat, P n}
+Archi.ptr64 : bool
+Events.inline_assembly_sem : string -> AST.signature -> Events.extcall_sem
+FunctionalExtensionality.functional_extensionality_dep :
+  forall (A : Type) (B : A -> Type) (f g : forall x : A, B x),
+  (forall x : A, f x = g x) -> f = g
+Events.external_functions_sem : string -> AST.signature -> Events.extcall_sem
+Classical_Prop.classic : forall P : Prop, P \/ ~ P
+capability_body_entry_step :
+T.step2 TA.COMP.bottom (T.globalenv bad_program) bad_entry Events.E0
+  bad_before
+
+capability_body_entry_step is not universe polymorphic
+capability_body_entry_step is opaque
+Expands to: Constant BridgeTrial.Bridge.capability_body_entry_step
+Axioms:
+ClassicalDedekindReals.sig_not_dec : forall P : Prop, {~ ~ P} + {~ P}
+ClassicalDedekindReals.sig_forall_dec :
+  forall P : nat -> Prop,
+  (forall n : nat, {P n} + {~ P n}) ->
+  {n : nat | ~ P n} + {forall n : nat, P n}
+Archi.ptr64 : bool
+Events.inline_assembly_sem : string -> AST.signature -> Events.extcall_sem
+FunctionalExtensionality.functional_extensionality_dep :
+  forall (A : Type) (B : A -> Type) (f g : forall x : A, B x),
+  (forall x : A, f x = g x) -> f = g
+Events.external_functions_sem : string -> AST.signature -> Events.extcall_sem
+Classical_Prop.classic : forall P : Prop, P \/ ~ P
+capability_producing_step :
+T.step2 TA.COMP.bottom (T.globalenv bad_program) bad_before Events.E0
+  bad_after
+
+capability_producing_step is not universe polymorphic
+capability_producing_step is opaque
+Expands to: Constant BridgeTrial.Bridge.capability_producing_step
+Axioms:
+ClassicalDedekindReals.sig_not_dec : forall P : Prop, {~ ~ P} + {~ P}
+ClassicalDedekindReals.sig_forall_dec :
+  forall P : nat -> Prop,
+  (forall n : nat, {P n} + {~ P n}) ->
+  {n : nat | ~ P n} + {forall n : nat, P n}
+Archi.ptr64 : bool
+Events.inline_assembly_sem : string -> AST.signature -> Events.extcall_sem
+FunctionalExtensionality.functional_extensionality_dep :
+  forall (A : Type) (B : A -> Type) (f g : forall x : A, B x),
+  (forall x : A, f x = g x) -> f = g
+Events.external_functions_sem : string -> AST.signature -> Events.extcall_sem
+Classical_Prop.classic : forall P : Prop, P \/ ~ P
+capability_instance_refuted : ~ state_cap_free bad_after
+
+capability_instance_refuted is not universe polymorphic
+capability_instance_refuted is opaque
+Expands to: Constant BridgeTrial.Bridge.capability_instance_refuted
+Axioms:
+ClassicalDedekindReals.sig_not_dec : forall P : Prop, {~ ~ P} + {~ P}
+ClassicalDedekindReals.sig_forall_dec :
+  forall P : nat -> Prop,
+  (forall n : nat, {P n} + {~ P n}) ->
+  {n : nat | ~ P n} + {forall n : nat, P n}
+Archi.ptr64 : bool
+FunctionalExtensionality.functional_extensionality_dep :
+  forall (A : Type) (B : A -> Type) (f g : forall x : A, B x),
+  (forall x : A, f x = g x) -> f = g
+Classical_Prop.classic : forall P : Prop, P \/ ~ P
+witness_source_return_step :
+S.eval_expr (S.globalenv zero_stock) S.empty_env
+  (Stock.lib.Maps.PTree.empty SV.val) SM.Mem.empty
+  (S.Econst_int SI.Int.zero (ST.Tint ST.I32 ST.Signed ST.noattr))
+  (SV.Vint SI.Int.zero)
+
+witness_source_return_step is not universe polymorphic
+witness_source_return_step is opaque
+Expands to: Constant BridgeTrial.Bridge.witness_source_return_step
+Axioms:
+ClassicalDedekindReals.sig_not_dec : forall P : Prop, {~ ~ P} + {~ P}
+ClassicalDedekindReals.sig_forall_dec :
+  forall P : nat -> Prop,
+  (forall n : nat, {P n} + {~ P n}) ->
+  {n : nat | ~ P n} + {forall n : nat, P n}
+FunctionalExtensionality.functional_extensionality_dep :
+  forall (A : Type) (B : A -> Type) (f g : forall x : A, B x),
+  (forall x : A, f x = g x) -> f = g
+Classical_Prop.classic : forall P : Prop, P \/ ~ P
+witness_target_return_value :
+T.eval_expr (T.globalenv zero_contained) T.empty_env TA.COMP.bottom
+  (Maps.PTree.empty TV.val) TM.Mem.empty
+  (T.Econst_int TI.Int.zero (TT.Tint TT.I32 TT.Signed TT.noattr))
+  (TV.Vint TI.Int.zero)
+
+witness_target_return_value is not universe polymorphic
+witness_target_return_value is opaque
+Expands to: Constant BridgeTrial.Bridge.witness_target_return_value
+Axioms:
+ClassicalDedekindReals.sig_not_dec : forall P : Prop, {~ ~ P} + {~ P}
+ClassicalDedekindReals.sig_forall_dec :
+  forall P : nat -> Prop,
+  (forall n : nat, {P n} + {~ P n}) ->
+  {n : nat | ~ P n} + {forall n : nat, P n}
+Archi.ptr64 : bool
+FunctionalExtensionality.functional_extensionality_dep :
+  forall (A : Type) (B : A -> Type) (f g : forall x : A, B x),
+  (forall x : A, f x = g x) -> f = g
+Classical_Prop.classic : forall P : Prop, P \/ ~ P

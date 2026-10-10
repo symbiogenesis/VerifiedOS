@@ -1,0 +1,46 @@
+{
+  "scope": "Q35j private legacy statement instrument only; no admitted proof foundation",
+  "invocation": [
+    "python3",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/solve-20261010-b/tools/c-semantics-bridge/check.py",
+    "--stock",
+    "/root/build/lane-solve-20261010-b/c-semantics/stock",
+    "--contained",
+    "/root/build/lane-solve-20261010-b/c-semantics/contained",
+    "--flocq",
+    "/root/.opam/verifiedos-q35e-vst3-20260928/.opam-switch/sources/coq-flocq.4.2.2/src",
+    "--output",
+    "/root/build/lane-solve-20261010-b/c-semantics/check820",
+    "--switch",
+    "verifiedos-q35e-vst3-20260928",
+    "--coq-bin",
+    "/usr/bin"
+  ],
+  "native_compile_cwd": "/root/build/lane-solve-20261010-b/c-semantics/check820",
+  "switch_execution_prefix": "/root/.opam/verifiedos-q35e-vst3-20260928",
+  "package_changes": false,
+  "contained_revision": "1cd36c710967e89db21da08f237ffca78843b883",
+  "contained_archive_sha256": "cc790f82d126cdecd4b74bde8182946dfb329b42a4df059f7abf9baa399838f5",
+  "compiler": {
+    "path": "/usr/bin/coqc",
+    "sha256": "2c2404b0f45b7734401a636e20c1f1f886ce8b491929e189e8e3dc45aeac1c42"
+  },
+  "dependency_tool": {
+    "path": "/usr/bin/coqdep",
+    "sha256": "b5a6cb204b207c5aec7fe509245d0f132690528bb9e089a8cfd1102153b52075"
+  },
+  "version": "[WARNING] Running as root is not recommended\nThe Coq Proof Assistant, version 8.20.1\ncompiled with OCaml 5.4.0\n",
+  "instrument_sha256": "ef6bc28eb9582b9936456875ddf0042f8c0a7985a9116c285b3c00929e802ed0",
+  "statement_sha256": "2bf2354e81f3178113bbca901fc09b1d1fa94753c4edb86fa97b233891a3ed0e",
+  "source_closure_receipt": {
+    "path": "/root/build/lane-solve-20261010-b/c-semantics/check820/upstream-report.json",
+    "sha256": "827b0e534a733b589c0172df4b3b9201e7df7b6bb000483c36a490ea1d954cc0"
+  },
+  "statement_receipt": {
+    "path": "/root/build/lane-solve-20261010-b/c-semantics/check820/report.json",
+    "sha256": "c9a6a9cfdf9f16d4a4788f9906fc19ada31d3757a85b6ebc2be3649c0afddee3"
+  },
+  "complete_authoring_actual": "n/a; early reading and provisioning intervals not captured",
+  "retained_estimate_hours": 16,
+  "calibration": "excluded"
+}
