@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 1009 of them across 161 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 1011 of them across 163 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1017,6 +1017,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: Q35b
 · Disposition: closed at Q35f, whose term models the machine and not its host and whose record compares that with the emulator statement by statement; Q35c's breakdown reads what the logic observes
 
+**F-785** upstream-defect: pinned Islaris cannot build unchanged in the locked proof environment, and its absent compiled example root prevents the exact assumption/kernel audit
+· Raised: Q35c
+· Disposition: open, Q35m's bounded dependency qualification or exact refusal with a separately scoped port follow-up; the positive standalone Iris probe supplies no combination evidence
+
 **F-486** upstream-defect: `rocqchk` 9.2.0 raises an "Incompatible resolver roots" anomaly checking VST 2.17's `VST.floyd.SeparationLogicAsLogicSoundness`, which every Verifiable C client loads, so the gate reads no summary for any Floyd client over either CompCert route
 · Raised: Q35e
 · Disposition: open for release adoption and VST requalification: upstream resolved [#22555](https://github.com/rocq-prover/rocq/issues/22555#event-32794329058) through [#22556](https://github.com/rocq-prover/rocq/pull/22556), merged 2026-10-08 at `33ec1b11dbf2af4be99d53adeb275c5924e37e41` and milestoned 9.2.1; no fixed release is published as of 2026-10-10, so the locked 9.3.0 checker remains affected; [Q35h's record](checker-resolver-anomaly.md)
@@ -1641,6 +1645,10 @@ A defect this repository's own work introduced and the same item closed is a `me
 **F-525** upstream-defect: the locked proof switch's Rocq 9.3.0 carries #22387, module subtyping of inductives whose constructor types differ in let-ins, which Rocq's critical-bug list reports fixed in 9.2.0 and 9.3
 · Raised: Q39
 · Disposition: standing, the proof audit's refusal of functors and module signatures in authored sources covering the form
+
+**F-784** measurement: OpenTitan AST's pinned secondary partition ties detector pairs inactive, and its software-selected sensor/alert policy supplies no VerifiedOS physical detector or immutable fail-stop qualification
+· Raised: Q41
+· Disposition: standing, structural source reference only; Q41a owns actual cells and the fail-stop boundary and Q41b owns process-specific characterization
 
 ## M0 · Hardware reference
 

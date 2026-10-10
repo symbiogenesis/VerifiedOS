@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "reviewed_row10_sha256": "b43cd633f495641ef38436bec1d42da27d9ae97376b752a5e81a3a54fea24c02",
+  "reviewed_row10_sha256": "f33929daa665e7bb9a7fae62df7c7874ab51d95b7cb92d64a550fcb0f59c46a5",
   "classes": {
     "rrc": "ASN.1 UPER/aligned-PER RRC grammars",
     "mlme": "802.11 MLME element grammars",
@@ -1036,6 +1036,75 @@
       "references": [
         "docs/requirements-register.md",
         "tools/vos/replay_record.py"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "backup-object",
+      "name": "Profile backup envelope and typed rollbackable region object",
+      "classes": [],
+      "requirements": [
+        "R-05-042",
+        "R-05-046",
+        "R-05-051a",
+        "R-10-038",
+        "R-10-039"
+      ],
+      "owner": "Q42a",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: envelope, plaintext, region records and identity-consuming nested schemas need whole-admissible-language injectivity and accepted-byte re-encoding; alternate lengths, order, duplicates and tails fail decoding.",
+      "evidence": "The backup contract states the bounded grammar shape and authenticate-before-write acceptance. Concrete profile widths, Narcissus derivations, canonicity and target copy-once lowering remain Q42a's obligations; no backup implementation is present.",
+      "references": [
+        "docs/implementation/contracts/backup-migration.md",
+        "docs/requirements-register.md"
+      ],
+      "members_from": {
+        "path": "docs/implementation/contracts/backup-migration.md",
+        "heading": "## 2. Object descriptor and canonicity",
+        "until": "## 3. Backup key and trusted holder actions"
+      }
+    },
+    {
+      "id": "backup-recovery-secret",
+      "name": "Canonical recovery-secret entry for a 256-bit backup key",
+      "classes": [],
+      "requirements": [
+        "R-05-042",
+        "R-05-046",
+        "R-05-051a",
+        "R-10-038"
+      ],
+      "owner": "Q42a",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: RecoverySecret-v1 accepts exactly 64 uppercase hexadecimal digits including leading zeroes; display separators are outside the data encoding; no case or Unicode normalization.",
+      "evidence": "The contract specifies encoding and trusted entry/display obligations. The bounded Narcissus descriptor and proofs belong to Q42a and the trusted screens to Q42b; neither is implemented.",
+      "references": [
+        "docs/implementation/contracts/backup-migration.md"
+      ],
+      "members_from": null
+    },
+    {
+      "id": "backup-migration-records",
+      "name": "Mutual migration and enrolled recovery-key transfer application records",
+      "classes": [],
+      "requirements": [
+        "R-05-042",
+        "R-05-046",
+        "R-05-051a",
+        "R-12-015a",
+        "R-12-015c",
+        "R-10-040"
+      ],
+      "owner": "Q42c",
+      "descriptor": "absent",
+      "transcription": "none authored",
+      "canonicity": "Required: each identity-consuming challenge, evidence, context/acceptance and confidential key-transfer record has one bounded canonical encoding with a whole-language theorem; no fallback grammar or ignored fields.",
+      "evidence": "MutualMigrationTLS-v1 and the MigrationSession relation are specified in the contract. Concrete record descriptors, mutual protocol theorem, enrollment/key-wrap realization and implementation joins remain open; the one-direction AttestedSession.v theorem does not cover migration.",
+      "references": [
+        "docs/implementation/contracts/backup-migration.md",
+        "proofs/AttestedSession.v"
       ],
       "members_from": null
     }

@@ -11,9 +11,12 @@ none states a protocol theorem, and the parts share one command and one receipt.
 Q22c qualifies a candidate binding for the TLS 1.3 service already admitted by
 R-12-031/R-12-032. The disposition is to retain this candidate for the separately
 priced realization and proof work in M6.9. The executable assessment demonstrates
-finite examples of R-12-015c's required relation; the protocol reference model,
-machine-checked theorem and implementation connection remain open. The status of
-`CJ-ATTEST` remains unauthored in the [crown-jewel inventory](crown-jewels.md).
+finite examples of R-12-015c's required relation. Separately,
+[AttestedSession.v](../../proofs/AttestedSession.v) supplies a conditional symbolic
+TLS application model and theorem; cryptographic realization and the complete
+implementation connection remain open. `CJ-ATTEST` is partial in
+[the crown-jewel inventory](crown-jewels.md), which also records the module
+interface and the textual mutual-migration relation with their distinct open joins.
 
 The [register](../requirements-register.md) owns the obligations: R-12-014/R-12-015
 own key custody, quotes and source-reproducible reference manifests; R-12-015a owns
@@ -209,8 +212,10 @@ states for an ensemble link (R-15-228b) joining two members of one ensemble
 (R-02-003a). Its appraisal is unit-specific by choice, because a second unit running
 the same image is exactly the substitution an ensemble exists to exclude. The
 disposition matches the TLS part's: the construction is retained for realization and
-proof work that has not started, and `CJ-ATTEST` stays unauthored in the
-[crown-jewel inventory](crown-jewels.md). R-17-049d's record stays open, this design
+proof work that has not started for this ensemble member. The
+[crown-jewel inventory](crown-jewels.md) is partial for the separately authored
+conditional TLS/module scope; this member's model and theorem remain open.
+R-17-049d's record stays open, this design
 having no upstream symbolic analysis of this protocol to curate from.
 
 The [register](../requirements-register.md) owns the obligations. R-12-015c owns
