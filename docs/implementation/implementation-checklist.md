@@ -402,19 +402,19 @@ These figures sum the full priced reference-build, assessment and named hardenin
 | Measure | Value |
 | --- | --- |
 | Total estimate midpoint h | 4,568.4 |
-| Total estimate range h | 2,944.8–6,192 |
-| Completed scope h | 831.4 |
-| Complete by estimate % | 18.2 |
-| Remaining h | 3,737 |
+| Total estimate range h | 2,955.8–6,181 |
+| Completed scope h | 855.4 |
+| Complete by estimate % | 18.7 |
+| Remaining h | 3,713 |
 | Open class I h | 767.5 |
-| Open class X h | 2,969.5 |
-| Retained completion estimate h | 228 |
-| Unmeasured completed items | 25 |
-| Calibrated total h | 5,593 |
+| Open class X h | 2,945.5 |
+| Retained completion estimate h | 252 |
+| Unmeasured completed items | 27 |
+| Calibrated total h | 5,582.9 |
 | Committed M8a open h | 73 |
 | Committed M8b open h | 90.5 |
-| Other committed open h | 2,303.5 |
-| Conditional open h | 856 |
+| Other committed open h | 2,295.5 |
+| Conditional open h | 840 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
 | Committed M8a open range h | 47–99 |
@@ -1028,6 +1028,7 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
     * The resident compiler targets ordinary Core 3.0 accepted by Q34g; external producers need no custom feature flags, and SIMD is part of full-engine acceptance. Record the source/flags/module identity for Q34f's scalar and vector comparisons; no private prepared-data format becomes a guest dialect, and no producer optimization establishes source correspondence or guest object safety by itself.
     * The [untrusted Wasm-to-Wasm specialization path](contracts/wasm-execution.md#remove-a-nested-language-interpreter-at-build) is commissioned only after the contract's selection gate identifies a named nested-language workload and measured penalty or missed target, bounded investigation, priced scope and owner, and acceptance predicates. Without that selection, record `n/a` and deliver the ordinary native source-to-Wasm bundle producer. A selected specialization tool may run as a guest beneath that producer; retain the inner interpreter's dynamic fallback and compare specialized/unspecialized observable results. Bound initialization, specialization, output growth and cancellation. On-device snapshot initialization uses the existing pure engine without live app grants; output contains only guest data, is fully validated and receives fresh activation authority. Upstream native-compiling Wizer is not an admitted on-device route. Read any selected producer's licence at incorporation; no new verified specialization checker is included. Selection does not release the applicable engine proofs or qualification before shipping.
   * [ ] **Q34i · Compose isolated desktop domains and price their pool split** · 10 h, range 6–14 · I
+    * **Partial checkpoint:** [Isolated desktop composition](isolated-desktop-composition.md) supplies admission/refusal checks, two-domain confinement and exact additive pool accounting. The actual accepted first-release roster and its capacity operands remain missing, so full Q34i stays open. The owning document records the delegated decision to retain this checkpoint.
     * **Start:** R-14-011c and R-17-007b as amended, landed Q34a's contract and its statements in [ElasticDomain.v](../../proofs/ElasticDomain.v), and R-18-004b's comparisons. **Owns:** the composition rule mapping an application's isolation declaration, from its manifest or the holder's composition input, to a one-application elastic domain with its own label, envelope, pools and session manager; the admission checks that a declared-isolated application sits in no other domain, that an isolated domain holds one application's manifest, and that the general domain's session manager reaches each isolated one over a one-way endpoint with no other edge between their members; a reading of the elastic-domain contract confirming that none of its statements assumes one domain per profile, an assumption found being a finding against Q34a's contract rather than an edit here; and the capacity pricing of the composed first-release roster with two isolated applications against R-18-004b's comparisons, the general domain's floored pool unchanged. **Check:** a composition placing a declared-isolated application in the general domain, two applications' manifests in one isolated domain, or an edge from an isolated member back to a general member each fails admission; the contract's envelope-confinement statement instantiated with a general and an isolated domain on one core holds, and a mutant letting either domain's dispatch or pool read the other's state is refuted. **Join:** Q34e, which measures the general domain's focus dispatch bound and input-to-response with the isolated domains composed beside it, and Q10's product judgment of what isolation costs a user.
     * **Estimate basis:** the composition rule and admission checks 2–4 h; the contract reading 1–2 h; the two-domain instantiation and its mutant 2–5 h; the capacity pricing 1–3 h. Class I: every input is a register entry or an artifact this repository owns.
 
@@ -1080,12 +1081,10 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
     * The anomaly reduces to an applied functor sealing a module that holds a submodule; upstream fixed it in [#22556](https://github.com/rocq-prover/rocq/pull/22556) on 2026-10-08. No fixed release is published as of 2026-10-10, so the locked 9.3.0 checker remains affected and release adoption and VST requalification remain pending. ([note](completion-log.md#q35h-reduce-and-report-the-kernel-checkers-anomaly-on-vsts-floyd-closure))
   * [x] **Q35i · Decide the gate's reading of alias-sealed and functor-sealed module fields** · 1.8 h actual · agent-parallel
     * The checker names every field of a module sealed by an alias or a functor application as an axiom whether or not it checked the library, and the gate covers such a name of a checked library by the compiler's reading of the implementation its seal hides, refusing an admitted implementation, a hidden assumption and a genuine axiom alike. ([note](completion-log.md#q35i-decide-the-gates-reading-of-alias-sealed-and-functor-sealed-module-fields))
-  * [ ] **Q35j · State the bridge from a source-level foundation's C semantics to the contained compiler's Clight** · 16 h, range 9–23 · X
-    * **Dispatch. Start:** F-464, F-489, F-495, R-05-019, R-05-019a, R-05-020 and R-05-164; the contained compiler's `cfrontend/Clight.v` and `common/Values.v` at its accepted revision, under M1.1a's containment; stock Clight 3.17 as VST's bundled subset carries it; Caesium at RefinedC `2e89846b`; the kernel's cold executive C. **Owns:** a statement, not a proof, of a forward simulation from one chosen foundation's semantics, stock Clight or Caesium, to SECOMP's compartment Clight over the capability-free fragment the executive C uses, naming how the compartment argument and the `Vcap` constructor are treated, compiled in a private switch and held outside `proofs/`, since the proof switch carries neither semantics; the front-end correspondence premise between the foundation's input, `clightgen`'s AST or RefinedC's generated code, and the contained compiler's parse of the same C, naming for VST which producer of that input it assumes (F-489); a per-pass proof plan with a range, or `unpriced` with its reason; and the R-05-020 and R-05-019a argument the bridge would supply. **Check:** the statement compiles against both semantics; a program whose execution creates a capability value is a refuted instance of the fragment; a non-vacuity witness inhabits the premise; no figure is stated where none is defensible. **Join:** the review gate's F-464 act and the R-05-020 record; the admission of VST or RefinedC; M6.2b-ii, M6.2c, R-10-008's L0 refinement and the crypto refinements to C.
-    * **Estimate basis:** reading both semantics and the fragment 3–6 h, statement 4–8 h, refutation and witness 1–3 h, plan and pricing 1–6 h.
-  * [ ] **Q35m · Trial the machine-logic dependencies at the locked prover** · 8 h, range 4–12 · X
-    * **Dispatch. Start:** [the reviewed machine-logic breakdown](../assurance/machine-logic-breakdown.md#5-proposed-finite-cells-and-prerequisite-boundaries), its pinned Islaris/Katamaran interfaces, Q35b's exact term identity and the unchanged proof lock. **Owns:** the bounded dependency trial, licence and interface decisions, frozen elaborated-statement comparisons and exact example closures in a private build prefix; reuse the separately qualified Iris probe only within its recorded scope. **Check:** within the contract's 12 h attended cap, qualify both required dependency closures with the strict compile, exact assumption audit and kernel check, or record an exact refusal and separately scoped, unpriced port follow-up; do not change the shared switch, weaken a statement or treat the standalone Iris probe as combination evidence. **Join:** Q35k, R-13-016's route and the machine-logic hardening owner.
-    * **Estimate basis:** dependency/terms reading 1–3 h; build/interface trial 1–5 h; frozen comparison, audit and refusal record 2–4 h. Class X: the upstream combination has not qualified at the lock.
+  * [x] **Q35j · State the bridge from a source-level foundation's C semantics to the contained compiler's Clight** · 16 h retained estimate, actual n/a · agent-parallel
+    * A privately compiled stock-Clight-to-compartment-Clight statement names the producer and architecture premises, with an inhabited input and a reached capability-valued assignment refuted; simulation proofs and admission remain open. ([note](completion-log.md#q35j-state-the-bridge-from-a-source-level-foundations-c-semantics-to-the-contained-compilers-clight))
+  * [x] **Q35m · Trial the machine-logic dependencies at the locked prover** · 8 h retained estimate, actual n/a · agent-parallel
+    * The bounded trial reproduces strict-source refusals in both framework dependency chains and scopes an unpriced continuation; complete closure audits remain unavailable and Q35k stays closed. ([note](completion-log.md#q35m-trial-the-machine-logic-dependencies-at-the-locked-prover))
   * [ ] **Q35k · Establish the first unary-safety increment over the canonical term** · 40 h, range 24–56 · X
     * **Dispatch. Start:** Q35b's strictly compiled exact term and closure, Q35m's compatible carried dependencies, U-08, and the separately scoped, priced and landed selected-subset μSail/trace agreement required by [the breakdown](../assurance/machine-logic-breakdown.md). **Owns:** the finite canonical hart-0 state, code/tag/register rules and ABI rules for the two actually decoded Q35d functions, with their unary adequacy constants. **Check:** the breakdown's section 5 satisfiable entry witnesses, well-formed refusal cases, strict compile, exact assumption audit and hosted fresh kernel evidence; a second semantic anchor or an unproved translation premise does not pass. **Join:** Q35d's function proofs, Q35l's concrete byte laws and the machine-logic hardening owner. Full agreement and the remaining theories are separately owned, unpriced work, not part of this increment.
     * **Estimate basis:** language/state instance 6–14 h; finite arithmetic/trap rules 8–22 h; ABI/adequacy 6–14 h; witnesses and audit 4–6 h. Class X: accepted canonical-term and translation foundations are prerequisites.
@@ -1161,7 +1160,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,764.9 h · 61% · 219.4 h complete · open range 1,462–3,629 h.
+**Q subtotal:** 2,764.9 h · 61% · 243.4 h complete · open range 1,449–3,594 h.
 
 ### M0 · Hardware reference
 
@@ -2215,6 +2214,8 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q35g | X-authored | 5.5 |
 | Q35h | X-read | 6 |
 | Q35i | X-authored | 8 |
+| Q35j | n/a | n/a |
+| Q35m | n/a | n/a |
 | Q38a | I | 3 |
 | Q38b | I | 5 |
 | Q38c | I | 8 |

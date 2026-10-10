@@ -4,7 +4,7 @@
 
 ## How to read this
 
-A finding is something the build learned that the plan would otherwise learn again. The plan records 1011 of them across 163 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
+A finding is something the build learned that the plan would otherwise learn again. The plan records 1012 of them across 164 items and nothing read them, which costs three ways: the same fact found twice at two items, an owed act with nowhere to live until somebody assembles S1's rows out of prose by hand, and a methodological finding that never becomes a rule. This register is what reads them.
 
 ```
 **F-nnn** <type>: what was found, named so that a reader recognizes it without the plan open
@@ -1019,7 +1019,11 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-785** upstream-defect: pinned Islaris cannot build unchanged in the locked proof environment, and its absent compiled example root prevents the exact assumption/kernel audit
 · Raised: Q35c
-· Disposition: open, Q35m's bounded dependency qualification or exact refusal with a separately scoped port follow-up; the positive standalone Iris probe supplies no combination evidence
+· Disposition: open, the machine-logic foundation/opam owners' separately scoped unpriced source-compatibility continuation after Q35m's reproduced refusal; the positive standalone Iris probe supplies no combination evidence
+
+**F-786** owed-act: pinned Katamaran's binary-adequacy source imports Program.Equality, whose separately compiled and kernel-checked probe names the undeclared Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq axiom
+· Raised: Q35m
+· Disposition: open, machine-logic foundation and opam carriage owners resolve the dependency import under unchanged statements and exact assumption policy before compatible carriage or Q35k; the complete Katamaran closure remains unavailable and no allowlist expansion is accepted
 
 **F-486** upstream-defect: `rocqchk` 9.2.0 raises an "Incompatible resolver roots" anomaly checking VST 2.17's `VST.floyd.SeparationLogicAsLogicSoundness`, which every Verifiable C client loads, so the gate reads no summary for any Floyd client over either CompCert route
 · Raised: Q35e
@@ -1059,7 +1063,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-495** owed-act: every source-level foundation's theorem is about an input an unverified front end produced, over a C semantics the contained compiler does not consume, and no relation connects that input to the compartment-annotated, capability-widened Clight the contained compiler parses from the same C
 · Raised: Q35e
-· Disposition: open, Q35j and the review gate's F-464 act
+· Disposition: open, the source-level foundation owner's bridge proof and actual frontend correspondence, scoped by Q35j's compiled statement, and the review gate's F-464 admission act
 
 **F-732** upstream-defect: Sail typechecks its library's emulator implementation of the memory outcomes for every target, so guarding the library's emulator-memory file for Rocq leaves its primitives' callers unresolved
 · Raised: Q35f

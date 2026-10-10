@@ -601,6 +601,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-037d | proofs/EndpointIPC.v | the_specification_claims_no_particular_sibling | claimed |
 | R-07-037d | proofs/PartitionContext.v | n/a | cited |
 | R-07-037e | proofs/ElasticDomain.v | an_admitted_envelope_has_one_label_and_no_fixed_tier_member | claimed |
+| R-07-037e | proofs/IsolatedDesktop.v | n/a | cited |
 | R-07-037f | proofs/ElasticDomain.v | an_admitted_envelope_has_one_label_and_no_fixed_tier_member | claimed |
 | R-07-037g | proofs/ElasticDomain.v | select_is_the_eevdf_choice | claimed |
 | R-07-037g | proofs/ElasticDomain.v | select_idles_only_when_nothing_is_eligible | claimed |
@@ -689,6 +690,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-047b | proofs/ElasticDomain.v | a_passed_gate_is_a_barrier_then_a_whole_sweep_begun_after_it | claimed |
 | R-08-047b | proofs/ElasticPool.v | n/a | cited |
 | R-08-047c | proofs/ElasticDomain.v | confinement_survives_every_transfer | claimed |
+| R-08-047c | proofs/IsolatedDesktop.v | n/a | cited |
 | R-08-047d | proofs/ElasticDomain.v | n/a | cited |
 | R-08-047e | proofs/ElasticDomain.v | n/a | cited |
 | R-08-021 | proofs/HandlerGraph.v | a_well_formed_template_crosses_no_undeclared_label | claimed |
@@ -1380,6 +1382,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-14-010 | proofs/MemoryPlan.v | n/a | cited |
 | R-14-011a | proofs/WorkflowProfiles.v | n/a | cited |
 | R-14-011b | proofs/WorkflowProfiles.v | n/a | cited |
+| R-14-011c | proofs/IsolatedDesktop.v | n/a | cited |
 | R-14-012a | proofs/KeyspaceDomains.v | the_specification_reads_no_global_directory | claimed |
 | R-14-015 | proofs/MemoryPlan.v | the_specification_places_the_arenas_second | claimed |
 | R-14-015 | proofs/MemoryPlan.v | the_specification_places_the_interpreter_body_first | claimed |
@@ -1756,6 +1759,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-17-003 | proofs/ApexTheorem.v | n/a | cited |
 | R-17-003d | proofs/ComposedNonInterference.v | n/a | cited |
 | R-17-007b | proofs/ElasticDomain.v | n/a | cited |
+| R-17-007b | proofs/IsolatedDesktop.v | n/a | cited |
 | R-17-012 | proofs/SecurityPolicyModel.v | the_shipped_rule_is_delimited | claimed |
 | R-17-012 | proofs/SecurityPolicyModel.v | a_release_wider_than_the_named_object_is_refused | claimed |
 | R-17-013 | proofs/ApexTheorem.v | n/a | cited |
