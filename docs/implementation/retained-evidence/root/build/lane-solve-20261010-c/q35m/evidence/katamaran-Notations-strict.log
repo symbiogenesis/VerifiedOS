@@ -1,0 +1,5 @@
+File "/root/build/lane-solve-20261010-c/q35m/katamaran/theories/Notations.v", line 55, characters 0-123:
+Error: Postfix notations (i.e. starting with a nonterminal symbol and ending
+with a terminal symbol) should usually be at level 1 (default).
+[postfix-notation-not-level-1,parsing,default]
+

@@ -1,0 +1,4 @@
+File "/root/build/lane-solve-20261010-c/q35m/evidence/KatamaranAudit.v", line 1, characters 35-43:
+Error: Unable to locate library
+Instance with prefix Katamaran.Iris (while searching for a .vos file).
+

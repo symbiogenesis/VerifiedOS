@@ -1,0 +1,19 @@
+{
+  "islaris": {
+    "path": "theories/base.v",
+    "sha256": "89fda7caf6c6ce05a193690e50e5f0d2bd6477f9511aa9c8e588f35b146c734e",
+    "pinned_overrides": [
+      "Global Set Default Proof Using \"Type\"",
+      "Global Set Default Goal Selector \"!\""
+    ]
+  },
+  "lithium": {
+    "path": "theories/lithium/base.v",
+    "sha256": "051a5fddd08f44008c5c4de3616339555dc55df3aef88fab27b20eb573d89576",
+    "pinned_overrides": [
+      "Set Default Proof Using \"Type\"",
+      "#[export] Set Warnings \"+deprecated-typeclasses-transparency-without-locality\"",
+      "#[export] Set Default Goal Selector \"!\""
+    ]
+  }
+}
