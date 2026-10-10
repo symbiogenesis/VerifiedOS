@@ -1,0 +1,4 @@
+File "/root/build/lane-solve-20261010-c/q35m/katamaran/theories/Prelude.v", line 42, characters 5-14:
+Error: Unable to locate library
+Notations with prefix Katamaran (while searching for a .vos file).
+

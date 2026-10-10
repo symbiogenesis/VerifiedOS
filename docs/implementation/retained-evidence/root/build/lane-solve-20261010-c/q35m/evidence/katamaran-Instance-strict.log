@@ -1,0 +1,4 @@
+File "/root/build/lane-solve-20261010-c/q35m/katamaran/theories/Iris/Instance.v", line 30, characters 5-14:
+Error: Cannot find a physical path bound to logical path
+Equations with prefix Equations.
+

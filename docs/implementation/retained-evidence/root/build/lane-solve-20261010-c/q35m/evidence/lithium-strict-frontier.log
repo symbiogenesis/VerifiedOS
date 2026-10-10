@@ -1,0 +1,4 @@
+File "/root/build/lane-solve-20261010-c/q35m/lithium/theories/lithium/base.v", line 1, characters 5-8:
+Error: "From Coq" has been replaced by "From Stdlib".
+[deprecated-from-Coq,deprecated-since-9.0,deprecated,default]
+

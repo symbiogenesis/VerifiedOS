@@ -1,0 +1,12 @@
+[WARNING] Running as root is not recommended
+./make-package: 10: [: Linux: unexpected operator
+./make-package: 10: [: Linux: unexpected operator
+./make-package: 11: [: Linux: unexpected operator
+./make-package: 11: [: Linux: unexpected operator
+make: '_RocqProject' is up to date.
+Warning: Omitting --rocq-package is deprecated.
+Warning: Use --rocq-package <package> to enable the Findlib-backed Rocq package installation scheme.
+Warning: Pass --no-rocq-package-warning to silence this warning.
+
+ROCQ DEP VFILES
+make[1]: Nothing to be done for 'real-all'.
