@@ -155,7 +155,7 @@ conditions as corrections and reports the Lean closure `propext`,
 `Classical.choice`, `Quot.sound`.
 
 The useful transfer is to [proof review](../proof-assistance.md#research-handoff-for-future-proof-producers):
-the [documented failures](https://arxiv.org/html/2609.19814v2#A3)
+the [documented failures in Appendix C](https://arxiv.org/html/2609.19814v2)
 include intermediate records assuming their desired conclusions. Review the
 actual definitions and joint satisfiability of premises alongside axiom
 closure. This supplies no quantum-security premise for VerifiedOS or local
@@ -555,7 +555,7 @@ route. Functional extensionality, propositional extensionality and
 constructive indefinite description remain foundational premises.
 
 **Disposition.** Proof-transport reference; importing the distributed
-axiomatic theorems is refused under the local assumption audit. An untrusted
+axiomatic theorems is refused under R-05-163/R-05-164's assumption audit. An untrusted
 translator can in principle emit terms for the existing Rocq kernel, but
 reuse still needs regenerated proof closure, permitted assumptions, exact
 local definition alignment and an incorporation-time license decision.
