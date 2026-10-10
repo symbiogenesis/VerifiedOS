@@ -1,0 +1,4 @@
+File "/root/build/lane-q35c-20261010-logic/q35c/SelectedExampleAudit.v", line 1, characters 34-46:
+Error: Unable to locate library
+riscv64_test with prefix isla.examples (while searching for a .vos file).
+

@@ -1,0 +1,8 @@
+[WARNING] Running as root is not recommended
+File "dune-project", line 3, characters 0-15:
+3 | (using coq 0.8)
+    ^^^^^^^^^^^^^^^
+Error: Extension coq was deleted in the 3.24 version of the dune language
+Hint: The Coq Build Language has been replaced by the Rocq Build Language.
+Use (using rocq <version>) instead.
+make: *** [Makefile:2: all] Error 1

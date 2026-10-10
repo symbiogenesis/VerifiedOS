@@ -1,0 +1,7 @@
+No solution found, exiting
+[WARNING] Running as root is not recommended
+[ERROR] Package conflict!
+  * Missing dependency:
+    - deps-of-islaris → coq-lithium
+    unknown package
+
