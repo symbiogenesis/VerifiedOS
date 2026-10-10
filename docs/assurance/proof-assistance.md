@@ -95,6 +95,35 @@ has no recognized ending. They do not judge tactic semantics or assumptions.
 Navigation does not resolve module names, generated obligations, notation or
 secondary names in mutual declarations. Read the original context before reuse.
 
+## Local tactic retrieval delivery contract
+
+The existing source search also needs to expose reusable tactic definitions: a
+theorem excerpt can call a local helper whose implementation is otherwise absent
+from the results. This bounded maintenance delivery adopts the tactic-reuse idea
+from the March 2026 [LLM2Ltac artifact](https://zenodo.org/records/19247023), without
+copying its code, training data or generated tactics. Implementation begins after
+this contract is committed. Its acceptance predicate is:
+
+- `proof-search` finds named `Ltac` definitions, including `Local` and `Global`
+  definitions and their arguments. Query words match the name and body; `--tactic`
+  filters match body identifiers. Results retain the version 1 advisory JSON
+  contract, using `kind: Ltac` and lexical `definition` or `incomplete` status.
+- Locations, raw-source hashes, exclusions, requirement filters and output bounds
+  have the same meaning as for theorem results. Comments and strings never create
+  a definition or a tactic-token match. Reading a tactic executes nothing and
+  supplies no evidence that it is in scope, closes a goal or passes the proof gate.
+- An ordinary definition ends at its command terminator, including multiline
+  `match` bodies and qualified identifiers. An unterminated definition is visibly
+  incomplete. Tactic redefinitions, mutual secondary names, Ltac2 and notation
+  resolution are outside this lexical reader's supported definition forms.
+- Focused tests cover name/body retrieval, arguments and locality, command
+  boundaries, comments/strings, incomplete input, filters, exclusions and the JSON
+  schema. The existing theorem-search behavior remains covered. Windows and Ubuntu
+  Host CI validate the integrated change; the normal Guest CI handoff remains due.
+
+No prover, model, acceptance policy or dependency changes. This delivers source
+navigation and claims no measured reduction in proof authoring time.
+
 ## Bounded repair workflow
 
 1. Select the requirement and exact declaration. Read its definitions, hypotheses,
