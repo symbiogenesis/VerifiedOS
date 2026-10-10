@@ -119,6 +119,36 @@ R-15-094 places riscv-formal/rvfi as bounded-depth evidence and the cheapest bri
 
 **What it waits on, each refused by name until present:** riscv-formal pinned under `upstream/` with its licence read at the pin and a THIRD-PARTY.md row before any of its files is used; Yosys, SymbiYosys and one SMT solver provisioned in the guest lane with their own rows; the curated core (R1b) read by the formal front end, a core that elaborates under Verilator ([the RTL tree's own account](../../rtl/README.md#3-what-each-has-been-held-to-and-what-it-has-not)) but has not been read by Yosys and does not yet compute a correct PC, jump target, data address or integer CSR value; and the port obligations of section 3. None of the four is present at this revision, and the check names and meanings in the plan are riscv-formal's as its documentation states them, to be re-read at the pin before a run.
 
+### Formal front-end candidate
+
+Read on 2026-10-10: trial [sv-elab's 2026-09-08 release](https://github.com/povik/sv-elab/releases/tag/2026-09-08),
+revision `b4fd362f4c53dc8ffab6946b9f866a6ea89e366d`, through Yosys `read_slang`
+before authoring a compatibility layer for the existing smoke. Its
+[pinned README](https://github.com/povik/sv-elab/blob/b4fd362f4c53dc8ffab6946b9f866a6ea89e366d/README.md)
+lists plugin compatibility with Yosys 0.52–0.66 and integration from 0.67; neither
+establishes that this curated core is supported. Its
+[SVA lowering](https://github.com/povik/sv-elab/blob/b4fd362f4c53dc8ffab6946b9f866a6ea89e366d/src/sva.cc)
+supports simple assertion expressions, supported clocks and `disable iff`, while
+rejecting richer expression kinds and repetition. The
+[formal fixtures](https://github.com/povik/sv-elab/blob/b4fd362f4c53dc8ffab6946b9f866a6ea89e366d/tests/various/formal_stmts.sv)
+also cover immediate assertions and `$past`. Use the Yosys route: this edition's
+standalone backend does not lower assertions.
+
+Within the existing front-end prerequisite, pin the actual Yosys/plugin/dependency
+closure and read its terms as [THIRD-PARTY.md](../../THIRD-PARTY.md#formal-front-end-candidate)
+records. Read the curated core and wrapper without suppressing assertions or
+accepting unexplained black boxes. Inspect retained assertion, assumption and cover
+cells; exercise a satisfiable cover and a deliberately failing safety property.
+Compare the signed arithmetic edge cases above through the formal front end and
+Verilator. Record unsupported constructs and stop before a speculative parser port.
+Run the bounded smoke at its declared scope; complete gate suites and comparative
+benchmarks remain CI-only.
+
+This is a candidate for R2's existing bring-up work. No front end is installed or
+qualified by this reading, and no acceptance gate is added. Its possible saving is
+avoided compatibility work; price that only after the actual core passes the trial.
+The trial supplies no RTL-to-Sail refinement evidence.
+
 ## 8. The revocation join
 
 [Q22a's qualification](revocation-qualification.md) supplies a bounded host model of revocation completion and reuse, and hands R2 the multi-hart, proxy and device paths. R-08-006's acceptance names the cases: retain a capability in a register across publication, spill and restore it, retain an interior-base capability, revoke a loan in progress, delay a proxy acknowledgement and leave a device transfer in flight, and none may report containment before its postcondition holds. The join is the harness input that lets those cases be decided on the RTL.

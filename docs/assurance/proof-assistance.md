@@ -55,6 +55,7 @@ python tools/run.py proof-search --help
 python tools/run.py proof-search "invariant publish" --limit 5
 python tools/run.py proof-search --tactic induction --limit 5 --json
 python tools/run.py proof-search --requirement R-05-124 --exclude proofs/CopyRingService.v --json
+python tools/run.py proof-search read_the_conjuncts --json
 python tools/run.py proofs headers --show proofs/CopyRingService.v
 ```
 
@@ -94,6 +95,9 @@ in `Admitted`, `aborted` in `Abort`, `definition` has a direct body, and `incomp
 has no recognized ending. They do not judge tactic semantics or assumptions.
 Navigation does not resolve module names, generated obligations, notation or
 secondary names in mutual declarations. Read the original context before reuse.
+Named `Ltac` definitions are also searchable. Their `definition` status means a
+terminated source command, not a checked tactic application. A `Local Ltac` may
+depend on surrounding definitions and is not made importable by being found.
 
 ## Local tactic retrieval delivery contract
 
@@ -123,6 +127,50 @@ this contract is committed. Its acceptance predicate is:
 
 No prover, model, acceptance policy or dependency changes. This delivers source
 navigation and claims no measured reduction in proof authoring time.
+
+## Tooling decisions from the 2026-10-10 reading
+
+The useful additions are reusable local tactics and smaller, independently checked
+proof obligations. The following readings motivate the workflow below; none is a
+local productivity measurement or permission to alter the locked proof environment.
+
+| Primary source | Decision for this checkout |
+| --- | --- |
+| [LLM2Ltac](https://arxiv.org/abs/2605.08694v1), submitted 2026-05-09; [artifact](https://zenodo.org/records/19247023), published 2026-03-27 | Adopt the idea of turning repeated proof patterns into small replayable tactics. Search the existing local definitions first. Its experiment used Rocq 8.20.0; its reported gains do not establish compatibility or savings here. No mined tactic corpus is imported. |
+| [Quarry](https://arxiv.org/abs/2606.17981v2), submitted 2026-06-16 and revised 2026-07-24 | Use an explicit acyclic sublemma plan when a monolithic strategy stalls. The paper uses SerAPI, CoqHammer and temporarily admitted sublemmas; this workflow retains only the decomposition idea and proves helpers before their clients. No admitted-helper planning result enters the source or acceptance evidence. |
+| [rocq-mcp-evolve](https://arxiv.org/abs/2609.39544v1), submitted 2026-09-30 | Adopt explicit closure checks and rollback of failed tactic trials. The paper reports a false-winner bug and rejects several retrieval and team mutations, so more automation is not assumed better. The inspected [package at 13b81bd7](https://github.com/LLM4Rocq/rocq-mcp-evolve/blob/13b81bd78084409ccf87aed3605586ab405132ff/rocq-mcp-evolve.opam) requires `rocq-runtime >= 9.1 & < 9.2`, excluding this checkout's lock. No server is installed. |
+
+### Reuse and decomposition within the repair budget
+
+1. Retrieve the tactic definition as well as a successful call site. Inspect its
+   arguments, local scope, unfold targets and called helpers. For a repeated proof
+   pattern, try the smallest local tactic with explicit parameters; avoid a new
+   global hint database or an extra package merely to shorten one proof.
+2. Test a proposed closing tactic with `solve [candidate]`, with an explicit finite
+   timeout where search may expand. `try candidate` returning successfully, making
+   progress or closing the focused goal is not whole-proof closure. All goals,
+   including shelved obligations, must close at `Qed` or `Defined`; the ordinary
+   assumption audit and kernel check still decide acceptance. Restore the last
+   source checkpoint after a failed trial and replay it against current dependencies.
+3. When decomposition is needed, record each helper's exact statement, dependencies
+   and intended client. Keep the graph acyclic, prove leaves first, and check the
+   client using only closed helpers. Reject a decomposition whose helpers restate
+   the unproved client or strengthen its premises. The frozen target, executable
+   definitions and requirement remain unchanged.
+4. Helper search and tactic trials consume the existing total attempt/time budget;
+   a new helper or branch does not reset it. Retain a reusable tactic only after
+   replay on distinct applicable clients and a negative case that its wrapper must
+   refuse. A failed or partial tactic stays a failed attempt. Successful applications
+   establish those proofs, not a universal correctness theorem for the tactic.
+
+Q34b and Q34c's execution notes select this procedure for their existing proof work.
+Their start conditions and semantic gaps remain binding. The scope is a replacement
+for part of their current proof-search effort, not a separate automation platform.
+Measure setup, authoring, repair, replay and review separately during that work;
+comparative benchmarks run only in CI under the held-out protocol below. Reprice
+only the remaining demonstrated work after a representative local proof passes its
+acceptance route, charging helper creation and maintenance once. No paper's success
+percentage is applied to an item or to the checklist total.
 
 ## Bounded repair workflow
 
@@ -170,8 +218,9 @@ does not authorize terminating unrelated jobs.
 No tool enforces this manual planning journal. The proof gate enforces acceptance.
 
 A minimal checkpoint is ordinary UTF-8 JSON with these fields; replace the example
-strings and empty lists with the actual task record. Store scratch under the
-assigned lane's ignored output directory, with guest logs on the native filesystem
+strings and empty lists with the actual task record. Store disposable checkpoints
+under a unique session directory in the system temporary directory, with guest
+build logs on the native filesystem
 per [filesystem placement](../../tools/README.md#where-a-file-lives-and-which-lane-touches-it).
 Commit any retained result or decision needed by later agents to its owning
 document, with durable evidence links. Do not depend on conversation memory or a

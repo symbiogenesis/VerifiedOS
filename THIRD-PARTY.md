@@ -782,6 +782,24 @@ The 2026-08-29 review records these references without adding gitlinks:
 
 **Rocq-native NTT.** The February 2026 Zenodo deposit supplies a README and an archive containing a patch and source directory for commit `af03839247c545987c20e99342ab2bbfcd517863` of `mit-plv/fiat-crypto`. The deposit, README, and record state no license. Its author's personal fork has older NTT branches under Fiat-Crypto's `MIT OR Apache-2.0 OR BSD-1-Clause` election, but their relationship to the published artifact and the grant's scope over contributed files remain unresolved. The project reads the artifact without pinning, copying, vendoring, or extracting it. The broader review of first-party licensing statements remains due as recorded [above](#behavioral-oracles).
 
+### Formal front-end candidate
+
+Read ahead of R2 on 2026-10-10: sv-elab (formerly yosys-slang), release
+[`2026-09-08`](https://github.com/povik/sv-elab/releases/tag/2026-09-08), revision
+`b4fd362f4c53dc8ffab6946b9f866a6ea89e366d`. Its own
+[LICENSE](https://github.com/povik/sv-elab/blob/b4fd362f4c53dc8ffab6946b9f866a6ea89e366d/LICENSE)
+grants ISC terms. The selected source's slang dependency at
+`e222e7dc0250231312f14c37d47404a49df00fe2` and fmt at
+`1be298e1bd68957e4cd352e1f676f00e07dcfb57` carry MIT licenses, read in their
+[slang](https://github.com/MikePopoloski/slang/blob/e222e7dc0250231312f14c37d47404a49df00fe2/LICENSE)
+and [fmt](https://github.com/fmtlib/fmt/blob/1be298e1bd68957e4cd352e1f676f00e07dcfb57/LICENSE)
+source editions. The intended use is an optional development-time Yosys front end
+for the [existing bounded smoke](docs/assurance/rtl-cosimulation-harness.md#formal-front-end-candidate).
+No package, source or binary is installed, copied or distributed by this reading.
+An actual installation must pin and review the complete selected Yosys, solver and
+front-end closure and preserve applicable notices; this reading qualifies no core
+or generated netlist.
+
 ### Proof assistance design references
 
 The [portable proof workflow](docs/assurance/proof-assistance.md) adopts local
@@ -800,6 +818,9 @@ provenance references, not fetched dependencies or gitlinks.
 | JetBrains RocqStar implementation | [86963328](https://github.com/JetBrains-Research/rocqstar-agentic-system/tree/86963328445680671dfb6afbb5432e674fee92aa) | The server's LGPL-2.1 license was read; no license was located for the agent subtree in the inspected tree. No implementation is copied. Any later copying requires the selected files' actual grant and dependency review. |
 | Putnam 2025 Rocq report | [arXiv 2603.20405v2](https://arxiv.org/html/2603.20405v2) | Its invalid-proof categories (section 2.2) and its module-sandbox verifier's false negatives (sections 2.1 and 4.1) motivate the statement freeze's frozen-reading comparison. Only the paper was read; no tool, prompt or code is incorporated. |
 | MCP Market's Rocq server | [angrysky56/mcp-rocq at ef9e9a1e](https://github.com/angrysky56/mcp-rocq/tree/ef9e9a1e469ca9630dddf90d0a81b54911d6ce6b) | Its MIT license and implementation were read. The documented integration issues and proof-state handling defect make it an unsuitable starting dependency for this delivery. No code is incorporated. |
+| LLM2Ltac | [May 2026 paper](https://arxiv.org/abs/2605.08694v1) and [March 2026 artifact description](https://zenodo.org/records/19247023) | Reusable symbolic tactics motivate searching authored local Ltac definitions and replaying them on distinct clients. Only the paper and artifact description are read; no implementation, dataset or mined tactics are incorporated. |
+| Quarry | [July 2026 paper revision](https://arxiv.org/abs/2606.17981v2) | Bounded sublemma decomposition is a workflow reference. No SerAPI, CoqHammer, learned ranking model or temporary-admission mechanism is installed or copied. |
+| rocq-mcp-evolve | [September 2026 paper](https://arxiv.org/abs/2609.39544v1), [source at 13b81bd7](https://github.com/LLM4Rocq/rocq-mcp-evolve/tree/13b81bd78084409ccf87aed3605586ab405132ff) | Its Apache-2.0 LICENSE and package metadata were read. The declared Rocq runtime range excludes the locked prover; no server is installed or copied. Explicit closure and rollback are adopted as workflow ideas, with the existing gates unchanged. |
 
 Any future live adapter must re-read the selected revision's own grants, preserve
 required notices if source is copied, and record actual installation/distribution
