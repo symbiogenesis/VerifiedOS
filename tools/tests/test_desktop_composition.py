@@ -7,9 +7,8 @@ from fractions import Fraction
 from functools import partial
 from pathlib import Path
 
-from vos import desktop_composition as d
-
 from tests.harness import Case, ensure
+from vos import desktop_composition as d
 
 
 def fixture() -> d.Composition:
