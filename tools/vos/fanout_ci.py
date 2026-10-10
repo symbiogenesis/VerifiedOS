@@ -395,6 +395,9 @@ def _host_status(client: GitHub, state: CIState, record: RunState, subject: str,
     save()
     if record["status"] != "completed":
         return False
+    if (conclusion == "cancelled" and run.get("event") == "push"
+            and _replace_cancelled_push(client, state, record, subject, save)):
+        return False
     if conclusion != "success":
         raise CIError(f"Host CI did not pass: {conclusion}; {record['url']}")
     jobs: dict[str, str] = {}
@@ -428,6 +431,29 @@ def _push_runs(client: GitHub, state: CIState) -> list[dict[str, object]]:
             if run.get("head_sha") == state["revision"]
             and run.get("head_branch") == "main"
             and run.get("event") == "push"]
+
+
+def _replace_cancelled_push(client: GitHub, state: CIState, record: RunState,
+                            subject: str, save: Callable[[], None]) -> bool:
+    # Same-revision concurrency can cancel either duplicate: run-ID order does
+    # not decide which one survives. Rebind only a canceled push, then require
+    # the peer's own run and aggregate jobs on the next advance. A dispatch's
+    # pinned checkout cannot be inferred from another run's head SHA.
+    peers = [run for run in _push_runs(client, state)
+             if run.get("path") == ".github/workflows/" + HOST
+             and _run_id(run.get("id")) != record["run_id"]
+             and isinstance(run.get("status"), str)
+             and (run.get("status") != "completed" or run.get("conclusion") == "success")]
+    if not peers:
+        return False
+    selected = max(peers, key=lambda run: _run_id(run.get("id")))
+    _identity(state, record, selected, subject)
+    record["phase"] = "accepted"
+    record["status"] = "pending"
+    record["conclusion"] = None
+    record["jobs"] = {}
+    save()
+    return True
 
 
 def advance(root: Path, state: CIState, save: Callable[[], None]) -> bool:
