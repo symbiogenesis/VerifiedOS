@@ -79,9 +79,11 @@ unit of every member to the job log, one JSON line each, by member and then slow
 first, after one line naming the runner's CPU count and model, in one collapsed group
 with workflow commands stopped.
 
-New commits cancel superseded runs of the same pull request; each push to `main`
-keeps its own run. Ubuntu runs four independent shards and Windows eight, because a
-shard's members are CPU-bound and run the same work more slowly on the Windows
+New commits cancel superseded runs of the same pull request. Main runs share a
+concurrency group only when their tested revision is the same: the dispatch's
+explicit revision, or the event SHA. Duplicate runs cancel redundant work;
+different revisions of `main` keep separate runs. Ubuntu runs four independent
+shards and Windows eight, because a shard's members are CPU-bound and run the same work more slowly on the Windows
 runner. Mutation cases and sorted behavioral test modules are partitioned by
 position within each OS, with every item assigned once. A test module that declares
 `INDEPENDENT_CASES = True`, stating that its cases share no state and that its case

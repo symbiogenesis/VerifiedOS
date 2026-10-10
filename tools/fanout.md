@@ -119,6 +119,12 @@ When a completed batch's integration revision changes, initialize a new batch.
   push run seconds after it accepts the push, so the first lookup retries after the
   bounded pauses in `fanout_ci.PUSH_RUN_WAITS` and starts Host CI only when no such
   push run appears.
+  Host CI groups non-PR runs by the tested revision and cancels redundant runs
+  for that revision; distinct main revisions retain separate runs. If a bound
+  automatic push run is canceled, fanout may bind its surviving push peer only
+  after checking the same workflow, main branch and exact revision. A canceled
+  manual dispatch does not permit that substitution. The surviving run still
+  owes every aggregate job; duplicate selection never supplies a passing verdict.
   Pending, failed, skipped or canceled checks supply no passing evidence.
 - After Host CI passes, dispatch Guest CI, which runs every lane of its matrix, for the
   same revision, forwarding the explicit cold policy and, when the batch names one,
