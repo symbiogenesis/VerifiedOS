@@ -1,6 +1,6 @@
 # Compiler, extraction, checker and ownership proof precedents
 
-This inventory records upstream proof artifacts examined between 2026-09-10 and 2026-09-13, with the bounded CIC literature follow-up dated separately below, and the Synth, Encore and Loom records read on 2026-10-02. A mature result can be a strong reference while failing this project's admission conditions. The entries distinguish a theorem in its original semantics, a reusable proof component, and a promising project whose required theorem is absent. No entry discharges a VerifiedOS requirement merely by association.
+This inventory records upstream proof artifacts examined between 2026-09-10 and 2026-09-13, with the bounded CIC literature follow-up dated separately below, the Synth, Encore and Loom records read on 2026-10-02, and con-leche read on 2026-10-10. A mature result can be a strong reference while failing this project's admission conditions. The entries distinguish a theorem in its original semantics, a reusable proof component, and a promising project whose required theorem is absent. No entry discharges a VerifiedOS requirement merely by association.
 
 The integration baseline is the [implementation checklist](../../implementation/implementation-checklist.md): M1.1/M1.1a/M1.1b and M1.2a are completed compiler investigations, M1.6 is the completed lowering investigation, M6.1a supplies the supervision-tree reference, and M6.2a supplies the admission-path statement artifact. The corresponding target refinements and hardening proofs remain separate work. [AdmissionPath.v](../../../proofs/AdmissionPath.v) expressly distinguishes its closed statement artifacts from an implemented, verified checker; [VerifiedExit.v](../../../tools/bedrock2-lowering/VerifiedExit.v) expressly distinguishes its RV32I measurement from the descriptor derivation over 64-bit words. Those distinctions apply to completed work throughout this inventory.
 
@@ -119,6 +119,39 @@ Source inspection, upstream publications and license inspection support the asse
 **Use and limits.** Separates positive soundness, negative soundness and termination of conversion checking. In its MLTT setting, type-constructor injectivity suffices for positive soundness; normalization is needed for termination of the unbounded procedure. This is the principal method reference for M6.2b-0's bounded partial route. A PCUIC application still needs its own proved structural properties, guard semantics, universe and environment treatment. The paper's parameterized metatheory cannot become undeclared local axioms.
 
 **License and disposition.** The paper states CC BY 4.0. The archived source's own license and complete dependency terms are unread; the branch is a locator, not the frozen local input. Reference for the proof decomposition; unqualified source lead pending that reading and native qualification.
+
+#### con-leche: a model-existence proof for an executable Lean checker
+
+**Reading dated 2026-10-10; new release within the monthly window.** Joachim
+Breitner (Lean FRO), with Claude-assisted implementation and proofs.
+[The FROCON primary account](https://leodemoura.github.io/static/frocon2026/)
+dates publication to 2026-09-10. The inspected edition is
+[`65e74db49e89ad2bbd1e90aa4f784954db41fa3a`](https://github.com/leanprover/con-leche/tree/65e74db49e89ad2bbd1e90aa4f784954db41fa3a),
+whose `lean-toolchain` selects Lean 4.35.0-rc3; its own
+[LICENSE](https://github.com/leanprover/con-leche/blob/65e74db49e89ad2bbd1e90aa4f784954db41fa3a/LICENSE)
+is Apache-2.0.
+
+**Theorem and premises.**
+[`model_exists`](https://github.com/leanprover/con-leche/blob/65e74db49e89ad2bbd1e90aa4f784954db41fa3a/ConLeche/MainTheorem.lean)
+constructs a model of every environment accepted by `checkDecls .verified`,
+given `SetTheory V`. The same file's `no_False_declaration` rejects byte
+streams satisfying the particular `jsonWithTheoremFalse` template through
+parsing, prelude preparation and checking. The
+[`SetTheory` interface](https://github.com/leanprover/con-leche/blob/65e74db49e89ad2bbd1e90aa4f784954db41fa3a/ConLeche/SetTheory/Core.lean)
+requires set-theoretic laws and an omega-chain of Grothendieck universes.
+That explicit premise is additional to the reported Lean axiom closure
+`propext`, `Classical.choice`, `Quot.sound`; an axiom audit alone does not
+construct its inhabitant.
+
+**Local use and limits.** Method reference for M6.2b-0a's
+[checker checkpoint](../cic-checker-qualification.md#guard-scope-and-the-first-checked-example):
+compare an accepted environment's semantic model, the byte-reader theorem
+and their explicit premises separately. This is Lean's checker and set
+semantics, not the local CIC judgment, its guard laws or corpus translation.
+The pure-function theorem does not verify the executable's IO, compiler or
+runtime, and supplies no local cumulative-work or arena bound. No theorem,
+dependency or extra premise is imported; no local replay, discharged
+obligation or estimate reduction is claimed.
 
 #### Martin-Löf à la Coq and executable partial checking
 

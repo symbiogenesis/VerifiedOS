@@ -140,6 +140,29 @@ These completed projects demonstrate that coordinated formalization can reach su
 
 Use these cases in the [estimate basis](../../implementation/implementation-checklist.md#estimate-and-schedule-basis) as external existence evidence alongside this repository's own calibration. Before repricing a research-heavy item, obtain a representative local checked result, its assumption audit, dependency closure and measured authoring/checking costs; record unsupported features and replan at that boundary. M6.2b-0's first recursive corpus example and U-25's instantiated compiler criterion are local checkpoints of that kind. No theorem source is imported here, no local replay is claimed and no estimated hours are removed by this evidence.
 
+### FormalFlow's low individual-degree test: a statement-review reference
+
+**Read 2026-10-10; older proof, recent report.** Sirui Lu, Ruixuan Deng,
+David Zhu and Zhengfeng Ji's
+[September 17 paper, revised September 24](https://arxiv.org/abs/2609.19814v2)
+reports a proof completed on June 24. The inspected
+[`b39705bfd36b8f7208f58d8c75e6c42a1624e06c` theorem](https://github.com/LionSR/MIPStarRE/blob/b39705bfd36b8f7208f58d8c75e6c42a1624e06c/MIPStarRE/LDT/Test/MainTheorem/MainFormal.lean)
+is quantum soundness of the classical low individual-degree test, not all
+of MIP*=RE. For a passing normalized finite-dimensional strategy it supplies
+polynomial measurements with stated consistency-error bounds, under
+`400 * m * d <= k` and `0 < k`. The report identifies those sampling
+conditions as corrections and reports the Lean closure `propext`,
+`Classical.choice`, `Quot.sound`.
+
+The useful transfer is to [proof review](../proof-assistance.md#research-handoff-for-future-proof-producers):
+the [documented failures](https://arxiv.org/html/2609.19814v2#A3)
+include intermediate records assuming their desired conclusions. Review the
+actual definitions and joint satisfiability of premises alongside axiom
+closure. This supplies no quantum-security premise for VerifiedOS or local
+proof. No license file was found in the inspected snapshot; source adaptation
+remains unqualified. No code is copied, no replay is claimed and no estimate
+changes.
+
 ## Certified search and the register's standing refusals
 
 The constraint-programming and pseudo-Boolean literature carries proof
@@ -450,6 +473,94 @@ kernel-checked proof term R-05-015 names, which a Lean verdict does not supply.
 Upstream, Ordeal validates a Wasm optimizer's and an Arm lowering's rewrites, a
 role with no counterpart here: R-05-085 makes Wasm no native execution target.
 No local build or replay is claimed.
+
+## F13: Fair Repetitive Interval Scheduling, a restricted coloring reference
+
+**Read 2026-10-10; formalization published 2026-10-02.** Yuval Itzhaki,
+with Claude, formalizes results of Heeger, Hermelin, Itzhaki, Molter and
+Shabtay (Algorithmica 2025). The
+[archive record](https://laxarchive.org/lax-117284/index.html) identifies
+[`b4de5da23cb7666dbeb3b1b332b35eefa090a330`](https://github.com/yuvalyitz/fairris-lax/tree/b4de5da23cb7666dbeb3b1b332b35eefa090a330).
+The inspected
+[proof wrappers](https://github.com/yuvalyitz/fairris-lax/blob/b4de5da23cb7666dbeb3b1b332b35eefa090a330/proofs/Lax117284Proofs/Tractable.lean)
+include `chromaticNumber_dayGraph` and
+`hasKFairSchedule_iff_mul_chromaticNumber_le`. The first proves that the
+finite interval conflict graph's chromatic and clique numbers agree. When
+processing times and due dates are both independent of day, the second
+characterizes serving each client at least `k` times by
+`k * chromaticNumber <= days`; its `i₀ : Fin I.days` requires a nonempty
+day set. Concept-file axioms are statement interfaces, not these proofs.
+
+**Fit and qualification.** Reference for Q5b's restricted equal-size
+interval-coloring comparison. Source intervals are `(d-p,d]`; a reduction
+must establish agreement with local `[start,end)` lifetimes. Variable sizes,
+contiguity, alignment, capability representability and island/bank constraints
+remain local. The statement proves neither cyclic-executive admission nor a
+CHERI memory layout. The edition uses Lean 4.33.0 and mathlib
+`db584cd6d46c92f209a44c0f1c829460d327499d`; its
+[LICENSE](https://github.com/yuvalyitz/fairris-lax/blob/b4de5da23cb7666dbeb3b1b332b35eefa090a330/LICENSE)
+is Apache-2.0. The proof/statement interface and dependency assumptions need
+independent replay before adaptation. No Rocq bridge, local replay or
+obligation reduction is claimed.
+
+## F14: Eligible-machine interval scheduling with an explicit work bound
+
+**Read 2026-10-10.** Yuval Itzhaki, with Claude, formalizes Hermelin,
+Itzhaki, Molter and Shabtay's JCSS 2024 result. The
+[archive history](https://laxarchive.org/lax-888481/index.html) dates the first
+version to 2026-09-22 and the reviewed successor to 2026-10-01, at
+[`3cdde85ce7b7eed2938def9b9be0b5434f615c0f`](https://github.com/yuvalyitz/isem-lax/tree/3cdde85ce7b7eed2938def9b9be0b5434f615c0f).
+The proof
+[`fptTime_byMachinesAndPmax`](https://github.com/yuvalyitz/isem-lax/blob/3cdde85ce7b7eed2938def9b9be0b5434f615c0f/proofs/Lax888481Proofs/Theorem3.lean)
+gives a word-RAM decision procedure for an eligible-machine schedule meeting
+a weight threshold, with instruction bound
+`c * (m*pmax+1)^(2*m) * (m+1) * (|x|+1)`.
+Its [statement](https://github.com/yuvalyitz/isem-lax/blob/3cdde85ce7b7eed2938def9b9be0b5434f615c0f/concepts/Lax888481/Theorem3.lean)
+requires valid input, `Fits c w x`, and configuration-table addressability
+`c*(m*pmax+1)^(2*m) <= 2^w`. The separate qualitative FPT theorem uses
+exhaustive fallback when that table cannot fit; it does not erase this
+bound's premise.
+
+**Fit and qualification.** Q5b comparison reference for finite assignments
+with resource eligibility. No reduction from the actual placement problem
+is supplied, and abstract instruction counts are not target WCET. Keep Q5's
+existing enumeration and Q27a's no-new-checker disposition. The inspected
+edition uses Lean 4.33.0 and mathlib
+`db584cd6d46c92f209a44c0f1c829460d327499d`, with an Apache-2.0
+[LICENSE](https://github.com/yuvalyitz/isem-lax/blob/3cdde85ce7b7eed2938def9b9be0b5434f615c0f/LICENSE).
+The README's reported standard-axiom closure is not a local audit; other
+hardness results have separate dependencies. No code is incorporated, no
+external proof is replayed and no admission or implementation obligation is
+removed.
+
+## F15: HOL Light to Rocq alignment, with regeneration required
+
+**Read 2026-10-10; older proof development.** Frédéric Blanqui and Antoine
+Gontard's [September 21 paper](https://arxiv.org/abs/2609.24598) describes
+proved representation alignments and translations of the Logic and
+Multivariate libraries. The [author's chronology](https://blanqui.gitlabpages.inria.fr/)
+already records aligned-real translation in January 2025; the September
+edition is not a new completion date for those proofs.
+
+The inspected
+[`rocq-hollight` edition](https://github.com/Deducteam/rocq-hollight/tree/d325e1c912d824556a7e06d1c10e9266190e75a6)
+has a CeCILL-2.1 [LICENSE.txt](https://github.com/Deducteam/rocq-hollight/blob/d325e1c912d824556a7e06d1c10e9266190e75a6/LICENSE.txt).
+Crucially, the packaged
+[`Logic/theorems.v`](https://github.com/Deducteam/rocq-hollight/blob/d325e1c912d824556a7e06d1c10e9266190e75a6/Logic/theorems.v)
+declares translated results as axioms. The
+[`reproduce` route](https://github.com/Deducteam/rocq-hollight/blob/d325e1c912d824556a7e06d1c10e9266190e75a6/reproduce)
+regenerates proofs using HOL Light 3.1.0, hol2dk 2.1.0, Lambdapi 3.0.0 and
+Rocq 9.0.0; package compatibility with Rocq 9.2 is not a replay of that
+route. Functional extensionality, propositional extensionality and
+constructive indefinite description remain foundational premises.
+
+**Disposition.** Proof-transport reference; importing the distributed
+axiomatic theorems is refused under the local assumption audit. An untrusted
+translator can in principle emit terms for the existing Rocq kernel, but
+reuse still needs regenerated proof closure, permitted assumptions, exact
+local definition alignment and an incorporation-time license decision.
+No concrete local theorem replacement is selected, no reciprocal source is
+copied, and no local replay or removed obligation is claimed.
 
 ## Discovery collections and search limits
 

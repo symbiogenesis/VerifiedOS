@@ -101,6 +101,24 @@ That reading checked an outside list of WebAssembly-toolchain and Rocq-extractio
 | [Loom](proof-reuse/languages.md#leads-that-do-not-supply-the-requested-closed-proof) | none · refused | It emits no re-checkable proof object, so it cannot be the existing checker R-05-066 needs, and no cell commissions a general Wasm-to-Wasm optimizer. |
 | [SYS-GALE](proof-reuse/systems.md#sys-gale-zephyrs-primitives-re-proved-for-mechanisms-this-kernel-deletes) | none · refused | R-07-032, R-07-004 and R-07-002 delete the priorities, kernel locks and kernel allocation its primitives verify, and its ring-buffer proofs are Verus and Lean, which R-05-020's first condition refuses. |
 
+## Sources the 2026-10-10 reading added
+
+These source records are absent from the documentation at the reading's
+base, `efa6d4e3bc36034a08afc65ccb44e073921570b4`. Repository-wide searches
+checked their titles, authors, artifact names and identifiers. The subject
+entries date the actual formalization or correction separately from recent
+papers about older work. The [search scope](proof-reuse.md#the-2026-10-10-literature-reading)
+includes older results selected for their relevance.
+
+| Source the reading added | Consumer | What it would remove, or the ground |
+| --- | --- | --- |
+| [con-leche](proof-reuse/languages.md#con-leche-a-model-existence-proof-for-an-executable-lean-checker) | **M6.2b-0a** | Nothing. The model-existence and byte-stream refusal theorems inform review of the checker checkpoint's premises and interfaces. Lean semantics, the explicit set-theory premise and the unproved local corpus/resource bridges prevent a CIC discharge. |
+| [StrandsRocq's corrected guarantees](proof-reuse/protocols.md#strandsrocq-repaired-protocol-guarantees-with-inhabited-premises) | **M6.9c** | Nothing. Jointly inhabited freshness premises and attack witnesses are useful review examples. NSL's symbolic guarantee supplies neither TLS exporter security nor the attestation/implementation connection. |
+| [F13 Fair Repetitive Interval Scheduling](proof-reuse/foundations.md#f13-fair-repetitive-interval-scheduling-a-restricted-coloring-reference) | **Q5b** | Nothing. The interval-coloring result is a restricted mathematical comparator; the reduction from equal-size slots, endpoint agreement and actual placement constraints remain unproved. |
+| [F14 eligible-machine interval scheduling](proof-reuse/foundations.md#f14-eligible-machine-interval-scheduling-with-an-explicit-work-bound) | **Q5b** | Nothing. Eligibility and explicit table-fit premises inform a bounded-search comparison, not a byte-placement, target-WCET or admission theorem. The existing enumeration and Q27a disposition stand. |
+| [F15 HOL Light to Rocq alignment](proof-reuse/foundations.md#f15-hol-light-to-rocq-alignment-with-regeneration-required) | none · refused | The distributed translated results are axioms, so importing them fails the local assumption audit. Regenerated proof closure, the foundational premises, local definition alignment and reciprocal source terms remain separate qualifications. The untrusted translation method itself is not forbidden. |
+| [FormalFlow's low-degree-test proof](proof-reuse/foundations.md#formalflows-low-individual-degree-test-a-statement-review-reference) | none · unread | No source license was found in the inspected snapshot, so no source adaptation is proposed. Its hidden-premise and corrected-statement examples inform the existing proof-review workflow; the quantum theorem has no selected local mathematical consumer. |
+
 ## What no cell prices, and where the map books it
 
 Every `uncelled` row above points at an obligation the register owes and no cell prices, and [the proof map's mandatory work](unassigned-proof-map.md#8-mandatory-work-outside-the-priced-total) books each one: the HAL's implementation in certifying Rust, which the VerusBelt and RustHornBelt rows reach through R-18-018's manual-proof path; R-18-014's certifying Rust compiler, which the RustCompCert, Lean-MLIR and Tree Borrows rows reach; the full Iris refinement proofs for the kernel and the storage stack, which the Quiver row reaches; and CHERI-TAL soundness, R-18-018's second sub-deliverable, which that section books as carrying no cell and which is where R-05-119 and R-05-121 trace, those two stating the definite-initialization attribute the RustHornBelt row names beside the manual-proof path. That section names neither of those two ids, and no cell and no slice names them either, so what places them is their own trace line. What this record does add is that the sweep's strongest language sources point at obligations no cell prices: a source aimed at one is a reading, and pricing a cell because a source now exists for it would be the survey opening a cell, which the plan refuses.
@@ -109,7 +127,7 @@ Every `uncelled` row above points at an obligation the register owes and no cell
 
 It does not decide that a named consumer should take its source. A cell states what it reuses in its own reuse note; what is settled here is which source resolves to which consumer, and on what ground a source resolves to none.
 
-It does not price anything, propose a range, or move one. Of the sources that resolve to a consumer, two are start-froms the cell or the register already named, one transfers a method and not a proof term, and one meets no clause its cell owes. The later reading's one consumer row, Q2b's, transfers a measurement discipline and no proof term, so no row carries a removal a re-price could read.
+It does not price anything, propose a range, or move one. The consumer rows identify existing start-froms, method and measurement references, or restricted comparisons. None claims a removed proof obligation on which to base a re-price.
 
 It does not fix a `none` row forever. A register act or a new cell can give an uncelled obligation an owner, an unread licence can be read at the milestone that would incorporate it, and a refused import stays refused only while the entry that refuses it stands. A row changes when its ground does, and not before.
 

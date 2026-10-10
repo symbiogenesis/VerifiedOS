@@ -1,6 +1,6 @@
 # Protocol, attestation and transparency proof sources
 
-This research inventory maps external proof artifacts to the current [requirements register](../../requirements-register.md), [crown jewels](../crown-jewels.md) and [implementation plan](../../implementation/implementation-checklist.md). It includes strong exemplars, partial developments and unsuitable candidates so that a familiar project name is not mistaken for an applicable theorem. Source inspection is dated 2026-09-10, except the Verdict record, read on 2026-09-19, and the communication research handoff, checked on 2026-09-24. No external prover is replayed for this inventory, and no imported theorem discharges a platform requirement. Immutable revisions identify inspected source, not a successful local build.
+This research inventory maps external proof artifacts to the current [requirements register](../../requirements-register.md), [crown jewels](../crown-jewels.md) and [implementation plan](../../implementation/implementation-checklist.md). It includes strong exemplars, partial developments and unsuitable candidates so that a familiar project name is not mistaken for an applicable theorem. Source inspection is dated 2026-09-10, except the Verdict record, read on 2026-09-19, the communication research handoff, checked on 2026-09-24, and StrandsRocq, read on 2026-10-10. No external prover is replayed for this inventory, and no imported theorem discharges a platform requirement. Immutable revisions identify inspected source, not a successful local build.
 
 The strongest immediate starting points in the platform's language are Cerisier's local-attestation contract and Cryptis's resource-aware authentication proofs. The radio artifacts supply unusually concrete symbolic specifications, attack witnesses and patched variants. They still require the formal-to-formal transcription and Lustre refinement prescribed by R-12-043b through R-12-043f. Q22b and Q22c retain ownership of selecting the actual witness and attestation-session constructions. No source below is an exact drop-in for the project's current types and assumptions.
 
@@ -41,6 +41,41 @@ The unfinished computational session proofs also consume the [crypto research ha
 - **Artifact:** VRASED revision `62ceb1f60b0859f9017c6a9fec07a5022226da33`; [`verification_specs/soundness_and_security_proofs`](https://github.com/sprout-uci/vrased/tree/62ceb1f60b0859f9017c6a9fec07a5022226da33/verification_specs/soundness_and_security_proofs) includes `proof_theorem1.ltl`, `proof_theorem2_1.ltl` and `proof_theorem2_2.ltl`, using Spot 2.0. Hardware subproperties use NuSMV. PURE's `pure` branch is `e454fe70b9e42e31e8fdc8ba07c5ecbc115f4add`, with `verification_specs/pure_PoR_proofs` as its reset-proof entry point.
 - **License:** both branches' own [`LICENSE`](https://github.com/sprout-uci/vrased/blob/e454fe70b9e42e31e8fdc8ba07c5ecbc115f4add/LICENSE) contains GPLv3; constituent HACL and OpenMSP430 materials require their own review. No source is conveyed here.
 - **Fit and gap:** R-09-003, R-09-008, R-09-019 and the M3 RoT work benefit from the decomposition into atomicity, key access and erasure obligations. This MSP430 design is not the platform's RoT. More seriously, Bognar, Van Bulck and Piessens's [Mind the Gap artifact](https://github.com/martonbognar/vrased-gap) demonstrates implementation/model mismatches, omitted attacker capabilities and missing core assumptions while the original proof strategy passes. The authors caution that derivatives may share those gaps. **Disposition: useful specification and negative-review evidence, not an accepted security foundation.**
+
+## StrandsRocq: repaired protocol guarantees with inhabited premises
+
+**Reading dated 2026-10-10.** Matteo Busi, Riccardo Focardi, Joshua Guttman
+and Flaminia Luccio; the
+[`sep-2026-release`](https://github.com/strandsrocq/strandsrocq/releases/tag/sep-2026-release)
+of 2026-09-24 identifies
+[`dfb039f33585654e61049537257535c74c44ae9a`](https://github.com/strandsrocq/strandsrocq/tree/dfb039f33585654e61049537257535c74c44ae9a).
+The new result is the
+[September 24 correction](https://github.com/strandsrocq/strandsrocq/commit/a6d93b8e417ebd37f3cb6b66b857807132a61ade)
+of NS/NSL/SimpleAuth origination premises and KMP closure, with re-proved
+guarantees, honest executions and attack witnesses. The operational-semantics
+development predates this window; a new release does not make all its
+theorems new.
+
+For example,
+[`injective_agreement`](https://github.com/strandsrocq/strandsrocq/blob/dfb039f33585654e61049537257535c74c44ae9a/Original/Examples/nsl/NSL_auth_responder.v)
+uses a valid NSL bundle, an uncompromised initiator key, distinct nonces and
+bundle-relative unique origination of the responder nonce.
+[`NSL_sanity.v`](https://github.com/strandsrocq/strandsrocq/blob/dfb039f33585654e61049537257535c74c44ae9a/Original/Examples/nsl/NSL_sanity.v)
+applies the guarantees to a constructed honest bundle and supplies a
+nonce-collapse counterexample. The witnesses matter: a universally
+unsatisfiable freshness premise could previously make a security claim
+vacuous.
+
+**Disposition.** Rocq method/adaptation candidate for M6.9c's inhabited
+session-policy and rejected-substitution review. Its symbolic NSL model
+supplies no TLS exporter, attestation binding, computational security or
+implementation theorem. The pinned
+[README](https://github.com/strandsrocq/strandsrocq/blob/dfb039f33585654e61049537257535c74c44ae9a/README.md)
+specifies Rocq 9.1.0 and dune 3.21 or later; the
+[LICENSE](https://github.com/strandsrocq/strandsrocq/blob/dfb039f33585654e61049537257535c74c44ae9a/LICENSE)
+is MIT. Compatibility with the locked local prover, complete dependencies
+and transitive assumptions remain unqualified. No source is incorporated or
+replayed, and no local obligation or estimate is reduced.
 
 ## miTLS: computational record-layer security
 

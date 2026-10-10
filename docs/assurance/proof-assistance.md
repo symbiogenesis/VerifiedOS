@@ -434,6 +434,14 @@ research result whose degree, field and cost conventions can be inspected and
 carried into a reconstruction experiment. Keep those dispositions separate from
 the fresh native acceptance of any proof adapted here.
 
+The [FormalFlow low-degree-test record](proof-reuse/foundations.md#formalflows-low-individual-degree-test-a-statement-review-reference)
+adds a concrete review example: a helper record can assume the intended
+conclusion without introducing a new axiom. Trace such fields back to
+constructed inputs and compare the final sampling hypotheses with the
+intended statement. Its corrected theorem is an external case study; the
+local frozen-statement and requirement-owner rules still decide any proposed
+change here.
+
 ## Acceptance boundary
 
 R-05-018 makes synthesis an untrusted finder. R-05-018a requires fresh acceptance

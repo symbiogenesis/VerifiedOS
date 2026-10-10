@@ -138,6 +138,19 @@ not enter either route or reopen Q27a's certificate-checker disposition.
 | [Ordinary Komlós construction](../background/open-math-conjectures.md#efficient-constant-discrepancy-komlós-construction) and [existence/Beck-Fiala results](../background/open-math-conjectures.md#ordinary-komlós-and-beck-fiala-proof-announcements) | Map legal binary choices to normalized vectors, then decode signs into assignments preserving capacities, class and island restrictions. Prove the finite rational/bit-cost implementation separately from the announced real-RAM algorithms; the September rational-input claim of polynomial bit complexity states no concrete bit bound, finite constants or checked implementation. The September checked proposal routine certifies row sums of a supplied binary64 matrix but implements no proved construction and has no proved acceptance probability, so a producer using it needs a budgeted failure path. Check a balanced candidate and one whose final balance hides an illegal placement or intermediate overflow. The inspected Lean constant-36 existence artifact supplies neither this reduction nor the later algorithm's runtime theorem. |
 | [Strongly polynomial LP](../background/open-math-conjectures.md#strongly-polynomial-linear-programming) and [sparse LP/circuit walks](../background/open-math-conjectures.md#sparse-linear-programs-and-short-circuit-walks) | Identify whether every row or every column of the actual relaxation has at most two nonzero entries before using the solved sparse case. Establish exact rational bound checking and integer decoding; a fractional solution can fit while every integer layout exceeds it. Short circuit walks are not a general strongly polynomial solver or an edge-walk theorem. The live general-LP claim needs correctness, termination, arithmetic-operation and intermediate bit-size validation before its complexity can support a search budget; candidate feasibility alone establishes none of them. |
 
+The newly formalized
+[interval-coloring](../assurance/proof-reuse/foundations.md#f13-fair-repetitive-interval-scheduling-a-restricted-coloring-reference)
+and [eligible-machine scheduling](../assurance/proof-reuse/foundations.md#f14-eligible-machine-interval-scheduling-with-an-explicit-work-bound)
+results give Q5b restricted comparison cases. First establish the exact
+reduction: equal-size interval slots and matching endpoint conventions for
+the coloring result; eligible resources, objective and addressable dynamic
+programming tables for the work bound. Include a case that violates those
+premises, such as unequal contiguous sizes or a table larger than the word
+address space. Neither result supplies the local ownership, bank or CHERI
+constraints, and both leave the existing candidate checker and Q27a
+disposition in force. These are optional research comparisons, not added
+acceptance deliverables or a credited capacity improvement.
+
 The [structural proof handoff](static-memory/structure.md#research-handoff-for-the-open-structural-proofs)
 owns the near-laminar exact cases; the
 [resource proof handoff](static-memory/resource-contracts.md#research-handoff-for-ordering-and-prefix-bounds)

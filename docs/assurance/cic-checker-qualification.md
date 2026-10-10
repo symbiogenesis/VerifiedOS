@@ -78,6 +78,15 @@ An eliminator-only object calculus can avoid a general syntactic guard in that c
 
 Set-theoretic models are not ruled out wholesale by Reynolds' obstruction to a particular interpretation of polymorphism. Lee and Werner's [proof-irrelevant model of CC with predicative induction and judgmental equality](https://lmcs.episciences.org/920) is a concrete counterexample to that blanket claim: it uses ZF with countably many inaccessible cardinals. Its calculus and assumptions are not automatically those of this profile, so it supplies neither an undeclared local axiom nor a qualification of full Rocq.
 
+The September 2026
+[con-leche consistency proof](proof-reuse/languages.md#con-leche-a-model-existence-proof-for-an-executable-lean-checker)
+is a further comparison for M6.2b-0a: its accepted-environment model theorem
+and byte-stream refusal corollary expose different boundaries, and both
+retain an explicit set-theory premise. Use that separation when reviewing
+the checkpoint's instantiated hypotheses and parser correspondence. It
+supplies no CIC containment, local metatheory or bounded implementation
+evidence and does not change the selected profile below.
+
 #### The published profile and metatheory decision
 
 This subsection is M6.2b-0's decision checkpoint. It fixes the object theory, judgment and profile the bounded checker is to decide; states the universe, equality, inductive, recursion and primitive policy against the corpus as measured rather than as described; names the metatheory each required theorem would be checked in, with the instantiated theorem or an explicit missing proof; compares the three candidate calculi against that measurement; and separates the five statements a checker route can establish. It satisfies none of the acceptance predicates above and gives M6.2b-0 no completion credit by itself. M6.2b-ii stays closed. It incorporates, pins, vendors and fetches nothing and reads no upstream licence, so [THIRD-PARTY.md](../../THIRD-PARTY.md) is unchanged by it and the cited sources keep the dispositions [the literature entries](proof-reuse/languages.md#bounded-cic-starting-points) record, including their unread licence texts.

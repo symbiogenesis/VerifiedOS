@@ -22,6 +22,23 @@ protocol proofs can supply strong precedents and independent specifications;
 their proof terms cannot simply be loaded into Rocq. Even a Rocq theorem
 needs the same semantics, hypotheses and dependency closure before reuse.
 
+## The 2026-10-10 literature reading
+
+The search began with newly published or substantively corrected formal
+proofs from 2026-09-10 through 2026-10-10 inclusive, then admitted older
+results with a useful local connection. The new records distinguish an
+artifact's proof/release date from a paper's posting date. Titles, authors,
+artifact names and source identifiers were checked against the documentation
+at `efa6d4e3bc36034a08afc65ccb44e073921570b4`; existing mentions, including
+MachCSL, were not added again.
+
+The [dated bearing rows](proof-reuse-bearing.md#sources-the-2026-10-10-reading-added)
+link the new references to their local consumers or explain why none is
+selected. Their subject records hold immutable source identities, theorem
+scope, hypotheses, licenses and transfer limits. This is a bounded literature
+search, not an exhaustive census or an external-proof replay. No result
+changes the local acceptance route or discharges a requirement by citation.
+
 ## What qualifies as a gold-standard example
 
 A strong candidate has a precise statement, accessible mechanization,
