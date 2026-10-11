@@ -318,13 +318,77 @@ def signature_verdicts(f: bc.Facts, work: Path, images: Mapping[str, bytes],
     return records
 
 
-def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str]) -> dict[str, Any]:
+def preserved_images(root: Path, files: Mapping[str, bytes], streams: Mapping[str, str],
+                     f: bc.Facts, rot: RotComposer, mmode: MmodeComposer) -> bc.Staged:
+    """Retain signed bytes only after exact recompilation and current layout checks.
+
+    The old compiler receipt may predate the lock. It is historical identity, never
+    accepted as the new producer's provenance; the fresh native build supplies that.
+    """
+    if set(files) != set(bc.STAGED_FILES):
+        raise ValueError("preserving images requires every existing staged file")
+    manifest = json.loads(files["manifest.json"])
+    if (not isinstance(manifest, dict) or manifest.get("schema") != 1
+            or manifest.get("generator") != bc.GENERATOR or manifest.get("floor") != f.floor
+            or manifest.get("contract") != bh.CONTRACT):
+        raise ValueError("preserving images requires this chain's existing manifest and floor")
+    expected = manifest.get("files_sha256")
+    actual = {name: hashlib.sha256(data).hexdigest() for name, data in files.items()
+              if name != "manifest.json"}
+    if expected != actual:
+        raise ValueError("existing staged bytes differ from their historical manifest")
+    units = manifest.get("units")
+    if (not isinstance(units, dict) or set(units) != set(bc.UNITS)
+            or any(not isinstance(entry, dict) for entry in units.values())):
+        raise ValueError("the historical manifest does not bind every chain unit")
+    for name, stream in streams.items():
+        raw = stream.encode("utf-8")
+        if (files[f"{name}.s"] != bc.HEADER.encode("utf-8") + raw
+                or units[name].get("assembly_sha256") != hashlib.sha256(raw).hexdigest()):
+            raise ValueError(f"preserving images requires byte-identical recompilation of {name}")
+    stored = json.loads(files["images.json"])
+    entries = manifest.get("images")
+    if (not isinstance(stored, dict) or stored.get("schema") != 1
+            or not isinstance(stored.get("images"), dict) or not isinstance(entries, dict)
+            or set(stored["images"]) != set(bc.IMAGE_NAMES) or set(entries) != set(bc.IMAGE_NAMES)
+            or any(not isinstance(entry, dict) for entry in entries.values())):
+        raise ValueError("the historical manifest must bind exactly the chain images")
+    images = {name: bytes.fromhex(stored["images"][name]) for name in bc.IMAGE_NAMES}
+    problems = [problem for name in bc.IMAGE_NAMES
+                for problem in bc._image_findings(f, name, images[name], entries[name])]
+    keys = manifest.get("keys", {})
+    if not isinstance(keys, dict):
+        raise TypeError("the historical manifest does not retain signing keys")
+    rom_roots = keys.get("rom_roots", {})
+    state = bh.LIFECYCLES[f.lifecycle]
+    if (not isinstance(rom_roots, dict) or set(rom_roots) != set(bh.ROOT_STATES)
+            or keys.get("signed_under") != state):
+        raise ValueError("the historical manifest must retain the current lifecycle's ROM roots")
+    roots = {bh.LIFECYCLES.index(name): bytes.fromhex(value) for name, value in rom_roots.items()}
+    kernel_root = bytes.fromhex(keys.get("kernel_root", ""))
+    if (any(len(key) != f["BOOT_PUBLIC_KEY_BYTES"] for key in roots.values())
+            or len(kernel_root) != f["CHAIN_KSTAGE_PUBLIC_KEY_BYTES"]):
+        problems.append("the retained signing roots have invalid lengths")
+    header = f["BOOT_HEADER_BYTES"]
+    if images["mmode-a-below-floor"][header:] != images["mmode-a"][header:]:
+        problems.append("the retained below-floor image differs from slot A's payload")
+    found = bc.Staged(manifest, dict(streams), images, roots, kernel_root)
+    problems += layouts(root, found, rot, mmode)
+    if problems:
+        raise ValueError("; ".join(problems))
+    return found
+
+
+def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str], *,
+          preserve_images: bool = False) -> dict[str, Any]:
     """Compile every chain unit, lay out and sign the images, and write `bc.STAGED`.
 
     The staged files are the only compiler output and the only signatures a hosted
     runner receives. Staging binds the compiler's provenance and configuration, the
     exact checkout files each unit's preprocessor read and section 9.13's identities, and
     refuses where the freeze does not hold or `boot-crypto verify` does not pass.
+    `preserve_images` retains all existing signed bytes and requires byte-identical
+    recompilation, current payload layouts and fresh signature verdicts before writing.
     """
     root, out, ccomp = (path.resolve() for path in (root, out, ccomp))
     out.mkdir(parents=True, exist_ok=True)
@@ -334,6 +398,8 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str]) -> dict[
     if directory.is_dir() and (unexpected := sorted(
             {path.name for path in directory.iterdir()} - set(bc.STAGED_FILES))):
         raise ValueError(f"{bc.STAGED} holds files staging does not own: {unexpected}")
+    retained = ({path.name: path.read_bytes() for path in directory.iterdir()}
+                if preserve_images and directory.is_dir() else {})
     rot, mmode = rot_composer(), mmode_composer()
     plan = units(rot, mmode)
     streams: dict[str, str] = {}
@@ -364,42 +430,57 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str]) -> dict[
     state_name = bh.LIFECYCLES[f.lifecycle]
     if state_name not in bh.ROOT_STATES:
         raise ValueError(f"the shipped lifecycle state {state_name} accepts no root to sign under")
-    slh = boot_signing.SlhSigner(out / "signing", bh.ROOT_STATES,
-                                 public_bytes=f["BOOT_PUBLIC_KEY_BYTES"],
-                                 signature_bytes=f["BOOT_SIGNATURE_BYTES"])
-    mldsa = MlDsaSigner(out / "signing", public_bytes=f["CHAIN_KSTAGE_PUBLIC_KEY_BYTES"],
-                        signature_bytes=f["CHAIN_KSTAGE_SIGNATURE_BYTES"])
-    production = slh.roots[state_name]
-    runtime = rot.runtime_payload(root, streams["runtime"])
-    slots = {name: mmode.mmode_payload(root, streams["mmode"], mldsa.public, tag)
-             for name, tag in zip(("mmode-a", "mmode-b", "mmode-recovery"), f.tags, strict=True)}
-    kernel = mmode.kernel_payload(root)
-    images = {"stage0": bc.build_image(f, runtime, stage=f["BOOT_STAGE_ROT_RUNTIME"],
-                                       version=f.floor, signer=production, sign=slh.sign)}
-    for name, payload in slots.items():
-        images[name] = bc.build_image(f, payload, stage=f["BOOT_STAGE_MMODE_IMAGE"],
-                                      version=f.floor, signer=production, sign=slh.sign)
-    images["mmode-a-below-floor"] = bc.build_image(
-        f, slots["mmode-a"], stage=f["BOOT_STAGE_MMODE_IMAGE"], version=f.floor - 1,
-        signer=production, sign=slh.sign)
-    images["kernel"] = bc.build_image(f, kernel, stage=f["BOOT_STAGE_CORE_KERNELS"],
-                                      version=f.floor, signer=mldsa.public,
-                                      sign=lambda _, message: mldsa.sign(message))
-    verdicts = signature_verdicts(f, out / "verify", images, production, mldsa.public)
+    if preserve_images:
+        previous = preserved_images(root, retained, streams, f, rot, mmode)
+        images, keys = previous.images, previous.manifest["keys"]
+        production, kernel_root = previous.roots[f.lifecycle], previous.kernel_root
+        signing = {"preserved_images": True,
+                   "historical_manifest_sha256": hashlib.sha256(retained["manifest.json"]).hexdigest(),
+                   "images_sha256": hashlib.sha256(retained["images.json"]).hexdigest()}
+    else:
+        slh = boot_signing.SlhSigner(out / "signing", bh.ROOT_STATES,
+                                     public_bytes=f["BOOT_PUBLIC_KEY_BYTES"],
+                                     signature_bytes=f["BOOT_SIGNATURE_BYTES"])
+        mldsa = MlDsaSigner(out / "signing", public_bytes=f["CHAIN_KSTAGE_PUBLIC_KEY_BYTES"],
+                            signature_bytes=f["CHAIN_KSTAGE_SIGNATURE_BYTES"])
+        production, kernel_root = slh.roots[state_name], mldsa.public
+        runtime = rot.runtime_payload(root, streams["runtime"])
+        slots = {name: mmode.mmode_payload(root, streams["mmode"], kernel_root, tag)
+                 for name, tag in zip(("mmode-a", "mmode-b", "mmode-recovery"), f.tags, strict=True)}
+        kernel = mmode.kernel_payload(root)
+        images = {"stage0": bc.build_image(f, runtime, stage=f["BOOT_STAGE_ROT_RUNTIME"],
+                                           version=f.floor, signer=production, sign=slh.sign)}
+        for name, payload in slots.items():
+            images[name] = bc.build_image(f, payload, stage=f["BOOT_STAGE_MMODE_IMAGE"],
+                                          version=f.floor, signer=production, sign=slh.sign)
+        images["mmode-a-below-floor"] = bc.build_image(
+            f, slots["mmode-a"], stage=f["BOOT_STAGE_MMODE_IMAGE"], version=f.floor - 1,
+            signer=production, sign=slh.sign)
+        images["kernel"] = bc.build_image(f, kernel, stage=f["BOOT_STAGE_CORE_KERNELS"],
+                                          version=f.floor, signer=kernel_root,
+                                          sign=lambda _, message: mldsa.sign(message))
+        keys = {"rom_roots": {state: key.hex() for state, key in slh.roots.items()},
+                "kernel_root": kernel_root.hex(), "signed_under": state_name}
+        signing = {"slh": slh.identity(), "mldsa": mldsa.identity(),
+                   "private_keys": str(out / "signing")}
+    verdicts = signature_verdicts(f, out / "verify", images, production, kernel_root)
     if (boot_crypto_target.compiler_provenance(ccomp) != (provenance, provenance_files)
             or boot_target.compiler_inputs(compiler_args) != compiler_files
             or any(receipts.digest(root / name) != value for name, value in sources.items())):
         raise ValueError("staging inputs changed during compilation")
     crypto = json.loads((root / boot_crypto_target.MANIFEST).read_text(encoding="utf-8"))
     files: dict[str, bytes] = {f"{name}.s": bc.HEADER.encode("utf-8") + raws[name] for name in bc.UNITS}
-    files["images.json"] = _json({"schema": 1, "images": {name: data.hex()
-                                                          for name, data in images.items()}})
+    files["images.json"] = (retained["images.json"] if preserve_images else
+                            _json({"schema": 1, "images": {name: data.hex()
+                                                          for name, data in images.items()}}))
     headers = {name: {"sha256": hashlib.sha256(data).hexdigest(),
                       **{key: int.from_bytes(data[f[at]:f[at] + 8], "little") for key, at in (
                           ("stage", "BOOT_HDR_STAGE"),
                           ("security_version", "BOOT_HDR_SECURITY_VERSION"),
                           ("payload_length", "BOOT_HDR_PAYLOAD_LENGTH"))}}
                for name, data in images.items()}
+    if preserve_images and headers != previous.manifest["images"]:
+        raise ValueError("provenance refresh would change retained image header bindings")
     manifest = {
         "schema": 1, "generator": bc.GENERATOR, "contract": bh.CONTRACT, "floor": f.floor,
         "compiler_provenance": provenance,
@@ -408,8 +489,7 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str]) -> dict[
         "sources_sha256": dict(sorted(sources.items())),
         "search_directories": {name: bc.listing(root, name) for name in sorted(directories)},
         "units": entries, "images": headers,
-        "keys": {"rom_roots": {state: key.hex() for state, key in slh.roots.items()},
-                 "kernel_root": mldsa.public.hex(), "signed_under": state_name},
+        "keys": keys,
         "signature_verdicts": verdicts,
         "freeze": {"manifest": boot_crypto_target.MANIFEST,
                    "sources_sha256": {path: sources.get(path) for path in bc.FROZEN},
@@ -423,6 +503,11 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str]) -> dict[
     if problems := bc.freeze_findings(root, manifest):
         raise ValueError("section 9.13's freeze does not hold: " + "; ".join(problems))
     boot_crypto_target.staged(root)
+    if preserve_images:
+        if retained != {path.name: path.read_bytes() for path in directory.iterdir()}:
+            raise ValueError("the retained staged inputs changed during provenance refresh")
+        if any(data != retained[name] for name, data in files.items()):
+            raise ValueError("provenance refresh would change a retained staged stream or image")
     files["manifest.json"] = _json(manifest)
     for name, data in files.items():
         with receipts.atomic_path(directory / name) as pending:
@@ -430,8 +515,7 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str]) -> dict[
     return {"passed": True, "manifest": manifest, "native_units": native,
             "native_compiler_inputs_sha256": compiler_files,
             "native_compiler_receipts_sha256": provenance_files, "compiler_path": str(ccomp),
-            "signing": {"slh": slh.identity(), "mldsa": mldsa.identity(),
-                        "private_keys": str(out / "signing")}}
+            "signing": signing}
 
 
 def layouts(root: Path, staged: bc.Staged, rot: RotComposer, mmode: MmodeComposer) -> list[str]:

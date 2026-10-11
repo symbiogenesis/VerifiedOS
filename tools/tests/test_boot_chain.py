@@ -879,6 +879,83 @@ def _join_refuses_inconsistent_shards() -> None:
                f"chain-join refused written shards: {joined.get('error')}")
 
 
+def _preserving_stage_refuses_changed_inputs() -> None:
+    with tempfile.TemporaryDirectory() as name:
+        base = Path(name)
+        template, out = base / "template", base / "original"
+        _checkout(template)
+        with _staging(template, out):
+            target.stage(template, out, Path("ccomp"), ["-conf", str(out / "compcert.ini")])
+        # The old receipt's absent lock is historical; refresh uses the new native identity.
+        _edit_json(template / bc.MANIFEST,
+                   lambda data: data["compiler_provenance"].pop("toolchain"))
+
+        def snapshot(root: Path) -> dict[str, bytes]:
+            return {path.name: path.read_bytes() for path in (root / bc.STAGED).iterdir()}
+
+        root = base / "positive"
+        shutil.copytree(template, root)
+        before = snapshot(root)
+        fresh = base / "positive-native"
+        with _staging(root, fresh), patch.object(target.boot_signing, "SlhSigner", side_effect=AssertionError), \
+                patch.object(target, "MlDsaSigner", side_effect=AssertionError):
+            result = target.stage(root, fresh, Path("ccomp"), [], preserve_images=True)
+            target.verify(root)
+        after = snapshot(root)
+        ensure(result["passed"] and result["signing"]["preserved_images"]
+               and result["manifest"]["compiler_provenance"]["toolchain"]
+               and {key: value for key, value in before.items() if key != "manifest.json"}
+               == {key: value for key, value in after.items() if key != "manifest.json"},
+               "refresh changed signed inputs or reused historical provenance")
+
+        def flip_signature(root: Path) -> None:
+            path = root / bc.IMAGES
+            data = json.loads(path.read_text(encoding="utf-8"))
+            f = bc.facts(root)
+            original = bytes.fromhex(data["images"]["stage0"])
+            changed = bc.flip(original, f["BOOT_HDR_SIGNATURE"] + bc.SIGNATURE_FLIP_AT)
+            data["images"]["stage0"] = changed.hex()
+            path.write_bytes(target._json(data))
+
+            def bind_changed_signature(manifest: dict[str, Any]) -> None:
+                manifest["files_sha256"].update({"images.json": receipts.digest(path)})
+                manifest["images"]["stage0"].update({"sha256": hashlib.sha256(changed).hexdigest()})
+
+            _edit_json(root / bc.MANIFEST, bind_changed_signature)
+
+        for label, message in (("compiled", "byte-identical recompilation"),
+                               ("signature", "OpenSSL refused"),
+                               ("layout", "no longer lays"),
+                               ("missing", "every existing staged file")):
+            root, fresh = base / label, base / f"{label}-native"
+            shutil.copytree(template, root)
+            if label == "signature":
+                flip_signature(root)
+            elif label == "missing":
+                (root / bc.IMAGES).unlink()
+            before = snapshot(root)
+            with _staging(root, fresh), contextlib.ExitStack() as stack:
+                if label == "compiled":
+                    original_compile = target.compile_unit
+
+                    def changed_compile(*args: Any, **kwargs: Any) -> tuple[cd.Compiled, bytes]:  # noqa: ANN401
+                        compiled, raw = original_compile(*args, **kwargs)  # noqa: B023
+                        return compiled, raw + b"\n# changed output\n"
+
+                    stack.enter_context(patch.object(target, "compile_unit", changed_compile))
+                elif label == "layout":
+                    rot, _ = _composers()
+                    rot.runtime_payload = lambda *_: b"different payload"
+                    stack.enter_context(patch.object(target, "rot_composer", lambda rot=rot: rot))
+                try:
+                    target.stage(root, fresh, Path("ccomp"), [], preserve_images=True)
+                except ValueError as error:
+                    ensure(message in str(error), f"{label} refused for another reason: {error}")
+                else:
+                    raise AssertionError(f"refresh accepted changed {label}")
+            ensure(snapshot(root) == before, f"refused {label} refresh wrote staged inputs")
+
+
 def _cli_takes_one_selection() -> None:
     seen: list[Any] = []
 
@@ -901,6 +978,8 @@ def _cli_takes_one_selection() -> None:
         ensure(seen[-1].reports == ["a.json", "b.json"], "the join's shard receipts did not parse")
         cli.main(["chain-stage", "--ccomp", "ccomp", "--ccomp-arg=-conf", "--ccomp-arg=ini"])
         ensure(seen[-1].ccomp_arg == ["-conf", "ini"], "compiler arguments did not parse")
+        cli.main(["chain-stage", "--ccomp", "ccomp", "--preserve-images"])
+        ensure(seen[-1].preserve_images, "image preservation did not parse")
         for argv in ([*required], [*required, "--case", "cold-boot", "--group", "watchdog"],
                      [*required, "--case", "invented"], [*required, "--group", "boot"],
                      [*required[:1], *required[2:], "--case", "cold-boot"],
@@ -1039,6 +1118,8 @@ def cases() -> list[Case]:
             Case("main-die cases take cold-boot's outputs", _main_die_takes_cold_boot),
             Case("watchdog cases read the bite's ticks", _watchdog_cases_read_the_bite),
             Case("staging writes what the staged check accepts", _staging_writes_what_staged_accepts),
+            Case("provenance refresh preserves signed inputs and refuses changes",
+                 _preserving_stage_refuses_changed_inputs),
             Case("the case set is the contract's table", _case_set_is_the_contract_table),
             Case("the join refuses inconsistent shards", _join_refuses_inconsistent_shards),
             Case("the CLI takes exactly one selection", _cli_takes_one_selection),
