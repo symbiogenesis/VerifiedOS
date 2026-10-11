@@ -146,6 +146,15 @@ def _producer_receipts() -> None:
                         continue
                     raise AssertionError("HELLO accepted missing/mismatched compiler identity")
             receipts.write(result_path, original)
+        wrong = root / "wrong-ccomp"
+        wrong.write_bytes(b"another compiler")
+        try:
+            recipe.accepted_compiler(wrong)
+        except ValueError as err:
+            ensure("Q39's locked rebuilt executable" in str(err),
+                   "HELLO's wrong-compiler diagnostic does not name the Q39 rebuild")
+        else:
+            raise AssertionError("HELLO accepted another compiler")
         with patch.object(receipts, "inputs", side_effect=test_simulator_build._inputs):
             receipts.write(path, focused)
             record, selected = recipe.model_receipt(root, simulator, path)

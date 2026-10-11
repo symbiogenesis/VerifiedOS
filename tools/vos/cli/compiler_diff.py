@@ -1574,6 +1574,12 @@ def _compiler_identity(spelled: str) -> dict[str, Json]:
     return result
 
 
+def _require_compiler_unchanged(spelled: str, expected: dict[str, Json]) -> None:
+    """Refuse persistent producer drift before publishing campaign evidence."""
+    if _compiler_identity(spelled) != expected:
+        raise ValueError("compiler executable, source, receipts or lock changed during campaign")
+
+
 def _profile(args: argparse.Namespace, root: Path) -> Path:
     return Path(args.profile) if args.profile else root / "model" / env.PROFILE_CONFIG
 
@@ -1663,6 +1669,12 @@ def _program(args: argparse.Namespace) -> int:
                                inst_limit=args.inst_limit, interp=args.interp)
                    for program in inputs]
 
+    try:
+        _require_compiler_unchanged(args.ccomp, compiler_identity)
+    except (OSError, ValueError, TypeError) as err:
+        print(f"FAIL compiler-diff: {err}", file=sys.stderr)
+        return 2
+
     differs = disagreements(reports, against) if against is not None else []
     tally = {verdict: sum(1 for r in reports if r.verdict == verdict) for verdict in VERDICTS}
     closed = all(as_expected(r) for r in reports) and not differs
@@ -1726,6 +1738,7 @@ def _component(args: argparse.Namespace) -> int:
     bindings: dict[str, Json] = {}
     interpreted: Interpreted | None = None
     simulator: list[str] | None = None
+    compiler_identity: dict[str, Json] | None = None
     if args.c and not args.purecap_record:
         simulator, waits = _simulator(args)
         refused = ("--c needs --ccomp, the contained compiler" if not args.ccomp
@@ -1781,6 +1794,8 @@ def _component(args: argparse.Namespace) -> int:
                 purecap, purecap_bytes = purecap_output(
                     Path(args.elf), [str(args.simulator)], _profile(args, root),
                     Path(scratch), args.timeout, args.inst_limit)
+        if compiler_identity is not None:
+            _require_compiler_unchanged(args.ccomp, compiler_identity)
     except (OSError, ValueError, TypeError) as err:
         # `json.JSONDecodeError` is a `ValueError`, so a record that is not JSON at all
         # is refused by the same arm as one whose fields are wrong

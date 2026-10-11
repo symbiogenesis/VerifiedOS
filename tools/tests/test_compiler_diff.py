@@ -1065,6 +1065,60 @@ def _locked_toolchain_in_both_reports() -> None:
                "program/component reports dropped or changed native tool identities")
 
 
+def _compiler_identity_stays_bound_until_publication() -> None:
+    for route in ("program", "component"):
+        for change in ("unchanged", "executable", "result receipt", "input receipt",
+                       "source", "lock", "legacy unchanged", "legacy executable",
+                       "legacy partial receipt"):
+            with tempfile.TemporaryDirectory(prefix="vos-compiler-drift-") as name:
+                scratch = Path(name)
+                script = _script(scratch, "fake_ccomp", FAKE_CCOMP)
+                ccomp = _wrapper(scratch, "ccomp", script)
+                sim = _wrapper(scratch, "sim", _script(scratch, "fake_sim", FAKE_SIM))
+                compiler_fixture.create(scratch, ccomp)
+                result, inputs = (ccomp.parent / f"build-{suffix}.json"
+                                  for suffix in ("result", "inputs"))
+                if change.startswith("legacy"):
+                    result.unlink()
+                    inputs.unlink()
+                targets = {"executable": ccomp, "result receipt": result,
+                           "input receipt": inputs, "source": ccomp.parent / "source.v",
+                           "lock": scratch / compiler_provenance.LOCK,
+                           "legacy executable": ccomp, "legacy partial receipt": result}
+                if change in targets:
+                    target = targets[change]
+                    mutation = (f"target = pathlib.Path({str(target)!r})\n"
+                                "target.write_bytes((target.read_bytes() if target.exists() "
+                                "else b'') + b'\\n')\n")
+                    # This is an actual child write after successful -S, after the
+                    # driver's initial identity read, rather than a mocked identity.
+                    script.write_text(FAKE_CCOMP + mutation, encoding="utf-8", newline="\n")
+                given = scratch / "given.c"
+                given.write_text(DIALECT_C, encoding="utf-8")
+                host = scratch / "host.json"
+                host.write_text(json.dumps(cd.output_of(
+                    "wasm-host", 0, b"true\n", "fixture").to_json()), encoding="utf-8")
+                written_host, written_purecap = scratch / "written-host.json", scratch / "written-purecap.json"
+                args = [route, "--ccomp", str(ccomp), "--simulator", str(sim), "--json"]
+                args += ([str(given)] if route == "program" else [
+                    "--c", str(given), "--host-record", str(host),
+                    "--write-host", str(written_host), "--write-purecap", str(written_purecap)])
+                with patch.object(compiler_provenance, "find_root", return_value=scratch):
+                    code, out, err = _run_cli(args)
+                if change.endswith("unchanged"):
+                    ensure(code == 0, f"{route} refused {change}: {err}")
+                    bound = (json.loads(out)["ccomp"] if route == "program"
+                             else json.loads(out)["bindings"]["ccomp"])
+                    ensure(bound["provenance"]["build_receipt"] == (
+                        "absent" if change.startswith("legacy") else "present"),
+                        f"{route} lost the explicit {change} receipt disposition")
+                else:
+                    ensure(code == 2 and not out and "FAIL compiler-diff" in err,
+                           f"{route} published evidence after {change} drift: {code} {out} {err}")
+                    ensure(not written_host.exists() and not written_purecap.exists(),
+                           f"{route} wrote component records after {change} drift")
+
+
 def cases() -> list[Case]:
     return [
         Case("generator-is-deterministic", _generator_is_deterministic),
@@ -1092,4 +1146,5 @@ def cases() -> list[Case]:
         Case("component-rejects-missing-or-wrong-evidence", _component_rejects_missing_or_wrong_evidence),
         Case("cli-component-and-generate", _cli_component_and_generate),
         Case("locked native tools in both compiler reports", _locked_toolchain_in_both_reports),
+        Case("compiler identity stays bound until publication", _compiler_identity_stays_bound_until_publication),
     ]

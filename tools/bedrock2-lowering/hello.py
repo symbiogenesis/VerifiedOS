@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Reproduce M1.7's client image using the contained accepted purecap compiler.
+"""Reproduce M1.7's client image using Q39's locked rebuilt purecap compiler.
 
 Only the client assembly is exportable. All C, prover products, traces and native
 receipts stay in the explicitly selected native build lane. No runtime is linked.
@@ -16,6 +16,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import cast
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
@@ -53,7 +54,7 @@ def json_write(path: Path, value: object) -> None:
 
 def accepted_compiler(ccomp: Path) -> tuple[dict[str, Json], dict[str, str]]:
     if sha(ccomp) != COMPILER_SHA256:
-        raise ValueError("compiler differs from M1.2f's accepted executable")
+        raise ValueError("compiler differs from Q39's locked rebuilt executable")
     return compiler_provenance.read(ccomp, ROOT / compiler_provenance.LOCK)
 
 
@@ -81,7 +82,7 @@ def model_receipt(root: Path, simulator: Path, path: Path) -> tuple[dict[str, ob
                 if name.startswith("model/")}
     if selected != receipts.inputs(root, "model"):
         raise ValueError("complete current model source population differs from built source")
-    return raw, selected
+    return cast("dict[str, object]", raw), cast("dict[str, str]", selected)
 
 
 def lowering_identity() -> dict[str, str]:
