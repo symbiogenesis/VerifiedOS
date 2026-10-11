@@ -7,6 +7,7 @@ from pathlib import Path
 
 from vos import (
     asm,
+    compiler_provenance,
     copy_service,
     copy_target,
     device_registers,
@@ -151,6 +152,7 @@ def controls(root: Path) -> str:
 def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Path,
         build_receipt: Path, timeout: int = 120) -> dict[str, object]:
     out.mkdir(parents=True, exist_ok=True)
+    provenance, provenance_files = compiler_provenance.read(ccomp)
     (out / "report.json").write_text('{"verdict":"incomplete"}\n', encoding="utf-8")
     sources = receipts.inputs(root, *INPUTS)
     model_sources = receipts.inputs(root, "model")
@@ -198,7 +200,10 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
             or compiler_sha != receipts.digest(ccomp) or simulator_sha != receipts.digest(simulator)
             or private != compiler_inputs(arguments) or build_sha != receipts.digest(build_receipt)):
         raise ValueError("notification inputs changed during execution")
-    report: dict[str, object] = {"schema": 1, "verdict": "pass", "sources": sources,
+    if not compiler_provenance.unchanged(provenance_files):
+        raise ValueError("contained compiler build receipt changed during execution")
+    report: dict[str, object] = {"compiler_provenance": provenance, "compiler_receipts_sha256": provenance_files,
+            "schema": 1, "verdict": "pass", "sources": sources,
         "model_sources": model_sources, "simulator_sha256": simulator_sha,
         "model_build_sha256": build_sha, "compiler_sha256": compiler_sha, "compiler_inputs": private,
         "preprocessed_sha256": compiled.preprocessed.sha256, "results": results,

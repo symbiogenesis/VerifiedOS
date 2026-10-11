@@ -12,6 +12,8 @@ from typing import Any, cast
 
 from vos import asm, boot_crypto, boot_handoff, boot_target, image, kernel_restore, receipts
 from vos.cli import compiler_diff as cd
+from vos.compiler_provenance import read as compiler_provenance
+from vos.jsonc import Json
 
 SOURCE = "firmware/crypto/signature_target.c"
 MODES = ("slh", "slh-internal", "mldsa", "mldsa-internal", "mldsa-mu")
@@ -34,31 +36,6 @@ SHARED = ("source_sha256", "model_source_sha256", "compiler_provenance", "compil
           "case_timeout", "inst_limit")
 # The per-case bounds each shard ran under, which it must record as positive integers.
 BOUNDS = ("case_timeout", "inst_limit")
-
-
-def compiler_provenance(ccomp: Path) -> tuple[dict[str, object], dict[str, str]]:
-    """Bind the selected executable to its successful contained source build."""
-    ccomp = ccomp.resolve()
-    result_path, inputs_path = ccomp.parent / "build-result.json", ccomp.parent / "build-inputs.json"
-    result = json.loads(result_path.read_text(encoding="utf-8"))
-    inputs = json.loads(inputs_path.read_text(encoding="utf-8"))
-    if (not isinstance(result, dict) or result.get("passed") is not True
-            or result.get("inputs_unchanged") is not True
-            or result.get("compiler_sha256") != receipts.digest(ccomp)
-            or not isinstance(result.get("revision"), str)):
-        raise ValueError("signature target requires a successful source-bound compiler build")
-    if not isinstance(inputs, dict) or not inputs:
-        raise ValueError("signature target compiler source manifest is absent")
-    for name, identity in inputs.items():
-        path = (ccomp.parent / name.removeprefix("native:")).resolve()
-        if not path.is_relative_to(ccomp.parent) or not isinstance(identity, dict):
-            raise ValueError("invalid compiler source manifest entry")
-        expected = identity.get("sha256" if name.startswith("native:") else "canonical_sha256")
-        if receipts.digest(path) != expected:
-            raise ValueError(f"compiler build source changed: {name}")
-    return ({"revision": result["revision"], "kind": result.get("kind"),
-             "compiler_sha256": result["compiler_sha256"], "source_count": len(inputs)},
-            {str(path): receipts.digest(path) for path in (result_path, inputs_path)})
 
 
 def population(work: Path) -> list[boot_crypto.Case]:
@@ -370,14 +347,14 @@ def run(root: Path, out: Path, ccomp: Path | None, compiler_args: list[str], sim
     streams: dict[str, str] = {}
     compiled_records: dict[str, object] = {}
     manifest_sha256: str | None = None
-    provenance: dict[str, object]
+    provenance: dict[str, Json]
     provenance_files: dict[str, str] = {}
     compiler_files: dict[str, str]
     if ccomp is None:
         manifest, available = staged(root)
         manifest_sha256 = receipts.digest(root / MANIFEST)
         identities[str(root / MANIFEST)] = manifest_sha256
-        provenance = cast("dict[str, object]", manifest["compiler_provenance"])
+        provenance = cast("dict[str, Json]", manifest["compiler_provenance"])
         compiler_files = cast("dict[str, str]", manifest["compiler_inputs_sha256"])
         for mode in modes:
             entry = manifest["modes"][mode]

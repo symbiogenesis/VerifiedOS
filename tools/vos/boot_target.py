@@ -12,7 +12,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from vos import asm, image, kernel_restore, receipts
+from vos import asm, compiler_provenance, image, kernel_restore, receipts
 from vos import boot_handoff as bh
 from vos.cli import compiler_diff as cd
 
@@ -88,6 +88,7 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
     root, out, ccomp, simulator, build_receipt, boot_image, public_key = (
         p.resolve() for p in (root, out, ccomp, simulator, build_receipt, boot_image, public_key))
     out.mkdir(parents=True, exist_ok=True)
+    provenance, provenance_files = compiler_provenance.read(ccomp)
     sources = receipts.inputs(root, "firmware", "tools/vos")
     model_sources = receipts.inputs(root, "model")
     identities = {str(p): receipts.digest(p) for p in (ccomp, simulator, build_receipt, boot_image, public_key)}
@@ -169,7 +170,10 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
         raise ValueError("signature target compiler configuration or headers changed")
     if host_compiler != receipts.executables("cc") or host_digest != receipts.digest(host):
         raise ValueError("signature target host compiler or verifier changed")
-    return {"passed": len(rows) == len(cases) and all(row["passed"] for row in rows), "cases": rows,
+    if not compiler_provenance.unchanged(provenance_files):
+        raise ValueError("contained compiler build receipt changed during execution")
+    return {"compiler_provenance": provenance, "compiler_receipts_sha256": provenance_files,
+            "passed": len(rows) == len(cases) and all(row["passed"] for row in rows), "cases": rows,
             "unexecuted_cases": [name for name, _, _, _ in cases[len(rows):]],
             "scope": "SLH callback on RoT profile, with host measured-release input",
             "milestone_acceptance": "open", "source_sha256": sources,

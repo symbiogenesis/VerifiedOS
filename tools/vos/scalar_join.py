@@ -19,6 +19,7 @@ from typing import cast
 from vos import (
     asm,
     boot_handoff,
+    compiler_provenance,
     copy_notification,
     copy_partition,
     copy_service,
@@ -522,6 +523,7 @@ def execute_case(case: TargetCase) -> dict[str, object]:
 def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Path,
         build_receipt: Path, timeout: int = 1800) -> dict[str, object]:
     out.mkdir(parents=True, exist_ok=True)
+    provenance, provenance_files = compiler_provenance.read(ccomp)
     receipts.write(out / "report.json", {"ok": False, "status": "incomplete"})
     inputs, model = receipts.inputs(root, *INPUTS), receipts.inputs(root, "model")
     external = {"compiler": receipts.digest(ccomp), "simulator": receipts.digest(simulator),
@@ -593,7 +595,10 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
     unchanged &= private == compiler_inputs(arguments) and external == {
         "compiler": receipts.digest(ccomp), "simulator": receipts.digest(simulator),
         "build_receipt": receipts.digest(build_receipt)}
-    report = {"ok": unchanged and len(results) == 3 and all(item["ok"] is True for item in results),
+    if not compiler_provenance.unchanged(provenance_files):
+        raise ValueError("contained compiler build receipt changed during execution")
+    report = {"compiler_provenance": provenance, "compiler_receipts_sha256": provenance_files,
+            "ok": unchanged and len(results) == 3 and all(item["ok"] is True for item in results),
               "sources": inputs, "model_sources": model, "external": external, "compiler_inputs": private,
               "bound": bound, "results": results, "limits": LIMITS, "instruction_limit": instruction_limit,
               "timeout_seconds_per_image": timeout, "inputs_unchanged": unchanged}

@@ -96,7 +96,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final, cast
 
-from vos import asm, dialect, env, image, trace
+from vos import asm, compiler_provenance, dialect, env, image, trace
 from vos import corpus as corpus_mod
 from vos.cli import Table, dispatch
 from vos.dialect import AsmError
@@ -1565,6 +1565,15 @@ def _executable_identity(spelled: str) -> dict[str, Json]:
             "sha256": _sha256(path.read_bytes()) if path.is_file() else None}
 
 
+def _compiler_identity(spelled: str) -> dict[str, Json]:
+    """Include the source build and locked native tools, or explicit receipt absence."""
+    result = _executable_identity(spelled)
+    provenance, files = compiler_provenance.read(Path(spelled), required=False)
+    file_bindings: dict[str, Json] = {name: cast("Json", digest) for name, digest in files.items()}
+    result.update({"provenance": provenance, "receipts_sha256": file_bindings})
+    return result
+
+
 def _profile(args: argparse.Namespace, root: Path) -> Path:
     return Path(args.profile) if args.profile else root / "model" / env.PROFILE_CONFIG
 
@@ -1625,7 +1634,8 @@ def _program(args: argparse.Namespace) -> int:
     root = corpus_mod.find_root()
     try:
         inputs = _inputs(args)
-    except (OSError, ValueError) as err:
+        compiler_identity = _compiler_identity(args.ccomp)
+    except (OSError, ValueError, TypeError) as err:
         print(f"FAIL compiler-diff: unreadable input: {err}", file=sys.stderr)
         return 2
     if not inputs:
@@ -1667,7 +1677,7 @@ def _program(args: argparse.Namespace) -> int:
         payload: dict[str, Json] = {
             "scope": "program-level", "milestone_acceptance": "open",
             "sources_sha256": _sources(root),
-            "ccomp": _executable_identity(args.ccomp),
+            "ccomp": compiler_identity,
             "simulator": None if simulator is None else _executable_identity(simulator[0]),
             "profile": _file_identity(profile),
             "campaign": {"seed": args.seed, "generated": args.generate,
@@ -1735,6 +1745,7 @@ def _component(args: argparse.Namespace) -> int:
         elif args.c and simulator is not None:
             source, profile = Path(args.c), _profile(args, root)
             ccomp = [str(args.ccomp), *args.ccomp_arg]
+            compiler_identity = _compiler_identity(args.ccomp)
             with tempfile.TemporaryDirectory(prefix="vos-compiler-diff-") as scratch:
                 workdir = Path(args.keep) if args.keep else Path(scratch)
                 workdir.mkdir(parents=True, exist_ok=True)
@@ -1756,7 +1767,7 @@ def _component(args: argparse.Namespace) -> int:
             bindings.update({
                 "c_source": {"path": str(source),
                              "sha256": lowered.compiled.preprocessed.source_sha256 or None},
-                "ccomp": _executable_identity(args.ccomp),
+                "ccomp": compiler_identity,
                 "ccomp_args": list(args.ccomp_arg),
                 "compilation": _compiled_json(lowered.compiled),
                 "stream_sha256": lowered.compiled.stream_sha256 or None,

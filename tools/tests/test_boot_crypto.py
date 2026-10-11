@@ -14,10 +14,11 @@ from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import patch
 
+from tests import compiler_fixture
 from tests.harness import TOOLS, Case, ensure
 from vos import boot_crypto as b
 from vos import boot_crypto_target as target
-from vos import toolenv
+from vos import compiler_provenance, toolenv
 from vos.cli import boot_crypto as cli
 
 
@@ -141,22 +142,16 @@ def target_bounds_bind_lengths() -> None:
 def compiler_source_drift_refuses() -> None:
     with tempfile.TemporaryDirectory() as name:
         work = Path(name)
-        compiler, source = work / "ccomp", work / "source.v"
-        compiler.write_bytes(b"compiler fixture")
-        source.write_bytes(b"source fixture")
-        result = {"passed": True, "inputs_unchanged": True, "revision": "fixture-revision",
-                  "compiler_sha256": b.receipts.digest(compiler)}
-        (work / "build-result.json").write_text(json.dumps(result), encoding="utf-8")
-        (work / "build-inputs.json").write_text(json.dumps({"source.v": {
-            "canonical_sha256": b.receipts.digest(source)}}), encoding="utf-8")
-        ensure(target.compiler_provenance(compiler)[0]["source_count"] == 1, "compiler receipt refused")
-        alias = work / "path-alias"
+        compiler = compiler_fixture.create(work)
+        source, lock = compiler.parent / "source.v", work / compiler_provenance.LOCK
+        ensure(target.compiler_provenance(compiler, lock)[0]["source_count"] == 1, "compiler receipt refused")
+        alias = compiler.parent / "path-alias"
         alias.mkdir()
-        ensure(target.compiler_provenance(alias / ".." / "ccomp") == target.compiler_provenance(compiler),
+        ensure(target.compiler_provenance(alias / ".." / "ccomp", lock) == target.compiler_provenance(compiler, lock),
                "compiler directory alias changed source containment")
         source.write_bytes(b"changed source")
         try:
-            target.compiler_provenance(compiler)
+            target.compiler_provenance(compiler, lock)
         except ValueError:
             return
         raise AssertionError("changed retained compiler source accepted")
