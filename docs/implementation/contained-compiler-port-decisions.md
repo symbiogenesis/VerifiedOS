@@ -137,3 +137,42 @@ for the new route. HELLO's real execution and all three controls, and the typed
 large-argument replay, remain required. General target readers keep their
 complete-build contracts; this narrow dependency route changes no production
 gate or Q39 output predicate.
+
+The integrator and independent reviewer found two gaps in the first focused
+reader: command options were present without joining their source/build paths,
+and the measured default C++ binary could differ from CMake's inherited `CXX`
+selection. The repair at VerifiedOS revision
+`603bcd302fb194ae19886240134636b13ad16f49` binds unique configure/build arguments
+to the recorded original absolute roots and the retained CMake cache, and binds
+CMake's selected Sail and C++ executables to the measured identities. It also
+hashes the generated schema and profile-validation log. Original roots remain
+historical identities after worktree retirement; the consumer checks current
+model bytes without requiring the retired checkout to exist.
+
+Both reviewers read the repair and found those gaps closed. Focused controls
+refuse inconsistent command roots, selected C++ identity, schema and native
+cache/schema drift. A fresh producer run is required under the repaired reader;
+the first build's receipt is retained as historical evidence and is not relabeled
+as satisfying the repaired contract. This is why final target evidence waits for
+the fresh dependency verdict.
+
+## Preserve signed images while refreshing compiler bindings
+
+Q39 already owns re-staging the current target manifests after output comparison.
+The chain's ordinary staging command generates disposable signing keys and new
+images, which would change otherwise unchanged acceptance inputs. The integrator
+therefore commissions a narrow `chain-stage --preserve-images` route under that
+existing re-staging predicate.
+
+The route must recompile every chain unit through the rebuilt compiler and refuse
+any stream difference before writing. It must retain every existing image, key
+and header byte, re-derive the current payload layouts, and recheck the existing
+signatures with OpenSSL. Only successful joins may refresh current source,
+include, compiler and freeze identities. A missing or invalid retained artifact,
+signature or layout refuses the refresh; neither a copied manifest nor unchanged
+image bytes alone establish it. Add a positive refresh and refusal controls,
+including changed compiled output, while retaining ordinary staging behavior.
+
+This decision preserves the signed-image inputs whose target behavior was already
+measured while binding them to the actually rebuilt producer. Dated receipts stay
+unchanged; this route supplies no new boot-chain execution or timing verdict.
