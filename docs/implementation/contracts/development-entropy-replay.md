@@ -85,3 +85,19 @@ every Guest CI lane on the settled revision. Full gate suites remain hosted.
 These are runtime checkpoint checks. S6 stays open until the existing replay
 contract's complete operational predicate holds, including its absent public
 source services, production cryptography, actual machine capture and proof scope.
+
+## Focused execution
+
+The controller is [replay_runtime.py](../../../tools/vos/replay_runtime.py).
+From the assigned checkout, emit the model with `python tools/run.py model emit`.
+In its assigned native build lane, build only the `entropy_capture` and
+`entropy_observer` CMake targets. Run the unchanged observer, then the guest's
+`python3 tools/run.py test --only replay_runtime --slow --jobs 1` for actual
+capture, replay and refusal controls. The ordinary host replay selection checks
+the controller and structural formats without executing the native campaign.
+
+The controller starts the capture executable with private anonymous pipes.
+Never redirect `entropy_capture` output to a file: its transient capture frames
+carry original conditioned words. The endpoint refuses file and terminal input
+or output. Retained evidence contains only public verdicts and source/tool
+identities, with no original draws, keys or envelope archives.
