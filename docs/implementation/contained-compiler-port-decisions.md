@@ -156,6 +156,13 @@ the first build's receipt is retained as historical evidence and is not relabele
 as satisfying the repaired contract. This is why final target evidence waits for
 the fresh dependency verdict.
 
+The fresh focused build passed configure in 42.83 seconds and the explicit
+simulator target in 284.12 seconds. Its native receipt is
+`/root/build/lane-checklist-20261010-c/q39/simulator-dependency-2/simulator-build.json`,
+SHA-256 `4b6e41da6f446e6e312397cc7fdb2b6c398c4ec6bceb2740533ca002f9139b0c`.
+Tests remain explicitly unrun and full model acceptance remains pending. Compiler
+replay still requires the compiler's separate passing kernel-bound build receipt.
+
 ## Preserve signed images while refreshing compiler bindings
 
 Q39 already owns re-staging the current target manifests after output comparison.
@@ -176,3 +183,13 @@ including changed compiled output, while retaining ordinary staging behavior.
 This decision preserves the signed-image inputs whose target behavior was already
 measured while binding them to the actually rebuilt producer. Dated receipts stay
 unchanged; this route supplies no new boot-chain execution or timing verdict.
+
+The independent review found that the first implementation moved the ordinary
+route's final signer identity checks ahead of signature verification. That could
+miss OpenSSL changes during verification. The repair at VerifiedOS revision
+`528ebbda807cba456e268e191ec28fafdde26bb4` restores signer checks before publication
+and checks the actual OpenSSL executable and linked-library identities before
+and after verification for both routes. Focused controls change the signer or
+verifier identity during verification and require refusal without staged writes;
+all nineteen focused chain cases passed. The actual manifest refresh remains
+conditional on the compiler's passing kernel-bound build receipt.
