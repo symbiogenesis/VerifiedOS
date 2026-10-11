@@ -272,6 +272,12 @@ processes, allowing their drivers to record the resulting unsuccessful stages.
 Their successful export, configure, clean, dependency, proof, extraction and
 compiler stages may be reused in distinct qualification trees. An interrupted
 audit is not a successful kernel stage and no original receipt is relabeled.
+Reuse requires an authenticated object population produced by those compilation
+stages. When that population cannot be authenticated, repeat both independent
+clean builds under the repaired driver, recording objects after compilation and
+before any query or kernel audit. A fresh audit alone cannot establish an object's
+origin in an earlier compilation. The inspected original driver has no such
+object population, so these two builds require the clean-rebuild fallback.
 
 Each independent qualification must instead run a fresh complete `coqchk -o`
 over all 215 roots independently re-derived from that tree's Make `FILES` and
