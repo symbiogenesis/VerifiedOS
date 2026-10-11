@@ -88,3 +88,12 @@ The source receipt is a JSON array of `path`, full `revision` and sibling tar `a
 The [vector receipt](retained-evidence/fiat-q40-20261010/vectors.json) records GCC 15.2.0 compiling the inclusion interface with `-std=c11 -O2 -Wall -Wextra -Werror -Wno-unused-function -shared -fPIC`. Each field passes 377 canonical-input pairs: the cross-product of 11 edges plus 256 reproducible pseudorandom pairs. Multiplication, squaring, addition, subtraction, negation, both selections, byte round trip and scalar-121666 multiplication or Montgomery one produce 3,393 checked results per field, 6,786 total, against Python integer arithmetic. This equals the prior recorded campaign's count. P256's `divstep`, `divstep_precomp`, `msat` and `nonzero` routines remain outside that campaign; no target timing, constant-time execution, complete curve protocol or compiler-refinement claim follows.
 
 The focused host tests reject altered/missing headers, an incomplete output set, the wrong parent pin, changed source archives, a non-sibling archive path, changed owner bytes, a missing generator path, the wrong prover or OCaml identity, a stale proof lock or export hash and a different build recipe. K-88 checks the host-readable record and hashes without running Fiat; native replay executes the recorded generator twice per recipe. The third-party ledger owns the incorporated source and license records. The retained JSON files contain original observations and identities, with no upstream source, compiled proof library or generator executable.
+
+The [independent replay receipt](retained-evidence/fiat-q40-20261010/independent-replay.json),
+SHA-256 `39fb3074b3b530356b85b1d4063effff95c7f6be83fd1ef61ff1acb0753170b2`,
+records a second dedicated checkout at `82457550eb0d011290fc96583122a8769e0171a2`.
+It identifies the same generator by digest, runs each recipe twice in
+`/root/build/lane-checklist-20261010-d/fiat-independent`, and reproduces every
+header byte with the source-archive comparison holding. The worker's subsequent
+receipt-path amendment changes no generator, driver, recipe or header input.
+This is an independent second emission, not an independent generator rebuild.
