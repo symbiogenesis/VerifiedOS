@@ -625,3 +625,22 @@ also read the forty-six-control log, whose digest is
 The actual locked release's disabled-bytecode warning is refused by the candidate.
 The exact non-helper census and both fresh complete build/kernel verdicts remain
 separate prerequisites; these reviews do not supply those verdicts.
+
+The read-only census passed in 21:01:05–21:01:12 UTC. All 1,430 non-helper
+files in the committed candidate are byte-identical to `7093854d` and `ec5b8250`;
+their hash-population digest remains
+`6ca03a541963bd75204b6631c76fb76d2beb9d79c01bbfbafc5a642f70811214`.
+The census receipt digest is
+`249684c1572bdffe51833fecf92dc9c65a226dad4f68dd33fce333b52b4519ca`.
+It records a conservative implementation-time upper bound of 236.44 seconds:
+the exact stop clock was not captured, but implementation and its failed census
+launcher had stopped before 20:50:07 UTC. Administrative repair and the separate
+read-only retry are excluded from that stopped implementation interval.
+
+The census and immutable reviews satisfy the prerequisites for the two new
+acceptance builds above. Run them from immutable `6409d0ed`, in the assigned
+`vm-clean-rebuild-1` and `vm-clean-rebuild-2` trees and their distinct
+`vm-qualified-build-1` and `vm-qualified-build-2` trees, with the explicit selected
+mode. Preserve every old raw receipt and audit. A build, seal, kernel,
+classification or input-stability failure stops acceptance; it does not authorize
+an automatic source, helper, package or scope repair.
