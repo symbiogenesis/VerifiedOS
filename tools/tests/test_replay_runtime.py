@@ -4,7 +4,9 @@
 import hashlib
 import json
 import secrets
+import shutil
 import subprocess
+import tempfile
 from collections.abc import Callable, Mapping
 from dataclasses import replace
 from pathlib import Path
@@ -127,6 +129,146 @@ def _protocol_failure(fault: str, executable: Path, configuration: Path, work: P
            "both interrupted children terminated and their private pipes closed")
 
 
+def _artifact_preflight(executable: Path, configuration: Path, work: Path,
+                        captured: Capture, inputs: Inputs, auth_key: bytes, seal_key: bytes) -> None:
+    cursors: list[FixtureCursor] = []
+    calls = 0
+
+    class TrackedCursor(FixtureCursor):
+        def __init__(self, record: Record) -> None:
+            super().__init__(record)
+            cursors.append(self)
+
+    def fresh() -> bytes:
+        nonlocal calls
+        calls += 1
+        return secrets.token_bytes(8)
+
+    session = CaptureSession(inputs, authentication_key=auth_key, seal_key=seal_key)
+    with patch.object(replay_runtime, "_Pipe", side_effect=AssertionError("wrong native artifacts reached launch")) as launch, \
+            patch.object(replay_runtime, "FixtureCursor", TrackedCursor):
+        for action in (lambda: session.run(executable, configuration, work),
+                       lambda: replay(captured, inputs, key=auth_key, executable=executable,
+                                      configuration=configuration, work=work, entropy=fresh)):
+            try:
+                action()
+            except ReplayRuntimeError as error:
+                ensure(str(error) == "native artifacts differ from independently expected development binding",
+                       "actual artifact mismatch has a fixed safe verdict")
+            else:
+                raise AssertionError("wrong actual native artifacts were admitted")
+        ensure(launch.call_count == 0 and calls == 0, "artifact preflight refusal precedes launch and fresh callbacks")
+    try:
+        session.recorder.finish(expected=inputs.binding, expected_events=0)
+    except RecordError:
+        pass
+    else:
+        raise AssertionError("wrong-artifact capture finalized directly")
+    ensure(len(cursors) == 1, "preflight replay created one authenticated cursor")
+    try:
+        cursors[0].consume(point=Point(1, 15, 0, 0), source="entropy", interface=inputs.interface)
+    except RecordError:
+        pass
+    else:
+        raise AssertionError("wrong-artifact replay cursor consumed after refusal")
+
+
+def _artifact_drift(kind: str, mode: str, executable: Path, configuration: Path,
+                    original: Path, work: Path, captured: Capture, inputs: Inputs,
+                    auth_key: bytes, seal_key: bytes) -> None:
+    pipes: list[replay_runtime._Pipe] = []
+    cursors: list[FixtureCursor] = []
+    calls = 0
+
+    class TrackedPipe(replay_runtime._Pipe):
+        def __init__(self, executable: Path, configuration: Path, work: Path, mode: str) -> None:
+            super().__init__(executable, configuration, work, mode)
+            pipes.append(self)
+
+    class TrackedCursor(FixtureCursor):
+        def __init__(self, record: Record) -> None:
+            super().__init__(record)
+            cursors.append(self)
+
+    def drift() -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            if kind == "executable":
+                # Replace this disposable path; never write an active executable.
+                replacement = executable.with_name("replacement")
+                shutil.copy2(original, replacement)
+                with replacement.open("ab") as stream:
+                    stream.write(b"\n")
+                replacement.replace(executable)
+            else:
+                with configuration.open("ab") as stream:
+                    stream.write(b"\n")
+
+    def seal(point: Point, value: bytes) -> bytes:
+        drift()
+        return commitment(seal_key, point, inputs.interface, value)
+
+    def fresh() -> bytes:
+        drift()
+        return secrets.token_bytes(8)
+
+    session = CaptureSession(inputs, authentication_key=auth_key, seal_key=seal_key, seal=seal)
+    with patch.object(replay_runtime, "_Pipe", TrackedPipe), patch.object(replay_runtime, "FixtureCursor", TrackedCursor):
+        try:
+            if mode == "capture":
+                session.run(executable, configuration, work)
+            else:
+                replay(captured, inputs, key=auth_key, executable=executable,
+                       configuration=configuration, work=work, entropy=fresh)
+        except ReplayRuntimeError as error:
+            ensure(str(error) == "native artifacts differ from independently expected development binding",
+                   "persisting drift has a fixed safe completion verdict")
+        else:
+            raise AssertionError("mid-run native artifact drift finalized successfully")
+    ensure(calls == 4, "drift was detected at completion after all actual demands")
+    if mode == "capture":
+        try:
+            session.recorder.finish(expected=inputs.binding, expected_events=4)
+        except RecordError:
+            pass
+        else:
+            raise AssertionError("drifted capture finalized directly")
+    else:
+        ensure(len(cursors) == 1, "drifted replay created one authenticated cursor")
+        try:
+            cursors[0].finish()
+        except RecordError:
+            pass
+        else:
+            raise AssertionError("drifted replay finalized directly")
+    ensure(len(pipes) == 1 and all(pipe._process.poll() is not None and pipe._in.closed
+           and pipe._out.closed and not pipe._pending for pipe in pipes),
+           "drift refusal closed the actual child and its private pipes")
+
+
+def _artifact_controls(executable: Path, configuration: Path, work: Path,
+                       captured: Capture, inputs: Inputs, auth_key: bytes, seal_key: bytes) -> list[str]:
+    passed: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="vos-replay-artifacts-") as directory:
+        copies = Path(directory)
+        native, config = copies / "entropy_capture", copies / "composition.json"
+        for kind in ("executable", "configuration"):
+            shutil.copy2(executable, native)
+            shutil.copy2(configuration, config)
+            changed = native if kind == "executable" else config
+            with changed.open("ab") as stream:
+                stream.write(b"\n")
+            _artifact_preflight(native, config, work, captured, inputs, auth_key, seal_key)
+            passed.append("wrong actual " + kind + " refuses capture/replay before launch or fresh callback")
+            for mode in ("capture", "replay"):
+                shutil.copy2(executable, native)
+                shutil.copy2(configuration, config)
+                _artifact_drift(kind, mode, native, config, executable, work, captured, inputs, auth_key, seal_key)
+                passed.append(mode + " mid-run " + kind + " drift refuses finalization")
+    return passed
+
+
 def _native() -> None:
     """One finite campaign over the real generated definitions; no raw pipe logs."""
     environment = env.load()
@@ -181,6 +323,7 @@ def _native() -> None:
                   configuration=configuration, work=work, entropy=lambda: bytes(8)) == captured.observations,
            "zero-word development control preserves these classes through watchdog zero normalization")
     passed.append("zero-substitute public classes; token values excluded")
+    passed.extend(_artifact_controls(executable, configuration, work, captured, inputs, auth_key, seal_key))
 
     def refuse(candidate: Capture = captured, request: Inputs = inputs,
                key: bytes = auth_key, *, entropy: Callable[[], bytes] | None = None,
@@ -307,6 +450,11 @@ def _native() -> None:
     receipt = {"scope": "finite generated-Sail call-level development checkpoint",
                "production": False, "instruction_replay": False, "ct_proof": False,
                "draw_dependent_faults": "unsupported", "successful_events": 4,
+               "artifact_binding": {"base_image_root": "exact native executable SHA256",
+                                    "composition": "exact passed configuration-byte SHA256",
+                                    "preflight_and_completion": True,
+                                    "trusted_exclusive_lane": True,
+                                    "adversarial_race_free_pinning": False},
                "public_observations": dict(captured.observations), "passed_controls": passed,
                "harness_sha256": hashlib.sha256(executable.read_bytes()).hexdigest(),
                "configuration_sha256": inputs.binding.composition,

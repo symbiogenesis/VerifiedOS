@@ -5,6 +5,13 @@
   "ct_proof": false,
   "draw_dependent_faults": "unsupported",
   "successful_events": 4,
+  "artifact_binding": {
+    "base_image_root": "exact native executable SHA256",
+    "composition": "exact passed configuration-byte SHA256",
+    "preflight_and_completion": true,
+    "trusted_exclusive_lane": true,
+    "adversarial_race_free_pinning": false
+  },
   "public_observations": {
     "before-startup": false,
     "startup": true,
@@ -21,6 +28,12 @@
     "actual direct/MMIO/watchdog capture",
     "paired own-entropy public call-level comparison",
     "zero-substitute public classes; token values excluded",
+    "wrong actual executable refuses capture/replay before launch or fresh callback",
+    "capture mid-run executable drift refuses finalization",
+    "replay mid-run executable drift refuses finalization",
+    "wrong actual configuration refuses capture/replay before launch or fresh callback",
+    "capture mid-run configuration drift refuses finalization",
+    "replay mid-run configuration drift refuses finalization",
     "wrong key",
     "changed tag",
     "wrong expected root",
@@ -47,8 +60,8 @@
   ],
   "harness_sha256": "3bcef41307adf2ff3003d31eb2e3f1782e6b43d79b83c7e0ef11664a97d23fd2",
   "configuration_sha256": "e1d4ffbe2b9f65fa4c1a51bebfc6b88140e82ee4fe6ad3993d61675d48ade4fd",
-  "controller_sha256": "5395b76657d43fcde2784103d55f0d5fdfd52bc067da9ca4ced6edab55144233",
-  "test_sha256": "3492cc21dbe60a53742104bdf48eeee6f312f30a94f8d1d2c7e8c6d206f08da3",
+  "controller_sha256": "c7600c8021bf4a2c2f521dfccdfb56c75e1ff4d6b2d1487a6306e2a103045f0d",
+  "test_sha256": "7bb8ed5f3924f6d064f2b9d471ae55fd4728328745905fa2555b11512b0da2bb",
   "tools": {
     "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail": "547f755c390610304fc5ebd87e9cf53cbef9b79311f5c44b88f0768b88c36826",
     "/usr/lib/llvm-21/bin/clang": "3d91c53a01052091b2d6624ff1008f89748ac45d7cfb2709ad618bf399882eb1",
