@@ -361,3 +361,30 @@ compiler-build, kernel or target-replay verdict. The
 [query-binding census](evidence/q39-20261010-query-binding-census.json) retains
 the failed candidates, fixture correction, exact source comparison and tool
 probe identities. Q39 remains open until its separate acceptance predicates pass.
+
+## Finish public compiler-report bindings
+
+The independent review of VerifiedOS revision
+`69760b670f6f49cebee75ea95c05b47a7037d66e` found that compiler-diff's program
+and native component routes capture the producer identity before their campaign
+but do not recheck it before publishing. Persistent executable, source receipt,
+input receipt or lock drift can leave a successful report carrying the earlier
+identity. The same review found HELLO's docstring and wrong-compiler diagnostic
+still naming the old accepted compiler, contrary to Q39's explicit predicate.
+
+The worker owns a narrow public-tool repair in its dedicated VerifiedOS lane.
+Both compiler-diff routes must refuse changed compiler identities before any
+successful report or component output is published, rereading the native
+provenance so source drift or an invalid partial receipt refuses too. An ordinary
+executable with both receipts absent remains an explicit supported case; its
+executable identity and continued receipt absence must still hold. Add focused
+positive and executable, receipt, source and lock drift controls for both routes.
+This before-and-after check detects persistent drift in the trusted exclusive
+lane; it makes no race-free executable-pinning claim. Restate HELLO's docstring
+and refusal diagnostic to name Q39's locked rebuilt compiler, with a focused
+wrong-compiler check.
+
+Private helpers, compiler sources, packages, proof statements, audit flags and
+the running sealed kernel audits remain unchanged. This repair lies within Q39's
+existing report-identity and diagnostic ownership. Its focused checks and
+independent review precede the final actual compiler campaign and HELLO replay.
