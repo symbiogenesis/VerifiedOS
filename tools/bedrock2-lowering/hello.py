@@ -34,7 +34,7 @@ from vos.cli import compiler_diff  # noqa: E402
 from vos.jsonc import Json  # noqa: E402
 
 regenerate = importlib.import_module("bedrock2-lowering.regenerate")
-COMPILER_SHA256 = "ecaa5ce0cd29d1099016dc1b62a93d16ecab1fe1bcb3a0e363c2697f6294ddca"
+COMPILER_SHA256 = "3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8"
 MESSAGE = b"Hello, world!\n"
 MEMBER = "gallina-hello"
 INPUTS = ("tools/bedrock2-lowering", "tools/opam/rupicola.lock", "tools/vos",

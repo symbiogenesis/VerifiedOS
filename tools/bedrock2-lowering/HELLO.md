@@ -17,24 +17,41 @@ cannot satisfy this check. Overlapping writes invalidate pending stored values.
 
 ## Reproduction
 
-Use the [pinned lowering switch](README.md#pinned-environment) and M1.2f's accepted
-contained compiler and source-bound model snapshot. All generated C, proof objects,
+Use the [pinned lowering switch](README.md#pinned-environment), Q39's locked
+contained compiler and a current source-bound model simulator. All generated C, proof objects,
 images, logs and receipts stay under the selected native lane. For example, from
 the assigned Windows checkout:
 
 ```console
 python tools/bedrock2-lowering/hello.py --stage /root/build/lane-<lane>/hello \
-  --ccomp /root/build/lane-backend-accept-20260925/compiler-final/ccomp \
-  --config /root/build/lane-compiler-accept-20260925/component-vector-integrated/compcert.ini \
-  --simulator /root/build/lane-compiler-accept-20260925/model-snapshot/sail_riscv_sim \
-  --model-receipt /root/build/lane-compiler-accept-20260925/model-snapshot/model-build.json \
+  --ccomp /root/build/fanout-retained/0acbb4e6d7d797594b4f/checklist-20261010-c/lane/q39/final-build-1/compiler/ccomp \
+  --config /root/build/fanout-retained/0acbb4e6d7d797594b4f/checklist-20261010-c/lane/q39/final-build-1/compiler/compcert.ini \
+  --simulator /root/build/fanout-retained/0acbb4e6d7d797594b4f/checklist-20261010-c/lane/q39/simulator-dependency-2/build/c_emulator/sail_riscv_sim \
+  --model-receipt /root/build/fanout-retained/0acbb4e6d7d797594b4f/checklist-20261010-c/lane/q39/simulator-dependency-2/simulator-build.json \
   --check --controls
-python tools/run.py model corpus gallina-hello
 ```
 
-The second command uses the model installed in that checkout's lane. The first
-accepts a separately retained snapshot only after matching its successful build
-receipt, executable digest and complete current model-file population. It binds
+The retained path is finalized by the `checklist-20261010` fanout journal; native
+execution receipts keep their original lane paths. The selected compiler digest is
+`3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8`.
+Its successful clean-build receipt and source manifest bind the released
+[contained toolchain lock](../opam/contained-compiler.lock), actual prover,
+OCaml and Menhir versions and executable hashes.
+
+The recipe accepts a separately retained simulator only after matching its
+successful build receipt, executable digest and complete current model-file population.
+A complete model receipt requires successful configure, build and bundled `ctest`
+stages. Q39's distinct focused receipt requires successful configure and the explicit
+simulator target build, exact source and producer identities, and profile validation;
+it records bundled tests as not run and full model acceptance as pending. General
+target readers retain their complete-build contracts. To produce another current
+focused dependency in the assigned checkout's lane:
+
+```console
+python tools/run.py model simulator --out /root/build/lane-<lane>/q39/simulator-dependency
+```
+
+The recipe binds
 the original source closure, lowering lock, installed prover and complete Rocq
 library trees, compiler, preprocessed C, compiler configuration, model receipt,
 assembly, image and trace. Source and producer identities are checked again before

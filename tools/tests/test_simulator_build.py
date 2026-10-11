@@ -28,11 +28,24 @@ def fixture(root: Path) -> tuple[Path, Path, dict[str, Any]]:
     (out / "logs").mkdir(parents=True)
     simulator = out / "sail_riscv_sim"
     simulator.write_bytes(b"simulator")
-    tools = {role: {"executable": str(root / role), "sha256": "1" * 64,
-                    "reported_version": role + " version"} for role in ("sail", "cmake", "cxx")}
-    commands = {"configure": [str(root / "cmake"), "-S", str(model), "-B", str(out),
+    tools = {}
+    for role in ("sail", "cmake", "cxx"):
+        (root / role).write_bytes(role.encode())
+        tools[role] = {"executable": str(root / role), "sha256": receipts.digest(root / role),
+                       "reported_version": role + " version"}
+    build = out / "build"
+    build.mkdir()
+    cache = (f"SAIL_BIN:FILEPATH={root / 'sail'}\n"
+             f"CMAKE_CXX_COMPILER:FILEPATH={root / 'cxx'}\n"
+             f"CMAKE_HOME_DIRECTORY:INTERNAL={model}\n"
+             f"CMAKE_CACHEFILE_DIR:INTERNAL={build}\n")
+    (build / dependency.CACHE).write_text(cache, encoding="utf-8")
+    (build / dependency.CONFIG_SCHEMA).write_text("{}", encoding="utf-8")
+    validation_log = out / "logs/profile-validation.log"
+    validation_log.write_text("valid", encoding="utf-8")
+    commands = {"configure": [str(root / "cmake"), "-S", str(model), "-B", str(build),
                                "-DSAIL_BIN=" + str(root / "sail")],
-                "target-build": [str(root / "cmake"), "--build", str(out),
+                "target-build": [str(root / "cmake"), "--build", str(build),
                                   "--target", dependency.TARGET]}
     stages = {}
     for name, argv in commands.items():
@@ -41,10 +54,20 @@ def fixture(root: Path) -> tuple[Path, Path, dict[str, Any]]:
         stages[name] = {"argv": argv, "exit": 0, "log_sha256": receipts.digest(log)}
     record = {"schema": dependency.SCHEMA, "profile": dependency.PROFILE, "passed": True,
               "exit_code": 0, "inputs_unchanged": True, "profile_validation_exit": 0,
-              "identity": {"model_inputs": _inputs(root),
+              "identity": {"model_inputs": _inputs(root), "source_root": str(model),
                            "profile_sha256": receipts.digest(model / "config/verifiedos.json"),
                            "tools": tools}, "stages": stages,
-              "artifacts": {dependency.ARTIFACT: receipts.digest(simulator)},
+              "build_root": str(build),
+              "configured_producers": {role: {"cache_entry": entry, "executable": str(root / role),
+                                               "sha256": tools[role]["sha256"]}
+                  for role, entry in (("sail", "SAIL_BIN"), ("cxx", "CMAKE_CXX_COMPILER"))},
+              "artifacts": {dependency.ARTIFACT: receipts.digest(simulator),
+                            dependency.CACHE: receipts.digest(build / dependency.CACHE),
+                            dependency.CONFIG_SCHEMA: receipts.digest(build / dependency.CONFIG_SCHEMA)},
+              "configuration_evidence": {"cache_sha256": receipts.digest(build / dependency.CACHE),
+                  "schema_sha256": receipts.digest(build / dependency.CONFIG_SCHEMA),
+                  "profile_sha256": receipts.digest(model / "config/verifiedos.json"),
+                  "validation_log_sha256": receipts.digest(validation_log)},
               "bundled_model_tests": "not-run", "full_model_acceptance": "pending"}
     return simulator, out / "simulator-build.json", record
 
@@ -83,6 +106,18 @@ def consumer_refusals() -> None:
             record = copy.deepcopy(original)
             record["identity"]["model_inputs"].pop("model/source.sail")
             mutants.append(record)
+            for stage, flag in (("configure", "-S"), ("configure", "-B"),
+                                ("target-build", "--build")):
+                record = copy.deepcopy(original)
+                argv = record["stages"][stage]["argv"]
+                argv[argv.index(flag) + 1] += "-other"
+                mutants.append(record)
+            record = copy.deepcopy(original)
+            record["configured_producers"]["cxx"]["sha256"] = "2" * 64
+            mutants.append(record)
+            record = copy.deepcopy(original)
+            record["configuration_evidence"]["schema_sha256"] = "2" * 64
+            mutants.append(record)
             for record in mutants:
                 receipts.write(path, record)
                 try:
@@ -92,7 +127,8 @@ def consumer_refusals() -> None:
                 raise AssertionError("invalid focused simulator receipt admitted")
             receipts.write(path, original)
             for changed in (simulator, root / "model/source.sail",
-                            path.parent / "logs/configure.log"):
+                            path.parent / "logs/configure.log", path.parent / "build" / dependency.CACHE,
+                            path.parent / "build" / dependency.CONFIG_SCHEMA):
                 before = changed.read_bytes()
                 changed.write_bytes(before + b"changed")
                 try:
@@ -121,8 +157,18 @@ def producer_checks() -> None:
 
             def stage(argv: list[str], *, _calls: list[list[str]] = calls,
                       _out: Path = out, _defect: str = defect, _model: Path = e.model,
+                      _tools: dict[str, Any] = tools,
                       **_: object) -> subprocess.CompletedProcess[str]:
                 _calls.append(argv)
+                directory = _out / "build"
+                directory.mkdir(parents=True, exist_ok=True)
+                if "-S" in argv:
+                    (directory / dependency.CACHE).write_text(
+                        f"SAIL_BIN:FILEPATH={_tools['sail']['executable']}\n"
+                        f"CMAKE_CXX_COMPILER:FILEPATH={_tools['cxx']['executable']}\n"
+                        f"CMAKE_HOME_DIRECTORY:INTERNAL={_model}\n"
+                        f"CMAKE_CACHEFILE_DIR:INTERNAL={directory}\n", encoding="utf-8")
+                    (directory / dependency.CONFIG_SCHEMA).write_text("{}", encoding="utf-8")
                 if "--build" in argv:
                     simulator = _out / "build" / dependency.ARTIFACT
                     simulator.parent.mkdir(parents=True, exist_ok=True)
