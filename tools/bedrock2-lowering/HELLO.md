@@ -24,8 +24,8 @@ the assigned Windows checkout:
 
 ```console
 python tools/bedrock2-lowering/hello.py --stage /root/build/lane-<lane>/hello \
-  --ccomp /root/build/fanout-retained/0acbb4e6d7d797594b4f/checklist-20261010-c/lane/q39/final-build-1/compiler/ccomp \
-  --config /root/build/fanout-retained/0acbb4e6d7d797594b4f/checklist-20261010-c/lane/q39/final-build-1/compiler/compcert.ini \
+  --ccomp /root/build/fanout-retained/0acbb4e6d7d797594b4f/checklist-20261010-c/lane/q39/qualified-build-1/compiler/ccomp \
+  --config /root/build/fanout-retained/0acbb4e6d7d797594b4f/checklist-20261010-c/lane/q39/qualified-build-1/compiler/compcert.ini \
   --simulator /root/build/fanout-retained/0acbb4e6d7d797594b4f/checklist-20261010-c/lane/q39/simulator-dependency-2/build/c_emulator/sail_riscv_sim \
   --model-receipt /root/build/fanout-retained/0acbb4e6d7d797594b4f/checklist-20261010-c/lane/q39/simulator-dependency-2/simulator-build.json \
   --check --controls
@@ -34,9 +34,12 @@ python tools/bedrock2-lowering/hello.py --stage /root/build/lane-<lane>/hello \
 The retained path is finalized by the `checklist-20261010` fanout journal; native
 execution receipts keep their original lane paths. The selected compiler digest is
 `3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8`.
-Its successful clean-build receipt and source manifest bind the released
+Its successful post-build qualification receipt and source manifest bind the released
 [contained toolchain lock](../opam/contained-compiler.lock), actual prover,
-OCaml and Menhir versions and executable hashes.
+OCaml and Menhir versions and executable hashes. The qualification retains the
+original clean-build stages and actual whole-environment kernel verdict, recovers
+only the recorded lexical matcher failure, and preserves the original failed
+receipt unchanged. It claims no new compilation or kernel run.
 
 The recipe accepts a separately retained simulator only after matching its
 successful build receipt, executable digest and complete current model-file population.

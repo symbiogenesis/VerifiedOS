@@ -1,0 +1,55 @@
+{
+  "approval_timeout_seconds": 302.4,
+  "baseline": {
+    "admitted_count": 60,
+    "admitted_names_sha256": "f4d8f71c17f1f82dbb38e83dcc25d262ebc5c1493c52ca03b5fbcc7d1dd7662b",
+    "errors": [],
+    "metadata_population_sha256": "bb95b55f4b507ef25e1439aa9682550f972db64669eb073b5854317635bf2edd",
+    "root_count": 215
+  },
+  "budget": {
+    "max_active_minutes": 15,
+    "max_candidates": 3,
+    "observed_activity_wall_upper_bound_minutes": 13,
+    "rule": "editing and candidate waits included; approval timeout before launch excluded",
+    "used_candidates": 3
+  },
+  "candidates": [
+    {
+      "candidate": 1,
+      "check_seconds": 6.410451581999951,
+      "receipt": "/root/build/lane-checklist-20261010-c/q39/matcher-candidate1/result.json",
+      "sha256": "b3061800bf8679b81a667a8fcf8e48faf3f1c3799b74d7a6aa744574a3f6d489"
+    },
+    {
+      "candidate": 2,
+      "check_seconds": 6.2387516840008175,
+      "receipt": "/root/build/lane-checklist-20261010-c/q39/matcher-candidate2/result.json",
+      "sha256": "20e6003880b35f71513198f157bf84524507e103956098aced9f06495205e3f7"
+    },
+    {
+      "candidate": 3,
+      "check_seconds": 14.251489906000643,
+      "receipt": "/root/build/lane-checklist-20261010-c/q39/matcher-candidate3/result.json",
+      "sha256": "998eef9934f9d837bba2a42d70a8d818c2f49165dea95b02d0b725c22256960d"
+    }
+  ],
+  "contract_revision": "e5f599a7",
+  "current": {
+    "admitted_count": 60,
+    "admitted_names_sha256": "f4d8f71c17f1f82dbb38e83dcc25d262ebc5c1493c52ca03b5fbcc7d1dd7662b",
+    "errors": [],
+    "metadata_population_sha256": "d7d6bc5f0d5b32be37869091836ac284a05a525ae8e71a4f189961daa8cdfc80",
+    "root_count": 215
+  },
+  "focused_test_cases": 10,
+  "infrastructure_revision": "8a77ca71cd539375ef3cefa18110c0041c02b66e",
+  "matched_admission_names": true,
+  "matcher_sha256": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+  "metadata": "anonymous names and byte locations from source-digest-bound emitted glob; Program names from actual Print Module and About source locations; no guessed numbering",
+  "producer_sha256": "0041aff4d8f1a5a61e3845c6ffbd46c7efd80910a22436f18e8907cf942231a8",
+  "qualification": "distinct new native tree explicitly reuses immutable actual clean build and kernel0; original failed receipts stay failed; no new compilation/kernel run claimed",
+  "schema": "verifiedos-q39-matcher-census/1",
+  "source_checkpoint": "7093854d8ce8799826618024ee4847cf248766ea",
+  "verdict": "complete lexical preflight PASS; kernel acceptance pending"
+}
