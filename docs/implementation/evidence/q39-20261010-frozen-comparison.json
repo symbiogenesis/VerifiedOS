@@ -1,0 +1,128 @@
+{
+  "actual_parser_transparent_bodies": 3,
+  "changed_module_declarations": 1606,
+  "checkpoint": {
+    "baseline_source_proof_bytes_match_checkpoint": true,
+    "compiled_baseline_revision": "15cfa891ad891fc9e46ea91ef7e1680a45a0fe05",
+    "source_revision": "d08768db051ebb5cbe92ea24eeacbd63b9eaf84a",
+    "timing": "Baseline elaborated reading reconstructed after repairs from retained immutable pre-edit source/object checkpoint; no pre-edit sealed printed baseline is claimed."
+  },
+  "differences": [],
+  "failed_extra_probe": {
+    "baseline_and_candidate": "unsupported same-9.1 printer anomaly: Inductive MenhirLib.Interpreter.A.state does not appear in the environment",
+    "pre_edit_sealed_query": false,
+    "query": "Require MenhirLib.Interpreter.\nSet Printing All.\nSet Printing Depth 1000000.\nSet Printing Width 1000000.\nSet Printing Universes.\nPrint Module MenhirLib.Interpreter.Make.\n"
+  },
+  "generic_bodies": 105,
+  "generic_declarations": 197,
+  "generic_query_seconds": 2.9883494870000504,
+  "modules": {
+    "Flocq.Calc.Bracket": 41,
+    "Flocq.Calc.Round": 81,
+    "Flocq.Core.Zaux": 101,
+    "Flocq.IEEE754.Bits": 62,
+    "Flocq.Prop.Double_rounding": 106,
+    "Flocq.Prop.Round_odd": 40,
+    "MenhirLib.Interpreter": 0,
+    "compcert.cheririscV.CapLocations": 95,
+    "compcert.cheririscV.CapMemory": 243,
+    "compcert.common.Memory": 490,
+    "compcert.riscV.Asmgenproof": 97,
+    "compcert.security.MemoryWeak": 88,
+    "compcert.security.Recomposition": 162,
+    "functor-instance": 3
+  },
+  "native_only": "Full readings, elaborated bodies, source diff and compiled checkpoint remain in contained native output; this receipt exports only hashes/counts/verdicts.",
+  "native_reading_hashes": {
+    "base-generic-complete.json": "3e499a7600bc361912b3fe5c8a9a80c82a45b95eb35649e8a580fda5fd128dfb",
+    "base-partial.json": "017ae5b41e41151449cc4021108d3815ed3829c8660018df1edfd77a13ee6d4a",
+    "candidate-generic-complete.json": "3e499a7600bc361912b3fe5c8a9a80c82a45b95eb35649e8a580fda5fd128dfb",
+    "candidate-partial.json": "017ae5b41e41151449cc4021108d3815ed3829c8660018df1edfd77a13ee6d4a",
+    "generic-complete-result.json": "76b7d86f31da7a892c78e9891d571b520e0b0671231ff7ac7d2e2e10b201f6ae"
+  },
+  "normalization": "Only fresh query-created universe identifiers and Declared in source locations; no type/body/strategy normalization.",
+  "passed": true,
+  "reader_configurations": 2,
+  "reader_only_port_spelling_delta": [
+    {
+      "diff_sha256": "34f18699d58ba2ddea14664ce7f9b6c3c2dd346688c6bf89b2ebf31e2d4e7154",
+      "path": "flocq/Core/Zaux.v",
+      "scope": "two proof-only occurrences of lemma spelling Z.mod_0_r to Zmod_0_r; statement and transparent definitions unchanged"
+    }
+  ],
+  "replacement_generic_query": "Identical query module names and parameter signature Module FrozenGeneric(A:MenhirLib.Automaton.T). Module F := MenhirLib.Interpreter.Make A; cleared Search blacklist, inventory all F and A members; frame Check/About all declarations and Print every transparent constant/inductive body.",
+  "scope": "Every reached declaration, exact elaborated type and kernel-transparent/inductive body in all 13 changed modules; exhaustive generic Interpreter.Make over arbitrary A:MenhirLib.Automaton.T plus actual Parser.Aut pop/reduce_step/parse bodies. Opaque proof bodies excluded; raw About strategy/universe metadata compared.",
+  "sources": {
+    "MenhirLib/Interpreter.v": {
+      "checkpoint_sha256": "4891ad9d65843fefa4d9d424e0d065e241760f705464efc233796d445b16294f",
+      "port_source_sha256": "69cfbdd086858ef37fa50eed10866379a51bd858113a9716331d88f9e46e7fde",
+      "same_9_1_reader_sha256": "69cfbdd086858ef37fa50eed10866379a51bd858113a9716331d88f9e46e7fde"
+    },
+    "cheririscV/CapLocations.v": {
+      "checkpoint_sha256": "d638bc7050a7ddebf8ac7e02aa9f1527858c627cfef5072ab8c7a7668d4b49d4",
+      "port_source_sha256": "ebe8ccbebf19bbee869bf927b04a1adb020fbde7a5d84910c9cb54078ef549ab",
+      "same_9_1_reader_sha256": "ebe8ccbebf19bbee869bf927b04a1adb020fbde7a5d84910c9cb54078ef549ab"
+    },
+    "cheririscV/CapMemory.v": {
+      "checkpoint_sha256": "4b3ac980af6bfd48c55387e3a21d0d20d8d6b18e55e557f6b68ff1f109616268",
+      "port_source_sha256": "0c71865bc48767ecf408b157adfe0f5a902a3ffeb8198d3260aa19a7f66967c0",
+      "same_9_1_reader_sha256": "0c71865bc48767ecf408b157adfe0f5a902a3ffeb8198d3260aa19a7f66967c0"
+    },
+    "common/Memory.v": {
+      "checkpoint_sha256": "2897d98c846da112f9ce1fc14a476af18cda2aa9cc6f1ba32221b5fc66008848",
+      "port_source_sha256": "7dc5c0e96b011dfb86b94686ce1f1eccdcd74fb15b1eb4c82fb4885f856dfabd",
+      "same_9_1_reader_sha256": "7dc5c0e96b011dfb86b94686ce1f1eccdcd74fb15b1eb4c82fb4885f856dfabd"
+    },
+    "flocq/Calc/Bracket.v": {
+      "checkpoint_sha256": "e29dc40bf042d071b5b3c83e2920586b762bd0295157c0ed2c7cd4f84d398433",
+      "port_source_sha256": "95a01123de7ef746178dd1bd37f660fd97ac441abc08783a201dbe7e019d19ff",
+      "same_9_1_reader_sha256": "95a01123de7ef746178dd1bd37f660fd97ac441abc08783a201dbe7e019d19ff"
+    },
+    "flocq/Calc/Round.v": {
+      "checkpoint_sha256": "bcda065441ce967447dab821c602677e2d54eafbbf359984be6015395731942a",
+      "port_source_sha256": "1ea92cd46d101fbe456ceb146eaf943805df72bdb7b116500f73cb14ed1c1a52",
+      "same_9_1_reader_sha256": "1ea92cd46d101fbe456ceb146eaf943805df72bdb7b116500f73cb14ed1c1a52"
+    },
+    "flocq/Core/Zaux.v": {
+      "checkpoint_sha256": "f157f4a224b3f6de55d124d62dc1cd0d8eb07bd5a3163f39edeefeb1bbc5bb18",
+      "port_source_sha256": "b834d368c2cb4070fb5b85444dffbcf58107365d5dfb72a1909a8dcb1274a4c6",
+      "same_9_1_reader_sha256": "221a0748552d4800e0d52c14e30aa5bbee016674669c2370fd9bed52a57d4a7b"
+    },
+    "flocq/IEEE754/Bits.v": {
+      "checkpoint_sha256": "fe8716a2e964ce385cfa9f561e590403fe7b658e4f45ee767272591ed4c2ad9d",
+      "port_source_sha256": "f79177786d8a9fb5a0d49cdb64752d280e596fd09d53665d8abe577b6d23f603",
+      "same_9_1_reader_sha256": "f79177786d8a9fb5a0d49cdb64752d280e596fd09d53665d8abe577b6d23f603"
+    },
+    "flocq/Prop/Double_rounding.v": {
+      "checkpoint_sha256": "2519c0d2916d5dc2c348c1c6263205617d6b69e31e492b332b3d4a6833374196",
+      "port_source_sha256": "a19bc80059be22ed9eac14f2641dcd282801541567bf9ba94724c68aa1d0d218",
+      "same_9_1_reader_sha256": "a19bc80059be22ed9eac14f2641dcd282801541567bf9ba94724c68aa1d0d218"
+    },
+    "flocq/Prop/Round_odd.v": {
+      "checkpoint_sha256": "da0bd1a190924e943786f3a1ec1ca621f871189beb5cdffc30990fe21aa6cee1",
+      "port_source_sha256": "e22fef0cee7be66696423c1d8007f42cd92e53bdd759829dfa5963aa9a083f68",
+      "same_9_1_reader_sha256": "e22fef0cee7be66696423c1d8007f42cd92e53bdd759829dfa5963aa9a083f68"
+    },
+    "riscV/Asmgenproof.v": {
+      "checkpoint_sha256": "077efd9ce2f5c60e362f775a994192ba6791b7717ea2c63a60c5949b6f3b7bfb",
+      "port_source_sha256": "13aa777c5d307dfe007d1a5910da2d94f512281315ac4eb5938d4ee245043753",
+      "same_9_1_reader_sha256": "13aa777c5d307dfe007d1a5910da2d94f512281315ac4eb5938d4ee245043753"
+    },
+    "security/MemoryWeak.v": {
+      "checkpoint_sha256": "f9237ec1d0e8f2f07ec4b6b7605e6faa830a975ec0ec2dc48d54e47b2267ab1e",
+      "port_source_sha256": "753ba43ad44d135152ed984dd02c019c1c7b6ede23909e28e0a20529c1e2e288",
+      "same_9_1_reader_sha256": "753ba43ad44d135152ed984dd02c019c1c7b6ede23909e28e0a20529c1e2e288"
+    },
+    "security/Recomposition.v": {
+      "checkpoint_sha256": "2b1195e79cb018486449378e323e8444d1afe3047d6cde607d96eeb9a7db6e46",
+      "port_source_sha256": "01755bfe9a08171169b7562dfe45828d0005757297b3844c361f37503ff1ed95",
+      "same_9_1_reader_sha256": "01755bfe9a08171169b7562dfe45828d0005757297b3844c361f37503ff1ed95"
+    }
+  },
+  "tool": {
+    "executable_sha256": "a9f3ad40ca098e1c4bce3e332a135ad89ca3be1d5d669f06d36cfcb7f5982a05",
+    "lock_sha256": "e6ea9a390f5b282e0913e20b5a2dd44b20f8748fa907d58868dfcedca7c2c22a",
+    "reported_version": "The Rocq Prover, version 9.1.0\ncompiled with OCaml 4.14.2",
+    "switch": "q39-pairing"
+  }
+}
