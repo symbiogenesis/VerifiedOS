@@ -672,3 +672,27 @@ do not signal it. Do not signal a driver, escalate to SIGKILL, attach to an
 inferior, or touch either selected-mode audit. Read the existing producers'
 completion results with bounded waits and record their real kernel/driver exits.
 Any identity mismatch or failed signal stops this retirement act.
+
+## Read the selected conversion paths
+
+A separate five-minute read-only review of the exact locked package, completed
+by 21:29:11 UTC, distinguishes its conversion paths. `Typeops.check_cast` sends
+explicit VM casts to `Vconv.vm_conv`; default casts use closure conversion.
+Ordinary final type checks and module-subtype comparisons also use closure
+conversion. Enabling the selected VM option therefore does not replace every
+conversion performed by the complete checker.
+
+`Vconv.vm_conv_gen` can handle a bytecode compilation exception by warning and
+performing ordinary conversion for that individual comparison. This retains the
+check and leaves the global selected option enabled; it is distinct from a
+globally unsupported, disabled or ignored option. The selected profile records
+the option, not a claim that every comparison executed in the VM. No helper or
+running audit input changes follow from this reading.
+
+The source manifest has digest
+`477f1f7c498607acd2d171c56ac6625444d694a3695964464a12e714b2efb849`.
+The reviewer rehashed its package archive, and the integrator verified the copied
+source digests and read the cited conversion, cast, constant and subtyping paths.
+Neither reviewer accessed active audit processes or logs. The last emitted
+constant name identifies no current conversion path, expensive operation or
+completion time.
