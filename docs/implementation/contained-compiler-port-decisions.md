@@ -193,3 +193,53 @@ and after verification for both routes. Focused controls change the signer or
 verifier identity during verification and require refusal without staged writes;
 all nineteen focused chain cases passed. The actual manifest refresh remains
 conditional on the compiler's passing kernel-bound build receipt.
+
+## Correct exact source matching without replacing build evidence
+
+A read-only preflight of the whole-environment matcher failed on six of the
+215 actual Make `FILES` roots before the running kernel audits completed.
+`UnionFind`, `Kildall` and `Allocation` contain module refinements or apostrophes
+the lexical scanner misreads; generated `Parser` uses `Module Import Gram`;
+`Backtranslation` has a Program definition with admitted obligations; and
+`CapAsmgen` has anonymous admitted goals. A partial admission count supplies
+no complete census or acceptance. The native preflight is retained at
+`/root/build/lane-checklist-20261010-c/q39/lexical-preflight.json`.
+
+The integrator commissions a separate infrastructure repair of at most three
+matcher candidates or fifteen active repair minutes, whichever comes first.
+Editing and candidate-check waits count; the existing fourteen proof candidates
+and their budgets stay recorded. The worker resumes its dedicated contained
+source worktree at `7093854d8ce8799826618024ee4847cf248766ea`, owning only the
+matcher, its focused controls and a qualification producer. No proof, executable
+compiler source, statement, definition, assumption, admission, package or flag
+may change. A new unsupported declaration form returns to the integrator.
+
+Each loaded axiom must still match its exact qualified declared source name,
+and every admission must enter the census. Generated obligation and anonymous
+goal names require actual compiler-emitted declaration metadata and exact source
+locations, rather than guessed numbering or omitted declarations. Focused
+controls must cover the six encountered forms and refusal of missing, ambiguous
+or inconsistent metadata. The complete 215-root preflight and the eventual exact
+kernel-summary match remain separate required checks.
+
+The running drivers already imported the defective matcher. Their original
+receipts and logs remain immutable, including any later matching failure after a
+kernel exit of zero. A file edit, injected live-process change or relabeled receipt
+cannot qualify those builds. The corrected producer may create a distinct native
+qualification tree from an untouched original build, explicitly recording reuse
+and the original matching failure. It must bind the original receipt and archive,
+all real successful configure/clean/depend/proof/extraction/compiler/kernel
+stages, actual binary, source and object population, recorded lock and tool roles,
+and the complete kernel log to the corrected matcher and its exact classification.
+Every source, object, log, receipt and tool input is checked before and after the
+join in the exclusive lane. Only the known matcher failure may be recovered;
+another failed stage, absent kernel verdict, changed input, unsafe summary entry
+or unmatched name refuses qualification.
+
+The new tree retains the source and native inputs required by the existing strict
+compiler provenance reader. Its new successful receipt describes this explicit
+post-build qualification and references the unchanged original failure; it makes
+no claim of a new compilation or kernel run. Add positive and refusal controls
+for this join, including failed kernel, failed compilation, changed object/log,
+wrong lock/tool and incomplete classification. Both independent clean builds
+still require this actual acceptance before target replay or manifest refresh.
