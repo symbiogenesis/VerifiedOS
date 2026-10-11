@@ -673,6 +673,15 @@ inferior, or touch either selected-mode audit. Read the existing producers'
 completion results with bounded waits and record their real kernel/driver exits.
 Any identity mismatch or failed signal stops this retirement act.
 
+The integrator reviewed the immutable retirement program, digest
+`adf08797560172dc9061492f1f47c3823861b0149becbe610d81a67d29177956`.
+Automatic approval review rejected its invocation before process creation because
+SIGTERM would irreversibly discard the two audits' in-progress computation and
+the user had not explicitly authorized terminating them. No program launched,
+signal was sent, or receipt changed. The integrator requested explicit user
+authorization; elapsed time is not approval. Both selected-mode audits continue
+unchanged, and no workaround or indirect termination is authorized.
+
 ## Read the selected conversion paths
 
 A separate five-minute read-only review of the exact locked package, completed
