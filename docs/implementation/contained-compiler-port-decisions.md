@@ -400,3 +400,22 @@ shape and model-population guards. The integrator and independent reviewer read
 the immutable repair and found both reported gaps closed, with no further material
 regression. These tool-control verdicts supply no compiler kernel or target-replay
 verdict. Both fresh sealed compiler audits remain pending.
+
+## Interpret pending checker observations
+
+A bounded read-only review of the frozen compiler revision and
+[Rocq 9.3.0's checker](https://github.com/rocq-prover/rocq/blob/V9.3.0/checker/mod_checking.ml#L56)
+clarifies the repeated final log line. `checking cst:` is emitted before the
+declaration's type and proof body are checked; module-expression and subtyping
+work can also proceed without another log message. The last emitted name is
+therefore not a conclusive current stack location. The named Menhir lemma is
+instantiated for the generated parser automaton, rather than a runtime parsing
+operation. Static reading supplies neither a nontermination diagnosis nor a
+completion estimate.
+
+The integrator independently read the same frozen Menhir sources and the official
+checker source, retaining its SHA-256
+`d1f8d33290ee837ec30d2a75bbc9f752016f4cb3ddf0bc24847b09df6d52548b`.
+No prover execution, source change or audit adjustment followed this diagnostic.
+Only the actual complete kernel verdicts can satisfy the pending acceptance
+predicate.
