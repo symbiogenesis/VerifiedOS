@@ -705,3 +705,38 @@ source digests and read the cited conversion, cast, constant and subtyping paths
 Neither reviewer accessed active audit processes or logs. The last emitted
 constant name identifies no current conversion path, expensive operation or
 completion time.
+
+## Preserve active inputs during eligible-lane retirement
+
+While either superseded default-mode audit remains active, preserve its public C
+checkout, private source worktree, branch and native inputs. The requested
+termination authorization remains pending. An active lane is not eligible for
+retirement, and preserving it requires no process termination or workaround.
+
+The separate five-minute read-only lifecycle review, completed at 21:57:08 UTC
+against immutable integration revision `09f72839`, confirms that
+[fanout](../../tools/fanout.md) integrates and retires only explicitly selected
+lanes. Every public C commit is already an ancestor of integration `main`.
+Select only stopped, clean and integrated A, B and D for the final batch while C
+remains active; revalidate their ownership, containment and retained outputs
+before retirement. C remains integrator-owned and must not be relabeled as a
+host-managed worktree. Preserve the active private source lane as well; retire
+other private lanes only after their separate eligibility checks.
+
+This decision avoids holding safe retirement on the unresolved termination
+request. It changes no Q39 acceptance predicate: both selected complete kernels,
+exact assumption classification, input stability, compiler campaigns, argument
+replays, HELLO acceptance and tracked manifest restaging still require actual
+passing evidence. Publish all session commits on `main`, require both Host CI
+platforms, and dispatch every Guest CI lane with the required cold policy.
+Record the revision, run identifiers and pending guest status without waiting for
+Guest CI.
+
+If C remains retained, HELLO's recipe records the actual accepted compiler,
+simulator and explicit stage paths beneath
+`/root/build/lane-checklist-20261010-c/`; do not substitute a prospective native
+retirement destination. Final evidence must name the retained C and private
+inputs and state each superseded audit's genuine available result. A pending
+verdict supplies no passing evidence, and eligible-lane retirement supplies no
+claim that C was cleaned. If those audits finish or the user authorizes the
+reviewed termination, determine C's eligibility again before selecting it.
