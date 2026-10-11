@@ -380,6 +380,30 @@ function test_a_stopped_entropy_root_leaves_the_watchdog_no_challenge() -> unit 
 // *****************************************************************
 // The four windows.
 
+// The trusted development harness calls the generated definitions at explicit
+// call boundaries. These helpers return only public success classes, never a
+// draw or watchdog token, and the MMIO helper uses the real composed door.
+function replay_test_direct_draw() -> bool = match rot_draw() {
+  Some(_) => true,
+  None() => false,
+}
+
+function replay_test_mmio_draw() -> bool =
+  match mmio_read(Load(Data), Physaddr(plat_trng_base + to_bits_truncate(64, ROT_TRNG_DRAW)), 8) {
+    Ok(_) => true,
+    Err(_, _) => false,
+  }
+
+function replay_test_accepted_pet() -> bool = {
+  watchdog_advance(plat_rot_watchdog_early + 1);
+  watchdog_pet(watchdog_nonce) == Pet_Accepted
+}
+
+function replay_test_rejected_pet() -> bool = {
+  watchdog_advance(plat_rot_watchdog_early + 1);
+  watchdog_pet(zeros()) == Pet_Unmatched
+}
+
 // **The windows are in the address map of every composition and answer the RoT
 // alone** (R-15-194). This is the C-class side, which is the side the harness's
 // own configuration composes and the only side a corpus program reaches: the

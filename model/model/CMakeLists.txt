@@ -112,6 +112,10 @@ add_custom_command(
         # timeout a function of retirement. Naming it here keeps the entry
         # point from depending on a `$[test]` property holding it live.
         --c-preserve watchdog_advance
+        --c-preserve replay_test_direct_draw
+        --c-preserve replay_test_mmio_draw
+        --c-preserve replay_test_accepted_pet
+        --c-preserve replay_test_rejected_pet
         --c-preserve enable_htif
         --c-preserve set_pc_reset_address
         --c-preserve generate_dts

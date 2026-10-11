@@ -17,6 +17,10 @@ add_executable(entropy_observer "entropy_observer.cpp")
 target_link_libraries(entropy_observer PRIVATE riscv_model default_config)
 add_test(NAME "entropy_observer" COMMAND $<TARGET_FILE:entropy_observer>)
 
+# Run only under the private pipe controller; its capture protocol carries words.
+add_executable(entropy_capture "entropy_capture.cpp")
+target_link_libraries(entropy_capture PRIVATE riscv_model default_config)
+
 add_executable(block_payload "block_payload.cpp")
 target_link_libraries(block_payload PRIVATE riscv_model default_config)
 add_test(NAME "block_payload" COMMAND $<TARGET_FILE:block_payload>)
