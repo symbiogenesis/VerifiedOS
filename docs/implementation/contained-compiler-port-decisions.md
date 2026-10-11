@@ -388,3 +388,15 @@ Private helpers, compiler sources, packages, proof statements, audit flags and
 the running sealed kernel audits remain unchanged. This repair lies within Q39's
 existing report-identity and diagnostic ownership. Its focused checks and
 independent review precede the final actual compiler campaign and HELLO replay.
+
+The repair at VerifiedOS revision
+`7e72e607a8ec3f1bca84d8de202b3c79837e58ff` passed twenty-one focused
+compiler-diff cases and four HELLO cases, including fourteen actual child-written
+drift refusals and four unchanged present/absent-receipt positives across the two
+report routes. The refusal controls require no successful JSON or component
+record to be published. Focused Ruff and strict Linux/Windows Ty passed; the only
+additional HELLO edit is an annotation-only cast after its existing successful
+shape and model-population guards. The integrator and independent reviewer read
+the immutable repair and found both reported gaps closed, with no further material
+regression. These tool-control verdicts supply no compiler kernel or target-replay
+verdict. Both fresh sealed compiler audits remain pending.
