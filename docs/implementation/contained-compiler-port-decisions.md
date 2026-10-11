@@ -447,3 +447,20 @@ attachment occurred. The recorded interval was 19:56:21–20:00:31 UTC on
 2026-10-11. Its empty, uniquely owned Temp directory is retained. This closes
 that candidate without a diagnostic or acceptance verdict; both sealed audits
 continue unchanged.
+
+## Replan the diagnostic launcher once
+
+The first register-probe candidate failed before any native source existed because
+its PowerShell launcher was malformed. That launcher failure supplies no evidence
+about the proposed probe. One separate candidate, bounded to eight active
+implementation minutes, may correct the launcher using absolute Temp paths and
+explicit UTF-8 file APIs, then compile and test the register reader. Preserve the
+first stopped outcome. A second failure closes this diagnostic without another
+candidate or installation.
+
+All register-inspection constraints above remain in force. The worker must return
+the exact source and disposable-process evidence for independent review before
+any auditor observation is authorized. A compiler worker may attach to no auditor
+until the integrator gives a concrete instruction naming its reverified identity.
+Proofs, compiler sources, packages, execution flags, root scope and both running
+sealed audits remain unchanged.
