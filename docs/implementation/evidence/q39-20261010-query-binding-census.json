@@ -1,0 +1,55 @@
+{
+  "acceptance": "pending independent review and both new clean builds/fresh whole-environment audits",
+  "actual_tool_snapshot": {
+    "library_file_count": 10248,
+    "passed": true,
+    "receipt": "/root/build/lane-checklist-20261010-c/q39/query-binding-native-tools.json",
+    "releases": {
+      "coqc": "The Rocq Prover, version 9.3.0",
+      "coqchk": "The Rocq Proof Checker, version 9.3.0",
+      "coqtop": "The Rocq Prover, version 9.3.0",
+      "make": "GNU Make 4.4.1",
+      "menhir": "menhir, version 20260209",
+      "ocamlc": "4.14.2"
+    },
+    "seconds": 5.469265422998433,
+    "sha256": "a958d48b249f258a70d13c85e9b94a3ac2ae5e437aabae1f533a379f01e4ecf3"
+  },
+  "contracts": [
+    "3728421a",
+    "9f841bf1"
+  ],
+  "fixture_followup": {
+    "focused_test_cases": 31,
+    "focused_test_seconds": 3.209,
+    "max_active_minutes": 3,
+    "max_candidates": 1,
+    "observed_wall_upper_bound_seconds": 80,
+    "passed": true,
+    "used_candidates": 1
+  },
+  "helper_sha256": {
+    "test/verifiedos-q39/audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+    "test/verifiedos-q39/build.py": "68ddf76434ec1ece75da60a7899262177713a0890656e51dbe88caa20a461da3",
+    "test/verifiedos-q39/qualify.py": "99c665045700bf34d2d4d3b9c9f41540d2fa639278c9affcd28516879f8e5f24",
+    "test/verifiedos-q39/test_audit.py": "436f1b75b425bb80d7940e0a29997b187d17c6ca1e26efa2416c3b7868caa594"
+  },
+  "infrastructure_revision": "ec5b8250bb9b895a3162375e8ac80cda2ccdcbee",
+  "schema": "verifiedos-q39-query-binding-census/1",
+  "scope1": {
+    "candidate1": "metadata test mock guard keyword mismatch",
+    "candidate2": "empty-version subtest fake report state not restored",
+    "max_active_minutes": 8,
+    "max_candidates": 2,
+    "observed_wall_upper_bound_minutes": 2,
+    "used_candidates": 2
+  },
+  "source_equivalence": {
+    "base": "7093854d8ce8799826618024ee4847cf248766ea",
+    "both_populations_sha256": "6ca03a541963bd75204b6631c76fb76d2beb9d79c01bbfbafc5a642f70811214",
+    "different_paths": [],
+    "file_count": 1430,
+    "scope": "all tracked archive bytes except four authorized infrastructure helpers"
+  },
+  "switch_history": "second build uses unchanged q39-replay independently imported port.lock; prior interrupted build remains failed"
+}
