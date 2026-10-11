@@ -644,3 +644,31 @@ acceptance builds above. Run them from immutable `6409d0ed`, in the assigned
 mode. Preserve every old raw receipt and audit. A build, seal, kernel,
 classification or input-stability failure stops acceptance; it does not authorize
 an automatic source, helper, package or scope repair.
+
+## Retire the superseded default-mode audits
+
+The two new selected-mode builds have passed all seven compilation stages and
+created fresh mode-bound seals; their complete kernel verdicts remain pending.
+The integrator retires the superseded default-mode audits to stop retaining
+duplicate active execution. Their incomplete runs supply no passing evidence.
+Keep their original seals, inputs and logs, and let their existing producers
+record genuine interruption results without relabeling any receipt.
+
+The read-only identity snapshot at 21:27:07 UTC has digest
+`0e29902628b4ca5e3cb7e1fe58339d5216cf78c32bcda9f5d066f9b2089c5357`.
+It verifies owned default checker PIDs 454208 and 454207, both start tick 1205640,
+under drivers 446861 and 446896 with start ticks 1156594 and 1156826 respectively.
+Each checker executable matches its original seal; each full 250-token command
+matches the earlier capture. Both original and copied build receipts remain
+`passed: false`, and neither fresh-kernel receipt exists.
+
+Commission one Temp-only retirement program, bounded to five active preparation
+and execution minutes, with immutable integrator review before signals. Open a
+Linux PID descriptor for each exact checker and revalidate its start tick, parent,
+owner, executable and full argument digest against that snapshot immediately
+before signaling. Send at most one SIGTERM through each verified descriptor.
+If a process has exited or its fresh result exists, retain its actual result and
+do not signal it. Do not signal a driver, escalate to SIGKILL, attach to an
+inferior, or touch either selected-mode audit. Read the existing producers'
+completion results with bounded waits and record their real kernel/driver exits.
+Any identity mismatch or failed signal stops this retirement act.
