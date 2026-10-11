@@ -419,3 +419,23 @@ checker source, retaining its SHA-256
 No prover execution, source change or audit adjustment followed this diagnostic.
 Only the actual complete kernel verdicts can satisfy the pending acceptance
 predicate.
+
+## Bound native register inspection
+
+Both fresh kernel auditors remain active without a verdict, and a native debugger
+is unavailable. The integrator commissions one diagnostic probe candidate, bounded
+to ten active implementation minutes, outside every repository and worktree.
+It may use the existing native C compiler to build a Linux register reader, first
+tested against an explicitly owned disposable process. It must verify the target
+identity, briefly attach, read registers and detach on every path; it may write no
+inferior memory, insert no breakpoint and call no inferior function. A bounded
+timeout and a post-detach running-state check are required. Remove temporary probe
+source after its use and retain the source/binary digests and observations.
+
+The integrator reviews the source and disposable-process result before the compiler
+worker may take one observation from one reverified session-owned auditor. The
+observation is limited to registers, executable mappings and static symbol lookup.
+It supplies no kernel verdict, nontermination diagnosis or completion estimate.
+Proof sources, helper sources, packages, audit flags and root scope remain frozen;
+both complete audits continue afterward. A missing tool or failed probe closes this
+diagnostic without installing anything or changing acceptance.
