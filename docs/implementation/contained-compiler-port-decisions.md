@@ -137,3 +137,21 @@ for the new route. HELLO's real execution and all three controls, and the typed
 large-argument replay, remain required. General target readers keep their
 complete-build contracts; this narrow dependency route changes no production
 gate or Q39 output predicate.
+
+The integrator and independent reviewer found two gaps in the first focused
+reader: command options were present without joining their source/build paths,
+and the measured default C++ binary could differ from CMake's inherited `CXX`
+selection. The repair at VerifiedOS revision
+`603bcd302fb194ae19886240134636b13ad16f49` binds unique configure/build arguments
+to the recorded original absolute roots and the retained CMake cache, and binds
+CMake's selected Sail and C++ executables to the measured identities. It also
+hashes the generated schema and profile-validation log. Original roots remain
+historical identities after worktree retirement; the consumer checks current
+model bytes without requiring the retired checkout to exist.
+
+Both reviewers read the repair and found those gaps closed. Focused controls
+refuse inconsistent command roots, selected C++ identity, schema and native
+cache/schema drift. A fresh producer run is required under the repaired reader;
+the first build's receipt is retained as historical evidence and is not relabeled
+as satisfying the repaired contract. This is why final target evidence waits for
+the fresh dependency verdict.
