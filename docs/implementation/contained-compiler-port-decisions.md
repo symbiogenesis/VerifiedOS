@@ -543,3 +543,61 @@ and any disabled-bytecode or ignored-option warning refuses the setting. Preserv
 the first control's artifacts unchanged and record this supplement separately.
 No helper, package, running audit or proof-source change is authorized by this
 supplement. A failure closes the configuration experiment.
+
+The supplemental lawful VM-cast equality passed compilation and its VM-enabled
+kernel check in 20:35:41–20:37:22 UTC. The actual checker checked its honest
+`Defs` dependency and `VMGood.vm_good`, reported success, and emitted no disabled
+or ignored-mode warning. Its separate receipt digest is
+`4d5c964e3ddc5690161ab65afd58a07b7ce6de2a0c32781452346610035339b1`.
+The integrator and independent reviewer read both control scripts, fixtures,
+commands and logs, verified their supplied digests and preserved prior-control
+and tool identities, and found the positive/support gap closed. This supplies
+finite implementation controls while retaining VM implementation trust; it
+supplies no whole-compiler verdict or speed measurement.
+
+## Select VM reduction for complete compiler audits
+
+The integrator selects the locked checker's supported
+`-bytecode-compiler yes` setting for the next two complete compiler audits.
+The reason is to use the release's checked bytecode reconstruction and VM
+conversion for the same proof obligations, after verifying its package sources,
+lawful computational positive and stored-bytecode mismatch rejection. The running
+default-mode audits provide no completed verdict or remaining-work estimate.
+This act changes the conversion implementation and its recorded trust, rather
+than any proof statement, guard, universe check, admission or dependency scope.
+The project proof switch and its gates retain their existing settings.
+
+Commission one infrastructure candidate, bounded to ten active implementation
+minutes, in the separately provisioned private worker checkout based on
+`ec5b8250bb9b895a3162375e8ac80cda2ccdcbee`. Own only
+`test/verifiedos-q39/build.py`, `qualify.py` and `test_audit.py`; leave the matcher,
+all proof and executable compiler sources, installed switches, lock, compilation
+flags and old worker checkout unchanged. Require an explicit selected argument
+and the exact canonical option pair in the raw receipt before sealing. A new seal
+schema/profile must bind that selection, and a missing, old, mismatched, duplicated
+or extra setting must refuse qualification rather than acquire a default.
+
+The actual kernel command must contain the measured checker, existing `-o`, the
+sealed exact option pair, every unchanged independently derived Make include flag,
+and all 215 roots with their recursive dependencies. Require its complete returned
+command to equal that expected command before a successful receipt is published.
+Record the selection in the fresh kernel, qualification and final build receipts.
+Refuse unsupported, disabled-bytecode or ignored-option diagnostics even at exit 0.
+Keep every existing before/after input, object, installed-library, tool, helper,
+query and classification guard and all unsafe-axiom refusals. Retain the thirty-one
+existing focused controls and add positive selection joins and actual refusal
+controls for old/missing/mismatched settings, altered commands and false-success
+support diagnostics. Independent immutable review precedes acceptance builds.
+A failure or exhausted budget stops this infrastructure candidate.
+
+After that review, require two entirely new export, configure, clean, depend,
+proof, extraction and compiler builds, one in each unchanged locked switch, with
+new immediate post-compilation pre-query seals and distinct output and
+qualification trees. Record the replay switch's earlier independent lock import
+and unchanged closure honestly; do not reinstall it or relabel an old seal. All
+non-helper source bytes must remain equal to the frozen compiler source. Both
+fresh complete kernel verdicts, exact axiom classification and stable-input
+verdicts must pass before strict consumer positives, final compiler campaigns,
+argument replays, HELLO acceptance or target restaging. The existing default-mode
+audits and original records remain unchanged until a separately authorized
+session-owned retirement act; no verdict is inferred for them.
