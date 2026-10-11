@@ -349,3 +349,15 @@ fake report in `finally`, normalize only the two owned Python helpers to LF, and
 rerun the same thirty-one focused controls. No production logic or other source
 change is authorized. Preserve both preceding candidate outcomes and obtain
 independent review of the immutable result before acceptance builds start.
+
+The fixture-only candidate passed all thirty-one focused controls in 3.209 s.
+The actual final tool-state probe passed in 5.4693 s over 10,248 installed-library
+files, with the compiler, query tool and checker each reporting Rocq 9.3.0.
+The final infrastructure revision is
+`ec5b8250bb9b895a3162375e8ac80cda2ccdcbee`; both reviewers read the release and
+individual-query guards and found the identified gaps closed. This qualifies
+the infrastructure for the two fresh acceptance builds, without supplying a
+compiler-build, kernel or target-replay verdict. The
+[query-binding census](evidence/q39-20261010-query-binding-census.json) retains
+the failed candidates, fixture correction, exact source comparison and tool
+probe identities. Q39 remains open until its separate acceptance predicates pass.
