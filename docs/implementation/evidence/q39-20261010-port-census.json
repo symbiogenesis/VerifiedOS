@@ -1,0 +1,255 @@
+{
+  "accepted_proof_source": "7093854d8ce8799826618024ee4847cf248766ea",
+  "active_time_rule": "editing and candidate-check waits included; dependency provisioning, clean acceptance builds and whole-environment audits tracked separately",
+  "budgets": [
+    {
+      "max_active_repair_minutes": 30,
+      "max_candidates": 12,
+      "reported_active_elapsed_minutes_approximately": 24.6,
+      "scope": "initial port",
+      "stop": "candidate12 new second exclusion assertion; diagnostic retained"
+    },
+    {
+      "max_active_repair_minutes": 8,
+      "max_candidates": 2,
+      "scope": "second standalone exclusion assertion",
+      "stop": "new six matching H assertions; returned to owner",
+      "used_candidates": [
+        13
+      ]
+    },
+    {
+      "max_active_repair_minutes": 8,
+      "max_candidates": 2,
+      "scope": "six read-and-dispositioned H assertions",
+      "used_candidates": [
+        14
+      ],
+      "verdict": "proof compile exit0; separate frozen and kernel acceptance required"
+    }
+  ],
+  "candidate5": "No-edit rerun after scratch write failure retained and counted, no discarded diagnostic",
+  "candidate_count": 14,
+  "candidates": [
+    {
+      "candidate": 1,
+      "log_path": "/root/build/lane-checklist-20261010-c/q39/port-candidate-1.log",
+      "log_sha256": "d0571006b19e468a036e21b7e1afc0be3f6543168b22fb94cb22d9332adbd312",
+      "receipt": "original log retained; initial diagnostic before per-candidate JSON recorder"
+    },
+    {
+      "candidate": 2,
+      "log_path": "/root/build/lane-checklist-20261010-c/q39/port-candidate-2.log",
+      "log_sha256": "efc95c521359ec4646c823d36907171655c9264a740e41f76407d75a2933b1cd",
+      "receipt": "original log retained; initial diagnostic before per-candidate JSON recorder"
+    },
+    {
+      "candidate": 3,
+      "log_path": "/root/build/lane-checklist-20261010-c/q39/port-candidate-3.log",
+      "log_sha256": "638f9d94a967599af6e3d664a26add1733394022e908fa86eaba60f025c52f86",
+      "receipt": "original log retained; initial diagnostic before per-candidate JSON recorder"
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-port",
+        "--",
+        "make",
+        "-k",
+        "-j2",
+        "proof"
+      ],
+      "candidate": 4,
+      "check_seconds": 3.7953998609998507,
+      "exit": 2,
+      "log_path": "/root/build/lane-checklist-20261010-c/q39/port-candidate-4.log",
+      "log_sha256": "af8a3ad23a57dc2879540ebae5573956766f494cac884621684828119398d4d3",
+      "native_receipt_sha256": "7da03385c4e252e040bfebd4d2be12705bec8815bd6fcf6f2bad5d291de31402"
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-port",
+        "--",
+        "make",
+        "-k",
+        "-j2",
+        "proof"
+      ],
+      "candidate": 5,
+      "check_seconds": 7.64418187199999,
+      "exit": 2,
+      "log_path": "/root/build/lane-checklist-20261010-c/q39/port-candidate-5.log",
+      "log_sha256": "5e5c58a503492c9c324ab1e9bc7f1ae5aadb48ddab6e8c814c91ebf4ea57331c",
+      "native_receipt_sha256": "77d09fe8351d0364794b505c07e54dc28e6947f970a607fd7bf92ce7d9ce9d4d"
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-port",
+        "--",
+        "make",
+        "-k",
+        "-j2",
+        "proof"
+      ],
+      "candidate": 6,
+      "check_seconds": 163.8735742509998,
+      "exit": 2,
+      "log_path": "/root/build/lane-checklist-20261010-c/q39/port-candidate-6.log",
+      "log_sha256": "ae79300d468d5a8006066e705194e214890fc3641654790b34a6acfba2730318",
+      "native_receipt_sha256": "d4a5abc1f5ca82809f36b8303ce898629f2f55ba355c334e358c55415a5a7e27"
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-port",
+        "--",
+        "make",
+        "-k",
+        "-j2",
+        "proof"
+      ],
+      "candidate": 7,
+      "check_seconds": 10.11545921600009,
+      "exit": 2,
+      "log_path": "/root/build/lane-checklist-20261010-c/q39/port-candidate-7.log",
+      "log_sha256": "ab4a7a454ac4906e66111315eac98ca1fb933db8df212b5b72bfe5a2db5bcf01",
+      "native_receipt_sha256": "3eba39b15ad816c5082f77b80077134f2b07bcb238314f180ff78049ff8aa42d"
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-port",
+        "--",
+        "make",
+        "-k",
+        "-j2",
+        "proof"
+      ],
+      "candidate": 8,
+      "check_seconds": 10.5954457429998,
+      "exit": 2,
+      "log_path": "/root/build/lane-checklist-20261010-c/q39/port-candidate-8.log",
+      "log_sha256": "05d3c944aa41beab5adf96db1594fbef4f6e87a86c0ae040e31f5ecc74927373",
+      "native_receipt_sha256": "139a05a9dc1dae29814adf714e80095d4afb8a67d45758ee97832ee3af34587c"
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-port",
+        "--",
+        "make",
+        "-k",
+        "-j2",
+        "proof"
+      ],
+      "candidate": 9,
+      "check_seconds": 87.13332797200019,
+      "exit": 2,
+      "log_path": "/root/build/lane-checklist-20261010-c/q39/port-candidate-9.log",
+      "log_sha256": "6839f2cd1db22aa063d497fd50975ae7f1c4ef7bae01a614cf4c26544b726c61",
+      "native_receipt_sha256": "c189b3f64c4042b1c90635744f9d9e447e6ab2abdd14da7cef600766499f6bd5"
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-port",
+        "--",
+        "make",
+        "-k",
+        "-j2",
+        "proof"
+      ],
+      "candidate": 10,
+      "check_seconds": 54.30524671500007,
+      "exit": 2,
+      "log_path": "/root/build/lane-checklist-20261010-c/q39/port-candidate-10.log",
+      "log_sha256": "d1c02a6423025569b9b0ee9646e17e7520abc3ddf41bea90c7ae65b1c86cd34b",
+      "native_receipt_sha256": "5d67b7c0b2146613ba7f3471bbaf13f74d557e8b1fde0be887b8f88a9e525e4b"
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-port",
+        "--",
+        "make",
+        "-k",
+        "-j2",
+        "proof"
+      ],
+      "candidate": 11,
+      "check_seconds": 53.57722323600001,
+      "exit": 2,
+      "log_path": "/root/build/lane-checklist-20261010-c/q39/port-candidate-11.log",
+      "log_sha256": "e72d64f51d1c4df4651aa3fa71107a9ee907b1a0cdd0622ea5df594b5d083d1b",
+      "native_receipt_sha256": "89df886d583168fa0d745d026b8fef9f8bb661c9eba814caea175a988a16726a"
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-port",
+        "--",
+        "make",
+        "-k",
+        "-j2",
+        "proof"
+      ],
+      "candidate": 12,
+      "check_seconds": 57.94213390899995,
+      "exit": 2,
+      "log_path": "/root/build/lane-checklist-20261010-c/q39/port-candidate-12.log",
+      "log_sha256": "cda509722d5ef09ca4f4235bb3cab5f5e98e74fbc5735f59f0be86e406715154",
+      "native_receipt_sha256": "b1eaa33bbbedf67b0f0cddada61e0adfc9225dc897d6205b8843b36a9936d9c2"
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-port",
+        "--",
+        "make",
+        "-k",
+        "-j2",
+        "proof"
+      ],
+      "candidate": 13,
+      "check_seconds": 82.764567102,
+      "exit": 2,
+      "log_path": "/root/build/lane-checklist-20261010-c/q39/port-candidate-13.log",
+      "log_sha256": "ac6ad54ba624115ca75b6ff65a4b2cfb25bdf0cddc89d402d87154fc836b20a5",
+      "native_receipt_sha256": "0cbb772cb55e149a45825e9732aa4f13b48023e88ec58e8830eac59ff1a2e150"
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-port",
+        "--",
+        "make",
+        "-k",
+        "-j2",
+        "proof"
+      ],
+      "candidate": 14,
+      "check_seconds": 95.11334698700011,
+      "exit": 0,
+      "log_path": "/root/build/lane-checklist-20261010-c/q39/port-candidate-14.log",
+      "log_sha256": "d6069c7dc70c9b9b08f945971b7400293270637f53d6a69f7daa94399a7fdd93",
+      "native_receipt_sha256": "fbfe2b956e95d89008680406c4bf96bea257f828a9af815efbc0928f02142770"
+    }
+  ],
+  "frozen_receipt": "q39-20261010-frozen-comparison.json",
+  "kernel_acceptance": "pending; proof compile and frozen comparison do not establish whole-environment acceptance",
+  "schema": "verifiedos-q39-port-census/1",
+  "source_checkpoint": "d08768db051ebb5cbe92ea24eeacbd63b9eaf84a"
+}
