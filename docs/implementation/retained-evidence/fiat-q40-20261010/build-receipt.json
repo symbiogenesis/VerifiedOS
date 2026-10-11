@@ -22,7 +22,7 @@
     "export_before_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
     "export_after_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32"
   },
-  "log": "build.log",
+  "log": "/root/build/lane-checklist-20261010-b/fiat-a/build.log",
   "log_sha256": "c75aad4a1a18c9fdad1b9e3bdc2847fb808a2c67eceaf743e2866c2bd72bbd3a",
   "generator_executable": "/root/build/lane-checklist-20261010-b/fiat-a/source/src/ExtractionOCaml/fiat_crypto",
   "generator_sha256": "3f34a8230b5112c33889d6b8d01adb2724bf474888197ed2523519bab3572812",
@@ -33,5 +33,7 @@
     "coqutil": 125,
     "kami": 0,
     "riscv-coq": 0
-  }
+  },
+  "working_directory": "/root/build/lane-checklist-20261010-b/fiat-a/source",
+  "source_receipt": "/root/build/lane-checklist-20261010-b/fiat-a/archives/manifest.json"
 }

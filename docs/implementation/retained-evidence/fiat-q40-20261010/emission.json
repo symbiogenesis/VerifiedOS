@@ -94,5 +94,6 @@
       "raw_sha256": "1cce0302f067c020553c06eae6547430bd6f1ff8d9198cd1258de2c8888ea0ca",
       "header_sha256": "0b865a4c6be783e00827a3aaaa79619153053cfa5f0f6a985f479c85bd46ed54"
     }
-  }
+  },
+  "working_directory": "/root/build/lane-checklist-20261010-b/fiat-emit"
 }
