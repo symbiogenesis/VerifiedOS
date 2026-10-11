@@ -12,7 +12,16 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from vos import asm, boot_handoff, jsonc, kernel_restore, kernelrun, receipts, trace
+from vos import (
+    asm,
+    boot_handoff,
+    compiler_provenance,
+    jsonc,
+    kernel_restore,
+    kernelrun,
+    receipts,
+    trace,
+)
 from vos.boot_signing import SlhSigner
 from vos.boot_target import compiler_inputs
 from vos.cli import compiler_diff
@@ -550,6 +559,7 @@ def run(root: Path, ccomp: Path, ccomp_args: list[str], simulator: Path,
     root, ccomp, simulator, build_receipt, out = (
         path.resolve() for path in (root, ccomp, simulator, build_receipt, out))
     out.mkdir(parents=True, exist_ok=True)
+    provenance, provenance_files = compiler_provenance.read(ccomp)
     sources = receipts.inputs(root, *INPUTS)
     private_inputs = compiler_inputs(ccomp_args)
     host_cc = shutil.which("cc")
@@ -639,7 +649,9 @@ def run(root: Path, ccomp: Path, ccomp_args: list[str], simulator: Path,
         and build_sha == receipts.digest(build_receipt)
         and private_inputs == compiler_inputs(ccomp_args)
         and host_cc_sha == receipts.digest(Path(host_cc)) and host_stage_sha == receipts.digest(binary))
-    report: dict[str, object] = {
+    if not compiler_provenance.unchanged(provenance_files):
+        raise ValueError("contained compiler build receipt changed during execution")
+    report: dict[str, object] = {"compiler_provenance": provenance, "compiler_receipts_sha256": provenance_files,
         "scope": "two-slot C-class kernel under actual signed M-mode release; RoT C runs on host",
         "milestone_acceptance": "open", "sources": sources, "model_sources": model_sources,
         "compiler_sha256": compiler_sha, "simulator_sha256": simulator_sha,

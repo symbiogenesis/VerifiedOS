@@ -14,10 +14,11 @@ from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import patch
 
+from tests import compiler_fixture
 from tests.harness import TOOLS, Case, ensure
 from vos import boot_crypto as b
 from vos import boot_crypto_target as target
-from vos import toolenv
+from vos import compiler_provenance, toolenv
 from vos.cli import boot_crypto as cli
 
 
@@ -141,22 +142,16 @@ def target_bounds_bind_lengths() -> None:
 def compiler_source_drift_refuses() -> None:
     with tempfile.TemporaryDirectory() as name:
         work = Path(name)
-        compiler, source = work / "ccomp", work / "source.v"
-        compiler.write_bytes(b"compiler fixture")
-        source.write_bytes(b"source fixture")
-        result = {"passed": True, "inputs_unchanged": True, "revision": "fixture-revision",
-                  "compiler_sha256": b.receipts.digest(compiler)}
-        (work / "build-result.json").write_text(json.dumps(result), encoding="utf-8")
-        (work / "build-inputs.json").write_text(json.dumps({"source.v": {
-            "canonical_sha256": b.receipts.digest(source)}}), encoding="utf-8")
-        ensure(target.compiler_provenance(compiler)[0]["source_count"] == 1, "compiler receipt refused")
-        alias = work / "path-alias"
+        compiler = compiler_fixture.create(work)
+        source, lock = compiler.parent / "source.v", work / compiler_provenance.LOCK
+        ensure(target.compiler_provenance(compiler, lock)[0]["source_count"] == 1, "compiler receipt refused")
+        alias = compiler.parent / "path-alias"
         alias.mkdir()
-        ensure(target.compiler_provenance(alias / ".." / "ccomp") == target.compiler_provenance(compiler),
+        ensure(target.compiler_provenance(alias / ".." / "ccomp", lock) == target.compiler_provenance(compiler, lock),
                "compiler directory alias changed source containment")
         source.write_bytes(b"changed source")
         try:
-            target.compiler_provenance(compiler)
+            target.compiler_provenance(compiler, lock)
         except ValueError:
             return
         raise AssertionError("changed retained compiler source accepted")
@@ -184,9 +179,11 @@ def _staged_root(root: Path) -> None:
         (directory / f"{mode}.s").write_bytes(target.HEADER.encode("utf-8") + raw)
         modes[mode] = {"file": f"{mode}.s", "assembly_sha256": b.sha(raw), "argv": ["ccomp"],
                        "sum_of_function_frames": 16, "lines": len(_STREAM.splitlines())}
+    compiler = compiler_fixture.create(root)
+    provenance, _ = compiler_provenance.read(compiler, root / compiler_provenance.LOCK)
     (root / target.MANIFEST).write_text(json.dumps({
         "schema": 1, "source": target.SOURCE, "stack_bytes": target.STACK_BYTES,
-        "compiler_provenance": {"revision": "fixture"}, "compiler_inputs_sha256": {},
+        "compiler_provenance": provenance, "compiler_inputs_sha256": {},
         "sources_sha256": {name: b.sha(data) for name, data in _SOURCES.items()},
         "search_directories": {"firmware/crypto": ["signature_target.c"],
                                "firmware/include": ["vos_fixture.h"]},
@@ -232,6 +229,17 @@ def staged_streams_bind_manifest_and_sources() -> None:
 
     unbound = _SOURCES["firmware/include/vos_fixture.h"]
     controls: list[tuple[str, Callable[[Path], object], str]] = [
+        ("empty compiler provenance", lambda root: _edit_json(root / target.MANIFEST,
+            lambda data: data.update(compiler_provenance={})), "complete contained compiler provenance"),
+        ("absent compiler receipt", lambda root: _edit_json(root / target.MANIFEST,
+            lambda data: data["compiler_provenance"].update(build_receipt="absent")),
+         "complete contained compiler provenance"),
+        *[(f"missing {role}", lambda root, role=role: _edit_json(root / target.MANIFEST,
+            lambda data: data["compiler_provenance"]["toolchain"].pop(role)),
+           f"missing {role} identity") for role in compiler_provenance.TOOLS],
+        *[(f"mismatched {role}", lambda root, role=role: _edit_json(root / target.MANIFEST,
+            lambda data: data["compiler_provenance"]["toolchain"][role].update(version="0")),
+           f"{role} identity disagrees") for role in compiler_provenance.TOOLS],
         ("stale source", lambda root: (root / target.SOURCE).write_bytes(b"int changed;\n"),
          f"{target.SOURCE} changed since staging"),
         ("removed header", lambda root: (root / "firmware/include/vos_fixture.h").unlink(),
@@ -310,12 +318,13 @@ def _stage_fixture(root: Path, shift: str | None = None) -> Callable[..., object
 
 
 def staging_writes_what_staged_accepts() -> None:
-    provenance = ({"revision": "fixture"}, {"/native/build-result.json": "r", "/native/build-inputs.json": "i"})
     with tempfile.TemporaryDirectory() as name:
         root = Path(name).resolve()
         for source, data in _SOURCES.items():
             (root / source).parent.mkdir(parents=True, exist_ok=True)
             (root / source).write_bytes(data)
+        compiler = compiler_fixture.create(root)
+        provenance = compiler_provenance.read(compiler, root / compiler_provenance.LOCK)
         out = root.parent / f"{root.name}-out"
 
         def staging(check: bool, shift: str | None = None,

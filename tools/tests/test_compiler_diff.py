@@ -21,9 +21,11 @@ from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 from typing import Final
+from unittest.mock import patch
 
+from tests import compiler_fixture
 from tests.harness import Case, ensure
-from vos import asm, env, trace
+from vos import asm, compiler_provenance, env, trace
 from vos.cli import compiler_diff as cd
 from vos.cli.model import verified_build
 from vos.jsonc import Json
@@ -808,6 +810,8 @@ def _cli_program() -> None:
                    for p in payload["programs"]), "each program's refusals name jr")
         ensure(payload["ccomp"]["sha256"] is not None and payload["simulator"] is None,
                "the compiler is identified and the absent emulator is said")
+        ensure(payload["ccomp"]["provenance"]["build_receipt"] == "absent",
+               "an executable with no contained receipt claimed a locked toolchain")
         ensure(_run_cli(base)[0] == 1, "without --expect-refusal a refused stream is not green")
         baseline = scratch / "refused.json"
         baseline.write_text(first[1], encoding="utf-8")
@@ -1042,6 +1046,25 @@ def _cli_component_and_generate() -> None:
                    for row in manifest["programs"]), "each row digests its file")
 
 
+def _locked_toolchain_in_both_reports() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        scratch = Path(td)
+        ccomp = _wrapper(scratch, "ccomp", _script(scratch, "fake_ccomp", FAKE_CCOMP))
+        sim = _wrapper(scratch, "sim", _script(scratch, "fake_sim", FAKE_SIM))
+        compiler_fixture.create(scratch, ccomp)
+        given = scratch / "given.c"
+        given.write_text(DIALECT_C, encoding="utf-8")
+        common = ["--ccomp", str(ccomp), "--simulator", str(sim), "--json"]
+        with patch.object(compiler_provenance, "find_root", return_value=scratch):
+            program = _run_cli(["program", *common, str(given)])
+            component = _run_cli(["component", *common, "--c", str(given)])
+        ensure(program[0] == component[0] == 0, "locked compiler reports refused a positive fixture")
+        expected = compiler_provenance.read(ccomp, scratch / compiler_provenance.LOCK)[0]
+        first, second = json.loads(program[1]), json.loads(component[1])
+        ensure(first["ccomp"]["provenance"] == second["bindings"]["ccomp"]["provenance"] == expected,
+               "program/component reports dropped or changed native tool identities")
+
+
 def cases() -> list[Case]:
     return [
         Case("generator-is-deterministic", _generator_is_deterministic),
@@ -1068,4 +1091,5 @@ def cases() -> list[Case]:
         Case("preprocessed-input-is-frozen-for-both-readings", _preprocessed_input_is_frozen_for_both_readings),
         Case("component-rejects-missing-or-wrong-evidence", _component_rejects_missing_or_wrong_evidence),
         Case("cli-component-and-generate", _cli_component_and_generate),
+        Case("locked native tools in both compiler reports", _locked_toolchain_in_both_reports),
     ]

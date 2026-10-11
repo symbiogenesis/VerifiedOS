@@ -1071,10 +1071,12 @@ def freeze_findings(root: Path, manifest: Mapping[str, Any]) -> list[str]:
             found.append(f"no chain unit compiled {path}")
         elif sources[path] != crypto_sources.get(path):
             found.append(f"{path} as the chain compiled it is not {boot_crypto_target.MANIFEST}'s")
-    chain_compiler = manifest.get("compiler_provenance", {})
-    crypto_compiler = crypto.get("compiler_provenance", {})
+    chain_compiler = boot_crypto_target.portable_provenance(
+        manifest.get("compiler_provenance"), root / boot_crypto_target.LOCK)
+    crypto_compiler = boot_crypto_target.portable_provenance(
+        crypto.get("compiler_provenance"), root / boot_crypto_target.LOCK)
     found += [f"the chain's compiler {key} is not {boot_crypto_target.MANIFEST}'s"
-              for key in ("revision", "compiler_sha256")
+              for key in ("revision", "compiler_sha256", "toolchain")
               if not chain_compiler.get(key) or chain_compiler.get(key) != crypto_compiler.get(key)]
     ini = manifest.get("compiler_inputs_sha256", {}).get("compcert.ini")
     if ini is None or ini != crypto.get("compiler_inputs_sha256", {}).get("compcert.ini"):
@@ -1149,6 +1151,8 @@ def staged(root: Path) -> Staged:
             or manifest.get("generator") != GENERATOR or manifest.get("contract") != bh.CONTRACT
             or not isinstance(manifest.get("floor"), int)):
         raise ValueError("the staged manifest does not describe this campaign")
+    boot_crypto_target.portable_provenance(
+        manifest.get("compiler_provenance"), root / boot_crypto_target.LOCK)
     f = facts(root, cast("int", manifest["floor"]))
     files = manifest.get("files_sha256")
     if not isinstance(files, dict) or set(files) != set(STAGED_FILES) - {"manifest.json"}:

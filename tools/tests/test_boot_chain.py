@@ -20,12 +20,12 @@ from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import patch
 
-from tests import test_fanout_ci, test_guest_report
+from tests import compiler_fixture, test_fanout_ci, test_guest_report
 from tests.harness import TOOLS, Case, ensure
 from tests.test_boot_crypto import _STREAM
 from vos import boot_chain as bc
 from vos import boot_chain_target as target
-from vos import boot_crypto_target, receipts
+from vos import boot_crypto_target, compiler_provenance, receipts
 from vos import boot_handoff as bh
 from vos.checks import generated
 from vos.cli import boot_handoff as cli
@@ -556,11 +556,13 @@ def _checkout(root: Path) -> None:
                           if path != bh.HEADER}, **_SOURCES}.items():
         (root / name).parent.mkdir(parents=True, exist_ok=True)
         (root / name).write_bytes(data)
+    compiler = compiler_fixture.create(root)
+    provenance, _ = compiler_provenance.read(compiler, root / compiler_provenance.LOCK)
     crypto = root / boot_crypto_target.MANIFEST
     crypto.parent.mkdir(parents=True, exist_ok=True)
     crypto.write_text(json.dumps({
         "sources_sha256": {path: receipts.digest(root / path) for path in bc.FROZEN},
-        "compiler_provenance": {"revision": "fixture", "compiler_sha256": "c" * 64},
+        "compiler_provenance": provenance,
         "compiler_inputs_sha256": {"compcert.ini": "ini"}}), encoding="utf-8")
 
 
@@ -620,16 +622,17 @@ class _MlDsa:
 
 def _staging(root: Path, out: Path) -> contextlib.ExitStack:
     rot, mmode = _composers()
+    compiler = root / "build/ccomp"
+    provenance = compiler_provenance.read(compiler, root / compiler_provenance.LOCK)
     stack = contextlib.ExitStack()
     for owner, attribute, value in (
-            (boot_crypto_target, "compiler_provenance", lambda _: (
-                {"revision": "fixture", "compiler_sha256": "c" * 64, "kind": "fixture", "source_count": 1},
-                {"/native/build-result.json": "r", "/native/build-inputs.json": "i"})),
+            (boot_crypto_target, "compiler_provenance", lambda _: provenance),
             (boot_crypto_target, "staged", lambda _: ({}, {})),
             (target.boot_target, "compiler_inputs", lambda _: {"/native/compcert.ini": "ini"}),
             (target, "rot_composer", lambda: rot), (target, "mmode_composer", lambda: mmode),
             (cd, "compile_c", _compile_c(root)), (target.boot_signing, "SlhSigner", _Slh),
             (target, "MlDsaSigner", _MlDsa),
+            (target.boot_crypto, "openssl_identity", lambda _: {"binaries": {"openssl": "fixture"}}),
             (target.boot_crypto, "openssl_verify",
              lambda _, case: _verify(case.mode, case.pk, case.message, case.signature))):
         stack.enter_context(patch.object(owner, attribute, value))
@@ -675,6 +678,16 @@ def _staging_writes_what_staged_accepts() -> None:
         def copy(root: Path) -> None:
             shutil.copytree(template, root)
         controls: list[tuple[str, Callable[[Path], object], str]] = [
+            *[(f"{owner} missing {role}", lambda root, owner=owner, role=role: _edit_json(
+                root / owner, lambda data: data["compiler_provenance"]["toolchain"].pop(role)),
+               f"missing {role} identity")
+              for owner in (bc.MANIFEST, boot_crypto_target.MANIFEST)
+              for role in compiler_provenance.TOOLS],
+            *[(f"{owner} mismatched {role}", lambda root, owner=owner, role=role: _edit_json(
+                root / owner, lambda data: data["compiler_provenance"]["toolchain"][role].update(version="0")),
+               f"{role} identity disagrees")
+              for owner in (bc.MANIFEST, boot_crypto_target.MANIFEST)
+              for role in compiler_provenance.TOOLS],
             ("a changed stream", lambda root: (root / staged_dir / "rom.s").write_bytes(
                 (root / staged_dir / "rom.s").read_bytes().replace(b"x11", b"x12")), "differs from its manifest"),
             ("a changed bound source", lambda root: (root / "firmware/chain/rom.c").write_bytes(b"int x;\n"),
@@ -867,6 +880,126 @@ def _join_refuses_inconsistent_shards() -> None:
                f"chain-join refused written shards: {joined.get('error')}")
 
 
+def _preserving_stage_refuses_changed_inputs() -> None:
+    with tempfile.TemporaryDirectory() as name:
+        base = Path(name)
+        template, out = base / "template", base / "original"
+        _checkout(template)
+        with _staging(template, out):
+            target.stage(template, out, Path("ccomp"), ["-conf", str(out / "compcert.ini")])
+        # The old receipt's absent lock is historical; refresh uses the new native identity.
+        _edit_json(template / bc.MANIFEST,
+                   lambda data: data["compiler_provenance"].pop("toolchain"))
+
+        def snapshot(root: Path) -> dict[str, bytes]:
+            return {path.name: path.read_bytes() for path in (root / bc.STAGED).iterdir()}
+
+        root = base / "positive"
+        shutil.copytree(template, root)
+        before = snapshot(root)
+        fresh = base / "positive-native"
+        with _staging(root, fresh), patch.object(target.boot_signing, "SlhSigner", side_effect=AssertionError), \
+                patch.object(target, "MlDsaSigner", side_effect=AssertionError):
+            result = target.stage(root, fresh, Path("ccomp"), [], preserve_images=True)
+            target.verify(root)
+        after = snapshot(root)
+        ensure(result["passed"] and result["signing"]["preserved_images"]
+               and result["manifest"]["compiler_provenance"]["toolchain"]
+               and {key: value for key, value in before.items() if key != "manifest.json"}
+               == {key: value for key, value in after.items() if key != "manifest.json"},
+               "refresh changed signed inputs or reused historical provenance")
+
+        def flip_signature(root: Path) -> None:
+            path = root / bc.IMAGES
+            data = json.loads(path.read_text(encoding="utf-8"))
+            f = bc.facts(root)
+            original = bytes.fromhex(data["images"]["stage0"])
+            changed = bc.flip(original, f["BOOT_HDR_SIGNATURE"] + bc.SIGNATURE_FLIP_AT)
+            data["images"]["stage0"] = changed.hex()
+            path.write_bytes(target._json(data))
+
+            def bind_changed_signature(manifest: dict[str, Any]) -> None:
+                manifest["files_sha256"].update({"images.json": receipts.digest(path)})
+                manifest["images"]["stage0"].update({"sha256": hashlib.sha256(changed).hexdigest()})
+
+            _edit_json(root / bc.MANIFEST, bind_changed_signature)
+
+        for label, message in (("compiled", "byte-identical recompilation"),
+                               ("signature", "OpenSSL refused"),
+                               ("layout", "no longer lays"),
+                               ("missing", "every existing staged file")):
+            root, fresh = base / label, base / f"{label}-native"
+            shutil.copytree(template, root)
+            if label == "signature":
+                flip_signature(root)
+            elif label == "missing":
+                (root / bc.IMAGES).unlink()
+            before = snapshot(root)
+            with _staging(root, fresh), contextlib.ExitStack() as stack:
+                if label == "compiled":
+                    original_compile = target.compile_unit
+
+                    def changed_compile(*args: Any, **kwargs: Any) -> tuple[cd.Compiled, bytes]:  # noqa: ANN401
+                        compiled, raw = original_compile(*args, **kwargs)  # noqa: B023
+                        return compiled, raw + b"\n# changed output\n"
+
+                    stack.enter_context(patch.object(target, "compile_unit", changed_compile))
+                elif label == "layout":
+                    rot, _ = _composers()
+                    rot.runtime_payload = lambda *_: b"different payload"
+                    stack.enter_context(patch.object(target, "rot_composer", lambda rot=rot: rot))
+                try:
+                    target.stage(root, fresh, Path("ccomp"), [], preserve_images=True)
+                except ValueError as error:
+                    ensure(message in str(error), f"{label} refused for another reason: {error}")
+                else:
+                    raise AssertionError(f"refresh accepted changed {label}")
+            ensure(snapshot(root) == before, f"refused {label} refresh wrote staged inputs")
+
+
+def _verification_keeps_tool_identity() -> None:
+    with tempfile.TemporaryDirectory() as name:
+        base = Path(name)
+        for preserve in (False, True):
+            for role in ("verifier", "signer"):
+                if preserve and role == "signer":
+                    continue
+                root, out = base / f"{preserve}-{role}", base / f"native-{preserve}-{role}"
+                _checkout(root)
+                with _staging(root, out):
+                    target.stage(root, out, Path("ccomp"), [])
+                before = {p.name: p.read_bytes() for p in (root / bc.STAGED).iterdir()}
+                state = {"verifying": False}
+
+                def verifier_identity(_: Path, role: str = role,
+                                      state: dict[str, bool] = state) -> dict[str, object]:
+                    return {"binaries": {"openssl": "changed" if state["verifying"] and role == "verifier"
+                                         else "initial"}}
+
+                def verify(_: Path, case: boot_crypto_target.boot_crypto.Case,
+                           state: dict[str, bool] = state) -> bool:
+                    state["verifying"] = True
+                    return _verify(case.mode, case.pk, case.message, case.signature)
+
+                def signer_identity(_: _Slh, role: str = role,
+                                    state: dict[str, bool] = state) -> dict[str, object]:
+                    return {"scheme": "changed" if state["verifying"] and role == "signer" else "initial"}
+
+                with (_staging(root, out),
+                      patch.object(target.boot_crypto, "openssl_identity", verifier_identity),
+                      patch.object(target.boot_crypto, "openssl_verify", verify),
+                      patch.object(_Slh, "identity", signer_identity)):
+                    try:
+                        target.stage(root, out, Path("ccomp"), [], preserve_images=preserve)
+                    except ValueError as error:
+                        ensure("identity changed during signature verification" in str(error),
+                               f"tool drift refused for another reason: {error}")
+                    else:
+                        raise AssertionError(f"accepted verifier-phase {role} drift")
+                ensure({p.name: p.read_bytes() for p in (root / bc.STAGED).iterdir()} == before,
+                       "verifier-phase tool drift wrote staged inputs")
+
+
 def _cli_takes_one_selection() -> None:
     seen: list[Any] = []
 
@@ -889,6 +1022,8 @@ def _cli_takes_one_selection() -> None:
         ensure(seen[-1].reports == ["a.json", "b.json"], "the join's shard receipts did not parse")
         cli.main(["chain-stage", "--ccomp", "ccomp", "--ccomp-arg=-conf", "--ccomp-arg=ini"])
         ensure(seen[-1].ccomp_arg == ["-conf", "ini"], "compiler arguments did not parse")
+        cli.main(["chain-stage", "--ccomp", "ccomp", "--preserve-images"])
+        ensure(seen[-1].preserve_images, "image preservation did not parse")
         for argv in ([*required], [*required, "--case", "cold-boot", "--group", "watchdog"],
                      [*required, "--case", "invented"], [*required, "--group", "boot"],
                      [*required[:1], *required[2:], "--case", "cold-boot"],
@@ -968,6 +1103,53 @@ def _generated_rows_admit_only_whole_absence() -> None:
                f"a partial staging the index lacks passed: {found}")
 
 
+def _campaign_keeps_compiler_lock() -> None:
+    """The real run path records its portable producer lock and refuses drift."""
+    for mutate in (False, True):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            compiler = compiler_fixture.create(root)
+            lock = root / compiler_provenance.LOCK
+            expected = receipts.digest(lock)
+            provenance, _ = compiler_provenance.read(compiler, lock)
+            manifest = {"floor": 0, "compiler_provenance": provenance,
+                        "compiler_inputs_sha256": {}, "freeze": {}}
+            (root / bc.MANIFEST).parent.mkdir(parents=True)
+            (root / bc.MANIFEST).write_text("{}", encoding="utf-8")
+            simulator, build = root / "simulator", root / "model-build.json"
+            simulator.write_bytes(b"simulator")
+            build.write_text("{}", encoding="utf-8")
+            f = bc.facts(ROOT)
+            found = SimpleNamespace(manifest=manifest, inputs=lambda f=f: _inputs(f))
+            selected = "watchdog-stalled-no-clock"
+
+            def execute(*_: object, mutate: bool = mutate, lock: Path = lock) -> dict[str, object]:
+                if mutate:
+                    lock.write_text(lock.read_text(encoding="utf-8") + "# drift\n", encoding="utf-8")
+                return {"passed": True}
+
+            with (patch.object(target.receipts, "inputs", return_value={}),
+                  patch.object(target.kernel_restore, "require_build"),
+                  patch.object(bc, "require_cases", return_value=[SimpleNamespace(name=selected)]),
+                  patch.object(bh, "boot_control_declared", return_value=True),
+                  patch.object(target, "rot_composer"), patch.object(target, "mmode_composer"),
+                  patch.object(bc, "staged", return_value=found),
+                  patch.object(target, "layouts", return_value=[]),
+                  patch.object(bc, "facts", return_value=f),
+                  patch.object(bc, "vacuity_findings", return_value=[]),
+                  patch.object(target, "runtime_only_case", side_effect=execute)):
+                try:
+                    report = target.run(root, root / "out", simulator, build, (selected,),
+                                        timeouts=target.TIMEOUTS)
+                except ValueError as error:
+                    ensure(mutate and "compiler lock changed" in str(error),
+                           f"campaign refused for another reason: {error}")
+                    continue
+            ensure(not mutate and report["passed"]
+                   and report["inputs_sha256"][str(lock)] == expected,
+                   "campaign accepted changed lock or omitted its identity")
+
+
 def cases() -> list[Case]:
     return [Case("section 5's encoding, against its definition and the bring-up", _encoding_known_answers),
             Case("records follow the contract's tables", _records_follow_the_contract),
@@ -980,8 +1162,13 @@ def cases() -> list[Case]:
             Case("main-die cases take cold-boot's outputs", _main_die_takes_cold_boot),
             Case("watchdog cases read the bite's ticks", _watchdog_cases_read_the_bite),
             Case("staging writes what the staged check accepts", _staging_writes_what_staged_accepts),
+            Case("provenance refresh preserves signed inputs and refuses changes",
+                 _preserving_stage_refuses_changed_inputs),
+            Case("signature verification retains tool identity before publication",
+                 _verification_keeps_tool_identity),
             Case("the case set is the contract's table", _case_set_is_the_contract_table),
             Case("the join refuses inconsistent shards", _join_refuses_inconsistent_shards),
             Case("the CLI takes exactly one selection", _cli_takes_one_selection),
             Case("the workflow runs every case group", _workflow_runs_every_case),
-            Case("generated rows admit only whole absence", _generated_rows_admit_only_whole_absence)]
+            Case("generated rows admit only whole absence", _generated_rows_admit_only_whole_absence),
+            Case("chain campaign binds its compiler lock and refuses drift", _campaign_keeps_compiler_lock)]

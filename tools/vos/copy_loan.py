@@ -20,7 +20,17 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from vos import asm, dialect, image, jsonc, kernel_restore, kernelrun, receipts, trace
+from vos import (
+    asm,
+    compiler_provenance,
+    dialect,
+    image,
+    jsonc,
+    kernel_restore,
+    kernelrun,
+    receipts,
+    trace,
+)
 from vos.cli import compiler_diff as cd
 
 
@@ -281,6 +291,7 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path, build_receipt: P
     root, ccomp, config, simulator, build_receipt, out = (
         p.resolve() for p in (root, ccomp, config, simulator, build_receipt, out))
     out.mkdir(parents=True, exist_ok=True)
+    provenance, provenance_files = compiler_provenance.read(ccomp)
     receipts.write(out / "report.json", {"status": "incomplete", "ok": False})
     inputs = ("kernel/include/vos_copy_loan.h", "kernel/src/copy_loan.c", "kernel/test/copy_loan_target.c",
               "kernel/include/vos_effects.h", "kernel/include/vos_platform.h", "kernel/include/vos_kernel.h",
@@ -333,7 +344,10 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path, build_receipt: P
                       "image_sha256": receipts.digest(elf), "profile_sha256": receipts.digest(profile_path)})
     unchanged = sources == receipts.inputs(root, *inputs) and external == {
         str(p): receipts.digest(p) for p in (ccomp, config, simulator, build_receipt)}
-    report = {"status": "complete", "sources": sources, "external": external,
+    if not compiler_provenance.unchanged(provenance_files):
+        raise ValueError("contained compiler build receipt changed during execution")
+    report = {"compiler_provenance": provenance, "compiler_receipts_sha256": provenance_files,
+            "status": "complete", "sources": sources, "external": external,
               "preprocessed_sha256": compiled.preprocessed.sha256, "cases": cases,
               "limits": "Actual fixed-shape helper controls, not arbitrary no-capture proof or roster join.",
               "inputs_unchanged": unchanged, "ok": unchanged and all(c["matched"] for c in cases)}

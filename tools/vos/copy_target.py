@@ -9,7 +9,7 @@ from collections import deque
 from pathlib import Path
 from typing import cast
 
-from vos import asm, copy_service, image, kernel_restore, receipts, trace
+from vos import asm, compiler_provenance, copy_service, image, kernel_restore, receipts, trace
 from vos.boot_target import compiler_inputs
 from vos.cli import compiler_diff as cd
 
@@ -319,6 +319,7 @@ def run(root: Path, out: Path, reference: Path, ccomp: Path, arguments: list[str
     root, out, reference, ccomp, simulator, build_receipt = (
         p.resolve() for p in (root, out, reference, ccomp, simulator, build_receipt))
     out.mkdir(parents=True, exist_ok=True)
+    provenance, provenance_files = compiler_provenance.read(ccomp)
     (out / "report.json").write_text('{"verdict":"incomplete"}\n', encoding="utf-8")
     sources = receipts.inputs(root, *INPUTS)
     model_sources = receipts.inputs(root, "model")
@@ -380,7 +381,9 @@ def run(root: Path, out: Path, reference: Path, ccomp: Path, arguments: list[str
                  and build_sha == receipts.digest(build_receipt))
     if not unchanged:
         raise ValueError("copy target inputs changed during execution")
-    report: dict[str, object] = {
+    if not compiler_provenance.unchanged(provenance_files):
+        raise ValueError("contained compiler build receipt changed during execution")
+    report: dict[str, object] = {"compiler_provenance": provenance, "compiler_receipts_sha256": provenance_files,
         "schema": 1, "verdict": "pass", "milestone_acceptance": "open",
         "sources": sources, "compiler_sha256": compiler_sha, "compiler_inputs": private,
         "simulator_sha256": simulator_sha, "model_build_sha256": build_sha,

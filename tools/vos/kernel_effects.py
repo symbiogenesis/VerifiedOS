@@ -17,6 +17,7 @@ from pathlib import Path
 from vos import (
     asm,
     boot_handoff,
+    compiler_provenance,
     dialect,
     kernel_restore,
     kernel_target,
@@ -344,6 +345,7 @@ def protected_run(root: Path, ccomp: Path, config: Path, runner: Path,
     root, ccomp, config, runner, simulator, build_receipt, out = (
         path.resolve() for path in (root, ccomp, config, runner, simulator, build_receipt, out))
     out.mkdir(parents=True, exist_ok=True)
+    provenance, provenance_files = compiler_provenance.read(ccomp)
     if any((out / name).exists() for name in ("timer", "plain", "controls")):
         raise ValueError("protected-frame campaign requires fresh native output children")
     receipts.write(out / "report.json", {"status": "incomplete", "ok": False})
@@ -406,7 +408,10 @@ def protected_run(root: Path, ccomp: Path, config: Path, runner: Path,
                  for path in out.rglob("*") if path.is_file() and
                  path.name in {"result.json", "program.elf", "program.s", "trace.log",
                                "program.boundary.json", "program.c", "program.i"}}
-    report = {"status": "complete", "scope": "actual contained depth-two fixture; explicit one-instruction clock",
+    if not compiler_provenance.unchanged(provenance_files):
+        raise ValueError("contained compiler build receipt changed during execution")
+    report = {"compiler_provenance": provenance, "compiler_receipts_sha256": provenance_files,
+            "status": "complete", "scope": "actual contained depth-two fixture; explicit one-instruction clock",
               "milestone_acceptance": "open", "external_inputs": external, "sources": sources,
               "model_sources": model, "executions": executions, "artifacts": artifacts,
               "observations": observed, "timer_cut_count": len(timer["cases"]),

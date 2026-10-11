@@ -2,17 +2,21 @@
 """M1.7 client evidence controls, especially frame-save false positives, and the
 lowering's opam reads, which answer no question."""
 
+import copy
 import importlib.util
+import json
 import os
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 from unittest.mock import patch
 
+from tests import compiler_fixture, test_simulator_build
 from tests.harness import Case, ensure
-from vos import env
+from vos import compiler_provenance, env, receipts
 
 
 def _module() -> ModuleType:
@@ -116,8 +120,65 @@ def _opam_reads_decline() -> None:
                f"{call.args[0]} answers no question and keeps the root: {sorted(passed)}")
 
 
+def _producer_receipts() -> None:
+    recipe = _module()
+    with tempfile.TemporaryDirectory(prefix="vos-hello-identities-") as name:
+        root = Path(name)
+        simulator, path, focused = test_simulator_build.fixture(root)
+        compiler = compiler_fixture.create(root)
+        with (patch.object(recipe, "ROOT", root),
+              patch.object(recipe, "COMPILER_SHA256", receipts.digest(compiler))):
+            ensure(recipe.accepted_compiler(compiler)[0]["build_receipt"] == "present",
+                   "HELLO refused its complete locked compiler")
+            result_path = compiler.parent / "build-result.json"
+            original = json.loads(result_path.read_text(encoding="utf-8"))
+            for role in compiler_provenance.TOOLS:
+                for missing in (True, False):
+                    record = copy.deepcopy(original)
+                    if missing:
+                        del record["toolchain"][role]
+                    else:
+                        record["toolchain"][role]["version"] = "0"
+                    receipts.write(result_path, record)
+                    try:
+                        recipe.accepted_compiler(compiler)
+                    except ValueError:
+                        continue
+                    raise AssertionError("HELLO accepted missing/mismatched compiler identity")
+            receipts.write(result_path, original)
+        with patch.object(receipts, "inputs", side_effect=test_simulator_build._inputs):
+            receipts.write(path, focused)
+            record, selected = recipe.model_receipt(root, simulator, path)
+            ensure(record["bundled_model_tests"] == "not-run" and len(selected) == 2,
+                   "HELLO's focused route claims complete model acceptance")
+            complete: dict[str, Any] = {"schema": 1, "exit_code": 0,
+                        "stages": {"configure": 0, "build": 0, "ctest": 0},
+                        "identity": {"inputs": selected, "tools": {"/sail": "1" * 64}},
+                        "artifacts": {"c_emulator/sail_riscv_sim": receipts.digest(simulator)}}
+            receipts.write(path, complete)
+            ensure(recipe.model_receipt(root, simulator, path)[0]["stages"] == complete["stages"],
+                   "HELLO refused the separate complete receipt route")
+            for change in ("ctest-failed", "stages-missing", "tools-missing", "artifact-changed"):
+                damaged = copy.deepcopy(complete)
+                if change == "ctest-failed":
+                    damaged["stages"]["ctest"] = 1
+                elif change == "stages-missing":
+                    del damaged["stages"]
+                elif change == "tools-missing":
+                    damaged["identity"]["tools"] = {}
+                else:
+                    damaged["artifacts"]["c_emulator/sail_riscv_sim"] = "0" * 64
+                receipts.write(path, damaged)
+                try:
+                    recipe.model_receipt(root, simulator, path)
+                except ValueError:
+                    continue
+                raise AssertionError("HELLO confused a partial receipt with complete acceptance")
+
+
 def cases() -> list[Case]:
     return [Case("client slots exclude frame saves and invalidated values", _client_slots),
             Case("client extraction excludes the external preamble", _preamble_exclusion),
             Case("the lowering's opam reads decline the client's questions",
-                 _opam_reads_decline)]
+                 _opam_reads_decline),
+            Case("HELLO binds locked compiler and distinguishes model acceptance", _producer_receipts)]

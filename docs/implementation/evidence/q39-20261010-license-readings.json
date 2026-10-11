@@ -1,0 +1,86 @@
+[
+  {
+    "package": "OCaml4.14.2",
+    "archive_sha256": "c2d706432f93ba85bd3383fa451d74543c32a4e84a1afaf3e8ace18f7f097b43",
+    "source_file": "ocaml-4.14.2/LICENSE",
+    "license_sha256": "65f47d3bf5a921011ac7fa30f23d54f9dffbe7683921eeb116d5ce8dc26ff0c1",
+    "path": "/root/build/lane-checklist-20261010-c/q39/license-readings/OCaml4.14.2/LICENSE"
+  },
+  {
+    "package": "OCaml4.14.2",
+    "archive_sha256": "c2d706432f93ba85bd3383fa451d74543c32a4e84a1afaf3e8ace18f7f097b43",
+    "source_file": "ocaml-4.14.2/manual/LICENSE-for-the-manual",
+    "license_sha256": "6b4ae3e45e649d9e0a4543c5d47b7f0ed363b21b937755e9cc8a34f56e1f3b18",
+    "path": "/root/build/lane-checklist-20261010-c/q39/license-readings/OCaml4.14.2/manual/LICENSE-for-the-manual"
+  },
+  {
+    "package": "Menhir20260209",
+    "archive_sha256": "69f0414b047d1d5b3507eb8277cd328a60d430bdff51de912b47adb2c25de4f3",
+    "source_file": "menhir-20260209-0c6d021629bafa2fa32302d01d9594d2a026ec75/LICENSE",
+    "license_sha256": "9c97527b92b577647880abd2a5eaf5bf0f3b3df1bd09d9f93fc4e103eb1d30d5",
+    "path": "/root/build/lane-checklist-20261010-c/q39/license-readings/Menhir20260209/LICENSE"
+  },
+  {
+    "package": "Menhir20260209",
+    "archive_sha256": "69f0414b047d1d5b3507eb8277cd328a60d430bdff51de912b47adb2c25de4f3",
+    "source_file": "menhir-20260209-0c6d021629bafa2fa32302d01d9594d2a026ec75/coq-menhirlib/LICENSE",
+    "license_sha256": "218c42550a9b4ff6e48bf38218908755fe156b2e5c586531c2eb8893248a102d",
+    "path": "/root/build/lane-checklist-20261010-c/q39/license-readings/Menhir20260209/coq-menhirlib/LICENSE"
+  },
+  {
+    "package": "Menhir20260209",
+    "archive_sha256": "69f0414b047d1d5b3507eb8277cd328a60d430bdff51de912b47adb2c25de4f3",
+    "source_file": "menhir-20260209-0c6d021629bafa2fa32302d01d9594d2a026ec75/fix/LICENSE",
+    "license_sha256": "8ebe56c3613a223602ad655423306d19122393e6675120b108f5c788f80d4acd",
+    "path": "/root/build/lane-checklist-20261010-c/q39/license-readings/Menhir20260209/fix/LICENSE"
+  },
+  {
+    "package": "Menhir20260209",
+    "archive_sha256": "69f0414b047d1d5b3507eb8277cd328a60d430bdff51de912b47adb2c25de4f3",
+    "source_file": "menhir-20260209-0c6d021629bafa2fa32302d01d9594d2a026ec75/pprint/LICENSE",
+    "license_sha256": "b2da8502c62dc4f2b5c7c06476b8a5996a018735ccbbb0441516a61cc2d37d39",
+    "path": "/root/build/lane-checklist-20261010-c/q39/license-readings/Menhir20260209/pprint/LICENSE"
+  },
+  {
+    "package": "Rocq9.1.0",
+    "archive_sha256": "b236dc44f92e1eeca6877c7ee188a90c2303497fe7beb99df711ed5a7ce0d824",
+    "source_file": "rocq-9.1.0/LICENSE",
+    "license_sha256": "d4594b82f4d50840df6a7e9d14132a8c0a3cc05d0ac46d15310a264a1f75447e",
+    "path": "/root/build/lane-checklist-20261010-c/q39/license-readings/Rocq9.1.0/LICENSE"
+  },
+  {
+    "package": "Rocq9.1.0",
+    "archive_sha256": "b236dc44f92e1eeca6877c7ee188a90c2303497fe7beb99df711ed5a7ce0d824",
+    "source_file": "rocq-9.1.0/doc/LICENSE",
+    "license_sha256": "11663c87ea837ffc7fa1c22f5c36f8f6e6b60743f8e57e99acd59ba98a2ddd9d",
+    "path": "/root/build/lane-checklist-20261010-c/q39/license-readings/Rocq9.1.0/doc/LICENSE"
+  },
+  {
+    "package": "Rocq9.1.0",
+    "archive_sha256": "b236dc44f92e1eeca6877c7ee188a90c2303497fe7beb99df711ed5a7ce0d824",
+    "source_file": "rocq-9.1.0/gramlib/LICENSE",
+    "license_sha256": "fbd81cea7bc45d02e67b377e20ab3014d9493de360d95a8fdbe349c020aec335",
+    "path": "/root/build/lane-checklist-20261010-c/q39/license-readings/Rocq9.1.0/gramlib/LICENSE"
+  },
+  {
+    "package": "Rocq9.3.0",
+    "archive_sha256": "3f0fc283e8644394aa9c7a6e3995b6d9ebbe1e6dda712bf431f9c372dcef95ad",
+    "source_file": "rocq-9.3.0/LICENSE",
+    "license_sha256": "d4594b82f4d50840df6a7e9d14132a8c0a3cc05d0ac46d15310a264a1f75447e",
+    "path": "/root/build/lane-checklist-20261010-c/q39/license-readings/Rocq9.3.0/LICENSE"
+  },
+  {
+    "package": "Rocq9.3.0",
+    "archive_sha256": "3f0fc283e8644394aa9c7a6e3995b6d9ebbe1e6dda712bf431f9c372dcef95ad",
+    "source_file": "rocq-9.3.0/doc/LICENSE",
+    "license_sha256": "11663c87ea837ffc7fa1c22f5c36f8f6e6b60743f8e57e99acd59ba98a2ddd9d",
+    "path": "/root/build/lane-checklist-20261010-c/q39/license-readings/Rocq9.3.0/doc/LICENSE"
+  },
+  {
+    "package": "Rocq9.3.0",
+    "archive_sha256": "3f0fc283e8644394aa9c7a6e3995b6d9ebbe1e6dda712bf431f9c372dcef95ad",
+    "source_file": "rocq-9.3.0/gramlib/LICENSE",
+    "license_sha256": "fbd81cea7bc45d02e67b377e20ab3014d9493de360d95a8fdbe349c020aec335",
+    "path": "/root/build/lane-checklist-20261010-c/q39/license-readings/Rocq9.3.0/gramlib/LICENSE"
+  }
+]

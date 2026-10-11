@@ -189,14 +189,16 @@ def cmd_chain_stage(args: argparse.Namespace) -> int:
     with env.hold_lock(out, "boot chain staging"):
         receipts.write(out / "stage.json", {"passed": False, "status": "incomplete"})
         try:
-            result = boot_chain_target.stage(e.root, out, Path(args.ccomp), args.ccomp_arg)
+            result = boot_chain_target.stage(e.root, out, Path(args.ccomp), args.ccomp_arg,
+                                             preserve_images=args.preserve_images)
         except _FAILURES as error:
             receipts.write(out / "stage.json", {"passed": False, "status": "failed", "error": str(error)})
             print(f"FAIL boot-handoff chain-stage: {error}")
             return 1
         receipts.write(out / "stage.json", result)
     print(f"ok boot-handoff chain-stage: {boot_chain.STAGED} written; receipt {out / 'stage.json'}; "
-          f"private keys stay under {out / 'signing'}")
+          + ("existing signed images retained" if args.preserve_images else
+             f"private keys stay under {out / 'signing'}"))
     return 0
 
 
@@ -292,6 +294,8 @@ def _chain_flags(name: str, sub: argparse.ArgumentParser) -> None:
     if name == "chain-stage":
         sub.add_argument("--ccomp", required=True, help="accepted contained compiler executable")
         sub.add_argument("--ccomp-arg", action="append", default=[], help="compiler option, repeatable")
+        sub.add_argument("--preserve-images", action="store_true",
+                         help="refresh provenance only after identical streams, layouts and signatures")
         return
     sub.add_argument("--staged", action="store_true", required=True,
                      help=f"execute the staged inputs under {boot_chain.STAGED}, the only source")

@@ -15,6 +15,7 @@ from pathlib import Path
 
 from vos import (
     asm,
+    compiler_provenance,
     copy_notification,
     copy_service,
     copy_target,
@@ -307,6 +308,7 @@ def observations(lines: Iterable[str], symbols: dict[str, int], send: int) -> di
 def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Path,
         build_receipt: Path, timeout: int = 180) -> dict[str, object]:
     out.mkdir(parents=True, exist_ok=True)
+    provenance, provenance_files = compiler_provenance.read(ccomp)
     (out / "report.json").write_text('{"ok":false,"verdict":"incomplete"}\n', encoding="utf-8")
     sources = receipts.inputs(root, *INPUTS)
     model = receipts.inputs(root, "model")
@@ -348,7 +350,10 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
             or compiler_sha != receipts.digest(ccomp) or simulator_sha != receipts.digest(simulator)
             or private != compiler_inputs(arguments) or build_sha != receipts.digest(build_receipt)):
         raise ValueError("copy partition inputs changed during execution")
-    report: dict[str, object] = {"schema": 1, "ok": True, "verdict": "pass", "limits": LIMITS,
+    if not compiler_provenance.unchanged(provenance_files):
+        raise ValueError("contained compiler build receipt changed during execution")
+    report: dict[str, object] = {"compiler_provenance": provenance, "compiler_receipts_sha256": provenance_files,
+            "schema": 1, "ok": True, "verdict": "pass", "limits": LIMITS,
         "layout": layout(), "sources": sources, "model_sources": model,
         "compiler_sha256": compiler_sha, "compiler_inputs": private,
         "simulator_sha256": simulator_sha, "model_build_sha256": build_sha,

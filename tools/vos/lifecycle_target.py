@@ -17,6 +17,7 @@ from pathlib import Path
 from vos import (
     asm,
     boot_handoff,
+    compiler_provenance,
     dialect,
     image,
     jsonc,
@@ -641,6 +642,7 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path,
     root, ccomp, config, simulator, build_receipt, out = (
         p.resolve() for p in (root, ccomp, config, simulator, build_receipt, out))
     out.mkdir(parents=True, exist_ok=True)
+    provenance, provenance_files = compiler_provenance.read(ccomp)
     receipts.write(out / "report.json", {"status": "incomplete", "ok": False})
     inputs = receipts.inputs(root, *INPUTS)
     model = receipts.inputs(root, "model")
@@ -702,7 +704,10 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path,
     unchanged = (inputs == receipts.inputs(root, *INPUTS) and model == receipts.inputs(root, "model") and
                  external == {"ccomp": receipts.digest(ccomp), "config": receipts.digest(config),
                               "simulator": receipts.digest(simulator), "model_receipt": receipts.digest(build_receipt)})
-    report = {"status": "complete", "milestone_acceptance": "open", "sources": inputs,
+    if not compiler_provenance.unchanged(provenance_files):
+        raise ValueError("contained compiler build receipt changed during execution")
+    report = {"compiler_provenance": provenance, "compiler_receipts_sha256": provenance_files,
+            "status": "complete", "milestone_acceptance": "open", "sources": inputs,
               "external": external, "model_sources": model, "bound": bound,
               "profile": {"path": str(profile_path), "sha256": receipts.digest(profile_path)},
               "reaction_bound": reaction, "cases": cases,
