@@ -1,0 +1,189 @@
+{
+  "compiled_count": 10,
+  "compiler_sha256": "3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8",
+  "configuration_sha256": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f",
+  "header_search": "Exact archived runtime/include/verifiedos headers used directly while final build driver retains ownership of the post-kernel header copy. No native compiler tree changes.",
+  "inputs_unchanged": true,
+  "kernel_acceptance": "pending; direct low-level emission diagnostics, not accepted staging or provenance",
+  "native_receipt": {
+    "path": "/root/build/lane-checklist-20261010-c/q39/current-stream-comparison/result.json",
+    "sha256": "277655932d34ab7930250ffdeeea8b483b06a46845890c2511c5e0dbea49df97"
+  },
+  "passed": true,
+  "rows": [
+    {
+      "assembly_sha256": "c5c034e78bd62c21425e039d59b45dc8b6e4f02d798ec69a884965a00cd8239c",
+      "byte_identical": true,
+      "exit": 0,
+      "family": "crypto",
+      "name": "slh",
+      "sources_sha256": {
+        "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+        "firmware/crypto/signature_target.c": "cabed0d3893781e2a08a7bcd6e5bc0e7fd4ea310570e5b36424c02977f63d1da",
+        "firmware/crypto/slh256s.c": "9138f83951aa9c4d8bbb72c0a8f6f56c916584064887451ffa65ef2062a9764f",
+        "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+        "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+        "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329"
+      },
+      "tracked_assembly_sha256": "c5c034e78bd62c21425e039d59b45dc8b6e4f02d798ec69a884965a00cd8239c"
+    },
+    {
+      "assembly_sha256": "698bb32f11560387376d4f5f890124df269a7ce258ace361d731f1487568297f",
+      "byte_identical": true,
+      "exit": 0,
+      "family": "crypto",
+      "name": "slh-internal",
+      "sources_sha256": {
+        "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+        "firmware/crypto/signature_target.c": "cabed0d3893781e2a08a7bcd6e5bc0e7fd4ea310570e5b36424c02977f63d1da",
+        "firmware/crypto/slh256s.c": "9138f83951aa9c4d8bbb72c0a8f6f56c916584064887451ffa65ef2062a9764f",
+        "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+        "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+        "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329"
+      },
+      "tracked_assembly_sha256": "698bb32f11560387376d4f5f890124df269a7ce258ace361d731f1487568297f"
+    },
+    {
+      "assembly_sha256": "d2d86018da0e3902051c3a119e98cc255501d31ef971158862dd8455cea1ef36",
+      "byte_identical": true,
+      "exit": 0,
+      "family": "crypto",
+      "name": "mldsa",
+      "sources_sha256": {
+        "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+        "firmware/crypto/mldsa87.c": "8a71504305a89f2515b1fbe19943a0398411d9d8757f61d7b58998c4bfd800c5",
+        "firmware/crypto/signature_target.c": "cabed0d3893781e2a08a7bcd6e5bc0e7fd4ea310570e5b36424c02977f63d1da",
+        "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+        "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+        "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329"
+      },
+      "tracked_assembly_sha256": "d2d86018da0e3902051c3a119e98cc255501d31ef971158862dd8455cea1ef36"
+    },
+    {
+      "assembly_sha256": "33bba787efb6b2e2b9af259d0c615b840059aec9c88b7c8b03e765e5e26fbc43",
+      "byte_identical": true,
+      "exit": 0,
+      "family": "crypto",
+      "name": "mldsa-internal",
+      "sources_sha256": {
+        "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+        "firmware/crypto/mldsa87.c": "8a71504305a89f2515b1fbe19943a0398411d9d8757f61d7b58998c4bfd800c5",
+        "firmware/crypto/signature_target.c": "cabed0d3893781e2a08a7bcd6e5bc0e7fd4ea310570e5b36424c02977f63d1da",
+        "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+        "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+        "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329"
+      },
+      "tracked_assembly_sha256": "33bba787efb6b2e2b9af259d0c615b840059aec9c88b7c8b03e765e5e26fbc43"
+    },
+    {
+      "assembly_sha256": "f9524c4c1cccad66e0ceb64e28c2cb4f2909ebcd97a55cd9c68f31139eafdf03",
+      "byte_identical": true,
+      "exit": 0,
+      "family": "crypto",
+      "name": "mldsa-mu",
+      "sources_sha256": {
+        "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+        "firmware/crypto/mldsa87.c": "8a71504305a89f2515b1fbe19943a0398411d9d8757f61d7b58998c4bfd800c5",
+        "firmware/crypto/signature_target.c": "cabed0d3893781e2a08a7bcd6e5bc0e7fd4ea310570e5b36424c02977f63d1da",
+        "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+        "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+        "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329"
+      },
+      "tracked_assembly_sha256": "f9524c4c1cccad66e0ceb64e28c2cb4f2909ebcd97a55cd9c68f31139eafdf03"
+    },
+    {
+      "assembly_sha256": "8a9ddae638c702c023372ffd3ac148943ce42b5d548aea6f6038980e744817f1",
+      "byte_identical": true,
+      "exit": 0,
+      "family": "chain",
+      "name": "rom",
+      "sources_sha256": {
+        "firmware/chain/chain_common.c": "c86313341a9cc83871254abf0d2bc0d95ed4e36fd7d0b291575c1ba2d50804c4",
+        "firmware/chain/rom.c": "1fce07f2c434ba867bb24ab19476a79a471537f96d79656c220945f4569c0116",
+        "firmware/chain/vos_chain.h": "e01a03ad104292b09a4d89e7826fae7ad70e01c91e5021a2274f82f271dd4ae8",
+        "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+        "firmware/crypto/slh256s.c": "9138f83951aa9c4d8bbb72c0a8f6f56c916584064887451ffa65ef2062a9764f",
+        "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+        "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+        "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329",
+        "firmware/rot/boot_verify.c": "543c003e2e8446f74297fa4ed029a2c3363f4cb2cfee60698b2e17701095e344"
+      },
+      "tracked_assembly_sha256": "8a9ddae638c702c023372ffd3ac148943ce42b5d548aea6f6038980e744817f1"
+    },
+    {
+      "assembly_sha256": "88adbf89650c9d1383f1f13a713f421d78f6ccca1a558130bbe3cab15dd15099",
+      "byte_identical": true,
+      "exit": 0,
+      "family": "chain",
+      "name": "runtime",
+      "sources_sha256": {
+        "firmware/chain/chain_common.c": "c86313341a9cc83871254abf0d2bc0d95ed4e36fd7d0b291575c1ba2d50804c4",
+        "firmware/chain/runtime.c": "2f585d7d836eba2e5ac114c361f309387b67928cbc09eab5962296a3ffabf752",
+        "firmware/chain/vos_chain.h": "e01a03ad104292b09a4d89e7826fae7ad70e01c91e5021a2274f82f271dd4ae8",
+        "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+        "firmware/crypto/slh256s.c": "9138f83951aa9c4d8bbb72c0a8f6f56c916584064887451ffa65ef2062a9764f",
+        "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+        "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+        "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329",
+        "firmware/rot/boot_verify.c": "543c003e2e8446f74297fa4ed029a2c3363f4cb2cfee60698b2e17701095e344"
+      },
+      "tracked_assembly_sha256": "88adbf89650c9d1383f1f13a713f421d78f6ccca1a558130bbe3cab15dd15099"
+    },
+    {
+      "assembly_sha256": "19a27d2e48d012243816a9df7c6172fc9fdefd3f61084d6c04645b9f25b60f17",
+      "byte_identical": true,
+      "exit": 0,
+      "family": "chain",
+      "name": "runtime-stall",
+      "sources_sha256": {
+        "firmware/chain/chain_common.c": "c86313341a9cc83871254abf0d2bc0d95ed4e36fd7d0b291575c1ba2d50804c4",
+        "firmware/chain/vos_chain.h": "e01a03ad104292b09a4d89e7826fae7ad70e01c91e5021a2274f82f271dd4ae8",
+        "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+        "firmware/crypto/slh256s.c": "9138f83951aa9c4d8bbb72c0a8f6f56c916584064887451ffa65ef2062a9764f",
+        "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+        "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+        "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329",
+        "firmware/rot/boot_verify.c": "543c003e2e8446f74297fa4ed029a2c3363f4cb2cfee60698b2e17701095e344"
+      },
+      "tracked_assembly_sha256": "19a27d2e48d012243816a9df7c6172fc9fdefd3f61084d6c04645b9f25b60f17"
+    },
+    {
+      "assembly_sha256": "8645ea4980df0e7e3a24d9479826f78120a9ac74bdb0a0e8740fd234b6dbf570",
+      "byte_identical": true,
+      "exit": 0,
+      "family": "chain",
+      "name": "runtime-early-pet",
+      "sources_sha256": {
+        "firmware/chain/chain_common.c": "c86313341a9cc83871254abf0d2bc0d95ed4e36fd7d0b291575c1ba2d50804c4",
+        "firmware/chain/vos_chain.h": "e01a03ad104292b09a4d89e7826fae7ad70e01c91e5021a2274f82f271dd4ae8",
+        "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+        "firmware/crypto/slh256s.c": "9138f83951aa9c4d8bbb72c0a8f6f56c916584064887451ffa65ef2062a9764f",
+        "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+        "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+        "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329",
+        "firmware/rot/boot_verify.c": "543c003e2e8446f74297fa4ed029a2c3363f4cb2cfee60698b2e17701095e344"
+      },
+      "tracked_assembly_sha256": "8645ea4980df0e7e3a24d9479826f78120a9ac74bdb0a0e8740fd234b6dbf570"
+    },
+    {
+      "assembly_sha256": "3108761220eaf3d3c51128acf7e0a12b7bd74148e6b7a24b1aa31886f8a54668",
+      "byte_identical": true,
+      "exit": 0,
+      "family": "chain",
+      "name": "mmode",
+      "sources_sha256": {
+        "firmware/chain/mmode.c": "fab18e306ba3585781b454ed5fe73b7cec4498d2db6ed6605ed53f7a23d0692b",
+        "firmware/chain/vos_chain.h": "e01a03ad104292b09a4d89e7826fae7ad70e01c91e5021a2274f82f271dd4ae8",
+        "firmware/crypto/keccak.c": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb",
+        "firmware/crypto/mldsa87.c": "8a71504305a89f2515b1fbe19943a0398411d9d8757f61d7b58998c4bfd800c5",
+        "firmware/include/vos_boot.h": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0",
+        "firmware/include/vos_keccak.h": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74",
+        "firmware/include/vos_signature.h": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329"
+      },
+      "tracked_assembly_sha256": "3108761220eaf3d3c51128acf7e0a12b7bd74148e6b7a24b1aa31886f8a54668"
+    }
+  ],
+  "schema": "verifiedos-q39-current-stream-comparison/1",
+  "seconds": 5.480942308000522,
+  "staged_writes": false
+}

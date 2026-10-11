@@ -1,0 +1,187 @@
+{
+  "actual_tool_snapshot": {
+    "library_file_count": 10248,
+    "receipt": "/root/build/lane-checklist-20261010-c/q39/binding-candidate2-native-tools.json",
+    "scope": "entire installed private switch library tree including symlinked source/objects/plugins and OCaml dependencies",
+    "seconds": 5.855212497999673,
+    "sha256": "5a7a98bf50e663696b1830aa363027d67cab6958e719c00ae26ea151ad33e2a1"
+  },
+  "budget": {
+    "max_active_minutes": 20,
+    "max_candidates": 3,
+    "observed_activity_wall_upper_bound_minutes": 13,
+    "used_candidates": 3
+  },
+  "candidate3": {
+    "matcher_sha256": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+    "producer_sha256": "7e46a358e9efb3c149fe8afd917f57912ccc0748a0a9f5eed5d22c63d3d715ce",
+    "receipt": "/root/build/lane-checklist-20261010-c/q39/binding-candidate3-preflight/result.json",
+    "seconds": 36.2395490859999,
+    "sha256": "a373c4a3a99095a72e2c88879d5228cfb9efcd982d5950026e7f8cfdbd06571f"
+  },
+  "clean1": {
+    "admitted_count": 60,
+    "errors": [],
+    "flags_sha256": "93001a38728564e7ed5b5fbd88c76e482e9f4d13fe581c71a4d25e9e763dc361",
+    "metadata_roots": [
+      "compcert.cheririscV.CapAsmgen",
+      "compcert.cheririscV.CapGlobalenvs",
+      "compcert.cheririscV.CapMemory",
+      "compcert.security.Backtranslation"
+    ],
+    "original_unchanged": true,
+    "root_count": 215,
+    "tool_library_unchanged": true
+  },
+  "contract_revision": "665861d0",
+  "focused_test_cases": 21,
+  "focused_test_seconds": 3.519,
+  "imported2": {
+    "admitted_count": 60,
+    "errors": [],
+    "flags_sha256": "93001a38728564e7ed5b5fbd88c76e482e9f4d13fe581c71a4d25e9e763dc361",
+    "metadata_roots": [
+      "compcert.cheririscV.CapAsmgen",
+      "compcert.cheririscV.CapGlobalenvs",
+      "compcert.cheririscV.CapMemory",
+      "compcert.security.Backtranslation"
+    ],
+    "original_unchanged": true,
+    "root_count": 215,
+    "tool_library_unchanged": true
+  },
+  "infrastructure_revision": "74ce7b36064f0a13d89f362fd89c6da8f065e73f",
+  "old_builds": {
+    "final-build-1": {
+      "compiler_sha256": "3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8",
+      "gates": [
+        {
+          "exit": 0,
+          "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+          "name": "export",
+          "seconds": 0.17891389899978094
+        },
+        {
+          "exit": 0,
+          "log_sha256": "212bc9a83b67e2d36d3929240ac70b47b594fb88328ba7dc2ad8422c5d13ea0c",
+          "name": "configure",
+          "seconds": 0.1675219990002006
+        },
+        {
+          "exit": 0,
+          "log_sha256": "9ceee76851daca016ae0dec744fdcc1b632b125857c4702f44602a22fbf0f550",
+          "name": "clean",
+          "seconds": 0.09750579899991862
+        },
+        {
+          "exit": 0,
+          "log_sha256": "57b12341de15b7fe0b1caf0fad1c240eff67bc37be193bc9baf32902e5cb3374",
+          "name": "depend",
+          "seconds": 0.40929319799943187
+        },
+        {
+          "exit": 0,
+          "log_sha256": "acca29be9648d36121693e5019ff8d364706051311beadfb071c62f82bcae1e3",
+          "name": "proof",
+          "seconds": 391.87362740200024
+        },
+        {
+          "exit": 0,
+          "log_sha256": "ea6fa6461df9a62f4ee67556de045b84647ca77b86b07366a6777102ce869584",
+          "name": "extraction",
+          "seconds": 8.41157045699947
+        },
+        {
+          "exit": 0,
+          "log_sha256": "bab5b1682c5c781d7229d569b9d89964b3d4746b4c8318f0d41255adcdf11fc2",
+          "name": "ccomp",
+          "seconds": 11.637366072000077
+        },
+        {
+          "exit": -15,
+          "log_sha256": "2077abd60fdaad3b2ff0b0fccb9ce61b8c298fcb9e25d4683951b2170effb160",
+          "name": "kernel-environment",
+          "seconds": 4417.457562946999
+        }
+      ],
+      "passed": false,
+      "receipt": "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/build-result.json",
+      "receipt_sha256": "21de32af77b2333428b31212ab04feaced723024409bbe5e9deb3fbd6dbfa53a"
+    },
+    "final-build-2": {
+      "compiler_sha256": "07df5d8ded4b8794773eaa4e5d324038b4bb219be4232876b84454f5c12ac368",
+      "gates": [
+        {
+          "exit": 0,
+          "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+          "name": "export",
+          "seconds": 0.2131297989999439
+        },
+        {
+          "exit": 0,
+          "log_sha256": "fa05aca0d70ea270ce1fc967d093e8507520a85db848a6b710704c7ad865ef0c",
+          "name": "configure",
+          "seconds": 0.17004029999952763
+        },
+        {
+          "exit": 0,
+          "log_sha256": "3dffce2864794035d42e8d306e1db2a4cac485d5fe669133c9760fd672499654",
+          "name": "clean",
+          "seconds": 0.10744719899958
+        },
+        {
+          "exit": 0,
+          "log_sha256": "cca1c9393a051426375ec3c8741bd21a07e2e35c2a84c2b0b187d9fb938911c8",
+          "name": "depend",
+          "seconds": 0.4202969980005946
+        },
+        {
+          "exit": 0,
+          "log_sha256": "edfdbd3eafacf3c3274d609a1f1f5fc7adff2ed0e992aeef8db369f3b3633502",
+          "name": "proof",
+          "seconds": 391.60838142099965
+        },
+        {
+          "exit": 0,
+          "log_sha256": "a4940af4b732f3794ef519dfc74ad59b8936d2efccb3e4bf652a4e4d15bc82a5",
+          "name": "extraction",
+          "seconds": 8.78126376199998
+        },
+        {
+          "exit": 0,
+          "log_sha256": "195b096305d6f6950ca7a6333eeae480af349bc00a954219e76e850cef403b0b",
+          "name": "ccomp",
+          "seconds": 11.428749395000523
+        },
+        {
+          "exit": -15,
+          "log_sha256": "2660d1593b5ed3a20b134e4470268ce215d2b954c6091691d88308cc5a081430",
+          "name": "kernel-environment",
+          "seconds": 4415.754294209
+        }
+      ],
+      "passed": false,
+      "receipt": "/root/build/lane-checklist-20261010-c/q39/final-build-2/compiler/build-result.json",
+      "receipt_sha256": "d793f73311b059973415ede66aa976c39298ba7243530e4e16de1da97632914e"
+    }
+  },
+  "old_preliminary_audit": {
+    "exit": -15,
+    "passed": false,
+    "receipt": "/root/build/lane-checklist-20261010-c/q39/port-candidate-kernel.json",
+    "sha256": "1e6c60af720e42ede818bcbe8ab7c190450a4f47ae094a3d31af116af0c83265"
+  },
+  "proof_compiler_bytes": {
+    "base": "7093854d8ce8799826618024ee4847cf248766ea",
+    "both_populations_sha256": "6ca03a541963bd75204b6631c76fb76d2beb9d79c01bbfbafc5a642f70811214",
+    "different_paths": [],
+    "file_count": 1430,
+    "scope": "all tracked archive bytes except four commissioned infrastructure helpers"
+  },
+  "schema": "verifiedos-q39-input-binding-census/1",
+  "termination_receipt": {
+    "path": "/root/build/lane-checklist-20261010-c/q39/original-audit-termination.json",
+    "sha256": "01c4b492faba34ee468dc2eeaf6d53583e0b35287535e52211212bb01a3085fa"
+  },
+  "verdict": "binding controls and complete production preflight PASS; both repeated clean builds and fresh whole-environment kernel audits required, acceptance pending"
+}
