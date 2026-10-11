@@ -601,3 +601,27 @@ verdicts must pass before strict consumer positives, final compiler campaigns,
 argument replays, HELLO acceptance or target restaging. The existing default-mode
 audits and original records remain unchanged until a separately authorized
 session-owned retirement act; no verdict is inferred for them.
+
+The infrastructure candidate `6409d0ed65fd07de4fb37aa9c8f7a9d5c317cc9d`
+passed all forty-six focused controls, including the thirty-one retained controls.
+Its subsequent source census stopped at native Git exit 128 because the integrator
+had provisioned the new checkout with a Windows-only administrative link. This
+was a worktree-launch failure, not a compiler or kernel verdict. The candidate
+stopped within its implementation budget; no replacement build started.
+
+The integrator repaired the new lane's links to the repository's required relative
+form and verified clean, matching committed identities from Windows and WSL.
+Git's repair also normalized two other administrative links; the integrator
+restored their original Windows link strings and file attributes, then verified
+their unchanged clean source revisions. The source census may now retry as a
+read-only check of the immutable candidate. This administrative correction does
+not authorize another helper candidate or change any running audit input.
+
+The integrator and independent reviewer read the immutable three-file delta and
+found no material issue. The reviewer completed the read-only review in
+20:57:12–20:58:37 UTC without running checks or accessing auditors. The integrator
+also read the forty-six-control log, whose digest is
+`6fe79bc4641c9eb291084d82946db84d037f7ea20b7b3812171f81e7a0fbfac8`.
+The actual locked release's disabled-bytecode warning is refused by the candidate.
+The exact non-helper census and both fresh complete build/kernel verdicts remain
+separate prerequisites; these reviews do not supply those verdicts.
