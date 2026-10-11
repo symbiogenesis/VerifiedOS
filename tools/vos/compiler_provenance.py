@@ -48,6 +48,18 @@ def toolchain(raw: object, lock: Path) -> dict[str, Json]:
     return result
 
 
+def portable(raw: object, lock: Path) -> dict[str, Json]:
+    """Validate a staged producer receipt without its external native binaries."""
+    if (not isinstance(raw, dict) or raw.get("build_receipt") != "present"
+            or not isinstance(raw.get("revision"), str) or not raw["revision"].strip()
+            or not isinstance(raw.get("compiler_sha256"), str)
+            or _SHA256.fullmatch(raw["compiler_sha256"]) is None
+            or type(raw.get("source_count")) is not int or raw["source_count"] < 1):
+        raise ValueError("staged target requires complete contained compiler provenance")
+    toolchain(raw.get("toolchain"), lock)
+    return cast("dict[str, Json]", raw)
+
+
 def read(ccomp: Path, lock: Path | None = None,
          required: bool = True) -> tuple[dict[str, Json], dict[str, str]]:
     """Read exact retained source and native-tool identities; absence is explicit.

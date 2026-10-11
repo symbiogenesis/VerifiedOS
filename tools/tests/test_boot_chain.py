@@ -20,12 +20,12 @@ from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import patch
 
-from tests import test_fanout_ci, test_guest_report
+from tests import compiler_fixture, test_fanout_ci, test_guest_report
 from tests.harness import TOOLS, Case, ensure
 from tests.test_boot_crypto import _STREAM
 from vos import boot_chain as bc
 from vos import boot_chain_target as target
-from vos import boot_crypto_target, receipts
+from vos import boot_crypto_target, compiler_provenance, receipts
 from vos import boot_handoff as bh
 from vos.checks import generated
 from vos.cli import boot_handoff as cli
@@ -556,11 +556,13 @@ def _checkout(root: Path) -> None:
                           if path != bh.HEADER}, **_SOURCES}.items():
         (root / name).parent.mkdir(parents=True, exist_ok=True)
         (root / name).write_bytes(data)
+    compiler = compiler_fixture.create(root)
+    provenance, _ = compiler_provenance.read(compiler, root / compiler_provenance.LOCK)
     crypto = root / boot_crypto_target.MANIFEST
     crypto.parent.mkdir(parents=True, exist_ok=True)
     crypto.write_text(json.dumps({
         "sources_sha256": {path: receipts.digest(root / path) for path in bc.FROZEN},
-        "compiler_provenance": {"revision": "fixture", "compiler_sha256": "c" * 64},
+        "compiler_provenance": provenance,
         "compiler_inputs_sha256": {"compcert.ini": "ini"}}), encoding="utf-8")
 
 
@@ -620,11 +622,11 @@ class _MlDsa:
 
 def _staging(root: Path, out: Path) -> contextlib.ExitStack:
     rot, mmode = _composers()
+    compiler = root / "build/ccomp"
+    provenance = compiler_provenance.read(compiler, root / compiler_provenance.LOCK)
     stack = contextlib.ExitStack()
     for owner, attribute, value in (
-            (boot_crypto_target, "compiler_provenance", lambda _: (
-                {"revision": "fixture", "compiler_sha256": "c" * 64, "kind": "fixture", "source_count": 1},
-                {"/native/build-result.json": "r", "/native/build-inputs.json": "i"})),
+            (boot_crypto_target, "compiler_provenance", lambda _: provenance),
             (boot_crypto_target, "staged", lambda _: ({}, {})),
             (target.boot_target, "compiler_inputs", lambda _: {"/native/compcert.ini": "ini"}),
             (target, "rot_composer", lambda: rot), (target, "mmode_composer", lambda: mmode),
@@ -675,6 +677,16 @@ def _staging_writes_what_staged_accepts() -> None:
         def copy(root: Path) -> None:
             shutil.copytree(template, root)
         controls: list[tuple[str, Callable[[Path], object], str]] = [
+            *[(f"{owner} missing {role}", lambda root, owner=owner, role=role: _edit_json(
+                root / owner, lambda data: data["compiler_provenance"]["toolchain"].pop(role)),
+               f"missing {role} identity")
+              for owner in (bc.MANIFEST, boot_crypto_target.MANIFEST)
+              for role in compiler_provenance.TOOLS],
+            *[(f"{owner} mismatched {role}", lambda root, owner=owner, role=role: _edit_json(
+                root / owner, lambda data: data["compiler_provenance"]["toolchain"][role].update(version="0")),
+               f"{role} identity disagrees")
+              for owner in (bc.MANIFEST, boot_crypto_target.MANIFEST)
+              for role in compiler_provenance.TOOLS],
             ("a changed stream", lambda root: (root / staged_dir / "rom.s").write_bytes(
                 (root / staged_dir / "rom.s").read_bytes().replace(b"x11", b"x12")), "differs from its manifest"),
             ("a changed bound source", lambda root: (root / "firmware/chain/rom.c").write_bytes(b"int x;\n"),

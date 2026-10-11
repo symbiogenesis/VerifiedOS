@@ -12,6 +12,8 @@ from typing import Any, cast
 
 from vos import asm, boot_crypto, boot_handoff, boot_target, image, kernel_restore, receipts
 from vos.cli import compiler_diff as cd
+from vos.compiler_provenance import LOCK
+from vos.compiler_provenance import portable as portable_provenance
 from vos.compiler_provenance import read as compiler_provenance
 from vos.jsonc import Json
 
@@ -225,6 +227,7 @@ def staged(root: Path) -> tuple[dict[str, Any], dict[str, str]]:
             or not isinstance(manifest.get("compiler_provenance"), dict)
             or not isinstance(manifest.get("compiler_inputs_sha256"), dict)):
         raise ValueError("the staged manifest does not describe this campaign")
+    portable_provenance(manifest.get("compiler_provenance"), root / LOCK)
     modes, sources = manifest.get("modes"), manifest.get("sources_sha256")
     if not isinstance(modes, dict) or set(modes) != set(MODES):
         raise ValueError("the staged manifest must hold exactly the five interfaces")
@@ -354,6 +357,7 @@ def run(root: Path, out: Path, ccomp: Path | None, compiler_args: list[str], sim
         manifest, available = staged(root)
         manifest_sha256 = receipts.digest(root / MANIFEST)
         identities[str(root / MANIFEST)] = manifest_sha256
+        identities[str(root / LOCK)] = receipts.digest(root / LOCK)
         provenance = cast("dict[str, Json]", manifest["compiler_provenance"])
         compiler_files = cast("dict[str, str]", manifest["compiler_inputs_sha256"])
         for mode in modes:
