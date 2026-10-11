@@ -243,3 +243,59 @@ no claim of a new compilation or kernel run. Add positive and refusal controls
 for this join, including failed kernel, failed compilation, changed object/log,
 wrong lock/tool and incomplete classification. Both independent clean builds
 still require this actual acceptance before target replay or manifest refresh.
+
+## Bind a fresh kernel audit to its complete inputs
+
+The independent review of contained infrastructure revision
+`8a77ca71cd539375ef3cefa18110c0041c02b66e` found three acceptance gaps. The
+original build driver records proof-object existence without their pre-audit
+digests. The qualification producer snapshots its copy only after metadata
+queries, allowing a query-time object change to become its baseline. It measures
+`coqc` but executes an unmeasured `coqtop`, and measures its own producer and
+matcher only after classification. The first matcher scope stopped after three
+candidates; its complete 215-root, sixty-admission census remains useful feedback,
+but that producer supplies no accepted qualification.
+
+The integrator commissions at most three infrastructure candidates or twenty
+active repair minutes, whichever comes first, for those input bindings. Editing
+and focused-control waits count. Full kernel-audit execution is a separate
+required acceptance step, not a repair candidate. The worker owns only
+`test/verifiedos-q39/audit.py`, `qualify.py`, `test_audit.py` and, if needed, the
+native build driver. Proof sources, executable compiler sources, packages, flags
+and the fourteen proof candidates remain unchanged. A new unrelated failure
+returns to the integrator before another edit.
+
+The existing kernel runs cannot retrospectively acquire pre-audit object hashes.
+Preserve their real logs and verdicts unchanged. If no suitable pre-audit input
+snapshot exists, the integrator may end only these session-owned kernel child
+processes, allowing their drivers to record the resulting unsuccessful stages.
+Their successful export, configure, clean, dependency, proof, extraction and
+compiler stages may be reused in distinct qualification trees. An interrupted
+audit is not a successful kernel stage and no original receipt is relabeled.
+
+Each independent qualification must instead run a fresh complete `coqchk -o`
+over all 215 roots independently re-derived from that tree's Make `FILES` and
+`COQINCLUDES`. Preserve the existing flags and recursive dependency scope. Before
+launching any metadata query or audit, bind the original receipt, stage logs,
+archive, source and generated object population, copied population, lock, actual
+`coqc`, `coqtop`, `coqchk`, OCaml and Menhir executables, producer and matcher.
+Include installed prover-library source and object inputs outside the build tree.
+Compare the copy against its original baseline before queries; allow only
+explicitly recorded new query and audit outputs. Recheck every input after queries,
+the kernel run and classification, refusing any drift. A snapshot taken after
+the operation cannot replace its missing initial snapshot.
+
+The successful new receipt must distinguish reused compilation stages from its
+fresh kernel stage, record the actual command, log, exit and timing, and bind
+complete input populations and their unchanged verdict. The exact final kernel
+summary must still classify every loaded axiom against its declared source name,
+reject unsafe entries and unmatched names, and retain the complete admission
+census. Both independent clean builds require this fresh acceptance; the existing
+strict compiler consumer and all target acceptance predicates remain unchanged.
+
+Add focused controls for object replacement before qualification, changes in the
+copy during metadata queries, changes to installed library inputs, `coqtop`,
+`coqchk`, producer or matcher, and mismatched Make enumeration. Keep original
+failed receipts immutable and refuse publication after any failed or changed
+input. The reason for rerunning the full audit is the missing original object
+binding, rather than a change to the proof or its acceptance scope.
