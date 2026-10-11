@@ -9,6 +9,7 @@ Each `.lock` file records the complete compiler, root-package and installed-pack
 | [certirocq.lock](certirocq.lock) | `verifiedos-certirocq-0.9.1-ocaml-4.14.4` | CertiRocq 0.9.1+9.1, Rocq 9.1.1, CompCert 3.18 |
 | [quickchick.lock](quickchick.lock) | `verifiedos-quickchick-9.3.0-ocaml-5.4.1` | QuickChick and `coq-simple-io` at pinned commits, ExtLib 0.13.2, Rocq 9.3.0, Stdlib 9.2.0, dune 3.23.1 |
 | [rupicola.lock](rupicola.lock) | `verifiedos-rupicola-9.2.0-ocaml-5.4.1` | Rupicola 0.0.11, bedrock2 compiler 0.0.9, Rocq 9.2.0 |
+| [contained-compiler.lock](contained-compiler.lock) | `verifiedos-contained-compiler-9.3.0-ocaml-4.14.2` | Rocq 9.3.0, Stdlib 9.2.0, OCaml 4.14.2, Menhir 20260209 |
 
 The Sail, proof, QuickChick and Rupicola switches use OCaml 5.4.1 and ocamlfind 1.9.8. OCaml 5.5.1 is available, but the [released findlib package](https://opam.ocaml.org/packages/ocamlfind/ocamlfind.1.9.8/) requires OCaml below 5.5.0; its 5.5-compatible package is `1.9.9~preview`, marked `avoid-version`.
 
@@ -82,6 +83,18 @@ $ opam switch import tools/opam/rupicola.lock \
 ```
 
 Use the corresponding switch and snapshot from the table for the other environments. The Sail switch needs only the default repository. `run.py provision --apply` imports the Sail, proof and QuickChick snapshots through the recipes in [env.py](../vos/env.py), [proofenv.py](../vos/proofenv.py) and [quickchick.py](../vos/cli/quickchick.py); the user's ruling of 2026-09-30 keeps its QuickChick import out of the local guest, QuickChick's switch being built and checked only on [the instrument switch route](../ci/README.md#instrument-switch-route) (F-616). The [Wasm oracle](../wasm-oracle/README.md) specifies the CertiRocq snapshot's import in both the native recipe and Dockerfile. Creating these switches preserves existing switches and the user's active switch.
+
+The contained compiler has its own switch and source-containment boundary. Import
+`contained-compiler.lock` by the same create-and-import route, using the switch
+name in the table. The qualifying native switches are named `q39-port` and
+`q39-replay` in the private root
+`/root/build/lane-checklist-20261010-c/q39/opam-root`; the table gives the portable
+project name for a fresh import. The export records released packages only and
+contains no compiler source. The [port decisions](../../docs/implementation/contained-compiler-port-decisions.md)
+record the rejected Rocq 9.1 pairing, bounded compatibility work, frozen comparison
+and separate acceptance requirements. Preserve the compiler's original build
+flags and record any `configure` version override when building its contained
+source through this lock.
 
 If an import fails after creating its switch, retry the import command directly, omitting creation. The provisioner checks for an existing switch and skips creation automatically, so `run.py provision --apply` can resume a partial installation.
 
