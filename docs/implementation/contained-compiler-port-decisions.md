@@ -740,3 +740,38 @@ inputs and state each superseded audit's genuine available result. A pending
 verdict supplies no passing evidence, and eligible-lane retirement supplies no
 claim that C was cleaned. If those audits finish or the user authorizes the
 reviewed termination, determine C's eligibility again before selecting it.
+
+## Select the first fully qualified complete pair
+
+The five-minute read-only eligibility review, completed at 22:31:37 UTC, finds
+no mode-specific gap between the sealed `ec5b825` standard-mode pair and the
+`6409d0ed` VM-mode pair. Both retain the same 1,430 non-helper compiler and proof
+files, complete roots and recursive dependencies, installed-library and tool
+binding, individual query guards, exact assumption classification and post-audit
+stability. The matcher is unchanged. The public reader at `5c7f1b21` requires
+successful source-bound native qualification and locked tool identities, without
+requiring the VM profile or newer qualification schema.
+
+Select the first pair whose two original native producers genuinely finish the
+complete kernel, classification and stability checks successfully. This decision
+avoids an additional wait for a duplicate complete pair after equivalent required
+evidence exists. At this decision no passing pair has been reported. Do not mix
+source revisions or modes, substitute the older unsealed runs, pass an `ec5b825`
+seal through a newer helper, or relabel an actual standard-mode run as VM-mode.
+Keep each original producer's schema, helper/source revision, actual argv, seal,
+logs and executable digests. The VM controls remain evidence for that supported
+configuration; they supply no complete-compiler verdict or timing claim.
+
+After selecting a genuinely qualified pair, record that choice and execute every
+remaining Q39 campaign, argument replay, HELLO reproduction and refusal control,
+manifest restaging and focused test against its actual compiler. Update HELLO's
+pin only to the accepted rebuilt digest. The selected pair changes no normative
+acceptance predicate and authorizes no termination or mutation of another run.
+Preserve every still-active public, native and private input until eligible.
+
+The prepared fanout journal's audit deferral must describe only the unselected
+pair. If its existing description no longer matches the settled selection,
+initialize a fresh final journal with the correct explicit eligible lanes and
+deferrals; retain the preparation journal and its genuine state. Publish only
+`main`, require Host CI and dispatch the complete cold Guest CI handoff under the
+existing completion contract.
