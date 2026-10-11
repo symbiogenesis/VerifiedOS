@@ -155,3 +155,24 @@ cache/schema drift. A fresh producer run is required under the repaired reader;
 the first build's receipt is retained as historical evidence and is not relabeled
 as satisfying the repaired contract. This is why final target evidence waits for
 the fresh dependency verdict.
+
+## Preserve signed images while refreshing compiler bindings
+
+Q39 already owns re-staging the current target manifests after output comparison.
+The chain's ordinary staging command generates disposable signing keys and new
+images, which would change otherwise unchanged acceptance inputs. The integrator
+therefore commissions a narrow `chain-stage --preserve-images` route under that
+existing re-staging predicate.
+
+The route must recompile every chain unit through the rebuilt compiler and refuse
+any stream difference before writing. It must retain every existing image, key
+and header byte, re-derive the current payload layouts, and recheck the existing
+signatures with OpenSSL. Only successful joins may refresh current source,
+include, compiler and freeze identities. A missing or invalid retained artifact,
+signature or layout refuses the refresh; neither a copied manifest nor unchanged
+image bytes alone establish it. Add a positive refresh and refusal controls,
+including changed compiled output, while retaining ordinary staging behavior.
+
+This decision preserves the signed-image inputs whose target behavior was already
+measured while binding them to the actually rebuilt producer. Dated receipts stay
+unchanged; this route supplies no new boot-chain execution or timing verdict.
