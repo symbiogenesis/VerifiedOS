@@ -51,6 +51,23 @@ image-signature verification, export authorization or declassification facility.
 Ordinary replay substitutes its own entropy, as R-16-017 requires, and never
 recovers captured words.
 
+## Development artifact binding
+
+For this checkpoint, the expected base-image root is the SHA-256 of the exact
+native executable, and the expected composition is the SHA-256 of the exact
+configuration bytes passed to it. These development identities do not claim a
+production signed-image root. The controller verifies both artifacts against the
+independently supplied expectations before capture or replay launches, and checks
+them again before capture finalization or successful replay completion. A mismatch
+aborts the recorder or cursor and prevents success; a preflight mismatch releases
+no fresh replay word.
+
+These checks bind the authenticated envelope to the artifacts actually exercised.
+The development lane is trusted and exclusive: no concurrent writer may replace
+the executable or configuration during a run. Before-and-after hashing detects
+persisting drift; it does not establish race-free executable pinning against an
+adversarial writer. Production artifact authentication remains in S6's open scope.
+
 ## Acceptance fixed before implementation
 
 Focused executable tests exercise the generated Sail definitions through their
