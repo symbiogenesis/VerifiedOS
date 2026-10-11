@@ -37,3 +37,29 @@ The final acceptance remains Q39's clean lock-import build, complete environment
 kernel reading and axiom classification, output comparisons, target replay,
 manifest identities and hosted handoff. A successful candidate check supplies no
 substitute for those checks.
+
+## Follow-up for the remaining repeated assertions
+
+The first follow-up used one candidate, candidate 13, and stopped at its new
+failure. The check exited 2 after 82.76 seconds. It closed the second standalone
+exclusion lemma and reached the same assertion pattern in `step_E0_strong` at
+`security/Recomposition.v:8869`.
+
+The integrator read the remaining six `H'` assertion bodies at lines 8863, 8884,
+8905, 8988, 9009 and 9115 of that stopped source, whose SHA-256 is
+`02fba81e5ab76720b83384acf88dbc15125f8a267789002559d5beb5739cb889`.
+Each asserts `preg_notin PC (destroyed_by_builtin ef)` or its `ef0` variant and
+uses the same failing expansion. The other `destruct orb` sites at lines 5818
+and 5828 belong to already compiled lemmas and are outside this repair.
+
+A further scope permits at most two candidates or eight active repair minutes,
+whichever comes first, replacing only those six assertion bodies with the
+existing general-characterization/not-PC strategy now demonstrated twice.
+Preserve the original net transparency-setting effects as well as the frozen
+declarations, definitions, hypotheses, admissions and compiler flags. The reason
+for batching these sites is their matching propositions and proof pattern; the
+integrator has read the sites rather than assuming every Boolean case is the same.
+
+Retain both earlier censuses and the complete diff. A new unrelated failure ends
+this scope before another edit. Exact frozen comparison and all Q39 acceptance
+checks remain required.
