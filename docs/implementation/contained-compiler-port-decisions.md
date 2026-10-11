@@ -305,3 +305,37 @@ copy during metadata queries, changes to installed library inputs, `coqtop`,
 failed receipts immutable and refuse publication after any failed or changed
 input. The reason for rerunning the full audit is the missing original object
 binding, rather than a change to the proof or its acceptance scope.
+
+## Finish query-tool and individual-query bindings
+
+The independent review of contained infrastructure revision
+`74ce7b36064f0a13d89f362fd89c6da8f065e73f` confirms the fresh compilation seal,
+pre-query copy comparison, installed-library population and measured query/checker
+executables. Its three-candidate scope stopped with twenty-one focused controls
+and both 215-root production preflights passing. No fresh acceptance build has
+started. All 1,430 tracked non-helper files remain byte-identical to the frozen
+proof-port source at `7093854d8ce8799826618024ee4847cf248766ea`.
+
+Two gaps still prevent acceptance. `coqtop` and `coqchk` are measured but their
+reported releases are not required to match the locked prover. Discovery and
+location queries run consecutively before their input/output guard, allowing a
+later query to change discovery evidence before its first recorded snapshot.
+
+The integrator commissions at most two infrastructure candidates or eight active
+repair minutes, whichever comes first, to close exactly these gaps in the same
+owned helpers and focused controls. Preserve all prior candidate censuses and
+budgets. Require each actual prover executable, including `coqtop` and `coqchk`,
+to report the locked prover release before it can supply a query or verdict.
+Unknown version formats and another release refuse acceptance. Capture each
+individual query's outputs and recheck every sealed input immediately afterward
+and before the next query. Later queries must not alter any earlier output.
+Controls must refuse a stable checker or query tool from another release and
+location-query changes to discovery source or log bytes. No proof, compiler,
+package or flag change is authorized.
+
+Independent review precedes the fresh clean builds. The second build uses the
+already independently imported `q39-replay` switch, with its recorded lock import
+and unchanged closure verified again. The original interrupted build in that
+switch remains recorded. Q39 requires the independent lock-import switch and a
+clean compiler build; it does not require reinstalling the unchanged switch for
+each infrastructure retry. The final receipt must state this switch history.
