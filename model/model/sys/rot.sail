@@ -418,6 +418,7 @@ function rot_draw() -> option(bits(64)) = {
     return None()
   };
 
+  entropy_draw_begin_callback();
   var acc : bits(64) = 0x6a09e667f3bcc908;
   foreach (i from 0 to (rot_max_noise_sources - 1)) {
     if i < plat_rot_noise_sources then acc = rot_condition(acc, rot_source_sample(i))
@@ -427,7 +428,7 @@ function rot_draw() -> option(bits(64)) = {
     None()
   } else {
     entropy_draw_callback(true, acc);
-    Some(acc)
+    Some(entropy_draw_value_callback(acc))
   }
 }
 

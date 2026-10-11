@@ -362,6 +362,10 @@ class FixtureCursor:
         self._failed = True
         raise RecordError("fixture demand or completion differs from record")
 
+    def abort(self) -> None:
+        """Latch a replay adapter failure without replacing its original verdict."""
+        self._failed = True
+
     def consume(self, *, point: Point, source: str, interface: str) -> Event:
         if self._failed or self._finished or self._next >= len(self._record.events):
             self._refuse()

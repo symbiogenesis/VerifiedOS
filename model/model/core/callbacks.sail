@@ -29,6 +29,16 @@ function mem_read_callback(_) = ()
 val entropy_draw_callback = pure {cpp: "entropy_draw_callback"} : (bool, bits(64)) -> unit
 function entropy_draw_callback(_) = ()
 
+// Trusted development capture admits capacity before the root samples. Ordinary
+// execution has no controller; its fallback changes no state or draw value.
+val entropy_draw_begin_callback = pure {cpp: "entropy_draw_begin_callback"} : unit -> unit
+function entropy_draw_begin_callback(_) = ()
+
+// Ordinary development replay supplies its own entropy, never an archived draw.
+// This identity fallback leaves every uninstrumented architectural result intact.
+val entropy_draw_value_callback = pure {cpp: "entropy_draw_value_callback"} : bits(64) -> bits(64)
+function entropy_draw_value_callback(value) = value
+
 val mem_exception_callback = pure {cpp: "mem_exception_callback"} : (/* addr */ physaddrbits, /* exception code */ exc_code) -> unit
 function mem_exception_callback(_) = ()
 
