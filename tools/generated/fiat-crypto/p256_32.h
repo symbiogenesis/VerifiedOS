@@ -2,7 +2,7 @@
 // Copyright 2015-2020 the fiat-crypto authors.
 // Authors: Andres Erbsen; Google Inc.; Jade Philipoom;
 // Massachusetts Institute of Technology; Zoe Paraskevopoulou.
-// Generated from Fiat-Crypto e6946985c9165b3270eae457c0fae887cd7b7b76.
+// Generated from Fiat-Crypto f3ecb2cf1f771de34771e967193ee7f0ee0b0acf.
 // Apache-2.0 elected from upstream COPYRIGHT; see ../../../COPYRIGHT.md.
 // Inclusion wrapper added by VerifiedOS; generated body below is unchanged.
 #ifndef VERIFIEDOS_FIAT_P256_32_H
