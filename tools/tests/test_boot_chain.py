@@ -980,6 +980,53 @@ def _generated_rows_admit_only_whole_absence() -> None:
                f"a partial staging the index lacks passed: {found}")
 
 
+def _campaign_keeps_compiler_lock() -> None:
+    """The real run path records its portable producer lock and refuses drift."""
+    for mutate in (False, True):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            compiler = compiler_fixture.create(root)
+            lock = root / compiler_provenance.LOCK
+            expected = receipts.digest(lock)
+            provenance, _ = compiler_provenance.read(compiler, lock)
+            manifest = {"floor": 0, "compiler_provenance": provenance,
+                        "compiler_inputs_sha256": {}, "freeze": {}}
+            (root / bc.MANIFEST).parent.mkdir(parents=True)
+            (root / bc.MANIFEST).write_text("{}", encoding="utf-8")
+            simulator, build = root / "simulator", root / "model-build.json"
+            simulator.write_bytes(b"simulator")
+            build.write_text("{}", encoding="utf-8")
+            f = bc.facts(ROOT)
+            found = SimpleNamespace(manifest=manifest, inputs=lambda f=f: _inputs(f))
+            selected = "watchdog-stalled-no-clock"
+
+            def execute(*_: object, mutate: bool = mutate, lock: Path = lock) -> dict[str, object]:
+                if mutate:
+                    lock.write_text(lock.read_text(encoding="utf-8") + "# drift\n", encoding="utf-8")
+                return {"passed": True}
+
+            with (patch.object(target.receipts, "inputs", return_value={}),
+                  patch.object(target.kernel_restore, "require_build"),
+                  patch.object(bc, "require_cases", return_value=[SimpleNamespace(name=selected)]),
+                  patch.object(bh, "boot_control_declared", return_value=True),
+                  patch.object(target, "rot_composer"), patch.object(target, "mmode_composer"),
+                  patch.object(bc, "staged", return_value=found),
+                  patch.object(target, "layouts", return_value=[]),
+                  patch.object(bc, "facts", return_value=f),
+                  patch.object(bc, "vacuity_findings", return_value=[]),
+                  patch.object(target, "runtime_only_case", side_effect=execute)):
+                try:
+                    report = target.run(root, root / "out", simulator, build, (selected,),
+                                        timeouts=target.TIMEOUTS)
+                except ValueError as error:
+                    ensure(mutate and "compiler lock changed" in str(error),
+                           f"campaign refused for another reason: {error}")
+                    continue
+            ensure(not mutate and report["passed"]
+                   and report["inputs_sha256"][str(lock)] == expected,
+                   "campaign accepted changed lock or omitted its identity")
+
+
 def cases() -> list[Case]:
     return [Case("section 5's encoding, against its definition and the bring-up", _encoding_known_answers),
             Case("records follow the contract's tables", _records_follow_the_contract),
@@ -996,4 +1043,5 @@ def cases() -> list[Case]:
             Case("the join refuses inconsistent shards", _join_refuses_inconsistent_shards),
             Case("the CLI takes exactly one selection", _cli_takes_one_selection),
             Case("the workflow runs every case group", _workflow_runs_every_case),
-            Case("generated rows admit only whole absence", _generated_rows_admit_only_whole_absence)]
+            Case("generated rows admit only whole absence", _generated_rows_admit_only_whole_absence),
+            Case("chain campaign binds its compiler lock and refuses drift", _campaign_keeps_compiler_lock)]

@@ -899,6 +899,7 @@ def run(root: Path, out: Path, simulator: Path, build_receipt: Path, selection: 
         raise ValueError("; ".join(problems))
     manifest_sha256 = receipts.digest(root / bc.MANIFEST)
     identities[str(root / bc.MANIFEST)] = manifest_sha256
+    identities[str(root / boot_crypto_target.LOCK)] = receipts.digest(root / boot_crypto_target.LOCK)
     f = bc.facts(root, found.manifest["floor"])
     campaign = Campaign(root, simulator, f, found, found.inputs(), rows, rot, mmode, periods(f),
                         limits(f), timeouts)
@@ -942,7 +943,7 @@ def run(root: Path, out: Path, simulator: Path, build_receipt: Path, selection: 
     if sources != receipts.inputs(root, *bc.SOURCE_INPUTS) or model != receipts.inputs(root, "model"):
         raise ValueError("chain campaign sources changed during execution")
     if any(receipts.digest(Path(path)) != value for path, value in identities.items()):
-        raise ValueError("the chain campaign's emulator, model receipt or staging changed")
+        raise ValueError("the chain campaign's emulator, model receipt, staging or compiler lock changed")
     cases = [done[name] for name in ordered if name in done]
     unexecuted = [name for name in ordered if name not in done]
     return {"passed": not unexecuted and all(row["passed"] is True for row in cases),
