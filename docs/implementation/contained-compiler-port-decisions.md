@@ -339,3 +339,13 @@ and unchanged closure verified again. The original interrupted build in that
 switch remains recorded. Q39 requires the independent lock-import switch and a
 clean compiler build; it does not require reinstalling the unchanged switch for
 each infrastructure retry. The final receipt must state this switch history.
+
+The two-candidate query-binding scope stopped at a control-fixture failure: its
+empty-report subtest leaves the fake `coqtop` report empty when the subsequent
+`coqchk` subtest begins, so the earlier refusal masks the expected checker
+refusal. The production query-release and input/output controls pass. One
+fixture-only candidate, bounded to three active minutes, may restore the original
+fake report in `finally`, normalize only the two owned Python helpers to LF, and
+rerun the same thirty-one focused controls. No production logic or other source
+change is authorized. Preserve both preceding candidate outcomes and obtain
+independent review of the immutable result before acceptance builds start.
