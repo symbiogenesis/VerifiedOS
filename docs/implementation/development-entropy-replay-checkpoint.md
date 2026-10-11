@@ -11,11 +11,25 @@ completion credit.
 The public-only receipt
 [`/root/build/lane-checklist-20261010-a/entropy-runtime/receipt.json`](retained-evidence/root/build/lane-checklist-20261010-a/entropy-runtime/receipt.json)
 has SHA-256
-`8846408f9ab6df2026a80436c55e35ab47c67d2f3d934c8153b594c8dc3f5392`.
+`a96eb6c76edc7d0538ed9f393dba3ce727d51c9bbd4cd337f4a52d147ec2c049`.
 It records exact controller, test, generated executable, composition, affected
 source and locked Sail input hashes, plus the resolved Sail, C++ compiler, CMake,
 Ninja and ccache executable hashes. These identities describe the local checkpoint;
 they supply no hosted-gate verdict or reusable production image signature.
+
+For this development checkpoint, the expected root identifies the exact native
+executable bytes and the composition identifies the exact passed configuration
+bytes. The controller compares both SHA-256 values before launching and again
+before capture finalization or replay success. Wrong actual files launch no child
+and invoke no fresh-word callback. Persisting executable or configuration drift
+after the first actual draw refuses completion and latches direct recorder/cursor
+finalization, even after all declared demands were satisfied.
+
+These checks require a trusted exclusive lane with no concurrent artifact writer.
+Before-and-after hashing detects persisting drift; it supplies no race-free pinning
+against an adversarial writer. The controls alter disposable copies in a unique
+OS temporary directory and leave the recorded native executable and checkout
+configuration unchanged.
 
 The finite campaign records exactly the direct draw, actual MMIO draw, watchdog
 arm and accepted-pet draw. Initial root refusal, latched root refusal and rejected
@@ -69,6 +83,8 @@ fallback checks. The focused host replay selection passed; the focused guest
 runtime campaign passed with its host controls and actual model executions.
 Scoped `ty` checks on Linux and Windows targets and `ruff` passed for the changed
 Python files using the repository configurations from `tools/`.
+The artifact-binding controls reuse that exact native executable; this repair
+changes no Sail or C++ source and requires no additional model build.
 
 Complete model tests, host gates, guest gates and benchmarks were not run locally.
 The integrator owns generated-bundle freshness and hosted validation of the

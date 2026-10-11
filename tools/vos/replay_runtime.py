@@ -199,6 +199,28 @@ def _complete(observations: list[tuple[str, bool]]) -> None:
         _fail("native public observations are incomplete")
 
 
+def _artifacts(expected: Binding, executable: Path, configuration: Path) -> None:
+    """Check the development files in a trusted exclusive lane, not signed images.
+
+    Completion rechecks detect persisting drift; they do not pin an executable
+    against an adversarial concurrent writer. Absolute paths name the same files
+    for hashing and for the child whose working directory is the native lane.
+    """
+    if not executable.is_absolute() or not configuration.is_absolute():
+        _fail("native artifact paths must be absolute")
+    try:
+        if not executable.is_file() or not configuration.is_file():
+            _fail("native artifacts are unavailable")
+        with executable.open("rb") as stream:
+            root = hashlib.file_digest(stream, "sha256").hexdigest()
+        with configuration.open("rb") as stream:
+            composition = hashlib.file_digest(stream, "sha256").hexdigest()
+    except (OSError, ValueError):
+        raise ReplayRuntimeError("native artifacts are unavailable") from None
+    if (root, composition) != (expected.base_image_root, expected.composition):
+        _fail("native artifacts differ from independently expected development binding")
+
+
 class CaptureSession:
     """One capture; failures also abort direct access to the underlying recorder."""
 
@@ -234,6 +256,7 @@ class CaptureSession:
         pipe: _Pipe | None = None
         public: list[tuple[str, bool]] = []
         try:
+            _artifacts(self.inputs.binding, executable, configuration)
             pipe = _Pipe(executable, configuration, work, "capture")
             while (frame := _frame(pipe)) is not None:
                 if len(frame) == 2:
@@ -275,6 +298,7 @@ class CaptureSession:
                                          source_unchanged=unchanged) from None
             pipe.done()
             _complete(public)
+            _artifacts(self.inputs.binding, executable, configuration)
             body = self.recorder.finish(expected=self.inputs.binding, expected_events=self.inputs.events)
             envelope = create(key=self._key, origin=self.inputs.origin, input_trace=self._input_trace,
                               body=body, expected=self.inputs.binding, expected_origin=self.inputs.origin,
@@ -308,6 +332,7 @@ def replay(capture: Capture, inputs: Inputs, *, key: bytes, executable: Path,
     pending: Point | None = None
     successful: Point | None = None
     try:
+        _artifacts(inputs.binding, executable, configuration)
         pipe = _Pipe(executable, configuration, work, "replay")
         while (frame := _frame(pipe)) is not None:
             if len(frame) == 2:
@@ -344,6 +369,7 @@ def replay(capture: Capture, inputs: Inputs, *, key: bytes, executable: Path,
             _fail("unfinished root request refuses")
         pipe.done()
         _complete(public)
+        _artifacts(inputs.binding, executable, configuration)
         cursor.finish()
         if tuple(public) != capture.observations:
             _fail("finite public observations differ; draw-dependent reproduction unsupported")
