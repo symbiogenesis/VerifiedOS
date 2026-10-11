@@ -9,11 +9,12 @@ run; --check repeats the generator and compares all current header bytes.
 import argparse
 import hashlib
 import json
+import re
 import subprocess
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
-PIN = "e6946985c9165b3270eae457c0fae887cd7b7b76"
+PIN = "f3ecb2cf1f771de34771e967193ee7f0ee0b0acf"
 RECIPES = {
     "25519_32.h": ["unsaturated-solinas", "25519", "32", "10", "2^255 - 19",
                    "carry_mul", "carry_square", "carry_scmul121666", "carry",
@@ -23,6 +24,7 @@ RECIPES = {
 }
 DESTINATION = "tools/generated/fiat-crypto"
 EMITTER = "tools/fiat_crypto_emit.py"
+PROOF_LOCK = "tools/opam/rocq.lock"
 MANIFEST = DESTINATION + "/manifest.json"
 ARTIFACTS = (MANIFEST, *(DESTINATION + "/" + name for name in RECIPES))
 
@@ -86,6 +88,41 @@ def verify_outputs(folder: Path, recorded: dict[str, Any], generated: dict[str, 
             raise ValueError("generated header or receipt differs: " + name)
 
 
+def verify_build_environment(root: Path, environment: object) -> None:
+    """Bind a measured external build to the unchanged installed proof lock."""
+    if not isinstance(environment, dict) or set(environment) != {
+            "switch", "prover", "ocaml", "lock_sha256", "export_before_sha256",
+            "export_after_sha256"}:
+        raise ValueError("Fiat build environment is missing or malformed")
+    lock = (root / PROOF_LOCK).read_bytes()
+    for field, package in (("prover", "rocq-core"), ("ocaml", "ocaml-base-compiler")):
+        versions = set(re.findall(rb'"' + package.encode() + rb'\.([^"\s]+)"', lock))
+        if len(versions) != 1 or environment[field] != next(iter(versions)).decode():
+            raise ValueError("Fiat build " + field + " differs from the proof lock")
+    if environment["switch"] != ("verifiedos-rocq-" + environment["prover"]
+                                  + "-ocaml-" + environment["ocaml"]):
+        raise ValueError("Fiat build does not identify the locked proof switch")
+    for field in ("lock_sha256", "export_before_sha256", "export_after_sha256"):
+        if environment[field] != digest(lock):
+            raise ValueError("Fiat build lock or switch export differs: " + field)
+
+
+def verify_build_identity(root: Path, recorded: dict[str, Any]) -> None:
+    verify_build_environment(root, recorded.get("build_environment"))
+    executable = recorded.get("generator_executable")
+    if not isinstance(executable, str) or not executable.startswith("/root/build/") \
+            or "\x00" in executable or ".." in PurePosixPath(executable).parts:
+        raise ValueError("Fiat generator executable is missing or outside its native build lane")
+    command = recorded.get("build_command")
+    if not isinstance(command, list) or not command or not all(isinstance(x, str) and x for x in command):
+        raise ValueError("Fiat build command is missing or malformed")
+    switch = recorded["build_environment"]["switch"]
+    expected = ["opam", "exec", f"--switch={switch}", "--", "make", "-j2", "SKIP_BEDROCK2=1",
+                f"COQC=/root/.opam/{switch}/bin/rocq c", "standalone-unified-ocaml"]
+    if command != expected:
+        raise ValueError("Fiat build command differs from the reviewed locked-compiler recipe")
+
+
 def verify_record(root: Path, source_pin: str | None) -> None:
     """Check host-readable provenance; only the native replay reruns Fiat itself."""
     recorded = json.loads((root / MANIFEST).read_text(encoding="utf-8"))
@@ -114,9 +151,7 @@ def verify_record(root: Path, source_pin: str | None) -> None:
     binary_hash = recorded.get("generator_sha256")
     if not isinstance(binary_hash, str) or len(binary_hash) != 64 or any(c not in "0123456789abcdef" for c in binary_hash):
         raise ValueError("Fiat generator identity is missing or invalid")
-    command = recorded.get("build_command")
-    if not isinstance(command, list) or not command or not all(isinstance(x, str) and x for x in command):
-        raise ValueError("Fiat build command is missing or malformed")
+    verify_build_identity(root, recorded)
     generated = {}
     for name in RECIPES:
         header = (root / DESTINATION / name).read_bytes()
@@ -160,9 +195,20 @@ def _execute(args: argparse.Namespace, folder: Path) -> None:
     if not args.emit and recorded.get("generator_sha256") != binary_hash:
         raise ValueError("generator binary differs from the reviewed emission")
     generated: dict[str, bytes] = {}
+    invocations: list[dict[str, Any]] = []
     for name, recipe in RECIPES.items():
-        runs = [subprocess.run(["fiat_crypto", *recipe], executable=binary,
-                               cwd=work, capture_output=True, check=True) for _ in range(2)]
+        runs = []
+        for run in (1, 2):
+            command = ["fiat_crypto", *recipe]
+            result = subprocess.run(command, executable=binary, cwd=work, capture_output=True, check=False)
+            prefix = name + f".run{run}"
+            (work / (prefix + ".stdout")).write_bytes(result.stdout)
+            (work / (prefix + ".stderr")).write_bytes(result.stderr)
+            invocations.append({"command": command, "exit": result.returncode,
+                                "stdout": prefix + ".stdout", "stdout_sha256": digest(result.stdout),
+                                "stderr": prefix + ".stderr", "stderr_sha256": digest(result.stderr)})
+            result.check_returncode()
+            runs.append(result)
         if not runs[0].stdout or runs[0].stdout != runs[1].stdout:
             raise ValueError("empty or nondeterministic generator output: " + name)
         generated[name] = runs[0].stdout
@@ -173,10 +219,17 @@ def _execute(args: argparse.Namespace, folder: Path) -> None:
         build = json.loads(args.build_receipt.read_text(encoding="utf-8"))
         if build.get("exit") != 0 or not build.get("command"):
             raise ValueError("build receipt is not a successful invocation")
+        if build.get("source_pin") != PIN or build.get("generator_sha256") != binary_hash \
+                or build.get("generator_executable") != str(binary):
+            raise ValueError("build receipt identifies a different source or generator")
+        build_identity = {"build_command": build["command"],
+                          "build_environment": build.get("environment"),
+                          "generator_executable": str(binary)}
+        verify_build_identity(folder.parents[2], build_identity)
         recorded = {"schema": 1, "source_pin": PIN, "sources": sources,
                     "owners": {EMITTER: digest((folder.parents[2] / EMITTER).read_bytes())},
                     "recipes": RECIPES, "generator_sha256": binary_hash,
-                    "build_command": build["command"],
+                    **build_identity,
                     "outputs": {name: {"raw_sha256": digest(raw),
                                        "header_sha256": digest(wrap(name, raw))}
                                 for name, raw in generated.items()}}
@@ -188,6 +241,9 @@ def _execute(args: argparse.Namespace, folder: Path) -> None:
         raise ValueError("source archive identities differ from the reviewed emission")
     verify_outputs(folder, recorded, generated)
     verify_record(folder.parents[2], PIN)
+    (work / "fiat-emission.json").write_text(json.dumps({
+        "generator_executable": str(binary), "generator_sha256": binary_hash,
+        "invocations": invocations, "outputs": recorded["outputs"]}, indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
