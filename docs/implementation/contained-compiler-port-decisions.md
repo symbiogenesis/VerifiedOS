@@ -439,3 +439,11 @@ It supplies no kernel verdict, nontermination diagnosis or completion estimate.
 Proof sources, helper sources, packages, audit flags and root scope remain frozen;
 both complete audits continue afterward. A missing tool or failed probe closes this
 diagnostic without installing anything or changing acceptance.
+
+The first diagnostic candidate stopped at a malformed PowerShell here-string
+terminator, before creating source or a binary. Native preflight confirmed
+`aarch64` and the existing GCC 15.2.0, but no disposable-process test or auditor
+attachment occurred. The recorded interval was 19:56:21–20:00:31 UTC on
+2026-10-11. Its empty, uniquely owned Temp directory is retained. This closes
+that candidate without a diagnostic or acceptance verdict; both sealed audits
+continue unchanged.
