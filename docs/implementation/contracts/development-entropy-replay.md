@@ -7,6 +7,19 @@ The implementation checklist owns S6's completion. This call-level checkpoint
 leaves its production sources, sealing, DRBG discipline, complete machine capture
 and CT-scoped replay acceptance open.
 
+## Delegated scope decision
+
+The execution decision is to use the third worker for this bounded runtime
+checkpoint. S6's production public-source services and cryptographic joins are
+absent, so complete replay cannot be accepted from the available artifacts.
+The checkpoint instead checks real generated Sail call paths and their refusal
+boundaries under the existing S6 ownership; it supplies executable evidence beyond
+the host structural fixtures while preserving the complete acceptance predicate.
+The integrator owns Q40's independent header reproduction in another dedicated
+worktree, so that verification does not consume this implementation lane. S6
+retains its open status and receives no independent completion credit for this
+work package.
+
 ## Trusted development hooks
 
 Two additive hooks belong to the trusted development harness. Sail's ordinary
