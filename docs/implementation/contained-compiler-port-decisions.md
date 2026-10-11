@@ -5,6 +5,21 @@ predicate in the [implementation checklist](implementation-checklist.md). This
 record commissions a bounded follow-up under that predicate; it changes no proof
 statement, executable definition, hypothesis, admitted lemma or compiler flag.
 
+## Candidate selection
+
+The upstream pairing, Rocq 9.1.0 with OCaml 4.14.2 and Menhir 20260209,
+completed the compiler build. Its complete all-`FILES` kernel audit failed
+with exit 129 in the generated parser's
+`MenhirLibParser.Inter.ValidSafe.safe_is_validator` with
+`Modops.ModuleTypingError`; a parser-only diagnostic reproduced the failure.
+The failure is retained and the pairing supplies no passing kernel acceptance.
+
+The next candidate is the bounded Rocq 9.3.0 port with the same OCaml and
+Menhir releases. Its portable lock contains released packages only. The
+independent lock-import clean build and the complete whole-environment audit
+must pass before this candidate is accepted. The proof switch's lock stays
+unchanged, and the standing kernel findings F-565 and F-525 remain standing.
+
 ## Follow-up after the initial repair budget
 
 The initial twelve-candidate repair budget stopped after candidate 12. That check

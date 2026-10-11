@@ -1785,6 +1785,16 @@ CASES: list[Case] = [
     ("K-118", "an opam snapshot release its development-tool row does not state",
      _first_match("tools/opam/sail.lock", r'"zarith\.([^"]+)"',
                   lambda m: f'"zarith.{m[1]}.1"')),
+    ("K-118", "a contained compiler prover release its development-tool row does not state",
+     _first_match("tools/opam/contained-compiler.lock", r'"rocq-core\.([^"]+)"',
+                  lambda m: f'"rocq-core.{m[1]}.1"')),
+    ("K-118", "a contained compiler OCaml release its development-tool row does not state",
+     _first_match("tools/opam/contained-compiler.lock",
+                  r'(?s)(installed:\s*\[.*?"ocaml-base-compiler\.)([^"]+)"',
+                  lambda m: f'{m[1]}{m[2]}.1"')),
+    ("K-118", "a contained compiler Menhir runtime release its development-tool row does not state",
+     _first_match("tools/opam/contained-compiler.lock", r'"menhirLib\.([^"]+)"',
+                  lambda m: f'"menhirLib.{m[1]}.1"')),
     # Both directions through the CertiRocq snapshot's rows, which read each package's
     # backticked release by its name: an OCaml library moves in the lock while its row
     # stays, and the row's release moves while the lock stays.

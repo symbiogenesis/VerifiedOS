@@ -703,9 +703,10 @@ _GALLINA = "tools/vos/gallina.py"
 _ORACLE_ROCQ = Owner("assign", _GALLINA, "ORACLE_ROCQ_VERSION")
 _ORACLE_OCAML = Owner("assign", _GALLINA, "ORACLE_OCAML_VERSION")
 _FLOOR = Owner("assign", "tools/ty.toml", "python-version")
-_MENHIR = tuple(_snap(lock, package) for lock in ("sail", "quickchick", "certirocq")
+_MENHIR = tuple(_snap(lock, package) for lock in (
+    "sail", "quickchick", "certirocq", "contained-compiler")
                 for package in ("menhir", "menhirLib", "menhirSdk", "menhirCST", "menhirGLR"))
-# The snapshots whose switches build on OCaml 5.4.1, every one but the CertiRocq oracle's.
+# The snapshots whose switches build on OCaml 5.4.1.
 _OCAML_5 = tuple(_snap(lock, "ocaml-base-compiler")
                  for lock in ("sail", "rocq", "quickchick", "rupicola"))
 _CERTIROCQ = Owner("assign", _GALLINA, "CERTIROCQ_VERSION")
@@ -793,10 +794,12 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
         *_pinned("vcs-versioning", HOOK_BUILD_CONSTRAINTS, "vcs-versioning"),
         *_pinned("packaging", HOOK_BUILD_CONSTRAINTS))),
     DevTool("Rocq prover: `rocq-core`, `rocq-runtime` and `rocqchk`", (
-        Site("the proof and QuickChick switches' edition",
-             rf"{_V} in the proof and QuickChick switches",
+        Site("the proof, QuickChick and contained compiler switches' edition",
+             rf"{_V} in the proof, QuickChick and contained compiler switches",
              (_snap("rocq", "rocq-core"), _snap("rocq", "rocq-runtime"),
-              _snap("quickchick", "rocq-core"), _snap("quickchick", "rocq-runtime"))),
+              _snap("quickchick", "rocq-core"), _snap("quickchick", "rocq-runtime"),
+              _snap("contained-compiler", "rocq-core"),
+              _snap("contained-compiler", "rocq-runtime"))),
         Site("the lowering switch's edition", rf"{_V} in the lowering switch",
              (_snap("rupicola", "rocq-core"), _snap("rupicola", "rocq-runtime"))),
         Site("the oracle switch's edition", rf"{_V} in the CertiRocq oracle switch",
@@ -810,8 +813,13 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
              rf"{_V} in the Sail, proof, QuickChick and lowering snapshots", _OCAML_5),
         Site("the oracle switch's compiler", rf"{_V} in the CertiRocq oracle switch",
              (_ORACLE_OCAML, _snap("certirocq", "ocaml-base-compiler"))),
+        Site("the contained compiler switch's compiler",
+             rf"{_V} in the contained compiler switch",
+             (_snap("contained-compiler", "ocaml-base-compiler"),)),
         Site("the tags read", _TAGS_READ,
-             (Owner("opam-every", SNAPSHOTS, "ocaml-base-compiler"), _ORACLE_OCAML), each=_TAG)),
+             (*_OCAML_5, _snap("certirocq", "ocaml-base-compiler"), _ORACLE_OCAML), each=_TAG),
+        Site("the contained compiler's archive read", rf"The `{_V}` release archive",
+             (_snap("contained-compiler", "ocaml-base-compiler"),))),
         residues=(Residue("under LGPL version 2.1", "the licence's own version"),
                   Residue("headers name version 2.1", "the licence version the headers name"))),
     DevTool("dune", (
@@ -822,8 +830,9 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
         Site("the release in every switch", rf"{_V} in every switch",
              (Owner("opam-every", SNAPSHOTS, "zarith"),)),
         Site("the tag read", rf"The `release-{_V}` tag's", (Owner("opam-every", SNAPSHOTS, "zarith"),)))),
-    DevTool("Menhir", (Site("the Sail, QuickChick and CertiRocq snapshots' release",
-                            rf"Sail, QuickChick and CertiRocq snapshots at {_V},", _MENHIR),)),
+    DevTool("Menhir", (Site("the Sail, QuickChick, CertiRocq and contained compiler snapshots' release",
+                            rf"Sail, QuickChick, CertiRocq and contained compiler snapshots at {_V},",
+                            _MENHIR),)),
     DevTool("CompCert, in the oracle's switch", (
         Site("the CertiRocq snapshot's release", rf"version \*\*{_V}\*\* in \[the CertiRocq",
              (_snap("certirocq", "coq-compcert"),)),)),
