@@ -526,3 +526,20 @@ audit or termination is yet authorized. Any subsequent checker configuration act
 needs its own landed scope, new pre-query seals and complete audits of both clean
 builds; it may skip no root or recursive dependency, change no proof statement,
 weaken no guard or universe check, and admit no module.
+
+The control candidate passed in 20:29:13–20:32:06 UTC. The honest library's
+VM-enabled checker exited 0. The mismatched fixture compiled and its false proof
+reported no assumptions, but the same checker rejected `Evil.evil_false` at the
+actual type conversion with exit 129. Its retained receipt digest is
+`f8cf1596076d5870513023e37c379b3ba051d8dfddf4bc5454d305ae47613e05`.
+Executable and fixture digests remained unchanged across the commands; no auditor
+was accessed. This is a targeted rejection control, not a compiler verdict.
+
+The honest positive defines a computed Boolean but has no explicit VM cast.
+Before selecting the option, one supplemental positive fixture, bounded to three
+active minutes, may compile a lawful VM-cast equality over that immutable honest
+library and kernel-check it with the same actual VM-enabled checker. It must pass,
+and any disabled-bytecode or ignored-option warning refuses the setting. Preserve
+the first control's artifacts unchanged and record this supplement separately.
+No helper, package, running audit or proof-source change is authorized by this
+supplement. A failure closes the configuration experiment.
