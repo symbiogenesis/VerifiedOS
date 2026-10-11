@@ -21,15 +21,25 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-from vos import asm, differential, image, receipts, trace  # noqa: E402
+from vos import (  # noqa: E402
+    asm,
+    compiler_provenance,
+    differential,
+    image,
+    receipts,
+    simulator_build,
+    trace,
+)
 from vos.cli import compiler_diff  # noqa: E402
+from vos.jsonc import Json  # noqa: E402
 
 regenerate = importlib.import_module("bedrock2-lowering.regenerate")
 COMPILER_SHA256 = "ecaa5ce0cd29d1099016dc1b62a93d16ecab1fe1bcb3a0e363c2697f6294ddca"
 MESSAGE = b"Hello, world!\n"
 MEMBER = "gallina-hello"
 INPUTS = ("tools/bedrock2-lowering", "tools/opam/rupicola.lock", "tools/vos",
-          "tools/generated/dialect-table.json", "model/config/verifiedos.json")
+          "tools/generated/dialect-table.json", "model/config/verifiedos.json",
+          compiler_provenance.LOCK)
 
 
 def sha(path: Path) -> str:
@@ -39,6 +49,39 @@ def sha(path: Path) -> str:
 def json_write(path: Path, value: object) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n",
                     encoding="utf-8", newline="\n")
+
+
+def accepted_compiler(ccomp: Path) -> tuple[dict[str, Json], dict[str, str]]:
+    if sha(ccomp) != COMPILER_SHA256:
+        raise ValueError("compiler differs from M1.2f's accepted executable")
+    return compiler_provenance.read(ccomp, ROOT / compiler_provenance.LOCK)
+
+
+def model_receipt(root: Path, simulator: Path, path: Path) -> tuple[dict[str, object], dict[str, str]]:
+    """Distinguish the narrow replay dependency from a complete model acceptance."""
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise TypeError("model receipt must be an object")
+    if raw.get("schema") == simulator_build.SCHEMA:
+        focused = simulator_build.read(root, simulator, path)
+        return dict(focused), receipts.inputs(root, "model")
+    if (raw.get("schema") != 1 or type(raw.get("exit_code")) is not int
+            or raw["exit_code"] != 0
+            or raw.get("stages") != {"configure": 0, "build": 0, "ctest": 0}
+            or not isinstance(raw.get("identity"), dict)
+            or not isinstance(raw["identity"].get("inputs"), dict)
+            or not isinstance(raw["identity"].get("tools"), dict)
+            or not raw["identity"]["tools"]
+            or any(not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None
+                   for value in raw["identity"]["tools"].values())
+            or not isinstance(raw.get("artifacts"), dict)
+            or raw["artifacts"].get(simulator_build.ARTIFACT) != sha(simulator)):
+        raise ValueError("model receipt does not record a successful complete model build")
+    selected = {name: digest for name, digest in raw["identity"]["inputs"].items()
+                if name.startswith("model/")}
+    if selected != receipts.inputs(root, "model"):
+        raise ValueError("complete current model source population differs from built source")
+    return raw, selected
 
 
 def lowering_identity() -> dict[str, str]:
@@ -174,27 +217,14 @@ def native(args: argparse.Namespace) -> int:
     stage.mkdir(parents=True, exist_ok=True)
     (stage / "result.json").unlink(missing_ok=True)
     ccomp, simulator = Path(args.ccomp).resolve(), Path(args.simulator).resolve()
-    if sha(ccomp) != COMPILER_SHA256:
-        raise ValueError("compiler differs from M1.2f's accepted executable")
+    provenance, provenance_files = accepted_compiler(ccomp)
     inputs = receipts.inputs(ROOT, *INPUTS)
     external_paths = (ccomp, simulator, Path(args.config), Path(args.model_receipt))
     external = {str(path): sha(path) for path in external_paths}
     lowering_environment = regenerate.environment()
     lowering_files = lowering_identity()
-    model = json.loads(Path(args.model_receipt).read_text(encoding="utf-8"))
+    model, selected = model_receipt(ROOT, simulator, Path(args.model_receipt))
     json_write(stage / "model-receipt.json", model)
-    # The build receipt binds the curated model population. Other build inputs
-    # include historical documentation and corpus members, which are not model bytes.
-    if model["exit_code"] or model["artifacts"]["c_emulator/sail_riscv_sim"] != sha(simulator):
-        raise ValueError("simulator is not the successful model receipt's executable")
-    model_inputs = model["identity"]["inputs"]
-    selected = {name: digest for name, digest in model_inputs.items()
-                if name.startswith("model/")}
-    if not selected:
-        raise ValueError("model receipt carries no curated model inputs")
-    current_model = receipts.inputs(ROOT, "model")
-    if selected != current_model:
-        raise ValueError("complete current model source population differs from built source")
 
     derivation = stage / "derivation"
     regenerate.stage_sources(derivation, [HERE / "HelloWorld.v"])
@@ -249,6 +279,9 @@ def native(args: argparse.Namespace) -> int:
         raise ValueError("source inputs changed during reproduction")
     if external != {str(path): sha(path) for path in external_paths}:
         raise ValueError("external producer inputs changed during reproduction")
+    if accepted_compiler(ccomp) != (provenance, provenance_files):
+        raise ValueError("contained compiler source, receipts or locked toolchain changed during reproduction")
+    model_receipt(ROOT, simulator, Path(args.model_receipt))
     if lowering_environment != regenerate.environment():
         raise ValueError("lowering environment changed during reproduction")
     if lowering_files != lowering_identity():
@@ -259,6 +292,7 @@ def native(args: argparse.Namespace) -> int:
               "external_inputs": external, "lowering_environment": lowering_environment,
               "lowering_files": lowering_files,
               "compiler_sha256": sha(ccomp), "simulator_sha256": sha(simulator),
+              "compiler_provenance": provenance, "compiler_receipts_sha256": provenance_files,
               "config_sha256": sha(config), "model_receipt_sha256": sha(Path(args.model_receipt)),
               "model_inputs": selected, "derivation": dataclasses.asdict(derived),
               "kernel_exit": kernel.returncode, "c_sha256": sha(raw_c.path),
@@ -301,7 +335,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         return native(args)
-    except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError) as exc:
+    except (OSError, ValueError, TypeError, KeyError, RuntimeError, subprocess.SubprocessError) as exc:
         print(f"hello-world: {exc}", file=sys.stderr)
         return 1
 

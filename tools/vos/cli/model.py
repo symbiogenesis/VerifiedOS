@@ -592,8 +592,8 @@ def oracle_receipt(tree: Path) -> Path:
 ORACLE_CSTD = "-std=gnu17"
 
 
-def _configure(e: env.Environment, build_dir: Path,
-               extra: list[str] | None = None, out: IO[str] | None = None) -> int:
+def configure_command(e: env.Environment, build_dir: Path,
+                      extra: list[str] | None = None) -> list[str]:
     """The one cmake configure line. It was written out in two loops, which is one fact
     in two places and a pair that can silently stop agreeing.
 
@@ -612,13 +612,9 @@ def _configure(e: env.Environment, build_dir: Path,
     on emitting with the earlier compiler while the build log and `build_identity`
     read the one on `PATH`.
     """
-    try:
-        test_version = test_corpus_version(e.model)
-    except ValueError as err:
-        print(str(err), file=sys.stderr)
-        return 1
+    test_version = test_corpus_version(e.model)
     sail = shutil.which("sail")
-    return env.stage("configure", [
+    return [
         "cmake", "-S", str(e.model), "-B", str(build_dir), "-GNinja",
         "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
         "-DDOWNLOAD_GMP=FALSE",
@@ -626,7 +622,23 @@ def _configure(e: env.Environment, build_dir: Path,
         *e.compilers, *e.ccache, *(extra or []),
         f"-DTEST_DOWNLOAD_VERSION={test_version}",
         *([f"-DSAIL_BIN={sail}"] if sail else []),
-    ], stdout=out, stderr=out, add_env=env.git_env(e.root) or None)
+    ]
+
+
+def _configure(e: env.Environment, build_dir: Path,
+               extra: list[str] | None = None, out: IO[str] | None = None) -> int:
+    try:
+        argv = configure_command(e, build_dir, extra)
+    except ValueError as err:
+        print(str(err), file=sys.stderr)
+        return 1
+    return env.stage("configure", argv, stdout=out, stderr=out,
+                     add_env=env.git_env(e.root) or None)
+
+
+def cmd_simulator(e: env.Environment, args: argparse.Namespace) -> int:
+    from vos import simulator_build  # noqa: PLC0415
+    return simulator_build.build(e, Path(args.out))
 
 
 def _require(binary: str, how: str) -> None:
@@ -2875,6 +2887,11 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--background", action="store_true",
                        help="detach the run and return; wait on it with `run.py model wait`")
     build.set_defaults(run=cmd_build)
+
+    simulator = sub.add_parser("simulator", help="build only the Q39 replay simulator dependency")
+    simulator.add_argument("--out", required=True,
+                           help="fresh absolute native output directory in this checkout's lane")
+    simulator.set_defaults(run=cmd_simulator)
 
     wait = sub.add_parser("wait", help="wait for this lane's build, then report it")
     wait.add_argument("--fast", action="store_true", help="the iterate profile's build")
