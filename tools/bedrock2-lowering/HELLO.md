@@ -36,10 +36,11 @@ execution receipts keep their original lane paths. The selected compiler digest 
 `3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8`.
 Its successful post-build qualification receipt and source manifest bind the released
 [contained toolchain lock](../opam/contained-compiler.lock), actual prover,
-OCaml and Menhir versions and executable hashes. The qualification retains the
-original clean-build stages and actual whole-environment kernel verdict, recovers
-only the recorded lexical matcher failure, and preserves the original failed
-receipt unchanged. It claims no new compilation or kernel run.
+OCaml and Menhir versions and executable hashes. Each qualification uses a new
+clean build whose source, objects, installed libraries, tools and audit helpers
+are sealed before queries. Its copied inputs must match that seal before a fresh
+complete kernel audit. Interrupted original audits retain their unsuccessful
+receipts and provide no acceptance evidence.
 
 The recipe accepts a separately retained simulator only after matching its
 successful build receipt, executable digest and complete current model-file population.
