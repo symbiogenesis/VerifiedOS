@@ -632,6 +632,7 @@ def _staging(root: Path, out: Path) -> contextlib.ExitStack:
             (target, "rot_composer", lambda: rot), (target, "mmode_composer", lambda: mmode),
             (cd, "compile_c", _compile_c(root)), (target.boot_signing, "SlhSigner", _Slh),
             (target, "MlDsaSigner", _MlDsa),
+            (target.boot_crypto, "openssl_identity", lambda _: {"binaries": {"openssl": "fixture"}}),
             (target.boot_crypto, "openssl_verify",
              lambda _, case: _verify(case.mode, case.pk, case.message, case.signature))):
         stack.enter_context(patch.object(owner, attribute, value))
@@ -956,6 +957,49 @@ def _preserving_stage_refuses_changed_inputs() -> None:
             ensure(snapshot(root) == before, f"refused {label} refresh wrote staged inputs")
 
 
+def _verification_keeps_tool_identity() -> None:
+    with tempfile.TemporaryDirectory() as name:
+        base = Path(name)
+        for preserve in (False, True):
+            for role in ("verifier", "signer"):
+                if preserve and role == "signer":
+                    continue
+                root, out = base / f"{preserve}-{role}", base / f"native-{preserve}-{role}"
+                _checkout(root)
+                with _staging(root, out):
+                    target.stage(root, out, Path("ccomp"), [])
+                before = {p.name: p.read_bytes() for p in (root / bc.STAGED).iterdir()}
+                state = {"verifying": False}
+
+                def verifier_identity(_: Path, role: str = role,
+                                      state: dict[str, bool] = state) -> dict[str, object]:
+                    return {"binaries": {"openssl": "changed" if state["verifying"] and role == "verifier"
+                                         else "initial"}}
+
+                def verify(_: Path, case: boot_crypto_target.boot_crypto.Case,
+                           state: dict[str, bool] = state) -> bool:
+                    state["verifying"] = True
+                    return _verify(case.mode, case.pk, case.message, case.signature)
+
+                def signer_identity(_: _Slh, role: str = role,
+                                    state: dict[str, bool] = state) -> dict[str, object]:
+                    return {"scheme": "changed" if state["verifying"] and role == "signer" else "initial"}
+
+                with (_staging(root, out),
+                      patch.object(target.boot_crypto, "openssl_identity", verifier_identity),
+                      patch.object(target.boot_crypto, "openssl_verify", verify),
+                      patch.object(_Slh, "identity", signer_identity)):
+                    try:
+                        target.stage(root, out, Path("ccomp"), [], preserve_images=preserve)
+                    except ValueError as error:
+                        ensure("identity changed during signature verification" in str(error),
+                               f"tool drift refused for another reason: {error}")
+                    else:
+                        raise AssertionError(f"accepted verifier-phase {role} drift")
+                ensure({p.name: p.read_bytes() for p in (root / bc.STAGED).iterdir()} == before,
+                       "verifier-phase tool drift wrote staged inputs")
+
+
 def _cli_takes_one_selection() -> None:
     seen: list[Any] = []
 
@@ -1120,6 +1164,8 @@ def cases() -> list[Case]:
             Case("staging writes what the staged check accepts", _staging_writes_what_staged_accepts),
             Case("provenance refresh preserves signed inputs and refuses changes",
                  _preserving_stage_refuses_changed_inputs),
+            Case("signature verification retains tool identity before publication",
+                 _verification_keeps_tool_identity),
             Case("the case set is the contract's table", _case_set_is_the_contract_table),
             Case("the join refuses inconsistent shards", _join_refuses_inconsistent_shards),
             Case("the CLI takes exactly one selection", _cli_takes_one_selection),

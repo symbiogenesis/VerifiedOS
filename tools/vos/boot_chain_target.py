@@ -463,7 +463,10 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str], *,
                 "kernel_root": kernel_root.hex(), "signed_under": state_name}
         signing = {"slh": slh.identity(), "mldsa": mldsa.identity(),
                    "private_keys": str(out / "signing")}
-    verdicts = signature_verdicts(f, out / "verify", images, production, kernel_root)
+    verification = out / "verify"
+    verification.mkdir(parents=True, exist_ok=True)
+    verifier = boot_crypto.openssl_identity(verification)
+    verdicts = signature_verdicts(f, verification, images, production, kernel_root)
     if (boot_crypto_target.compiler_provenance(ccomp) != (provenance, provenance_files)
             or boot_target.compiler_inputs(compiler_args) != compiler_files
             or any(receipts.digest(root / name) != value for name, value in sources.items())):
@@ -508,6 +511,12 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str], *,
             raise ValueError("the retained staged inputs changed during provenance refresh")
         if any(data != retained[name] for name, data in files.items()):
             raise ValueError("provenance refresh would change a retained staged stream or image")
+    else:
+        if signing != {"slh": slh.identity(), "mldsa": mldsa.identity(),
+                       "private_keys": str(out / "signing")}:
+            raise ValueError("the signing tool identity changed during signature verification")
+    if boot_crypto.openssl_identity(verification) != verifier:
+        raise ValueError("the OpenSSL verifier identity changed during signature verification")
     files["manifest.json"] = _json(manifest)
     for name, data in files.items():
         with receipts.atomic_path(directory / name) as pending:
@@ -515,7 +524,7 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str], *,
     return {"passed": True, "manifest": manifest, "native_units": native,
             "native_compiler_inputs_sha256": compiler_files,
             "native_compiler_receipts_sha256": provenance_files, "compiler_path": str(ccomp),
-            "signing": signing}
+            "signing": signing, "verification": verifier}
 
 
 def layouts(root: Path, staged: bc.Staged, rot: RotComposer, mmode: MmodeComposer) -> list[str]:
