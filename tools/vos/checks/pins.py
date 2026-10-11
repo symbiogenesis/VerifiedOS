@@ -1017,6 +1017,8 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
         "the Fiat-Crypto source and licence edition read by the dated reuse survey",
     ("docs/implementation/fiat-crypto-emission.md", "20261010"):
         "the date numeral in the retained Q40 evidence directory, not a git object id",
+    ("tools/vos/checks/pins.py", "20261010"):
+        "the date numeral in that evidence directory's scoped residue declaration",
     ("docs/assurance/proof-reuse/crypto.md", "af03839247c545987c20e99342ab2bbfcd517863"):
         "the Fiat-Crypto dependency selected by the external verified-NTT artifact, "
         "not this repository's Fiat-Crypto gitlink",
