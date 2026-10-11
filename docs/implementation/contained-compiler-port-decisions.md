@@ -464,3 +464,65 @@ any auditor observation is authorized. A compiler worker may attach to no audito
 until the integrator gives a concrete instruction naming its reverified identity.
 Proofs, compiler sources, packages, execution flags, root scope and both running
 sealed audits remain unchanged.
+
+The launcher replan passed in its single candidate within 20:11:25–20:15:21 UTC.
+Its source digest is
+`d41ec6d40792c625f19535dfd7f2fdb1b5f1281cdc23a0661cbc31858aa7a5a7`
+and native binary digest is
+`510b1c817f1551395a1cade991aeeea27dc91e14944279d05f18b595255f7c62`.
+Normal and forced post-attach failure controls both detached successfully, verified
+the disposable child running with `TracerPid=0`, and retired that owned child.
+The timeout fallback and monotonic-clock failure handling were statically reviewed;
+no fault-injection verdict is claimed. Both independent source readers found no
+material issue within the trusted exclusive lane's stated process-identity bounds.
+
+After rechecking the session-owned auditor's PID, start ticks, driver lineage,
+UID, native architecture, executable digest against its compile seal and untraced
+running state, the compiler worker made one authorized observation. It exited 0
+in 0.015051400 s, detached, and verified the same target running and untraced;
+the other auditor and both drivers retained their identities and running states.
+This diagnostic briefly stopped and resumed one auditor, so its timing includes
+that scheduling perturbation. Neither a kernel verdict nor a current call stack,
+nontermination diagnosis or completion estimate follows from the register sample.
+The observation's retained JSON digest is
+`8083d04e6c0d518265621c304c4c67548438521f3a678b893f7281350bd60e0c`.
+
+The compile source has been removed after digest and Temp ownership checks; the
+binary, six logs and recorded source digest remain. Static symbol lookup places
+the single sampled instruction in a list-append routine. That point observation
+does not identify its callers or bound the remaining work.
+
+## Validate the locked checker's VM option
+
+The integrator and independent reviewer read the exact Rocq V9.3.0
+[checker entry](https://github.com/rocq-prover/rocq/blob/V9.3.0/checker/coqchk_main.ml),
+[safe-checking](https://github.com/rocq-prover/rocq/blob/V9.3.0/checker/safe_checking.ml)
+and [safe-typing](https://github.com/rocq-prover/rocq/blob/V9.3.0/kernel/safe_typing.ml)
+sources. The actual downloaded package archive,
+SHA-256 `3f0fc283e8644394aa9c7a6e3995b6d9ebbe1e6dda712bf431f9c372dcef95ad`,
+contains identical copies, and both installed switches' package metadata names
+that archive. The default checker disables VM conversion. Its optional
+`-bytecode-compiler yes` recompiles bytecode from the declarations about to be
+checked, does not read serialized `vmlibrary` bytes, and retains module checking.
+The VM compiler and runtime then contribute to conversion correctness. The
+kernel's flag comparison identifies this setting as one that does not change the
+theory; this static reading supplies no independent metatheory or timing verdict.
+The source-comparison receipt digest is
+`17adcb2facd9113edb4685854c99bfea1e583bd81bf109b5ed7ad5223775305f`.
+
+Before choosing this setting for Q39, commission one Temp-only control candidate,
+bounded to eight active implementation minutes. Use the existing locked checker
+and compiler, with no package change, to check an honest positive library and the
+upstream mismatched serialized-bytecode negative fixture. The latter must be
+refused even with the VM enabled, establishing that the actual selected executable
+does not accept that false proof through stored bytecode. Record every command,
+exit, executable and fixture digest, and obtain independent review. A missing tool,
+failed control or exhausted budget stops this configuration experiment. Neither
+control supplies a compiler whole-environment verdict.
+
+The two running auditors, their sources, flags, roots, seals and installed inputs
+remain unchanged during this experiment. No compiler helper edit, full replacement
+audit or termination is yet authorized. Any subsequent checker configuration act
+needs its own landed scope, new pre-query seals and complete audits of both clean
+builds; it may skip no root or recursive dependency, change no proof statement,
+weaken no guard or universe check, and admit no module.
