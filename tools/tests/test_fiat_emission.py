@@ -69,13 +69,26 @@ def _host_record() -> None:
         folder.mkdir(parents=True)
         emitter = root / fiat.EMITTER
         emitter.write_bytes(b"fixture emitter")
+        lock = root / fiat.PROOF_LOCK
+        lock.parent.mkdir(parents=True)
+        lock.write_bytes(b'installed: ["rocq-core.9.3.0" "ocaml-base-compiler.5.4.1"]\n')
+        lock_hash = fiat.digest(lock.read_bytes())
+        switch = "verifiedos-rocq-9.3.0-ocaml-5.4.1"
+        environment = {"switch": switch, "prover": "9.3.0", "ocaml": "5.4.1",
+                       "lock_sha256": lock_hash, "export_before_sha256": lock_hash,
+                       "export_after_sha256": lock_hash}
         raw = b"/* emitted fixture body */\n"
         for name in fiat.RECIPES:
             (folder / name).write_bytes(fiat.wrap(name, raw))
         record = {"schema": 1, "source_pin": fiat.PIN, "recipes": fiat.RECIPES,
                   "owners": {fiat.EMITTER: fiat.digest(emitter.read_bytes())},
                   "sources": [{"path": ".", "revision": fiat.PIN, "archive_sha256": "a" * 64}],
-                  "generator_sha256": "b" * 64, "build_command": ["fixture"],
+                  "generator_sha256": "b" * 64,
+                  "generator_executable": "/root/build/lane-fixture/fiat_crypto",
+                  "build_command": ["opam", "exec", "--switch=" + switch, "--", "make", "-j2",
+                                    "SKIP_BEDROCK2=1", "COQC=/root/.opam/" + switch + "/bin/rocq c",
+                                    "standalone-unified-ocaml"],
+                  "build_environment": environment,
                   "outputs": {name: {"raw_sha256": fiat.digest(raw),
                                      "header_sha256": fiat.digest(fiat.wrap(name, raw))}
                               for name in fiat.RECIPES}}
@@ -89,10 +102,23 @@ def _host_record() -> None:
         emitter.write_bytes(b"fixture emitter")
         for field, bad in (("sources", []), ("owners", {}), ("outputs", {}),
                            ("recipes", {}), ("generator_sha256", ""),
-                           ("build_command", [])):
+                           ("build_command", []), ("build_environment", {}),
+                           ("generator_executable", "relative/fiat_crypto")):
             manifest.write_text(json.dumps({**record, field: bad}), encoding="utf-8")
             _refuses(lambda: fiat.verify_record(root, fiat.PIN))
+        for field in environment:
+            manifest.write_text(json.dumps({**record, "build_environment": {
+                **environment, field: "wrong"}}), encoding="utf-8")
+            _refuses(lambda: fiat.verify_record(root, fiat.PIN))
+        for command in (["make"], ["--switch=" + switch],
+                        ["COQC=/root/.opam/" + switch + "/bin/rocq c"]):
+            manifest.write_text(json.dumps({**record, "build_command": command}), encoding="utf-8")
+            _refuses(lambda: fiat.verify_record(root, fiat.PIN))
         manifest.write_text(json.dumps(record), encoding="utf-8")
+        lock_before = lock.read_bytes()
+        lock.write_bytes(lock_before + b"# changed lock\n")
+        _refuses(lambda: fiat.verify_record(root, fiat.PIN))
+        lock.write_bytes(lock_before)
         first = folder / next(iter(fiat.RECIPES))
         first.write_bytes(first.read_bytes().replace(b"fixture body", b"altered body"))
         _refuses(lambda: fiat.verify_record(root, fiat.PIN))

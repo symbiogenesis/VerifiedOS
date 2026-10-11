@@ -66,6 +66,16 @@ The Coq development proves arithmetic transformations and code generation. For a
 
 **Terms:** upstream [`COPYRIGHT`](https://github.com/mit-plv/fiat-crypto/blob/e6946985/COPYRIGHT) offers `MIT OR Apache-2.0 OR BSD-1-Clause`, at the user's option; the existing repository election is Apache-2.0. A forge badge reading `Other` for that repository reports the three-way choice and not an unclear grant. [`LICENSE-APACHE`](https://github.com/mit-plv/fiat-crypto/blob/e6946985/LICENSE-APACHE) and [`AUTHORS`](https://github.com/mit-plv/fiat-crypto/blob/e6946985/AUTHORS) are read. Any emission must retain the applicable notice and identify the generator pin and recipe. This is the strongest compatible implementation candidate, but running and integrating its generator is the existing M3.4c-ii work, not a completed consequence of finding it.
 
+**Current emitted-artifact boundary.** Q40's
+[recorded emission](../../implementation/fiat-crypto-emission.md) derives both
+32-bit field headers from Fiat-Crypto `f3ecb2cf1f771de34771e967193ee7f0ee0b0acf`
+with the locked Rocq kernel in an unchanged proof switch. Repeated recipes,
+6,786 independent integer checks and a second isolated emission reproduce the
+recorded bodies and wrapped headers. The dated source and license readings above
+remain readings of their named editions. This supplies emitted field artifacts;
+the relation from the internal AST to printed C, target refinement, timing,
+masking and protocol security remain their separate obligations.
+
 ### Alix Trieu's verified NTT
 
 **Peer-reviewed native proof; acquisition and port remain open.** Alix Trieu, *Formally Verified Number-Theoretic Transform*, IACR Communications in Cryptology 2(4), 2026, [DOI 10.62056/ahbn-4tw9](https://doi.org/10.62056/ahbn-4tw9). [Artifact record 18504002](https://zenodo.org/records/18504002) contains a source archive and a [README](https://zenodo.org/records/18504002/files/README.md?download=1), tested with Coq 8.20.1, OCaml 5.0.0 and Fiat-Crypto `af03839247c545987c20e99342ab2bbfcd517863`.

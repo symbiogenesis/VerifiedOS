@@ -1,0 +1,99 @@
+{
+  "generator_executable": "/root/build/lane-checklist-20261010-b/fiat-a/source/src/ExtractionOCaml/fiat_crypto",
+  "generator_sha256": "3f34a8230b5112c33889d6b8d01adb2724bf474888197ed2523519bab3572812",
+  "invocations": [
+    {
+      "command": [
+        "fiat_crypto",
+        "unsaturated-solinas",
+        "25519",
+        "32",
+        "10",
+        "2^255 - 19",
+        "carry_mul",
+        "carry_square",
+        "carry_scmul121666",
+        "carry",
+        "add",
+        "sub",
+        "opp",
+        "selectznz",
+        "to_bytes",
+        "from_bytes",
+        "--static"
+      ],
+      "exit": 0,
+      "stdout": "25519_32.h.run1.stdout",
+      "stdout_sha256": "0600b8d461d3bf94199efced49097c7682623ed27a4c146d7dde103859338ef0",
+      "stderr": "25519_32.h.run1.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "fiat_crypto",
+        "unsaturated-solinas",
+        "25519",
+        "32",
+        "10",
+        "2^255 - 19",
+        "carry_mul",
+        "carry_square",
+        "carry_scmul121666",
+        "carry",
+        "add",
+        "sub",
+        "opp",
+        "selectznz",
+        "to_bytes",
+        "from_bytes",
+        "--static"
+      ],
+      "exit": 0,
+      "stdout": "25519_32.h.run2.stdout",
+      "stdout_sha256": "0600b8d461d3bf94199efced49097c7682623ed27a4c146d7dde103859338ef0",
+      "stderr": "25519_32.h.run2.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "fiat_crypto",
+        "word-by-word-montgomery",
+        "p256",
+        "32",
+        "2^256 - 2^224 + 2^192 + 2^96 - 1",
+        "--static"
+      ],
+      "exit": 0,
+      "stdout": "p256_32.h.run1.stdout",
+      "stdout_sha256": "1cce0302f067c020553c06eae6547430bd6f1ff8d9198cd1258de2c8888ea0ca",
+      "stderr": "p256_32.h.run1.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "fiat_crypto",
+        "word-by-word-montgomery",
+        "p256",
+        "32",
+        "2^256 - 2^224 + 2^192 + 2^96 - 1",
+        "--static"
+      ],
+      "exit": 0,
+      "stdout": "p256_32.h.run2.stdout",
+      "stdout_sha256": "1cce0302f067c020553c06eae6547430bd6f1ff8d9198cd1258de2c8888ea0ca",
+      "stderr": "p256_32.h.run2.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "outputs": {
+    "25519_32.h": {
+      "raw_sha256": "0600b8d461d3bf94199efced49097c7682623ed27a4c146d7dde103859338ef0",
+      "header_sha256": "b200b3ce50fd2020fe1d8e8dd7f2b258e08ad3bc2a1b2bcef7d72ab07afa96f6"
+    },
+    "p256_32.h": {
+      "raw_sha256": "1cce0302f067c020553c06eae6547430bd6f1ff8d9198cd1258de2c8888ea0ca",
+      "header_sha256": "0b865a4c6be783e00827a3aaaa79619153053cfa5f0f6a985f479c85bd46ed54"
+    }
+  },
+  "working_directory": "/root/build/lane-checklist-20261010-b/fiat-emit"
+}

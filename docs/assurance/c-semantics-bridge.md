@@ -188,13 +188,15 @@ contains the LGPL version 3 text. These are private evaluation dependencies.
 Only authored source, the record and small receipts/logs are offered here;
 no upstream source, compiled library or switch is conveyed.
 
-At Rocq 9.3.0 and 9.2.0, the unchanged accepted contained `common/Memory.v` refuses its
+At Rocq 9.3.0 and 9.2.0, the unchanged contained `common/Memory.v` used for this
+instrument refuses its
 `drop_perm`/`loadbytes` proof at the existing `perm_order` goal. That compiler
 port belongs to Q39. The instrument selects the already installed Flocq 4.2.2
 source dependency without rewriting it. Neither compiler refusal is a
 successful proof repair.
 
-The accepted source still declares the F-522 axiom `ec_public_first_order` in
+The contained source used for the readings below declares the F-522 axiom
+`ec_public_first_order` in
 `common/Events.v`. Its presence prohibits claiming an accepted whole-environment
 closure from this instrument. Statement elaboration, and the per-constant
 assumption readings of the authored witness/refusal, have a narrower scope than

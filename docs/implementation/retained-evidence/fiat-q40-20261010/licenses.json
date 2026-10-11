@@ -1,0 +1,115 @@
+{
+  "read_date": "2026-10-10",
+  "bytes": "exact LF source archives, unpacked in native build lane",
+  "distribution": "generator, libraries, source archives and proof objects are external build inputs; only Fiat-emitted field headers are incorporated",
+  "files": [
+    {
+      "source": ".",
+      "revision": "f3ecb2cf1f771de34771e967193ee7f0ee0b0acf",
+      "file": "COPYRIGHT",
+      "sha256": "6c935d087a2992d0f092665400a2fa99c98db58d96fbe29368f8f48182bed9aa"
+    },
+    {
+      "source": ".",
+      "revision": "f3ecb2cf1f771de34771e967193ee7f0ee0b0acf",
+      "file": "LICENSE-APACHE",
+      "sha256": "9eacbcb81be660840c714a560a9d65ba07913db98dd4baf969f78dd499fdd60f"
+    },
+    {
+      "source": ".",
+      "revision": "f3ecb2cf1f771de34771e967193ee7f0ee0b0acf",
+      "file": "AUTHORS",
+      "sha256": "ad74c036a6afaedc418fed65f171c877c2f74a4c70938a03930aa11c98a20508"
+    },
+    {
+      "source": "coqprime",
+      "revision": "5e7a62fe05871f1cf402e01f2d07c8d5afa6a509",
+      "file": "LICENSE",
+      "sha256": "d4594b82f4d50840df6a7e9d14132a8c0a3cc05d0ac46d15310a264a1f75447e"
+    },
+    {
+      "source": "etc/coq-scripts",
+      "revision": "8cf5f49d140ec46e35c828d787299dca17ea3c7c",
+      "file": "LICENSE",
+      "sha256": "c00e2016e053e93fdcfbd15861052b6916ab8b80089863c595d8386c5fddbb26"
+    },
+    {
+      "source": "rewriter",
+      "revision": "902bd7bfd807f4511fa07b0b1f07ca640f9da4a8",
+      "file": "COPYRIGHT",
+      "sha256": "e89a0880ae0e8f29d2532344f4b5a8ca34ce06d5747a67ba2d430234ddb6cd6a"
+    },
+    {
+      "source": "rewriter",
+      "revision": "902bd7bfd807f4511fa07b0b1f07ca640f9da4a8",
+      "file": "LICENSE-APACHE",
+      "sha256": "2f55d5e7eaa624771a9be10626d1c6b86edff8db8b7dd6bcbb933ae4b1db5778"
+    },
+    {
+      "source": "rewriter",
+      "revision": "902bd7bfd807f4511fa07b0b1f07ca640f9da4a8",
+      "file": "AUTHORS",
+      "sha256": "269b9890771c15ba97fea25ba76338eb3b712485888b1ce85db5a5470006cf14"
+    },
+    {
+      "source": "rewriter/etc/coq-scripts",
+      "revision": "8cf5f49d140ec46e35c828d787299dca17ea3c7c",
+      "file": "LICENSE",
+      "sha256": "c00e2016e053e93fdcfbd15861052b6916ab8b80089863c595d8386c5fddbb26"
+    },
+    {
+      "source": "rupicola",
+      "revision": "d33f7024a7a03c9e0f05f746dff8434d450a4f6e",
+      "file": "LICENSE",
+      "sha256": "c9f9bd53ed50adf16b775a819f418236d12ebfe279c4120f3ae89b5402493b15"
+    },
+    {
+      "source": "rupicola",
+      "revision": "d33f7024a7a03c9e0f05f746dff8434d450a4f6e",
+      "file": "AUTHORS",
+      "sha256": "82b42b22d98b235ebb1893c1ee8c4dd7831a80e3275cb8cc8d5e8193147adfab"
+    },
+    {
+      "source": "rupicola/bedrock2",
+      "revision": "757f17c6083bf8d43b5293a0db545c8d0aa32a13",
+      "file": "LICENSE",
+      "sha256": "c903b70f530785181ed37b14225229dd1b718cea1c3401ff24a6ef04f5f4bf69"
+    },
+    {
+      "source": "rupicola/bedrock2",
+      "revision": "757f17c6083bf8d43b5293a0db545c8d0aa32a13",
+      "file": "AUTHORS",
+      "sha256": "a13d9d4a591e9cdb5dee6ed7996444eb674edd2c05c753960de757fa1705d7a5"
+    },
+    {
+      "source": "rupicola/bedrock2/deps/coqutil",
+      "revision": "4c399b76628330f77c53c25ebbeceadb115602ee",
+      "file": "LICENSE",
+      "sha256": "031b27d9d2b5cd3db255f9eeecb4f4926cc880fdb511162a104c7bae67b3e716"
+    },
+    {
+      "source": "rupicola/bedrock2/deps/coqutil",
+      "revision": "4c399b76628330f77c53c25ebbeceadb115602ee",
+      "file": "AUTHORS",
+      "sha256": "82b42b22d98b235ebb1893c1ee8c4dd7831a80e3275cb8cc8d5e8193147adfab"
+    },
+    {
+      "source": "rupicola/bedrock2/deps/coqutil/etc/coq-scripts",
+      "revision": "8cf5f49d140ec46e35c828d787299dca17ea3c7c",
+      "file": "LICENSE",
+      "sha256": "c00e2016e053e93fdcfbd15861052b6916ab8b80089863c595d8386c5fddbb26"
+    },
+    {
+      "source": "rupicola/bedrock2/deps/kami",
+      "revision": "9217329eb4e1d751f28ab175ebab230b1e8fd4da",
+      "file": "LICENSE",
+      "sha256": "63082d883447899f66556cc1de985a01d42d5e2a0a3bff732627a64584da3088"
+    },
+    {
+      "source": "rupicola/bedrock2/deps/riscv-coq",
+      "revision": "45dc8dfc17c77aabb433355b9d39edc6bfd429ae",
+      "file": "LICENSE.txt",
+      "sha256": "3fe70f2d0e878d4bdd8313a18dc53567e8b7f888123e928298b948e798626bab"
+    }
+  ]
+}

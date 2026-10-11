@@ -1,0 +1,39 @@
+{
+  "command": [
+    "opam",
+    "exec",
+    "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+    "--",
+    "make",
+    "-j2",
+    "SKIP_BEDROCK2=1",
+    "COQC=/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq c",
+    "standalone-unified-ocaml"
+  ],
+  "exit": 0,
+  "source_pin": "f3ecb2cf1f771de34771e967193ee7f0ee0b0acf",
+  "elapsed_seconds": 931.98,
+  "prover_version": "The Rocq Prover, version 9.3.0\ncompiled with OCaml 5.4.1",
+  "environment": {
+    "switch": "verifiedos-rocq-9.3.0-ocaml-5.4.1",
+    "prover": "9.3.0",
+    "ocaml": "5.4.1",
+    "lock_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "export_before_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "export_after_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32"
+  },
+  "log": "/root/build/lane-checklist-20261010-b/fiat-a/build.log",
+  "log_sha256": "c75aad4a1a18c9fdad1b9e3bdc2847fb808a2c67eceaf743e2866c2bd72bbd3a",
+  "generator_executable": "/root/build/lane-checklist-20261010-b/fiat-a/source/src/ExtractionOCaml/fiat_crypto",
+  "generator_sha256": "3f34a8230b5112c33889d6b8d01adb2724bf474888197ed2523519bab3572812",
+  "proof_object_counts": {
+    "fiat": 349,
+    "coqprime": 23,
+    "rewriter": 147,
+    "coqutil": 125,
+    "kami": 0,
+    "riscv-coq": 0
+  },
+  "working_directory": "/root/build/lane-checklist-20261010-b/fiat-a/source",
+  "source_receipt": "/root/build/lane-checklist-20261010-b/fiat-a/archives/manifest.json"
+}

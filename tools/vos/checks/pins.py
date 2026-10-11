@@ -956,6 +956,7 @@ _CAPTURED_GITLINKS: dict[str, str] = {
     "930feb298af5bf7d9aa0baeaa21732ff84a2f066": "cheriot-ibex",
     "755c7eaa8f67328cbe1f1ab9080b70afb1772e84": "libjade",
     "78a34ba5cdb853ba601a292bcdd4a780e6ae9c64": "cheri-compressed-cap",
+    "e6946985c9165b3270eae457c0fae887cd7b7b76": "fiat-crypto",
 }
 _CAPTURING_RECEIPTS: dict[str, str] = {
     "docs/assurance/sail-assistance-evidence/modular.json":
@@ -1010,6 +1011,14 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
     ("THIRD-PARTY.md", "5691ca0d"):
         "the Fiat-Crypto generator edition whose recorded build and licence reading "
         "the dependency measurements describe",
+    ("docs/implementation/completion-log.md", "e6946985c9165b3270eae457c0fae887cd7b7b76"):
+        "the Fiat-Crypto edition used by M3.4c-ii's recorded original emission",
+    ("docs/assurance/proof-reuse/crypto.md", "e6946985"):
+        "the Fiat-Crypto source and licence edition read by the dated reuse survey",
+    ("docs/implementation/fiat-crypto-emission.md", "20261010"):
+        "the date numeral in the retained Q40 evidence directory, not a git object id",
+    ("tools/vos/checks/pins.py", "20261010"):
+        "the date numeral in that evidence directory's scoped residue declaration",
     ("docs/assurance/proof-reuse/crypto.md", "af03839247c545987c20e99342ab2bbfcd517863"):
         "the Fiat-Crypto dependency selected by the external verified-NTT artifact, "
         "not this repository's Fiat-Crypto gitlink",
