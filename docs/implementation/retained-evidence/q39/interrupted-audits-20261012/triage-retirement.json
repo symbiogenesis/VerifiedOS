@@ -1,0 +1,31 @@
+{
+  "schema": "verifiedos-read-only-triage-retirement/1",
+  "integration_head": "82fceacaf6726ddd73043ac7e00c9603cc824a3c",
+  "selected_lanes": [
+    "q39-release-triage-20261012",
+    "q39-reuse-triage-20261012"
+  ],
+  "retired": [
+    {
+      "path": "C:\\Users\\symbi\\source\\repos\\VerifiedOS\\.worktrees\\q39-release-triage-20261012",
+      "branch": "work/q39-release-triage-20261012",
+      "head": "b47b863873ab1eee55cbed56a80a6ddd5dafce8d",
+      "clean": true,
+      "ignored_outputs": false,
+      "integrated": true,
+      "forced": false
+    },
+    {
+      "path": "C:\\Users\\symbi\\source\\repos\\VerifiedOS\\.worktrees\\q39-reuse-triage-20261012",
+      "branch": "work/q39-reuse-triage-20261012",
+      "head": "b47b863873ab1eee55cbed56a80a6ddd5dafce8d",
+      "clean": true,
+      "ignored_outputs": false,
+      "integrated": true,
+      "forced": false
+    }
+  ],
+  "outputs": "All useful scout captures remain in their session Temp directories and committed public metadata; no native source/build/lock/switch/helper/output path is moved or deleted.",
+  "started_utc": "2026-10-12T07:33:29.0073861Z",
+  "completed_utc": "2026-10-12T07:33:30.6595000Z"
+}

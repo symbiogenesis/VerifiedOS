@@ -911,6 +911,18 @@ Preserve the completed compilation and every original native input and output.
 Use the reviewed checker identities and PID-bound descriptors, signal only the
 checkers, and let their original drivers record genuine interrupted exits.
 
+The integrator committed the pending triage as `82fceaca` before sending any
+signal. At 07:25:15 UTC the reviewed PID-bound descriptors sent `SIGTERM` to
+checkers 454208, 454207, 463354 and 463353; every identity matched the retained
+handoff and every checker was running immediately before the action. No driver
+or wrapper was signalled. All four original producers then finished at exit 1,
+each writing the genuine fresh-kernel return code `-15`. The
+[terminal bundle](retained-evidence/q39/interrupted-audits-20261012/README.md)
+retains the action journal and original terminal receipts. Completed builds,
+archives, objects, original helpers, locked switches and their bound source
+worktrees remain at their existing native paths. The interrupted checkers'
+in-memory environments are lost and supply no resumable kernel checkpoint.
+
 An interrupted checker supplies no kernel acceptance. The original seven-stage
 receipts remain unchanged with `passed: false` and `kernel: null`; actual failed
 kernel execution is recorded separately by the original qualification driver.

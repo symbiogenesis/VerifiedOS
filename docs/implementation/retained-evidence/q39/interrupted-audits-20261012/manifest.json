@@ -1,0 +1,44 @@
+{
+  "accepted_resume_checkpoint": false,
+  "all_four_kernel_exits": -15,
+  "all_four_original_producer_exits": 1,
+  "authorization_commit": "82fceacaf6726ddd73043ac7e00c9603cc824a3c",
+  "complete_default_reuse_basis": false,
+  "files": {
+    "checker-control.json": {
+      "bytes": 2251,
+      "sha256": "829273a4cd7520c020faf6b9068689bc3d29b92a38fa9ec88589531aba4e6f80"
+    },
+    "standard-import/fresh-kernel.json": {
+      "bytes": 8008,
+      "sha256": "90d15f483d1dd30ff483fdefc2533b197ca7874a0335224a9672b3bff03ac03e"
+    },
+    "standard-source/fresh-kernel.json": {
+      "bytes": 8004,
+      "sha256": "91f106508471a8f68fd5dc2acc9ef3f2de114387bd09f6136dc456fca6ab3282"
+    },
+    "terminal-summary.json": {
+      "bytes": 34181,
+      "sha256": "3531ee984644ad3a38d9d9f1ae85d3464eb8cc80b54c79fa1a20687c9bb1fb6d"
+    },
+    "triage-retirement.json": {
+      "bytes": 1206,
+      "sha256": "59f01c73e322d77eaa6bd2b362e2f3081f4e689641016540bbd3a435bb0e0578"
+    },
+    "vm-import/fresh-kernel.json": {
+      "bytes": 8170,
+      "sha256": "d6b65404f37c014f43d077ca6f5cad4c8925d624489bc788d0e8a8aa6193f957"
+    },
+    "vm-source/fresh-kernel.json": {
+      "bytes": 8167,
+      "sha256": "23547c583eeadae4b057cd923308280bc2ccc4aa8b0fb9eb5ad73cf8e07a2c8a"
+    }
+  },
+  "full_kernel_acceptance": false,
+  "native_populations": "Historical sealed identities; not freshly revalidated by this interruption record.",
+  "original_seven_stage_receipts_modified": false,
+  "retention": "All original native build/source/helper/lock/switch/archive/object paths remain in place.",
+  "schema": "verifiedos-q39-interrupted-audits/1",
+  "scope": "Original failure receipts and metadata only; no private source/object/executable/library bytes.",
+  "verification": "Four receipt hashes, genuine exits and durations, opam launcher/child NUL argv joins, final log digests, unchanged receipt/seal metadata and twelve recorded process absences checked before retention."
+}
