@@ -47,6 +47,87 @@ def composition_exactness_and_allowance() -> None:
             "representable")
 
 
+def composition_numeric_operands_are_naturals() -> None:
+    plan = p.fixture().plan
+    for name in ("island", "memory_class", "base", "span", "quarantine_allowance"):
+        value = getattr(plan, name)
+        for invalid in (float(value), False, -1, "0"):
+            refused(lambda: p.Pool(replace(plan, **{name: invalid})), "shape")
+    for base, cls in ((64.0, 0), (64, 0.0), (True, 0), (64, False), (64, -1)):
+        refused(lambda: p.Pool(replace(plan, slots=((base, cls),))), "shape")
+    for length, alignment in ((16.0, 16), (16, 16.0), (True, 1), (1, True)):
+        kind = p.SizeClass(cast(int, length), cast(int, alignment))
+        ensure(not kind.exact(), "non-integer class claimed exact bounds")
+        refused(lambda: p.Pool(replace(plan, classes=(kind,), slots=((64, 0),))),
+                "representable")
+    pool = p.fixture()
+    for invalid in (0.0, False, -1):
+        ident = cast(int, invalid)
+        refused(lambda: p.DomainPools({(ident, 0): pool}, {0: 0}), "identifiers")
+        refused(lambda: p.DomainPools({(0, ident): pool}, {0: 0}), "identifiers")
+        refused(lambda: p.DomainPools({(0, 0): pool}, {ident: 0}), "identifiers")
+        refused(lambda: p.DomainPools({(0, 0): pool}, {0: ident}), "identifiers")
+    # Zero is a legitimate natural identity, class and launch island.
+    ensure(p.DomainPools({(0, 0): pool}, {0: 0}).allocate(0, 0, 0).holder == 0,
+           "exact-integer admission excluded a zero identity")
+
+
+def malformed_allocation_preserves_the_pool_state() -> None:
+    pool = p.fixture()
+    domain = p.DomainPools({(0, 0): pool}, {0: 0, 1: 0})
+    before = (pool.serial, pool.epoch, pool.history.copy(), pool.memory.copy(),
+              [(slot.phase, slot.grant) for slot in pool.slots])
+    for field in range(3):
+        for invalid in (0.0, 1.5, False, True, -1, "0", float("nan")):
+            operands = [1, 0, 0]
+            operands[field] = cast(int, invalid)
+            refused(lambda: pool.allocate(*operands), "nonnegative integers")
+            after = (pool.serial, pool.epoch, pool.history, pool.memory,
+                     [(slot.phase, slot.grant) for slot in pool.slots])
+            ensure(after == before, "malformed allocation changed serial, bytes or ownership")
+            refused(lambda: domain.allocate(*operands), "nonnegative integers")
+            after = (pool.serial, pool.epoch, pool.history, pool.memory,
+                     [(slot.phase, slot.grant) for slot in pool.slots])
+            ensure(after == before, "numeric domain alias changed the pool state")
+    grant = pool.allocate(0, 0, 0)
+    ensure(grant.serial == 1 and grant.slot == 0 and not p.history_errors(pool.plan, pool.history),
+           "refused allocation consumed the next valid allocation identity")
+
+
+def numeric_handle_and_write_aliases_are_refused() -> None:
+    pool = p.fixture()
+    grant = pool.allocate(0, 0, 0)
+    before = (pool.epoch, pool.history.copy(), pool.memory.copy())
+    for name in ("holder", "slot", "base", "length", "serial"):
+        alias = replace(grant, **{name: float(getattr(grant, name))})
+        # Numeric equality alone would admit these forged record fields.
+        ensure(alias == grant, "numeric alias stopped testing dataclass equality")
+        refused(lambda: pool.live(alias), "nonnegative integers")
+        refused(lambda: pool.write(alias, 0, 7), "nonnegative integers")
+        refused(lambda: pool.release(alias), "nonnegative integers")
+    for name in ("holder", "slot", "serial"):
+        alias = replace(grant, **{name: bool(getattr(grant, name))})
+        ensure(alias == grant, "boolean alias stopped testing dataclass equality")
+        refused(lambda: pool.release(alias), "nonnegative integers")
+    for offset, value in ((0.0, 7), (False, 7), (0, 7.0), (0, True)):
+        refused(lambda: pool.write(grant, cast(int, offset), cast(int, value)), "byte range")
+    ensure((pool.epoch, pool.history, pool.memory) == before,
+           "invalid handle or byte operand changed the live allocation")
+    pool.live(grant)
+    pool.write(grant, 0, 0)
+    pool.release(grant)
+    state = pool.slots[grant.slot].retirement
+    for invalid in (0.0, False, "0"):
+        refused(lambda: pool.clear_registers(cast(int, invalid)), "index")
+        ensure(pool.slots[grant.slot].retirement == state,
+               "numeric slot alias cleared a retained register")
+    pool.clear_registers(0)
+    pool.barrier()
+    pool.sweep_begin()
+    pool.sweep_end()
+    ensure(not p.history_errors(pool.plan, pool.history), "valid integer retirement failed")
+
+
 def exhaustion_zeroing_and_stale_handles() -> None:
     pool = p.fixture()
     first = pool.allocate(1, 0, 0)
@@ -331,6 +412,9 @@ def generated_gallina_is_current() -> None:
 def cases() -> list[Case]:
     return [Case(fn.__name__, fn) for fn in (
         composition_exactness_and_allowance,
+        composition_numeric_operands_are_naturals,
+        malformed_allocation_preserves_the_pool_state,
+        numeric_handle_and_write_aliases_are_refused,
         exhaustion_zeroing_and_stale_handles,
         release_during_sweep_waits_for_next_pass,
         stale_register_blocks_the_semantic_barrier,

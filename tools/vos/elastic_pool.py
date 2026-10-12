@@ -24,6 +24,11 @@ class PoolError(ValueError):
     """A request cannot be accepted within the declared pool."""
 
 
+def _naturals(*values: int) -> bool:
+    """The reference's identifiers and byte operands inhabit Gallina's nat."""
+    return all(type(value) is int and value >= 0 for value in values)
+
+
 @dataclass(frozen=True)
 class SizeClass:
     length: int
@@ -32,6 +37,8 @@ class SizeClass:
     def exact(self) -> bool:
         # The shared plan owns compressed-bound arithmetic. This call runs at
         # composition admission, never in allocate().
+        if not _naturals(self.length, self.alignment):
+            return False
         granule = representable_granule(self.length)
         return (self.length > 0 and self.alignment > 0
                 and self.length % granule == 0 and self.alignment % granule == 0)
@@ -48,14 +55,17 @@ class Plan:
     quarantine_allowance: int
 
     def validate(self) -> None:
-        if (min(self.island, self.memory_class, self.base) < 0 or self.span <= 0
+        if (not _naturals(self.island, self.memory_class, self.base, self.span,
+                          self.quarantine_allowance) or self.span == 0
                 or not self.classes or not self.slots
-                or self.quarantine_allowance < sum(self.classes[c].length
-                                                  for _, c in self.slots
-                                                  if 0 <= c < len(self.classes))):
+                or not all(_naturals(base, cls) for base, cls in self.slots)):
             raise PoolError("pool shape or quarantine allowance")
         if not all(c.exact() for c in self.classes):
             raise PoolError("class is not exactly representable")
+        if self.quarantine_allowance < sum(self.classes[c].length
+                                           for _, c in self.slots
+                                           if c < len(self.classes)):
+            raise PoolError("pool shape or quarantine allowance")
         extents: list[tuple[int, int]] = []
         revocation_extents: list[tuple[int, int]] = []
         for base, cls in self.slots:
@@ -115,9 +125,11 @@ class Pool:
 
     def allocate(self, holder: int, cls: int, launch_island: int) -> Grant:
         self.check_parent()
+        if not _naturals(holder, cls, launch_island):
+            raise PoolError("allocation holder, class and island must be nonnegative integers")
         if launch_island != self.plan.island:
             raise PoolError("foreign launch island")
-        if holder < 0 or not 0 <= cls < len(self.plan.classes):
+        if cls >= len(self.plan.classes):
             raise PoolError("holder or class outside composition")
         for index, ((base, kind), slot) in enumerate(zip(self.plan.slots, self.slots, strict=True)):
             if kind == cls and slot.phase == "free":
@@ -136,6 +148,8 @@ class Pool:
 
     def live(self, grant: Grant) -> Slot:
         self.check_parent()
+        if not _naturals(grant.holder, grant.slot, grant.base, grant.length, grant.serial):
+            raise PoolError("grant fields must be nonnegative integers")
         if grant.issuer is not self.issuer:
             raise PoolError("foreign grant issuer")
         if not 0 <= grant.slot < len(self.slots):
@@ -153,7 +167,7 @@ class Pool:
     def write(self, grant: Grant, offset: int, value: int) -> None:
         if self.live(grant).child is not None:
             raise PoolError("chunk is owned by its heap")
-        if not 0 <= offset < grant.length or not 0 <= value < 256:
+        if (not _naturals(offset, value) or offset >= grant.length or value >= 256):
             raise PoolError("write outside allocation or byte range")
         self.memory[grant.base + offset] = value
         self.history.append(("Write", (grant.base + offset, value)))
@@ -182,7 +196,7 @@ class Pool:
 
     def clear_registers(self, index: int) -> None:
         self.check_parent()
-        if not 0 <= index < len(self.slots):
+        if not _naturals(index) or index >= len(self.slots):
             raise PoolError("slot index outside pool")
         slot = self.slots[index]
         if slot.phase != "pending" or slot.retirement is None:
@@ -318,6 +332,10 @@ class DomainPools:
         object.__setattr__(self, "launch_islands", MappingProxyType(dict(self.launch_islands)))
         if not self.pools or not self.launch_islands:
             raise PoolError("empty domain composition")
+        if (not all(_naturals(*key) for key in self.pools)
+                or not all(_naturals(holder, island)
+                           for holder, island in self.launch_islands.items())):
+            raise PoolError("domain composition identifiers must be nonnegative integers")
         islands = set(self.launch_islands.values())
         classes = {cls for _, cls in self.pools}
         if set(self.pools) != {(island, cls) for island in islands for cls in classes}:
@@ -340,6 +358,8 @@ class DomainPools:
             revocation_extents.append((first, limit))
 
     def allocate(self, holder: int, memory_class: int, cls: int) -> Grant:
+        if not _naturals(holder, memory_class, cls):
+            raise PoolError("allocation holder, memory class and class must be nonnegative integers")
         if holder not in self.launch_islands:
             raise PoolError("member has no placed launch core")
         island = self.launch_islands[holder]
