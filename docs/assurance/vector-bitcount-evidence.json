@@ -82,7 +82,18 @@
     ]
   },
   "hosted_handoff": {
-    "host": "blocked before dispatch by existing firmware compiler-provenance findings",
+    "host": "failed on published main revision 3bf5729ead86b034a26134160837eb807d7ca80a; existing firmware compiler-provenance findings remain unresolved",
+    "host_run": {
+      "run_id": 38202445903,
+      "url": "https://github.com/symbiogenesis/VerifiedOS/actions/runs/38202445903",
+      "revision": "3bf5729ead86b034a26134160837eb807d7ca80a",
+      "status": "completed",
+      "conclusion": "failure",
+      "aggregate_jobs": {
+        "host-gates (Ubuntu)": "failure",
+        "host-gates (Windows)": "failure"
+      }
+    },
     "guest": "not dispatched; full model/unit/RTL/proof verdicts unavailable"
   }
 }

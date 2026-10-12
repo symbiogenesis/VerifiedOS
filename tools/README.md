@@ -152,8 +152,10 @@ drive the toolchain or inspect its native outputs need the hop. `model config-ke
 `memory-planner contracts`, `memory-planner resources`, `memory-planner resource-proof`,
 `memory-certificates encode`, `boot roster`, `boot-handoff layout`, `boot-handoff chain-join`
 and `kernel reader` use
-this checkout or a file already on disk and answer on either lane. `proofs status` takes
-the hop because its compiled outputs live in the guest's native build directory.
+this checkout or a file already on disk and answer on either lane.
+`compiler-build --help` and `compiler-build -h` print usage on either lane;
+`compiler-build build` and `compiler-build status` run in the guest.
+`proofs status` takes the hop because its compiled outputs live in the guest's native build directory.
 That is a declaration and not a description, so
 [tests/test_lanes.py](tests/test_lanes.py) dispatches every member of it on whichever
 lane the suite is running on, and holds every subcommand the table declares against

@@ -99,5 +99,7 @@ and related tool tests, Python typing on Windows and Linux, and the two new
 generated-artifact rows' dedicated drift probes passed.
 
 The hosted handoff remains blocked by existing incomplete contained-compiler
-provenance in the firmware crypto and chain target manifests. This evidence is
-not a Host CI verdict, a Guest CI verdict, or authority to bypass either gate.
+provenance in the firmware crypto and chain target manifests. The recorded Host CI
+run supplies a failed verdict for its published revision. The focused checks
+supply no passing Host CI or Guest CI verdict and do not authorize bypassing
+either gate.
