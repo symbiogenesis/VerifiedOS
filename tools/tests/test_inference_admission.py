@@ -8,6 +8,7 @@ from dataclasses import asdict, fields, replace
 from io import StringIO
 from pathlib import Path
 from typing import cast
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import inference_admission as admission
@@ -148,7 +149,7 @@ def _cli_exit_codes() -> None:
 def _deeply_nested_input() -> None:
     data = _payload()
     del data["route"]
-    # The pinned CPython's C decoder has its own platform-dependent stack bound.
+    # Decoders may reach their stack bound or decode this into an invalid route.
     depth = 65536
     raw = (json.dumps(data)[:-1].encode() + b', "route": '
            + b"[" * depth + b"0" + b"]" * depth + b"}")
@@ -160,17 +161,41 @@ def _deeply_nested_input() -> None:
             code = cli.main([str(path)])
         ensure(code == 2 and output.getvalue().startswith("FAIL inference-admission:"),
                "over-nested decoded input must fail through the invalid-input CLI boundary")
-        ensure("nesting" in output.getvalue(), "decoder limit refusal retains its cause")
         try:
             cli.inspect(raw, ROOT)
-        except ValueError:
+        except (TypeError, ValueError):
             pass
         else:
             raise AssertionError("inspection accepted an over-nested route")
         path.write_text(json.dumps(_payload()), encoding="utf-8")
         with redirect_stdout(StringIO()):
             code = cli.main([str(path)])
-        ensure(code == 0, "decoder limit refusal must preserve the inhabited valid input")
+        ensure(code == 0, "deep-input refusal must preserve the inhabited valid input")
+
+
+def _decoder_recursion_refusal() -> None:
+    raw = json.dumps(_payload()).encode()
+    with tempfile.TemporaryDirectory(prefix="vos-inference-decoder-") as directory:
+        path = Path(directory) / "input.json"
+        path.write_bytes(raw)
+        with patch.object(cli.json, "loads", side_effect=RecursionError("decoder exhausted")):
+            try:
+                cli.inspect(raw, ROOT)
+            except ValueError as error:
+                ensure(str(error) == "JSON nesting exceeds the decoder limit"
+                       and isinstance(error.__cause__, RecursionError),
+                       "inspection must normalize only the decoder's recursion failure")
+            else:
+                raise AssertionError("inspection accepted decoder exhaustion")
+            output = StringIO()
+            with redirect_stdout(output):
+                code = cli.main([str(path)])
+            ensure(code == 2 and output.getvalue() ==
+                   "FAIL inference-admission: JSON nesting exceeds the decoder limit\n",
+                   "decoder exhaustion must retain its cause through the CLI invalid-input boundary")
+        with redirect_stdout(StringIO()):
+            code = cli.main([str(path)])
+        ensure(code == 0, "decoder refusal must preserve the inhabited valid input")
 
 
 def cases() -> list[Case]:
@@ -180,4 +205,5 @@ def cases() -> list[Case]:
             Case("decoded inputs preserve the natural-number domain", _numeric_domain),
             Case("strict front door binds host inputs and rejects coercions", _front_door),
             Case("command exit codes distinguish success, refusal and malformed input", _cli_exit_codes),
-            Case("over-nested route refuses cleanly beside a valid opening", _deeply_nested_input)]
+            Case("over-nested route refuses cleanly beside a valid opening", _deeply_nested_input),
+            Case("decoder recursion normalizes cleanly beside a valid opening", _decoder_recursion_refusal)]
