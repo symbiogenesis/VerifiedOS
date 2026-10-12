@@ -274,7 +274,7 @@
         },
         {
           "item": "M7.1d",
-          "output": "typed graph and package descriptors"
+          "output": "typed composition input, recipe membership and package graph"
         },
         {
           "item": "M7.1e",
@@ -298,6 +298,10 @@
       ],
       "unmet": [],
       "join": [
+        {
+          "item": "M7.1d",
+          "output": "generated immutable manifest from the typed composition input"
+        },
         {
           "item": "M4.4b-i",
           "output": "trusted start, restart, epoch and snapshot effects"
@@ -325,7 +329,7 @@
       "join": [
         {
           "item": "M7.1d",
-          "output": "real package graph"
+          "output": "real package graph and projected admission request skeleton"
         },
         {
           "item": "M7.1a",

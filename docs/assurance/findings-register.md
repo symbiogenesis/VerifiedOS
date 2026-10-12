@@ -3921,7 +3921,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-399** owed-act: the corpus reaches the adjudicator through a retirement frame rather than the rig's RVFI-DII socket, where the cell says R2 connects the RTL to the existing rig and one protocol runs across both executors, DII replacing fetch and the v2 packet having no cause field
 · Raised: R2, in prose
-· Disposition: open, a plan act either names two routes adjudicated by one `trace.adjudicate` or rejects the frame
+· Disposition: closed, R2 selects the complete retirement frame for actual-fetch corpus runs and the RVFI-DII socket for generated instruction streams, both using `trace.adjudicate`; implementation and their distinct acceptance evidence remain open
 
 **F-400** owed-act: the corpus-green predicate has no declared member scope, 7 of 27 members holding retirements no RVFI-shaped frame line carries and further members retiring V-family words or depending on R1c-ii's top
 · Raised: R2, in prose
@@ -3929,7 +3929,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-401** measurement: a v1 comparison sees neither trap CSR and capability-register writes nor any access after an instruction's first, the corpus view eliding 160 capability-register, 496 CSR, 365 further-read and 476 further-write records
 · Raised: R2, in prose
-· Disposition: open, frame v2 with continuation lines and C/S records priced at the harness contract
+· Disposition: open, frame v2 with continuation lines and C/S records is selected for the first accepted core attachment and priced in R2; its implementation and real-core evidence remain owed
 
 **F-402** measurement: the BMC smoke's inputs are absent, riscv-formal unpinned and no yosys, sby or SMT solver but z3 in a guest whose toolchains are arm64 builds
 · Raised: R2, in prose
@@ -3937,7 +3937,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-403** owed-act: the revocation join's instrumentation is estimated at 16 to 23 h and R2's remaining work at 14 to 21 h, both above the 12 h cell
 · Raised: R2, in prose
-· Disposition: open, re-priced at entry to the remaining work
+· Disposition: open, R2 now prices the recorded remaining work plus the early frame/scalar-probe package; the harness contract retains the later device-monitor and join-checker proposal for scope and pricing before implementation, with full revocation acceptance still owed
 
 **F-404** measurement: `testrig bridge --template random` fail-stops on consecutive trapping injected words, the model reporting a synchronous fault on a live trap path, where S11's evidence predates that behaviour
 · Raised: R2, in prose

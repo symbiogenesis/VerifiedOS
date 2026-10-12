@@ -248,8 +248,9 @@ target roster remain M7.1's joins; neither offline program certifies itself.
 ### Production composition input and projections
 
 M7.1d owns one typed composition input for the real package descriptors and
-composition choices. Its schema binds package and producer identities, artifact
-references, entry points, placements, admission tiers and derivation references.
+composition choices. Its schema binds package and producer identities, source
+references, symbolic artifact slots, entry points, placements, admission tiers
+and derivation references.
 Startup dependencies, typed handler edges and image imports remain separate
 relations with their own checks. This contract's roster table continues to decide
 required membership, ranks and executable status; the input cannot promote a
@@ -265,8 +266,11 @@ existing composer and harness; their current fixture schemas and handwritten
 manifest are not yet this production interface.
 
 Construction proceeds from descriptors and choices to the checked graph and
-manifest, then to final image bytes, and finally to the image-bound admission
-record. Bind each projection to the same input and producer identities. A
+manifest, then to built member bytes and the final image, and finally to the
+image-bound admission record. Resolve symbolic artifact slots to actual byte
+digests in a separate build record after producing the members; no member embeds
+its own final digest in the input that generates it. Bind each projection to
+the same input and producer identities and the build record to those projections. A
 changed member, relation, placement, artifact or producer invalidates every
 dependent output; no earlier admission result survives different image bytes.
 M6.10 consumes this same input and production operations for its host/device
