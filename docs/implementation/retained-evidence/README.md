@@ -19,7 +19,9 @@ exercises each refusal on a sandbox control.
 
 **A cited bundle manifest may bind its members instead of repeating every member
 in the owning prose.** The owning document links the manifest by its retained path
-and records its SHA-256. A manifest's `files` map identifies each member by a
+and records its SHA-256. Only a file named `manifest.json` defines a bundle;
+native receipts' unrelated file inventories remain recorded data. A manifest's
+`files` map identifies each member by a
 relative `path`, or by the map key when no `path` is present, and records `sha256`
 and `bytes`. Members must be indexed files beneath the manifest's own directory;
 absolute paths, traversal, missing copies and mismatched hashes or sizes fail.

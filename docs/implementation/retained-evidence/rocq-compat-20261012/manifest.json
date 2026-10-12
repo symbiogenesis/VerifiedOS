@@ -1,0 +1,90 @@
+{
+  "files": {
+    "00.log": {
+      "bytes": 45,
+      "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+    },
+    "01.log": {
+      "bytes": 2039,
+      "sha256": "b6c2da83eaeb99d3a36123c9a12631771a373663208ab0dc27056228eeefb17d"
+    },
+    "02.log": {
+      "bytes": 1187,
+      "sha256": "56b6c2119f5531bb9ede732b1824881225fd4a874540e20f3a2e5d8ed76d14c9"
+    },
+    "03.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "04.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "05.log": {
+      "bytes": 12628,
+      "sha256": "16f575672b3d3a704e79532d350ef5bfd7b84694b2828986f58f64342373600e"
+    },
+    "06.log": {
+      "bytes": 45,
+      "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+    },
+    "07.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "08.log": {
+      "bytes": 759,
+      "sha256": "1f9cf2f63e200fe5fd0c2244a3958a76b61d5325900ac33d8eb88d76ac002fcb"
+    },
+    "09.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "10.log": {
+      "bytes": 759,
+      "sha256": "1f9cf2f63e200fe5fd0c2244a3958a76b61d5325900ac33d8eb88d76ac002fcb"
+    },
+    "11.log": {
+      "bytes": 577,
+      "sha256": "535148845b7da53e0167a91d6dab99c85abc31fdb6f8440a10cd751d9627934e"
+    },
+    "12.log": {
+      "bytes": 272,
+      "sha256": "17569ae9920a29355b07cbe2c246c36efc57ef18ac64be2e1509e1da9e4cc87b"
+    },
+    "Assumptions.v": {
+      "bytes": 582,
+      "sha256": "d6dc502aa480753e2d4ed1eae8ff99a2019efdb5dfc3f7473c6a66f259f8c078"
+    },
+    "ControlEqdep.v": {
+      "bytes": 322,
+      "sha256": "d68fd94b59c0f687e2f0149897243ad6590c8758c23e12d1ef3e806dd1485e75"
+    },
+    "TermProbe.v": {
+      "bytes": 295,
+      "sha256": "c28f6147793d28f20b1f8deda58e4583d3db4678cd8d67eb44f162aaf777bfce"
+    },
+    "receipt.json": {
+      "bytes": 31499,
+      "sha256": "8705df0cd027c2428388b5206ddad89ebd1086823c1c3e4394c9a06b19f035bb"
+    },
+    "sail.LICENSE": {
+      "bytes": 2716,
+      "sha256": "9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0"
+    },
+    "stdpp.LICENSE": {
+      "bytes": 1745,
+      "sha256": "bc4fe79f9b7f78bc6e4e61e1f7c430b1e413b82de4aacb9355ade5e43bad2a69"
+    },
+    "switch.after.lock": {
+      "bytes": 864,
+      "sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32"
+    },
+    "switch.before.lock": {
+      "bytes": 864,
+      "sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32"
+    }
+  },
+  "schema": "verifiedos-sail-compatibility-retention/1",
+  "scope": "Verbatim trial receipts, diagnostics, probe sources, switch exports and licenses; no compiled library, production carriage or proof acceptance."
+}

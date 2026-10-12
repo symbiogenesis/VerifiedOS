@@ -59,6 +59,12 @@ The 2026-10-12 trial starts at repository revision
 SHA-256 `8705df0cd027c2428388b5206ddad89ebd1086823c1c3e4394c9a06b19f035bb`,
 records commands, actual source/archive/licence identities, executable hashes,
 exits and diagnostic-log digests. It records no source patch or downgrade.
+The generated retained-copy snapshot
+[`rocq-compat-20261012/manifest.json`](../../docs/implementation/retained-evidence/rocq-compat-20261012/manifest.json),
+SHA256 `009d5400b9a097291f8606858253fcbebee670a510bbbe8e49d8b7217425d19f`,
+binds every indexed receipt, log, probe, switch export and licence copy by size
+and SHA-256. The focused retained-evidence check verifies those unchanged bytes;
+the snapshot supplies no production or proof acceptance.
 The existing installed stdpp was copied into the private prefix; bitvector
 was built and installed only there. The unchanged source's own opam metadata
 admits Rocq 9.3.0, so selecting its immutable upstream commit provides a

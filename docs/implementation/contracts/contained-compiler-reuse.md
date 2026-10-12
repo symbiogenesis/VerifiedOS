@@ -92,6 +92,23 @@ They record the exact checker identities and preserved receipt bytes, with no
 accepted resume checkpoint or complete default-reuse basis. Referencing those
 records supplies no successful kernel verdict.
 
+The preceding pending-audit exports are retained under
+[`q39/pending-audits-20261012/manifest.json`](../retained-evidence/q39/pending-audits-20261012/manifest.json),
+SHA256 `a06e489df5a4ced45b1eac3c1a2268f7751ed3eef2a6bb50150bd366ecd5e2ac`.
+Its stored and decompressed hashes preserve the exact metadata and diagnostic
+payloads. The separate
+[`q39/pending-audits-20261012/summary.json`](../retained-evidence/q39/pending-audits-20261012/summary.json),
+SHA256 `0b664102b1211bbee79f312fbbd5a08290706cf46ebe8f6dbfb17aa6932cc708`,
+[`q39/pending-audits-20261012/verification.json`](../retained-evidence/q39/pending-audits-20261012/verification.json),
+SHA256 `72f08076a0594c3debb802b07f8d712075bb3f88240e302de07f26182dbdc15d`,
+and [`q39/pending-audits-20261012/verify.py`](../retained-evidence/q39/pending-audits-20261012/verify.py),
+SHA256 `e4afb0b1522dce6dae29503c6c4e8d844b018b151359293abf926366be011427`,
+record and check retention, not successful full kernel acceptance. The bounded
+shelving observations are bound by
+[`q39/shelving-triage-20261012/manifest.json`](../retained-evidence/q39/shelving-triage-20261012/manifest.json),
+SHA256 `42c1e087f0ec6ed20c4a1b8b1e2b88d18da1efab0f834d7d7529188e56a27c0d`;
+they likewise supply no accepted checkpoint.
+
 Compilation reuse requires the seven successful export, configure, clean,
 dependency, proof, extraction and compiler stages, authenticated pre-query seal,
 stage logs, source archive and source/object/compiler/configuration populations,
