@@ -1,5 +1,8 @@
 # Guest CI contract
 
+The [CI failure-prevention contract](failure-prevention.md) owns generated-test
+adapters, complete retained bundles and lightweight command/workflow preparation.
+
 The guest pipeline validates the curated model, proof sources and authored RTL on
 Linux. This document owns its execution and acceptance contract. Follow the
 [validation handoff](../../AGENTS.md#tool-execution-and-validation) to publish inputs,
