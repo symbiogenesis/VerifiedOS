@@ -40,7 +40,11 @@ and non-finite numeric inputs receive refusal before any reservation or transfer
 is acknowledged. Every numeric handle field receives the same check before read,
 renewal or close writes service state, preventing numeric equality from aliasing
 a malformed token, boot epoch, holder, slot, window or nested object/root identity
-to its stored reservation.
+to its stored reservation. Publication, admission and reads also require exact integer
+fields in each supplied object/root identity and an integer caller domain before stores.
+Malformed identity/root containers refuse without consuming backing, versions,
+tokens or read sequences; same-valued numeric aliases cannot create an unusable
+reservation or displace an accepted transfer.
 Refused requests preserve an already accepted transfer.
 Publication charges every existing resident against the new version's predecessor
 limit, including closed quarantine after the current version has stopped. Exhausted

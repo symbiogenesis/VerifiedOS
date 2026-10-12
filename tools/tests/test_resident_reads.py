@@ -190,6 +190,90 @@ def _integral_handle_fields() -> None:
                    "integral handle guard added common per-read writes")
 
 
+def _integral_supplied_identities() -> None:
+    payload = b"0123456789ABCDEF"
+    cyclic: list[object] = []
+    cyclic.append(cyclic)
+    for kind in ("system-image", "user-data"):
+        identity = rr.Identity(1, 7, 1, 1, rr.authenticated_root(kind, 1, payload))
+        malformed_identities: list[rr.Identity] = []
+        for field, value in (("owner", 1), ("domain", 7), ("object_id", 1),
+                             ("version", 1), ("generation", 1)):
+            for malformed in (float(value), bool(value), value + 0.5, float("nan"),
+                              float("inf"), str(value), None, {"value": value}, cyclic):
+                if field == "generation":
+                    changed = replace(identity, root=replace(identity.root,
+                        generation=cast("int", malformed)))
+                else:
+                    changed = replace(identity, **{field: malformed})
+                malformed_identities.append(changed)
+        for malformed in (None, "identity", {"owner": 1}, cyclic):
+            malformed_identities.append(cast("rr.Identity", malformed))
+            malformed_identities.append(replace(identity, root=cast("rr.Root", malformed)))
+
+        for supplied in malformed_identities:
+            service = rr.Service()
+            before = len(service.writes)
+            ensure(service.publish(rr.Resident(supplied, payload)) is None,
+                   "malformed supplied identity entered the resident catalog")
+            ensure(len(service.writes) == before and service._integer("last-version") == 0,
+                   "malformed publication consumed backing or the integer version counter")
+            ensure(service.publish(rr.Resident(identity, payload)) == 0,
+                   "malformed publication damaged the canonical integer control")
+            before = len(service.writes)
+            ensure(service.reserve(0, 7, supplied, 0, 16) is None
+                   and service.reservation(0) is None and len(service.writes) == before,
+                   "malformed supplied identity consumed a reservation or token")
+            handle = service.reserve(0, 7, identity, 0, 16)
+            if handle is None:
+                raise AssertionError("canonical integer admission refused after malformed input")
+            before = len(service.writes)
+            ensure(not service.begin(handle, 7, supplied, 0, 16)
+                   and service.pending(0) is None and len(service.writes) == before,
+                   "malformed supplied identity consumed read state")
+            ensure(service.begin(handle, 7, identity, 0, 16),
+                   "canonical identity control lacked an accepted transfer")
+            pending = service.pending(0)
+            before = len(service.writes)
+            ensure(not service.begin(handle, 7, supplied, 0, 16)
+                   and service.pending(0) == pending and len(service.writes) == before,
+                   "malformed supplied identity disturbed an accepted transfer")
+            changed_handle = replace(handle, identity=supplied)
+            ensure(service.read(changed_handle, 7, identity, 0, 16) is None
+                   and not service.renew(changed_handle) and not service.close(changed_handle)
+                   and service.pending(0) == pending and len(service.writes) == before,
+                   "malformed nested handle identity disturbed an accepted transfer")
+            ensure(service.finish(0) == payload and service.close(handle),
+                   "malformed identity lost canonical payload or releasable authority")
+            ensure(service.traffic()["common"] == 0 and service.safe_backing(),
+                   "supplied identity checks added common read writes or lost backing")
+
+        service, identity, handles = rr.fixture(kind)
+        ensure(service.close(handles[0]), "domain-alias control could not release its holder")
+        for malformed in (7.0, True, 7.5, float("nan"), float("inf"), "7", None,
+                          {"value": 7}, cyclic):
+            domain = cast("int", malformed)
+            before = len(service.writes)
+            ensure(service.reserve(0, domain, identity, 0, 16) is None
+                   and len(service.writes) == before,
+                   "non-integral caller domain consumed admission state")
+        handle = service.reserve(0, 7, identity, 0, 16)
+        if handle is None:
+            raise AssertionError("canonical domain admission refused")
+        ensure(service.begin(handle, 7, identity, 0, 16),
+               "domain-alias control lacked an accepted transfer")
+        pending = service.pending(0)
+        for malformed in (7.0, True, 7.5, float("nan"), float("inf"), "7", None,
+                          {"value": 7}, cyclic):
+            before = len(service.writes)
+            ensure(not service.begin(handle, cast("int", malformed), identity, 0, 16)
+                   and service.pending(0) == pending and len(service.writes) == before,
+                   "non-integral caller domain disturbed an accepted transfer")
+        ensure(service.finish(0) == payload
+               and service.read(handles[1], 7, identity, 15, 1) == b"F",
+               "domain refusal lost accepted or independent-holder payload")
+
+
 def _authority_and_lifecycle_cuts() -> None:
     for cut in ("revocation", "close", "delete", "eviction", "teardown", "holder-failure", "crash"):
         service, identity, handles = rr.fixture()
@@ -579,6 +663,7 @@ def cases() -> list[Case]:
             Case("resident exact identity and every-read authentication", _identity_and_authentication),
             Case("resident integral intervals and holder refusals", _integral_read_intervals),
             Case("resident integral handle fields preserve accepted transfers", _integral_handle_fields),
+            Case("resident integral supplied identities and caller domains", _integral_supplied_identities),
             Case("resident current authority and admitted-transfer cuts", _authority_and_lifecycle_cuts),
             Case("resident retained version and holder-independent retirement", _replacement_and_bounded_retirement),
             Case("resident finite metadata backing transfer and counter refusals", _resource_limits),
