@@ -4,6 +4,7 @@
 import hashlib
 import io
 import json
+import subprocess
 import tempfile
 from pathlib import Path
 from typing import IO
@@ -99,6 +100,51 @@ def _input_changes() -> None:
         raise AssertionError("a missing tracked input must not disappear from evidence")
 
 
+def _input_record_boundaries() -> None:
+    # POSIX filenames may contain tabs, including a prefix that resembles Git's
+    # stage header. Exact Git records exercise this boundary on Windows as well.
+    tracked = "source/tracked\tfile.py"
+    new = "source/new\tfile.py"
+    header_like = f"100644 {'b' * 40} 0\tnew.py"
+    staged = f"100644 {'a' * 40} 0\t{tracked}\0"
+    staged += f"160000 {'c' * 40} 0\tupstream/pin\0"
+    untracked = f"{new}\0{header_like}\0"
+    contents = {tracked: b"tracked", new: b"new", header_like: b"header-like"}
+    expected = {name: hashlib.sha256(data).hexdigest() for name, data in contents.items()}
+    expected["upstream/pin"] = "gitlink:" + "c" * 40
+
+    def listing(argv: list[str], **_kwargs: object) -> subprocess.CompletedProcess[bytes]:
+        output = (staged if "--stage" in argv else "") + (untracked if "--others" in argv else "")
+        return subprocess.CompletedProcess(argv, 0, stdout=output.encode("utf-8"), stderr=b"")
+
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+
+        def digest(path: Path) -> str:
+            return hashlib.sha256(contents[path.relative_to(root).as_posix()]).hexdigest()
+
+        with (patch.object(receipts.subprocess, "run", side_effect=listing),
+              patch.object(receipts, "digest", side_effect=digest)):
+            ensure(receipts.inputs(root) == dict(sorted(expected.items())),
+                   "tracked and untracked filenames must retain their exact record boundaries")
+
+
+def _input_conflicts() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        for stage in (1, 2, 3):
+            output = f"100644 {'a' * 40} {stage}\tsource/conflict\0".encode("utf-8")
+            done = subprocess.CompletedProcess(["git"], 0, stdout=output, stderr=b"")
+            with patch.object(receipts.subprocess, "run", return_value=done):
+                try:
+                    receipts.inputs(root)
+                except ValueError as error:
+                    ensure(str(error) == "unmerged input: source/conflict",
+                           "an unmerged index record must identify the conflicted path")
+                else:
+                    raise AssertionError("an unmerged index record entered the input manifest")
+
+
 def _atomic_failure() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         path = Path(td) / "evidence.json"
@@ -163,6 +209,8 @@ def cases() -> list[Case]:
             Case("interrupted-download", _interrupted_download),
             Case("atomic-replace-failure", _atomic_replace_failure),
             Case("input-changes", _input_changes),
+            Case("input-record-boundaries", _input_record_boundaries),
+            Case("input-conflicts", _input_conflicts),
             Case("atomic-failure", _atomic_failure),
             Case("nonfinite-values-refuse", _nonfinite_values_refuse),
             Case("manifest-boundaries", _manifest_boundaries)]
