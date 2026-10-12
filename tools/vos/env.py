@@ -900,9 +900,11 @@ def keepalive(hours: int | None = None) -> None:
     # Between the probe above and the replace below, two racers can both find no lease
     # and both spawn: the later write wins the name and the loser's sleep is orphaned
     # but expires on its own, so the lease's one job, that at least one lives, holds.
-    proc = subprocess.Popen(["sleep", str(hours * 3600)], start_new_session=True,
-                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # A distribution lease must outlive lane retirement without holding that lane's
+    # inherited checkout open. Its shared native pidfile directory owns the process.
     pidfile = _keepalive_pidfile()
+    proc = subprocess.Popen(["sleep", str(hours * 3600)], cwd=pidfile.parent, start_new_session=True,
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     scratch = pidfile.with_name(f"{pidfile.name}.{os.getpid()}")
     scratch.write_text(f"{proc.pid}\n")
     # The rename is atomic, so a reader mid-write never parses half a pid as a whole one.

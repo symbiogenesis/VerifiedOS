@@ -287,6 +287,41 @@ def _keepalive_pidfile_read() -> None:
         "unset, the lease keeps its one shared name"))
 
 
+def _keepalive_owns_its_launch_directory() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as temporary:
+        root = Path(temporary)
+        checkout, native = root / "checkout", root / "native"
+        checkout.mkdir()
+        native.mkdir()
+        pidfile = native / "lease.pid"
+        inherited = Path.cwd()
+        try:
+            os.chdir(checkout)
+            with patch.object(env, "_keepalive_pidfile", return_value=pidfile), \
+                 patch.object(env, "_lease_sleep", return_value=None) as lease, \
+                 patch.object(env.subprocess, "Popen", return_value=SimpleNamespace(pid=54321)) as launch, \
+                 redirect_stderr(io.StringIO()):
+                env.keepalive(3)
+                ensure(launch.call_args is not None and launch.call_args.args == (["sleep", "10800"],)
+                       and launch.call_args.kwargs == {"cwd": native, "start_new_session": True,
+                                                       "stdout": subprocess.DEVNULL,
+                                                       "stderr": subprocess.DEVNULL},
+                       "lease duration and detached launch are preserved with an explicit native cwd")
+                ensure(Path.cwd() == checkout and pidfile.read_text() == "54321\n",
+                       "launch records its pid without changing the caller's checkout")
+                lease.return_value = 54321
+                env.keepalive(8)
+                env.keepalive(0)
+                ensure(launch.call_count == 1 and pidfile.read_text() == "54321\n",
+                       "a live lease keeps its identity and duration and is never duplicated")
+                with patch.object(env.os, "kill") as signal:
+                    env.keepalive_stop()
+                    signal.assert_called_once_with(54321, 15)
+                ensure(not pidfile.exists(), "stopping the verified lease clears its pidfile")
+        finally:
+            os.chdir(inherited)
+
+
 def _hoisted_lane_constants() -> None:
     """The three literals the loops used to spell inline, held at the paths and names
     a live loop depends on.
@@ -618,6 +653,7 @@ def cases() -> list[Case]:
              _memory_reading_distinguishes_exhaustion_from_unknown),
         Case("keepalive-hours-reads", _keepalive_hours_reads),
         Case("keepalive-pidfile-read", _keepalive_pidfile_read),
+        Case("keepalive-owns-its-launch-directory", _keepalive_owns_its_launch_directory),
         Case("git-env-names-the-work-tree", _git_env_names_the_work_tree),
         Case("git-env-empty-where-nothing-needs-saying",
              _git_env_is_empty_where_nothing_needs_saying),
