@@ -1,0 +1,100 @@
+{
+  "audit_acceptance_supplied": false,
+  "cases": [
+    {
+      "case": "baseline",
+      "diagnostic": "Captured bytes and derived summary agree; all four kernel verdicts remain pending.",
+      "exit": 0,
+      "expected_behavior_observed": true
+    },
+    {
+      "case": "corrupt-compressed-payload",
+      "diagnostic": "REFUSED: stored digest/size mismatch: standard-source/kernel-environment.log",
+      "exit": 1,
+      "expected_behavior_observed": true
+    },
+    {
+      "case": "rehashed-cross-pair-receipt",
+      "diagnostic": "REFUSED: receipt is not bound by captured seal",
+      "exit": 1,
+      "expected_behavior_observed": true
+    },
+    {
+      "case": "rehashed-seal-root-drift",
+      "diagnostic": "REFUSED: seal native root does not match receipt observation",
+      "exit": 1,
+      "expected_behavior_observed": true
+    },
+    {
+      "case": "rehashed-source-inventory-drift",
+      "diagnostic": "REFUSED: source inventory is not bound by captured seal",
+      "exit": 1,
+      "expected_behavior_observed": true
+    },
+    {
+      "case": "overflow-json-number",
+      "diagnostic": "REFUSED: nonfinite JSON number",
+      "exit": 1,
+      "expected_behavior_observed": true
+    },
+    {
+      "case": "duplicate-json-key",
+      "diagnostic": "REFUSED: duplicate JSON key: schema",
+      "exit": 1,
+      "expected_behavior_observed": true
+    },
+    {
+      "case": "false-derived-passing-verdict",
+      "diagnostic": "REFUSED: derived summary differs",
+      "exit": 1,
+      "expected_behavior_observed": true
+    },
+    {
+      "case": "non-regular-payload",
+      "diagnostic": "REFUSED: payload is not a regular file",
+      "exit": 1,
+      "expected_behavior_observed": true
+    },
+    {
+      "case": "rehashed-missing-make-root",
+      "diagnostic": "REFUSED: checker roots differ from captured original roster",
+      "exit": 1,
+      "expected_behavior_observed": true
+    },
+    {
+      "case": "rehashed-checking-header-drift",
+      "diagnostic": "REFUSED: headers are not an ordered prefix",
+      "exit": 1,
+      "expected_behavior_observed": true
+    }
+  ],
+  "document_check": {
+    "command": "python tools/run.py check --through K-13",
+    "exit": 1,
+    "findings": [
+      "K-88 firmware/crypto/target requires complete contained compiler provenance",
+      "K-88 firmware/chain/target requires complete contained compiler provenance"
+    ],
+    "hosted_acceptance_supplied": false,
+    "integration_base": "722db50947883d348c5944f8618dcc32ffc4513b",
+    "later_groups": "not run",
+    "link_checks": "passed",
+    "log_sha256": "017f21f48ca10d55a4a28abba732e6de9b3452215f0b6e41ff858f2d15436ab9"
+  },
+  "independent_review": {
+    "final_verifier_sha256": "e4afb0b1522dce6dae29503c6c4e8d844b018b151359293abf926366be011427",
+    "findings": "Stage-body disclosure prevented; regular-file, finite-number and seal/Make joins repaired and independently re-reviewed.",
+    "scope": "Static disclosure and offline verifier consistency; no live input queries or gates"
+  },
+  "manifest_sha256": "a06e489df5a4ced45b1eac3c1a2268f7751ed3eef2a6bb50150bd366ecd5e2ac",
+  "schema": "verifiedos-q39-pending-snapshot-controls/1",
+  "scope": "Offline consistency/refusal controls in isolated OS Temp copies; no live native-tree, compiler, prover or build execution.",
+  "summary_sha256": "0b664102b1211bbee79f312fbbd5a08290706cf46ebe8f6dbfb17aa6932cc708",
+  "targeted_code_checks": {
+    "linux_typing": "passed",
+    "ruff": "passed",
+    "rules": "all typing rules at error; repository Ruff configuration",
+    "win32_typing": "passed"
+  },
+  "verifier_sha256": "e4afb0b1522dce6dae29503c6c4e8d844b018b151359293abf926366be011427"
+}

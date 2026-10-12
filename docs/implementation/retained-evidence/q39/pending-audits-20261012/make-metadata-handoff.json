@@ -1,0 +1,378 @@
+{
+  "captures": {
+    "standard-import/copied-make/make.log": {
+      "bytes": 2946,
+      "capture_utc": "2026-10-12T06:04:16.148265+00:00",
+      "device": 2096,
+      "inode": 3273054,
+      "metadata_stable_during_capture": true,
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-import-copied-make-make.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/queries/copied-make/make.log"
+    },
+    "standard-import/copied-make/query.mk": {
+      "bytes": 49,
+      "capture_utc": "2026-10-12T06:04:16.153365+00:00",
+      "device": 2096,
+      "inode": 3273053,
+      "metadata_stable_during_capture": true,
+      "sha256": "58273b9be4a605a344425592d72cce115d3d02bda4630af1bce6ddc5f4e2b92b",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-import-copied-make-query.mk",
+      "source": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/queries/copied-make/query.mk"
+    },
+    "standard-import/original-make/make.log": {
+      "bytes": 2946,
+      "capture_utc": "2026-10-12T06:04:16.159013+00:00",
+      "device": 2096,
+      "inode": 3273048,
+      "metadata_stable_during_capture": true,
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-import-original-make-make.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/queries/original-make/make.log"
+    },
+    "standard-import/original-make/query.mk": {
+      "bytes": 49,
+      "capture_utc": "2026-10-12T06:04:16.162733+00:00",
+      "device": 2096,
+      "inode": 3273047,
+      "metadata_stable_during_capture": true,
+      "sha256": "58273b9be4a605a344425592d72cce115d3d02bda4630af1bce6ddc5f4e2b92b",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-import-original-make-query.mk",
+      "source": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/queries/original-make/query.mk"
+    },
+    "standard-source/copied-make/make.log": {
+      "bytes": 2946,
+      "capture_utc": "2026-10-12T06:04:16.165493+00:00",
+      "device": 2096,
+      "inode": 3273051,
+      "metadata_stable_during_capture": true,
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-source-copied-make-make.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/queries/copied-make/make.log"
+    },
+    "standard-source/copied-make/query.mk": {
+      "bytes": 49,
+      "capture_utc": "2026-10-12T06:04:16.169260+00:00",
+      "device": 2096,
+      "inode": 3273050,
+      "metadata_stable_during_capture": true,
+      "sha256": "58273b9be4a605a344425592d72cce115d3d02bda4630af1bce6ddc5f4e2b92b",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-source-copied-make-query.mk",
+      "source": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/queries/copied-make/query.mk"
+    },
+    "standard-source/original-make/make.log": {
+      "bytes": 2946,
+      "capture_utc": "2026-10-12T06:04:16.172723+00:00",
+      "device": 2096,
+      "inode": 3271224,
+      "metadata_stable_during_capture": true,
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-source-original-make-make.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/queries/original-make/make.log"
+    },
+    "standard-source/original-make/query.mk": {
+      "bytes": 49,
+      "capture_utc": "2026-10-12T06:04:16.176277+00:00",
+      "device": 2096,
+      "inode": 3270937,
+      "metadata_stable_during_capture": true,
+      "sha256": "58273b9be4a605a344425592d72cce115d3d02bda4630af1bce6ddc5f4e2b92b",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-source-original-make-query.mk",
+      "source": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/queries/original-make/query.mk"
+    },
+    "vm-import/copied-make/make.log": {
+      "bytes": 2946,
+      "capture_utc": "2026-10-12T06:04:16.179615+00:00",
+      "device": 2096,
+      "inode": 3288627,
+      "metadata_stable_during_capture": true,
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-import-copied-make-make.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/queries/copied-make/make.log"
+    },
+    "vm-import/copied-make/query.mk": {
+      "bytes": 49,
+      "capture_utc": "2026-10-12T06:04:16.184107+00:00",
+      "device": 2096,
+      "inode": 3288626,
+      "metadata_stable_during_capture": true,
+      "sha256": "58273b9be4a605a344425592d72cce115d3d02bda4630af1bce6ddc5f4e2b92b",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-import-copied-make-query.mk",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/queries/copied-make/query.mk"
+    },
+    "vm-import/original-make/make.log": {
+      "bytes": 2946,
+      "capture_utc": "2026-10-12T06:04:16.187799+00:00",
+      "device": 2096,
+      "inode": 3284742,
+      "metadata_stable_during_capture": true,
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-import-original-make-make.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/queries/original-make/make.log"
+    },
+    "vm-import/original-make/query.mk": {
+      "bytes": 49,
+      "capture_utc": "2026-10-12T06:04:16.192086+00:00",
+      "device": 2096,
+      "inode": 3284741,
+      "metadata_stable_during_capture": true,
+      "sha256": "58273b9be4a605a344425592d72cce115d3d02bda4630af1bce6ddc5f4e2b92b",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-import-original-make-query.mk",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/queries/original-make/query.mk"
+    },
+    "vm-source/copied-make/make.log": {
+      "bytes": 2946,
+      "capture_utc": "2026-10-12T06:04:16.194767+00:00",
+      "device": 2096,
+      "inode": 3288630,
+      "metadata_stable_during_capture": true,
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-source-copied-make-make.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/queries/copied-make/make.log"
+    },
+    "vm-source/copied-make/query.mk": {
+      "bytes": 49,
+      "capture_utc": "2026-10-12T06:04:16.202272+00:00",
+      "device": 2096,
+      "inode": 3288629,
+      "metadata_stable_during_capture": true,
+      "sha256": "58273b9be4a605a344425592d72cce115d3d02bda4630af1bce6ddc5f4e2b92b",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-source-copied-make-query.mk",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/queries/copied-make/query.mk"
+    },
+    "vm-source/original-make/make.log": {
+      "bytes": 2946,
+      "capture_utc": "2026-10-12T06:04:16.205274+00:00",
+      "device": 2096,
+      "inode": 3288624,
+      "metadata_stable_during_capture": true,
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-source-original-make-make.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/queries/original-make/make.log"
+    },
+    "vm-source/original-make/query.mk": {
+      "bytes": 49,
+      "capture_utc": "2026-10-12T06:04:16.207368+00:00",
+      "device": 2096,
+      "inode": 3288623,
+      "metadata_stable_during_capture": true,
+      "sha256": "58273b9be4a605a344425592d72cce115d3d02bda4630af1bce6ddc5f4e2b92b",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-source-original-make-query.mk",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/queries/original-make/query.mk"
+    }
+  },
+  "completed_utc": "2026-10-12T06:04:16.207395+00:00",
+  "declaration_metadata_shapes": {
+    "standard-import/compcert.cheririscV.CapAsmgen": {
+      "keys": null,
+      "length": 0,
+      "member_shapes": [],
+      "shape": "list"
+    },
+    "standard-import/compcert.cheririscV.CapGlobalenvs": {
+      "keys": null,
+      "length": 0,
+      "member_shapes": [],
+      "shape": "list"
+    },
+    "standard-import/compcert.cheririscV.CapMemory": {
+      "keys": null,
+      "length": 0,
+      "member_shapes": [],
+      "shape": "list"
+    },
+    "standard-import/compcert.security.Backtranslation": {
+      "keys": null,
+      "length": 3,
+      "member_shapes": [
+        {
+          "keys": [
+            "name",
+            "line",
+            "left",
+            "right"
+          ],
+          "type": "dict"
+        },
+        {
+          "keys": [
+            "name",
+            "line",
+            "left",
+            "right"
+          ],
+          "type": "dict"
+        },
+        {
+          "keys": [
+            "name",
+            "line",
+            "left",
+            "right"
+          ],
+          "type": "dict"
+        }
+      ],
+      "shape": "list"
+    },
+    "standard-source/compcert.cheririscV.CapAsmgen": {
+      "keys": null,
+      "length": 0,
+      "member_shapes": [],
+      "shape": "list"
+    },
+    "standard-source/compcert.cheririscV.CapGlobalenvs": {
+      "keys": null,
+      "length": 0,
+      "member_shapes": [],
+      "shape": "list"
+    },
+    "standard-source/compcert.cheririscV.CapMemory": {
+      "keys": null,
+      "length": 0,
+      "member_shapes": [],
+      "shape": "list"
+    },
+    "standard-source/compcert.security.Backtranslation": {
+      "keys": null,
+      "length": 3,
+      "member_shapes": [
+        {
+          "keys": [
+            "name",
+            "line",
+            "left",
+            "right"
+          ],
+          "type": "dict"
+        },
+        {
+          "keys": [
+            "name",
+            "line",
+            "left",
+            "right"
+          ],
+          "type": "dict"
+        },
+        {
+          "keys": [
+            "name",
+            "line",
+            "left",
+            "right"
+          ],
+          "type": "dict"
+        }
+      ],
+      "shape": "list"
+    },
+    "vm-import/compcert.cheririscV.CapAsmgen": {
+      "keys": null,
+      "length": 0,
+      "member_shapes": [],
+      "shape": "list"
+    },
+    "vm-import/compcert.cheririscV.CapGlobalenvs": {
+      "keys": null,
+      "length": 0,
+      "member_shapes": [],
+      "shape": "list"
+    },
+    "vm-import/compcert.cheririscV.CapMemory": {
+      "keys": null,
+      "length": 0,
+      "member_shapes": [],
+      "shape": "list"
+    },
+    "vm-import/compcert.security.Backtranslation": {
+      "keys": null,
+      "length": 3,
+      "member_shapes": [
+        {
+          "keys": [
+            "name",
+            "line",
+            "left",
+            "right"
+          ],
+          "type": "dict"
+        },
+        {
+          "keys": [
+            "name",
+            "line",
+            "left",
+            "right"
+          ],
+          "type": "dict"
+        },
+        {
+          "keys": [
+            "name",
+            "line",
+            "left",
+            "right"
+          ],
+          "type": "dict"
+        }
+      ],
+      "shape": "list"
+    },
+    "vm-source/compcert.cheririscV.CapAsmgen": {
+      "keys": null,
+      "length": 0,
+      "member_shapes": [],
+      "shape": "list"
+    },
+    "vm-source/compcert.cheririscV.CapGlobalenvs": {
+      "keys": null,
+      "length": 0,
+      "member_shapes": [],
+      "shape": "list"
+    },
+    "vm-source/compcert.cheririscV.CapMemory": {
+      "keys": null,
+      "length": 0,
+      "member_shapes": [],
+      "shape": "list"
+    },
+    "vm-source/compcert.security.Backtranslation": {
+      "keys": null,
+      "length": 3,
+      "member_shapes": [
+        {
+          "keys": [
+            "name",
+            "line",
+            "left",
+            "right"
+          ],
+          "type": "dict"
+        },
+        {
+          "keys": [
+            "name",
+            "line",
+            "left",
+            "right"
+          ],
+          "type": "dict"
+        },
+        {
+          "keys": [
+            "name",
+            "line",
+            "left",
+            "right"
+          ],
+          "type": "dict"
+        }
+      ],
+      "shape": "list"
+    }
+  },
+  "elapsed_seconds": 0.06321719800325809,
+  "schema": "verifiedos-q39-pending-make-metadata/1",
+  "started_utc": "2026-10-12T06:04:16.144166+00:00"
+}

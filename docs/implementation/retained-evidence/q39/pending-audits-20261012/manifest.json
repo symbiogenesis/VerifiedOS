@@ -1,0 +1,444 @@
+{
+  "files": {
+    "capture": {
+      "bytes": 78254,
+      "encoding": "identity",
+      "path": "capture.json",
+      "sha256": "a833d477a5b1306b35fa0056ea08971bd2568eec03114158070955f67885f525",
+      "stored_bytes": 78254,
+      "stored_sha256": "a833d477a5b1306b35fa0056ea08971bd2568eec03114158070955f67885f525"
+    },
+    "capture-supplement": {
+      "bytes": 157016,
+      "encoding": "identity",
+      "path": "capture-supplement.json",
+      "sha256": "7556db9b17320f4e79f47aecedfe14900b98acdff1091b0f6e5955e667c57411",
+      "stored_bytes": 157016,
+      "stored_sha256": "7556db9b17320f4e79f47aecedfe14900b98acdff1091b0f6e5955e667c57411"
+    },
+    "declaration-metadata-handoff": {
+      "bytes": 12677,
+      "encoding": "identity",
+      "path": "declaration-metadata-handoff.json",
+      "sha256": "c1397fdc3189d9ee432b20bc36b8cefeb973b2f17ffd0222d02c7cd02fc182f2",
+      "stored_bytes": 12677,
+      "stored_sha256": "c1397fdc3189d9ee432b20bc36b8cefeb973b2f17ffd0222d02c7cd02fc182f2"
+    },
+    "make-metadata-handoff": {
+      "bytes": 14302,
+      "encoding": "identity",
+      "path": "make-metadata-handoff.json",
+      "sha256": "946cd0861dfe217c29ca07e9c9fe056317c2af8bfbe27a045ee7ec96a684073d",
+      "stored_bytes": 14302,
+      "stored_sha256": "946cd0861dfe217c29ca07e9c9fe056317c2af8bfbe27a045ee7ec96a684073d"
+    },
+    "stage-capture": {
+      "bytes": 43787,
+      "encoding": "identity",
+      "path": "stage-capture.json",
+      "sha256": "35e4751c4168972cdcc9c275d4ceff3238f0229e772334123bef087fb4d78d76",
+      "stored_bytes": 43787,
+      "stored_sha256": "35e4751c4168972cdcc9c275d4ceff3238f0229e772334123bef087fb4d78d76"
+    },
+    "standard-import/build-inputs.json": {
+      "bytes": 71160,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/compiler/build-inputs.json",
+      "path": "raw/standard-import/build-inputs.json.gz",
+      "sha256": "db19df9497c8440c82475361b1694e49457bb1b6ce8d1632a7dca5fc3720c081",
+      "stored_bytes": 27334,
+      "stored_sha256": "18f9364eda566a3131be6f5956d99cf705f2c604d4df56d5714b6c5ac18ec21f"
+    },
+    "standard-import/build-result.json": {
+      "bytes": 4216,
+      "encoding": "identity",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/compiler/build-result.json",
+      "path": "raw/standard-import/build-result.json",
+      "sha256": "d5a342dbb14f987417f3853b85cfd595c716f0b3dd30b64fbc92e5624b7740ec",
+      "stored_bytes": 4216,
+      "stored_sha256": "d5a342dbb14f987417f3853b85cfd595c716f0b3dd30b64fbc92e5624b7740ec"
+    },
+    "standard-import/compcert.cheririscV.CapAsmgen": {
+      "bytes": 1322,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/queries/metadata/compcert.cheririscV.CapAsmgen/declarations.json",
+      "path": "raw/standard-import/compcert.cheririscV.CapAsmgen.gz",
+      "sha256": "f34480c2b5565b197c88826c7bb03671294aeff238bc13866f9dc2e95b89cb94",
+      "stored_bytes": 587,
+      "stored_sha256": "e935d63522b842f8a837d80088f387310e9a9c2795d30cbe23c7b5f7d86d765e"
+    },
+    "standard-import/compcert.cheririscV.CapGlobalenvs": {
+      "bytes": 1326,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/queries/metadata/compcert.cheririscV.CapGlobalenvs/declarations.json",
+      "path": "raw/standard-import/compcert.cheririscV.CapGlobalenvs.gz",
+      "sha256": "186b23d3ea00158cb377f932884c07f729025ba45cc7274887c208fa9ff6b8a3",
+      "stored_bytes": 591,
+      "stored_sha256": "b9c19473b5c23196a32f547d100e6669c7366526b3f8ff01c417c9dcc902f892"
+    },
+    "standard-import/compcert.cheririscV.CapMemory": {
+      "bytes": 1322,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/queries/metadata/compcert.cheririscV.CapMemory/declarations.json",
+      "path": "raw/standard-import/compcert.cheririscV.CapMemory.gz",
+      "sha256": "878327dbb17aa86691429caed1a1e417ca14641cdff455923fc2991d1e1b9cb5",
+      "stored_bytes": 585,
+      "stored_sha256": "37bdde2144a4ce3c76bfb3ed077aefd210ac7767687bd94fe5dd48fc721aa423"
+    },
+    "standard-import/compcert.security.Backtranslation": {
+      "bytes": 1757,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/queries/metadata/compcert.security.Backtranslation/declarations.json",
+      "path": "raw/standard-import/compcert.security.Backtranslation.gz",
+      "sha256": "524c77c83f103d99068f82e946740beacc4b95b1e1a8ae3e5246581c7aefeab1",
+      "stored_bytes": 671,
+      "stored_sha256": "be4dd3537bff2418b31049c48d2fb209ce8213efb2602ba983d05a2b8dd307d7"
+    },
+    "standard-import/compile-seal.json": {
+      "bytes": 3225151,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/compile-seal.json",
+      "path": "raw/standard-import/compile-seal.json.gz",
+      "sha256": "6d305adbbb4afd3f1b54dfe3eab355b83152bbb154583a3b6ea0f67853ab63b7",
+      "stored_bytes": 689281,
+      "stored_sha256": "1b13f823ce2e789d575c50b927c62511078e90bbad4a49c2413bfed273b51c04"
+    },
+    "standard-import/copied-make/make.log": {
+      "bytes": 2946,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/queries/copied-make/make.log",
+      "path": "raw/standard-import/copied-make/make.log.gz",
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "stored_bytes": 1173,
+      "stored_sha256": "ab3c1566c46b0f3310e239d6b7792e9290cedb9715d025e30051dc6915534ac6"
+    },
+    "standard-import/kernel-environment.log": {
+      "bytes": 4764950,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/logs/kernel-environment.log",
+      "path": "raw/standard-import/kernel-environment.log.gz",
+      "sha256": "19097e76ac0e4519a566c6966340f2f1233cf645ff75ed462ee62fdc94e3a326",
+      "stored_bytes": 279980,
+      "stored_sha256": "d2c84867614deefd6f4da1d581c844224ba8506604463ff6f8ce2681f3c0e69b"
+    },
+    "standard-import/original-make/make.log": {
+      "bytes": 2946,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/queries/original-make/make.log",
+      "path": "raw/standard-import/original-make/make.log.gz",
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "stored_bytes": 1173,
+      "stored_sha256": "ab3c1566c46b0f3310e239d6b7792e9290cedb9715d025e30051dc6915534ac6"
+    },
+    "standard-import/progress.json": {
+      "bytes": 2730,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/progress.json",
+      "path": "raw/standard-import/progress.json.gz",
+      "sha256": "b0c7937b1abe97d6ec463d8c8406a03072972892978dc226a6a7f5a3391b39fd",
+      "stored_bytes": 719,
+      "stored_sha256": "acd34c862f83d0164b169547179f20e0c41085197f1791a5e26212d923c255e1"
+    },
+    "standard-source/build-inputs.json": {
+      "bytes": 71160,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-1/compiler/build-inputs.json",
+      "path": "raw/standard-source/build-inputs.json.gz",
+      "sha256": "39829d554cf89fb88369b452af72c1a3a3358b161e9a9a5a24313f5867fea170",
+      "stored_bytes": 27336,
+      "stored_sha256": "1bce93f78d07b3bc0604c9de57c040503e0c6efd347931a536e1c5c063b99e75"
+    },
+    "standard-source/build-result.json": {
+      "bytes": 4199,
+      "encoding": "identity",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-1/compiler/build-result.json",
+      "path": "raw/standard-source/build-result.json",
+      "sha256": "856121f99488aebef0a8844de2701487f489d596993aae34f661e02d53a7b286",
+      "stored_bytes": 4199,
+      "stored_sha256": "856121f99488aebef0a8844de2701487f489d596993aae34f661e02d53a7b286"
+    },
+    "standard-source/compcert.cheririscV.CapAsmgen": {
+      "bytes": 1318,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/queries/metadata/compcert.cheririscV.CapAsmgen/declarations.json",
+      "path": "raw/standard-source/compcert.cheririscV.CapAsmgen.gz",
+      "sha256": "26dd8b4dda67f6852e2e34153509c550301b0050ffd46b50d2306404e4a08b70",
+      "stored_bytes": 587,
+      "stored_sha256": "5d49971cc74d8b6f5c8205abfeeb4d1d81ea2d1270ec4954e7007d2370d787fc"
+    },
+    "standard-source/compcert.cheririscV.CapGlobalenvs": {
+      "bytes": 1322,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/queries/metadata/compcert.cheririscV.CapGlobalenvs/declarations.json",
+      "path": "raw/standard-source/compcert.cheririscV.CapGlobalenvs.gz",
+      "sha256": "ee103ae27cec3ee327a2546502343f5172d310c9cb2ed1c3f6561bed28b55b7e",
+      "stored_bytes": 589,
+      "stored_sha256": "74e6760229d4534b1954131948a2919a5f4901ba7b38837a83fce837d64bc06c"
+    },
+    "standard-source/compcert.cheririscV.CapMemory": {
+      "bytes": 1318,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/queries/metadata/compcert.cheririscV.CapMemory/declarations.json",
+      "path": "raw/standard-source/compcert.cheririscV.CapMemory.gz",
+      "sha256": "28fe8ff0f51ff0ad17b4bb7c93755dc7173e410de6a589c27ea078ba645da2e6",
+      "stored_bytes": 589,
+      "stored_sha256": "a585960b876cd0b5f13354b7e7e3a2f6add6f7c529392c56eac06740436eab8d"
+    },
+    "standard-source/compcert.security.Backtranslation": {
+      "bytes": 1753,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/queries/metadata/compcert.security.Backtranslation/declarations.json",
+      "path": "raw/standard-source/compcert.security.Backtranslation.gz",
+      "sha256": "5cc0a8c4dbe26bfa5323134e348ffc6e160e2a9177129266ee3efdf2f0af6212",
+      "stored_bytes": 669,
+      "stored_sha256": "95b51e28af29daa471ec1033b4258add3ca571ea98aa8c2e1b7c4afcae7e07da"
+    },
+    "standard-source/compile-seal.json": {
+      "bytes": 3204641,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-1/compile-seal.json",
+      "path": "raw/standard-source/compile-seal.json.gz",
+      "sha256": "e52b6b764efd5e0cf743576a9f5ed88c791aa4b272215e2f58dd2c939b81592f",
+      "stored_bytes": 688903,
+      "stored_sha256": "0b744d74276fcef7a8369de21a076ff5fa504b46b58b22d41fcff72ac8150c2e"
+    },
+    "standard-source/copied-make/make.log": {
+      "bytes": 2946,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/queries/copied-make/make.log",
+      "path": "raw/standard-source/copied-make/make.log.gz",
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "stored_bytes": 1173,
+      "stored_sha256": "ab3c1566c46b0f3310e239d6b7792e9290cedb9715d025e30051dc6915534ac6"
+    },
+    "standard-source/kernel-environment.log": {
+      "bytes": 4764140,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/logs/kernel-environment.log",
+      "path": "raw/standard-source/kernel-environment.log.gz",
+      "sha256": "13f1fc1ee2a5f3409b46059957a8d11619783a41423a01720ad56f41958858f0",
+      "stored_bytes": 279971,
+      "stored_sha256": "1bc7796ca104608aeae87c9ae8c3990fc1914c791586aef1c585faecb40caea8"
+    },
+    "standard-source/original-make/make.log": {
+      "bytes": 2946,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/queries/original-make/make.log",
+      "path": "raw/standard-source/original-make/make.log.gz",
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "stored_bytes": 1173,
+      "stored_sha256": "ab3c1566c46b0f3310e239d6b7792e9290cedb9715d025e30051dc6915534ac6"
+    },
+    "standard-source/progress.json": {
+      "bytes": 2713,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/progress.json",
+      "path": "raw/standard-source/progress.json.gz",
+      "sha256": "433772cd4a1c82d0bde89fe3cc0bcef2f01f89e617802366e6201a69168a47aa",
+      "stored_bytes": 712,
+      "stored_sha256": "fe45e20192a6897aa36356d1e7596e2c0f57b7b689248a523805973862f2ad94"
+    },
+    "vm-import/build-inputs.json": {
+      "bytes": 71160,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/compiler/build-inputs.json",
+      "path": "raw/vm-import/build-inputs.json.gz",
+      "sha256": "db19df9497c8440c82475361b1694e49457bb1b6ce8d1632a7dca5fc3720c081",
+      "stored_bytes": 27334,
+      "stored_sha256": "18f9364eda566a3131be6f5956d99cf705f2c604d4df56d5714b6c5ac18ec21f"
+    },
+    "vm-import/build-result.json": {
+      "bytes": 4360,
+      "encoding": "identity",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/compiler/build-result.json",
+      "path": "raw/vm-import/build-result.json",
+      "sha256": "ae506c4f550d74df2110627af9e048b1d3239f5a658c0c0bf1060cf433238b56",
+      "stored_bytes": 4360,
+      "stored_sha256": "ae506c4f550d74df2110627af9e048b1d3239f5a658c0c0bf1060cf433238b56"
+    },
+    "vm-import/compcert.cheririscV.CapAsmgen": {
+      "bytes": 1325,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/queries/metadata/compcert.cheririscV.CapAsmgen/declarations.json",
+      "path": "raw/vm-import/compcert.cheririscV.CapAsmgen.gz",
+      "sha256": "0afd3d68239f04245840cfc27e0b7afaf89e5fdf61aed60a20fc4210b5c6bfc4",
+      "stored_bytes": 591,
+      "stored_sha256": "6a02141a1b4522fb9c82a9439fae268abd437ae500d8fc8665eccd94e122061f"
+    },
+    "vm-import/compcert.cheririscV.CapGlobalenvs": {
+      "bytes": 1329,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/queries/metadata/compcert.cheririscV.CapGlobalenvs/declarations.json",
+      "path": "raw/vm-import/compcert.cheririscV.CapGlobalenvs.gz",
+      "sha256": "f74f14129f47efc8cf8be68255edd73685951705dd3c99acd8c7c0daa4d83481",
+      "stored_bytes": 594,
+      "stored_sha256": "1ed29bb1add7350c28479273c7f91d2d34125ff4589a8caa23d0ad0aa8ac14ab"
+    },
+    "vm-import/compcert.cheririscV.CapMemory": {
+      "bytes": 1325,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/queries/metadata/compcert.cheririscV.CapMemory/declarations.json",
+      "path": "raw/vm-import/compcert.cheririscV.CapMemory.gz",
+      "sha256": "ce32abd83394ca0d34eebb66cb2ed3aec51501aa0cbccef7a5ffba6299eb4e06",
+      "stored_bytes": 588,
+      "stored_sha256": "7aca773408e7f7d4dd4101af4a78d1e8278017a683aab546bb58c65a3adc0663"
+    },
+    "vm-import/compcert.security.Backtranslation": {
+      "bytes": 1760,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/queries/metadata/compcert.security.Backtranslation/declarations.json",
+      "path": "raw/vm-import/compcert.security.Backtranslation.gz",
+      "sha256": "f137e0f6b19fa0bfcd8386a9076868814e758655893c6963537625a09828effe",
+      "stored_bytes": 673,
+      "stored_sha256": "5c06323b89d08b34aa0b6aac70633da9581cc76a612780ecafd7c283ec685123"
+    },
+    "vm-import/compile-seal.json": {
+      "bytes": 3225286,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/compile-seal.json",
+      "path": "raw/vm-import/compile-seal.json.gz",
+      "sha256": "e8f97d8e792c832b1fdab50c335955b759ca2e5a548bd136e47dd41e8c100e8b",
+      "stored_bytes": 689289,
+      "stored_sha256": "9e94cf40682f17f99ab3e00d1981df9e1a8b05ac73d91075fd16f38d18c95d30"
+    },
+    "vm-import/copied-make/make.log": {
+      "bytes": 2946,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/queries/copied-make/make.log",
+      "path": "raw/vm-import/copied-make/make.log.gz",
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "stored_bytes": 1173,
+      "stored_sha256": "ab3c1566c46b0f3310e239d6b7792e9290cedb9715d025e30051dc6915534ac6"
+    },
+    "vm-import/kernel-environment.log": {
+      "bytes": 4765598,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/logs/kernel-environment.log",
+      "path": "raw/vm-import/kernel-environment.log.gz",
+      "sha256": "cdfa465db443438ee6f76bae48d5747dae7ff2b08c98b9cca5508e430d66380e",
+      "stored_bytes": 280007,
+      "stored_sha256": "70bf75835513109ee02caf42a9575c2f760e1dcf4c2b6aafbbf83e6843db96f6"
+    },
+    "vm-import/original-make/make.log": {
+      "bytes": 2946,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/queries/original-make/make.log",
+      "path": "raw/vm-import/original-make/make.log.gz",
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "stored_bytes": 1173,
+      "stored_sha256": "ab3c1566c46b0f3310e239d6b7792e9290cedb9715d025e30051dc6915534ac6"
+    },
+    "vm-import/progress.json": {
+      "bytes": 2751,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/progress.json",
+      "path": "raw/vm-import/progress.json.gz",
+      "sha256": "0fe11b33c756d872ae7459575c9d33f3908eb678ac0266dbf3ea046bc6bb32b7",
+      "stored_bytes": 720,
+      "stored_sha256": "28690ee5a03cffdd55577146a563aa50ec0a7c2a746c3ec23af09fd9cd07e822"
+    },
+    "vm-source/build-inputs.json": {
+      "bytes": 71160,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler/build-inputs.json",
+      "path": "raw/vm-source/build-inputs.json.gz",
+      "sha256": "39829d554cf89fb88369b452af72c1a3a3358b161e9a9a5a24313f5867fea170",
+      "stored_bytes": 27336,
+      "stored_sha256": "1bce93f78d07b3bc0604c9de57c040503e0c6efd347931a536e1c5c063b99e75"
+    },
+    "vm-source/build-result.json": {
+      "bytes": 4350,
+      "encoding": "identity",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler/build-result.json",
+      "path": "raw/vm-source/build-result.json",
+      "sha256": "fdd3e16a7268cf07338ce44df6d0c91a8838e2ad7a496ad459be266b0f79577b",
+      "stored_bytes": 4350,
+      "stored_sha256": "fdd3e16a7268cf07338ce44df6d0c91a8838e2ad7a496ad459be266b0f79577b"
+    },
+    "vm-source/compcert.cheririscV.CapAsmgen": {
+      "bytes": 1321,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/queries/metadata/compcert.cheririscV.CapAsmgen/declarations.json",
+      "path": "raw/vm-source/compcert.cheririscV.CapAsmgen.gz",
+      "sha256": "c19b72e0b042b0bf0573b867a8f45751697ff8a8ec3df9e85a2b1aa381336696",
+      "stored_bytes": 588,
+      "stored_sha256": "39a95c124d2db08dba9f625f638b3358543e3bcc2e82cc81392c64669bd5e198"
+    },
+    "vm-source/compcert.cheririscV.CapGlobalenvs": {
+      "bytes": 1325,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/queries/metadata/compcert.cheririscV.CapGlobalenvs/declarations.json",
+      "path": "raw/vm-source/compcert.cheririscV.CapGlobalenvs.gz",
+      "sha256": "389d7a13a7ac057c29b494443d7df2161145667837dca5e85330727a60fdb091",
+      "stored_bytes": 591,
+      "stored_sha256": "583ab5f3c9404ad19c8e3adecb48c6ae217f70d068f7c4f51ebbf39f9327c2c6"
+    },
+    "vm-source/compcert.cheririscV.CapMemory": {
+      "bytes": 1321,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/queries/metadata/compcert.cheririscV.CapMemory/declarations.json",
+      "path": "raw/vm-source/compcert.cheririscV.CapMemory.gz",
+      "sha256": "fe0b704f1aa4fe91e64a7f762212735d433ae53b3becbbaa06e542c8aa5f3954",
+      "stored_bytes": 591,
+      "stored_sha256": "8d4e7c62c5fa5fca02148cc1db0d0c49c76df8aba4c71da0bb63539684060863"
+    },
+    "vm-source/compcert.security.Backtranslation": {
+      "bytes": 1756,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/queries/metadata/compcert.security.Backtranslation/declarations.json",
+      "path": "raw/vm-source/compcert.security.Backtranslation.gz",
+      "sha256": "693582bd773428fc26fa3c40f6120b46ceb75cffd7fdfcd606c9f7664ff5567d",
+      "stored_bytes": 673,
+      "stored_sha256": "562f7deb5e67db44e9e74da065fddaaaafe56fbb28942d7a539f13567847531d"
+    },
+    "vm-source/compile-seal.json": {
+      "bytes": 3204776,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compile-seal.json",
+      "path": "raw/vm-source/compile-seal.json.gz",
+      "sha256": "efccc80f0186b5686753cf9e9620ea66f8a5ca978fad6cd8d9b7143321564828",
+      "stored_bytes": 689017,
+      "stored_sha256": "3f1077ffa32304f117d4f975af369f65474d507880109ace6afdec8f312d107d"
+    },
+    "vm-source/copied-make/make.log": {
+      "bytes": 2946,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/queries/copied-make/make.log",
+      "path": "raw/vm-source/copied-make/make.log.gz",
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "stored_bytes": 1173,
+      "stored_sha256": "ab3c1566c46b0f3310e239d6b7792e9290cedb9715d025e30051dc6915534ac6"
+    },
+    "vm-source/kernel-environment.log": {
+      "bytes": 4764788,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/logs/kernel-environment.log",
+      "path": "raw/vm-source/kernel-environment.log.gz",
+      "sha256": "73e3f7f94664a26e6599cf1160b3beb516be845698258669ddd85702e00d8309",
+      "stored_bytes": 279988,
+      "stored_sha256": "2dca4433e536b4ee05ebf0ade618dfe64f0b2a21c965a3558bf6685af112c833"
+    },
+    "vm-source/original-make/make.log": {
+      "bytes": 2946,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/queries/original-make/make.log",
+      "path": "raw/vm-source/original-make/make.log.gz",
+      "sha256": "e6e3041bd917f8b0b316d786c28e455b5ec6d00e49f1a1d41b9599b840d6e5ed",
+      "stored_bytes": 1173,
+      "stored_sha256": "ab3c1566c46b0f3310e239d6b7792e9290cedb9715d025e30051dc6915534ac6"
+    },
+    "vm-source/progress.json": {
+      "bytes": 2741,
+      "encoding": "gzip",
+      "original_native_path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/progress.json",
+      "path": "raw/vm-source/progress.json.gz",
+      "sha256": "fd4867a809c3adfc61b5b7bb37572819c23dbcd91bd63b8c60f42bc905ab6405",
+      "stored_bytes": 717,
+      "stored_sha256": "8535fd663527f8694a17935dbab353762182fec53e6ede35c927a2087c3c238c"
+    }
+  },
+  "original_public_lane_revision": "7e72e607a8ec3f1bca84d8de202b3c79837e58ff",
+  "public_integration_base": "722db50947883d348c5944f8618dcc32ffc4513b",
+  "schema": "verifiedos-q39-pending-audit-bundle/1",
+  "scope": "Immutable metadata and diagnostic exports; no compiler source, proof object, executable or installed library bytes."
+}

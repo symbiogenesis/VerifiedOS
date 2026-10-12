@@ -1,0 +1,145 @@
+{
+  "archive_sha256": "5e1ee17831f6af647106b88065e7c1990c8cf5f22a1e04b54329767cfc34f139",
+  "compiler_sha256": "ccc8a5e3e3ec14e293b5eb84e78d6d70a1a15bc5d04bfd2565b82a6236d6f5d5",
+  "configuration_overrides": [
+    "-ignore-coq-version"
+  ],
+  "gates": [
+    {
+      "argv": [
+        "opam",
+        "switch",
+        "export",
+        "--switch=q39-replay",
+        "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/switch.lock"
+      ],
+      "cwd": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/compiler",
+      "exit": 0,
+      "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "name": "export",
+      "seconds": 0.20800920000147016
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-replay",
+        "--",
+        "sh",
+        "./configure",
+        "rv64-linux",
+        "-ignore-coq-version"
+      ],
+      "cwd": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/compiler",
+      "exit": 0,
+      "log_sha256": "fa05aca0d70ea270ce1fc967d093e8507520a85db848a6b710704c7ad865ef0c",
+      "name": "configure",
+      "seconds": 0.1373267000017222
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-replay",
+        "--",
+        "make",
+        "clean"
+      ],
+      "cwd": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/compiler",
+      "exit": 0,
+      "log_sha256": "def012dd6caece57f7e1d8cc74f75592b4eb7b07bb8ef5737fd454a5fa383dba",
+      "name": "clean",
+      "seconds": 0.08882630100015376
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-replay",
+        "--",
+        "make",
+        "-j2",
+        "depend"
+      ],
+      "cwd": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/compiler",
+      "exit": 0,
+      "log_sha256": "57b12341de15b7fe0b1caf0fad1c240eff67bc37be193bc9baf32902e5cb3374",
+      "name": "depend",
+      "seconds": 0.39302540099924954
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-replay",
+        "--",
+        "make",
+        "-j2",
+        "proof"
+      ],
+      "cwd": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/compiler",
+      "exit": 0,
+      "log_sha256": "6d57ca2bea804783157b747b5a38a915591b42cb8f7a0ec98b04fd21ad185894",
+      "name": "proof",
+      "seconds": 358.72442142300133
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-replay",
+        "--",
+        "make",
+        "-j2",
+        "extraction"
+      ],
+      "cwd": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/compiler",
+      "exit": 0,
+      "log_sha256": "622cb579a5aa4ddf6d8a7ab9e1d269b61e0e388b9ea94384bbd7788ff57909f2",
+      "name": "extraction",
+      "seconds": 7.758320593000462
+    },
+    {
+      "argv": [
+        "opam",
+        "exec",
+        "--switch=q39-replay",
+        "--",
+        "make",
+        "-j2",
+        "ccomp"
+      ],
+      "cwd": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/compiler",
+      "exit": 0,
+      "log_sha256": "3a4c8f93346b1256d4ec8a193fe60588153a105dd690cfe4e5fbb84a558719f3",
+      "name": "ccomp",
+      "seconds": 10.17437105099998
+    }
+  ],
+  "inputs_unchanged": true,
+  "kernel": null,
+  "kind": "fresh clean compilation awaiting sealed fresh kernel audit",
+  "passed": false,
+  "revision": "ec5b8250bb9b895a3162375e8ac80cda2ccdcbee",
+  "toolchain": {
+    "lock_sha256": "c9450ca1d889cd1fb511e149a414a2a7d2548fa7bdbc50a53dd1b048e0de68da",
+    "menhir": {
+      "executable_sha256": "42d77ed7e91d85fd631918c18144ee71afc17ce341e9faae5c68d0800b4cd67b",
+      "package": "menhir",
+      "reported_version": "menhir, version 20260209",
+      "version": "20260209"
+    },
+    "ocaml": {
+      "executable_sha256": "8ae42a69f6e48207ab232003f102ff5e1b16aba3cb2a87c46fbce459e8fe5dba",
+      "package": "ocaml-base-compiler",
+      "reported_version": "4.14.2",
+      "version": "4.14.2"
+    },
+    "prover": {
+      "executable_sha256": "fd0193aaf6582c14b9a84a160badfb622ab0614c06bbeac1320a8b5a0c4d9a65",
+      "package": "rocq-core",
+      "reported_version": "The Rocq Prover, version 9.3.0\ncompiled with OCaml 4.14.2",
+      "version": "9.3.0"
+    }
+  }
+}

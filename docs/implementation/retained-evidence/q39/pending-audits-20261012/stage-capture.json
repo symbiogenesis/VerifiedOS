@@ -1,0 +1,915 @@
+{
+  "caveat": "Automated source-statement line scan is advisory; root reviews before public retention. Query outputs/source not captured. Full logs/seals remain Temp-only.",
+  "compact_original_identities": {
+    "standard-import": {
+      "actual_checker_argv_bytes_sha256": "dfb406c956abd3450bab064de2e4cb910727c3b3983d478bdd2c1f16977b1e21",
+      "actual_checker_argv_tokens": 250,
+      "actual_checker_executable": "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-replay/bin/coqchk",
+      "actual_checker_executable_sha256": "9dac1ac6a7e4da7ffad86c6e96854fa29b36d26d6e2f2413da2c48f23275df9f",
+      "actual_kernel_option_prefix": [
+        "-o"
+      ],
+      "archive_sha256": "5e1ee17831f6af647106b88065e7c1990c8cf5f22a1e04b54329767cfc34f139",
+      "binary_sha256": "ccc8a5e3e3ec14e293b5eb84e78d6d70a1a15bc5d04bfd2565b82a6236d6f5d5",
+      "completed_stages": [
+        {
+          "exit": 0,
+          "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+          "name": "export",
+          "seconds": 0.20800920000147016
+        },
+        {
+          "exit": 0,
+          "log_sha256": "fa05aca0d70ea270ce1fc967d093e8507520a85db848a6b710704c7ad865ef0c",
+          "name": "configure",
+          "seconds": 0.1373267000017222
+        },
+        {
+          "exit": 0,
+          "log_sha256": "def012dd6caece57f7e1d8cc74f75592b4eb7b07bb8ef5737fd454a5fa383dba",
+          "name": "clean",
+          "seconds": 0.08882630100015376
+        },
+        {
+          "exit": 0,
+          "log_sha256": "57b12341de15b7fe0b1caf0fad1c240eff67bc37be193bc9baf32902e5cb3374",
+          "name": "depend",
+          "seconds": 0.39302540099924954
+        },
+        {
+          "exit": 0,
+          "log_sha256": "6d57ca2bea804783157b747b5a38a915591b42cb8f7a0ec98b04fd21ad185894",
+          "name": "proof",
+          "seconds": 358.72442142300133
+        },
+        {
+          "exit": 0,
+          "log_sha256": "622cb579a5aa4ddf6d8a7ab9e1d269b61e0e388b9ea94384bbd7788ff57909f2",
+          "name": "extraction",
+          "seconds": 7.758320593000462
+        },
+        {
+          "exit": 0,
+          "log_sha256": "3a4c8f93346b1256d4ec8a193fe60588153a105dd690cfe4e5fbb84a558719f3",
+          "name": "ccomp",
+          "seconds": 10.17437105099998
+        }
+      ],
+      "kernel_verdict": "pending",
+      "lock_sha256": "c9450ca1d889cd1fb511e149a414a2a7d2548fa7bdbc50a53dd1b048e0de68da",
+      "make_include_argv_sha256": "93001a38728564e7ed5b5fbd88c76e482e9f4d13fe581c71a4d25e9e763dc361",
+      "make_include_tokens": 33,
+      "original_kernel_options": null,
+      "original_kernel_profile": null,
+      "raw_origin": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2",
+      "raw_passed": false,
+      "revision": "ec5b8250bb9b895a3162375e8ac80cda2ccdcbee",
+      "root_argv_sha256": "163e59f2f4a69c376d3f74c95869fc0459c113edcee689d7cec3cff8b20f92dd",
+      "root_count": 215,
+      "roots_unchanged_compared_to_other_profiles": null,
+      "seal_schema": "verifiedos-clean-compile-seal/1",
+      "seal_sha256": "6d305adbbb4afd3f1b54dfe3eab355b83152bbb154583a3b6ea0f67853ab63b7",
+      "sealed_helper_sha256": {
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-20261010/test/verifiedos-q39/audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-20261010/test/verifiedos-q39/build.py": "68ddf76434ec1ece75da60a7899262177713a0890656e51dbe88caa20a461da3",
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-20261010/test/verifiedos-q39/qualify.py": "99c665045700bf34d2d4d3b9c9f41540d2fa639278c9affcd28516879f8e5f24"
+      },
+      "sealed_library_population_aggregate_sha256": "d2aa5ef131d84636912541bf6c5e79e0a39bbbc9d7c6e00403d1ce3647ffeb89",
+      "sealed_library_population_count": 10248,
+      "sealed_population_aggregate_sha256": "f12f61650e4a00a6aaf0eeda396996a8229c214e4ce959ec366ce16d65a0e0ce",
+      "sealed_population_count": 3687,
+      "source_origin": "fresh driver immediately after successful compilation, before Make/query/kernel"
+    },
+    "standard-source": {
+      "actual_checker_argv_bytes_sha256": "d6b52bc4cede25184f2e612f7ad7b02ea92eb37c5c712bf7cf6bd29b1539127a",
+      "actual_checker_argv_tokens": 250,
+      "actual_checker_executable": "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-port/bin/coqchk",
+      "actual_checker_executable_sha256": "512386977ad72517d53ba0338139e111b1cb594b46bc3549bdb388242b8316bb",
+      "actual_kernel_option_prefix": [
+        "-o"
+      ],
+      "archive_sha256": "5e1ee17831f6af647106b88065e7c1990c8cf5f22a1e04b54329767cfc34f139",
+      "binary_sha256": "85778fced1f047d3df0cc663804f8a0cfe1a9029fd149f2c05ead945fe0c279c",
+      "completed_stages": [
+        {
+          "exit": 0,
+          "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+          "name": "export",
+          "seconds": 0.2198165980007616
+        },
+        {
+          "exit": 0,
+          "log_sha256": "212bc9a83b67e2d36d3929240ac70b47b594fb88328ba7dc2ad8422c5d13ea0c",
+          "name": "configure",
+          "seconds": 0.2060042010016332
+        },
+        {
+          "exit": 0,
+          "log_sha256": "462a437e23c4778f2358c1e05bd6167c7d1ffa87302b976917343e32d4faaad0",
+          "name": "clean",
+          "seconds": 0.0884291000002122
+        },
+        {
+          "exit": 0,
+          "log_sha256": "cca1c9393a051426375ec3c8741bd21a07e2e35c2a84c2b0b187d9fb938911c8",
+          "name": "depend",
+          "seconds": 0.4609075019998272
+        },
+        {
+          "exit": 0,
+          "log_sha256": "a14d038bb03d101d75bc6def4fbeab0d6e01e8e879304dd905255caaa30b6f34",
+          "name": "proof",
+          "seconds": 359.00086394999926
+        },
+        {
+          "exit": 0,
+          "log_sha256": "096040a31a74b97bf8582e393ea50822805a8c8e9f579b0f0b5eb48d9f58423d",
+          "name": "extraction",
+          "seconds": 7.754042869000841
+        },
+        {
+          "exit": 0,
+          "log_sha256": "049238bd56eb006a8af845101cfdb2e9f2242953b4b2907259a38ca243a016fb",
+          "name": "ccomp",
+          "seconds": 10.31694464499924
+        }
+      ],
+      "kernel_verdict": "pending",
+      "lock_sha256": "c9450ca1d889cd1fb511e149a414a2a7d2548fa7bdbc50a53dd1b048e0de68da",
+      "make_include_argv_sha256": "93001a38728564e7ed5b5fbd88c76e482e9f4d13fe581c71a4d25e9e763dc361",
+      "make_include_tokens": 33,
+      "original_kernel_options": null,
+      "original_kernel_profile": null,
+      "raw_origin": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-1",
+      "raw_passed": false,
+      "revision": "ec5b8250bb9b895a3162375e8ac80cda2ccdcbee",
+      "root_argv_sha256": "163e59f2f4a69c376d3f74c95869fc0459c113edcee689d7cec3cff8b20f92dd",
+      "root_count": 215,
+      "roots_unchanged_compared_to_other_profiles": null,
+      "seal_schema": "verifiedos-clean-compile-seal/1",
+      "seal_sha256": "e52b6b764efd5e0cf743576a9f5ed88c791aa4b272215e2f58dd2c939b81592f",
+      "sealed_helper_sha256": {
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-20261010/test/verifiedos-q39/audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-20261010/test/verifiedos-q39/build.py": "68ddf76434ec1ece75da60a7899262177713a0890656e51dbe88caa20a461da3",
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-20261010/test/verifiedos-q39/qualify.py": "99c665045700bf34d2d4d3b9c9f41540d2fa639278c9affcd28516879f8e5f24"
+      },
+      "sealed_library_population_aggregate_sha256": "f482650dac9e4c798663ee2a2eee4c16c00e8fae0b0b0219f6cec96c3f69ce7a",
+      "sealed_library_population_count": 10248,
+      "sealed_population_aggregate_sha256": "c1c21ad8acdc1a2f00d03d9fa8d4bcf57c915de6bc833ddee350c8fd249b1f81",
+      "sealed_population_count": 3687,
+      "source_origin": "fresh driver immediately after successful compilation, before Make/query/kernel"
+    },
+    "vm-import": {
+      "actual_checker_argv_bytes_sha256": "a384809d4775c5a6368c5e822c5916d983b2c1bfbeaa3568f22a30ed3ff73050",
+      "actual_checker_argv_tokens": 252,
+      "actual_checker_executable": "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-replay/bin/coqchk",
+      "actual_checker_executable_sha256": "9dac1ac6a7e4da7ffad86c6e96854fa29b36d26d6e2f2413da2c48f23275df9f",
+      "actual_kernel_option_prefix": [
+        "-o",
+        "-bytecode-compiler",
+        "yes"
+      ],
+      "archive_sha256": "06d3e45520c87cf3f4565f151d33739147877cc5329fad9963434ece7a65abd4",
+      "binary_sha256": "62ee12e86df8629b27f7c6f289a8b372b23741608783198e05af1df147eca65e",
+      "completed_stages": [
+        {
+          "exit": 0,
+          "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+          "name": "export",
+          "seconds": 0.36181250200024806
+        },
+        {
+          "exit": 0,
+          "log_sha256": "fa05aca0d70ea270ce1fc967d093e8507520a85db848a6b710704c7ad865ef0c",
+          "name": "configure",
+          "seconds": 0.19925870099905296
+        },
+        {
+          "exit": 0,
+          "log_sha256": "79140efd81cba06d0e0bdddc7a2fc427677b5de33a2e9c283d9e1bc2f164d099",
+          "name": "clean",
+          "seconds": 0.08686839999791118
+        },
+        {
+          "exit": 0,
+          "log_sha256": "cca1c9393a051426375ec3c8741bd21a07e2e35c2a84c2b0b187d9fb938911c8",
+          "name": "depend",
+          "seconds": 0.4088916019973112
+        },
+        {
+          "exit": 0,
+          "log_sha256": "316d74c57c3c9e5d3bb088ae3785b00b814138070cd717600d7aefe1b8cfad36",
+          "name": "proof",
+          "seconds": 364.686574055002
+        },
+        {
+          "exit": 0,
+          "log_sha256": "267df90f5f702dc7ad8a778048f9960cce8dbe3dd0dfb8d7b66a885fb2267556",
+          "name": "extraction",
+          "seconds": 8.41106383999795
+        },
+        {
+          "exit": 0,
+          "log_sha256": "17ff4e57c7f3aa012693a9cf233c5ee4b510d8142b95fa00143a6181eef1a92c",
+          "name": "ccomp",
+          "seconds": 10.54824967100285
+        }
+      ],
+      "kernel_verdict": "pending",
+      "lock_sha256": "c9450ca1d889cd1fb511e149a414a2a7d2548fa7bdbc50a53dd1b048e0de68da",
+      "make_include_argv_sha256": "93001a38728564e7ed5b5fbd88c76e482e9f4d13fe581c71a4d25e9e763dc361",
+      "make_include_tokens": 33,
+      "original_kernel_options": [
+        "-bytecode-compiler",
+        "yes"
+      ],
+      "original_kernel_profile": "locked-rocq9.3-bytecode-compiler-yes",
+      "raw_origin": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2",
+      "raw_passed": false,
+      "revision": "6409d0ed65fd07de4fb37aa9c8f7a9d5c317cc9d",
+      "root_argv_sha256": "163e59f2f4a69c376d3f74c95869fc0459c113edcee689d7cec3cff8b20f92dd",
+      "root_count": 215,
+      "roots_unchanged_compared_to_other_profiles": null,
+      "seal_schema": "verifiedos-clean-compile-seal/2",
+      "seal_sha256": "e8f97d8e792c832b1fdab50c335955b759ca2e5a548bd136e47dd41e8c100e8b",
+      "sealed_helper_sha256": {
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/build.py": "621bf3f2f2150ee709cb8b9017b270a5eaeab4f78b80c17ec6245bcd0e5a2058",
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/qualify.py": "d95a8997c9b9fb2d2c6e78e761138ff01719d61b868257ae3c1a356c9105d645"
+      },
+      "sealed_library_population_aggregate_sha256": "d2aa5ef131d84636912541bf6c5e79e0a39bbbc9d7c6e00403d1ce3647ffeb89",
+      "sealed_library_population_count": 10248,
+      "sealed_population_aggregate_sha256": "2581fc9dc4eab11b505502622451b13bfb6b76763a58c5c5829335c3d88a198d",
+      "sealed_population_count": 3687,
+      "source_origin": "fresh driver immediately after successful compilation, before Make/query/kernel"
+    },
+    "vm-source": {
+      "actual_checker_argv_bytes_sha256": "f97983f7a0925fbb875a5944ef38abcede16aad63f917ccd3a751a4fab1c27c5",
+      "actual_checker_argv_tokens": 252,
+      "actual_checker_executable": "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-port/bin/coqchk",
+      "actual_checker_executable_sha256": "512386977ad72517d53ba0338139e111b1cb594b46bc3549bdb388242b8316bb",
+      "actual_kernel_option_prefix": [
+        "-o",
+        "-bytecode-compiler",
+        "yes"
+      ],
+      "archive_sha256": "06d3e45520c87cf3f4565f151d33739147877cc5329fad9963434ece7a65abd4",
+      "binary_sha256": "ac83a0015b75d2f174d7c32df39fa26ac5b4ddb517b7016bb3a64407d5f6ea17",
+      "completed_stages": [
+        {
+          "exit": 0,
+          "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+          "name": "export",
+          "seconds": 0.23952270099835005
+        },
+        {
+          "exit": 0,
+          "log_sha256": "212bc9a83b67e2d36d3929240ac70b47b594fb88328ba7dc2ad8422c5d13ea0c",
+          "name": "configure",
+          "seconds": 0.19611230100053945
+        },
+        {
+          "exit": 0,
+          "log_sha256": "a83015fd3f3a526b53fdfa27880853ae91e16dc0981e746abcff814401ad24de",
+          "name": "clean",
+          "seconds": 0.08572289999938221
+        },
+        {
+          "exit": 0,
+          "log_sha256": "57b12341de15b7fe0b1caf0fad1c240eff67bc37be193bc9baf32902e5cb3374",
+          "name": "depend",
+          "seconds": 0.4119785020011477
+        },
+        {
+          "exit": 0,
+          "log_sha256": "9708594ddc203166ea390af328b9133591a19a378b6d09bb47209ce032fbea07",
+          "name": "proof",
+          "seconds": 366.35990575199685
+        },
+        {
+          "exit": 0,
+          "log_sha256": "d436efad05c03d5aeea2a207f6998c4cc5d04ca095b19b9d87d198273c2443ee",
+          "name": "extraction",
+          "seconds": 8.335828073999437
+        },
+        {
+          "exit": 0,
+          "log_sha256": "225668c47fdc5afb582357cd188cb3de39b3cb3da4a7d7a87dc7708aae86ce47",
+          "name": "ccomp",
+          "seconds": 10.358319785998901
+        }
+      ],
+      "kernel_verdict": "pending",
+      "lock_sha256": "c9450ca1d889cd1fb511e149a414a2a7d2548fa7bdbc50a53dd1b048e0de68da",
+      "make_include_argv_sha256": "93001a38728564e7ed5b5fbd88c76e482e9f4d13fe581c71a4d25e9e763dc361",
+      "make_include_tokens": 33,
+      "original_kernel_options": [
+        "-bytecode-compiler",
+        "yes"
+      ],
+      "original_kernel_profile": "locked-rocq9.3-bytecode-compiler-yes",
+      "raw_origin": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1",
+      "raw_passed": false,
+      "revision": "6409d0ed65fd07de4fb37aa9c8f7a9d5c317cc9d",
+      "root_argv_sha256": "163e59f2f4a69c376d3f74c95869fc0459c113edcee689d7cec3cff8b20f92dd",
+      "root_count": 215,
+      "roots_unchanged_compared_to_other_profiles": null,
+      "seal_schema": "verifiedos-clean-compile-seal/2",
+      "seal_sha256": "efccc80f0186b5686753cf9e9620ea66f8a5ca978fad6cd8d9b7143321564828",
+      "sealed_helper_sha256": {
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/build.py": "621bf3f2f2150ee709cb8b9017b270a5eaeab4f78b80c17ec6245bcd0e5a2058",
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/qualify.py": "d95a8997c9b9fb2d2c6e78e761138ff01719d61b868257ae3c1a356c9105d645"
+      },
+      "sealed_library_population_aggregate_sha256": "f482650dac9e4c798663ee2a2eee4c16c00e8fae0b0b0219f6cec96c3f69ce7a",
+      "sealed_library_population_count": 10248,
+      "sealed_population_aggregate_sha256": "b60dfb6dd38d470f29b242ba9547e06f6eb13444aaa3f6255ae4cd30418ad429",
+      "sealed_population_count": 3687,
+      "source_origin": "fresh driver immediately after successful compilation, before Make/query/kernel"
+    }
+  },
+  "completed_utc": "2026-10-12T06:01:25.191904+00:00",
+  "elapsed_seconds": 0.3468745200007106,
+  "files": {
+    "standard-import/ccomp": {
+      "bytes": 20662,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.024691+00:00",
+      "sha256": "3a4c8f93346b1256d4ec8a193fe60588153a105dd690cfe4e5fbb84a558719f3",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-import-stage-ccomp.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/logs/ccomp.log",
+      "source_statement_candidate_lines": 0
+    },
+    "standard-import/clean": {
+      "bytes": 2670,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:24.993496+00:00",
+      "sha256": "def012dd6caece57f7e1d8cc74f75592b4eb7b07bb8ef5737fd454a5fa383dba",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-import-stage-clean.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/logs/clean.log",
+      "source_statement_candidate_lines": 0
+    },
+    "standard-import/configure": {
+      "bytes": 1821,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:24.991322+00:00",
+      "sha256": "fa05aca0d70ea270ce1fc967d093e8507520a85db848a6b710704c7ad865ef0c",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-import-stage-configure.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/logs/configure.log",
+      "source_statement_candidate_lines": 0
+    },
+    "standard-import/depend": {
+      "bytes": 353,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:24.996005+00:00",
+      "sha256": "57b12341de15b7fe0b1caf0fad1c240eff67bc37be193bc9baf32902e5cb3374",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-import-stage-depend.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/logs/depend.log",
+      "source_statement_candidate_lines": 0
+    },
+    "standard-import/export": {
+      "bytes": 45,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:24.987771+00:00",
+      "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-import-stage-export.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/logs/export.log",
+      "source_statement_candidate_lines": 0
+    },
+    "standard-import/extraction": {
+      "bytes": 979,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.018610+00:00",
+      "sha256": "622cb579a5aa4ddf6d8a7ab9e1d269b61e0e388b9ea94384bbd7788ff57909f2",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-import-stage-extraction.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/logs/extraction.log",
+      "source_statement_candidate_lines": 0
+    },
+    "standard-import/proof": {
+      "bytes": 154984,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.016131+00:00",
+      "sha256": "6d57ca2bea804783157b747b5a38a915591b42cb8f7a0ec98b04fd21ad185894",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-import-stage-proof.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-2/logs/proof.log",
+      "source_statement_candidate_lines": 0
+    },
+    "standard-source/ccomp": {
+      "bytes": 20662,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:24.923648+00:00",
+      "sha256": "049238bd56eb006a8af845101cfdb2e9f2242953b4b2907259a38ca243a016fb",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-source-stage-ccomp.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-1/logs/ccomp.log",
+      "source_statement_candidate_lines": 0
+    },
+    "standard-source/clean": {
+      "bytes": 2670,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:24.880492+00:00",
+      "sha256": "462a437e23c4778f2358c1e05bd6167c7d1ffa87302b976917343e32d4faaad0",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-source-stage-clean.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-1/logs/clean.log",
+      "source_statement_candidate_lines": 0
+    },
+    "standard-source/configure": {
+      "bytes": 1819,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:24.877501+00:00",
+      "sha256": "212bc9a83b67e2d36d3929240ac70b47b594fb88328ba7dc2ad8422c5d13ea0c",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-source-stage-configure.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-1/logs/configure.log",
+      "source_statement_candidate_lines": 0
+    },
+    "standard-source/depend": {
+      "bytes": 353,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:24.883191+00:00",
+      "sha256": "cca1c9393a051426375ec3c8741bd21a07e2e35c2a84c2b0b187d9fb938911c8",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-source-stage-depend.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-1/logs/depend.log",
+      "source_statement_candidate_lines": 0
+    },
+    "standard-source/export": {
+      "bytes": 45,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:24.873553+00:00",
+      "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-source-stage-export.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-1/logs/export.log",
+      "source_statement_candidate_lines": 0
+    },
+    "standard-source/extraction": {
+      "bytes": 979,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:24.917123+00:00",
+      "sha256": "096040a31a74b97bf8582e393ea50822805a8c8e9f579b0f0b5eb48d9f58423d",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-source-stage-extraction.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-1/logs/extraction.log",
+      "source_statement_candidate_lines": 0
+    },
+    "standard-source/proof": {
+      "bytes": 154984,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:24.911313+00:00",
+      "sha256": "a14d038bb03d101d75bc6def4fbeab0d6e01e8e879304dd905255caaa30b6f34",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/standard-source-stage-proof.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-1/logs/proof.log",
+      "source_statement_candidate_lines": 0
+    },
+    "vm-import/ccomp": {
+      "bytes": 20680,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.166594+00:00",
+      "sha256": "17ff4e57c7f3aa012693a9cf233c5ee4b510d8142b95fa00143a6181eef1a92c",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-import-stage-ccomp.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/logs/ccomp.log",
+      "source_statement_candidate_lines": 0
+    },
+    "vm-import/clean": {
+      "bytes": 2688,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.152240+00:00",
+      "sha256": "79140efd81cba06d0e0bdddc7a2fc427677b5de33a2e9c283d9e1bc2f164d099",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-import-stage-clean.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/logs/clean.log",
+      "source_statement_candidate_lines": 0
+    },
+    "vm-import/configure": {
+      "bytes": 1821,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.149790+00:00",
+      "sha256": "fa05aca0d70ea270ce1fc967d093e8507520a85db848a6b710704c7ad865ef0c",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-import-stage-configure.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/logs/configure.log",
+      "source_statement_candidate_lines": 0
+    },
+    "vm-import/depend": {
+      "bytes": 353,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.154435+00:00",
+      "sha256": "cca1c9393a051426375ec3c8741bd21a07e2e35c2a84c2b0b187d9fb938911c8",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-import-stage-depend.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/logs/depend.log",
+      "source_statement_candidate_lines": 0
+    },
+    "vm-import/export": {
+      "bytes": 45,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.146678+00:00",
+      "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-import-stage-export.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/logs/export.log",
+      "source_statement_candidate_lines": 0
+    },
+    "vm-import/extraction": {
+      "bytes": 982,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.163768+00:00",
+      "sha256": "267df90f5f702dc7ad8a778048f9960cce8dbe3dd0dfb8d7b66a885fb2267556",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-import-stage-extraction.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/logs/extraction.log",
+      "source_statement_candidate_lines": 0
+    },
+    "vm-import/proof": {
+      "bytes": 154984,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.161417+00:00",
+      "sha256": "316d74c57c3c9e5d3bb088ae3785b00b814138070cd717600d7aefe1b8cfad36",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-import-stage-proof.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/logs/proof.log",
+      "source_statement_candidate_lines": 0
+    },
+    "vm-source/ccomp": {
+      "bytes": 20680,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.094787+00:00",
+      "sha256": "225668c47fdc5afb582357cd188cb3de39b3cb3da4a7d7a87dc7708aae86ce47",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-source-stage-ccomp.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/logs/ccomp.log",
+      "source_statement_candidate_lines": 0
+    },
+    "vm-source/clean": {
+      "bytes": 2688,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.079972+00:00",
+      "sha256": "a83015fd3f3a526b53fdfa27880853ae91e16dc0981e746abcff814401ad24de",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-source-stage-clean.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/logs/clean.log",
+      "source_statement_candidate_lines": 0
+    },
+    "vm-source/configure": {
+      "bytes": 1819,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.078022+00:00",
+      "sha256": "212bc9a83b67e2d36d3929240ac70b47b594fb88328ba7dc2ad8422c5d13ea0c",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-source-stage-configure.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/logs/configure.log",
+      "source_statement_candidate_lines": 0
+    },
+    "vm-source/depend": {
+      "bytes": 353,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.082142+00:00",
+      "sha256": "57b12341de15b7fe0b1caf0fad1c240eff67bc37be193bc9baf32902e5cb3374",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-source-stage-depend.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/logs/depend.log",
+      "source_statement_candidate_lines": 0
+    },
+    "vm-source/export": {
+      "bytes": 45,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.075482+00:00",
+      "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-source-stage-export.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/logs/export.log",
+      "source_statement_candidate_lines": 0
+    },
+    "vm-source/extraction": {
+      "bytes": 982,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.091150+00:00",
+      "sha256": "d436efad05c03d5aeea2a207f6998c4cc5d04ca095b19b9d87d198273c2443ee",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-source-stage-extraction.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/logs/extraction.log",
+      "source_statement_candidate_lines": 0
+    },
+    "vm-source/proof": {
+      "bytes": 154984,
+      "candidate_line_hashes": [],
+      "matches_original_stage_log_digest": true,
+      "metadata_stable_during_capture": true,
+      "observed_utc": "2026-10-12T06:01:25.088641+00:00",
+      "sha256": "9708594ddc203166ea390af328b9133591a19a378b6d09bb47209ce032fbea07",
+      "snapshot": "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f/pending-evidence-20261012-f09911c8ea0240dbb3ba8c9d4bc38423/vm-source-stage-proof.log",
+      "source": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/logs/proof.log",
+      "source_statement_candidate_lines": 0
+    }
+  },
+  "metadata_inventory": {
+    "standard-import": [
+      {
+        "bytes": 3225151,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/compile-seal.json"
+      },
+      {
+        "bytes": 2730,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/progress.json"
+      },
+      {
+        "bytes": 4096,
+        "directory": true,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/queries"
+      },
+      {
+        "bytes": 20049920,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/source.tar"
+      },
+      {
+        "bytes": 660,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/switch.lock"
+      },
+      {
+        "bytes": 20662,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/logs/ccomp.log"
+      },
+      {
+        "bytes": 2670,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/logs/clean.log"
+      },
+      {
+        "bytes": 1821,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/logs/configure.log"
+      },
+      {
+        "bytes": 353,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/logs/depend.log"
+      },
+      {
+        "bytes": 45,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/logs/export.log"
+      },
+      {
+        "bytes": 979,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/logs/extraction.log"
+      },
+      {
+        "bytes": 4764950,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/logs/kernel-environment.log"
+      },
+      {
+        "bytes": 154984,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-2/logs/proof.log"
+      }
+    ],
+    "standard-source": [
+      {
+        "bytes": 3204641,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/compile-seal.json"
+      },
+      {
+        "bytes": 2713,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/progress.json"
+      },
+      {
+        "bytes": 4096,
+        "directory": true,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/queries"
+      },
+      {
+        "bytes": 20049920,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/source.tar"
+      },
+      {
+        "bytes": 833,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/switch.lock"
+      },
+      {
+        "bytes": 20662,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/logs/ccomp.log"
+      },
+      {
+        "bytes": 2670,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/logs/clean.log"
+      },
+      {
+        "bytes": 1819,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/logs/configure.log"
+      },
+      {
+        "bytes": 353,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/logs/depend.log"
+      },
+      {
+        "bytes": 45,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/logs/export.log"
+      },
+      {
+        "bytes": 979,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/logs/extraction.log"
+      },
+      {
+        "bytes": 4764140,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/logs/kernel-environment.log"
+      },
+      {
+        "bytes": 154984,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/qualified-build-1/logs/proof.log"
+      }
+    ],
+    "vm-import": [
+      {
+        "bytes": 3225286,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/compile-seal.json"
+      },
+      {
+        "bytes": 2751,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/progress.json"
+      },
+      {
+        "bytes": 4096,
+        "directory": true,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/queries"
+      },
+      {
+        "bytes": 20060160,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/source.tar"
+      },
+      {
+        "bytes": 660,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/switch.lock"
+      },
+      {
+        "bytes": 20680,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/logs/ccomp.log"
+      },
+      {
+        "bytes": 2688,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/logs/clean.log"
+      },
+      {
+        "bytes": 1821,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/logs/configure.log"
+      },
+      {
+        "bytes": 353,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/logs/depend.log"
+      },
+      {
+        "bytes": 45,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/logs/export.log"
+      },
+      {
+        "bytes": 982,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/logs/extraction.log"
+      },
+      {
+        "bytes": 4765598,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/logs/kernel-environment.log"
+      },
+      {
+        "bytes": 154984,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-2/logs/proof.log"
+      }
+    ],
+    "vm-source": [
+      {
+        "bytes": 3204776,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/compile-seal.json"
+      },
+      {
+        "bytes": 2741,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/progress.json"
+      },
+      {
+        "bytes": 4096,
+        "directory": true,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/queries"
+      },
+      {
+        "bytes": 20060160,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/source.tar"
+      },
+      {
+        "bytes": 833,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/switch.lock"
+      },
+      {
+        "bytes": 20680,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/logs/ccomp.log"
+      },
+      {
+        "bytes": 2688,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/logs/clean.log"
+      },
+      {
+        "bytes": 1819,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/logs/configure.log"
+      },
+      {
+        "bytes": 353,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/logs/depend.log"
+      },
+      {
+        "bytes": 45,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/logs/export.log"
+      },
+      {
+        "bytes": 982,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/logs/extraction.log"
+      },
+      {
+        "bytes": 4764788,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/logs/kernel-environment.log"
+      },
+      {
+        "bytes": 154984,
+        "directory": false,
+        "path": "/root/build/lane-checklist-20261010-c/q39/vm-qualified-build-1/logs/proof.log"
+      }
+    ]
+  },
+  "schema": "verifiedos-q39-pending-stage-log-capture/1",
+  "started_utc": "2026-10-12T06:01:24.845028+00:00"
+}
