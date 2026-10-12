@@ -335,8 +335,13 @@ def build_record(root: Path, source: str, outputs: dict[str, bytes],
             "artifacts": artifacts, "image": image, "graph_sha256": digest(graph)}
 
 
-def validate_build_record(root: Path, source: str, record: dict[str, Any],
+def validate_build_record(root: Path, source: str, record: object,
                           outputs: dict[str, bytes], graph: bytes, image: dict[str, str]) -> None:
+    if (not isinstance(record, dict) or set(record) != {
+            "schema_version", "kind", "binding", "production_admission", "projections",
+            "artifacts", "image", "graph_sha256"}):
+        raise CompositionError("build record: malformed record: expected the closed binding object")
+    record = cast("dict[str, Any]", record)
     if record.get("image") != image:
         raise CompositionError("build record: stale image binding")
     try:
