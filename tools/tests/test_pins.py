@@ -84,6 +84,20 @@ def _stops_at_the_table() -> None:
            f"a row from another table was read as a pin: {[p.path for p in rows]}")
 
 
+def _record_accepts_both_line_endings() -> None:
+    expected = _rows()
+    for newline in ("\n", "\r\n"):
+        text = _RECORD.replace("\n", newline)
+        read = pins.read_record(text)
+        ensure(read.fault is None and read.rows == expected,
+               f"{newline!r} must preserve pin values and line numbers: {read}")
+        for suffix in (" renamed", "\r renamed"):
+            moved = text.replace(pins.TABLE_HEADING, pins.TABLE_HEADING + suffix)
+            refused = pins.read_record(moved)
+            ensure(refused.fault is not None and not refused.rows,
+                   f"a heading suffix must remain a refusal under {newline!r}: {refused}")
+
+
 def _columns_are_found_by_name() -> None:
     # The same row with its columns permuted and a fourth inserted answers exactly as
     # it did, which is the whole of what reading the header buys over counting cells.
@@ -285,6 +299,7 @@ def cases() -> list[Case]:
     return [
         Case("reads-its-own-table", _reads_its_own_table),
         Case("stops-at-the-table", _stops_at_the_table),
+        Case("record-accepts-both-line-endings", _record_accepts_both_line_endings),
         Case("columns-are-found-by-name", _columns_are_found_by_name),
         Case("readings-that-have-moved", _readings_that_have_moved),
         Case("a-row-stating-no-id", _a_row_stating_no_id),
