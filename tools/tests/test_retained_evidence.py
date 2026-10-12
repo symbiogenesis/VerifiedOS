@@ -193,6 +193,8 @@ def _findings(root: Path) -> tuple[list[str], int]:
                     if sha != copies.get(by_cited[path]):
                         findings.append(f"{name}: binds {path} to {sha}, "
                                         f"not its retained copy's bytes")
+                    else:
+                        roots.add(by_cited[path])
             continue
         for match in _LINK.finditer(text):
             target = ((root / name).parent / match["target"]).resolve()
@@ -356,6 +358,16 @@ def _bundle_controls() -> None:
     ensure(any("no externally linked SHA-bound root" in finding for finding in findings)
            and any("record.json: no tracked file cites" in finding for finding in findings),
            f"an externally linked root with the wrong hash may not confer citation: {findings}")
+    for sha, agrees in ((hashlib.sha256(base[owner]).hexdigest(), True), ("0" * 64, False)):
+        external = without_root | {"record.json": json.dumps({
+            "path": "q39/bundle/manifest.json", "sha256": sha}).encode()}
+        findings, _ = _audit_bytes(external)
+        if agrees:
+            ensure(not findings, f"an exact external JSON binding must root its bundle: {findings}")
+        else:
+            ensure(any("no externally linked SHA-bound root" in finding for finding in findings)
+                   and any("record.json: no tracked file cites" in finding for finding in findings),
+                   f"an external JSON binding with the wrong hash may not confer citation: {findings}")
 
 
 def _gzip_bundle_controls() -> None:
