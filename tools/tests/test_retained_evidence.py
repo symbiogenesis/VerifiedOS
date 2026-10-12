@@ -55,6 +55,7 @@ def _controls() -> None:
         "recorded hash": {"docs/implementation/log.md": note.replace(sha, other)},
         "bound hash": {"record.json": json.dumps({"path": "/root/build/a/report.json",
                                                   "sha256": other})},
+        "invalid citation record": {"record.json": '{"path": "/root/build/a/report.json",'},
         "unlinked citation": {"docs/other.md": "See `out/b.json`.\n"},
         "uncited copy": {f"{EVIDENCE}/out/c.json": "{}\n"},
         "invalid copy": {f"{EVIDENCE}/out/b.json": "{\n"},
@@ -243,6 +244,20 @@ def _descriptive_citations() -> None:
            f"different map keys may not conceal the same member target: {findings}")
 
 
+def _malformed_citation_record() -> None:
+    owner = "q39/bundle/manifest.json"
+    files = _bundle_tree(explicit=True) | {
+        "docs/implementation/log.md": b"No external citation.\n",
+        "record.json": f'{{"path": "{owner}", "sha256": '.encode()}
+    findings, _ = _audit_bytes(files)
+    ensure(any("record.json: not valid JSON" in finding for finding in findings),
+           f"a malformed external citation must report a finding: {findings}")
+    ensure(any(f"{owner}: bundle has no externally linked SHA-bound root" in finding
+               for finding in findings)
+           and any(f"{owner}: no tracked file cites" in finding for finding in findings),
+           f"malformed JSON cannot cite or root its named bundle: {findings}")
+
+
 def _produced_bundle() -> None:
     note = "docs/implementation/log.md"
     payload = b'{"observed": true}\n'
@@ -395,6 +410,7 @@ def cases() -> list[Case]:
             Case("gzip-bundle-members-bind-stored-and-decoded-bytes", _gzip_bundle_controls),
             Case("nested-bundles-need-independent-roots", _nested_bundles_need_independent_roots),
             Case("descriptive-labels-keep-target-and-hash-checks", _descriptive_citations),
+            Case("malformed-external-json-cannot-cite-or-root-bundles", _malformed_citation_record),
             Case("produced-bundles-bind-verbatim-stored-and-decoded-bytes", _produced_bundle),
             Case("producer-refuses-ambiguous-escaping-and-existing-paths", _producer_refusals),
             Case("interruption-and-publication-collision-preserve-destination", _producer_interruption_and_collision),

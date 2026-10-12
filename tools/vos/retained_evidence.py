@@ -194,11 +194,16 @@ def findings(root: Path) -> tuple[list[str], int]:
             continue
         text = (root / name).read_text(encoding="utf-8", errors="replace")
         present = [cited for cited in by_cited if cited in text]
-        seen.update(present)
         if name.endswith(".json"):
             if not present:
                 continue
-            for path, sha in _bindings(json.loads(text)):
+            try:
+                document = json.loads(text)
+            except ValueError as error:
+                findings.append(f"{name}: not valid JSON ({error})")
+                continue
+            seen.update(present)
+            for path, sha in _bindings(document):
                 if path in by_cited:
                     compared += 1
                     if sha != copies.get(by_cited[path]):
@@ -207,6 +212,7 @@ def findings(root: Path) -> tuple[list[str], int]:
                     else:
                         roots.add(by_cited[path])
             continue
+        seen.update(present)
         for match in _LINK.finditer(text):
             named = unquote(match["target"].strip("<>").split("#", 1)[0])
             target = ((root / name).parent / named).resolve()
