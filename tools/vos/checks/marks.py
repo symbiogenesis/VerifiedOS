@@ -100,6 +100,7 @@ MARKABLE: dict[str, tuple[str, str]] = {
     # The authored bridge to the pinned, untrusted idealloc candidate generator.
     ".rs": ("// ", ""),
     ".toml": ("# ", ""),
+    ".editorconfig": ("# ", ""),
     # pip-format requirements, whose comment syntax uv reads: the solver's hashed pin.
     ".txt": ("# ", ""),
     ".cmake": ("# ", ""),

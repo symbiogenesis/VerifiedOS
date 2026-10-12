@@ -454,6 +454,15 @@ consistency, not parser derivation, device behavior or physical qualification.
 
 ## Running them
 
+The root [EditorConfig](../.editorconfig) supplies editor defaults for UTF-8, LF,
+final newlines and whitespace, with Python and YAML indentation. Markdown keeps
+trailing spaces for hard line breaks, and patches keep context whitespace.
+Imported model and upstream trees, retained evidence, build outputs and nested
+worktrees keep their own settings. These are editor defaults, not validation:
+[Git attributes](../.gitattributes) own checkout normalization and byte-preserving
+exceptions, [Git ignore rules](../.gitignore) own untracked-output exclusion, and
+the Python generators and acceptance checks still own their output bytes and verdicts.
+
 Install Python within the project's supported range and [uv](https://docs.astral.sh/uv/getting-started/installation/)
 at the version declared by [pyproject.toml](pyproject.toml)'s
 `tool.uv.required-version`. Both must be available in each OS where commands run;

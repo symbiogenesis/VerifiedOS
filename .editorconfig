@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: Apache-2.0
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.py]
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Two trailing spaces can carry a Markdown hard line break.
+[*.md]
+trim_trailing_whitespace = false
+
+# Preserve patch context, including its leading and trailing whitespace.
+[*.patch]
+trim_trailing_whitespace = false
+insert_final_newline = unset
+
+# These trees keep their own bytes or editor policy. Do not propagate this
+# checkout's defaults into imported sources, retained evidence or other lanes.
+[{model,upstream,docs/implementation/retained-evidence,.worktrees,.Codex/worktrees,.codex/worktrees,.claude/worktrees,out,build}/**]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_style = unset
+indent_size = unset
+tab_width = unset
