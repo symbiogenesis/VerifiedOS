@@ -30,9 +30,9 @@ compile_reuse = prior is not None and not r['fresh']
 actions = {n: ('reused' if complete or n == 'compile' and compile_reuse else 'executed')
            for n in ('compile','queries','kernel','classification')}
 outcome = 'complete'
-if explicit_bad or mode == 'refused':
+if explicit_bad or mode == 'refused' or mode == 'audit-failure' and r['operation'] == 'build':
     actions = {n:'not_run' for n in actions}; outcome = 'refused'
-if r['operation'] == 'status':
+if r['operation'] == 'status' and outcome != 'refused':
     actions = {n: ('reused' if complete or n == 'compile' and compile_reuse else 'not_run') for n in actions}
     outcome = 'status' if prior else 'unavailable'
 effective = ('complete-reuse' if complete else 'compilation-reuse' if compile_reuse else 'fresh')
@@ -48,9 +48,10 @@ if mode == 'timing-lie': phases['compile']['seconds'] = 99
 if mode == 'bool-seconds': phases['compile']['seconds'] = True
 if mode == 'status-lie' and r['operation'] == 'status':
     phases['queries'].update(action='not_run',status='not_run',basis=None,seconds=0,original_seconds=None)
+if mode == 'basis-lie': basis = 'c'*64
 if mode == 'unmeasured' and complete:
     for n in ('queries','classification'): phases[n]['original_seconds'] = None
-compiler = out / 'ccomp'
+compiler = candidate.parent / 'ccomp' if r['operation'] == 'status' and prior else out / 'ccomp'
 qualification = candidate if complete else out / 'qualification.json'
 receipt = out / 'build-reuse-result.json'
 if r['operation'] == 'build' and outcome == 'complete':
@@ -168,7 +169,7 @@ def _index_poison_and_stale() -> None:
         index = settings.cache / "index.json"
         raw = cb.read_json(index)
         key = next(iter(raw["entries"]))
-        raw["entries"][key]["out"] = str(settings.source)
+        raw["entries"][key]["complete"]["out"] = str(settings.source)
         index.write_text(json.dumps(raw))
         report = cb.run(replace(settings, out=settings.lane_root / "poison"), checkout)
         ensure(report["effective_policy"] == "fresh" and "stale" in report["candidate_reason"], "poisoned index is only a rejected hint")
@@ -190,6 +191,124 @@ def _status_consistency() -> None:
     with _session("status-lie") as (settings, checkout):
         cb.run(settings, checkout)
         _refuses(lambda: cb.run(settings, checkout, status=True))
+
+
+def _compilation_fixture(settings: cb.Settings) -> Path:
+    receipt = settings.source / "compilation.json"
+    receipt.write_text('{"pending":true,"original":"fixture-producer"}')
+    (settings.source / "ccomp").write_text("original fixture compiler")
+    return receipt
+
+
+def _prime_default_compilation() -> None:
+    with _session() as (settings, checkout):
+        historical = _compilation_fixture(settings)
+        original = historical.read_bytes()
+        primed = cb.run(replace(settings, reuse_from=historical), checkout, prime=True)
+        ensure(primed["status"] == "compilation-validated", "prime authenticates compilation only")
+        ensure(primed["phases"]["compile"]["action"] == "reused"
+               and all(primed["phases"][name]["action"] == "not_run"
+                       for name in ("queries", "kernel", "classification")), "prime executes no qualification")
+        ensure(historical.read_bytes() == original and not (settings.out / "ccomp").exists(),
+               "prime preserves native compiler evidence")
+        warm = cb.run(replace(settings, out=settings.lane_root / "warm"), checkout)
+        ensure(warm["effective_policy"] == "compilation-reuse"
+               and warm["phases"]["kernel"]["action"] == "executed", "default revalidates compilation before full audit")
+        ensure(warm["basis"]["receipt"] == str(historical) and warm["basis"]["original"] == "fixture-producer",
+               "default retains original compilation receipt and producer")
+        fresh = cb.run(replace(settings, out=settings.lane_root / "fresh", fresh=True), checkout)
+        ensure(all(phase["action"] == "executed" for phase in fresh["phases"].values()), "fresh bypasses primed compilation")
+
+
+def _prime_failure_preserves_basis() -> None:
+    with _session("audit-failure") as (settings, checkout):
+        historical = _compilation_fixture(settings)
+        cb.run(replace(settings, reuse_from=historical), checkout, prime=True)
+        index = settings.cache / "index.json"
+        retained = settings.out / "controller-compilation.json"
+        before = index.read_bytes(), retained.read_bytes(), historical.read_bytes()
+        report = cb.run(replace(settings, out=settings.lane_root / "audit-failed"), checkout)
+        ensure(report["outcome"] == "refused", "fixture qualification fails")
+        ensure(before == (index.read_bytes(), retained.read_bytes(), historical.read_bytes()), "audit failure preserves useful immutable basis")
+        inspected = cb.run(replace(settings, out=settings.lane_root / "inspection"), checkout, status=True)
+        ensure(inspected["effective_policy"] == "compilation-reuse" and not (settings.lane_root / "inspection").exists(),
+               "default remains compilation-only after failure; status stays read-only")
+
+
+def _prime_refusals_and_stale() -> None:
+    with _session() as (settings, checkout):
+        _refuses(lambda: cb.run(settings, checkout, prime=True))
+        ensure(not settings.out.exists(), "prime requires explicit candidate before output creation")
+        malformed = settings.source / "malformed.json"
+        malformed.write_text('not json')
+        _refuses(lambda: cb.run(replace(settings, reuse_from=malformed), checkout, prime=True))
+        ensure(not (settings.cache / "index.json").exists(), "malformed prime supplies no indexed evidence")
+        historical = _compilation_fixture(settings)
+        owned = replace(settings, out=settings.lane_root / "primed", reuse_from=historical)
+        cb.run(owned, checkout, prime=True)
+        historical.write_text('changed invalid evidence')
+        report = cb.run(replace(settings, out=settings.lane_root / "stale"), checkout)
+        ensure(report["effective_policy"] == "fresh", "backend revalidation refuses stale primed bytes")
+
+
+def _tier_precedence_and_fallback() -> None:
+    with _session() as (settings, checkout):
+        cb.run(settings, checkout)
+        historical = _compilation_fixture(settings)
+        cb.run(replace(settings, out=settings.lane_root / "primed", reuse_from=historical), checkout, prime=True)
+        index = cb.read_json(settings.cache / "index.json")
+        ensure(set(next(iter(index["entries"].values()))) == {"complete", "compilation"}, "both useful bases retained")
+        warm = cb.run(replace(settings, out=settings.lane_root / "warm"), checkout, status=True)
+        ensure(warm["effective_policy"] == "complete-reuse", "successful qualification takes precedence")
+        (settings.out / "controller-result.json").write_text('damaged receipt')
+        fallback = cb.run(replace(settings, out=settings.lane_root / "fallback"), checkout, status=True)
+        ensure(fallback["effective_policy"] == "compilation-reuse", "damaged complete hint falls back to authenticated compilation hint")
+
+
+def _legacy_index() -> None:
+    with _session() as (settings, checkout):
+        cb.run(settings, checkout)
+        path = settings.cache / "index.json"
+        current = cb.read_json(path)
+        path.write_text(json.dumps({"protocol": cb.LEGACY_INDEX_PROTOCOL,
+                                    "entries": {key: row["complete"] for key, row in current["entries"].items()}}))
+        report = cb.run(replace(settings, out=settings.lane_root / "warm"), checkout)
+        ensure(report["effective_policy"] == "complete-reuse", "original complete index remains usable")
+        ensure(cb.read_json(path)["protocol"] == cb.INDEX_PROTOCOL, "successful build migrates index atomically")
+
+
+def _prime_basis_and_tier_refusal() -> None:
+    with _session("basis-lie") as (settings, checkout):
+        historical = _compilation_fixture(settings)
+        _refuses(lambda: cb.run(replace(settings, reuse_from=historical), checkout, prime=True))
+        ensure(not (settings.cache / "index.json").exists(), "digest-mismatched validation cannot prime")
+    with _session() as (settings, checkout):
+        complete = settings.source / "qualified.json"
+        complete.write_text('{"pending":false}')
+        (settings.source / "ccomp").write_text("fixture compiler")
+        _refuses(lambda: cb.run(replace(settings, reuse_from=complete), checkout, prime=True))
+        ensure(not (settings.cache / "index.json").exists(), "compilation-only prime never introduces a complete tier")
+
+
+def _compilation_hint_poison_and_damage() -> None:
+    for mutation in ("escaping-output", "damaged-controller-receipt", "unsupported-tier"):
+        with _session() as (settings, checkout):
+            historical = _compilation_fixture(settings)
+            cb.run(replace(settings, reuse_from=historical), checkout, prime=True)
+            index = settings.cache / "index.json"
+            raw = cb.read_json(index)
+            key = next(iter(raw["entries"]))
+            if mutation == "escaping-output":
+                raw["entries"][key]["compilation"]["out"] = str(settings.source)
+                index.write_text(json.dumps(raw))
+            elif mutation == "unsupported-tier":
+                raw["entries"][key]["pending"] = raw["entries"][key]["compilation"]
+                index.write_text(json.dumps(raw))
+            else:
+                (settings.out / "controller-compilation.json").write_text('damaged')
+            report = cb.run(replace(settings, out=settings.lane_root / "inspection"), checkout, status=True)
+            ensure(report["outcome"] == "unavailable" and all(phase["action"] == "not_run" for phase in report["phases"].values()),
+                   "malformed compilation hints supply no execution or qualification credit")
 
 
 def _framing(mode: str) -> None:
@@ -252,6 +371,13 @@ def cases() -> list[Case]:
             Case("index-poison-and-lock-drift", _index_poison_and_stale),
             Case("status-read-only", _status_read_only),
             Case("status-phase-consistency", _status_consistency),
+            Case("prime-default-compilation-and-fresh", _prime_default_compilation),
+            Case("prime-audit-failure-preserves-basis", _prime_failure_preserves_basis),
+            Case("prime-refusal-and-stale-backend-validation", _prime_refusals_and_stale),
+            Case("both-tier-precedence-and-damaged-fallback", _tier_precedence_and_fallback),
+            Case("legacy-complete-index-migration", _legacy_index),
+            Case("prime-original-basis-and-tier-refusal", _prime_basis_and_tier_refusal),
+            Case("compilation-hint-poison-and-damage", _compilation_hint_poison_and_damage),
             Case("native-containment-collision-lock", _containment_and_lock),
             Case("json-and-manifest-refusal", _json_and_manifest),
             Case("unreviewed-imports-before-launch", _unreviewed_imports),

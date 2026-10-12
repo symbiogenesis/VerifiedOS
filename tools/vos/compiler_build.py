@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -23,7 +24,8 @@ from vos import env
 from vos.jsonutil import finite_float, unique_object
 
 PROTOCOL = "verifiedos-contained-compiler-build/1"
-INDEX_PROTOCOL = "verifiedos-contained-compiler-index/1"
+INDEX_PROTOCOL = "verifiedos-contained-compiler-index/2"
+LEGACY_INDEX_PROTOCOL = "verifiedos-contained-compiler-index/1"
 MAX_JSON = 4 * 1024 * 1024
 SHA256 = re.compile(r"[0-9a-f]{64}")
 REVISION = re.compile(r"[0-9a-f]{40}")
@@ -227,13 +229,36 @@ def candidate(settings: Settings, key: str) -> tuple[Path | None, str]:
         return None, "default: stale or invalid index candidate; execute necessary phases"
 
 
-def _index_candidate(settings: Settings, key: str, index: Path) -> tuple[Path | None, str]:
+def _entries(index: Path) -> dict[str, Any]:
     raw = read_json(index)
-    if raw.get("protocol") != INDEX_PROTOCOL or not isinstance(raw.get("entries"), dict):
+    entries = raw.get("entries")
+    if not isinstance(entries, dict):
+        raise TypeError("unsupported cache index")
+    if raw.get("protocol") == LEGACY_INDEX_PROTOCOL:
+        return {key: {"complete": entry} for key, entry in entries.items()}
+    if raw.get("protocol") != INDEX_PROTOCOL:
         raise ValueError("unsupported cache index")
-    entry = raw["entries"].get(key)
-    if entry is None:
+    return entries
+
+
+def _index_candidate(settings: Settings, key: str, index: Path) -> tuple[Path | None, str]:
+    tiers = _entries(index).get(key)
+    if tiers is None:
         return None, "default: no matching source/lock/configuration/profile/driver context"
+    if not isinstance(tiers, dict):
+        raise TypeError("malformed indexed tiers")
+    if not tiers or not set(tiers) <= {"complete", "compilation"}:
+        raise ValueError("malformed indexed tiers")
+    for tier in ("complete", "compilation"):
+        if tier in tiers:
+            try:
+                return _indexed_candidate(settings, key, tiers[tier], tier)
+            except (OSError, ValueError, TypeError):
+                continue
+    raise ValueError("no valid indexed tier")
+
+
+def _indexed_candidate(settings: Settings, key: str, entry: object, tier: str) -> tuple[Path, str]:
     if not isinstance(entry, dict) or set(entry) != {"out", "receipt_sha256"}:
         raise ValueError("malformed index entry")
     if not isinstance(entry["out"], str) or not isinstance(entry["receipt_sha256"], str):
@@ -241,31 +266,36 @@ def _index_candidate(settings: Settings, key: str, index: Path) -> tuple[Path | 
     previous = contained(Path(entry["out"]), settings.lane_root)
     if previous.is_relative_to(settings.cache) or settings.cache.is_relative_to(previous):
         raise ValueError("index candidate overlaps cache")
-    receipt = previous / "controller-result.json"
+    receipt = previous / ("controller-result.json" if tier == "complete" else "controller-compilation.json")
     if digest(receipt) != entry["receipt_sha256"]:
         raise ValueError("prior controller receipt differs")
     report = read_json(receipt)
-    if (report.get("protocol") != PROTOCOL or report.get("context_sha256") != key
-            or report.get("operation") != "build" or report.get("status") != "passed"):
+    if report.get("protocol") != PROTOCOL or report.get("context_sha256") != key:
         raise ValueError("prior controller result does not match")
+    if tier == "complete":
+        if report.get("operation") != "build" or report.get("status") != "passed" or report.get("outcome") != "complete":
+            raise ValueError("prior complete result does not match")
+    elif (report.get("operation") != "status" or report.get("controller_operation") != "prime"
+          or report.get("status") != "compilation-validated"
+          or report.get("outcome") != "status" or report.get("effective_policy") != "compilation-reuse"):
+        raise ValueError("prior compilation validation does not match")
     target = report.get("cache_candidate")
     if not isinstance(target, str):
         raise TypeError("prior controller result lacks a backend candidate")
-    return _absolute(Path(target)), "default: prior validated output requires backend revalidation"
+    return _absolute(Path(target)), f"default: prior validated {tier} requires backend revalidation"
 
 
-def _index(settings: Settings, key: str, receipt: Path) -> None:
-    """Only a current successful controller operation may introduce an output."""
+def _index(settings: Settings, key: str, receipt: Path, *, tier: str = "complete") -> None:
+    """Keep each last useful basis; a compilation hint never replaces qualification."""
     index = settings.cache / "index.json"
     entries: dict[str, Any] = {}
     if index.exists():
-        try:
-            raw = read_json(index)
-            if raw.get("protocol") == INDEX_PROTOCOL and isinstance(raw.get("entries"), dict):
-                entries = raw["entries"]
-        except (OSError, ValueError, TypeError):
-            pass
-    entries[key] = {"out": str(settings.out.resolve()), "receipt_sha256": digest(receipt)}
+        with suppress(OSError, ValueError, TypeError):
+            entries = _entries(index)
+    tiers = entries.get(key)
+    if not isinstance(tiers, dict) or not set(tiers) <= {"complete", "compilation"}:
+        tiers = {}
+    entries[key] = {**tiers, tier: {"out": str(settings.out.resolve()), "receipt_sha256": digest(receipt)}}
     _atomic(index, {"protocol": INDEX_PROTOCOL, "entries": entries})
 
 
@@ -304,11 +334,30 @@ def _result(raw: dict[str, Any], request: dict[str, Any], *, code: int) -> None:
         raise ValueError("driver result lacks validation status")
     if actions["kernel"] == "reused" and set(actions.values()) != {"reused"}:
         raise ValueError("whole-set kernel reuse must reuse all qualification phases")
+    if "reused" in actions.values():
+        basis = raw.get("basis")
+        if not isinstance(basis, dict) or basis.get("source_revision") != request["source_revision"]:
+            raise ValueError("reuse result lacks its original source basis")
+        original = basis.get("receipt")
+        if (not isinstance(original, str) or not isinstance(basis.get("receipt_sha256"), str)
+                or SHA256.fullmatch(basis["receipt_sha256"]) is None
+                or digest(_absolute(Path(original))) != basis["receipt_sha256"]
+                or any(phase["basis"] != basis["receipt_sha256"] for phase in phases.values()
+                       if phase["action"] == "reused")):
+            raise ValueError("reuse phases disagree with retained original receipt bytes")
     if request["operation"] == "status":
         if "executed" in actions.values() or raw["outcome"] == "complete":
             raise ValueError("status attempted execution")
         if raw["outcome"] == "status" and (code != 0 or raw["inputs_stable"] is not True):
             raise ValueError("status has no successful stable validation")
+        if raw["outcome"] == "status":
+            expected = (dict.fromkeys(actions, "reused") if raw["effective_policy"] == "complete-reuse"
+                        else {name: "reused" if name == "compile" else "not_run" for name in actions}
+                        if raw["effective_policy"] == "compilation-reuse" else None)
+            if actions != expected:
+                raise ValueError("status phases contradict its validated tier")
+        elif set(actions.values()) != {"not_run"} or raw["effective_policy"] != "unavailable":
+            raise ValueError("unsuccessful status claims reusable phases")
     elif raw["outcome"] == "status":
         raise ValueError("build returned a status-only result")
     if raw["outcome"] == "complete":
@@ -340,7 +389,9 @@ def _result(raw: dict[str, Any], request: dict[str, Any], *, code: int) -> None:
             raise ValueError("complete result lacks its retained qualification candidate")
 
 
-def run(settings: Settings, checkout: Path, *, status: bool = False) -> dict[str, Any]:
+def run(settings: Settings, checkout: Path, *, status: bool = False, prime: bool = False) -> dict[str, Any]:
+    if prime and (status or settings.reuse_from is None or settings.fresh or settings.profile):
+        raise ValueError("prime requires an explicit compilation candidate without execution requests")
     settings.validate(checkout, status=status)
     before = driver_identity(settings.driver_root, settings.driver_manifest)
     snapshot = context(settings, before)
@@ -353,7 +404,7 @@ def run(settings: Settings, checkout: Path, *, status: bool = False) -> dict[str
         with tempfile.TemporaryDirectory(prefix="vos-compiler-build-") as temporary:
             scratch = Path(temporary).resolve()
             response = scratch / "response.json"
-            request = {"protocol": PROTOCOL, "operation": "status" if status else "build",
+            request = {"protocol": PROTOCOL, "operation": "status" if status or prime else "build",
                        "source": str(settings.source.resolve()), "source_revision": settings.source_revision,
                        "out": str(settings.out.resolve()), "lane_root": str(settings.lane_root.resolve()),
                        "cache": str(settings.cache.resolve()), "driver_manifest": str(settings.driver_manifest.resolve()),
@@ -382,6 +433,18 @@ def run(settings: Settings, checkout: Path, *, status: bool = False) -> dict[str
         report = {**raw, "context_sha256": key, "controller_policy": policy,
                   "candidate_reason": reason, "controller_operation_seconds": time.perf_counter() - started,
                   "driver_identity": before, "status": "passed" if raw["outcome"] == "complete" else raw["outcome"]}
+        if prime:
+            if raw["outcome"] != "status" or raw["effective_policy"] != "compilation-reuse":
+                raise ValueError("prime requires authenticated compilation-only evidence")
+            compiler = raw.get("compiler")
+            if not isinstance(compiler, str) or not _absolute(Path(compiler)).is_file():
+                raise ValueError("compilation validation lacks its retained compiler")
+            report.update(controller_operation="prime", status="compilation-validated",
+                          cache_candidate=raw["basis"]["receipt"])
+            receipt = settings.out / "controller-compilation.json"
+            _atomic(receipt, report)
+            _index(settings, key, receipt, tier="compilation")
+            return report
         if not status:
             receipt = settings.out / "controller-result.json"
             _atomic(receipt, report)
