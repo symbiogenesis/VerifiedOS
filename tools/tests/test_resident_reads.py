@@ -285,6 +285,22 @@ def _canonical_root_fields() -> None:
         def __eq__(self, other: object) -> bool:
             return True
 
+    class RootAlias(rr.Root):
+        pass
+
+    class RootSpoof(rr.Root):
+        @override
+        def __eq__(self, other: object) -> bool:
+            return True
+
+    class IdentityAlias(rr.Identity):
+        pass
+
+    class IdentitySpoof(rr.Identity):
+        @override
+        def __eq__(self, other: object) -> bool:
+            return True
+
     payload = b"0123456789ABCDEF"
     for kind in ("system-image", "user-data"):
         identity = rr.Identity(1, 7, 1, 1, rr.authenticated_root(kind, 1, payload))
@@ -295,8 +311,14 @@ def _canonical_root_fields() -> None:
                   for malformed in ("", "wrong", "0" * 63, "0" * 65, "g" * 64,
                                     identity.root.digest.upper(), None, [], {}, b"0" * 64,
                                     EqualitySpoof(), StringAlias(identity.root.digest))]
-        for root in roots:
-            supplied = replace(identity, root=root)
+        root_spoof = RootSpoof(kind, 1, "0" * 64)
+        identity_spoof = IdentitySpoof(1, 7, 2, 2, identity.root)
+        ensure(root_spoof == identity.root and identity_spoof == identity,
+               "root and identity equality-spoof controls did not execute")
+        roots += [RootAlias(kind, 1, identity.root.digest), root_spoof]
+        supplied_identities = [replace(identity, root=root) for root in roots]
+        supplied_identities += [IdentityAlias(1, 7, 1, 1, identity.root), identity_spoof]
+        for supplied in supplied_identities:
             service = rr.Service()
             before = len(service.writes)
             ensure(service.publish(rr.Resident(supplied, payload)) is None
@@ -849,7 +871,7 @@ def cases() -> list[Case]:
             Case("resident integral intervals and holder refusals", _integral_read_intervals),
             Case("resident integral handle fields preserve accepted transfers", _integral_handle_fields),
             Case("resident integral supplied identities and caller domains", _integral_supplied_identities),
-            Case("resident canonical roots preserve identity and accepted transfers", _canonical_root_fields),
+            Case("resident canonical root identities preserve accepted transfers", _canonical_root_fields),
             Case("resident current authority and admitted-transfer cuts", _authority_and_lifecycle_cuts),
             Case("resident exact integer backing slots preserve accepted transfers", _integral_backing_slots),
             Case("resident immutable backing refuses aliases before publication", _immutable_backing_publication),

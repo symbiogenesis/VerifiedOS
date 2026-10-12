@@ -208,7 +208,7 @@ class Service:
 
     def _integral_identity(self, identity: Identity) -> bool:
         # Validate both the published and supplied identity before equality or storage.
-        return (isinstance(identity, Identity) and isinstance(identity.root, Root)
+        return (type(identity) is Identity and type(identity.root) is Root
                 and type(identity.root.kind) is str
                 and identity.root.kind in ("system-image", "user-data")
                 and type(identity.root.digest) is str and len(identity.root.digest) == 64
