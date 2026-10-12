@@ -151,6 +151,8 @@ COMMANDS: tuple[Command, ...] = (
     Command("compiler-build", "vos.cli.compiler_build",
             "build a contained compiler with validated default reuse and phase evidence",
             lane="guest", host_ok=frozenset({"--help", "-h"})),
+    Command("vector-bitcount", "vos.cli.vector_bitcount",
+            "generate and check independent vector bit-count regression campaigns"),
     Command("block-authority", "vos.cli.block_authority",
             "generate and check the block-device architectural authority corpus"),
     Command("boot-handoff", "vos.cli.boot_handoff",

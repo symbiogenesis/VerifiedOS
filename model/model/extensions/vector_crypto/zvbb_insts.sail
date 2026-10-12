@@ -329,6 +329,7 @@ function clause execute VCPOP_V(vm, vs2, vd) = {
 
   foreach (i from 0 to (num_elem - 1)) {
     if mask[i] == 0b1 then {
+      result[i] = zeros();
       foreach (j from 0 to (SEW - 1)) {
         if vs2_val[i][j] == 0b1 then {
           result[i] = result[i] + 1;

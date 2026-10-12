@@ -430,11 +430,10 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str], *,
     state_name = bh.LIFECYCLES[f.lifecycle]
     if state_name not in bh.ROOT_STATES:
         raise ValueError(f"the shipped lifecycle state {state_name} accepts no root to sign under")
-    previous_headers: object = None
+    previous: bc.Staged | None = None
     signers: tuple[boot_signing.SlhSigner, MlDsaSigner] | None = None
     if preserve_images:
         previous = preserved_images(root, retained, streams, f, rot, mmode)
-        previous_headers = previous.manifest["images"]
         images, keys = previous.images, previous.manifest["keys"]
         production, kernel_root = previous.roots[f.lifecycle], previous.kernel_root
         signing = {"preserved_images": True,
@@ -486,8 +485,11 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str], *,
                           ("security_version", "BOOT_HDR_SECURITY_VERSION"),
                           ("payload_length", "BOOT_HDR_PAYLOAD_LENGTH"))}}
                for name, data in images.items()}
-    if preserve_images and headers != previous_headers:
-        raise ValueError("provenance refresh would change retained image header bindings")
+    if preserve_images:
+        if previous is None:
+            raise ValueError("provenance refresh has no validated retained images")
+        if headers != previous.manifest["images"]:
+            raise ValueError("provenance refresh would change retained image header bindings")
     manifest = {
         "schema": 1, "generator": bc.GENERATOR, "contract": bh.CONTRACT, "floor": f.floor,
         "compiler_provenance": provenance,

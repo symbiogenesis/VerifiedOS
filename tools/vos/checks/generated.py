@@ -127,6 +127,7 @@ from vos import (
     sailbundle,
     socmap,
     supervisor_context,
+    vector_bitcount,
     wire_formats,
 )
 from vos import corpus as corpus_mod
@@ -376,6 +377,16 @@ def _supervisor_context(root: Path, bundle: sailbundle.Bundle | None) -> str:
     return supervisor_context.header(root)
 
 
+def _vector_bitcount_corpus(root: Path, bundle: sailbundle.Bundle | None) -> str:
+    del bundle
+    return vector_bitcount.emit_corpus(root)
+
+
+def _vector_bitcount_sail(root: Path, bundle: sailbundle.Bundle | None) -> str:
+    del bundle
+    return vector_bitcount.emit_sail(root)
+
+
 @dataclass(frozen=True)
 class Row:
     """One generated artifact: what it is, what writes it, and what it is written from.
@@ -415,6 +426,14 @@ GENERATED: tuple[Row, ...] = (
         owners="the model's generated bundle and the shipped configurations",
         checker="this gate",
         emit=_dialect_emit),
+    Row(path="corpus/vector-bitcount.s",
+        generator="run.py vector-bitcount emit", lane="host",
+        owners="the independent fixed-width oracle and bounded vector cases",
+        checker="this gate", emit=_vector_bitcount_corpus),
+    Row(path="model/model/unit_tests/test_vector_bitcount.sail",
+        generator="run.py vector-bitcount emit", lane="host",
+        owners="the independent fixed-width oracle and bounded vector cases",
+        checker="this gate", emit=_vector_bitcount_sail),
     # The SoC address map, in the language the RTL is written in. It reads the frozen
     # composition and nothing else, so it needs neither the bundle nor Sail and its
     # whole claim is decided here; K-65 is what makes reading the primary alone enough,

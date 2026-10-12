@@ -24,6 +24,7 @@ The manifest lists purecap programs in the frozen dialect, each running to a def
 | [`base-memory`](../../corpus/base-memory.s) | loads and stores at every width through a capability derived from the reset root, byte order, sign and zero extension, and a narrowed authority |
 | [`mul-div`](../../corpus/mul-div.s) | the M extension, including division by zero, the signed overflow, and the W forms |
 | [`bitmanip`](../../corpus/bitmanip.s) | `Zba` shift-and-add, `Zbb` logic, counting, rotation and extension, `Zbs` single-bit, and the `Zbkb`/`Zbkc`/`Zbkx` crypto forms |
+| [`vector-bitcount`](../../corpus/vector-bitcount.s) | generated native vector leading/trailing-zero and population counts against an independent fixed-width integer oracle, including the modulo-width CTZ/popcount identity, legal vector geometry, zero length, masks, undisturbed tails and in-place destinations; [the qualification contract](vector-bitcount.md) owns scope and acceptance |
 | [`atomics`](../../corpus/atomics.s) | `Zaamo` at word and doubleword, `Zabha` at byte and halfword, the comparing forms, and the tag an atomic's store half clears |
 | [`zicond-csr`](../../corpus/zicond-csr.s) | `Zicond` in both polarities and as an if-conversion, the writable and read-only halves of the CSR bank, and `cspecialrw` over MTDC |
 | [`cap-inspect`](../../corpus/cap-inspect.s) | the inspection surface over the split root pair, the trap capabilities, and the null capability |
