@@ -242,7 +242,7 @@ def _closed_predecessor_capacity() -> None:
         identities = [rr.Identity(1, 7, 1, version, rr.authenticated_root("user-data", 1, payload))
                       for version, payload in enumerate(payloads, 1)]
         closed_slots: list[int] = []
-        for identity, payload in zip(identities[:predecessors + 1], payloads):
+        for identity, payload in zip(identities[:predecessors + 1], payloads[:predecessors + 1], strict=True):
             slot = service.publish(rr.Resident(identity, payload))
             if slot is None:
                 raise AssertionError("closed predecessor setup refused before its capacity")
