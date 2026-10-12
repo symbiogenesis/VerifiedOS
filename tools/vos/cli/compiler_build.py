@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Build a contained compiler with validated default reuse; inspect evidence read-only."""
+"""Build with validated default reuse, prime compilation hints, or inspect read-only."""
 
 import argparse
 import json
@@ -14,7 +14,7 @@ from vos.corpus import find_root
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="run.py compiler-build", description=__doc__)
     operations = parser.add_subparsers(dest="operation", required=True)
-    for operation in ("build", "status"):
+    for operation in ("build", "status", "prime"):
         command = operations.add_parser(operation)
         for name in ("source", "lane-root", "out", "cache", "driver-root", "driver-manifest",
                      "opam-root", "lock", "configuration"):
@@ -23,7 +23,8 @@ def main(argv: list[str] | None = None) -> int:
         command.add_argument("--switch", required=True)
         command.add_argument("--kernel-profile", choices=("standard", "vm"), required=True)
         command.add_argument("--jobs", type=positive_int, default=1)
-        command.add_argument("--reuse-from", type=Path)
+        command.add_argument("--reuse-from", type=Path, required=operation == "prime",
+                             help="explicit candidate; prime authenticates compilation without an audit")
         command.add_argument("--json", action="store_true")
         if operation == "build":
             command.add_argument("--fresh", action="store_true", help="bypass both reuse tiers and the index")
@@ -32,14 +33,15 @@ def main(argv: list[str] | None = None) -> int:
     operation = args.pop("operation")
     as_json = args.pop("json")
     try:
-        report = compiler_build.run(compiler_build.Settings(**args), find_root(), status=operation == "status")
+        report = compiler_build.run(compiler_build.Settings(**args), find_root(),
+                                    status=operation == "status", prime=operation == "prime")
     except (OSError, ValueError, TypeError, SystemExit):
         print("compiler-build: refused invalid, changed or unavailable operation inputs", file=sys.stderr)
         return 1
     if as_json:
         print(json.dumps(report, sort_keys=True, ensure_ascii=True, indent=2))
     else:
-        print(f"compiler-build: {report['outcome']}; {report['candidate_reason']}")
+        print(f"compiler-build: {report['status']}; {report['candidate_reason']}")
         for name, phase in report["phases"].items():
             print(f"  {name}: {phase['action']} ({phase['status']})")
         validation = report["validation_seconds"]
