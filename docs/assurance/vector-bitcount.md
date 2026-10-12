@@ -87,3 +87,17 @@ annotation, encoded size, stack/spill and required sink/erasure costs. Keep the
 existing compiler/admission route and its final-artifact evidence. This is a
 candidate within the deferred M1.3 owner, not a new optimizer workstream or a
 claim that whole C/ISA refinement is already available.
+
+## Focused qualification evidence
+
+[The recorded focused evidence](vector-bitcount-evidence.json) binds the model,
+profile, generator and corpus bytes to successful simulator execution and the
+wrong-count, fractional-tail and masked-lane controls. The corpus manifest owns
+the measured trace size and digest. Strict Sail checking includes the registered
+unit source; complete unit execution remains a Guest CI obligation. Generator
+and related tool tests, Python typing on Windows and Linux, and the two new
+generated-artifact rows' dedicated drift probes passed.
+
+The hosted handoff remains blocked by existing incomplete contained-compiler
+provenance in the firmware crypto and chain target manifests. This evidence is
+not a Host CI verdict, a Guest CI verdict, or authority to bypass either gate.

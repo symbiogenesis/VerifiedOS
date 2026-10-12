@@ -1,0 +1,88 @@
+{
+  "schema": "verifiedos-vector-bitcount-focused-evidence/1",
+  "scope": "bounded architectural regression and focused tooling checks; no universal theorem or full hosted acceptance",
+  "tested_source_revision": "cc35e5966b8a668294ece93f35c421ea6a169920",
+  "inputs": {
+    "model/model/extensions/vector_crypto/zvbb_insts.sail": "008d6adfc86530f19475284e85fe07906e7f121c9ab8ba3b9d159956a269d126",
+    "model/model/riscv.sail_project": "9acd874508f1179c54a7fe3683d570cf4cde00b6e0f140ecfa641b7fedadd33c",
+    "model/model/unit_tests/test_vector_bitcount.sail": "9eb68d3735be3443da77492eb3893b2c6efb6b5e0bb155475fc3773b377d8b2c",
+    "model/config/verifiedos.json": "e2bb4968e24741fc266fd400b529faa90a7d3d3acd66e5c8bde1fc8347d22625",
+    "tools/vos/vector_bitcount.py": "15a9af4c1e48d6743370d30962fffe6f5b08df8c34218b8bab982ad911e25558",
+    "corpus/vector-bitcount.s": "9253c2159eeacc3aca611e66e4d59044aacfec03e227dfbdc76208e381019b2c"
+  },
+  "positive_corpus": {
+    "name": "vector-bitcount",
+    "source": "vector-bitcount.s",
+    "checks": 802,
+    "records": 172148,
+    "digest": "942af4172aee9302",
+    "passed": true
+  },
+  "negative_controls": {
+    "schema": "verifiedos-vector-bitcount-controls/1",
+    "revision": "cc35e5966b8a668294ece93f35c421ea6a169920",
+    "simulator_sha256": "0d0642686bf01f9c8d82da0de4ea040f4d130087532514d99428b6e79b0663a7",
+    "campaign_sha256": "9253c2159eeacc3aca611e66e4d59044aacfec03e227dfbdc76208e381019b2c",
+    "controls": [
+      {
+        "name": "count",
+        "expected_check": 1,
+        "actual_check": 1,
+        "exit_code": 1,
+        "source_sha256": "854e719a19a5b2d506fd8a0ef095feceed6c3c63c1fad5e919d2b9f516d253cb",
+        "passed": true
+      },
+      {
+        "name": "tail",
+        "expected_check": 260,
+        "actual_check": 260,
+        "exit_code": 1,
+        "source_sha256": "e97cba5b1673244a44e5167fcbb747d2a44c1e1b3f23d4c8b4f5272eb43de799",
+        "passed": true
+      },
+      {
+        "name": "mask",
+        "expected_check": 261,
+        "actual_check": 261,
+        "exit_code": 1,
+        "source_sha256": "07b90c43d55ba4504b49352249c6dae9a7cdab320347ac7a15716c622a5b2a7f",
+        "passed": true
+      }
+    ],
+    "passed": true
+  },
+  "k88_rows": {
+    "scope": "two new host rows only; complete checker/selftest baseline remains pending",
+    "results": [
+      {
+        "path": "corpus/vector-bitcount.s",
+        "matching_accepted": true,
+        "dedicated_drift_detected": true
+      },
+      {
+        "path": "model/model/unit_tests/test_vector_bitcount.sail",
+        "matching_accepted": true,
+        "dedicated_drift_detected": true
+      }
+    ]
+  },
+  "strict_sail": {
+    "passed": true,
+    "all_modules": true,
+    "attempts": 3,
+    "full_unit_execution": "not-run"
+  },
+  "python_checks": {
+    "linux_and_windows_typing": "passed",
+    "ruff_and_imports": "passed",
+    "focused_test_filters": [
+      "vector_bitcount",
+      "simulator_build",
+      "boot_chain"
+    ]
+  },
+  "hosted_handoff": {
+    "host": "blocked before dispatch by existing firmware compiler-provenance findings",
+    "guest": "not dispatched; full model/unit/RTL/proof verdicts unavailable"
+  }
+}
