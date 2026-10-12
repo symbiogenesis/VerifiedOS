@@ -171,6 +171,7 @@ UNREAD_PREFIX = "model/"
 # the host and fails every sandbox's baseline, which reports as a red tree rather than
 # as a bad mutant. One list, read by the sandbox and by the parses alike.
 MODEL_FACTS = (
+    "model/model/riscv.sail_project",
     "model/model/core/cap_format.sail",
     "model/model/core/cap_common.sail",
     "model/model/core/xlen.sail",

@@ -324,6 +324,7 @@ def _sandbox_writes_remain_private() -> None:
 def _parallel_placement_matches_serial() -> None:
     with sandbox_tree({".gitignore": "out/\n", "a.txt": "root\n",
                        "docs/a.txt": "nested\n", "docs/sub/b.txt": "deep\n",
+                       "model/model/riscv.sail_project": "project selection\n",
                        "model/example.sail": "model\n"}) as root:
         output = root / "out"
         template = output / "template"
@@ -341,6 +342,9 @@ def _parallel_placement_matches_serial() -> None:
 
         ensure(contents(serial.path) == contents(parallel.path),
                "parallel placement or hardlink fallback changed sandbox bytes or directories")
+        ensure((serial.path / "model/model/riscv.sail_project").read_bytes()
+               == b"project selection\n",
+               "the project selection bound by source identity became an empty stand-in")
         ensure(contents(template / ".git") == contents(output / "git-copy"),
                "parallel object-store fallback changed copied bytes or directories")
         ensure(not (parallel.path / selftest._MANIFEST).exists(),
