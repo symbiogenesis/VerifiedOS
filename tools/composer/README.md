@@ -54,9 +54,10 @@ maps each roster member to its package identity, existing source references and
 producer manifest, and declares separate startup dependencies, supervisor
 authority edges, typed handler descriptors and image imports. Sources and
 producer manifests bind exact checkout-relative paths and SHA-256 digests.
-The checked schema rejects additional fields and repeated JSON keys. The
-production graph boundary refuses a malformed declared edge instead of silently
-dropping it through the fixture filter.
+The checked schema rejects additional fields, repeated JSON keys and floating
+substitutes for the schema version or integer fields, including nested arrays.
+Unresolved target slots remain null. The production graph boundary refuses a
+malformed declared edge instead of silently dropping it through the fixture filter.
 
 `python tools/run.py composer project tools/composer/m8a-composition.json --output tools/composer/generated`
 generates the immutable typed C supervisor manifest and four JSON projections:
