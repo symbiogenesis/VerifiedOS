@@ -2,6 +2,7 @@
 """Independent roster expectations and production projection substitution controls."""
 
 import json
+import os
 import shutil
 import tempfile
 from collections.abc import Callable, Iterator
@@ -258,6 +259,39 @@ def _build_bindings() -> None:
                  "stale projection bindings")
 
 
+def _artifact_path_substitutions() -> None:
+    with _sandbox() as (root, raw):
+        graph = _resolve_descriptors(root, raw)
+        directory = root / "products"
+        directory.mkdir()
+        artifacts = {}
+        for member in raw["members"]:
+            if member["id"] in ("composer", "admission"):
+                continue
+            relative = f"products/{member['id']}.bin"
+            (root / relative).write_bytes(b"identical test-only payload")
+            artifacts[member["artifact_slot"]] = c.reference(root, relative)
+        (directory / "image.bin").write_bytes(b"test-only composed image")
+        image = c.reference(root, "products/image.bin")
+        outputs = c.projections(root)
+        record = c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph)
+        c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image)
+        ensure(len({ref["sha256"] for ref in artifacts.values()}) == 1,
+               "distinct artifact files remain valid even when their bytes match")
+        aliases = ["products/./crypto-core.bin", "products//crypto-core.bin"]
+        if os.name == "nt":
+            aliases.append("products/CRYPTO-CORE.bin")
+        for alias in aliases:
+            substituted = {**artifacts, "storage-artifact": c.reference(root, alias)}
+            _refused(lambda substituted=substituted:
+                     c.build_record(root, c.EXAMPLE, outputs, substituted, image, graph),
+                     "substituted artifact")
+            altered = {**record, "artifacts": substituted}
+            _refused(lambda altered=altered:
+                     c.validate_build_record(root, c.EXAMPLE, altered, outputs, graph, image),
+                     "substituted artifact")
+
+
 def _cli() -> None:
     with _sandbox() as (root, _raw), patch.object(cli.corpus, "find_root", return_value=root), redirect_stdout(StringIO()):
         ensure(cli.main(["project", c.EXAMPLE, "--output", "out/project"]) == 0, "projection CLI")
@@ -275,4 +309,6 @@ def cases() -> list[Case]:
             Case("placement-refusals", _placement_refusals),
             Case("stale-inputs-and-projections", _stale_inputs_and_projections),
             Case("typed-handler-owner", _graph_owner_boundary),
-            Case("post-build-byte-bindings", _build_bindings), Case("production-project-cli", _cli)]
+            Case("post-build-byte-bindings", _build_bindings),
+            Case("artifact-path-substitutions", _artifact_path_substitutions),
+            Case("production-project-cli", _cli)]

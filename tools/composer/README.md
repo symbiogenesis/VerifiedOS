@@ -96,7 +96,9 @@ They reserve space rather than proving the size or identity of a built image.
 paths and digests after producing member bytes. It binds the input and all
 projection digests, regenerates the graph and binds the final image bytes.
 `validate_build_record` rechecks those inputs and bytes; it trusts no reported
-admission boolean. The skeleton contains no final image digest or certificate,
+admission boolean. Runtime slots must name distinct resolved artifact paths;
+relative path aliases cannot substitute one member's file for another. Distinct
+files may carry identical bytes. The skeleton contains no final image digest or certificate,
 and generated derivation references supply no proof evidence. Neither the byte
 binding API nor the generated files perform the M7.1c derivation checks.
 `composer promote INPUT` refuses the roster's incomplete members and the absent
