@@ -88,9 +88,9 @@ against the file's name rather than a line of it; and one carrying
 comment, whose `disable` with no matching `enable` runs to the end of its block, or
 isort's `skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` on a line of
 its own reaches the one logical line beneath it, a multi-line one whole, or, inside
-brackets, the one line of code beneath it, past blank and comment lines, and one ending
-a line reaches that line alone, a line taking in the lines a backslash or a multi-line
-string joins to it; it is not refused.
+brackets, the one line of code beneath it, past blank and comment lines. That code line
+includes the lines a backslash or a multi-line string joins to it. A comment ending a
+line reaches that same code line alone; it is not refused.
 
 `ruff.toml` lists the modules the interpreter lacks on one platform that ty resolves on
 both, and ruff's TID253 refuses an import of one only where it is unnested at module
