@@ -9,6 +9,7 @@ import sys
 import tempfile
 from collections.abc import Callable
 from contextlib import redirect_stderr, redirect_stdout
+from functools import partial
 from pathlib import Path, PureWindowsPath
 from unittest.mock import patch
 
@@ -121,21 +122,21 @@ def _checkout_ignore_required() -> None:
             excluded.write_text("/.worktrees/\n/native child/\n", encoding="utf-8")
             if source != "info":
                 _git(root, "config", "core.excludesFile", str(excluded))
-            _refused(lambda: worktree.create(root, "valid-lane", base), ".gitignore")
+            _refused(partial(worktree.create, root, "valid-lane", base), ".gitignore")
             ensure(not (root / ".worktrees").exists(),
                    "machine-local exclusions cannot allocate a checkout directory")
             ensure(not _git(root, "branch", "--list", "work/valid-lane"),
                    "machine-local exclusions cannot allocate a branch")
             native = root / "native child"
             _git(root, "worktree", "add", "--detach", str(native), base)
-            _refused(lambda: worktree.verify(root, native, base), ".gitignore")
+            _refused(partial(worktree.verify, root, native, base), ".gitignore")
             (root / ".gitignore").write_text("/.worktrees/\n/native child/\n", encoding="utf-8")
             worktree.create(root, "valid-lane", base)
             worktree.verify(root, native, base, exact=True)
             (root / ".gitignore").write_text("/.worktrees/\n!/native child/\n", encoding="utf-8")
-            _refused(lambda: worktree.verify(root, native, base), ".gitignore")
+            _refused(partial(worktree.verify, root, native, base), ".gitignore")
             (root / ".gitignore").write_text("!/.worktrees/\n", encoding="utf-8")
-            _refused(lambda: worktree.create(root, "negated-lane", base), ".gitignore")
+            _refused(partial(worktree.create, root, "negated-lane", base), ".gitignore")
             ensure(not (root / ".worktrees" / "negated-lane").exists(),
                    "a negated checkout rule cannot allocate a checkout")
 
