@@ -411,20 +411,20 @@ These figures sum the full priced reference-build, assessment and named hardenin
 | Measure | Value |
 | --- | --- |
 | Total estimate midpoint h | 4,606.4 |
-| Total estimate range h | 2,986.3–6,226.5 |
-| Completed scope h | 860.9 |
-| Complete by estimate % | 18.7 |
-| Remaining h | 3,745.5 |
+| Total estimate range h | 2,988.3–6,224.5 |
+| Completed scope h | 864.9 |
+| Complete by estimate % | 18.8 |
+| Remaining h | 3,741.5 |
 | Committed remaining h | 2,331.5 |
 | Open class I h | 796.5 |
-| Open class X h | 2,949 |
-| Retained completion estimate h | 257.5 |
-| Unmeasured completed items | 28 |
-| Calibrated total h | 5,614 |
+| Open class X h | 2,945 |
+| Retained completion estimate h | 261.5 |
+| Unmeasured completed items | 29 |
+| Calibrated total h | 5,612.3 |
 | Committed M8a open h | 85 |
 | Committed M8b open h | 105.5 |
 | Other committed open h | 2,141 |
-| Conditional open h | 1,000 |
+| Conditional open h | 996 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
 | Committed M8a open range h | 55–115 |
@@ -744,9 +744,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
     * **Dispatch. Start:** Q5a's exporter, exact checker and enumeration; the three reading bullets above are research inputs that settle no acceptance clause. **Owns:** the actual-roster comparison and its improvement-or-no-improvement report. **Check:** the clause below, against the standing assignment. **Join:** M7.1's composed roster and Q1's product limits.
     * Compare checked candidate placements with the standing assignment for M7.1's composed roster under Q1's product limits. Report an improvement or the bounded search's failure to find one; charge no capacity gain for tighter packing of Q5a's witness alone.
 * [ ] **Q6 · Compare memory topologies on one workload**
-  * [ ] **Q6a · Decide a credible memory supply path** · 4 h, range 2–6 · X
-    * **Start:** Q4a's demand record, Q5a's checked placement boundary and R4's architecture/measurands. **Owns:** the bounded physical-supply screen in [the topology comparison](../hardware/memory-topology-comparison.md#2-candidate-dispositions): one named process/macro provider and realizable preparation path, with provenance, supported capacity/bandwidth and missing qualification coefficients enumerated, or a precise adverse/undecided verdict. Public evidence may settle only the claims it actually supports; obtaining new supplier statements requires separately authorized contact. **Check:** no smaller release workload, missing physical coefficient, unrelated process or simulator-only constant is credited as supply. A credible path identifies how R5 can obtain and qualify the required specimens; it does not mark them qualified. **Join:** a credible verdict releases broad laptop-specific Q34f/g/h and Q41a/b implementation; another verdict returns to Q10 before that spending and preserves the existing release requirements. Contract/interface preparation and the scalar M8a/M8b tracks continue.
-    * **Estimate basis:** 2–6 h for a bounded evidence inquiry and decision over existing demand and architecture inputs, excluding supplier response time and laboratory work. No fabrication or feature substitution is commissioned.
+  * [x] **Q6a · Decide a credible memory supply path** · 4 h retained estimate, actual n/a · agent-parallel
+    * The dated public-source screen records an undecided supply verdict, assigns missing evidence owners and returns to Q10 before broad laptop implementation. ([note](completion-log.md#q6a-decide-a-credible-memory-supply-path))
   * [ ] **Q6b · Complete the workload and topology comparison** · 13 h, range 8–18 · X · after the M8a gate
     * **Start:** Q6a's recorded supply verdict and the complete M7.1/Q5b workload as it becomes available. **Owns:** the candidate traffic/interface accounting and topology/address-growth comparison below. **Check:** Q6's full Done-when predicate; an adverse supply verdict is retained while the product owner decides its route, not bypassed. **Join:** R5 and Q10. The 8–18 h range and Q6a's 2–6 h partition Q6's former 10–24 h allowance; no savings or additional lab capacity are inferred.
   * **Authorable comparison:** [The topology comparison](../hardware/memory-topology-comparison.md) accounts for monolithic, per-island and replaceable bulk candidates on one declared demand basis, including interfaces, proof boundaries and supply floors. No qualified supplier coefficients choose a winner. Public-only weight storage is an explicit register proposal, not an adopted memory tier.
@@ -1231,7 +1230,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,765.9 h · 60% · 248.9 h complete · open range 1,447–3,587 h.
+**Q subtotal:** 2,765.9 h · 60% · 252.9 h complete · open range 1,445–3,581 h.
 
 ### M0 · Hardware reference
 
@@ -1779,10 +1778,12 @@ The ring data plane is brought up in its contract order: the common ring schema 
   * R-12-084b's shape applied to R-12-085: the server's slot, worker set, and pools fixed at composition against a declared ceiling, a model inside it running in the admitted slot and one above it answered when the session opens.
   * Includes the canonical model shape descriptor: a schema-bounded non-recursive Narcissus format carrying an R-05-051a canonicity theorem, so **the descriptor's parser is verified while the model stays untrusted data**. No proof is asked of the weights, which do not execute; the executing code is the server's GEMM and attention kernels, and they carry their obligations whichever weights they read.
 * [ ] **M6.7 · Expert-residency declaration and admission arithmetic** · 7 h, range 4–10 · I · Parallel with M6.6 · after the M8a gate
+  * **Executable host checkpoint:** [The common-shape reference](../../tools/inference-admission/README.md) checks the complete finite expert prefix, exact route boundaries, declared uniform work and typed storage refusal. Generated families and executed storage-fetch, expert-dependent-work and partial-residency defects exercise the host behavior. Concrete residency/capacity, qualified uniform kernel work, WCET/placement and target correspondence remain open; no host fixture closes those joins.
   * **Symbolic checkpoint:** InferenceAdmission.v checks complete expert residency before opening, refuses invalid routed work and storage fetches, and states fixed-top-k work under an explicit uniform-cost premise. Concrete residency, kernel work/WCET and placement remain qualification inputs under the service authoring contract.
   * **Execute:** Implement residency and fixed-work arithmetic beside M6.6/M6.8 on the common descriptor. Generate cases at and beyond declared bounds; reuse the descriptor parser and grant records instead of creating another admission pipeline.
   * The all-experts-resident condition, the fixed top-k WCET argument (work per token is constant regardless of which experts route, routing selecting addresses rather than an amount of work), and a typed refusal for routed fetch across the storage boundary.
 * [ ] **M6.8 · Bank grant and admitted token rate** · 6.5 h, range 4–9 · I · Parallel with M6.6 · after the M8a gate
+  * **Executable host checkpoint:** [The shared opening adapter](../../tools/inference-admission/README.md) derives exact integer rates under explicit symbolic KV placements, preserves resources and refuses absent demand or above-grant requests. Independent spending expectations and executed arithmetic defects check the declared boundaries. DSE supply, qualified KV placement, complete candidate schedules/intermediate traffic, target kernels/timing and physical admission remain open.
   * **Research handoff:** The [inference proof handoff](../performance/inference-demand.md#research-handoff-to-unwritten-inference-proofs) requires complete candidate access schedules and intermediate traffic before a changed algorithm can affect grant-to-rate arithmetic.
   * **Symbolic checkpoint:** InferenceAdmission.v derives the integer rate from the declared bank grant and byte demand, proves the grant bound and refuses above-grant requests without degradation. DSE supply, KV placement and timed qualification remain open; a host fixture supplies no measured bandwidth.
   * **Execute:** Prepare grant-to-rate arithmetic from Q4a demand beside the session/residency work. Keep unresolved physical and DSE values symbolic until their owners supply them, then instantiate once and share the result with Q4b. Symbolic success does not close physical admission.
@@ -2257,6 +2258,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q3a | X-read | 8 |
 | Q4a | X-read | 9 |
 | Q5a | I | 7 |
+| Q6a | n/a | n/a |
 | Q11 | I | 6 |
 | Q12 | X-read | 10 |
 | Q13 | X-read | 14.5 |

@@ -501,6 +501,26 @@ Exported [MemoryPlan](../../proofs/MemoryPlan.v) witnesses and searched a declar
 
   * Landed: Tier A.
 
+#### Q6a · Decide a credible memory supply path
+
+The [dated public-source screen](../hardware/memory-supply-screen.md) accepts Q6a's
+explicitly permitted undecided arm. Relevant imec/NanoIC exploration access exists,
+but same-stack repaired specimen delivery, usable payload and fixed-grant bandwidth
+remain unestablished. The screen retains the full release demand, assigns the
+missing physical evidence to its owners and returns to Q10 before broad laptop
+implementation. No supplier was contacted or physical coefficient admitted; Q6b,
+R5/R5a and the downstream physical/product joins remain open.
+
+The integrator's Tier A read checked the existing demand/placement/architecture
+boundary, dated primary readings, coefficient ownership and the contract's
+undecided acceptance arm. Focused document checks passed on the worker's committed
+inputs; the settled batch's hosted validation is recorded in its fan-out journal.
+The original 4 h estimate, range 2–6, is retained because the initial agent-session
+timestamp was not captured and a later partial timer cannot recover total effort.
+No elapsed actual or measured physical progress is inferred from that weight.
+
+  * Landed: Tier A.
+
 ### Q11 · Bound the reach of a run-ahead fetch, or record that it is unbounded
 
 R-15-104a bounds complete run-ahead transfers against current PCC/executable regions before issue, with stale-authority handling and drain/timing duties. Optional suppression raises no early architectural exception. Changed pairs were read/blessed and complete host validation covered the settled documents. No independent depth cap, fence-cost bound or boot implementation was accepted.

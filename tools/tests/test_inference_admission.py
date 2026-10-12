@@ -2,16 +2,18 @@
 """Joined host opening, resource preservation and hostile decoded-input checks."""
 
 import json
+import tempfile
+from contextlib import redirect_stdout
 from dataclasses import asdict, fields, replace
+from io import StringIO
 from pathlib import Path
 from typing import cast
-
-from vos.inference_grant import KvPlacement
 
 from tests.harness import Case, ensure
 from vos import inference_admission as admission
 from vos.cli import inference_admission as cli
 from vos.inference_contract import Ceiling, Costs, Refusal, Shape
+from vos.inference_grant import KvPlacement
 
 ROOT = Path(__file__).resolve().parents[2]
 SHAPE = Shape(40, 128, 1, 4, 2, 8)
@@ -93,18 +95,30 @@ def _payload() -> dict[str, object]:
 def _front_door() -> None:
     raw = json.dumps(_payload()).encode()
     report = cli.inspect(raw, ROOT)
-    ensure(report["decision"] == "admitted" and report["checked_route_work"] == 16,
-           "front door joins source witness's rate and uniform work")
+    ensure(report["session_decision"] == "admitted" and report["checked_route_work"] == 16,
+           "front door joins decoded fixture rate and uniform work")
     ensure(report["production_admission"] is False, "host verdict must disclose scope")
     ensure(report["server_before"] == report["server_after"], "reported resource preservation")
-    ensure(report["sources"] and report["input_sha256"], "report binds sources and actual input bytes")
+    ensure(bool(report["sources"]) and bool(report["input_sha256"]),
+           "report binds sources and actual input bytes")
+    exhausted = _payload()
+    exhausted["sessions_open"] = 2
+    refused = cli.inspect(json.dumps(exhausted).encode(), ROOT)
+    ensure(refused["route_decision"] == "not_run" and refused["route_valid"] is None,
+           "refused session cannot supply a route-check verdict")
+    invalid_route = _payload()
+    invalid_route["route"] = [4, 4]
+    routed = cli.inspect(json.dumps(invalid_route).encode(), ROOT)
+    ensure(routed["session_decision"] == "admitted" and routed["route_decision"] == "refused"
+           and routed["route_valid"] is False and routed["checked_route_work"] is None,
+           "opening and route refusal are separate source operations")
     for key, value in (("extra", 0), ("requested_rate", True), ("residency", [1] * 4),
                        ("kv_placement", None), ("route", [-1]), ("shape", {})):
         data = _payload()
         data[key] = value
         try:
             cli.inspect(json.dumps(data).encode(), ROOT)
-        except ValueError:
+        except (ValueError, TypeError):
             continue
         raise AssertionError(f"malformed input accepted: {key}={value!r}")
     try:
@@ -114,9 +128,27 @@ def _front_door() -> None:
     raise AssertionError("duplicate JSON key accepted")
 
 
+def _cli_exit_codes() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-inference-") as directory:
+        path = Path(directory) / "input.json"
+        for change, expected in (({}, 0), ({"requested_rate": 5}, 1),
+                                 ({"route": [4, 4]}, 1), ({"requested_rate": True}, 2)):
+            data = _payload()
+            data.update(change)
+            path.write_text(json.dumps(data), encoding="utf-8")
+            with redirect_stdout(StringIO()):
+                code = cli.main([str(path)])
+            ensure(code == expected, f"CLI preserves semantic/invalid-input exit: {change}")
+        path.write_bytes(b"invalid JSON")
+        with redirect_stdout(StringIO()):
+            code = cli.main([str(path)])
+        ensure(code == 2, "invalid serialized input has no admission verdict")
+
+
 def cases() -> list[Case]:
     return [Case("joined residency/grant boundary and preserved resources", _boundaries_and_preservation),
             Case("every ceiling field boundary retains refusal cause", _ceiling_boundaries),
             Case("Gallina refusal precedence and zero grant", _refusal_precedence),
             Case("decoded inputs preserve the natural-number domain", _numeric_domain),
-            Case("strict front door binds host inputs and rejects coercions", _front_door)]
+            Case("strict front door binds host inputs and rejects coercions", _front_door),
+            Case("command exit codes distinguish success, refusal and malformed input", _cli_exit_codes)]

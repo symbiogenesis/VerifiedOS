@@ -26,18 +26,18 @@ def _unique(pairs: list[tuple[str, object]]) -> dict[str, object]:
 def _object(value: object, names: set[str], label: str) -> dict[str, object]:
     if not isinstance(value, dict) or set(value) != names:
         raise ValueError(f"{label} must contain exactly {', '.join(sorted(names))}")
-    return value
+    return {name: value[name] for name in names}
 
 
 def _number(value: object, label: str) -> int:
     if not isinstance(value, int):
-        raise ValueError(f"{label} must be a nonnegative integer")
+        raise TypeError(f"{label} must be a nonnegative integer")
     return natural(value, label)
 
 
 def _numbers(value: object, label: str) -> tuple[int, ...]:
     if not isinstance(value, list):
-        raise ValueError(f"{label} must be an integer array")
+        raise TypeError(f"{label} must be an integer array")
     return tuple(_number(item, label) for item in value)
 
 
@@ -70,7 +70,7 @@ def inspect(raw: bytes, root: Path) -> dict[str, object]:
     residency = tuple(flags)
     placement_value = data["kv_placement"]
     if not isinstance(placement_value, str):
-        raise ValueError("kv_placement must name an explicit bank placement")
+        raise TypeError("kv_placement must name an explicit bank placement")
     placement = KvPlacement(placement_value)
     state = _number(data["sessions_open"], "sessions_open")
     requested = _number(data["requested_rate"], "requested_rate")
@@ -85,10 +85,13 @@ def inspect(raw: bytes, root: Path) -> dict[str, object]:
             "input_sha256": hashlib.sha256(raw).hexdigest(),
             "sources": {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
                         for name in owners},
-            "decision": "refused" if step.refusal is not None else "admitted",
+            "session_decision": "refused" if step.refusal is not None else "admitted",
             "refusal": step.refusal, "requested_rate": requested,
             "admitted_rate": step.admitted_rate, "bytes_per_token": per_token_bytes(shape, placement),
-            "checked_route_work": work, "route_valid": work is not None,
+            "checked_route_work": work,
+            "route_decision": "not_run" if step.refusal is not None else
+                              ("valid" if work is not None else "refused"),
+            "route_valid": (work is not None) if step.refusal is None else None,
             "sessions_before": state, "sessions_after": step.sessions_open,
             "server_before": asdict(server), "server_after": asdict(step.server),
             "open": ["wire parser correspondence", "concrete residency and uniform expert cost",
@@ -106,4 +109,4 @@ def main(argv: list[str] | None = None) -> int:
         print(f"FAIL inference-admission: {error}")
         return 2
     print(json.dumps(result, indent=2, sort_keys=True))
-    return 0 if result["decision"] == "admitted" and result["route_valid"] else 1
+    return 0 if result["session_decision"] == "admitted" and result["route_valid"] else 1

@@ -56,7 +56,7 @@ standalone language specification and its relationship to VerifiedOS's CHERI-TAL
 | --- | --- |
 | CHERI lineage | [Foundation map](hardware/cheri-foundation-map.md), [version matrix](hardware/cheri-version-matrix.md) |
 | Scalar RTL | [Re-parameterization delta](hardware/rtl-reparameterization-delta.md), [width staging](hardware/scalar-width-transform-contract.md), [core port](hardware/core-port-contract.md), [platform devices](hardware/platform-device-contracts.md) |
-| Memory qualification | [Topology comparison](hardware/memory-topology-comparison.md), [remanence decision](hardware/remanence-threat-decision.md), [macro protocol](hardware/macro-qualification-protocol.md), [sensitive-state lifetime protocol](hardware/sensitive-state-lifetime-protocol.md) |
+| Memory qualification | [Topology comparison](hardware/memory-topology-comparison.md), [public supply screen](hardware/memory-supply-screen.md), [remanence decision](hardware/remanence-threat-decision.md), [macro protocol](hardware/macro-qualification-protocol.md), [sensitive-state lifetime protocol](hardware/sensitive-state-lifetime-protocol.md) |
 | External devices and links | [Immutable module contract](hardware/immutable-module-contract.md), [module admission](hardware/immutable-module-admission.md), [ensemble link](hardware/ensemble-link-contract.md) |
 | Faults and calibration | [Environmental fault sensors](hardware/environmental-fault-sensors.md), [Protected-sequence fault model](hardware/protected-sequence-fault-model.md), [calibration field classes](hardware/calibration-manifest.md) |
 
