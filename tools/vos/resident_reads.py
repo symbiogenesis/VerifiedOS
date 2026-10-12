@@ -205,15 +205,15 @@ class Service:
         """Fresh version only. Replacement retains predecessor bytes and identity."""
         self.operation = "replacement"
         version = resident.identity.version
-        current = self._cells["current"]
         live = [slot for slot in range(self.bounds.residents) if self.resident(slot) is not None]
-        predecessors = sum(slot != current for slot in live)
+        # Every existing resident becomes a predecessor of the newly published version,
+        # including closed backing whose retirement barrier is still unavailable.
         if ((resident.identity.owner, resident.identity.domain, resident.identity.object_id) != (1, 7, 1)
                 or not 1 <= resident.identity.root.generation <= self.bounds.counter_limit
                 or not 1 <= version <= self.bounds.counter_limit
                 or version <= self._integer("last-version") or not resident.accepting
                 or not resident.payload or len(resident.payload) > self.bounds.backing_bytes
-                or (predecessors >= self.bounds.predecessors and current is not None)
+                or len(live) > self.bounds.predecessors
                 or sum(len(item.payload) for slot in live
                        if (item := self.resident(slot)) is not None) + len(resident.payload)
                 > self.bounds.backing_bytes):
