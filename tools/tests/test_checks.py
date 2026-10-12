@@ -2368,10 +2368,10 @@ def _k88_foreign_library_is_a_finding() -> None:
                hashes={"/root/.opam/unselected-switch/share/sail/lib/arith.sail":
                        {"md5": "0" * 32}})
     bundle = sailbundle.Bundle(raw)
-    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN}) as root:
-        with patch.object(sailbundle, "read_source_identity", return_value={}):
-            owners, findings = generated._owners(
-                _context(root), generated.GENERATED[0], bundle, json.dumps(raw).encode("utf-8"))
+    with (sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN}) as root,
+          patch.object(sailbundle, "read_source_identity", return_value={})):
+        owners, findings = generated._owners(
+            _context(root), generated.GENERATED[0], bundle, json.dumps(raw).encode("utf-8"))
     ensure(owners == 0 and len(findings) == 1 and "unselected-switch" in findings[0],
            f"a foreign Sail library must be a finding, not a crash or silent omission: {findings}")
 

@@ -288,7 +288,7 @@ def _descriptor_snapshot_binding() -> None:
                     return original if reads == 1 else substituted
                 return read_bytes(path)
             with patch.object(Path, "read_bytes", transient_read):
-                _refused(lambda: consume(root), "stale source binding")
+                _refused(lambda consume=consume: consume(root), "stale source binding")
             ensure(reads >= 2, "control reaches the descriptor parser after binding")
             consume(root)
 
