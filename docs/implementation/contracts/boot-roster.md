@@ -245,6 +245,44 @@ member and a successful fixture composition. Fixture success establishes binding
 reference-decision behavior only. Real descriptors, checked derivations and the accepted
 target roster remain M7.1's joins; neither offline program certifies itself.
 
+### Production composition input and projections
+
+M7.1d owns one typed composition input for the real package descriptors and
+composition choices. Its schema binds package and producer identities, artifact
+references, entry points, placements, admission tiers and derivation references.
+Startup dependencies, typed handler edges and image imports remain separate
+relations with their own checks. This contract's roster table continues to decide
+required membership, ranks and executable status; the input cannot promote a
+member or omit a required one.
+
+Before expanding the real roster adapters, M7.1d fixes that schema and emits the
+supervisor's immutable manifest, the graph-composer input, the recipe's member
+projection and the admission request skeleton from it. M7.1b owns manifest
+validation and target execution, M7.1a owns placement and image construction, and
+M7.1c owns the actual derivation checks and final admission record. Generated
+derivation references supply no proof evidence. These projections extend the
+existing composer and harness; their current fixture schemas and handwritten
+manifest are not yet this production interface.
+
+Construction proceeds from descriptors and choices to the checked graph and
+manifest, then to final image bytes, and finally to the image-bound admission
+record. Bind each projection to the same input and producer identities. A
+changed member, relation, placement, artifact or producer invalidates every
+dependent output; no earlier admission result survives different image bytes.
+M6.10 consumes this same input and production operations for its host/device
+comparison rather than independently reconstructing the roster.
+
+The first checkpoint uses the real roster and independently stated expected
+membership, start order and storage-to-crypto dependency. Regeneration must
+agree with the checked-in generated outputs. Missing or duplicate members,
+swapped package identities, a conflicting startup order, a misplaced extent,
+stale graph or image bindings, and substituted derivation references each refuse
+at their owning boundary. Agreement among generated projections alone supplies
+neither a valid composition nor a target execution result. Full-roster boot,
+fault/restart order, independent admission and the existing substitution
+controls remain required at the M7.1 join. Implementation and correspondence
+are open; this checkpoint assigns existing work without claiming savings.
+
 ## 5. The boot record and staleness
 
 `boot compose` removes any previous record first, then writes the image, a link map of
