@@ -9,6 +9,7 @@ import subprocess
 import sys
 import textwrap
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from pathlib import Path
@@ -97,9 +98,11 @@ class FakeGitHub:
                     "html_url": f"https://github.com/{REPO}/actions/runs/{number}",
                     "_request_id": "receipt-123"}
         if f"workflows/{ci.HOST}/runs?" in path:
-            return {"workflow_runs": self.host_runs}
+            page = int(urllib.parse.parse_qs(urllib.parse.urlsplit(path).query).get("page", ["1"])[0])
+            return {"workflow_runs": self.host_runs[(page - 1) * 100:page * 100]}
         if f"workflows/{ci.GUEST}/runs?" in path:
-            return {"workflow_runs": self.guest_runs}
+            page = int(urllib.parse.parse_qs(urllib.parse.urlsplit(path).query).get("page", ["1"])[0])
+            return {"workflow_runs": self.guest_runs[(page - 1) * 100:page * 100]}
         observed = re.fullmatch(r"actions/runs/(\d+)", path)
         if observed:
             number = int(observed[1])
@@ -414,6 +417,53 @@ def _ambiguous_recovery_never_reposts() -> None:
         fake.dispatch_error = None
         _refuses(fake.advance, "ambiguous identity must not authorize a second dispatch")
         ensure(len(fake.posts()) == 1, "only the original request may have started guest")
+
+
+def _recovery_ambiguity_across_pages() -> None:
+    fake = FakeGitHub(_state())
+    fake.dispatch_error = ci.APIError(500)
+    _refuses(fake.advance, "server error may have accepted the dispatch")
+    candidate = _run(20, event="workflow_dispatch", display_title=GUEST_TITLE,
+                     path=".github/workflows/guest-gates.yml")
+    fake.guest_runs = [candidate, *[
+        _run(number, event="workflow_dispatch", display_title="guest-gates:Another subject",
+             path=".github/workflows/guest-gates.yml") for number in range(21, 120)],
+        {**candidate, "id": 120}]
+    fake.dispatch_error = None
+    _refuses(fake.advance, "a second matching dispatch on another page leaves identity ambiguous")
+    guest = fake.state["guest"]
+    ensure(guest is not None and guest["phase"] == "intent" and guest["run_id"] is None,
+           "incomplete identity evidence must leave the interrupted intent unbound")
+    ensure(len(fake.posts()) == 1, "ambiguity across pages must not repeat the guest dispatch")
+
+
+def _workflow_run_pagination() -> None:
+    for revision in (None, REVISION):
+        for count in (0, 100, 101):
+            fake = FakeGitHub(_state())
+            runs = [_run(number) for number in range(1, count + 1)]
+            fake.host_runs, fake.guest_runs = runs, runs
+            workflow = ci.GUEST if revision is None else ci.HOST
+            with (patch.object(ci, "_token", return_value="fixture-credential"),
+                  patch.object(ci.GitHub, "request", side_effect=fake.request)):
+                ensure(ci.GitHub(ROOT, REPO).runs(workflow, revision) == runs,
+                       "workflow run listings include every page through an empty or short final page")
+            queries = [urllib.parse.parse_qs(urllib.parse.urlsplit(path).query)
+                       for _, path, _ in fake.calls]
+            pages = count // 100 + 1
+            for page, query in enumerate(queries, start=1):
+                expected = {"branch": ["main"], "per_page": ["100"], "page": [str(page)]}
+                expected["event" if revision is None else "head_sha"] = [
+                    "workflow_dispatch" if revision is None else revision]
+                ensure(query == expected, "each page retains the revision or dispatch filters")
+            ensure(len(queries) == pages, "run listing stops at its first empty or short page")
+    fake = FakeGitHub(_state())
+    fake.host_runs = [_run(number) for number in range(1, 1001)]
+    with (patch.object(ci, "_token", return_value="fixture-credential"),
+          patch.object(ci.GitHub, "request", side_effect=fake.request)):
+        _refuses(lambda: ci.GitHub(ROOT, REPO).runs(ci.HOST, REVISION),
+                 "a full final bounded page cannot establish a complete run listing")
+    ensure(len(fake.calls) == 10, "workflow-run pagination remains bounded")
 
 
 def _recovery_requires_main_and_own_dispatch() -> None:
@@ -1808,6 +1858,8 @@ def cases() -> list[Case]:
             Case("dispatch-revision-survives-main-advance", _dispatch_revision_survives_main_advance),
             Case("guest-interrupt-recovery", _guest_interrupt_recovery),
             Case("ambiguous-recovery-never-reposts", _ambiguous_recovery_never_reposts),
+            Case("recovery-ambiguity-across-pages", _recovery_ambiguity_across_pages),
+            Case("workflow-run-pagination", _workflow_run_pagination),
             Case("recovery-main-and-own-dispatch", _recovery_requires_main_and_own_dispatch),
             Case("rejected-dispatch-retry", _rejected_dispatch_can_retry),
             Case("host-interrupt-recovery", _host_interrupt_recovery),
