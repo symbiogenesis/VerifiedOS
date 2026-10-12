@@ -55,7 +55,12 @@ Positive attributed swept bytes require at least one recorded sweep quantum in
 that domain; this structural check does not establish coverage of those bytes.
 
 The analyzer reports teardown counts and exact rates, total/mean/maximum attributed
-swept bytes, and peak simultaneously quarantined bytes. Half-open residence
+swept bytes, and peak simultaneously quarantined bytes. `quarantine_peak_tick`
+locates the earliest positive quarantine maximum in absolute captured ticks,
+both overall and per domain. Each domain's `sweep_peak_period_start_tick` gives
+the tick-zero-anchored start of the earliest period attaining its positive sweep
+maximum. Both locations are `null` when the corresponding peak is zero.
+Half-open residence
 intervals release bytes before another retirement at the same tick. The footprint
 is an attributed teardown measurement, not a charge for a second shared sweep.
 Actual sweep time is counted once from the quanta, split across every period it
@@ -119,4 +124,7 @@ Acceptance cases cover declared-bound equality and one-past violations, mixed
 operations, per-operation drain limits, payload/segment/cost/notification excess,
 overhead that alone exceeds the slot, an empty spurious drain, strict chronology,
 unknown worlds/operations, duplicate rings, and stale declaration/capture identity.
+Independent multi-ring and multi-world comparisons check that each ring consumes
+its own world's bounds and observation span, including reordered operation-record
+fields with their corresponding values.
 Observed maxima and cadence describe only the supplied finite capture.
