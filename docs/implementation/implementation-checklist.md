@@ -410,19 +410,19 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,591.4 |
-| Total estimate range h | 2,972.3–6,210.5 |
+| Total estimate midpoint h | 4,606.4 |
+| Total estimate range h | 2,986.3–6,226.5 |
 | Completed scope h | 860.9 |
-| Complete by estimate % | 18.8 |
-| Remaining h | 3,730.5 |
-| Committed remaining h | 2,316.5 |
-| Open class I h | 781.5 |
+| Complete by estimate % | 18.7 |
+| Remaining h | 3,745.5 |
+| Committed remaining h | 2,331.5 |
+| Open class I h | 796.5 |
 | Open class X h | 2,949 |
 | Retained completion estimate h | 257.5 |
 | Unmeasured completed items | 28 |
-| Calibrated total h | 5,603.3 |
+| Calibrated total h | 5,614 |
 | Committed M8a open h | 85 |
-| Committed M8b open h | 90.5 |
+| Committed M8b open h | 105.5 |
 | Other committed open h | 2,141 |
 | Conditional open h | 1,000 |
 | Unfunded option open h | 414 |
@@ -453,9 +453,9 @@ The generated view below reports the explicit M8a leaf joins in [the work-order 
 | --- | --- | --- |
 | Q44 | available for authoring | M5.3d: real authenticated storage owner and two-instance target trace |
 | M5.3d | available for authoring | n/a |
-| M7.1a | available for authoring | Q39: qualified locked compiler identity for the final shared target capture; Q43: genuine unchanged compiler reuse before repeated final builds; M5.3d: storage and separate crypto compartment; M7.1b: target supervisor; M7.1c: image-bound admission record; M7.1d: typed graph and package descriptors |
-| M7.1b | available for authoring | M7.1a: shared target call, completion and restart observations |
-| M7.1c | available for authoring | M7.1d: real package graph; M7.1a: real image and member derivation records |
+| M7.1a | available for authoring | Q39: qualified locked compiler identity for the final shared target capture; Q43: genuine unchanged compiler reuse before repeated final builds; M5.3d: storage and separate crypto compartment; M7.1b: target supervisor; M7.1c: image-bound admission record; M7.1d: typed composition input, recipe membership and package graph |
+| M7.1b | available for authoring | M7.1d: generated immutable manifest from the typed composition input; M7.1a: shared target call, completion and restart observations |
+| M7.1c | available for authoring | M7.1d: real package graph and projected admission request skeleton; M7.1a: real image and member derivation records |
 | M7.1d | available for authoring | M7.1a: real member package descriptors |
 | M7.2 | available for authoring | M7.1a: accepted roster and complete allocation capture |
 | M7.3 | available for authoring | M7.1a: accepted roster and complete queue capture |
@@ -1959,7 +1959,7 @@ The RTL track, in parallel from the M0 freeze:
   * **Dispatch. Start:** S11's protocol, the standing corpus and the reviewed RTL trace interface. **Owns:** the trace adapter and BMC harness, independently of datapath authoring. **Check:** adapter fixtures establish protocol handling only. **Join:** R1b/R1c-ii's integrated RTL for corpus and BMC evidence, and M4.4's kernel artifact for the multi-instance checks that the single-hart software lane cannot take. Specify that composition and its predicate before the corresponding run; a scalar ISA corpus alone does not establish multikernel disjointness.
   * The shared corpus passes under Verilator with the commit-trace diff against the golden model, `rvfi` the hook; a riscv-formal-style BMC smoke on the curated scalar core runs here as cheap bring-up evidence (R-15-094), distinct from the deferred FEV and refinement work.
   * **Re-priced because S11 supplies the rig rather than this item building one.** The corpus stops being authored, the shrinking is automatic, and one protocol runs across the golden model and the RTL, using the shared trace contract in §10. **This is also where the struck M2's second-executor job lands**: an independent implementation to disagree with, arriving as the artifact that ships rather than as a second model.
-  * **Partial: the harness half is authored and exercised against fixtures and the golden model, and no co-simulation result exists.** [The co-simulation harness contract](../assurance/rtl-cosimulation-harness.md) states the retirement frame and why the corpus reaches the adjudicator through it rather than through the rig's socket, a departure from this entry's wording that F-399 holds for a plan act; the pinned RVFI port's gaps as obligations on R1b's core-port contract (F-405); the corpus-green predicate, whose member scope F-400 holds open; the riscv-formal smoke's predicate, with a fairness assumption on liveness alone, and its plan at provisional depths over the integer computational forms of the base, M, bit-manipulation and conditional-zero extensions; and the revocation join as a specified input with its instrumentation priced as a proposal and nothing instantiated. [vos/rtltrace.py](../../tools/vos/rtltrace.py) decodes the frame, refuses malformed and partial frames as protocol failures and adjudicates the rest through `trace.adjudicate`; [tools/rvfi-harness/](../../tools/rvfi-harness/) holds the SystemVerilog writer, and `testrig adapt`, `carry`, `framesim` and `bmc` run them. Every producer in the evidence below is a fixture or the golden model. **Found:** the elided trap CSR, capability-register and further-access records that a v1 comparison cannot see (F-401); the absent smoke inputs on an arm64 guest (F-402); instrumentation and remaining work above this cell's price (F-403); `testrig bridge --template random` fail-stopping on consecutive trapping injected words (F-404); riscv-formal's signed division and remainder models dividing unsigned outside its alternative-operations mode, which the curated core does not have (F-470); and the curated core refusing the `Zbkb` and `Zbkx` forms the profile keeps, its decoder gating them on `ZKN` with the scalar AES and SHA-2 rounds, while decoding `clmulr`, which the profile excludes (F-471). **Owed:** the Verilator top over R1b's port contract, the curated core it wraps elaborating under Verilator; the declared member scope; the plan's disposition of the frame route; the smoke's four inputs, the models its plan owes in place of riscv-formal's, and its first-run depths; the RVFI-DII v2 server side; and the revocation join's instrumentation and joins.
+  * **Partial: the harness half is authored and exercised against fixtures and the golden model, and no co-simulation result exists.** [The co-simulation harness contract](../assurance/rtl-cosimulation-harness.md) states the selected retirement-frame route for actual-fetch corpus adjudication and the distinct RVFI-DII route for injected instruction streams (F-399); the pinned RVFI port's gaps as obligations on R1b's core-port contract (F-405); the corpus-green predicate, whose member scope F-400 holds open; the riscv-formal smoke's predicate, with a fairness assumption on liveness alone, and its plan at provisional depths over the integer computational forms of the base, M, bit-manipulation and conditional-zero extensions; and the revocation join as a specified input with its instrumentation priced as a proposal and nothing instantiated. [vos/rtltrace.py](../../tools/vos/rtltrace.py) decodes the frame, refuses malformed and partial frames as protocol failures and adjudicates the rest through `trace.adjudicate`; [tools/rvfi-harness/](../../tools/rvfi-harness/) holds the SystemVerilog writer, and `testrig adapt`, `carry`, `framesim` and `bmc` run them. Every producer in the evidence below is a fixture or the golden model. **Found:** the elided trap CSR, capability-register and further-access records that a v1 comparison cannot see (F-401); the absent smoke inputs on an arm64 guest (F-402); late device-monitor and join-checker instrumentation still outside this cell's price (F-403); `testrig bridge --template random` fail-stopping on consecutive trapping injected words (F-404); riscv-formal's signed division and remainder models dividing unsigned outside its alternative-operations mode, which the curated core does not have (F-470); and the curated core refusing the `Zbkb` and `Zbkx` forms the profile keeps, its decoder gating them on `ZKN` with the scalar AES and SHA-2 rounds, while decoding `clmulr`, which the profile excludes (F-471). **Owed:** the Verilator top over R1b's port contract, the curated core it wraps elaborating under Verilator; the declared member scope; the smoke's four inputs, the models its plan owes in place of riscv-formal's, and its first-run depths; the RVFI-DII v2 server side; and the revocation join's instrumentation and joins.
     * At `75590974` the corpus carry held all 27 golden traces to their manifest digests and carried 20 members whole: over all 27 the frame's view holds 18,901 records over 10,049 retirements, and the 20 whole members hold 15,792 over 8,352. The other 7 were refused at 13 `cbo.zero` retirements wider than a curated mask and 2 `cclear` retirements that write several registers, and 641 of 641 seeded single-field changes were reported, none stillborn.
     * At `c68e9163` the lane's own carry, run on the host by an untracked scratch driver over the same 27 digest-checked traces with only the emulator run substituted, printed the same figures on separately scoped lines and reported 672 of 672 seeds, 31 of them from the added trap-flag seed.
     * At `75590974` the writer returned the synthetic fixture and the 20 whole members' 8,352 retirements field for field under Verilator 5.052, with 0 warning lines under `-Wall` and UNUSEDPARAM and UNUSEDSIGNAL waived.
@@ -1984,7 +1984,7 @@ The RTL track, in parallel from the M0 freeze:
   * **Done when:** the evidence states a maximum confidentiality-relevant recoverability window for each claimed storage path, its tested scope and uncertainty; an operational minimum retention guarantee cannot supply it. Q7 consumes the resulting lifetimes with R5's bulk evidence for any protection construction. Missing evidence leaves the physical claim unqualified.
   * **Estimate boundary:** engineering protocol and evidence analysis only, sharing R5's lab infrastructure where possible. Specimen procurement, fabrication and lab calendar are external dependencies; new erase hardware, memory cryptography or laboratory campaigns receive a separate priced scope before commissioning. No physical qualification is credited at M8a.
 
-**RTL subtotal:** 161.3 h · 4% · 20.3 h complete · open range 91–191 h.
+**RTL subtotal:** 176.3 h · 4% · 20.3 h complete · open range 105–207 h.
 
 ### M8–M10 and later
 
