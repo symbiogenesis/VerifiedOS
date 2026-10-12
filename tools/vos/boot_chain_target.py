@@ -430,8 +430,11 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str], *,
     state_name = bh.LIFECYCLES[f.lifecycle]
     if state_name not in bh.ROOT_STATES:
         raise ValueError(f"the shipped lifecycle state {state_name} accepts no root to sign under")
+    previous_headers: object = None
+    signers: tuple[boot_signing.SlhSigner, MlDsaSigner] | None = None
     if preserve_images:
         previous = preserved_images(root, retained, streams, f, rot, mmode)
+        previous_headers = previous.manifest["images"]
         images, keys = previous.images, previous.manifest["keys"]
         production, kernel_root = previous.roots[f.lifecycle], previous.kernel_root
         signing = {"preserved_images": True,
@@ -443,6 +446,7 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str], *,
                                      signature_bytes=f["BOOT_SIGNATURE_BYTES"])
         mldsa = MlDsaSigner(out / "signing", public_bytes=f["CHAIN_KSTAGE_PUBLIC_KEY_BYTES"],
                             signature_bytes=f["CHAIN_KSTAGE_SIGNATURE_BYTES"])
+        signers = slh, mldsa
         production, kernel_root = slh.roots[state_name], mldsa.public
         runtime = rot.runtime_payload(root, streams["runtime"])
         slots = {name: mmode.mmode_payload(root, streams["mmode"], kernel_root, tag)
@@ -482,7 +486,7 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str], *,
                           ("security_version", "BOOT_HDR_SECURITY_VERSION"),
                           ("payload_length", "BOOT_HDR_PAYLOAD_LENGTH"))}}
                for name, data in images.items()}
-    if preserve_images and headers != previous.manifest["images"]:
+    if preserve_images and headers != previous_headers:
         raise ValueError("provenance refresh would change retained image header bindings")
     manifest = {
         "schema": 1, "generator": bc.GENERATOR, "contract": bh.CONTRACT, "floor": f.floor,
@@ -512,6 +516,9 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str], *,
         if any(data != retained[name] for name, data in files.items()):
             raise ValueError("provenance refresh would change a retained staged stream or image")
     else:
+        if signers is None:
+            raise ValueError("ordinary staging has no signing tool identities")
+        slh, mldsa = signers
         if signing != {"slh": slh.identity(), "mldsa": mldsa.identity(),
                        "private_keys": str(out / "signing")}:
             raise ValueError("the signing tool identity changed during signature verification")
