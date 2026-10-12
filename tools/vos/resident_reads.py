@@ -185,6 +185,9 @@ class Service:
         return value
 
     def resident(self, slot: int) -> Resident | None:
+        # Stop/retire use this lookup before stores; cell-name aliases are not slots.
+        if type(slot) is not int or not 0 <= slot < self.bounds.residents:
+            return None
         value = self._cells.get(f"backing.{slot}")
         return value if isinstance(value, Resident) else None
 
