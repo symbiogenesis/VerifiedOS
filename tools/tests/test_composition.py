@@ -118,6 +118,58 @@ def _independent_relations() -> None:
             _refused(lambda: c.load(root), message)
 
 
+def _integer_input_boundary() -> None:
+    # Manifest fields are uint32_t values, including the closed policy arrays.
+    # Exact integer limits remain valid and unresolved target slots remain null.
+    with _sandbox() as (root, raw):
+        policy = raw["supervisor"]["policy"]
+        policy["threshold"] = [4294967295] * 8
+        policy["clear_threshold"] = [0] * 8
+        policy["min_dwell"] = 4294967295
+        policy["backoff"] = [0, 4294967295]
+        policy["ceiling"] = 4294967295
+        raw["inst_limit"] = 4294967295
+        raw["members"][1]["admission_tier"] = 2
+        _write(root, raw)
+        output = c.projections(root)["manifest.c"].decode("utf-8")
+        ensure("{4294967295, 4294967295" in output and "4294967295.0" not in output,
+               "integer manifest limits retain integer C literals")
+        ensure(c.load(root)["members"][1]["placement"] is None,
+               "unresolved target slots retain null")
+    changes: list[Callable[[dict[str, Any]], None]] = [
+        lambda raw: raw.update(schema_version=1.0),
+        lambda raw: raw["supervisor"]["policy"].update(min_dwell=1.0),
+        lambda raw: raw["supervisor"]["policy"].update(threshold=[1.0] * 8),
+        lambda raw: raw["supervisor"]["policy"].update(backoff=[0.0]),
+        lambda raw: raw["members"][1].update(admission_tier=1.0),
+        lambda raw: raw.update(inst_limit=1.0),
+        lambda raw: raw.update(graph={"type_count": 1.0, "intent_count": 1, "world_count": 1,
+                                      "inventory": [0], "verified_parsers": [0], "ring_depth_ceiling": 1}),
+        lambda raw: raw.update(graph={"type_count": 1, "intent_count": 1, "world_count": 1,
+                                      "inventory": [0.0], "verified_parsers": [0], "ring_depth_ceiling": 1}),
+    ]
+    for change in changes:
+        with _sandbox() as (root, raw):
+            change(raw)
+            _write(root, raw)
+            _refused(lambda: c.projections(root), "composition schema")
+    with _sandbox() as (root, raw):
+        memory = boot.regions(root / raw["configuration"]["path"])[0]
+        raw["members"][1]["placement"] = {
+            "text_base": hex(memory.base), "text_bytes": 16,
+            "data_base": hex(memory.base + 32), "data_bytes": 16}
+        raw["graph_placement"] = {"base": hex(memory.base + 64), "bytes": 16}
+        _write(root, raw)
+        c.load(root)
+        raw["members"][1]["placement"]["text_bytes"] = 16.0
+        _write(root, raw)
+        _refused(lambda: c.projections(root), "composition schema")
+        raw["members"][1]["placement"]["text_bytes"] = 16
+        raw["graph_placement"] = {"base": hex(memory.base + 64), "bytes": 16.0}
+        _write(root, raw)
+        _refused(lambda: c.projections(root), "composition schema")
+
+
 def _partial_descriptor_refusals() -> None:
     for descriptor, phrase in (({"package_id": "storage", "desc_manifest": 0, "desc_edges": []},
                                 "descriptor package identity"),
@@ -316,6 +368,7 @@ def cases() -> list[Case]:
     return [Case("real-roster-projections", _real_roster),
             Case("schema-and-membership", _schema_and_membership),
             Case("separate-startup-authority-imports", _independent_relations),
+            Case("exact-integer-input-boundary", _integer_input_boundary),
             Case("partial-descriptor-refusals", _partial_descriptor_refusals),
             Case("placement-refusals", _placement_refusals),
             Case("stale-inputs-and-projections", _stale_inputs_and_projections),

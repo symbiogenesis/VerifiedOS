@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, validators
 
 from vos import boot, composer
 from vos.jsonutil import unique_object
@@ -50,6 +50,10 @@ def _json(path: Path) -> object:
         return json.loads(path.read_bytes(), object_pairs_hook=unique_object)
     except (ValueError, UnicodeError) as error:
         raise CompositionError(f"cannot read {path}: {error}") from error
+
+
+def _is_integer(checker: object, value: object) -> bool:
+    return type(value) is int
 
 
 def _bound(root: Path, ref: dict[str, str]) -> None:
@@ -135,10 +139,17 @@ def load(root: Path, source: str = EXAMPLE) -> dict[str, Any]:
     if not isinstance(schema, dict):
         raise CompositionError("composition schema must be an object")
     raw = _json(_path(root, source))
-    errors = list(Draft202012Validator(schema).iter_errors(raw))
+    # JSON Schema accepts integral floats as integers. The typed graph and C
+    # manifest require actual integer values, without coercing declared bytes.
+    checker = Draft202012Validator.TYPE_CHECKER.redefine("integer", _is_integer)
+    validator = validators.extend(Draft202012Validator, type_checker=checker)
+    errors = list(validator(schema).iter_errors(raw))
     if errors:
         raise CompositionError(f"composition schema: {errors[0].json_path}: {errors[0].message}")
     raw = cast("dict[str, Any]", raw)
+    # The schema version is a const, so the integer type checker does not see it.
+    if type(raw["schema_version"]) is not int:
+        raise CompositionError("composition schema: $.schema_version: expected an integer")
     roster = boot.load_roster(root, boot.CONTRACT)
     names = [m["id"] for m in raw["members"]]
     if names != [m.id for m in roster.members]:
