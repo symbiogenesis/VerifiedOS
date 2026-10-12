@@ -267,6 +267,39 @@ def _graph_owner_boundary() -> None:
         _refused(lambda: c.load(root), "claims another owner")
 
 
+def _partial_graph_edge_refusals() -> None:
+    # An unresolved peer withholds the graph, not checks whose inputs are known.
+    with _sandbox() as (root, raw):
+        _resolve_descriptors(root, raw)
+        raw["members"][2]["descriptor"] = None
+        _write(root, raw)
+        ensure(json.loads(c.projections(root)["graph-input.json"])["payload"]["document"] is None,
+               "a valid present edge cannot fabricate an unresolved peer descriptor")
+        descriptor = root / "descriptors/storage.json"
+        original = descriptor.read_bytes()
+        for field, value in (("edge_target", len(raw["members"])), ("edge_limit", 0),
+                             ("edge_intent", 1), ("edge_from", 1), ("edge_to", 1),
+                             ("edge_world", 1), ("edge_format", 1), ("edge_bounds", 65),
+                             ("edge_ring", 0), ("edge_ring", 2)):
+            changed = json.loads(original)
+            changed["desc_edges"][0][field] = value
+            descriptor.write_bytes(composer.canonical_bytes(changed))
+            raw["members"][5]["descriptor"] = c.reference(root, "descriptors/storage.json")
+            _write(root, raw)
+            _refused(lambda: c.load(root), "declared edge is refused")
+        descriptor.write_bytes(original)
+        raw["members"][5]["descriptor"] = c.reference(root, "descriptors/storage.json")
+        for field in ("inventory", "verified_parsers"):
+            raw["graph"][field] = []
+            _write(root, raw)
+            _refused(lambda: c.load(root), "declared edge is refused")
+            raw["graph"][field] = [0]
+        raw["graph"] = None
+        _write(root, raw)
+        ensure(json.loads(c.projections(root)["graph-input.json"])["payload"]["document"] is None,
+               "absent graph choices remain unresolved")
+
+
 def _build_bindings() -> None:
     with _sandbox() as (root, raw):
         graph = _resolve_descriptors(root, raw)
@@ -373,6 +406,7 @@ def cases() -> list[Case]:
             Case("placement-refusals", _placement_refusals),
             Case("stale-inputs-and-projections", _stale_inputs_and_projections),
             Case("typed-handler-owner", _graph_owner_boundary),
+            Case("partial-typed-handler-refusals", _partial_graph_edge_refusals),
             Case("post-build-byte-bindings", _build_bindings),
             Case("artifact-path-substitutions", _artifact_path_substitutions),
             Case("production-project-cli", _cli)]

@@ -8,6 +8,7 @@ neither a derivation reference nor a build record supplies admission evidence.
 import hashlib
 import json
 import re
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 
@@ -99,6 +100,9 @@ def _placements(root: Path, raw: dict[str, Any], roster: boot.Roster) -> None:
 
 def _graph(root: Path, raw: dict[str, Any]) -> composer.CompositionInput | None:
     descriptors = []
+    graph_context = raw["graph"] if raw["graph"] is not None else {
+        "type_count": 0, "intent_count": 0, "world_count": 0,
+        "inventory": [], "verified_parsers": [], "ring_depth_ceiling": 0}
     for index, member in enumerate(raw["members"]):
         if member["descriptor"] is None:
             continue
@@ -107,14 +111,19 @@ def _graph(root: Path, raw: dict[str, Any]) -> composer.CompositionInput | None:
             raise CompositionError(f"{member['id']}: descriptor package identity differs")
         try:
             # Even a partially resolved input must reject a malformed present
-            # descriptor. The whole-roster edge checks follow after resolution.
+            # descriptor. Keep its original owner and target roster indices.
             parsed = composer.parse_document({"schema_version": 1, "descriptors": [descriptor], "roster": [0],
-                                              "type_count": 0, "intent_count": 0, "world_count": 0,
-                                              "inventory": [], "verified_parsers": [], "ring_depth_ceiling": 0})
+                                              **graph_context})
         except composer.ComposerError as error:
             raise CompositionError(f"{member['id']}: malformed descriptor: {error}") from error
         if any(edge.edge_owner != index for edge in parsed.descriptors[0].desc_edges):
             raise CompositionError(f"{member['id']}: handler edge claims another owner")
+        if raw["graph"] is not None:
+            context = replace(parsed, roster=tuple(range(len(raw["members"]))))
+            known = parsed.descriptors[0]
+            if any(not all(composer.edge_conjuncts_for_manifest(context, edge, known.desc_manifest))
+                   for edge in known.desc_edges):
+                raise CompositionError(f"{member['id']}: typed handler graph: a declared edge is refused")
         descriptors.append(descriptor)
     if raw["graph"] is None or len(descriptors) != len(raw["members"]):
         return None

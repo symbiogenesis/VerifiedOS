@@ -178,6 +178,12 @@ def edge_conjuncts(composition: CompositionInput, edge: Edge) -> tuple[bool, ...
     """The twelve ordered predicates of HandlerGraph.edge_conjuncts."""
     manifest = (composition.descriptors[edge.edge_owner].desc_manifest
                 if edge.edge_owner < len(composition.descriptors) else 0)
+    return edge_conjuncts_for_manifest(composition, edge, manifest)
+
+
+def edge_conjuncts_for_manifest(composition: CompositionInput, edge: Edge,
+                              manifest: int) -> tuple[bool, ...]:
+    """Check a known owner's manifest without requiring its peers' descriptors."""
     return (edge.edge_owner in composition.roster,
             edge.edge_target in composition.roster,
             edge.edge_limit > 0,

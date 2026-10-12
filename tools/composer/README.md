@@ -86,8 +86,12 @@ supervisor's comparison manifest; it does not make them target products. The
 two existing offline reference tools have source-bound producer identities and
 are excluded from admission certificates. Missing descriptors yield a null
 graph document, rather than a fabricated graph. Present descriptors are checked
-even if another member is unresolved. Once complete, their document uses the
-existing composer schema; every descriptor source must name its own package.
+even if another member is unresolved. A declared graph context checks every
+present edge against its owner's manifest, the full roster indices and the
+declared type, intent, world, format, parser and ring limits before withholding
+an incomplete graph. Absent graph choices remain unresolved. Once complete,
+their document uses the existing composer schema; every descriptor source must
+name its own package.
 Image entries may be unresolved; a declared entry follows the boot contract's
 `_start` rule. Planned text/data extents must fit executable/writable MainMemory,
 with no overlap with each other, the graph reservation or aligned HTIF word.
