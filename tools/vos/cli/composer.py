@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from vos import composer, corpus
+from vos import composition as production
 
 
 def _output(root: Path, relative: str, data: bytes) -> None:
@@ -27,11 +28,30 @@ def main(argv: list[str] | None = None) -> int:
     emit.add_argument("--output", required=True)
     fixture = commands.add_parser("fixture", help="emit the reference's synthetic descriptor document")
     fixture.add_argument("--output", required=True)
+    project = commands.add_parser("project", help="emit checked production composition projections")
+    project.add_argument("source")
+    project.add_argument("--output", required=True)
+    check_project = commands.add_parser("check-project", help="regenerate and compare production projections")
+    check_project.add_argument("source", nargs="?", default=production.EXAMPLE)
+    check_project.add_argument("--output", default=production.GENERATED)
+    promote = commands.add_parser("promote", help="check production admission readiness (currently refused)")
+    promote.add_argument("source")
     commands.add_parser("compare", help="compare the executable filter with source predicate readings")
     commands.add_parser("prove", help="compile finite equalities in the native guest lane")
     args = parser.parse_args(argv)
     root = corpus.find_root()
     try:
+        if args.command == "project":
+            result = production.emit(root, args.source, args.output)
+            print(json.dumps({"output": args.output, "projections": result,
+                              "production_admission": False}, indent=2))
+            return 0
+        if args.command == "check-project":
+            production.check(root, args.source, args.output)
+            print("ok composer: production composition projections reproduce; admission remains open")
+            return 0
+        if args.command == "promote":
+            production.require_production(root, args.source)
         if args.command == "compose":
             composition = composer.load_document(root, args.source)
             _output(root, args.output, composer.graph_bytes(composition))
@@ -49,6 +69,6 @@ def main(argv: list[str] | None = None) -> int:
                   else composer.compare_reference(root))
         print(json.dumps(result, indent=2))
         return 0 if result["passed"] else 1
-    except (composer.ComposerError, OSError, UnicodeError) as error:
+    except (OSError, ValueError) as error:
         print(f"FAIL composer: {error}")
         return 1

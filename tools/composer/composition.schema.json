@@ -1,0 +1,499 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VerifiedOS production composition input, first checkpoint",
+  "description": "Closed declaration schema. Null target slots denote absent products; derivation references carry no proof evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "name",
+    "roster",
+    "configuration",
+    "producers",
+    "members",
+    "startup",
+    "supervisor",
+    "graph",
+    "tohost",
+    "graph_placement",
+    "inst_limit"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "roster": {
+      "const": "docs/implementation/contracts/boot-roster.md"
+    },
+    "configuration": {
+      "$ref": "#/$defs/source"
+    },
+    "producers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "sources"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/source"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "members": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/member"
+      },
+      "minItems": 1
+    },
+    "startup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order",
+        "dependencies"
+      ],
+      "properties": {
+        "order": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "uniqueItems": true
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relation"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "supervisor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority",
+        "policy"
+      ],
+      "properties": {
+        "authority": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relation"
+          },
+          "uniqueItems": true
+        },
+        "policy": {
+          "$ref": "#/$defs/policy"
+        }
+      }
+    },
+    "graph": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/graph"
+        }
+      ]
+    },
+    "tohost": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]+$"
+        }
+      ]
+    },
+    "graph_placement": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "base",
+            "bytes"
+          ],
+          "properties": {
+            "base": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]+$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            }
+          }
+        }
+      ]
+    },
+    "inst_limit": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "member",
+        "requires"
+      ],
+      "properties": {
+        "member": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "requires": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        }
+      }
+    },
+    "member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "package_id",
+        "producer",
+        "sources",
+        "descriptor",
+        "artifact_slot",
+        "entry",
+        "placement",
+        "admission_tier",
+        "derivation",
+        "imports"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "package_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "producer": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          ]
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "descriptor": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/source"
+            }
+          ]
+        },
+        "artifact_slot": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "entry": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "const": "_start"
+            }
+          ]
+        },
+        "placement": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "text_base",
+                "text_bytes",
+                "data_base",
+                "data_bytes"
+              ],
+              "properties": {
+                "text_base": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]+$"
+                },
+                "text_bytes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4294967295
+                },
+                "data_base": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]+$"
+                },
+                "data_bytes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4294967295
+                }
+              }
+            }
+          ]
+        },
+        "admission_tier": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            }
+          ]
+        },
+        "derivation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "slot",
+            "source"
+          ],
+          "properties": {
+            "slot": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/source"
+                }
+              ]
+            }
+          }
+        },
+        "imports": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          }
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "threshold",
+        "clear_threshold",
+        "respond",
+        "min_dwell",
+        "max_interventions",
+        "escalation",
+        "backoff",
+        "ceiling",
+        "boot_bound",
+        "restart_members"
+      ],
+      "properties": {
+        "threshold": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "minItems": 8,
+          "maxItems": 8
+        },
+        "clear_threshold": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "minItems": 8,
+          "maxItems": 8
+        },
+        "respond": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9
+          },
+          "minItems": 8,
+          "maxItems": 8
+        },
+        "min_dwell": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "max_interventions": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "escalation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9
+        },
+        "backoff": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "maxItems": 16
+        },
+        "ceiling": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "boot_bound": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "restart_members": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type_count",
+        "intent_count",
+        "world_count",
+        "inventory",
+        "verified_parsers",
+        "ring_depth_ceiling"
+      ],
+      "properties": {
+        "type_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "intent_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "world_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "inventory": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        },
+        "verified_parsers": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        },
+        "ring_depth_ceiling": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    }
+  }
+}
