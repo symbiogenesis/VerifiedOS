@@ -54,6 +54,13 @@ including actual holder inventory, containment, sweep and reusable backing, is o
 
 Every modeled stored cell is declared before execution; `_put` refuses an unknown
 cell and records every store, including stores that restore the previous value.
+Initialization closes the declaration path and exposes a read-only classification
+inventory. Later declarations cannot reset a stored cell without observation,
+introduce an unknown writer or relabel a common writer. Executed refusal controls
+exercise declaration, classification mutation and public inventory replacement
+beside a common-counter defect that still returns independently expected bytes.
+This protects those inventory interfaces; direct manipulation of private Python
+internals remains an explicit harness seam rather than a tamper-resistance claim.
 Common cells contain backing/catalog, reservations, grants, roots and identifiers.
 Per-holder pending transfer, sequence, successful-read and authentication counts
 are session-private. Request and response publication are per-holder SPSC cells.
