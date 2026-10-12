@@ -82,6 +82,16 @@ not relocate them or leave a lookup pointing at deleted inputs.
 
 ## Reuse predicates
 
+The original four audit interruptions are bound by the action journal
+[`q39/interrupted-audits-20261012/checker-control.json`](../retained-evidence/q39/interrupted-audits-20261012/checker-control.json),
+SHA256 `829273a4cd7520c020faf6b9068689bc3d29b92a38fa9ec88589531aba4e6f80`,
+and the retained-copy manifest
+[`q39/interrupted-audits-20261012/manifest.json`](../retained-evidence/q39/interrupted-audits-20261012/manifest.json),
+SHA256 `8f22c5b1948c8d174c07d628ee7149b638506cac5c1dea467a5bf103336c0f00`.
+They record the exact checker identities and preserved receipt bytes, with no
+accepted resume checkpoint or complete default-reuse basis. Referencing those
+records supplies no successful kernel verdict.
+
 Compilation reuse requires the seven successful export, configure, clean,
 dependency, proof, extraction and compiler stages, authenticated pre-query seal,
 stage logs, source archive and source/object/compiler/configuration populations,
