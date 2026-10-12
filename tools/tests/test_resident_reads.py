@@ -190,6 +190,51 @@ def _resource_limits() -> None:
            "version counter overflow accepted")
 
 
+def _reused_slot_identity() -> None:
+    for outstanding in (False, True):
+        service, identity, handles = rr.fixture()
+        if outstanding:
+            ensure(service.begin(handles[0], 7, identity, 0, 16),
+                   "retained predecessor control lacked a transfer")
+        successor = replace(identity, version=2,
+                            root=rr.authenticated_root("user-data", 1, b"abcdefghijklmnop"))
+        slot = service.publish(rr.Resident(successor, b"abcdefghijklmnop"))
+        ensure(slot is not None and slot != handles[0].slot and service.safe_backing(),
+               "valid retained predecessor reported unsafe backing")
+        if outstanding:
+            ensure(service.finish(0) == b"0123456789ABCDEF",
+                   "valid predecessor transfer changed identity")
+        else:
+            ensure(service.read(handles[0], 7, identity, 0, 16) == b"0123456789ABCDEF",
+                   "valid predecessor reservation changed identity")
+
+        bad, bad_identity, bad_handles = rr.fixture(defect="premature-reuse")
+        if outstanding:
+            ensure(bad.begin(bad_handles[0], 7, bad_identity, 0, 16),
+                   "reuse control lacked an accepted transfer")
+        complete, _ = bad.retire(bad_handles[0].slot)
+        ensure(complete and bad.reservation(0) is not None,
+               "reuse defect failed to retain old metadata")
+        if outstanding:
+            ensure(bad.pending(0) is not None, "reuse defect omitted the pending transfer")
+        reused = bad.publish(rr.Resident(successor, b"abcdefghijklmnop"))
+        if reused is None:
+            raise AssertionError("reuse defect failed to publish replacement")
+        ensure(reused == bad_handles[0].slot and bad.resident(reused) is not None,
+               "reuse defect did not repopulate the same backing slot")
+        if outstanding:
+            # Isolate the accepted-transfer oracle from the reservation oracle.
+            bad.operation = "external-control"
+            for holder in range(bad.bounds.holders):
+                bad._put(f"reservation.{holder}", None)
+        ensure(not bad.safe_backing(), "slot presence hid old metadata bound to a replacement identity")
+        if outstanding:
+            ensure(bad.finish(0) is None and bad.response(0) is None,
+                   "old transfer returned replacement bytes")
+        ensure(bad.read(bad_handles[0], 7, bad_identity, 0, 16) is None,
+               "old reservation returned replacement bytes")
+
+
 def _executed_controls_and_observer() -> None:
     controls = rr.controls()
     ensure(set(controls) == {"common-counter", "replacement-touch", "hidden-reacquire",
@@ -236,5 +281,6 @@ def cases() -> list[Case]:
             Case("resident current authority and admitted-transfer cuts", _authority_and_lifecycle_cuts),
             Case("resident retained version and holder-independent retirement", _replacement_and_bounded_retirement),
             Case("resident finite metadata backing transfer and counter refusals", _resource_limits),
+            Case("resident reused slot preserves exact backing identity", _reused_slot_identity),
             Case("resident executed defects and complete modeled observer", _executed_controls_and_observer),
             Case("resident source-bound CLI scope and evidence", _source_bound_cli)]
