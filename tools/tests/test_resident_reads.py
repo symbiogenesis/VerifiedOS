@@ -6,7 +6,7 @@ import operator
 from contextlib import redirect_stdout
 from dataclasses import asdict, replace
 from io import StringIO
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, override
 
 from tests.harness import Case, ensure
 from vos import resident_reads as rr
@@ -357,6 +357,65 @@ def _integral_backing_slots() -> None:
                "integer final-slot retirement control refused")
         ensure(service.traffic()["common"] == 0,
                "backing-slot validation added common read writes")
+
+
+def _immutable_backing_publication() -> None:
+    class UnderchargedBytes(bytes):
+        @override
+        def __len__(self) -> int:
+            return 1
+
+    payload = b"0123456789ABCDEF"
+    successor_payload = b"abcdefghijklmnop"
+    for kind in ("system-image", "user-data"):
+        identity = rr.Identity(1, 7, 1, 1, rr.authenticated_root(kind, 1, payload))
+        successor = replace(identity, version=2,
+                            root=rr.authenticated_root(kind, 1, successor_payload))
+        mutable = bytearray(payload)
+        undercharged = UnderchargedBytes(b"X" * 80)
+        ensure(len(undercharged) == 1 and len(bytes(undercharged)) == 80,
+               "undercharged backing control did not exceed the declared byte bound")
+        for supplied in (mutable, memoryview(mutable), undercharged):
+            resident = rr.Resident(identity, cast("bytes", supplied))
+            service = rr.Service()
+            before = len(service.writes)
+            ensure(service.publish(resident) is None and len(service.writes) == before
+                   and service._integer("last-version") == 0 and service.resident(0) is None,
+                   "noncanonical backing consumed initial publication state")
+            ensure(service.publish(rr.Resident(identity, payload)) == 0,
+                   "refused backing consumed the version or blocked a canonical retry")
+
+            handles = [service.reserve(holder, 7, identity, 0, 16) for holder in (0, 1)]
+            if any(handle is None for handle in handles):
+                raise AssertionError("canonical retry lacked both independent reservations")
+            for handle in handles:
+                if handle is None:
+                    raise AssertionError("missing canonical reservation")
+                ensure(service.begin(handle, 7, identity, 0, 16),
+                       "replacement refusal control lacked independent accepted transfers")
+            held = (service.reservation(0), service.reservation(1))
+            pending = (service.pending(0), service.pending(1))
+            before = len(service.writes)
+            ensure(service.publish(replace(resident, identity=successor)) is None
+                   and len(service.writes) == before
+                   and service._integer("last-version") == 1
+                   and (service.reservation(0), service.reservation(1)) == held
+                   and (service.pending(0), service.pending(1)) == pending
+                   and service.resident(1) is None and service.safe_backing(),
+                   "noncanonical replacement consumed capacity or displaced accepted transfers")
+            ensure(service.publish(rr.Resident(successor, successor_payload)) == 1,
+                   "replacement refusal consumed its version or blocked a canonical retry")
+            ensure(service.finish(0) == payload and service.finish(1) == payload,
+                   "refused backing or successor publication changed retained transfer bytes")
+            if handles[0] is None:
+                raise AssertionError("missing releasable predecessor reservation")
+            ensure(service.close(handles[0]), "canonical predecessor close refused")
+            current = service.reserve(0, 7, successor, 0, 16)
+            if current is None:
+                raise AssertionError("canonical successor retry lacked a reservation")
+            ensure(service.read(current, 7, successor, 0, 16) == successor_payload
+                   and service.traffic()["common"] == 0 and service.safe_backing(),
+                   "canonical immutable backing retry lost payload, traffic or lifetime safety")
 
 
 def _replacement_and_bounded_retirement() -> None:
@@ -725,6 +784,7 @@ def cases() -> list[Case]:
             Case("resident integral supplied identities and caller domains", _integral_supplied_identities),
             Case("resident current authority and admitted-transfer cuts", _authority_and_lifecycle_cuts),
             Case("resident exact integer backing slots preserve accepted transfers", _integral_backing_slots),
+            Case("resident immutable backing refuses aliases before publication", _immutable_backing_publication),
             Case("resident retained version and holder-independent retirement", _replacement_and_bounded_retirement),
             Case("resident finite metadata backing transfer and counter refusals", _resource_limits),
             Case("resident exact integer composition and finite boundary controls", _integral_composition),
