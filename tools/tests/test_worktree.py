@@ -108,6 +108,49 @@ def _ignore_required() -> None:
         ensure(not (root / ".worktrees").exists(), "missing ignore is rejected before writes")
 
 
+def _checkout_ignore_required() -> None:
+    for source in ("info", "global", "contained-global"):
+        with sandbox_tree({"README.md": "fixture\n"}) as root, \
+                tempfile.TemporaryDirectory(prefix="vos-global-ignore-") as td:
+            base = _commit(root)
+            excluded = (root / ".git" / "info" / "exclude" if source == "info"
+                        else Path(td).resolve() / ".gitignore")
+            if source == "contained-global":
+                excluded = root / "other rules" / ".gitignore"
+                excluded.parent.mkdir()
+            excluded.write_text("/.worktrees/\n/native child/\n", encoding="utf-8")
+            if source != "info":
+                _git(root, "config", "core.excludesFile", str(excluded))
+            _refused(lambda: worktree.create(root, "valid-lane", base), ".gitignore")
+            ensure(not (root / ".worktrees").exists(),
+                   "machine-local exclusions cannot allocate a checkout directory")
+            ensure(not _git(root, "branch", "--list", "work/valid-lane"),
+                   "machine-local exclusions cannot allocate a branch")
+            native = root / "native child"
+            _git(root, "worktree", "add", "--detach", str(native), base)
+            _refused(lambda: worktree.verify(root, native, base), ".gitignore")
+            (root / ".gitignore").write_text("/.worktrees/\n/native child/\n", encoding="utf-8")
+            worktree.create(root, "valid-lane", base)
+            worktree.verify(root, native, base, exact=True)
+            (root / ".gitignore").write_text("/.worktrees/\n!/native child/\n", encoding="utf-8")
+            _refused(lambda: worktree.verify(root, native, base), ".gitignore")
+            (root / ".gitignore").write_text("!/.worktrees/\n", encoding="utf-8")
+            _refused(lambda: worktree.create(root, "negated-lane", base), ".gitignore")
+            ensure(not (root / ".worktrees" / "negated-lane").exists(),
+                   "a negated checkout rule cannot allocate a checkout")
+
+
+def _nested_ignore_source() -> None:
+    with sandbox_tree(FILES) as root:
+        base = _commit(root)
+        parent = root / ("native parent" if sys.platform == "win32" else "native\nparent")
+        parent.mkdir()
+        (parent / ".gitignore").write_text("/nested child/\n", encoding="utf-8")
+        native = parent / "nested child"
+        _git(root, "worktree", "add", "--detach", str(native), base)
+        worktree.verify(root, native, base, exact=True)
+
+
 def _native_ancestor_isolation() -> None:
     with sandbox_tree(FILES) as root:
         base = _commit(root)
@@ -363,6 +406,8 @@ def _cli_explicit_repo() -> None:
 def cases() -> list[Case]:
     return [Case("create-and-nested", _create_and_nested), Case("freshness", _freshness),
             Case("stale-registration", _stale_registration), Case("ignore-required", _ignore_required),
+            Case("checkout-ignore-required", _checkout_ignore_required),
+            Case("nested-ignore-source", _nested_ignore_source),
             Case("native-ancestor-isolation", _native_ancestor_isolation),
             Case("tracked-destination", _tracked_destination), Case("git-dir-override", _git_dir_override),
             Case("relative-links", _relative_links), Case("wrong-backlink", _wrong_backlink),
