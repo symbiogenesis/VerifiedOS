@@ -237,6 +237,14 @@ cases never reach staging and perform zero region writes at all. Target campaign
 must distinguish those zero-write refusals from a later failure that abandons
 unpublished staging while preserving all existing reachable bytes.
 
+Q42a consumes M5.3d's [stage, publish and reopen interface](../storage-recovery-policy.md#early-executable-publication-checkpoint)
+and its executable crash-cut campaign. Its restore adapter adds the complete
+authenticated object, one-use consent, schema/discard plan and receiving Fresh
+initializers to that campaign's assertions. The restore state machine above
+retains ownership of those decisions; storage publication supplies no consent,
+backup authenticity or freshness seal. This join reuses the existing transaction
+engine and still requires every BA-ATOMIC and BA-FRESH outcome.
+
 ## 5. Fresh initialization and authority after restore
 
 **BM-FRESH.** Every receiving manifest declares an admitted fresh-install

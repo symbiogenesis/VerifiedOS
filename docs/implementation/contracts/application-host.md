@@ -147,6 +147,17 @@ another bundle's execution or acknowledged state. A post-commit failure
 does not promise automatic rollback: relaunching retained old bytes is a fresh
 activation with current grants and compatible durable state.
 
+Q34f uses the [concrete retirement adapter](workflow-formal.md#concrete-retirement-adapters-and-qualification-order)
+from the bounded scalar kernel effects, extending it only for the admitted host
+shape with M4.4b-ii and the existing M4.4/R2 machine owners. Elastic teardown
+uses bounded stages; fixed-tier calls retain their synchronous path. The host
+binds every stage and reply to the activation being retired, and its source
+refinement still owns replacement commit, current grants and failure recovery.
+Qualify one real replacement beside Q32b's hibernation correspondence before
+extracting further shared receipt/stage code. Completed scalar retirement with
+fresh replacement roots is not evidence of a sweep or reuse of retired backing.
+The complete holder inventory and actual reuse gate remain required.
+
 ## Performance and evidence
 
 Start with R-14-013h's complete bounded general interpreter, immutable indexed

@@ -21,6 +21,13 @@ Generated crash prefixes and every declared tear location in the staging journal
 
 ## Execution predicate and open producers
 
+M5.4 consumes M5.3d's [early executable publication checkpoint](../storage-recovery-policy.md#early-executable-publication-checkpoint)
+for bounded staging, independently verified publication and persistent reopen.
+Its adapter reuses that crash-cut campaign and adds candidate-admission,
+floor/witness, next-boot and health-fallback observations. It owns those policy
+decisions and their refinement; it does not duplicate the storage transaction
+engine or treat a successful storage publication as generation admission.
+
 The target predicate runs `python tools/run.py model corpus` over the produced storage image. It stages a candidate through M5.3's device/storage path, refuses corrupted or misbound bytes before returning an object, verifies and publishes the candidate, and observes M3.5's next boot attest that root. A second run induces health failure and observes an allowed predecessor at the next boot. Both record the actual counter and witness pin, and failures publish no unverified generation.
 
 The selected [storage recovery policy](../storage-recovery-policy.md), persistent image adapter, byte decoder/authentication bridge, executable storage package, health/escalation policy, root-publication interface and M3.5 boot/counter path are needed for that predicate. M6.2b owns proof checking; M6.2c owns the actual witness-evidence reader and its refinement. Until those joins exist, completing the reference artifact is partial M5.4 progress and cannot close the implementation item.

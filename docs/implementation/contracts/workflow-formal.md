@@ -95,6 +95,13 @@ document state. `commit_preserves_declared_document` proves that relation.
 A failed commit resumes the old live app. Protected or unbounded operations
 refuse the edge before that app is stopped.
 
+Q32b implements this checkpoint through M5.3d's [stage, publish and reopen
+interface](../storage-recovery-policy.md#early-executable-publication-checkpoint).
+It adds semantic decoding, exact document equality, current-grant/resume checks
+and lifecycle cuts to the shared executable crash campaign. Ordinary and Fresh
+checkpoint acknowledgments retain their separate boundaries. This adapter
+neither creates another journal nor transfers Q32b's lifecycle proof to storage.
+
 `Release` requires a successful commit in this retirement attempt and the full
 `Roots` receipt. It is the successful hibernation event. The receipt names the
 complete holder inventory and derivable bases, closed ingress, live register
@@ -135,6 +142,49 @@ document; it does not instantly recover lost volatile state. The corpus
 exercises a crash before and after every normal switch event, including the
 interval when the destination owns the arena while the selected profile still
 names the previous app.
+
+## Concrete retirement adapters and qualification order
+
+Begin with M4.4b-i's [bounded scalar effects and observation
+tickets](../../../kernel/README.md#bounded-scalar-effects-and-fault-restart).
+Keep its direct synchronous fixed-tier path and admitted shape. It refuses active
+copy work, loans, devices and an open holder set; it leaves retired masks set
+and requires fresh replacement roots before restart. Those observations cannot
+be relabelled as a full sweep or permission to reuse the same backing.
+
+Consumers map their lifecycle request to an attempt bound to the actual victim
+set, composition-owned holder/base inventory, current epoch and resource bounds.
+The kernel adapter returns observed progress, a bounded refusal or the exact
+completion evidence obtained for that attempt. Separate semantic completion,
+fresh replacement and reusable-backing evidence; only the latter may construct
+the full `Roots` receipt above. Pending work remains quarantined and charged.
+A stale reply or a ticket from another attempt cannot advance the current one;
+an elapsed deadline cannot manufacture physical containment.
+
+| Owner | Concrete responsibility |
+| --- | --- |
+| M4.4b-i scalar producer | Existing bounded effects, trusted observation tickets and their target correspondence; the starting adapter for admitted scalar shapes |
+| M4.4b-ii group/elastic extension | Extend that adapter only for its admitted executive/group shapes, with bounded stages and actual clearing observations; preserve the synchronous fixed-tier path |
+| M4.4/R2 machine owners | Actual holder/base completeness, no-capture/minting-root obligations, machine barrier, post-barrier sweep, sanitization and device/proxy evidence for the admitted shape |
+| Q32b and Q34f | Workflow and same-session-host policy adapters, their attempt/grant identities, stage reservations, failure/recovery behavior and forward simulations |
+| Q44 | Resident-window lifetime specialization, holder-independent retirement and complete read-path traffic classification |
+
+Qualify a small correspondence checkpoint using Q32b's hibernation and Q34f's
+replacement paths before extracting further shared lifecycle machinery. Each
+must connect its real kernel observations to its source receipt and prove its
+own policy refinement, including stale saved/register authority, late replies,
+incomplete sweep/sanitization and failed-holder cases. Share demonstrated common
+receipt construction and bounded stage operations; keep commit, consent,
+grant reconstruction and recovery policy in each consumer. This checkpoint
+adds no general lifecycle framework and does not merge their state machines.
+
+Q44 first joins the accepted scalar producer through its own resident adapter.
+Neither the later two-consumer checkpoint nor M4.4b-ii's group/elastic completion
+gates Q44 or M8a. A shape that needs an unavailable machine operation remains
+unqualified; a wrapper or abstract receipt supplies no missing evidence.
+Existing owners retain their estimates and acceptance predicates. Any extension
+beyond an owner's priced duties needs a scoped contract and revised estimate
+before implementation, rather than being hidden in adapter reuse.
 
 ## Consumer review and acceptance
 
