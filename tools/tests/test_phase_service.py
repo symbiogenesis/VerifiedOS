@@ -5,10 +5,13 @@ import hashlib
 import json
 import tempfile
 from contextlib import redirect_stdout
+from dataclasses import replace
 from io import StringIO
 from pathlib import Path
+from typing import cast
 
 from tests.harness import TOOLS, Case, ensure
+from vos import phase_completion
 from vos.cli import phase_service as cli
 from vos.phase_service import Contract, check, scenarios
 
@@ -141,6 +144,9 @@ def _report() -> None:
     config_hash = hashlib.sha256((TOOLS.parent / cli.CONFIG).read_bytes()).hexdigest()
     ensure(report["sources_sha256"][cli.CONFIG] == config_hash,
            "receipt binds the configuration supplying qualification and frozen flags")
+    decoder_hash = hashlib.sha256((TOOLS / "vos" / "jsonutil.py").read_bytes()).hexdigest()
+    ensure(report["sources_sha256"]["tools/vos/jsonutil.py"] == decoder_hash,
+           "receipt binds the shared decoder enforcing unambiguous contract fields")
 
 
 def _contract_file() -> None:
@@ -199,6 +205,68 @@ def _unsupported_contracts() -> None:
                    "missing or unreadable input must produce a structured exit-2 refusal")
 
 
+def _ambiguous_contracts() -> None:
+    # Last-key-wins decoding hides the grant-gap counterexample with a second
+    # grant table. No repeated field may select which contract the receipt means.
+    gap = b'{"grants":[2,0],"arrivals":[[[],[[0,1]]],[[],[[0,1]]]]}'
+    ensure(not check(cli._parse_contract(gap)).zero_wait,
+           "the original grant-gap contract must still refute zero wait")
+    ambiguous = gap[:-1] + b',"grants":[2,2]}'
+    fields = {"grants": [0], "arrivals": [[[]]], "banks": 1,
+              "refresh": [[]], "paths": [0]}
+    duplicates = [ambiguous]
+    encoded = json.dumps(fields).encode("utf-8")
+    duplicates.extend(encoded[:-1] + b"," + json.dumps({key: value}).encode("utf-8")[1:]
+                      for key, value in fields.items())
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "contract.json"
+        for raw in duplicates:
+            path.write_bytes(raw)
+            output = StringIO()
+            with redirect_stdout(output):
+                code = cli.main(["--contract", str(path), "--completion", "--json"])
+            report = json.loads(output.getvalue())
+            ensure(code == 2 and "duplicate JSON key" in report.get("error", "")
+                   and "result" not in report and "completion" not in report,
+                   "ambiguous contract fields must refuse before either exploration")
+            ensure(report["contract_sha256"] == hashlib.sha256(raw).hexdigest(),
+                   "refusal must retain the supplied ambiguous byte identity")
+        path.write_bytes(b'{/* declared quiet phase */"grants":[0],"arrivals":[[[]]]}')
+        output = StringIO()
+        with redirect_stdout(output):
+            code = cli.main(["--contract", str(path), "--completion", "--json"])
+        report = json.loads(output.getvalue())
+        ensure(code == 0 and report["result"]["zero_wait"] and report["completion"]["ordered"],
+               "unambiguous commented contracts must keep their existing accepted decisions")
+
+
+def _numeric_contracts() -> None:
+    # Programmatic callers reach the same finite predicate without the JSON
+    # reader. Numeric aliases must not create fractional cycles or hart IDs.
+    base = Contract((1, 0), ((((0, 1, 0),),), ((),)))
+    ensure(check(base).zero_wait and phase_completion.check(base).ordered,
+           "the integer companion must remain accepted by both predicates")
+    for value in (False, True, 0.5, 1.0, float("nan"), float("inf"), "1", None):
+        invalid = cast(int, value)
+        contracts = (
+            replace(base, banks=invalid),
+            replace(base, grants=(invalid, 0)),
+            replace(base, arrivals=((((invalid, 1, 0),),), ((),))),
+            replace(base, arrivals=((((0, invalid, 0),),), ((),))),
+            replace(base, arrivals=((((0, 1, invalid),),), ((),))),
+            replace(base, refresh=(((invalid, 1),), ())),
+            replace(base, refresh=(((0, invalid),), ())),
+            replace(base, paths=(invalid,)),
+        )
+        for contract in contracts:
+            for validate in (check, phase_completion.check):
+                try:
+                    validate(contract)
+                except ValueError:
+                    continue
+                raise AssertionError(f"non-integer contract field accepted: {contract}")
+
+
 def _scope_limits() -> None:
     # The first request is accepted in cycle zero and occupies its bank for three
     # cycles. The same hart's later request is accepted and finishes in cycle one.
@@ -251,5 +319,7 @@ def cases() -> list[Case]:
     return [Case("counterexamples", _counterexamples), Case("long-residue", _long_residue),
             Case("invalid", _invalid), Case("refresh", _refresh), Case("paths", _paths),
             Case("report", _report), Case("contract-file", _contract_file),
-            Case("unsupported-contracts", _unsupported_contracts), Case("scope-limits", _scope_limits),
+            Case("unsupported-contracts", _unsupported_contracts),
+            Case("ambiguous-contracts", _ambiguous_contracts), Case("numeric-contracts", _numeric_contracts),
+            Case("scope-limits", _scope_limits),
             Case("tracked-contracts", _tracked_contracts)]
