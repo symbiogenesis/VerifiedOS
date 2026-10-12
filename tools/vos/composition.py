@@ -302,7 +302,7 @@ def build_record(root: Path, source: str, outputs: dict[str, bytes],
         raise CompositionError("build record: artifact slots differ from the runtime roster")
     for ref in [*artifacts.values(), image]:
         _bound(root, ref)
-    if len({ref["path"] for ref in artifacts.values()}) != len(slots):
+    if len({_path(root, ref["path"]) for ref in artifacts.values()}) != len(slots):
         raise CompositionError("build record: runtime members share a substituted artifact")
     return {"schema_version": 1, "kind": "production-composition-build-bindings",
             "binding": _binding(root, source, raw), "production_admission": False,
