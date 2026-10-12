@@ -115,7 +115,7 @@ def _input_record_boundaries() -> None:
 
     def listing(argv: list[str], **_kwargs: object) -> subprocess.CompletedProcess[bytes]:
         output = (staged if "--stage" in argv else "") + (untracked if "--others" in argv else "")
-        return subprocess.CompletedProcess(argv, 0, stdout=output.encode("utf-8"), stderr=b"")
+        return subprocess.CompletedProcess(argv, 0, stdout=output.encode(), stderr=b"")
 
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
@@ -133,7 +133,7 @@ def _input_conflicts() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
         for stage in (1, 2, 3):
-            output = f"100644 {'a' * 40} {stage}\tsource/conflict\0".encode("utf-8")
+            output = f"100644 {'a' * 40} {stage}\tsource/conflict\0".encode()
             done = subprocess.CompletedProcess(["git"], 0, stdout=output, stderr=b"")
             with patch.object(receipts.subprocess, "run", return_value=done):
                 try:
