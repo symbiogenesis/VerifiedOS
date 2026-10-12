@@ -652,6 +652,40 @@ def _compiler_cache_steps() -> None:
                f"the compiler cache's steps must be refused with {old!r} made {new!r} in {name!r}")
 
 
+def _model_failure_excerpt() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-guest-excerpt-") as name:
+        root = Path(name)
+        logs = root / "logs"
+        logs.mkdir()
+        (logs / "evidence.json").write_text(json.dumps({"members": [
+            {"name": "build", "exit_code": 1, "seconds": 1}]}), encoding="utf-8")
+        (logs / "model-build.log").write_text(
+            "Assertion failed: vector bit-count <expected> & observed\n", encoding="utf-8")
+        steps = {"adapter": {"outcome": "success"}, "evidence": {"outcome": "failure"}}
+        summary = report("model", logs, root / "absent", root / "proof", steps,
+                         "abc", toolchains="cold")
+        ensure("vector bit-count &lt;expected&gt; &amp; observed" in summary,
+               "the actual failure was missing or interpreted as markup")
+        steps["adapter"]["outcome"] = "failure"
+        steps["evidence"]["outcome"] = "skipped"
+        summary = report("model", logs, root / "absent", root / "proof", steps,
+                         "abc", toolchains="cold")
+        ensure("vector bit-count" not in summary and "| adapter | failure |" in summary,
+               "a refused adapter published stale build evidence")
+
+
+def _adapter_precedes_model_build() -> None:
+    contents = WORKFLOW.read_text(encoding="utf-8")
+    adapter = _workflow_step(contents, "Check the generated vector oracle adapter")
+    evidence = _workflow_step(contents, "Model evidence")
+    ensure("vector-bitcount smoke" in adapter and "continue-on-error" not in adapter,
+           "the hosted oracle adapter is missing or optional")
+    ensure("steps.adapter.outcome == 'success'" in evidence
+           and contents.index(adapter) < contents.index(evidence),
+           "the expensive build can run before a valid adapter")
+    ensure("adapter" in LANES["model"], "the reporter omits adapter refusal")
+
+
 def cases() -> list[Case]:
     return [
         Case("bootstrap failure retains diagnostics without stale proofs", _bootstrap_failure),
@@ -664,6 +698,8 @@ def cases() -> list[Case]:
         Case("skipped evidence refuses stale records and proof receipts", _skipped_evidence_ignores_old_record),
         Case("diagnostic copy failure preserves the remaining report", _diagnostic_copy_failure_keeps_summary),
         Case("member names are escaped in Markdown tables", _member_names_cannot_break_table),
+        Case("model failures name escaped diagnostics without stale excerpts", _model_failure_excerpt),
+        Case("the generated adapter passes before allocating model build work", _adapter_precedes_model_build),
         Case("reading outcome and base are recorded and validated", _reading_outcome_recorded),
         Case("reading step runs in the gate's environment and reads compare's verdict",
              _reading_step),

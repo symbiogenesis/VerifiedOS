@@ -394,9 +394,19 @@ jobs:
           # A cold run discharges every obligation again.
           lookup-only: ${{ env.GUEST_COLD == 'true' }}
 
+      - name: Check the generated vector oracle adapter
+        id: adapter
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        timeout-minutes: 5
+        # Exercise the shared Sail selector and its descending-index negative control
+        # before paying for the full model build. This supplies no ISA verdict.
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py vector-bitcount smoke \
+            2>&1 | tee "$VOS_LOG_DIR/vector-bitcount-adapter.log"
+
       - name: Model evidence
         id: evidence
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' && steps.adapter.outcome == 'success' }}
         # The sweep took at most 12.1 minutes on a hosted runner, with a cold Sail memo.
         timeout-minutes: 150
         # The proofs lane runs the proof gate, and the rtl lane the bundle and RTL

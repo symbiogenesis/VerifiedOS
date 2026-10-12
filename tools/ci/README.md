@@ -52,7 +52,11 @@ budget there, as the runs [vos/proofenv.py](../vos/proofenv.py)'s `proof_jobs` r
 measured, so a smaller runner needs a separate resource measurement.
 
 The gate job is a matrix of lanes, and each lane has its own runner. The `model` lane
-installs Z3, Sail and Verilator, then runs the model evidence sweep. The `rtl` lane
+installs Z3, Sail and Verilator, checks the generated vector oracle adapter with
+`vector-bitcount smoke`, then runs the model evidence sweep. The adapter checks
+the shared Sail expectation selector and reproduces the old descending-index
+mismatch as a negative control, without a complete model build. A failed adapter
+skips the sweep and fails the lane; it grants no ISA or model acceptance. The `rtl` lane
 installs the same toolchains, restoring the model lane's download, toolchain and Sail
 memo caches and saving none, then runs the bundle comparison, RTL lint, width check
 and crosscheck. The `proofs` lane
@@ -438,7 +442,15 @@ number from 1 to 20, default 20) and `title`, at a `--ref` that defaults to `mai
 refuses nothing the plan refuses. It puts a per-dispatch nonce in the run title,
 journals its intent under `out/instrument-ci/dispatches/` before its one POST, and
 recovers an interrupted dispatch with `--resume NONCE` by the run whose title carries
-the nonce, never by posting again. `fanout` never runs it. The plan job runs
+the nonce, never by posting again. `fanout` never runs it.
+
+The optional `dispatch --revision-from HEAD` convenience resolves a local Git ref
+to a full lowercase commit SHA, displays it and journals the exact value sent.
+`--revision` keeps literal inputs for hosted refusal qualification; `--resume`
+recovers the existing journal without posting. These selectors are mutually exclusive.
+[The plan job](instrument_route.py) retains every hosted input and ancestry check.
+
+The plan job runs
 [instrument_route.py](instrument_route.py) from the dispatching commit before any
 requested revision is checked out and uploads `plan.json`, each check's verdict and
 reason, under `always()`. It refuses a plan whose checkout is not the dispatching

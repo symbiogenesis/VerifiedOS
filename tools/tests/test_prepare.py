@@ -18,7 +18,7 @@ def _selection() -> None:
         path.write_text("import os\n", encoding="utf-8")
         ensure(prepare.selected(root, [str(path)], "python") == ["tools/selected.py"],
                "ordinary absolute selection was not normalized")
-        for paths in ([str(path), "tools/selected.py"], ["tools/../tools/selected.py"], [str(TOOLS / "run.py")]):
+        for paths in ([], [str(path), "tools/selected.py"], ["tools/../tools/selected.py"], [str(TOOLS / "run.py")]):
             try:
                 prepare.selected(root, paths, "python")
             except ValueError:

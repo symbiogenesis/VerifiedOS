@@ -15,6 +15,8 @@ from vos.cli import Table, dispatch
 
 def selected(root: Path, names: list[str], scope: str) -> list[str]:
     """Resolve ordinary files inside the selected owner; refuse aliasing and escapes."""
+    if not names or scope not in {"python", "model"}:
+        raise ValueError("preparation requires explicit files and a known owner")
     base = root.resolve()
     result: list[str] = []
     for name in names:

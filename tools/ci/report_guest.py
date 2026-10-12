@@ -19,7 +19,7 @@ from vos import receipts  # noqa: E402  (standalone reporting needs no locked en
 # Each lane's workflow step ids, in execution order. The proofs lane's `reading` runs
 # only when a dispatch names a reading base, and is skipped otherwise.
 LANES: dict[str, tuple[str, ...]] = {
-    "model": ("bootstrap", "evidence"),
+    "model": ("bootstrap", "adapter", "evidence"),
     "rtl": ("bootstrap", "bundle", "lint", "widthcheck", "crosscheck"),
     "proofs": ("bootstrap", "proofs", "reading"),
 }
@@ -100,8 +100,28 @@ def evidence_rows(logs: Path, outcome: str) -> list[str]:
     except (OSError, ValueError, TypeError, OverflowError) as error:
         print(f"Could not read guest evidence: {error}", file=sys.stderr)
         return ["", f"Evidence report could not be read: {type(error).__name__}. See logs."]
-    return ["", "| Evidence member | Exit | Seconds |", "| --- | --- | --- |",
+    rows = ["", "| Evidence member | Exit | Seconds |", "| --- | --- | --- |",
             *(f"| {cell(m.name)} | {m.exit_code} | {m.seconds:.1f} |" for m in members)]
+    if any(member.name == "build" and member.exit_code != 0 for member in members):
+        rows.extend(build_failure_rows(logs / "model-build.log"))
+    return rows
+
+
+def build_failure_rows(path: Path) -> list[str]:
+    """Bounded current-run failure excerpts; diagnostic text never becomes markup."""
+    try:
+        with path.open("rb") as stream:
+            stream.seek(0, os.SEEK_END)
+            stream.seek(max(0, stream.tell() - 65536))
+            tail = stream.read(65536).decode("utf-8", errors="replace")
+    except OSError:
+        return []
+    failures = [line[:1000] for line in tail.splitlines()
+                if re.search(r"assertion failed|error:|\bFAILED\b|\bFAIL:", line, re.IGNORECASE)][-12:]
+    if not failures:
+        return []
+    return ["", "Model build failure excerpt (full log retained):", "",
+            "<pre>" + html.escape("\n".join(failures)) + "</pre>"]
 
 
 def report(lane: str, logs: Path, console: Path, proof: Path,
