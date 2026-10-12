@@ -175,6 +175,20 @@ def _copy_minimalloc(module: MiniModule, problem: MiniProblem) -> MiniProblem:
     return module.Problem(buffers, problem.capacity)
 
 
+def _minimalloc_csv_columns(header: str) -> tuple[list[str], list[str]]:
+    """Use the same pinned, unambiguous columns when reading or writing offsets."""
+    aliases = {"buffer": "id", "buffer_id": "id", "begin": "lower",
+               "start": "lower", "end": "upper"}
+    original_columns = header.split(",")
+    columns = [aliases.get(name, name) for name in original_columns]
+    required = {"id", "lower", "upper", "size"}
+    if len(columns) != len(set(columns)) or not required <= set(columns):
+        raise UnsupportedAdapterError("duplicate or missing MiniMalloc CSV columns")
+    if set(columns) - required - {"alignment", "hint", "gaps", "offset"}:
+        raise UnsupportedAdapterError("unknown MiniMalloc CSV columns")
+    return original_columns, columns
+
+
 def minimalloc_from_csv(text: str, module: MiniModule, capacity: int) -> MiniProblem:
     """Read the pinned MiniMalloc columns, including legacy inclusive end values.
 
@@ -185,15 +199,7 @@ Capacity is an external parameter; MiniMalloc CSV does not encode it.
     rows = text.splitlines()
     if not rows:
         raise UnsupportedAdapterError("empty MiniMalloc CSV")
-    aliases = {"buffer": "id", "buffer_id": "id", "begin": "lower",
-               "start": "lower", "end": "upper"}
-    original_columns = rows[0].split(",")
-    columns = [aliases.get(name, name) for name in original_columns]
-    required = {"id", "lower", "upper", "size"}
-    if len(columns) != len(set(columns)) or not required <= set(columns):
-        raise UnsupportedAdapterError("duplicate or missing MiniMalloc CSV columns")
-    if set(columns) - required - {"alignment", "hint", "gaps", "offset"}:
-        raise UnsupportedAdapterError("unknown MiniMalloc CSV columns")
+    original_columns, columns = _minimalloc_csv_columns(rows[0])
     addend = int("end" in original_columns)
     buffers: list[MiniBuffer] = []
     for line in rows[1:]:
@@ -230,7 +236,7 @@ def minimalloc_to_csv(original: str, solution: MiniSolution) -> str:
     rows = original.splitlines()
     if not rows or len(rows) - 1 != len(solution.offsets):
         raise UnsupportedAdapterError("solution cardinality differs from original CSV")
-    columns = rows[0].split(",")
+    columns, _ = _minimalloc_csv_columns(rows[0])
     existing = columns.index("offset") if "offset" in columns else None
     output = [rows[0] if existing is not None else rows[0] + ",offset"]
     for row, offset in zip(rows[1:], solution.offsets, strict=True):
