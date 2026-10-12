@@ -143,9 +143,74 @@ def _member_comparison() -> None:
                f"changed {field} accepted")
 
 
+def _refuse_link(root: Path, rows: tuple[corpus_images.MemberImage, ...], previous: bytes | None) -> None:
+    path = root / corpus_images.BASELINE
+    try:
+        corpus_images.publish(path, rows, previous)
+    except ValueError as exc:
+        ensure("regular file" in str(exc), f"wrong publication refusal: {exc}")
+    else:
+        raise AssertionError("publication replaced a linked baseline")
+    with patch.object(corpus_images, "capture") as captured:
+        try:
+            corpus_images.migrate(root)
+        except ValueError as exc:
+            ensure("already exists" in str(exc), f"wrong linked migration refusal: {exc}")
+        else:
+            raise AssertionError("migration replaced a linked baseline")
+    ensure(not captured.called, "linked migration assembled before refusing its output path")
+
+
+def _linked_baseline_metadata() -> None:
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        path = root / corpus_images.BASELINE
+        path.parent.mkdir()
+        rows = (corpus_images.MemberImage("first", "first.s", "0" * 64, "1" * 64, 64),)
+
+        def linked(candidate: Path) -> bool:
+            return candidate == path
+
+        # Link metadata is sufficient to refuse even when Windows cannot create a link.
+        for method in ("is_symlink", "is_junction"):
+            with patch.object(Path, method, autospec=True, side_effect=linked):
+                _refuse_link(root, rows, None)
+            ensure(not path.exists(), f"{method} publication created an artifact")
+
+
+def _baseline_symlinks() -> None:
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        _fixture(root)
+        previous = _baseline(root)
+        path = root / corpus_images.BASELINE
+        rows = corpus_images.read(path)
+        target = root / "reviewed.json"
+        path.replace(target)
+        for present in (True, False):
+            try:
+                path.symlink_to(target)
+            except OSError as exc:
+                if getattr(exc, "winerror", None) == 1314:
+                    return  # Windows without link privileges still runs the metadata control.
+                raise
+            linked_target = path.readlink()
+            _refuse_link(root, rows, previous if present else None)
+            ensure(path.is_symlink() and path.readlink() == linked_target, "refusal replaced the baseline link")
+            if present:
+                ensure(target.read_bytes() == previous, "refusal changed the baseline target")
+            else:
+                ensure(not target.exists(), "refusal created the dangling link's target")
+            path.unlink()
+            if present:
+                target.unlink()
+
+
 def cases() -> list[Case]:
     return [Case("append-only reviewed members and read-only checks", _extension),
             Case("changed source and removed member refused", _old_source_and_removal),
             Case("changed encoder refused without rebaseline", _changed_encoder),
             Case("legacy migration and malformed records refuse", _migration_and_shapes),
-            Case("each recorded member field binds identity", _member_comparison)]
+            Case("each recorded member field binds identity", _member_comparison),
+            Case("linked baseline refuses before assembly or publication", _linked_baseline_metadata),
+            Case("live and dangling baseline symlinks stay untouched", _baseline_symlinks)]

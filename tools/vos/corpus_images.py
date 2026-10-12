@@ -125,6 +125,8 @@ def check(root: Path) -> list[str]:
 
 
 def publish(path: Path, rows: tuple[MemberImage, ...], previous: bytes | None) -> None:
+    if path.is_symlink() or path.is_junction():
+        raise ValueError("corpus image baseline must be a regular file")
     if (path.read_bytes() if path.exists() else None) != previous:
         raise ValueError("corpus image baseline changed during preparation")
     raw = {"schema": SCHEMA, "migration": migration_record(), "members": [asdict(row) for row in rows]}
@@ -134,7 +136,7 @@ def publish(path: Path, rows: tuple[MemberImage, ...], previous: bytes | None) -
 
 def migrate(root: Path) -> None:
     path = root / BASELINE
-    if path.exists():
+    if path.exists() or path.is_symlink() or path.is_junction():
         raise ValueError("corpus image baseline already exists; migration cannot overwrite it")
     rows, digest, size = capture(root)
     if (len(rows), digest, size) != (LEGACY_MEMBERS, LEGACY_SHA256, LEGACY_BYTES):
