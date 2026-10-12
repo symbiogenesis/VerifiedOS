@@ -14,10 +14,13 @@ and K-75 decides the one floor site its single mutant does not seed.
 """
 
 import json
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from tests.harness import Case, ensure, sandbox_tree
+from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
 from vos import device_regs, rtl_width, sailbundle, workorder
 from vos.checks import Context, bindings, compounds, counts, estimates, generated, meta, pins
@@ -852,10 +855,40 @@ def _k119_gap_finder_keeps_ordinary_words_as_prose() -> None:
             "which&nbsp is what K-05 are.",
             "which is what &note K-05 are.",
             "which [is](#is) what K-05 are.",
+            "which <is>what K-05 are.",
+            "which is <what>K-05 are.",
             "which is what `a.b` K-05 are."):
         found, _ = _k119(computed=_K119_COMPUTED + " " + sentence)
         ensure(not found, f"ordinary words outside complete tags and entities remain "
                          f"prose in {sentence!r}: {found!r}")
+
+
+def _k119_repeated_tag_gaps_terminate() -> None:
+    # A failed suffix after punctuation-only tags once allowed exponentially many
+    # readings of each tag as a unit or as individual punctuation. Bound the child
+    # process so a regression reports a failed case instead of hanging the gate.
+    code = """
+import sys
+sys.path.insert(0, sys.argv[1])
+from tests.harness import ensure
+from tests.test_checks import _k119, _K119_COMPUTED, _K119_MEMBERS_FINDING
+gap = '<!>' * 64
+for sentence, unread in (
+        (f'which{gap}else is what K-05 are.', False),
+        (f'which is what{gap}else K-05 are.', False),
+        (f'which{gap}is what K-05 are.', True)):
+    found, _ = _k119(computed=_K119_COMPUTED + ' ' + sentence)
+    ensure(bool(found) == unread, f'unexpected tag-gap verdict: {found!r}')
+    if unread:
+        ensure(any(_K119_MEMBERS_FINDING in item for item in found),
+               f'the malformed membership must be refused: {found!r}')
+"""
+    with tempfile.TemporaryDirectory(prefix="vos-k119-gap-") as temp_dir:
+        done = subprocess.run([sys.executable, "-c", code, str(TOOLS)],
+                              cwd=Path(temp_dir).resolve(), capture_output=True,
+                              text=True, check=False, timeout=20)
+    ensure(done.returncode == 0,
+           f"repeated tag gaps must terminate with the expected verdicts: {done.stderr}")
 
 
 def _k97_reviewed_pin_is_required_without_prose_copies() -> None:
@@ -2568,6 +2601,7 @@ def cases() -> list[Case]:
              _k119_markup_entity_and_period_gaps_fail_closed),
         Case("k119-gap-finder-keeps-ordinary-words-as-prose",
              _k119_gap_finder_keeps_ordinary_words_as_prose),
+        Case("k119-repeated-tag-gaps-terminate", _k119_repeated_tag_gaps_terminate),
         Case("k97-reviewed-pin-is-required-without-prose-copies",
              _k97_reviewed_pin_is_required_without_prose_copies),
         Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),

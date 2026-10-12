@@ -189,13 +189,13 @@ letters and digits outside those tags and entities stop a gap, so a membership
 sentence in other words, `which is exactly what`, or one with an ordinary word before
 its first id, is read as prose, which is the residue. The crossing is lexical, so
 incomplete tags or entities and Markdown link destinations containing ordinary words
-still stop a gap. An underscore, a line break,
-extra spacing, capitals, marks among the words or around the ids, and tags or entities
+still stop a gap. Complete tags and entities are delimiters; their names never supply
+an opening word. An underscore, a line break, extra spacing, capitals, marks among
+the words or around the ids, and tags or entities
 are found and, outside the plain sentence form, reported. What that reading does not
 reach is a class introduced in some other sentence form: it is read as part of the
-class before it, or
-as part of no class ahead of the first, and is caught only where it carries a
-membership sentence of its own, that sentence then being a class's second, one standing
+class before it, or as part of no class ahead of the first, and is caught only where it
+carries a membership sentence of its own, that sentence then being a class's second, one standing
 ahead of every class, or one in a form the reading does not take. A list is decided
 whole by a grammar of ids, `K-a through K-b` ranges, commas and `and`, and a range
 expands over the active rows whose numbers it spans, so a struck row inside one is
@@ -309,12 +309,15 @@ _CLASS_OPEN_RE = re.compile(
 # sentence in other words, `which is exactly what`, or one with an ordinary word before
 # its first id, is read as prose, which is the residue. Tags and entities are crossed
 # lexically, not rendered: incomplete tags and entities and Markdown link destinations
-# containing ordinary words still stop a gap.
+# containing ordinary words still stop a gap. Complete tags and entities are consumed
+# atomically before punctuation, and the gaps are possessive, so a failed suffix cannot
+# split a delimiter into exponentially many equivalent readings or read its tag name
+# as one of the opening words.
 _MEMBERS_RE = re.compile(r"\b(?:[Ww]hich|[Tt]hat) is what (K-[\w ,-]*?) are\b")
-_MEMBERS_GAP = r"(?:[^\w]|_|<[^<>]*>|&(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]*);)"
+_MEMBERS_GAP = r"(?><[^<>]*>|&(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]*);|[^\w]|_)"
 _MEMBERS_FIND_RE = re.compile(
-    rf"(?<![^\W_])(?:which|that){_MEMBERS_GAP}+is{_MEMBERS_GAP}+what"
-    rf"{_MEMBERS_GAP}*K-\d", re.IGNORECASE)
+    rf"(?<![^\W_])(?:which|that){_MEMBERS_GAP}++is{_MEMBERS_GAP}++what"
+    rf"{_MEMBERS_GAP}*+K-\d", re.IGNORECASE)
 _CLASS_ID = r"K-\d{2,3}[a-z]?"
 _CLASS_ITEM = rf"{_CLASS_ID}(?: through {_CLASS_ID})?"
 _CLASS_ITEM_RE = re.compile(rf"({_CLASS_ID})(?: through ({_CLASS_ID}))?")
