@@ -414,17 +414,18 @@ def _op_dma(op: Operation) -> OpDma:
     return dma
 
 
-def declaration(root: Path) -> Declaration:
+def declaration(root: Path, *, blob: bytes | None = None) -> Declaration:
     """Validate JSON shapes once, preserving additional declaration metadata.
 
     Numeric relationships remain the generated conformance campaign's obligations.
     This boundary decides representation types, the record's declared width, the world
     names the artifact's scopes are spelled from, and whether a world's DMA declaration
-    agrees with the world it sits in.
+    agrees with the world it sits in. A supplied byte snapshot is validated directly,
+    so a caller binding its digest never selects constants from another file read.
     """
     path = root / DECLARATION
     try:
-        text = path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8") if blob is None else blob.decode("utf-8")
     except OSError as exc:
         raise RingError(f"{DECLARATION} is not readable: {exc}") from exc
     try:
