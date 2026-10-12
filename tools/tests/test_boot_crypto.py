@@ -19,6 +19,7 @@ from tests.harness import TOOLS, Case, ensure
 from vos import boot_crypto as b
 from vos import boot_crypto_target as target
 from vos import compiler_provenance, toolenv
+from vos.checks import generated
 from vos.cli import boot_crypto as cli
 
 
@@ -296,6 +297,53 @@ def staged_streams_bind_manifest_and_sources() -> None:
             raise AssertionError(f"{label} accepted as a staged stream")
 
 
+def historical_staging_has_integrity_but_no_target_acceptance() -> None:
+    with tempfile.TemporaryDirectory() as name:
+        root = Path(name)
+        _staged_root(root)
+        path = root / target.MANIFEST
+        current = json.loads(path.read_text(encoding="utf-8"))
+        old = {key: current["compiler_provenance"][key]
+               for key in ("revision", "kind", "compiler_sha256", "source_count")}
+        old["kind"] = "fixture source build"
+        _edit_json(path, lambda data: data.update(compiler_provenance=old))
+        manifest, streams = target.staged(root, historical=True)
+        ensure(manifest["compiler_provenance"] == old and set(streams) == set(target.MODES),
+               "historical integrity inspection changed or omitted staged records")
+        row = next(row for row in generated.GENERATED if row.path == target.MANIFEST)
+        ctx = cast("Any", SimpleNamespace(root=root, shared={}))
+        checked = generated._signature_row(ctx, row, path.read_bytes())
+        ensure(not checked.findings and ctx.shared["signature_provenance"] ==
+               "historical incomplete compiler provenance; target acceptance unavailable",
+               f"K-88 concealed unavailable target acceptance: {checked.findings}, {ctx.shared}")
+        with patch.object(target.receipts, "inputs", return_value={"fixture": "digest"}):
+            try:
+                target.run(root, root / "out", None, [], root / "build/ccomp",
+                           root / "build/build-result.json", 1, 1)
+            except ValueError as error:
+                ensure("complete contained compiler provenance" in str(error),
+                       f"target campaign refused for another reason: {error}")
+            else:
+                raise AssertionError("target campaign enabled historical producer inspection")
+        _edit_json(path, lambda data: data["compiler_provenance"].update(build_receipt="present"))
+        try:
+            target.staged(root, historical=True)
+        except ValueError as error:
+            ensure("missing" in str(error) or "toolchain" in str(error),
+                   f"partial current receipt refused for another reason: {error}")
+        else:
+            raise AssertionError("historical inspection hid a partial current receipt")
+        _edit_json(path, lambda data: data.update(compiler_provenance=old))
+        (root / target.SOURCE).write_bytes(b"int changed;\n")
+        try:
+            target.staged(root, historical=True)
+        except ValueError as error:
+            ensure("changed since staging" in str(error),
+                   f"historical source drift refused for another reason: {error}")
+            return
+        raise AssertionError("historical producer mode bypassed staged source integrity")
+
+
 def _stage_fixture(root: Path, shift: str | None = None) -> Callable[..., object]:
     """compile_mode's stand-in: it writes the stream and a unit whose markers name the
     source and the header, and with `shift` edits the source before that interface."""
@@ -529,6 +577,8 @@ def cases() -> list[Case]:
             Case("target byte extents and scalar lengths", target_bounds_bind_lengths),
             Case("target compiler source drift", compiler_source_drift_refuses),
             Case("staged streams bind their manifest and sources", staged_streams_bind_manifest_and_sources),
+            Case("historical staging has integrity without target acceptance",
+                 historical_staging_has_integrity_but_no_target_acceptance),
             Case("staging reads the preprocessor's checkout sources", staging_reads_marked_sources),
             Case("staging writes what the staged check accepts", staging_writes_what_staged_accepts),
             Case("interfaces select their own population", interfaces_select_their_population),

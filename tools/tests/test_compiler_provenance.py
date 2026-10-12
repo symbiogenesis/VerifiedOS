@@ -61,6 +61,39 @@ def absent_is_explicit() -> None:
         raise AssertionError("partial receipt was hidden as absence")
 
 
+def historical_inspection_never_accepts_a_target() -> None:
+    with tempfile.TemporaryDirectory() as name:
+        root = Path(name)
+        compiler = compiler_fixture.create(root)
+        lock = root / provenance.LOCK
+        current, _ = provenance.read(compiler, lock)
+        old = {key: current[key] for key in ("revision", "kind", "compiler_sha256", "source_count")}
+        old["kind"] = "fixture source build"
+        ensure(provenance.inspect(old, lock) ==
+               "historical incomplete compiler provenance; target acceptance unavailable",
+               "historical inspection concealed unavailable target acceptance")
+        ensure(provenance.inspect(current, lock) == "complete compiler provenance",
+               "complete provenance was misclassified as historical")
+        for raw in [old, {**old, "build_receipt": "present"}, {**old, "toolchain": None},
+                    {**old, "source_count": True}, {**old, "source_count": 0},
+                    {**old, "compiler_sha256": "invalid"}, {**old, "kind": ""}]:
+            try:
+                provenance.portable(raw, lock)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(f"incomplete or malformed producer accepted for target: {raw}")
+            if raw == old:
+                continue
+            try:
+                provenance.inspect(raw, lock)
+            except ValueError:
+                continue
+            raise AssertionError(f"partial or malformed receipt hidden as historical: {raw}")
+
+
 def cases() -> list[Case]:
     return [Case("complete native tool identities and missing/mismatched refusals", locked_identities),
-            Case("receipt absence differs from invalid or partial receipt", absent_is_explicit)]
+            Case("receipt absence differs from invalid or partial receipt", absent_is_explicit),
+            Case("historical inspection supplies no target acceptance",
+                 historical_inspection_never_accepts_a_target)]

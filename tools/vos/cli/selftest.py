@@ -50,6 +50,7 @@ Exit 0 when every case kills its mutant and every registered rule is accounted f
 """
 
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -733,6 +734,18 @@ def _literal(rel: str, find: str, repl: str) -> Mutation:
     def apply(box: Sandbox) -> bool:
         return box.write(rel, replace_once(box.read(rel), find, repl))
     return apply
+
+
+def _k114_compressed_premise(box: Sandbox) -> bool:
+    """An unlisted premise inside retained gzip evidence must remain visible."""
+    rel = ("docs/implementation/retained-evidence/q39/pending-audits-20261012/"
+           "raw/standard-source/progress.json.gz")
+    target = box.path / rel
+    raw = gzip.decompress(target.read_bytes())
+    box.touched.add(rel)
+    target.unlink()
+    target.write_bytes(gzip.compress(raw + b"\nCorrectness rests on HACL* and F*/Z3.\n", mtime=0))
+    return True
 
 
 def _entry(ident: str, edit: Callable[[str], str | None]) -> Mutation:
@@ -2298,6 +2311,8 @@ CASES: list[Case] = [
     ("K-88", "a signature adapter inverted after its staged streams were compiled",
      _literal("firmware/crypto/signature_target.c",
               "  return accepted ? 0 : 1;", "  return accepted ? 1 : 0;")),
+    ("K-88", "a chain entropy refusal inverted after its historical streams were compiled",
+     _literal("firmware/chain/rom.c", "  if (!entropy) {", "  if (entropy) {")),
     ("K-88", "a Fiat inclusion header changed after the recorded emission",
      _literal("tools/generated/fiat-crypto/25519_32.h",
               "static void fiat_25519_carry_mul", "static void fiat_25519_carry_mul_changed")),
@@ -2489,6 +2504,8 @@ CASES: list[Case] = [
               "carries no authorization for deterministic production signing. Its "
               "signing path's functional correctness rests on libcrux's verified "
               "ML-DSA, whose F\\* proof this campaign takes as its premise.")),
+    ("K-114", "a retained compressed record resting a result on an unlisted interim",
+     _k114_compressed_premise),
     # The rewrite a modernizing lane makes: a two-branch match in a proof source turned
     # into Rocq 9.3's `if … is`, which the gate accepts and the Wasm oracle's Rocq 9.1.1
     # cannot parse. EndpointIPC.v is the source that stays compiled at an older release
