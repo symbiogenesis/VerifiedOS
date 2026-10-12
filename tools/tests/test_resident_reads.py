@@ -112,6 +112,23 @@ def _integral_read_intervals() -> None:
         ensure(service.finish(0) == b"56"
                and service.read(handles[1], 7, identity, 15, 1) == b"F",
                "malformed inputs lost accepted payload or independent-holder authority")
+        ensure(service.close(handle), "handle-alias control could not release its holder")
+        unit = service.reserve(0, 7, identity, 0, 1)
+        if unit is None:
+            raise AssertionError("integral unit-window control refused")
+        for changed in (replace(unit, start=cast("int", 0.0)),
+                        replace(unit, start=False), replace(unit, length=cast("int", 1.0)),
+                        replace(unit, length=True)):
+            # Python equality aliases these malformed fields to the stored integers.
+            ensure(changed == unit, "same-valued handle alias control did not execute")
+            sequence = service._integer("sequence.0")
+            ensure(not service.begin(changed, 7, identity, 0, 1) and not service.renew(changed),
+                   "non-integral handle interval bypassed exact reservation validation")
+            ensure(service.pending(0) is None and service.response(0) is None
+                   and service._integer("sequence.0") == sequence,
+                   "malformed handle interval consumed read state")
+        ensure(service.read(unit, 7, identity, 0, 1) == b"0",
+               "refused handle aliases damaged the stored integral reservation")
         ensure(service.traffic()["common"] == 0 and service.safe_backing(),
                "integral boundary checks added common read writes or lost retained backing")
 

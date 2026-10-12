@@ -37,7 +37,9 @@ clock and boot/generation epochs have finite limits with explicit refusal.
 The reference never wraps identifiers or silently pins another backing range.
 Holder indices and byte intervals require integer inputs; fractional, boolean
 and non-finite numeric inputs receive refusal before any reservation or transfer
-is acknowledged. Refused requests preserve an already accepted transfer.
+is acknowledged. Supplied handle intervals receive the same check, preventing
+numeric equality from aliasing a malformed handle to its stored reservation.
+Refused requests preserve an already accepted transfer.
 Publication charges every existing resident against the new version's predecessor
 limit, including closed quarantine after the current version has stopped. Exhausted
 predecessor capacity refuses publication without consuming a version; completing a

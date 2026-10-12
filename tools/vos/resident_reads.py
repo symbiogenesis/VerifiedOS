@@ -203,6 +203,8 @@ class Service:
         return type(holder) is int and 0 <= holder < self.bounds.holders
 
     def _valid(self, handle: Handle, domain: int, identity: Identity) -> bool:
+        if type(handle.start) is not int or type(handle.length) is not int:
+            return False
         held = self.reservation(handle.holder)
         resident = self.resident(handle.slot)
         domain_ok = domain == handle.identity.domain or self.defect == "wrong-domain"
