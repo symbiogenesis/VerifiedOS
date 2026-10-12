@@ -35,6 +35,12 @@ each holder has one outstanding transfer/request SPSC slot. Read length, retaine
 predecessors, expiration, renewal count, tokens, read sequences, version numbers,
 clock and boot/generation epochs have finite limits with explicit refusal.
 The reference never wraps identifiers or silently pins another backing range.
+Publication accepts exact immutable `bytes` backing. Mutable buffers, memory views
+and byte subclasses refuse before any backing, current-version or version-counter
+store. This keeps caller aliases and overridden length or slicing operations from
+changing retained bytes or bypassing the declared capacity outside the observer.
+Initial and replacement refusal controls preserve publication capacity and existing
+accepted transfers, and allow a later canonical-byte publication with the same version.
 Holder indices and byte intervals require integer inputs; fractional, boolean
 and non-finite numeric inputs receive refusal before any reservation or transfer
 is acknowledged. Every numeric handle field receives the same check before read,
