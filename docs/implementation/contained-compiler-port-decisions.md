@@ -800,3 +800,72 @@ Preserve all original inputs, seals, logs and genuine available results. Neither
 pair is selected or accepted while its complete qualification remains pending.
 The active-input retention rules and final acceptance, publication and hosted
 validation handoff remain unchanged.
+
+## Investigate future audit reuse without interrupting current runs
+
+On 12 October 2026 the user asked whether future audits could become substantially
+faster, and whether existing incremental functionality could preserve progress
+after stopping an audit. Two read-only scouts inspected static sources in dedicated
+lanes `checklist-20261012-cache-e` and `checklist-20261012-speed-f`, each based on
+VerifiedOS `3d4733cc` and bounded to ten active minutes. Neither scout ran a gate,
+build, benchmark or live-process diagnostic. The integrator exported only the
+three helper sources from the immutable `ec5b825` and `6409d0ed` commits into Temp;
+the export archive digests are respectively
+`99ee7c35e717a9b673c35d74420ffdfcb3b6c706e2a37c3d7e188c336e5a8ea0` and
+`b69ed3445bd1552ad1dd17676145f2141d273d9ef4c0ff14ff739f6c9429d33f`.
+
+The existing standalone `test/verifiedos-q39/qualify.py` accepts `--original`,
+`--out`, `--lock`, `--opam-root` and `--switch`. It can validate and reuse the
+authenticated seven completed compilation stages, proof objects and compiler in
+a distinct qualification tree. It refuses an existing output destination, repeats
+enumeration and queries, and launches a new complete checker. It writes
+`fresh-kernel.json` only after that checker returns. This capability preserves
+completed compilation work; it does not resume the current checker.
+
+The exact [Rocq 9.3 checker entry](https://github.com/rocq-prover/rocq/blob/V9.3.0/checker/coqchk_main.ml)
+has no save or resume option. Its
+[library checker](https://github.com/rocq-prover/rocq/blob/V9.3.0/checker/checkLibrary.ml)
+keeps the checked environment in memory and processes the required libraries
+sequentially. The [release manual](https://rocq-prover.org/doc/V9.3.0/refman/practical-tools/coq-commands.html#compiled-libraries-checker-rocqchk)
+states that checking does not mark the proof objects as checked. An interrupted
+whole audit therefore loses its in-memory kernel-check progress. A progress-log
+prefix supplies neither a complete verdict nor a persisted validation certificate.
+Retain both eligible original pairs: their multi-hour checker computation cannot
+be recovered through ordinary incremental compilation. This investigation changes
+no process, helper, source, package, seal or acceptance predicate.
+
+The preferred future optimization is reuse of completed compiler audit evidence.
+The [project proof gate](../../tools/vos/cli/proofs.py) already validates successful
+native receipts against source and object bytes, resolved dependency closures,
+gate implementation, tool executables, installed libraries and process context.
+An unchanged whole-set hit reuses the earlier kernel verdict; a changed module or
+object invalidates its transitive consumers. Portable receipts alone authorize no
+reuse. The [cache contract](../../tools/README.md#current-evidence-and-generated-documentation)
+and [hosted policy](../../tools/ci/README.md) keep cold checks separate. The contained
+compiler needs its own validator and receipt before it can adopt this mechanism:
+its declared axioms and complete admitted-lemma census differ from the project
+proof gate. Pending audits cannot seed that cache, and Q39 still requires both
+independent complete qualifications.
+
+For resumable future checking, persist separately completed module or dependency
+checks with their bound inputs, then validate coverage and the joint environment
+before accepting the combined audit. Rocq documents splitting checks with
+`-admit` and warns about replacement between invocations. An equivalent wrapper
+must bind every skipped dependency to completed evidence over unchanged bytes,
+retain the full source-name axiom classification and admission census, check joint
+universe/dependency consistency, and refuse any missing check, peer failure or
+input drift. Unconditionally adding `-admit` or `-norec` is not equivalent full
+checking. No such incremental compiler contract or implementation is accepted by
+this investigation.
+
+Existing project-proof parallelism keeps connected changed dependency components
+together. It cannot accelerate a connected component by increasing the worker
+limit, and naive recursive checks repeat shared dependencies. A finer dependency
+schedule could help independent ready checks, but the existing checker CLI cannot
+split one expensive constant. For cold audits, obtain a separately scoped profile
+using the supported checker `-profile` option before choosing conversion or proof
+representation changes. The [exact cast implementation](https://github.com/rocq-prover/rocq/blob/V9.3.0/kernel/typeops.ml)
+routes VM and ordinary casts differently, so enabling VM conversion is not a
+universal acceleration. The current VM pair supplies no measured speedup or
+completion estimate. No speed factor, cache acceptance or new proof repair is
+claimed here; the current qualification and final handoff remain required.
