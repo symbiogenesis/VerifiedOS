@@ -57,7 +57,9 @@ Run an individual fixture with
 `python tools/run.py phase-service --contract <path> --json`.
 Paths below are relative to [phase-service/](../phase-service/).
 Exit 0 means closure for the supplied model; exit 1 means refutation; exit 2
-means an invalid or unreadable contract. Only `grants`, `arrivals`, `banks`,
+means an invalid or unreadable contract. Duplicate JSON fields are refused before
+either exploration. Cycle counts and indices require exact integers, including
+for direct predicate calls. Only `grants`, `arrivals`, `banks`,
 `refresh` and `paths` are supported; unknown fields are refused, and declared
 mode transitions are read by `phase-schedule` from a `phase-schedule-v2`
 declaration, never by this reader. The receipt binds the composition's bytes

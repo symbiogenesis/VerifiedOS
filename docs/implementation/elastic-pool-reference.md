@@ -30,6 +30,10 @@ The [physical-address contract](../spec.md#r-15-002) and
 own that interpretation; issuer identities cannot make overlapping physical
 storage independent.
 
+Plan admission and public allocation, write and retirement indices require exact
+integers. Boolean and fractional aliases receive `PoolError` before changing
+allocation identities, memory, histories or retirement state.
+
 `DomainPools` snapshots the caller's pool and launch-island maps at admission and
 exposes immutable bindings. Mutating or clearing the input maps cannot replace
 an admitted arena or redirect a placed member; the public bindings cannot be

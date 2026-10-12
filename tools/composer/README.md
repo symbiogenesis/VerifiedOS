@@ -100,7 +100,8 @@ They reserve space rather than proving the size or identity of a built image.
 `vos.composition.build_record` resolves runtime artifact slots to actual file
 paths and digests after producing member bytes. It binds the input and all
 projection digests, regenerates the graph and binds the final image bytes.
-`validate_build_record` rechecks those inputs and bytes; it trusts no reported
+`validate_build_record` first refuses malformed root containers and missing or
+extra root fields, then rechecks those inputs and bytes; it trusts no reported
 admission boolean. It compares canonical JSON bytes with the regenerated record,
 refusing boolean/integer/float type substitutions and malformed JSON content.
 Artifact maps and runtime/image references also receive closed-shape and string-field
