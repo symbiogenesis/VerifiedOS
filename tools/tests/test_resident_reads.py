@@ -235,6 +235,50 @@ def _reused_slot_identity() -> None:
                "old reservation returned replacement bytes")
 
 
+def _closed_predecessor_capacity() -> None:
+    payloads = (b"0123456789ABCDEF", b"abcdefghijklmnop", b"ABCDEFGHIJKLMNOP")
+    for predecessors in (0, 1):
+        service = rr.Service(rr.Bounds(backing_bytes=64, predecessors=predecessors))
+        identities = [rr.Identity(1, 7, 1, version, rr.authenticated_root("user-data", 1, payload))
+                      for version, payload in enumerate(payloads, 1)]
+        closed_slots: list[int] = []
+        for identity, payload in zip(identities[:predecessors + 1], payloads):
+            slot = service.publish(rr.Resident(identity, payload))
+            if slot is None:
+                raise AssertionError("closed predecessor setup refused before its capacity")
+            handle = service.reserve(0, 7, identity, 0, 16)
+            if handle is None:
+                raise AssertionError("closed predecessor setup lacked a live reservation")
+            ensure(service.read(handle, 7, identity, 0, 16) == payload,
+                   "closed predecessor setup failed its independent payload control")
+            ensure(service.begin(handle, 7, identity, 0, 16),
+                   "quarantine cut lacked an accepted transfer")
+            complete, steps = service.retire(slot, barrier_available=False)
+            ensure(not complete and steps <= service.bounds.retirement_steps
+                   and service.resident(slot) is not None and service.safe_backing(),
+                   "unavailable barrier failed to keep closed backing charged")
+            ensure(service.finish(0) is None and service.read(handle, 7, identity, 0, 16) is None,
+                   "quarantine retained live read authority")
+            closed_slots.append(slot)
+
+        candidate = rr.Resident(identities[predecessors + 1], payloads[predecessors + 1])
+        before = len(service.writes)
+        ensure(service.publish(candidate) is None,
+               "closed current bypassed the retained-predecessor admission bound")
+        ensure(len(service.writes) == before,
+               "predecessor-capacity refusal changed the catalog or version counter")
+        complete, steps = service.retire(closed_slots[0])
+        ensure(complete and steps <= service.bounds.retirement_steps,
+               "closed backing failed its bounded recovery control")
+        slot = service.publish(candidate)
+        ensure(slot == closed_slots[0], "discharged predecessor capacity was not reusable")
+        handle = service.reserve(0, 7, candidate.identity, 0, 16)
+        if handle is None:
+            raise AssertionError("recovered predecessor capacity lacked a reservation")
+        ensure(service.read(handle, 7, candidate.identity, 0, 16) == candidate.payload,
+               "recovered admission returned the wrong version's bytes")
+
+
 def _executed_controls_and_observer() -> None:
     controls = rr.controls()
     ensure(set(controls) == {"common-counter", "replacement-touch", "hidden-reacquire",
@@ -282,5 +326,6 @@ def cases() -> list[Case]:
             Case("resident retained version and holder-independent retirement", _replacement_and_bounded_retirement),
             Case("resident finite metadata backing transfer and counter refusals", _resource_limits),
             Case("resident reused slot preserves exact backing identity", _reused_slot_identity),
+            Case("resident closed predecessor capacity and bounded recovery", _closed_predecessor_capacity),
             Case("resident executed defects and complete modeled observer", _executed_controls_and_observer),
             Case("resident source-bound CLI scope and evidence", _source_bound_cli)]

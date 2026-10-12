@@ -31,6 +31,10 @@ each holder has one outstanding transfer/request SPSC slot. Read length, retaine
 predecessors, expiration, renewal count, tokens, read sequences, version numbers,
 clock and boot/generation epochs have finite limits with explicit refusal.
 The reference never wraps identifiers or silently pins another backing range.
+Publication charges every existing resident against the new version's predecessor
+limit, including closed quarantine after the current version has stopped. Exhausted
+predecessor capacity refuses publication without consuming a version; completing a
+retirement can discharge that capacity and allow a later admission.
 
 Retirement closes admission, cancels accepted private transfers, removes held
 reservations, performs a modeled barrier, zeroizes and releases backing. Its
