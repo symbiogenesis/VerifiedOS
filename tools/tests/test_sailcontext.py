@@ -5,7 +5,8 @@ import hashlib
 import io
 import json
 import os
-from contextlib import redirect_stderr, redirect_stdout
+from collections.abc import Iterator
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -66,8 +67,27 @@ def _fixture() -> tuple[dict[str, str], dict[str, Any]]:
     return files, raw
 
 
+def _identity(root: Path, raw: dict[str, Any]) -> None:
+    # Fixture membership is explicit; ghost.sail remains outside this project.
+    listed = [name for name in raw["hashes"]
+              if not name.startswith("/") and name not in sailbundle.COMPILER_FILES]
+    if (root / "model/model/unhashed.sail").is_file():
+        listed.append("unhashed.sail")
+    artifact = root / sailbundle.SOURCE_IDENTITY
+    artifact.write_bytes(sailbundle.source_identity(root, listed,
+                                                    (root / sailbundle.BUNDLE).read_bytes()))
+
+
+@contextmanager
+def _sandbox_tree(files: dict[str, str]) -> Iterator[Path]:
+    with sandbox_tree({**files, sailbundle.PROJECT_FILE: "fixture project"}) as root:
+        _identity(root, json.loads((root / sailbundle.BUNDLE).read_bytes()))
+        yield root
+
+
 def _write_bundle(root: Path, raw: dict[str, Any]) -> None:
     (root / sailbundle.BUNDLE).write_text(json.dumps(raw), encoding="utf-8", newline="")
+    _identity(root, raw)
 
 
 def _call(root: Path, args: list[str]) -> tuple[int, str, str]:
@@ -86,7 +106,7 @@ def _shapes_and_exact_symbols() -> None:
     bundle = sailbundle.Bundle(raw)
     ensure({entry.kind for entry in bundle.declarations()} == set(sailcontext.KINDS),
            "all six emitted declaration kinds must remain available")
-    with sandbox_tree(files) as root:
+    with _sandbox_tree(files) as root:
         report = sailcontext.context(root, "symbol", "shared")
         ensure(report["known_symbol"] is True and len(report["matches"]) == 3,
                "exact lookup must preserve the val and both scattered clauses")
@@ -113,7 +133,7 @@ def _ranking_filters_and_omissions() -> None:
                                     "links": [_link("ghost.sail", ghost, "target")]}
     files["model/model/ghost.sail"] = ghost
     files[sailbundle.BUNDLE] = json.dumps(raw)
-    with sandbox_tree(files) as root:
+    with _sandbox_tree(files) as root:
         report = sailcontext.context(root, "search", "shared target", kinds=("function",),
                                      exclude=("model/model/b.sail",))
         ensure([hit["symbol"] for hit in report["matches"]] == ["shared"],
@@ -137,7 +157,7 @@ def _byte_locations_and_aliases() -> None:
     files, raw = _fixture()
     raw["functions"]["shared"]["links"][0]["id"] = "compiler_alias"
     files[sailbundle.BUNDLE] = json.dumps(raw)
-    with sandbox_tree(files) as root:
+    with _sandbox_tree(files) as root:
         report = sailcontext.context(root, "references", "compiler_alias")
         hit = report["matches"][0]
         ensure(hit["line"] == 3 and hit["column"] == 22 and hit["end_column"] == 28,
@@ -162,7 +182,7 @@ def _late_reference_window() -> None:
         "function": {"source": _slot("late.sail", source, source)},
         "links": [_link("late.sail", source, "target")]}
     files[sailbundle.BUNDLE] = json.dumps(raw)
-    with sandbox_tree(files) as root:
+    with _sandbox_tree(files) as root:
         report = sailcontext.context(root, "references", "target", max_chars=256)
         hit = next(hit for hit in report["matches"] if hit["symbol"] == "caller")
         ensure("target(0)" in hit["excerpt"] and len(hit["excerpt"]) <= 256,
@@ -178,7 +198,7 @@ def _late_reference_window() -> None:
 
 def _freshness_all_owners() -> None:
     files, _ = _fixture()
-    with sandbox_tree(files) as root:
+    with _sandbox_tree(files) as root:
         ensure(sailcontext.context(root, "symbol", "shared")["total_matches"] == 3,
                "the initial snapshot must be readable before its bytes change")
         path = root / "model/model/b.sail"
@@ -194,6 +214,28 @@ def _freshness_all_owners() -> None:
                "a deleted owner must refuse the complete output")
 
 
+def _project_sources_omitted_from_md5() -> None:
+    files, raw = _fixture()
+    source = "function unhashed() = target(1)\n"
+    files["model/model/unhashed.sail"] = source
+    raw["functions"]["unhashed"] = {
+        "function": {"source": _slot("unhashed.sail", source, source.rstrip("\n"))},
+        "links": [_link("unhashed.sail", source, "target")]}
+    files[sailbundle.BUNDLE] = json.dumps(raw)
+    with _sandbox_tree(files) as root:
+        report = sailcontext.context(root, "symbol", "unhashed")
+        ensure(report["sources_checked"] == 3 and report["total_matches"] == 1 and
+               report["matches"][0]["path"] == "model/model/unhashed.sail",
+               "a project-selected source without emitted MD5 must be checked and searchable")
+        path = root / "model/model/unhashed.sail"
+        before = path.stat()
+        path.write_bytes(source.replace("target(1)", "target(2)").encode())
+        os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
+        status, stdout, stderr = _call(root, ["symbol", "shared", "--json"])
+        ensure(status == 1 and not stdout and "unhashed.sail" in stderr and "digest differs" in stderr,
+               "an edit outside the MD5 map must refuse unrelated context with no partial JSON")
+
+
 def _owner_line_offsets_and_utf8_boundaries() -> None:
     files, raw = _fixture()
     for file, source in (("empty.sail", ""), ("edges.sail", "\n\r\ncafé\n\nlast")):
@@ -201,7 +243,7 @@ def _owner_line_offsets_and_utf8_boundaries() -> None:
         raw["hashes"][file] = {"md5": hashlib.md5(
             source.encode("utf-8"), usedforsecurity=False).hexdigest()}
     files[sailbundle.BUNDLE] = json.dumps(raw)
-    with sandbox_tree(files) as root:
+    with _sandbox_tree(files) as root:
         _, _, owners = sailcontext._read(root)
         for owner in owners.values():
             expected_lines = (0, *(offset + 1 for offset, byte in enumerate(owner.raw)
@@ -226,7 +268,7 @@ def _owner_line_offsets_and_utf8_boundaries() -> None:
 
 def _unselected_records_are_validated() -> None:
     files, baseline = _fixture()
-    with sandbox_tree(files) as root:
+    with _sandbox_tree(files) as root:
         ensure(not sailcontext.context(root, "symbol", "absent")["matches"],
                "an unknown exact symbol is an empty successful result on valid inputs")
         bad_bundles: list[dict[str, Any]] = []
@@ -259,7 +301,7 @@ def _bounds_schema_and_human_output() -> None:
     schema = json.loads((TOOLS / "sail-context.schema.json").read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
     validator = Draft202012Validator(schema)
-    with sandbox_tree(files) as root:
+    with _sandbox_tree(files) as root:
         for operation, query in (("search", "shared"), ("symbol", "long"), ("references", "target")):
             status, stdout, stderr = _call(root, [operation, query, "--limit", "1", "--max-chars", "256", "--json"])
             ensure(status == 0 and not stderr, f"valid JSON query failed: {stderr}")
@@ -281,7 +323,7 @@ def _bounds_schema_and_human_output() -> None:
 
 def _malformed_bundle_and_locations() -> None:
     files, baseline = _fixture()
-    with sandbox_tree(files) as root:
+    with _sandbox_tree(files) as root:
         bad_bundles: list[dict[str, Any]] = []
         for field, value in (("embedding", "html"), ("version", True), ("functions", [])):
             raw = json.loads(json.dumps(baseline))
@@ -311,7 +353,7 @@ def _malformed_bundle_and_locations() -> None:
 
 def _unsafe_paths_and_links() -> None:
     files, baseline = _fixture()
-    with sandbox_tree(files) as root:
+    with _sandbox_tree(files) as root:
         for unsafe in ("../a.sail", "/outside/a.sail", "C:/a.sail", "a\\b.sail", "./a.sail", "NUL.sail"):
             raw = json.loads(json.dumps(baseline))
             raw["functions"]["shared"]["function"][0]["source"]["file"] = unsafe
@@ -333,7 +375,7 @@ def _unsafe_paths_and_links() -> None:
 
 def _input_errors_and_unreadable_sources() -> None:
     files, _ = _fixture()
-    with sandbox_tree(files) as root:
+    with _sandbox_tree(files) as root:
         for args in ([], ["search", ""], ["search", "!"], ["symbol", "x", "--limit", "0"],
                      ["search", "x", "--max-chars", "16001"], ["search", "x", "--kind", "bad"],
                      ["references", "x", "--exclude", "model/model/a.sail"]):
@@ -344,7 +386,7 @@ def _input_errors_and_unreadable_sources() -> None:
                "exclusions must name exact recorded owners")
         (root / "model/model/a.sail").write_bytes(b"\xff")
         status, stdout, stderr = _call(root, ["symbol", "shared", "--json"])
-        ensure(status == 1 and not stdout and "UTF-8" in stderr, "undecodable owners must refuse")
+        ensure(status == 1 and not stdout and "digest differs" in stderr, "changed undecodable owners must refuse before output")
         status, stdout, stderr = _call(root, ["--help"])
         ensure(status == 0 and "run.py sail-context" in stdout and "references" in stdout and not stderr,
                "help needs no source reads and must name the complete runnable command")
@@ -356,6 +398,7 @@ def cases() -> list[Case]:
             Case("byte-locations-and-compiler-aliases", _byte_locations_and_aliases),
             Case("late-reference-window", _late_reference_window),
             Case("freshness-all-recorded-owners", _freshness_all_owners),
+            Case("project-sources-omitted-from-md5", _project_sources_omitted_from_md5),
             Case("owner-line-offsets-and-utf8-boundaries", _owner_line_offsets_and_utf8_boundaries),
             Case("unselected-records-are-validated", _unselected_records_are_validated),
             Case("bounds-json-schema-and-human-output", _bounds_schema_and_human_output),

@@ -3,7 +3,7 @@
 
 Sail emits a bundle describing everything it typechecked: every function, mapping,
 `val`, type, register and `let`, each with its source text, the file it is written in
-and the line it starts on, plus the md5 of every file that went into the run. The
+and the line it starts on, plus an incomplete md5 map of input files. The
 curated model already built that bundle on the way to every other artifact and nothing
 read it, while `tools/vos/` carried four regex parsers over the same Sail. That is the
 two-copies-of-one-parse defect this repository exists to catch, sitting in the tools
@@ -24,9 +24,11 @@ Sail writes, whose first element is the 1-based line a finding sends a person to
 The one thing a reader must not assume is provenance. **The bundle carries no `git`
 key**: the locked Sail emits none where `git` fails, which the bundle command
 arranges, so the artifact does not record the commit it came from, and nothing here
-may say which revision it describes. What it does record is the md5 of
-every file it read, which is the stronger fact for the question actually being asked:
-whether the bundle still describes the sources in this checkout.
+may say which revision it describes. Its recorded md5 detects stale files in that
+map, but cannot bind files it omits. The supplemental source identity binds the
+unchanged bundle bytes, the project bytes and every source the owning Sail project
+lists. It uses the canonical term's existing SHA-256 manifest contract. The host
+checks these recorded owners; the guest comparison regenerates both artifacts.
 
 ## Portable library locations
 
@@ -47,6 +49,7 @@ consult `env.opam_root()`: the host need not have the guest toolchain installed,
 both readers must decide the same thing about the same tracked bytes.
 """
 
+import hashlib
 import json
 import re
 from collections.abc import Iterator
@@ -54,7 +57,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, override
 
-from vos import env
+from vos import env, rocqterm
 
 BUNDLE_NAME = "sail_riscv_model.json"
 
@@ -65,8 +68,22 @@ BUNDLE_NAME = "sail_riscv_model.json"
 # exactly that kind. Neither placement adds a top-level directory to AGENTS.md's map.
 BUNDLE = f"tools/generated/{BUNDLE_NAME}"
 
+# Sail's documentation emitter omits some project sources from its MD5 map.
+# This supplemental view leaves the upstream bundle unchanged and records the
+# complete list the owning project compiler selects, using the canonical term's
+# existing SHA-256 manifest contract.
+SOURCE_IDENTITY_NAME = "sail_riscv_sources.json"
+SOURCE_IDENTITY = f"tools/generated/{SOURCE_IDENTITY_NAME}"
+SOURCE_IDENTITY_FORMAT = "verifiedos-sail-sources-1"
+
 # What a hashes key and a source slot's `file` are relative to.
 SOURCE_ROOT = "model/model"
+PROJECT_FILE = f"{SOURCE_ROOT}/riscv.sail_project"
+
+_SHA256_RE = re.compile(r"[0-9a-f]{64}")
+_RESERVED = frozenset(("CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$",
+                       *(f"{prefix}{digit}" for prefix in ("COM", "LPT")
+                         for digit in "123456789¹²³")))
 
 # The only version whose shapes are written down here.
 VERSION = 1
@@ -258,7 +275,7 @@ class Bundle:
 
     @property
     def hashes(self) -> dict[str, str]:
-        """Every file the emitter read, against the md5 it read it at."""
+        """Every file the emitter recorded, against its emitted MD5."""
         out: dict[str, str] = {}
         for key, entry in self._map("hashes").items():
             digest = entry.get("md5") if isinstance(entry, dict) else None
@@ -270,9 +287,8 @@ class Bundle:
     def owners(self) -> dict[str, str]:
         """The files this checkout carries, keyed by their repository-relative path.
 
-        These are the bundle's own statement of what it was emitted from, so a rule
-        holding them against the working tree is asking whether the artifact still
-        describes the model beside it, with no second list to maintain.
+        This is the emitter's incomplete MD5 map. Use `read_source_identity` for
+        freshness against every source selected by the owning project.
         """
         return {f"{SOURCE_ROOT}/{key}": digest for key, digest in self.hashes.items()
                 if not key.startswith("/") and key not in COMPILER_FILES}
@@ -744,6 +760,118 @@ def parse(data: bytes, path: str = BUNDLE) -> Bundle:
     if not isinstance(raw, dict):
         raise BundleError(f"{path} is a {type(raw).__name__} and not a bundle")
     return Bundle(raw, path)
+
+
+def owner_parts(rel: str) -> list[str]:
+    """Validate portable path spelling before any owner or source-location lookup."""
+    parts = rel.split("/")
+    if (not rel or any(part in ("", ".", "..") for part in parts)
+            or any(char in rel for char in '\\:<>"|?*')
+            or any(ord(char) < 32 or ord(char) == 127 for char in rel)
+            or any(part.endswith((" ", ".")) or part.split(".", 1)[0].upper() in _RESERVED
+                   for part in parts)):
+        raise BundleError(f"unsafe repository-relative path {rel!r}")
+    return parts
+
+
+def owner_path(root: Path, rel: str) -> Path:
+    """A portable regular owner path, refusing traversal and link redirection."""
+    path = root
+    for part in owner_parts(rel):
+        path /= part
+        if path.is_symlink() or path.is_junction():
+            raise BundleError(f"{rel}: symbolic links and junctions are not source owners")
+    if not path.resolve().is_relative_to(root.resolve()):
+        raise BundleError(f"{rel}: path escapes the checkout")
+    if not path.is_file():
+        raise BundleError(f"{rel}: missing regular source owner")
+    return path
+
+
+def source_identity(root: Path, listed: list[str], bundle_bytes: bytes) -> bytes:
+    """Identify the source list Sail's owning project selects, without changing its bundle.
+
+    Membership comes only from the compiler's project listing. The list is never
+    reconstructed from the incomplete MD5 map or a scan of tracked Sail files.
+    """
+    if not listed or len(set(listed)) != len(listed):
+        raise BundleError("the Sail project's source list is empty or carries duplicate paths")
+    hashes = {f"{SOURCE_ROOT}/{rel}":
+              hashlib.sha256(owner_path(root, f"{SOURCE_ROOT}/{rel}").read_bytes()).hexdigest()
+              for rel in listed}
+    project = owner_path(root, PROJECT_FILE).read_bytes()
+    raw = {
+        "format": SOURCE_IDENTITY_FORMAT,
+        "bundle_sha256": hashlib.sha256(bundle_bytes).hexdigest(),
+        "project_file": {"path": PROJECT_FILE, "sha256": hashlib.sha256(project).hexdigest()},
+        "sources": rocqterm.manifest(hashes),
+    }
+    return (json.dumps(raw, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+
+def read_source_identity(root: Path, bundle_bytes: bytes, *, identity_bytes: bytes | None = None,
+                         captured: dict[str, bytes] | None = None) -> dict[str, str]:
+    """Check the complete local source identity and return its SHA-256 owners.
+
+    The project bytes bind the source selection recorded by the guest compiler;
+    the exact bundle bytes bind its emitted declarations. Host readers verify every
+    listed source now, while the guest comparison regenerates the complete selection.
+    Optional captured bytes let a context reader return these same checked reads.
+    """
+    try:
+        data = (owner_path(root, SOURCE_IDENTITY).read_bytes()
+                if identity_bytes is None else identity_bytes)
+        raw = json.loads(data.decode("utf-8"), object_pairs_hook=_json_object,
+                         parse_constant=_json_constant)
+    except (OSError, UnicodeError, ValueError, BundleError) as exc:
+        raise BundleError(f"{SOURCE_IDENTITY} is not readable: {exc}") from exc
+    if (not isinstance(raw, dict)
+            or set(raw) != {"format", "bundle_sha256", "project_file", "sources"}
+            or raw.get("format") != SOURCE_IDENTITY_FORMAT):
+        raise BundleError(f"{SOURCE_IDENTITY}: malformed or unsupported source identity")
+    bundle_digest = raw["bundle_sha256"]
+    if (not isinstance(bundle_digest, str) or not _SHA256_RE.fullmatch(bundle_digest)
+            or bundle_digest != hashlib.sha256(bundle_bytes).hexdigest()):
+        raise BundleError(f"{SOURCE_IDENTITY}: recorded bundle digest differs from current bytes")
+    project = raw["project_file"]
+    if (not isinstance(project, dict) or set(project) != {"path", "sha256"}
+            or project.get("path") != PROJECT_FILE
+            or not isinstance(project.get("sha256"), str)
+            or not _SHA256_RE.fullmatch(project["sha256"])):
+        raise BundleError(f"{SOURCE_IDENTITY}: malformed project file identity")
+    if hashlib.sha256(owner_path(root, PROJECT_FILE).read_bytes()).hexdigest() != project["sha256"]:
+        raise BundleError(f"{PROJECT_FILE}: recorded project digest differs from current bytes; "
+                          "regenerate and compare the bundle before using its context")
+    manifest = raw["sources"]
+    if (not isinstance(manifest, dict) or set(manifest) != {"files", "aggregate", "sha256"}
+            or not isinstance(manifest.get("sha256"), dict) or not manifest["sha256"]):
+        raise BundleError(f"{SOURCE_IDENTITY}: missing or malformed complete source manifest")
+    hashes: dict[str, str] = {}
+    for rel, digest in manifest["sha256"].items():
+        if (not isinstance(rel, str) or not rel.startswith(f"{SOURCE_ROOT}/")
+                or not isinstance(digest, str) or not _SHA256_RE.fullmatch(digest)):
+            raise BundleError(f"{SOURCE_IDENTITY}: malformed source path or SHA-256")
+        owner_path(root, rel)
+        hashes[rel] = digest
+    if (type(manifest.get("files")) is not int or manifest["files"] != len(hashes)
+            or manifest.get("aggregate") != rocqterm.aggregate(hashes)):
+        raise BundleError(f"{SOURCE_IDENTITY}: source count or aggregate disagrees with its members")
+    bundle = parse(bundle_bytes)
+    local = bundle.owners()
+    if missing := sorted(set(local) - set(hashes)):
+        raise BundleError(f"{SOURCE_IDENTITY}: source manifest omits bundle owners: {', '.join(missing)}")
+    checked: dict[str, bytes] = {}
+    for rel, expected in hashes.items():
+        current = owner_path(root, rel).read_bytes()
+        if hashlib.sha256(current).hexdigest() != expected:
+            raise BundleError(f"{rel}: recorded owner digest differs from current bytes; "
+                              "regenerate and compare the bundle before using its context")
+        if rel in local and hashlib.md5(current, usedforsecurity=False).hexdigest() != local[rel]:
+            raise BundleError(f"{rel}: bundle MD5 differs from the complete source identity")
+        checked[rel] = current
+    if captured is not None:
+        captured.update(checked)
+    return hashes
 
 
 def load(root: Path, path: str = BUNDLE) -> Bundle | None:

@@ -3,7 +3,7 @@
 
 Only the emitter's declarations and links are read. No Sail grammar, inferred call
 graph, compiler invocation or persistent index lives here. Every invocation reads
-the bundle and all recorded local owners once. MD5 detects accidental staleness;
+the bundle, its complete project source identity and every local source once.
 SHA-256 identifies those individual reads, not an atomic snapshot or authenticity.
 """
 
@@ -19,17 +19,14 @@ from vos import sailbundle
 
 type Operation = Literal["search", "symbol", "references"]
 KINDS = tuple(kind for _, kind in sailbundle.DECLARATION_KINDS)
-NOTICE = ("Advisory context only. Freshness covers recorded local owners, not project "
-          "selection, unrecorded files, compiler options or installed libraries. "
+NOTICE = ("Advisory context only. Freshness covers the recorded project and its complete "
+          "source list, not compiler options or installed libraries. "
           "References are compiler-recorded links, not a complete call graph. "
           "Unlocated and unrecorded declarations and links are omitted; no result establishes "
           "compilation or behavioral correctness.")
 _TOKEN = re.compile(r"[\w']+")
 _WORD = re.compile(r"[^\W_]+")
 _NEWLINE = re.compile(b"\n")
-_RESERVED = frozenset(("CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$",
-                       *(f"{prefix}{digit}" for prefix in ("COM", "LPT")
-                         for digit in "123456789¹²³")))
 
 
 class Match(TypedDict):
@@ -99,13 +96,10 @@ class _Owner:
 
 
 def _parts(rel: str) -> list[str]:
-    parts = rel.split("/")
-    if (not rel or any(part in ("", ".", "..") for part in parts)
-            or any(char in rel for char in '\\:<>"|?*') or any(ord(char) < 32 or ord(char) == 127 for char in rel)
-            or any(part.endswith((" ", ".")) or part.split(".", 1)[0].upper() in _RESERVED
-                   for part in parts)):
-        raise ValueError(f"unsafe repository-relative path {rel!r}")
-    return parts
+    try:
+        return sailbundle.owner_parts(rel)
+    except sailbundle.BundleError as exc:
+        raise ValueError(str(exc)) from exc
 
 
 def _safe_path(root: Path, rel: str) -> Path:
@@ -136,19 +130,14 @@ def _read(root: Path) -> tuple[sailbundle.Bundle, str, dict[str, _Owner]]:
     for key, digest in bundle.hashes.items():
         if not re.fullmatch(r"[0-9a-f]{32}", digest):
             raise ValueError(f"{key}: malformed recorded MD5")
+    captured: dict[str, bytes] = {}
+    sailbundle.read_source_identity(root, raw, captured=captured)
     owners: dict[str, _Owner] = {}
-    for rel, expected in sorted(bundle.owners().items()):
-        path = _safe_path(root, rel)
-        if not path.is_file():
-            raise ValueError(f"{rel}: missing regular source owner")
+    for rel, data in sorted(captured.items()):
         try:
-            data = path.read_bytes()
             data.decode("utf-8")
-        except (OSError, UnicodeError) as exc:
+        except UnicodeError as exc:
             raise ValueError(f"{rel}: cannot read UTF-8 source: {exc}") from exc
-        if hashlib.md5(data, usedforsecurity=False).hexdigest() != expected:
-            raise ValueError(f"{rel}: recorded owner digest differs from current bytes; "
-                             "regenerate and compare the bundle before using its context")
         owners[rel] = _Owner(data, hashlib.sha256(data).hexdigest(),
                              tuple([0] + [match.end() for match in _NEWLINE.finditer(data)]))
     return bundle, hashlib.sha256(raw).hexdigest(), owners
