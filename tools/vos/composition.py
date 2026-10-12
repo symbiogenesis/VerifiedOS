@@ -46,9 +46,12 @@ def reference(root: Path, relative: str) -> dict[str, str]:
     return {"path": relative, "sha256": digest(_path(root, relative).read_bytes())}
 
 
-def _json(path: Path) -> object:
+def _json(path: Path, expected_sha256: str | None = None) -> object:
+    data = path.read_bytes()
+    if expected_sha256 is not None and digest(data) != expected_sha256:
+        raise CompositionError(f"stale source binding: {path}")
     try:
-        return json.loads(path.read_bytes(), object_pairs_hook=unique_object)
+        return json.loads(data, object_pairs_hook=unique_object)
     except (ValueError, UnicodeError) as error:
         raise CompositionError(f"cannot read {path}: {error}") from error
 
@@ -109,7 +112,7 @@ def _graph(root: Path, raw: dict[str, Any]) -> composer.CompositionInput | None:
     for index, member in enumerate(raw["members"]):
         if member["descriptor"] is None:
             continue
-        descriptor = _json(_path(root, member["descriptor"]["path"]))
+        descriptor = _json(_path(root, member["descriptor"]["path"]), member["descriptor"]["sha256"])
         if not isinstance(descriptor, dict) or descriptor.get("package_id") != member["package_id"]:
             raise CompositionError(f"{member['id']}: descriptor package identity differs")
         try:

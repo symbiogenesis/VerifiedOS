@@ -267,6 +267,32 @@ def _graph_owner_boundary() -> None:
         _refused(lambda: c.load(root), "claims another owner")
 
 
+def _descriptor_snapshot_binding() -> None:
+    with _sandbox() as (root, raw):
+        _resolve_descriptors(root, raw)
+        descriptor = root / "descriptors/storage.json"
+        read_bytes = Path.read_bytes
+        original = read_bytes(descriptor)
+        changed = json.loads(original)
+        changed["desc_manifest"] -= 1
+        substituted = composer.canonical_bytes(changed)
+        ensure(c.digest(original) != c.digest(substituted), "control substitutes descriptor bytes")
+        for consume in (c.load, c.projections):
+            reads = 0
+            def transient_read(path: Path) -> bytes:
+                nonlocal reads
+                if path == descriptor:
+                    reads += 1
+                    # The declared binding reads its actual bytes; the parser
+                    # subsequently sees a different, otherwise valid descriptor.
+                    return original if reads == 1 else substituted
+                return read_bytes(path)
+            with patch.object(Path, "read_bytes", transient_read):
+                _refused(lambda: consume(root), "stale source binding")
+            ensure(reads >= 2, "control reaches the descriptor parser after binding")
+            consume(root)
+
+
 def _partial_graph_edge_refusals() -> None:
     # An unresolved peer withholds the graph, not checks whose inputs are known.
     with _sandbox() as (root, raw):
@@ -447,6 +473,7 @@ def cases() -> list[Case]:
             Case("placement-refusals", _placement_refusals),
             Case("stale-inputs-and-projections", _stale_inputs_and_projections),
             Case("typed-handler-owner", _graph_owner_boundary),
+            Case("descriptor-snapshot-binding", _descriptor_snapshot_binding),
             Case("partial-typed-handler-refusals", _partial_graph_edge_refusals),
             Case("post-build-byte-bindings", _build_bindings),
             Case("artifact-path-substitutions", _artifact_path_substitutions),
