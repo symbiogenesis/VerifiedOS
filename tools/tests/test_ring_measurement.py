@@ -533,6 +533,81 @@ def _cli_evidence() -> None:
                    "missing capture is malformed input")
 
 
+def _cli_refusal_evidence() -> None:
+    source_names = ("tools/vos/ring_measurement.py", "tools/vos/jsonutil.py",
+                    "tools/vos/cli/ring_measurement.py", "tools/vos/cli/ring.py",
+                    "docs/implementation/contracts/roster-measurement.md")
+    checkout = corpus.find_root()
+    source_hashes = {name: _hash((checkout / name).read_bytes()) for name in source_names}
+    declaration_hash = _hash((checkout / ring_owner.DECLARATION).read_bytes())
+    with tempfile.TemporaryDirectory(prefix="vos-ring-refusal-evidence-") as directory:
+        root = Path(directory)
+        capture_path, expected_path = root / "capture.json", root / "expected.json"
+        for defect in ("none", "negative-charge", "duplicate-key", "stale-identity"):
+            capture, expected = _fixture()
+            if defect == "negative-charge":
+                _request(capture)["validation_cost"] = -1
+            # Different whitespace must retain its byte identity, not a reserialization.
+            capture_blob = b"\n " + _blob(capture) + b" \n"
+            if defect == "duplicate-key":
+                capture_blob = capture_blob.replace(b'"complete": true',
+                                                    b'"complete": true, "complete": true')
+            expected["capture_sha256"] = _hash(capture_blob)
+            if defect == "stale-identity":
+                expected["image_sha256"] = "0" * 64
+            expected_blob = b"\n" + _blob(expected) + b"\n"
+            capture_path.write_bytes(capture_blob)
+            expected_path.write_bytes(expected_blob)
+            evidence = {"capture_sha256": _hash(capture_blob),
+                        "expected_identity_sha256": _hash(expected_blob),
+                        "declaration_sha256": declaration_hash, "sources_sha256": source_hashes}
+            for flags in ([], ["--json"]):
+                output = StringIO()
+                with redirect_stdout(output):
+                    code = cli.main([str(capture_path), "--expected-identity", str(expected_path), *flags])
+                rendered = output.getvalue()
+                ensure(code == (0 if defect == "none" else 2), "evidence retains the input verdict")
+                if flags:
+                    report = json.loads(rendered)
+                    ensure(all(report.get(field) == value for field, value in evidence.items()),
+                           f"{defect}: every available raw-byte and implementation identity survives")
+                    ensure(report["milestone_acceptance"] == "open", "refusal cannot qualify target")
+                    if defect == "none":
+                        ensure(report["identity"] == capture["identity"], "accepted identity is validated")
+                    else:
+                        ensure(report["verdict"] == "malformed" and "identity" not in report,
+                               "unvalidated roster identities are not published on refusal")
+                else:
+                    ensure(all(f"  {field}: {json.dumps(value, sort_keys=True)}\n" in rendered
+                               for field, value in evidence.items()),
+                           f"{defect}: text report retains the same exact evidence")
+                    if defect != "none":
+                        ensure(rendered.startswith("FAIL ring-measurement:")
+                               and "  identity:" not in rendered and "queue " not in rendered,
+                               "refusal publishes no validated identity or partial measurements")
+        for missing in ("capture", "expected"):
+            paths = [capture_path, expected_path]
+            paths[0 if missing == "capture" else 1] = root / "missing.json"
+            available: dict[str, object] = {"sources_sha256": source_hashes}
+            if missing == "expected":
+                available["capture_sha256"] = _hash(capture_path.read_bytes())
+            for flags in ([], ["--json"]):
+                output = StringIO()
+                with redirect_stdout(output):
+                    code = cli.main([str(paths[0]), "--expected-identity", str(paths[1]), *flags])
+                rendered = output.getvalue()
+                ensure(code == 2, "missing file retains the refusal verdict")
+                if flags:
+                    report = json.loads(rendered)
+                    actual = {field: report[field] for field in evidence if field in report}
+                    ensure(actual == available and "identity" not in report,
+                           "missing file retains only evidence already available")
+                else:
+                    ensure(all(f"  {field}: {json.dumps(value, sort_keys=True)}\n" in rendered
+                               for field, value in available.items()),
+                           "missing file's text refusal retains available fingerprints")
+
+
 def _cli_escaped_identifiers() -> None:
     # JSON identifiers may contain Unicode, control characters and lone surrogates.
     # Rendering must preserve all three verdicts even on a strict output stream.
@@ -663,5 +738,6 @@ def cases() -> list[Case]:
             Case("identity-bindings-and-chronology", _identities_and_chronology),
             Case("closed-shapes-and-integer-domains", _closed_shapes_and_numbers),
             Case("cli-scope-evidence-and-exits", _cli_evidence),
+            Case("cli-refusal-byte-and-source-evidence", _cli_refusal_evidence),
             Case("cli-large-integer-refusal", _cli_large_integer_refusal),
             Case("cli-escaped-identifiers-and-verdicts", _cli_escaped_identifiers)]
