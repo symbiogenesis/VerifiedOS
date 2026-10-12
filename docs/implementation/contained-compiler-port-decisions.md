@@ -869,3 +869,54 @@ routes VM and ordinary casts differently, so enabling VM conversion is not a
 universal acceleration. The current VM pair supplies no measured speedup or
 completion estimate. No speed factor, cache acceptance or new proof repair is
 claimed here; the current qualification and final handoff remain required.
+
+## Shelve the incomplete audits after checkpoint and release triage
+
+On 12 October 2026 the user proposed shelving the current audits, asked whether
+newer Rocq or CompCert versions contained a fix, and conditioned a pause on
+confidence that the checker was making progress. The bounded read-only triage
+retains its [source comparisons, identities and emission timing](retained-evidence/q39/shelving-triage-20261012/README.md).
+The current log prefix supplies no accepted resumable checkpoint. Successful
+compilation remains a separate reusable phase: the private validator has actually
+authenticated the VM compilation candidates, while standard-candidate eligibility
+still requires revalidation. Native bytes and every sealed dependency must remain
+at their bound paths; the public metadata is not their backup.
+
+The official [Rocq releases](https://github.com/rocq-prover/rocq/releases/tag/V9.3.0)
+still name 9.3.0 as newest. The release branch adds a documentation correction;
+no matching fix was identified in the bounded development review.
+[CompCert 3.18](https://github.com/AbsInt/CompCert/releases/tag/v3.18) is newer, but
+the [exact upstream comparison](https://github.com/AbsInt/CompCert/compare/7b1f02b09954b9b916eb2a91d283c9b5355bf172...14d616046360a0b2611ebdfc2f98368af402e1f7)
+leaves the parser grammar, validator-completeness source and Menhir generation
+file unchanged. The contained compiler's immutable `VERSION` records 3.17; this
+comparison does not establish equality with its customized sources. No release
+upgrade, port or proof repair is selected by this investigation.
+
+A bounded passive task-clock sample of original standard checker 454207 ran for
+eight seconds without signals, ptrace, target-memory writes or a debugger pause.
+Its identity and executable were checked before and after; the kernel sample
+buffer lost no observations. Exact ELF metadata resolves the sampled activity to
+kernel closure reduction and conversion under `check_structure_field`. The
+sample establishes activity, not forward progress, a termination bound or an
+infinite-loop diagnosis. The earlier single `CList.append_loop` observation does
+not locate the current hotspot.
+
+The user then instructed the integrator to commit the dirty edits and decide
+whether to pause or stop the runs. **Stop the four original checker processes
+after committing this evidence.** Activity has been demonstrated, but the user's
+condition for preserving the computations by pausing has not been established.
+The unchanged checkpoint and absence of a qualified fix justify shelving these
+unbounded attempts for a separately scoped diagnosis; they do not prove a loop.
+Preserve the completed compilation and every original native input and output.
+Use the reviewed checker identities and PID-bound descriptors, signal only the
+checkers, and let their original drivers record genuine interrupted exits.
+
+An interrupted checker supplies no kernel acceptance. The original seven-stage
+receipts remain unchanged with `passed: false` and `kernel: null`; actual failed
+kernel execution is recorded separately by the original qualification driver.
+Exact classification and final stability remain unperformed. Q39 and Q43 remain
+open, the firmware provenance blockers remain, and the acceptance handoff has
+not passed. A resumed effort needs a bounded diagnostic and a new complete
+qualification attempt under the unchanged acceptance predicate. A changed prover
+or compiler requires separately qualified source/toolchain identities rather than
+reuse of the interrupted in-memory environment.

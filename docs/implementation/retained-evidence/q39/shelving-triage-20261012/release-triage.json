@@ -1,0 +1,59 @@
+{
+  "observed_utc": "2026-10-12T06:35:42.3656114Z",
+  "latest_release": "V9.3.0",
+  "release_commit": "c8e202eb0d6cc08b848ba27dcf2cc35804df7d96",
+  "released_at": "2026-09-19T13:32:36Z",
+  "v93_head": "d91dbf084fb24f6045a6866e32045de035d93eb1",
+  "v93_delta": "one release-date documentation correction only",
+  "development_tag": "V9.4+alpha",
+  "development_tag_commit": "a8dd79c66b9429d0a4c1b772e0e63a04018f7c99",
+  "development_tag_date": "2026-06-29T21:07:08Z",
+  "master_head": "29f5238ebcc99136c8e695babcb658ade8d96fa4",
+  "master_compare": "diverged:456ahead159behind;first100commitmetadata returned, targeted postrelease PR queries; not exhaustive456commit review",
+  "matching_parser_loop_fix": "none identified in bounded static triage",
+  "issue22572": "open;body reports master;guard-reduction counterexample and proposed-fix compatibility discussion, not evidence for Parser constant",
+  "caveats": [
+    "No exhaustive proof that development cannot improve runtime",
+    "No supported release migration or speed factor established",
+    "No original audit/process/input access or changes"
+  ],
+  "urls": [
+    "https://github.com/rocq-prover/rocq/releases",
+    "https://github.com/rocq-prover/rocq/compare/V9.3.0...v9.3",
+    "https://github.com/rocq-prover/rocq/tree/29f5238ebcc99136c8e695babcb658ade8d96fa4",
+    "https://github.com/rocq-prover/rocq/issues/22572"
+  ],
+  "compcert": {
+    "latest_release": "v3.18",
+    "published_at": "2026-08-30T08:53:14Z",
+    "v317": "7b1f02b09954b9b916eb2a91d283c9b5355bf172",
+    "v318": "14d616046360a0b2611ebdfc2f98368af402e1f7",
+    "comparison": "v3.17 ancestor of v3.18;77commits;122changedfiles",
+    "unchanged_git_blobs": {
+      "cparser/GNUmakefile": "ce326463399640b6eccad267e0bf493669e9b585",
+      "cparser/Parser.vy": "b234b0b34f2b9026df669e8cfbe0d6a5b57e864b",
+      "MenhirLib/Validator_complete.v": "8875f11e6eaf01004c2358b2bfc87d95705ec46a"
+    },
+    "menhir_library_changes": "Interpreter.v:Declare Scope and Proof-command placement; Validator_complete unchanged",
+    "parser_frontend_changes": [
+      "Cutil.ml",
+      "Elab.ml",
+      "PackedStructs.ml"
+    ],
+    "secomp_pin": "5c20b839e556b78c0ee7f1ce5b28fb00d0e69d78",
+    "secomp_ccs_main": "cbef9c338d23f40db5054c9a3d6f2b3b873e9204",
+    "secomp_after_pin": "oneREADMEversion-nitscommit only",
+    "rocq_master_performance_pr": "22564 changes pretyping/vnorm.ml only; no evidence for kernel checker bottleneck",
+    "limits": [
+      "Current customec5 source VERSION3.17 is parent-verified, not inferred fromREADME",
+      "Upstream grammar/helper equality is not private custom source equality",
+      "No matching checker-hang fix identified; no speed claim"
+    ],
+    "urls": [
+      "https://github.com/AbsInt/CompCert/releases/tag/v3.18",
+      "https://github.com/AbsInt/CompCert/compare/v3.17...v3.18",
+      "https://github.com/secure-compilation/SECOMP/compare/5c20b839e556b78c0ee7f1ce5b28fb00d0e69d78...ccs-main",
+      "https://github.com/rocq-prover/rocq/pull/22564"
+    ]
+  }
+}

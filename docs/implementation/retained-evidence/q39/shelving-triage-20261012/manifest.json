@@ -1,0 +1,45 @@
+{
+  "accepted_kernel_checkpoint": false,
+  "actual_signals_sent": false,
+  "actual_source_tool_library_changes": false,
+  "compiled_source_revision": "ec5b8250bb9b895a3162375e8ac80cda2ccdcbee",
+  "compiled_source_version": "3.17",
+  "complete_kernel_acceptance": false,
+  "decision": "User explicitly delegated pause-or-stop choice after commit; root selected stop because activity does not establish the requested confidence in progress. Actual signals still pending this commit.",
+  "files": {
+    "control-inspection.json": {
+      "bytes": 1906,
+      "original_temp_capture": "C:\\Users\\symbi\\AppData\\Local\\Temp\\verifiedos-checklist-20261010-e65060ecc48b4698ba4a3c8029be3c70\\q39-checker-control-inspection.json",
+      "sha256": "f11dc8b3fcc9e62dcee736a8e77b22b6cf0119e44c7351e818d15e174284e373"
+    },
+    "emission-timing.json": {
+      "bytes": 7350,
+      "original_temp_capture": "C:\\Users\\symbi\\AppData\\Local\\Temp\\vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f\\kernel-emission-timing-20261012\\kernel-emission-timing.json",
+      "sha256": "6a0c09d838c11b05898f90821aa2afcc265786c658e1bc9007cbbdebe7c701c2"
+    },
+    "passive-symbol-summary.json": {
+      "bytes": 4508,
+      "original_temp_capture": "C:\\Users\\symbi\\AppData\\Local\\Temp\\verifiedos-checklist-20261010-e65060ecc48b4698ba4a3c8029be3c70\\q39-passive-symbol-summary.json",
+      "sha256": "4a9bab9de2c15b2780133fbd3d4d36e0495b524aeccb6c5b34c08b939be0fc1b"
+    },
+    "release-triage.json": {
+      "bytes": 3090,
+      "original_temp_capture": "C:\\Users\\symbi\\AppData\\Local\\Temp\\verifiedos-release-triage-31f3d63104164b5faaad12c7778efc0f\\triage-summary.json",
+      "sha256": "7bbb7d092d7b01beafca777c9cff3a8010dbda92302cbe36b602da49fb65b7c2"
+    },
+    "stop-readiness.json": {
+      "bytes": 64974,
+      "original_temp_capture": "C:\\Users\\symbi\\AppData\\Local\\Temp\\vos-q39-43bccfe9c0bf4df4864da265a8d6ab5f\\stop-readiness-20261012-4fd27e397f604172ba4e5157800babb8\\stop-readiness.json",
+      "sha256": "af62c6dd28f41b5074ce5f7067fa01c698383b9484a9344d42def5b41afdbb09"
+    }
+  },
+  "integration_base": "b47b863873ab1eee55cbed56a80a6ddd5dafce8d",
+  "raw_profile_retention": {
+    "host": "C:\\Users\\symbi\\AppData\\Local\\Temp\\verifiedos-checklist-20261010-e65060ecc48b4698ba4a3c8029be3c70\\q39-passive-sample-result.json",
+    "native": "/tmp/vos-q39-passive-sample-t1gx6g5b",
+    "scope": "Diagnostic scratch only; no accepted proof checkpoint"
+  },
+  "schema": "verifiedos-q39-shelving-triage/1",
+  "scope": "Historical metadata observations and bounded upstream-source triage, no source/object/executable/library incorporation.",
+  "version_owner": "Immutable contained VERSION Git blob; not inferred from SECOMP README"
+}
