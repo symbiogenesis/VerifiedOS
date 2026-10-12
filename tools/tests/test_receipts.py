@@ -115,6 +115,32 @@ def _atomic_failure() -> None:
         ensure(json.loads(before) == {"exit_code": 0}, "the published record is complete JSON")
 
 
+def _nonfinite_values_refuse() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        path = Path(td) / "evidence.json"
+        previous = {"seconds": 1.25, "samples": [0.0, -2.5]}
+        receipts.write(path, previous)
+        before = path.read_bytes()
+        ensure(json.loads(before) == previous, "finite receipt values must round-trip")
+        for value in (float("nan"), float("inf"), float("-inf")):
+            for payload in (value, {"nested": [value]}):
+                for existing in (True, False):
+                    if existing:
+                        path.write_bytes(before)
+                    else:
+                        path.unlink(missing_ok=True)
+                    try:
+                        receipts.write(path, payload)
+                    except ValueError:
+                        pass
+                    else:
+                        raise AssertionError("a non-JSON number was published in a receipt")
+                    ensure(path.read_bytes() == before if existing else not path.exists(),
+                           "failed serialization must preserve the destination state")
+                    ensure(list(path.parent.iterdir()) == ([path] if existing else []),
+                           "failed serialization must remove temporary bytes")
+
+
 def _manifest_boundaries() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
@@ -138,4 +164,5 @@ def cases() -> list[Case]:
             Case("atomic-replace-failure", _atomic_replace_failure),
             Case("input-changes", _input_changes),
             Case("atomic-failure", _atomic_failure),
+            Case("nonfinite-values-refuse", _nonfinite_values_refuse),
             Case("manifest-boundaries", _manifest_boundaries)]

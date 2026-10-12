@@ -105,7 +105,7 @@ def write(path: Path, payload: object) -> None:
     """Replace a complete receipt atomically, preserving the old one on failure."""
     with (atomic_path(path) as pending,
           pending.open("w", encoding="utf-8", newline="") as stream):
-        json.dump(payload, stream, indent=2, sort_keys=True, ensure_ascii=False)
+        json.dump(payload, stream, indent=2, sort_keys=True, ensure_ascii=False, allow_nan=False)
         stream.write("\n")
         stream.flush()
         os.fsync(stream.fileno())
