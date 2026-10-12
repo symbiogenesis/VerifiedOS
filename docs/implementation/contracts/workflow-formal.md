@@ -95,6 +95,13 @@ document state. `commit_preserves_declared_document` proves that relation.
 A failed commit resumes the old live app. Protected or unbounded operations
 refuse the edge before that app is stopped.
 
+Q32b implements this checkpoint through M5.3d's [stage, publish and reopen
+interface](../storage-recovery-policy.md#early-executable-publication-checkpoint).
+It adds semantic decoding, exact document equality, current-grant/resume checks
+and lifecycle cuts to the shared executable crash campaign. Ordinary and Fresh
+checkpoint acknowledgments retain their separate boundaries. This adapter
+neither creates another journal nor transfers Q32b's lifecycle proof to storage.
+
 `Release` requires a successful commit in this retirement attempt and the full
 `Roots` receipt. It is the successful hibernation event. The receipt names the
 complete holder inventory and derivable bases, closed ingress, live register

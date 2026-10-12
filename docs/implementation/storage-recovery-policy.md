@@ -38,6 +38,55 @@ The implementation must settle record framing, authentication and commit represe
 
 The block-device contract remains unchanged. It permits non-prefix bit tears, misdirected reads and arbitrary recorded corruption. `rec_landed = rec_len` is a symbolic predicate and cannot decode or authenticate those bytes. A decoder/verifier and transaction-completeness bridge must be reviewed before any device trace is presented as one of JournalIndex.v's record traces. Missing, invalid or over-limit evidence is a refusal, not an invented intact record.
 
+## Early executable publication checkpoint
+
+M5.3d owns one bounded stage, publish and reopen interface over its selected
+storage implementation. Qualify this interface before expanding M5.4's update,
+Q32b's semantic-checkpoint or Q42a's restore adapters. This is an early checkpoint
+inside the existing integration item, not completion of M5.3d or a second
+transaction engine. It retains the same L0 journal, L1 retained roots, L2 atomic
+effects and L3 domain/freshness boundaries described above.
+
+The interface contract separates these operations; concrete types and encodings
+belong to M5.3d's executable producer:
+
+| Operation | Input and checked boundary | Result |
+| --- | --- | --- |
+| Reserve | Store/domain identity, intended transaction and bounded staging/recovery space; the real key-wide nonce-reservation producer persists its advance before sealing | An attempt with finite resources and an unused generation; refusal exposes no staged data and never rolls back a consumed reservation |
+| Stage | That attempt, exact ordered object/metadata/index effects and authenticated candidate identity | Unreachable candidate bytes beside the retained state; failure leaves prior reachable state intact and charges bounded cleanup |
+| Publish | Complete candidate, independent payload/root/checkpoint verification and the consumer's operation-specific authorization | Durable authenticated checkpoint publication before acknowledgment or journal reuse; the result binds the attempt, store, root and exact ordered acknowledged prefix |
+| Reopen | The resulting persistent device image and independently authenticated checkpoint, after volatile state is discarded | The selected protocol's authenticated complete state or its declared corruption refusal; no partial transaction or fabricated record-validity flag |
+
+Ordinary rollbackable publication and `Fresh` publication have distinct results.
+The former supplies no freshness evidence. The latter additionally waits for the
+existing epoch-seal owner before its acknowledgment; a durable root alone cannot
+satisfy R-10-013c. Nonce reservation is neither consumer data nor restorable
+checkpoint payload. Exhaustion, rollback of reservation state and a missing
+independent checkpoint verifier cannot become successful publication.
+
+The first executable witness uses real bounded node-image bytes, storage and
+crypto through the persistent device adapter. It records each operation above,
+then reopens the same image in a new execution. M5.3d owns the reusable crash-cut
+campaign at reservation persistence, payload writes, commit/checkpoint publication,
+acknowledgment and journal reuse; Fresh cases add the epoch-seal boundary. It
+retains image, source, configuration, decoder/verifier and trace identities, the
+acknowledged prefix and selected root, and independently checks returned bytes.
+Ordinary resets preserve every acknowledged transaction; declared corruption
+refuses before object bytes return. Non-prefix tears exercise the declared
+incomplete-versus-committed recovery boundary; wrong-block reads, checkpoint
+substitutions and nonce-state rollback exercise their required refusals.
+The bounded symbolic bridge and a host-only adapter fixture cannot pass this
+checkpoint.
+
+Consumers reuse this operation boundary and campaign runner on their actual
+executable paths, adding their own assertions: M5.4 binds candidate admission,
+boot/counter and health fallback; Q32b binds semantic document equality, current
+grants and resume; Q42a binds whole-object authentication, consent, schema plans
+and Fresh initialization. Their policy state machines remain separate. Evidence
+is reusable only for identical relevant source/configuration/image inputs;
+changed adapters rerun the affected cuts. This ordering supplies no performance
+credit or estimate reduction before measured integration evidence exists.
+
 ## Acceptance fixed before companion authoring
 
 This decision document passes when it names both existing arms and their computed store difference; separates their shared obligations from full-transaction completeness; accounts for L0 through L3 and Q22f's conditional costs; states the selected policy and exact register boundary; and identifies every producer the final crash predicate needs. It does not pass by marking M5.3 complete or choosing an arm in source code.
