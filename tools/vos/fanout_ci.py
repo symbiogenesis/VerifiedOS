@@ -249,12 +249,20 @@ class GitHub:
             parameters["head_sha"] = revision
         else:
             parameters["event"] = "workflow_dispatch"
-        query = urllib.parse.urlencode(parameters)
-        response = self.request("GET", f"actions/workflows/{workflow}/runs?{query}")
-        runs = response.get("workflow_runs")
-        if not isinstance(runs, list):
-            raise CIError("GitHub did not return workflow runs")
-        return [_object(run) for run in runs]
+        runs: list[dict[str, object]] = []
+        # Recovery must see later pages too: a second dispatch with the same title
+        # cannot become a unique identity merely by falling outside the first page.
+        for page in range(1, 11):
+            parameters["page"] = page
+            query = urllib.parse.urlencode(parameters)
+            response = self.request("GET", f"actions/workflows/{workflow}/runs?{query}")
+            values = response.get("workflow_runs")
+            if not isinstance(values, list):
+                raise CIError("GitHub did not return workflow runs")
+            runs.extend(_object(run) for run in values)
+            if len(values) < 100:
+                return runs
+        raise CIError("workflow run listing exceeded the bounded pagination limit")
 
     def verify_ref(self, state: CIState) -> None:
         response = self.request("GET", "git/ref/heads/main")
