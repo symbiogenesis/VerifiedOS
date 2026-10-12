@@ -20,6 +20,14 @@ instruction under test. `vector-bitcount emit` regenerates both artifacts;
 `vector-bitcount check` refuses missing or changed output. The generated-artifact
 checker holds those bytes against their generator.
 
+The Sail adapter selects expected counts by an explicit operation match. It has
+no positional expectation vector whose index meaning depends on Sail's descending
+literal order. `vector-bitcount smoke` compiles that same generated selector to
+SMT and checks every supported width and operation with distinguishable answers;
+its counterexample control reproduces the descending-index mismatch for zero at
+SEW=16. It builds no complete model. Generated comparison failures name the
+operation, width, input, destination aliasing, expected and observed values.
+
 ## Acceptance predicate
 
 The repair is accepted only when all of these observations hold:
@@ -41,6 +49,8 @@ The repair is accepted only when all of these observations hold:
   `execute` calls. A deliberately wrong expected answer is refused by the actual
   simulator; a compilation failure supplies no behavioral control verdict.
 - Generator tests reject byte drift in each output and check oracle landmarks.
+  The hosted adapter check refuses missing properties, undecided answers and a
+  missing counterexample for the original indexing defect.
   Strict Sail compilation succeeds; the changed model bytes, project registration,
   generated bundle, dialect and corpus manifest are consistent.
 - Host CI passes on Windows and Ubuntu for the settled main revision. Every
@@ -48,7 +58,8 @@ The repair is accepted only when all of these observations hold:
   gates remain hosted, and a pending guest verdict is recorded as pending.
 
 Local feedback is limited to focused host tests, strict Sail typechecking,
-simulator-only building, and this corpus member and its negative control.
+the small adapter check, simulator-only building, and this corpus member and its
+negative control.
 Complete model builds that also execute the bundled test suite, complete gate
 suites and every benchmark remain CI-only. These checks establish a bounded
 regression campaign, not a universal bit-count theorem or silicon timing proof.
@@ -90,7 +101,7 @@ claim that whole C/ISA refinement is already available.
 
 ## Focused qualification evidence
 
-[The recorded focused evidence](vector-bitcount-evidence.json) binds the model,
+[The recorded focused evidence](vector-bitcount-evidence.json) binds its recorded model,
 profile, generator and corpus bytes to successful simulator execution and the
 wrong-count, fractional-tail and masked-lane controls. The corpus manifest owns
 the measured trace size and digest. Strict Sail checking includes the registered
@@ -98,8 +109,7 @@ unit source; complete unit execution remains a Guest CI obligation. Generator
 and related tool tests, Python typing on Windows and Linux, and the two new
 generated-artifact rows' dedicated drift probes passed.
 
-The hosted handoff remains blocked by existing incomplete contained-compiler
-provenance in the firmware crypto and chain target manifests. The recorded Host CI
-run supplies a failed verdict for its published revision. The focused checks
-supply no passing Host CI or Guest CI verdict and do not authorize bypassing
-either gate.
+The retained Host CI run supplies a failed verdict for its recorded revision,
+with incomplete contained-compiler provenance in the firmware crypto and chain
+target manifests. This focused record supplies no passing Host CI or Guest CI
+verdict and does not authorize bypassing either gate.

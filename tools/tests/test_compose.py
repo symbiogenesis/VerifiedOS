@@ -14,74 +14,20 @@ nobody has selected a dictionary for, and the case here is that it stays a state
 rather than becoming a measurement by accident.
 
 The third is the regression M1.4-prime may not move: the differential corpus assembles
-to the same bytes it always did. The digest is over every member's image in manifest
-order, keeping one aggregate regression fixture for the complete manifest.
+to the same bytes it always did. Each reviewed member binds its own source and encoded
+image bytes; adding a member cannot rerecord an old image.
 """
 
-import hashlib
 import tempfile
 from pathlib import Path
 from typing import Final
 
 from tests.harness import Case, ensure
-from vos import asm, compose, corpus, differential, freezeschema
+from vos import asm, compose, corpus, corpus_images, freezeschema
 
 _ROOT: Final[Path] = corpus.find_root(Path(__file__).resolve())
 
-# The sha256 over every corpus member's image, concatenated in manifest order, and their
-# total size. This is M1.4-prime's own acceptance criterion and the one figure the
-# encoder's generation was not allowed to move. On a mismatch, read the model's `encdec`
-# clause for whichever mnemonic moved before touching either side; never repair a red run
-# by rerecording.
-#
-# **The figure is the transcribed encoder's rather than this one's**, which is the whole
-# of what makes it evidence: recorded from the post-change tree it would pin whatever the
-# current encoder produces and could not show that anything had not moved. It was taken
-# by exporting `8189229`, the commit before generation landed, to a tree outside every
-# checkout and running this function's own body there against that tree's `vos.asm`:
-# 26 members, `03f88f69731aabf59047dbc57b0a3778c908de727278e4e693d52addbf0c0d89`,
-# 55,992 bytes. A reader who doubts it repeats exactly that.
-#
-# **Its subject is the encoder and its input is the corpus, so a member that gains an
-# instruction moves it for a reason it cannot itself tell apart from a moved encoding.**
-# That is why a rerecord is admitted only by *measuring the old figure back*: assemble
-# the corpus with the changed member's pre-change source in place of its current one,
-# under the current encoder, and require the transcribed figure above. Only then is the
-# delta the member's. M0.20 is the first rerecord and took that measurement: its four
-# added source statements assemble to five words, twenty bytes of `cap-trap`'s `.text`,
-# of which the image shows sixteen because the section is padded up to the next one's
-# alignment. **The figure below is an image total and not a text total**, which is why
-# those two numbers differ and why neither can be derived from the other by counting
-# instructions. The reading below is the corpus as it now stands, and a red run is still
-# never repaired by rerecording alone.
-#
-# M5.3c extends the manifest with block-authority. Before recording its new total,
-# assembling every other member reproduced the prior 26-image, 56,008-byte hash
-# a287542f3c5385b6f5b2074a42ac068897738a4cc42fdce88e3fb49d2116689f exactly.
-# Thus the extension changes only the new member, not any old encoded image.
-#
-# The boundary-delivery change in 5eea5c94 updates zicond-csr's CSR expectations.
-# With its pre-change source from e2eab098 and the current encoder, all 27 images
-# reproduce the prior 110,424-byte total and
-# 821d0753a511378632d7b0cb760daf45d2be11b7e366dcf14f7f295a1b599e57 hash.
-# The current source changes only zicond-csr and adds sixteen image bytes. Both
-# source variants also produce identical images under the pre-10df928b encoder:
-# the executable-alignment change moves no image in this corpus.
-#
-# M1.7 and M4.4a add gallina-hello and kernel-instance. Before extending this
-# fixture, assembling every other member reproduced the prior 27-image,
-# 110,440-byte hash bf86519f60c11af4ec3703b921fb1fb2237f93c85822f7b11e200d72cd3f8130.
-# The two new images add 20,104 and 77,216 bytes; no previous image moved.
-#
-# Vector-bitcount extends the manifest with one 68,256-byte image. Before recording
-# its new total, assembling every other member with the current encoder reproduced
-# the prior 29-image, 207,760-byte hash
-# dfbd34cf05f09e61d09c0cc718e1ae2c759ac0e4583eee411e2f5a513c9d2766 exactly.
-# Thus this extension changes only the new member, not any prior encoded image.
-_CORPUS_IMAGES: Final[str] = \
-    "80e754f5cc08dfbdf27c76f44a2319c0b5f4b31a11a472f8af16e9a777232318"
-_CORPUS_BYTES: Final[int] = 276_016
-_CORPUS_MEMBERS: Final[int] = 30
+# The per-member fixture is reviewed evidence, never a generated-artifact repair.
 
 
 def _program(rows: int) -> str:
@@ -186,23 +132,8 @@ def _emitted_files_are_the_declared_ones() -> None:
 
 
 def _corpus_images_have_not_moved() -> None:
-    manifest = differential.load(_ROOT)
-    digest = hashlib.sha256()
-    total = 0
-    with tempfile.TemporaryDirectory() as scratch:
-        for member in manifest.members:
-            elf = Path(scratch) / f"{member.name}.elf"
-            asm.assemble_file(manifest.source(member), elf)
-            blob = elf.read_bytes()
-            digest.update(blob)
-            total += len(blob)
-    ensure(len(manifest.members) == _CORPUS_MEMBERS,
-           f"the corpus carries {len(manifest.members)} members, recorded {_CORPUS_MEMBERS}")
-    ensure(total == _CORPUS_BYTES,
-           f"the corpus assembles to {total} bytes, recorded {_CORPUS_BYTES}")
-    ensure(digest.hexdigest() == _CORPUS_IMAGES,
-           f"the corpus images hash {digest.hexdigest()}, recorded {_CORPUS_IMAGES}: "
-           f"read the moved mnemonic's own encdec clause before rerecording")
+    faults = corpus_images.check(_ROOT)
+    ensure(not faults, "; ".join(faults))
 
 
 def cases() -> list[Case]:
