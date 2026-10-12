@@ -436,6 +436,95 @@ def _cli_verdicts() -> None:
                    "both renderings diagnose mismatched input without crashing")
 
 
+def _cli_refusal_evidence() -> None:
+    checkout = Path(__file__).resolve().parents[2]
+    source_hashes = {
+        name: sha256((checkout / name).read_bytes()).hexdigest()
+        for name in ("tools/vos/allocation_churn.py", "tools/vos/cli/allocation_churn.py",
+                     "docs/implementation/contracts/roster-measurement.md")
+    }
+    with TemporaryDirectory(prefix="vos-churn-refusal-evidence-") as directory:
+        root = Path(directory).resolve()
+        capture_path, expected_path = root / "capture.json", root / "expected.json"
+        for defect in ("none", "budget-excess", "invalid-interval", "duplicate-key",
+                       "stale-identity", "changed-capture", "malformed-expected"):
+            capture = _capture()
+            if defect == "budget-excess":
+                capture["domains"][0]["quarantine_capacity_bytes"] = 9
+            elif defect == "invalid-interval":
+                capture["teardowns"][0]["reuse_tick"] = 31
+            # Bind original bytes, including whitespace, rather than a decoded
+            # object reserialized for the diagnostic.
+            raw = b"\n " + json.dumps(capture).encode("utf-8") + b" \n"
+            if defect == "duplicate-key":
+                raw = raw.replace(b'"complete": true', b'"complete": true, "complete": true')
+            expected = _expected(raw)
+            if defect == "stale-identity":
+                expected = replace(expected, image_sha256="d" * 64)
+            expected_raw = b"\n" + json.dumps(asdict(expected)).encode("utf-8") + b"\n"
+            if defect == "changed-capture":
+                raw += b"\n"
+            elif defect == "malformed-expected":
+                expected_raw = b"{"
+            capture_path.write_bytes(raw)
+            expected_path.write_bytes(expected_raw)
+            evidence = {"capture_sha256": sha256(raw).hexdigest(),
+                        "expected_identity_sha256": sha256(expected_raw).hexdigest(),
+                        "sources_sha256": source_hashes}
+            for flags in ([], ["--json"]):
+                output = StringIO()
+                with redirect_stdout(output):
+                    code = cli.main([str(capture_path), "--expected-identity", str(expected_path), *flags])
+                rendered = output.getvalue()
+                accepted = defect in ("none", "budget-excess")
+                ensure(code == (0 if defect == "none" else 1 if accepted else 2),
+                       f"{defect}: retained evidence leaves the verdict unchanged")
+                if flags:
+                    report = json.loads(rendered)
+                    ensure(all(report.get(field) == value for field, value in evidence.items()),
+                           f"{defect}: available raw-byte and implementation hashes survive")
+                    ensure(report["milestone_acceptance"] == "open", "evidence cannot qualify the target")
+                    if accepted:
+                        ensure(report["identity"] == asdict(expected), "identity follows validated input")
+                    else:
+                        ensure("identity" not in report and "totals" not in report
+                               and "domains" not in report and "within_declared_limits" not in report,
+                               "input refusal publishes no matched identity or partial measurements")
+                else:
+                    ensure(all(f"  {field}: {json.dumps(value, sort_keys=True)}\n" in rendered
+                               for field, value in evidence.items()),
+                           f"{defect}: text preserves the same exact fingerprints")
+                    if not accepted:
+                        ensure(rendered.startswith("FAIL allocation-churn:")
+                               and "  identity:" not in rendered and "  measurements:" not in rendered,
+                               "text input refusal publishes no matched identity or partial measurements")
+        for missing in ("capture", "expected"):
+            paths = [capture_path, expected_path]
+            paths[0 if missing == "capture" else 1] = root / "missing.json"
+            available: dict[str, object] = {"sources_sha256": source_hashes}
+            if missing == "expected":
+                available["capture_sha256"] = sha256(capture_path.read_bytes()).hexdigest()
+            else:
+                available["expected_identity_sha256"] = sha256(expected_path.read_bytes()).hexdigest()
+            for flags in ([], ["--json"]):
+                output = StringIO()
+                with redirect_stdout(output):
+                    code = cli.main([str(paths[0]), "--expected-identity", str(paths[1]), *flags])
+                rendered = output.getvalue()
+                ensure(code == 2, "an unreadable input remains a refusal")
+                if flags:
+                    report = json.loads(rendered)
+                    actual = {field: report[field] for field in evidence if field in report}
+                    ensure(actual == available and "identity" not in report,
+                           "unreadable input retains only fingerprints already observed")
+                else:
+                    ensure(all(f"  {field}: {json.dumps(value, sort_keys=True)}\n" in rendered
+                               for field, value in available.items()),
+                           "text refusal retains the available fingerprints")
+                    ensure("  identity:" not in rendered,
+                           "unreadable input publishes no matched identity")
+
+
 def _cli_large_integer_refusal() -> None:
     # Ten separately decodable powers of ten can sum to one decimal digit past
     # the interpreter's active bound; nine remain within it. This hand-counted
@@ -601,6 +690,7 @@ def cases() -> list[Case]:
             Case("malformed-records", _malformed_records),
             Case("identity-and-raw-bytes", _independent_identity_and_raw_bytes),
             Case("cli-verdicts", _cli_verdicts),
+            Case("cli-refusal-byte-and-source-evidence", _cli_refusal_evidence),
             Case("cli-large-integer-refusal", _cli_large_integer_refusal),
             Case("cli-escaped-diagnostics", _cli_escaped_diagnostics),
             Case("cli-legacy-encoding", _cli_legacy_encoding)]
