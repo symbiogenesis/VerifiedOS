@@ -1053,6 +1053,81 @@ def _k115_destination_and_autolink_keep_their_revision() -> None:
         ensure(not found, f"the licence link in another form agrees ({edit}): {found!r}")
 
 
+def _k115_bare_link_ends_before_an_adjacent_autolink() -> None:
+    reviewed = f"[terms](https://github.com/example/action/blob/{_K115_SHA}/LICENSE)"
+    bare = f"https://github.com/example/action/blob/{_K115_SHA}/LICENSE"
+    for ref in ("main", f"{_K115_SHA}_", _K115_SHA):
+        adjacent = f"{bare}<https://github.com/example/action/tree/{ref}>"
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(reviewed, adjacent)})
+        if ref == _K115_SHA:
+            ensure(not found, f"two adjacent links at the reviewed commit agree: {found!r}")
+        else:
+            quoted = f"THIRD-PARTY.md:7 links example/action's licence at {ref}, the row reviewed "
+            ensure(len(found) == 1 and quoted in found[0],
+                   f"an adjacent autolink is read separately ({ref}): {found!r}")
+        paths = [match["path"] for match in pins._licence_links("example/action").finditer(
+            adjacent)]
+        ensure(paths == ["LICENSE", None],
+               f"a bare link's path ends before the adjacent autolink: {paths!r}")
+
+
+def _k115_scheme_less_www_autolinks_are_read() -> None:
+    reviewed = f"[terms](https://github.com/example/action/blob/{_K115_SHA}/LICENSE)"
+    for host in ("www.github.com", "WWW.GitHub.COM"):
+        link = f"{host}/Example/Action/blob/{_K115_SHA}/LICENSE"
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(reviewed, link)})
+        ensure(not found, f"a scheme-less licence autolink at the reviewed commit agrees: "
+                          f"{found!r}")
+        for ref in ("main", "v1.2.3"):
+            extra = f"{host}/Example/Action/tree/{ref}."
+            found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(
+                reviewed, f"{reviewed} beside {extra}")})
+            quoted = f"THIRD-PARTY.md:7 links example/action's licence at {ref}, the row reviewed "
+            ensure(len(found) == 1 and quoted in found[0],
+                   f"a scheme-less autolink at another revision is read ({extra}): {found!r}")
+
+
+def _k115_html_attribute_values_keep_their_revision_and_path() -> None:
+    reviewed = f"[terms](https://github.com/example/action/blob/{_K115_SHA}/LICENSE)"
+    tree = f"https://github.com/example/action/tree/{_K115_SHA}"
+    for extra, ref in ((f'<a href="{tree}_">x</a>', f"{_K115_SHA}_"),
+                       (f"<a href='{tree}!'>x</a>", f"{_K115_SHA}!"),
+                       (f'<a HREF = "{tree}.">x</a>', f"{_K115_SHA}."),
+                       (f'<a href="{tree})]">x</a>', f"{_K115_SHA})]"),
+                       (f'<a href="{tree}\'">x</a>', f"{_K115_SHA}'"),
+                       (f"<a href='{tree}\"'>x</a>", f'{_K115_SHA}"'),
+                       (f"<a href={tree}_>x</a>", f"{_K115_SHA}_")):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(
+            reviewed, f"{reviewed} beside {extra}")})
+        # The finding abbreviates only to the first differing character; the parser
+        # still keeps the entire attribute value, including later punctuation.
+        shown = ref[:len(_K115_SHA) + 1]
+        quoted = f"THIRD-PARTY.md:7 links example/action's licence at {shown}, the row reviewed "
+        ensure(len(found) == 1 and f"{quoted}{_K115_SHA};" in found[0],
+               f"an attribute's revision keeps its punctuation ({extra}): {found!r}")
+        refs = [match["rev"] for match in pins._licence_links("example/action").finditer(extra)]
+        ensure(refs == [ref], f"an attribute's whole revision is read ({extra}): {refs!r}")
+    for extra in (f'<a href="{tree}">x</a>', f"<a href='{tree}'>x</a>",
+                  f"<a href={tree}>x</a>", f'<a href="{tree}#readme">x</a>',
+                  f'<a href="{tree}?tab=readme">x</a>'):
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(
+            reviewed, f"{reviewed} beside {extra}")})
+        ensure(not found, f"an attribute at the reviewed commit agrees ({extra}): {found!r}")
+    for quote in ('"', "'", ""):
+        url = f"https://github.com/example/action/blob/{_K115_SHA}/LICENSE._"
+        extra = f"<a href={quote}{url}{quote}>terms</a>"
+        found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(reviewed, extra)})
+        ensure(not found, f"an attribute links a licence file at the reviewed commit: {found!r}")
+        links = list(pins._licence_links("example/action").finditer(extra))
+        ensure(len(links) == 1 and links[0]["path"] == "LICENSE._",
+               f"an attribute's path keeps its trailing punctuation: {links!r}")
+        for suffix in ("", "/", "///"):
+            extra = f"<a href={quote}{tree}{suffix}{quote}>terms</a>"
+            found = _k115({"THIRD-PARTY.md": _K115_RECORD.replace(reviewed, extra)})
+            ensure(len(found) == 1 and "links no licence of example/action" in found[0],
+                   f"an attribute naming only a tree or slashes links no file: {found!r}")
+
+
 def _k115_leaves_the_analyzer_rows_to_k118() -> None:
     # The analyzers' rows are K-118's, held against the lock and the script that
     # install them; K-115 reads action rows alone, so a moved analyzer release is one
@@ -2445,6 +2520,11 @@ def cases() -> list[Case]:
              _k115_licence_link_names_the_reviewed_commit),
         Case("k115-destination-and-autolink-keep-their-revision",
              _k115_destination_and_autolink_keep_their_revision),
+        Case("k115-bare-link-ends-before-an-adjacent-autolink",
+             _k115_bare_link_ends_before_an_adjacent_autolink),
+        Case("k115-scheme-less-www-autolinks-are-read", _k115_scheme_less_www_autolinks_are_read),
+        Case("k115-html-attribute-values-keep-their-revision-and-path",
+             _k115_html_attribute_values_keep_their_revision_and_path),
         Case("k115-leaves-the-analyzer-rows-to-k118", _k115_leaves_the_analyzer_rows_to_k118),
         Case("k115-unreadable-readings-fail-closed", _k115_unreadable_readings_fail_closed),
         Case("k115-every-uses-key-is-read-or-reported", _k115_every_uses_key_is_read_or_reported),
