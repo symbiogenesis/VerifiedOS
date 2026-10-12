@@ -293,6 +293,89 @@ def _descriptor_snapshot_binding() -> None:
             consume(root)
 
 
+def _composition_snapshot_binding() -> None:
+    with _sandbox() as (root, raw):
+        path = root / c.EXAMPLE
+        original = path.read_bytes()
+        changed = json.loads(original)
+        changed["supervisor"]["policy"]["min_dwell"] = 11
+        relation = {"member": "copy-service", "requires": "storage"}
+        changed["startup"]["dependencies"].append(relation)
+        changed["supervisor"]["authority"].append(relation)
+        substituted = composer.canonical_bytes(changed)
+        read_bytes = Path.read_bytes
+        reads = 0
+        def transient_read(candidate: Path) -> bytes:
+            nonlocal reads
+            if candidate == path:
+                reads += 1
+                return original if reads == 1 else substituted
+            return read_bytes(candidate)
+        with patch.object(Path, "read_bytes", transient_read):
+            _refused(lambda: c.projections(root), "stale source binding")
+        ensure(reads >= 2, "control reaches binding after parsing the composition")
+        for data, dwell, edges in ((original, 2, [0, 1, 0]),
+                                  (substituted, 11, [0, 1, 2]),
+                                  (json.dumps(changed, indent=3).encode("utf-8"), 11, [0, 1, 2])):
+            path.write_bytes(data)
+            outputs = c.projections(root)
+            manifest = json.loads(outputs["manifest.json"])
+            ensure(manifest["payload"]["policy"]["min_dwell"] == dwell,
+                   "manifest follows the actual composition snapshot")
+            ensure(manifest["payload"]["edges"] == edges,
+                   "authority projection follows independently expected relations")
+            for name in ("manifest.json", "graph-input.json", "recipe-members.json", "admission-request.json"):
+                ensure(json.loads(outputs[name])["binding"]["input"] ==
+                       {"path": c.EXAMPLE, "sha256": c.digest(data)},
+                       "all projections bind exact input bytes, including formatting")
+        ensure(raw["supervisor"]["policy"]["min_dwell"] == 2, "original fixture policy is unchanged")
+
+
+def _build_composition_snapshot_binding() -> None:
+    with _sandbox() as (root, raw):
+        graph = _resolve_descriptors(root, raw)
+        directory = root / "products"
+        directory.mkdir()
+        artifacts = {}
+        for member in raw["members"]:
+            if member["id"] in ("composer", "admission"):
+                continue
+            relative = f"products/{member['id']}.bin"
+            (root / relative).write_bytes(member["id"].encode("utf-8"))
+            artifacts[member["artifact_slot"]] = c.reference(root, relative)
+        (directory / "image.bin").write_bytes(b"test-only composed image")
+        image = c.reference(root, "products/image.bin")
+        outputs = c.projections(root)
+        path = root / c.EXAMPLE
+        original = path.read_bytes()
+        changed = json.loads(original)
+        changed["supervisor"]["policy"]["min_dwell"] = 11
+        substituted = composer.canonical_bytes(changed)
+        read_bytes = Path.read_bytes
+        record = c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph)
+        for stable_reads in (1, 2):
+            for consume in (lambda: c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph),
+                            lambda: c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image)):
+                reads = 0
+                def transient_read(candidate: Path, unchanged_reads: int = stable_reads) -> bytes:
+                    nonlocal reads
+                    if candidate == path:
+                        reads += 1
+                        return original if reads <= unchanged_reads else substituted
+                    return read_bytes(candidate)
+                with patch.object(Path, "read_bytes", transient_read):
+                    _refused(consume, "stale source binding")
+                ensure(reads > stable_reads, "control reaches the build-record binding boundary")
+        for data in (original, json.dumps(raw, indent=3).encode("utf-8")):
+            path.write_bytes(data)
+            outputs = c.projections(root)
+            record = c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph)
+            c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image)
+            ensure(json.loads(composer.canonical_bytes(record))["binding"]["input"] ==
+                   {"path": c.EXAMPLE, "sha256": c.digest(data)},
+                   "build record binds the same exact input snapshot as its projections")
+
+
 def _partial_graph_edge_refusals() -> None:
     # An unresolved peer withholds the graph, not checks whose inputs are known.
     with _sandbox() as (root, raw):
@@ -474,6 +557,8 @@ def cases() -> list[Case]:
             Case("stale-inputs-and-projections", _stale_inputs_and_projections),
             Case("typed-handler-owner", _graph_owner_boundary),
             Case("descriptor-snapshot-binding", _descriptor_snapshot_binding),
+            Case("composition-snapshot-binding", _composition_snapshot_binding),
+            Case("build-composition-snapshot-binding", _build_composition_snapshot_binding),
             Case("partial-typed-handler-refusals", _partial_graph_edge_refusals),
             Case("post-build-byte-bindings", _build_bindings),
             Case("artifact-path-substitutions", _artifact_path_substitutions),

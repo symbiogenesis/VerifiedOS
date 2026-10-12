@@ -69,6 +69,13 @@ the existing C manifest's meanings and capacity bounds. This output supplies the
 manifest's source, without changing the handwritten manifest currently compiled
 by the supervisor's host implementation.
 
+The input digest names the exact byte snapshot parsed and validated for those
+projections, including its JSON formatting. A valid substitution between parsing
+and binding receives a `stale source binding` refusal, rather than binding one
+composition's manifest or relations to another composition's bytes. Build-record
+generation and validation use the same checked snapshot for their projections
+and final input binding, and refuse subsequent drift.
+
 `python tools/run.py composer check-project` regenerates and compares every
 checked-in projection byte. A changed member, source, producer, relation,
 placement or derivation reference invalidates the projections. The focused
