@@ -99,6 +99,8 @@ COMMANDS: tuple[Command, ...] = (
             "what an edit to the apex statement re-opens, before the work starts"),
     Command("revocation", "vos.cli.revocation",
             "bounded revocation completion and address-reuse counterexamples"),
+    Command("inference-admission", "vos.cli.inference_admission",
+            "finite host residency and symbolic grant decisions for decoded shapes"),
     Command("resident-reads", "vos.cli.resident_reads",
             "run the bounded resident-read host reference and executed controls"),
     Command("allocation-churn", "vos.cli.allocation_churn",
