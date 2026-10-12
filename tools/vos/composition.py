@@ -318,7 +318,13 @@ def validate_build_record(root: Path, source: str, record: dict[str, Any],
         expected = build_record(root, source, outputs, record["artifacts"], image, graph)
     except (KeyError, TypeError) as error:
         raise CompositionError("build record: malformed record") from error
-    if record != expected:
+    try:
+        actual = composer.canonical_bytes(record)
+    except (TypeError, ValueError) as error:
+        raise CompositionError("build record: malformed record") from error
+    # Python equality aliases booleans, integers and floats. The generated JSON
+    # record must retain the exact types at its version and admission boundaries.
+    if actual != composer.canonical_bytes(expected):
         raise CompositionError("build record: substituted binding or derivation reference")
 
 
