@@ -11,6 +11,7 @@ applied here around a declared write).
 """
 
 import subprocess
+import tempfile
 from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
@@ -59,12 +60,13 @@ def _fixture() -> dict[str, str]:
     files = {rel: (root / rel).read_text(encoding="utf-8") for rel in _SOURCES}
     files["docs/requirements-register.md"] = _REGISTER
     files["docs/spec.md"] = _SPEC
+    files[".gitignore"] = "/out/\n"
     return files
 
 
-def _run(root: Path) -> subprocess.CompletedProcess[str]:
+def _run(root: Path, *args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        cli_argv(root, "vos.cli.view"),
+        cli_argv(root, "vos.cli.view", *args), cwd=cwd or root,
         capture_output=True, encoding="utf-8", errors="replace", check=False,
         timeout=120)
 
@@ -141,10 +143,55 @@ def _teardown() -> None:
         _FLOW.root = None
 
 
+def _source_destinations_are_refused() -> None:
+    with sandbox_tree(_fixture()) as root:
+        source = root / "docs/spec.md"
+        before = source.read_bytes()
+        done = _run(root, "--out", str(source))
+        ensure(done.returncode == 1 and "FAIL view:" in done.stdout,
+               f"a source destination must be refused, got {done.returncode}: "
+               f"{done.stdout!r} {done.stderr!r}")
+        ensure(source.read_bytes() == before, "refusing output must preserve source bytes")
+
+        output = root / "docs/generated/view.md"
+        done = _run(root, "--out", str(output))
+        ensure(done.returncode == 1 and not output.parent.exists(),
+               "nonignored contained output must be refused before creating its directory")
+
+        tracked = root / "out/tracked.md"
+        tracked.parent.mkdir()
+        tracked.write_bytes(b"retained source\n")
+        added = subprocess.run(["git", "add", "--force", "--", "out/tracked.md"], cwd=root,
+                               capture_output=True, text=True, check=False, timeout=30)
+        ensure(added.returncode == 0, f"could not stage ignored source fixture: {added.stderr}")
+        done = _run(root, "--out", str(tracked))
+        ensure(done.returncode == 1 and tracked.read_bytes() == b"retained source\n",
+               "a tracked path must be refused even when its directory is ignored")
+
+        alias = root / "out/source-alias.md"
+        alias.symlink_to(source)
+        done = _run(root, "--out", str(alias))
+        ensure(done.returncode == 1 and source.read_bytes() == before,
+               "an ignored symlink must not authorize overwriting its source target")
+
+
+def _explicit_outputs_remain_supported() -> None:
+    with sandbox_tree(_fixture()) as root, tempfile.TemporaryDirectory(prefix="vos-view-output-") as name:
+        elsewhere = Path(name).resolve()
+        for spelling, output in (("out/custom/view.md", root / "out/custom/view.md"),
+                                 (str(elsewhere / "external/view.md"), elsewhere / "external/view.md")):
+            done = _run(root, "--out", spelling, cwd=elsewhere)
+            ensure(done.returncode == 0 and output.read_text(encoding="utf-8").startswith(
+                   "*A generated reading view, never a source"),
+                   f"explicit ignored or external output must work: {done.stdout!r} {done.stderr!r}")
+
+
 def cases() -> list[Case]:
     return [
         Case("weave-places-every-entry", _weave_places_every_entry, lane="host"),
         Case("doubled-run-is-byte-identical", _doubled_run_is_byte_identical,
              lane="host"),
         Case("teardown", _teardown, lane="host"),
+        Case("source-destinations-are-refused", _source_destinations_are_refused, lane="host"),
+        Case("explicit-outputs-remain-supported", _explicit_outputs_remain_supported, lane="host"),
     ]

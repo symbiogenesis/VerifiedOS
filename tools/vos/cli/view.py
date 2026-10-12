@@ -25,6 +25,7 @@ about where an entry belongs.
 
 import argparse
 import re
+import subprocess
 from pathlib import Path
 
 from vos import coread
@@ -121,20 +122,40 @@ def weave(corpus: Corpus) -> tuple[list[str], int, list[str]]:
     return lines, placed, homeless
 
 
+def _output_path(root: Path, name: str | None) -> Path:
+    """Keep derived output outside the checkout's source and indexed files."""
+    base = root.resolve()
+    requested = Path(name) if name else Path("out/spec-woven.md")
+    path = (requested if requested.is_absolute() else base / requested).resolve()
+    if path.is_relative_to(base):
+        relative = path.relative_to(base).as_posix()
+        result = subprocess.run(["git", "-C", str(base), "check-ignore", "--quiet", "--", relative],
+                                cwd=base, env=corpus_mod._git_environment(base),
+                                capture_output=True, text=True, check=False, timeout=30)
+        if result.returncode == 1:
+            raise ValueError(f"output inside the repository must be ignored and untracked: {relative}")
+        if result.returncode != 0:
+            raise ValueError(f"cannot establish an ignored output path: {result.stderr.strip()}")
+    return path
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Weave the specification and the register into one reading view.")
     parser.add_argument("--out", metavar="PATH",
-                        help="where to write the view (default: out/spec-woven.md)")
+                        help="external or ignored repository-relative output (default: out/spec-woven.md)")
     args = parser.parse_args(argv)
 
-    root = corpus_mod.find_root()
-    corpus = corpus_mod.load(root)
-    out_path = Path(args.out) if args.out else root / "out" / "spec-woven.md"
-
-    lines, placed, homeless = weave(corpus)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="")
+    try:
+        root = corpus_mod.find_root()
+        out_path = _output_path(root, args.out)
+        corpus = corpus_mod.load(root)
+        lines, placed, homeless = weave(corpus)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="")
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        print(f"FAIL view: {error}")
+        return 1
 
     print(f"wove {placed} entries into the prose -> {out_path}")
     if homeless:
