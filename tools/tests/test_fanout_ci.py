@@ -13,6 +13,7 @@ import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from pathlib import Path
+from typing import cast
 from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
@@ -582,6 +583,22 @@ def _state_validation() -> None:
              "even completed legacy tag handoffs must be rejected")
     fake.state["host"] = None
     _refuses(fake.advance, "guest state without passing host evidence must be refused")
+
+
+def _phase_validation() -> None:
+    for lane, workflow in (("host", ci.HOST), ("guest", ci.GUEST)):
+        for phase in ([], {}, ["intent"], {"phase": "intent"}):
+            state: dict[str, object] = dict(_state())
+            record: dict[str, object] = dict(ci._blank(workflow, REVISION))
+            record["phase"] = phase
+            state[lane] = record
+            saved: list[bool] = []
+            with patch.object(ci, "GitHub") as client:
+                _refuses(lambda state=state, saved=saved: ci.advance(
+                    ROOT, cast(ci.CIState, state), lambda: saved.append(True)),
+                         f"malformed {lane} phase must produce a controlled refusal")
+                ensure(not client.called and not saved,
+                       "malformed journal phases must refuse before credentials, network or saving")
 
 
 def _transport_contract() -> None:
@@ -1865,6 +1882,7 @@ def cases() -> list[Case]:
             Case("host-interrupt-recovery", _host_interrupt_recovery),
             Case("token-journal-recovery", _token_journal_recovery),
             Case("remote-validation", _remote_validation), Case("state-validation", _state_validation),
+            Case("malformed-phase-refusal", _phase_validation),
             Case("transport-contract", _transport_contract),
             Case("dispatch-subject", _dispatch_subject),
             Case("workflow-titles", _workflow_titles),

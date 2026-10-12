@@ -161,7 +161,8 @@ def validate_state(value: object) -> CIState:
         run = _object(record[lane])
         if run.get("workflow") != workflow or run.get("revision") != revision:
             raise CIError("hosted evidence belongs to another workflow or revision")
-        if run.get("phase") not in {"intent", "accepted", "observed", "rejected"}:
+        phase = run.get("phase")
+        if not isinstance(phase, str) or phase not in {"intent", "accepted", "observed", "rejected"}:
             raise CIError("hosted evidence has an unknown dispatch phase")
         for key in ("url", "status"):
             _string(run, key)
