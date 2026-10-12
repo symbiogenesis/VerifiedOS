@@ -1101,9 +1101,9 @@ def _ruff_ignore_reaches_one_line() -> None:
     # past blank and comment lines, a multi-line one whole, a compound statement's header
     # but not its block unless the block shares the header's line, a decorator but not
     # the definition beneath, and every statement a semicolon joins; inside brackets it
-    # reaches the one line of code beneath it, past blank and comment lines; one ending a
-    # line reaches that line alone; and a line takes in the lines a backslash or a
-    # multi-line string joins to it. The module's E711 findings are what ruff leaves.
+    # reaches the one line of code beneath it, past blank and comment lines, including
+    # backslash and multi-line-string continuations; one ending a line reaches that same
+    # code line alone. The module's E711 findings are what ruff leaves.
     text = "\n".join([
         "x = y = None",                          # 1
         "# ruff: ignore[E711]",                  # 2
@@ -1138,6 +1138,20 @@ def _ruff_ignore_reaches_one_line() -> None:
         "# ruff: ignore[E711]",                  # 31
         "k = x == None; m = y == None",          # 32 reached, both statements
         "n = x == None",                         # 33
+        "o = (",                                 # 34
+        "    # ruff: ignore[E711]",              # 35
+        "    x == None or \\",                   # 36 reached, with 37
+        "    y == None,",                        # 37
+        "    x == None,",                        # 38
+        ")",                                     # 39
+        "p = (",                                 # 40
+        "    # ruff: ignore[E711]",              # 41
+        "    (x == None, '''",                   # 42 reached, with 44
+        "    text",                              # 43
+        "    ''', y == None),",                  # 44
+        "    y == None,",                        # 45
+        ")",                                     # 46
+        "q = x == None",                         # 47
         ""])
     rep = Reporter()
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
@@ -1152,7 +1166,7 @@ def _ruff_ignore_reaches_one_line() -> None:
     found = typecheck._parse_ruff(done.stdout)
     lines = sorted(int(where.partition(" ")[0].split(":")[1]) for _, where in found)
     ensure(done.returncode == 1 and {code for code, _ in found} == {"E711"}
-           and lines == [7, 10, 15, 22, 25, 33],
+           and lines == [7, 10, 15, 22, 25, 33, 38, 45, 47],
            f"ruff: ignore must reach the lines the reading says and no others: {lines!r} "
            f"{done.stdout!r} {done.stderr!r}")
 
@@ -1501,12 +1515,14 @@ def _imports_refused_where_the_running_platform_lacks_them() -> None:
         ensure(rep.out == ([f"FAIL imports: 1 {_SCAN_FAIL}", *expected] if expected
                            else [_SCAN_OK]),
                f"under {platform}, only the import it reaches may be refused: {rep.out!r}")
-    with patch.object(typecheck.importlib.util, "find_spec", side_effect=ValueError("refused")):
-        rep = _scan({"having.py": modules["having.py"]}, config)
-    ensure(rep.findings == 1 and rep.out == [
-        f"FAIL imports: 1 {_SCAN_FAIL}",
-        _missing("having.py:4", f"sys.platform == {running!r}", having, running)],
-        f"a name the finder refuses must be refused as one it cannot find: {rep.out!r}")
+    for error in (ValueError, ImportError):
+        with patch.object(typecheck.importlib.util, "find_spec", side_effect=error("refused")):
+            rep = _scan({"having.py": modules["having.py"]}, config)
+        ensure(rep.findings == 1 and rep.out == [
+            f"FAIL imports: 1 {_SCAN_FAIL}",
+            _missing("having.py:4", f"sys.platform == {running!r}", having, running)],
+            f"a name the finder refuses with {error.__name__} must be refused as one it "
+            f"cannot find: {rep.out!r}")
 
 
 def _imports_fail_closed() -> None:
