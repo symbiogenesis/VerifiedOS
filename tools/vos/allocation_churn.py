@@ -179,24 +179,29 @@ def _ratio(numerator: int, denominator: int) -> dict[str, Json]:
     return {"numerator": value.numerator, "denominator": value.denominator}
 
 
-def _peak_quarantine(rows: tuple[Teardown, ...]) -> int:
+def _peak_quarantine(rows: tuple[Teardown, ...]) -> tuple[int, int | None]:
+    """Return the positive peak and its earliest tick, or (0, None)."""
     deltas: dict[int, int] = {}
     for row in rows:
         deltas[row.retire_tick] = deltas.get(row.retire_tick, 0) + row.quarantined_bytes
         deltas[row.reuse_tick] = deltas.get(row.reuse_tick, 0) - row.quarantined_bytes
     running = peak = 0
+    peak_tick: int | None = None
     for tick in sorted(deltas):
         running += deltas[tick]
-        peak = max(peak, running)
-    return peak
+        if running > peak:
+            peak, peak_tick = running, tick
+    return peak, peak_tick
 
 
-def _peak_period_service(rows: tuple[Quantum, ...], period: int) -> int:
+def _peak_period_service(rows: tuple[Quantum, ...], period: int) -> tuple[int, int | None]:
     """Split quanta at period boundaries without expanding long or idle windows.
 
     Edge periods carry partial charges. Entire interior periods contribute a
     constant run represented by two deltas, so even a huge tick coordinate costs
     work proportional to the number of recorded quanta, not elapsed ticks.
+    Return the earliest absolute period start attaining a positive peak; an
+    inactive capture has no peak location.
     """
     edges: dict[int, int] = {}
     deltas: dict[int, int] = {}
@@ -211,21 +216,26 @@ def _peak_period_service(rows: tuple[Quantum, ...], period: int) -> int:
                 deltas[first + 1] = deltas.get(first + 1, 0) + period
                 deltas[last] = deltas.get(last, 0) - period
     running = peak = 0
+    peak_start: int | None = None
     for index in sorted(edges.keys() | deltas.keys()):
         running += deltas.get(index, 0)
-        peak = max(peak, running + edges.get(index, 0))
-    return peak
+        service = running + edges.get(index, 0)
+        if service > peak:
+            peak, peak_start = service, index * period
+    return peak, peak_start
 
 
 def _measure(rows: tuple[Teardown, ...], duration: int, tick_hz: int) -> dict[str, Json]:
     footprint = sum(row.swept_capability_bytes for row in rows)
+    peak_bytes, peak_tick = _peak_quarantine(rows)
     return {
         "teardown_count": len(rows),
         "teardowns_per_second": _ratio(len(rows) * tick_hz, duration),
         "swept_capability_bytes_total": footprint,
         "swept_capability_bytes_mean": _ratio(footprint, len(rows)) if rows else None,
         "swept_capability_bytes_max": max((row.swept_capability_bytes for row in rows), default=0),
-        "quarantine_peak_bytes": _peak_quarantine(rows),
+        "quarantine_peak_bytes": peak_bytes,
+        "quarantine_peak_tick": peak_tick,
     }
 
 
@@ -262,14 +272,16 @@ def analyze(raw: bytes, expected: ExpectedIdentity) -> dict[str, Json]:
         service = tuple(row for row in quanta if row.domain == domain.name)
         if any(row.swept_capability_bytes for row in events) and not service:
             raise ValueError(f"domain {domain.name!r}: swept footprint has no recorded sweep service")
-        peak_bytes = _peak_quarantine(events)
-        peak_ticks = _peak_period_service(service, domain.period_ticks)
+        peak_bytes, peak_tick = _peak_quarantine(events)
+        peak_ticks, peak_start = _peak_period_service(service, domain.period_ticks)
         if peak_bytes > domain.quarantine_capacity_bytes:
-            findings.append(f"domain {domain.name}: quarantine peak {peak_bytes} exceeds "
+            findings.append(f"domain {domain.name}: quarantine peak {peak_bytes} at tick "
+                            f"{peak_tick} exceeds "
                             f"capacity {domain.quarantine_capacity_bytes}")
         if peak_ticks > domain.background_ticks_per_period:
-            findings.append(f"domain {domain.name}: sweep service {peak_ticks} ticks in one "
-                            f"period exceeds budget {domain.background_ticks_per_period}")
+            findings.append(f"domain {domain.name}: sweep service {peak_ticks} ticks in "
+                            f"period starting at tick {peak_start} exceeds budget "
+                            f"{domain.background_ticks_per_period}")
         domain_reports.append({
             "id": domain.name,
             **_measure(events, end - start, tick_hz),
@@ -280,6 +292,7 @@ def analyze(raw: bytes, expected: ExpectedIdentity) -> dict[str, Json]:
             "background_ticks_per_period": domain.background_ticks_per_period,
             "sweep_ticks_total": sum(row.end_tick - row.start_tick for row in service),
             "sweep_ticks_peak_per_period": peak_ticks,
+            "sweep_peak_period_start_tick": peak_start,
             "background_margin_ticks": domain.background_ticks_per_period - peak_ticks,
         })
     return {
