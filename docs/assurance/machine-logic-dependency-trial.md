@@ -137,6 +137,15 @@ work; none is discharged by this receipt.
 
 ## Separately scoped unpriced continuation
 
+The [opam compatibility policy](../../tools/opam/README.md) permits an immutable
+source route with bounded reviewed patches at the locked versions, so a release
+publication is no longer a prerequisite for this continuation. The
+[Sail support package trial](../../tools/opam/sail-compatibility.md) demonstrates
+that route's build boundary, but qualifies no Islaris, Lithium, Katamaran,
+RecordUpdate or Equations input. Keep Rocq 9.3.0 and the current dependency
+versions; no library downgrade, warning suppression or additional assumption
+is authorized by this policy.
+
 The machine-logic foundation owner and opam carriage owner must review and price
 one source-compatibility continuation before dispatch. Its identified work is:
 
