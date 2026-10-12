@@ -90,16 +90,19 @@ Counts are behavioral evidence, not timing measurements or throughput benchmarks
 Use an inhabited implementation with at least two independent reader sessions
 reading the same resident version repeatedly under a fixed reservation schedule.
 Return independently checked expected bytes, including boundary-length reads;
-missing payload, an always-refusing reader, singleton-only execution and an empty
-write trace cannot qualify. Bind evidence to the exact source, configuration,
+missing payload, an always-refusing reader, singleton-only execution and omitted
+or incomplete observation cannot qualify. Complete execution and independently
+checked payload must establish that the reads actually ran and every concrete
+writer was covered; a complete execution may legitimately issue zero stores. Bind evidence to the exact source, configuration,
 reservation bounds, write classification and executable/target artifact.
 
 Exercise lifecycle cuts during admitted reads and outstanding transfers: eviction,
 delete, CoW replacement, generation-root change, close, grant revocation, holder
 failure and reset/crash. Old authorized operations see the exact retained version,
 or the existing bounded refusal; an old handle never redirects to replacement
-bytes. Mutation, zeroization and reuse occur only after the R-08-004 completion,
-sweep and zeroization conditions hold. No crash snapshot recreates the old authority.
+bytes. Mutation and zeroization wait until no authorized reader or accepted transfer can
+access the range; reuse follows completed containment, sweep and zeroization under
+R-08-004, R-08-006 and R-08-007a. No crash snapshot recreates the old authority.
 Wrong domain, version, root, out-of-window request or failed authentication returns
 no payload. Exhaust each declared resource and exercise the chosen refusal/fallback
 and counter limits; verify the retirement bound without a cooperative holder.
