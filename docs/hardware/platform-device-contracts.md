@@ -93,6 +93,35 @@ An adapter with asynchronous I/O must establish an equivalent fence before use.
 Successful backend WRITE/FLUSH means persistence is established before the edge
 publishing DONE; a buffered host write is not sufficient.
 
+### Host image implementation
+
+Use the existing [`blkdev::image`](../../model/c_emulator/blkdev_image.h)
+implementation through a thin Verilator adapter. It owns the image format,
+geometry validation, exclusive run lock, synchronous persistence, sticky host
+failure and optional receipts. Open the existing image and load its bytes before
+releasing reset; fixture creation is an explicit operation and never a restart
+side effect. Keep this implementation at its current owner; R1c-ii needs no new
+generic persistence library.
+
+The adapter translates the RTL's boundary events into image operations. It
+maintains the medium bytes, applies each declared tear mask to the immediately
+preceding block and latched payload, and calls `persist` with the resulting bytes.
+It orders this work before the edge at which the RTL can publish DONE and supplies
+the actual persistence result as the backend outcome. A command's failed host
+persistence produces IO and leaves the host failure sticky. A reset tear is
+persisted at its boundary before a later command can be admitted; failed
+persistence refuses continued successful execution. Receipt completion failure
+also refuses the run's evidence.
+
+Share only this host-image implementation. Sail and RTL retain independent PIO
+state transitions and event generation, and neither comparison derives its
+expected medium from the other's result. Keep explicit inputs for partial writes,
+reset/final-step ordering, media faults, misplaced reads and read/write/flush
+errors. Check reopened raw image bytes with an independent reader, including
+unchanged neighboring blocks; a shared backend or its receipt cannot by itself
+establish that either device issued the right operation. This adapter remains
+implementation work and supplies no new durability or RTL evidence here.
+
 ## Focused acceptance
 
 Generated register constants equal their owners. UART simulation checks status,
@@ -101,7 +130,12 @@ Block simulation checks read/write/flush, step counts independent of polling,
 last-block placement, overwritten staging, reset/ACK clearing, validation
 precedence, malformed accesses and kinds, and reset winning the final-step tie.
 An explicit external medium harness checks success persistence, torn-write masks,
-read/flush errors, unchanged adjacent blocks and refusal after reset. Route tests
-cover DTB read, write/fetch refusal, unrelated unclaimed IO and boundary crossing.
-These tests do not discharge capability enforcement before the slave, actual
-host-image durability, NAND/ONFI/ECC/FTL, or whole-SoC differential execution.
+read/flush errors, unchanged adjacent blocks and refusal after reset. The host
+adapter additionally checks startup geometry and locking refusals, injected host
+persistence failure, explicit reset with a pending write, and close/reopen raw
+bytes independently of `blkdev::image`; no run may publish DONE before its
+persistence result. Route tests cover DTB read, write/fetch refusal, unrelated
+unclaimed IO and boundary crossing.
+Standalone wrapper tests do not discharge actual host-image durability; that
+requires the adapter checks above. Neither discharges capability enforcement
+before the slave, NAND/ONFI/ECC/FTL, or whole-SoC differential execution.

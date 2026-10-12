@@ -14,7 +14,16 @@ The golden half is the commit trace of [the differential corpus's schema, versio
 | Frame decoder | [tools/vos/rtltrace.py](../../tools/vos/rtltrace.py) | Refuses every frame that breaks its protocol, and projects the rest onto commit records through [rvfi.py](../../tools/vos/rvfi.py)'s projection |
 | Adjudicator | [tools/vos/trace.py](../../tools/vos/trace.py) | `trace.adjudicate`, unchanged, which the corpus, the RVFI-DII rig and this adapter all call |
 
-**The corpus reaches the adjudicator through a frame and not through the rig's socket, and that departs from the plan's wording.** The implementation checklist has R2 connect the curated scalar RTL to the existing RVFI-DII rig, with one protocol across the golden model and the RTL, and [the rig's completion note](../implementation/completion-log.md#s11-join-the-testrig-ecosystem-over-rvfi-dii) names the rig's socket as what the RTL's port connects to. Two things keep the corpus off that socket. Direct instruction injection replaces the fetch source (section 6), so over the socket the core executes the words the host injects rather than fetching the member's image, and exercises none of the fetch path's capability checks. And the version-2 packet has no cause field, so a packet stream written from a run with real fetch would compare a trap as a boolean; carrying the cause makes it a different grammar rather than a longer packet, on [rvfi.py](../../tools/vos/rvfi.py)'s own ground for the dialect. The frame is therefore the version-2 packet's field set with the cause added, written as fixed-width text with a header and a counted trailer so that the decoder can refuse a torn or partial file line by line. What stays one is the comparison: the golden side, the projection and `trace.adjudicate` are the rig's and the corpus's, and generated streams still reach the core over the socket (section 6). Whether the plan's wording moves to name two routes is a plan act, reported as a finding and not decided here.
+**The corpus uses actual fetch and a retirement frame; generated streams use the
+RVFI-DII socket.** Direct instruction injection replaces the fetch source
+(section 6), so a socket run executes injected words and exercises none of the
+fetch path's capability checks. The RVFI-DII version-2 packet also has no cause
+field. The existing version-1 frame adds that cause to the packet's field set,
+with a header and counted trailer that let the decoder refuse a torn or partial
+file. The initial accepted core attachment uses the complete version-2 frame
+selected in section 4.1; this frame version is distinct from the RVFI-DII packet
+version. Both routes reuse the golden records, normalization and
+`trace.adjudicate`. Their observation sets and fetch claims remain separate.
 
 **A protocol failure is not a divergence, and agreement over a prefix is not agreement.** A torn record once read as a divergence about a run that agreed ([the rig's first finding](../implementation/completion-log.md#s11-join-the-testrig-ecosystem-over-rvfi-dii)), and `trace.adjudicate` treats one stream running out as two machines halting on different conditions, which is right for a legacy oracle and wrong for a corpus gate. So the decoder raises on a broken frame before anything is compared, and a comparison is *complete* only where the verdict agrees and both streams were consumed whole.
 
@@ -85,13 +94,44 @@ The golden trace is cut to what a frame can say by `rvfi.packet_view`, told that
 
 A retirement the frame cannot hold is still written, carrying the part that fits, so a comparison over it diverges at that retirement rather than agreeing over a stream that skipped it.
 
+### 4.1 The selected observation boundary
+
+The first accepted attachment to the real scalar core uses frame version 2.
+Specify and exercise its decoder, writer and current scalar probes before
+expanding the core campaign. Version 1 remains the format of the existing
+fixtures and recorded carrying-capacity evidence; those results establish no
+version-2 or real-core acceptance.
+
+Version 2 carries the complete commit-trace schema: each retirement's ordered
+register, capability special-register, CSR, memory and trap effects. Its header
+identifies the hart; continuation records carry every effect under its owning
+retirement, including multiple register writes, multiple accesses, different
+read/write addresses and block-width accesses. Preserve tags, exact widths,
+memory encodings and trap causes. The schema and its decoder specify complete
+group counts, continuation order, per-hart retirement order and PC continuity,
+and refuse truncated, duplicated, misordered or unattached continuation records.
+Current scalar probes
+must supply the actual effects, including trap CSR writes, `cclear`, `creclaim`
+and block operations; a missing effect fails the comparison rather than being
+elided by `rvfi.packet_view`.
+
+Reuse the existing adjudicator over these full records, with only the commit
+schema's existing normalization. Extend the carrying-capacity and writer
+fixtures with every effect shape and malformed-group refusal, and seed changes
+to each newly carried field. Fixtures and golden-model round trips qualify the
+transport only; the corresponding real-core programs still owe complete
+comparisons. R1b owns faithful probe values under section 3, and R2 owns their
+framing and comparison. The schema can be fixed and current scalar probes
+qualified without a multi-hart composition. Device monitoring and ordered replay
+across harts remain the later qualification of section 8.
+
 ## 5. The corpus-green predicate
 
 **For each corpus member in the declared scope:** the golden run reaches a HTIF verdict of success and its trace matches the digest the manifest records; the RTL harness loads the same image, enters at the same first program counter with the same reset grants in place, the code root in `PCC`, `MTCC` and `MEPCC` and the data, seal and unseal roots in `c1` to `c3`, and stops after the retirement whose store reaches `tohost`, which is where the emulator stops; the frame it wrote decodes; `rtltrace.compare` against the golden trace is complete; and the RTL's HTIF verdict is the golden one. For one member, `python tools/run.py testrig adapt FRAME TRACE` decides the third and fourth clauses, and through completeness the entry and stop points of the second; it decides neither the image's identity nor the reset root pair, and it does not hold the reference trace to the manifest's digest.
 
 **The scope has to be declared, and declaring it is not this document's act.** The plan's predicate names the shared corpus whole, and three classes of member cannot pass on the curated scalar core through a version-1 frame:
 
-- **Members whose retirements no frame line holds**, which `testrig carry` enumerates by name at each revision. Carrying them needs the frame extension priced in section 8 and core-side probes behind it.
+- **Members whose retirements no version-1 frame line holds**, which `testrig carry` enumerates by name at each revision. Section 4.1's version-2 boundary must carry these effects before the first accepted core attachment; a format limit is not an exclusion from that comparison.
 - **Members that exercise a unit the scalar core does not carry.** `testrig carry` names, for each model family the dialect table decodes, the members whose golden runs retire a word of it, so a member retiring a vector word is found by its trace rather than by its description; the plan puts the vector and FEC units at M10 after scalar bring-up. A member that reads a vector CSR through the CSR instructions is not found that way, and is the one case in this class a reader still decides.
 - **Members that exercise a platform window the SoC top has not bound**: the revocation sidecar, the refresh and discharge sequencer, the two-class memory boundary, the Root of Trust peripherals, the AIA pending array and the block device. Whether each passes is a property of R1c-ii's top and not of the core.
 
@@ -165,15 +205,22 @@ The trial supplies no RTL-to-Sail refinement evidence.
 
 **Predicate.** Replaying the observed events in order through `revocation.py`'s transitions, a completion the kernel reports while `completion_errors` is nonempty fails; a missing acknowledgement or an outstanding device transfer must produce the kernel's failure report within the declared bound and never a completion; and a reuse the kernel reports while `reuse_errors` is nonempty fails. The bounded host model supplies no RTL completion evidence and is not a substitute for any input above.
 
-**Instrumentation it needs, priced as a proposal.** The version-1 frame carries none of three things the join reads, and each is a harness or core addition:
+**Instrumentation and its work owners.** Section 4.1's frame and current scalar
+probes belong to the initial R2 attachment, priced in
+[R2's checklist cell](../implementation/implementation-checklist.md#rtl-track).
+They do not wait on the revocation join. The remaining instrumentation is a
+separate proposal:
 
 | Addition | What it carries | Proposal |
 | --- | --- | --- |
-| Frame version 2: a hart field in the header; continuation lines for the further accesses and register writes version 1 refuses or elides; `C` and `S` records from the port's CSR record and the capability special-register probes | per-hart frames, `creclaim` and the block operations whole, and the trap CSR writes version 1 does not compare | 5 h for the decoder, writer and fixtures, plus the core-side probes, 3 to 6 h depending on R1b's port |
 | A device-completion monitor on the tag-carrying fabric | R-15-208a's boundary events per window | 4 to 6 h once R1c-ii binds the fabric |
 | The join checker over `revocation.py` | the replay and the three decisions above, and R-08-006's cases driven as images | 4 to 6 h, with the images M4.4's |
 
-That is 16 to 23 h in total, outside R2's cell as priced, and it waits on M4.4's kernel, R1c-ii's fabric and a reviewed multi-hart composition in any case.
+This remaining 8 to 12 h proposal is outside R2's cell and waits on M4.4's
+kernel, R1c-ii's fabric and a reviewed multi-hart composition. The split assigns
+the observation work once; it claims no estimate saving or accepted evidence.
+R2 still owes the complete revocation join; early scalar acceptance does not
+complete that duty.
 
 ## 9. Running it
 
@@ -191,7 +238,7 @@ That is 16 to 23 h in total, outside R2's cell as priced, and it waits on M4.4's
 
 - The Verilator top that wraps the curated core, loads a corpus image, detects the `tohost` store and instantiates the frame writer, which waits on R1b's [core-port contract](../hardware/core-port-contract.md) stating the obligations of section 3; the curated core it wraps elaborates under Verilator.
 - The port obligations of section 3, in that contract.
+- The version-2 observation boundary of section 4.1, including its current scalar probes, before the first accepted core attachment.
 - The declared member scope of section 5, and a disposition for the three classes it excludes.
 - The bounded model-checking smoke's four inputs of section 7, the models its plan owes in place of riscv-formal's, and the depths its first run sets.
-- The plan's disposition of the corpus route of section 1.
 - The revocation join of section 8, with its instrumentation priced there and its joins with M4.4 and R1c-ii.
