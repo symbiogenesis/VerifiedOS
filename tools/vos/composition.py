@@ -50,6 +50,10 @@ def _json(path: Path, expected_sha256: str | None = None) -> object:
     data = path.read_bytes()
     if expected_sha256 is not None and digest(data) != expected_sha256:
         raise CompositionError(f"stale source binding: {path}")
+    return _decode_json(path, data)
+
+
+def _decode_json(path: Path, data: bytes) -> object:
     try:
         return json.loads(data, object_pairs_hook=unique_object)
     except (ValueError, UnicodeError) as error:
@@ -148,12 +152,14 @@ def _graph(root: Path, raw: dict[str, Any]) -> composer.CompositionInput | None:
     return result
 
 
-def load(root: Path, source: str = EXAMPLE) -> dict[str, Any]:
-    """Read the strict schema and check its owners, separate relations and bindings."""
+def _load(root: Path, source: str) -> tuple[dict[str, Any], dict[str, str]]:
+    """Validate declarations and retain their exact input byte identity."""
     schema = _json(_path(root, SCHEMA))
     if not isinstance(schema, dict):
         raise CompositionError("composition schema must be an object")
-    raw = _json(_path(root, source))
+    path = _path(root, source)
+    data = path.read_bytes()
+    raw = _decode_json(path, data)
     # JSON Schema accepts integral floats as integers. The typed graph and C
     # manifest require actual integer values, without coercing declared bytes.
     checker = Draft202012Validator.TYPE_CHECKER.redefine("integer", _is_integer)
@@ -227,11 +233,19 @@ def load(root: Path, source: str = EXAMPLE) -> dict[str, Any]:
         raise CompositionError("supervisor policy violates the immutable C manifest bounds")
     _placements(root, raw, roster)
     _graph(root, raw)
-    return raw
+    return raw, {"path": source, "sha256": digest(data)}
 
 
-def _binding(root: Path, source: str, raw: dict[str, Any]) -> dict[str, object]:
-    return {"input": reference(root, source), "roster": reference(root, boot.CONTRACT),
+def load(root: Path, source: str = EXAMPLE) -> dict[str, Any]:
+    """Read the strict schema and check its owners, separate relations and bindings."""
+    return _load(root, source)[0]
+
+
+def _binding(root: Path, raw: dict[str, Any], input_binding: dict[str, str]) -> dict[str, object]:
+    # Rechecking the parsed snapshot refuses drift; hashing a fresh read here
+    # could otherwise bind declarations derived from different input bytes.
+    _bound(root, input_binding)
+    return {"input": input_binding, "roster": reference(root, boot.CONTRACT),
             "projection_producers": [reference(root, path) for path in PRODUCERS],
             "member_producers": raw["producers"], "configuration": raw["configuration"]}
 
@@ -262,11 +276,9 @@ def _manifest_c(binding: dict[str, object], manifest: dict[str, Any]) -> bytes:
             f"    {len(manifest['units'])}, {arrays},\n    {trailer}\n}};\n").encode()
 
 
-def projections(root: Path, source: str = EXAMPLE) -> dict[str, bytes]:
-    """Emit the immutable manifest and skeletons without invented target products."""
-    raw = load(root, source)
+def _projections(root: Path, raw: dict[str, Any], input_binding: dict[str, str]) -> dict[str, bytes]:
     roster = boot.load_roster(root, boot.CONTRACT)
-    binding = _binding(root, source, raw)
+    binding = _binding(root, raw, input_binding)
     def envelope(kind: str, payload: object) -> bytes:
         return composer.canonical_bytes({"schema_version": 1, "kind": kind, "binding": binding,
                                          "production_admission": False, "payload": payload})
@@ -292,6 +304,12 @@ def projections(root: Path, source: str = EXAMPLE) -> dict[str, bytes]:
                     "derivation": m["derivation"], "certificate": None} for m in runtime]})}
 
 
+def projections(root: Path, source: str = EXAMPLE) -> dict[str, bytes]:
+    """Emit the immutable manifest and skeletons without invented target products."""
+    raw, input_binding = _load(root, source)
+    return _projections(root, raw, input_binding)
+
+
 def emit(root: Path, source: str, output: str) -> dict[str, str]:
     """Write only the documented production projections or an ignored out/ directory."""
     destination = _path(root, output)
@@ -315,10 +333,10 @@ def check(root: Path, source: str = EXAMPLE, output: str = GENERATED) -> None:
 def build_record(root: Path, source: str, outputs: dict[str, bytes],
                  artifacts: dict[str, dict[str, str]], image: dict[str, str], graph: bytes) -> dict[str, object]:
     """Resolve produced artifact slots separately; this is byte binding, not admission."""
-    expected = projections(root, source)
+    raw, input_binding = _load(root, source)
+    expected = _projections(root, raw, input_binding)
     if outputs != expected:
         raise CompositionError("build record: stale projection bindings")
-    raw = load(root, source)
     composed = _graph(root, raw)
     if composed is None or composer.graph_bytes(composed) != graph:
         raise CompositionError("build record: stale or missing graph binding")
@@ -333,7 +351,7 @@ def build_record(root: Path, source: str, outputs: dict[str, bytes],
     if len({_path(root, ref["path"]) for ref in artifacts.values()}) != len(slots):
         raise CompositionError("build record: runtime members share a substituted artifact")
     return {"schema_version": 1, "kind": "production-composition-build-bindings",
-            "binding": _binding(root, source, raw), "production_admission": False,
+            "binding": _binding(root, raw, input_binding), "production_admission": False,
             "projections": {name: digest(data) for name, data in outputs.items()},
             "artifacts": artifacts, "image": image, "graph_sha256": digest(graph)}
 
