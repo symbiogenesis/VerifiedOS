@@ -61,6 +61,18 @@ The contract selects no cache geometry or replacement algorithm. Retained capaci
 admission/renewal/retirement work and each fallback are inputs to the existing
 memory plan and temporal admission, rather than amortized costs omitted from WCET.
 
+Q44's resident adapter begins with M4.4b-i's accepted scalar effects and the
+existing revocation interface, under the [retirement ownership and qualification
+order](workflow-formal.md#concrete-retirement-adapters-and-qualification-order).
+It establishes correspondence for its actual holder/window shape and adds any
+required bounded read/transfer completion and reusable-backing evidence; scalar
+fresh replacement alone proves no sweep. Later group/elastic extensions and
+Q32b/Q34f's two-consumer checkpoint are not prerequisites for Q44 or M8a.
+Sharing receipt construction cannot add common per-read writes or a wait for
+holder cooperation. Current authority and authentication are still checked on
+every read, and an unavailable retirement operation refuses the candidate shape
+rather than weakening the holder-independent bound.
+
 ## Traffic classification
 
 For successful reads under fixed live reservations, the complete caller-to-owner

@@ -52,7 +52,7 @@ belong to M5.3d's executable producer:
 
 | Operation | Input and checked boundary | Result |
 | --- | --- | --- |
-| Reserve | Store/domain identity, intended transaction and bounded staging/recovery space; the real key-wide nonce-reservation producer persists its advance before sealing | An attempt with finite resources and an unused generation; refusal exposes no staged data and never rolls back a consumed reservation |
+| Reserve | Store/domain identity, intended transaction and bounded staging/recovery space; the real key-wide nonce-reservation producer persists its advance before sealing | An attempt with finite resources and a nonreusable nonce reservation; refusal exposes no staged data and never rolls back a consumed reservation |
 | Stage | That attempt, exact ordered object/metadata/index effects and authenticated candidate identity | Unreachable candidate bytes beside the retained state; failure leaves prior reachable state intact and charges bounded cleanup |
 | Publish | Complete candidate, independent payload/root/checkpoint verification and the consumer's operation-specific authorization | Durable authenticated checkpoint publication before acknowledgment or journal reuse; the result binds the attempt, store, root and exact ordered acknowledged prefix |
 | Reopen | The resulting persistent device image and independently authenticated checkpoint, after volatile state is discarded | The selected protocol's authenticated complete state or its declared corruption refusal; no partial transaction or fabricated record-validity flag |
