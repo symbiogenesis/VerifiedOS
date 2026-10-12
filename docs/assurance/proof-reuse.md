@@ -41,6 +41,20 @@ changes the local acceptance route or discharges a requirement by citation.
 
 ## What qualifies as a gold-standard example
 
+The 2026-10-12 implementation-source reading selects concrete donors at their
+consumers: the capability-aware CHERIoT Rust compiler for the future functional
+Rust producer, GarageDoor's whole-image integration recipe for Q35d, PoWER's
+write-permission/crash correspondence for storage hardening, and a bounded Sailor
+adapter for uncovered context-state analysis. The subject records own immutable
+editions, terms and transfer gaps; [the bearing record](proof-reuse-bearing.md#sources-the-2026-10-12-implementation-reading-added)
+assigns their consumers. [The architectural alternatives](../background/architectural-alternatives.md#functional-cheri-rust-compiler-starting-point)
+retain displaced fresh-port and interface-design starting points and their
+reopening conditions. These selections replace work strategies rather than
+commissioning parallel implementations. Granite remains a leakage-composition
+reference pending its exact dependency closure, and archived MachCSL remains
+blocked on first-party terms. No source-only selection closes a local proof or
+removes its representation, assumption, fault-model or target obligations.
+
 A strong candidate has a precise statement, accessible mechanization,
 identifiable authors, published technical justification or substantial
 maintained-library use, and explicit assumptions. Peer review and artifact

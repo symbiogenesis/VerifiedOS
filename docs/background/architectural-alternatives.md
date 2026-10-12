@@ -2806,6 +2806,40 @@ The evaluated alternative is the capacity-exhaustion machinery general-purpose L
 
 ---
 
+## Functional CHERI Rust compiler starting point
+
+**Displaced starting point:** constructing the functional capability-aware Rust/LLVM port anew as part of the net-new certifying Rust producer. R-18-014/R-18-015 still require that producer and its CHERI-TAL derivations; this disposition selects its implementation baseline, not a substitute certificate or compiler theorem.
+
+**Selected:** [CHERIoT-Platform/cheri-rust at `e6026b48`](https://github.com/CHERIoT-Platform/cheri-rust/tree/e6026b48d9918557203a2986f6e3cf70779f57ee), recorded by `upstream/cheri-rust`. Its working capability-aware rustc and `compiler-builtins`/`core`/`alloc` paths make rebuilding those functional changes unnecessary. The [source qualification](../assurance/proof-reuse/languages.md#cheriot-rust-selected-functional-capability-aware-compiler-baseline) owns the exact target, terms and remaining work. The donor is RV32E/CHERIoT; the frozen RV64 representation, ABI, compartments, primitive completeness, bounded resident execution, source correspondence and certificate producer remain local duties. The safe-MIR frontend choices at R-18-015 remain applicable.
+
+**Why replace it:** an existing compiler implementation supplies concrete capability-pointer and library adaptations that a stock-Rust start would have to develop. Its dependency closure and target adaptation must still qualify. The Rust producer is outside the priced checklist total, so this removes future fresh-port scope without reducing a currently priced cell or changing M1.2's CompCert backend.
+
+**Reopen fresh construction** only if the pinned bootstrap/dependency closure cannot qualify, its representation cannot adapt to the frozen ABI, or an equivalently scoped comparison establishes that adaptation and maintenance exceed a fresh port. No full fork build is required merely to retain this selection.
+
+## Context-state analysis starting point
+
+**Displaced starting point:** writing another ISA-state dependency analyzer or repeatedly deriving context-switch test templates manually when the existing generators do not cover the admitted state. The scalar restore emitter, its model-derived controls and completed M4.4a/M4.4b-i evidence remain accepted inputs.
+
+**Selected conditional adapter:** [Sailor at `55faed60`](https://github.com/neeluk7/sailor_artifact/tree/55faed606bdff9655be32681384dc4e748c0cec7). [HW-17](../assurance/proof-reuse/hardware.md#hw-17-sailor-dependency-analysis-and-context-switch-test-generation) owns the qualification and bounded comparison. Reuse its trace parser, dependency analysis and test-generation shape before constructing that tooling afresh. Its U/S/M classifier must distinguish two local M-mode capability authorities; it must account for tags, PCC, pending state and the selected class, and its symbolic-analysis model is isolated from the acceptance model.
+
+**Why replace it:** the working analysis and generator already automate the repeated inventory operation. A successful local comparison must detect an omitted save, clear or restore and demonstrate complete local state coverage. The remaining M4.4b-ii/M4.4b-iii cells are small and already consume generated controls; source adaptation supplies no demonstrated net subtraction from them. Reopen handwritten or new tooling only for a named coverage refusal or when the bounded comparison costs more than its repeated manual work. The owner's existing target and proof predicates still decide acceptance.
+
+## Machine-code composition proof starting point
+
+**Displaced starting point:** designing a separate component-installation and whole-image trace-composition recipe for the cold-path trial before examining an existing composed proof.
+
+**Selected:** the [GarageDoor artifact](https://github.com/mit-plv/foundational-integration-verification-of-a-cryptographic-server), whose Fiat-Crypto `36676697` tree contains the actual `garagedoor_correct` machine-code theorem. [Its source record](../assurance/proof-reuse/systems.md#sys-garagedoor-a-composed-software-image-theorem-with-explicit-machine-entry-conditions) owns the theorem, terms, assumptions and transfer gap. Q35d adapts its installation/initial-state and component-linking proof shape to the canonical Sail term, retaining Q35k/Q35l's local instruction, capability and byte laws.
+
+**Why replace it:** a complete software-image proof supplies a concrete integration recipe where an isolated compiler theorem does not. Its RV32IM semantics and extensionality assumptions do not transfer as local premises. Qualification and the RV64 purecap bridge remain in the existing consumer; a new generic proof framework is not commissioned by this selection. Reopen a fresh recipe only after identifying a required canonical-term operation that this structure cannot express or a bounded adaptation that is more costly. No priced proof work is removed until the donor actually replaces a local subtask.
+
+## Crash-discipline proof starting point
+
+**Displaced starting point:** deriving a new abstract-write-discipline-to-crash-proof interface directly from broad Perennial examples, or importing a whole foreign storage runtime to obtain that interface.
+
+**Selected:** [PoWER's concrete Perennial write-restricted-storage correspondence](https://github.com/mit-pdos/perennial/blob/65884f2494ce65c5369094050dfb7eca19299152/src/program_proof/verus/wrs.v). [SYS-POWER](../assurance/proof-reuse/systems.md#sys-power-write-permissions-joined-to-a-crash-invariant-in-perennial) owns its exact source and assumptions. Its write permissions, abstract invariant and barrier/crash relation are the starting interface for storage hardening; Perennial remains the supporting foundation. The local [recovery policy](../implementation/storage-recovery-policy.md) and its acknowledged-prefix contract remain authoritative.
+
+**Why replace it:** a concrete correspondence makes the interface and its proof premises inspectable without adopting the Verus service. PoWER's old-or-new whole-block write model differs from the local bit-tear/reset device; its parameters require real local invariants and a proved adapter. These are hardening obligations outside M5.3d's executable integration estimate. Reopen a fresh interface only if the local fault/publication model cannot be expressed by the selected decomposition or the scoped adapter comparison shows no net reuse.
+
 ## Re-authoring the golden emulator's harness in Rust or Rocq: declined, because the harness derives from the generated model rather than calling it, and the observed defect class is not the one either language removes
 
 The proposal is to re-author [model/c_emulator/](../../model/c_emulator/), the harness the Sail C backend's output executes inside, in a memory-safe or a proof-native language: **Rust** for the safety, **Rocq** for the proof. The tree is the largest body of C++ this repository curates and it sits closer to the reference than anything else written in that language, so the question is a fair one to put. The entry above does not answer it. That entry prices a vehicle's memory safety at zero on the ground that the CHERI-QEMU fork is *never the reference*, and this harness carries the reference's own traces, so its ground is unavailable here and the grounds below are found rather than inherited.

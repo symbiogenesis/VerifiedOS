@@ -208,6 +208,7 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 | `upstream/sail-cheri-riscv` | `CTSRD-CHERI/sail-cheri-riscv` | `cf36cfd4` | `BSD-2-Clause` | Capability-semantics oracle built by `run.py model oracle`. | consumed |
 | `upstream/SECOMP` | `secure-compilation/SECOMP` | `5c20b839` | INRIA Non-Commercial License Agreement, over a dual-licensed subset | CompCert fork measured in a separate, unpublished local repository. No build here invokes it. | read |
 | `upstream/llvm-project` | `llvm/llvm-project` | `8cee9e8e`, on `main` | `Apache-2.0 WITH LLVM-exception` | Untrusted disassembly and object tooling for M1.4 to re-home to the frozen dialect, reusing the in-tree assembler's generated encoding and image composition. | pinned to read later |
+| `upstream/cheri-rust` | `CHERIoT-Platform/cheri-rust` | `e6026b48`, on `beta` | `Apache-2.0 OR MIT`, except as noted by `COPYRIGHT` and the dependency notices | Selected functional Rust producer baseline for R-18-014/R-18-015's future certifying Rust implementation; adapt its capability-aware compiler rather than construct that functional port anew. The donor is RV32E/CHERIoT, not the frozen target. No build here invokes it and no compiler, library or proof source is conveyed. | read |
 | `upstream/mocha` | `lowRISC/mocha` | `c7a88820`, on `main` | `Apache-2.0` for lowRISC content; vendored subtrees have the terms below | Bring-up SoC used to author the device and tag-fabric descriptions in [the RTL delta](docs/hardware/rtl-reparameterization-delta.md) and [provenance record](rtl/synthesis-provenance.md). `run.py rtl devicescheck` reads its UART register and status declarations. `run.py rtl elaborate` reads the primitive packages, assertion header and primitive libraries of its vendored OpenTitan tree, the edition it integrates the imported core with. | consumed |
 | `upstream/cva6-cheri` | `lowRISC/cva6-cheri` | `0c7b3adf` | `SHL-0.51` at the root; file-specific `Apache-2.0 WITH SHL-2.0` and `Apache-2.0 WITH SHL-2.1` | C-class scalar datapath adapted to the 64+1-bit profile. `run.py rtl elaborate` builds the baseline and curated configurations. | consumed |
 | `upstream/axi-cheri-tagcontroller` | `Capabilities-Limited/axi_cheri_tagcontroller` | `05c15000` | `SHL-0.51` | Tag-fabric survey reference. The flat-store design in the RTL delta uses CVA6-CHERI's older nested pin, identified in the provenance record. | read |
@@ -465,6 +466,29 @@ adds a static comparator, not an admitted inference runtime or a target rate.
 ## Read ahead of a later milestone
 
 These reviews support future incorporation decisions in the [implementation plan](docs/implementation/implementation-checklist.md). No candidate source is vendored or fetched here. Existing RTL and cryptography references are identified in [the submodule table](#pinned-as-submodules). Review the applicable terms at the milestone that would incorporate a component.
+
+### Selected implementation-source reuse
+
+The 2026-10-12 reading selects implementation starting points and proof-interface
+patterns at the owners linked below. Only CHERIoT Rust has a new gitlink; no
+compiler, runtime, analyzer, proof source, compiled object or dependency package
+from this reading is incorporated or conveyed. Each actual incorporation must
+read its full closure; source selection supplies no accepted local proof.
+
+| Source and exact edition | Instruments read | Intended use and remaining licence boundary |
+| --- | --- | --- |
+| [CHERIoT Rust `e6026b48`](https://github.com/CHERIoT-Platform/cheri-rust/tree/e6026b48d9918557203a2986f6e3cf70779f57ee) | `LICENSE-MIT`, `LICENSE-APACHE` and `COPYRIGHT`: Apache-2.0 OR MIT except stated exceptions; `src/llvm-project` pin `6614c9be` has its own `llvm/`, `clang/` and `lld/` instruments, Apache-2.0 with LLVM exceptions, legacy NCSA text and file-specific exceptions | Functional capability-aware compiler baseline for the [certifying Rust producer](docs/assurance/proof-reuse/languages.md#cheriot-rust-selected-functional-capability-aware-compiler-baseline). No compiler source is redistributed. Future build/runtime closure, standard libraries and conveyed dependencies retain their separate notices; the root grant does not classify all Cargo/LLVM dependencies. |
+| [GarageDoor's Fiat-Crypto `36676697`](https://github.com/mit-plv/fiat-crypto/tree/36676697ca59b0b3d8bcc477dac1eacda89e921c) | `COPYRIGHT`, `LICENSE-MIT`, `LICENSE-APACHE` and `LICENSE-BSD1`: MIT OR Apache-2.0 OR BSD-1-Clause | [Q35d's integration recipe](docs/assurance/proof-reuse/systems.md#sys-garagedoor-a-composed-software-image-theorem-with-explicit-machine-entry-conditions), read as proof architecture. This historical artifact selects its own nested sources and changes no current Fiat pin or emission provenance. No theorem or extensionality premise is imported. |
+| [PoWER `41cab950`](https://github.com/microsoft/verified-storage/tree/41cab95051229ebd457b4eed7fc111e3e7c9099c), with Perennial `65884f24` | Microsoft's `LICENSE.txt` and Perennial's `LICENSE`: MIT | [Storage crash-interface design](docs/assurance/proof-reuse/systems.md#sys-power-write-permissions-joined-to-a-crash-invariant-in-perennial). No Verus service or Goose runtime is imported; actual Rocq dependency closure and the local bit-tear adapter require qualification before theorem reuse. |
+| [Sailor `55faed60`](https://github.com/neeluk7/sailor_artifact/tree/55faed606bdff9655be32681384dc4e748c0cec7) | Root `LICENSE`: Apache-2.0 | [Bounded context-state adapter](docs/assurance/proof-reuse/hardware.md#hw-17-sailor-dependency-analysis-and-context-switch-test-generation). Read separate Sail/Isla/model grants before copying or executing their sources; no upstream setup script or symbolic-model patch is applied to the acceptance toolchain. |
+| [Granite `cd302ac1`](https://github.com/mit-plv/granite/tree/cd302ac10b18b3ddb82382afaaff7d2d5e003e12) | Root `LICENSE`: MIT | Leakage-composition reference. Exact Quartz gitlink `9f6251db92234ad3b901977a81de4445b7b0b0c4` is unavailable through inspected public endpoints, so its source/terms and complete build closure remain unqualified. No substitute revision is selected. |
+| [Archived MachCSL Rocq `e2d23d62`](https://github.com/mit-pdos/xv6iris/tree/e2d23d627ae3e9c9520399121d260f11592df45f) | No grant established from the complete tracked path inventory, README or inspected proof headers | Source-location reference only. First-party terms are required before copying/adapting the proof machinery; the xv6 kernel's grant does not establish the proof development's terms. The maintained Lean edition is not the selected local prover. |
+
+NoC-Out remains a paper reference because the exact 2026 artifact and its terms
+have not been established. AUCurves's inspected root `LICENSE` at `f854fc6a`
+states MIT; its ML-KEM and Keccak bridge limitations are proof-scope refusals in
+[the crypto inventory](docs/assurance/proof-reuse/crypto.md), not a licensing
+refusal or a claim about every result in that project.
 
 ### Bonsai 2 and Swift model research
 

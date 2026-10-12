@@ -14,6 +14,10 @@
 	path = upstream/llvm-project
 	url = https://github.com/llvm/llvm-project
 	branch = main
+[submodule "upstream/cheri-rust"]
+	path = upstream/cheri-rust
+	url = https://github.com/CHERIoT-Platform/cheri-rust
+	branch = beta
 [submodule "upstream/mocha"]
 	path = upstream/mocha
 	url = https://github.com/lowRISC/mocha
