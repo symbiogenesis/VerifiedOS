@@ -38,7 +38,16 @@ from tests.harness import TOOLS, Case, ensure
 from tests.test_boot_attachments import _attached_recipe
 from tests.test_boot_chain import _chain_reports
 from tests.test_boot_crypto import _shard
-from vos import admission, boot_crypto_target, composer, kernelrun, memory_planner, rtltrace, rvfi
+from vos import (
+    admission,
+    boot_crypto_target,
+    compiler_provenance,
+    composer,
+    kernelrun,
+    memory_planner,
+    rtltrace,
+    rvfi,
+)
 from vos.commands import COMMANDS
 
 _ROOT = TOOLS.parent
@@ -226,7 +235,8 @@ _RUNS: dict[tuple[str, str], Argv] = {
     # `chain-join` composes shard receipts written here, one per campaign job.
     ("boot-handoff", "chain-join"): lambda scratch: [
         "--out", str(scratch / "chain-campaign"), *_chain_reports(scratch)],
-    # `verify` reads this checkout's staged streams, which K-88 already holds current.
+    # `verify` reads this checkout's staged streams. K-88 holds their integrity;
+    # an exact historical producer record must still receive the strict refusal.
     ("boot-crypto", "verify"): lambda _: [],
     ("boot-crypto", "join"): _signature_shards,
 }
@@ -301,6 +311,13 @@ def _declared_subcommands_answer_on_this_lane() -> None:
                    f"`run.py {name} {sub}` answered with the guest refusal: {said!r}")
             if code != 0 and (name, sub) in _READS_A_GITLINK and _ABSENT_GITLINK in said:
                 continue
+            if (name, sub) == ("boot-crypto", "verify"):
+                manifest = json.loads((_ROOT / boot_crypto_target.MANIFEST).read_text(encoding="utf-8"))
+                if compiler_provenance.historical(manifest.get("compiler_provenance")):
+                    ensure(code == 1 and said == "FAIL boot-crypto verify: staged target requires "
+                           "complete contained compiler provenance\n",
+                           f"historical staging must receive its strict producer refusal: {code}, {said!r}")
+                    continue
             ensure(code == 0,
                    f"`run.py {name} {sub}` exited {code}: {said[-400:]!r}")
 
