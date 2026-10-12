@@ -451,6 +451,54 @@ Non-normative; the normative change is §14's.
 
 ---
 
+## Resident guest compiler as Wasm: future review
+
+Q34h currently requires an admitted native source-to-Wasm producer. The
+alternative is to run the selected `xcc/wcc` producer as a guest of Q34g's
+proved interpreter, with explicit source, library, diagnostic and output
+imports. At the already-selected revision
+`df499b0cb850ff0cbc790ae26e4f87b5ef08a30b`, its
+[`wcc-self-hosting` target](https://github.com/tyfkda/xcc/blob/df499b0cb850ff0cbc790ae26e4f87b5ef08a30b/Makefile)
+builds `cc.wasm`; the [MIT notice](https://github.com/tyfkda/xcc/blob/df499b0cb850ff0cbc790ae26e4f87b5ef08a30b/LICENSE)
+was read again on 2026-10-12. This is a concrete producer candidate, not
+evidence that the resident port, its dependency closure or its host imports
+already meet the contract.
+
+The possible saving is Q34h's native CHERI/ABI and admission port, exchanged
+for a bounded guest port on the one already-required engine. The boundary
+changes: the native producer receives native object-level spatial, temporal
+and initialization guarantees, while a Core Wasm producer receives arena
+confinement and may corrupt its own guest objects or reuse stale guest
+pointers. Output validation protects the host only for the properties it
+actually checks. It supplies no source-correspondence theorem, intended
+program behavior or intra-guest object safety. A future decision must state
+whether stronger artifact-specific proof or a narrower source profile is
+needed; it cannot label those guarantees equivalent.
+
+**Checkpoint and owners:** Q34h records this comparison at its first native
+qualification slice, before a broad producer port, using Q34g's qualified
+engine if available. Q34f owns the imported source/output boundary and build
+lifecycle. The smallest comparison builds a local app and its changed source
+offline through the candidate, validates both output closures through Q34f,
+and runs both in the same generation. It accounts for the full library and
+import closure, reserved working set, diagnostics, cancellation and cleanup;
+measures cold/reused build time under the declared desktop load; and exercises
+unsupported source and resource exhaustion. It must retain the existing
+source profile, bounded refusals, immutable identities, all Core features
+required by the output, output validation, native admission authority
+boundary and release envelopes. If it needs a feature or guarantee concession,
+name that concession for review rather than claim a saving without loss.
+
+**Disposition:** open future review only. The native requirement in Q34h and
+[the producer contract](../implementation/contracts/application-host.md#resident-producer-starting-point)
+stands. A switch requires a reviewed amendment of those owners and any
+affected register entries before implementation or estimate credit. This
+option does not reopen Wasm as a hardware ISA or system substrate, does not
+replace native successor-generation builds, and commissions no second
+interpreter or present guest-compiler port.
+
+---
+
 ## Frozen substrates and their escape hatches: Urbit's jets, Inferno's Dis, and the standard the curated interpreter is held to
 
 Two systems froze an execution substrate on purpose, as this design freezes its profile (§15), and both are worth evaluating for the same reason: the freeze is not where either of them got into trouble.
@@ -2196,6 +2244,56 @@ The line's frontier has moved past plain constant-time to *speculative* constant
 **Disposition:** decline CompCert-CT as a replacement for artifact-level CT admission and decline every compiler-pedigree-only admission route. Its CT-friendly lowering methods and negative cases remain usable in the ordinary C/IR producer under R-05-066, with final source correspondence, functional, CT, masking and resource evidence retained. This introduces no CT conjunct into the CHERI-CompCert theorem (R-05-063), and any claimed reduction in rejected artifacts or proof cost requires measurement.
 The artifact-level constant-time verification actually used, including its cost and residual, is documented in [Inspirations & Prior Art](inspirations.md).
 Non-normative; no spec-body change.
+
+---
+
+## Sharing verified lowering before a second native compiler: future review
+
+R-18-014 requires both CHERI-CompCert and a certifying Rust-to-RV64+CHERI
+compiler. R-18-015 requires preservation of safe-Rust MIR's memory-safety fact
+without a manual proof per safe application. The
+[mandatory-work map](../assurance/unassigned-proof-map.md#8-mandatory-work-outside-the-priced-total)
+records the Rust compiler, TLS and HAL implementation work outside the priced
+total. The plan's existing GC-free CompCert-C route makes sharing more of its
+lowering a useful question before assigning that unpriced work.
+
+Two materially different choices need review. A certifying Rust frontend
+could share the qualified native backend while preserving safe-Rust source,
+temporal safety, typed control flow and certificate generation. This still
+fulfills a second compiler's frontend and preservation obligations; backend
+reuse alone does not delete them. Alternatively, base components authored in
+Gallina could reach the existing native backend through GC-free C synthesis
+or refinement, removing their dependency on Rust lowering. Extending that
+alternative to remove the certifying Rust compiler changes the supported
+source-language and ecosystem promise, including the Rust routes mandated
+for TLS, HAL and contained code. It is a feature decision, not an equivalent
+implementation of the present requirement.
+
+**Checkpoint and owners:** the R-18-014/R-18-015 requirement review owns the
+decision before the unpriced Rust compiler is entered as an executable plan
+item. Q2 owns the existing one-component lowering comparison; M1.2 supplies
+the purecap backend; the HAL and TLS owners supply the required consumer
+profiles. Reuse one of Q2's actual components and its existing checks to
+compare the end-to-end routes, identify shared backend work, and price each
+missing semantic bridge, runtime/ABI adaptation and certificate-producing
+frontend. Include the automatic safe-Rust certificate promise and every
+language-specific consumer in the comparison. An alternative base-component
+route must connect its authoritative Gallina behavior to emitted native code
+with exact assumptions, GC-free bounded storage and normal CHERI-TAL,
+source-correspondence, authority, initialization, resource and constant-time
+evidence where required. A host extraction or C printer without its checked
+bridge supplies no adoption evidence. Added C refinement work counts against
+any work proposed for deletion.
+
+**Disposition:** open future review only. Both required compilers and all
+current language assignments remain live. No general Gallina compiler or new
+proof framework is commissioned, no compiler theorem or language feature is
+retired, and no numerical saving is credited. Any proposal to remove the Rust
+route must identify its source/ecosystem concession and amend the register,
+consumer contracts and plan together. Sharing a backend with guarantees
+preserved can be reviewed separately from that larger choice. This review
+does not adopt the whole-compiler translation-validation fallback below or
+the alternate compiler lineages rejected later in this document.
 
 ---
 

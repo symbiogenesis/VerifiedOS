@@ -140,6 +140,46 @@ reference identity, bounded resumable nonmoving collection, CHERI refinement
 or WCET. This is an adaptation candidate with no additional estimate discount
 before that bridge is demonstrated. No collector source is incorporated.
 
+**Client-interface reading, 2026-10-12.** Wang, Stark and Appel's
+[*Verification of a Generational Garbage Collector*](https://arxiv.org/html/2609.13186v1)
+adds a useful method to that reading: verify a real mutator against the
+collector API before treating the API as adequate. Its moving, generational
+collector and range-comparison semantic extension do not match the selected
+nonmoving Wasm arena. Appendix A links `v2.0`, peeled revision
+`a2db4cf823730a104ddbde7f170627a47fc2f1b7`; that
+[release README](https://github.com/CertiGraph/CertiGraph/blob/a2db4cf823730a104ddbde7f170627a47fc2f1b7/README.md)
+advertises Coq 8.13, VST 2.8 and CompCert 3.9, and its tree lacks the paper's
+`CertiGC/assumptions.v` and mutable-update proof. The API reading therefore
+uses the already-held `e42b44f4aad981210d56f9fa228414f09efd687c`, whose
+[licence](https://github.com/CertiGraph/CertiGraph/blob/e42b44f4aad981210d56f9fa228414f09efd687c/LICENSE)
+was read again and carries the MIT notice above. This reading selects no older
+dependency tuple and establishes no build at the locked prover.
+
+Q34g consumes this reading at its first collector/interface proof, before
+expanding the GC proof library. Compare these actual upstream interfaces with
+the local nonmoving representation rather than porting the collector:
+
+| Upstream interface at the selected revision | Q34g consumer question |
+| --- | --- |
+| [`garbage_collect_spec` and `int_mutable_update_spec`](https://github.com/CertiGraph/CertiGraph/blob/e42b44f4aad981210d56f9fa228414f09efd687c/CertiGC/gc_spec.v) | Does the local contract retain every live typed reference across field update and collection, including a host-held root? |
+| [`frames_rep_localize` and `roots_rep_update_frames`](https://github.com/CertiGraph/CertiGraph/blob/e42b44f4aad981210d56f9fa228414f09efd687c/CertiGC/spatial_gcgraph.v) | Can a client publish, inspect and retire roots while framing the rest of the arena and preserving reference identity? |
+| [`garbage_collect_spec_preconditions_imply_isomorphism`, `mutable_graph_update_sound` and `mutable_update_gc_ready`, collected by the assumption audit](https://github.com/CertiGraph/CertiGraph/blob/e42b44f4aad981210d56f9fa228414f09efd687c/CertiGC/assumptions.v) | Which graph-preservation laws transfer, and which copying/generation premises must be replaced by local nonmoving laws? |
+
+The smallest local client allocates a cyclic graph, updates a field, retains a
+host root across a bounded collection suspension, then removes that root and
+reclaims only unreachable objects. Its proof connects the pinned Wasm
+transitions to the collector contract, demonstrates stable identity and
+complete roots, and refutes omitted-root and premature-reuse variants. That
+is an acceptance slice of the existing Q34g refinement, with Q34f consuming
+the host-root interface; it adds no collector or estimate cell. Before any
+source adaptation, audit the selected theorem closure under R-05-164 and
+prove the representation bridge. The upstream audit itself distinguishes
+legacy external-call results from missing internal body proofs. Neither a
+paper nor the audit command supplies local acceptance. Bounded progress,
+resumption, CHERI confinement and local source-to-binary refinement stay
+Q34g's obligations. Stop at the interface comparison if the bridge is not
+useful; the existing local route remains available without a new dependency.
+
 The [shared Wasm corpus](../../implementation/contracts/wasm-execution.md#shared-upstream-corpus)
 records the official tests and wasm-tools as untrusted engineering start-froms,
 distinct from the semantics and theorem sources above.
