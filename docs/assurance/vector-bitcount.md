@@ -12,7 +12,7 @@ undefined active-lane placeholder returned by `init_masked_result`. Masked and
 tail lanes retain the existing vector policies. This is a source-level model
 repair; a backend choosing zero for an undefined value can conceal the defect.
 
-[The independent generator](../../tools/vos/vector_bitcount.py) owns the bounded
+The independent generator, `tools/vos/vector_bitcount.py`, owns the bounded
 case domain and expected results. It emits a Sail unit-test source and a decoded
 instruction corpus member from the same cases. Expected counts are computed
 from fixed-width integer mathematics, not from the Sail count helpers or the

@@ -401,23 +401,23 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,583.4 |
-| Total estimate range h | 2,966.3–6,200.5 |
+| Total estimate midpoint h | 4,595.4 |
+| Total estimate range h | 2,974.3–6,216.5 |
 | Completed scope h | 860.9 |
-| Complete by estimate % | 18.8 |
-| Remaining h | 3,722.5 |
-| Open class I h | 789.5 |
+| Complete by estimate % | 18.7 |
+| Remaining h | 3,734.5 |
+| Open class I h | 801.5 |
 | Open class X h | 2,933 |
 | Retained completion estimate h | 257.5 |
 | Unmeasured completed items | 28 |
-| Calibrated total h | 5,586.3 |
-| Committed M8a open h | 73 |
+| Calibrated total h | 5,594.8 |
+| Committed M8a open h | 85 |
 | Committed M8b open h | 90.5 |
 | Other committed open h | 2,305 |
 | Conditional open h | 840 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
-| Committed M8a open range h | 47–99 |
+| Committed M8a open range h | 55–115 |
 <!-- estimate-summary:end -->
 
 The generated summary derives from the item cells and [calibration records](#calibration-record). Completed scope includes retained estimates whose actual time is unavailable. The calibrated total applies the attended authority-pool ratios reported in [the schedule basis](#estimate-and-schedule-basis); it does not combine execution clocks.
@@ -435,6 +435,7 @@ The generated view below reports the explicit M8a leaf joins in [the work-order 
 <!-- work-order:start -->
 | Leaf | Authoring inputs | Open acceptance joins |
 | --- | --- | --- |
+| Q44 | available for authoring | M5.3d: real authenticated storage owner and two-instance target trace |
 | M5.3d | available for authoring | n/a |
 | M7.1a | available for authoring | M5.3d: storage and separate crypto compartment; M7.1b: target supervisor; M7.1c: image-bound admission record; M7.1d: typed graph and package descriptors |
 | M7.1b | available for authoring | M7.1a: shared target call, completion and restart observations |
@@ -1160,6 +1161,11 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
   * **Execute:** Land the contract first; implement the private validator and public controller in separate dedicated worktrees, then review the joined protocol and refusal controls. Default builds try indexed validated reuse without requiring a reuse flag; missing or stale evidence runs necessary phases, while `--fresh` bypasses both tiers. Keep the current Q39 pair obligations unchanged and use its actual completed evidence before claiming production reuse.
   * **Estimate basis:** private reuse engine and binding 1.5–4 h; public controller/index wiring 0.5–1.5 h; focused controls, independent review and actual warm qualification 1–2.5 h. Reuse the existing seven-stage seal, whole-environment matcher, native snapshot logic and project-proof cache design. This is new attended implementation work, separate from Q39's remaining acceptance estimate; shared batch closure is still charged once to Q39. Unattended cold audit and hosted runtime are unpriced elapsed time, and no multi-hour first-cold-run prevention or speed factor is promised.
 
+* [ ] **Q44 · Qualify bounded resident object reads** · 12 h, range 8–16 · I
+  * **Dispatch. Start:** R-10-006a/R-10-006b and the landed [resident-object read contract](contracts/resident-object-reads.md), the existing ownership/revocation, IDL and storage recovery contracts. **Owns:** the bounded reservation and traffic reference, its safety/resource statements, a retained-read implementation against the selected storage representation, and independent positive/refusal/compiled-mutation witnesses. **Check:** exact domain/version/root/window binding, repeated same-version reads by independent clients with fixed admission/retirement events, complete common/private/ring write classification, holder-independent retirement and the contract's exhaustion, replacement, revocation and crash cuts. **Join:** M5.3d's executable authentication, storage and two-instance target path; M5.4 consumes the same lifetime and identity interface rather than creating another cache or reader proof.
+  * **Execute:** Land the contract before source work. Prove and exercise one bounded reservation first; then run the same witness through the actual storage owner and target. Preserve every-read verification and authenticate-before-return. Record memory traffic and service-work counts separately from benchmarks; all throughput benchmarks stay on CI. Neither fixtures nor a zero common-write count establish full-system throughput or production proof closure.
+  * **Estimate basis:** bounded reference and safety/traffic proofs 3–6 h; retained-read source and lifecycle controls 3–6 h; independent review and target trace join 2–4 h. Reuse the existing IDL, ownership, revocation and authentication interfaces. This cell buys the new read-window work; M5.3d retains persistent storage/crypto/index integration and M5.4 retains transactor work. Q44 joins M5.3d's real storage/authentication producer and target trace, including the selected representation's reserved-memory cost; the two items coqualify on one settled executable revision without requiring either milestone already complete. M5.4 is a later consumer and does not gate Q44 or M8a.
+
 **Evidence and cost stay with their owners.** Q2b owns the target connection and Q3b its selected functional/fault evidence; existing compiler, admission and image-validation owners retain the mandatory exact-artifact duties. The canceled Q20c comparison owns no production implementation. Share source/configuration/image identities and baseline records across them, adding each task's distinct check. Changed semantics or bytes invalidate affected evidence. Each missing theorem, port, primitive or executable gets one implementation owner and one estimate; Q2c's foundation map remains the shared prerequisite record for Q21b, Q25d and any separately commissioned generic-library proposal.
 
 Candidate selection is bounded by the current client's failed predicate. The [language strategy](../languages/verification-strategy.md#existing-tooling-and-implementation-owners) owns the proof-tool research map and [THIRD-PARTY.md](../../THIRD-PARTY.md) the incorporated/pinned dependency record. Reuse those readings at the same revision. Inspect new terms and dependency closure only at the selected candidate's incorporation; do not install every surveyed alternative. Model weights, generated output and physical-design inputs retain their own provenance requirements.
@@ -1168,7 +1174,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,757.9 h · 60% · 248.9 h complete · open range 1,441–3,577 h.
+**Q subtotal:** 2,769.9 h · 60% · 248.9 h complete · open range 1,449–3,593 h.
 
 ### M0 · Hardware reference
 
@@ -1588,7 +1594,7 @@ Journal/index/FS (§7) and the content-addressed object store + transactor (§6)
   * [x] **M5.3c · Exercise block-device capability refusals through HTIF** · 0.4 h actual · agent-parallel
     * The generated purecap corpus member checks exact capability traps and preserves device control, staging and medium state. ([note](completion-log.md#m53c-exercise-block-device-capability-refusals-through-htif))
   * [ ] **M5.3d · Integrate persistent storage and run both target instances** · 12 h, range 8–16 · I
-    * **Start:** the parent item's reviewed contracts and statements. **Owns:** its remaining executable index, persistent backing/reopen, authentication, crypto, recovery and target integration. **Check:** the parent's complete acceptance predicate. **Join:** M5.3a through M5.3c, the real compiler and kernel interfaces, and executable crypto. **Execute:** retain the parent's implementation strategy; the three finite device campaigns are separately priced and supply no target acceptance on their own. This cell retains the former integration estimate; the newly explicit campaigns are additional priced work, not duplicated executable implementations.
+    * **Start:** the parent item's reviewed contracts and statements, plus Q44's [retained-read interface](contracts/resident-object-reads.md). **Owns:** its remaining executable index, persistent backing/reopen, authentication, crypto, recovery and target integration. **Check:** the parent's complete acceptance predicate and Q44's traffic/lifetime target join on the resident path. **Join:** M5.3a through M5.3c, the real compiler and kernel interfaces, and executable crypto. **Execute:** retain the parent's implementation strategy; the three finite device campaigns are separately priced and supply no target acceptance on their own. This cell retains the former integration estimate; the newly explicit campaigns are additional priced work, not duplicated executable implementations.
     * **Partial: the executable index, persistent emulator image and a prototype authentication bridge are authored; the complete storage and two-instance target joins remain open.** [ExecutableIndex.v](../../proofs/ExecutableIndex.v) implements R-10-004's admitted copy-on-write B+ arm over [JournalIndex.v](../../proofs/JournalIndex.v)'s map. Lookup, insert/replacement, leaf/internal/root split, bounded allocation and retained snapshots have proofs over the declared key algebra and geometry. Check completeness requires explicitly well-formed inputs with strictly ordered separators; the admitted equal-separator counterexample shows why structural admission alone is insufficient. `insert_gate` publishes well-formed trees with equal leaf depth within the declared geometry and refuses oversized walk bounds before traversal. `seek` distinguishes a structural refusal from a missing key; `read_gate` checks the declared depth before walking. The gated interfaces enforce these bounds without selecting the index or claiming a cost bound.
     * **Index evidence:** the recovery campaign over `9761caaf` generated 2,777 vectors, including 890 index rows. Every published row satisfies its admission, occupancy, balance, map, well-formedness and read-correspondence assertions; the controls distinguish arena exhaustion, height refusal and a short read from a missing key. The three behavioral refusal-arm mutants that survived the interrupted worker's first campaign now compile and fail their intended witnesses. The other 27 survivors change fixture geometry, input values or probe bounds without refuting their assertions; no complete-population kill result is claimed. Focused locked-prover compilation closes the authored assumption queries. Integrated fresh proof acceptance belongs to Guest CI, not these local checks.
     * **Persistent-device checkpoint:** [the block-device contract](../../interfaces/block-device-contract.md) and the emulator's `blkdev_image` adapter provide explicit create/open modes, exact geometry validation, exclusive image locking, write-through durability, reopen and optional image-identity receipts. Receipt failures refuse startup or make IO sticky; an incomplete final receipt fails normal emulator termination. Persistent images are refused in RVFI and GDB modes, whose reset/lifecycle paths do not implement the adapter contract. Native adapter controls cover startup, input-event, persistence and close failures. Schema-2 receipts sequence device inputs before their transitions, including complete effective tear masks and fault/reset inputs. The full hosted model corpus includes the separate architectural persistence campaign.
@@ -1597,6 +1603,7 @@ Journal/index/FS (§7) and the content-addressed object store + transactor (§6)
     * **Bridge evidence:** at `406555da`, the locked-prover candidate compiles, native assumption queries are closed, and the public AES-GCM writer/recovery witness passes beside geometry, byte, exhaustion, callback and checkpoint-substitution refusals. The pristine behavioral control passes; each of the compiled guard mutants fails its intended refusal assertion. The [bounded repair contract](storage-recovery-policy.md#adopted-boundary-and-remaining-evidence) and exact-prefix statement received independent semantic review. Full proof/assumption/kernel acceptance remains the fresh Guest CI run for the settled integration revision.
     * **Owed:** deletion, merge/rebalancing and a minimum-occupancy contract; buffered multilevel flush only if the Bε arm is selected; composition-bound costs and index-selection measurements; approved serialization, durable nonce admission and independent authenticated checkpoint binding; executable storage and the separate crypto-core compartment; recovery under actual crash cuts; and both target instances using the same index body through the real compiler, kernel and boot interfaces. None of the finite device campaigns completes this item.
 * [ ] **M5.4 · Implement the object store and update transactor** · 18 h, range 12–24 · I · after the M8a gate
+  * **Resident-reader join:** consume Q44's [bounded read-window interface](contracts/resident-object-reads.md) whenever the object/system-integrity reader uses the retained path; exact generation-root binding, every-read verification and retirement remain required. Q44 owns that new implementation and qualification, while this item owns its transactor integration.
   * **Partial source result:** [The contract](contracts/object-transactor.md) and [symbolic transactor](../../proofs/ObjectTransactor.v) authenticate ancestors before releasing bytes and bind public admission to accepted checkpoint evidence, the candidate root and package roster. Stage/verify/flip/health and floor refusals have checked witnesses. The target update/boot/rollback corpus still needs the M5.3, M3.5 and M6.2b/c adapters.
   * **Transparency interface:** consume Q22b's witness policy, persisted checkpoint and transition contract. Acceptance binds the required public commitment and anti-equivocation evidence to the admitted base/package identities; it does not assert that public logging prevents targeted selection between valid variants. Any additional production validator or witness implementation is separately priced at entry.
   * **Execute:** Build the smallest stage/verify/flip/failure transaction against reviewed storage and counter interfaces. Author host fault cases beside M5.3; defer policy-dependent behavior until its decision lands. Reuse the index and crypto components rather than creating parallel stores.
@@ -1745,7 +1752,7 @@ The ring data plane is brought up in its contract order: the common ring schema 
   * **Check:** both generations admitted by the ordinary path and booted by the transactor with health-gated rollback intact, the mint reachable only through the consent act, the composition mode entered and left as R-11-018 requires, and the install's proof checking staying inside R-06-015a's declared budget. **Join:** Q26 prices the occupancy and the storage this act needs; Q9 measures its turnaround beside the remote path's.
   * **Done when** the device composes, signs, admits and boots its own generation twice over, once for a package change and once for the base image, with nothing reachable and no artifact another machine produced, and the run records what it occupied rather than only that it finished.
 
-**M6 subtotal:** 665.7 h · 15% · 52.7 h complete · open range 295–931 h.
+**M6 subtotal:** 665.7 h · 14% · 52.7 h complete · open range 295–931 h.
 
 ### M7 · Full emulated system
 
