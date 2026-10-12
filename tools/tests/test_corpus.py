@@ -205,7 +205,7 @@ def _index_is_independent_of_document_bytes_and_refreshes() -> None:
 
 def _index_preserves_unicode_line_separators() -> None:
     names = [f"docs/a{separator}b.md" for separator in ("\u0085", "\u2028", "\u2029")]
-    files = {name: "# A\n" for name in names}
+    files = dict.fromkeys(names, "# A\n")
     with sandbox_tree(files) as root:
         index = corpus_mod.read_index(root)
         ensure(index.files == tuple(names) and index.indexed == set(names),
