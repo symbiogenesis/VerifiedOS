@@ -33,17 +33,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--timeout", required=True)
     parser.add_argument("--github-output", type=Path,
                         help="append the validated decimal timeout for dependent jobs")
+    parser.add_argument("--timeout-only", action="store_true",
+                        help="validate the timeout in the dispatching checkout before switching revision")
     args = parser.parse_args(argv)
     try:
-        staged = readiness(TOOLS.parent, args.timeout)
+        seconds = case_timeout(args.timeout)
+        staged = None if args.timeout_only else readiness(TOOLS.parent, args.timeout)
         if args.github_output is not None:
             with args.github_output.open("a", encoding="utf-8", newline="\n") as output:
-                output.write(f"case_timeout={case_timeout(args.timeout)}\n")
+                output.write(f"case_timeout={seconds}\n")
     except (OSError, ValueError, TypeError, KeyError, ImportError, RuntimeError) as error:
         print(f"FAIL boot-chain plan: {error}")
         return 1
-    print(f"ok boot-chain plan: {len(staged.streams)} streams and {len(staged.images)} "
-          f"images are ready; case timeout {case_timeout(args.timeout)} seconds")
+    if staged is None:
+        print(f"ok boot-chain timeout: {seconds} seconds; staging readiness remains unchecked")
+    else:
+        print(f"ok boot-chain plan: {len(staged.streams)} streams and {len(staged.images)} "
+              f"images are ready; case timeout {seconds} seconds")
     return 0
 
 

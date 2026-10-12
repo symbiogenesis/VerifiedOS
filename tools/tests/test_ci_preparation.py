@@ -6,6 +6,7 @@ import io
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -76,8 +77,9 @@ def _workflow_dependencies() -> None:
     jobs = workflows._workflow_jobs(text)
     ensure("ref: ${{ github.sha }}" in jobs["plan"]
            and jobs["plan"].index("Verify requested revision belongs to main")
-           < jobs["plan"].index("git\", \"checkout")
-           < jobs["plan"].index("boot_chain_plan.py"),
+           < jobs["plan"].index("boot_chain_plan.py")
+           < jobs["plan"].index("Check out the planned revision")
+           < jobs["plan"].index("run: python tools/run.py boot-handoff chain-verify"),
            "the plan validates with the dispatching checkout before running requested code")
     ensure("--is-ancestor" in jobs["plan"] and "--end-of-options" in jobs["plan"]
            and "refs/heads/main" in jobs["plan"] and "[0-9a-f]{40}" in jobs["plan"],
@@ -136,8 +138,56 @@ def _plan_revision_guard() -> None:
             ensure((result.returncode == 0) is accepted,
                    f"plan revision guard gave another verdict for {requested}/{ref}: {result.stderr}")
             actual = _git(root, "rev-parse", "HEAD")
-            ensure(actual == (requested if accepted else tip),
-                   "a refused plan changed checkout before validating its request")
+            ensure(actual == tip, "revision validation executes no requested checkout")
+
+
+def _older_revision_without_new_helper() -> None:
+    text = (TOOLS.parent / ".github/workflows/boot-chain-target.yml").read_text(encoding="utf-8")
+    steps = {step.split("\n", 1)[0]: step for step in workflows._step_texts(
+        workflows._workflow_jobs(text)["plan"])}
+    guard = textwrap.dedent(steps["      - name: Verify requested revision belongs to main"].split(
+        "        run: |\n", 1)[1])
+    switch = textwrap.dedent(steps["      - name: Check out the planned revision"].split(
+        "        run: |\n", 1)[1])
+    readiness = shlex.split(steps["      - name: Verify campaign readiness"].split(
+        "        run: ", 1)[1].strip())
+    with sandbox_tree({"README.md": "fixture\n"}) as root:
+        _git(root, "config", "user.name", "fixture")
+        _git(root, "config", "user.email", "fixture@example.invalid")
+        old = _commit(root, {"tools/run.py":
+                              "import sys\nfrom pathlib import Path\n"
+                              "if sys.argv[1:] != ['boot-handoff', 'chain-verify']:\n"
+                              "    raise SystemExit('wrong handler')\n"
+                              "if Path('unready').exists():\n"
+                              "    raise SystemExit('staged target requires complete contained compiler provenance')\n"
+                              "print('strict fixture accepted')\n",
+                              "unready": "historical fixture\n"}, "older supported verifier")
+        helper = root / "tools/ci/boot_chain_plan.py"
+        tip = _commit(root, {"tools/ci/boot_chain_plan.py": "# new dispatching helper\n"}, "dispatcher")
+        environment = dict(os.environ, REQUESTED_REVISION=old, DISPATCH_REF="refs/heads/main",
+                           DISPATCH_MAIN_SHA=tip)
+        checked = subprocess.run([sys.executable, "-c", guard], cwd=root, env=environment,
+                                 capture_output=True, text=True, check=False, timeout=15)
+        ensure(checked.returncode == 0 and helper.is_file(), "guard keeps the trusted dispatcher")
+        output = root / "timeout-output"
+        with patch.object(plan.boot_chain_target, "verify", side_effect=AssertionError):
+            ensure(plan.main(["--timeout-only", "--timeout", "00008",
+                              "--github-output", str(output)]) == 0
+                   and output.read_text(encoding="utf-8") == "case_timeout=8\n",
+                   "trusted timeout validation checks no staged target before switching")
+        switched = subprocess.run([sys.executable, "-c", switch], cwd=root, env=environment,
+                                  capture_output=True, text=True, check=False, timeout=15)
+        ensure(switched.returncode == 0 and not helper.exists(), "old pinned revision lacks the new helper")
+        result = subprocess.run([sys.executable, *readiness[1:]], cwd=root, env=environment,
+                                capture_output=True, text=True, check=False, timeout=15)
+        ensure(result.returncode == 1 and "complete contained compiler provenance" in result.stderr
+               and "can't open file" not in result.stderr,
+               f"old revision refuses for its real staging reason: {result.stderr}")
+        (root / "unready").unlink()
+        result = subprocess.run([sys.executable, *readiness[1:]], cwd=root, env=environment,
+                                capture_output=True, text=True, check=False, timeout=15)
+        ensure(result.returncode == 0 and "strict fixture accepted" in result.stdout,
+               "an older ready revision can reach its existing verifier without the new helper")
 
 
 def _archive_fixture(root: Path) -> tuple[Path, str, dict[str, str]]:
@@ -212,6 +262,7 @@ def _archive_corruption_and_interruption() -> None:
 def cases() -> list[Case]:
     return [Case("strict-staging-readiness", _readiness),
             Case("plan-checks-revision-before-checkout", _plan_revision_guard),
+            Case("older-pinned-revision-needs-no-new-helper", _older_revision_without_new_helper),
             Case("workflow-readiness-and-cache-wiring", _workflow_dependencies),
             Case("verified-archive-reuses-without-network", _archive_reuse, lane="guest"),
             Case("archive-corruption-and-interruption", _archive_corruption_and_interruption,
