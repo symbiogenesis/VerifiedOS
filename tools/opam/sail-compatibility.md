@@ -51,5 +51,79 @@ complete.
 
 ## Trial result
 
-The implementation lane records the package build and import probes here after
-running the bounded trial. No result is implied by the contract.
+The 2026-10-12 trial starts at repository revision
+`af95a7f287ce04a2977687e12d6cab659b81679d`, after committing this contract as
+`bcd4bd6f`. Its private native prefix is
+`/root/build/lane-rocq-compat-20261012/sail-compatibility`. The
+[receipt](../../docs/implementation/retained-evidence/rocq-compat-20261012/receipt.json),
+SHA-256 `8705df0cd027c2428388b5206ddad89ebd1086823c1c3e4394c9a06b19f035bb`,
+records commands, actual source/archive/licence identities, executable hashes,
+exits and diagnostic-log digests. It records no source patch or downgrade.
+The existing installed stdpp was copied into the private prefix; bitvector
+was built and installed only there. The unchanged source's own opam metadata
+admits Rocq 9.3.0, so selecting its immutable upstream commit provides a
+candidate route around the published package's upper bound.
+
+| Check | Observed result | Acceptance scope |
+| --- | --- | --- |
+| stdpp bitvector 1.13.0 Dune package build and private install | exit 0 | Exact dependency builds at the locked versions; retained confirmation reuses its private build outputs. |
+| Sail support 0.20.3 `dune build -p rocq-sail-stdpp -j 2 @install @runtest` | exit 0, with upstream diagnostics | Actual completing package build and package tests; incremental after correcting private dependency-path layout, not cold evidence. |
+| Term import probe and `Eqdep` control under the existing strict compiler flags | each exits 0 with no diagnostic | Imports from the private package build work; no changed theorem is qualified. |
+| Each probe's recursive `rocqchk -silent -o` | each exits 0 and names the same five Stdlib axioms | Reproduces the known assumption conflict; not passing exact-set acceptance. |
+| Direct `Print Assumptions` queries for those five declarations | exit 0, naming each axiom | Independently confirms the named assumption declarations. |
+| Strict compile of unchanged `Inhabited.v` | exit 1 at line 12, `notation-for-abbreviation` | First strict source refusal: two deprecated `Notation` abbreviations require reviewed source compatibility work. |
+| Shared proof-switch exports before/after | byte-identical, SHA-256 `3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32` | No shared package resolution changed. All inventoried upstream source bytes are unchanged. |
+
+The release archive's SHA-512 matches the published checksum. Its SHA-256 is
+`1a0e226608ac84add6cd1f61a11637ea9db5e00e1551b2070945310078c9e031`.
+The stdpp 1.13.0 archive used by bitvector likewise matches its published
+SHA-512; SHA-256
+`c7bec4536187ff8dc401efae828f1f5d1d4e3f32f46eca907ffa98f829011d00`.
+The exact Sail support `LICENSE` read is BSD-2-Clause, SHA-256
+`9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0`;
+stdpp's `LICENSE` is BSD-3-Clause, SHA-256
+`bc4fe79f9b7f78bc6e4e61e1f7c430b1e413b82de4aacb9355ade5e43bad2a69`.
+Source trees and compiled libraries remain native trial inputs. The
+[third-party record](../../THIRD-PARTY.md) owns intended distribution.
+
+The bounded trial therefore closes the uncertainty about the package's real
+builder at the current versions and removes the policy requirement to wait
+for a release. It refuses production carriage. The next bounded source
+qualification must eliminate strict source diagnostics, qualify Q35g's
+five-axiom removal with frozen elaborated comparisons, and then run the full
+consumer acceptance on hosted cold inputs. An opam pin/import of a production
+snapshot, the full canonical term and a frozen semantic comparison were not
+performed. `rocq.lock` stays unchanged.
+
+## Reproduction
+
+Use an empty assigned native prefix, a unique OS temporary directory for
+diagnostics, and the unchanged project proof switch. Fetch the exact release
+sources with `opam source rocq-sail-stdpp.0.20.3 --dir=PREFIX/coq-sail-0.20.3`
+and `opam source rocq-stdpp-bitvector.1.13.0 --dir=PREFIX/stdpp-1.13.0`, checking
+the archive digests above. Read the actual licence files before any carriage.
+With the proof switch environment applied only to the child process:
+
+1. In `PREFIX/stdpp-1.13.0`, run `dune build -p rocq-stdpp-bitvector -j 2 @install`,
+   then `dune install rocq-stdpp-bitvector --prefix=PREFIX/private
+   --libdir=PREFIX/private/lib`.
+2. Copy the unchanged installed `lib/coq/user-contrib/stdpp` into the same private
+   prefix, preserving the private `stdpp/bitvector` files. Set child `ROCQPATH`
+   and `COQPATH` to `PREFIX/private/lib/coq/user-contrib`. A prefix containing
+   bitvector alone shadows the installed `stdpp` root and fails; that is a path
+   layout error, not a source incompatibility.
+3. In `PREFIX/coq-sail-0.20.3`, run the package build and tests from the table.
+   Compile the retained probes with `rocq c -q -w
+   +default,-abstract-large-number -set 'Default Goal Selector=!'
+   -disallow-sprop`, mapping the private stdpp, Dune-built `SailStdpp` and probe
+   directories exactly as the receipt records. Check each compiled root with
+   `rocqchk -silent -o` and the same logical mappings.
+4. Confirm both export equality and unchanged source inventories. Retain strict
+   diagnostics and the exact axiom names; do not interpret zero package or
+   kernel exit as production qualification.
+
+After source qualification, the immutable candidate pin is
+`git+https://github.com/rems-project/coq-sail.git#e7b914cddc032e3676eebd87a808229828013e9c`,
+with the paired version 0.20.3. Apply it only in the private qualification
+recipe, retaining the locked dependency resolution. The candidate pin has
+not been installed or accepted by this trial.
