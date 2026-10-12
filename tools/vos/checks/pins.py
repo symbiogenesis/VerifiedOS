@@ -1037,6 +1037,24 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
     ("docs/assurance/proof-reuse/languages.md", "14537282"):
         "the numeral of the archived SECOMP artifact's Zenodo record, "
         "not an object id",
+    ("THIRD-PARTY.md", "6614c9be"):
+        "the LLVM dependency selected by CHERIoT Rust's own gitlink, "
+        "not the independent upstream LLVM tooling pin",
+    ("docs/assurance/proof-reuse/languages.md", "6614c9be42d691e7fb0ccd1f9dd8dee74de4f733"):
+        "the LLVM dependency selected by the source-qualified CHERIoT Rust fork, "
+        "not the independent upstream LLVM tooling pin",
+    ("THIRD-PARTY.md", "36676697"):
+        "the historical Fiat-Crypto edition selected by the GarageDoor artifact, "
+        "not the current field-emission gitlink",
+    ("THIRD-PARTY.md", "36676697ca59b0b3d8bcc477dac1eacda89e921c"):
+        "the historical Fiat-Crypto edition whose GarageDoor source and terms were read",
+    ("docs/assurance/proof-reuse/systems.md", "36676697ca59b0b3d8bcc477dac1eacda89e921c"):
+        "the GarageDoor artifact's historical Fiat-Crypto source and theorem edition",
+    ("docs/background/architectural-alternatives.md", "36676697"):
+        "the GarageDoor artifact's historical Fiat-Crypto edition used as a recipe reference",
+    ("docs/assurance/proof-reuse/crypto.md", "f854fc6a2d7f88559df37796f6c498c5f96b66d9"):
+        "the inspected AUCurves superproject edition in its Libjade bridge URL, "
+        "not the separately maintained libjade gitlink",
 }
 
 
