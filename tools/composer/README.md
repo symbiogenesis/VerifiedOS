@@ -103,6 +103,9 @@ projection digests, regenerates the graph and binds the final image bytes.
 `validate_build_record` rechecks those inputs and bytes; it trusts no reported
 admission boolean. It compares canonical JSON bytes with the regenerated record,
 refusing boolean/integer/float type substitutions and malformed JSON content.
+Artifact maps and runtime/image references also receive closed-shape and string-field
+validation before their filesystem binding. Malformed containers, missing or extra
+reference fields and non-string paths or digests return named composition refusals.
 Runtime slots must name distinct resolved artifact paths;
 relative path aliases cannot substitute one member's file for another. Distinct
 files may carry identical bytes. The skeleton contains no final image digest or certificate,

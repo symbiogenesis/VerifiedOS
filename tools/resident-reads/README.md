@@ -46,6 +46,10 @@ Malformed identity/root containers refuse without consuming backing, versions,
 tokens or read sequences; same-valued numeric aliases cannot create an unusable
 reservation or displace an accepted transfer.
 Refused requests preserve an already accepted transfer.
+Stop, retirement and resident lookup require an in-range integer backing slot.
+String aliases and other malformed slots refuse before stored-state changes, preserving
+live admission and independent accepted transfers. Valid integer retirement still
+quarantines and releases only its selected resident within the holder-independent bound.
 Publication charges every existing resident against the new version's predecessor
 limit, including closed quarantine after the current version has stopped. Exhausted
 predecessor capacity refuses publication without consuming a version; completing a
