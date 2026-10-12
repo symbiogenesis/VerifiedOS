@@ -12,8 +12,8 @@ from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
 
-from tests.harness import TOOLS, Case, ensure, sandbox_tree
-from tests.test_sailcontext import _fixture
+from tests.harness import TOOLS, Case, ensure
+from tests.test_sailcontext import _fixture, _sandbox_tree
 from vos import sailcontext, sailmcp
 
 
@@ -89,7 +89,7 @@ def _wire_refusals() -> None:
 
 def _context_and_freshness() -> None:
     files, _ = _fixture()
-    with sandbox_tree(files) as root:
+    with _sandbox_tree(files) as root:
         results = _exchange(root, [_request(1, "tools/call", name="sail_symbol", arguments={"query": "shared"}),
                                   _request(2, "tools/call", name="sail_search", arguments={"query": "shared", "limit": 0}),
                                   _request(3, "tools/call", name="execute_shell", arguments={})])
