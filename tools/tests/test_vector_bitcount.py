@@ -2,12 +2,16 @@
 """Independent oracle landmarks, deterministic generation and byte-drift refusals."""
 
 import struct
+import subprocess
 import tempfile
 from itertools import pairwise
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
 from vos import asm, image, vector_bitcount
+from vos.cli import vector_bitcount as cli
 
 ROOT = TOOLS.parent
 
@@ -109,7 +113,48 @@ def _layout() -> None:
             raise AssertionError("the original overlapping ELF layout was accepted")
 
 
+def _adapter_controls() -> None:
+    source, verdicts = vector_bitcount.smoke_source()
+    ensure(vector_bitcount.SAIL_SELECTOR in source
+           and vector_bitcount.SAIL_SELECTOR in vector_bitcount.emit_sail(ROOT),
+           "hosted check and generated model use different selectors")
+    ensure(set(verdicts) == {*(f"adapter_e{width}" for width in vector_bitcount.WIDTHS),
+                             "original_descending_mismatch"}, "adapter omits a width or original control")
+    ensure(verdicts["original_descending_mismatch"] == "sat", "original defect has no counterexample control")
+    for mode in ("pass", "missing", "unknown", "positive-sat", "negative-unsat", "compiler-error"):
+        with tempfile.TemporaryDirectory(prefix="vos-adapter-test-") as temporary:
+            root = Path(temporary)
+
+            def run(argv: list[str], mode: str = mode, **_options: object) -> subprocess.CompletedProcess[str]:
+                if argv[0] == "sail":
+                    prefix = Path(argv[argv.index("-o") + 1])
+                    for name in verdicts:
+                        if mode != "missing" or name != "adapter_e16":
+                            prefix.with_name(prefix.name + f"_{name}.smt2").write_text("query", encoding="utf-8")
+                    return subprocess.CompletedProcess(argv, int(mode == "compiler-error"), "", "")
+                name = Path(argv[-1]).stem.removeprefix("adapter_")
+                observed = verdicts[name]
+                if mode == "unknown":
+                    observed = "unknown"
+                elif mode == "positive-sat" and name == "adapter_e16":
+                    observed = "sat"
+                elif mode == "negative-unsat" and name == "original_descending_mismatch":
+                    observed = "unsat"
+                return subprocess.CompletedProcess(argv, 0, observed + "\n", "")
+
+            with (patch.object(cli.env, "load", return_value=SimpleNamespace(lane_root=root)),
+                  patch.object(cli.subprocess, "run", side_effect=run)):
+                try:
+                    result = cli.smoke()
+                except ValueError:
+                    ensure(mode not in ("pass", "compiler-error"), f"unexpected {mode} refusal")
+                else:
+                    ensure(result == (1 if mode == "compiler-error" else 0)
+                           and mode in ("pass", "compiler-error"), f"{mode} supplied false passing evidence")
+
+
 def cases() -> list[Case]:
     return [Case("fixed-width independent oracle and domain", _oracle),
             Case("generated artifacts, drift and decoded words", _generated),
-            Case("actual ELF load segments remain disjoint", _layout)]
+            Case("actual ELF load segments remain disjoint", _layout),
+            Case("adapter verdicts and original mismatch fail closed", _adapter_controls)]

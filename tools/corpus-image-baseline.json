@@ -1,0 +1,221 @@
+{
+  "schema": "verifiedos-corpus-image-baseline/1",
+  "migration": {
+    "revision": "e47221691096395742d4e55f2069e6a859de08ac",
+    "aggregate_sha256": "80e754f5cc08dfbdf27c76f44a2319c0b5f4b31a11a472f8af16e9a777232318",
+    "aggregate_bytes": 276016,
+    "members": 30
+  },
+  "members": [
+    {
+      "name": "base-integer",
+      "source": "base-integer.s",
+      "source_sha256": "89071188568d6aa9937d1a7a0160499582acf4c2aa7319e5f3cb8b8c5d0f3204",
+      "image_sha256": "34e2b1976355da134ed097b6351ea95c92c44d5f54adb57495913d30af3e51a4",
+      "image_bytes": 1600
+    },
+    {
+      "name": "base-memory",
+      "source": "base-memory.s",
+      "source_sha256": "6c61200e78bc4a48b137f22b36542d7a8e1d1f9c0170e454b9ca142f80200d21",
+      "image_sha256": "b99baaf756dbaae4bc56b7b157c3fe730eab1fe6fd7cb76408f2a91470b8c314",
+      "image_bytes": 1328
+    },
+    {
+      "name": "mul-div",
+      "source": "mul-div.s",
+      "source_sha256": "7b45b0410900bd4194d5fec03b9d7cfa49d33b8f06f6b9442024aa9a72029a11",
+      "image_sha256": "32e457e8688049e320e6d8296662161b1a10fa7a1a8c90038479456de255a069",
+      "image_bytes": 1264
+    },
+    {
+      "name": "cap-inspect",
+      "source": "cap-inspect.s",
+      "source_sha256": "a3613dc3d3163b89aee1545b00860575b94c9fb29506b4bd7b79e2a0c8bbf0a8",
+      "image_sha256": "cc539eb58d016dbaed3f70f8905e99de3f815e3755dff653b28b9119a9a6f0c7",
+      "image_bytes": 1232
+    },
+    {
+      "name": "cap-derive",
+      "source": "cap-derive.s",
+      "source_sha256": "5cc2a2e602ff78e16687b6dd9e0be40a41a3ef676180a98f572a220dca2c8b7c",
+      "image_sha256": "926374cf05643f8002c33f98854b57ed02f7164bd38513b785ad8ff820907070",
+      "image_bytes": 1312
+    },
+    {
+      "name": "cap-memory",
+      "source": "cap-memory.s",
+      "source_sha256": "534e6e2ecdf99252aa572095faa023fe4e79072f3193dd52d44fa73a49b9124f",
+      "image_sha256": "98ee92401b7040ad23b7bc26ba7bf50fca8e96c883d3a0021640e929e54a1773",
+      "image_bytes": 1416
+    },
+    {
+      "name": "cap-trap",
+      "source": "cap-trap.s",
+      "source_sha256": "2ebc5dd2d661b80d29b01cac6f118b1334a95f6e054d83e301b083289343a617",
+      "image_sha256": "afb1f4d6ef67d389baa5a348a601d6347c2d2e3521b4b14d0f5669f9adb168fe",
+      "image_bytes": 1312
+    },
+    {
+      "name": "cap-control",
+      "source": "cap-control.s",
+      "source_sha256": "49b8d3d043bfc32d49895338463ca4f929c2679acf8b6e985d2952c980402688",
+      "image_sha256": "5bdf5a7e161dd5d0339710710d4091ea747c6bc74ae748ac793875d04ef6d169",
+      "image_bytes": 1304
+    },
+    {
+      "name": "bitmanip",
+      "source": "bitmanip.s",
+      "source_sha256": "fa1e6203a927ccf5acb4cfeceaba41d34a9130fb28aaa1dcc70c69c073f51966",
+      "image_sha256": "7e320ce806c36109dcc0b7a0ce9e4262a8978fac26bfc4e7d44a842159da074d",
+      "image_bytes": 1856
+    },
+    {
+      "name": "vector-bitcount",
+      "source": "vector-bitcount.s",
+      "source_sha256": "9253c2159eeacc3aca611e66e4d59044aacfec03e227dfbdc76208e381019b2c",
+      "image_sha256": "c23626353f66ca56ea3bb315f8d90092a01e86b49a27bd538292293c512b4c4d",
+      "image_bytes": 68256
+    },
+    {
+      "name": "atomics",
+      "source": "atomics.s",
+      "source_sha256": "86e834277d7c2a6559f8c7740ea40bf7356652b9ebd9a7a841be1a3a05845403",
+      "image_sha256": "4339ff3df9358b2c5026bf4bd3124b4572e2a5130e0e1ca9f98cbf4305643074",
+      "image_bytes": 1480
+    },
+    {
+      "name": "zicond-csr",
+      "source": "zicond-csr.s",
+      "source_sha256": "bdbac5fa91eced5d716ce2dfdedd78182c83890a7effc3850fa462a0dc09d968",
+      "image_sha256": "572e022ec349585f3298ba5efcccbfc042c50b6e42d7a3e503b38890c29de66e",
+      "image_bytes": 1312
+    },
+    {
+      "name": "cap-select",
+      "source": "cap-select.s",
+      "source_sha256": "f0ffe24fa829b42209ad59236da07e7b80a3169c2eb4d79ace8ab75de76ada13",
+      "image_sha256": "7268ffd17680f92f4eab34ed1e09c762bbbb7cfbf1de569c625291f4f840f4a5",
+      "image_bytes": 1448
+    },
+    {
+      "name": "cap-indexed",
+      "source": "cap-indexed.s",
+      "source_sha256": "1c31cd7bf62fd35625a3c989208ae529cc385ce9a4e22f16e6bc98bb51ece199",
+      "image_sha256": "1cd3491d8626823398ba48f5076e9e2e1407b5554ab3771c21ca7de1c68dce0b",
+      "image_bytes": 1432
+    },
+    {
+      "name": "cap-revoke",
+      "source": "cap-revoke.s",
+      "source_sha256": "43b344a49169443e2028ab0f3a696472418fff153f71a4e7c3092012672d05d1",
+      "image_sha256": "616541a13ccfc68cc212fdb7e0b83c4e398600f19d0f054fea9a0c27727ba775",
+      "image_bytes": 1648
+    },
+    {
+      "name": "platform-aia",
+      "source": "platform-aia.s",
+      "source_sha256": "a60026a98eada54735b2e9b7e6be76d8ca68198078fc7cb091bfc6dae2ba36cc",
+      "image_sha256": "2fe7da339a61a5311dbdfd3e0af46e9c324a314b25e19b317f4c9e3c0ba22b38",
+      "image_bytes": 1184
+    },
+    {
+      "name": "cap-reclaim",
+      "source": "cap-reclaim.s",
+      "source_sha256": "91ef2f997c2f5c15d0a87df0ed385a3103238a418d402d13104d85123e280652",
+      "image_sha256": "1fff8ad27aae4ae4f30b551ef6ce312b4fd7e57c34e818b9a9a06343d480fc46",
+      "image_bytes": 1696
+    },
+    {
+      "name": "platform-scrub",
+      "source": "platform-scrub.s",
+      "source_sha256": "22aaf519462838daaa36c2c9b8572d7cc78c956a27f03412c80dcac9a48f43bc",
+      "image_sha256": "640625d7fe75c169738afd908cb6119b0e0ec94577d31158ba9329ea249cb5a2",
+      "image_bytes": 18384
+    },
+    {
+      "name": "platform-memclass",
+      "source": "platform-memclass.s",
+      "source_sha256": "23510ee0f6ea18dbdfd1077248fe4bdf81aae4b627695e8b8f6a20afd9268231",
+      "image_sha256": "8a76460e651b7fc4bfa4450c8d59051d9ee2e2ac89eec9928a33981b6b26aca6",
+      "image_bytes": 1776
+    },
+    {
+      "name": "platform-memseq",
+      "source": "platform-memseq.s",
+      "source_sha256": "25d16bc288f2b340e99846b74b02b1f622b278528349cf5989e0f4c7a307d8cd",
+      "image_sha256": "cc304d7b72a556bc63a9fe369808100b66d8fba310781645b411298df473829e",
+      "image_bytes": 1408
+    },
+    {
+      "name": "memory-model",
+      "source": "memory-model.s",
+      "source_sha256": "04f292ae059d605626e579416a16fe0898f671ecad3d4e5bb7d3a52381ae44cf",
+      "image_sha256": "1b356b19eddf3e289324f0f2d3bba6887bc586e659310dcc3a32c09479847cbc",
+      "image_bytes": 1368
+    },
+    {
+      "name": "platform-coreclass",
+      "source": "platform-coreclass.s",
+      "source_sha256": "a92fd069238f1ee12e1ffb1c1d831b1540fe641cb16a3ce52d71844dbd69944c",
+      "image_sha256": "f51af32dac3f594e27de9d31c646ca4a3d238327efa74e57312cb482c66861e3",
+      "image_bytes": 1152
+    },
+    {
+      "name": "vector-memory",
+      "source": "vector-memory.s",
+      "source_sha256": "7f7d8f1dade4140d117344e24b8592cf9c1ab0dd55a78c01c04b3cf278a3c458",
+      "image_sha256": "af3f09c61d7cc58025f47971e9413e6a4c384f7ea3cda38d2c2bba4e89bd6450",
+      "image_bytes": 2056
+    },
+    {
+      "name": "vector-geometry",
+      "source": "vector-geometry.s",
+      "source_sha256": "dbb4d2e4f0291223d097b110441c61438dcc677611e6403ecff854ad983e1aa4",
+      "image_sha256": "e0f412bcfb99e9b7dabec5241ba4462b8eb6b6a93f137e31986b3f8e5759c834",
+      "image_bytes": 2528
+    },
+    {
+      "name": "keccak-perm",
+      "source": "keccak-perm.s",
+      "source_sha256": "9d2a78379989171fecd51337ba600300d4bd4ed3cb66406f50ede5af8b82ced2",
+      "image_sha256": "3b0e8fa0f044fbab7ef7c398b33ca236fc1a8b06872ba8b334188e0d9eab396a",
+      "image_bytes": 2192
+    },
+    {
+      "name": "fec-surface",
+      "source": "fec-surface.s",
+      "source_sha256": "c9baa6e4765c2f80051b4edc4e51751e4657f557700f21fda06a659da16af04f",
+      "image_sha256": "9e888bc04475ceadb5abbec9f0a554cdbd0ba53d0bf088430ce098a351f123e9",
+      "image_bytes": 1152
+    },
+    {
+      "name": "platform-rot",
+      "source": "platform-rot.s",
+      "source_sha256": "227981edfce4066ffefb2c655d92fcc00be47f685209ea78b6dae0c914bff08f",
+      "image_sha256": "5beb75decd1da46e388aae631a0dcb1539c45f90b8df4ebd01a896613ea63f16",
+      "image_bytes": 1184
+    },
+    {
+      "name": "block-authority",
+      "source": "block-authority.s",
+      "source_sha256": "835110a3c27a02dc802841599620f4ccc7582d0847b86d1960378e3e6d229557",
+      "image_sha256": "bda0f67559eb3f0a656e2d60cd2ca34a346d072825c9950791b3b24bda86b64a",
+      "image_bytes": 54416
+    },
+    {
+      "name": "gallina-hello",
+      "source": "gallina-hello.s",
+      "source_sha256": "e126ecf0e0ef047c2669881fc5cd18955f0900d87d86ee4a32897c1c14b97975",
+      "image_sha256": "bb5ccdfae4b64bfcc30c95d125477ca7d7fc8a3820da710598e0b770790811d0",
+      "image_bytes": 20104
+    },
+    {
+      "name": "kernel-instance",
+      "source": "kernel-instance.s",
+      "source_sha256": "7c7d6689bd46328bdfadcf898a6cb1be8e702c70563f7bc48b325b92509ce625",
+      "image_sha256": "1a62b21119dae4b7c06b7783e8e7ef1de2a10c6c85719586565acc30d1574bcc",
+      "image_bytes": 77216
+    }
+  ]
+}

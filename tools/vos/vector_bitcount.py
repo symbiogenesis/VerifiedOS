@@ -50,7 +50,22 @@ def _vtype(width: int, power: int) -> int:
     return (WIDTHS.index(width) << 3) | (power & 7)
 
 
+SAIL_SELECTOR = r'''
+function vector_bitcount_expected(kind : range(0, 2), clz : range(0, 64),
+                                  ctz : range(0, 64), pop : range(0, 64)) -> range(0, 64) =
+  match kind { 0 => clz, 1 => ctz, _ => pop }
+'''.strip()
+
+
 _SAIL_HELPERS = r'''
+function vector_bitcount_details(kind : range(0, 2), width : int, value : int,
+                                 inplace : int, observed : int, expected : int) -> string = {
+  let operation : string = match kind { 0 => "vclz.v", 1 => "vctz.v", _ => "vcpop.v" };
+  operation ^ " width=" ^ dec_str(width) ^ " input=" ^ dec_str(value)
+    ^ " alias=" ^ (if inplace == 0 then "separate" else "in-place")
+    ^ " observed=" ^ dec_str(observed) ^ " expected=" ^ dec_str(expected)
+}
+
 function vector_bitcount_configure(sew : bits(3), lmul : bits(3), length : range(0, vlen)) -> unit = {
   mstatus[VS] = extStatus_map(Dirty);
   vtype = Mk_Vtype(zeros());
@@ -59,10 +74,10 @@ function vector_bitcount_configure(sew : bits(3), lmul : bits(3), length : range
   vl = to_bits(xlen, length);
 }
 
-function vector_bitcount_retire(inst : instruction) -> unit = {
+function vector_bitcount_retire(inst : instruction) -> bool = {
   match execute(inst) {
-    Retire_Success() => (),
-    _ => assert(false, "a legal vector bit-count instruction must retire"),
+    Retire_Success() => true,
+    _ => false,
   }
 }
 
@@ -80,23 +95,32 @@ function vector_bitcount_case(SEW, sew, value, clz, ctz, pop) = {
   vector_bitcount_configure(sew, 0b000, 1);
   let source = Vregidx(0b01000);
   let separate = Vregidx(0b10000);
-  let expected : vector(3, range(0, 64)) = [clz, ctz, pop];
   foreach (kind from 0 to 2) {
+    let expected = vector_bitcount_expected(kind, clz, ctz, pop);
     foreach (inplace from 0 to 1) {
       let target = if inplace == 0 then separate else source;
       V(source) = ones();
       V(separate) = ones();
       write_single_element(SEW, 0, source, value);
-      vector_bitcount_retire(vector_bitcount_instruction(kind, 0b1, source, target));
-      assert(read_single_element(SEW, 0, target) == to_bits(SEW, expected[kind]),
-             "vector bit-count differs from the independent integer oracle");
+      let retired = vector_bitcount_retire(vector_bitcount_instruction(kind, 0b1, source, target));
+      let observed = read_single_element(SEW, 0, target);
+      assert(retired & observed == to_bits(SEW, expected),
+             "vector bit-count differs from the independent integer oracle: "
+               ^ vector_bitcount_details(kind, SEW, unsigned(value), inplace,
+                                         unsigned(observed), expected)
+               ^ " retired=" ^ (if retired then "yes" else "no"));
     };
   };
   // Fixed-width subtraction includes zero: zero - one wraps to all ones.
-  write_single_element(SEW, 0, source, (value - 1) & not_vec(value));
-  vector_bitcount_retire(VCPOP_V(0b1, source, separate));
-  assert(read_single_element(SEW, 0, separate) == to_bits(SEW, ctz),
-         "the modulo-width CTZ/popcount identity must include zero");
+  let transformed = (value - 1) & not_vec(value);
+  write_single_element(SEW, 0, source, transformed);
+  let retired = vector_bitcount_retire(VCPOP_V(0b1, source, separate));
+  let observed = read_single_element(SEW, 0, separate);
+  assert(retired & observed == to_bits(SEW, ctz),
+         "the modulo-width CTZ/popcount identity must include zero: "
+           ^ vector_bitcount_details(2, SEW, unsigned(transformed), 0,
+                                     unsigned(observed), ctz)
+           ^ " retired=" ^ (if retired then "yes" else "no"));
 }
 
 val vector_bitcount_geometry : forall 's, 's in {8, 16, 32, 64} .
@@ -120,15 +144,21 @@ function vector_bitcount_geometry(SEW, sew, lmul) = {
         write_single_element(SEW, i, target, ones());
       };
       V(zvreg) = zero_extend(0b1);
-      vector_bitcount_retire(vector_bitcount_instruction(kind,
+      let retired = vector_bitcount_retire(vector_bitcount_instruction(kind,
                               if mode == 1 then 0b0 else 0b1, source, target));
       foreach (i from 0 to (num_elem - 1)) {
         let active = if mode == 0 then i < real_elem else mode == 1 & i == 0;
         let expected : bits('s) = if not(active) then ones()
           else if mode == 0 then to_bits(SEW, if kind == 2 then 0 else SEW)
           else to_bits(SEW, if kind == 2 then SEW else 0);
-        assert(read_single_element(SEW, i, target) == expected,
-               "vector bit-count changed a masked or undisturbed tail lane");
+        let observed = read_single_element(SEW, i, target);
+        assert(retired & observed == expected,
+               "vector bit-count changed a masked or undisturbed tail lane: "
+                 ^ vector_bitcount_details(kind, SEW, if mode == 0 then 0 else -1,
+                                           0, unsigned(observed), unsigned(expected))
+                 ^ " lane=" ^ dec_str(i) ^ " lmul=" ^ dec_str(LMUL_pow)
+                 ^ " mode=" ^ dec_str(mode)
+                 ^ " retired=" ^ (if retired then "yes" else "no"));
       };
     };
   };
@@ -141,7 +171,7 @@ def emit_sail(root: Path) -> str:
     lines = ["// SPDX-License-Identifier: BSD-2-Clause",
              "// Generated by tools/run.py vector-bitcount emit; do not edit.",
              "// R-15-055: bounded independent expected counts, not a universal proof.",
-             _SAIL_HELPERS.strip(), ""]
+             SAIL_SELECTOR, "", _SAIL_HELPERS.strip(), ""]
     for width in WIDTHS:
         sew = WIDTHS.index(width)
         lines += ["$[test]", f"function test_vector_bitcount_e{width}() -> unit = {{"]
@@ -154,6 +184,28 @@ def emit_sail(root: Path) -> str:
                          f"0b{power & 7:03b});")
         lines += ["}", ""]
     return "\n".join(lines)
+
+
+def smoke_source() -> tuple[str, dict[str, str]]:
+    """Check the emitted selector in Sail, including the original direction defect."""
+    lines = ["// SPDX-License-Identifier: BSD-2-Clause", "default Order dec",
+             "$include <prelude.sail>", SAIL_SELECTOR, ""]
+    verdicts = {}
+    for width in WIDTHS:
+        answers = []
+        # Zero reproduces the original failure; three gives three different answers.
+        for value in (0, 3, 1 << (width - 1), (1 << width) - 1):
+            clz, ctz, pop = counts(width, value)
+            for kind, expected in enumerate((clz, ctz, pop)):
+                answers.append(f"vector_bitcount_expected({kind}, {clz}, {ctz}, {pop}) == {expected}")
+        name = f"adapter_e{width}"
+        lines += ["$[property]", f"function {name}() -> bool =", "  " + " &\n  ".join(answers), ""]
+        verdicts[name] = "unsat"
+    lines += ["$[property]", "function original_descending_mismatch() -> bool = {",
+              "  let expected : vector(3, int) = [16, 16, 0];",
+              "  expected[0] == 16", "}", ""]
+    verdicts["original_descending_mismatch"] = "sat"
+    return "\n".join(lines), verdicts
 
 
 def emit_corpus(root: Path) -> str:

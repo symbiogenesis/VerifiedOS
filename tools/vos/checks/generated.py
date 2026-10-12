@@ -122,9 +122,11 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 import fiat_crypto_emit as fiat
 from vos import (
+    block_authority,
     boot_chain,
     boot_crypto_target,
     calibration,
+    commands,
     device_registers,
     device_regs,
     dialectgen,
@@ -397,6 +399,16 @@ def _vector_bitcount_sail(root: Path, bundle: sailbundle.Bundle | None) -> str:
     return vector_bitcount.emit_sail(root)
 
 
+def _block_authority(root: Path, bundle: sailbundle.Bundle | None) -> str:
+    del bundle
+    return block_authority.emit(root)
+
+
+def _command_lanes(root: Path, bundle: sailbundle.Bundle | None) -> str:
+    del root, bundle
+    return commands.lane_reference()
+
+
 @dataclass(frozen=True)
 class Row:
     """One generated artifact: what it is, what writes it, and what it is written from.
@@ -444,6 +456,14 @@ GENERATED: tuple[Row, ...] = (
         generator="run.py vector-bitcount emit", lane="host",
         owners="the independent fixed-width oracle and bounded vector cases",
         checker="this gate", emit=_vector_bitcount_sail),
+    Row(path=block_authority.ARTIFACT,
+        generator="run.py block-authority emit", lane="host",
+        owners="the composition and profile exception and permission owners",
+        checker="this gate", emit=_block_authority),
+    Row(path=commands.LANE_REFERENCE,
+        generator="run.py check --fix", lane="host",
+        owners="the declared command lanes and help classifications",
+        checker="this gate", emit=_command_lanes),
     # The SoC address map, in the language the RTL is written in. It reads the frozen
     # composition and nothing else, so it needs neither the bundle nor Sail and its
     # whole claim is decided here; K-65 is what makes reading the primary alone enough,
