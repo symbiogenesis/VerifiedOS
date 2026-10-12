@@ -68,6 +68,17 @@ resource refusals. Failure returns a priced porting gap before broad integration
 A compiler that can run as a Wasm guest alone does not meet the native-producer
 contract. No source-correspondence theorem is inherited from this implementation.
 
+**Future review checkpoint.** At Q34h's first native qualification slice,
+record whether CHERI-C/ABI adaptation or TAL/poll qualification is the binding
+porting cost. The alternative to review is the same donor's `wcc-self-hosting`
+target running inside Q34g's proved interpreter. Q34h owns the comparison;
+Q34f owns its source/output imports and lifecycle, and Q34g owns the engine
+and confinement. [The architectural review](../../background/architectural-alternatives.md#resident-guest-compiler-as-wasm-future-review)
+states the decision predicate and the guarantee boundary. The current native
+producer remains required until that review changes the owning requirements
+and this contract. No Wasm compiler port or extra runtime is commissioned by
+recording the option.
+
 [WCPL](https://github.com/false-schemers/wcpl/tree/458a542ca81fa7a8fd8c8eed38a32dce8ed45135)
 is a fallback, not a parallel port: its
 [MIT licence](https://github.com/false-schemers/wcpl/blob/458a542ca81fa7a8fd8c8eed38a32dce8ed45135/LICENSE)
