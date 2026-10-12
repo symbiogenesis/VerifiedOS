@@ -11,7 +11,7 @@ from vos.corpus import find_root
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, prog="run.py vector-bitcount")
     parser.add_argument("action", choices=("emit", "check", "smoke"))
     args = parser.parse_args(argv)
     root = find_root()
