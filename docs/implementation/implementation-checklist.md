@@ -401,19 +401,19 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,577.9 |
-| Total estimate range h | 2,963.3–6,192.5 |
+| Total estimate midpoint h | 4,583.4 |
+| Total estimate range h | 2,966.3–6,200.5 |
 | Completed scope h | 860.9 |
 | Complete by estimate % | 18.8 |
-| Remaining h | 3,717 |
+| Remaining h | 3,722.5 |
 | Open class I h | 789.5 |
-| Open class X h | 2,927.5 |
+| Open class X h | 2,933 |
 | Retained completion estimate h | 257.5 |
 | Unmeasured completed items | 28 |
-| Calibrated total h | 5,578.5 |
+| Calibrated total h | 5,586.3 |
 | Committed M8a open h | 73 |
 | Committed M8b open h | 90.5 |
-| Other committed open h | 2,299.5 |
+| Other committed open h | 2,305 |
 | Conditional open h | 840 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1155,6 +1155,11 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
   * **Dispatch. Start:** the backup/migration contract's MigrationSession relation, accepted bounded TLS/attestation/credential/context interfaces and M6.9/U-20 cryptographic foundations, Q42a's complete volatile object extent, and Q42b's channel-bound witnesses. **Owns:** canonical bounded migration/challenge/evidence/key-transfer descriptors, mutual protocol, MigrationSession mechanization with inhabited success/refutation witnesses, exact conditional theorem and its computational argument over the separately owned foundation, recipient enrollment/key wrapping, and implementation context/custody/teardown/restore joins. **Check:** BA-WRAP, BA-MIGRATE, BA-TARGET-REFUSE and BA-SESSION on the exact protocol and target artifacts, all declared replay/concurrency/relay/compromise cases, complete assumption/kernel evidence, and storage-write observations showing no retained migration object. **Join:** Q42a/Q42b, M6.9's implementation/proof owners and CJ-ATTEST; neither the inherited one-direction symbolic theorem nor a finite fixture closes this leaf.
   * **Estimate basis:** application record descriptors 12–24 h; mutual model/theorem and explicit foundation connection 16–32 h; protocol/recipient enrollment/custody implementation 12–24 h; exact target/adapters/refusal campaigns 8–16 h. Class X: the selected TLS/attestation construction's actual cryptographic and context interfaces remain externally qualified premises; generic foundation acquisition retains its existing owner.
 
+* [ ] **Q43 · Reuse validated contained compiler builds and complete audits by default** · 5.5 h, range 3–8 · X
+  * **Dispatch. Start:** [the contained compiler reuse contract](contracts/contained-compiler-reuse.md), the integrated private helpers at `4173140f`, Q39's locked build and qualification contracts, and the existing project-proof native cache. **Owns:** one private semantic reuse validator and reviewed driver manifest, the public `compiler-build` front door, a validated lane-local index selecting reuse by default, distinct compilation and complete-audit tiers, explicit cold bypass, scheduling/profile controls and truthful phase/basis records. **Check:** the contract's full focused control set and one genuine unchanged Q39-qualified default reuse, with no compilation/query/kernel execution on that hit; pending audit prefixes authorize nothing, and original source, producer, mode, receipts and timings remain historical. Host CI passes and every cold Guest CI lane is dispatched. **Join:** Q39's genuinely qualified compiler for the real reuse case; preserve all four original runs and their inputs while implementation proceeds in isolated lanes. No additional full cold audit, prover change, proof repair, source distribution, checkpoint or sharding is commissioned.
+  * **Execute:** Land the contract first; implement the private validator and public controller in separate dedicated worktrees, then review the joined protocol and refusal controls. Default builds try indexed validated reuse without requiring a reuse flag; missing or stale evidence runs necessary phases, while `--fresh` bypasses both tiers. Keep the current Q39 pair obligations unchanged and use its actual completed evidence before claiming production reuse.
+  * **Estimate basis:** private reuse engine and binding 1.5–4 h; public controller/index wiring 0.5–1.5 h; focused controls, independent review and actual warm qualification 1–2.5 h. Reuse the existing seven-stage seal, whole-environment matcher, native snapshot logic and project-proof cache design. This is new attended implementation work, separate from Q39's remaining acceptance estimate; shared batch closure is still charged once to Q39. Unattended cold audit and hosted runtime are unpriced elapsed time, and no multi-hour first-cold-run prevention or speed factor is promised.
+
 **Evidence and cost stay with their owners.** Q2b owns the target connection and Q3b its selected functional/fault evidence; existing compiler, admission and image-validation owners retain the mandatory exact-artifact duties. The canceled Q20c comparison owns no production implementation. Share source/configuration/image identities and baseline records across them, adding each task's distinct check. Changed semantics or bytes invalidate affected evidence. Each missing theorem, port, primitive or executable gets one implementation owner and one estimate; Q2c's foundation map remains the shared prerequisite record for Q21b, Q25d and any separately commissioned generic-library proposal.
 
 Candidate selection is bounded by the current client's failed predicate. The [language strategy](../languages/verification-strategy.md#existing-tooling-and-implementation-owners) owns the proof-tool research map and [THIRD-PARTY.md](../../THIRD-PARTY.md) the incorporated/pinned dependency record. Reuse those readings at the same revision. Inspect new terms and dependency closure only at the selected candidate's incorporation; do not install every surveyed alternative. Model weights, generated output and physical-design inputs retain their own provenance requirements.
@@ -1163,7 +1168,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,752.4 h · 60% · 248.9 h complete · open range 1,438–3,569 h.
+**Q subtotal:** 2,757.9 h · 60% · 248.9 h complete · open range 1,441–3,577 h.
 
 ### M0 · Hardware reference
 
