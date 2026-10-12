@@ -11,9 +11,13 @@ import hashlib
 import sys
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from typing import Literal
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Literal
 
 from vos import receipts
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 type Kind = Literal["system-image", "user-data"]
 type WriteClass = Literal["common", "session-private", "spsc"]
@@ -126,13 +130,13 @@ class Service:
     still charged. No host observation authorizes physical backing reuse.
     """
 
-    __slots__ = ("_cells", "bounds", "classes", "defect", "operation", "writes")
+    __slots__ = ("_cells", "_classes", "bounds", "defect", "operation", "writes")
 
     def __init__(self, bounds: Bounds = DEFAULT_BOUNDS, defect: Defect = "none") -> None:
         self.bounds = bounds
         self.defect = defect
         self._cells: dict[str, Value] = {}
-        self.classes: dict[str, WriteClass] = {}
+        self._classes: dict[str, WriteClass] | MappingProxyType[str, WriteClass] = {}
         self.writes: list[Write] = []
         self.operation = "initialization"
         for name, value in (("next-token", 0), ("last-version", 0), ("boot", 0),
@@ -149,10 +153,18 @@ class Service:
                 self._declare(f"{name}.{holder}", value, "session-private")
             self._declare(f"request.{holder}", None, "spsc")
             self._declare(f"response.{holder}", None, "spsc")
+        self._classes = MappingProxyType(self._classes)
+
+    @property
+    def classes(self) -> Mapping[str, WriteClass]:
+        """Stored inventory is read-only once initialization has declared every cell."""
+        return self._classes
 
     def _declare(self, cell: str, value: Value, classification: WriteClass) -> None:
+        if not isinstance(self._classes, dict) or cell in self._classes:
+            raise ValueError(f"stored inventory declaration is closed or duplicate: {cell}")
         self._cells[cell] = value
-        self.classes[cell] = classification
+        self._classes[cell] = classification
 
     def _put(self, cell: str, value: Value) -> None:
         if cell not in self.classes:
@@ -549,7 +561,7 @@ def qualify(root: Path) -> dict[str, object]:
             "runtime": {"executable": str(Path(sys.executable).resolve()),
                         "sha256": receipts.digest(Path(sys.executable)), "version": sys.version},
             "bounds": asdict(Bounds()), "retirement_steps": Bounds().retirement_steps,
-            "stored_cells": Service().classes, "witnesses": cases,
+            "stored_cells": dict(Service().classes), "witnesses": cases,
             "executed_python_controls": killed,
             "remaining": ["locked reference theorem and assumption audit",
                           "accepted scalar producer correspondence and reusable-backing evidence",

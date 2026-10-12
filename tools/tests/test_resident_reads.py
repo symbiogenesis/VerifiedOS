@@ -2,13 +2,18 @@
 """Independent payload/refusal/lifecycle oracles for the bounded resident reference."""
 
 import json
+import operator
 from contextlib import redirect_stdout
 from dataclasses import replace
 from io import StringIO
+from typing import TYPE_CHECKING, cast
 
 from tests.harness import Case, ensure
 from vos import resident_reads as rr
 from vos.cli import resident_reads as cli
+
+if TYPE_CHECKING:
+    from collections.abc import MutableMapping
 
 
 def _inhabited_traffic() -> None:
@@ -306,6 +311,45 @@ def _executed_controls_and_observer() -> None:
         raise AssertionError("out-of-domain witness accepted")
 
 
+def _frozen_stored_inventory() -> None:
+    service, identity, handles = rr.fixture(defect="common-counter")
+    ensure(service.read(handles[0], 7, identity, 0, 16) == b"0123456789ABCDEF",
+           "frozen inventory control failed its independent payload")
+    ensure(service.traffic()["common"] == 2, "common-counter control did not execute")
+    classes = dict(service.classes)
+    sequence = service._integer("sequence.0")
+    writes = list(service.writes)
+    for cell, classification in (("counter", "session-private"),
+                                 ("sequence.0", "session-private"),
+                                 ("unobserved-statistic", "common")):
+        try:
+            service._declare(cell, 0, classification)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("execution redeclared stored state without an observed write")
+    try:
+        # Exercise the mutable interface deliberately; runtime must refuse it.
+        operator.setitem(cast("MutableMapping[str, rr.WriteClass]", service.classes),
+                         "counter", "session-private")
+    except TypeError:
+        pass
+    else:
+        raise AssertionError("public inventory relabeled a common writer")
+    try:
+        attribute = "classes"
+        setattr(service, attribute, {"counter": "session-private"})
+    except AttributeError:
+        pass
+    else:
+        raise AssertionError("public inventory was replaced after initialization")
+    ensure(dict(service.classes) == classes and service._integer("sequence.0") == sequence
+           and service.writes == writes, "refused inventory mutation changed state or observation")
+    ensure(service.read(handles[0], 7, identity, 0, 16) == b"0123456789ABCDEF"
+           and service.traffic()["common"] == 4,
+           "inventory mutation hid a subsequent common-counter defect")
+
+
 def _source_bound_cli() -> None:
     output = StringIO()
     with redirect_stdout(output):
@@ -328,4 +372,5 @@ def cases() -> list[Case]:
             Case("resident reused slot preserves exact backing identity", _reused_slot_identity),
             Case("resident closed predecessor capacity and bounded recovery", _closed_predecessor_capacity),
             Case("resident executed defects and complete modeled observer", _executed_controls_and_observer),
+            Case("resident frozen stored inventory refuses hidden writers", _frozen_stored_inventory),
             Case("resident source-bound CLI scope and evidence", _source_bound_cli)]
