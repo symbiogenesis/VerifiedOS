@@ -187,9 +187,15 @@ def report(root: Path, field: str | None, artifact: str | None,
             out.append(f"FAIL: {fieldbindings.BINDINGS} is not in the repository")
             return 1, out
         rows = fieldbindings.rows(bindings_path.read_text(encoding="utf-8"))
+        fields = _authoring(rows, requirement)
+        drifted = [f for f in fields if f not in record.field_set]
+        if drifted:
+            out.append(f"FAIL: {fieldbindings.BINDINGS} row(s) naming no Prop field "
+                       f"of the record: {', '.join(drifted)}")
+            return 1, out
         pairs, faults = _cited_by(root)
         found, lines = _requirement_lines(
-            record, conclusions, _authoring(rows, requirement), requirement, pairs)
+            record, conclusions, fields, requirement, pairs)
         out.extend(lines)
         out.extend(f"FAIL: {fault}" for fault in faults)
         return (0 if found and not faults else 1), out

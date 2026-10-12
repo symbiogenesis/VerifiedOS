@@ -223,6 +223,23 @@ def _requirement_both_ends() -> None:
         f"the requirement report read {done.stdout!r}")
 
 
+def _requirement_drifted_row() -> None:
+    # A removed field may retain its authored requirement while another live field
+    # and proof citation still reach it. Refuse that drift before a partial report.
+    files = _fixture()
+    files["docs/assurance/field-bindings.md"] = _BINDINGS.replace(
+        "| `delta` | seam_one | prose |", "| `delta` | seam_one | prose (R-07-015) |")
+    with sandbox_tree(files) as root:
+        done = _run(root, "R-07-015")
+        ensure(done.returncode == 1
+               and done.stdout == (
+                   "FAIL: docs/assurance/field-bindings.md row(s) naming no Prop field "
+                   "of the record: delta\n")
+               and done.stderr == "",
+               f"a requirement's drifted binding is a worded finding, got "
+               f"{done.returncode}: {done.stdout!r} {done.stderr!r}")
+
+
 def _requirement_reaching_nothing() -> None:
     # A live-looking id no cell authors and no artifact cites is a finding rather than
     # an empty report read as coverage.
@@ -284,6 +301,7 @@ def cases() -> list[Case]:
         Case("whole-token-artifact", _whole_token_artifact, lane="host"),
         Case("drifted-row", _drifted_row, lane="host"),
         Case("requirement-both-ends", _requirement_both_ends, lane="host"),
+        Case("requirement-drifted-row", _requirement_drifted_row, lane="host"),
         Case("requirement-reaching-nothing", _requirement_reaching_nothing, lane="host"),
         Case("requirement-malformed", _requirement_malformed, lane="host"),
         Case("missing-apex", _missing_apex, lane="host"),
