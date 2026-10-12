@@ -1,0 +1,1617 @@
+{
+  "schema": "verifiedos-contained-compilation-candidates/1",
+  "recorded_at_utc": "2026-10-12T05:13:00.258800+00:00",
+  "public_source_revision": "ba26acd377377fcea288a808df6849adfacd535d",
+  "scope": "Recorded metadata and read-only compilation reuse validation; no contained source, object, executable or library bytes published.",
+  "capture_checks": "Receipts, compilation logs, archives, compiler and seals bound by SHA-256; captured file bytes unchanged before publication. Complete population/tool/library revalidation is established only by the recorded private status operations for the two sealed VM candidates.",
+  "retention_policy": "Keep each native root and every basis.retention_paths entry at its bound location. This record is not an automatic cache index or a backup of native bytes.",
+  "private_validator_revision": "e604e260f74022f0e9aa2d4c9dbf33a5b8cee939",
+  "validator_manifest": {
+    "schema": "verifiedos-contained-compiler-driver/1",
+    "helper_root": "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/test/verifiedos-q39",
+    "files": {
+      "build.py": "54942b2c3899c8a51ba363dd46fbb6d15b3ac4bf41dee5bf40ec0737bce79f51",
+      "qualify.py": "9ebe3aebddc0f8c4104e8ef3ee523b99860c397628ebbad99642c55691de34f3",
+      "audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+      "reuse.py": "4de09b4a5b48d601e9a4fa75f34a7816680883b88d0273afb8ec33673a3996b2"
+    }
+  },
+  "configuration": {
+    "ignore_coq_version": true
+  },
+  "candidates": [
+    {
+      "name": "vm-clean-rebuild-1",
+      "native_root": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1",
+      "source_revision": "6409d0ed65fd07de4fb37aa9c8f7a9d5c317cc9d",
+      "overall_passed": false,
+      "recorded_inputs_unchanged": true,
+      "kind": "fresh clean compilation awaiting sealed fresh kernel audit",
+      "configuration_overrides": [
+        "-ignore-coq-version"
+      ],
+      "toolchain": {
+        "lock_sha256": "c9450ca1d889cd1fb511e149a414a2a7d2548fa7bdbc50a53dd1b048e0de68da",
+        "menhir": {
+          "executable_sha256": "e8525665cf705094a1e1c5e01b22f6bf6dc87ab02da8818e8f8cd48e4c1ed796",
+          "package": "menhir",
+          "reported_version": "menhir, version 20260209",
+          "version": "20260209"
+        },
+        "ocaml": {
+          "executable_sha256": "4809df72e494511ad9f3c1128684b1e230621e8710af1bc9d01037a5f377c1bc",
+          "package": "ocaml-base-compiler",
+          "reported_version": "4.14.2",
+          "version": "4.14.2"
+        },
+        "prover": {
+          "executable_sha256": "3f670423249f6ee91749d326f1641415f3eba9d7ba7c8707edd1f942a1fbc6bf",
+          "package": "rocq-core",
+          "reported_version": "The Rocq Prover, version 9.3.0\ncompiled with OCaml 4.14.2",
+          "version": "9.3.0"
+        }
+      },
+      "source_input_count": 570,
+      "files": {
+        "compiler/build-result.json": {
+          "sha256": "fdd3e16a7268cf07338ce44df6d0c91a8838e2ad7a496ad459be266b0f79577b",
+          "bytes": 4350
+        },
+        "compiler/build-inputs.json": {
+          "sha256": "39829d554cf89fb88369b452af72c1a3a3358b161e9a9a5a24313f5867fea170",
+          "bytes": 71160
+        },
+        "source.tar": {
+          "sha256": "06d3e45520c87cf3f4565f151d33739147877cc5329fad9963434ece7a65abd4",
+          "bytes": 20060160
+        },
+        "switch.lock": {
+          "sha256": "c9450ca1d889cd1fb511e149a414a2a7d2548fa7bdbc50a53dd1b048e0de68da",
+          "bytes": 833
+        },
+        "compiler/ccomp": {
+          "sha256": "ac83a0015b75d2f174d7c32df39fa26ac5b4ddb517b7016bb3a64407d5f6ea17",
+          "bytes": 15908280
+        },
+        "compiler/LICENSE": {
+          "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648",
+          "bytes": 43807
+        },
+        "logs/export.log": {
+          "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+          "bytes": 45
+        },
+        "logs/configure.log": {
+          "sha256": "212bc9a83b67e2d36d3929240ac70b47b594fb88328ba7dc2ad8422c5d13ea0c",
+          "bytes": 1819
+        },
+        "logs/clean.log": {
+          "sha256": "a83015fd3f3a526b53fdfa27880853ae91e16dc0981e746abcff814401ad24de",
+          "bytes": 2688
+        },
+        "logs/depend.log": {
+          "sha256": "57b12341de15b7fe0b1caf0fad1c240eff67bc37be193bc9baf32902e5cb3374",
+          "bytes": 353
+        },
+        "logs/proof.log": {
+          "sha256": "9708594ddc203166ea390af328b9133591a19a378b6d09bb47209ce032fbea07",
+          "bytes": 154984
+        },
+        "logs/extraction.log": {
+          "sha256": "d436efad05c03d5aeea2a207f6998c4cc5d04ca095b19b9d87d198273c2443ee",
+          "bytes": 982
+        },
+        "logs/ccomp.log": {
+          "sha256": "225668c47fdc5afb582357cd188cb3de39b3cb3da4a7d7a87dc7708aae86ce47",
+          "bytes": 20680
+        },
+        "compile-seal.json": {
+          "sha256": "efccc80f0186b5686753cf9e9620ea66f8a5ca978fad6cd8d9b7143321564828",
+          "bytes": 3204776
+        }
+      },
+      "original_gates": [
+        {
+          "argv": [
+            "opam",
+            "switch",
+            "export",
+            "--switch=q39-port",
+            "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/switch.lock"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler",
+          "exit": 0,
+          "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+          "name": "export",
+          "seconds": 0.23952270099835005
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-port",
+            "--",
+            "sh",
+            "./configure",
+            "rv64-linux",
+            "-ignore-coq-version"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler",
+          "exit": 0,
+          "log_sha256": "212bc9a83b67e2d36d3929240ac70b47b594fb88328ba7dc2ad8422c5d13ea0c",
+          "name": "configure",
+          "seconds": 0.19611230100053945
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-port",
+            "--",
+            "make",
+            "clean"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler",
+          "exit": 0,
+          "log_sha256": "a83015fd3f3a526b53fdfa27880853ae91e16dc0981e746abcff814401ad24de",
+          "name": "clean",
+          "seconds": 0.08572289999938221
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-port",
+            "--",
+            "make",
+            "-j2",
+            "depend"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler",
+          "exit": 0,
+          "log_sha256": "57b12341de15b7fe0b1caf0fad1c240eff67bc37be193bc9baf32902e5cb3374",
+          "name": "depend",
+          "seconds": 0.4119785020011477
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-port",
+            "--",
+            "make",
+            "-j2",
+            "proof"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler",
+          "exit": 0,
+          "log_sha256": "9708594ddc203166ea390af328b9133591a19a378b6d09bb47209ce032fbea07",
+          "name": "proof",
+          "seconds": 366.35990575199685
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-port",
+            "--",
+            "make",
+            "-j2",
+            "extraction"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler",
+          "exit": 0,
+          "log_sha256": "d436efad05c03d5aeea2a207f6998c4cc5d04ca095b19b9d87d198273c2443ee",
+          "name": "extraction",
+          "seconds": 8.335828073999437
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-port",
+            "--",
+            "make",
+            "-j2",
+            "ccomp"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler",
+          "exit": 0,
+          "log_sha256": "225668c47fdc5afb582357cd188cb3de39b3cb3da4a7d7a87dc7708aae86ce47",
+          "name": "ccomp",
+          "seconds": 10.358319785998901
+        }
+      ],
+      "seal": {
+        "schema": "verifiedos-clean-compile-seal/2",
+        "origin": "fresh driver immediately after successful compilation, before Make/query/kernel",
+        "original": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1",
+        "population_count": 3687,
+        "lock": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261010-c/tools/opam/contained-compiler.lock",
+        "lock_sha256": "c9450ca1d889cd1fb511e149a414a2a7d2548fa7bdbc50a53dd1b048e0de68da",
+        "helpers": {
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/build.py": "621bf3f2f2150ee709cb8b9017b270a5eaeab4f78b80c17ec6245bcd0e5a2058",
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/qualify.py": "d95a8997c9b9fb2d2c6e78e761138ff01719d61b868257ae3c1a356c9105d645"
+        },
+        "kernel_profile": "locked-rocq9.3-bytecode-compiler-yes",
+        "kernel_options": [
+          "-bytecode-compiler",
+          "yes"
+        ]
+      },
+      "kernel_qualification": "not accepted; no successful complete kernel verdict",
+      "kernel_receipt_present": false,
+      "kernel_gate_exits": [],
+      "default_index_entry_created": false
+    },
+    {
+      "name": "vm-clean-rebuild-2",
+      "native_root": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2",
+      "source_revision": "6409d0ed65fd07de4fb37aa9c8f7a9d5c317cc9d",
+      "overall_passed": false,
+      "recorded_inputs_unchanged": true,
+      "kind": "fresh clean compilation awaiting sealed fresh kernel audit",
+      "configuration_overrides": [
+        "-ignore-coq-version"
+      ],
+      "toolchain": {
+        "lock_sha256": "c9450ca1d889cd1fb511e149a414a2a7d2548fa7bdbc50a53dd1b048e0de68da",
+        "menhir": {
+          "executable_sha256": "42d77ed7e91d85fd631918c18144ee71afc17ce341e9faae5c68d0800b4cd67b",
+          "package": "menhir",
+          "reported_version": "menhir, version 20260209",
+          "version": "20260209"
+        },
+        "ocaml": {
+          "executable_sha256": "8ae42a69f6e48207ab232003f102ff5e1b16aba3cb2a87c46fbce459e8fe5dba",
+          "package": "ocaml-base-compiler",
+          "reported_version": "4.14.2",
+          "version": "4.14.2"
+        },
+        "prover": {
+          "executable_sha256": "fd0193aaf6582c14b9a84a160badfb622ab0614c06bbeac1320a8b5a0c4d9a65",
+          "package": "rocq-core",
+          "reported_version": "The Rocq Prover, version 9.3.0\ncompiled with OCaml 4.14.2",
+          "version": "9.3.0"
+        }
+      },
+      "source_input_count": 570,
+      "files": {
+        "compiler/build-result.json": {
+          "sha256": "ae506c4f550d74df2110627af9e048b1d3239f5a658c0c0bf1060cf433238b56",
+          "bytes": 4360
+        },
+        "compiler/build-inputs.json": {
+          "sha256": "db19df9497c8440c82475361b1694e49457bb1b6ce8d1632a7dca5fc3720c081",
+          "bytes": 71160
+        },
+        "source.tar": {
+          "sha256": "06d3e45520c87cf3f4565f151d33739147877cc5329fad9963434ece7a65abd4",
+          "bytes": 20060160
+        },
+        "switch.lock": {
+          "sha256": "ced02b17dd36f91a5b097337b0c231faac8a4248ec5dffadd6a00ac9bbef3a0f",
+          "bytes": 660
+        },
+        "compiler/ccomp": {
+          "sha256": "62ee12e86df8629b27f7c6f289a8b372b23741608783198e05af1df147eca65e",
+          "bytes": 15908280
+        },
+        "compiler/LICENSE": {
+          "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648",
+          "bytes": 43807
+        },
+        "logs/export.log": {
+          "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+          "bytes": 45
+        },
+        "logs/configure.log": {
+          "sha256": "fa05aca0d70ea270ce1fc967d093e8507520a85db848a6b710704c7ad865ef0c",
+          "bytes": 1821
+        },
+        "logs/clean.log": {
+          "sha256": "79140efd81cba06d0e0bdddc7a2fc427677b5de33a2e9c283d9e1bc2f164d099",
+          "bytes": 2688
+        },
+        "logs/depend.log": {
+          "sha256": "cca1c9393a051426375ec3c8741bd21a07e2e35c2a84c2b0b187d9fb938911c8",
+          "bytes": 353
+        },
+        "logs/proof.log": {
+          "sha256": "316d74c57c3c9e5d3bb088ae3785b00b814138070cd717600d7aefe1b8cfad36",
+          "bytes": 154984
+        },
+        "logs/extraction.log": {
+          "sha256": "267df90f5f702dc7ad8a778048f9960cce8dbe3dd0dfb8d7b66a885fb2267556",
+          "bytes": 982
+        },
+        "logs/ccomp.log": {
+          "sha256": "17ff4e57c7f3aa012693a9cf233c5ee4b510d8142b95fa00143a6181eef1a92c",
+          "bytes": 20680
+        },
+        "compile-seal.json": {
+          "sha256": "e8f97d8e792c832b1fdab50c335955b759ca2e5a548bd136e47dd41e8c100e8b",
+          "bytes": 3225286
+        }
+      },
+      "original_gates": [
+        {
+          "argv": [
+            "opam",
+            "switch",
+            "export",
+            "--switch=q39-replay",
+            "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/switch.lock"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/compiler",
+          "exit": 0,
+          "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+          "name": "export",
+          "seconds": 0.36181250200024806
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-replay",
+            "--",
+            "sh",
+            "./configure",
+            "rv64-linux",
+            "-ignore-coq-version"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/compiler",
+          "exit": 0,
+          "log_sha256": "fa05aca0d70ea270ce1fc967d093e8507520a85db848a6b710704c7ad865ef0c",
+          "name": "configure",
+          "seconds": 0.19925870099905296
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-replay",
+            "--",
+            "make",
+            "clean"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/compiler",
+          "exit": 0,
+          "log_sha256": "79140efd81cba06d0e0bdddc7a2fc427677b5de33a2e9c283d9e1bc2f164d099",
+          "name": "clean",
+          "seconds": 0.08686839999791118
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-replay",
+            "--",
+            "make",
+            "-j2",
+            "depend"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/compiler",
+          "exit": 0,
+          "log_sha256": "cca1c9393a051426375ec3c8741bd21a07e2e35c2a84c2b0b187d9fb938911c8",
+          "name": "depend",
+          "seconds": 0.4088916019973112
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-replay",
+            "--",
+            "make",
+            "-j2",
+            "proof"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/compiler",
+          "exit": 0,
+          "log_sha256": "316d74c57c3c9e5d3bb088ae3785b00b814138070cd717600d7aefe1b8cfad36",
+          "name": "proof",
+          "seconds": 364.686574055002
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-replay",
+            "--",
+            "make",
+            "-j2",
+            "extraction"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/compiler",
+          "exit": 0,
+          "log_sha256": "267df90f5f702dc7ad8a778048f9960cce8dbe3dd0dfb8d7b66a885fb2267556",
+          "name": "extraction",
+          "seconds": 8.41106383999795
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-replay",
+            "--",
+            "make",
+            "-j2",
+            "ccomp"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/compiler",
+          "exit": 0,
+          "log_sha256": "17ff4e57c7f3aa012693a9cf233c5ee4b510d8142b95fa00143a6181eef1a92c",
+          "name": "ccomp",
+          "seconds": 10.54824967100285
+        }
+      ],
+      "seal": {
+        "schema": "verifiedos-clean-compile-seal/2",
+        "origin": "fresh driver immediately after successful compilation, before Make/query/kernel",
+        "original": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2",
+        "population_count": 3687,
+        "lock": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261010-c/tools/opam/contained-compiler.lock",
+        "lock_sha256": "c9450ca1d889cd1fb511e149a414a2a7d2548fa7bdbc50a53dd1b048e0de68da",
+        "helpers": {
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/build.py": "621bf3f2f2150ee709cb8b9017b270a5eaeab4f78b80c17ec6245bcd0e5a2058",
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/qualify.py": "d95a8997c9b9fb2d2c6e78e761138ff01719d61b868257ae3c1a356c9105d645"
+        },
+        "kernel_profile": "locked-rocq9.3-bytecode-compiler-yes",
+        "kernel_options": [
+          "-bytecode-compiler",
+          "yes"
+        ]
+      },
+      "kernel_qualification": "not accepted; no successful complete kernel verdict",
+      "kernel_receipt_present": false,
+      "kernel_gate_exits": [],
+      "default_index_entry_created": false
+    },
+    {
+      "name": "final-build-1",
+      "native_root": "/root/build/lane-checklist-20261010-c/q39/final-build-1",
+      "source_revision": "7093854d8ce8799826618024ee4847cf248766ea",
+      "overall_passed": false,
+      "recorded_inputs_unchanged": true,
+      "kind": "clean native build from committed source archive; locked released opam closure; no compiled seed reused",
+      "configuration_overrides": [
+        "-ignore-coq-version"
+      ],
+      "toolchain": {
+        "lock_sha256": "c9450ca1d889cd1fb511e149a414a2a7d2548fa7bdbc50a53dd1b048e0de68da",
+        "menhir": {
+          "executable_sha256": "e8525665cf705094a1e1c5e01b22f6bf6dc87ab02da8818e8f8cd48e4c1ed796",
+          "package": "menhir",
+          "reported_version": "menhir, version 20260209",
+          "version": "20260209"
+        },
+        "ocaml": {
+          "executable_sha256": "4809df72e494511ad9f3c1128684b1e230621e8710af1bc9d01037a5f377c1bc",
+          "package": "ocaml-base-compiler",
+          "reported_version": "4.14.2",
+          "version": "4.14.2"
+        },
+        "prover": {
+          "executable_sha256": "3f670423249f6ee91749d326f1641415f3eba9d7ba7c8707edd1f942a1fbc6bf",
+          "package": "rocq-core",
+          "reported_version": "The Rocq Prover, version 9.3.0\ncompiled with OCaml 4.14.2",
+          "version": "9.3.0"
+        }
+      },
+      "source_input_count": 568,
+      "files": {
+        "compiler/build-result.json": {
+          "sha256": "21de32af77b2333428b31212ab04feaced723024409bbe5e9deb3fbd6dbfa53a",
+          "bytes": 21075
+        },
+        "compiler/build-inputs.json": {
+          "sha256": "e821c8cae693e000a6988b7f3e449ecfd88340119fd2221ade84bc88de7546a9",
+          "bytes": 70919
+        },
+        "source.tar": {
+          "sha256": "155b6b7b951d5b36feaab7bc35a4356b97c42b28f00d999bb76788c78db54528",
+          "bytes": 20008960
+        },
+        "switch.lock": {
+          "sha256": "c9450ca1d889cd1fb511e149a414a2a7d2548fa7bdbc50a53dd1b048e0de68da",
+          "bytes": 833
+        },
+        "compiler/ccomp": {
+          "sha256": "3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8",
+          "bytes": 15908264
+        },
+        "compiler/LICENSE": {
+          "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648",
+          "bytes": 43807
+        },
+        "logs/export.log": {
+          "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+          "bytes": 45
+        },
+        "logs/configure.log": {
+          "sha256": "212bc9a83b67e2d36d3929240ac70b47b594fb88328ba7dc2ad8422c5d13ea0c",
+          "bytes": 1819
+        },
+        "logs/clean.log": {
+          "sha256": "9ceee76851daca016ae0dec744fdcc1b632b125857c4702f44602a22fbf0f550",
+          "bytes": 2658
+        },
+        "logs/depend.log": {
+          "sha256": "57b12341de15b7fe0b1caf0fad1c240eff67bc37be193bc9baf32902e5cb3374",
+          "bytes": 353
+        },
+        "logs/proof.log": {
+          "sha256": "acca29be9648d36121693e5019ff8d364706051311beadfb071c62f82bcae1e3",
+          "bytes": 154984
+        },
+        "logs/extraction.log": {
+          "sha256": "ea6fa6461df9a62f4ee67556de045b84647ca77b86b07366a6777102ce869584",
+          "bytes": 977
+        },
+        "logs/ccomp.log": {
+          "sha256": "bab5b1682c5c781d7229d569b9d89964b3d4746b4c8318f0d41255adcdf11fc2",
+          "bytes": 20650
+        },
+        "logs/kernel-environment.log": {
+          "sha256": "2077abd60fdaad3b2ff0b0fccb9ce61b8c298fcb9e25d4683951b2170effb160",
+          "bytes": 4763276
+        }
+      },
+      "original_gates": [
+        {
+          "argv": [
+            "opam",
+            "switch",
+            "export",
+            "--switch=q39-port",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/switch.lock"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler",
+          "exit": 0,
+          "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+          "name": "export",
+          "seconds": 0.17891389899978094
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-port",
+            "--",
+            "sh",
+            "./configure",
+            "rv64-linux",
+            "-ignore-coq-version"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler",
+          "exit": 0,
+          "log_sha256": "212bc9a83b67e2d36d3929240ac70b47b594fb88328ba7dc2ad8422c5d13ea0c",
+          "name": "configure",
+          "seconds": 0.1675219990002006
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-port",
+            "--",
+            "make",
+            "clean"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler",
+          "exit": 0,
+          "log_sha256": "9ceee76851daca016ae0dec744fdcc1b632b125857c4702f44602a22fbf0f550",
+          "name": "clean",
+          "seconds": 0.09750579899991862
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-port",
+            "--",
+            "make",
+            "-j2",
+            "depend"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler",
+          "exit": 0,
+          "log_sha256": "57b12341de15b7fe0b1caf0fad1c240eff67bc37be193bc9baf32902e5cb3374",
+          "name": "depend",
+          "seconds": 0.40929319799943187
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-port",
+            "--",
+            "make",
+            "-j2",
+            "proof"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler",
+          "exit": 0,
+          "log_sha256": "acca29be9648d36121693e5019ff8d364706051311beadfb071c62f82bcae1e3",
+          "name": "proof",
+          "seconds": 391.87362740200024
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-port",
+            "--",
+            "make",
+            "-j2",
+            "extraction"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler",
+          "exit": 0,
+          "log_sha256": "ea6fa6461df9a62f4ee67556de045b84647ca77b86b07366a6777102ce869584",
+          "name": "extraction",
+          "seconds": 8.41157045699947
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-port",
+            "--",
+            "make",
+            "-j2",
+            "ccomp"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler",
+          "exit": 0,
+          "log_sha256": "bab5b1682c5c781d7229d569b9d89964b3d4746b4c8318f0d41255adcdf11fc2",
+          "name": "ccomp",
+          "seconds": 11.637366072000077
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-port",
+            "--",
+            "coqchk",
+            "-o",
+            "-R",
+            "lib",
+            "compcert.lib",
+            "-R",
+            "common",
+            "compcert.common",
+            "-R",
+            "riscV",
+            "compcert.riscV",
+            "-R",
+            "backend",
+            "compcert.backend",
+            "-R",
+            "cfrontend",
+            "compcert.cfrontend",
+            "-R",
+            "security",
+            "compcert.security",
+            "-R",
+            "cheririscV",
+            "compcert.cheririscV",
+            "-R",
+            "driver",
+            "compcert.driver",
+            "-R",
+            "cparser",
+            "compcert.cparser",
+            "-R",
+            "flocq",
+            "Flocq",
+            "-R",
+            "MenhirLib",
+            "MenhirLib",
+            "compcert.lib.Axioms",
+            "compcert.lib.Coqlib",
+            "compcert.lib.Intv",
+            "compcert.lib.Maps",
+            "compcert.lib.Heaps",
+            "compcert.lib.Lattice",
+            "compcert.lib.Ordered",
+            "compcert.lib.Iteration",
+            "compcert.lib.Zbits",
+            "compcert.lib.Integers",
+            "compcert.riscV.Archi",
+            "compcert.lib.IEEE754_extra",
+            "compcert.lib.Floats",
+            "compcert.lib.Parmov",
+            "compcert.lib.UnionFind",
+            "compcert.lib.Wfsimpl",
+            "compcert.lib.Postorder",
+            "compcert.lib.FSetAVLplus",
+            "compcert.lib.IntvSets",
+            "compcert.lib.Decidableplus",
+            "compcert.lib.BoolEqual",
+            "compcert.common.Errors",
+            "compcert.common.AST",
+            "compcert.common.Linking",
+            "compcert.common.ScalarKinds",
+            "compcert.common.Events",
+            "compcert.common.Globalenvs",
+            "compcert.common.Memdata",
+            "compcert.common.Memtype",
+            "compcert.common.Memory",
+            "compcert.common.Values",
+            "compcert.common.Smallstep",
+            "compcert.common.Behaviors",
+            "compcert.common.Switch",
+            "compcert.common.Determinism",
+            "compcert.common.Unityping",
+            "compcert.common.Exec",
+            "compcert.common.Separation",
+            "compcert.common.Builtins0",
+            "compcert.riscV.Builtins1",
+            "compcert.common.Builtins",
+            "compcert.backend.Cminor",
+            "compcert.backend.Cminortyping",
+            "compcert.riscV.Op",
+            "compcert.backend.CminorSel",
+            "compcert.riscV.SelectOp",
+            "compcert.backend.SelectDiv",
+            "compcert.backend.SplitLong",
+            "compcert.riscV.SelectLong",
+            "compcert.backend.Selection",
+            "compcert.riscV.SelectOpproof",
+            "compcert.backend.SelectDivproof",
+            "compcert.backend.SplitLongproof",
+            "compcert.riscV.SelectLongproof",
+            "compcert.backend.Selectionproof",
+            "compcert.backend.Registers",
+            "compcert.backend.RTL",
+            "compcert.backend.RTLgen",
+            "compcert.backend.RTLgenspec",
+            "compcert.backend.RTLgenproof",
+            "compcert.backend.Tailcall",
+            "compcert.backend.Tailcallproof",
+            "compcert.backend.Inlining",
+            "compcert.backend.Inliningspec",
+            "compcert.backend.Inliningproof",
+            "compcert.backend.Renumber",
+            "compcert.backend.Renumberproof",
+            "compcert.backend.RTLtyping",
+            "compcert.backend.Kildall",
+            "compcert.backend.Liveness",
+            "compcert.backend.ValueDomain",
+            "compcert.riscV.ValueAOp",
+            "compcert.backend.ValueAnalysis",
+            "compcert.riscV.ConstpropOp",
+            "compcert.backend.Constprop",
+            "compcert.riscV.ConstpropOpproof",
+            "compcert.backend.Constpropproof",
+            "compcert.backend.CSEdomain",
+            "compcert.riscV.CombineOp",
+            "compcert.backend.CSE",
+            "compcert.riscV.CombineOpproof",
+            "compcert.backend.CSEproof",
+            "compcert.backend.NeedDomain",
+            "compcert.riscV.NeedOp",
+            "compcert.backend.Deadcode",
+            "compcert.backend.Deadcodeproof",
+            "compcert.backend.Unusedglob",
+            "compcert.backend.Unusedglobproof",
+            "compcert.riscV.Machregs",
+            "compcert.backend.Locations",
+            "compcert.riscV.Conventions1",
+            "compcert.backend.Conventions",
+            "compcert.backend.LTL",
+            "compcert.backend.Allocation",
+            "compcert.backend.Allocproof",
+            "compcert.backend.Tunneling",
+            "compcert.backend.Tunnelingproof",
+            "compcert.backend.Linear",
+            "compcert.backend.Lineartyping",
+            "compcert.backend.Linearize",
+            "compcert.backend.Linearizeproof",
+            "compcert.backend.CleanupLabels",
+            "compcert.backend.CleanupLabelsproof",
+            "compcert.backend.Debugvar",
+            "compcert.backend.Debugvarproof",
+            "compcert.backend.Mach",
+            "compcert.backend.MachMerge",
+            "compcert.backend.Bounds",
+            "compcert.riscV.Stacklayout",
+            "compcert.backend.Stacking",
+            "compcert.backend.Stackingproof",
+            "compcert.riscV.Capability",
+            "compcert.riscV.CapPerms",
+            "compcert.riscV.CapPermsOracle",
+            "compcert.riscV.Representable",
+            "compcert.riscV.RepresentableVectors",
+            "compcert.riscV.PlanNarrowing",
+            "compcert.riscV.SourceValues",
+            "compcert.riscV.SourceMemory",
+            "compcert.riscV.SourceCodeValues",
+            "compcert.riscV.SourceHandleValues",
+            "compcert.riscV.NarrowingProvenance",
+            "compcert.riscV.Asm",
+            "compcert.riscV.Asmgen",
+            "compcert.backend.Asmgenproof0",
+            "compcert.riscV.Asmgenproof1",
+            "compcert.riscV.Asmgenproof",
+            "compcert.cfrontend.Ctypes",
+            "compcert.cfrontend.ScalarTypeElaboration",
+            "compcert.cfrontend.Cop",
+            "compcert.cfrontend.Csyntax",
+            "compcert.cfrontend.Csem",
+            "compcert.cfrontend.Ctyping",
+            "compcert.cfrontend.Cstrategy",
+            "compcert.cfrontend.Cexec",
+            "compcert.cfrontend.Initializers",
+            "compcert.cfrontend.Initializersproof",
+            "compcert.cfrontend.SimplExpr",
+            "compcert.cfrontend.SimplExprspec",
+            "compcert.cfrontend.SimplExprproof",
+            "compcert.cfrontend.Clight",
+            "compcert.cfrontend.ClightBigstep",
+            "compcert.cfrontend.SimplLocals",
+            "compcert.cfrontend.SimplLocalsproof",
+            "compcert.cfrontend.Cshmgen",
+            "compcert.cfrontend.Cshmgenproof",
+            "compcert.cfrontend.Csharpminor",
+            "compcert.cfrontend.Cminorgen",
+            "compcert.cfrontend.Cminorgenproof",
+            "compcert.security.Split",
+            "compcert.security.Recomposition",
+            "compcert.security.Backtranslation",
+            "compcert.security.MemoryWeak",
+            "compcert.security.MemoryDelta",
+            "compcert.security.BtBasics",
+            "compcert.security.BtInfoAsm",
+            "compcert.cheririscV.CapArchi",
+            "compcert.cheririscV.CapAST",
+            "compcert.cheririscV.OCapValues",
+            "compcert.cheririscV.CapMemdata",
+            "compcert.cheririscV.CapMemtype",
+            "compcert.cheririscV.CapMemory",
+            "compcert.cheririscV.CapGlobalenvs",
+            "compcert.cheririscV.CapOp",
+            "compcert.cheririscV.CapMachregs",
+            "compcert.cheririscV.CapLocations",
+            "compcert.cheririscV.CapAsm",
+            "compcert.cheririscV.CapConventions1",
+            "compcert.cheririscV.CapConventions",
+            "compcert.cheririscV.CapAsmgen",
+            "compcert.driver.Compopts",
+            "compcert.driver.Compiler",
+            "compcert.driver.Complements",
+            "Flocq.Core.Raux",
+            "Flocq.Core.Zaux",
+            "Flocq.Core.Defs",
+            "Flocq.Core.Digits",
+            "Flocq.Core.Float_prop",
+            "Flocq.Core.FIX",
+            "Flocq.Core.FLT",
+            "Flocq.Core.FLX",
+            "Flocq.Core.FTZ",
+            "Flocq.Core.Generic_fmt",
+            "Flocq.Core.Round_pred",
+            "Flocq.Core.Round_NE",
+            "Flocq.Core.Ulp",
+            "Flocq.Core.Core",
+            "Flocq.Calc.Bracket",
+            "Flocq.Calc.Div",
+            "Flocq.Calc.Operations",
+            "Flocq.Calc.Plus",
+            "Flocq.Calc.Round",
+            "Flocq.Calc.Sqrt",
+            "Flocq.Prop.Div_sqrt_error",
+            "Flocq.Prop.Mult_error",
+            "Flocq.Prop.Plus_error",
+            "Flocq.Prop.Relative",
+            "Flocq.Prop.Sterbenz",
+            "Flocq.Prop.Round_odd",
+            "Flocq.Prop.Double_rounding",
+            "Flocq.IEEE754.BinarySingleNaN",
+            "Flocq.IEEE754.Binary",
+            "Flocq.IEEE754.Bits",
+            "MenhirLib.Alphabet",
+            "MenhirLib.Automaton",
+            "MenhirLib.Grammar",
+            "MenhirLib.Interpreter_complete",
+            "MenhirLib.Interpreter_correct",
+            "MenhirLib.Interpreter",
+            "MenhirLib.Main",
+            "MenhirLib.Validator_complete",
+            "MenhirLib.Validator_safe",
+            "MenhirLib.Validator_classes",
+            "compcert.cparser.Cabs",
+            "compcert.cparser.Parser"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler",
+          "exit": -15,
+          "log_sha256": "2077abd60fdaad3b2ff0b0fccb9ce61b8c298fcb9e25d4683951b2170effb160",
+          "name": "kernel-environment",
+          "seconds": 4417.457562946999
+        }
+      ],
+      "seal": null,
+      "kernel_qualification": "not accepted; no successful complete kernel verdict",
+      "kernel_receipt_present": true,
+      "kernel_gate_exits": [
+        -15
+      ],
+      "default_index_entry_created": false
+    },
+    {
+      "name": "final-build-2",
+      "native_root": "/root/build/lane-checklist-20261010-c/q39/final-build-2",
+      "source_revision": "7093854d8ce8799826618024ee4847cf248766ea",
+      "overall_passed": false,
+      "recorded_inputs_unchanged": true,
+      "kind": "clean native build from committed source archive; locked released opam closure; no compiled seed reused",
+      "configuration_overrides": [
+        "-ignore-coq-version"
+      ],
+      "toolchain": {
+        "lock_sha256": "c9450ca1d889cd1fb511e149a414a2a7d2548fa7bdbc50a53dd1b048e0de68da",
+        "menhir": {
+          "executable_sha256": "42d77ed7e91d85fd631918c18144ee71afc17ce341e9faae5c68d0800b4cd67b",
+          "package": "menhir",
+          "reported_version": "menhir, version 20260209",
+          "version": "20260209"
+        },
+        "ocaml": {
+          "executable_sha256": "8ae42a69f6e48207ab232003f102ff5e1b16aba3cb2a87c46fbce459e8fe5dba",
+          "package": "ocaml-base-compiler",
+          "reported_version": "4.14.2",
+          "version": "4.14.2"
+        },
+        "prover": {
+          "executable_sha256": "fd0193aaf6582c14b9a84a160badfb622ab0614c06bbeac1320a8b5a0c4d9a65",
+          "package": "rocq-core",
+          "reported_version": "The Rocq Prover, version 9.3.0\ncompiled with OCaml 4.14.2",
+          "version": "9.3.0"
+        }
+      },
+      "source_input_count": 568,
+      "files": {
+        "compiler/build-result.json": {
+          "sha256": "d793f73311b059973415ede66aa976c39298ba7243530e4e16de1da97632914e",
+          "bytes": 21084
+        },
+        "compiler/build-inputs.json": {
+          "sha256": "aee8910ef952642e45ce3fddcda233d8e8a61b7cbd30a4c50312d5945cbd0db9",
+          "bytes": 70919
+        },
+        "source.tar": {
+          "sha256": "155b6b7b951d5b36feaab7bc35a4356b97c42b28f00d999bb76788c78db54528",
+          "bytes": 20008960
+        },
+        "switch.lock": {
+          "sha256": "ced02b17dd36f91a5b097337b0c231faac8a4248ec5dffadd6a00ac9bbef3a0f",
+          "bytes": 660
+        },
+        "compiler/ccomp": {
+          "sha256": "07df5d8ded4b8794773eaa4e5d324038b4bb219be4232876b84454f5c12ac368",
+          "bytes": 15908280
+        },
+        "compiler/LICENSE": {
+          "sha256": "40e8151cb26269a4e051309a958714191a706b5dfc7aaec00a61137cb338a648",
+          "bytes": 43807
+        },
+        "logs/export.log": {
+          "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+          "bytes": 45
+        },
+        "logs/configure.log": {
+          "sha256": "fa05aca0d70ea270ce1fc967d093e8507520a85db848a6b710704c7ad865ef0c",
+          "bytes": 1821
+        },
+        "logs/clean.log": {
+          "sha256": "3dffce2864794035d42e8d306e1db2a4cac485d5fe669133c9760fd672499654",
+          "bytes": 2658
+        },
+        "logs/depend.log": {
+          "sha256": "cca1c9393a051426375ec3c8741bd21a07e2e35c2a84c2b0b187d9fb938911c8",
+          "bytes": 353
+        },
+        "logs/proof.log": {
+          "sha256": "edfdbd3eafacf3c3274d609a1f1f5fc7adff2ed0e992aeef8db369f3b3633502",
+          "bytes": 154984
+        },
+        "logs/extraction.log": {
+          "sha256": "a4940af4b732f3794ef519dfc74ad59b8936d2efccb3e4bf652a4e4d15bc82a5",
+          "bytes": 977
+        },
+        "logs/ccomp.log": {
+          "sha256": "195b096305d6f6950ca7a6333eeae480af349bc00a954219e76e850cef403b0b",
+          "bytes": 20650
+        },
+        "logs/kernel-environment.log": {
+          "sha256": "2660d1593b5ed3a20b134e4470268ce215d2b954c6091691d88308cc5a081430",
+          "bytes": 4764086
+        }
+      },
+      "original_gates": [
+        {
+          "argv": [
+            "opam",
+            "switch",
+            "export",
+            "--switch=q39-replay",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-2/switch.lock"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-2/compiler",
+          "exit": 0,
+          "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+          "name": "export",
+          "seconds": 0.2131297989999439
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-replay",
+            "--",
+            "sh",
+            "./configure",
+            "rv64-linux",
+            "-ignore-coq-version"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-2/compiler",
+          "exit": 0,
+          "log_sha256": "fa05aca0d70ea270ce1fc967d093e8507520a85db848a6b710704c7ad865ef0c",
+          "name": "configure",
+          "seconds": 0.17004029999952763
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-replay",
+            "--",
+            "make",
+            "clean"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-2/compiler",
+          "exit": 0,
+          "log_sha256": "3dffce2864794035d42e8d306e1db2a4cac485d5fe669133c9760fd672499654",
+          "name": "clean",
+          "seconds": 0.10744719899958
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-replay",
+            "--",
+            "make",
+            "-j2",
+            "depend"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-2/compiler",
+          "exit": 0,
+          "log_sha256": "cca1c9393a051426375ec3c8741bd21a07e2e35c2a84c2b0b187d9fb938911c8",
+          "name": "depend",
+          "seconds": 0.4202969980005946
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-replay",
+            "--",
+            "make",
+            "-j2",
+            "proof"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-2/compiler",
+          "exit": 0,
+          "log_sha256": "edfdbd3eafacf3c3274d609a1f1f5fc7adff2ed0e992aeef8db369f3b3633502",
+          "name": "proof",
+          "seconds": 391.60838142099965
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-replay",
+            "--",
+            "make",
+            "-j2",
+            "extraction"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-2/compiler",
+          "exit": 0,
+          "log_sha256": "a4940af4b732f3794ef519dfc74ad59b8936d2efccb3e4bf652a4e4d15bc82a5",
+          "name": "extraction",
+          "seconds": 8.78126376199998
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-replay",
+            "--",
+            "make",
+            "-j2",
+            "ccomp"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-2/compiler",
+          "exit": 0,
+          "log_sha256": "195b096305d6f6950ca7a6333eeae480af349bc00a954219e76e850cef403b0b",
+          "name": "ccomp",
+          "seconds": 11.428749395000523
+        },
+        {
+          "argv": [
+            "opam",
+            "exec",
+            "--switch=q39-replay",
+            "--",
+            "coqchk",
+            "-o",
+            "-R",
+            "lib",
+            "compcert.lib",
+            "-R",
+            "common",
+            "compcert.common",
+            "-R",
+            "riscV",
+            "compcert.riscV",
+            "-R",
+            "backend",
+            "compcert.backend",
+            "-R",
+            "cfrontend",
+            "compcert.cfrontend",
+            "-R",
+            "security",
+            "compcert.security",
+            "-R",
+            "cheririscV",
+            "compcert.cheririscV",
+            "-R",
+            "driver",
+            "compcert.driver",
+            "-R",
+            "cparser",
+            "compcert.cparser",
+            "-R",
+            "flocq",
+            "Flocq",
+            "-R",
+            "MenhirLib",
+            "MenhirLib",
+            "compcert.lib.Axioms",
+            "compcert.lib.Coqlib",
+            "compcert.lib.Intv",
+            "compcert.lib.Maps",
+            "compcert.lib.Heaps",
+            "compcert.lib.Lattice",
+            "compcert.lib.Ordered",
+            "compcert.lib.Iteration",
+            "compcert.lib.Zbits",
+            "compcert.lib.Integers",
+            "compcert.riscV.Archi",
+            "compcert.lib.IEEE754_extra",
+            "compcert.lib.Floats",
+            "compcert.lib.Parmov",
+            "compcert.lib.UnionFind",
+            "compcert.lib.Wfsimpl",
+            "compcert.lib.Postorder",
+            "compcert.lib.FSetAVLplus",
+            "compcert.lib.IntvSets",
+            "compcert.lib.Decidableplus",
+            "compcert.lib.BoolEqual",
+            "compcert.common.Errors",
+            "compcert.common.AST",
+            "compcert.common.Linking",
+            "compcert.common.ScalarKinds",
+            "compcert.common.Events",
+            "compcert.common.Globalenvs",
+            "compcert.common.Memdata",
+            "compcert.common.Memtype",
+            "compcert.common.Memory",
+            "compcert.common.Values",
+            "compcert.common.Smallstep",
+            "compcert.common.Behaviors",
+            "compcert.common.Switch",
+            "compcert.common.Determinism",
+            "compcert.common.Unityping",
+            "compcert.common.Exec",
+            "compcert.common.Separation",
+            "compcert.common.Builtins0",
+            "compcert.riscV.Builtins1",
+            "compcert.common.Builtins",
+            "compcert.backend.Cminor",
+            "compcert.backend.Cminortyping",
+            "compcert.riscV.Op",
+            "compcert.backend.CminorSel",
+            "compcert.riscV.SelectOp",
+            "compcert.backend.SelectDiv",
+            "compcert.backend.SplitLong",
+            "compcert.riscV.SelectLong",
+            "compcert.backend.Selection",
+            "compcert.riscV.SelectOpproof",
+            "compcert.backend.SelectDivproof",
+            "compcert.backend.SplitLongproof",
+            "compcert.riscV.SelectLongproof",
+            "compcert.backend.Selectionproof",
+            "compcert.backend.Registers",
+            "compcert.backend.RTL",
+            "compcert.backend.RTLgen",
+            "compcert.backend.RTLgenspec",
+            "compcert.backend.RTLgenproof",
+            "compcert.backend.Tailcall",
+            "compcert.backend.Tailcallproof",
+            "compcert.backend.Inlining",
+            "compcert.backend.Inliningspec",
+            "compcert.backend.Inliningproof",
+            "compcert.backend.Renumber",
+            "compcert.backend.Renumberproof",
+            "compcert.backend.RTLtyping",
+            "compcert.backend.Kildall",
+            "compcert.backend.Liveness",
+            "compcert.backend.ValueDomain",
+            "compcert.riscV.ValueAOp",
+            "compcert.backend.ValueAnalysis",
+            "compcert.riscV.ConstpropOp",
+            "compcert.backend.Constprop",
+            "compcert.riscV.ConstpropOpproof",
+            "compcert.backend.Constpropproof",
+            "compcert.backend.CSEdomain",
+            "compcert.riscV.CombineOp",
+            "compcert.backend.CSE",
+            "compcert.riscV.CombineOpproof",
+            "compcert.backend.CSEproof",
+            "compcert.backend.NeedDomain",
+            "compcert.riscV.NeedOp",
+            "compcert.backend.Deadcode",
+            "compcert.backend.Deadcodeproof",
+            "compcert.backend.Unusedglob",
+            "compcert.backend.Unusedglobproof",
+            "compcert.riscV.Machregs",
+            "compcert.backend.Locations",
+            "compcert.riscV.Conventions1",
+            "compcert.backend.Conventions",
+            "compcert.backend.LTL",
+            "compcert.backend.Allocation",
+            "compcert.backend.Allocproof",
+            "compcert.backend.Tunneling",
+            "compcert.backend.Tunnelingproof",
+            "compcert.backend.Linear",
+            "compcert.backend.Lineartyping",
+            "compcert.backend.Linearize",
+            "compcert.backend.Linearizeproof",
+            "compcert.backend.CleanupLabels",
+            "compcert.backend.CleanupLabelsproof",
+            "compcert.backend.Debugvar",
+            "compcert.backend.Debugvarproof",
+            "compcert.backend.Mach",
+            "compcert.backend.MachMerge",
+            "compcert.backend.Bounds",
+            "compcert.riscV.Stacklayout",
+            "compcert.backend.Stacking",
+            "compcert.backend.Stackingproof",
+            "compcert.riscV.Capability",
+            "compcert.riscV.CapPerms",
+            "compcert.riscV.CapPermsOracle",
+            "compcert.riscV.Representable",
+            "compcert.riscV.RepresentableVectors",
+            "compcert.riscV.PlanNarrowing",
+            "compcert.riscV.SourceValues",
+            "compcert.riscV.SourceMemory",
+            "compcert.riscV.SourceCodeValues",
+            "compcert.riscV.SourceHandleValues",
+            "compcert.riscV.NarrowingProvenance",
+            "compcert.riscV.Asm",
+            "compcert.riscV.Asmgen",
+            "compcert.backend.Asmgenproof0",
+            "compcert.riscV.Asmgenproof1",
+            "compcert.riscV.Asmgenproof",
+            "compcert.cfrontend.Ctypes",
+            "compcert.cfrontend.ScalarTypeElaboration",
+            "compcert.cfrontend.Cop",
+            "compcert.cfrontend.Csyntax",
+            "compcert.cfrontend.Csem",
+            "compcert.cfrontend.Ctyping",
+            "compcert.cfrontend.Cstrategy",
+            "compcert.cfrontend.Cexec",
+            "compcert.cfrontend.Initializers",
+            "compcert.cfrontend.Initializersproof",
+            "compcert.cfrontend.SimplExpr",
+            "compcert.cfrontend.SimplExprspec",
+            "compcert.cfrontend.SimplExprproof",
+            "compcert.cfrontend.Clight",
+            "compcert.cfrontend.ClightBigstep",
+            "compcert.cfrontend.SimplLocals",
+            "compcert.cfrontend.SimplLocalsproof",
+            "compcert.cfrontend.Cshmgen",
+            "compcert.cfrontend.Cshmgenproof",
+            "compcert.cfrontend.Csharpminor",
+            "compcert.cfrontend.Cminorgen",
+            "compcert.cfrontend.Cminorgenproof",
+            "compcert.security.Split",
+            "compcert.security.Recomposition",
+            "compcert.security.Backtranslation",
+            "compcert.security.MemoryWeak",
+            "compcert.security.MemoryDelta",
+            "compcert.security.BtBasics",
+            "compcert.security.BtInfoAsm",
+            "compcert.cheririscV.CapArchi",
+            "compcert.cheririscV.CapAST",
+            "compcert.cheririscV.OCapValues",
+            "compcert.cheririscV.CapMemdata",
+            "compcert.cheririscV.CapMemtype",
+            "compcert.cheririscV.CapMemory",
+            "compcert.cheririscV.CapGlobalenvs",
+            "compcert.cheririscV.CapOp",
+            "compcert.cheririscV.CapMachregs",
+            "compcert.cheririscV.CapLocations",
+            "compcert.cheririscV.CapAsm",
+            "compcert.cheririscV.CapConventions1",
+            "compcert.cheririscV.CapConventions",
+            "compcert.cheririscV.CapAsmgen",
+            "compcert.driver.Compopts",
+            "compcert.driver.Compiler",
+            "compcert.driver.Complements",
+            "Flocq.Core.Raux",
+            "Flocq.Core.Zaux",
+            "Flocq.Core.Defs",
+            "Flocq.Core.Digits",
+            "Flocq.Core.Float_prop",
+            "Flocq.Core.FIX",
+            "Flocq.Core.FLT",
+            "Flocq.Core.FLX",
+            "Flocq.Core.FTZ",
+            "Flocq.Core.Generic_fmt",
+            "Flocq.Core.Round_pred",
+            "Flocq.Core.Round_NE",
+            "Flocq.Core.Ulp",
+            "Flocq.Core.Core",
+            "Flocq.Calc.Bracket",
+            "Flocq.Calc.Div",
+            "Flocq.Calc.Operations",
+            "Flocq.Calc.Plus",
+            "Flocq.Calc.Round",
+            "Flocq.Calc.Sqrt",
+            "Flocq.Prop.Div_sqrt_error",
+            "Flocq.Prop.Mult_error",
+            "Flocq.Prop.Plus_error",
+            "Flocq.Prop.Relative",
+            "Flocq.Prop.Sterbenz",
+            "Flocq.Prop.Round_odd",
+            "Flocq.Prop.Double_rounding",
+            "Flocq.IEEE754.BinarySingleNaN",
+            "Flocq.IEEE754.Binary",
+            "Flocq.IEEE754.Bits",
+            "MenhirLib.Alphabet",
+            "MenhirLib.Automaton",
+            "MenhirLib.Grammar",
+            "MenhirLib.Interpreter_complete",
+            "MenhirLib.Interpreter_correct",
+            "MenhirLib.Interpreter",
+            "MenhirLib.Main",
+            "MenhirLib.Validator_complete",
+            "MenhirLib.Validator_safe",
+            "MenhirLib.Validator_classes",
+            "compcert.cparser.Cabs",
+            "compcert.cparser.Parser"
+          ],
+          "cwd": "/root/build/lane-checklist-20261010-c/q39/final-build-2/compiler",
+          "exit": -15,
+          "log_sha256": "2660d1593b5ed3a20b134e4470268ce215d2b954c6091691d88308cc5a081430",
+          "name": "kernel-environment",
+          "seconds": 4415.754294209
+        }
+      ],
+      "seal": null,
+      "kernel_qualification": "not accepted; no successful complete kernel verdict",
+      "kernel_receipt_present": true,
+      "kernel_gate_exits": [
+        -15
+      ],
+      "default_index_entry_created": false
+    }
+  ],
+  "read_only_status_operations": [
+    {
+      "basis": {
+        "original": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1",
+        "producer_manifest": {
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/build.py": "621bf3f2f2150ee709cb8b9017b270a5eaeab4f78b80c17ec6245bcd0e5a2058",
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/qualify.py": "d95a8997c9b9fb2d2c6e78e761138ff01719d61b868257ae3c1a356c9105d645"
+        },
+        "qualification_seconds": null,
+        "receipt": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler/build-result.json",
+        "receipt_sha256": "fdd3e16a7268cf07338ce44df6d0c91a8838e2ad7a496ad459be266b0f79577b",
+        "retention_paths": [
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261010-c/tools/opam/contained-compiler.lock",
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/audit.py",
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/build.py",
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/qualify.py",
+          "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-port/bin/coqc",
+          "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-port/bin/coqchk",
+          "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-port/bin/coqtop",
+          "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-port/bin/menhir",
+          "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-port/bin/ocamlc.opt",
+          "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-port/lib",
+          "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1",
+          "/usr/bin/make",
+          "/usr/local/bin/opam"
+        ],
+        "source_revision": "6409d0ed65fd07de4fb37aa9c8f7a9d5c317cc9d"
+      },
+      "cache_candidate": null,
+      "candidate_reason": "explicit candidate requires backend validation",
+      "compiler": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler/ccomp",
+      "context_sha256": "124a842ace308070bbeff9561e2176659ebc9c6786058d4b16d13a9b406e3a4f",
+      "controller_operation_seconds": 43.85341717299889,
+      "controller_policy": "explicit",
+      "driver_identity": {
+        "audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+        "build.py": "54942b2c3899c8a51ba363dd46fbb6d15b3ac4bf41dee5bf40ec0737bce79f51",
+        "manifest_sha256": "57a1157ec44ca334aff7bddce06a8bb5dd20c68b68f9928827145f6c552f7b83",
+        "qualify.py": "9ebe3aebddc0f8c4104e8ef3ee523b99860c397628ebbad99642c55691de34f3",
+        "reuse.py": "4de09b4a5b48d601e9a4fa75f34a7816680883b88d0273afb8ec33673a3996b2"
+      },
+      "driver_manifest_sha256": "57a1157ec44ca334aff7bddce06a8bb5dd20c68b68f9928827145f6c552f7b83",
+      "effective_policy": "compilation-reuse",
+      "fresh_requested": false,
+      "inputs_stable": true,
+      "operation": "status",
+      "operation_seconds": 38.64015185799508,
+      "outcome": "status",
+      "phases": {
+        "classification": {
+          "action": "not_run",
+          "basis": null,
+          "original_seconds": null,
+          "seconds": 0,
+          "status": "not_run"
+        },
+        "compile": {
+          "action": "reused",
+          "basis": "fdd3e16a7268cf07338ce44df6d0c91a8838e2ad7a496ad459be266b0f79577b",
+          "original_seconds": 385.9873900159946,
+          "seconds": 0,
+          "status": "passed"
+        },
+        "kernel": {
+          "action": "not_run",
+          "basis": null,
+          "original_seconds": null,
+          "seconds": 0,
+          "status": "not_run"
+        },
+        "queries": {
+          "action": "not_run",
+          "basis": null,
+          "original_seconds": null,
+          "seconds": 0,
+          "status": "not_run"
+        }
+      },
+      "policy": "explicit",
+      "profile_requested": false,
+      "protocol": "verifiedos-contained-compiler-build/1",
+      "qualification_receipt": null,
+      "receipt": null,
+      "requested_configuration": {
+        "ignore_coq_version": true
+      },
+      "requested_jobs": 1,
+      "requested_kernel_profile": "vm",
+      "reuse_reason": "no complete qualification",
+      "source_revision": "6409d0ed65fd07de4fb37aa9c8f7a9d5c317cc9d",
+      "status": "status",
+      "validation_seconds": 38.64015185799508
+    },
+    {
+      "basis": {
+        "original": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2",
+        "producer_manifest": {
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/build.py": "621bf3f2f2150ee709cb8b9017b270a5eaeab4f78b80c17ec6245bcd0e5a2058",
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/qualify.py": "d95a8997c9b9fb2d2c6e78e761138ff01719d61b868257ae3c1a356c9105d645"
+        },
+        "qualification_seconds": null,
+        "receipt": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/compiler/build-result.json",
+        "receipt_sha256": "ae506c4f550d74df2110627af9e048b1d3239f5a658c0c0bf1060cf433238b56",
+        "retention_paths": [
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261010-c/tools/opam/contained-compiler.lock",
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/audit.py",
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/build.py",
+          "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/qualify.py",
+          "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-replay/bin/coqc",
+          "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-replay/bin/coqchk",
+          "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-replay/bin/coqtop",
+          "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-replay/bin/menhir",
+          "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-replay/bin/ocamlc.opt",
+          "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-replay/lib",
+          "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2",
+          "/usr/bin/make",
+          "/usr/local/bin/opam"
+        ],
+        "source_revision": "6409d0ed65fd07de4fb37aa9c8f7a9d5c317cc9d"
+      },
+      "cache_candidate": null,
+      "candidate_reason": "explicit candidate requires backend validation",
+      "compiler": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-2/compiler/ccomp",
+      "context_sha256": "4b257273ab6f88ae5ec40d90bfcbbdedb9f88391f2149126a98823cf57e1990c",
+      "controller_operation_seconds": 87.4820139739968,
+      "controller_policy": "explicit",
+      "driver_identity": {
+        "audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+        "build.py": "54942b2c3899c8a51ba363dd46fbb6d15b3ac4bf41dee5bf40ec0737bce79f51",
+        "manifest_sha256": "57a1157ec44ca334aff7bddce06a8bb5dd20c68b68f9928827145f6c552f7b83",
+        "qualify.py": "9ebe3aebddc0f8c4104e8ef3ee523b99860c397628ebbad99642c55691de34f3",
+        "reuse.py": "4de09b4a5b48d601e9a4fa75f34a7816680883b88d0273afb8ec33673a3996b2"
+      },
+      "driver_manifest_sha256": "57a1157ec44ca334aff7bddce06a8bb5dd20c68b68f9928827145f6c552f7b83",
+      "effective_policy": "compilation-reuse",
+      "fresh_requested": false,
+      "inputs_stable": true,
+      "operation": "status",
+      "operation_seconds": 85.45965296500071,
+      "outcome": "status",
+      "phases": {
+        "classification": {
+          "action": "not_run",
+          "basis": null,
+          "original_seconds": null,
+          "seconds": 0,
+          "status": "not_run"
+        },
+        "compile": {
+          "action": "reused",
+          "basis": "ae506c4f550d74df2110627af9e048b1d3239f5a658c0c0bf1060cf433238b56",
+          "original_seconds": 384.7027187709973,
+          "seconds": 0,
+          "status": "passed"
+        },
+        "kernel": {
+          "action": "not_run",
+          "basis": null,
+          "original_seconds": null,
+          "seconds": 0,
+          "status": "not_run"
+        },
+        "queries": {
+          "action": "not_run",
+          "basis": null,
+          "original_seconds": null,
+          "seconds": 0,
+          "status": "not_run"
+        }
+      },
+      "policy": "explicit",
+      "profile_requested": false,
+      "protocol": "verifiedos-contained-compiler-build/1",
+      "qualification_receipt": null,
+      "receipt": null,
+      "requested_configuration": {
+        "ignore_coq_version": true
+      },
+      "requested_jobs": 1,
+      "requested_kernel_profile": "vm",
+      "reuse_reason": "no complete qualification",
+      "source_revision": "6409d0ed65fd07de4fb37aa9c8f7a9d5c317cc9d",
+      "status": "status",
+      "validation_seconds": 85.45965296500071
+    }
+  ],
+  "acceptance": {
+    "compiler_compilation_reuse": "authenticated for the two VM candidates at these observations; revalidation required before subsequent reuse",
+    "complete_kernel_qualification": false,
+    "firmware_target_acceptance": false,
+    "checker_resume_checkpoint": false,
+    "complete_default_cache_entry": false,
+    "host_ci": "existing compiler-provenance blockers unresolved",
+    "guest_ci": "not dispatched for this preservation change"
+  }
+}

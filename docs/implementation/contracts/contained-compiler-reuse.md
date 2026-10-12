@@ -195,3 +195,45 @@ open until an original Q39 qualification passes, its unchanged result primes the
 index, and the following normal build reuses that exact complete evidence without
 compilation, queries or checker execution. The required public validation handoff
 remains pending with the shared batch.
+
+## Retained incomplete compilation
+
+[The recorded candidate catalog](../retained-evidence/q39/compilation-candidates-20261012.json)
+preserves source revisions, archive/compiler/input/lock hashes, original commands,
+logs and timings, producer identities and native retention locations. It is a
+dated observation, not a live index or a backup of the contained bytes. Compiler
+sources, objects, executables and installed libraries remain outside this public
+repository under the existing containment rules.
+
+The catalog's read-only `compiler-build status` operations authenticate the sealed
+VM compilation candidates through the private validator. Their compile phase is
+`reused` and `passed`; queries, kernel and classification are `not_run`. Original
+overall receipts remain `passed: false`. The unsealed final-build records retain
+interrupted kernel-stage exits and supply no authenticated reuse basis. No new
+build or audit was launched and no original producer was changed.
+
+Keep each native root and every recorded `basis.retention_paths` entry at its
+bound location, including historical helper files, original lock, tools and
+installed libraries. Reuse validates those bytes and their recursive ancestry;
+moving files or retaining only this catalog cannot reproduce that basis. A clone
+of the public repository carries the metadata and recipe, not the compiled work.
+
+For another reuse attempt, materialize the catalog's `validator_manifest` and
+`configuration` as JSON files in unique OS Temp, after checking the selected
+private driver revision and helper bytes. Invoke the registered `compiler-build
+status` command with its required source, lane, driver, switch, lock, configuration
+and profile inputs, supplying `--reuse-from` with a candidate's retained
+`compiler/build-result.json`. The recorded VM candidates use source revision
+`6409d0ed65fd07de4fb37aa9c8f7a9d5c317cc9d`, profile `vm`, and switches `q39-port`
+and `q39-replay` respectively. The [command interface](../../../tools/vos/cli/compiler_build.py)
+names every required argument. A changed source, toolchain, configuration or
+producer must be revalidated, not blessed from the snapshot.
+
+After that read-only validation, `compiler-build build` with the same explicit
+candidate and a new owned native output may reuse compilation and perform the
+required complete qualification. An interrupted kernel check supplies no resumable
+checkpoint or kernel credit. Current default-index publication occurs only after
+a complete successful build; these candidates require explicit `--reuse-from`.
+Authenticated compilation-entry indexing remains an open part of Q43's delivery
+contract. Neither these status observations nor the catalog closes Q39, clears
+the firmware provenance blockers, or supplies hosted acceptance.
