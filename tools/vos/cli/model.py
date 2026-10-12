@@ -677,6 +677,21 @@ def cmd_typecheck(e: env.Environment, args: argparse.Namespace) -> int:
             cwd=e.model / "model", check=False).returncode
 
 
+def _bundle_source_identity(e: env.Environment, listed: list[str], inputs: bytes,
+                            bundle_bytes: bytes) -> bytes:
+    """Refuse a project or source change while the bundle emitter was reading it."""
+    refreshed = rocqterm.listed_sources("sail", e.model)
+    fresh = sailbundle.source_identity(e.root, refreshed, bundle_bytes)
+    final_inputs = json.loads(fresh)
+    final_inputs["bundle_sha256"] = hashlib.sha256(b"").hexdigest()
+    if refreshed != listed or final_inputs != json.loads(inputs):
+        raise sailbundle.BundleError("the model project or sources changed during bundle emission")
+    # Check emitted MD5 owners against the complete SHA-256 manifest before publishing
+    # a regeneration that will replace stale evidence.
+    sailbundle.read_source_identity(e.root, bundle_bytes, identity_bytes=fresh)
+    return fresh
+
+
 def cmd_bundle(e: env.Environment, args: argparse.Namespace) -> int:
     """Regenerate the model's own machine-readable bundle into the tracked path.
 
@@ -702,8 +717,8 @@ def cmd_bundle(e: env.Environment, args: argparse.Namespace) -> int:
 
     `--check` emits to a scratch path and compares, writing nothing. That is the guest
     lane's half of K-88's claim and it is what makes the host lane's half honest: the
-    host holds the tracked bytes against the index and against the sources the bundle
-    itself records, and this holds them against the emitter.
+    host holds both tracked artifacts against the index and every source selected by
+    the project, and this holds them against the emitter and its complete source list.
     """
     _require("sail", SAIL_HOW)
     build_dir = e.build_dir
@@ -716,6 +731,10 @@ def cmd_bundle(e: env.Environment, args: argparse.Namespace) -> int:
         # Always emit in the lane. Failed emission or provenance validation must
         # preserve the tracked artifact, including during regeneration.
         before = tracked.read_bytes() if tracked.is_file() else None
+        identity = e.root / sailbundle.SOURCE_IDENTITY
+        before_identity = identity.read_bytes() if identity.is_file() else None
+        listed = rocqterm.listed_sources("sail", e.model)
+        inputs = sailbundle.source_identity(e.root, listed, b"")
         written = scratch / sailbundle.BUNDLE_NAME
         written.unlink(missing_ok=True)
         code = env.stage("bundle", [
@@ -739,11 +758,19 @@ def cmd_bundle(e: env.Environment, args: argparse.Namespace) -> int:
         fresh = sailbundle.canonicalize_library(
             written.read_bytes(), env.opam_root() / env.SAIL_SWITCH / "share/sail")
         written.write_bytes(fresh)
+        fresh_identity = _bundle_source_identity(e, listed, inputs, fresh)
+        written_identity = scratch / sailbundle.SOURCE_IDENTITY_NAME
+        written_identity.write_bytes(fresh_identity)
         if not args.check:
             with receipts.atomic_path(tracked) as pending:
                 pending.write_bytes(fresh)
+            with receipts.atomic_path(identity) as pending:
+                pending.write_bytes(fresh_identity)
         code = _bundle_verdict(written, before, check=args.check)
-    except (OSError, sailbundle.BundleError) as err:
+        identity_code = _bundle_verdict(written_identity, before_identity, check=args.check,
+                                        path=sailbundle.SOURCE_IDENTITY)
+        code = max(code, identity_code)
+    except (OSError, sailbundle.BundleError, rocqterm.TermError) as err:
         print(str(err), file=sys.stderr)
         return 1
     finally:
@@ -754,7 +781,8 @@ def cmd_bundle(e: env.Environment, args: argparse.Namespace) -> int:
     return code
 
 
-def _bundle_verdict(written: Path, held: bytes | None, *, check: bool) -> int:
+def _bundle_verdict(written: Path, held: bytes | None, *, check: bool,
+                    path: str = sailbundle.BUNDLE) -> int:
     """Say what the emission decided, in bytes rather than in adjectives.
 
     Under `--check` the emitted bytes are held against the tracked ones and a
@@ -767,20 +795,20 @@ def _bundle_verdict(written: Path, held: bytes | None, *, check: bool) -> int:
     fresh = written.read_bytes()
     if not check:
         moved = "unchanged" if held == fresh else "rewritten"
-        print(f"ok {sailbundle.BUNDLE}: {len(fresh)} bytes, {moved}")
+        print(f"ok {path}: {len(fresh)} bytes, {moved}")
         return 0
     if held is None:
-        print(f"{sailbundle.BUNDLE} is not there, so the emitter's {len(fresh)} bytes "
+        print(f"{path} is not there, so the emitter's {len(fresh)} bytes "
               "are held against nothing", file=sys.stderr)
         return 1
     if held != fresh:
         where = next((i for i, (a, b) in enumerate(zip(held, fresh, strict=False))
                       if a != b), min(len(held), len(fresh)))
-        print(f"{sailbundle.BUNDLE} is {len(held)} bytes and the emitter writes "
+        print(f"{path} is {len(held)} bytes and the emitter writes "
               f"{len(fresh)}, first differing at byte {where}; regenerate it with "
               "`run.py model bundle`", file=sys.stderr)
         return 1
-    print(f"ok {sailbundle.BUNDLE}: {len(fresh)} bytes, byte-identical after "
+    print(f"ok {path}: {len(fresh)} bytes, byte-identical after "
           "canonical library-path relocation from the model in this checkout")
     return 0
 

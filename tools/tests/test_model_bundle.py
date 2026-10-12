@@ -84,6 +84,16 @@ def _bundle_publication_and_check() -> None:
         target = root / sailbundle.BUNDLE
         target.parent.mkdir(parents=True)
         target.write_bytes(tracked)
+        recorded = json.loads((TOOLS.parent / sailbundle.SOURCE_IDENTITY).read_bytes())
+        listed = [rel.removeprefix(sailbundle.SOURCE_ROOT + "/")
+                  for rel in recorded["sources"]["sha256"]]
+        for rel in (*recorded["sources"]["sha256"], sailbundle.PROJECT_FILE):
+            path = root / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes((TOOLS.parent / rel).read_bytes())
+        identity = root / sailbundle.SOURCE_IDENTITY
+        identity.write_bytes(sailbundle.source_identity(root, listed, tracked))
+        tracked_identity = identity.read_bytes()
         emitted = _relocated(tracked, _CI_LIBRARY)
 
         def stage(name: str, argv: list[str], **kwargs: object) -> int:
@@ -94,16 +104,20 @@ def _bundle_publication_and_check() -> None:
         with (patch.object(model, "_require"), patch.object(model, "_seed_tree"),
               patch.object(env, "build_lock", return_value=None),
               patch.object(env, "opam_root", return_value=_CI_LIBRARY.parents[2]),
+              patch.object(model.rocqterm, "listed_sources", return_value=listed),
               patch.object(env, "stage", side_effect=stage),
               redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())):
             for check in (True, False):
                 ensure(model.cmd_bundle(e, argparse.Namespace(check=check)) == 0,
                        "both checking and regeneration must accept the selected CI library")
                 ensure(target.read_bytes() == tracked, "publication must use canonical metadata")
+                ensure(identity.read_bytes() == tracked_identity,
+                       "publication and comparison must retain the complete project source identity")
             emitted = emitted.replace(b'"md5":"', b'"md5":"changed', 1)
             ensure(model.cmd_bundle(e, argparse.Namespace(check=True)) == 1,
                    "changed library bytes must fail the comparison")
             ensure(target.read_bytes() == tracked, "failed comparison must preserve the artifact")
+            ensure(identity.read_bytes() == tracked_identity, "failed comparison must preserve source identity")
             emitted = _relocated(tracked, Path("/foreign/share/sail"))
             ensure(model.cmd_bundle(e, argparse.Namespace(check=False)) == 1,
                    "foreign library provenance must fail before publication")
@@ -115,6 +129,25 @@ def _bundle_publication_and_check() -> None:
                 ensure(model.cmd_bundle(e, argparse.Namespace(check=False)) == 1,
                        "a missing emission must not publish a previous scratch artifact")
                 ensure(target.read_bytes() == tracked, "missing emission must preserve publication")
+            emitted = _relocated(tracked, _CI_LIBRARY)
+            with patch.object(model.rocqterm, "listed_sources", side_effect=[listed, listed[:-1]]):
+                ensure(model.cmd_bundle(e, argparse.Namespace(check=False)) == 1,
+                       "a source selection that moves during emission must refuse publication")
+            ensure(target.read_bytes() == tracked and identity.read_bytes() == tracked_identity,
+                   "unstable project selection must preserve both published artifacts")
+            source = root / "model/model/extensions/B/zbc_insts.sail"
+            original = source.read_bytes()
+
+            def moving_stage(name: str, argv: list[str], **kwargs: object) -> int:
+                code = stage(name, argv, **kwargs)
+                source.write_bytes(original + b"\n// changed during emission\n")
+                return code
+
+            with patch.object(env, "stage", side_effect=moving_stage):
+                ensure(model.cmd_bundle(e, argparse.Namespace(check=False)) == 1,
+                       "a previously-unhashed source moving during emission must refuse publication")
+            ensure(target.read_bytes() == tracked and identity.read_bytes() == tracked_identity,
+                   "unstable source bytes must preserve both published artifacts")
 
 
 def _real_relocated_library() -> None:
