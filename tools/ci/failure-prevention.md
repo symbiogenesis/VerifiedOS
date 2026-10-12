@@ -72,3 +72,8 @@ Formatting uses locked editions on explicitly selected changed files. Preparatio
 must not install shared Git hooks, weaken analyzers, silently accept rewritten
 baselines or run full local gates. Focused tests and Python analysis supply local
 feedback; Host CI and every Guest lane supply the final hosted handoff.
+
+The bounded WSL distribution lease runs from its native pidfile directory rather
+than inheriting a checkout. Its working directory cannot keep a retired worktree
+open. Focused acceptance checks the actual launch directory and preserves the
+existing lease identity, duration, idempotence and stop behavior.
