@@ -141,7 +141,7 @@ def read_record(text: str) -> Record:
 
     # matched at a line start rather than searched for after a newline, so the
     # heading is still found in a file that opens with it
-    found = re.search(rf"(?m)^{re.escape(TABLE_HEADING)}[^\S\r\n]*$", text)
+    found = re.search(rf"(?m)^{re.escape(TABLE_HEADING)}[^\S\r\n]*\r?$", text)
     if found is None:
         return Record(fault=f"{RECORD} carries no `{TABLE_HEADING}` heading, so there "
                              "is no pin table to read the gitlinks against")
