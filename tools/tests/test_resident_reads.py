@@ -116,9 +116,9 @@ def _integral_read_intervals() -> None:
         unit = service.reserve(0, 7, identity, 0, 1)
         if unit is None:
             raise AssertionError("integral unit-window control refused")
-        for changed in (replace(unit, start=cast("int", 0.0)),
-                        replace(unit, start=False), replace(unit, length=cast("int", 1.0)),
-                        replace(unit, length=True)):
+        for field, value in (("start", 0.0), ("start", False),
+                             ("length", 1.0), ("length", True)):
+            changed = replace(unit, **{field: value})
             # Python equality aliases these malformed fields to the stored integers.
             ensure(changed == unit, "same-valued handle alias control did not execute")
             sequence = service._integer("sequence.0")
