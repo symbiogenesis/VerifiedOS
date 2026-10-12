@@ -43,7 +43,11 @@ def _numbers(value: object, label: str) -> tuple[int, ...]:
 
 def inspect(raw: bytes, root: Path) -> dict[str, object]:
     """Fail closed on unknown/missing/coerced inputs; report the bound host scope."""
-    data = _object(json.loads(raw, object_pairs_hook=_unique),
+    try:
+        decoded = json.loads(raw, object_pairs_hook=_unique)
+    except RecursionError as error:
+        raise ValueError("JSON nesting exceeds the decoder limit") from error
+    data = _object(decoded,
                    {"shape", "ceiling", "costs", "residency", "kv_placement", "server",
                     "sessions_open", "requested_rate", "route"}, "input")
     shape_data = _object(data["shape"], {item.name for item in fields(Shape)}, "shape")

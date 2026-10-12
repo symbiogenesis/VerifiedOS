@@ -9,7 +9,8 @@ and [InferenceAdmission.v](../../proofs/InferenceAdmission.v).
 The JSON contains an already decoded shape and explicit composition inputs.
 There is no verified wire parser, executable target server or physical admission.
 Booleans cannot stand for integers; missing, extra and duplicate object fields,
-negative numbers and coerced values are refused. A finite residency map treats
+negative numbers, coerced values and JSON beyond the decoder's nesting limit
+are refused. A finite residency map treats
 absent indices as nonresident. Routing preserves the source's repeated-index
 behavior, while work assumes one declared uniform expert cost.
 
