@@ -645,14 +645,17 @@ mode. Preserve every old raw receipt and audit. A build, seal, kernel,
 classification or input-stability failure stops acceptance; it does not authorize
 an automatic source, helper, package or scope repair.
 
-## Retire the superseded default-mode audits
+## Prepare retirement of the default-mode audits
 
 The two new selected-mode builds have passed all seven compilation stages and
 created fresh mode-bound seals; their complete kernel verdicts remain pending.
-The integrator retires the superseded default-mode audits to stop retaining
-duplicate active execution. Their incomplete runs supply no passing evidence.
-Keep their original seals, inputs and logs, and let their existing producers
-record genuine interruption results without relabeling any receipt.
+Retirement was prepared to stop retaining duplicate active execution; its
+invocation was rejected as recorded below. These incomplete runs supply no
+passing evidence.
+The preparation preserves original seals, inputs and logs and requires the
+existing producers to record any genuine interruption without relabeling a
+receipt. The execution contract below belongs to that unexecuted preparation;
+the current decision at the end preserves both eligible pairs.
 
 The read-only identity snapshot at 21:27:07 UTC has digest
 `0e29902628b4ca5e3cb7e1fe58339d5216cf78c32bcda9f5d066f9b2089c5357`.
@@ -708,10 +711,11 @@ completion time.
 
 ## Preserve active inputs during eligible-lane retirement
 
-While either superseded default-mode audit remains active, preserve its public C
-checkout, private source worktree, branch and native inputs. The requested
-termination authorization remains pending. An active lane is not eligible for
-retirement, and preserving it requires no process termination or workaround.
+While any original compiler audit remains active, preserve its public C
+checkout, private source worktree, branch and native inputs. The user has
+delegated the termination decision; the current decision below preserves both
+eligible pairs. An active lane is not eligible for retirement, and preserving it
+requires no process termination or workaround.
 
 The separate five-minute read-only lifecycle review, completed at 21:57:08 UTC
 against immutable integration revision `09f72839`, confirms that
@@ -723,8 +727,8 @@ before retirement. C remains integrator-owned and must not be relabeled as a
 host-managed worktree. Preserve the active private source lane as well; retire
 other private lanes only after their separate eligibility checks.
 
-This decision avoids holding safe retirement on the unresolved termination
-request. It changes no Q39 acceptance predicate: both selected complete kernels,
+This permits safe retirement of eligible lanes while active C inputs remain
+preserved. It changes no Q39 acceptance predicate: both selected complete kernels,
 exact assumption classification, input stability, compiler campaigns, argument
 replays, HELLO acceptance and tracked manifest restaging still require actual
 passing evidence. Publish all session commits on `main`, require both Host CI
@@ -738,8 +742,8 @@ simulator and explicit stage paths beneath
 retirement destination. Final evidence must name the retained C and private
 inputs and state each superseded audit's genuine available result. A pending
 verdict supplies no passing evidence, and eligible-lane retirement supplies no
-claim that C was cleaned. If those audits finish or the user authorizes the
-reviewed termination, determine C's eligibility again before selecting it.
+claim that C was cleaned. If all active C audits finish, determine C's eligibility
+again before selecting it.
 
 ## Select the first fully qualified complete pair
 
@@ -775,3 +779,24 @@ initialize a fresh final journal with the correct explicit eligible lanes and
 deferrals; retain the preparation journal and its genuine state. Publish only
 `main`, require Host CI and dispatch the complete cold Guest CI handoff under the
 existing completion contract.
+
+## Keep both eligible audit pairs running
+
+On 12 October 2026 the user delegated the pending SIGTERM decision to the
+integrator. Keep the original `ec5b825` standard-mode pair and `6409d0ed` VM-mode
+pair running under the first fully qualified complete-pair rule above. The
+prepared retirement program remains unexecuted; this decision sends no signals
+and changes no producer, helper, source or package input.
+
+Both original pairs remain eligible. The observation at 01:32:16 UTC reports
+standard checker PIDs 454207 and 454208 active after 7:44:20, and VM checker PIDs
+463353 and 463354 active after 4:20:21 and 4:20:20. Each VM checker's measured CPU
+time closely tracks its elapsed time. There is no demonstrated throughput benefit
+from discarding the older pair's in-progress computation, while retaining it
+preserves another eligible route to the same required evidence. These timings
+establish no completion estimate or passing verdict.
+
+Preserve all original inputs, seals, logs and genuine available results. Neither
+pair is selected or accepted while its complete qualification remains pending.
+The active-input retention rules and final acceptance, publication and hosted
+validation handoff remain unchanged.
