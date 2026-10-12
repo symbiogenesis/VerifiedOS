@@ -2,6 +2,7 @@
 """Hand-counted observation boundaries and refusal controls for churn accounting."""
 
 import json
+import sys
 from contextlib import redirect_stdout
 from dataclasses import asdict, replace
 from hashlib import sha256
@@ -379,6 +380,68 @@ def _cli_verdicts() -> None:
                    "both renderings diagnose mismatched input without crashing")
 
 
+def _cli_large_integer_refusal() -> None:
+    # Ten separately decodable powers of ten can sum to one decimal digit past
+    # the interpreter's active bound; nine remain within it. This hand-counted
+    # witness checks output refusal without changing the process-wide bound.
+    limit = sys.get_int_max_str_digits()
+    amount = 10 ** ((limit or 4300) - 1)
+    with TemporaryDirectory(prefix="vos-churn-integer-") as directory:
+        root = Path(directory).resolve()
+        capture_path, expected_path = root / "capture.json", root / "expected.json"
+        for count in (9, 10):
+            capture = _capture()
+            capture["teardowns"] = [
+                {"id": str(index), "domain": "kernel-0", "retire_tick": 2, "reuse_tick": 3,
+                 "swept_capability_bytes": amount, "quarantined_bytes": 0}
+                for index in range(count)
+            ]
+            raw = json.dumps(capture).encode("utf-8")
+            expected = _expected(raw)
+            measured = analyze(raw, expected)
+            ensure(measured["within_declared_limits"] is True
+                   and _object(measured["totals"])["swept_capability_bytes_total"] == count * amount
+                   and _object(measured["totals"])["swept_capability_bytes_mean"]
+                   == {"numerator": amount, "denominator": 1},
+                   "the analyzer retains the hand-counted exact total and mean")
+            capture_path.write_bytes(raw)
+            expected_path.write_text(json.dumps(asdict(expected)), encoding="utf-8", newline="")
+            refused = bool(limit and count == 10)
+            for flags in ([], ["--json"]):
+                output = StringIO()
+                with redirect_stdout(output):
+                    actual = cli.main([str(capture_path), "--expected-identity",
+                                       str(expected_path), *flags])
+                rendered = output.getvalue()
+                ensure(actual == (2 if refused else 0),
+                       "report representability decides a refusal, not an altered measurement")
+                if flags:
+                    report = json.loads(rendered)
+                    ensure(report["scope"] == SCOPE and report["milestone_acceptance"] == "open"
+                           and report["identity"] == asdict(expected)
+                           and len(report["sources_sha256"]) == 3,
+                           "both report outcomes preserve the input and implementation identities")
+                    if refused:
+                        ensure("exact measurement report" in report["error"]
+                               and "within_declared_limits" not in report
+                               and "totals" not in report and "domains" not in report,
+                               "an unrenderable report publishes no partial measurement verdict")
+                    else:
+                        ensure(report["within_declared_limits"] is True
+                               and report["totals"]["swept_capability_bytes_total"] == count * amount,
+                               "a representable report retains its exact integer measurements")
+                elif refused:
+                    ensure(rendered.startswith("FAIL allocation-churn:")
+                           and "exact measurement report" in rendered
+                           and "ok allocation-churn:" not in rendered
+                           and "within declared limits" not in rendered
+                           and "  measurements:" not in rendered
+                           and "  identity:" in rendered and "  sources_sha256:" in rendered,
+                           "text refusal emits no preceding success or partial measurements")
+            ensure(sys.get_int_max_str_digits() == limit,
+                   "reporting leaves the process-wide integer conversion limit unchanged")
+
+
 def _cli_escaped_diagnostics() -> None:
     # JSON can carry escaped lone surrogates; valid identifiers retain their
     # semantics, while refusal diagnostics must survive strict UTF-8 output.
@@ -481,5 +544,6 @@ def cases() -> list[Case]:
             Case("malformed-records", _malformed_records),
             Case("identity-and-raw-bytes", _independent_identity_and_raw_bytes),
             Case("cli-verdicts", _cli_verdicts),
+            Case("cli-large-integer-refusal", _cli_large_integer_refusal),
             Case("cli-escaped-diagnostics", _cli_escaped_diagnostics),
             Case("cli-legacy-encoding", _cli_legacy_encoding)]

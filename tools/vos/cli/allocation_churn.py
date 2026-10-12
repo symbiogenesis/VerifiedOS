@@ -3,6 +3,7 @@
 
 import argparse
 import json
+from dataclasses import asdict
 from hashlib import sha256
 from pathlib import Path
 
@@ -26,13 +27,23 @@ def main(argv: list[str] | None = None) -> int:
                          "docs/implementation/contracts/roster-measurement.md")
         }
         expected = expected_identity(args.expected_identity.read_bytes())
-        report.update(analyze(args.capture.read_bytes(), expected))
+        report["identity"] = asdict(expected)
+        measured = analyze(args.capture.read_bytes(), expected)
+        # Individually decodable integers can produce an exact sum or rate that
+        # exceeds this interpreter's decimal conversion limit. Refuse before
+        # emitting a success line or adding unrenderable measurements to output.
+        try:
+            rendered = json.dumps({**report, **measured}, indent=2)
+        except ValueError as err:
+            raise ValueError(f"exact measurement report cannot be encoded as JSON: {err}") from err
+        report.update(measured)
         code = 0 if report["within_declared_limits"] else 1
     except (OSError, TypeError, ValueError) as err:
         report["error"] = str(err)
         code = 2
+        rendered = json.dumps(report, indent=2)
     if args.json:
-        print(json.dumps(report, indent=2))
+        print(rendered)
     else:
         reason = (report["error"] if "error" in report else
                   "within declared limits" if code == 0 else report["findings"])
@@ -43,6 +54,7 @@ def main(argv: list[str] | None = None) -> int:
         if "totals" in report:
             print(f"  measurements: {json.dumps(report['totals'], sort_keys=True)}")
             print(f"  domains: {json.dumps(report['domains'], sort_keys=True)}")
+        if "identity" in report:
             print(f"  identity: {json.dumps(report['identity'], sort_keys=True)}")
         if "sources_sha256" in report:
             print(f"  sources_sha256: {json.dumps(report['sources_sha256'], sort_keys=True)}")
