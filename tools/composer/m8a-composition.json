@@ -12,7 +12,7 @@
       "sources": [
         {
           "path": "tools/vos/composer.py",
-          "sha256": "d0b9b7d977260106f756289f46e339a8bac932b31153db2e90407570efcca46e"
+          "sha256": "71b49958eb14d5bcb65e0c2217137833858b54a12241df42eeb2753d1b028dfc"
         }
       ]
     },
@@ -229,7 +229,7 @@
         },
         {
           "path": "tools/vos/composer.py",
-          "sha256": "d0b9b7d977260106f756289f46e339a8bac932b31153db2e90407570efcca46e"
+          "sha256": "71b49958eb14d5bcb65e0c2217137833858b54a12241df42eeb2753d1b028dfc"
         }
       ],
       "descriptor": null,
