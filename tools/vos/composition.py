@@ -57,7 +57,10 @@ def _is_integer(checker: object, value: object) -> bool:
     return type(value) is int
 
 
-def _bound(root: Path, ref: dict[str, str]) -> None:
+def _bound(root: Path, ref: object) -> None:
+    if (not isinstance(ref, dict) or set(ref) != {"path", "sha256"}
+            or not isinstance(ref["path"], str) or not isinstance(ref["sha256"], str)):
+        raise CompositionError("malformed source binding: expected string path and sha256 fields")
     if reference(root, ref["path"]) != ref:
         raise CompositionError(f"stale source binding: {ref['path']}")
 
@@ -318,6 +321,8 @@ def build_record(root: Path, source: str, outputs: dict[str, bytes],
         raise CompositionError("build record: stale or missing graph binding")
     roster = boot.load_roster(root, boot.CONTRACT)
     slots = {m["artifact_slot"] for m in raw["members"] if roster.by_id()[m["id"]].kind != "offline"}
+    if not isinstance(artifacts, dict):
+        raise CompositionError("build record: malformed artifact map: expected an object")
     if set(artifacts) != slots:
         raise CompositionError("build record: artifact slots differ from the runtime roster")
     for ref in [*artifacts.values(), image]:

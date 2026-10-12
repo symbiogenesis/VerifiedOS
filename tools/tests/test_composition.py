@@ -318,6 +318,37 @@ def _build_bindings() -> None:
         record = c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph)
         c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image)
         ensure(record["production_admission"] is False, "build bindings cannot promote incomplete members")
+        malformed_maps: list[Any] = [None, [], [artifacts], False, 1, "storage-artifact"]
+        for malformed in malformed_maps:
+            _refused(lambda malformed=malformed:
+                     c.build_record(root, c.EXAMPLE, outputs, malformed, image, graph),
+                     "malformed artifact map")
+            altered = {**record, "artifacts": malformed}
+            _refused(lambda altered=altered:
+                     c.validate_build_record(root, c.EXAMPLE, altered, outputs, graph, image),
+                     "malformed artifact map")
+        valid = artifacts["storage-artifact"]
+        malformed_refs: list[Any] = [None, [], "products/storage.bin",
+                                    {"path": valid["path"]}, {"sha256": valid["sha256"]},
+                                    {**valid, "certificate": True},
+                                    {**valid, "path": False}, {**valid, "path": 1.0},
+                                    {**valid, "sha256": False}, {**valid, "sha256": 1.0}]
+        for malformed in malformed_refs:
+            substituted = {**artifacts, "storage-artifact": malformed}
+            _refused(lambda substituted=substituted:
+                     c.build_record(root, c.EXAMPLE, outputs, substituted, image, graph),
+                     "malformed source binding")
+            altered = {**record, "artifacts": substituted}
+            _refused(lambda altered=altered:
+                     c.validate_build_record(root, c.EXAMPLE, altered, outputs, graph, image),
+                     "malformed source binding")
+            _refused(lambda malformed=malformed:
+                     c.build_record(root, c.EXAMPLE, outputs, artifacts, malformed, graph),
+                     "malformed source binding")
+            altered = {**record, "image": malformed}
+            _refused(lambda altered=altered, malformed=malformed:
+                     c.validate_build_record(root, c.EXAMPLE, altered, outputs, graph, malformed),
+                     "malformed source binding")
         for field, value in (("schema_version", True), ("schema_version", 1.0),
                              ("production_admission", 0), ("production_admission", 0.0)):
             altered = {**record, field: value}
