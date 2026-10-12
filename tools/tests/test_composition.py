@@ -318,6 +318,16 @@ def _build_bindings() -> None:
         record = c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph)
         c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image)
         ensure(record["production_admission"] is False, "build bindings cannot promote incomplete members")
+        malformed_records: list[object] = [None, [], [record], False, True, 0, 1, 1.0,
+                                          "production-composition-build-bindings", ""]
+        malformed_records.extend({key: value for key, value in record.items() if key != missing}
+                                 for missing in record)
+        malformed_records.append({**record, "certificate": True})
+        for malformed in malformed_records:
+            _refused(lambda malformed=malformed:
+                     c.validate_build_record(root, c.EXAMPLE, malformed, outputs, graph, image),
+                     "malformed record")
+        c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image)
         malformed_maps: list[Any] = [None, [], [artifacts], False, 1, "storage-artifact"]
         for malformed in malformed_maps:
             _refused(lambda malformed=malformed:
