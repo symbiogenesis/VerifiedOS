@@ -130,10 +130,10 @@ class Service:
     still charged. No host observation authorizes physical backing reuse.
     """
 
-    __slots__ = ("_cells", "_classes", "bounds", "defect", "operation", "writes")
+    __slots__ = ("_bounds", "_cells", "_classes", "defect", "operation", "writes")
 
     def __init__(self, bounds: Bounds = DEFAULT_BOUNDS, defect: Defect = "none") -> None:
-        self.bounds = bounds
+        self._bounds = bounds
         self.defect = defect
         self._cells: dict[str, Value] = {}
         self._classes: dict[str, WriteClass] | MappingProxyType[str, WriteClass] = {}
@@ -154,6 +154,11 @@ class Service:
             self._declare(f"request.{holder}", None, "spsc")
             self._declare(f"response.{holder}", None, "spsc")
         self._classes = MappingProxyType(self._classes)
+
+    @property
+    def bounds(self) -> Bounds:
+        """Composition stays fixed beside the stored inventory it declared."""
+        return self._bounds
 
     @property
     def classes(self) -> Mapping[str, WriteClass]:

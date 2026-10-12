@@ -25,7 +25,11 @@ integrity seam, with no signatures, key custody, generation admission or storage
 Merkle-tree implementation. A changed system-image generation refuses old reads;
 replacing user data preserves a still-authorized predecessor's bytes and identity.
 
-`Bounds` owns the finite composition. Backing bytes include current, predecessors
+`Bounds` owns the finite composition and remains fixed after the stored inventory
+is declared. The public service configuration refuses replacement during execution;
+focused controls preserve an accepted transfer, the admitted renewal and read-counter
+limits, and the declared holder inventory beside wider bounds admitted at initialization.
+Backing bytes include current, predecessors
 and quarantined residents. Metadata has one reservation per declared holder;
 each holder has one outstanding transfer/request SPSC slot. Read length, retained
 predecessors, expiration, renewal count, tokens, read sequences, version numbers,

@@ -350,6 +350,56 @@ def _frozen_stored_inventory() -> None:
            "inventory mutation hid a subsequent common-counter defect")
 
 
+def _frozen_composition() -> None:
+    service, identity, handles = rr.fixture()
+    handle = handles[0]
+    ensure(service.renew(handle) and not service.renew(handle),
+           "fixed renewal policy lacked its positive and exhaustion controls")
+    ensure(service.begin(handle, 7, identity, 0, 16),
+           "composition control lacked an accepted transfer")
+    bounds = service.bounds
+    classes = dict(service.classes)
+    writes = list(service.writes)
+    pending = service.pending(0)
+    for replacement in (replace(bounds, renewals=4), replace(bounds, counter_limit=31),
+                        replace(bounds, holders=3)):
+        try:
+            attribute = "bounds"
+            setattr(service, attribute, replacement)
+        except AttributeError:
+            pass
+        else:
+            raise AssertionError("public composition replacement changed admitted resource bounds")
+    ensure(service.bounds == bounds and dict(service.classes) == classes
+           and service.writes == writes and service.pending(0) == pending,
+           "refused composition replacement changed state, observation or an accepted transfer")
+    ensure(service.finish(0) == b"0123456789ABCDEF" and not service.renew(handle),
+           "refused composition replacement lost payload or widened the renewal policy")
+    for _ in range(bounds.counter_limit - 1):
+        ensure(service.read(handle, 7, identity, 0, 1) == b"0",
+               "fixed read counter refused before its admitted limit")
+    ensure(service.read(handle, 7, identity, 0, 1) is None,
+           "public composition replacement widened the admitted read counter")
+    ensure(service.reserve(2, 7, identity, 0, 16) is None,
+           "public composition replacement added an undeclared holder")
+
+    # Wider bounds are legitimate composition inputs before the inventory is declared.
+    admitted = rr.Bounds(renewals=2, counter_limit=16, holders=3)
+    wider, wider_identity, wider_handles = rr.fixture(bounds=admitted)
+    third = wider.reserve(2, 7, wider_identity, 0, 16)
+    if third is None:
+        raise AssertionError("declared third holder refused")
+    ensure(wider.read(third, 7, wider_identity, 0, 16) == b"0123456789ABCDEF",
+           "declared third holder returned unexpected bytes")
+    ensure(wider.renew(wider_handles[0]) and wider.renew(wider_handles[0])
+           and not wider.renew(wider_handles[0]), "declared wider renewal policy differs")
+    for _ in range(admitted.counter_limit):
+        ensure(wider.read(wider_handles[0], 7, wider_identity, 0, 1) == b"0",
+               "declared wider read counter refused early")
+    ensure(wider.read(wider_handles[0], 7, wider_identity, 0, 1) is None,
+           "declared wider read counter failed to refuse at its own limit")
+
+
 def _source_bound_cli() -> None:
     output = StringIO()
     with redirect_stdout(output):
@@ -373,4 +423,5 @@ def cases() -> list[Case]:
             Case("resident closed predecessor capacity and bounded recovery", _closed_predecessor_capacity),
             Case("resident executed defects and complete modeled observer", _executed_controls_and_observer),
             Case("resident frozen stored inventory refuses hidden writers", _frozen_stored_inventory),
+            Case("resident fixed composition preserves admitted resource limits", _frozen_composition),
             Case("resident source-bound CLI scope and evidence", _source_bound_cli)]
