@@ -1417,6 +1417,15 @@ hosted case F-719 records, and one ML-DSA-87 verification at 600 s fit under the
 a case that reaches its timeout supplies no verdict. Guest CI does not run the
 campaign.
 
+The workflow's readiness plan validates the requested revision's membership in
+`main` and normalizes its bounded timeout in the trusted dispatching checkout,
+using [the timeout helper](../../../tools/ci/boot_chain_plan.py). It then checks
+out the pinned revision and runs that revision's existing strict `chain-verify`
+command before allocating campaign runners. This also supports earlier pinned
+revisions that carry no new helper. A refused plan starts no campaign or diagnostic
+join; every allocated runner still checks its own revision and staging. Readiness
+does not establish target execution or supply missing compiler provenance.
+
 Fresh staging, `chain-verify` and target execution require complete contained
 compiler provenance for both the chain and the signature streams, including
 `build_receipt: present` and native tool identities bound to the released
