@@ -15,215 +15,16 @@ cannot supply an external root.
 import gzip
 import hashlib
 import json
-import re
-import subprocess
-import zlib
-from collections.abc import Iterator
-from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import cast
+from contextlib import redirect_stdout
+from io import StringIO
+from pathlib import Path
+from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
-
-EVIDENCE = "docs/implementation/retained-evidence"
-# A Markdown link whose text is a code span, and the hash a note may record after it.
-_LINK = re.compile(r"\[`(?P<cited>[^`]+)`\]\((?P<target>[^)\s]+)\)"
-                   r"(?:\s*[,(]?\s*(?:has\s+)?SHA-?256\s+`(?P<sha>[0-9a-f]{64})`)?")
-_SHA256 = re.compile(r"[0-9a-f]{64}")
-
-
-def _cited(rel: str) -> str:
-    """The path a citation names for the copy at `rel`; guest paths are absolute."""
-    return "/" + rel if rel.startswith("root/") else rel
-
-
-def _tracked(root: Path) -> list[str]:
-    done = subprocess.run(["git", "-C", str(root), "ls-files", "-z"], capture_output=True,
-                          check=True, timeout=60)
-    return [name for name in done.stdout.decode("utf-8").split("\0") if name]
-
-
-def _bindings(value: object) -> Iterator[tuple[str, str]]:
-    """Every JSON object that binds a path to a SHA-256."""
-    if isinstance(value, dict):
-        path, sha = value.get("path"), value.get("sha256")
-        if isinstance(path, str) and isinstance(sha, str):
-            yield path, sha
-        for item in value.values():
-            yield from _bindings(item)
-    elif isinstance(value, list):
-        for item in value:
-            yield from _bindings(item)
-
-
-def _manifest_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    """A retained map may not conceal a member beneath a duplicate JSON key."""
-    result: dict[str, object] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate manifest key {key!r}")
-        result[key] = value
-    return result
-
-
-def _manifest_files(blob: bytes) -> dict[str, object]:
-    document = json.loads(blob.decode("utf-8"), object_pairs_hook=_manifest_object)
-    files = document.get("files") if isinstance(document, dict) else None
-    if not isinstance(files, dict) or not files:
-        raise ValueError("bundle manifest requires a nonempty files map")
-    return cast("dict[str, object]", files)
-
-
-def _member_path(root: Path, owner: str, path: object) -> str:
-    """Portable relative names must stay beneath their manifest's own directory."""
-    if not isinstance(path, str) or not path:
-        raise ValueError("member path must be a nonempty relative name")
-    portable = path.replace("\\", "/")
-    windows, posix = PureWindowsPath(path), PurePosixPath(portable)
-    if windows.drive or windows.root or posix.is_absolute() or ".." in posix.parts:
-        raise ValueError(f"absolute or traversing member path {path!r}")
-    manifest = (root / EVIDENCE / owner).resolve()
-    target = (manifest.parent / portable).resolve()
-    if target == manifest or not target.is_relative_to(manifest.parent):
-        raise ValueError(f"self or escaping member path {path!r}")
-    return target.relative_to((root / EVIDENCE).resolve()).as_posix()
-
-
-def _identity(data: bytes, sha: object, count: object, role: str) -> None:
-    if (not isinstance(sha, str) or _SHA256.fullmatch(sha) is None
-            or type(count) is not int or count < 0):
-        raise ValueError(f"{role} identity requires SHA-256 and a nonnegative byte count")
-    if len(data) != count or hashlib.sha256(data).hexdigest() != sha:
-        raise ValueError(f"{role} hash or size does not match the retained bytes")
-
-
-def _member_bytes(blob: bytes, entry: dict[str, object]) -> int:
-    """Check the stored bytes and, for gzip, the decoded content separately."""
-    encoding = entry.get("encoding", "identity")
-    if encoding not in ("identity", "gzip"):
-        raise ValueError(f"unknown member encoding {encoding!r}")
-    stored = encoding == "gzip" or "stored_sha256" in entry or "stored_bytes" in entry
-    if stored:
-        _identity(blob, entry.get("stored_sha256"), entry.get("stored_bytes"), "stored")
-    content = blob
-    if encoding == "gzip":
-        if not blob.startswith(b"\x1f\x8b"):
-            raise ValueError("gzip member lacks a gzip header")
-        content = gzip.decompress(blob)
-    _identity(content, entry.get("sha256"), entry.get("bytes"), "content")
-    return 1 + int(stored)
-
-
-def _bundles(root: Path, names: set[str], data: dict[str, bytes],
-             roots: set[str]) -> tuple[list[str], set[str], int]:
-    """Only independently linked, SHA-bound manifests confer member citation.
-
-    A nested manifest is retained as bytes; it needs its own external root before
-    its children count. Internal links or a cycle never create an external root.
-    """
-    findings: list[str] = []
-    seen: set[str] = set()
-    compared = 0
-    for owner in sorted(name for name in names if PurePosixPath(name).name == "manifest.json"):
-        if owner not in roots:
-            findings.append(f"{owner}: bundle has no externally linked SHA-bound root")
-        if owner not in data:
-            continue
-        try:
-            files = _manifest_files(data[owner])
-        except ValueError as error:
-            findings.append(f"{owner}: invalid bundle schema ({error})")
-            continue
-        for key, entry in files.items():
-            if not isinstance(entry, dict):
-                findings.append(f"{owner}: member {key!r} is not an identity record")
-                continue
-            try:
-                member = _member_path(root, owner, entry.get("path", key))
-                blob = data.get(member) if member in names else None
-                if blob is None:
-                    findings.append(f"{owner}: member {key!r} names no indexed readable copy: {member}")
-                    continue
-                checked = _member_bytes(blob, entry)
-            except (OSError, ValueError, EOFError, zlib.error) as error:
-                findings.append(f"{owner}: member {key!r} is invalid ({error})")
-                continue
-            compared += checked
-            if owner in roots:
-                seen.add(_cited(member))
-    return findings, seen, compared
-
-
-def _findings(root: Path) -> tuple[list[str], int]:
-    """Each disagreement between the copies and their citations, and the hashes compared."""
-    tracked = _tracked(root)
-    prefix = EVIDENCE + "/"
-    names = {name[len(prefix):] for name in tracked
-             if name.startswith(prefix) and name != prefix + "README.md"}
-    findings: list[str] = []
-    data: dict[str, bytes] = {}
-    for rel in sorted(names):
-        try:
-            data[rel] = (root / prefix / rel).read_bytes()
-        except OSError as error:
-            findings.append(f"{rel}: retained copy cannot be read ({error})")
-    copies = {rel: hashlib.sha256(blob).hexdigest() for rel, blob in data.items()}
-    by_cited = {_cited(rel): rel for rel in names}
-    evidence = (root / EVIDENCE).resolve()
-    compared = 0
-    for rel in copies:
-        if rel.endswith(".json"):
-            try:
-                json.loads(data[rel].decode("utf-8"))
-            except ValueError as err:
-                findings.append(f"{rel}: not valid JSON ({err})")
-    seen: set[str] = set()
-    roots: set[str] = set()
-    for name in tracked:
-        if name.startswith(prefix) or not name.endswith((".md", ".json")):
-            continue
-        text = (root / name).read_text(encoding="utf-8", errors="replace")
-        present = [cited for cited in by_cited if cited in text]
-        if not present:
-            continue
-        seen.update(present)
-        if name.endswith(".json"):
-            for path, sha in _bindings(json.loads(text)):
-                if path in by_cited:
-                    compared += 1
-                    if sha != copies.get(by_cited[path]):
-                        findings.append(f"{name}: binds {path} to {sha}, "
-                                        f"not its retained copy's bytes")
-                    else:
-                        roots.add(by_cited[path])
-            continue
-        for match in _LINK.finditer(text):
-            target = ((root / name).parent / match["target"]).resolve()
-            if not target.is_relative_to(evidence):
-                continue
-            rel = target.relative_to(evidence).as_posix()
-            if rel not in copies:
-                findings.append(f"{name}: links {match['target']}, which is not a retained copy")
-                continue
-            if match["cited"] != _cited(rel):
-                findings.append(f"{name}: link text {match['cited']} does not name the "
-                                f"path {_cited(rel)} its copy retains")
-            if match["sha"]:
-                compared += 1
-                if match["sha"] != copies[rel]:
-                    findings.append(f"{name}: records SHA256 {match['sha']} beside "
-                                    f"{_cited(rel)}, not its retained copy's bytes")
-                elif match["cited"] == _cited(rel):
-                    roots.add(rel)
-        findings.extend(f"{name}: cites {cited} without linking its retained copy"
-                        for cited in present
-                        if re.search(r"(?<!\[)" + re.escape(f"`{cited}`"), text))
-    bundled, members, hashes = _bundles(root, names, data, roots)
-    findings += bundled
-    seen |= members
-    compared += hashes
-    findings.extend(f"{by_cited[cited]}: no tracked file cites {cited}"
-                    for cited in sorted(set(by_cited) - seen))
-    return findings, compared
+from vos import receipts, retained_evidence
+from vos.cli import retain
+from vos.retained_evidence import EVIDENCE
+from vos.retained_evidence import findings as _findings
 
 
 def _live() -> None:
@@ -255,8 +56,6 @@ def _controls() -> None:
         "bound hash": {"record.json": json.dumps({"path": "/root/build/a/report.json",
                                                   "sha256": other})},
         "unlinked citation": {"docs/other.md": "See `out/b.json`.\n"},
-        "link text": {"docs/implementation/log.md":
-                      note.replace("[`out/b.json`]", "[`out/c.json`]")},
         "uncited copy": {f"{EVIDENCE}/out/c.json": "{}\n"},
         "invalid copy": {f"{EVIDENCE}/out/b.json": "{\n"},
     }
@@ -421,9 +220,183 @@ def _nested_bundles_need_independent_roots() -> None:
            f"an internal circular bundle reference must not establish roots: {findings}")
 
 
+def _descriptive_citations() -> None:
+    base = _bundle_tree(explicit=True)
+    note = "docs/implementation/log.md"
+    owner = "q39/bundle/manifest.json"
+    readable = base[note].replace(f"[`{owner}`]".encode(), b"[Hosted compiler results]")
+    findings, compared = _audit_bytes(base | {note: readable})
+    ensure(not findings and compared >= 2,
+           f"a descriptive label must retain independently checked target and hash: {findings}")
+    for text, expected in (
+            (readable.replace(hashlib.sha256(base[f"{EVIDENCE}/{owner}"]).hexdigest().encode(),
+                              b"0" * 64), "no externally linked SHA-bound root"),
+            (readable.replace(b"retained-evidence/q39/bundle/manifest.json", b"../../outside.json"),
+             "no externally linked SHA-bound root")):
+        findings, _ = _audit_bytes(base | {note: text})
+        ensure(any(expected in finding for finding in findings),
+               f"readable labels must not bypass a root's target or hash: {findings}")
+    manifest = json.loads(base[f"{EVIDENCE}/{owner}"])
+    manifest["files"]["alias"] = manifest["files"]["record"]
+    findings, _ = _audit_bytes(_replace_manifest(base, manifest))
+    ensure(any("colliding member path" in finding for finding in findings),
+           f"different map keys may not conceal the same member target: {findings}")
+
+
+def _produced_bundle() -> None:
+    note = "docs/implementation/log.md"
+    payload = b'{"observed": true}\n'
+    compressed = gzip.compress(b"compile log\n", mtime=0)
+    with sandbox_tree({note: "Owning note stays unchanged.\n", "raw/source.json": "{}\n",
+                       "raw/source.gz": "placeholder"}) as root:
+        source = root / "raw/source.json"
+        source.write_bytes(payload)
+        (root / "raw/source.gz").write_bytes(compressed)
+        index = receipts.digest(root / ".git/index")
+        result = retained_evidence.produce(root, "q40/bundle space", [
+            retained_evidence.Member(source, "record data.json"),
+            retained_evidence.Member(root / "raw/source.gz", "logs/compile.gz", "gzip")],
+            note=Path(note), label="Hosted compiler results")
+        ensure((root / note).read_text() == "Owning note stays unchanged.\n"
+               and receipts.digest(root / ".git/index") == index,
+               "producing a bundle must edit neither its note nor the Git index")
+        ensure(result.sha256 == receipts.digest(result.manifest)
+               and "[Hosted compiler results]" in result.citation
+               and "bundle%20space" in result.citation,
+               "the generated citation must identify the published manifest relative to its note")
+        files = {f"{EVIDENCE}/README.md": b"# copies\n", note: result.citation.encode()}
+        files.update({path.relative_to(root).as_posix(): path.read_bytes()
+                      for path in result.manifest.parent.rglob("*") if path.is_file()})
+        findings, compared = _audit_bytes(files)
+        ensure(not findings and compared == 4,
+               f"produced identity/gzip files must satisfy the indexed retention relation: {findings}")
+        copied = f"{EVIDENCE}/q40/bundle space/record data.json"
+        ensure(files[copied] == payload
+               and files[f"{EVIDENCE}/q40/bundle space/logs/compile.gz"] == compressed,
+               "the producer must preserve both plain and compressed source bytes verbatim")
+        findings, _ = _audit_bytes(files | {copied: b'{"observed": false}\n'})
+        ensure(any("content hash or size" in finding for finding in findings),
+               f"later changed retained bytes must fail their generated identity: {findings}")
+
+
+def _producer_refusals() -> None:
+    with sandbox_tree({"source.txt": "observed", "docs/note.md": "note"}) as root:
+        source = root / "source.txt"
+        base = root / EVIDENCE
+        member = retained_evidence.Member(source, "record.txt")
+        for name in ("../escape", "/absolute", "C:/outside", "a\\b", "a//b", "a/./b",
+                     "%SystemDrive%/outside", "CON", "a."):
+            try:
+                retained_evidence.produce(root, name, [member], note=Path("docs/note.md"))
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(f"invalid bundle name {name!r} must be refused")
+        for names in (("same.txt", "same.txt"), ("same.txt", "SAME.txt"),
+                      ("record.txt", "record.txt/child"), ("Folder/a", "folder/b"),
+                      ("../escape",), ("manifest.json",), ("child/manifest.json",),
+                      ("a//b",), ("C:record",), ("a:stream",), ("NUL.txt",)):
+            selected = [retained_evidence.Member(source, name) for name in names]
+            try:
+                retained_evidence.produce(root, "bundle", selected, note=Path("docs/note.md"))
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(f"ambiguous or escaping members {names!r} must be refused")
+            ensure(not (base / "bundle").exists(), "a refused selection must publish no bundle")
+        (base / "existing").mkdir(parents=True)
+        for name in ("existing", "EXISTING"):
+            try:
+                retained_evidence.produce(root, name, [member], note=Path("docs/note.md"))
+            except (FileExistsError, ValueError):
+                pass
+            else:
+                raise AssertionError("an existing empty destination or casing alias must be refused")
+        with patch.object(Path, "is_symlink", side_effect=lambda: True):
+            try:
+                retained_evidence.produce(root, "linked", [member], note=Path("docs/note.md"))
+            except ValueError as error:
+                ensure("symlink" in str(error), "a symlink must be refused before resolving it")
+            else:
+                raise AssertionError("a linked root or parent must be refused")
+        for encoding in ("gzip", "brotli"):
+            try:
+                retained_evidence.produce(root, "bad-encoding", [
+                    retained_evidence.Member(source, "record", encoding)], note=Path("docs/note.md"))
+            except (ValueError, OSError):
+                pass
+            else:
+                raise AssertionError(f"an invalid {encoding} input must be refused")
+        ensure(not (base / "bad-encoding").exists(), "invalid gzip must publish no destination")
+
+
+def _producer_interruption_and_collision() -> None:
+    with sandbox_tree({"source.txt": "observed", "docs/note.md": "note"}) as root:
+        member = retained_evidence.Member(root / "source.txt", "record.txt")
+        target = root / EVIDENCE / "bundle"
+        with patch("vos.retained_evidence.receipts.write", side_effect=KeyboardInterrupt):
+            try:
+                retained_evidence.produce(root, "bundle", [member], note=Path("docs/note.md"))
+            except KeyboardInterrupt:
+                pass
+            else:
+                raise AssertionError("an interrupted manifest write must propagate")
+        ensure(not target.exists() and not list(target.parent.glob(".retain-*")),
+               "interrupted production must leave no published or partial bundle")
+        write = receipts.write
+
+        def collide(path: Path, payload: object) -> None:
+            write(path, payload)
+            target.mkdir()
+
+        with patch("vos.retained_evidence.receipts.write", side_effect=collide):
+            try:
+                retained_evidence.produce(root, "bundle", [member], note=Path("docs/note.md"))
+            except FileExistsError:
+                pass
+            else:
+                raise AssertionError("a destination created during copying must not be overwritten")
+        ensure(target.is_dir() and not list(target.iterdir())
+               and not list(target.parent.glob(".retain-*")),
+               "publication collision must preserve the other destination and remove private staging")
+
+
+def _producer_source_symlink() -> None:
+    with sandbox_tree({"source.txt": "observed", "docs/note.md": "note"}) as root:
+        source = root / "linked.txt"
+        source.symlink_to(root / "source.txt")
+        try:
+            retained_evidence.produce(root, "bundle", [retained_evidence.Member(source, "record")],
+                                     note=Path("docs/note.md"))
+        except ValueError as error:
+            ensure("symlink" in str(error), "source symlinks must be refused")
+        else:
+            raise AssertionError("a source symlink must not be followed")
+
+
+def _retain_command() -> None:
+    with sandbox_tree({"source.txt": "observed", "docs/note.md": "note"}) as root:
+        for argv, expected in ((["--file", "record.txt=source.txt"], 0),
+                               (["--file", "missing-separator"], 1)):
+            output = StringIO()
+            with patch("vos.cli.retain.find_root", return_value=root), redirect_stdout(output):
+                status = retain.main(["--bundle", "command", "--note", "docs/note.md",
+                                      "--label", "Hosted run logs", *argv])
+            ensure(status == expected, f"CLI selection must return {expected}: {output.getvalue()}")
+            if status == 0:
+                ensure("[Hosted run logs](implementation/retained-evidence/command/manifest.json)"
+                       in output.getvalue(), "CLI citation must be relative to the requested note")
+
+
 def cases() -> list[Case]:
     return [Case("retained-copies-match-their-citations", _live),
             Case("retained-copy-defects-are-refused", _controls),
             Case("rooted-bundle-members-bind-their-bytes", _bundle_controls),
             Case("gzip-bundle-members-bind-stored-and-decoded-bytes", _gzip_bundle_controls),
-            Case("nested-bundles-need-independent-roots", _nested_bundles_need_independent_roots)]
+            Case("nested-bundles-need-independent-roots", _nested_bundles_need_independent_roots),
+            Case("descriptive-labels-keep-target-and-hash-checks", _descriptive_citations),
+            Case("produced-bundles-bind-verbatim-stored-and-decoded-bytes", _produced_bundle),
+            Case("producer-refuses-ambiguous-escaping-and-existing-paths", _producer_refusals),
+            Case("interruption-and-publication-collision-preserve-destination", _producer_interruption_and_collision),
+            Case("producer-refuses-source-symlinks", _producer_source_symlink, lane="guest"),
+            Case("retain-command-prepares-a-readable-citation", _retain_command)]
