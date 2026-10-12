@@ -104,6 +104,35 @@ def _flat_of_contract() -> None:
         ensure(config.flat_of(good) == {"a.b": 1}, "flat_of must flatten a real file")
 
 
+def _disappearing_file_contract() -> None:
+    # The file can disappear after the presence check, before either stat or
+    # the decoder opens it. It is still absent for both readers.
+    load = config.jsonc.load
+    is_file = Path.is_file
+
+    def disappear_before_read(path: str | Path) -> Json:
+        Path(path).unlink()
+        return load(path)
+
+    def disappear_before_stat(path: Path) -> bool:
+        present = is_file(path)
+        path.unlink()
+        return present
+
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        path = Path(td) / "c.json"
+        for stage in ("stat", "read"):
+            hook = (patch.object(Path, "is_file", disappear_before_stat) if stage == "stat"
+                    else patch.object(config.jsonc, "load", side_effect=disappear_before_read))
+            with hook:
+                path.write_text('{"a": 1}', encoding="utf-8")
+                ensure(config.value(path, "a") is None,
+                       f"a file disappearing before value's {stage} must answer None")
+                path.write_text('{"a": 1}', encoding="utf-8")
+                ensure(config.flat_of(path) == {},
+                       f"a file disappearing before flat_of's {stage} must answer empty")
+
+
 def _compare_keys_both_directions() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         left = Path(td) / "left.json"
@@ -199,6 +228,7 @@ def cases() -> list[Case]:
         Case("is-value-shapes", _is_value_shapes),
         Case("keys-and-flat", _keys_and_flat),
         Case("flat-of-contract", _flat_of_contract),
+        Case("disappearing-file-contract", _disappearing_file_contract),
         Case("compare-keys-both-directions", _compare_keys_both_directions),
         Case("memo-sees-mtime", _memo_sees_mtime),
         Case("memo-reuses-successful-parses", _memo_reuses_successful_parses),
