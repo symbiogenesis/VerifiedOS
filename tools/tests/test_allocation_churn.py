@@ -207,6 +207,62 @@ def _independent_domain_pools() -> None:
            "different-time pool peaks are not added into an invented simultaneous peak")
 
 
+def _many_domain_accounting() -> None:
+    # Independently analyze each bucket, then join only its report/findings.
+    # Different periods, idle buckets and shuffled records must not change
+    # attribution, declared ordering or the whole-capture simultaneous peak.
+    for count, reverse in product((1, 3, 17, 64), (False, True)):
+        capture = _capture()
+        capture["window"]["end_tick"] = 12
+        capture["domains"] = []
+        capture["teardowns"] = []
+        capture["sweep_quanta"] = []
+        active = [index for index in range(count) if index % 3]
+        for index in range(count):
+            name = f"kernel-{index}"
+            period = (3, 4, 6)[index % 3]
+            capture["domains"].append({
+                "id": name, "period_ticks": period,
+                "background_ticks_per_period": 1 if index % 2 else period,
+                "quarantine_capacity_bytes": index + 1,
+            })
+            if index not in active:
+                continue
+            capture["teardowns"].extend([
+                {"id": f"{index}-{suffix}", "domain": name, "retire_tick": retire,
+                 "reuse_tick": reuse, "swept_capability_bytes": index + suffix,
+                 "quarantined_bytes": index + suffix}
+                for suffix, retire, reuse in ((1, 1, 3), (2, 3, 6))
+            ])
+            capture["sweep_quanta"].append({"domain": name, "start_tick": 2, "end_tick": 7})
+        if reverse:
+            for key in ("domains", "teardowns", "sweep_quanta"):
+                capture[key].reverse()
+        report = _report(capture)
+        findings: list[Json] = []
+        for position, domain in enumerate(capture["domains"]):
+            isolated = dict(capture)
+            isolated["domains"] = [domain]
+            for key in ("teardowns", "sweep_quanta"):
+                isolated[key] = [row for row in capture[key] if row["domain"] == domain["id"]]
+            independent = _report(isolated)
+            ensure(json.dumps(_domain(report, position)) == json.dumps(_domain(independent)),
+                   "combined domain reports retain independent measurements and field order")
+            independent_findings = independent["findings"]
+            if not isinstance(independent_findings, list):
+                raise TypeError("independent findings are an array")
+            findings.extend(independent_findings)
+        ensure(report["findings"] == findings
+               and report["within_declared_limits"] == (not findings),
+               "combined findings retain the declared bucket order and independent decisions")
+        totals = _object(report["totals"])
+        ensure(totals["teardown_count"] == 2 * len(active)
+               and totals["swept_capability_bytes_total"] == sum(2 * index + 3 for index in active)
+               and totals["quarantine_peak_bytes"] == sum(index + 2 for index in active)
+               and totals["quarantine_peak_tick"] == (3 if active else None),
+               "hand-counted whole-capture totals include each independent record once")
+
+
 def _six_tick_capture() -> dict[str, Any]:
     capture = _capture()
     capture["window"]["end_tick"] = 6
@@ -539,6 +595,7 @@ def cases() -> list[Case]:
             Case("shifted-peak-boundaries", _shifted_peak_boundaries),
             Case("budget-excess", _budget_excess),
             Case("independent-domain-pools", _independent_domain_pools),
+            Case("many-domain-accounting", _many_domain_accounting),
             Case("generated-quarantine-accounting", _generated_quarantine_accounting),
             Case("generated-period-accounting", _generated_period_accounting),
             Case("malformed-records", _malformed_records),

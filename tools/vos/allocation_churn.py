@@ -265,11 +265,20 @@ def analyze(raw: bytes, expected: ExpectedIdentity) -> dict[str, Json]:
     names = {domain.name for domain in domains}
     teardowns = _teardowns(capture["teardowns"], start, end, names)
     quanta = _quanta(capture["sweep_quanta"], start, end, names)
+    # Attribute each record once rather than scanning the whole capture for
+    # every independent bucket. Keep capture order within each bucket and the
+    # declared domain order for reports and diagnostics.
+    events_by_domain: dict[str, list[Teardown]] = {name: [] for name in names}
+    service_by_domain: dict[str, list[Quantum]] = {name: [] for name in names}
+    for event in teardowns:
+        events_by_domain[event.domain].append(event)
+    for quantum in quanta:
+        service_by_domain[quantum.domain].append(quantum)
     findings: list[Json] = []
     domain_reports: list[Json] = []
     for domain in domains:
-        events = tuple(row for row in teardowns if row.domain == domain.name)
-        service = tuple(row for row in quanta if row.domain == domain.name)
+        events = tuple(events_by_domain[domain.name])
+        service = tuple(service_by_domain[domain.name])
         if any(row.swept_capability_bytes for row in events) and not service:
             raise ValueError(f"domain {domain.name!r}: swept footprint has no recorded sweep service")
         peak_bytes, peak_tick = _peak_quarantine(events)
