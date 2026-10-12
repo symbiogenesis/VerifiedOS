@@ -244,7 +244,7 @@ def _numeric_contracts() -> None:
     # Programmatic callers reach the same finite predicate without the JSON
     # reader. Numeric aliases must not create fractional cycles or hart IDs.
     base = Contract((1, 0), ((((0, 1, 0),),), ((),)))
-    ensure(check(base).zero_wait and phase_completion.check(base).ordered,
+    ensure(check(base).zero_wait and phase_completion.check(base).ordered is True,
            "the integer companion must remain accepted by both predicates")
     for value in (False, True, 0.5, 1.0, float("nan"), float("inf"), "1", None):
         invalid = cast(int, value)
