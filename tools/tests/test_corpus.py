@@ -203,6 +203,20 @@ def _index_is_independent_of_document_bytes_and_refreshes() -> None:
         ensure(first.files == ("docs/a.md",), "the earlier reading stays independent")
 
 
+def _index_preserves_unicode_line_separators() -> None:
+    names = [f"docs/a{separator}b.md" for separator in ("\u0085", "\u2028", "\u2029")]
+    files = {name: "# A\n" for name in names}
+    with sandbox_tree(files) as root:
+        index = corpus_mod.read_index(root)
+        ensure(index.files == tuple(names) and index.indexed == set(names),
+               f"line separators inside a path are not index-record delimiters: {index}")
+        corpus = corpus_mod.load(root)
+        ensure(corpus.tracked == names and set(corpus.by_name) == set(names),
+               "each Unicode-separator Markdown path stays readable in the corpus")
+        ensure(all(corpus.by_name[name].raw == files[name] for name in names),
+               "a document is opened through the exact path Git indexed")
+
+
 def _staged_batch_preserves_bytes_and_refreshes() -> None:
     with sandbox_tree({".gitattributes": "* -text\n", "docs/a.md": "# A\n"}) as root:
         bodies = {"binary.dat": b"\0\xff\r\nnot a header\0",
@@ -370,6 +384,8 @@ def cases() -> list[Case]:
              _indexed_files_exclude_gitlinks_and_untracked_files),
         Case("index-independent-of-document-bytes-and-refreshes",
              _index_is_independent_of_document_bytes_and_refreshes),
+        Case("index-preserves-unicode-line-separators",
+             _index_preserves_unicode_line_separators),
         Case("staged-batch-preserves-bytes-and-refreshes",
              _staged_batch_preserves_bytes_and_refreshes),
         Case("batch-framing-refuses-incomplete-output", _batch_framing_refuses_incomplete_output),

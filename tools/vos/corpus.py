@@ -346,14 +346,15 @@ def _git_environment(root: Path) -> dict[str, str] | None:
 
 
 def _git(root: Path, *args: str) -> list[str]:
+    """Read a NUL-framed listing without quoting or newline translation of paths."""
     proc = subprocess.run(
-        ["git", "-c", "core.quotepath=false", *args],
-        cwd=root, capture_output=True, text=True, encoding="utf-8", check=False,
+        ["git", *args], cwd=root, capture_output=True, check=False,
         env=_git_environment(root),
     )
     if proc.returncode != 0:
-        raise RuntimeError(f"git {' '.join(args)} failed: {proc.stderr.strip()}")
-    return proc.stdout.splitlines()
+        detail = proc.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(f"git {' '.join(args)} failed: {detail}")
+    return proc.stdout.decode("utf-8").split("\0")[:-1]
 
 
 def staged_bytes(root: Path, path: str) -> bytes | None:
@@ -463,7 +464,7 @@ def read_index(root: Path) -> Index:
     gitlinks: dict[str, str] = {}
     indexed: set[str] = set()
     seen: set[str] = set()
-    for entry in _git(root, "ls-files", "--stage", "--full-name"):
+    for entry in _git(root, "ls-files", "--stage", "--full-name", "-z"):
         staged, _, path = entry.partition("\t")
         mode, oid, stage = staged.split()
         if stage == "0" and mode != GITLINK_MODE:
