@@ -106,6 +106,7 @@ def _summary_values() -> dict[str, str]:
         "Completed scope h": "6",
         "Complete by estimate %": "40.0",
         "Remaining h": "9",
+        "Committed remaining h": "9",
         "Open class I h": "0",
         "Open class X h": "9",
         "Retained completion estimate h": "6",

@@ -1225,6 +1225,9 @@ CASES: list[Case] = [
     ("K-37", "a gate figure its explicit leaves do not give",
      _renumber(PLAN, r"(?m)^\| Committed M8a open h \| ([\d.,]+) \|", 1, "999")),
 
+    ("K-37", "a committed total its explicit dispositions do not give",
+     _renumber(PLAN, r"(?m)^\| Committed remaining h \| ([\d.,]+) \|", 1, "999")),
+
     # Move the range alone: the midpoint still agrees with its source cells.
     ("K-37", "a committed gate range its explicit leaves do not give",
      _renumber(PLAN, r"(?m)^\| Committed M8a open range h \| ([\d.,]+)–",

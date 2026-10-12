@@ -406,6 +406,7 @@ These figures sum the full priced reference-build, assessment and named hardenin
 | Completed scope h | 860.9 |
 | Complete by estimate % | 18.8 |
 | Remaining h | 3,730.5 |
+| Committed remaining h | 2,316.5 |
 | Open class I h | 781.5 |
 | Open class X h | 2,949 |
 | Retained completion estimate h | 257.5 |

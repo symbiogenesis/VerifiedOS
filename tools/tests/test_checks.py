@@ -207,8 +207,10 @@ def _optional_work_never_enters_gates_by_default() -> None:
         repaired = ctx.fixed[PLAN]
         ensure("| Committed M8a open h | 10 |" in repaired
                and "| Committed M8b open h | 20 |" in repaired
+               and "| Committed remaining h | 30 |" in repaired
+               and "| Remaining h | 147 |" in repaired
                and "| Unfunded option open h | 117 |" in repaired,
-               "an option changes full scope, not either committed gate")
+               "an option changes full scope, not either gate or total committed effort")
 
 
 def _explicitly_deferred_checklist_leaves_leave_early_gates() -> None:

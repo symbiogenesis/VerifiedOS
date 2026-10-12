@@ -129,6 +129,7 @@ SUMMARY_FIELDS: dict[str, re.Pattern[str]] = {
     "Completed scope h": HOURS_RE,
     "Complete by estimate %": HOURS_RE,
     "Remaining h": HOURS_RE,
+    "Committed remaining h": HOURS_RE,
     "Open class I h": HOURS_RE,
     "Open class X h": HOURS_RE,
     "Retained completion estimate h": HOURS_RE,
@@ -142,7 +143,8 @@ SUMMARY_FIELDS: dict[str, re.Pattern[str]] = {
 # are valid. It cannot populate new commitments from the old exclusion lists.
 LEGACY_SUMMARY_FIELDS = {
     **{key: pattern for key, pattern in SUMMARY_FIELDS.items()
-       if key not in WORK_FIELDS.values() and not key.startswith("Committed M8a")},
+       if key not in WORK_FIELDS.values() and not key.startswith("Committed M8a")
+       and key != "Committed remaining h"},
     "M8a open h": HOURS_RE,
     "M8a open class X h": HOURS_RE,
     "M8b parallel chain h": HOURS_RE,
@@ -735,6 +737,8 @@ def run(ctx: Context) -> None:
                                             for c, h in by_class.items()), 1)
             values["Calibrated total h"] = format_hours(calibrated)
         if not order.findings:
+            values["Committed remaining h"] = format_hours(round(sum(
+                i.hours for name in ("m8a", "m8b", "committed") for i in buckets[name]), 1))
             for name, field in WORK_FIELDS.items():
                 values[field] = format_hours(round(sum(i.hours for i in buckets[name]), 1))
             gate_a = buckets["m8a"]
