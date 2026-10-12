@@ -9,7 +9,7 @@ it does not implement generation admission, signatures or the storage Merkle tre
 
 import hashlib
 import sys
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, fields, replace
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Literal
@@ -38,7 +38,8 @@ class Bounds:
     counter_limit: int = 15
 
     def __post_init__(self) -> None:
-        if (not 2 <= self.holders <= 4 or not 2 <= self.residents <= 4
+        if (any(type(getattr(self, field.name)) is not int for field in fields(self))
+                or not 2 <= self.holders <= 4 or not 2 <= self.residents <= 4
                 or not 1 <= self.request_bytes <= self.backing_bytes <= 64
                 or not 1 <= self.retention <= self.counter_limit <= 255
                 or not 0 <= self.renewals <= 4

@@ -4,7 +4,7 @@
 import json
 import operator
 from contextlib import redirect_stdout
-from dataclasses import replace
+from dataclasses import asdict, replace
 from io import StringIO
 from typing import TYPE_CHECKING, cast
 
@@ -259,6 +259,46 @@ def _resource_limits() -> None:
            "version counter overflow accepted")
 
 
+def _integral_composition() -> None:
+    bounds = rr.Bounds()
+    cyclic: list[object] = []
+    cyclic.append(cyclic)
+    for field, value in cast("dict[str, int]", asdict(bounds)).items():
+        for malformed in (True, False, float(value), value + 0.5,
+                          float("nan"), float("inf"), str(value), None,
+                          {"value": value}, cyclic):
+            try:
+                replace(bounds, **{field: malformed})
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(f"non-integral composition accepted for {field}: {malformed!r}")
+
+    # Integer compositions remain inhabited at both ends of the declared ranges.
+    for admitted in (rr.Bounds(backing_bytes=1, residents=2, holders=2, request_bytes=1,
+                               retention=1, renewals=0, predecessors=0, counter_limit=1),
+                     rr.Bounds(backing_bytes=64, residents=4, holders=4, request_bytes=64,
+                               retention=255, renewals=4, predecessors=3, counter_limit=255)):
+        service = rr.Service(admitted)
+        identity = rr.Identity(1, 7, 1, 1, rr.authenticated_root("user-data", 1, b"x"))
+        ensure(service.publish(rr.Resident(identity, b"x")) == 0,
+               "integer composition boundary refused its backing control")
+        handle = service.reserve(0, 7, identity, 0, 1)
+        if handle is None:
+            raise AssertionError("integer composition boundary refused its reservation control")
+        for _ in range(admitted.counter_limit):
+            ensure(service.read(handle, 7, identity, 0, 1) == b"x",
+                   "integer composition counter refused before its declared limit")
+        ensure(service.read(handle, 7, identity, 0, 1) is None
+               and service._integer("sequence.0") == admitted.counter_limit,
+               "integer composition counter admitted a sequence past its declared limit")
+        complete, steps = service.retire(handle.slot, cooperative_holder=False)
+        ensure(complete and steps <= admitted.retirement_steps and service.safe_backing(),
+               "integer composition boundary exceeded holder-independent retirement")
+        ensure(service.traffic()["common"] == 0,
+               "integer composition validation added common read writes")
+
+
 def _reused_slot_identity() -> None:
     for outstanding in (False, True):
         service, identity, handles = rr.fixture()
@@ -484,6 +524,7 @@ def cases() -> list[Case]:
             Case("resident current authority and admitted-transfer cuts", _authority_and_lifecycle_cuts),
             Case("resident retained version and holder-independent retirement", _replacement_and_bounded_retirement),
             Case("resident finite metadata backing transfer and counter refusals", _resource_limits),
+            Case("resident exact integer composition and finite boundary controls", _integral_composition),
             Case("resident reused slot preserves exact backing identity", _reused_slot_identity),
             Case("resident closed predecessor capacity and bounded recovery", _closed_predecessor_capacity),
             Case("resident executed defects and complete modeled observer", _executed_controls_and_observer),
