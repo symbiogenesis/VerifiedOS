@@ -36,7 +36,11 @@ Retirement closes admission, cancels accepted private transfers, removes held
 reservations, performs a modeled barrier, zeroizes and releases backing. Its
 bound is independent of holder acknowledgment. When the barrier is unavailable,
 it refuses after cancellation and retains closed backing inside the charged
-quarantine. Crash clears volatile reservations, grants and replies; retained data
+quarantine. The backing safety oracle checks the exact resident identity for every
+live reservation and accepted transfer. Repopulating a prematurely freed slot with
+replacement bytes cannot satisfy that oracle merely because the slot is occupied;
+the same-slot reuse control fails beside a valid retained-predecessor control.
+Crash clears volatile reservations, grants and replies; retained data
 does not recreate old authority. The scalar producer's existing fresh-replacement
 observations cannot authorize this model's physical reuse. Correspondence to
 [M4.4b-i's accepted observations](../../kernel/README.md#bounded-scalar-effects-and-fault-restart),

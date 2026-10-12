@@ -422,9 +422,13 @@ class Service:
         return True
 
     def safe_backing(self) -> bool:
-        """Live metadata or a transfer cannot address a freed slot."""
-        return all((held is None or self.resident(held.handle.slot) is not None)
-                   and (request is None or self.resident(request.handle.slot) is not None)
+        """Live metadata and transfers retain the exact identity at their backing slot."""
+        def retained(handle: Handle) -> bool:
+            resident = self.resident(handle.slot)
+            return resident is not None and resident.identity == handle.identity
+
+        return all((held is None or retained(held.handle))
+                   and (request is None or retained(request.handle))
                    for holder in range(self.bounds.holders)
                    for held, request in [(self.reservation(holder), self.pending(holder))])
 
@@ -504,6 +508,11 @@ def controls() -> dict[str, bool]:
                 if not service.begin(handles[0], 7, identity, 0, 16):
                     raise ValueError("retirement control lacked an accepted transfer")
                 complete, steps = service.retire(handles[0].slot, cooperative_holder=False)
+                if defect == "premature-reuse":
+                    successor = replace(identity, version=2,
+                                        root=authenticated_root("user-data", 1, b"X" * 16))
+                    if service.publish(Resident(successor, b"X" * 16)) != handles[0].slot:
+                        raise ValueError("same-slot reuse control did not execute")
                 observations.append(complete and steps <= service.bounds.retirement_steps
                                     and service.safe_backing())
         verdicts[defect] = observations == [True, False]
