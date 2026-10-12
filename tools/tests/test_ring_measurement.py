@@ -10,6 +10,7 @@ from contextlib import redirect_stdout
 from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus
@@ -585,27 +586,71 @@ def _cli_refusal_evidence() -> None:
                         ensure(rendered.startswith("FAIL ring-measurement:")
                                and "  identity:" not in rendered and "queue " not in rendered,
                                "refusal publishes no validated identity or partial measurements")
-        for missing in ("capture", "expected"):
-            paths = [capture_path, expected_path]
-            paths[0 if missing == "capture" else 1] = root / "missing.json"
-            available: dict[str, object] = {"sources_sha256": source_hashes}
-            if missing == "expected":
-                available["capture_sha256"] = _hash(capture_path.read_bytes())
+
+
+def _cli_missing_input_evidence() -> None:
+    checkout = corpus.find_root()
+    source_names = ("tools/vos/ring_measurement.py", "tools/vos/jsonutil.py",
+                    "tools/vos/cli/ring_measurement.py", "tools/vos/cli/ring.py",
+                    "docs/implementation/contracts/roster-measurement.md")
+    sources = {name: (checkout / name).read_bytes() for name in source_names}
+    capture, expected = _fixture()
+    capture_blob = b"\n" + _blob(capture) + b"\n"
+    expected_blob = _blob({**expected, "capture_sha256": _hash(capture_blob)})
+    declaration_blob = (checkout / ring_owner.DECLARATION).read_bytes()
+    with tempfile.TemporaryDirectory(prefix="vos-ring-missing-input-") as directory:
+        root = Path(directory).resolve()
+        for name, blob in sources.items():
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(blob)
+        paths = {"capture": root / "capture.json", "expected_identity": root / "expected.json",
+                 "declaration": root / ring_owner.DECLARATION}
+        blobs = {"capture": capture_blob, "expected_identity": expected_blob,
+                 "declaration": declaration_blob}
+        paths["declaration"].parent.mkdir(parents=True, exist_ok=True)
+        for missing in ((), ("capture",), ("expected_identity",), ("declaration",),
+                        ("capture", "expected_identity", "declaration")):
+            for field, path in paths.items():
+                if field in missing:
+                    path.unlink(missing_ok=True)
+                else:
+                    path.write_bytes(blobs[field])
+            available: dict[str, object] = {
+                "sources_sha256": {name: _hash(blob) for name, blob in sources.items()},
+                **{f"{field}_sha256": _hash(blob) for field, blob in blobs.items() if field not in missing},
+            }
             for flags in ([], ["--json"]):
                 output = StringIO()
-                with redirect_stdout(output):
-                    code = cli.main([str(paths[0]), "--expected-identity", str(paths[1]), *flags])
+                with patch.object(corpus, "find_root", return_value=root), redirect_stdout(output):
+                    code = cli.main([str(paths["capture"]), "--expected-identity",
+                                     str(paths["expected_identity"]), *flags])
                 rendered = output.getvalue()
-                ensure(code == 2, "missing file retains the refusal verdict")
+                ensure(code == (2 if missing else 0), "missing input retains the refusal verdict")
                 if flags:
                     report = json.loads(rendered)
-                    actual = {field: report[field] for field in evidence if field in report}
-                    ensure(actual == available and "identity" not in report,
-                           "missing file retains only evidence already available")
+                    actual = {field: report[field] for field in
+                              ("sources_sha256", "capture_sha256", "expected_identity_sha256",
+                               "declaration_sha256") if field in report}
+                    ensure(actual == available, "every readable input retains its exact byte identity")
+                    ensure(report["milestone_acceptance"] == "open", "missing input cannot qualify target")
+                    if missing:
+                        ensure(report["verdict"] == "malformed" and "identity" not in report
+                               and "rings" not in report and "findings" not in report,
+                               "missing input publishes no roster identity or partial measurements")
+                        ensure(paths[missing[0]].name in report["reason"],
+                               "multiple missing inputs retain deterministic first-input refusal")
+                    else:
+                        ensure(report["identity"] == capture["identity"]
+                               and report["verdict"] == "within_limits", "passing control preserves accounting")
                 else:
                     ensure(all(f"  {field}: {json.dumps(value, sort_keys=True)}\n" in rendered
                                for field, value in available.items()),
-                           "missing file's text refusal retains available fingerprints")
+                           "text refusal retains every readable input fingerprint")
+                    if missing:
+                        ensure(rendered.startswith("FAIL ring-measurement:")
+                               and "  identity:" not in rendered and "queue " not in rendered,
+                               "text refusal publishes no validated identity or partial measurements")
 
 
 def _cli_escaped_identifiers() -> None:
@@ -739,5 +784,6 @@ def cases() -> list[Case]:
             Case("closed-shapes-and-integer-domains", _closed_shapes_and_numbers),
             Case("cli-scope-evidence-and-exits", _cli_evidence),
             Case("cli-refusal-byte-and-source-evidence", _cli_refusal_evidence),
+            Case("cli-missing-input-independent-evidence", _cli_missing_input_evidence),
             Case("cli-large-integer-refusal", _cli_large_integer_refusal),
             Case("cli-escaped-identifiers-and-verdicts", _cli_escaped_identifiers)]
