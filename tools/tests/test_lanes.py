@@ -11,10 +11,10 @@ table declared them answerable on. What is held here is that claim at the seam w
 broke, for every member of every set: each declared subcommand is dispatched in this
 process, on whichever lane this process is, and has to answer.
 
-**`--help` decides nothing about this**, which is why the table below carries arguments
-rather than a flag. argparse exits during parsing, before a module reaches its
-environment at all, so a subcommand that would refuse still prints its usage and exits
-0; reaching the handler is the only thing that decides.
+Operational declarations are exercised with arguments that reach their handlers:
+argparse's successful help exit alone cannot establish a handler's lane. Explicit
+help-only declarations are checked for their usage text and successful exit, which
+establishes only that help answers on the declared lane.
 
 The command modules are imported once in this test module's worker process. The
 runner isolates its patches and redirected streams from other test modules.
@@ -179,6 +179,8 @@ def _signature_shards(scratch: Path) -> list[str]:
 
 
 _RUNS: dict[tuple[str, str], Argv] = {
+    ("compiler-build", "--help"): lambda _: [],
+    ("compiler-build", "-h"): lambda _: [],
     ("model", "config-keys"): lambda _: [
         str(_ROOT / "model" / "config" / "verifiedos.json"),
         str(_ROOT / "model" / "config" / "verifiedos-v.json")],
@@ -230,6 +232,13 @@ _RUNS: dict[tuple[str, str], Argv] = {
 }
 
 
+# These two declarations promise help alone; operational handlers still must return
+# their verdict rather than terminate during argument parsing.
+_HELP_ONLY: frozenset[tuple[str, str]] = frozenset({
+    ("compiler-build", "--help"), ("compiler-build", "-h"),
+})
+
+
 # The one run whose subject is a gitlink. `rtl filelist` reads the imported core's
 # manifest, which a checkout that has initialized no submodule does not hold, and the CI
 # clone is that checkout by design. Its answer there is the absence named and exit 1,
@@ -279,10 +288,15 @@ def _declared_subcommands_answer_on_this_lane() -> None:
                     # the convention it is being held to is that it returns an exit code
                     code = cast("int", _MODULES[name].main([sub, *argv(scratch)]))
             except SystemExit as exc:
-                raise AssertionError(
-                    f"`run.py {name} {sub}` is declared answerable on either lane and "
-                    f"refused this one: {exc}") from exc
+                if (name, sub) not in _HELP_ONLY or type(exc.code) is not int or exc.code != 0:
+                    raise AssertionError(
+                        f"`run.py {name} {sub}` is declared answerable on either lane and "
+                        f"refused this one: {exc}") from exc
+                code = 0
             said = out.getvalue() + err.getvalue()
+            if (name, sub) in _HELP_ONLY:
+                ensure(f"usage: run.py {name}" in said,
+                       f"`run.py {name} {sub}` printed no command usage: {said!r}")
             ensure("runs inside WSL" not in said and "run inside WSL" not in said,
                    f"`run.py {name} {sub}` answered with the guest refusal: {said!r}")
             if code != 0 and (name, sub) in _READS_A_GITLINK and _ABSENT_GITLINK in said:
