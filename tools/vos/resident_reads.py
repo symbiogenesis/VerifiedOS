@@ -203,8 +203,15 @@ class Service:
     def _holder(self, holder: int) -> bool:
         return type(holder) is int and 0 <= holder < self.bounds.holders
 
+    def _integral_handle(self, handle: Handle) -> bool:
+        # Dataclass equality otherwise aliases bool/float fields to integer authority.
+        return all(type(value) is int for value in (
+            handle.token, handle.boot, handle.holder, handle.slot, handle.start, handle.length,
+            handle.identity.owner, handle.identity.domain, handle.identity.object_id,
+            handle.identity.version, handle.identity.root.generation))
+
     def _valid(self, handle: Handle, domain: int, identity: Identity) -> bool:
-        if type(handle.start) is not int or type(handle.length) is not int:
+        if not self._integral_handle(handle):
             return False
         held = self.reservation(handle.holder)
         resident = self.resident(handle.slot)
@@ -277,7 +284,7 @@ class Service:
               offset: int, length: int) -> bool:
         self.operation = "read"
         holder = handle.holder
-        if not self._holder(holder):
+        if not self._integral_handle(handle) or not self._holder(holder):
             return False
         self._put(f"response.{holder}", None)
         if (not self._valid(handle, domain, identity) or self.pending(holder) is not None
@@ -336,6 +343,8 @@ class Service:
 
     def renew(self, handle: Handle) -> bool:
         self.operation = "renewal"
+        if not self._integral_handle(handle):
+            return False
         held = self.reservation(handle.holder)
         if (held is None or not self._valid(handle, handle.identity.domain, handle.identity)
                 or held.renewed >= self.bounds.renewals
@@ -362,6 +371,8 @@ class Service:
 
     def close(self, handle: Handle) -> bool:
         self.operation = "close"
+        if not self._integral_handle(handle):
+            return False
         held = self.reservation(handle.holder)
         if held is None or held.handle != handle:
             return False

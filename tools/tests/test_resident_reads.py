@@ -133,6 +133,63 @@ def _integral_read_intervals() -> None:
                "integral boundary checks added common read writes or lost retained backing")
 
 
+def _integral_handle_fields() -> None:
+    service, identity, handles = rr.fixture()
+    handle = handles[0]
+    ensure(service.begin(handle, 7, identity, 0, 16),
+           "malformed-close control lacked an accepted transfer")
+    malformed_window = {"start": 0.0}
+    ensure(not service.close(replace(handle, **malformed_window)),
+           "numerically equal non-integral window cancelled a live reservation")
+    ensure(service.finish(0) == b"0123456789ABCDEF",
+           "malformed-close refusal lost the independently expected transfer")
+
+    cyclic: list[object] = []
+    cyclic.append(cyclic)
+    for field, value in (("token", handle.token), ("boot", handle.boot),
+                         ("holder", handle.holder), ("slot", handle.slot),
+                         ("start", handle.start), ("length", handle.length),
+                         ("owner", identity.owner), ("domain", identity.domain),
+                         ("object_id", identity.object_id), ("version", identity.version),
+                         ("generation", identity.root.generation)):
+        for malformed in (float(value), bool(value), value + 0.5, float("nan"), float("inf"),
+                          str(value), None, {"value": 0}, cyclic):
+            service, identity, handles = rr.fixture()
+            handle = handles[0]
+            if field == "generation":
+                changed = replace(handle, identity=replace(identity,
+                    root=replace(identity.root, generation=cast("int", malformed))))
+            elif field in ("owner", "domain", "object_id", "version"):
+                changed = replace(handle, identity=replace(identity, **{field: malformed}))
+            else:
+                changed = replace(handle, **{field: malformed})
+            before = len(service.writes)
+            ensure(service.read(changed, 7, identity, 0, 16) is None,
+                   f"malformed handle {field} returned payload")
+            ensure(not service.renew(changed) and not service.close(changed),
+                   f"malformed handle {field} changed its reservation")
+            ensure(len(service.writes) == before,
+                   f"malformed handle {field} wrote service state before refusal")
+
+            ensure(service.begin(handle, 7, identity, 0, 16),
+                   "integral handle control lacked an accepted transfer")
+            pending = service.pending(0)
+            held = service.reservation(0)
+            before = len(service.writes)
+            ensure(service.read(changed, 7, identity, 0, 16) is None
+                   and not service.renew(changed) and not service.close(changed),
+                   f"malformed handle {field} was accepted beside a pending transfer")
+            ensure(service.pending(0) == pending and service.reservation(0) == held
+                   and len(service.writes) == before,
+                   f"malformed handle {field} disturbed an accepted transfer")
+            ensure(service.finish(0) == b"0123456789ABCDEF" and service.renew(handle),
+                   "integral handle refused its independent payload or renewal control")
+            ensure(service.revoke(0) and service.close(handle),
+                   "integral close failed to discharge a revoked reservation")
+            ensure(service.traffic()["common"] == 0,
+                   "integral handle guard added common per-read writes")
+
+
 def _authority_and_lifecycle_cuts() -> None:
     for cut in ("revocation", "close", "delete", "eviction", "teardown", "holder-failure", "crash"):
         service, identity, handles = rr.fixture()
@@ -521,6 +578,7 @@ def cases() -> list[Case]:
     return [Case("resident two-session payload and complete traffic witness", _inhabited_traffic),
             Case("resident exact identity and every-read authentication", _identity_and_authentication),
             Case("resident integral intervals and holder refusals", _integral_read_intervals),
+            Case("resident integral handle fields preserve accepted transfers", _integral_handle_fields),
             Case("resident current authority and admitted-transfer cuts", _authority_and_lifecycle_cuts),
             Case("resident retained version and holder-independent retirement", _replacement_and_bounded_retirement),
             Case("resident finite metadata backing transfer and counter refusals", _resource_limits),
