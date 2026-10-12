@@ -1,12 +1,35 @@
 # Wasm execution and optimization contract
 
-Status: **design selected; executable interpreter, proofs and target measurements open**.
+Status: **minimal complete engine selected; acceleration deferred until after MVP; executable interpreter, proofs and target measurements open**.
 R-14-013h in the [requirements register](../../requirements-register.md) owns
 the execution profile. The [application-host contract](application-host.md)
 owns activation, authority, replacement and resource failure. Q34g implements
-this profile inside the one platform interpreter and proves it; Q34f qualifies
-the complete application path; Q34h produces its guest bundles. These are
-existing implementation owners, not completed work or additional engines.
+the minimal complete engine and proves every shipping path; Q34f qualifies
+the complete application path; Q34h produces its guest bundles. Q34j owns
+conditional acceleration after the minimum viable phase. These are implementation
+owners, not completed work or additional engines.
+
+## Minimum viable phase
+
+Complete M8a's software MVP and the minimal full Core 3.0 engine, resident
+producer and same-session application workflow under Q34f/Q34g/Q34h before
+commissioning performance mechanisms. This checkpoint requires complete
+language behavior, both engine theorems, bounded native stacks and work,
+GC roots, exact traps and resumption, host confinement, cancellation and
+resource failure. It records performance as passed, failed or undecided
+against the unchanged declared product targets. A measured miss can then
+select acceleration; the checkpoint supplies no final-release waiver.
+
+The software path consumes no RTL acceptance and adds no M8b wait. A later
+measurement that requires RTL consumes M8b's accepted artifact at that evidence
+tier. Ordinary typed imports, required interpreter/arena placement, full SIMD
+language coverage through exact scalar fallbacks, and every product floor
+retain their existing contracts. Register/slot translation, accumulators,
+register windows and hot locals, handler variants, fusion, propagation,
+check removal, caches/reuse, optional vector acceleration, batching/locality
+tuning, whole-loop handlers and specialization belong to Q34j's post-MVP
+selection gate below. No unselected mechanism requires an implementation,
+comparison build or dedicated proof campaign.
 
 ## Research selection
 
@@ -18,12 +41,12 @@ revision's own licence closure and record it in THIRD-PARTY.md.
 
 | Source | Useful result | Decision under this platform's requirements |
 | --- | --- | --- |
-| [Wasmi 2.0 engineering, 2026-09-01](https://wasmi-labs.github.io/blog/posts/wasmi-v2.0/) and [tagged changelog](https://github.com/wasmi-labs/wasmi/blob/v2.0.0/CHANGELOG.md) | Accumulators, compact value storage and simpler instance access reduce work; execution gains were measured on conventional processors | Use these representation ideas inside Q34g. The [bring-up reading](../userspace-porting.md#the-bring-up-wasm-interim-the-pin-and-what-its-ranking-reads-as-here) already pins this release; selecting it again earns no extra speedup. Do not copy its defaults, pointer calling convention or validation-disable option. |
-| [WAMR fast-interpreter design, 2021](https://www.intel.com/content/www/us/en/developer/articles/technical/webassembly-interpreter-design-wasm-micro-runtime.html) and [WasmKit register-machine design](https://github.com/swiftwasm/WasmKit/blob/main/Documentation/RegisterMachine.md) | Translating stack operands into slots removes provider dispatches; local overwrites and branch joins need preservation moves | Use a bounded preparation pass and explicit alias/join cases in the same interpreter's refinement. An upstream implementation's test results do not prove this translation. |
-| [Pulley accepted RFC](https://github.com/bytecodealliance/rfcs/blob/main/accepted/pulley.md) | Register bytecode, compact operands and superinstructions trade preparation cost for execution cost | Adopt the data-format principles. Do not import Cranelift as a trusted translator, deserialize an unchecked executable artifact or claim its proposed startup time. Preparation and reused launch remain separate measurements. |
+| [Wasmi 2.0 engineering, 2026-09-01](https://wasmi-labs.github.io/blog/posts/wasmi-v2.0/) and [tagged changelog](https://github.com/wasmi-labs/wasmi/blob/v2.0.0/CHANGELOG.md) | Accumulators, compact value storage and simpler instance access reduce work; execution gains were measured on conventional processors | Post-MVP representation candidates under Q34j, with any shipped transformation proved by Q34g. The [bring-up reading](../userspace-porting.md#the-bring-up-wasm-interim-the-pin-and-what-its-ranking-reads-as-here) already pins this release; selecting it again earns no extra speedup. Do not copy its defaults, pointer calling convention or validation-disable option. |
+| [WAMR fast-interpreter design, 2021](https://www.intel.com/content/www/us/en/developer/articles/technical/webassembly-interpreter-design-wasm-micro-runtime.html) and [WasmKit register-machine design](https://github.com/swiftwasm/WasmKit/blob/main/Documentation/RegisterMachine.md) | Translating stack operands into slots removes provider dispatches; local overwrites and branch joins need preservation moves | Conditional post-MVP translation needs bounded preparation and explicit alias/join cases in the same interpreter's refinement. An upstream implementation's test results do not prove it. |
+| [Pulley accepted RFC](https://github.com/bytecodealliance/rfcs/blob/main/accepted/pulley.md) | Register bytecode, compact operands and superinstructions trade preparation cost for execution cost | Retain data-format principles as post-MVP candidates. Do not import Cranelift as a trusted translator, deserialize an unchecked executable artifact or claim its proposed startup time. Preparation and any selected reused launch remain separate measurements. |
 | [Titzer, A Fast In-Place Interpreter for WebAssembly, OOPSLA 2022](https://arxiv.org/abs/2205.01183) | Direct execution with side metadata can reduce preparation and representation space | Keep as a startup/space comparison. A second shipping interpreter would conflict with the single-engine scope and add proof work; no automatic tier or extra production engine is selected. |
 | [Lowther, Jacob and Singer, CHERI Performance Enhancement for a Bytecode Interpreter, 2023](https://arxiv.org/abs/2308.05076) | Pointer-size assumptions can create large interpreter overhead on Morello | Audit numeric cells, metadata and capability traffic on the actual purecap lowering. Morello's measurements are not this ISA's forecast. Never compress authority into an integer to recover space. |
-| [Silverfir-nano source and feature matrix](https://github.com/mbbill/Silverfir-nano) | A current project offers separate interpreter and native-code engines with different feature coverage | Its native-code results cannot price pure interpretation; its interpreter excludes SIMD and GC. Use its fixed register-window/local-cache and fusion ideas as references, with no upstream runtime substitution or transferred JIT score. |
+| [Silverfir-nano source and feature matrix](https://github.com/mbbill/Silverfir-nano) | A current project offers separate interpreter and native-code engines with different feature coverage | Its native-code results cannot price pure interpretation; its interpreter excludes SIMD and GC. Retain fixed register-window/local-cache and fusion ideas for post-MVP selection, with no upstream runtime substitution or transferred JIT score. |
 | [weval, Partial Evaluation, Whole-Program Compilation, PLDI 2025](https://cfallin.org/pubs/pldi2025_weval.pdf) and [producer interface](https://github.com/bytecodealliance/weval) | Specialization removes an inner interpreter by producing Wasm from Wasm | Conditional Q34h candidate under the selection gate below: specialize guest-language interpreters into ordinary validated Wasm, still executed by the one pure platform engine. Its reported SpiderMonkey gains use a different outer engine and are not this target's forecast. No guest-to-native output or new verified specialization tool is admitted. |
 | [Wasm 3.0 release](https://webassembly.org/news/2025-09-17-wasm-3.0/), [standard profiles](https://webassembly.github.io/spec/core/appendix/profiles.html) and [implementation limits](https://webassembly.github.io/spec/core/appendix/implementation.html) | Typed references, tail calls and managed guest objects can avoid emulated language machinery; the standard permits implementation resource limits | Require the full Core 3.0 binary language. Standard quantitative limits and explicit imports preserve the host boundary; missing proofs block release, not features in the advertised language. |
 | [Denis, Performance of WebAssembly runtimes in 2026](https://00f.net/2026/06/23/webassembly-runtimes-2026/) | Reproducible workload comparisons distinguish runtime modes and enabled language features | The WAMR result uses AOT and some variants use features outside the freeze. Neither is a pure-interpreter target estimate; use the comparison discipline, not its numbers. |
@@ -110,7 +133,7 @@ Core 3.0 instruction. These are results permitted by the full language and need
 no producer changes. The exact semantics, numeric choices and engine identity
 remain generation-fixed; changed engines enter through successor admission.
 
-Typed references may remove redundant type checks when validation and the
+Post-MVP selection may remove redundant type checks when validation and the
 runtime reference invariant prove them unnecessary; null checks and current
 import authority still apply. Tail calls reuse bounded guest frames but still
 poll on cycles. Recursive-type validation and exception unwinding use bounded
@@ -140,61 +163,62 @@ linear-memory object safety or constant-time execution of secrets.
 
 ## Selected execution representation
 
-1. **Prepare once, interpret data.** Validate the exact immutable module and
-   prepare compact opcode/slot records, decoded immediates and resolved guest
+1. **Decode bounded data.** Validate the exact immutable module and
+   prepare general opcode records, decoded immediates and resolved guest
    branch offsets. Record instruction boundaries and typed block results.
    Neither a branch offset nor a function index is a native PC. Bound the pass's
    work, scratch, record widths and expansion before allocating; malformed,
    oversized or unrepresentable input follows the existing typed refusal.
-   Preparation executes no guest instruction or import. The first implementation
-   persists the raw immutable module and reconstructs IR through verified
-   validation/preparation after restart. It never restores persisted prepared
-   records. Within the running host, reuse its own immutable validated results
-   under the full identity and fresh-grant checks. This selects R-14-013h's
-   reconstruction arm and avoids a second persisted-IR format, parser and
-   correspondence proof. A later restoration path needs measured cold-start
-   benefit and separately priced qualification before it is implemented.
-2. **Keep numeric values cheap without losing authority types.** Use numeric
-   accumulators where the certifying backend can keep them live, compact scalar
-   slots, and paired slots for admitted vector values. Guest references use
-   checked logical indices into binding-owned metadata. Native capabilities
-   stay in separately typed host state, never in numeric or float cells. This
-   target has no scalar F/D register file to inherit an upstream calling
-   convention from; any RVV use obeys the existing sink and context-clear rules.
-   Measure spills and preservation moves at joins and calls.
+   Preparation executes no guest instruction or import. The baseline persists
+   the raw immutable module and reconstructs decoded records through verified
+   validation/preparation at activation. It never restores persisted prepared
+   records. Identity-checked in-host reuse and persisted-IR restoration are
+   post-MVP options, with measured benefit and separately priced proof and
+   qualification before implementation. Reconstruction avoids a second
+   persisted-IR format, parser and correspondence proof.
+2. **Keep guest state explicit and bounded.** Guest operand, control and call
+   stacks are finite data storage, without native recursion for guest calls.
+   Numeric bits and `v128` values cannot denote native authority. Guest
+   references use checked logical indices into binding-owned metadata; native
+   capabilities remain separately typed host state. Complete root maps cover
+   live guest references before GC, helpers, calls and yields. Constant native
+   stack use and exact state at joins, traps and suspension are required;
+   retaining numeric values in physical registers across dispatch is deferred.
+   Any RVV use obeys the existing sink and context-clear rules; exact scalar
+   paths may supply SIMD language coverage.
 3. **Dispatch through the fixed image.** An index reaches the immutable,
-   composition-enumerated typed handler table. Select bounded fused forms
-   such as local/immediate arithmetic and result stores against the frozen
-   corpus; emit only references to existing handlers during preparation.
-   The image-size budget includes every fused body and SIMD handler. The
-   certifying lowering must establish constant native stack use across
+   composition-enumerated typed handler table. Baseline records select general
+   unfused handlers supporting every Core 3.0 instruction; preparation emits
+   only indices of existing handlers. The image-size budget includes every
+   handler and exact SIMD fallback. The certifying lowering must establish
+   constant native stack use across
    dispatch; an upstream tail-call feature or host optimizer is not evidence.
    Direct-threaded runtime code-pointer buffers keep the porting guide's
    unresolved TAL typing obligation and are not selected.
-4. **Shorten metadata paths within a binding.** Resolve immutable local
-   function metadata and instance-layout offsets during preparation/binding.
-   Mutable tables and imported functions retain dynamic type, target and
-   binding checks. A guard miss performs the ordinary checked operation.
-   Cache entries carry the current dependency identity; every relevant table
-   write, memory growth, host callback, suspension and replacement either
-   invalidates that fact or proves it remains valid. No cache learns across
-   labels or carries grants into another activation.
+4. **Check current binding metadata.** Function and instance metadata have
+   bounded storage and checked indices. Mutable tables and imported functions
+   retain dynamic type, target and binding checks. Every access uses current
+   memory length and backing under the flat-memory refinement. Caching and
+   redundant-check removal are deferred; if selected, every table write,
+   growth, host callback, suspension and replacement invalidates a fact or
+   proves it remains valid. No cache learns across labels or carries grants
+   into another activation.
 5. **Release what was prepared.** Module-owned storage may remain at a stable
    address while in use without being append-only for the host's lifetime.
    Guest data records hold checked offsets/indices, and host roots retain
    bounded ownership. Reclamation waits for all frames, suspended work, calls
    and permitted sharers, then follows containment, sweep and sanitization.
-   Eviction affects only unused immutable data. Peak accounting includes old
-   quarantined storage beside the replacement; it assumes no moving live
+   Any selected cache evicts only unused immutable data. Peak accounting
+   includes old quarantined storage beside the replacement; it assumes no moving live
    native capabilities and no unbounded reference count or epoch wrap.
 
 ## Automatic execution of unchanged modules
 
-The selected stronger execution path keeps several live values in actual native
-registers across handler dispatch, rather than merely calling memory slots
-"registers". Its initial design budget is four numeric operand cells and two
+This is a conditional post-MVP option under Q34j's selection gate. The
+candidate path keeps live values in actual native registers across handler
+dispatch. Its prospective design budget is four numeric operand cells and two
 frequently used numeric locals, with paired cells for `v128` and separate typed
-reference/root state. Q34g may choose a smaller window after backend/size
+reference/root state. Q34j may choose a smaller window after backend/size
 qualification; reducing it earns no assumed gain. Handler variants name these
 fixed locations, so fused expressions need no dynamic slot loads for internal
 values. Local-use counts weighted by bounded loop depth choose candidates at
@@ -247,19 +271,23 @@ Sources and limits of the inference:
   runtime code-copying context are not transferred; only fixed-body update
   coalescing is a candidate here.
 
-Q34f measures this path jointly against the short-fusion/single-accumulator
-configuration, as well as ablating its pieces. The scalar planning target in
+If selected, Q34j/Q34f measure this path against the minimal baseline and
+selected intermediate configurations, as well as ablating its pieces. The
+short-fusion/single-accumulator reference is itself deferred and requires
+selection before it is built. The scalar planning target in
 [performance estimates](../../performance/performance-estimates.md#automatic-scalar-execution-target)
-is incremental over that already optimized reference. No target measurement
-currently establishes it, and no unmatched module is dropped from the corpus.
+is a post-MVP hypothesis incremental over that optimized reference. No target
+measurement currently establishes it, and no unmatched module is dropped from
+the corpus.
 
 ## Semantic and scheduling obligations
 
 The preparation-to-execution relation is part of R-14-013a's existing
-interpreter refinement. It relates guest state to slots, accumulators, control
-records and private resumable state, including preservation moves when a local
-is overwritten while its previous value is still needed. All shipped handler
-configurations satisfy that relation and robust confinement; a baseline proof
+interpreter refinement. It relates guest state to decoded records, bounded
+stacks and private resumable state, with slots, accumulators and preservation
+moves added only for selected post-MVP representations. Local overwrites must
+preserve any still-needed previous value in every configuration. All shipped
+handler configurations satisfy that relation and robust confinement; a baseline proof
 beside an unproved optimized path is insufficient.
 
 Fusion cannot reorder an import, suppress a trap, publish a store after an
@@ -291,10 +319,16 @@ partly performed.
 
 ### Selection gate for optional acceleration
 
-Whole-loop handlers and Wasm-to-Wasm specialization are conditional options,
-each selected separately under R-14-013h. Before commissioning an option,
-record the versioned workload and baseline, a measured dispatch or
-nested-interpreter penalty or a missed declared product target, a finite
+All deferred performance mechanisms in the minimum viable phase above are
+conditional options, each selected separately under R-14-013h. Q34j opens
+only after M8a and the accepted minimal complete engine/producer/application
+checkpoint; it cannot commission them as spare parallel work before MVP.
+Performance at that checkpoint may miss a declared target while the language,
+proof, resource and yield predicates pass. Final release still requires every
+unchanged product target, so a miss identifies work rather than weakening a
+guarantee. Before commissioning an option,
+record the versioned workload and baseline, a measured cost or
+missed declared product target, a finite
 investigation budget and stop condition, the priced implementation/proof scope
 and owner, and its qualification and proof acceptance predicates. Target
 measurements retain the product gate's evidence tier; a host ranking alone
@@ -306,18 +340,20 @@ configuration ships.
 An unselected option is `n/a` with its reason in Q34f's report and creates no
 implementation or comparison-build obligation. Ordinary interpretation and
 the native source-to-Wasm bundle producer remain usable without either option.
-Full Core 3.0, both engine theorems, the compact slot/register representation,
-required register-resident handler forms and fusion, and native yield/resource
-bounds remain required. The Q34f/g/h cells retain their planning ranges;
-separate mandatory and selected optional work and reprice the affected scope
-at entry instead of claiming an unmeasured saving from this gate.
+Full Core 3.0, both engine theorems, bounded general decoded execution,
+complete root handling, exact traps/resumption and native yield/resource
+bounds remain required. Optional vector acceleration is distinct from required
+SIMD language behavior. Ordinary typed service imports and required memory-class
+placement remain usable. Separate the Q34f/g/h baseline allowance from Q34j's
+deferred allowance and price selected implementation/proof scope at entry;
+moving that allowance is not a measured reduction in total work.
 
 ### Whole-loop handlers in the interpreter
 
 If the selection gate admits this option, select a finite set of typed integer
 map/reduction and byte-scan loop forms against Q34f's frozen corpus. This
-extends the existing AOT superinstruction mechanism from a few opcodes to a
-complete recognized loop. A fixed handler
+extends any separately selected AOT superinstruction mechanism from a few
+opcodes to a complete recognized loop. A fixed handler
 uses data operands, a count and checked memory descriptors; it performs a
 bounded chunk of work per poll without dispatching each original instruction.
 Recognition is a translation case of the original interpreter refinement, not
@@ -358,9 +394,10 @@ initialization, output growth and fallback execution separately.
 
 ### Explicit service batches
 
-The largest workload-specific gains can come from making an existing native
-service do a bounded batch instead of interpreting a per-element guest loop.
-Q34f uses explicit typed imports with the same results, operation scope and
+Ordinary explicit typed imports remain part of the minimal app host. After
+MVP, the selection gate may commission batching to make an existing native
+service perform several guest operations per call. Q34f then compares those
+imports with the same results, operation scope and
 current grants. It charges argument checks, serialization, copying, queue and
 batch-fill delay, native execution and result delivery. A new service interface
 is a successor-generation change; a runtime operation cannot supply machine
@@ -374,8 +411,8 @@ Its private execution records are not a guest dialect or an input requirement.
 Do not count SIMD and native offload on the same removed guest work twice.
 
 Keep interpreter bodies in the first memory class and bulk backing in the
-second. Compare explicitly reserved first-class IR or hot numeric state with
-the default placement, charging bytes and bank grants in the complete desktop
+second. After selection, compare explicitly reserved first-class IR or hot
+numeric state with the default placement, charging bytes and bank grants in the complete desktop
 composition. A module-dependent working set never causes automatic migration
 or a change to another application's reservation.
 
@@ -419,15 +456,17 @@ Q34f freezes modules, sources, inputs, expected observable results, compiler
 flags, handler set, feature profile, import grants and composition before
 measurement. Its cases include scalar arithmetic, branch-heavy code, local
 aliasing/joins, direct and mutable indirect calls, numeric arrays, bulk memory,
-a small startup-dominated app and a realistic edit/build/run workflow. The
-selected native-service case includes small and large batches. Include
+a small startup-dominated app and a realistic edit/build/run workflow. Any
+selected native-service batching case includes small and large batches. Include
 concurrent unrelated guests and repeated instances of one module.
 
-Measure a minimal configuration of the same proved engine and isolate
-representation, fusion, register-resident execution, cache, SIMD, batching
-and placement changes. Add whole-loop handlers and specialization only when
-their selection records satisfy the gate above. Record an unselected option
-as `n/a` with its reason; do not build it for a comparison. For selected
+At the minimum viable checkpoint, measure the minimal complete configuration
+and its end-to-end application workflow. Record the declared target verdicts;
+failed or undecided performance cannot be described as release acceptance.
+Record every deferred option as `n/a` with its reason and do not build it for
+a comparison. After MVP, isolate representation, fusion, register residence,
+cache/reuse, SIMD/vector acceleration, batching, placement, whole-loop or
+specialization changes only when selected through the gate above. For selected
 specialization, freeze the unspecialized and specialized guest programs
 together; check their observable outputs and dynamic fallback cases. For
 selected whole-loop handlers, report coverage alongside all residual
@@ -436,11 +475,12 @@ maximum type graphs, tail-call cycles, exception unwinding, memory64 overflow
 and multi-memory aliasing as required full-language cases, including feature
 combinations.
 These are qualification builds; a composed image still ships one engine artifact.
-Use the minimal baseline, the selected combined configuration and one-at-a-time
-removals of each selected mechanism. Add targeted combinations where effects
-interact, especially fusion/register state, GC/host roots and suspension/cache
-invalidation; do not run the Cartesian product of every performance toggle.
-The full semantic interaction campaign and proof of the combined configuration
+Post-MVP comparisons use the minimal baseline, any selected combined
+configuration and one-at-a-time removals of selected mechanisms. Add targeted
+combinations where selected effects interact, especially fusion/register state
+and suspension/cache invalidation. Full GC/host-root semantic tests remain
+baseline work. Do not run the Cartesian product of every performance toggle.
+The full semantic interaction campaign and proof of every shipping configuration
 remain required. One versioned target capture may feed several analyses only
 when module, engine, profile, workload and composition identities match.
 Keep workload, guest language, authority and results fixed; report unsupported
@@ -452,16 +492,18 @@ research evidence; target-model cycles and qualified silicon retain the
 
 Besides the application-host lifecycle campaign, the acceptance set includes:
 
-- IR operands outside their slot bounds, branches into operands or with wrong
+- decoded operands outside their bounds, branches into operands or with wrong
   result arity, unknown handler indices and stale format/handler identities;
-- old local values consumed after overwrite, multi-result joins, call returns,
-  scalar/vector slot overlap and attempts to treat guest data as a capability;
+- old local values consumed after overwrite, multi-result joins, call returns
+  and attempts to treat guest data as a capability; any selected slot layout
+  additionally checks scalar/vector overlap;
 - overflowed addresses, exact-end and cross-segment accesses, grow success and
   failure, overlapping copies and a store preceding a later trap;
 - mutated indirect-call tables, wrong signatures, stale imports and guard
   invalidation during host calls or suspension;
-- full IR/cache budgets, eviction while another instance is using data,
-  cancellation inside a fused loop and reclamation with a live continuation;
+- full decoded-record budgets and reclamation with a live continuation;
+  selected caches additionally check eviction while another instance uses data,
+  and selected fused loops check cancellation inside their bounded steps;
 - maximum native work between polls, including an infrequent slow path, and
   the same fixed-tier deadlines under concurrent preparation and execution.
 
