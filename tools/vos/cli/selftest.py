@@ -1761,6 +1761,22 @@ CASES: list[Case] = [
      _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
                                r"blob/([0-9a-f]{40})/LICENSE\))",
                   lambda m: f"{m[1]} in [its tree](https://github.com/{m[2]}/tree/{m[3]}_)")),
+    # Each new link spelling keeps the reviewed licence link, so only reading the
+    # additional reference detects the unreviewed edition.
+    ("K-115", "an unreviewed autolink directly after a bare reviewed licence link",
+     _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
+                               r"blob/([0-9a-f]{40})/LICENSE\))",
+                  lambda m: f"{m[1]} https://github.com/{m[2]}/blob/{m[3]}/LICENSE"
+                            f"<https://github.com/{m[2]}/tree/main>")),
+    ("K-115", "an unreviewed action tree in a scheme-less www autolink",
+     _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
+                               r"blob/[0-9a-f]{40}/LICENSE\))",
+                  lambda m: f"{m[1]} www.github.com/{m[2]}/tree/main")),
+    ("K-115", "an HTML attribute retaining a trailing underscore in its revision",
+     _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
+                               r"blob/([0-9a-f]{40})/LICENSE\))",
+                  lambda m: f'{m[1]} <a href="https://github.com/{m[2]}/tree/{m[3]}_">'
+                            "tree</a>")),
     # The row's licence link narrowed to its action's tree at the reviewed commit, no path
     # following the commit: the link still names the reviewed revision and every
     # workflow agrees, so only a reading that tells a view naming a file from one naming
@@ -2152,6 +2168,17 @@ CASES: list[Case] = [
      _literal(RULES, "Where the set is **total**,",
               "The marker rules, which is what `K-26` are, come next. "
               "Where the set is **total**,")),
+    # The strict membership grammar rejects these candidates. The wider finder must
+    # still report each list rather than passing its malformed opening off as prose.
+    ("K-119", "a membership sentence with markup between its opening words",
+     _literal(RULES, "and there are four answers.",
+              "and there are four answers, which **is** what K-26 are.")),
+    ("K-119", "a membership sentence with an entity between its opening words",
+     _literal(RULES, "and there are four answers.",
+              "and there are four answers, which&nbsp;is what K-26 are.")),
+    ("K-119", "a membership sentence with a full stop before its first rule",
+     _literal(RULES, "and there are four answers.",
+              "and there are four answers, which is what. K-26 are.")),
 
     # Seeded on the plan's side, which is the direction the defect arrives from: a
     # completion note is edited far more often than the index over it. The word alone

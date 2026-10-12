@@ -218,15 +218,15 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-528** owed-act: K-115's licence-link reading still differs from GitHub's rendering in three spellings: a bare link's path runs on through an autolink placed directly after it, so the second link is never read; a scheme-less `www.` autolink is not read at all; and an HTML attribute value is read as a bare link, its trailing punctuation stripped; `_licence_links`'s docstring also calls the path group absent where it can be empty
 · Raised: S14, in prose
-· Disposition: open, `<` ending a bare link, a scheme-less `www.` host alternative and an attribute value read whole, each held by a case, or each named in the K-115 row and the module's account as outside the rule
+· Disposition: closed by the K-115 link reader and its behavioral and mutation controls: `<` closes a bare link, scheme-less `www.github.com` links are read, and quoted or unquoted HTML attribute values keep their punctuation; the registry row and module account state those boundaries
 
 **F-529** owed-act: K-119's declared residue leaves out two kinds of membership sentence its finder also reads as prose: one with markup or an entity among its three words, and one with a `.` before its first id
 · Raised: S14, in prose
-· Disposition: open, the residue clause in the K-119 row, `meta.py`'s module docstring and its reader comment naming both, or the finder's gaps between the three words widened as its gap before the id is, with a case and the live reach count re-read
+· Disposition: closed by the K-119 finder's lexical gaps across punctuation, Markdown marks, complete HTML tags and named or numeric entities, between the opening words and before the first id, with behavioral and mutation controls; ordinary words remain prose, the registry row and module account state the boundary, and the live reach census was re-read
 
 **F-530** owed-act: the typecheck import scan's fail-closed branch for a finder that raises is held only for `ValueError`, not `ImportError`, and its wording for an own-line `# ruff: ignore` inside brackets omits that the line of code it reaches takes in the lines a backslash or a multi-line string joins to it, which the pinned ruff 0.16.9 suppresses
 · Raised: S14, in prose
-· Disposition: open, the finder-refusal control run over both exceptions, and a bracketed backslash-joined pair added to the reach case, with the module docstring and tools/README.md worded to match
+· Disposition: closed by the typecheck finder-refusal control over both `ValueError` and `ImportError`, and pinned-Ruff reach controls over bracketed backslash and multi-line-string continuations, with diagnostics on the continued lines and unsuppressed neighboring lines; the module docstring and tools/README.md state that reach
 
 **F-531** owed-act: lane retirement's receipt and producer-lock scans claim more than they hold: a native output a guest pass moved before it died or timed out stays unrecorded while `retire`'s docstring says an interrupted retirement records each output once, the retained-target filter drops a target that does not exist rather than one whose output has gone, the record-lock regex's `64` spellings and the campaign lock read from its `with` body alone have no case, a block image is seen only as a string constant opening `--blkdev-image`, and an `fcntl` call naming its command by number takes a record lock neither scan reads
 · Raised: S14, in prose
