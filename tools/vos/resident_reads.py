@@ -200,9 +200,11 @@ class Service:
         return value if isinstance(value, bytes) else None
 
     def _holder(self, holder: int) -> bool:
-        return 0 <= holder < self.bounds.holders
+        return type(holder) is int and 0 <= holder < self.bounds.holders
 
     def _valid(self, handle: Handle, domain: int, identity: Identity) -> bool:
+        if type(handle.start) is not int or type(handle.length) is not int:
+            return False
         held = self.reservation(handle.holder)
         resident = self.resident(handle.slot)
         domain_ok = domain == handle.identity.domain or self.defect == "wrong-domain"
@@ -253,6 +255,7 @@ class Service:
         if (resident is None or not resident.accepting or resident.identity != identity
                 or domain != identity.domain or self.reservation(holder) is not None
                 or self._cells[f"grant.{holder}"] is not True
+                or type(start) is not int or type(length) is not int
                 or start < 0 or length <= 0 or start + length > len(resident.payload)
                 or self._integer("clock") + self.bounds.retention > self.bounds.counter_limit
                 or (identity.root.kind == "system-image"
@@ -277,6 +280,7 @@ class Service:
             return False
         self._put(f"response.{holder}", None)
         if (not self._valid(handle, domain, identity) or self.pending(holder) is not None
+                or type(offset) is not int or type(length) is not int
                 or offset < 0 or not 0 <= length <= self.bounds.request_bytes
                 or offset + length > handle.length
                 or self._integer(f"sequence.{holder}") >= self.bounds.counter_limit):

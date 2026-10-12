@@ -69,6 +69,70 @@ def _identity_and_authentication() -> None:
            "admission authentication replaced every-read authentication")
 
 
+def _integral_read_intervals() -> None:
+    malformed = ((0.5, 8), (0, 8.5), (False, 8), (0, True),
+                 (float("nan"), 8), (0, float("nan")))
+    for kind in ("system-image", "user-data"):
+        service, identity, handles = rr.fixture(kind)
+        ensure(service.close(handles[0]), "interval control could not release its holder")
+        for start, length in malformed:
+            before = len(service.writes)
+            ensure(service.reserve(0, 7, identity, cast("int", start), cast("int", length)) is None,
+                   "non-integral resident window was acknowledged")
+            ensure(service.reservation(0) is None and len(service.writes) == before,
+                   "malformed resident window consumed admission state")
+        for holder in (0.5, False, True, float("nan")):
+            before = len(service.writes)
+            index = cast("int", holder)
+            ensure(service.reserve(index, 7, identity, 0, 8) is None
+                   and service.finish(index) is None and not service.revoke(index),
+                   "non-integral holder accessed the declared inventory")
+            ensure(len(service.writes) == before, "malformed holder changed stored state")
+
+        handle = service.reserve(0, 7, identity, 4, 8)
+        if handle is None:
+            raise AssertionError("integral subwindow control refused")
+        ensure(service.read(handle, 7, identity, 0, 8) == b"456789AB"
+               and service.read(handle, 7, identity, 8, 0) == b"",
+               "integral subwindow payload or exact-end empty read differs")
+        for offset, length in malformed:
+            sequence = service._integer("sequence.0")
+            ensure(not service.begin(handle, 7, identity, cast("int", offset), cast("int", length)),
+                   "non-integral byte request was acknowledged")
+            ensure(service.pending(0) is None and service.response(0) is None
+                   and service._integer("sequence.0") == sequence,
+                   "malformed byte request consumed an outstanding-transfer slot or sequence")
+        ensure(service.begin(handle, 7, identity, 1, 2),
+               "accepted-transfer control refused after malformed requests")
+        pending = service.pending(0)
+        for offset, length in malformed:
+            ensure(not service.begin(handle, 7, identity, cast("int", offset), cast("int", length))
+                   and service.pending(0) == pending,
+                   "malformed byte request displaced an accepted transfer")
+        ensure(service.finish(0) == b"56"
+               and service.read(handles[1], 7, identity, 15, 1) == b"F",
+               "malformed inputs lost accepted payload or independent-holder authority")
+        ensure(service.close(handle), "handle-alias control could not release its holder")
+        unit = service.reserve(0, 7, identity, 0, 1)
+        if unit is None:
+            raise AssertionError("integral unit-window control refused")
+        for changed in (replace(unit, start=cast("int", 0.0)),
+                        replace(unit, start=False), replace(unit, length=cast("int", 1.0)),
+                        replace(unit, length=True)):
+            # Python equality aliases these malformed fields to the stored integers.
+            ensure(changed == unit, "same-valued handle alias control did not execute")
+            sequence = service._integer("sequence.0")
+            ensure(not service.begin(changed, 7, identity, 0, 1) and not service.renew(changed),
+                   "non-integral handle interval bypassed exact reservation validation")
+            ensure(service.pending(0) is None and service.response(0) is None
+                   and service._integer("sequence.0") == sequence,
+                   "malformed handle interval consumed read state")
+        ensure(service.read(unit, 7, identity, 0, 1) == b"0",
+               "refused handle aliases damaged the stored integral reservation")
+        ensure(service.traffic()["common"] == 0 and service.safe_backing(),
+               "integral boundary checks added common read writes or lost retained backing")
+
+
 def _authority_and_lifecycle_cuts() -> None:
     for cut in ("revocation", "close", "delete", "eviction", "teardown", "holder-failure", "crash"):
         service, identity, handles = rr.fixture()
@@ -416,6 +480,7 @@ def _source_bound_cli() -> None:
 def cases() -> list[Case]:
     return [Case("resident two-session payload and complete traffic witness", _inhabited_traffic),
             Case("resident exact identity and every-read authentication", _identity_and_authentication),
+            Case("resident integral intervals and holder refusals", _integral_read_intervals),
             Case("resident current authority and admitted-transfer cuts", _authority_and_lifecycle_cuts),
             Case("resident retained version and holder-independent retirement", _replacement_and_bounded_retirement),
             Case("resident finite metadata backing transfer and counter refusals", _resource_limits),
