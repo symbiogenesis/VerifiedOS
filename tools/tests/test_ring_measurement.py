@@ -403,6 +403,30 @@ def _declaration_numeric_domains() -> None:
                         raise AssertionError(f"negative declared {field} was not refused")
 
 
+def _declared_operation_names() -> None:
+    declaration = json.loads((corpus.find_root() / ring_owner.DECLARATION).read_text(encoding="utf-8"))
+    with sandbox_tree({ring_owner.DECLARATION: json.dumps(declaration)}) as root:
+        capture, expected = _fixture(root)
+        _first(capture)["requests"] = [_request(capture)]
+        ensure(not _run(capture, expected, root).findings,
+               "a valid consumed world can include an unused operation")
+        for name in ("", " ", "\t\n", " unused_operation", "unused_operation "):
+            changed = copy.deepcopy(declaration)
+            changed["worlds"][0]["operations"][1]["name"] = name
+            path = root / ring_owner.DECLARATION
+            path.write_text(json.dumps(changed), encoding="utf-8", newline="")
+            capture["declaration_sha256"] = _hash(path.read_bytes())
+            # No captured request names this operation. Refusal must validate the
+            # consumed declaration rather than rely on a failed request lookup.
+            try:
+                _run(capture, expected, root)
+            except ValueError as error:
+                ensure("operations/1/name" in str(error) and "nonempty identifier" in str(error),
+                       "invalid declared identifier names its location")
+            else:
+                raise AssertionError("unused declared operation with an invalid name was accepted")
+
+
 def _ambiguous_declaration_is_refused() -> None:
     declaration = json.loads((corpus.find_root() / ring_owner.DECLARATION).read_text(encoding="utf-8"))
     world = declaration["worlds"][0]
@@ -562,6 +586,7 @@ def cases() -> list[Case]:
             Case("declaration-driven-drain-and-schema", _declaration_is_the_owner),
             Case("independent-multi-world-accounting", _independent_multi_world_accounting),
             Case("multi-world-limit-isolation", _multi_world_limit_isolation),
+            Case("declared-operation-identifier-domain", _declared_operation_names),
             Case("ambiguous-declaration-is-refused", _ambiguous_declaration_is_refused),
             Case("declaration-bound-numeric-domains", _declaration_numeric_domains),
             Case("identity-bindings-and-chronology", _identities_and_chronology),

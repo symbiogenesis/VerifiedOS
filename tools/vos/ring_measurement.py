@@ -148,8 +148,8 @@ def _records(world: ring_owner.World) -> dict[str, dict[str, int]]:
     if len(fields) != len(set(fields)) or set(fields) != required:
         raise ValueError(f"world {world['world']}: unsupported or repeated operation record fields")
     records: dict[str, dict[str, int]] = {}
-    for operation in world["operations"]:
-        name = operation["name"]
+    for index, operation in enumerate(world["operations"]):
+        name = _name(operation["name"], f"world {world['world']}/operations/{index}/name")
         if name in records:
             raise ValueError(f"world {world['world']}: repeated operation {name}")
         records[name] = {
