@@ -6,9 +6,11 @@ maps and barriers use the existing revocation reference. This is a host referenc
 not a native pool service or a claim of source-to-binary correspondence.
 """
 
+from collections.abc import Mapping
 from contextlib import suppress
 from copy import copy
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Literal
 
 from vos import revocation as rev
@@ -302,13 +304,18 @@ def fixture() -> Pool:
                      ((64, 0), (80, 0), (96, 1)), 64))
 
 
-@dataclass
+@dataclass(frozen=True)
 class DomainPools:
     """One composition-owned pool per occupied island and memory class."""
-    pools: dict[tuple[int, int], Pool]
-    launch_islands: dict[int, int]
+    pools: Mapping[tuple[int, int], Pool]
+    launch_islands: Mapping[int, int]
 
     def __post_init__(self) -> None:
+        # Admission owns these bindings. Callers may keep and mutate their input
+        # maps, but cannot redirect a member or replace an arena after validation.
+        # The referenced pools retain their mutable allocation/retirement state.
+        object.__setattr__(self, "pools", MappingProxyType(dict(self.pools)))
+        object.__setattr__(self, "launch_islands", MappingProxyType(dict(self.launch_islands)))
         if not self.pools or not self.launch_islands:
             raise PoolError("empty domain composition")
         islands = set(self.launch_islands.values())

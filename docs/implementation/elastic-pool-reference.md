@@ -30,6 +30,13 @@ The [physical-address contract](../spec.md#r-15-002) and
 own that interpretation; issuer identities cannot make overlapping physical
 storage independent.
 
+`DomainPools` snapshots the caller's pool and launch-island maps at admission and
+exposes immutable bindings. Mutating or clearing the input maps cannot replace
+an admitted arena or redirect a placed member; the public bindings cannot be
+edited or rebound. The bound pool objects still carry mutable allocation and
+retirement state. Their plans and parent relationships are trusted reference
+state, not an adversarial Python object boundary.
+
 The mutable slot phases are `free`, `live`, `pending`, `barrier` and `sweeping`.
 Release publishes revocation and enters pending quarantine. A retained register
 copy prevents the semantic barrier. Successful barrier completion moves only
