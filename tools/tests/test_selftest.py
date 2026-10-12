@@ -20,8 +20,9 @@ from unittest.mock import patch
 
 import check
 from tests.harness import Case, ensure, sandbox_tree
+from tests.test_checks import _REGISTER_MIN, _context, _findings_under
 from vos import corpus, timings
-from vos.checks import Context
+from vos.checks import Context, meta
 from vos.cli import selftest
 from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict
 from vos.sharding import Shard
@@ -501,6 +502,49 @@ def _case_verdict_reruns_only_survivors() -> None:
         ensure(not box.answers, "a scripted checker run was left unused")
 
 
+def _holder_seeds_survive_changed_completion_prose() -> None:
+    distractor = "```markdown\n* Exit evidence: example only\nLanded: Tier B under **K-79**.\n```\n"
+    sections = ("## Second\nShortened narrative with no exit-evidence sentence.\n"
+                "  * Landed: Tier B, held by **K-00** and **K-12**.\n",
+                "## First\nA reordered completed item.\nLanded: Tier B under **K-12**.\n")
+    for prose in (distractor + "\n".join(sections),
+                  "\n".join(reversed(sections)) + distractor):
+        for seed, fragment in ((selftest._k84_unregistered_holder, "names K-64"),
+                               (selftest._k84, "lands at Tier B and names no rule")):
+            with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                               selftest.RULES: "# Rules\n", selftest.PLAN: "# Plan\n",
+                               selftest.LOG: "# Completion log\n\n" + prose}) as root:
+                before = (root / selftest.LOG).read_text(encoding="utf-8")
+                ctx = _context(root)
+                meta._landings(ctx, {"K-00", "K-12"})
+                ensure(not _findings_under(ctx, "K-84"), "the independent fixture must begin valid")
+                box = selftest.Sandbox(root, root)
+                ensure(seed(box), "the holder mutant did not apply after narrative edits")
+                after = box.read(selftest.LOG)
+                ensure(after != before and distractor in after and box.touched == {selftest.LOG},
+                       "the seed must change real declaration bytes and preserve fenced examples")
+                ctx = _context(root)
+                meta._landings(ctx, {"K-00", "K-12"})
+                found = _findings_under(ctx, "K-84")
+                ensure(len(found) == 1 and fragment in found[0],
+                       f"the seeded defect must independently provoke its K-84 direction: {found}")
+
+
+def _holder_seeds_refuse_absent_structural_targets() -> None:
+    for seed, prose in (
+            (selftest._k84_unregistered_holder, "K-00 is plain discussion.\n```\n**K-00**\n```\n"),
+            (selftest._k84, "A fact is held by **K-00**.\nLanded: Tier A.\n"),
+            (selftest._k84, "Landed: Tier B.\n"),
+            (selftest._k84, "```\nLanded: Tier B under **K-00**.\n```\n")):
+        with sandbox_tree({selftest.LOG: "# Completion log\n\n" + prose}) as root:
+            box = selftest.Sandbox(root, root)
+            before = box.read(selftest.LOG)
+            with patch.object(box, "check", side_effect=AssertionError("an unseeded case ran its checker")):
+                result = selftest._verdict(("K-84", "absent structural target", seed), box)
+            ensure(result.outcome == UNSEEDED and not box.touched and box.read(selftest.LOG) == before,
+                   "a missing target must remain an unchanged, explicitly unseeded mutant")
+
+
 def cases() -> list[Case]:
     return [
         Case("shards-cover-cases-and-repair-once", _shards_cover_cases_and_repair_once),
@@ -509,6 +553,8 @@ def cases() -> list[Case]:
              _shard_leaves_the_repair_path_to_repair_only),
         Case("checker-stops-after-the-rules-group", _checker_stops_after_the_rules_group),
         Case("case-verdict-reruns-only-survivors", _case_verdict_reruns_only_survivors),
+        Case("holder-seeds-survive-changed-completion-prose", _holder_seeds_survive_changed_completion_prose),
+        Case("holder-seeds-refuse-absent-structural-targets", _holder_seeds_refuse_absent_structural_targets),
         Case("refresh-index-without-changing-snapshot", _refresh_index_without_changing_snapshot),
         Case("failed-carry-rebuilds-index", _failed_carry_rebuilds_index),
         Case("attribute-change-matches-cold-index", _attribute_change_matches_cold_index),

@@ -840,17 +840,36 @@ def _k100(box: Sandbox) -> bool:
     return box.write(rel, text.replace("_ccache_args", "_ccache_launchers"))
 
 
-def _k84(box: Sandbox) -> bool:
-    """A Tier-B landing that names no rule holding what it created.
+def _k84_unregistered_holder(box: Sandbox) -> bool:
+    """Change an unfenced bold holder citation to the permanently unallocated K-64.
 
-    Select the first Tier-B declaration by structure and remove its holders. The
-    mutation does not depend on an item's name or optional completion prose.
+    Bold is the documented citation shape. Selection is independent of the checker
+    and of which item or narrative currently names the holder.
     """
     text = box.read(LOG)
-    m = re.search(r"(?m)^(?P<lead>[^\S\r\n]*(?:\*+ )?Landed: Tier B)\b[^\r\n]*", text)
-    if not m:
-        return False
-    return box.write(LOG, replace_span(text, m, f"{m.group('lead')}."))
+    doc = corpus_mod.from_text(text, LOG)
+    for holder in re.finditer(r"\*\*(K-\d{2,3})\*\*", text):
+        if not doc.is_fenced(holder.start()) and holder.group(1) != "K-64":
+            return box.write(LOG, text[:holder.start(1)] + "K-64" + text[holder.end(1):])
+    return False
+
+
+def _k84(box: Sandbox) -> bool:
+    """Remove the holders from an unfenced Tier-B landing declaration.
+
+    The declaration is the documented target, so moving or shortening completion
+    narrative does not remove the mutant's subject. A missing valid declaration
+    refuses seeding instead of manufacturing a replacement subject.
+    """
+    text = box.read(LOG)
+    doc = corpus_mod.from_text(text, LOG)
+    declarations = re.finditer(
+        r"(?m)^(?P<lead>[^\S\r\n]*(?:\*+ )?Landed: Tier B)\b(?P<rest>[^\r\n]*)", text)
+    for declaration in declarations:
+        if (not doc.is_fenced(declaration.start())
+                and re.search(r"\*\*K-\d{2,3}\*\*", declaration.group("rest"))):
+            return box.write(LOG, replace_span(text, declaration, declaration.group("lead") + "."))
+    return False
 
 
 def _k82_entry(box: Sandbox) -> bool:
@@ -2041,12 +2060,13 @@ CASES: list[Case] = [
      _literal("THIRD-PARTY.md", "2078da43e25a4623cab2d0d60decddf709aaea28",
               "0000000000000000000000000000000000000000")),
 
-    # Move the first holder on a Tier-B declaration to the unallocated K-64 id.
-    # The declaration still names a holder, isolating the registry-membership check
-    # from the missing-holder case below without relying on historical prose.
+    # One holder citation moved onto the id the numbering is missing, which is the
+    # defect in the shape it actually arrives in rather than an invented one: the plan
+    # already reports a gap at that id, so a hand reaching for the next free number
+    # writes exactly this. The first structural holder is selected independently of
+    # its completion narrative, so prose edits cannot remove the control's subject.
     ("K-84", "a landing naming a holder the rule registry does not carry",
-     _first_match(LOG, r"^([^\S\r\n]*(?:\*+ )?Landed: Tier B\b[^\r\n]*?)\*\*K-\d+\*\*",
-                  lambda m: f"{m[1]}**K-64**")),
+     _k84_unregistered_holder),
 
     # The other half, and the case above does not reach it: with the declaration loop
     # deleted that mutant is still killed, so a rule narrowed to its citations would
