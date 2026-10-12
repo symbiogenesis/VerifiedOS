@@ -300,6 +300,65 @@ def _authority_and_lifecycle_cuts() -> None:
         ensure(service.reserve(2, 7, identity, 0, 16) is None, "unknown holder accepted")
 
 
+def _integral_backing_slots() -> None:
+    for kind in ("system-image", "user-data"):
+        service, identity, handles = rr.fixture(kind, bounds=rr.Bounds(residents=2))
+        ensure(service.close(handles[1]), "slot control could not release its second holder")
+        successor_payload = b"abcdefghijklmnop"
+        successor = replace(identity, version=2,
+                            root=rr.authenticated_root(kind, 1, successor_payload))
+        successor_slot = service.publish(rr.Resident(successor, successor_payload))
+        ensure(successor_slot == service.bounds.residents - 1,
+               "slot control did not inhabit both backing-index boundaries")
+        second = service.reserve(1, 7, successor, 0, 16)
+        if second is None:
+            raise AssertionError("successor slot control lacked its reservation")
+        ensure(service.begin(handles[0], 7, identity, 1, 2)
+               and service.begin(second, 7, successor, 1, 2),
+               "slot controls lacked independent accepted transfers")
+        pending = (service.pending(0), service.pending(1))
+        held = (service.reservation(0), service.reservation(1))
+        backing = (service.resident(0), service.resident(1))
+        for malformed in ("0", "1", False, True, 0.0, 1.0, 0.5,
+                          float("nan"), float("inf"), -1, service.bounds.residents,
+                          None, [0], {"slot": 0}):
+            slot = cast("int", malformed)
+            before = len(service.writes)
+            ensure(not service.stop(slot), "malformed backing slot closed live admission")
+            ensure(service.retire(slot) == (False, 0)
+                   and service.retire(slot, barrier_available=False) == (False, 0),
+                   "malformed backing slot acknowledged retirement or freed live backing")
+            ensure(len(service.writes) == before
+                   and (service.pending(0), service.pending(1)) == pending
+                   and (service.reservation(0), service.reservation(1)) == held
+                   and (service.resident(0), service.resident(1)) == backing
+                   and service.safe_backing(),
+                   "refused backing slot changed stored state or displaced an accepted transfer")
+        ensure(service.finish(0) == b"12" and service.finish(1) == b"bc",
+               "malformed slot requests lost exact retained-version payloads")
+        ensure(service.begin(handles[0], 7, identity, 0, 16)
+               and service.begin(second, 7, successor, 0, 16),
+               "integer retirement controls lacked independent transfers")
+        complete, steps = service.retire(handles[0].slot, barrier_available=False)
+        ensure(not complete and steps <= service.bounds.retirement_steps
+               and service.pending(0) is None and service.reservation(0) is None
+               and service.resident(handles[0].slot) is not None
+               and service.pending(1) is not None and service.safe_backing(),
+               "integer retirement did not quarantine only its selected backing slot")
+        complete, steps = service.retire(handles[0].slot, cooperative_holder=False)
+        ensure(complete and steps <= service.bounds.retirement_steps
+               and service.resident(handles[0].slot) is None and service.safe_backing(),
+               "integer slot failed holder-independent bounded retirement")
+        ensure(service.finish(1) == successor_payload,
+               "retiring a predecessor disturbed the successor transfer")
+        ensure(service.stop(second.slot), "integer final-slot stop control refused")
+        complete, steps = service.retire(second.slot, cooperative_holder=False)
+        ensure(complete and steps <= service.bounds.retirement_steps and service.safe_backing(),
+               "integer final-slot retirement control refused")
+        ensure(service.traffic()["common"] == 0,
+               "backing-slot validation added common read writes")
+
+
 def _replacement_and_bounded_retirement() -> None:
     service, identity, handles = rr.fixture()
     ensure(service.begin(handles[0], 7, identity, 0, 16), "replacement cut lacked transfer")
@@ -665,6 +724,7 @@ def cases() -> list[Case]:
             Case("resident integral handle fields preserve accepted transfers", _integral_handle_fields),
             Case("resident integral supplied identities and caller domains", _integral_supplied_identities),
             Case("resident current authority and admitted-transfer cuts", _authority_and_lifecycle_cuts),
+            Case("resident exact integer backing slots preserve accepted transfers", _integral_backing_slots),
             Case("resident retained version and holder-independent retirement", _replacement_and_bounded_retirement),
             Case("resident finite metadata backing transfer and counter refusals", _resource_limits),
             Case("resident exact integer composition and finite boundary controls", _integral_composition),
