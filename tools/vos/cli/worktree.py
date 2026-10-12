@@ -60,13 +60,15 @@ def _lane_fields(path: Path) -> tuple[str | None, str | None]:
     return lane, env.lane_root(lane).as_posix()
 
 
-def _git(root: Path, *args: str, allowed: tuple[int, ...] = (0,)) -> bytes:
+def _git(root: Path, *args: str, allowed: tuple[int, ...] = (0,),
+         stdin: bytes | None = None) -> bytes:
     if os.environ.get("VOS_GIT_DIR"):
         raise WorktreeError("unset VOS_GIT_DIR before using worktree commands; each checkout "
                             "must resolve its own Git administrative directory")
     child_env = {key: value for key, value in os.environ.items() if key not in _GIT_LOCATION}
     done = subprocess.run(["git", "-C", str(root), *args], capture_output=True,
-                          env={**child_env, **env.git_env(root)}, check=False, timeout=60)
+                          env={**child_env, **env.git_env(root)}, input=stdin,
+                          check=False, timeout=60)
     if done.returncode not in allowed:
         raise WorktreeError(done.stderr.decode("utf-8", errors="replace").strip()
                             or f"git {args[0]} exited {done.returncode}")
@@ -154,6 +156,22 @@ def _branch(root: Path, branch: str) -> None:
             raise WorktreeError(f"branch contains a Windows-reserved component: {part}")
 
 
+def _checkout_ignored(root: Path, relative: str) -> bool:
+    """Only a checkout's effective .gitignore rule travels with its sources."""
+    ignored = _git(root, "check-ignore", "--no-index", "--verbose", "--stdin", "-z",
+                   allowed=(0, 1), stdin=os.fsencode(f"{relative}/") + b"\0")
+    if not ignored:
+        return False
+    fields = ignored.split(b"\0")
+    if len(fields) != 5 or fields[-1]:
+        raise WorktreeError("Git returned a malformed ignore match")
+    source = (root / os.fsdecode(fields[0])).resolve()
+    target = root / relative
+    return (source.name == ".gitignore" and source.is_relative_to(root)
+            and target != source.parent and target.is_relative_to(source.parent)
+            and not fields[2].startswith(b"!"))
+
+
 def _isolated(path: Path, records: list[Worktree]) -> None:
     """Every enclosing checkout must exclude this worktree from its own corpus."""
     for record in records:
@@ -164,7 +182,7 @@ def _isolated(path: Path, records: list[Worktree]) -> None:
         if _git(ancestor, "--literal-pathspecs", "ls-files", "-z", "--", relative):
             raise WorktreeError(f"ancestor checkout {ancestor} tracks entries at or beneath "
                                 f"{relative}; choose a destination outside its tracked corpus")
-        if not _git(ancestor, "check-ignore", "--no-index", "--", f"{relative}/", allowed=(0, 1)):
+        if not _checkout_ignored(ancestor, relative):
             raise WorktreeError(f"ancestor checkout {ancestor} must ignore /{relative}/ in "
                                 "its .gitignore before this worktree can be used")
 
@@ -220,8 +238,7 @@ def create(root: Path, lane: str, base: str, *, branch: str | None = None
         raise WorktreeError(f"worktree directory must not redirect outside its primary: {worktrees}")
     if worktrees.exists() and not worktrees.is_dir():
         raise WorktreeError(f"worktree root is not a directory: {worktrees}")
-    ignored = _git(owner, "check-ignore", "--no-index", "--", f"{DIRECTORY}/", allowed=(0, 1))
-    if not ignored:
+    if not _checkout_ignored(owner, DIRECTORY):
         raise WorktreeError(f"add /{DIRECTORY}/ to the primary checkout's .gitignore first")
     target = worktrees / lane
     if target.exists() or target.is_symlink() or target.is_junction():
