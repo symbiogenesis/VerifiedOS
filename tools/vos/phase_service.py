@@ -66,11 +66,17 @@ def _fields(request: Request) -> tuple[int, int, int]:
     return bank, occupancy, rest[0] if rest else 0
 
 
+def _integer_at_least(value: int, minimum: int) -> bool:
+    """Cycle counts and indices are exact integers, including for direct callers."""
+    return type(value) is int and value >= minimum
+
+
 def _validate(contract: Contract) -> tuple[tuple[Batch, ...], tuple[int, ...]]:
     """Refuse a malformed contract; return the refresh and path tables in full."""
     phases = len(contract.grants)
-    if (contract.banks < 1 or not phases or len(contract.arrivals) != phases
-            or any(grant < 0 for grant in contract.grants)):
+    if (not _integer_at_least(contract.banks, 1) or not phases
+            or len(contract.arrivals) != phases
+            or any(not _integer_at_least(grant, 0) for grant in contract.grants)):
         raise ValueError("invalid bank count or phase grants")
     for alternatives in contract.arrivals:
         if not alternatives:
@@ -80,18 +86,21 @@ def _validate(contract: Contract) -> tuple[tuple[Batch, ...], tuple[int, ...]]:
                 if len(request) not in (2, 3):
                     raise ValueError("a request is (bank, occupancy) or (bank, occupancy, hart)")
                 bank, occupancy, hart = _fields(request)
-                if bank < 0 or bank >= contract.banks or occupancy < 1 or hart < 0:
+                if (not _integer_at_least(bank, 0) or bank >= contract.banks
+                        or not _integer_at_least(occupancy, 1)
+                        or not _integer_at_least(hart, 0)):
                     raise ValueError("invalid bank, occupancy or hart")
     refresh = contract.refresh or ((),) * phases
     if len(refresh) != phases:
         raise ValueError("refresh must cover every phase")
     for batch in refresh:
-        if (any(len(entry) != 2 or entry[0] < 0 or entry[0] >= contract.banks
-                or entry[1] < 1 for entry in batch)
+        if (any(len(entry) != 2 or not _integer_at_least(entry[0], 0)
+                or entry[0] >= contract.banks or not _integer_at_least(entry[1], 1)
+                for entry in batch)
                 or len({entry[0] for entry in batch}) != len(batch)):
             raise ValueError("invalid refresh bank or occupancy")
     paths = contract.paths or (0,) * contract.banks
-    if len(paths) != contract.banks or any(path < 0 for path in paths):
+    if len(paths) != contract.banks or any(not _integer_at_least(path, 0) for path in paths):
         raise ValueError("paths must state one non-negative fabric latency per bank")
     return refresh, paths
 

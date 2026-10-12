@@ -21,6 +21,7 @@ from typing import cast
 
 from vos import config, phase_completion
 from vos.jsonc import Json, strip_comments
+from vos.jsonutil import unique_object
 from vos.phase_service import Batch, Contract, Result, check, scenarios
 
 CONFIG = "model/config/verifiedos.json"
@@ -61,7 +62,8 @@ def _batches(node: Json, what: str) -> tuple[Batch, ...]:
 def _parse_contract(raw: bytes) -> Contract:
     """One contract from its input bytes; a wrong shape is a `TypeError` and a wrong
     figure a `ValueError`, and the command reports either as malformed."""
-    data = cast("Json", json.loads(strip_comments(raw.decode("utf-8"))))
+    data = cast("Json", json.loads(strip_comments(raw.decode("utf-8")),
+                                  object_pairs_hook=unique_object))
     if not isinstance(data, dict):
         raise TypeError("a contract is a JSON object")
     unknown = set(data) - {"grants", "arrivals", "banks", "refresh", "paths"}
@@ -116,6 +118,7 @@ def open_because(flags: dict[str, Json]) -> list[str]:
 
 def _receipt(root: Path, flags: dict[str, Json], *, completion: bool = False) -> dict[str, Json]:
     sources = ("tools/vos/phase_service.py", "tools/vos/cli/phase_service.py",
+               "tools/vos/jsonutil.py",
                "tools/tests/test_phase_service.py", "tools/tests/test_phase_reference.py",
                CONFIG)
     if completion:
