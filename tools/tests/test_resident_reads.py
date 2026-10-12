@@ -45,7 +45,7 @@ def _identity_and_authentication() -> None:
     ensure(service.read(handle, 7, identity, 0, 1) == b"0", "positive authority control refused")
     for supplied in (replace(identity, owner=2), replace(identity, domain=8),
                      replace(identity, object_id=2), replace(identity, version=2),
-                     replace(identity, root=replace(identity.root, digest="wrong")),
+                     replace(identity, root=replace(identity.root, digest="0" * 64)),
                      replace(identity, root=replace(identity.root, kind="system-image"))):
         ensure(service.read(handle, 7, supplied, 0, 1) is None,
                "wrong owner/domain/object/version/root returned payload")
@@ -272,6 +272,73 @@ def _integral_supplied_identities() -> None:
         ensure(service.finish(0) == payload
                and service.read(handles[1], 7, identity, 15, 1) == b"F",
                "domain refusal lost accepted or independent-holder payload")
+
+
+def _canonical_root_fields() -> None:
+    class EqualitySpoof:
+        @override
+        def __eq__(self, other: object) -> bool:
+            return True
+
+    class StringAlias(str):
+        @override
+        def __eq__(self, other: object) -> bool:
+            return True
+
+    payload = b"0123456789ABCDEF"
+    for kind in ("system-image", "user-data"):
+        identity = rr.Identity(1, 7, 1, 1, rr.authenticated_root(kind, 1, payload))
+        roots = [replace(identity.root, kind=cast("rr.Kind", malformed))
+                 for malformed in ("unknown", "", None, [], {}, True,
+                                   EqualitySpoof(), StringAlias(kind))]
+        roots += [replace(identity.root, digest=cast("str", malformed))
+                  for malformed in ("", "wrong", "0" * 63, "0" * 65, "g" * 64,
+                                    identity.root.digest.upper(), None, [], {}, b"0" * 64,
+                                    EqualitySpoof(), StringAlias(identity.root.digest))]
+        for root in roots:
+            supplied = replace(identity, root=root)
+            service = rr.Service()
+            before = len(service.writes)
+            ensure(service.publish(rr.Resident(supplied, payload)) is None
+                   and len(service.writes) == before and service._integer("last-version") == 0,
+                   "malformed root consumed initial backing or a version")
+            ensure(service.publish(rr.Resident(identity, payload)) == 0,
+                   "malformed root prevented a canonical same-version publication")
+            before = len(service.writes)
+            ensure(service.reserve(0, 7, supplied, 0, 16) is None
+                   and len(service.writes) == before and service._integer("next-token") == 0,
+                   "malformed root consumed admission state")
+            first = service.reserve(0, 7, identity, 0, 16)
+            second = service.reserve(1, 7, identity, 0, 16)
+            if first is None or second is None:
+                raise AssertionError("canonical root lacked two independent reservations")
+            ensure(service.begin(first, 7, identity, 0, 16)
+                   and service.begin(second, 7, identity, 0, 16),
+                   "canonical roots lacked accepted independent transfers")
+            pending = (service.pending(0), service.pending(1))
+            before = len(service.writes)
+            changed = replace(first, identity=supplied)
+            ensure(service.read(first, 7, supplied, 0, 16) is None
+                   and service.read(changed, 7, identity, 0, 16) is None
+                   and not service.renew(changed) and not service.close(changed),
+                   "malformed root entered read, renewal or close")
+            ensure(service.publish(rr.Resident(replace(supplied, version=2), payload)) is None
+                   and len(service.writes) == before and service._integer("last-version") == 1
+                   and (service.pending(0), service.pending(1)) == pending,
+                   "malformed replacement root disturbed version or accepted transfers")
+            ensure(service.finish(0) == payload and service.finish(1) == payload,
+                   "malformed root lost independently expected accepted payloads")
+            ensure(service.publish(rr.Resident(replace(identity, version=2), payload)) == 1
+                   and service.read(first, 7, identity, 15, 1) == b"F",
+                   "malformed replacement root consumed a version or displaced retained bytes")
+            ensure(service.traffic()["common"] == 0 and service.safe_backing(),
+                   "root guards added common read writes or lost exact retained backing")
+
+        service, identity, handles = rr.fixture(kind)
+        ensure(service.generation_change(), "generation refusal control did not execute")
+        expected = None if kind == "system-image" else payload
+        ensure(service.read(handles[0], 7, identity, 0, 16) == expected,
+               "canonical root kind failed its independent generation policy")
 
 
 def _authority_and_lifecycle_cuts() -> None:
@@ -782,6 +849,7 @@ def cases() -> list[Case]:
             Case("resident integral intervals and holder refusals", _integral_read_intervals),
             Case("resident integral handle fields preserve accepted transfers", _integral_handle_fields),
             Case("resident integral supplied identities and caller domains", _integral_supplied_identities),
+            Case("resident canonical roots preserve identity and accepted transfers", _canonical_root_fields),
             Case("resident current authority and admitted-transfer cuts", _authority_and_lifecycle_cuts),
             Case("resident exact integer backing slots preserve accepted transfers", _integral_backing_slots),
             Case("resident immutable backing refuses aliases before publication", _immutable_backing_publication),
