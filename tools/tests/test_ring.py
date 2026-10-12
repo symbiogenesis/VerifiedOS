@@ -366,6 +366,36 @@ def _declaration_preserves_metadata() -> None:
                "validation must preserve fields the emitter does not consume")
 
 
+def _declaration_snapshot_uses_the_same_validation() -> None:
+    base = _declaration()
+    base["extra_metadata"] = {"version": 1.5, "reviewed": False}
+    blob = json.dumps(base).encode("utf-8")
+    with sandbox_tree({ring.DECLARATION: json.dumps(base)}) as root:
+        ensure(ring.declaration(root, blob=blob) == ring.declaration(root) == base,
+               "a byte snapshot and a normal owner read preserve the same declaration")
+        (root / ring.DECLARATION).write_text("{ not json", encoding="utf-8")
+        _refused(lambda: ring.declaration(root), "the default reader must still read the file")
+        ensure(ring.declaration(root, blob=blob) == base,
+               "snapshot validation consumes its supplied bytes despite changed file contents")
+        _refused(lambda: ring.declaration(root, blob=b"{ not json"),
+                 "snapshot validation accepted malformed JSON")
+        _refused(lambda: ring.declaration(root, blob=b"{}"),
+                 "snapshot validation accepted a missing world set")
+        for defect in ("boolean_bound", "record_width", "duplicate_world", "dma_mismatch"):
+            changed = json.loads(json.dumps(base))
+            if defect == "boolean_bound":
+                changed["worlds"][0]["ring"]["capacity"] = True
+            elif defect == "record_width":
+                changed["worlds"][0]["operations"][0]["record"].pop()
+            elif defect == "duplicate_world":
+                changed["worlds"].append(changed["worlds"][0])
+            else:
+                _dma_world(changed)["operations"][0]["dma"] = None
+            malformed = json.dumps(changed).encode("utf-8")
+            _refused(lambda held=malformed: ring.declaration(root, blob=held),
+                     f"snapshot validation accepted {defect}")
+
+
 def _the_lost_wakeup_exclusion_is_a_property_a_rule_can_fail() -> None:
     # The defect this case exists for: an exclusion stated as `implb (sleeps ..)
     # (negb (work_pending ..))` with `sleeps` defined as that very conjunction is true
@@ -468,6 +498,8 @@ def cases() -> list[Case]:
         Case("a-dma-declaration-is-refused-where-it-disagrees-with-its-world",
              _a_dma_declaration_is_refused_where_it_disagrees_with_its_world),
         Case("declaration-preserves-metadata", _declaration_preserves_metadata),
+        Case("declaration-snapshot-uses-the-same-validation",
+             _declaration_snapshot_uses_the_same_validation),
         Case("the-rule-reports-rather-than-crashes",
              _the_rule_reports_rather_than_crashes),
     ]

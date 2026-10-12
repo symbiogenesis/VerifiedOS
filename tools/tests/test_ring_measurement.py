@@ -6,6 +6,7 @@ import hashlib
 import json
 import sys
 import tempfile
+from collections.abc import Callable
 from contextlib import redirect_stdout
 from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
@@ -451,6 +452,41 @@ def _ambiguous_declaration_is_refused() -> None:
                 raise AssertionError("duplicate declaration budget silently selected its last value")
 
 
+def _declaration_snapshot_owns_selected_limits() -> None:
+    original = json.loads((corpus.find_root() / ring_owner.DECLARATION).read_text(encoding="utf-8"))
+    changed = copy.deepcopy(original)
+    changed["worlds"][0]["ring"]["slot_budget"] = 0
+    read_text = Path.read_text
+
+    def transient_reader(path: Path, text: str) -> Callable[..., str]:
+        def read(file: Path, encoding: str | None = None, errors: str | None = None) -> str:
+            return text if file == path else read_text(file, encoding=encoding, errors=errors)
+
+        return read
+
+    # Swap only the owner's text read, while both fingerprint reads see the
+    # bound bytes. This models a declaration changed and restored between reads.
+    for bound, transient, budget, verdict in (
+            (changed, original, 0, "exceeds_limits"),
+            (original, changed, original["worlds"][0]["ring"]["slot_budget"], "within_limits")):
+        with sandbox_tree({ring_owner.DECLARATION: json.dumps(bound)}) as root:
+            path = root / ring_owner.DECLARATION
+            capture, expected = _fixture(root)
+            control = _run(capture, expected, root)
+            ensure(control.verdict == verdict, "the bound declaration supplies the control verdict")
+            with patch.object(Path, "read_text", transient_reader(path, json.dumps(transient))):
+                result = _run(capture, expected, root)
+            ring = result.rings[0]
+            ensure(result.verdict == verdict and ring.slot_budget == budget,
+                   "selected limits must come from the exact fingerprinted declaration snapshot")
+            ensure(result.declaration_sha256 == _hash(path.read_bytes()),
+                   "selected limits and declaration identity describe the same bytes")
+            ensure(ring.activations[0].remaining_budget == budget - 19,
+                   "remaining budget uses the bound declaration, including a negative excess")
+            ensure(result.findings == control.findings,
+                   "a transient second read cannot hide or invent captured limit excess")
+
+
 def _closed_shapes_and_numbers() -> None:
     base, expected = _fixture()
     for location in ("capture", "window", "ring", "activation", "request", "identity"):
@@ -779,6 +815,7 @@ def cases() -> list[Case]:
             Case("multi-world-limit-isolation", _multi_world_limit_isolation),
             Case("declared-operation-identifier-domain", _declared_operation_names),
             Case("ambiguous-declaration-is-refused", _ambiguous_declaration_is_refused),
+            Case("declaration-snapshot-owns-selected-limits", _declaration_snapshot_owns_selected_limits),
             Case("declaration-bound-numeric-domains", _declaration_numeric_domains),
             Case("identity-bindings-and-chronology", _identities_and_chronology),
             Case("closed-shapes-and-integer-domains", _closed_shapes_and_numbers),

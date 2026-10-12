@@ -262,7 +262,7 @@ def analyze(capture_blob: bytes, expected_blob: bytes, root: Path) -> Analysis:
     # Apply this instrument's strict JSON boundary to the exact bytes bound above.
     _decode(declaration_blob)
     try:
-        declaration = ring_owner.declaration(root)
+        declaration = ring_owner.declaration(root, blob=declaration_blob)
     except ring_owner.RingError as error:
         raise ValueError(f"ring declaration: {error}") from error
     if (root / ring_owner.DECLARATION).read_bytes() != declaration_blob:
