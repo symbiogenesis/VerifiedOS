@@ -4,6 +4,7 @@
     python tools/run.py instrument-ci dispatch --revision SHA [--base-revision SHA]
                                                [--build install|recipe] [--sample N]
                                                [--title TEXT] [--ref main]
+    python tools/run.py instrument-ci dispatch --revision-from REF
     python tools/run.py instrument-ci dispatch --resume NONCE
     python tools/run.py instrument-ci read --run ID [--parent REV]
                                            [--closing COMMIT --closing-path PATH ...]
@@ -13,11 +14,14 @@ checks QuickChick's switch on GitHub-hosted runners, and
 [its contract](../../ci/README.md#instrument-switch-route) states what a run decides.
 `fanout` never runs this command, and nothing here dispatches Host or Guest CI.
 
-**`dispatch` decides nothing about what it sends.** Every refusal is the plan job's,
+**Raw `dispatch` decides nothing about what it sends.** Every refusal is the plan job's,
 read from the run's `plan.json`, so a dispatch this command would have refused locally
 could not hide a plan that accepts it. It puts a nonce in the run's title, journals
 its intent under that nonce before its one POST, and recovers an interrupted dispatch
 by finding the run whose title carries the nonce, never by posting again.
+`--revision-from` resolves a local Git ref to a full commit SHA before journalling
+and posting it. This convenience checks no hosted acceptance condition; raw
+`--revision` still sends literal inputs for plan refusal qualification.
 
 **`read` trusts nothing it downloads.** Each artifact's redirect is followed without
 credentials, saved under `out/instrument-ci/<run id>/` and extracted only there, a
@@ -248,6 +252,13 @@ def recover(client: Client, root: Path, repo: str, record: dict[str, object]) ->
 
 def cmd_dispatch(args: argparse.Namespace) -> int:
     root = find_root()
+    if args.revision_from is not None:
+        resolved = _commit_of(root, args.revision_from)
+        if resolved is None or route.FULL_COMMIT.fullmatch(resolved) is None:
+            print(f"FAIL --revision-from {args.revision_from!r} names no local commit")
+            return 1
+        print(f"resolved --revision-from {args.revision_from!r} to {resolved}")
+        args.revision = resolved
     repo = fanout_ci.repository(root, args.remote)
     client = GitHub(root, repo)
     if args.resume:
@@ -527,7 +538,8 @@ def closing_refusals(checkout: Path, closing: str, inputs: Sequence[str],
 
 def _commit_of(checkout: Path, revision: str) -> str | None:
     """The commit a revision names in the checkout, None where it names none."""
-    done = _git(checkout, "rev-parse", "--verify", "--quiet", f"{revision}^{{commit}}")
+    done = _git(checkout, "rev-parse", "--verify", "--quiet", "--end-of-options",
+                f"{revision}^{{commit}}")
     found = done.stdout.decode("utf-8", "replace").strip()
     return found if done.returncode == 0 and found else None
 
@@ -799,7 +811,12 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
     sub.add_argument("--remote", default="origin",
                      help="the github.com remote naming the repository (default: origin)")
     if name == "dispatch":
-        sub.add_argument("--revision", help="the commit whose switch the route builds")
+        selection = sub.add_mutually_exclusive_group()
+        selection.add_argument("--revision", help="the literal commit input sent to the hosted plan")
+        selection.add_argument("--revision-from", metavar="REF",
+                               help="resolve a local Git ref to the full commit SHA to send")
+        selection.add_argument("--resume", metavar="NONCE",
+                               help="find the run of an interrupted dispatch; never posts again")
         sub.add_argument("--base-revision", help="a base revision; given, the seed jobs run")
         sub.add_argument("--build", help="install or recipe, as the workflow's input takes it")
         sub.add_argument("--sample", help="the seed runs' sample, as the workflow's input "
@@ -807,8 +824,6 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
         sub.add_argument("--title", help="title text after the nonce")
         sub.add_argument("--ref", default="main",
                          help="the ref the workflow is dispatched at (default: main)")
-        sub.add_argument("--resume", metavar="NONCE",
-                         help="find the run of an interrupted dispatch; never posts again")
     if name == "read":
         sub.add_argument("--run", type=int, required=True, help="the run's identifier")
         sub.add_argument("--parent", help="the closing parent the route inputs are held "

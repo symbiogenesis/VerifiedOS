@@ -1105,14 +1105,16 @@ def _cli_takes_one_selection() -> None:
 def _workflow_runs_every_case() -> None:
     text = WORKFLOW.read_text(encoding="utf-8")
     jobs = test_fanout_ci._workflow_jobs(text)
-    ensure(list(jobs) == ["cold-boot", "boot", "main-die", "watchdog", "campaign"], f"jobs: {list(jobs)}")
+    ensure(list(jobs) == ["plan", "cold-boot", "boot", "main-die", "watchdog", "campaign"],
+           f"jobs: {list(jobs)}")
     matrix = re.search(r"(?m)^        case: \[([^\]]*)\]", jobs["boot"])
     listed = [name.strip() for name in matrix[1].split(",")] if matrix else []
     ensure(listed == [spec.name for spec in bc.CASES if spec.run == "joined" and spec.name != bc.COLD_BOOT],
            f"the boot matrix is not the joined cases beside cold-boot: {listed}")
     ensure("--case cold-boot" in jobs["cold-boot"] and "--group main-die" in jobs["main-die"]
-           and "--group watchdog" in jobs["watchdog"] and "    needs: cold-boot\n" in jobs["main-die"]
-           and "    needs: [cold-boot, boot, main-die, watchdog]\n" in jobs["campaign"]
+           and "--group watchdog" in jobs["watchdog"]
+           and "    needs: [plan, cold-boot]\n" in jobs["main-die"]
+           and "    needs: [plan, cold-boot, boot, main-die, watchdog]\n" in jobs["campaign"]
            and "--cold-boot \"$RUNNER_TEMP/cold-boot/build/boot-chain-target\"" in jobs["main-die"],
            "the jobs do not run every case group with cold-boot's outputs")
     gates = test_guest_report.WORKFLOW.read_text(encoding="utf-8")

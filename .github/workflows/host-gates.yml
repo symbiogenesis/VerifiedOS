@@ -163,6 +163,19 @@ jobs:
       # them. zizmor is locked in tools/uv.lock's workflows group, outside the gate's
       # environment; actionlint.sh verifies its pinned release archive. No pinned
       # shellcheck or pyflakes is provisioned, so actionlint runs without either.
+      - name: Identify the actionlint archive
+        id: actionlint
+        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' && matrix.platform == 'Ubuntu' && matrix.shard == 'unpartitioned' }}
+        shell: bash
+        run: echo "identity=$(sh tools/ci/actionlint.sh --archive-identity)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the actionlint archive
+        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' && steps.actionlint.outcome == 'success' && matrix.platform == 'Ubuntu' && matrix.shard == 'unpartitioned' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/toolchains/archives
+          key: actionlint-archive-${{ steps.actionlint.outputs.identity }}
+
       - name: Analyze workflows
         if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' && matrix.platform == 'Ubuntu' && matrix.shard == 'unpartitioned' }}
         shell: bash
@@ -175,6 +188,13 @@ jobs:
             zizmor --offline .github/workflows || status=1
           sh tools/ci/actionlint.sh -shellcheck= -pyflakes= || status=1
           exit "$status"
+
+      - name: Save the verified actionlint archive
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.platform == 'Ubuntu' && matrix.shard == 'unpartitioned' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/toolchains/archives
+          key: actionlint-archive-${{ steps.actionlint.outputs.identity }}
 
       - name: Report gate results
         if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' }}

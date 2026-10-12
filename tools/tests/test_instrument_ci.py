@@ -59,7 +59,8 @@ class FakeGitHub:
 
 
 def _args(**changes: object) -> argparse.Namespace:
-    fields: dict[str, object] = {"revision": None, "base_revision": None, "build": None,
+    fields: dict[str, object] = {"revision": None, "revision_from": None, "resume": None,
+                                 "remote": "origin", "base_revision": None, "build": None,
                                  "sample": None, "title": None, "ref": "main"}
     fields.update(changes)
     return argparse.Namespace(**fields)
@@ -98,6 +99,60 @@ def _dispatch_journals_before_posting() -> None:
                and record["url"] == f"https://github.com/{REPO}/actions/runs/77",
                f"one POST, its run recorded: {record!r}")
         ensure(not reader.pending(root), "an accepted dispatch is no pending intent")
+
+
+def _revision_from_resolves_and_journals() -> None:
+    with _repository() as (root, commits):
+        client = FakeGitHub({"actions/workflows/instrument-switches.yml/dispatches": {
+            "workflow_run_id": 77}}, journal=reader.journal_dir(root))
+        output = io.StringIO()
+        with patch.object(reader, "find_root", return_value=root), \
+             patch.object(reader.fanout_ci, "repository", return_value=REPO), \
+             patch.object(reader, "GitHub", return_value=client), \
+             patch("sys.stdout", output):
+            ensure(reader.cmd_dispatch(_args(revision_from="HEAD")) == 0,
+                   "a local ref dispatches its canonical commit")
+        tip = commits["tip"]
+        ensure(tip in output.getvalue() and client.seen_at_post is not None
+               and route.as_object(client.seen_at_post["inputs"]).get("revision") == tip,
+               "the displayed and journalled SHA is exactly the sent SHA")
+        posts = [call for call in client.calls if call[0] == "POST"]
+        ensure(len(posts) == 1 and route.as_object(route.as_object(posts[0][2])["inputs"])[
+            "revision"] == tip, "resolution posts once with a full commit SHA")
+
+
+def _revision_from_refuses_only_its_own_inputs() -> None:
+    with _repository() as (root, _commits):
+        for value in ("absent-ref", "--help", "HEAD:README.md", ""):
+            with patch.object(reader, "find_root", return_value=root), \
+                 patch.object(reader, "GitHub") as client, patch("sys.stdout", io.StringIO()):
+                ensure(reader.cmd_dispatch(_args(revision_from=value)) == 1,
+                       f"invalid local commit ref {value!r} is refused")
+                client.assert_not_called()
+        ensure(not reader.journal_dir(root).exists(), "invalid refs journal and send nothing")
+        # Raw revision is deliberately untouched, even when no local commit names it.
+        client = FakeGitHub({"actions/workflows/instrument-switches.yml/dispatches": {
+            "workflow_run_id": 78}})
+        with patch.object(reader, "find_root", return_value=root), \
+             patch.object(reader.fanout_ci, "repository", return_value=REPO), \
+             patch.object(reader, "GitHub", return_value=client), \
+             patch("sys.stdout", io.StringIO()):
+            ensure(reader.cmd_dispatch(_args(revision="--hostile-ref", build="other")) == 0,
+                   "raw hostile revision still reaches hosted refusal qualification")
+        sent = route.as_object(client.calls[0][2])
+        ensure(route.as_object(sent["inputs"])["revision"] == "--hostile-ref",
+               "raw revision reaches the POST literally")
+    for argv in (("--revision", "raw", "--revision-from", "HEAD"),
+                 ("--resume", NONCE, "--revision-from", "HEAD"),
+                 ("--resume", NONCE, "--revision", "raw")):
+        with patch("sys.stderr", io.StringIO()), patch.object(reader, "cmd_dispatch") as dispatch:
+            try:
+                reader.main(["dispatch", *argv])
+            except SystemExit as error:
+                ensure(error.code == 2, "conflicting dispatch selectors are usage errors")
+            else:
+                raise AssertionError("conflicting selectors were accepted")
+            dispatch.assert_not_called()
 
 
 def _dispatch_rejections_and_interruptions() -> None:
@@ -526,6 +581,8 @@ def _fanout_never_runs_the_route() -> None:
 
 def cases() -> list[Case]:
     return [Case("dispatch-sends-inputs-unrefused", _dispatch_sends_inputs_unrefused),
+            Case("revision-from-resolves-and-journals", _revision_from_resolves_and_journals),
+            Case("revision-from-refuses-only-its-own-inputs", _revision_from_refuses_only_its_own_inputs),
             Case("dispatch-journals-before-posting", _dispatch_journals_before_posting),
             Case("dispatch-rejections-and-interruptions",
                  _dispatch_rejections_and_interruptions),

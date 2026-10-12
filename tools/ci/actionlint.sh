@@ -20,32 +20,49 @@ case "$(uname -s):$(uname -m)" in
         ;;
 esac
 
+# The workflow's cache key is the archive's actual owner identity, not a second pin.
+if [ "${1:-}" = --archive-identity ]; then
+    printf '%s\n' "$actionlint_sha"
+    exit 0
+fi
+
 # Checksums are from the release's actionlint_1.7.12_checksums.txt.
 actionlint_name="actionlint_${actionlint_version}_linux_${actionlint_arch}"
 actionlint_root=${ACTIONLINT_ROOT:-"${HOME}/build/toolchains"}
 mkdir -p -- "$actionlint_root"
 actionlint_root=$(cd "$actionlint_root" && pwd -P)
 actionlint_prefix="$actionlint_root/$actionlint_name"
+actionlint_archives="$actionlint_root/archives"
+mkdir -p -- "$actionlint_archives"
+actionlint_archive="$actionlint_archives/$actionlint_sha.tar.gz"
 
 # The per-edition lock covers download and publication. A second invocation sees
 # either a complete installation or waits; interruption leaves no partial prefix.
 (
     flock -x 9
+    actionlint_stage=$(mktemp -d "$actionlint_root/.${actionlint_name}.XXXXXX")
+    trap 'rm -rf -- "$actionlint_stage"' 0
+    trap 'exit 1' HUP INT TERM
+    # Restored cache bytes are untrusted. Only this pinned digest permits extraction;
+    # a bad copy is replaced by a freshly verified download, never an executable.
+    if [ -L "$actionlint_archive" ] || [ ! -f "$actionlint_archive" ] ||
+       ! printf '%s  %s\n' "$actionlint_sha" "$actionlint_archive" | sha256sum --check --status; then
+        rm -f -- "$actionlint_archive"
+        echo "Downloading actionlint $actionlint_version ($actionlint_arch)" >&2
+        curl --fail --silent --show-error --location --retry 3 \
+            --output "$actionlint_stage/archive.tar.gz" \
+            "https://github.com/rhysd/actionlint/releases/download/v${actionlint_version}/${actionlint_name}.tar.gz"
+        printf '%s  %s\n' "$actionlint_sha" "$actionlint_stage/archive.tar.gz" | sha256sum --check --status
+        mv -- "$actionlint_stage/archive.tar.gz" "$actionlint_archive"
+    fi
     if [ ! -x "$actionlint_prefix/actionlint" ]; then
         if [ -e "$actionlint_prefix" ]; then
             echo "Incomplete actionlint installation at $actionlint_prefix; inspect it before retrying." >&2
             exit 1
         fi
-        actionlint_stage=$(mktemp -d "$actionlint_root/.${actionlint_name}.XXXXXX")
-        trap 'rm -rf -- "$actionlint_stage"' 0
-        trap 'exit 1' HUP INT TERM
         echo "Installing actionlint $actionlint_version ($actionlint_arch) in $actionlint_prefix" >&2
-        curl --fail --silent --show-error --location --retry 3 \
-            --output "$actionlint_stage/archive.tar.gz" \
-            "https://github.com/rhysd/actionlint/releases/download/v${actionlint_version}/${actionlint_name}.tar.gz"
-        printf '%s  %s\n' "$actionlint_sha" "$actionlint_stage/archive.tar.gz" | sha256sum --check --status
         mkdir -- "$actionlint_stage/$actionlint_name"
-        tar -xzf "$actionlint_stage/archive.tar.gz" -C "$actionlint_stage/$actionlint_name"
+        tar -xzf "$actionlint_archive" -C "$actionlint_stage/$actionlint_name"
         [ "$("$actionlint_stage/$actionlint_name/actionlint" -version | head -n 1)" = "$actionlint_version" ]
         mv -- "$actionlint_stage/$actionlint_name" "$actionlint_prefix"
     fi

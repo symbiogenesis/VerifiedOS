@@ -3,8 +3,9 @@
 # boot-handoff.md section 9 is its predicate and section 9.14 its hosted execution. The
 # contained compiler and the campaign's private keys never reach a runner:
 # firmware/chain/target/ holds the staged streams, the signed images, the public keys
-# and the manifest binding them, which `run.py boot-handoff chain-verify` holds to the
-# checkout before any runner time is spent. Each boot case runs on its own runner, which
+# and the manifest binding them. A plan checks the requested main revision, timeout and
+# strict staging before allocating campaign runners; each runner still holds its own
+# checkout through `run.py boot-handoff chain-verify`. Each boot case runs on its own runner, which
 # builds the model and runs the case's R1, R2 and R3 in turn; cold-boot has a job of its
 # own because the main-die job depends on it alone and takes its R1 capture and R2
 # response as an artifact whose SHA-256 both receipts record; the watchdog group runs on
@@ -60,7 +61,8 @@ env:
   PYTHONUTF8: "1"
   PYTHONUNBUFFERED: "1"
   CAMPAIGN_REVISION: ${{ inputs.revision || github.sha }}
-  CASE_TIMEOUT: ${{ inputs.case_timeout || 12000 }}
+  # Preserve zero as a string so the plan refuses it instead of selecting the default.
+  CASE_TIMEOUT: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.case_timeout) || '12000' }}
   GUEST_TIME: 'real %e\nuser %U\nsys %S\nmaxrss_kb %M'
 
 defaults:
@@ -69,8 +71,69 @@ defaults:
     shell: bash
 
 jobs:
+  plan:
+    name: boot-chain-target (plan)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    outputs:
+      case_timeout: ${{ steps.ready.outputs.case_timeout }}
+    steps:
+      # Validate with the dispatching commit before checking out requested code.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify requested revision belongs to main
+        id: dispatch
+        shell: python
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Campaign must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "--verify", "--end-of-options",
+                                            f"{revision}^{{commit}}"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Requested revision names no exact commit")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+          subprocess.run(["git", "checkout", "--detach", revision], check=True)
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: true
+          save-cache: false
+          cache-suffix: guest-gates
+          cache-dependency-glob: |
+            tools/pyproject.toml
+            tools/uv.lock
+
+      - name: Verify campaign readiness
+        id: ready
+        run: |
+          uv run --project tools --locked --exact --no-python-downloads \
+            python tools/ci/boot_chain_plan.py --timeout "$CASE_TIMEOUT" --github-output "$GITHUB_OUTPUT"
+
   cold-boot:
     name: boot-chain-target (cold-boot)
+    needs: plan
+    env:
+      CASE_TIMEOUT: ${{ needs.plan.outputs.case_timeout }}
     runs-on: ubuntu-26.04
     # R1, R2 and R3 of at most their timeouts each, after bootstrap and the model build.
     timeout-minutes: 355
@@ -233,6 +296,9 @@ jobs:
 
   boot:
     name: boot-chain-target (${{ matrix.case }})
+    needs: plan
+    env:
+      CASE_TIMEOUT: ${{ needs.plan.outputs.case_timeout }}
     runs-on: ubuntu-26.04
     # One boot case: R1, and on a release R2 and R3, after bootstrap and the model build.
     timeout-minutes: 355
@@ -391,7 +457,9 @@ jobs:
     name: boot-chain-target (main-die)
     # cold-boot's R1 capture and R2 response are this job's inputs: a cold-boot that
     # did not pass skips it, and the join lists its three cases unexecuted.
-    needs: cold-boot
+    needs: [plan, cold-boot]
+    env:
+      CASE_TIMEOUT: ${{ needs.plan.outputs.case_timeout }}
     runs-on: ubuntu-26.04
     # Three main-die runs at once, one ML-DSA-87 verification each, after bootstrap and
     # the model build.
@@ -547,6 +615,9 @@ jobs:
           retention-days: 30
 
   watchdog:
+    needs: plan
+    env:
+      CASE_TIMEOUT: ${{ needs.plan.outputs.case_timeout }}
     name: boot-chain-target (watchdog)
     runs-on: ubuntu-26.04
     # Three runtime-only runs at once, after bootstrap and the model build.
@@ -694,9 +765,9 @@ jobs:
 
   campaign:
     name: boot-chain-target
-    needs: [cold-boot, boot, main-die, watchdog]
+    needs: [plan, cold-boot, boot, main-die, watchdog]
     # A shard that failed or was skipped still leaves the join to record or refuse it.
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
