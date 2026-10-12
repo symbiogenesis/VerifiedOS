@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 """Pool allocation, heap lifetime, exact bounds and quarantine controls."""
 
-from collections.abc import Callable
-from dataclasses import replace
+from collections.abc import Callable, MutableMapping
+from dataclasses import FrozenInstanceError, replace
 from itertools import product
+from operator import setitem
 from pathlib import Path
+from typing import cast
 
 from tests.harness import Case, ensure
 from vos import elastic_pool as p
@@ -122,6 +124,65 @@ def island_and_issuer_separation() -> None:
     other.allocate(1, 0, 0)
     refused(lambda: other.release(grant), "issuer")
     refused(lambda: p.DomainPools({(0, 0): local}, {1: 0, 2: 1}), "missing")
+
+
+def domain_admission_owns_fixed_composition_bindings() -> None:
+    local = p.fixture()
+    remote = p.Pool(replace(local.plan, island=1, base=128,
+                            slots=((128, 0), (144, 0), (160, 1))))
+    pools = {(0, 0): local, (1, 0): remote}
+    launches = {1: 0, 2: 1}
+    domain = p.DomainPools(pools, launches)
+    first = domain.allocate(1, 0, 0)
+    overlapping = p.Pool(replace(local.plan, island=1))
+    # Input maps belong to the caller. Replacing an admitted arena must not
+    # manufacture a second live grant over the first arena's physical bytes.
+    pools[1, 0] = overlapping
+    launches[1] = 1
+    second = domain.allocate(2, 0, 0)
+    third = domain.allocate(1, 0, 0)
+    ensure(first.base == 64 and second.base == 128 and third.base == 80,
+           "caller map mutation redirected an admitted allocation")
+    ensure(not overlapping.history, "unadmitted replacement arena was used")
+    pools.clear()
+    launches.clear()
+    ensure(domain.pools[0, 0] is local and domain.pools[1, 0] is remote
+           and dict(domain.launch_islands) == {1: 0, 2: 1},
+           "caller map removal changed the admitted composition")
+
+    # Deliberately try mutable interfaces against the public read-only views.
+    edits: tuple[Callable[[], object], ...] = (
+        lambda: setitem(cast(MutableMapping[tuple[int, int], p.Pool], domain.pools),
+                        (1, 0), overlapping),
+        lambda: setitem(cast(MutableMapping[int, int], domain.launch_islands), 1, 1),
+    )
+    for edit in edits:
+        try:
+            edit()
+        except TypeError:
+            pass
+        else:
+            raise AssertionError("admitted mapping accepted a new binding")
+    for name, replacement in (("pools", {(1, 0): overlapping}),
+                              ("launch_islands", {1: 1})):
+        try:
+            setattr(domain, name, replacement)
+        except FrozenInstanceError:
+            pass
+        else:
+            raise AssertionError(f"admitted composition allowed {name} rebinding")
+
+    # Freezing the bindings must preserve the service's ordinary mutable state.
+    local.write(first, 0, 77)
+    reclaimed(local, first)
+    reused = domain.allocate(1, 0, 0)
+    ensure(reused.base == first.base and reused.serial > first.serial
+           and local.memory[reused.base] == 0,
+           "fixed composition bindings prevented zeroed runtime reuse")
+    remote.live(second)
+    ensure(not p.history_errors(local.plan, local.history)
+           and not p.history_errors(remote.plan, remote.history),
+           "fixed-composition control failed the history contract")
 
 
 def independently_revocable_slots_do_not_share_a_bit() -> None:
@@ -274,6 +335,7 @@ def cases() -> list[Case]:
         release_during_sweep_waits_for_next_pass,
         stale_register_blocks_the_semantic_barrier,
         island_and_issuer_separation,
+        domain_admission_owns_fixed_composition_bindings,
         independently_revocable_slots_do_not_share_a_bit,
         physical_pool_extents_are_disjoint,
         heap_narrowing_and_lifetime_are_exclusive,
