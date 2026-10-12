@@ -42,5 +42,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"compiler-build: {report['outcome']}; {report['candidate_reason']}")
         for name, phase in report["phases"].items():
             print(f"  {name}: {phase['action']} ({phase['status']})")
-        print(f"  current validation/operation: {report['validation_seconds']:.2f}s; reused execution timings are historical")
+        validation = report["validation_seconds"]
+        timing = "n/a" if validation is None else f"{validation:.2f}s"
+        print(f"  validation: {timing}; operation: {report['controller_operation_seconds']:.2f}s; reused timings are historical")
     return 0 if report["outcome"] in {"complete", "status"} else 1

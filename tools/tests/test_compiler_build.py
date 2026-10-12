@@ -46,6 +46,10 @@ if mode == 'fresh-lie': phases['kernel'].update(action='reused',basis='a'*64,sec
 if mode == 'pending-lie': phases['kernel'].update(action='not_run',status='not_run',seconds=0)
 if mode == 'timing-lie': phases['compile']['seconds'] = 99
 if mode == 'bool-seconds': phases['compile']['seconds'] = True
+if mode == 'status-lie' and r['operation'] == 'status':
+    phases['queries'].update(action='not_run',status='not_run',basis=None,seconds=0,original_seconds=None)
+if mode == 'unmeasured' and complete:
+    for n in ('queries','classification'): phases[n]['original_seconds'] = None
 compiler = out / 'ccomp'
 qualification = candidate if complete else out / 'qualification.json'
 receipt = out / 'build-reuse-result.json'
@@ -57,7 +61,9 @@ b = {'receipt':str(candidate),'receipt_sha256':basis,'original':'fixture-produce
 result = {k:r[k] for k in ('protocol','operation','source_revision','driver_manifest_sha256','policy')}
 result.update(outcome=outcome,effective_policy=effective,phases=phases,compiler=str(compiler),
               receipt=str(receipt),qualification_receipt=str(qualification),cache_candidate=str(qualification),
-              basis=b,inputs_stable=True,reuse_reason='fixture semantic validation')
+              basis=b,inputs_stable=True,reuse_reason='fixture semantic validation',
+              validation_seconds=0.25,operation_seconds=1.5)
+if outcome == 'refused' or mode == 'unmeasured-current': result['validation_seconds'] = None
 if mode == 'protocol-lie': result['protocol'] = 'unsupported'
 if r['operation'] == 'build' and outcome == 'complete': receipt.write_text(json.dumps(result))
 if mode == 'driver-drift': (p(__file__).parent/'reuse.py').write_text('drift')
@@ -129,6 +135,17 @@ def _fresh_and_profile() -> None:
         ensure(all(p["action"] == "executed" for p in fresh["phases"].values()), "fresh bypasses both tiers")
 
 
+def _unmeasured_and_current_timings() -> None:
+    with _session("unmeasured") as (settings, checkout):
+        cb.run(settings, checkout)
+        warm = cb.run(replace(settings, out=settings.lane_root / "warm"), checkout)
+        ensure(all(warm["phases"][name]["original_seconds"] is None
+                   for name in ("queries", "classification")), "unmeasured history stays unmeasured")
+        ensure(warm["validation_seconds"] == 0.25 and warm["operation_seconds"] == 1.5,
+               "controller preserves backend timings")
+        ensure(isinstance(warm["controller_operation_seconds"], float), "controller wall time is separate")
+
+
 def _pending_and_explicit() -> None:
     with _session() as (settings, checkout):
         pending = settings.source / "pending.json"
@@ -139,6 +156,8 @@ def _pending_and_explicit() -> None:
         bad.write_text('not json')
         refused = cb.run(replace(settings, out=settings.lane_root / "bad", reuse_from=bad), checkout)
         ensure(refused["outcome"] == "refused", "explicit malformed candidate refuses")
+        ensure(refused["validation_seconds"] is None and refused["operation_seconds"] == 1.5,
+               "failed validation may be unmeasured while actual operation time remains")
         warm = cb.run(replace(settings, out=settings.lane_root / "after-failure"), checkout)
         ensure(warm["effective_policy"] == "complete-reuse", "failure retains previous useful index")
 
@@ -167,6 +186,12 @@ def _status_read_only() -> None:
         ensure(report["outcome"] == "status" and before == after, "status never changes prior lane evidence")
 
 
+def _status_consistency() -> None:
+    with _session("status-lie") as (settings, checkout):
+        cb.run(settings, checkout)
+        _refuses(lambda: cb.run(settings, checkout, status=True))
+
+
 def _framing(mode: str) -> None:
     with _session(mode) as (settings, checkout):
         _refuses(lambda: cb.run(replace(settings, fresh=mode == "fresh-lie"), checkout))
@@ -187,7 +212,7 @@ def _containment_and_lock() -> None:
 
 def _json_and_manifest() -> None:
     with _session() as (settings, checkout):
-        for payload in ('{"x":1,"x":2}', '{"x":NaN}', '[1]'):
+        for payload in ('{"x":1,"x":2}', '{"x":NaN}', '{"x":1e999}', '[1]'):
             settings.configuration.write_text(payload)
             _refuses(lambda: cb.run(settings, checkout))
             ensure(not settings.out.exists(), "malformed request refuses before native operation")
@@ -199,13 +224,36 @@ def _json_and_manifest() -> None:
         ensure(not settings.out.exists(), "escaping manifest refuses before launch")
 
 
+def _unreviewed_imports() -> None:
+    for form in ("module", "package", "dynamic", "invalid-python"):
+        with _session() as (settings, checkout):
+            if form == "module":
+                (settings.driver_root / "pathlib.py").write_text("raise RuntimeError('unreviewed')\n")
+            elif form == "package":
+                package = settings.driver_root / "pathlib"
+                package.mkdir()
+                (package / "__init__.py").write_text("raise RuntimeError('unreviewed')\n")
+            else:
+                driver = settings.driver_root / "build.py"
+                driver.write_text(driver.read_text() + ("\n__import__(target)\n" if form == "dynamic" else "\nif (\n"))
+                manifest = cb.read_json(settings.driver_manifest)
+                manifest["files"]["build.py"] = cb.digest(driver)
+                settings.driver_manifest.write_text(json.dumps(manifest))
+            with patch.object(cb.subprocess, "run", side_effect=AssertionError("unreviewed driver launched")):
+                _refuses(lambda: cb.run(settings, checkout))
+            ensure(not settings.out.exists(), "import closure refuses before creating output or launching")
+
+
 def cases() -> list[Case]:
     return [Case("default-warm-and-job-change", _default_warm),
+            Case("unmeasured-history-and-current-timing", _unmeasured_and_current_timings),
             Case("fresh-and-new-profile", _fresh_and_profile),
             Case("pending-compile-only-and-explicit-refusal", _pending_and_explicit),
             Case("index-poison-and-lock-drift", _index_poison_and_stale),
             Case("status-read-only", _status_read_only),
+            Case("status-phase-consistency", _status_consistency),
             Case("native-containment-collision-lock", _containment_and_lock),
             Case("json-and-manifest-refusal", _json_and_manifest),
+            Case("unreviewed-imports-before-launch", _unreviewed_imports),
             *[Case(mode, lambda mode=mode: _framing(mode)) for mode in
-              ("protocol-lie", "fresh-lie", "pending-lie", "driver-drift", "bool-seconds")]]
+              ("protocol-lie", "fresh-lie", "pending-lie", "driver-drift", "bool-seconds", "unmeasured-current")]]

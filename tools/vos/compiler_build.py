@@ -5,6 +5,7 @@ The private validator owns compiler and kernel semantics. The lane-local index i
 only a candidate hint; no receipt here makes a pending audit reusable.
 """
 
+import ast
 import hashlib
 import json
 import math
@@ -19,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from vos import env
+from vos.jsonutil import finite_float, unique_object
 
 PROTOCOL = "verifiedos-contained-compiler-build/1"
 INDEX_PROTOCOL = "verifiedos-contained-compiler-index/1"
@@ -32,19 +34,11 @@ def digest(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def _pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for name, value in items:
-        if name in result:
-            raise ValueError("duplicate JSON field")
-        result[name] = value
-    return result
-
-
 def read_json(path: Path) -> dict[str, Any]:
     if path.is_symlink() or not path.is_file() or path.stat().st_size > MAX_JSON:
         raise ValueError("missing, linked or oversized JSON artifact")
-    raw = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_pairs,
+    raw = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object,
+                     parse_float=finite_float,
                      parse_constant=lambda _: (_ for _ in ()).throw(ValueError("non-finite JSON")))
     if not isinstance(raw, dict):
         raise TypeError("JSON artifact must be an object")
@@ -87,6 +81,48 @@ def _atomic(path: Path, value: dict[str, Any]) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def _review_imports(root: Path, files: dict[str, str]) -> None:
+    """Refuse undeclared local modules, packages and dynamic import targets before launch."""
+    for name in files:
+        path = contained(root / name, root)
+        if path.suffix != ".py":
+            raise ValueError("unsupported driver closure file")
+        modules: list[str] = []
+        try:
+            syntax = ast.parse(path.read_text(encoding="utf-8"))
+        except SyntaxError as error:
+            raise ValueError("driver closure contains invalid Python") from error
+        for node in ast.walk(syntax):
+            if isinstance(node, ast.Import):
+                if any(alias.name.split(".")[0] == "importlib" for alias in node.names):
+                    raise ValueError("dynamic driver import tooling is unsupported")
+                modules.extend(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                if node.level or node.module is None:
+                    raise ValueError("relative driver imports are unsupported")
+                if node.module.split(".")[0] == "importlib":
+                    raise ValueError("dynamic driver import tooling is unsupported")
+                modules.append(node.module)
+                modules.extend(node.module + "." + alias.name for alias in node.names
+                               if alias.name != "*")
+            elif isinstance(node, ast.Call) and (
+                    (isinstance(node.func, ast.Name) and node.func.id == "__import__")
+                    or (isinstance(node.func, ast.Attribute) and node.func.attr == "import_module")):
+                if (not node.args or not isinstance(node.args[0], ast.Constant)
+                        or not isinstance(node.args[0].value, str)
+                        or node.args[0].value.startswith(".")):
+                    raise ValueError("dynamic driver import target is unsupported")
+                modules.append(node.args[0].value)
+        for module in modules:
+            parts = module.split(".")
+            for length in range(1, len(parts) + 1):
+                member = root.joinpath(*parts[:length])
+                for imported in (member.with_suffix(".py"), member / "__init__.py"):
+                    checked = contained(imported, root)
+                    if checked.is_file() and checked.relative_to(root).as_posix() not in files:
+                        raise ValueError("unreviewed project-local driver import")
+
+
 def driver_identity(root: Path, manifest: Path) -> dict[str, str]:
     """Read a reviewed closure manifest; never import private helper code here."""
     boundary = _absolute(root)
@@ -108,6 +144,7 @@ def driver_identity(root: Path, manifest: Path) -> dict[str, str]:
         if not path.is_file() or digest(path) != expected:
             raise ValueError("reviewed driver closure bytes differ")
         identities[name] = expected
+    _review_imports(boundary, files)
     return identities
 
 
@@ -256,7 +293,8 @@ def _result(raw: dict[str, Any], request: dict[str, Any], *, code: int) -> None:
         basis, seconds = phase.get("basis"), phase.get("original_seconds")
         if action == "reused":
             if (not isinstance(basis, str) or SHA256.fullmatch(basis) is None
-                    or not _seconds(seconds) or phase["status"] != "passed"):
+                    or (seconds is not None and not _seconds(seconds))
+                    or phase["status"] != "passed"):
                 raise ValueError("reused phase lacks complete historical basis and timing")
         elif basis is not None or seconds is not None:
             raise ValueError("phase has invalid basis or timing")
@@ -264,6 +302,8 @@ def _result(raw: dict[str, Any], request: dict[str, Any], *, code: int) -> None:
             raise ValueError("phase status contradicts its action")
     if not isinstance(raw.get("reuse_reason"), str) or type(raw.get("inputs_stable")) is not bool:
         raise ValueError("driver result lacks validation status")
+    if actions["kernel"] == "reused" and set(actions.values()) != {"reused"}:
+        raise ValueError("whole-set kernel reuse must reuse all qualification phases")
     if request["operation"] == "status":
         if "executed" in actions.values() or raw["outcome"] == "complete":
             raise ValueError("status attempted execution")
@@ -278,8 +318,6 @@ def _result(raw: dict[str, Any], request: dict[str, Any], *, code: int) -> None:
             raise ValueError("fresh request reused earlier execution")
         if request["profile"] and actions["kernel"] != "executed":
             raise ValueError("new profile output requires kernel execution")
-        if actions["kernel"] == "reused" and set(actions.values()) != {"reused"}:
-            raise ValueError("whole-set kernel reuse must reuse all qualification phases")
         if actions["kernel"] == "executed" and any(actions[name] != "executed"
                                                     for name in ("queries", "classification")):
             raise ValueError("new kernel execution needs new queries and classification")
@@ -336,8 +374,13 @@ def run(settings: Settings, checkout: Path, *, status: bool = False) -> dict[str
             _result(raw, request, code=done.returncode)
         if before != driver_identity(settings.driver_root, settings.driver_manifest) or snapshot != context(settings, before):
             raise ValueError("driver or request inputs changed during the operation")
+        validation = raw.get("validation_seconds")
+        if ((not _seconds(validation) and not (
+                validation is None and raw["outcome"] in {"refused", "unavailable"}))
+                or not _seconds(raw.get("operation_seconds"))):
+            raise ValueError("driver result lacks current validation/operation timing")
         report = {**raw, "context_sha256": key, "controller_policy": policy,
-                  "candidate_reason": reason, "validation_seconds": time.perf_counter() - started,
+                  "candidate_reason": reason, "controller_operation_seconds": time.perf_counter() - started,
                   "driver_identity": before, "status": "passed" if raw["outcome"] == "complete" else raw["outcome"]}
         if not status:
             receipt = settings.out / "controller-result.json"
