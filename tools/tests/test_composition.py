@@ -233,6 +233,17 @@ def _build_bindings() -> None:
         record = c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph)
         c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image)
         ensure(record["production_admission"] is False, "build bindings cannot promote incomplete members")
+        for field, value in (("schema_version", True), ("schema_version", 1.0),
+                             ("production_admission", 0), ("production_admission", 0.0)):
+            altered = {**record, field: value}
+            _refused(lambda altered=altered:
+                     c.validate_build_record(root, c.EXAMPLE, altered, outputs, graph, image),
+                     "substituted binding")
+        for value in ({False}, float("nan")):
+            altered = {**record, "production_admission": value}
+            _refused(lambda altered=altered:
+                     c.validate_build_record(root, c.EXAMPLE, altered, outputs, graph, image),
+                     "malformed record")
         _refused(lambda: c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph + b" "),
                  "graph binding")
         changed_image = {**image, "sha256": "0" * 64}
