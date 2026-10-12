@@ -43,3 +43,63 @@ generation admission and signatures remain joins. Input parser flags declare the
 reference's predicates; they establish no parser proof. This tool does not choose
 an intent vocabulary or ambiguity policy, implement the object router, or claim
 the reference's media-template and runtime binding obligations.
+
+## Production composition checkpoint
+
+The [production input schema](composition.schema.json) and
+[M8a input](m8a-composition.json) implement the first checkpoint of
+[M7.1d's production composition contract](../../docs/implementation/contracts/boot-roster.md#production-composition-input-and-projections).
+The real roster table owns membership, ranks and executable status. The input
+maps each roster member to its package identity, existing source references and
+producer manifest, and declares separate startup dependencies, supervisor
+authority edges, typed handler descriptors and image imports. Sources and
+producer manifests bind exact checkout-relative paths and SHA-256 digests.
+The checked schema rejects additional fields and repeated JSON keys. The
+production graph boundary refuses a malformed declared edge instead of silently
+dropping it through the fixture filter.
+
+`python tools/run.py composer project tools/composer/m8a-composition.json --output tools/composer/generated`
+generates the immutable typed C supervisor manifest and four JSON projections:
+the manifest, typed graph input, recipe members and admission request skeleton.
+Each projection binds the same input bytes, roster, configuration and projection
+producer sources. The C manifest binds that identity in its generated comment;
+the JSON manifest carries its full source bindings. Numeric policy fields have
+the existing C manifest's meanings and capacity bounds. This output supplies the
+manifest's source, without changing the handwritten manifest currently compiled
+by the supervisor's host implementation.
+
+`python tools/run.py composer check-project` regenerates and compares every
+checked-in projection byte. A changed member, source, producer, relation,
+placement or derivation reference invalidates the projections. The focused
+`test --only test_composition` independently expects the six main-die members,
+the `crypto-core`, `storage`, `copy-service` startup order and storage's
+crypto-core dependency. It also exercises missing and duplicate members,
+swapped package identities, conflicting order, invalid extents, stale bindings
+and substituted derivation references. Fixture descriptor and recipe schemas
+remain unchanged.
+
+The M8a input explicitly leaves descriptors, target producers, placements,
+entry products, admission tiers and derivation sources unresolved where the
+products are absent. Its source list identifies existing statements and the
+supervisor's comparison manifest; it does not make them target products. The
+two existing offline reference tools have source-bound producer identities and
+are excluded from admission certificates. Missing descriptors yield a null
+graph document, rather than a fabricated graph. Present descriptors are checked
+even if another member is unresolved. Once complete, their document uses the
+existing composer schema; every descriptor source must name its own package.
+Image entries may be unresolved; a declared entry follows the boot contract's
+`_start` rule. Planned text/data extents must fit executable/writable MainMemory,
+with no overlap with each other, the graph reservation or aligned HTIF word.
+They reserve space rather than proving the size or identity of a built image.
+
+`vos.composition.build_record` resolves runtime artifact slots to actual file
+paths and digests after producing member bytes. It binds the input and all
+projection digests, regenerates the graph and binds the final image bytes.
+`validate_build_record` rechecks those inputs and bytes; it trusts no reported
+admission boolean. The skeleton contains no final image digest or certificate,
+and generated derivation references supply no proof evidence. Neither the byte
+binding API nor the generated files perform the M7.1c derivation checks.
+`composer promote INPUT` refuses the roster's incomplete members and the absent
+production admission implementation. M7.1a placement/image construction, M7.1b
+manifest admission and target execution, real producer/descriptor adapters,
+full-roster boot and fault/restart observations remain joins.
