@@ -1003,7 +1003,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-482** owed-act: the tracked model bundle's MD5 map records 121 of the 132 source files the model's project lists, so K-88's host half and the Sail context tool cannot see an edit to the other eleven
 · Raised: Q35b
-· Disposition: open, K-88's owner stating the residue or closing it
+· Disposition: closed by the supplemental complete source identity generated from the Sail project's own listing, bound to the project file and exact bundle bytes; K-88 and Sail context retrieval check every selected source, and guest regeneration compares both artifacts
 
 **F-483** measurement: no `rocq-sail-stdpp` release admits Rocq 9.3, 0.20.3 having joined 0.20.2 with the same published `rocq-core` bound and paired with the locked Sail 0.20.3, so neither installs beside the locked Rocq 9.3.0
 · Raised: Q35b

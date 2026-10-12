@@ -2280,6 +2280,11 @@ CASES: list[Case] = [
              "generator wrote",
      _literal(BUNDLE, '"embedding":"plain"', '"embedding":"plane"')),
 
+    ("K-88", "a project source omitted from Sail's bundle MD5 map changes",
+     _literal("model/model/extensions/B/zbc_insts.sail",
+              "function clause currentlyEnabled(Ext_Zbc) = hartSupports(Ext_Zbc)",
+              "function clause currentlyEnabled(Ext_Zbc) = hartSupports(Ext_Zbkc)")),
+
     # A second case for K-88, because the rule's two lanes are two readings and a case
     # seeded at one proves nothing about the other. The case above moves a *guest* row's
     # artifact off the blob the index holds, which is the whole of what a lane with no

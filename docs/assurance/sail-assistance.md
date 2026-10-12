@@ -18,15 +18,17 @@ Its acceptance predicates are:
   symbol, source location and bounded excerpts. Ordering is deterministic and
   omitted results and truncated excerpts are explicit. Generated entries without
   a local source location are distinguished from searchable local source.
-- Each invocation checks every recorded local source digest against current
-  bytes. A changed, missing or unreadable owner, malformed bundle or unsafe path
+- Each invocation checks the supplemental identity's project file and every
+  selected local source digest against current bytes, bound to the exact bundle.
+  A changed, missing or unreadable owner, malformed identity or bundle, or unsafe path
   refuses with a nonzero exit and no partial JSON. The tool reads no source through
   a symbolic link or junction, writes nothing and executes no retrieved text.
-  Upstream MD5 fields detect accidental staleness; SHA-256 identifies the bytes
-  returned and neither authenticates an untrusted bundle.
-- The freshness claim covers the bundle's recorded local owners only. The bundle
-  does not identify project selection, new unrecorded files, compiler options or
-  the installed library. The interface states this limit. Regeneration and
+  Upstream MD5 fields check agreement with the bundle's own owner record;
+  SHA-256 binds the complete selected source set and returned bytes. Neither
+  authenticates an untrusted bundle.
+- The freshness claim covers the recorded project and its complete selected local
+  source set. It does not identify compiler options or the installed library.
+  The interface states this limit. Regeneration and
   `python tools/run.py model bundle --check` remain the compiler comparison; no
   context result establishes successful compilation or behavioral correctness.
 - Agent-independent instructions describe a bounded retrieve, edit, typecheck,
@@ -58,7 +60,8 @@ python tools/run.py sail-context search --help
 ```
 
 The command reads the tracked [Sail bundle](../../tools/generated/sail_riscv_model.json)
-through [its existing reader](../../tools/vos/sailbundle.py). It accepts no remote
+and [complete source identity](../../tools/generated/sail_riscv_sources.json)
+through [their reader](../../tools/vos/sailbundle.py). It accepts no remote
 URL, launches no model and keeps no search index. `search` finds examples by words,
 `symbol` finds exact names across kinds and scattered definitions, and `references`
 finds incoming links actually recorded by the compiler. A missing reference does
@@ -75,8 +78,8 @@ Locations use one-based lines and Unicode character columns with separate UTF-8
 byte offsets; they are not LSP's zero-based UTF-16 positions.
 
 The emitter can supply generated text without a location and locations whose file
-has no recorded owner digest. Such rows are omitted and counted separately; they
-cannot be reported as current local source. Exact lookup distinguishes a known
+is outside the complete selected local source identity. Such rows are omitted and
+counted separately; they cannot be reported as current local source. Exact lookup distinguishes a known
 name with omitted rows from an unknown name. Regeneration does not necessarily
 remove this upstream coverage limitation. Use the original source when the
 reported omissions affect the task. An empty result is not a proof of absence.
@@ -88,18 +91,19 @@ process arguments and exit codes. No MCP client or agent-specific tool declarati
 is necessary. The optional `sail-mcp` protocol adapter reuses this interface and
 preserves its errors, identities and limits.
 
-The freshness check rereads every local source the bundle records, even when the
-query returns no examples. A mismatch requires inspecting the edit and running
+The freshness check rereads the project and every selected local source, even when
+the query returns no examples. A mismatch requires inspecting the edit and running
 `python tools/run.py model bundle` through the pinned compiler before retrying.
 Keep the checkout stable during generation and retrieval. After changing project
 selection, adding a source, changing preprocessor inputs or changing the toolchain,
-regenerate explicitly: the original bundle hashes do not cover those changes.
+regenerate explicitly. Project and source changes invalidate the supplemental
+identity; compiler options and installed-library changes remain outside host freshness.
 The command does not certify the installed Sail libraries. Its MD5 comparisons
 are accidental-staleness checks; neither those checks nor the reported SHA-256
 identities authenticate a bundle supplied by an adversary.
 
 `python tools/run.py model bundle --check` regenerates in the native lane and
-compares with the tracked artifact. K-88 checks its tracked provenance under
+compares both tracked artifacts. K-88 checks their tracked provenance under
 [the generator contract](../../tools/README.md#current-evidence-and-generated-documentation).
 Neither a matching bundle nor a typecheck proves that a proposed ISA behavior is
 the behavior the requirements specify.
