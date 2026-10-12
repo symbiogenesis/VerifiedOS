@@ -59,7 +59,7 @@ def value(path: Path, *keys: str) -> Json:
         return None
     try:
         node: Json = _load(path)
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         return None
     for key in keys:
         if not isinstance(node, dict) or key not in node:
@@ -145,7 +145,7 @@ def flat_of(path: Path) -> dict[str, Json]:
         return {}
     try:
         return flat(_load(path))
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         return {}
 
 
