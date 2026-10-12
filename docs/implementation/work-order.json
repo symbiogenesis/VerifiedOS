@@ -5,6 +5,7 @@
       "M3.5b",
       "M4.4b-i",
       "M5.3d",
+      "Q44",
       "M6.1b-i",
       "M7.1a",
       "M7.1b",
@@ -179,6 +180,20 @@
         {
           "item": "M7.1a",
           "output": "shared real-call and fault/restart checkpoint"
+        }
+      ]
+    },
+    {
+      "item": "Q44",
+      "start": [],
+      "artifacts": [
+        "docs/implementation/contracts/resident-object-reads.md"
+      ],
+      "unmet": [],
+      "join": [
+        {
+          "item": "M5.3d",
+          "output": "real authenticated storage owner and two-instance target trace"
         }
       ]
     },
