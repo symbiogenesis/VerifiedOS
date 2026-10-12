@@ -208,7 +208,11 @@ class Service:
 
     def _integral_identity(self, identity: Identity) -> bool:
         # Validate both the published and supplied identity before equality or storage.
-        return (isinstance(identity, Identity) and isinstance(identity.root, Root)
+        return (type(identity) is Identity and type(identity.root) is Root
+                and type(identity.root.kind) is str
+                and identity.root.kind in ("system-image", "user-data")
+                and type(identity.root.digest) is str and len(identity.root.digest) == 64
+                and all(character in "0123456789abcdef" for character in identity.root.digest)
                 and all(type(value) is int for value in (
                     identity.owner, identity.domain, identity.object_id,
                     identity.version, identity.root.generation)))
@@ -532,8 +536,9 @@ def controls() -> dict[str, bool]:
         passing, identity, handles = fixture()
         bad, bad_identity, bad_handles = fixture(defect=defect)
         domain = 8 if defect == "wrong-domain" else 7
-        supplied = replace(identity, root=replace(identity.root, digest="wrong")) if defect == "wrong-root" else identity
-        bad_supplied = replace(bad_identity, root=replace(bad_identity.root, digest="wrong")) if defect == "wrong-root" else bad_identity
+        different_digest = authenticated_root("user-data", 1, b"different root").digest
+        supplied = replace(identity, root=replace(identity.root, digest=different_digest)) if defect == "wrong-root" else identity
+        bad_supplied = replace(bad_identity, root=replace(bad_identity.root, digest=different_digest)) if defect == "wrong-root" else bad_identity
         if defect == "no-auth":
             for service, handle in ((passing, handles[0]), (bad, bad_handles[0])):
                 resident = service.resident(handle.slot)

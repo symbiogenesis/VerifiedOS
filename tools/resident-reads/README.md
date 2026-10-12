@@ -51,6 +51,17 @@ fields in each supplied object/root identity and an integer caller domain before
 Malformed identity/root containers refuse without consuming backing, versions,
 tokens or read sequences; same-valued numeric aliases cannot create an unusable
 reservation or displace an accepted transfer.
+The host fixture represents roots with an exact string kind (`system-image` or
+`user-data`) and an exact 64-character lowercase SHA-256 hex digest. Identities and
+roots use the exact declared dataclass containers, so subclasses cannot replace
+their equality operation and spoof the stored object/version/root binding. Unknown
+kinds, malformed digests and container or string subclasses refuse before
+publication, admission or handle operations write stored state. These controls
+preserve independent accepted transfers, retained predecessor bytes and same-version
+canonical publication retries; an equality-spoofing digest cannot stand in for
+authenticated bytes. This input shape
+belongs to the finite host reference. The executed omitted-root-check control uses a
+different well-formed digest so its rejection still checks exact root binding.
 Refused requests preserve an already accepted transfer.
 Stop, retirement and resident lookup require an in-range integer backing slot.
 String aliases and other malformed slots refuse before stored-state changes, preserving
