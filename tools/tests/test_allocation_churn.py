@@ -86,8 +86,12 @@ def _hand_counted_boundaries() -> None:
            and totals["swept_capability_bytes_max"] == 16, "attributed bytes are 16, 8, 0")
     ensure(domain["quarantine_peak_bytes"] == 10 and domain["quarantine_margin_bytes"] == 0,
            "overlap is 6+4; the ten-byte retirement at tick 10 follows release")
+    ensure(domain["quarantine_peak_tick"] == 5 and totals["quarantine_peak_tick"] == 5,
+           "the first ten-byte overlap locates the peak despite its later tie")
     ensure(domain["sweep_ticks_total"] == 11 and domain["sweep_ticks_peak_per_period"] == 4
-           and domain["background_margin_ticks"] == 0, "period service is 4, 4, 3 ticks")
+           and domain["background_margin_ticks"] == 0
+           and domain["sweep_peak_period_start_tick"] == 0,
+           "period service is 4, 4, 3 ticks, with its earliest peak at period zero")
     ensure(report["scope"] == SCOPE and report["milestone_acceptance"] == "open",
            "within-budget observations must not close target acceptance")
 
@@ -100,7 +104,10 @@ def _zero_activity_and_fractional_rates() -> None:
     ensure(report["within_declared_limits"] is True, "declared zero activity is valid")
     totals = _object(report["totals"])
     ensure(totals["teardown_count"] == 0 and totals["quarantine_peak_bytes"] == 0
-           and totals["swept_capability_bytes_mean"] is None, "no teardown has no mean footprint")
+           and totals["swept_capability_bytes_mean"] is None
+           and totals["quarantine_peak_tick"] is None
+           and _domain(report)["sweep_peak_period_start_tick"] is None,
+           "zero activity has neither a mean footprint nor a positive peak location")
     capture = _capture()
     capture["teardowns"] = capture["teardowns"][:1]
     ensure(_object(_report(capture)["totals"])["teardowns_per_second"]
@@ -115,18 +122,58 @@ def _period_spanning_quanta() -> None:
     report = _report(capture)
     ensure(report["within_declared_limits"] is True
            and _domain(report)["sweep_ticks_total"] == 4
-           and _domain(report)["sweep_ticks_peak_per_period"] == 2,
+           and _domain(report)["sweep_ticks_peak_per_period"] == 2
+           and _domain(report)["sweep_peak_period_start_tick"] == 0,
            "the boundary splits four ticks into two and two")
     capture["domains"][0]["background_ticks_per_period"] = 10
     capture["sweep_quanta"] = [{"domain": "kernel-0", "start_tick": 8, "end_tick": 22}]
     domain = _domain(_report(capture))
-    ensure(domain["sweep_ticks_total"] == 14 and domain["sweep_ticks_peak_per_period"] == 10,
+    ensure(domain["sweep_ticks_total"] == 14 and domain["sweep_ticks_peak_per_period"] == 10
+           and domain["sweep_peak_period_start_tick"] == 10,
            "two partial periods surround one full ten-tick period")
     capture["window"] = {"start_tick": 10**30, "end_tick": 2 * 10**30, "tick_hz": 1}
     capture["sweep_quanta"] = [{"domain": "kernel-0", "start_tick": 10**30,
                                  "end_tick": 2 * 10**30}]
-    ensure(_domain(_report(capture))["sweep_ticks_peak_per_period"] == 10,
+    domain = _domain(_report(capture))
+    ensure(domain["sweep_ticks_peak_per_period"] == 10
+           and domain["sweep_peak_period_start_tick"] == 10**30,
            "large coordinates require no expansion of the elapsed window")
+
+
+def _shifted_peak_boundaries() -> None:
+    capture = _capture()
+    capture["window"] = {"start_tick": 30, "end_tick": 60, "tick_hz": 100}
+    capture["teardowns"] = [
+        {"id": name, "domain": "kernel-0", "retire_tick": retire,
+         "reuse_tick": reuse, "swept_capability_bytes": 0, "quarantined_bytes": 10}
+        for name, retire, reuse in (("a", 32, 35), ("b", 35, 40), ("c", 40, 50))
+    ]
+    capture["teardowns"].reverse()
+    capture["sweep_quanta"] = [
+        {"domain": "kernel-0", "start_tick": start, "end_tick": start + 4}
+        for start in (42, 32)
+    ]
+    report = _report(capture)
+    domain = _domain(report)
+    ensure(report["within_declared_limits"] is True
+           and domain["quarantine_peak_bytes"] == 10
+           and domain["quarantine_peak_tick"] == 32
+           and domain["sweep_ticks_peak_per_period"] == 4
+           and domain["sweep_peak_period_start_tick"] == 30,
+           "absolute locations keep the earliest tie and release before simultaneous retirement")
+    capture["domains"][0]["quarantine_capacity_bytes"] = 9
+    capture["domains"][0]["background_ticks_per_period"] = 3
+    report = _report(capture)
+    ensure(report["within_declared_limits"] is False
+           and "at tick 32" in str(report["findings"])
+           and "period starting at tick 30" in str(report["findings"]),
+           "violations point back to the same captured peak locations")
+    for row in capture["teardowns"]:
+        row["quarantined_bytes"] = 0
+    report = _report(capture)
+    ensure(_object(report["totals"])["quarantine_peak_tick"] is None
+           and _domain(report)["quarantine_peak_tick"] is None,
+           "teardowns with empty extents do not invent a quarantine peak location")
 
 
 def _budget_excess() -> None:
@@ -190,19 +237,23 @@ def _generated_quarantine_accounting() -> None:
         ]
         capture["teardowns"] = list(reversed(rows))
         report = _report(capture)
-        peaks = {
-            domain: max(sum(row["quarantined_bytes"] for row in rows
-                            if (domain is None or row["domain"] == domain)
-                            and row["retire_tick"] <= tick < row["reuse_tick"])
-                        for tick in range(6))
+        usage = {
+            domain: [sum(row["quarantined_bytes"] for row in rows
+                         if (domain is None or row["domain"] == domain)
+                         and row["retire_tick"] <= tick < row["reuse_tick"])
+                     for tick in range(6)]
             for domain in (None, "kernel-0", "kernel-1")
         }
-        ensure(_object(report["totals"])["quarantine_peak_bytes"] == peaks[None],
+        peaks = {domain: max(amounts) for domain, amounts in usage.items()}
+        ensure(_object(report["totals"])["quarantine_peak_bytes"] == peaks[None]
+               and _object(report["totals"])["quarantine_peak_tick"]
+               == usage[None].index(peaks[None]),
                f"{left}, {right}: simultaneous total agrees with the tick oracle")
         for index, domain in enumerate(capture["domains"]):
             observed = _domain(report, index)
             peak = peaks[domain["id"]]
             ensure(observed["quarantine_peak_bytes"] == peak
+                   and observed["quarantine_peak_tick"] == usage[domain["id"]].index(peak)
                    and observed["quarantine_margin_bytes"]
                    == domain["quarantine_capacity_bytes"] - peak,
                    f"{left}, {right}: each pool keeps its own peak and margin")
@@ -215,31 +266,36 @@ def _generated_period_accounting() -> None:
     # activity in the other domain, without a redundant full Cartesian sweep.
     # One domain coalesces busy ticks into quanta; the other leaves them adjacent.
     # Direct tick counting checks both against their different period boundaries.
-    for left, flip in product(range(1 << 6), (0, 0b010101, 0b111111)):
+    for left, flip, start in product(range(1 << 6), (0, 0b010101, 0b111111), (0, 12)):
         right = left ^ flip
         capture = _six_tick_capture()
+        capture["window"].update(start_tick=start, end_tick=start + 6)
         expected_peaks: list[int] = []
+        expected_starts: list[int | None] = []
         expected_totals: list[int] = []
         for index, (mask, period) in enumerate(((left, 2), (right, 3))):
             busy = [bool(mask & (1 << tick)) for tick in range(6)]
-            expected_peaks.append(max(sum(busy[start:start + period])
-                                      for start in range(0, 6, period)))
+            charges = [sum(busy[tick:tick + period]) for tick in range(0, 6, period)]
+            peak = max(charges)
+            expected_peaks.append(peak)
+            expected_starts.append(start + charges.index(peak) * period if peak else None)
             expected_totals.append(sum(busy))
             for tick, active in enumerate(busy):
                 if not active:
                     continue
                 quanta = capture["sweep_quanta"]
                 if index == 0 and tick and busy[tick - 1]:
-                    quanta[-1]["end_tick"] = tick + 1
+                    quanta[-1]["end_tick"] = start + tick + 1
                 else:
                     quanta.append({"domain": f"kernel-{index}",
-                                   "start_tick": tick, "end_tick": tick + 1})
+                                   "start_tick": start + tick, "end_tick": start + tick + 1})
         capture["sweep_quanta"].reverse()
         report = _report(capture)
         for index, peak in enumerate(expected_peaks):
             domain = _domain(report, index)
             ensure(domain["sweep_ticks_total"] == expected_totals[index]
                    and domain["sweep_ticks_peak_per_period"] == peak
+                   and domain["sweep_peak_period_start_tick"] == expected_starts[index]
                    and domain["background_margin_ticks"] == 1 - peak,
                    f"{left}, {right}, domain {index}: service agrees with the tick oracle")
         ensure(report["within_declared_limits"] == (max(expected_peaks) <= 1),
@@ -417,6 +473,7 @@ def cases() -> list[Case]:
     return [Case("hand-counted-boundaries", _hand_counted_boundaries),
             Case("zero-and-exact-rates", _zero_activity_and_fractional_rates),
             Case("period-spanning-quanta", _period_spanning_quanta),
+            Case("shifted-peak-boundaries", _shifted_peak_boundaries),
             Case("budget-excess", _budget_excess),
             Case("independent-domain-pools", _independent_domain_pools),
             Case("generated-quarantine-accounting", _generated_quarantine_accounting),
