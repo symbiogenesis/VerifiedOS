@@ -125,6 +125,37 @@ def csv_preserves_fields_and_legacy_endpoints() -> None:
         raise AssertionError("unsafe CSV conversion accepted")
 
 
+def csv_output_refuses_ambiguous_or_unsupported_columns() -> None:
+    malformed = [
+        "id,start,end,size,offset,offset\na,0,3,4,0,8\n",
+        "id,buffer_id,start,end,size\na,a,0,3,4\n",
+        "id,start,lower,end,size\na,0,0,3,4\n",
+        "id,start,end,size,pool\na,0,3,4,other\n",
+        "id,start,end\na,0,3\n",
+        "id,start,end,size\na,0,3\n",
+        "id,start,end,size\na,0,3,4,ignored\n",
+        "id,start,end,size\n\n",
+    ]
+    for original in malformed:
+        try:
+            adapter.minimalloc_to_csv(original, Solution([2], 6))
+        except adapter.UnsupportedAdapterError:
+            continue
+        raise AssertionError(f"malformed original CSV emitted a placement: {original!r}")
+
+    original = "buffer_id,start,end,size,alignment,hint,gaps\na,00,3,4,2,-1,1-2\n"
+    selected = adapter.minimalloc_to_csv(original, Solution([2], 6))
+    ensure(selected == "buffer_id,start,end,size,alignment,hint,gaps,offset\na,00,3,4,2,-1,1-2,2\n",
+           "appending offsets changed an original field")
+    problem = adapter.minimalloc_from_csv(selected, mini_module(), 6)
+    ensure(problem.buffers[0].offset == 2 and problem.buffers[0].lifespan.upper == 4
+           and problem.buffers[0].gaps[0].lifespan.upper == 3,
+           "output roundtrip changed inclusive lifetime or gap endpoints")
+    replaced = adapter.minimalloc_to_csv(selected, Solution([0], 4))
+    ensure(replaced == "buffer_id,start,end,size,alignment,hint,gaps,offset\na,00,3,4,2,-1,1-2,0\n",
+           "replacing offsets changed an original field or appended a second offset column")
+
+
 def minimalloc_zero_endpoints_do_not_inherit_extent_optimality() -> None:
     module = mini_module()
     problem = module.Problem([
@@ -366,6 +397,7 @@ def cases() -> list[Case]:
     return [Case("MiniMalloc gap/fixed/alignment/identity", gap_fixed_alignment_and_identity),
             Case("MiniMalloc unsupported and invalid baseline", rejected_mini_models_and_bad_baseline),
             Case("MiniMalloc CSV endpoint and field preservation", csv_preserves_fields_and_legacy_endpoints),
+            Case("MiniMalloc CSV output schema refusal", csv_output_refuses_ambiguous_or_unsupported_columns),
             Case("MiniMalloc zero endpoint optimality scope", minimalloc_zero_endpoints_do_not_inherit_extent_optimality),
             Case("MiniMalloc ordinary height non-regression", minimalloc_rejects_an_ordinary_height_regression),
             Case("ExecuTorch suite identity/pools/padding/policy", suite_return_identity_pools_padding_and_policy),

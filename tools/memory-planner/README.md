@@ -33,6 +33,9 @@ authenticated by the Python wrapper.
 `minimalloc_to_csv(original_text, solution)` preserves every input column and
 appends or replaces the offsets. Unknown columns, malformed records, and endpoint
 overflow are refused. Capacity is supplied separately, as it is upstream.
+Both CSV helpers reject duplicate columns, including synonymous names for the
+same field, missing required columns and records with the wrong field count.
+An output therefore has one unambiguous offset column.
 
 The baseline runs on a separate problem object before bounded extra search. An
 invalid baseline, exception, or timeout never returns a purportedly checked
