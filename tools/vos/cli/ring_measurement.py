@@ -39,12 +39,23 @@ def main(argv: list[str] | None = None) -> int:
                                 "tools/vos/cli/ring_measurement.py",
                                 "tools/vos/cli/ring.py", "docs/implementation/contracts/roster-measurement.md")}
         report["sources_sha256"] = sources
-        capture_blob = args.capture.read_bytes()
-        report["capture_sha256"] = hashlib.sha256(capture_blob).hexdigest()
-        expected_blob = args.expected_identity.read_bytes()
-        report["expected_identity_sha256"] = hashlib.sha256(expected_blob).hexdigest()
-        report["declaration_sha256"] = hashlib.sha256(
-            (root / ring_owner.DECLARATION).read_bytes()).hexdigest()
+        inputs: dict[str, bytes] = {}
+        read_errors: list[OSError] = []
+        for field, path in (("capture", args.capture), ("expected_identity", args.expected_identity),
+                            ("declaration", root / ring_owner.DECLARATION)):
+            try:
+                blob = path.read_bytes()
+            except OSError as error:
+                read_errors.append(error)
+            else:
+                inputs[field] = blob
+                report[f"{field}_sha256"] = hashlib.sha256(blob).hexdigest()
+        # A missing input cannot hide the fingerprints of other readable inputs.
+        # Keep the first read error in the same deterministic input order.
+        if read_errors:
+            raise read_errors[0]
+        capture_blob = inputs["capture"]
+        expected_blob = inputs["expected_identity"]
         # Preserve available byte identities even when analysis refuses. Roster,
         # image and composition identities are published only after validation.
         result = analyze(capture_blob, expected_blob, root)
