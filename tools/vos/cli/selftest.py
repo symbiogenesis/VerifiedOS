@@ -843,17 +843,14 @@ def _k100(box: Sandbox) -> bool:
 def _k84(box: Sandbox) -> bool:
     """A Tier-B landing that names no rule holding what it created.
 
-    Seeded on the first exit-evidence line rather than written into one item by name,
-    so the case survives items landing and being re-ordered around it. The declaration
-    is the whole mutation: the four conditions Tier B is admitted on are prose until
-    something reads them, and what this asks is whether the fourth one now bites.
+    Select the first Tier-B declaration by structure and remove its holders. The
+    mutation does not depend on an item's name or optional completion prose.
     """
     text = box.read(LOG)
-    m = re.search(r"(?m)^(?P<ind>[^\S\r\n]*)\* Exit evidence:[^\r\n]*", text)
+    m = re.search(r"(?m)^(?P<lead>[^\S\r\n]*(?:\*+ )?Landed: Tier B)\b[^\r\n]*", text)
     if not m:
         return False
-    return box.write(LOG, replace_span(
-        text, m, f"{m.group()}\n{m.group('ind')}* Landed: Tier B."))
+    return box.write(LOG, replace_span(text, m, f"{m.group('lead')}."))
 
 
 def _k82_entry(box: Sandbox) -> bool:
@@ -2044,13 +2041,12 @@ CASES: list[Case] = [
      _literal("THIRD-PARTY.md", "2078da43e25a4623cab2d0d60decddf709aaea28",
               "0000000000000000000000000000000000000000")),
 
-    # One holder citation moved onto the id the numbering is missing, which is the
-    # defect in the shape it actually arrives in rather than an invented one: the plan
-    # already reports a gap at that id, so a hand reaching for the next free number
-    # writes exactly this. The citation moved is the capability format's, and no other
-    # rule reads a K- id in this document, so the case passes on K-84's own report.
+    # Move the first holder on a Tier-B declaration to the unallocated K-64 id.
+    # The declaration still names a holder, isolating the registry-membership check
+    # from the missing-holder case below without relying on historical prose.
     ("K-84", "a landing naming a holder the rule registry does not carry",
-     _literal(LOG, "**K-79**", "**K-64**")),
+     _first_match(LOG, r"^([^\S\r\n]*(?:\*+ )?Landed: Tier B\b[^\r\n]*?)\*\*K-\d+\*\*",
+                  lambda m: f"{m[1]}**K-64**")),
 
     # The other half, and the case above does not reach it: with the declaration loop
     # deleted that mutant is still killed, so a rule narrowed to its citations would
