@@ -4,6 +4,7 @@
 import copy
 import hashlib
 import json
+import sys
 import tempfile
 from contextlib import redirect_stdout
 from io import BytesIO, StringIO, TextIOWrapper
@@ -580,6 +581,76 @@ def _cli_escaped_identifiers() -> None:
                                        "JSON retains the exact identifier")
 
 
+def _cli_large_integer_refusal() -> None:
+    # Each observation fits the active decimal conversion limit. Nine such
+    # counts still fit; ten produce a total and exact rate one digit too wide.
+    limit = sys.get_int_max_str_digits()
+    amount = 10 ** ((limit or 4300) - 1)
+    with tempfile.TemporaryDirectory(prefix="vos-ring-integer-") as directory:
+        root = Path(directory).resolve()
+        capture_path, expected_path = root / "capture.json", root / "expected.json"
+        for count, frequency, excess in ((9, 9, False), (9, 9, True),
+                                         (10, 10, False), (10, 10, True), (1, 10, False)):
+            capture, expected = _fixture()
+            capture["window"] = {"start_tick": 0, "end_tick": count + 1, "tick_hz": frequency}
+            capture["rings"][0]["activations"] = [
+                {"tick": index + 1, "queue_high_water": 0, "notifications": amount,
+                 "activation_overhead_cost": 0, "requests": []}
+                for index in range(count)
+            ]
+            if excess:
+                world = ring_owner.declaration(corpus.find_root())["worlds"][0]
+                _first(capture)["activation_overhead_cost"] = world["ring"]["slot_budget"] + 1
+            raw = _blob(capture)
+            expected["capture_sha256"] = _hash(raw)
+            result = analyze(raw, _blob(expected), corpus.find_root())
+            ring = result.rings[0]
+            verdict = "exceeds_limits" if excess else "within_limits"
+            ensure(result.verdict == verdict and ring.observed_notifications == count * amount,
+                   "uncapped observed hints retain their exact hand-counted total")
+            rate = ring.observed_notifications_per_second
+            ensure(rate is not None and (rate.numerator, rate.denominator) == (frequency * amount, 1),
+                   "exact cadence counts every observed hint over its measured span")
+            capture_path.write_bytes(raw)
+            expected_path.write_bytes(_blob(expected))
+            refused = bool(limit and frequency == 10)
+            for flags in ([], ["--json"]):
+                output = StringIO()
+                with redirect_stdout(output):
+                    actual = cli.main([str(capture_path), "--expected-identity",
+                                       str(expected_path), *flags])
+                rendered = output.getvalue()
+                ensure(actual == (2 if refused else int(excess)),
+                       "unrepresentable reports refuse before publishing a measurement verdict")
+                if flags:
+                    report = json.loads(rendered)
+                    ensure(report["identity"] == capture["identity"]
+                           and report["capture_sha256"] == _hash(raw)
+                           and report["expected_identity_sha256"] == _hash(_blob(expected))
+                           and report["declaration_sha256"] == capture["declaration_sha256"]
+                           and len(report["sources_sha256"]) == 5
+                           and report["milestone_acceptance"] == "open",
+                           "both outcomes preserve input and implementation identities")
+                    if refused:
+                        ensure(report["verdict"] == "malformed"
+                               and "exact measurement report" in report["reason"]
+                               and "rings" not in report and "findings" not in report,
+                               "output refusal has no partial arithmetic or passing verdict")
+                    else:
+                        ensure(report["verdict"] == verdict
+                               and report["rings"][0]["observed_notifications"] == count * amount,
+                               "representable output retains exact measurements")
+                elif refused:
+                    ensure(rendered.startswith("FAIL ring-measurement:")
+                           and "exact measurement report" in rendered
+                           and "ok ring-measurement:" not in rendered
+                           and "within_limits" not in rendered and "queue " not in rendered
+                           and "  identity:" in rendered and "  sources_sha256:" in rendered,
+                           "text refusal preserves evidence without partial success output")
+            ensure(sys.get_int_max_str_digits() == limit,
+                   "reporting leaves the process-wide integer conversion limit unchanged")
+
+
 def cases() -> list[Case]:
     return [Case("hand-computed-mixed-and-empty-accounting", _hand_accounting),
             Case("declared-boundary-equality-and-one-past", _declared_boundaries),
@@ -592,4 +663,5 @@ def cases() -> list[Case]:
             Case("identity-bindings-and-chronology", _identities_and_chronology),
             Case("closed-shapes-and-integer-domains", _closed_shapes_and_numbers),
             Case("cli-scope-evidence-and-exits", _cli_evidence),
+            Case("cli-large-integer-refusal", _cli_large_integer_refusal),
             Case("cli-escaped-identifiers-and-verdicts", _cli_escaped_identifiers)]
