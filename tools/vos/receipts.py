@@ -77,25 +77,28 @@ def inputs(root: Path, *pathspecs: str) -> dict[str, str]:
 Ignored build products are excluded. Deleted tracked inputs fail instead of
 disappearing from the manifest. Git's own pathspecs select each command's closure.
 """
-    done = subprocess.run(
-        ["git", "ls-files", "--stage", "--others", "--exclude-standard", "-z",
-         "--", *pathspecs], cwd=root, capture_output=True, check=False,
-        env={**os.environ, **proofenv.git_env(root)}, timeout=60)
-    if done.returncode:
-        raise RuntimeError(done.stderr.decode("utf-8", errors="replace").strip())
     manifest: dict[str, str] = {}
-    for entry in done.stdout.decode("utf-8").split("\0"):
-        if not entry:
-            continue
-        head, sep, rel = entry.partition("\t")
-        if not sep:
-            rel = head
-        elif head.split()[2] != "0":
-            raise ValueError(f"unmerged input: {rel}")
-        elif head.startswith("160000 "):
-            manifest[rel] = "gitlink:" + head.split()[1]
-            continue
-        manifest[rel] = digest(root / rel)
+    # Git emits staged records with metadata and untracked records as bare paths.
+    # Separate streams keep tabs in untracked filenames from becoming metadata.
+    for listing in ("--stage", "--others"):
+        done = subprocess.run(
+            ["git", "ls-files", listing, "--exclude-standard", "-z", "--", *pathspecs],
+            cwd=root, capture_output=True, check=False,
+            env={**os.environ, **proofenv.git_env(root)}, timeout=60)
+        if done.returncode:
+            raise RuntimeError(done.stderr.decode("utf-8", errors="replace").strip())
+        for entry in done.stdout.decode("utf-8").split("\0"):
+            if not entry:
+                continue
+            rel = entry
+            if listing == "--stage":
+                head, _, rel = entry.partition("\t")
+                if head.split()[2] != "0":
+                    raise ValueError(f"unmerged input: {rel}")
+                if head.startswith("160000 "):
+                    manifest[rel] = "gitlink:" + head.split()[1]
+                    continue
+            manifest[rel] = digest(root / rel)
     if not manifest:
         raise ValueError("no inputs were found for the evidence record")
     return dict(sorted(manifest.items()))
