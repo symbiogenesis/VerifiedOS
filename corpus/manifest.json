@@ -69,8 +69,8 @@
       "name": "vector-bitcount",
       "source": "vector-bitcount.s",
       "checks": 802,
-      "records": 0,
-      "digest": ""
+      "records": 172148,
+      "digest": "942af4172aee9302"
     },
     {
       "name": "atomics",
