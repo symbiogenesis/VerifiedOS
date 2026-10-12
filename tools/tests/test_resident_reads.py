@@ -276,11 +276,16 @@ def _integral_supplied_identities() -> None:
 
 def _canonical_root_fields() -> None:
     class EqualitySpoof:
+        __hash__ = object.__hash__
+
         @override
         def __eq__(self, other: object) -> bool:
             return True
 
     class StringAlias(str):
+        __slots__ = ()
+        __hash__ = str.__hash__
+
         @override
         def __eq__(self, other: object) -> bool:
             return True
@@ -289,6 +294,8 @@ def _canonical_root_fields() -> None:
         pass
 
     class RootSpoof(rr.Root):
+        __hash__ = object.__hash__
+
         @override
         def __eq__(self, other: object) -> bool:
             return True
@@ -297,6 +304,8 @@ def _canonical_root_fields() -> None:
         pass
 
     class IdentitySpoof(rr.Identity):
+        __hash__ = object.__hash__
+
         @override
         def __eq__(self, other: object) -> bool:
             return True
@@ -304,9 +313,10 @@ def _canonical_root_fields() -> None:
     payload = b"0123456789ABCDEF"
     for kind in ("system-image", "user-data"):
         identity = rr.Identity(1, 7, 1, 1, rr.authenticated_root(kind, 1, payload))
-        roots = [replace(identity.root, kind=cast("rr.Kind", malformed))
-                 for malformed in ("unknown", "", None, [], {}, True,
-                                   EqualitySpoof(), StringAlias(kind))]
+        malformed_kinds: tuple[object, ...] = ("unknown", "", None, [], {}, True,
+                                              EqualitySpoof(), StringAlias(kind))
+        roots = [replace(identity.root, kind=malformed)
+                 for malformed in malformed_kinds]
         roots += [replace(identity.root, digest=cast("str", malformed))
                   for malformed in ("", "wrong", "0" * 63, "0" * 65, "g" * 64,
                                     identity.root.digest.upper(), None, [], {}, b"0" * 64,
