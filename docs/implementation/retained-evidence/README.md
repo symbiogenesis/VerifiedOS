@@ -27,8 +27,11 @@ and `bytes`. Members must be indexed files beneath the manifest's own directory;
 absolute paths, traversal, missing copies and mismatched hashes or sizes fail.
 For an `encoding: gzip` member, `stored_sha256` and `stored_bytes` bind the stored
 copy, and `sha256` and `bytes` also bind its decompressed contents. Only `identity`
-and `gzip` encodings are accepted. A manifest cannot cite itself or make an
-otherwise uncited bundle count as cited. Every member remains either directly
+and `gzip` encodings are accepted. Each manifest requires its own hash-checked
+citation from a tracked document or record outside this directory. Listing
+another manifest as a member binds its bytes but does not cite its children.
+A manifest cannot cite itself or make an otherwise uncited bundle count as cited.
+Every member remains either directly
 cited or bound by a manifest whose own citation and hash were checked. This is a
 retention relation, not build or proof acceptance.
 
