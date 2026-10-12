@@ -89,6 +89,50 @@ Acceptance for the authorable scope:
 
 All bandwidth, latency, work, format widths and residency capacities that DSE or qualification owns remain symbolic composition fields. [Inference demand](../../performance/inference-demand.md) and its manifest supply demand provenance only. Q4b owns timed target figures; these contracts claim none. Optional module qualification failure must not silently forward a request to another destination (R-12-085f).
 
+### Executable host residency and grant interface
+
+The authorable M6.7/M6.8 host reference uses one immutable `Shape`, `Ceiling`,
+`Costs` and refusal vocabulary in
+[`inference_contract.py`](../../../tools/vos/inference_contract.py), following the
+records and constructors in `InferenceAdmission.v`. Numeric fields accept exact
+nonnegative integers; Python booleans, negative numbers and coercions are refused.
+The executable input is an already decoded shape. This interface supplies no wire
+parser or Narcissus correspondence.
+
+The residency adapter represents the total residency function by an immutable
+tuple of exact booleans, with absent indices nonresident. Admission checks the
+complete finite expert prefix before the `top_k <= expert_count` guard, in
+`composition_opening`'s order. Route checking preserves `routing_ok`'s length and
+index predicates, including repeated indices; it adds no uniqueness policy.
+Checked work is the declared dense work plus one uniform declared expert cost
+per routed entry. Invalid routes or incomplete residency return no work result.
+Serving a nonresident index returns `RoutedFetchAcrossStorage`, never data fetched
+from storage. The uniform cost is an explicit composition premise, not derived
+WCET.
+
+The grant adapter requires an explicit KV placement. The bank-resident arm spends
+`resident_bytes + kv_bytes_per_token`, and the other arm spends `resident_bytes`,
+matching `weights_and_cache` and `weights_only`. No context-length multiplier is
+introduced. A positive declared byte demand gives the integer quotient of the
+declared grant; an absent or zero demand is refused. A request above that quotient
+is refused without rate degradation. An integrated host opening preserves the
+declared server resources, increments only session occupancy on acceptance, and
+leaves it unchanged on refusal. Its refusal order follows the finite residency
+wrapper and the existing ceiling/resource core.
+
+Focused acceptance generates finite residency maps and routes, accepts the full
+resident case, catches every missing expert and invalid boundary, compares two
+valid routes against independently calculated fixed work, and catches a
+storage-fetching or expert-dependent alternative. Grant controls use independent
+`rate * bytes <= grant` expectations at, below and above declared limits, both KV
+placements, zero/absent demand and large exact integers. Integrated controls check
+refusal precedence, every ceiling boundary and resource preservation. These
+executable controls establish finite host behavior only. M6.7 retains concrete
+residency, kernel/WCET and target joins; M6.8 retains DSE, qualified grants, KV
+placement and timed target joins. Neither item gains physical admission from
+these inputs. Host CI and every cold Guest CI lane retain the settled-batch
+handoff.
+
 ## 4. Ensemble schedule statement and emission
 
 `proofs/EnsembleSchedule.v` extends the existing cyclic-executive record by importing it. Per-core task admission remains `CyclicExecutive.admits`. The fourth output contains each member's link-slot views, frame length, guard bands, leap/cadence, leader-tree information, oscillator tolerances, derived skew and table digest commitments. The link contract and sharding traffic report supply symbolic inputs, not measured constants invented in the examples.
