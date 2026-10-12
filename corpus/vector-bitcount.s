@@ -9060,19 +9060,19 @@ answer_ok_1033:
 extent_ok_260:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_260:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_260
+        bgeu a2, s3, inactive_260
         li t2, 8
 inactive_260:
         beq t1, t2, answer_ok_1034
         j fail
 answer_ok_1034:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_260
+        addi a2, a2, 1
+        bltu a2, s2, lanes_260
         li gp, 261
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9092,19 +9092,19 @@ answer_ok_1034:
 extent_ok_261:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_261:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_261
+        bgeu a2, s3, inactive_261
         li t2, 0
 inactive_261:
         beq t1, t2, answer_ok_1035
         j fail
 answer_ok_1035:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_261
+        addi a2, a2, 1
+        bltu a2, s2, lanes_261
         li gp, 262
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9121,19 +9121,19 @@ answer_ok_1035:
 extent_ok_262:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_262:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_262
+        bgeu a2, s3, inactive_262
         li t2, 0
 inactive_262:
         beq t1, t2, answer_ok_1036
         j fail
 answer_ok_1036:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_262
+        addi a2, a2, 1
+        bltu a2, s2, lanes_262
         li gp, 263
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9148,19 +9148,19 @@ answer_ok_1036:
 extent_ok_263:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_263:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_263
+        bgeu a2, s3, inactive_263
         li t2, 8
 inactive_263:
         beq t1, t2, answer_ok_1037
         j fail
 answer_ok_1037:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_263
+        addi a2, a2, 1
+        bltu a2, s2, lanes_263
         li gp, 264
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9180,19 +9180,19 @@ answer_ok_1037:
 extent_ok_264:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_264:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_264
+        bgeu a2, s3, inactive_264
         li t2, 0
 inactive_264:
         beq t1, t2, answer_ok_1038
         j fail
 answer_ok_1038:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_264
+        addi a2, a2, 1
+        bltu a2, s2, lanes_264
         li gp, 265
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9209,19 +9209,19 @@ answer_ok_1038:
 extent_ok_265:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_265:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_265
+        bgeu a2, s3, inactive_265
         li t2, 0
 inactive_265:
         beq t1, t2, answer_ok_1039
         j fail
 answer_ok_1039:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_265
+        addi a2, a2, 1
+        bltu a2, s2, lanes_265
         li gp, 266
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9236,19 +9236,19 @@ answer_ok_1039:
 extent_ok_266:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_266:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_266
+        bgeu a2, s3, inactive_266
         li t2, 0
 inactive_266:
         beq t1, t2, answer_ok_1040
         j fail
 answer_ok_1040:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_266
+        addi a2, a2, 1
+        bltu a2, s2, lanes_266
         li gp, 267
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9268,19 +9268,19 @@ answer_ok_1040:
 extent_ok_267:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_267:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_267
+        bgeu a2, s3, inactive_267
         li t2, 8
 inactive_267:
         beq t1, t2, answer_ok_1041
         j fail
 answer_ok_1041:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_267
+        addi a2, a2, 1
+        bltu a2, s2, lanes_267
         li gp, 268
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9297,19 +9297,19 @@ answer_ok_1041:
 extent_ok_268:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_268:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_268
+        bgeu a2, s3, inactive_268
         li t2, 8
 inactive_268:
         beq t1, t2, answer_ok_1042
         j fail
 answer_ok_1042:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_268
+        addi a2, a2, 1
+        bltu a2, s2, lanes_268
         li gp, 269
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9324,19 +9324,19 @@ answer_ok_1042:
 extent_ok_269:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_269:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_269
+        bgeu a2, s3, inactive_269
         li t2, 8
 inactive_269:
         beq t1, t2, answer_ok_1043
         j fail
 answer_ok_1043:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_269
+        addi a2, a2, 1
+        bltu a2, s2, lanes_269
         li gp, 270
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9356,19 +9356,19 @@ answer_ok_1043:
 extent_ok_270:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_270:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_270
+        bgeu a2, s3, inactive_270
         li t2, 0
 inactive_270:
         beq t1, t2, answer_ok_1044
         j fail
 answer_ok_1044:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_270
+        addi a2, a2, 1
+        bltu a2, s2, lanes_270
         li gp, 271
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9385,19 +9385,19 @@ answer_ok_1044:
 extent_ok_271:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_271:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_271
+        bgeu a2, s3, inactive_271
         li t2, 0
 inactive_271:
         beq t1, t2, answer_ok_1045
         j fail
 answer_ok_1045:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_271
+        addi a2, a2, 1
+        bltu a2, s2, lanes_271
         li gp, 272
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9412,19 +9412,19 @@ answer_ok_1045:
 extent_ok_272:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_272:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_272
+        bgeu a2, s3, inactive_272
         li t2, 8
 inactive_272:
         beq t1, t2, answer_ok_1046
         j fail
 answer_ok_1046:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_272
+        addi a2, a2, 1
+        bltu a2, s2, lanes_272
         li gp, 273
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9444,19 +9444,19 @@ answer_ok_1046:
 extent_ok_273:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_273:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_273
+        bgeu a2, s3, inactive_273
         li t2, 0
 inactive_273:
         beq t1, t2, answer_ok_1047
         j fail
 answer_ok_1047:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_273
+        addi a2, a2, 1
+        bltu a2, s2, lanes_273
         li gp, 274
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9473,19 +9473,19 @@ answer_ok_1047:
 extent_ok_274:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_274:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_274
+        bgeu a2, s3, inactive_274
         li t2, 0
 inactive_274:
         beq t1, t2, answer_ok_1048
         j fail
 answer_ok_1048:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_274
+        addi a2, a2, 1
+        bltu a2, s2, lanes_274
         li gp, 275
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9500,19 +9500,19 @@ answer_ok_1048:
 extent_ok_275:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_275:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_275
+        bgeu a2, s3, inactive_275
         li t2, 0
 inactive_275:
         beq t1, t2, answer_ok_1049
         j fail
 answer_ok_1049:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_275
+        addi a2, a2, 1
+        bltu a2, s2, lanes_275
         li gp, 276
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9532,19 +9532,19 @@ answer_ok_1049:
 extent_ok_276:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_276:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_276
+        bgeu a2, s3, inactive_276
         li t2, 8
 inactive_276:
         beq t1, t2, answer_ok_1050
         j fail
 answer_ok_1050:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_276
+        addi a2, a2, 1
+        bltu a2, s2, lanes_276
         li gp, 277
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9561,19 +9561,19 @@ answer_ok_1050:
 extent_ok_277:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_277:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_277
+        bgeu a2, s3, inactive_277
         li t2, 8
 inactive_277:
         beq t1, t2, answer_ok_1051
         j fail
 answer_ok_1051:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_277
+        addi a2, a2, 1
+        bltu a2, s2, lanes_277
         li gp, 278
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9588,19 +9588,19 @@ answer_ok_1051:
 extent_ok_278:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_278:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_278
+        bgeu a2, s3, inactive_278
         li t2, 8
 inactive_278:
         beq t1, t2, answer_ok_1052
         j fail
 answer_ok_1052:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_278
+        addi a2, a2, 1
+        bltu a2, s2, lanes_278
         li gp, 279
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9620,19 +9620,19 @@ answer_ok_1052:
 extent_ok_279:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_279:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_279
+        bgeu a2, s3, inactive_279
         li t2, 0
 inactive_279:
         beq t1, t2, answer_ok_1053
         j fail
 answer_ok_1053:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_279
+        addi a2, a2, 1
+        bltu a2, s2, lanes_279
         li gp, 280
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9649,19 +9649,19 @@ answer_ok_1053:
 extent_ok_280:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_280:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_280
+        bgeu a2, s3, inactive_280
         li t2, 0
 inactive_280:
         beq t1, t2, answer_ok_1054
         j fail
 answer_ok_1054:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_280
+        addi a2, a2, 1
+        bltu a2, s2, lanes_280
         li gp, 281
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9676,19 +9676,19 @@ answer_ok_1054:
 extent_ok_281:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_281:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_281
+        bgeu a2, s3, inactive_281
         li t2, 8
 inactive_281:
         beq t1, t2, answer_ok_1055
         j fail
 answer_ok_1055:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_281
+        addi a2, a2, 1
+        bltu a2, s2, lanes_281
         li gp, 282
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9708,19 +9708,19 @@ answer_ok_1055:
 extent_ok_282:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_282:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_282
+        bgeu a2, s3, inactive_282
         li t2, 0
 inactive_282:
         beq t1, t2, answer_ok_1056
         j fail
 answer_ok_1056:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_282
+        addi a2, a2, 1
+        bltu a2, s2, lanes_282
         li gp, 283
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9737,19 +9737,19 @@ answer_ok_1056:
 extent_ok_283:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_283:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_283
+        bgeu a2, s3, inactive_283
         li t2, 0
 inactive_283:
         beq t1, t2, answer_ok_1057
         j fail
 answer_ok_1057:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_283
+        addi a2, a2, 1
+        bltu a2, s2, lanes_283
         li gp, 284
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9764,19 +9764,19 @@ answer_ok_1057:
 extent_ok_284:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_284:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_284
+        bgeu a2, s3, inactive_284
         li t2, 0
 inactive_284:
         beq t1, t2, answer_ok_1058
         j fail
 answer_ok_1058:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_284
+        addi a2, a2, 1
+        bltu a2, s2, lanes_284
         li gp, 285
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9796,19 +9796,19 @@ answer_ok_1058:
 extent_ok_285:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_285:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_285
+        bgeu a2, s3, inactive_285
         li t2, 8
 inactive_285:
         beq t1, t2, answer_ok_1059
         j fail
 answer_ok_1059:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_285
+        addi a2, a2, 1
+        bltu a2, s2, lanes_285
         li gp, 286
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9825,19 +9825,19 @@ answer_ok_1059:
 extent_ok_286:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_286:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_286
+        bgeu a2, s3, inactive_286
         li t2, 8
 inactive_286:
         beq t1, t2, answer_ok_1060
         j fail
 answer_ok_1060:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_286
+        addi a2, a2, 1
+        bltu a2, s2, lanes_286
         li gp, 287
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9852,19 +9852,19 @@ answer_ok_1060:
 extent_ok_287:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_287:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_287
+        bgeu a2, s3, inactive_287
         li t2, 8
 inactive_287:
         beq t1, t2, answer_ok_1061
         j fail
 answer_ok_1061:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_287
+        addi a2, a2, 1
+        bltu a2, s2, lanes_287
         li gp, 288
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9884,19 +9884,19 @@ answer_ok_1061:
 extent_ok_288:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_288:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_288
+        bgeu a2, s3, inactive_288
         li t2, 0
 inactive_288:
         beq t1, t2, answer_ok_1062
         j fail
 answer_ok_1062:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_288
+        addi a2, a2, 1
+        bltu a2, s2, lanes_288
         li gp, 289
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9913,19 +9913,19 @@ answer_ok_1062:
 extent_ok_289:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_289:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_289
+        bgeu a2, s3, inactive_289
         li t2, 0
 inactive_289:
         beq t1, t2, answer_ok_1063
         j fail
 answer_ok_1063:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_289
+        addi a2, a2, 1
+        bltu a2, s2, lanes_289
         li gp, 290
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9940,19 +9940,19 @@ answer_ok_1063:
 extent_ok_290:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_290:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_290
+        bgeu a2, s3, inactive_290
         li t2, 8
 inactive_290:
         beq t1, t2, answer_ok_1064
         j fail
 answer_ok_1064:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_290
+        addi a2, a2, 1
+        bltu a2, s2, lanes_290
         li gp, 291
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9972,19 +9972,19 @@ answer_ok_1064:
 extent_ok_291:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_291:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_291
+        bgeu a2, s3, inactive_291
         li t2, 0
 inactive_291:
         beq t1, t2, answer_ok_1065
         j fail
 answer_ok_1065:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_291
+        addi a2, a2, 1
+        bltu a2, s2, lanes_291
         li gp, 292
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -10001,19 +10001,19 @@ answer_ok_1065:
 extent_ok_292:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_292:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_292
+        bgeu a2, s3, inactive_292
         li t2, 0
 inactive_292:
         beq t1, t2, answer_ok_1066
         j fail
 answer_ok_1066:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_292
+        addi a2, a2, 1
+        bltu a2, s2, lanes_292
         li gp, 293
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -10028,19 +10028,19 @@ answer_ok_1066:
 extent_ok_293:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_293:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_293
+        bgeu a2, s3, inactive_293
         li t2, 0
 inactive_293:
         beq t1, t2, answer_ok_1067
         j fail
 answer_ok_1067:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_293
+        addi a2, a2, 1
+        bltu a2, s2, lanes_293
         li gp, 294
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -10060,19 +10060,19 @@ answer_ok_1067:
 extent_ok_294:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_294:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_294
+        bgeu a2, s3, inactive_294
         li t2, 8
 inactive_294:
         beq t1, t2, answer_ok_1068
         j fail
 answer_ok_1068:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_294
+        addi a2, a2, 1
+        bltu a2, s2, lanes_294
         li gp, 295
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -10089,19 +10089,19 @@ answer_ok_1068:
 extent_ok_295:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_295:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_295
+        bgeu a2, s3, inactive_295
         li t2, 8
 inactive_295:
         beq t1, t2, answer_ok_1069
         j fail
 answer_ok_1069:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_295
+        addi a2, a2, 1
+        bltu a2, s2, lanes_295
         li gp, 296
         vsetvli s2, zero, 1
         vmv.v.i v16, -1
@@ -10116,19 +10116,19 @@ answer_ok_1069:
 extent_ok_296:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_296:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_296
+        bgeu a2, s3, inactive_296
         li t2, 8
 inactive_296:
         beq t1, t2, answer_ok_1070
         j fail
 answer_ok_1070:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_296
+        addi a2, a2, 1
+        bltu a2, s2, lanes_296
         li gp, 297
         vsetvli s2, zero, 1
         vmv.v.i v16, -1
@@ -10148,19 +10148,19 @@ answer_ok_1070:
 extent_ok_297:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_297:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_297
+        bgeu a2, s3, inactive_297
         li t2, 0
 inactive_297:
         beq t1, t2, answer_ok_1071
         j fail
 answer_ok_1071:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_297
+        addi a2, a2, 1
+        bltu a2, s2, lanes_297
         li gp, 298
         vsetvli s2, zero, 1
         vmv.v.i v16, -1
@@ -10177,19 +10177,19 @@ answer_ok_1071:
 extent_ok_298:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_298:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_298
+        bgeu a2, s3, inactive_298
         li t2, 0
 inactive_298:
         beq t1, t2, answer_ok_1072
         j fail
 answer_ok_1072:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_298
+        addi a2, a2, 1
+        bltu a2, s2, lanes_298
         li gp, 299
         vsetvli s2, zero, 1
         vmv.v.i v16, -1
@@ -10204,19 +10204,19 @@ answer_ok_1072:
 extent_ok_299:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_299:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_299
+        bgeu a2, s3, inactive_299
         li t2, 8
 inactive_299:
         beq t1, t2, answer_ok_1073
         j fail
 answer_ok_1073:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_299
+        addi a2, a2, 1
+        bltu a2, s2, lanes_299
         li gp, 300
         vsetvli s2, zero, 1
         vmv.v.i v16, -1
@@ -10236,19 +10236,19 @@ answer_ok_1073:
 extent_ok_300:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_300:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_300
+        bgeu a2, s3, inactive_300
         li t2, 0
 inactive_300:
         beq t1, t2, answer_ok_1074
         j fail
 answer_ok_1074:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_300
+        addi a2, a2, 1
+        bltu a2, s2, lanes_300
         li gp, 301
         vsetvli s2, zero, 1
         vmv.v.i v16, -1
@@ -10265,19 +10265,19 @@ answer_ok_1074:
 extent_ok_301:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_301:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_301
+        bgeu a2, s3, inactive_301
         li t2, 0
 inactive_301:
         beq t1, t2, answer_ok_1075
         j fail
 answer_ok_1075:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_301
+        addi a2, a2, 1
+        bltu a2, s2, lanes_301
         li gp, 302
         vsetvli s2, zero, 1
         vmv.v.i v16, -1
@@ -10292,19 +10292,19 @@ answer_ok_1075:
 extent_ok_302:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_302:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_302
+        bgeu a2, s3, inactive_302
         li t2, 0
 inactive_302:
         beq t1, t2, answer_ok_1076
         j fail
 answer_ok_1076:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_302
+        addi a2, a2, 1
+        bltu a2, s2, lanes_302
         li gp, 303
         vsetvli s2, zero, 1
         vmv.v.i v16, -1
@@ -10324,19 +10324,19 @@ answer_ok_1076:
 extent_ok_303:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_303:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_303
+        bgeu a2, s3, inactive_303
         li t2, 8
 inactive_303:
         beq t1, t2, answer_ok_1077
         j fail
 answer_ok_1077:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_303
+        addi a2, a2, 1
+        bltu a2, s2, lanes_303
         li gp, 304
         vsetvli s2, zero, 1
         vmv.v.i v16, -1
@@ -10353,19 +10353,19 @@ answer_ok_1077:
 extent_ok_304:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_304:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_304
+        bgeu a2, s3, inactive_304
         li t2, 8
 inactive_304:
         beq t1, t2, answer_ok_1078
         j fail
 answer_ok_1078:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_304
+        addi a2, a2, 1
+        bltu a2, s2, lanes_304
         li gp, 305
         vsetvli s2, zero, 2
         vmv.v.i v16, -1
@@ -10380,19 +10380,19 @@ answer_ok_1078:
 extent_ok_305:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_305:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_305
+        bgeu a2, s3, inactive_305
         li t2, 8
 inactive_305:
         beq t1, t2, answer_ok_1079
         j fail
 answer_ok_1079:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_305
+        addi a2, a2, 1
+        bltu a2, s2, lanes_305
         li gp, 306
         vsetvli s2, zero, 2
         vmv.v.i v16, -1
@@ -10412,19 +10412,19 @@ answer_ok_1079:
 extent_ok_306:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_306:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_306
+        bgeu a2, s3, inactive_306
         li t2, 0
 inactive_306:
         beq t1, t2, answer_ok_1080
         j fail
 answer_ok_1080:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_306
+        addi a2, a2, 1
+        bltu a2, s2, lanes_306
         li gp, 307
         vsetvli s2, zero, 2
         vmv.v.i v16, -1
@@ -10441,19 +10441,19 @@ answer_ok_1080:
 extent_ok_307:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_307:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_307
+        bgeu a2, s3, inactive_307
         li t2, 0
 inactive_307:
         beq t1, t2, answer_ok_1081
         j fail
 answer_ok_1081:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_307
+        addi a2, a2, 1
+        bltu a2, s2, lanes_307
         li gp, 308
         vsetvli s2, zero, 2
         vmv.v.i v16, -1
@@ -10468,19 +10468,19 @@ answer_ok_1081:
 extent_ok_308:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_308:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_308
+        bgeu a2, s3, inactive_308
         li t2, 8
 inactive_308:
         beq t1, t2, answer_ok_1082
         j fail
 answer_ok_1082:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_308
+        addi a2, a2, 1
+        bltu a2, s2, lanes_308
         li gp, 309
         vsetvli s2, zero, 2
         vmv.v.i v16, -1
@@ -10500,19 +10500,19 @@ answer_ok_1082:
 extent_ok_309:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_309:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_309
+        bgeu a2, s3, inactive_309
         li t2, 0
 inactive_309:
         beq t1, t2, answer_ok_1083
         j fail
 answer_ok_1083:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_309
+        addi a2, a2, 1
+        bltu a2, s2, lanes_309
         li gp, 310
         vsetvli s2, zero, 2
         vmv.v.i v16, -1
@@ -10529,19 +10529,19 @@ answer_ok_1083:
 extent_ok_310:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_310:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_310
+        bgeu a2, s3, inactive_310
         li t2, 0
 inactive_310:
         beq t1, t2, answer_ok_1084
         j fail
 answer_ok_1084:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_310
+        addi a2, a2, 1
+        bltu a2, s2, lanes_310
         li gp, 311
         vsetvli s2, zero, 2
         vmv.v.i v16, -1
@@ -10556,19 +10556,19 @@ answer_ok_1084:
 extent_ok_311:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_311:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_311
+        bgeu a2, s3, inactive_311
         li t2, 0
 inactive_311:
         beq t1, t2, answer_ok_1085
         j fail
 answer_ok_1085:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_311
+        addi a2, a2, 1
+        bltu a2, s2, lanes_311
         li gp, 312
         vsetvli s2, zero, 2
         vmv.v.i v16, -1
@@ -10588,19 +10588,19 @@ answer_ok_1085:
 extent_ok_312:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_312:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_312
+        bgeu a2, s3, inactive_312
         li t2, 8
 inactive_312:
         beq t1, t2, answer_ok_1086
         j fail
 answer_ok_1086:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_312
+        addi a2, a2, 1
+        bltu a2, s2, lanes_312
         li gp, 313
         vsetvli s2, zero, 2
         vmv.v.i v16, -1
@@ -10617,19 +10617,19 @@ answer_ok_1086:
 extent_ok_313:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_313:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_313
+        bgeu a2, s3, inactive_313
         li t2, 8
 inactive_313:
         beq t1, t2, answer_ok_1087
         j fail
 answer_ok_1087:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_313
+        addi a2, a2, 1
+        bltu a2, s2, lanes_313
         li gp, 314
         vsetvli s2, zero, 3
         vmv.v.i v16, -1
@@ -10644,19 +10644,19 @@ answer_ok_1087:
 extent_ok_314:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_314:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_314
+        bgeu a2, s3, inactive_314
         li t2, 8
 inactive_314:
         beq t1, t2, answer_ok_1088
         j fail
 answer_ok_1088:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_314
+        addi a2, a2, 1
+        bltu a2, s2, lanes_314
         li gp, 315
         vsetvli s2, zero, 3
         vmv.v.i v16, -1
@@ -10676,19 +10676,19 @@ answer_ok_1088:
 extent_ok_315:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_315:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_315
+        bgeu a2, s3, inactive_315
         li t2, 0
 inactive_315:
         beq t1, t2, answer_ok_1089
         j fail
 answer_ok_1089:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_315
+        addi a2, a2, 1
+        bltu a2, s2, lanes_315
         li gp, 316
         vsetvli s2, zero, 3
         vmv.v.i v16, -1
@@ -10705,19 +10705,19 @@ answer_ok_1089:
 extent_ok_316:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_316:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_316
+        bgeu a2, s3, inactive_316
         li t2, 0
 inactive_316:
         beq t1, t2, answer_ok_1090
         j fail
 answer_ok_1090:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_316
+        addi a2, a2, 1
+        bltu a2, s2, lanes_316
         li gp, 317
         vsetvli s2, zero, 3
         vmv.v.i v16, -1
@@ -10732,19 +10732,19 @@ answer_ok_1090:
 extent_ok_317:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_317:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_317
+        bgeu a2, s3, inactive_317
         li t2, 8
 inactive_317:
         beq t1, t2, answer_ok_1091
         j fail
 answer_ok_1091:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_317
+        addi a2, a2, 1
+        bltu a2, s2, lanes_317
         li gp, 318
         vsetvli s2, zero, 3
         vmv.v.i v16, -1
@@ -10764,19 +10764,19 @@ answer_ok_1091:
 extent_ok_318:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_318:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_318
+        bgeu a2, s3, inactive_318
         li t2, 0
 inactive_318:
         beq t1, t2, answer_ok_1092
         j fail
 answer_ok_1092:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_318
+        addi a2, a2, 1
+        bltu a2, s2, lanes_318
         li gp, 319
         vsetvli s2, zero, 3
         vmv.v.i v16, -1
@@ -10793,19 +10793,19 @@ answer_ok_1092:
 extent_ok_319:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_319:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_319
+        bgeu a2, s3, inactive_319
         li t2, 0
 inactive_319:
         beq t1, t2, answer_ok_1093
         j fail
 answer_ok_1093:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_319
+        addi a2, a2, 1
+        bltu a2, s2, lanes_319
         li gp, 320
         vsetvli s2, zero, 3
         vmv.v.i v16, -1
@@ -10820,19 +10820,19 @@ answer_ok_1093:
 extent_ok_320:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_320:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_320
+        bgeu a2, s3, inactive_320
         li t2, 0
 inactive_320:
         beq t1, t2, answer_ok_1094
         j fail
 answer_ok_1094:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_320
+        addi a2, a2, 1
+        bltu a2, s2, lanes_320
         li gp, 321
         vsetvli s2, zero, 3
         vmv.v.i v16, -1
@@ -10852,19 +10852,19 @@ answer_ok_1094:
 extent_ok_321:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_321:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_321
+        bgeu a2, s3, inactive_321
         li t2, 8
 inactive_321:
         beq t1, t2, answer_ok_1095
         j fail
 answer_ok_1095:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_321
+        addi a2, a2, 1
+        bltu a2, s2, lanes_321
         li gp, 322
         vsetvli s2, zero, 3
         vmv.v.i v16, -1
@@ -10881,19 +10881,19 @@ answer_ok_1095:
 extent_ok_322:
         vse8.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_322:
         lbu t1, 0(c11)
         li t2, 0xff
-        bgeu a0, s3, inactive_322
+        bgeu a2, s3, inactive_322
         li t2, 8
 inactive_322:
         beq t1, t2, answer_ok_1096
         j fail
 answer_ok_1096:
         cincoffsetimm c11, c11, 1
-        addi a0, a0, 1
-        bltu a0, s2, lanes_322
+        addi a2, a2, 1
+        bltu a2, s2, lanes_322
         li t0, 1
         vsetvli t1, t0, 8
         li gp, 323
@@ -12665,19 +12665,19 @@ answer_ok_1297:
 extent_ok_374:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_374:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_374
+        bgeu a2, s3, inactive_374
         li t2, 16
 inactive_374:
         beq t1, t2, answer_ok_1298
         j fail
 answer_ok_1298:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_374
+        addi a2, a2, 1
+        bltu a2, s2, lanes_374
         li gp, 375
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -12697,19 +12697,19 @@ answer_ok_1298:
 extent_ok_375:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_375:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_375
+        bgeu a2, s3, inactive_375
         li t2, 0
 inactive_375:
         beq t1, t2, answer_ok_1299
         j fail
 answer_ok_1299:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_375
+        addi a2, a2, 1
+        bltu a2, s2, lanes_375
         li gp, 376
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -12726,19 +12726,19 @@ answer_ok_1299:
 extent_ok_376:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_376:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_376
+        bgeu a2, s3, inactive_376
         li t2, 0
 inactive_376:
         beq t1, t2, answer_ok_1300
         j fail
 answer_ok_1300:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_376
+        addi a2, a2, 1
+        bltu a2, s2, lanes_376
         li gp, 377
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -12753,19 +12753,19 @@ answer_ok_1300:
 extent_ok_377:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_377:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_377
+        bgeu a2, s3, inactive_377
         li t2, 16
 inactive_377:
         beq t1, t2, answer_ok_1301
         j fail
 answer_ok_1301:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_377
+        addi a2, a2, 1
+        bltu a2, s2, lanes_377
         li gp, 378
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -12785,19 +12785,19 @@ answer_ok_1301:
 extent_ok_378:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_378:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_378
+        bgeu a2, s3, inactive_378
         li t2, 0
 inactive_378:
         beq t1, t2, answer_ok_1302
         j fail
 answer_ok_1302:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_378
+        addi a2, a2, 1
+        bltu a2, s2, lanes_378
         li gp, 379
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -12814,19 +12814,19 @@ answer_ok_1302:
 extent_ok_379:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_379:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_379
+        bgeu a2, s3, inactive_379
         li t2, 0
 inactive_379:
         beq t1, t2, answer_ok_1303
         j fail
 answer_ok_1303:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_379
+        addi a2, a2, 1
+        bltu a2, s2, lanes_379
         li gp, 380
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -12841,19 +12841,19 @@ answer_ok_1303:
 extent_ok_380:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_380:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_380
+        bgeu a2, s3, inactive_380
         li t2, 0
 inactive_380:
         beq t1, t2, answer_ok_1304
         j fail
 answer_ok_1304:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_380
+        addi a2, a2, 1
+        bltu a2, s2, lanes_380
         li gp, 381
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -12873,19 +12873,19 @@ answer_ok_1304:
 extent_ok_381:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_381:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_381
+        bgeu a2, s3, inactive_381
         li t2, 16
 inactive_381:
         beq t1, t2, answer_ok_1305
         j fail
 answer_ok_1305:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_381
+        addi a2, a2, 1
+        bltu a2, s2, lanes_381
         li gp, 382
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -12902,19 +12902,19 @@ answer_ok_1305:
 extent_ok_382:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_382:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_382
+        bgeu a2, s3, inactive_382
         li t2, 16
 inactive_382:
         beq t1, t2, answer_ok_1306
         j fail
 answer_ok_1306:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_382
+        addi a2, a2, 1
+        bltu a2, s2, lanes_382
         li gp, 383
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -12929,19 +12929,19 @@ answer_ok_1306:
 extent_ok_383:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_383:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_383
+        bgeu a2, s3, inactive_383
         li t2, 16
 inactive_383:
         beq t1, t2, answer_ok_1307
         j fail
 answer_ok_1307:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_383
+        addi a2, a2, 1
+        bltu a2, s2, lanes_383
         li gp, 384
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -12961,19 +12961,19 @@ answer_ok_1307:
 extent_ok_384:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_384:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_384
+        bgeu a2, s3, inactive_384
         li t2, 0
 inactive_384:
         beq t1, t2, answer_ok_1308
         j fail
 answer_ok_1308:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_384
+        addi a2, a2, 1
+        bltu a2, s2, lanes_384
         li gp, 385
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -12990,19 +12990,19 @@ answer_ok_1308:
 extent_ok_385:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_385:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_385
+        bgeu a2, s3, inactive_385
         li t2, 0
 inactive_385:
         beq t1, t2, answer_ok_1309
         j fail
 answer_ok_1309:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_385
+        addi a2, a2, 1
+        bltu a2, s2, lanes_385
         li gp, 386
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13017,19 +13017,19 @@ answer_ok_1309:
 extent_ok_386:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_386:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_386
+        bgeu a2, s3, inactive_386
         li t2, 16
 inactive_386:
         beq t1, t2, answer_ok_1310
         j fail
 answer_ok_1310:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_386
+        addi a2, a2, 1
+        bltu a2, s2, lanes_386
         li gp, 387
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13049,19 +13049,19 @@ answer_ok_1310:
 extent_ok_387:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_387:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_387
+        bgeu a2, s3, inactive_387
         li t2, 0
 inactive_387:
         beq t1, t2, answer_ok_1311
         j fail
 answer_ok_1311:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_387
+        addi a2, a2, 1
+        bltu a2, s2, lanes_387
         li gp, 388
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13078,19 +13078,19 @@ answer_ok_1311:
 extent_ok_388:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_388:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_388
+        bgeu a2, s3, inactive_388
         li t2, 0
 inactive_388:
         beq t1, t2, answer_ok_1312
         j fail
 answer_ok_1312:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_388
+        addi a2, a2, 1
+        bltu a2, s2, lanes_388
         li gp, 389
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13105,19 +13105,19 @@ answer_ok_1312:
 extent_ok_389:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_389:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_389
+        bgeu a2, s3, inactive_389
         li t2, 0
 inactive_389:
         beq t1, t2, answer_ok_1313
         j fail
 answer_ok_1313:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_389
+        addi a2, a2, 1
+        bltu a2, s2, lanes_389
         li gp, 390
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13137,19 +13137,19 @@ answer_ok_1313:
 extent_ok_390:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_390:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_390
+        bgeu a2, s3, inactive_390
         li t2, 16
 inactive_390:
         beq t1, t2, answer_ok_1314
         j fail
 answer_ok_1314:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_390
+        addi a2, a2, 1
+        bltu a2, s2, lanes_390
         li gp, 391
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13166,19 +13166,19 @@ answer_ok_1314:
 extent_ok_391:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_391:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_391
+        bgeu a2, s3, inactive_391
         li t2, 16
 inactive_391:
         beq t1, t2, answer_ok_1315
         j fail
 answer_ok_1315:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_391
+        addi a2, a2, 1
+        bltu a2, s2, lanes_391
         li gp, 392
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13193,19 +13193,19 @@ answer_ok_1315:
 extent_ok_392:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_392:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_392
+        bgeu a2, s3, inactive_392
         li t2, 16
 inactive_392:
         beq t1, t2, answer_ok_1316
         j fail
 answer_ok_1316:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_392
+        addi a2, a2, 1
+        bltu a2, s2, lanes_392
         li gp, 393
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13225,19 +13225,19 @@ answer_ok_1316:
 extent_ok_393:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_393:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_393
+        bgeu a2, s3, inactive_393
         li t2, 0
 inactive_393:
         beq t1, t2, answer_ok_1317
         j fail
 answer_ok_1317:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_393
+        addi a2, a2, 1
+        bltu a2, s2, lanes_393
         li gp, 394
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13254,19 +13254,19 @@ answer_ok_1317:
 extent_ok_394:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_394:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_394
+        bgeu a2, s3, inactive_394
         li t2, 0
 inactive_394:
         beq t1, t2, answer_ok_1318
         j fail
 answer_ok_1318:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_394
+        addi a2, a2, 1
+        bltu a2, s2, lanes_394
         li gp, 395
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13281,19 +13281,19 @@ answer_ok_1318:
 extent_ok_395:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_395:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_395
+        bgeu a2, s3, inactive_395
         li t2, 16
 inactive_395:
         beq t1, t2, answer_ok_1319
         j fail
 answer_ok_1319:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_395
+        addi a2, a2, 1
+        bltu a2, s2, lanes_395
         li gp, 396
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13313,19 +13313,19 @@ answer_ok_1319:
 extent_ok_396:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_396:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_396
+        bgeu a2, s3, inactive_396
         li t2, 0
 inactive_396:
         beq t1, t2, answer_ok_1320
         j fail
 answer_ok_1320:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_396
+        addi a2, a2, 1
+        bltu a2, s2, lanes_396
         li gp, 397
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13342,19 +13342,19 @@ answer_ok_1320:
 extent_ok_397:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_397:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_397
+        bgeu a2, s3, inactive_397
         li t2, 0
 inactive_397:
         beq t1, t2, answer_ok_1321
         j fail
 answer_ok_1321:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_397
+        addi a2, a2, 1
+        bltu a2, s2, lanes_397
         li gp, 398
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13369,19 +13369,19 @@ answer_ok_1321:
 extent_ok_398:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_398:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_398
+        bgeu a2, s3, inactive_398
         li t2, 0
 inactive_398:
         beq t1, t2, answer_ok_1322
         j fail
 answer_ok_1322:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_398
+        addi a2, a2, 1
+        bltu a2, s2, lanes_398
         li gp, 399
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13401,19 +13401,19 @@ answer_ok_1322:
 extent_ok_399:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_399:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_399
+        bgeu a2, s3, inactive_399
         li t2, 16
 inactive_399:
         beq t1, t2, answer_ok_1323
         j fail
 answer_ok_1323:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_399
+        addi a2, a2, 1
+        bltu a2, s2, lanes_399
         li gp, 400
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -13430,19 +13430,19 @@ answer_ok_1323:
 extent_ok_400:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_400:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_400
+        bgeu a2, s3, inactive_400
         li t2, 16
 inactive_400:
         beq t1, t2, answer_ok_1324
         j fail
 answer_ok_1324:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_400
+        addi a2, a2, 1
+        bltu a2, s2, lanes_400
         li gp, 401
         vsetvli s2, zero, 9
         vmv.v.i v16, -1
@@ -13457,19 +13457,19 @@ answer_ok_1324:
 extent_ok_401:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_401:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_401
+        bgeu a2, s3, inactive_401
         li t2, 16
 inactive_401:
         beq t1, t2, answer_ok_1325
         j fail
 answer_ok_1325:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_401
+        addi a2, a2, 1
+        bltu a2, s2, lanes_401
         li gp, 402
         vsetvli s2, zero, 9
         vmv.v.i v16, -1
@@ -13489,19 +13489,19 @@ answer_ok_1325:
 extent_ok_402:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_402:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_402
+        bgeu a2, s3, inactive_402
         li t2, 0
 inactive_402:
         beq t1, t2, answer_ok_1326
         j fail
 answer_ok_1326:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_402
+        addi a2, a2, 1
+        bltu a2, s2, lanes_402
         li gp, 403
         vsetvli s2, zero, 9
         vmv.v.i v16, -1
@@ -13518,19 +13518,19 @@ answer_ok_1326:
 extent_ok_403:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_403:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_403
+        bgeu a2, s3, inactive_403
         li t2, 0
 inactive_403:
         beq t1, t2, answer_ok_1327
         j fail
 answer_ok_1327:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_403
+        addi a2, a2, 1
+        bltu a2, s2, lanes_403
         li gp, 404
         vsetvli s2, zero, 9
         vmv.v.i v16, -1
@@ -13545,19 +13545,19 @@ answer_ok_1327:
 extent_ok_404:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_404:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_404
+        bgeu a2, s3, inactive_404
         li t2, 16
 inactive_404:
         beq t1, t2, answer_ok_1328
         j fail
 answer_ok_1328:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_404
+        addi a2, a2, 1
+        bltu a2, s2, lanes_404
         li gp, 405
         vsetvli s2, zero, 9
         vmv.v.i v16, -1
@@ -13577,19 +13577,19 @@ answer_ok_1328:
 extent_ok_405:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_405:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_405
+        bgeu a2, s3, inactive_405
         li t2, 0
 inactive_405:
         beq t1, t2, answer_ok_1329
         j fail
 answer_ok_1329:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_405
+        addi a2, a2, 1
+        bltu a2, s2, lanes_405
         li gp, 406
         vsetvli s2, zero, 9
         vmv.v.i v16, -1
@@ -13606,19 +13606,19 @@ answer_ok_1329:
 extent_ok_406:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_406:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_406
+        bgeu a2, s3, inactive_406
         li t2, 0
 inactive_406:
         beq t1, t2, answer_ok_1330
         j fail
 answer_ok_1330:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_406
+        addi a2, a2, 1
+        bltu a2, s2, lanes_406
         li gp, 407
         vsetvli s2, zero, 9
         vmv.v.i v16, -1
@@ -13633,19 +13633,19 @@ answer_ok_1330:
 extent_ok_407:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_407:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_407
+        bgeu a2, s3, inactive_407
         li t2, 0
 inactive_407:
         beq t1, t2, answer_ok_1331
         j fail
 answer_ok_1331:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_407
+        addi a2, a2, 1
+        bltu a2, s2, lanes_407
         li gp, 408
         vsetvli s2, zero, 9
         vmv.v.i v16, -1
@@ -13665,19 +13665,19 @@ answer_ok_1331:
 extent_ok_408:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_408:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_408
+        bgeu a2, s3, inactive_408
         li t2, 16
 inactive_408:
         beq t1, t2, answer_ok_1332
         j fail
 answer_ok_1332:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_408
+        addi a2, a2, 1
+        bltu a2, s2, lanes_408
         li gp, 409
         vsetvli s2, zero, 9
         vmv.v.i v16, -1
@@ -13694,19 +13694,19 @@ answer_ok_1332:
 extent_ok_409:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_409:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_409
+        bgeu a2, s3, inactive_409
         li t2, 16
 inactive_409:
         beq t1, t2, answer_ok_1333
         j fail
 answer_ok_1333:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_409
+        addi a2, a2, 1
+        bltu a2, s2, lanes_409
         li gp, 410
         vsetvli s2, zero, 10
         vmv.v.i v16, -1
@@ -13721,19 +13721,19 @@ answer_ok_1333:
 extent_ok_410:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_410:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_410
+        bgeu a2, s3, inactive_410
         li t2, 16
 inactive_410:
         beq t1, t2, answer_ok_1334
         j fail
 answer_ok_1334:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_410
+        addi a2, a2, 1
+        bltu a2, s2, lanes_410
         li gp, 411
         vsetvli s2, zero, 10
         vmv.v.i v16, -1
@@ -13753,19 +13753,19 @@ answer_ok_1334:
 extent_ok_411:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_411:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_411
+        bgeu a2, s3, inactive_411
         li t2, 0
 inactive_411:
         beq t1, t2, answer_ok_1335
         j fail
 answer_ok_1335:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_411
+        addi a2, a2, 1
+        bltu a2, s2, lanes_411
         li gp, 412
         vsetvli s2, zero, 10
         vmv.v.i v16, -1
@@ -13782,19 +13782,19 @@ answer_ok_1335:
 extent_ok_412:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_412:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_412
+        bgeu a2, s3, inactive_412
         li t2, 0
 inactive_412:
         beq t1, t2, answer_ok_1336
         j fail
 answer_ok_1336:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_412
+        addi a2, a2, 1
+        bltu a2, s2, lanes_412
         li gp, 413
         vsetvli s2, zero, 10
         vmv.v.i v16, -1
@@ -13809,19 +13809,19 @@ answer_ok_1336:
 extent_ok_413:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_413:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_413
+        bgeu a2, s3, inactive_413
         li t2, 16
 inactive_413:
         beq t1, t2, answer_ok_1337
         j fail
 answer_ok_1337:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_413
+        addi a2, a2, 1
+        bltu a2, s2, lanes_413
         li gp, 414
         vsetvli s2, zero, 10
         vmv.v.i v16, -1
@@ -13841,19 +13841,19 @@ answer_ok_1337:
 extent_ok_414:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_414:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_414
+        bgeu a2, s3, inactive_414
         li t2, 0
 inactive_414:
         beq t1, t2, answer_ok_1338
         j fail
 answer_ok_1338:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_414
+        addi a2, a2, 1
+        bltu a2, s2, lanes_414
         li gp, 415
         vsetvli s2, zero, 10
         vmv.v.i v16, -1
@@ -13870,19 +13870,19 @@ answer_ok_1338:
 extent_ok_415:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_415:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_415
+        bgeu a2, s3, inactive_415
         li t2, 0
 inactive_415:
         beq t1, t2, answer_ok_1339
         j fail
 answer_ok_1339:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_415
+        addi a2, a2, 1
+        bltu a2, s2, lanes_415
         li gp, 416
         vsetvli s2, zero, 10
         vmv.v.i v16, -1
@@ -13897,19 +13897,19 @@ answer_ok_1339:
 extent_ok_416:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_416:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_416
+        bgeu a2, s3, inactive_416
         li t2, 0
 inactive_416:
         beq t1, t2, answer_ok_1340
         j fail
 answer_ok_1340:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_416
+        addi a2, a2, 1
+        bltu a2, s2, lanes_416
         li gp, 417
         vsetvli s2, zero, 10
         vmv.v.i v16, -1
@@ -13929,19 +13929,19 @@ answer_ok_1340:
 extent_ok_417:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_417:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_417
+        bgeu a2, s3, inactive_417
         li t2, 16
 inactive_417:
         beq t1, t2, answer_ok_1341
         j fail
 answer_ok_1341:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_417
+        addi a2, a2, 1
+        bltu a2, s2, lanes_417
         li gp, 418
         vsetvli s2, zero, 10
         vmv.v.i v16, -1
@@ -13958,19 +13958,19 @@ answer_ok_1341:
 extent_ok_418:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_418:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_418
+        bgeu a2, s3, inactive_418
         li t2, 16
 inactive_418:
         beq t1, t2, answer_ok_1342
         j fail
 answer_ok_1342:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_418
+        addi a2, a2, 1
+        bltu a2, s2, lanes_418
         li gp, 419
         vsetvli s2, zero, 11
         vmv.v.i v16, -1
@@ -13985,19 +13985,19 @@ answer_ok_1342:
 extent_ok_419:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_419:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_419
+        bgeu a2, s3, inactive_419
         li t2, 16
 inactive_419:
         beq t1, t2, answer_ok_1343
         j fail
 answer_ok_1343:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_419
+        addi a2, a2, 1
+        bltu a2, s2, lanes_419
         li gp, 420
         vsetvli s2, zero, 11
         vmv.v.i v16, -1
@@ -14017,19 +14017,19 @@ answer_ok_1343:
 extent_ok_420:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_420:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_420
+        bgeu a2, s3, inactive_420
         li t2, 0
 inactive_420:
         beq t1, t2, answer_ok_1344
         j fail
 answer_ok_1344:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_420
+        addi a2, a2, 1
+        bltu a2, s2, lanes_420
         li gp, 421
         vsetvli s2, zero, 11
         vmv.v.i v16, -1
@@ -14046,19 +14046,19 @@ answer_ok_1344:
 extent_ok_421:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_421:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_421
+        bgeu a2, s3, inactive_421
         li t2, 0
 inactive_421:
         beq t1, t2, answer_ok_1345
         j fail
 answer_ok_1345:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_421
+        addi a2, a2, 1
+        bltu a2, s2, lanes_421
         li gp, 422
         vsetvli s2, zero, 11
         vmv.v.i v16, -1
@@ -14073,19 +14073,19 @@ answer_ok_1345:
 extent_ok_422:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_422:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_422
+        bgeu a2, s3, inactive_422
         li t2, 16
 inactive_422:
         beq t1, t2, answer_ok_1346
         j fail
 answer_ok_1346:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_422
+        addi a2, a2, 1
+        bltu a2, s2, lanes_422
         li gp, 423
         vsetvli s2, zero, 11
         vmv.v.i v16, -1
@@ -14105,19 +14105,19 @@ answer_ok_1346:
 extent_ok_423:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_423:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_423
+        bgeu a2, s3, inactive_423
         li t2, 0
 inactive_423:
         beq t1, t2, answer_ok_1347
         j fail
 answer_ok_1347:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_423
+        addi a2, a2, 1
+        bltu a2, s2, lanes_423
         li gp, 424
         vsetvli s2, zero, 11
         vmv.v.i v16, -1
@@ -14134,19 +14134,19 @@ answer_ok_1347:
 extent_ok_424:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_424:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_424
+        bgeu a2, s3, inactive_424
         li t2, 0
 inactive_424:
         beq t1, t2, answer_ok_1348
         j fail
 answer_ok_1348:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_424
+        addi a2, a2, 1
+        bltu a2, s2, lanes_424
         li gp, 425
         vsetvli s2, zero, 11
         vmv.v.i v16, -1
@@ -14161,19 +14161,19 @@ answer_ok_1348:
 extent_ok_425:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_425:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_425
+        bgeu a2, s3, inactive_425
         li t2, 0
 inactive_425:
         beq t1, t2, answer_ok_1349
         j fail
 answer_ok_1349:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_425
+        addi a2, a2, 1
+        bltu a2, s2, lanes_425
         li gp, 426
         vsetvli s2, zero, 11
         vmv.v.i v16, -1
@@ -14193,19 +14193,19 @@ answer_ok_1349:
 extent_ok_426:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_426:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_426
+        bgeu a2, s3, inactive_426
         li t2, 16
 inactive_426:
         beq t1, t2, answer_ok_1350
         j fail
 answer_ok_1350:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_426
+        addi a2, a2, 1
+        bltu a2, s2, lanes_426
         li gp, 427
         vsetvli s2, zero, 11
         vmv.v.i v16, -1
@@ -14222,19 +14222,19 @@ answer_ok_1350:
 extent_ok_427:
         vse16.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_427:
         lhu t1, 0(c11)
         li t2, 0xffff
-        bgeu a0, s3, inactive_427
+        bgeu a2, s3, inactive_427
         li t2, 16
 inactive_427:
         beq t1, t2, answer_ok_1351
         j fail
 answer_ok_1351:
         cincoffsetimm c11, c11, 2
-        addi a0, a0, 1
-        bltu a0, s2, lanes_427
+        addi a2, a2, 1
+        bltu a2, s2, lanes_427
         li t0, 1
         vsetvli t1, t0, 16
         li gp, 428
@@ -17686,19 +17686,19 @@ answer_ok_1744:
 extent_ok_527:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_527:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_527
+        bgeu a2, s3, inactive_527
         li t2, 32
 inactive_527:
         beq t1, t2, answer_ok_1745
         j fail
 answer_ok_1745:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_527
+        addi a2, a2, 1
+        bltu a2, s2, lanes_527
         li gp, 528
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -17718,19 +17718,19 @@ answer_ok_1745:
 extent_ok_528:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_528:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_528
+        bgeu a2, s3, inactive_528
         li t2, 0
 inactive_528:
         beq t1, t2, answer_ok_1746
         j fail
 answer_ok_1746:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_528
+        addi a2, a2, 1
+        bltu a2, s2, lanes_528
         li gp, 529
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -17747,19 +17747,19 @@ answer_ok_1746:
 extent_ok_529:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_529:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_529
+        bgeu a2, s3, inactive_529
         li t2, 0
 inactive_529:
         beq t1, t2, answer_ok_1747
         j fail
 answer_ok_1747:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_529
+        addi a2, a2, 1
+        bltu a2, s2, lanes_529
         li gp, 530
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -17774,19 +17774,19 @@ answer_ok_1747:
 extent_ok_530:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_530:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_530
+        bgeu a2, s3, inactive_530
         li t2, 32
 inactive_530:
         beq t1, t2, answer_ok_1748
         j fail
 answer_ok_1748:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_530
+        addi a2, a2, 1
+        bltu a2, s2, lanes_530
         li gp, 531
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -17806,19 +17806,19 @@ answer_ok_1748:
 extent_ok_531:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_531:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_531
+        bgeu a2, s3, inactive_531
         li t2, 0
 inactive_531:
         beq t1, t2, answer_ok_1749
         j fail
 answer_ok_1749:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_531
+        addi a2, a2, 1
+        bltu a2, s2, lanes_531
         li gp, 532
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -17835,19 +17835,19 @@ answer_ok_1749:
 extent_ok_532:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_532:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_532
+        bgeu a2, s3, inactive_532
         li t2, 0
 inactive_532:
         beq t1, t2, answer_ok_1750
         j fail
 answer_ok_1750:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_532
+        addi a2, a2, 1
+        bltu a2, s2, lanes_532
         li gp, 533
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -17862,19 +17862,19 @@ answer_ok_1750:
 extent_ok_533:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_533:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_533
+        bgeu a2, s3, inactive_533
         li t2, 0
 inactive_533:
         beq t1, t2, answer_ok_1751
         j fail
 answer_ok_1751:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_533
+        addi a2, a2, 1
+        bltu a2, s2, lanes_533
         li gp, 534
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -17894,19 +17894,19 @@ answer_ok_1751:
 extent_ok_534:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_534:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_534
+        bgeu a2, s3, inactive_534
         li t2, 32
 inactive_534:
         beq t1, t2, answer_ok_1752
         j fail
 answer_ok_1752:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_534
+        addi a2, a2, 1
+        bltu a2, s2, lanes_534
         li gp, 535
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -17923,19 +17923,19 @@ answer_ok_1752:
 extent_ok_535:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_535:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_535
+        bgeu a2, s3, inactive_535
         li t2, 32
 inactive_535:
         beq t1, t2, answer_ok_1753
         j fail
 answer_ok_1753:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_535
+        addi a2, a2, 1
+        bltu a2, s2, lanes_535
         li gp, 536
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -17950,19 +17950,19 @@ answer_ok_1753:
 extent_ok_536:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_536:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_536
+        bgeu a2, s3, inactive_536
         li t2, 32
 inactive_536:
         beq t1, t2, answer_ok_1754
         j fail
 answer_ok_1754:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_536
+        addi a2, a2, 1
+        bltu a2, s2, lanes_536
         li gp, 537
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -17982,19 +17982,19 @@ answer_ok_1754:
 extent_ok_537:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_537:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_537
+        bgeu a2, s3, inactive_537
         li t2, 0
 inactive_537:
         beq t1, t2, answer_ok_1755
         j fail
 answer_ok_1755:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_537
+        addi a2, a2, 1
+        bltu a2, s2, lanes_537
         li gp, 538
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -18011,19 +18011,19 @@ answer_ok_1755:
 extent_ok_538:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_538:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_538
+        bgeu a2, s3, inactive_538
         li t2, 0
 inactive_538:
         beq t1, t2, answer_ok_1756
         j fail
 answer_ok_1756:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_538
+        addi a2, a2, 1
+        bltu a2, s2, lanes_538
         li gp, 539
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -18038,19 +18038,19 @@ answer_ok_1756:
 extent_ok_539:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_539:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_539
+        bgeu a2, s3, inactive_539
         li t2, 32
 inactive_539:
         beq t1, t2, answer_ok_1757
         j fail
 answer_ok_1757:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_539
+        addi a2, a2, 1
+        bltu a2, s2, lanes_539
         li gp, 540
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -18070,19 +18070,19 @@ answer_ok_1757:
 extent_ok_540:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_540:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_540
+        bgeu a2, s3, inactive_540
         li t2, 0
 inactive_540:
         beq t1, t2, answer_ok_1758
         j fail
 answer_ok_1758:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_540
+        addi a2, a2, 1
+        bltu a2, s2, lanes_540
         li gp, 541
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -18099,19 +18099,19 @@ answer_ok_1758:
 extent_ok_541:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_541:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_541
+        bgeu a2, s3, inactive_541
         li t2, 0
 inactive_541:
         beq t1, t2, answer_ok_1759
         j fail
 answer_ok_1759:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_541
+        addi a2, a2, 1
+        bltu a2, s2, lanes_541
         li gp, 542
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -18126,19 +18126,19 @@ answer_ok_1759:
 extent_ok_542:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_542:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_542
+        bgeu a2, s3, inactive_542
         li t2, 0
 inactive_542:
         beq t1, t2, answer_ok_1760
         j fail
 answer_ok_1760:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_542
+        addi a2, a2, 1
+        bltu a2, s2, lanes_542
         li gp, 543
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -18158,19 +18158,19 @@ answer_ok_1760:
 extent_ok_543:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_543:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_543
+        bgeu a2, s3, inactive_543
         li t2, 32
 inactive_543:
         beq t1, t2, answer_ok_1761
         j fail
 answer_ok_1761:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_543
+        addi a2, a2, 1
+        bltu a2, s2, lanes_543
         li gp, 544
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -18187,19 +18187,19 @@ answer_ok_1761:
 extent_ok_544:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_544:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_544
+        bgeu a2, s3, inactive_544
         li t2, 32
 inactive_544:
         beq t1, t2, answer_ok_1762
         j fail
 answer_ok_1762:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_544
+        addi a2, a2, 1
+        bltu a2, s2, lanes_544
         li gp, 545
         vsetvli s2, zero, 17
         vmv.v.i v16, -1
@@ -18214,19 +18214,19 @@ answer_ok_1762:
 extent_ok_545:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_545:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_545
+        bgeu a2, s3, inactive_545
         li t2, 32
 inactive_545:
         beq t1, t2, answer_ok_1763
         j fail
 answer_ok_1763:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_545
+        addi a2, a2, 1
+        bltu a2, s2, lanes_545
         li gp, 546
         vsetvli s2, zero, 17
         vmv.v.i v16, -1
@@ -18246,19 +18246,19 @@ answer_ok_1763:
 extent_ok_546:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_546:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_546
+        bgeu a2, s3, inactive_546
         li t2, 0
 inactive_546:
         beq t1, t2, answer_ok_1764
         j fail
 answer_ok_1764:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_546
+        addi a2, a2, 1
+        bltu a2, s2, lanes_546
         li gp, 547
         vsetvli s2, zero, 17
         vmv.v.i v16, -1
@@ -18275,19 +18275,19 @@ answer_ok_1764:
 extent_ok_547:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_547:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_547
+        bgeu a2, s3, inactive_547
         li t2, 0
 inactive_547:
         beq t1, t2, answer_ok_1765
         j fail
 answer_ok_1765:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_547
+        addi a2, a2, 1
+        bltu a2, s2, lanes_547
         li gp, 548
         vsetvli s2, zero, 17
         vmv.v.i v16, -1
@@ -18302,19 +18302,19 @@ answer_ok_1765:
 extent_ok_548:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_548:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_548
+        bgeu a2, s3, inactive_548
         li t2, 32
 inactive_548:
         beq t1, t2, answer_ok_1766
         j fail
 answer_ok_1766:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_548
+        addi a2, a2, 1
+        bltu a2, s2, lanes_548
         li gp, 549
         vsetvli s2, zero, 17
         vmv.v.i v16, -1
@@ -18334,19 +18334,19 @@ answer_ok_1766:
 extent_ok_549:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_549:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_549
+        bgeu a2, s3, inactive_549
         li t2, 0
 inactive_549:
         beq t1, t2, answer_ok_1767
         j fail
 answer_ok_1767:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_549
+        addi a2, a2, 1
+        bltu a2, s2, lanes_549
         li gp, 550
         vsetvli s2, zero, 17
         vmv.v.i v16, -1
@@ -18363,19 +18363,19 @@ answer_ok_1767:
 extent_ok_550:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_550:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_550
+        bgeu a2, s3, inactive_550
         li t2, 0
 inactive_550:
         beq t1, t2, answer_ok_1768
         j fail
 answer_ok_1768:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_550
+        addi a2, a2, 1
+        bltu a2, s2, lanes_550
         li gp, 551
         vsetvli s2, zero, 17
         vmv.v.i v16, -1
@@ -18390,19 +18390,19 @@ answer_ok_1768:
 extent_ok_551:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_551:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_551
+        bgeu a2, s3, inactive_551
         li t2, 0
 inactive_551:
         beq t1, t2, answer_ok_1769
         j fail
 answer_ok_1769:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_551
+        addi a2, a2, 1
+        bltu a2, s2, lanes_551
         li gp, 552
         vsetvli s2, zero, 17
         vmv.v.i v16, -1
@@ -18422,19 +18422,19 @@ answer_ok_1769:
 extent_ok_552:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_552:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_552
+        bgeu a2, s3, inactive_552
         li t2, 32
 inactive_552:
         beq t1, t2, answer_ok_1770
         j fail
 answer_ok_1770:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_552
+        addi a2, a2, 1
+        bltu a2, s2, lanes_552
         li gp, 553
         vsetvli s2, zero, 17
         vmv.v.i v16, -1
@@ -18451,19 +18451,19 @@ answer_ok_1770:
 extent_ok_553:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_553:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_553
+        bgeu a2, s3, inactive_553
         li t2, 32
 inactive_553:
         beq t1, t2, answer_ok_1771
         j fail
 answer_ok_1771:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_553
+        addi a2, a2, 1
+        bltu a2, s2, lanes_553
         li gp, 554
         vsetvli s2, zero, 18
         vmv.v.i v16, -1
@@ -18478,19 +18478,19 @@ answer_ok_1771:
 extent_ok_554:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_554:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_554
+        bgeu a2, s3, inactive_554
         li t2, 32
 inactive_554:
         beq t1, t2, answer_ok_1772
         j fail
 answer_ok_1772:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_554
+        addi a2, a2, 1
+        bltu a2, s2, lanes_554
         li gp, 555
         vsetvli s2, zero, 18
         vmv.v.i v16, -1
@@ -18510,19 +18510,19 @@ answer_ok_1772:
 extent_ok_555:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_555:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_555
+        bgeu a2, s3, inactive_555
         li t2, 0
 inactive_555:
         beq t1, t2, answer_ok_1773
         j fail
 answer_ok_1773:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_555
+        addi a2, a2, 1
+        bltu a2, s2, lanes_555
         li gp, 556
         vsetvli s2, zero, 18
         vmv.v.i v16, -1
@@ -18539,19 +18539,19 @@ answer_ok_1773:
 extent_ok_556:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_556:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_556
+        bgeu a2, s3, inactive_556
         li t2, 0
 inactive_556:
         beq t1, t2, answer_ok_1774
         j fail
 answer_ok_1774:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_556
+        addi a2, a2, 1
+        bltu a2, s2, lanes_556
         li gp, 557
         vsetvli s2, zero, 18
         vmv.v.i v16, -1
@@ -18566,19 +18566,19 @@ answer_ok_1774:
 extent_ok_557:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_557:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_557
+        bgeu a2, s3, inactive_557
         li t2, 32
 inactive_557:
         beq t1, t2, answer_ok_1775
         j fail
 answer_ok_1775:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_557
+        addi a2, a2, 1
+        bltu a2, s2, lanes_557
         li gp, 558
         vsetvli s2, zero, 18
         vmv.v.i v16, -1
@@ -18598,19 +18598,19 @@ answer_ok_1775:
 extent_ok_558:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_558:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_558
+        bgeu a2, s3, inactive_558
         li t2, 0
 inactive_558:
         beq t1, t2, answer_ok_1776
         j fail
 answer_ok_1776:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_558
+        addi a2, a2, 1
+        bltu a2, s2, lanes_558
         li gp, 559
         vsetvli s2, zero, 18
         vmv.v.i v16, -1
@@ -18627,19 +18627,19 @@ answer_ok_1776:
 extent_ok_559:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_559:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_559
+        bgeu a2, s3, inactive_559
         li t2, 0
 inactive_559:
         beq t1, t2, answer_ok_1777
         j fail
 answer_ok_1777:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_559
+        addi a2, a2, 1
+        bltu a2, s2, lanes_559
         li gp, 560
         vsetvli s2, zero, 18
         vmv.v.i v16, -1
@@ -18654,19 +18654,19 @@ answer_ok_1777:
 extent_ok_560:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_560:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_560
+        bgeu a2, s3, inactive_560
         li t2, 0
 inactive_560:
         beq t1, t2, answer_ok_1778
         j fail
 answer_ok_1778:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_560
+        addi a2, a2, 1
+        bltu a2, s2, lanes_560
         li gp, 561
         vsetvli s2, zero, 18
         vmv.v.i v16, -1
@@ -18686,19 +18686,19 @@ answer_ok_1778:
 extent_ok_561:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_561:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_561
+        bgeu a2, s3, inactive_561
         li t2, 32
 inactive_561:
         beq t1, t2, answer_ok_1779
         j fail
 answer_ok_1779:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_561
+        addi a2, a2, 1
+        bltu a2, s2, lanes_561
         li gp, 562
         vsetvli s2, zero, 18
         vmv.v.i v16, -1
@@ -18715,19 +18715,19 @@ answer_ok_1779:
 extent_ok_562:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_562:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_562
+        bgeu a2, s3, inactive_562
         li t2, 32
 inactive_562:
         beq t1, t2, answer_ok_1780
         j fail
 answer_ok_1780:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_562
+        addi a2, a2, 1
+        bltu a2, s2, lanes_562
         li gp, 563
         vsetvli s2, zero, 19
         vmv.v.i v16, -1
@@ -18742,19 +18742,19 @@ answer_ok_1780:
 extent_ok_563:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_563:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_563
+        bgeu a2, s3, inactive_563
         li t2, 32
 inactive_563:
         beq t1, t2, answer_ok_1781
         j fail
 answer_ok_1781:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_563
+        addi a2, a2, 1
+        bltu a2, s2, lanes_563
         li gp, 564
         vsetvli s2, zero, 19
         vmv.v.i v16, -1
@@ -18774,19 +18774,19 @@ answer_ok_1781:
 extent_ok_564:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_564:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_564
+        bgeu a2, s3, inactive_564
         li t2, 0
 inactive_564:
         beq t1, t2, answer_ok_1782
         j fail
 answer_ok_1782:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_564
+        addi a2, a2, 1
+        bltu a2, s2, lanes_564
         li gp, 565
         vsetvli s2, zero, 19
         vmv.v.i v16, -1
@@ -18803,19 +18803,19 @@ answer_ok_1782:
 extent_ok_565:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_565:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_565
+        bgeu a2, s3, inactive_565
         li t2, 0
 inactive_565:
         beq t1, t2, answer_ok_1783
         j fail
 answer_ok_1783:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_565
+        addi a2, a2, 1
+        bltu a2, s2, lanes_565
         li gp, 566
         vsetvli s2, zero, 19
         vmv.v.i v16, -1
@@ -18830,19 +18830,19 @@ answer_ok_1783:
 extent_ok_566:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_566:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_566
+        bgeu a2, s3, inactive_566
         li t2, 32
 inactive_566:
         beq t1, t2, answer_ok_1784
         j fail
 answer_ok_1784:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_566
+        addi a2, a2, 1
+        bltu a2, s2, lanes_566
         li gp, 567
         vsetvli s2, zero, 19
         vmv.v.i v16, -1
@@ -18862,19 +18862,19 @@ answer_ok_1784:
 extent_ok_567:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_567:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_567
+        bgeu a2, s3, inactive_567
         li t2, 0
 inactive_567:
         beq t1, t2, answer_ok_1785
         j fail
 answer_ok_1785:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_567
+        addi a2, a2, 1
+        bltu a2, s2, lanes_567
         li gp, 568
         vsetvli s2, zero, 19
         vmv.v.i v16, -1
@@ -18891,19 +18891,19 @@ answer_ok_1785:
 extent_ok_568:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_568:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_568
+        bgeu a2, s3, inactive_568
         li t2, 0
 inactive_568:
         beq t1, t2, answer_ok_1786
         j fail
 answer_ok_1786:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_568
+        addi a2, a2, 1
+        bltu a2, s2, lanes_568
         li gp, 569
         vsetvli s2, zero, 19
         vmv.v.i v16, -1
@@ -18918,19 +18918,19 @@ answer_ok_1786:
 extent_ok_569:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_569:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_569
+        bgeu a2, s3, inactive_569
         li t2, 0
 inactive_569:
         beq t1, t2, answer_ok_1787
         j fail
 answer_ok_1787:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_569
+        addi a2, a2, 1
+        bltu a2, s2, lanes_569
         li gp, 570
         vsetvli s2, zero, 19
         vmv.v.i v16, -1
@@ -18950,19 +18950,19 @@ answer_ok_1787:
 extent_ok_570:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_570:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_570
+        bgeu a2, s3, inactive_570
         li t2, 32
 inactive_570:
         beq t1, t2, answer_ok_1788
         j fail
 answer_ok_1788:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_570
+        addi a2, a2, 1
+        bltu a2, s2, lanes_570
         li gp, 571
         vsetvli s2, zero, 19
         vmv.v.i v16, -1
@@ -18979,19 +18979,19 @@ answer_ok_1788:
 extent_ok_571:
         vse32.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_571:
         lwu t1, 0(c11)
         li t2, 0xffffffff
-        bgeu a0, s3, inactive_571
+        bgeu a2, s3, inactive_571
         li t2, 32
 inactive_571:
         beq t1, t2, answer_ok_1789
         j fail
 answer_ok_1789:
         cincoffsetimm c11, c11, 4
-        addi a0, a0, 1
-        bltu a0, s2, lanes_571
+        addi a2, a2, 1
+        bltu a2, s2, lanes_571
         li t0, 1
         vsetvli t1, t0, 24
         li gp, 572
@@ -25803,19 +25803,19 @@ answer_ok_2566:
 extent_ok_767:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_767:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_767
+        bgeu a2, s3, inactive_767
         li t2, 64
 inactive_767:
         beq t1, t2, answer_ok_2567
         j fail
 answer_ok_2567:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_767
+        addi a2, a2, 1
+        bltu a2, s2, lanes_767
         li gp, 768
         vsetvli s2, zero, 24
         vmv.v.i v16, -1
@@ -25835,19 +25835,19 @@ answer_ok_2567:
 extent_ok_768:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_768:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_768
+        bgeu a2, s3, inactive_768
         li t2, 0
 inactive_768:
         beq t1, t2, answer_ok_2568
         j fail
 answer_ok_2568:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_768
+        addi a2, a2, 1
+        bltu a2, s2, lanes_768
         li gp, 769
         vsetvli s2, zero, 24
         vmv.v.i v16, -1
@@ -25864,19 +25864,19 @@ answer_ok_2568:
 extent_ok_769:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_769:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_769
+        bgeu a2, s3, inactive_769
         li t2, 0
 inactive_769:
         beq t1, t2, answer_ok_2569
         j fail
 answer_ok_2569:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_769
+        addi a2, a2, 1
+        bltu a2, s2, lanes_769
         li gp, 770
         vsetvli s2, zero, 24
         vmv.v.i v16, -1
@@ -25891,19 +25891,19 @@ answer_ok_2569:
 extent_ok_770:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_770:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_770
+        bgeu a2, s3, inactive_770
         li t2, 64
 inactive_770:
         beq t1, t2, answer_ok_2570
         j fail
 answer_ok_2570:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_770
+        addi a2, a2, 1
+        bltu a2, s2, lanes_770
         li gp, 771
         vsetvli s2, zero, 24
         vmv.v.i v16, -1
@@ -25923,19 +25923,19 @@ answer_ok_2570:
 extent_ok_771:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_771:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_771
+        bgeu a2, s3, inactive_771
         li t2, 0
 inactive_771:
         beq t1, t2, answer_ok_2571
         j fail
 answer_ok_2571:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_771
+        addi a2, a2, 1
+        bltu a2, s2, lanes_771
         li gp, 772
         vsetvli s2, zero, 24
         vmv.v.i v16, -1
@@ -25952,19 +25952,19 @@ answer_ok_2571:
 extent_ok_772:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_772:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_772
+        bgeu a2, s3, inactive_772
         li t2, 0
 inactive_772:
         beq t1, t2, answer_ok_2572
         j fail
 answer_ok_2572:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_772
+        addi a2, a2, 1
+        bltu a2, s2, lanes_772
         li gp, 773
         vsetvli s2, zero, 24
         vmv.v.i v16, -1
@@ -25979,19 +25979,19 @@ answer_ok_2572:
 extent_ok_773:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_773:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_773
+        bgeu a2, s3, inactive_773
         li t2, 0
 inactive_773:
         beq t1, t2, answer_ok_2573
         j fail
 answer_ok_2573:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_773
+        addi a2, a2, 1
+        bltu a2, s2, lanes_773
         li gp, 774
         vsetvli s2, zero, 24
         vmv.v.i v16, -1
@@ -26011,19 +26011,19 @@ answer_ok_2573:
 extent_ok_774:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_774:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_774
+        bgeu a2, s3, inactive_774
         li t2, 64
 inactive_774:
         beq t1, t2, answer_ok_2574
         j fail
 answer_ok_2574:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_774
+        addi a2, a2, 1
+        bltu a2, s2, lanes_774
         li gp, 775
         vsetvli s2, zero, 24
         vmv.v.i v16, -1
@@ -26040,19 +26040,19 @@ answer_ok_2574:
 extent_ok_775:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_775:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_775
+        bgeu a2, s3, inactive_775
         li t2, 64
 inactive_775:
         beq t1, t2, answer_ok_2575
         j fail
 answer_ok_2575:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_775
+        addi a2, a2, 1
+        bltu a2, s2, lanes_775
         li gp, 776
         vsetvli s2, zero, 25
         vmv.v.i v16, -1
@@ -26067,19 +26067,19 @@ answer_ok_2575:
 extent_ok_776:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_776:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_776
+        bgeu a2, s3, inactive_776
         li t2, 64
 inactive_776:
         beq t1, t2, answer_ok_2576
         j fail
 answer_ok_2576:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_776
+        addi a2, a2, 1
+        bltu a2, s2, lanes_776
         li gp, 777
         vsetvli s2, zero, 25
         vmv.v.i v16, -1
@@ -26099,19 +26099,19 @@ answer_ok_2576:
 extent_ok_777:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_777:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_777
+        bgeu a2, s3, inactive_777
         li t2, 0
 inactive_777:
         beq t1, t2, answer_ok_2577
         j fail
 answer_ok_2577:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_777
+        addi a2, a2, 1
+        bltu a2, s2, lanes_777
         li gp, 778
         vsetvli s2, zero, 25
         vmv.v.i v16, -1
@@ -26128,19 +26128,19 @@ answer_ok_2577:
 extent_ok_778:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_778:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_778
+        bgeu a2, s3, inactive_778
         li t2, 0
 inactive_778:
         beq t1, t2, answer_ok_2578
         j fail
 answer_ok_2578:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_778
+        addi a2, a2, 1
+        bltu a2, s2, lanes_778
         li gp, 779
         vsetvli s2, zero, 25
         vmv.v.i v16, -1
@@ -26155,19 +26155,19 @@ answer_ok_2578:
 extent_ok_779:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_779:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_779
+        bgeu a2, s3, inactive_779
         li t2, 64
 inactive_779:
         beq t1, t2, answer_ok_2579
         j fail
 answer_ok_2579:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_779
+        addi a2, a2, 1
+        bltu a2, s2, lanes_779
         li gp, 780
         vsetvli s2, zero, 25
         vmv.v.i v16, -1
@@ -26187,19 +26187,19 @@ answer_ok_2579:
 extent_ok_780:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_780:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_780
+        bgeu a2, s3, inactive_780
         li t2, 0
 inactive_780:
         beq t1, t2, answer_ok_2580
         j fail
 answer_ok_2580:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_780
+        addi a2, a2, 1
+        bltu a2, s2, lanes_780
         li gp, 781
         vsetvli s2, zero, 25
         vmv.v.i v16, -1
@@ -26216,19 +26216,19 @@ answer_ok_2580:
 extent_ok_781:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_781:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_781
+        bgeu a2, s3, inactive_781
         li t2, 0
 inactive_781:
         beq t1, t2, answer_ok_2581
         j fail
 answer_ok_2581:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_781
+        addi a2, a2, 1
+        bltu a2, s2, lanes_781
         li gp, 782
         vsetvli s2, zero, 25
         vmv.v.i v16, -1
@@ -26243,19 +26243,19 @@ answer_ok_2581:
 extent_ok_782:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_782:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_782
+        bgeu a2, s3, inactive_782
         li t2, 0
 inactive_782:
         beq t1, t2, answer_ok_2582
         j fail
 answer_ok_2582:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_782
+        addi a2, a2, 1
+        bltu a2, s2, lanes_782
         li gp, 783
         vsetvli s2, zero, 25
         vmv.v.i v16, -1
@@ -26275,19 +26275,19 @@ answer_ok_2582:
 extent_ok_783:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_783:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_783
+        bgeu a2, s3, inactive_783
         li t2, 64
 inactive_783:
         beq t1, t2, answer_ok_2583
         j fail
 answer_ok_2583:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_783
+        addi a2, a2, 1
+        bltu a2, s2, lanes_783
         li gp, 784
         vsetvli s2, zero, 25
         vmv.v.i v16, -1
@@ -26304,19 +26304,19 @@ answer_ok_2583:
 extent_ok_784:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_784:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_784
+        bgeu a2, s3, inactive_784
         li t2, 64
 inactive_784:
         beq t1, t2, answer_ok_2584
         j fail
 answer_ok_2584:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_784
+        addi a2, a2, 1
+        bltu a2, s2, lanes_784
         li gp, 785
         vsetvli s2, zero, 26
         vmv.v.i v16, -1
@@ -26331,19 +26331,19 @@ answer_ok_2584:
 extent_ok_785:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_785:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_785
+        bgeu a2, s3, inactive_785
         li t2, 64
 inactive_785:
         beq t1, t2, answer_ok_2585
         j fail
 answer_ok_2585:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_785
+        addi a2, a2, 1
+        bltu a2, s2, lanes_785
         li gp, 786
         vsetvli s2, zero, 26
         vmv.v.i v16, -1
@@ -26363,19 +26363,19 @@ answer_ok_2585:
 extent_ok_786:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_786:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_786
+        bgeu a2, s3, inactive_786
         li t2, 0
 inactive_786:
         beq t1, t2, answer_ok_2586
         j fail
 answer_ok_2586:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_786
+        addi a2, a2, 1
+        bltu a2, s2, lanes_786
         li gp, 787
         vsetvli s2, zero, 26
         vmv.v.i v16, -1
@@ -26392,19 +26392,19 @@ answer_ok_2586:
 extent_ok_787:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_787:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_787
+        bgeu a2, s3, inactive_787
         li t2, 0
 inactive_787:
         beq t1, t2, answer_ok_2587
         j fail
 answer_ok_2587:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_787
+        addi a2, a2, 1
+        bltu a2, s2, lanes_787
         li gp, 788
         vsetvli s2, zero, 26
         vmv.v.i v16, -1
@@ -26419,19 +26419,19 @@ answer_ok_2587:
 extent_ok_788:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_788:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_788
+        bgeu a2, s3, inactive_788
         li t2, 64
 inactive_788:
         beq t1, t2, answer_ok_2588
         j fail
 answer_ok_2588:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_788
+        addi a2, a2, 1
+        bltu a2, s2, lanes_788
         li gp, 789
         vsetvli s2, zero, 26
         vmv.v.i v16, -1
@@ -26451,19 +26451,19 @@ answer_ok_2588:
 extent_ok_789:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_789:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_789
+        bgeu a2, s3, inactive_789
         li t2, 0
 inactive_789:
         beq t1, t2, answer_ok_2589
         j fail
 answer_ok_2589:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_789
+        addi a2, a2, 1
+        bltu a2, s2, lanes_789
         li gp, 790
         vsetvli s2, zero, 26
         vmv.v.i v16, -1
@@ -26480,19 +26480,19 @@ answer_ok_2589:
 extent_ok_790:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_790:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_790
+        bgeu a2, s3, inactive_790
         li t2, 0
 inactive_790:
         beq t1, t2, answer_ok_2590
         j fail
 answer_ok_2590:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_790
+        addi a2, a2, 1
+        bltu a2, s2, lanes_790
         li gp, 791
         vsetvli s2, zero, 26
         vmv.v.i v16, -1
@@ -26507,19 +26507,19 @@ answer_ok_2590:
 extent_ok_791:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_791:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_791
+        bgeu a2, s3, inactive_791
         li t2, 0
 inactive_791:
         beq t1, t2, answer_ok_2591
         j fail
 answer_ok_2591:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_791
+        addi a2, a2, 1
+        bltu a2, s2, lanes_791
         li gp, 792
         vsetvli s2, zero, 26
         vmv.v.i v16, -1
@@ -26539,19 +26539,19 @@ answer_ok_2591:
 extent_ok_792:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_792:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_792
+        bgeu a2, s3, inactive_792
         li t2, 64
 inactive_792:
         beq t1, t2, answer_ok_2592
         j fail
 answer_ok_2592:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_792
+        addi a2, a2, 1
+        bltu a2, s2, lanes_792
         li gp, 793
         vsetvli s2, zero, 26
         vmv.v.i v16, -1
@@ -26568,19 +26568,19 @@ answer_ok_2592:
 extent_ok_793:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_793:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_793
+        bgeu a2, s3, inactive_793
         li t2, 64
 inactive_793:
         beq t1, t2, answer_ok_2593
         j fail
 answer_ok_2593:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_793
+        addi a2, a2, 1
+        bltu a2, s2, lanes_793
         li gp, 794
         vsetvli s2, zero, 27
         vmv.v.i v16, -1
@@ -26595,19 +26595,19 @@ answer_ok_2593:
 extent_ok_794:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_794:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_794
+        bgeu a2, s3, inactive_794
         li t2, 64
 inactive_794:
         beq t1, t2, answer_ok_2594
         j fail
 answer_ok_2594:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_794
+        addi a2, a2, 1
+        bltu a2, s2, lanes_794
         li gp, 795
         vsetvli s2, zero, 27
         vmv.v.i v16, -1
@@ -26627,19 +26627,19 @@ answer_ok_2594:
 extent_ok_795:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_795:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_795
+        bgeu a2, s3, inactive_795
         li t2, 0
 inactive_795:
         beq t1, t2, answer_ok_2595
         j fail
 answer_ok_2595:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_795
+        addi a2, a2, 1
+        bltu a2, s2, lanes_795
         li gp, 796
         vsetvli s2, zero, 27
         vmv.v.i v16, -1
@@ -26656,19 +26656,19 @@ answer_ok_2595:
 extent_ok_796:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_796:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_796
+        bgeu a2, s3, inactive_796
         li t2, 0
 inactive_796:
         beq t1, t2, answer_ok_2596
         j fail
 answer_ok_2596:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_796
+        addi a2, a2, 1
+        bltu a2, s2, lanes_796
         li gp, 797
         vsetvli s2, zero, 27
         vmv.v.i v16, -1
@@ -26683,19 +26683,19 @@ answer_ok_2596:
 extent_ok_797:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_797:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_797
+        bgeu a2, s3, inactive_797
         li t2, 64
 inactive_797:
         beq t1, t2, answer_ok_2597
         j fail
 answer_ok_2597:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_797
+        addi a2, a2, 1
+        bltu a2, s2, lanes_797
         li gp, 798
         vsetvli s2, zero, 27
         vmv.v.i v16, -1
@@ -26715,19 +26715,19 @@ answer_ok_2597:
 extent_ok_798:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_798:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_798
+        bgeu a2, s3, inactive_798
         li t2, 0
 inactive_798:
         beq t1, t2, answer_ok_2598
         j fail
 answer_ok_2598:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_798
+        addi a2, a2, 1
+        bltu a2, s2, lanes_798
         li gp, 799
         vsetvli s2, zero, 27
         vmv.v.i v16, -1
@@ -26744,19 +26744,19 @@ answer_ok_2598:
 extent_ok_799:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_799:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_799
+        bgeu a2, s3, inactive_799
         li t2, 0
 inactive_799:
         beq t1, t2, answer_ok_2599
         j fail
 answer_ok_2599:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_799
+        addi a2, a2, 1
+        bltu a2, s2, lanes_799
         li gp, 800
         vsetvli s2, zero, 27
         vmv.v.i v16, -1
@@ -26771,19 +26771,19 @@ answer_ok_2599:
 extent_ok_800:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_800:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_800
+        bgeu a2, s3, inactive_800
         li t2, 0
 inactive_800:
         beq t1, t2, answer_ok_2600
         j fail
 answer_ok_2600:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_800
+        addi a2, a2, 1
+        bltu a2, s2, lanes_800
         li gp, 801
         vsetvli s2, zero, 27
         vmv.v.i v16, -1
@@ -26803,19 +26803,19 @@ answer_ok_2600:
 extent_ok_801:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_801:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_801
+        bgeu a2, s3, inactive_801
         li t2, 64
 inactive_801:
         beq t1, t2, answer_ok_2601
         j fail
 answer_ok_2601:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_801
+        addi a2, a2, 1
+        bltu a2, s2, lanes_801
         li gp, 802
         vsetvli s2, zero, 27
         vmv.v.i v16, -1
@@ -26832,19 +26832,19 @@ answer_ok_2601:
 extent_ok_802:
         vse64.v v16, (c10)
         cmove c11, c10
-        li a0, 0
+        li a2, 0
 lanes_802:
         ld t1, 0(c11)
         li t2, 0xffffffffffffffff
-        bgeu a0, s3, inactive_802
+        bgeu a2, s3, inactive_802
         li t2, 64
 inactive_802:
         beq t1, t2, answer_ok_2602
         j fail
 answer_ok_2602:
         cincoffsetimm c11, c11, 8
-        addi a0, a0, 1
-        bltu a0, s2, lanes_802
+        addi a2, a2, 1
+        bltu a2, s2, lanes_802
         li gp, 0
         li t0, 1
         j exit

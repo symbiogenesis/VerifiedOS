@@ -229,13 +229,13 @@ def emit_corpus(root: Path) -> str:
                         f"li t2, {OUTPUT_BYTES}", f"bgeu t2, t0, extent_ok_{serial}", "j fail")
                     lines.append(f"extent_ok_{serial}:")
                     put(f"{store} v16, (c10)",
-                        "cmove c11, c10", "li a0, 0")
+                        "cmove c11, c10", "li a2, 0")
                     lines.append(f"lanes_{serial}:")
                     put(f"{load} t1, 0(c11)", f"li t2, 0x{(1 << width) - 1:x}",
-                        f"bgeu a0, s3, inactive_{serial}", f"li t2, {active}")
+                        f"bgeu a2, s3, inactive_{serial}", f"li t2, {active}")
                     lines.append(f"inactive_{serial}:")
                     put("bne t1, t2, fail", f"cincoffsetimm c11, c11, {width // 8}",
-                        "addi a0, a0, 1", f"bltu a0, s2, lanes_{serial}")
+                        "addi a2, a2, 1", f"bltu a2, s2, lanes_{serial}")
     put("li gp, 0", "li t0, 1", "j exit")
     lines.append("fail:")
     put("slli t0, gp, 1", "ori t0, t0, 1")

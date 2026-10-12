@@ -1,5 +1,5 @@
 {
-  "version": 13,
+  "version": 14,
   "trace_schema": 1,
   "members": [
     {
@@ -64,6 +64,13 @@
       "checks": 13,
       "records": 462,
       "digest": "9b339e6dc391d786"
+    },
+    {
+      "name": "vector-bitcount",
+      "source": "vector-bitcount.s",
+      "checks": 802,
+      "records": 0,
+      "digest": ""
     },
     {
       "name": "atomics",
