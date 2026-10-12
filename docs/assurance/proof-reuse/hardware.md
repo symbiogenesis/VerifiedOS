@@ -4,7 +4,9 @@ This inventory records upstream proof subjects and their fit to VerifiedOS at
 revision `40c48830e11d2af3807d2431f7fc42ec9ce83bf3`. Source and license readings
 are dated 2026-09-10, except Sail's own terms and trust boundary in the
 paragraph below and HW-06's publication of record, which are read on
-2026-09-13. The code and decoder research handoff is checked on 2026-09-24. A published mechanization is evidence about its stated
+2026-09-13. The code and decoder research handoff is checked on 2026-09-24.
+HW-17 through HW-19 are source-reviewed on 2026-10-12 against local revision
+`7c31019cec0b6dbf1cfb51afd6b9cdb01d701fbf`. A published mechanization is evidence about its stated
 machine, parameters and assumptions; it is not a proof of this repository's
 machine. No upstream proof is replayed by this research lane, and no source code
 is incorporated by this document.
@@ -37,7 +39,9 @@ completion ledger.
 | Capability safety and adversarial code, R-13-016/R-13-017, CJ-CERISE | The canonical Sail connection, universal contract and concrete memory laws remain the foundation work identified in the [foundation map](../../hardware/cheri-foundation-map.md). | HW-03, HW-04, HW-05, HW-06 |
 | Functional RTL refinement, R-01-003/R-05-019b/R-05-158, CJ-RTL-SAIL | RTL elaboration and the R1/R2 bring-up and comparison work do not establish the closing unbounded theorem. | HW-07, HW-08, HW-09, HW-10, HW-11, HW-12, HW-16 |
 | ECC, tag integrity and atomic commit, R-15-175 through R-15-181a | Modeled memory behavior and bring-up exist; the concrete SECDED/DECTED implementation, fault model, fixed latency and RTL connection remain distinct obligations. | HW-13, HW-14 |
-| NoC and bank isolation, R-15-211/R-15-222a/R-15-223/R-15-228, CJ-ISOL | The isolation model is unauthored. M0.14's latency classes and M0.16's sequencer do not supply it. [PartitionContext.v](../../../proofs/PartitionContext.v) reasons about context state, not arbitrary NoC executions. | HW-09, HW-15; the negative findings below |
+| NoC and bank isolation, R-15-211/R-15-222a/R-15-223/R-15-228, CJ-ISOL | The isolation model is unauthored. M0.14's latency classes and M0.16's sequencer do not supply it. [PartitionContext.v](../../../proofs/PartitionContext.v) reasons about context state, not arbitrary NoC executions. | HW-09, HW-15, HW-19; the negative findings below |
+| Broad partition-state restoration, R-07-015/R-07-014c; M4.4b-ii/b-iii | The bounded scalar composition and final-restore controls exist. General CSR/pending and V/M state still need their profile-owned rosters and target joins; automation may replace a fresh dependency analyzer, never the total-restore obligation. | HW-17 |
+| Architectural leakage versus cycle observations, R-05-004/R-05-019b, CJ-RTL-SAIL | On-artifact CT and the closing hardware refinement remain hardening work. Leakage-contract composition is a separate donor opportunity from numeric WCET and analog probing security. | HW-18 |
 | Attestation and hardware/software boundary, R-05-082/R-05-160, CJ-HAL | [RotFirmware.v](../../../proofs/RotFirmware.v), [RomVerifier.v](../../../proofs/RomVerifier.v) and other statement artifacts do not supply peripheral RTL refinement or a physical sensor theorem. | HW-06, HW-09 |
 
 ## Capability and ISA proofs
@@ -408,6 +412,143 @@ library for unused generic lemmas would not be a drop-in integration. The
 existing Bedrock2 lineage is an integration precedent, not proof that this
 capability machine already has the same connection.
 
+## Context-state analysis and leakage-contract composition
+
+### HW-17: Sailor dependency analysis and context-switch test generation
+
+**Standing: published analysis and test generator; selected bounded adapter
+starting point.** Neelu S. Kalani and coauthors, [*Save what must be saved:
+Secure context switching with Sailor*](https://www.usenix.org/conference/usenixsecurity25/presentation/kalani),
+USENIX Security 2025. Source edition
+`55faed606bdff9655be32681384dc4e748c0cec7` contains the
+[trace parser](https://github.com/neeluk7/sailor_artifact/blob/55faed606bdff9655be32681384dc4e748c0cec7/src/parse_isla_traces.py),
+[CSR classifier](https://github.com/neeluk7/sailor_artifact/blob/55faed606bdff9655be32681384dc4e748c0cec7/src/analyzer.py)
+and [test generator](https://github.com/neeluk7/sailor_artifact/blob/55faed606bdff9655be32681384dc4e748c0cec7/test-generator/generate_tests.py).
+The classifier combines direct access with instruction-state dependencies to
+identify state requiring preservation across security domains. It supports
+U/S/M modes; the generator specifically consumes U-to-U results. Unclassified
+read/write uses are treated conservatively, and a source TODO substitutes the
+floating-point status disposition for missing vector-status analysis. Those
+fallbacks are limitations to qualify, not a complete vector-state inventory.
+
+The exact edition's [LICENSE](https://github.com/neeluk7/sailor_artifact/blob/55faed606bdff9655be32681384dc4e748c0cec7/LICENSE)
+and [README](https://github.com/neeluk7/sailor_artifact/blob/55faed606bdff9655be32681384dc4e748c0cec7/README.md)
+state Apache-2.0 for the artifact. The tree includes separate gitlinks, notably
+Isla `9c0d65141f9032f03f20cdb13cab29b31ea37deb` and Sail-RISC-V
+`9454e6e85afbae871a71ec3dfd203f5809c4d243`; their notices and patches require
+individual readings before incorporation. The README's toolchain uses OCaml
+4.14.1 and rustc 1.86.0 and requests separately downloaded traces. Neither that
+closure nor compatibility with the [local Isla lock](../../../tools/sail-isla/lock.json)
+is replayed here. Adaptation uses the local canonical model and existing
+toolchain; the donor's patched ISA and toolchain need separate qualification
+before use.
+
+**Substitution and consumer:** use the parser/classifier and test-construction
+pattern instead of authoring another dependency analyzer if M4.4b-ii/b-iii's
+broader state inventory needs one. The [context-state starting-point
+disposition](../../background/architectural-alternatives.md#context-state-analysis-starting-point)
+records the displaced fresh-analysis route. The existing generated register
+inventory, restore emitter and corpus remain the production path. A donor
+adapter must read local-model traces and classify two CHERI compartments both
+in M-mode using their authority, not infer distinguishability from privilege
+mode. Extend the state vocabulary to merged values/tags, out-of-file capability
+registers, pending-state installation and admitted V/M state. The profile and
+[service contract](../../implementation/contracts/service-authoring.md#2-single-kernel-instance)
+own which state is nameable and which is restored or cleared. A classifier's
+finding that a register is insensitive never exempts it from R-07-015's total
+write rule.
+
+The first adapter comparison must reproduce the existing bounded scalar roster,
+then exercise an indirectly modified state field, a tagged capability and a
+class-specific clear. Intentionally omit a field from the adapter's input and
+omit its restore/clear from the generated target: coverage refusal and the
+existing target oracle must expose those defects. Reuse the corpus's trace
+reader and emitter rather than adding a second target harness. Record model,
+trace schema, source pin, unknown-state disposition and generated cases. If the
+adapter cannot enumerate local accesses or costs more than the state-specific
+controls it replaces, retain the existing path and stop the adapter. No analyzer
+output establishes restoration, revocation completion, schedule order, timing
+isolation or a proof of noninterference.
+
+**Estimate boundary:** no range reduction is assigned to M4.4's remaining
+children by this source reading. Their existing work already includes generated
+inventory and target controls, while local authority classification, schema
+adaptation, dependency acquisition and completeness checks are still unmeasured.
+Price those acts only if the missing or repeated analysis actually selects the
+adapter; credit only the removed fresh-analysis/test-authoring work and retain
+all implementation and acceptance joins. The landed scalar work earns no second
+reuse discount.
+
+### HW-18: Granite hardware/software leakage-contract composition
+
+**Standing: inspectable Rocq development with an unresolved dependency closure;
+selected composition reference.** [*Granite: A Modular Methodology for
+Foundational Verification of Hardware-Software Leakage Contracts*](https://arxiv.org/abs/2607.27480),
+July 2026. At `cd302ac10b18b3ddb82382afaaff7d2d5e003e12`,
+[isaSpec/LeakageRefinement.v](https://github.com/mit-plv/granite/blob/cd302ac10b18b3ddb82382afaaff7d2d5e003e12/isaSpec/LeakageRefinement.v)
+separates instruction semantics, an allowed leakage interface and public
+implementation observations. Its driver-machine equivalence and secret
+independence premises make the intended composition boundary explicit.
+[isaSpec/Demo.v](https://github.com/mit-plv/granite/blob/cd302ac10b18b3ddb82382afaaff7d2d5e003e12/isaSpec/Demo.v)
+contains a concrete `noninterference` theorem for its Salsa20 binary on its
+Quartz implementation: equal public inputs imply equal public outputs across
+two secret initializations. The displayed assumption report names functional
+extensionality and parameterized instruction/data-memory specifications. This
+source report is evidence to re-audit, not a local replay verdict.
+
+The exact edition's [LICENSE](https://github.com/mit-plv/granite/blob/cd302ac10b18b3ddb82382afaaff7d2d5e003e12/LICENSE)
+is MIT, copyright 2025 stellamplau. Its
+[README](https://github.com/mit-plv/granite/blob/cd302ac10b18b3ddb82382afaaff7d2d5e003e12/README.md)
+names Rocq 9.1.1, stdlib 9.1.0, stdpp 1.13.0, bitvector 1.11.0 and
+record-update 0.3.4. The [local locked prover](../../../tools/opam/rocq.lock)
+is unchanged. The artifact's `quartz` gitlink is
+`9f6251db92234ad3b901977a81de4445b7b0b0c4`; its
+[.gitmodules](https://github.com/mit-plv/granite/blob/cd302ac10b18b3ddb82382afaaff7d2d5e003e12/.gitmodules)
+names `mit-plv/quartz`, branch `stellal/stdpp`. Public commit and raw-source
+requests for that exact Quartz revision return 404 on 2026-10-12. Thus the
+selected source lacks a qualified reproducible closure; a different Quartz
+revision must not be substituted silently. Quartz and all other dependency
+terms still need their own file-level readings.
+
+**Reuse and qualification:** begin the hardening leakage-composition design
+from this separation of semantics, allowed leakage and implementation
+observations. First recover and inspect the exact dependency, replay the
+concrete donor theorem in a contained environment without changing the locked
+prover, and audit its elaborated assumptions. A bounded local experiment then
+states the leakage projection over canonical Sail behavior and the selected
+RTL observation relation, with capability/tag state and the profile's bank and
+fixed-latency rules explicit. A secret-selected bank or secret-dependent latency
+must be a refusing construction; equal allowed leakage must have a positive
+witness. Only successful transport replaces a named generic composition lemma
+package. The local hardware refinement, memory premises, binary CT producer,
+and actual secret-handling code remain obligations. This digital trace theorem
+supplies neither numerical WCET magnitudes nor R-15-053a's glitch/transition
+probing-model and masking composition. No priced cell or proof status changes
+before closure and the local transport are qualified.
+
+### HW-19: NoC-Out generated-network proofs, reference only
+
+**Standing: August 2026 preprint; exact code edition and grant unresolved.** Max
+Kurze, František Farka and Sebastian Ertel, [*NoC-Out: A Formally-verified
+Network-on-Chip Library for Rule-based Hardware Designs*](https://arxiv.org/abs/2608.24478).
+The [paper](https://arxiv.org/pdf/2608.24478) describes a Rocq/Kôika generator
+for parameterized torus networks, refinement and delivery/liveness proofs, plus
+Read-After-Write semantics and modular proof machinery. Its §5.2 arbiter selects
+among live requests using a priority pointer that advances after selection.
+Axiom 5 requires immediate handling of arriving packets at every output. The
+paper states that an artifact exists, but this reading does not qualify an
+immutable matching code revision, its dependency closure or source license.
+
+**Disposition:** retain as a reference for modular HDL/network reasoning;
+reject the generated NoC as a replacement for the local interconnect. Its
+request-dependent arbitration differs from the fixed, non-work-conserving
+per-core grant schedule, and eventual delivery under immediate output acceptance
+proves neither the local bounded grant rule nor timing noninterference. CJ-ISOL's
+bank/tag/ring observations and failure behavior still need their local theorem.
+Reopen a narrow proof-mathematics adaptation only after source and terms qualify,
+with a fixed-schedule instantiation and explicit local observation relation.
+No local work item is removed or estimate reduced by the paper alone.
+
 ## Negative findings and concrete next uses
 
 The strongest immediately useful hardware result is an inventory of exact
@@ -420,7 +561,8 @@ that import would obscure rather than close its remaining obligations.
 For the missing NoC model, functional delivery, FIFO safety and a static schedule
 are separate from noninterference. None of the inspected artifacts proves the
 project's shared-island, per-core, non-work-conserving rotation, atomic-RMW slot
-bound and tagged-ring observations together. HW-15 is a network proof template;
+bound and tagged-ring observations together. HW-15 and HW-19 are network proof
+references;
 HW-09 supplies a component invariant. They do not discharge CJ-ISOL. The
 physical read/write/refresh/discharge constants, gain-cell retention and
 synchronizer reliability still require the measurements the register names.
@@ -435,7 +577,9 @@ R-15-053a/CJ-LEAK open.
 
 Practical reuse order is: extend the local capability-property comparison with
 HW-02's questions; use HW-10's state-invariant and observation decomposition
-when implementing RTL refinement; use the already pinned OpenTitan assertion
+when implementing RTL refinement; use HW-17 instead of a fresh dependency
+analyzer where broader context work needs one; qualify HW-18 before re-authoring
+generic leakage composition; use the already pinned OpenTitan assertion
 generator at the concrete ECC milestone; and evaluate Kami/Silver Oak for a
 named newly authored hardware block with an explicit Sail bridge. Each next
 use must record the actual imported files, dependency notices, theorem
