@@ -8,6 +8,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from vos import corpus
+from vos.cli import ring as ring_owner
 from vos.ring_measurement import SCOPE, analyze
 
 
@@ -33,11 +34,20 @@ def main(argv: list[str] | None = None) -> int:
     root = corpus.find_root()
     report: dict[str, object] = {"scope": SCOPE, "milestone_acceptance": "open"}
     try:
-        result = analyze(args.capture.read_bytes(), args.expected_identity.read_bytes(), root)
         sources = {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
                    for name in ("tools/vos/ring_measurement.py", "tools/vos/jsonutil.py",
                                 "tools/vos/cli/ring_measurement.py",
                                 "tools/vos/cli/ring.py", "docs/implementation/contracts/roster-measurement.md")}
+        report["sources_sha256"] = sources
+        capture_blob = args.capture.read_bytes()
+        report["capture_sha256"] = hashlib.sha256(capture_blob).hexdigest()
+        expected_blob = args.expected_identity.read_bytes()
+        report["expected_identity_sha256"] = hashlib.sha256(expected_blob).hexdigest()
+        report["declaration_sha256"] = hashlib.sha256(
+            (root / ring_owner.DECLARATION).read_bytes()).hexdigest()
+        # Preserve available byte identities even when analysis refuses. Roster,
+        # image and composition identities are published only after validation.
+        result = analyze(capture_blob, expected_blob, root)
         report.update({"identity": result.identity, "capture_sha256": result.capture_sha256,
                        "expected_identity_sha256": result.expected_identity_sha256,
                        "declaration_sha256": result.declaration_sha256, "sources_sha256": sources})
