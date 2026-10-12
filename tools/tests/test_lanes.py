@@ -48,6 +48,7 @@ from vos import (
     rvfi,
     vector_bitcount,
 )
+from vos import composition as production
 from vos.commands import COMMANDS, LANE_REFERENCE, help_declarations, lane_reference
 
 _ROOT = TOOLS.parent
@@ -166,6 +167,28 @@ def _composition_fixture(scratch: Path) -> list[str]:
     return ["descriptors.json", "--output", "out/graph.json"]
 
 
+def _production_fixture(action: str, scratch: Path) -> list[str]:
+    """Exercise host dispatch using bound declarations with unresolved target slots."""
+    raw = json.loads((_ROOT / production.EXAMPLE).read_bytes())
+    paths = {production.EXAMPLE, raw["roster"], raw["configuration"]["path"], *production.PRODUCERS}
+    for member in raw["members"]:
+        paths.update(ref["path"] for ref in member["sources"])
+        for ref in (member["descriptor"], member["derivation"]["source"]):
+            if ref is not None:
+                paths.add(ref["path"])
+    for producer in raw["producers"]:
+        paths.update(ref["path"] for ref in producer["sources"])
+    for relative in paths:
+        destination = scratch / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(_ROOT / relative, destination)
+    if action == "promote":
+        return [production.EXAMPLE]
+    if action == "check-project":
+        production.emit(scratch, production.EXAMPLE, "out/production-projections")
+    return [production.EXAMPLE, "--output", "out/production-projections"]
+
+
 def _admission_fixture(scratch: Path) -> list[str]:
     shutil.copytree(_ROOT / "tools" / "boot", scratch / "tools" / "boot", dirs_exist_ok=True)
     _attached_recipe(scratch)
@@ -249,6 +272,9 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("composer", "compose"): _composition_fixture,
     ("composer", "fixture"): lambda _: ["--output", "out/descriptor-fixture.json"],
     ("composer", "compare"): lambda _: [],
+    ("composer", "project"): partial(_production_fixture, "project"),
+    ("composer", "check-project"): partial(_production_fixture, "check-project"),
+    ("composer", "promote"): partial(_production_fixture, "promote"),
     ("admission", "record"): _admission_fixture,
     ("admission", "emit-reference"): lambda scratch: ["--out", str(scratch / "AdmissionComparison.v")],
     ("kernel", "reader"): _kernel_vectors,
@@ -337,6 +363,10 @@ def _declared_subcommands_answer_on_this_lane() -> None:
             ensure("runs inside WSL" not in said and "run inside WSL" not in said,
                    f"`run.py {name} {sub}` answered with the guest refusal: {said!r}")
             if code != 0 and (name, sub) in _READS_A_GITLINK and _ABSENT_GITLINK in said:
+                continue
+            if (name, sub) == ("composer", "promote"):
+                ensure(code == 1 and "production promotion refused:" in said,
+                       f"incomplete composition must reach its semantic refusal: {said!r}")
                 continue
             ensure(code == 0,
                    f"`run.py {name} {sub}` exited {code}: {said[-400:]!r}")

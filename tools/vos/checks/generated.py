@@ -127,6 +127,7 @@ from vos import (
     boot_crypto_target,
     calibration,
     commands,
+    composition,
     device_registers,
     device_regs,
     dialectgen,
@@ -409,6 +410,17 @@ def _command_lanes(root: Path, bundle: sailbundle.Bundle | None) -> str:
     return commands.lane_reference()
 
 
+def _composition_emit(name: str) -> Emitter:
+    """Recheck declarations and source bytes for each explicitly registered output."""
+    def emit(root: Path, bundle: sailbundle.Bundle | None) -> str:
+        del bundle
+        try:
+            return composition.projections(root)[name].decode("utf-8")
+        except (OSError, UnicodeError) as error:
+            raise ValueError(f"production composition input cannot be read: {error}") from error
+    return emit
+
+
 @dataclass(frozen=True)
 class Row:
     """One generated artifact: what it is, what writes it, and what it is written from.
@@ -464,6 +476,12 @@ GENERATED: tuple[Row, ...] = (
         generator="run.py check --fix", lane="host",
         owners="the declared command lanes and help classifications",
         checker="this gate", emit=_command_lanes),
+    *(Row(path=f"{composition.GENERATED}/{name}",
+          generator="run.py composer project tools/composer/m8a-composition.json --output tools/composer/generated",
+          lane="host", owners="the typed composition input, real roster and bound source/producer bytes",
+          checker="this gate", emit=_composition_emit(name))
+      for name in ("manifest.json", "manifest.c", "graph-input.json", "recipe-members.json",
+                   "admission-request.json")),
     # The SoC address map, in the language the RTL is written in. It reads the frozen
     # composition and nothing else, so it needs neither the bundle nor Sail and its
     # whole claim is decided here; K-65 is what makes reading the primary alone enough,

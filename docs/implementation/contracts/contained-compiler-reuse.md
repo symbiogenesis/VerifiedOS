@@ -256,11 +256,22 @@ and `q39-replay` respectively. The [command interface](../../../tools/vos/cli/co
 names every required argument. A changed source, toolchain, configuration or
 producer must be revalidated, not blessed from the snapshot.
 
-After that read-only validation, `compiler-build build` with the same explicit
-candidate and a new owned native output may reuse compilation and perform the
-required complete qualification. An interrupted kernel check supplies no resumable
-checkpoint or kernel credit. Current default-index publication occurs only after
-a complete successful build; these candidates require explicit `--reuse-from`.
-Authenticated compilation-entry indexing remains an open part of Q43's delivery
-contract. Neither these status observations nor the catalog closes Q39, clears
-the firmware provenance blockers, or supplies hosted acceptance.
+`compiler-build prime` with the same explicit candidate authenticates compilation
+through the private status validator and publishes an immutable owned controller
+receipt plus a compilation-tier index hint. It executes no compilation, query,
+kernel or classification phase. Subsequent default builds revalidate that exact
+retained basis before performing the required complete qualification. The v2 index
+keeps complete and compilation tiers separate, prefers complete qualification and
+retains a useful compilation basis after a later audit failure. Ordinary `status`
+remains read-only and `--fresh` bypasses both tiers. Focused fixture controls check
+priming, phase/basis consistency, stale and poisoned hints, cold bypass, legacy
+index migration and failed-audit preservation.
+
+An interrupted kernel check supplies no resumable checkpoint or kernel credit.
+The dated catalog and its status observations remain unchanged; no live candidate
+was primed or newly qualified by this checkpoint. Automatic indexing of newly
+completed compilation after a failed fresh audit still needs the private driver's
+truthful partial-result protocol, whose bounded implementation replan is owed
+before construction. Genuine Q39-qualified whole-set/default reuse remains open.
+Neither fixture priming nor this catalog closes Q39, clears the firmware
+provenance blockers, or supplies successful hosted qualification.

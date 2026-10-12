@@ -120,7 +120,7 @@ class Service:
     """One owner, one logical object, a closed finite holder/backing inventory.
 
     One outstanding transfer per holder is the SPSC capacity. Metadata capacity is
-    exactly one reservation per holder; backing/quarantine capacity is residents.
+    exactly one reservation per holder; backing and quarantine capacity is residents.
     The modeled barrier is deliberately separate from accepted scalar observations.
     A caller needing an unavailable barrier receives bounded refusal with backing
     still charged. No host observation authorizes physical backing reuse.

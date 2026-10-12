@@ -285,7 +285,13 @@ at their owning boundary. Agreement among generated projections alone supplies
 neither a valid composition nor a target execution result. Full-roster boot,
 fault/restart order, independent admission and the existing substitution
 controls remain required at the M7.1 join. Implementation and correspondence
-are open; this checkpoint assigns existing work without claiming savings.
+are open. [The production schema, input and projections](../../../tools/composer/README.md)
+now implement the first host checkpoint, with unresolved target slots explicit
+and production promotion refused. The generated outputs reproduce from their
+checked declarations and source/producer bindings under K-88. Real member
+descriptors, target manifest validation, final image construction and independent
+derivation checks remain their consumers' joins; this checkpoint claims no
+savings or target acceptance.
 
 ## 5. The boot record and staleness
 

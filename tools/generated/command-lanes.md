@@ -7,7 +7,7 @@ Operational entries exercise handlers; usage entries establish help alone.
 | --- | --- | --- |
 | `prepare` | `prepare python` | n/a |
 | `boot` | `boot roster` | n/a |
-| `composer` | `composer compare`, `composer compose`, `composer fixture` | n/a |
+| `composer` | `composer check-project`, `composer compare`, `composer compose`, `composer fixture`, `composer project`, `composer promote` | n/a |
 | `admission` | `admission emit-reference`, `admission record` | n/a |
 | `boot-crypto` | `boot-crypto join`, `boot-crypto verify` | n/a |
 | `memory-planner` | `memory-planner check`, `memory-planner contracts`, `memory-planner demo`, `memory-planner plan`, `memory-planner resource-proof`, `memory-planner resources`, `memory-planner solve`, `memory-planner verify` | n/a |

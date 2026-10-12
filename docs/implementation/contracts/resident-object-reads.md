@@ -5,7 +5,11 @@ own the obligations. This contract owns their implementation and qualification
 recipe. Q44 owns the new reference, retained-read source and evidence; M5.3d
 provides the executable storage/authentication and target join, and M5.4 consumes
 the same interface. The contract is landed design input, with implementation and
-qualification open.
+qualification open. [The finite resident-read host reference](../../../tools/resident-reads/README.md)
+implements the first bounded reservation/read checkpoint with an explicit abstract
+stored-cell observer and executed Python defect controls. Locked proof
+qualification, actual scalar/storage correspondence, compiled controls and
+complete concrete writer observation remain open.
 
 ## Assessment and scope
 

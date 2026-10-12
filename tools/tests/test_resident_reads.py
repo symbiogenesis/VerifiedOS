@@ -171,7 +171,7 @@ def _resource_limits() -> None:
         complete, _ = quarantine.retire(slot, barrier_available=False)
         ensure(not complete, "unavailable barrier freed quarantine slot")
     ensure(quarantine.publish(rr.Resident(replace(identity, version=3), b"0123456789ABCDEF")) is None,
-           "resident/quarantine slot capacity exceeded")
+           "resident and quarantine slot capacity exceeded")
     small = rr.Service(rr.Bounds(counter_limit=2, retention=1, backing_bytes=64))
     small.publish(rr.Resident(identity, b"0123456789ABCDEF"))
     tokens: list[int] = []
