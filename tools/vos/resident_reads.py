@@ -203,15 +203,22 @@ class Service:
     def _holder(self, holder: int) -> bool:
         return type(holder) is int and 0 <= holder < self.bounds.holders
 
+    def _integral_identity(self, identity: Identity) -> bool:
+        # Validate both the published and supplied identity before equality or storage.
+        return (isinstance(identity, Identity) and isinstance(identity.root, Root)
+                and all(type(value) is int for value in (
+                    identity.owner, identity.domain, identity.object_id,
+                    identity.version, identity.root.generation)))
+
     def _integral_handle(self, handle: Handle) -> bool:
         # Dataclass equality otherwise aliases bool/float fields to integer authority.
-        return all(type(value) is int for value in (
-            handle.token, handle.boot, handle.holder, handle.slot, handle.start, handle.length,
-            handle.identity.owner, handle.identity.domain, handle.identity.object_id,
-            handle.identity.version, handle.identity.root.generation))
+        return (isinstance(handle, Handle) and self._integral_identity(handle.identity)
+                and all(type(value) is int for value in (
+                    handle.token, handle.boot, handle.holder, handle.slot, handle.start, handle.length)))
 
     def _valid(self, handle: Handle, domain: int, identity: Identity) -> bool:
-        if not self._integral_handle(handle):
+        if (not self._integral_handle(handle) or type(domain) is not int
+                or not self._integral_identity(identity)):
             return False
         held = self.reservation(handle.holder)
         resident = self.resident(handle.slot)
@@ -231,6 +238,8 @@ class Service:
     def publish(self, resident: Resident) -> int | None:
         """Fresh version only. Replacement retains predecessor bytes and identity."""
         self.operation = "replacement"
+        if not self._integral_identity(resident.identity):
+            return None
         version = resident.identity.version
         live = [slot for slot in range(self.bounds.residents) if self.resident(slot) is not None]
         # Every existing resident becomes a predecessor of the newly published version,
@@ -257,7 +266,8 @@ class Service:
                 start: int, length: int) -> Handle | None:
         self.operation = "admission"
         slot = self._cells["current"]
-        if not isinstance(slot, int) or not self._holder(holder):
+        if (not isinstance(slot, int) or not self._holder(holder)
+                or type(domain) is not int or not self._integral_identity(identity)):
             return None
         resident = self.resident(slot)
         if (resident is None or not resident.accepting or resident.identity != identity
@@ -283,9 +293,10 @@ class Service:
     def begin(self, handle: Handle, domain: int, identity: Identity,
               offset: int, length: int) -> bool:
         self.operation = "read"
-        holder = handle.holder
-        if not self._integral_handle(handle) or not self._holder(holder):
+        if (not self._integral_handle(handle) or type(domain) is not int
+                or not self._integral_identity(identity) or not self._holder(handle.holder)):
             return False
+        holder = handle.holder
         self._put(f"response.{holder}", None)
         if (not self._valid(handle, domain, identity) or self.pending(holder) is not None
                 or type(offset) is not int or type(length) is not int
