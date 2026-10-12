@@ -32,6 +32,8 @@ either: each later step that runs commands after a failure, the reporting, workf
 analysis and model-hook steps included, also requires that check not to have failed.
 The [Guest CI contract](ci/README.md) owns guest triggers, setup, gate commands, proof
 reuse, cold runs and evidence limits.
+The [failure-prevention contract](ci/failure-prevention.md) owns the preparation
+tools and their focused acceptance controls.
 [boot-crypto-target.yml](../.github/workflows/boot-crypto-target.yml) runs M7.1f's
 boot signature target campaign, whose [contract](../firmware/crypto/README.md#hosted-target-campaign)
 the crypto README owns.
@@ -142,27 +144,12 @@ annotations API.
 **The lane is the front door's business rather than the caller's.** A `[wsl]` command
 asked for on the host is re-launched in the guest and says so, so there is no
 `wsl -u root -e python3` to remember and no wrong lane to be in. Commands that
-drive the toolchain or inspect its native outputs need the hop. `model config-keys`,
-`model validate-config`, `model asm`, `model freeze-emit`, `rtl provenance`,
-`rtl filelist`, `oracle list`, `oracle emit`, `seed list`, `testrig protocol`,
-`testrig adapt`, `testrig bmc`, `placement export`, `placement check`,
-`placement admit`, `placement search`,
-`proofs headers`, `memory-planner plan`, `memory-planner check`,
-`memory-planner solve`, `memory-planner verify`, `memory-planner demo` and
-`memory-planner contracts`, `memory-planner resources`, `memory-planner resource-proof`,
-`memory-certificates encode`, `boot roster`, `boot-handoff layout`, `boot-handoff chain-join`
-and `kernel reader` use
-this checkout or a file already on disk and answer on either lane.
-`compiler-build --help` and `compiler-build -h` print usage on either lane;
-`compiler-build build` and `compiler-build status` run in the guest.
-`proofs status` takes the hop because its compiled outputs live in the guest's native build directory.
-That is a declaration and not a description, so
-[tests/test_lanes.py](tests/test_lanes.py) dispatches every member of it on whichever
-lane the suite is running on, and holds every subcommand the table declares against
-this page: one the table declares and this page nowhere names sends a reader into the
-guest for an answer the host already had. Only that direction is held, and only against
-the page rather than against this sentence; a name here the table does not declare is
-caught by nothing, which is a residue the findings register carries.
+use native build outputs take the hop; the [generated lane reference](generated/command-lanes.md)
+names every operational and help-only exception from [the dispatch owner](vos/commands.py).
+`proofs status` takes the hop because its compiled outputs live in native guest storage.
+[tests/test_lanes.py](tests/test_lanes.py) exercises each operational declaration
+with independent handler fixtures and each help declaration for its usage output.
+The generated reference is checked and repaired by the normal artifact registry.
 
 | Command | Lane | What it does |
 | --- | --- | --- |
@@ -170,8 +157,10 @@ caught by nothing, which is a residue the findings register carries.
 | `check` | host | Checks every derived fact against the artifact that owns it. `--fix` rewrites the figures that are arithmetic. It is also [check.py](check.py), the one command that is still a path, because the register, the coverage matrix, the crown jewels, the field bindings and the findings register all cite that path for what it decides. |
 | `selftest` | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
 | `typecheck` | host | Holds this directory's own Python to the discipline it holds the documents to. |
+| `prepare` | host for `python`; guest for `model` | `python --path FILE` fixes import ordering with the locked Ruff edition; `--check` reports without rewriting. `model --path FILE` runs the pinned model hooks on selected authored files. Repeat `--path` for each file and review the diff. This prepares inputs without builds, shared hooks or acceptance claims. |
 | `test` | host | Runs the tools' own behavioral tests, one module per subject under [tests/](tests/). |
 | `worktree` | host | Lists registered checkouts, creates a fresh branch at an explicit base under the primary checkout's `.worktrees/`, and verifies assigned worktrees, including host-provisioned locations. `--json` produces handoff data, including each lane's name and `lane_root`, the guest directory its outputs land in. |
+| `retain` | host | Publishes explicitly mapped files into a new contained retained bundle and prints its hash-bound citation. See [retained evidence](../docs/implementation/retained-evidence/README.md) for the command and controls. It neither stages files nor edits the owning note. |
 | `fanout` | host | Records explicit worker handoffs, merges their commits, repairs derived facts, publishes settled inputs, requires Host CI on both platforms, dispatches every Guest CI lane and retires integrated batch-owned lanes. Journals support resume without waiting for Guest CI. See the [completion contract and usage](fanout.md). |
 | `instrument-ci` | host | `dispatch` sends one dispatch of [the instrument switch route](ci/README.md#instrument-switch-route), refusing nothing its plan job refuses, with a nonce in the run title and its intent journalled first; `--resume NONCE` recovers an interrupted dispatch by that nonce without posting again. `read --run ID` follows each artifact's redirect without credentials, extracts it under `out/instrument-ci/<run id>/`, holds its members to the staging allowlist and its inputs to the run, re-joins the run's verdict and says whether the run is closing evidence for a `--closing` commit. `fanout` never runs it. |
 | `proof-search` | host | Retrieves current local proof examples and named Ltac definitions by query words, body tokens or authored requirement references, with bounded excerpts, source locations and SHA-256 identities. `--json` follows the tracked [JSON Schema](proof-search.schema.json). Results are advisory; the [portable workflow](../docs/assurance/proof-assistance.md) defines bounded tactic reuse, repair and the unchanged fresh proof gate. |

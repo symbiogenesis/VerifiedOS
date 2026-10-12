@@ -62,6 +62,9 @@ COMMANDS: tuple[Command, ...] = (
             "every rule the checker carries, against its own mutant"),
     Command("typecheck", "vos.cli.typecheck",
             "the tools' own Python, under two pinned checkers"),
+    Command("prepare", "vos.cli.prepare",
+            "format selected changed files with locked tools, without builds",
+            lane="guest", host_ok=frozenset({"python"})),
     Command("test", "vos.cli.test",
             "the tools' own behavioral tests"),
     Command("worktree", "vos.cli.worktree",
@@ -70,6 +73,8 @@ COMMANDS: tuple[Command, ...] = (
             "integrate a batch, publish hosted CI evidence and retire its worktrees"),
     Command("instrument-ci", "vos.cli.instrument_ci",
             "dispatch the hosted QuickChick switch route and read its runs back"),
+    Command("retain", "vos.cli.retain",
+            "publish a new byte-bound retained bundle and its manifest citation"),
     Command("proof-search", "vos.cli.proof_search",
             "retrieve local proof examples as advisory source text, without a prover"),
     Command("sail-context", "vos.cli.sail_context",
@@ -152,7 +157,10 @@ COMMANDS: tuple[Command, ...] = (
             "build a contained compiler with validated default reuse and phase evidence",
             lane="guest", host_ok=frozenset({"--help", "-h"})),
     Command("vector-bitcount", "vos.cli.vector_bitcount",
-            "generate and check independent vector bit-count regression campaigns"),
+            "generate independent vector cases and execute the hosted Sail adapter check",
+            lane="guest", host_ok=frozenset({"emit", "check", "--help", "-h"})),
+    Command("corpus-images", "vos.cli.corpus_images",
+            "check reviewed per-member image baselines and extend them without changing old members"),
     Command("block-authority", "vos.cli.block_authority",
             "generate and check the block-device architectural authority corpus"),
     Command("boot-handoff", "vos.cli.boot_handoff",
@@ -205,3 +213,29 @@ COMMANDS: tuple[Command, ...] = (
 )
 
 BY_NAME: dict[str, Command] = {command.name: command for command in COMMANDS}
+
+HELP_FLAGS = frozenset({"--help", "-h"})
+LANE_REFERENCE = "tools/generated/command-lanes.md"
+
+
+def help_declarations() -> frozenset[tuple[str, str]]:
+    """Usage-only declarations; operational handlers still need independent fixtures."""
+    return frozenset((command.name, flag) for command in COMMANDS
+                     for flag in command.host_ok & HELP_FLAGS)
+
+
+def lane_reference() -> str:
+    """Generate the host exceptions from their dispatch owner, without prose copies."""
+    lines = ["# Commands that answer on either lane", "",
+             "Generated from `vos/commands.py`; repair with `python tools/run.py check --fix`.",
+             "Operational entries exercise handlers; usage entries establish help alone.", "",
+             "| Command | Operational handlers | Usage only |", "| --- | --- | --- |"]
+    for command in COMMANDS:
+        if not command.host_ok:
+            continue
+        operations = ", ".join(f"`{command.name} {sub}`"
+                               for sub in sorted(command.host_ok - HELP_FLAGS)) or "n/a"
+        usage = ", ".join(f"`{command.name} {sub}`"
+                          for sub in sorted(command.host_ok & HELP_FLAGS)) or "n/a"
+        lines.append(f"| `{command.name}` | {operations} | {usage} |")
+    return "\n".join(lines) + "\n"

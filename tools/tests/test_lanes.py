@@ -37,18 +37,18 @@ from unittest.mock import patch
 from tests.harness import TOOLS, Case, ensure
 from tests.test_boot_attachments import _attached_recipe
 from tests.test_boot_chain import _chain_reports
-from tests.test_boot_crypto import _shard
+from tests.test_boot_crypto import _shard, _staged_root
 from vos import (
     admission,
     boot_crypto_target,
-    compiler_provenance,
     composer,
     kernelrun,
     memory_planner,
     rtltrace,
     rvfi,
+    vector_bitcount,
 )
-from vos.commands import COMMANDS
+from vos.commands import COMMANDS, LANE_REFERENCE, help_declarations, lane_reference
 
 _ROOT = TOOLS.parent
 _README = TOOLS / "README.md"
@@ -187,9 +187,30 @@ def _signature_shards(scratch: Path) -> list[str]:
     return ["--out", str(scratch / "signature-campaign"), *reports]
 
 
+def _python_preparation(scratch: Path) -> list[str]:
+    """A standalone owner with the reviewed formatter settings and one sorted file."""
+    tools = scratch / "tools"
+    tools.mkdir(exist_ok=True)
+    for name in ("pyproject.toml", "ruff.toml"):
+        shutil.copyfile(TOOLS / name, tools / name)
+    (tools / "selected.py").write_text("import os\n", encoding="utf-8")
+    return ["--check", "--path", "tools/selected.py"]
+
+
+def _vector_artifacts(scratch: Path) -> list[str]:
+    """Only command portability is checked here; oracle behavior has its own controls."""
+    for artifact, emit in ((vector_bitcount.SAIL, vector_bitcount.emit_sail),
+                           (vector_bitcount.CORPUS, vector_bitcount.emit_corpus)):
+        path = scratch / artifact
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(emit(scratch), encoding="utf-8", newline="\n")
+    return []
+
+
 _RUNS: dict[tuple[str, str], Argv] = {
-    ("compiler-build", "--help"): lambda _: [],
-    ("compiler-build", "-h"): lambda _: [],
+    ("prepare", "python"): _python_preparation,
+    ("vector-bitcount", "emit"): _vector_artifacts,
+    ("vector-bitcount", "check"): _vector_artifacts,
     ("model", "config-keys"): lambda _: [
         str(_ROOT / "model" / "config" / "verifiedos.json"),
         str(_ROOT / "model" / "config" / "verifiedos-v.json")],
@@ -235,18 +256,15 @@ _RUNS: dict[tuple[str, str], Argv] = {
     # `chain-join` composes shard receipts written here, one per campaign job.
     ("boot-handoff", "chain-join"): lambda scratch: [
         "--out", str(scratch / "chain-campaign"), *_chain_reports(scratch)],
-    # `verify` reads this checkout's staged streams. K-88 holds their integrity;
-    # an exact historical producer record must still receive the strict refusal.
+    # `verify` reads an isolated complete fixture, independent of historical staging.
     ("boot-crypto", "verify"): lambda _: [],
     ("boot-crypto", "join"): _signature_shards,
 }
 
 
-# These two declarations promise help alone; operational handlers still must return
-# their verdict rather than terminate during argument parsing.
-_HELP_ONLY: frozenset[tuple[str, str]] = frozenset({
-    ("compiler-build", "--help"), ("compiler-build", "-h"),
-})
+# Help flags are metadata rather than handwritten operational test fixtures.
+_HELP_ONLY = help_declarations()
+_RUNS.update({declaration: lambda _: [] for declaration in _HELP_ONLY})
 
 
 # The one run whose subject is a gitlink. `rtl filelist` reads the imported core's
@@ -284,6 +302,15 @@ def _declared_subcommands_answer_on_this_lane() -> None:
             if (name, sub) == ("placement", "export"):
                 isolated = patch.object(_MODULES[name], "corpus_mod",
                                         SimpleNamespace(find_root=lambda: scratch))
+            elif (name, sub) == ("boot-crypto", "verify"):
+                fixture = scratch / "signature-fixture"
+                _staged_root(fixture)
+                isolated = patch.object(_MODULES[name], "env", SimpleNamespace(
+                    load=lambda fixture=fixture, **_: SimpleNamespace(root=fixture)))
+            elif name == "prepare":
+                isolated = patch.object(_MODULES[name], "corpus", SimpleNamespace(find_root=lambda: scratch))
+            elif name == "vector-bitcount":
+                isolated = patch.object(_MODULES[name], "find_root", lambda: scratch)
             elif name in {"composer", "admission"}:
                 (scratch / "proofs").mkdir(exist_ok=True)
                 for relative in (composer.REFERENCE, admission.SOURCE):
@@ -311,13 +338,6 @@ def _declared_subcommands_answer_on_this_lane() -> None:
                    f"`run.py {name} {sub}` answered with the guest refusal: {said!r}")
             if code != 0 and (name, sub) in _READS_A_GITLINK and _ABSENT_GITLINK in said:
                 continue
-            if (name, sub) == ("boot-crypto", "verify"):
-                manifest = json.loads((_ROOT / boot_crypto_target.MANIFEST).read_text(encoding="utf-8"))
-                if compiler_provenance.historical(manifest.get("compiler_provenance")):
-                    ensure(code == 1 and said == "FAIL boot-crypto verify: staged target requires "
-                           "complete contained compiler provenance\n",
-                           f"historical staging must receive its strict producer refusal: {code}, {said!r}")
-                    continue
             ensure(code == 0,
                    f"`run.py {name} {sub}` exited {code}: {said[-400:]!r}")
 
@@ -336,24 +356,12 @@ def _run_py_hops_on_exactly_the_rest() -> None:
 
 
 def _readme_names_every_declaration() -> None:
-    """Every subcommand the table declares, named somewhere on the page a person reads.
-
-    Not tidiness: the page is where a reader learns that a command they were told runs
-    in WSL will answer here, so one the table declares and the page never names sends
-    them into the guest for an answer the host already had.
-
-    Two things this deliberately does not decide, both being rules about prose rather
-    than about a set. It searches the whole file rather than the one sentence, so a
-    subcommand named only in a later table row would satisfy it; and it holds one
-    direction, so a page naming a subcommand the table does *not* declare is caught
-    here by nothing. The second is the open residue the findings register carries.
-    """
+    """The reader's pointer reaches the exact generated dispatch reference."""
     text = _README.read_text(encoding="utf-8")
-    missing = sorted(f"{name} {sub}" for name, sub in _declared()
-                     if f"`{name} {sub}`" not in text)
-    ensure(not missing,
-           f"tools/README.md must name every subcommand declared answerable on either "
-           f"lane; it does not name: {missing}")
+    relative = Path(LANE_REFERENCE).relative_to("tools").as_posix()
+    ensure(f"]({relative})" in text, "tools/README.md must link the generated lane reference")
+    ensure((_ROOT / LANE_REFERENCE).read_text(encoding="utf-8") == lane_reference(),
+           "generated command lane reference differs from its dispatch owner")
 
 
 def cases() -> list[Case]:
