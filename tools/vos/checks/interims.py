@@ -298,11 +298,6 @@ NON_PREMISE: dict[tuple[str, str], NonPremise] = {
     (PLAN, "Post-M10 · Author the Boolean composition half"): NonPremise(
         (EASYCRYPT,), "EasyCrypt's masking proofs as a source in the weakest sense, "
         "credited with no reduction", ("a source in the weakest of the three senses",)),
-    (LOG, "M3.4a · The cryptography licence reads, and SHA-3 in Gallina"): NonPremise(
-        (FSTAR, EASYCRYPT), "the licence reads of the pinned comparators, read for their "
-        "answers, with R-05-061's line between a comparison and a widening",
-        ("the Jasmin tree pinned here does state terms",
-         "takes here is the comparator's, not the interim anchor's")),
     (RECORD, "upstream/hacl-star"): NonPremise(
         (FSTAR,), "the pin row of a planned comparator, never built, copied or "
         "extracted", ("No differential run, build, copying, or extraction occurs here.",)),

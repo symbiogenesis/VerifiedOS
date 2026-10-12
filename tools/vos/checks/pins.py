@@ -950,7 +950,6 @@ RESIDUE: dict[str, str] = {
                 "owns because a vendored tree has none",
     "b748a82": "the older `sail-riscv` the CHERI oracle's own tree embeds, a fact "
                "about that upstream rather than a pin taken here",
-    "11007678": "the numeral of SECOMP's Zenodo DOI, which is not an object id",
 }
 
 # The gitlinks of September 2026's native receipts, which record the index they ran
@@ -1009,14 +1008,8 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
         "the Modular SAIL paper fork whose license was read, not the upstream model gitlink",
     ("docs/assurance/sail-assistance.md", "aa8cb46a9284b30b537bcd803cd163d5517f2e2e"):
         "the paper's experimental extension-loader fork, assessed and deferred",
-    ("docs/implementation/completion-log.md", "b5894db641d36616cdfce49352ec1d9833fcb411"):
-        "the Rupicola edition recorded in the completed environment measurement",
     ("docs/implementation/completion-log.md", "beaf4499"):
         "the Sail reconciliation edition recorded at the completed M0 gate",
-    ("docs/implementation/completion-log.md", "fd327e8c"):
-        "the Katamaran edition recorded by the 2026-09-24 reference refresh",
-    ("docs/implementation/completion-log.md", "78a34ba5"):
-        "the cheri-compressed-cap edition M2.1 narrowed in the unpublished repository",
     ("docs/hardware/rtl-reparameterization-delta.md", "173646d5"):
         "the tag controller edition selected by the imported core's nested gitlink",
     ("rtl/synthesis-provenance.md", "173646d5"):
@@ -1024,8 +1017,6 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
     ("THIRD-PARTY.md", "5691ca0d"):
         "the Fiat-Crypto generator edition whose recorded build and licence reading "
         "the dependency measurements describe",
-    ("docs/implementation/completion-log.md", "e6946985c9165b3270eae457c0fae887cd7b7b76"):
-        "the Fiat-Crypto edition used by M3.4c-ii's recorded original emission",
     ("docs/assurance/proof-reuse/crypto.md", "e6946985"):
         "the Fiat-Crypto source and licence edition read by the dated reuse survey",
     ("docs/implementation/fiat-crypto-emission.md", "20261010"):
