@@ -446,6 +446,12 @@ The [workflow literature review](../implementation/workflow-profiles.md) support
 
 Revocation remains necessary for compromised holders and asynchronous references even when source lifetimes are proved. The extra general heap allocator is deferred, not the temporal-safety obligation. New CHERI temporal-safety preprints are comparison candidates with changed architectural premises, not evidence that the existing barrier or its hardware connection can be removed.
 
+## Resident read traffic needs its own ownership contract
+
+Linux's [folio-read proposal](https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux/%2B/refs/heads/noref-filemap-read-with-llm) identifies repeated small reads whose lifetime bookkeeping writes one common metadata line. R-07-004's disjoint kernels and R-15-164's absence of CPU caches remove that particular shared-kernel/coherence mechanism. They do not prohibit common counters in a storage service: R-15-029 retains atomic reference counts and R-15-087 orders updates at the memory bank. Software file caching remains possible without CPU caches.
+
+A narrow contract is worth the retained-capacity and ownership proof cost before that service is completed. R-10-006a requires an executable retained-read path whose successful resident reads add no common lifetime or replacement-metadata writes; R-10-006b requires bounded reservations and safe retirement under eviction, replacement and hostile holders. The [contract](../implementation/contracts/resident-object-reads.md) charges both the avoided traffic and the memory/lifecycle cost, preserves authentication at every read and leaves mutable extent accounting intact. Q44 owns the reference, implementation and traffic/reclamation qualification; M5.3d supplies its storage/target join and M5.4 consumes it on the object-reader path. All remain open. No hardware absence or finite write-count witness establishes linear storage throughput.
+
 ## Redundancy and complexity the documents admit
 
 **Revocation has one mechanism with a completion obligation.** R-08-004 keeps the bitmap/load-filter and background-sweep design. A resident capability can be dereferenced without a fresh capability load, so the bitmap mark cannot itself retire live registers, saved contexts or outstanding loans. Q22a qualifies the bounded completion barrier and reuse predicate; M4.4 and R2 own its single- and multi-hart realization. This preserves the derivation-tree rejection without treating that rejection as a proof of complete revocation.

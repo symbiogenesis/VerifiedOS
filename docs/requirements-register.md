@@ -2328,6 +2328,15 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: a deadlocked or livelocked server is unbounded blocking no WCET bound survives; system-wide deadlock-freedom is the concurrent complement to §13's per-handler termination obligation.
 · Trace: CJ-WCET
 
+**R-10-006a** MUST: Storage supplies a retained-read path for an admitted, bounded resident byte window of one immutable object version. Within a live reservation, successful authorized reads cause no write to lifetime, pin/reference-count, replacement-recency or hit-count metadata common to read sessions, including writes performed by the storage owner on their behalf. Admission, renewal and retirement are explicit bounded events, never hidden per-read reacquisition.
+· Accept: a nonempty executable witness admits at least two independent reader sessions for the same resident version and serves repeated reads without those common-metadata writes; the write classification covers the complete caller/service path, and a compiled per-read refcount or replacement-touch control is rejected. Read count varies through a declared finite bound with reservation events fixed. Request/session-private state, SPSC publication and other read work are separately enumerated and charged against composition-bound memory traffic and service budgets; the path supplies no claim of arbitrary throughput scaling. R-10-001's every-read verification and R-10-012's authenticate-then-return rule are unchanged. Mutable CoW extent accounting and ordinary contained atomics are outside this prohibition.
+· Trace: CJ-WCET, CJ-TAL-SOUND
+
+**R-10-006b** MUST: A retained-read reservation binds its owner, confidentiality domain, exact object version, byte window and applicable authenticated root; live bytes cannot be mutated, zeroed or reused while any authorized reader or in-flight transfer can still access them. The storage owner can close admission and retire a reservation within declared bounds without cooperation from a holder; read authority is checked at each operation and retention grants no additional authority.
+· Accept: composition declares and charges resident bytes, holders, outstanding operations, read length, retention/renewal policy, quarantine and retirement work, including retained predecessors during CoW replacement or a generation change. Eviction, deletion, replacement, close, revocation and reset/crash cases preserve version identity and the R-08-004 completion/sweep/zeroization barrier before reuse; volatile reservations are never restored as authority. Exhaustion takes a declared bounded refusal or fallback without unbounded pinning, waiting or counter wrap. Valid multi-reader retention has an executable witness; premature-reuse and wrong-domain/version/root controls are rejected. Authentication and authority failures return no payload, and a fallback still meets the existing storage, lifetime and timing contracts.
+· Fail-closed: failed authorization, identity, authentication or reservation admission returns no payload on this path; exhaustion may select only its declared bounded fallback. Closing a reservation prevents new reads, and inaccessible backing remains charged and quarantined until the existing completion and reuse conditions hold, costing resident capacity and service slots rather than permitting premature reuse.
+· Trace: CJ-T, CJ-NI, CJ-TAL-SOUND, CJ-WCET
+
 **R-10-007** MUST: The four verified layers are verified C compiled by CompCert and proved in Coq, running with no managed runtime: GoJournal's design and specification transfer, its Go and its Goose/GooseLang proofs do not.
 · Accept: Dafny/Z3 and Yggdrasil's Z3/Rosette are declined as bases and retained only as unverified cross-checks.
 · Trace: CJ-COMPCERT
@@ -6114,10 +6123,14 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: qualification counts these refusals separately from native installation and from guest-language traps or growth failures, exercises both sides of commit and recovery, and charges staging and retirement peaks to the same domain. No refusal is reported as a completed replacement, no native rollback guarantee is inferred for guest data, and no delay moves fixed-tier deadlines.
 · Trace: CJ-WASM-SOUND, CJ-ELASTIC, CJ-MEMPLAN
 
+**R-17-030zf** IS: Fail-closed seam **resident-read retention ⋈ storage availability**: R-10-006b refuses a retained read whose authority, identity, authentication or reservation admission fails, and charges inaccessible backing until its completion and reuse barrier holds. Exhaustion may use only the declared bounded fallback.
+· Accept: failed reads return no payload and no refusal permits premature mutation, zeroization or reuse. The cost is denied or delayed reads, charged resident/quarantine capacity and scheduled retirement work; revocation never waits for a holder's cooperation or consumes another domain's budget. Existing authenticated recovery, generation-root and bulk-data freshness contracts remain unchanged.
+· Trace: CJ-T, CJ-NI, CJ-WCET
+
 **R-17-030r** MUST: Membership in the fail-closed seam register is conferred entry by entry and never asserted in bulk: a requirement specifying a mechanism whose failure action is to stop confers the membership against itself, the R-17-030 entries collect the conferrals, and neither a member no requirement confers nor a conferral no member collects is admitted. The collector is a set of entries and not one sentence, so it grows by a seam written beside the others and a new refusal reopens no entry that already stands.
 · Accept: R-17-016's conferral rule applied to the other register: `tools/check.py` decides both directions, failing on a conferral no seam collects and on a seam no requirement confers, so the register's disagreement with the requirements is closed mechanically; it does not close completeness, because *fails closed* is a judgment no tool decides, and claiming otherwise would be the same defect one level up.
 · Accept: the conferral gates the collection here, which is the opposite of the direction R-10-013a takes and for the reason that entry states: this register holds no budget, R-03-009 pricing every member against availability alone and member by member, so what a seam adds is the composition none of its members states alone and never the admission of any of them. Growth by addition is what makes that safe, an author with a refusal to book owing a seam of their own rather than an amendment to somebody else's obligation.
-· Accept: fifty-six requirements confer a refusal and twenty-six seams collect them, both figures recomputed rather than maintained here.
+· Accept: fifty-seven requirements confer a refusal and twenty-seven seams collect them, both figures recomputed rather than maintained here.
 · Trace: CJ-T
 
 **R-17-030t** MUST: Against the completeness residue conferral cannot reach, `tools/check.py` over-approximates the vocabulary of refusal across every requirement body and requires each entry it catches to be conferred, collected, or dispositioned there by name with a reason.
@@ -6710,14 +6723,14 @@ The table below records the extracted normative sections and their entry counts,
 | **§7 Kernel** | **extracted** | **70** |
 | **§8 Authority Model** | **extracted** | **96** |
 | **§9 Boot & Root of Trust** | **extracted** | **45** |
-| **§10 Storage & State** | **extracted** | **58** |
+| **§10 Storage & State** | **extracted** | **60** |
 | **§11 Updates** | **extracted** | **41** |
 | **§12 System Servers** | **extracted** | **139** |
 | **§13 Packaging & Supply Chain** | **extracted** | **46** |
 | **§14 Userland** | **extracted** | **40** |
 | **§15 Hardware Platform** | **extracted** | **431** |
 | **§16 Reliability** | **extracted** | **36** |
-| **§17 Residual Risks** | **extracted** | **156** |
+| **§17 Residual Risks** | **extracted** | **157** |
 | **§18 Realization** | **extracted** | **59** |
 
 §19 is non-normative and yields no requirements.
