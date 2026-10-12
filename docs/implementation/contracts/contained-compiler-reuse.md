@@ -152,3 +152,46 @@ lane dispatched under the repository handoff. Guest verdicts remain pending unti
 the user reports them. Finer incremental scheduling and cold-check performance
 changes need separately scoped qualification; they are not silently included in
 this first reuse delivery.
+
+## Implementation checkpoint
+
+The public controller, command registration and default index are integrated on
+public `main`. Focused controller validation at `f3d51ca9` passed sixteen controls,
+strict Linux/Windows typing, Ruff and import discipline. The private primary
+integrates worker `151a7919` at `e604e260`; its final focused fixture run passed
+87 controls in 39.586 seconds. `audit.py` retains digest
+`61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138`.
+The complete development interval is unmeasured; these check durations are not
+implementation time or benchmarks.
+
+Independent static review closes two malformed-receipt findings. Present stage
+durations require finite, nonnegative numbers excluding Booleans; absent historical
+measurements remain unknown. Successful compilation and kernel exits require exact
+integer zero. The refusal controls update the captured receipt hashes before
+asserting the semantic diagnostic. Retention follows the recursively authenticated
+compilation ancestry, including original helper and artifact paths; serialized
+retention lists alone supply no authority. The older direct source/output driver
+requires explicit `--fresh`, so its cold route cannot silently become the normal
+policy.
+
+The integrator's bounded replans cover only diagnosed implementation defects:
+one additional public fixture-refusal candidate with five active minutes; one
+private retention/legacy-cold candidate with ten active minutes; and one private
+timing/exit candidate with ten active minutes. A slow mocked test wrapper on the
+Windows mount was interrupted with the integrator's authorization and retained as
+incomplete evidence. Its replacement uses unique native Temp fixtures. No original
+compiler producer was interrupted, restarted or changed. These decisions retain
+completed work while refusing malformed evidence, and authorize no new proof search,
+installation or cold compiler audit.
+
+The actual guest front door and durable private driver agree on an empty-index
+`status` operation: expected exit 1, outcome `unavailable`, every phase `not_run`,
+no compiler or basis, and no output lane created. Its retained summary digest is
+`f5fb86229d523b6c4459ee0a11bfec79d5f167c87f8d36b31da68dd186ab1fa9`.
+The private development handoff digest is
+`0eebda3f0207f704d64014a0e9a2974d5a165fd8e872aed93287027d360e48f3`.
+Neither check establishes a genuine cache hit or compiler correctness. Q43 remains
+open until an original Q39 qualification passes, its unchanged result primes the
+index, and the following normal build reuses that exact complete evidence without
+compilation, queries or checker execution. The required public validation handoff
+remains pending with the shared batch.

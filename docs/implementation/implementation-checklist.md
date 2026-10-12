@@ -401,19 +401,19 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,595.4 |
-| Total estimate range h | 2,974.3–6,216.5 |
+| Total estimate midpoint h | 4,591.4 |
+| Total estimate range h | 2,972.3–6,210.5 |
 | Completed scope h | 860.9 |
-| Complete by estimate % | 18.7 |
-| Remaining h | 3,734.5 |
+| Complete by estimate % | 18.8 |
+| Remaining h | 3,730.5 |
 | Open class I h | 801.5 |
-| Open class X h | 2,933 |
+| Open class X h | 2,929 |
 | Retained completion estimate h | 257.5 |
 | Unmeasured completed items | 28 |
-| Calibrated total h | 5,594.8 |
+| Calibrated total h | 5,589.1 |
 | Committed M8a open h | 85 |
 | Committed M8b open h | 90.5 |
-| Other committed open h | 2,305 |
+| Other committed open h | 2,301 |
 | Conditional open h | 840 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1156,10 +1156,11 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
   * **Dispatch. Start:** the backup/migration contract's MigrationSession relation, accepted bounded TLS/attestation/credential/context interfaces and M6.9/U-20 cryptographic foundations, Q42a's complete volatile object extent, and Q42b's channel-bound witnesses. **Owns:** canonical bounded migration/challenge/evidence/key-transfer descriptors, mutual protocol, MigrationSession mechanization with inhabited success/refutation witnesses, exact conditional theorem and its computational argument over the separately owned foundation, recipient enrollment/key wrapping, and implementation context/custody/teardown/restore joins. **Check:** BA-WRAP, BA-MIGRATE, BA-TARGET-REFUSE and BA-SESSION on the exact protocol and target artifacts, all declared replay/concurrency/relay/compromise cases, complete assumption/kernel evidence, and storage-write observations showing no retained migration object. **Join:** Q42a/Q42b, M6.9's implementation/proof owners and CJ-ATTEST; neither the inherited one-direction symbolic theorem nor a finite fixture closes this leaf.
   * **Estimate basis:** application record descriptors 12–24 h; mutual model/theorem and explicit foundation connection 16–32 h; protocol/recipient enrollment/custody implementation 12–24 h; exact target/adapters/refusal campaigns 8–16 h. Class X: the selected TLS/attestation construction's actual cryptographic and context interfaces remain externally qualified premises; generic foundation acquisition retains its existing owner.
 
-* [ ] **Q43 · Reuse validated contained compiler builds and complete audits by default** · 5.5 h, range 3–8 · X
+* [ ] **Q43 · Reuse validated contained compiler builds and complete audits by default** · 1.5 h, range 1–2 · X
   * **Dispatch. Start:** [the contained compiler reuse contract](contracts/contained-compiler-reuse.md), the integrated private helpers at `4173140f`, Q39's locked build and qualification contracts, and the existing project-proof native cache. **Owns:** one private semantic reuse validator and reviewed driver manifest, the public `compiler-build` front door, a validated lane-local index selecting reuse by default, distinct compilation and complete-audit tiers, explicit cold bypass, scheduling/profile controls and truthful phase/basis records. **Check:** the contract's full focused control set and one genuine unchanged Q39-qualified default reuse, with no compilation/query/kernel execution on that hit; pending audit prefixes authorize nothing, and original source, producer, mode, receipts and timings remain historical. Host CI passes and every cold Guest CI lane is dispatched. **Join:** Q39's genuinely qualified compiler for the real reuse case; preserve all four original runs and their inputs while implementation proceeds in isolated lanes. No additional full cold audit, prover change, proof repair, source distribution, checkpoint or sharding is commissioned.
   * **Execute:** Land the contract first; implement the private validator and public controller in separate dedicated worktrees, then review the joined protocol and refusal controls. Default builds try indexed validated reuse without requiring a reuse flag; missing or stale evidence runs necessary phases, while `--fresh` bypasses both tiers. Keep the current Q39 pair obligations unchanged and use its actual completed evidence before claiming production reuse.
-  * **Estimate basis:** private reuse engine and binding 1.5–4 h; public controller/index wiring 0.5–1.5 h; focused controls, independent review and actual warm qualification 1–2.5 h. Reuse the existing seven-stage seal, whole-environment matcher, native snapshot logic and project-proof cache design. This is new attended implementation work, separate from Q39's remaining acceptance estimate; shared batch closure is still charged once to Q39. Unattended cold audit and hosted runtime are unpriced elapsed time, and no multi-hour first-cold-run prevention or speed factor is promised.
+  * **Implementation checkpoint:** the registered [front door](../../tools/vos/cli/compiler_build.py) and reviewed private validator are integrated. Sixteen public controller controls, 87 private fixture controls and the public typing/import checks passed; independent review's malformed timing/exit findings are closed. The actual guest `status` path with an empty index reports `unavailable` and all four phases `not_run`, without creating its output lane. Authenticated compilation ancestry supplies retention paths, and the older direct cold route requires explicit `--fresh`. The [checkpoint and bounded replans](contracts/contained-compiler-reuse.md#implementation-checkpoint) record evidence and decisions. Genuine unchanged default-index reuse remains pending a completed Q39 qualification; no fixture, status result or pending kernel earns production acceptance. All four original producers remain unchanged.
+  * **Remaining estimate basis:** actual warm qualification and phase/basis inspection 0.5–1 h; final reuse review, evidence and documentation 0.5–1 h, conditional on a genuine Q39-qualified pair and no new failure. The initial delivery allowance of 5.5 h, range 3–8, is retained historical planning information; the complete actual interval is n/a. This remaining attended work is separate from Q39's acceptance estimate, which still owns shared batch closure once. Unattended cold audit and hosted runtime are unpriced elapsed time; neither first-cold-run prevention nor a speed factor is promised. A new prerequisite or failure returns to a bounded replan.
 
 * [ ] **Q44 · Qualify bounded resident object reads** · 12 h, range 8–16 · I
   * **Dispatch. Start:** R-10-006a/R-10-006b and the landed [resident-object read contract](contracts/resident-object-reads.md), the existing ownership/revocation, IDL and storage recovery contracts. **Owns:** the bounded reservation and traffic reference, its safety/resource statements, a retained-read implementation against the selected storage representation, and independent positive/refusal/compiled-mutation witnesses. **Check:** exact domain/version/root/window binding, repeated same-version reads by independent clients with fixed admission/retirement events, complete common/private/ring write classification, holder-independent retirement and the contract's exhaustion, replacement, revocation and crash cuts. **Join:** M5.3d's executable authentication, storage and two-instance target path; M5.4 consumes the same lifetime and identity interface rather than creating another cache or reader proof.
@@ -1174,7 +1175,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,769.9 h · 60% · 248.9 h complete · open range 1,449–3,593 h.
+**Q subtotal:** 2,765.9 h · 60% · 248.9 h complete · open range 1,447–3,587 h.
 
 ### M0 · Hardware reference
 
