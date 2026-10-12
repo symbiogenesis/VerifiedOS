@@ -1000,6 +1000,12 @@ it starts. Each sandbox runs the generated-artifact checks too: a generator's co
 is multiplied by the mutant population. Keep generators small and measure them
 before adding work to every gate run.
 
+Holder-citation and landing-declaration mutants select their targets by document
+structure, so completion prose can change without maintaining test literals.
+After changing those declarations, `python tools/run.py selftest --rule K-84`
+checks the affected controls; a missing seed remains a failure. See the
+[CI failure-prevention contract](ci/failure-prevention.md#generated-behavioral-checks).
+
 | Checker | What it decides |
 | --- | --- |
 | [ty](https://github.com/astral-sh/ty) | Every expression reachable under `python-platform` linux, and every one reachable under win32, against the types it can infer, with every rule at error |
