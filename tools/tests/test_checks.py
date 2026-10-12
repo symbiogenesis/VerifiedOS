@@ -568,12 +568,13 @@ def _k119(name: str = _K119_NAME, computed: str = _K119_COMPUTED,
 
 def _k119_each_rule_in_one_class_passes() -> None:
     # an italic word between the lead and the bold name is crossed rather than read as
-    # the end of the lead's reach, and a `which is what` naming no rule before a word or
-    # a full stop is prose rather than a membership sentence
+    # the end of the lead's reach, and a `which is what` followed by an ordinary word
+    # before a rule id is prose rather than a membership sentence
     for name in (_K119_NAME, _K119_NAME.replace("by **name**", "by *exact* **name**"),
                  _K119_NAME.replace("it resolves,", "it resolves, which is what separates "
                                                     "it from a pattern,"),
-                 _K119_NAME.replace("it resolves,", "it says which is what. K-02 resolves,")):
+                 _K119_NAME.replace("it resolves,", "it says which is what. It resolves "
+                                                    "K-02,")):
         found, out = _k119(name=name)
         ensure(not found, f"every active rule named once is clean: {found!r}")
         ensure("ok K-119: each of the registry's 7 rules is named under exactly one of the "
@@ -801,6 +802,60 @@ def _k119_every_membership_sentence_is_read() -> None:
            f"the list the reading took must be decided by its grammar: {found!r}")
     ensure(not any(_K119_MEMBERS_FINDING in item for item in found),
            f"a sentence inside a list already read is not reported as unread: {found!r}")
+
+
+def _k119_markup_entity_and_period_gaps_fail_closed() -> None:
+    # Keep all four classes' valid lists, so a finder that passes over any added form
+    # would leave the page green. Exercise each gap, both leaders and regions before,
+    # inside and after the classes; the strict plain-list reader must not accept them.
+    forms = (
+        "{lead} *is* what K-05 are.",
+        "{lead} `is` what K-05 are.",
+        "{lead} ~~is~~ what K-05 are.",
+        "{lead} <em>is</em> what K-05 are.",
+        "{lead}<span title='a word'> is </span>what K-05 are.",
+        "{lead}&nbsp;is what K-05 are.",
+        "{lead} is&nbsp;what K-05 are.",
+        "{lead} is what&nbsp;K-05 are.",
+        "{lead}&#32;is what K-05 are.",
+        "{lead} is&#x20;what K-05 are.",
+        "{lead} is what&#X20;K-05 are.",
+        "{lead} is what <span>K-05</span> are.",
+        "{lead} is what. K-05 are.",
+        "{lead} is what `.` K-05 are.",
+    )
+    for lead in ("which", "that"):
+        for form in forms:
+            sentence = form.format(lead=lead)
+            for kwargs in (
+                    {"heading": meta.REACH_HEADING + "\n\n" + sentence},
+                    {"computed": _K119_COMPUTED + " " + sentence},
+                    {"total": _K119_TOTAL + " " + sentence}):
+                found, out = _k119(**kwargs)
+                ensure(any(_K119_MEMBERS_FINDING in item for item in found),
+                       f"the unread membership form {sentence!r} must report: {found!r}")
+                ensure(not any("named under no reach class" in item for item in found),
+                       f"an unread sentence must not cascade to missing rules: {found!r}")
+                ensure(not any(line.startswith("ok K-119:") for line in out),
+                       f"the unread membership form {sentence!r} must fail closed")
+
+
+def _k119_gap_finder_keeps_ordinary_words_as_prose() -> None:
+    # Tags and entities are lexical delimiters; ordinary visible words still stop the
+    # finder, and incomplete tags or entities cannot hide one inside a gap.
+    for sentence in (
+            "which is exactly what K-05 are.",
+            "that is what separates K-05 from K-06.",
+            "which is what. It resolves K-05.",
+            "which <em>exactly</em> is what K-05 are.",
+            "which <em is what K-05 are.",
+            "which&nbsp is what K-05 are.",
+            "which is what &note K-05 are.",
+            "which [is](#is) what K-05 are.",
+            "which is what `a.b` K-05 are."):
+        found, _ = _k119(computed=_K119_COMPUTED + " " + sentence)
+        ensure(not found, f"ordinary words outside complete tags and entities remain "
+                         f"prose in {sentence!r}: {found!r}")
 
 
 def _k97_reviewed_pin_is_required_without_prose_copies() -> None:
@@ -2434,6 +2489,10 @@ def cases() -> list[Case]:
         Case("k119-every-class-lead-is-read", _k119_every_class_lead_is_read),
         Case("k119-every-membership-sentence-is-read",
              _k119_every_membership_sentence_is_read),
+        Case("k119-markup-entity-and-period-gaps-fail-closed",
+             _k119_markup_entity_and_period_gaps_fail_closed),
+        Case("k119-gap-finder-keeps-ordinary-words-as-prose",
+             _k119_gap_finder_keeps_ordinary_words_as_prose),
         Case("k97-reviewed-pin-is-required-without-prose-copies",
              _k97_reviewed_pin_is_required_without_prose_copies),
         Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),

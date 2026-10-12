@@ -182,14 +182,18 @@ than a class this rule stops or never starts reading, and so is a `Where the set
 anywhere in the section, one wrapped across a line, spaced apart or set in underscore
 italics included, that opens no class in that form. So is any
 `which is what` or `that is what` the reading does not take in the section, in any
-letter case or spacing and followed by a rule id past no letter, digit or `.`, so that
-whitespace, punctuation and Markdown's emphasis, code, strikethrough, parenthesis and
-link marks are crossed and one in underscore italics, wrapped across a line, spaced
-apart, in capitals, or listing its ids in a code span, emphasis, strikethrough,
-parentheses or a link is found; a membership sentence in other words,
-`which is exactly what`, or one with a word, an HTML tag or an entity before its first
-id, is read as prose, which is the residue. What that reading does not reach is a class
-introduced in some other sentence form: it is read as part of the class before it, or
+letter case, with gaps between the words and before the first rule id crossing
+whitespace, punctuation (a `.` included), Markdown marks, complete `<...>` HTML tags
+and semicolon-terminated named or decimal or hexadecimal numeric entities. Ordinary
+letters and digits outside those tags and entities stop a gap, so a membership
+sentence in other words, `which is exactly what`, or one with an ordinary word before
+its first id, is read as prose, which is the residue. The crossing is lexical, so
+incomplete tags or entities and Markdown link destinations containing ordinary words
+still stop a gap. An underscore, a line break,
+extra spacing, capitals, marks among the words or around the ids, and tags or entities
+are found and, outside the plain sentence form, reported. What that reading does not
+reach is a class introduced in some other sentence form: it is read as part of the
+class before it, or
 as part of no class ahead of the first, and is caught only where it carries a
 membership sentence of its own, that sentence then being a class's second, one standing
 ahead of every class, or one in a form the reading does not take. A list is decided
@@ -293,19 +297,24 @@ _CLASS_OPEN_RE = re.compile(
 # read as a list; what it captures is then decided whole by the grammar below, so a word
 # the grammar does not know is a finding rather than a list cut short at it. Ids admit
 # the letter suffix, so a suffixed id is named and resolved rather than making the
-# sentence unreadable. The finder is wider, the three words in any letter case with any
-# whitespace between them, a line break included, then an id past no letter, digit or
-# `.`, and only a letter or digit before them refused, so a membership sentence set in
-# underscore italics, wrapped, spaced apart, in capitals or listing its ids in a code
-# span, emphasis, strikethrough, parentheses or a link is found and, read by no class,
-# is a finding rather than a list the section names and nothing reads. Prose such as
-# `which is what separates` reaches a word before any id and is not found, and neither
-# is an id past a `.`; a membership sentence in other words, `which is exactly what`,
-# or one with a word, an HTML tag or an entity before its first id, is read as prose,
-# which is the residue.
+# sentence unreadable. The finder is wider, the three words in any letter case with
+# gaps between them and before the first id crossing whitespace, punctuation (a `.`
+# included), Markdown marks, complete `<...>` HTML tags and semicolon-terminated named
+# or decimal or hexadecimal numeric entities. Only a letter or digit before the first
+# word is refused, and ordinary letters or digits outside tags and entities stop every
+# gap. An underscore, a line break, extra spacing, capitals, marks among the words or
+# around the ids, and tags or entities are found and, outside the plain sentence form,
+# reported rather than a list the section names and nothing reads. Prose such as
+# `which is what separates` reaches a word before any id and is not found; a membership
+# sentence in other words, `which is exactly what`, or one with an ordinary word before
+# its first id, is read as prose, which is the residue. Tags and entities are crossed
+# lexically, not rendered: incomplete tags and entities and Markdown link destinations
+# containing ordinary words still stop a gap.
 _MEMBERS_RE = re.compile(r"\b(?:[Ww]hich|[Tt]hat) is what (K-[\w ,-]*?) are\b")
+_MEMBERS_GAP = r"(?:[^\w]|_|<[^<>]*>|&(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]*);)"
 _MEMBERS_FIND_RE = re.compile(
-    r"(?<![^\W_])(?:which|that)\s+is\s+what(?:[^\w.]|_)*K-\d", re.IGNORECASE)
+    rf"(?<![^\W_])(?:which|that){_MEMBERS_GAP}+is{_MEMBERS_GAP}+what"
+    rf"{_MEMBERS_GAP}*K-\d", re.IGNORECASE)
 _CLASS_ID = r"K-\d{2,3}[a-z]?"
 _CLASS_ITEM = rf"{_CLASS_ID}(?: through {_CLASS_ID})?"
 _CLASS_ITEM_RE = re.compile(rf"({_CLASS_ID})(?: through ({_CLASS_ID}))?")
