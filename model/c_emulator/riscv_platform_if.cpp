@@ -12,8 +12,12 @@ unit PlatformInterface::fetch_callback([[maybe_unused]] sbits opcode) {
   return UNIT;
 }
 
-unit PlatformInterface::entropy_draw_begin_callback([[maybe_unused]] unit) { return UNIT; }
-uint64_t PlatformInterface::entropy_draw_value_callback(uint64_t value) { return value; }
+unit PlatformInterface::entropy_draw_begin_callback([[maybe_unused]] unit) {
+  return UNIT;
+}
+uint64_t PlatformInterface::entropy_draw_value_callback(uint64_t value) {
+  return value;
+}
 
 unit PlatformInterface::entropy_draw_callback([[maybe_unused]] bool available, [[maybe_unused]] uint64_t value) {
   return UNIT;
