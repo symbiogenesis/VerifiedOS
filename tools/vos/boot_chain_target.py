@@ -519,8 +519,9 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str], *,
             raise ValueError("provenance refresh would change a retained staged stream or image")
     else:
         if signers is None:
-            raise ValueError("fresh image staging has no signing tool identities")
-        if signing != {"slh": signers[0].identity(), "mldsa": signers[1].identity(),
+            raise ValueError("ordinary staging has no signing tool identities")
+        slh, mldsa = signers
+        if signing != {"slh": slh.identity(), "mldsa": mldsa.identity(),
                        "private_keys": str(out / "signing")}:
             raise ValueError("the signing tool identity changed during signature verification")
     if boot_crypto.openssl_identity(verification) != verifier:

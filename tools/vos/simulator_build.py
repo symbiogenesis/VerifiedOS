@@ -59,7 +59,8 @@ def _identity(e: env.Environment) -> dict[str, Json]:
     return {"model_inputs": model_inputs,
             "source_root": str(e.model.resolve()),
             "profile_sha256": receipts.digest(e.profile), "tools": _tools(e),
-            "compiler_options": compiler_options, "cache_options": cache_options}
+            "compiler_options": compiler_options,
+            "cache_options": cache_options}
 
 
 def _configured(directory: Path, tools: dict[str, Json]) -> dict[str, Json]:
@@ -81,12 +82,12 @@ def _configured(directory: Path, tools: dict[str, Json]) -> dict[str, Json]:
 
 
 def _cache_value(cache: str, name: str) -> str:
-    values = re.findall(rf"^{name}:[A-Z]+=(.+)$", cache, re.MULTILINE)
+    values = [match.group(1) for match in re.finditer(rf"^{name}:[A-Z]+=(.+)$", cache, re.MULTILINE)]
     if len(values) != 1:
         raise ValueError(f"focused simulator cache lacks unique {name}")
     value: object = values[0]
     if not isinstance(value, str):
-        raise TypeError(f"focused simulator cache has malformed {name}")
+        raise TypeError("focused simulator cache value must be text")
     return value
 
 
@@ -142,16 +143,18 @@ def read(root: Path, simulator: Path, path: Path) -> dict[str, Json]:
                 or not _hash(stage.get("log_sha256"))
                 or receipts.digest(path.parent / "logs" / (name + ".log")) != stage["log_sha256"]):
             raise ValueError(f"focused simulator {name} stage or log is invalid")
-        arguments = [arg for arg in argv if isinstance(arg, str)]
+        arguments: list[str] = []
+        for arg in argv:
+            if not isinstance(arg, str):
+                raise TypeError(f"focused simulator {name} stage or log is invalid")
+            arguments.append(arg)
         if name == "target-build":
             if (arguments[-2:] != ["--target", TARGET] or arguments.count("--target") != 1
-                    or arguments.count("--build") != 1
-                    or arguments.index("--build") + 1 >= len(arguments)
+                    or arguments.count("--build") != 1 or arguments.index("--build") + 1 >= len(arguments)
                     or arguments[arguments.index("--build") + 1] != build_root):
                 raise ValueError("focused simulator receipt did not build the explicit target")
         elif (arguments.count("-S") != 1 or arguments.count("-B") != 1
-                or arguments.index("-S") + 1 >= len(arguments)
-                or arguments.index("-B") + 1 >= len(arguments)
+                or arguments.index("-S") + 1 >= len(arguments) or arguments.index("-B") + 1 >= len(arguments)
                 or arguments[arguments.index("-S") + 1] != source_root
                 or arguments[arguments.index("-B") + 1] != build_root
                 or [arg for arg in arguments if arg.startswith("-DSAIL_BIN=")]
@@ -216,8 +219,8 @@ def build(e: env.Environment, out: Path) -> int:
             with log.open("w", encoding="utf-8") as stream:
                 ran = subprocess.run(argv, cwd=out, stdout=stream, stderr=subprocess.STDOUT,
                                      env={**os.environ, **env.git_env(e.root)}, check=False)
-            arguments: list[Json] = list(argv)
-            stages[name] = {"argv": arguments, "exit": ran.returncode,
+            recorded_argv: list[Json] = list(argv)
+            stages[name] = {"argv": recorded_argv, "exit": ran.returncode,
                             "seconds": time.monotonic() - began, "log_sha256": receipts.digest(log)}
             passed = ran.returncode == 0
             print(f"END focused simulator {name}: {ran.returncode}", flush=True)
@@ -230,8 +233,7 @@ def build(e: env.Environment, out: Path) -> int:
         unchanged = before == after
         simulator = directory / ARTIFACT
         artifacts: dict[str, Json] = {name: receipts.digest(directory / name)
-                                     for name in (ARTIFACT, CACHE, CONFIG_SCHEMA)
-                                     if (directory / name).is_file()}
+                     for name in (ARTIFACT, CACHE, CONFIG_SCHEMA) if (directory / name).is_file()}
         passed = passed and validation == 0 and unchanged and bool(artifacts)
         evidence: dict[str, Json] = {"cache_sha256": artifacts.get(CACHE),
             "schema_sha256": artifacts.get(CONFIG_SCHEMA), "profile_sha256": before["profile_sha256"],
