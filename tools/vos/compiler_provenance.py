@@ -60,6 +60,25 @@ def portable(raw: object, lock: Path) -> dict[str, Json]:
     return cast("dict[str, Json]", raw)
 
 
+def historical(raw: object) -> bool:
+    """Recognize the complete old record shape, never a partial current receipt."""
+    return (isinstance(raw, dict)
+            and set(raw) == {"revision", "kind", "compiler_sha256", "source_count"}
+            and isinstance(raw["revision"], str) and bool(raw["revision"].strip())
+            and isinstance(raw["kind"], str) and bool(raw["kind"].strip())
+            and isinstance(raw["compiler_sha256"], str)
+            and _SHA256.fullmatch(raw["compiler_sha256"]) is not None
+            and type(raw["source_count"]) is int and raw["source_count"] > 0)
+
+
+def inspect(raw: object, lock: Path) -> str:
+    """K-88's source/index inspection status; historical records supply no acceptance."""
+    if historical(raw):
+        return "historical incomplete compiler provenance; target acceptance unavailable"
+    portable(raw, lock)
+    return "complete compiler provenance"
+
+
 def read(ccomp: Path, lock: Path | None = None,
          required: bool = True) -> tuple[dict[str, Json], dict[str, str]]:
     """Read exact retained source and native-tool identities; absence is explicit.

@@ -62,6 +62,12 @@ after the chain's lanes land, so their whole set may be absent; `_chain_row` adm
 one state while `boot_chain.STAGED_REQUIRED` is false and names it in K-88's line, and
 holds a present set to its manifest, its sources and section 9.13's freeze.
 
+Staged boot inputs have separate integrity and target-acceptance readings. Only this
+host inspector enables historical records with exactly four well-formed producer
+fields; its passing line names incomplete compiler provenance and target acceptance
+unavailable. Current and partial current records remain subject to the strict released
+toolchain check. Verification and execution leave historical inspection disabled.
+
 The device-register package is a guest row too: `run.py rtl device-regs` reads its
 UART owners behind the `upstream/mocha` gitlink, which no hosted gate populates, and
 stamps the header with the commit that checkout stood at. Its host inspector holds the
@@ -179,7 +185,9 @@ def _signature_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
         out.findings.append(f"{row.path} cannot be read: {exc}")
     if "signature_staging" not in ctx.shared:
         try:
-            boot_crypto_target.staged(ctx.root)
+            manifest, _ = boot_crypto_target.staged(ctx.root, historical=True)
+            ctx.shared["signature_provenance"] = boot_crypto_target.inspect_provenance(
+                manifest["compiler_provenance"], ctx.root / boot_crypto_target.LOCK)
             ctx.shared["signature_staging"] = ""
         except (OSError, ValueError, KeyError, TypeError) as exc:
             ctx.shared["signature_staging"] = str(exc)
@@ -215,7 +223,9 @@ def _chain_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
                                     f"`{row.generator}` where the contained compiler is")
             return out
         try:
-            boot_chain.staged(ctx.root)
+            found = boot_chain.staged(ctx.root, historical=True)
+            ctx.shared["chain_provenance"] = boot_crypto_target.inspect_provenance(
+                found.manifest["compiler_provenance"], ctx.root / boot_crypto_target.LOCK)
             ctx.shared["chain_staging"] = ""
         except (OSError, ValueError, KeyError, TypeError) as exc:
             ctx.shared["chain_staging"] = str(exc)
@@ -774,6 +784,9 @@ def run(ctx: Context) -> None:
     chain = (f"the target chain's staging under {boot_chain.STAGED} is absent, which is admitted "
              "until it is first staged" if absent else
              "the target chain's staged inputs against their manifest and section 9.13's freeze")
+    provenance = "; ".join(f"{name}: {ctx.shared[key]}" for name, key in (
+        ("signature staging", "signature_provenance"), ("chain staging", "chain_provenance"))
+        if key in ctx.shared)
     rep.report(
         "K-88", "generated artifact(s) that are not what their generator wrote:",
         findings,
@@ -783,7 +796,7 @@ def run(ctx: Context) -> None:
         f"the rest against their indexed bytes and host-readable provenance, including "
         f"{owners} Sail owner(s), the Fiat source pin/recipe/wrapper/hashes, the "
         f"device-register package's Mocha revision and every byte outside its UART "
-        f"values, the staged signature streams' manifest and {chain}; "
+        f"values, the staged signature streams' manifest and {chain}; {provenance}; "
         f"guest regeneration remains `{guest}`")
     for line in fixed:
         rep.line(line)

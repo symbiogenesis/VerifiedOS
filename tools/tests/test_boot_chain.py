@@ -747,6 +747,69 @@ def _staging_writes_what_staged_accepts() -> None:
 # --- the case set, the join and the CLI ---------------------------------------------
 
 
+def _historical_staging_has_integrity_but_no_target_acceptance() -> None:
+    with tempfile.TemporaryDirectory() as name:
+        root, out = Path(name) / "checkout", Path(name) / "out"
+        _checkout(root)
+        with _staging(root, out):
+            target.stage(root, out, Path("ccomp"), [])
+        for owner in (bc.MANIFEST, boot_crypto_target.MANIFEST):
+            original = json.loads((root / owner).read_text(encoding="utf-8"))
+            old = {key: original["compiler_provenance"][key]
+                   for key in ("revision", "kind", "compiler_sha256", "source_count")}
+            old["kind"] = "fixture source build"
+            _edit_json(root / owner, lambda data, old=old: data.update(compiler_provenance=old))
+        with patch.object(boot_crypto_target, "staged", return_value=({}, {})) as signature:
+            found = bc.staged(root, historical=True)
+            signature.assert_called_once_with(root.resolve(), historical=True)
+            row = next(row for row in generated.GENERATED if row.path == bc.MANIFEST)
+            ctx = cast("Any", SimpleNamespace(root=root, shared={},
+                                              corpus=SimpleNamespace(indexed=set(generated.CHAIN_PATHS))))
+            checked = generated._chain_row(ctx, row, (root / bc.MANIFEST).read_bytes())
+        ensure(not checked.findings and ctx.shared["chain_provenance"] ==
+               "historical incomplete compiler provenance; target acceptance unavailable",
+               f"K-88 concealed historical chain limits: {checked.findings}, {ctx.shared}")
+        ensure(found.manifest["compiler_provenance"] == old, "inspection fabricated provenance")
+        try:
+            target.verify(root)
+        except ValueError as error:
+            ensure("complete contained compiler provenance" in str(error),
+                   f"chain verification refused for another reason: {error}")
+        else:
+            raise AssertionError("chain verification enabled historical inspection")
+        compiler, build = root / "build/ccomp", root / "build/build-result.json"
+        with (patch.object(target.receipts, "inputs", return_value={"fixture": "digest"}),
+              patch.object(target.kernel_restore, "require_build"),
+              patch.object(bc, "require_cases", return_value=[SimpleNamespace(name="cold-boot")]),
+              patch.object(bh, "boot_control_declared", return_value=True),
+              patch.object(target, "rot_composer"), patch.object(target, "mmode_composer")):
+            try:
+                target.run(root, out, compiler, build, ("cold-boot",), timeouts=target.TIMEOUTS)
+            except ValueError as error:
+                ensure("complete contained compiler provenance" in str(error),
+                       f"chain target refused for another reason: {error}")
+            else:
+                raise AssertionError("chain target enabled historical inspection")
+        _edit_json(root / boot_crypto_target.MANIFEST,
+                   lambda data: data["compiler_provenance"].update(revision="different"))
+        try:
+            bc.staged(root, historical=True)
+        except ValueError as error:
+            ensure("compiler revision" in str(error), f"historical freeze refused for another reason: {error}")
+        else:
+            raise AssertionError("historical chain inspection bypassed its compiler identity freeze")
+        _edit_json(root / boot_crypto_target.MANIFEST,
+                   lambda data: data["compiler_provenance"].update(revision=old["revision"]))
+        (root / "firmware/chain/rom.c").write_bytes(b"int changed;\n")
+        try:
+            bc.staged(root, historical=True)
+        except ValueError as error:
+            ensure("changed since staging" in str(error),
+                   f"historical source drift refused for another reason: {error}")
+            return
+        raise AssertionError("historical chain inspection bypassed source integrity")
+
+
 def _case_set_is_the_contract_table() -> None:
     rows = bc.require_cases(ROOT)
     ensure([row.name for row in rows] == [spec.name for spec in bc.CASES],
@@ -1162,6 +1225,8 @@ def cases() -> list[Case]:
             Case("main-die cases take cold-boot's outputs", _main_die_takes_cold_boot),
             Case("watchdog cases read the bite's ticks", _watchdog_cases_read_the_bite),
             Case("staging writes what the staged check accepts", _staging_writes_what_staged_accepts),
+            Case("historical staging has integrity without target acceptance",
+                 _historical_staging_has_integrity_but_no_target_acceptance),
             Case("provenance refresh preserves signed inputs and refuses changes",
                  _preserving_stage_refuses_changed_inputs),
             Case("signature verification retains tool identity before publication",

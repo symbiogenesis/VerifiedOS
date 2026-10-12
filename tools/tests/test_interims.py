@@ -13,6 +13,8 @@ This directory is one of the rule's declared exclusions, so none of them is a ci
 the live run reads.
 """
 
+import gzip
+import io
 from pathlib import Path
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
@@ -238,6 +240,32 @@ def _every_tracked_file_is_read_or_reported() -> None:
     ensure(len(found) == 2, f"and nothing else is reported: {found!r}")
 
 
+def _compressed_evidence_is_read_or_refused() -> None:
+    evidence = interims.COMPRESSED_EVIDENCE + "campaign.log.gz"
+    tree = {REGISTER: _register(_EMPTY), interims.PLAN: _PLAN, interims.LOG: _LOG,
+            interims.RECORD: _RECORD, evidence: "placeholder"}
+    header = io.BytesIO()
+    with gzip.GzipFile(filename="F*", mode="wb", fileobj=header, mtime=0) as stream:
+        stream.write(b"No interim premise is cited.\n")
+    ensure(b"F*" in header.getvalue(), "fixture lacks its false compressed-byte citation")
+    controls = [
+        (header.getvalue(), None),
+        (gzip.compress(b"No premise.\nCorrectness rests on HACL* and F*/Z3.\n"), "cites HACL, F*"),
+        (gzip.compress(b"No premise.\n") + gzip.compress(b"Correctness rests on HACL*.\n"),
+         "cites HACL"),
+        (b"Correctness rests on HACL*.\n", "not readable gzip evidence"),
+        (b"", "not readable gzip evidence"),
+        (gzip.compress(b"Correctness rests on HACL*.\n")[:-6], "not readable gzip evidence"),
+    ]
+    for blob, wanted in controls:
+        with sandbox_tree(tree) as root:
+            (root / evidence).write_bytes(blob)
+            found, _ = interims.decide(_context(root), {}, _DECLARED)
+        ensure((not found) if wanted is None else
+               (len(found) == 1 and wanted in found[0] and evidence in found[0]),
+               f"compressed contents must be read or undecided, never hidden: {wanted!r}, {found!r}")
+
+
 def _listed_consumer_citing_nothing_is_a_finding() -> None:
     accept = (_BOOKS + "F\\*/Z3's consumers are M9.9 and `kernel/src/mlkem.c`; "
               "EasyCrypt's consumers are R-05-022 and `proofs/Absent.v`.")
@@ -315,6 +343,7 @@ def _token_table_reads_every_name() -> None:
 def cases() -> list[Case]:
     return [
         Case("empty-form-holds", _empty_form_holds),
+        Case("compressed-evidence-is-read-or-refused", _compressed_evidence_is_read_or_refused),
         Case("non-empty-form-is-read-and-resolved", _non_empty_form_is_read_and_resolved),
         Case("unlisted-consumer-is-a-finding", _unlisted_consumer_is_a_finding),
         Case("premise-in-declared-anchor-is-a-finding",

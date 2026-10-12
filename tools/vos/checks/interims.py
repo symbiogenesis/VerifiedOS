@@ -56,7 +56,9 @@ longer matches any tracked file is a finding, as a residue that suppresses nothi
 under K-81. Retained evidence is read, being a validation record; the one exclusion
 narrower than a path is the pin entry of a machine-written environment snapshot there,
 which records what was checked out and repeats verbatim wherever the snapshot was
-taken, and it too is a finding the day it passes over nothing. A file that is not
+taken, and it too is a finding the day it passes over nothing. Gzip files beneath
+the retained-evidence directory are decoded and their contents scanned, never their
+compressed bytes; a corrupt or plaintext `.gz` file is an undecided finding. A file that is not
 UTF-8 is read all the same, the line a citation quotes decoded with replacement, the
 glyphs group owning what every tracked file is made of; a tracked file absent from
 disk or refusing to read is a finding, whether it cites an interim being undecided,
@@ -94,7 +96,9 @@ Nothing is repaired: entering a consumer or declaring a non-premise is a judgmen
 what an admission rests on, and a `--fix` that wrote either would record one nobody took.
 """
 
+import gzip
 import re
+import zlib
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, cast
@@ -226,6 +230,7 @@ EXCLUDED: dict[str, str] = {
 # no fragment could name one such line apart from its twin.
 SNAPSHOT_DIRS = ("docs/implementation/retained-evidence/",
                  "docs/assurance/sail-assistance-evidence/")
+COMPRESSED_EVIDENCE = "docs/implementation/retained-evidence/"
 SNAPSHOT_PIN_RE = re.compile(r'\s*"upstream/[^"\s]+": "gitlink:[0-9a-f]{40}",?\s*')
 SNAPSHOT_PIN = ("an environment snapshot's pin entry, the path of a gitlink and the "
                 "commit the index held for it when the evidence was taken: it records "
@@ -543,6 +548,13 @@ class Scan:
     undecided: list[str] = field(default_factory=list)
 
 
+def _gzip_contents(blob: bytes) -> bytes:
+    """Empty or plaintext evidence with a gzip suffix has no readable content."""
+    if not blob.startswith(b"\x1f\x8b"):
+        raise ValueError("missing gzip header")
+    return gzip.decompress(blob)
+
+
 def scan(ctx: Context, excluded: dict[str, str], snapshots: bool = False) -> Scan:
     """Every citation on every tracked file outside the exclusions.
 
@@ -576,6 +588,14 @@ def scan(ctx: Context, excluded: dict[str, str], snapshots: bool = False) -> Sca
                 read.undecided.append(f"{rel} is in the index and will not read "
                                       f"({err.strerror or err}), so whether it cites an "
                                       "interim's lineage is undecided")
+                continue
+        if rel.startswith(COMPRESSED_EVIDENCE) and rel.endswith(".gz"):
+            try:
+                blob = _gzip_contents(blob)
+            except (OSError, EOFError, ValueError, zlib.error) as err:
+                read.undecided.append(f"{rel} is not readable gzip evidence ({err}), so "
+                                      "whether its contents cite an interim's lineage "
+                                      "is undecided")
                 continue
         anchors = _ANCHORS[rel](doc) if doc is not None else []
         if doc is not None:

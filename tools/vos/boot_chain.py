@@ -40,7 +40,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any, cast
 
-from vos import boot_crypto_target, config, jsonc, receipts
+from vos import boot_crypto_target, compiler_provenance, config, jsonc, receipts
 from vos import boot_handoff as bh
 from vos.cli import compiler_diff as cd
 
@@ -1060,7 +1060,7 @@ def listing(root: Path, directory: str) -> list[str]:
                                                 for tree in excluded))
 
 
-def freeze_findings(root: Path, manifest: Mapping[str, Any]) -> list[str]:
+def freeze_findings(root: Path, manifest: Mapping[str, Any], *, historical: bool = False) -> list[str]:
     """Section 9.13: the chain's verifier identities against M7.1f's staged manifest."""
     crypto = json.loads((root / boot_crypto_target.MANIFEST).read_text(encoding="utf-8"))
     found: list[str] = []
@@ -1071,12 +1071,20 @@ def freeze_findings(root: Path, manifest: Mapping[str, Any]) -> list[str]:
             found.append(f"no chain unit compiled {path}")
         elif sources[path] != crypto_sources.get(path):
             found.append(f"{path} as the chain compiled it is not {boot_crypto_target.MANIFEST}'s")
-    chain_compiler = boot_crypto_target.portable_provenance(
-        manifest.get("compiler_provenance"), root / boot_crypto_target.LOCK)
-    crypto_compiler = boot_crypto_target.portable_provenance(
-        crypto.get("compiler_provenance"), root / boot_crypto_target.LOCK)
+    chain_raw, crypto_raw = manifest.get("compiler_provenance"), crypto.get("compiler_provenance")
+    if historical:
+        for raw in (chain_raw, crypto_raw):
+            boot_crypto_target.inspect_provenance(raw, root / boot_crypto_target.LOCK)
+        chain_compiler, crypto_compiler = cast("dict[str, Any]", chain_raw), cast("dict[str, Any]", crypto_raw)
+    else:
+        chain_compiler = boot_crypto_target.portable_provenance(chain_raw, root / boot_crypto_target.LOCK)
+        crypto_compiler = boot_crypto_target.portable_provenance(crypto_raw, root / boot_crypto_target.LOCK)
+    keys = (("revision", "compiler_sha256", "kind", "source_count")
+            if historical and all(compiler_provenance.historical(raw)
+                                  for raw in (chain_raw, crypto_raw))
+            else ("revision", "compiler_sha256", "toolchain"))
     found += [f"the chain's compiler {key} is not {boot_crypto_target.MANIFEST}'s"
-              for key in ("revision", "compiler_sha256", "toolchain")
+              for key in keys
               if not chain_compiler.get(key) or chain_compiler.get(key) != crypto_compiler.get(key)]
     ini = manifest.get("compiler_inputs_sha256", {}).get("compcert.ini")
     if ini is None or ini != crypto.get("compiler_inputs_sha256", {}).get("compcert.ini"):
@@ -1135,7 +1143,7 @@ def present(root: Path) -> bool:
     return directory.is_dir() and any(directory.iterdir())
 
 
-def staged(root: Path) -> Staged:
+def staged(root: Path, *, historical: bool = False) -> Staged:
     """The staged directory against its manifest, this checkout's sources, section 9.13's
     freeze and `boot-crypto verify`. No composer runs here; `boot_chain_target.layouts`
     re-derives the payloads where the composers are."""
@@ -1151,8 +1159,12 @@ def staged(root: Path) -> Staged:
             or manifest.get("generator") != GENERATOR or manifest.get("contract") != bh.CONTRACT
             or not isinstance(manifest.get("floor"), int)):
         raise ValueError("the staged manifest does not describe this campaign")
-    boot_crypto_target.portable_provenance(
-        manifest.get("compiler_provenance"), root / boot_crypto_target.LOCK)
+    if historical:
+        boot_crypto_target.inspect_provenance(
+            manifest.get("compiler_provenance"), root / boot_crypto_target.LOCK)
+    else:
+        boot_crypto_target.portable_provenance(
+            manifest.get("compiler_provenance"), root / boot_crypto_target.LOCK)
     f = facts(root, cast("int", manifest["floor"]))
     files = manifest.get("files_sha256")
     if not isinstance(files, dict) or set(files) != set(STAGED_FILES) - {"manifest.json"}:
@@ -1240,10 +1252,13 @@ def staged(root: Path) -> Staged:
                 problems.append(f"OpenSSL did not accept {name} under its root")
     except ValueError as exc:
         problems.append(str(exc))
-    problems += freeze_findings(root, manifest)
+    problems += freeze_findings(root, manifest, historical=historical)
     if problems:
         raise ValueError("; ".join(problems))
-    boot_crypto_target.staged(root)
+    if historical:
+        boot_crypto_target.staged(root, historical=True)
+    else:
+        boot_crypto_target.staged(root)
     return Staged(manifest, streams, images, roots, kernel_root)
 
 

@@ -13,6 +13,7 @@ from typing import Any, cast
 from vos import asm, boot_crypto, boot_handoff, boot_target, image, kernel_restore, receipts
 from vos.cli import compiler_diff as cd
 from vos.compiler_provenance import LOCK
+from vos.compiler_provenance import inspect as inspect_provenance
 from vos.compiler_provenance import portable as portable_provenance
 from vos.compiler_provenance import read as compiler_provenance
 from vos.jsonc import Json
@@ -217,8 +218,8 @@ def stage(root: Path, out: Path, ccomp: Path, compiler_args: list[str],
             "compiler_path": str(ccomp)}
 
 
-def staged(root: Path) -> tuple[dict[str, Any], dict[str, str]]:
-    """The tracked streams, held to their manifest, header and this checkout's sources."""
+def staged(root: Path, *, historical: bool = False) -> tuple[dict[str, Any], dict[str, str]]:
+    """Hold streams to their sources; K-88 alone may inspect historical producer records."""
     root = root.resolve()
     directory = root / STAGED
     manifest = json.loads((root / MANIFEST).read_text(encoding="utf-8"))
@@ -227,7 +228,10 @@ def staged(root: Path) -> tuple[dict[str, Any], dict[str, str]]:
             or not isinstance(manifest.get("compiler_provenance"), dict)
             or not isinstance(manifest.get("compiler_inputs_sha256"), dict)):
         raise ValueError("the staged manifest does not describe this campaign")
-    portable_provenance(manifest.get("compiler_provenance"), root / LOCK)
+    if historical:
+        inspect_provenance(manifest.get("compiler_provenance"), root / LOCK)
+    else:
+        portable_provenance(manifest.get("compiler_provenance"), root / LOCK)
     modes, sources = manifest.get("modes"), manifest.get("sources_sha256")
     if not isinstance(modes, dict) or set(modes) != set(MODES):
         raise ValueError("the staged manifest must hold exactly the five interfaces")
