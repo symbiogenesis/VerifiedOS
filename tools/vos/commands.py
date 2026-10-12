@@ -148,6 +148,8 @@ COMMANDS: tuple[Command, ...] = (
             "sustained GEMM ratios and strongest-RVV campaign bindings"),
     Command("compiler-diff", "vos.cli.compiler_diff",
             "M1.2f's two acceptance loops, against a contained ccomp and the Wasm oracle"),
+    Command("vector-bitcount", "vos.cli.vector_bitcount",
+            "generate and check independent vector bit-count regression campaigns"),
     Command("block-authority", "vos.cli.block_authority",
             "generate and check the block-device architectural authority corpus"),
     Command("boot-handoff", "vos.cli.boot_handoff",
