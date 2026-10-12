@@ -1417,6 +1417,17 @@ hosted case F-719 records, and one ML-DSA-87 verification at 600 s fit under the
 a case that reaches its timeout supplies no verdict. Guest CI does not run the
 campaign.
 
+Fresh staging, `chain-verify` and target execution require complete contained
+compiler provenance for both the chain and the signature streams, including
+`build_receipt: present` and native tool identities bound to the released
+toolchain lock. K-88 has a separate historical inspection mode: an exact,
+well-formed four-field record (`revision`, `kind`, `compiler_sha256`,
+`source_count`) may establish source and indexed-byte integrity while its passing
+line names historical incomplete compiler provenance and target acceptance
+unavailable. Current or partial current receipt fields still require the full
+provenance check. Historical bytes remain retained evidence; no inspection
+fabricates missing fields or supplies this campaign's acceptance.
+
 ### 9.15 What the predicate does not decide, and findings
 
 A passing campaign says the ROM, runtime, service and M-mode chain programs

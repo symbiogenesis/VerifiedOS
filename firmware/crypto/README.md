@@ -141,6 +141,16 @@ check made where the streams execute. Editing a bound source, or adding, removin
 or renaming a file in a searched directory, makes the streams stale until they are
 staged again; editing an unread file there, such as this README, does not.
 
+Target verification, execution and fresh staging require a complete contained
+compiler receipt, including `build_receipt: present` and every native tool identity
+bound to the released toolchain lock. Historical manifests with exactly the four
+well-formed fields `revision`, `kind`, `compiler_sha256` and `source_count` remain
+retained evidence. K-88 alone may inspect their source and indexed-byte integrity
+without accepting their producer: its passing line names historical incomplete
+compiler provenance and states that target acceptance is unavailable. A current
+or partially present receipt must meet the complete provenance check even during
+that inspection. Receipt fields are never inferred or fabricated.
+
 ## Hosted target campaign
 
 [boot-crypto-target.yml](../../.github/workflows/boot-crypto-target.yml) executes
