@@ -319,6 +319,31 @@ and the generator stay external build inputs. Only the two field headers,
 with upstream notices and Apache-2.0 provenance wrappers, are incorporated.
 The extraction review remains due before any generator binary distribution.
 
+### Compatibility trial and API reuse readings
+
+The [Sail support compatibility trial](tools/opam/sail-compatibility.md), recorded
+2026-10-12, uses coq-sail 0.20.3 at
+`e7b914cddc032e3676eebd87a808229828013e9c` and stdpp/bitvector 1.13.0 as external
+native build inputs. Their actual license files were read: BSD-2-Clause for
+coq-sail, SHA-256 `9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0`,
+and BSD-3-Clause for stdpp, SHA-256
+`bc4fe79f9b7f78bc6e4e61e1f7c430b1e413b82de4aacb9355ade5e43bad2a69`.
+[The retained receipt](docs/implementation/retained-evidence/rocq-compat-20261012/receipt.json)
+binds exact archives, source inventories, tool versions and logs; the two
+verbatim notices follow [the licensing map](COPYRIGHT.md#the-map).
+The repository retains authored probes and textual evidence, and conveys no
+upstream source tree or compiled library. The unchanged package build supplies
+no production carriage or assumption acceptance; any later pinned or patched
+library needs its exact incorporation and distribution recorded at that act.
+
+Q34g's [collector client-interface reading](docs/assurance/proof-reuse/parsers.md#guest-collector-proof-starting-point)
+uses CertiGraph `e42b44f4aad981210d56f9fa228414f09efd687c`; its MIT instrument was
+read again on 2026-10-12. The 2026 paper's older `v2.0` reference supplies no
+dependency downgrade or substitute qualification. Q34h's future guest-producer
+review reads xcc `df499b0cb850ff0cbc790ae26e4f87b5ef08a30b`, whose MIT instrument
+was read again. These are advisory API/build-target readings only; no source,
+proof or package is incorporated or conveyed from either repository by them.
+
 ### Development tools, contained by use
 
 **Rocq Stdlib.** [MemoryPlan.v](proofs/MemoryPlan.v) references separately installed `PeanoNat.Nat` theorems. The reviewed V9.2.0 edition is `8dd155bc10529814202f8f4c643e5ae6c2c88fa6`. Its [LICENSE](https://github.com/rocq-prover/stdlib/blob/8dd155bc10529814202f8f4c643e5ae6c2c88fa6/LICENSE) and [PeanoNat header](https://github.com/rocq-prover/stdlib/blob/8dd155bc10529814202f8f4c643e5ae6c2c88fa6/theories/Arith/PeanoNat.v) state LGPL version 2.1 and credit the Rocq Development Team, INRIA, CNRS, contributors, and Evgeny Makarov. The proof-switch lock fixes the installed version. Project adapters copy no upstream proof scripts, and neither Stdlib nor compiled proof objects are distributed here. Distribution of the library or a combined artifact would require review of the LGPL source, notice, and modification or relinking obligations. [The reuse record](docs/assurance/proof-reuse/foundations.md#f01-rocq-stdlib-arithmetic-integrated-by-reference) identifies theorem references and transitive assumptions.

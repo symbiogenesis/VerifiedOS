@@ -1,0 +1,143 @@
+(cd _build/default && /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq compile -q -w -deprecated-native-compiler-option -w -native-compiler-disabled -native-compiler ondemand -boot -R /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories Corelib -Q /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib Stdlib -Q /root/build/lane-rocq-compat-20261012/sail-compatibility/private/lib/coq/user-contrib/stdpp stdpp -Q /root/build/lane-rocq-compat-20261012/sail-compatibility/private/lib/coq/user-contrib/stdpp/bitvector stdpp.bitvector -R src-stdpp SailStdpp src-stdpp/Inhabited.v)
+File "./src-stdpp/Inhabited.v", line 12, characters 0-8:
+Warning: Use of "Notation" keyword for abbreviations is deprecated, use
+"Abbreviation" instead.
+[notation-for-abbreviation,deprecated-since-9.2,deprecated,default]
+File "./src-stdpp/Inhabited.v", line 13, characters 0-8:
+Warning: Use of "Notation" keyword for abbreviations is deprecated, use
+"Abbreviation" instead.
+[notation-for-abbreviation,deprecated-since-9.2,deprecated,default]
+(cd _build/default && /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq compile -q -w -deprecated-native-compiler-option -w -native-compiler-disabled -native-compiler ondemand -boot -R /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories Corelib -Q /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib Stdlib -Q /root/build/lane-rocq-compat-20261012/sail-compatibility/private/lib/coq/user-contrib/stdpp stdpp -Q /root/build/lane-rocq-compat-20261012/sail-compatibility/private/lib/coq/user-contrib/stdpp/bitvector stdpp.bitvector -R src-stdpp SailStdpp src-stdpp/Values.v)
+File "./src-stdpp/Values.v", line 69, characters 0-62:
+Warning: Library File Stdlib.ZArith.Zeuclid is deprecated since 8.20.
+Use floor division or truncation division in BinInt instead.
+[deprecated-library-file-since-8.20,deprecated-since-8.20,deprecated-library-file,deprecated,default]
+(cd _build/default && /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq compile -q -w -deprecated-native-compiler-option -w -native-compiler-disabled -native-compiler ondemand -boot -R /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories Corelib -Q /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib Stdlib -Q /root/build/lane-rocq-compat-20261012/sail-compatibility/private/lib/coq/user-contrib/stdpp stdpp -Q /root/build/lane-rocq-compat-20261012/sail-compatibility/private/lib/coq/user-contrib/stdpp/bitvector stdpp.bitvector -R src-stdpp SailStdpp src-stdpp/GenericValue.v)
+File "./src-stdpp/GenericValue.v", line 10, characters 0-152:
+Warning: generic_value is nested using list. No scheme for list is registered
+as All. It can be generated using command "Scheme All" e.g. "Scheme All for
+list.". [register-all,automation,default]
+File "./src-stdpp/GenericValue.v", line 10, characters 0-152:
+Warning: generic_value is nested using prod. No scheme for prod is registered
+as All. It can be generated using command "Scheme All" e.g. "Scheme All for
+prod.". [register-all,automation,default]
+File "./src-stdpp/GenericValue.v", line 10, characters 0-152:
+Warning: generic_value is nested using list. No scheme for list is registered
+as All. It can be generated using command "Scheme All" e.g. "Scheme All for
+list.". [register-all,automation,default]
+File "./src-stdpp/GenericValue.v", line 10, characters 0-152:
+Warning: generic_value is nested using prod. No scheme for prod is registered
+as All. It can be generated using command "Scheme All" e.g. "Scheme All for
+prod.". [register-all,automation,default]
+File "./src-stdpp/GenericValue.v", line 10, characters 0-152:
+Warning: generic_value is nested using list. No scheme for list is registered
+as All. It can be generated using command "Scheme All" e.g. "Scheme All for
+list.". [register-all,automation,default]
+File "./src-stdpp/GenericValue.v", line 10, characters 0-152:
+Warning: generic_value is nested using prod. No scheme for prod is registered
+as All. It can be generated using command "Scheme All" e.g. "Scheme All for
+prod.". [register-all,automation,default]
+File "./src-stdpp/GenericValue.v", line 10, characters 0-152:
+Warning: generic_value is nested using list. No scheme for list is registered
+as All. It can be generated using command "Scheme All" e.g. "Scheme All for
+list.". [register-all,automation,default]
+File "./src-stdpp/GenericValue.v", line 10, characters 0-152:
+Warning: generic_value is nested using prod. No scheme for prod is registered
+as All. It can be generated using command "Scheme All" e.g. "Scheme All for
+prod.". [register-all,automation,default]
+(cd _build/default && /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq compile -q -w -deprecated-native-compiler-option -w -native-compiler-disabled -native-compiler ondemand -boot -R /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories Corelib -Q /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib Stdlib -Q /root/build/lane-rocq-compat-20261012/sail-compatibility/private/lib/coq/user-contrib/stdpp stdpp -Q /root/build/lane-rocq-compat-20261012/sail-compatibility/private/lib/coq/user-contrib/stdpp/bitvector stdpp.bitvector -R src-stdpp SailStdpp src-stdpp/State_monad_lemmas.v)
+File "./src-stdpp/State_monad_lemmas.v", line 145, characters 0-50:
+Warning: Implicitly declaring Rewrite hint databases is deprecated. Please
+explicitly create "state"
+[implicit-create-rewrite-hint-db,deprecated-since-9.2,deprecated,default]
+File "./src-stdpp/State_monad_lemmas.v", line 523, characters 0-57:
+Warning: Implicitly declaring Rewrite hint databases is deprecated. Please
+explicitly create "ignore_throw"
+[implicit-create-rewrite-hint-db,deprecated-since-9.2,deprecated,default]
+(cd _build/default && /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq compile -q -w -deprecated-native-compiler-option -w -native-compiler-disabled -native-compiler ondemand -boot -R /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories Corelib -Q /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib Stdlib -Q /root/build/lane-rocq-compat-20261012/sail-compatibility/private/lib/coq/user-contrib/stdpp stdpp -Q /root/build/lane-rocq-compat-20261012/sail-compatibility/private/lib/coq/user-contrib/stdpp/bitvector stdpp.bitvector -R src-stdpp SailStdpp src-stdpp/ConcurrencyInterfaceTypes.v)
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 50, characters 0-151:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 52, characters 0-152:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 156, characters 0-191:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 159, characters 0-182:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 162, characters 0-182:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 165, characters 0-191:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 168, characters 0-184:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 171, characters 0-183:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 201, characters 0-200:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 204, characters 0-191:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 207, characters 0-191:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 210, characters 0-200:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 213, characters 0-193:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 216, characters 0-194:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypes.v", line 219, characters 0-192:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+(cd _build/default && /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq compile -q -w -deprecated-native-compiler-option -w -native-compiler-disabled -native-compiler ondemand -boot -R /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories Corelib -Q /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib Stdlib -Q /root/build/lane-rocq-compat-20261012/sail-compatibility/private/lib/coq/user-contrib/stdpp stdpp -Q /root/build/lane-rocq-compat-20261012/sail-compatibility/private/lib/coq/user-contrib/stdpp/bitvector stdpp.bitvector -R src-stdpp SailStdpp src-stdpp/ConcurrencyInterfaceTypesV2.v)
+File "./src-stdpp/ConcurrencyInterfaceTypesV2.v", line 50, characters 0-211:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypesV2.v", line 53, characters 0-207:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypesV2.v", line 56, characters 0-213:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypesV2.v", line 59, characters 0-204:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "./src-stdpp/ConcurrencyInterfaceTypesV2.v", line 62, characters 0-207:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+(cd _build/default && /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq compile -q -w -deprecated-native-compiler-option -w -native-compiler-disabled -native-compiler ondemand -boot -R /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories Corelib -Q /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib Stdlib -Q /root/build/lane-rocq-compat-20261012/sail-compatibility/private/lib/coq/user-contrib/stdpp stdpp -Q /root/build/lane-rocq-compat-20261012/sail-compatibility/private/lib/coq/user-contrib/stdpp/bitvector stdpp.bitvector -R src-stdpp SailStdpp src-stdpp/State_lemmas.v)
+File "./src-stdpp/State_lemmas.v", line 272, characters 0-50:
+Warning: Implicitly declaring Rewrite hint databases is deprecated. Please
+explicitly create "liftState"
+[implicit-create-rewrite-hint-db,deprecated-since-9.2,deprecated,default]

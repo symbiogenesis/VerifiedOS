@@ -18,6 +18,8 @@ Copyright 2026 Edward Miller.
 | `docs/implementation/retained-evidence/root/build/lane-q35g-20261003/q35g/coq-sail-reals-eqdep.patch` | `BSD-2-Clause`, in coq-sail's retained `LICENSE` beside it | Q35g's diff to `rocq-sail-stdpp` 0.20.3, held as evidence. Its context retains upstream terms and authored modifications are offered on those same terms. |
 | `docs/implementation/retained-evidence/root/build/lane-q35g-20261003/q35g/sail-rocq-real-import.patch` | `BSD-2-Clause`, in [SAIL-LICENSE.md](tools/sail-lsp/SAIL-LICENSE.md) | Q35g's diff to Sail's Rocq backend, held as evidence. Its context retains upstream terms and authored modifications are offered on those same terms. |
 | `docs/implementation/retained-evidence/root/build/lane-q35g-20261003/tagtree/LICENSE` | the upstream library's own terms | Verbatim coq-sail 0.20.3 license and copyright notice retained for the library diff. |
+| `docs/implementation/retained-evidence/rocq-compat-20261012/sail.LICENSE` | the upstream library's own terms | Verbatim coq-sail 0.20.3 BSD-2-Clause license and copyright notice retained with the compatibility trial. |
+| `docs/implementation/retained-evidence/rocq-compat-20261012/stdpp.LICENSE` | the upstream library's own terms | Verbatim stdpp 1.13.0 BSD-3-Clause license and copyright notice retained with the compatibility trial. |
 | [LICENSE.md](LICENSE.md), [LICENSE-docs.md](LICENSE-docs.md) | the stewards' own terms | Verbatim license texts. Apache's appendix placeholder is filled in as Apache's own instructions direct; nothing else is changed in either file. |
 
 The split is decidable by path and extension alone. The named upstream patch and

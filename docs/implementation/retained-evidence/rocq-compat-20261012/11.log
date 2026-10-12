@@ -1,0 +1,16 @@
+Axioms:
+FunctionalExtensionality.functional_extensionality_dep :
+  ∀ (A : Type) (B : A → Type) (f g : ∀ x : A, B x),
+    (∀ x : A, f x = g x) → f = g
+Axioms:
+ClassicalDedekindReals.sig_not_dec : ∀ P : Prop, {¬ ¬ P} + {¬ P}
+Axioms:
+ClassicalDedekindReals.sig_forall_dec :
+  ∀ P : nat → Prop,
+    (∀ n : nat, {P n} + {¬ P n}) → {n : nat | ¬ P n} + {∀ n : nat, P n}
+Axioms:
+Eqdep.Eq_rect_eq.eq_rect_eq :
+  ∀ (U : Type) (p : U) (Q : U → Type) (x : Q p) (h : p = p),
+    x = eq_rect p Q x p h
+Axioms:
+Classical_Prop.classic : ∀ P : Prop, P ∨ ¬ P

@@ -1,0 +1,5 @@
+File "/root/build/lane-rocq-compat-20261012/sail-compatibility/strict/Inhabited.v", line 12, characters 0-8:
+Error: Use of "Notation" keyword for abbreviations is deprecated, use
+"Abbreviation" instead.
+[notation-for-abbreviation,deprecated-since-9.2,deprecated,default]
+

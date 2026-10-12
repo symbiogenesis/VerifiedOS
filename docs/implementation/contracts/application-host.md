@@ -149,14 +149,14 @@ activation with current grants and compatible durable state.
 
 ## Performance and evidence
 
-Start with R-14-013h's permitted decoded IR, indirect dispatch, AOT
-superinstructions, bounded caches and proved SIMD. All used transformations
-remain inside the interpreter's refinement and the host's yield proof.
-Persisted cached IR is untrusted input; a matching key alone cannot bypass
-validation. Within a running host, immutable results of verified validation can
-be reused with the full artifact/profile identity and fresh authority checks.
+Start with R-14-013h's complete bounded general interpreter, immutable indexed
+dispatch and explicit bounded guest stacks. Full Core 3.0, exact SIMD through
+the general scalar fallback, both engine theorems, host confinement and native
+resource/yield evidence belong to the minimal workflow. Repeated launches may
+reconstruct decoded records. The functional checkpoint records performance as
+passed, failed or undecided; every final release target remains required.
 
-Native service batching can remove per-element interpreter and IPC work.
+Post-MVP native service batching can remove per-element interpreter and IPC work.
 Qualification includes argument validation, batching delay, copy/transfer,
 service execution and result delivery. It preserves the same operation scope,
 results, confidentiality and service capacity as the comparison. Bulk guest
@@ -164,16 +164,20 @@ backing normally uses the second memory class; a bounded first-class working
 set is allowed when its measured gain pays its explicitly charged capacity.
 No claim depends on a JIT or a newly loaded native helper.
 
-Whole-loop handlers and nested guest-interpreter specialization enter only
+All optional representation/register-residence, fusion/propagation, caches/reuse,
+vector acceleration, batching/locality, whole-loop and guest specialization enter only
 through the [Wasm execution selection gate](wasm-execution.md#selection-gate-for-optional-acceleration):
 a named workload and measured penalty or missed target, bounded investigation,
 priced scope and owner, and declared qualification/proof acceptance precede
 commissioning. Unselected options are `n/a` with reasons, without comparison
-builds. They do not gate the ordinary native source-to-Wasm bundle producer,
-full Core 3.0 or the required interpreter representation and proofs.
+builds. Q34j opens after M8a and Q34f/g/h's accepted minimal workflow, with a
+recorded performance miss available as a selection reason. Every shipped form
+retains the complete language, both engine proofs and native resource/yield
+bounds. Persisted cache bytes remain untrusted, and immutable in-session reuse
+binds the complete artifact/profile identity and fresh authority checks.
 
 Q34f fixes the workload before candidate measurements. It reports cold and
-reused preparation, launch to first useful response and edit through changed
+repeated preparation, launch to first useful response and edit through changed
 response under the concurrent desktop workload, with build, validation,
 preparation, retirement, grant wait, execution and bridge costs separate.
 Report both user elapsed time and time excluding explicit consent wait.
