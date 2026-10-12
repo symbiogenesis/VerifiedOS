@@ -11,27 +11,32 @@ _start:
         csetaddr c10, c8, t0
         li t0, 1
         vsetvli t1, t0, 0
-        li gp, 1
-        li t0, 0x0
+        li gp, 0
+        li t0, cases_e8
+        csetaddr c12, c8, t0
+        li t3, 256
+values_e8:
+        addi gp, gp, 1
+        ld t0, 0(c12)
         vmv.v.x v8, t0
         vmv.v.i v16, -1
         vclz.v v16, v8
         vmv.x.s t1, v16
-        li t2, 8
+        lbu t2, 8(c12)
         beq t1, t2, answer_ok_1
         j fail
 answer_ok_1:
         vmv.v.i v16, -1
         vctz.v v16, v8
         vmv.x.s t1, v16
-        li t2, 8
+        lbu t2, 9(c12)
         beq t1, t2, answer_ok_2
         j fail
 answer_ok_2:
         vmv.v.i v16, -1
         vcpop.v v16, v8
         vmv.x.s t1, v16
-        li t2, 0
+        lbu t2, 10(c12)
         beq t1, t2, answer_ok_3
         j fail
 answer_ok_3:
@@ -42,9010 +47,88 @@ answer_ok_3:
         vand.vv v16, v16, v17
         vcpop.v v16, v16
         vmv.x.s t1, v16
-        li t2, 8
+        lbu t2, 9(c12)
         beq t1, t2, answer_ok_4
         j fail
 answer_ok_4:
-        li gp, 2
-        li t0, 0x1
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_5
-        j fail
-answer_ok_5:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_6
-        j fail
-answer_ok_6:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_7
-        j fail
-answer_ok_7:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_8
-        j fail
-answer_ok_8:
-        li gp, 3
-        li t0, 0x2
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_9
-        j fail
-answer_ok_9:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_10
-        j fail
-answer_ok_10:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_11
-        j fail
-answer_ok_11:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_12
-        j fail
-answer_ok_12:
-        li gp, 4
-        li t0, 0x3
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_13
-        j fail
-answer_ok_13:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_14
-        j fail
-answer_ok_14:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_15
-        j fail
-answer_ok_15:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_16
-        j fail
-answer_ok_16:
-        li gp, 5
-        li t0, 0x4
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_17
-        j fail
-answer_ok_17:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_18
-        j fail
-answer_ok_18:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_19
-        j fail
-answer_ok_19:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_20
-        j fail
-answer_ok_20:
-        li gp, 6
-        li t0, 0x5
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_21
-        j fail
-answer_ok_21:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_22
-        j fail
-answer_ok_22:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_23
-        j fail
-answer_ok_23:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_24
-        j fail
-answer_ok_24:
-        li gp, 7
-        li t0, 0x6
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_25
-        j fail
-answer_ok_25:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_26
-        j fail
-answer_ok_26:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_27
-        j fail
-answer_ok_27:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_28
-        j fail
-answer_ok_28:
-        li gp, 8
-        li t0, 0x7
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_29
-        j fail
-answer_ok_29:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_30
-        j fail
-answer_ok_30:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_31
-        j fail
-answer_ok_31:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_32
-        j fail
-answer_ok_32:
-        li gp, 9
-        li t0, 0x8
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_33
-        j fail
-answer_ok_33:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_34
-        j fail
-answer_ok_34:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_35
-        j fail
-answer_ok_35:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_36
-        j fail
-answer_ok_36:
-        li gp, 10
-        li t0, 0x9
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_37
-        j fail
-answer_ok_37:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_38
-        j fail
-answer_ok_38:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_39
-        j fail
-answer_ok_39:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_40
-        j fail
-answer_ok_40:
-        li gp, 11
-        li t0, 0xa
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_41
-        j fail
-answer_ok_41:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_42
-        j fail
-answer_ok_42:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_43
-        j fail
-answer_ok_43:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_44
-        j fail
-answer_ok_44:
-        li gp, 12
-        li t0, 0xb
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_45
-        j fail
-answer_ok_45:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_46
-        j fail
-answer_ok_46:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_47
-        j fail
-answer_ok_47:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_48
-        j fail
-answer_ok_48:
-        li gp, 13
-        li t0, 0xc
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_49
-        j fail
-answer_ok_49:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_50
-        j fail
-answer_ok_50:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_51
-        j fail
-answer_ok_51:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_52
-        j fail
-answer_ok_52:
-        li gp, 14
-        li t0, 0xd
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_53
-        j fail
-answer_ok_53:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_54
-        j fail
-answer_ok_54:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_55
-        j fail
-answer_ok_55:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_56
-        j fail
-answer_ok_56:
-        li gp, 15
-        li t0, 0xe
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_57
-        j fail
-answer_ok_57:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_58
-        j fail
-answer_ok_58:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_59
-        j fail
-answer_ok_59:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_60
-        j fail
-answer_ok_60:
-        li gp, 16
-        li t0, 0xf
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_61
-        j fail
-answer_ok_61:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_62
-        j fail
-answer_ok_62:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_63
-        j fail
-answer_ok_63:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_64
-        j fail
-answer_ok_64:
-        li gp, 17
-        li t0, 0x10
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_65
-        j fail
-answer_ok_65:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_66
-        j fail
-answer_ok_66:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_67
-        j fail
-answer_ok_67:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_68
-        j fail
-answer_ok_68:
-        li gp, 18
-        li t0, 0x11
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_69
-        j fail
-answer_ok_69:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_70
-        j fail
-answer_ok_70:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_71
-        j fail
-answer_ok_71:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_72
-        j fail
-answer_ok_72:
-        li gp, 19
-        li t0, 0x12
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_73
-        j fail
-answer_ok_73:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_74
-        j fail
-answer_ok_74:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_75
-        j fail
-answer_ok_75:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_76
-        j fail
-answer_ok_76:
-        li gp, 20
-        li t0, 0x13
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_77
-        j fail
-answer_ok_77:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_78
-        j fail
-answer_ok_78:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_79
-        j fail
-answer_ok_79:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_80
-        j fail
-answer_ok_80:
-        li gp, 21
-        li t0, 0x14
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_81
-        j fail
-answer_ok_81:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_82
-        j fail
-answer_ok_82:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_83
-        j fail
-answer_ok_83:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_84
-        j fail
-answer_ok_84:
-        li gp, 22
-        li t0, 0x15
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_85
-        j fail
-answer_ok_85:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_86
-        j fail
-answer_ok_86:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_87
-        j fail
-answer_ok_87:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_88
-        j fail
-answer_ok_88:
-        li gp, 23
-        li t0, 0x16
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_89
-        j fail
-answer_ok_89:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_90
-        j fail
-answer_ok_90:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_91
-        j fail
-answer_ok_91:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_92
-        j fail
-answer_ok_92:
-        li gp, 24
-        li t0, 0x17
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_93
-        j fail
-answer_ok_93:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_94
-        j fail
-answer_ok_94:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_95
-        j fail
-answer_ok_95:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_96
-        j fail
-answer_ok_96:
-        li gp, 25
-        li t0, 0x18
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_97
-        j fail
-answer_ok_97:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_98
-        j fail
-answer_ok_98:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_99
-        j fail
-answer_ok_99:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_100
-        j fail
-answer_ok_100:
-        li gp, 26
-        li t0, 0x19
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_101
-        j fail
-answer_ok_101:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_102
-        j fail
-answer_ok_102:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_103
-        j fail
-answer_ok_103:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_104
-        j fail
-answer_ok_104:
-        li gp, 27
-        li t0, 0x1a
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_105
-        j fail
-answer_ok_105:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_106
-        j fail
-answer_ok_106:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_107
-        j fail
-answer_ok_107:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_108
-        j fail
-answer_ok_108:
-        li gp, 28
-        li t0, 0x1b
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_109
-        j fail
-answer_ok_109:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_110
-        j fail
-answer_ok_110:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_111
-        j fail
-answer_ok_111:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_112
-        j fail
-answer_ok_112:
-        li gp, 29
-        li t0, 0x1c
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_113
-        j fail
-answer_ok_113:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_114
-        j fail
-answer_ok_114:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_115
-        j fail
-answer_ok_115:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_116
-        j fail
-answer_ok_116:
-        li gp, 30
-        li t0, 0x1d
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_117
-        j fail
-answer_ok_117:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_118
-        j fail
-answer_ok_118:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_119
-        j fail
-answer_ok_119:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_120
-        j fail
-answer_ok_120:
-        li gp, 31
-        li t0, 0x1e
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_121
-        j fail
-answer_ok_121:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_122
-        j fail
-answer_ok_122:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_123
-        j fail
-answer_ok_123:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_124
-        j fail
-answer_ok_124:
-        li gp, 32
-        li t0, 0x1f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_125
-        j fail
-answer_ok_125:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_126
-        j fail
-answer_ok_126:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_127
-        j fail
-answer_ok_127:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_128
-        j fail
-answer_ok_128:
-        li gp, 33
-        li t0, 0x20
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_129
-        j fail
-answer_ok_129:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_130
-        j fail
-answer_ok_130:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_131
-        j fail
-answer_ok_131:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_132
-        j fail
-answer_ok_132:
-        li gp, 34
-        li t0, 0x21
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_133
-        j fail
-answer_ok_133:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_134
-        j fail
-answer_ok_134:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_135
-        j fail
-answer_ok_135:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_136
-        j fail
-answer_ok_136:
-        li gp, 35
-        li t0, 0x22
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_137
-        j fail
-answer_ok_137:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_138
-        j fail
-answer_ok_138:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_139
-        j fail
-answer_ok_139:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_140
-        j fail
-answer_ok_140:
-        li gp, 36
-        li t0, 0x23
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_141
-        j fail
-answer_ok_141:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_142
-        j fail
-answer_ok_142:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_143
-        j fail
-answer_ok_143:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_144
-        j fail
-answer_ok_144:
-        li gp, 37
-        li t0, 0x24
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_145
-        j fail
-answer_ok_145:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_146
-        j fail
-answer_ok_146:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_147
-        j fail
-answer_ok_147:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_148
-        j fail
-answer_ok_148:
-        li gp, 38
-        li t0, 0x25
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_149
-        j fail
-answer_ok_149:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_150
-        j fail
-answer_ok_150:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_151
-        j fail
-answer_ok_151:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_152
-        j fail
-answer_ok_152:
-        li gp, 39
-        li t0, 0x26
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_153
-        j fail
-answer_ok_153:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_154
-        j fail
-answer_ok_154:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_155
-        j fail
-answer_ok_155:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_156
-        j fail
-answer_ok_156:
-        li gp, 40
-        li t0, 0x27
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_157
-        j fail
-answer_ok_157:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_158
-        j fail
-answer_ok_158:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_159
-        j fail
-answer_ok_159:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_160
-        j fail
-answer_ok_160:
-        li gp, 41
-        li t0, 0x28
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_161
-        j fail
-answer_ok_161:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_162
-        j fail
-answer_ok_162:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_163
-        j fail
-answer_ok_163:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_164
-        j fail
-answer_ok_164:
-        li gp, 42
-        li t0, 0x29
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_165
-        j fail
-answer_ok_165:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_166
-        j fail
-answer_ok_166:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_167
-        j fail
-answer_ok_167:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_168
-        j fail
-answer_ok_168:
-        li gp, 43
-        li t0, 0x2a
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_169
-        j fail
-answer_ok_169:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_170
-        j fail
-answer_ok_170:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_171
-        j fail
-answer_ok_171:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_172
-        j fail
-answer_ok_172:
-        li gp, 44
-        li t0, 0x2b
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_173
-        j fail
-answer_ok_173:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_174
-        j fail
-answer_ok_174:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_175
-        j fail
-answer_ok_175:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_176
-        j fail
-answer_ok_176:
-        li gp, 45
-        li t0, 0x2c
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_177
-        j fail
-answer_ok_177:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_178
-        j fail
-answer_ok_178:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_179
-        j fail
-answer_ok_179:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_180
-        j fail
-answer_ok_180:
-        li gp, 46
-        li t0, 0x2d
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_181
-        j fail
-answer_ok_181:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_182
-        j fail
-answer_ok_182:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_183
-        j fail
-answer_ok_183:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_184
-        j fail
-answer_ok_184:
-        li gp, 47
-        li t0, 0x2e
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_185
-        j fail
-answer_ok_185:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_186
-        j fail
-answer_ok_186:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_187
-        j fail
-answer_ok_187:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_188
-        j fail
-answer_ok_188:
-        li gp, 48
-        li t0, 0x2f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_189
-        j fail
-answer_ok_189:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_190
-        j fail
-answer_ok_190:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_191
-        j fail
-answer_ok_191:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_192
-        j fail
-answer_ok_192:
-        li gp, 49
-        li t0, 0x30
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_193
-        j fail
-answer_ok_193:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_194
-        j fail
-answer_ok_194:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_195
-        j fail
-answer_ok_195:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_196
-        j fail
-answer_ok_196:
-        li gp, 50
-        li t0, 0x31
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_197
-        j fail
-answer_ok_197:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_198
-        j fail
-answer_ok_198:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_199
-        j fail
-answer_ok_199:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_200
-        j fail
-answer_ok_200:
-        li gp, 51
-        li t0, 0x32
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_201
-        j fail
-answer_ok_201:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_202
-        j fail
-answer_ok_202:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_203
-        j fail
-answer_ok_203:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_204
-        j fail
-answer_ok_204:
-        li gp, 52
-        li t0, 0x33
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_205
-        j fail
-answer_ok_205:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_206
-        j fail
-answer_ok_206:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_207
-        j fail
-answer_ok_207:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_208
-        j fail
-answer_ok_208:
-        li gp, 53
-        li t0, 0x34
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_209
-        j fail
-answer_ok_209:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_210
-        j fail
-answer_ok_210:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_211
-        j fail
-answer_ok_211:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_212
-        j fail
-answer_ok_212:
-        li gp, 54
-        li t0, 0x35
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_213
-        j fail
-answer_ok_213:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_214
-        j fail
-answer_ok_214:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_215
-        j fail
-answer_ok_215:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_216
-        j fail
-answer_ok_216:
-        li gp, 55
-        li t0, 0x36
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_217
-        j fail
-answer_ok_217:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_218
-        j fail
-answer_ok_218:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_219
-        j fail
-answer_ok_219:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_220
-        j fail
-answer_ok_220:
-        li gp, 56
-        li t0, 0x37
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_221
-        j fail
-answer_ok_221:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_222
-        j fail
-answer_ok_222:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_223
-        j fail
-answer_ok_223:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_224
-        j fail
-answer_ok_224:
-        li gp, 57
-        li t0, 0x38
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_225
-        j fail
-answer_ok_225:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_226
-        j fail
-answer_ok_226:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_227
-        j fail
-answer_ok_227:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_228
-        j fail
-answer_ok_228:
-        li gp, 58
-        li t0, 0x39
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_229
-        j fail
-answer_ok_229:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_230
-        j fail
-answer_ok_230:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_231
-        j fail
-answer_ok_231:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_232
-        j fail
-answer_ok_232:
-        li gp, 59
-        li t0, 0x3a
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_233
-        j fail
-answer_ok_233:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_234
-        j fail
-answer_ok_234:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_235
-        j fail
-answer_ok_235:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_236
-        j fail
-answer_ok_236:
-        li gp, 60
-        li t0, 0x3b
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_237
-        j fail
-answer_ok_237:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_238
-        j fail
-answer_ok_238:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_239
-        j fail
-answer_ok_239:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_240
-        j fail
-answer_ok_240:
-        li gp, 61
-        li t0, 0x3c
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_241
-        j fail
-answer_ok_241:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_242
-        j fail
-answer_ok_242:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_243
-        j fail
-answer_ok_243:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_244
-        j fail
-answer_ok_244:
-        li gp, 62
-        li t0, 0x3d
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_245
-        j fail
-answer_ok_245:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_246
-        j fail
-answer_ok_246:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_247
-        j fail
-answer_ok_247:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_248
-        j fail
-answer_ok_248:
-        li gp, 63
-        li t0, 0x3e
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_249
-        j fail
-answer_ok_249:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_250
-        j fail
-answer_ok_250:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_251
-        j fail
-answer_ok_251:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_252
-        j fail
-answer_ok_252:
-        li gp, 64
-        li t0, 0x3f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_253
-        j fail
-answer_ok_253:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_254
-        j fail
-answer_ok_254:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_255
-        j fail
-answer_ok_255:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_256
-        j fail
-answer_ok_256:
-        li gp, 65
-        li t0, 0x40
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_257
-        j fail
-answer_ok_257:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_258
-        j fail
-answer_ok_258:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_259
-        j fail
-answer_ok_259:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_260
-        j fail
-answer_ok_260:
-        li gp, 66
-        li t0, 0x41
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_261
-        j fail
-answer_ok_261:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_262
-        j fail
-answer_ok_262:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_263
-        j fail
-answer_ok_263:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_264
-        j fail
-answer_ok_264:
-        li gp, 67
-        li t0, 0x42
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_265
-        j fail
-answer_ok_265:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_266
-        j fail
-answer_ok_266:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_267
-        j fail
-answer_ok_267:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_268
-        j fail
-answer_ok_268:
-        li gp, 68
-        li t0, 0x43
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_269
-        j fail
-answer_ok_269:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_270
-        j fail
-answer_ok_270:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_271
-        j fail
-answer_ok_271:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_272
-        j fail
-answer_ok_272:
-        li gp, 69
-        li t0, 0x44
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_273
-        j fail
-answer_ok_273:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_274
-        j fail
-answer_ok_274:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_275
-        j fail
-answer_ok_275:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_276
-        j fail
-answer_ok_276:
-        li gp, 70
-        li t0, 0x45
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_277
-        j fail
-answer_ok_277:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_278
-        j fail
-answer_ok_278:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_279
-        j fail
-answer_ok_279:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_280
-        j fail
-answer_ok_280:
-        li gp, 71
-        li t0, 0x46
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_281
-        j fail
-answer_ok_281:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_282
-        j fail
-answer_ok_282:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_283
-        j fail
-answer_ok_283:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_284
-        j fail
-answer_ok_284:
-        li gp, 72
-        li t0, 0x47
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_285
-        j fail
-answer_ok_285:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_286
-        j fail
-answer_ok_286:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_287
-        j fail
-answer_ok_287:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_288
-        j fail
-answer_ok_288:
-        li gp, 73
-        li t0, 0x48
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_289
-        j fail
-answer_ok_289:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_290
-        j fail
-answer_ok_290:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_291
-        j fail
-answer_ok_291:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_292
-        j fail
-answer_ok_292:
-        li gp, 74
-        li t0, 0x49
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_293
-        j fail
-answer_ok_293:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_294
-        j fail
-answer_ok_294:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_295
-        j fail
-answer_ok_295:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_296
-        j fail
-answer_ok_296:
-        li gp, 75
-        li t0, 0x4a
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_297
-        j fail
-answer_ok_297:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_298
-        j fail
-answer_ok_298:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_299
-        j fail
-answer_ok_299:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_300
-        j fail
-answer_ok_300:
-        li gp, 76
-        li t0, 0x4b
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_301
-        j fail
-answer_ok_301:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_302
-        j fail
-answer_ok_302:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_303
-        j fail
-answer_ok_303:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_304
-        j fail
-answer_ok_304:
-        li gp, 77
-        li t0, 0x4c
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_305
-        j fail
-answer_ok_305:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_306
-        j fail
-answer_ok_306:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_307
-        j fail
-answer_ok_307:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_308
-        j fail
-answer_ok_308:
-        li gp, 78
-        li t0, 0x4d
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_309
-        j fail
-answer_ok_309:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_310
-        j fail
-answer_ok_310:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_311
-        j fail
-answer_ok_311:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_312
-        j fail
-answer_ok_312:
-        li gp, 79
-        li t0, 0x4e
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_313
-        j fail
-answer_ok_313:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_314
-        j fail
-answer_ok_314:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_315
-        j fail
-answer_ok_315:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_316
-        j fail
-answer_ok_316:
-        li gp, 80
-        li t0, 0x4f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_317
-        j fail
-answer_ok_317:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_318
-        j fail
-answer_ok_318:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_319
-        j fail
-answer_ok_319:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_320
-        j fail
-answer_ok_320:
-        li gp, 81
-        li t0, 0x50
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_321
-        j fail
-answer_ok_321:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_322
-        j fail
-answer_ok_322:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_323
-        j fail
-answer_ok_323:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_324
-        j fail
-answer_ok_324:
-        li gp, 82
-        li t0, 0x51
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_325
-        j fail
-answer_ok_325:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_326
-        j fail
-answer_ok_326:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_327
-        j fail
-answer_ok_327:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_328
-        j fail
-answer_ok_328:
-        li gp, 83
-        li t0, 0x52
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_329
-        j fail
-answer_ok_329:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_330
-        j fail
-answer_ok_330:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_331
-        j fail
-answer_ok_331:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_332
-        j fail
-answer_ok_332:
-        li gp, 84
-        li t0, 0x53
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_333
-        j fail
-answer_ok_333:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_334
-        j fail
-answer_ok_334:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_335
-        j fail
-answer_ok_335:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_336
-        j fail
-answer_ok_336:
-        li gp, 85
-        li t0, 0x54
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_337
-        j fail
-answer_ok_337:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_338
-        j fail
-answer_ok_338:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_339
-        j fail
-answer_ok_339:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_340
-        j fail
-answer_ok_340:
-        li gp, 86
-        li t0, 0x55
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_341
-        j fail
-answer_ok_341:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_342
-        j fail
-answer_ok_342:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_343
-        j fail
-answer_ok_343:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_344
-        j fail
-answer_ok_344:
-        li gp, 87
-        li t0, 0x56
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_345
-        j fail
-answer_ok_345:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_346
-        j fail
-answer_ok_346:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_347
-        j fail
-answer_ok_347:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_348
-        j fail
-answer_ok_348:
-        li gp, 88
-        li t0, 0x57
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_349
-        j fail
-answer_ok_349:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_350
-        j fail
-answer_ok_350:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_351
-        j fail
-answer_ok_351:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_352
-        j fail
-answer_ok_352:
-        li gp, 89
-        li t0, 0x58
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_353
-        j fail
-answer_ok_353:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_354
-        j fail
-answer_ok_354:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_355
-        j fail
-answer_ok_355:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_356
-        j fail
-answer_ok_356:
-        li gp, 90
-        li t0, 0x59
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_357
-        j fail
-answer_ok_357:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_358
-        j fail
-answer_ok_358:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_359
-        j fail
-answer_ok_359:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_360
-        j fail
-answer_ok_360:
-        li gp, 91
-        li t0, 0x5a
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_361
-        j fail
-answer_ok_361:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_362
-        j fail
-answer_ok_362:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_363
-        j fail
-answer_ok_363:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_364
-        j fail
-answer_ok_364:
-        li gp, 92
-        li t0, 0x5b
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_365
-        j fail
-answer_ok_365:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_366
-        j fail
-answer_ok_366:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_367
-        j fail
-answer_ok_367:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_368
-        j fail
-answer_ok_368:
-        li gp, 93
-        li t0, 0x5c
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_369
-        j fail
-answer_ok_369:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_370
-        j fail
-answer_ok_370:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_371
-        j fail
-answer_ok_371:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_372
-        j fail
-answer_ok_372:
-        li gp, 94
-        li t0, 0x5d
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_373
-        j fail
-answer_ok_373:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_374
-        j fail
-answer_ok_374:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_375
-        j fail
-answer_ok_375:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_376
-        j fail
-answer_ok_376:
-        li gp, 95
-        li t0, 0x5e
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_377
-        j fail
-answer_ok_377:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_378
-        j fail
-answer_ok_378:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_379
-        j fail
-answer_ok_379:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_380
-        j fail
-answer_ok_380:
-        li gp, 96
-        li t0, 0x5f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_381
-        j fail
-answer_ok_381:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_382
-        j fail
-answer_ok_382:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_383
-        j fail
-answer_ok_383:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_384
-        j fail
-answer_ok_384:
-        li gp, 97
-        li t0, 0x60
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_385
-        j fail
-answer_ok_385:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_386
-        j fail
-answer_ok_386:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_387
-        j fail
-answer_ok_387:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_388
-        j fail
-answer_ok_388:
-        li gp, 98
-        li t0, 0x61
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_389
-        j fail
-answer_ok_389:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_390
-        j fail
-answer_ok_390:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_391
-        j fail
-answer_ok_391:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_392
-        j fail
-answer_ok_392:
-        li gp, 99
-        li t0, 0x62
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_393
-        j fail
-answer_ok_393:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_394
-        j fail
-answer_ok_394:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_395
-        j fail
-answer_ok_395:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_396
-        j fail
-answer_ok_396:
-        li gp, 100
-        li t0, 0x63
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_397
-        j fail
-answer_ok_397:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_398
-        j fail
-answer_ok_398:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_399
-        j fail
-answer_ok_399:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_400
-        j fail
-answer_ok_400:
-        li gp, 101
-        li t0, 0x64
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_401
-        j fail
-answer_ok_401:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_402
-        j fail
-answer_ok_402:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_403
-        j fail
-answer_ok_403:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_404
-        j fail
-answer_ok_404:
-        li gp, 102
-        li t0, 0x65
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_405
-        j fail
-answer_ok_405:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_406
-        j fail
-answer_ok_406:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_407
-        j fail
-answer_ok_407:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_408
-        j fail
-answer_ok_408:
-        li gp, 103
-        li t0, 0x66
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_409
-        j fail
-answer_ok_409:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_410
-        j fail
-answer_ok_410:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_411
-        j fail
-answer_ok_411:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_412
-        j fail
-answer_ok_412:
-        li gp, 104
-        li t0, 0x67
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_413
-        j fail
-answer_ok_413:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_414
-        j fail
-answer_ok_414:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_415
-        j fail
-answer_ok_415:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_416
-        j fail
-answer_ok_416:
-        li gp, 105
-        li t0, 0x68
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_417
-        j fail
-answer_ok_417:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_418
-        j fail
-answer_ok_418:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_419
-        j fail
-answer_ok_419:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_420
-        j fail
-answer_ok_420:
-        li gp, 106
-        li t0, 0x69
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_421
-        j fail
-answer_ok_421:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_422
-        j fail
-answer_ok_422:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_423
-        j fail
-answer_ok_423:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_424
-        j fail
-answer_ok_424:
-        li gp, 107
-        li t0, 0x6a
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_425
-        j fail
-answer_ok_425:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_426
-        j fail
-answer_ok_426:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_427
-        j fail
-answer_ok_427:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_428
-        j fail
-answer_ok_428:
-        li gp, 108
-        li t0, 0x6b
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_429
-        j fail
-answer_ok_429:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_430
-        j fail
-answer_ok_430:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_431
-        j fail
-answer_ok_431:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_432
-        j fail
-answer_ok_432:
-        li gp, 109
-        li t0, 0x6c
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_433
-        j fail
-answer_ok_433:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_434
-        j fail
-answer_ok_434:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_435
-        j fail
-answer_ok_435:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_436
-        j fail
-answer_ok_436:
-        li gp, 110
-        li t0, 0x6d
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_437
-        j fail
-answer_ok_437:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_438
-        j fail
-answer_ok_438:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_439
-        j fail
-answer_ok_439:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_440
-        j fail
-answer_ok_440:
-        li gp, 111
-        li t0, 0x6e
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_441
-        j fail
-answer_ok_441:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_442
-        j fail
-answer_ok_442:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_443
-        j fail
-answer_ok_443:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_444
-        j fail
-answer_ok_444:
-        li gp, 112
-        li t0, 0x6f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_445
-        j fail
-answer_ok_445:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_446
-        j fail
-answer_ok_446:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_447
-        j fail
-answer_ok_447:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_448
-        j fail
-answer_ok_448:
-        li gp, 113
-        li t0, 0x70
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_449
-        j fail
-answer_ok_449:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_450
-        j fail
-answer_ok_450:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_451
-        j fail
-answer_ok_451:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_452
-        j fail
-answer_ok_452:
-        li gp, 114
-        li t0, 0x71
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_453
-        j fail
-answer_ok_453:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_454
-        j fail
-answer_ok_454:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_455
-        j fail
-answer_ok_455:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_456
-        j fail
-answer_ok_456:
-        li gp, 115
-        li t0, 0x72
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_457
-        j fail
-answer_ok_457:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_458
-        j fail
-answer_ok_458:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_459
-        j fail
-answer_ok_459:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_460
-        j fail
-answer_ok_460:
-        li gp, 116
-        li t0, 0x73
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_461
-        j fail
-answer_ok_461:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_462
-        j fail
-answer_ok_462:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_463
-        j fail
-answer_ok_463:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_464
-        j fail
-answer_ok_464:
-        li gp, 117
-        li t0, 0x74
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_465
-        j fail
-answer_ok_465:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_466
-        j fail
-answer_ok_466:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_467
-        j fail
-answer_ok_467:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_468
-        j fail
-answer_ok_468:
-        li gp, 118
-        li t0, 0x75
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_469
-        j fail
-answer_ok_469:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_470
-        j fail
-answer_ok_470:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_471
-        j fail
-answer_ok_471:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_472
-        j fail
-answer_ok_472:
-        li gp, 119
-        li t0, 0x76
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_473
-        j fail
-answer_ok_473:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_474
-        j fail
-answer_ok_474:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_475
-        j fail
-answer_ok_475:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_476
-        j fail
-answer_ok_476:
-        li gp, 120
-        li t0, 0x77
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_477
-        j fail
-answer_ok_477:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_478
-        j fail
-answer_ok_478:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_479
-        j fail
-answer_ok_479:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_480
-        j fail
-answer_ok_480:
-        li gp, 121
-        li t0, 0x78
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_481
-        j fail
-answer_ok_481:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_482
-        j fail
-answer_ok_482:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_483
-        j fail
-answer_ok_483:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_484
-        j fail
-answer_ok_484:
-        li gp, 122
-        li t0, 0x79
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_485
-        j fail
-answer_ok_485:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_486
-        j fail
-answer_ok_486:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_487
-        j fail
-answer_ok_487:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_488
-        j fail
-answer_ok_488:
-        li gp, 123
-        li t0, 0x7a
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_489
-        j fail
-answer_ok_489:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_490
-        j fail
-answer_ok_490:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_491
-        j fail
-answer_ok_491:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_492
-        j fail
-answer_ok_492:
-        li gp, 124
-        li t0, 0x7b
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_493
-        j fail
-answer_ok_493:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_494
-        j fail
-answer_ok_494:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_495
-        j fail
-answer_ok_495:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_496
-        j fail
-answer_ok_496:
-        li gp, 125
-        li t0, 0x7c
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_497
-        j fail
-answer_ok_497:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_498
-        j fail
-answer_ok_498:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_499
-        j fail
-answer_ok_499:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_500
-        j fail
-answer_ok_500:
-        li gp, 126
-        li t0, 0x7d
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_501
-        j fail
-answer_ok_501:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_502
-        j fail
-answer_ok_502:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_503
-        j fail
-answer_ok_503:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_504
-        j fail
-answer_ok_504:
-        li gp, 127
-        li t0, 0x7e
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_505
-        j fail
-answer_ok_505:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_506
-        j fail
-answer_ok_506:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_507
-        j fail
-answer_ok_507:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_508
-        j fail
-answer_ok_508:
-        li gp, 128
-        li t0, 0x7f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_509
-        j fail
-answer_ok_509:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_510
-        j fail
-answer_ok_510:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_511
-        j fail
-answer_ok_511:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_512
-        j fail
-answer_ok_512:
-        li gp, 129
-        li t0, 0x80
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_513
-        j fail
-answer_ok_513:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_514
-        j fail
-answer_ok_514:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_515
-        j fail
-answer_ok_515:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_516
-        j fail
-answer_ok_516:
-        li gp, 130
-        li t0, 0x81
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_517
-        j fail
-answer_ok_517:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_518
-        j fail
-answer_ok_518:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_519
-        j fail
-answer_ok_519:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_520
-        j fail
-answer_ok_520:
-        li gp, 131
-        li t0, 0x82
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_521
-        j fail
-answer_ok_521:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_522
-        j fail
-answer_ok_522:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_523
-        j fail
-answer_ok_523:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_524
-        j fail
-answer_ok_524:
-        li gp, 132
-        li t0, 0x83
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_525
-        j fail
-answer_ok_525:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_526
-        j fail
-answer_ok_526:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_527
-        j fail
-answer_ok_527:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_528
-        j fail
-answer_ok_528:
-        li gp, 133
-        li t0, 0x84
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_529
-        j fail
-answer_ok_529:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_530
-        j fail
-answer_ok_530:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_531
-        j fail
-answer_ok_531:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_532
-        j fail
-answer_ok_532:
-        li gp, 134
-        li t0, 0x85
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_533
-        j fail
-answer_ok_533:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_534
-        j fail
-answer_ok_534:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_535
-        j fail
-answer_ok_535:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_536
-        j fail
-answer_ok_536:
-        li gp, 135
-        li t0, 0x86
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_537
-        j fail
-answer_ok_537:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_538
-        j fail
-answer_ok_538:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_539
-        j fail
-answer_ok_539:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_540
-        j fail
-answer_ok_540:
-        li gp, 136
-        li t0, 0x87
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_541
-        j fail
-answer_ok_541:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_542
-        j fail
-answer_ok_542:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_543
-        j fail
-answer_ok_543:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_544
-        j fail
-answer_ok_544:
-        li gp, 137
-        li t0, 0x88
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_545
-        j fail
-answer_ok_545:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_546
-        j fail
-answer_ok_546:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_547
-        j fail
-answer_ok_547:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_548
-        j fail
-answer_ok_548:
-        li gp, 138
-        li t0, 0x89
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_549
-        j fail
-answer_ok_549:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_550
-        j fail
-answer_ok_550:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_551
-        j fail
-answer_ok_551:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_552
-        j fail
-answer_ok_552:
-        li gp, 139
-        li t0, 0x8a
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_553
-        j fail
-answer_ok_553:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_554
-        j fail
-answer_ok_554:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_555
-        j fail
-answer_ok_555:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_556
-        j fail
-answer_ok_556:
-        li gp, 140
-        li t0, 0x8b
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_557
-        j fail
-answer_ok_557:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_558
-        j fail
-answer_ok_558:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_559
-        j fail
-answer_ok_559:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_560
-        j fail
-answer_ok_560:
-        li gp, 141
-        li t0, 0x8c
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_561
-        j fail
-answer_ok_561:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_562
-        j fail
-answer_ok_562:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_563
-        j fail
-answer_ok_563:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_564
-        j fail
-answer_ok_564:
-        li gp, 142
-        li t0, 0x8d
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_565
-        j fail
-answer_ok_565:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_566
-        j fail
-answer_ok_566:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_567
-        j fail
-answer_ok_567:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_568
-        j fail
-answer_ok_568:
-        li gp, 143
-        li t0, 0x8e
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_569
-        j fail
-answer_ok_569:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_570
-        j fail
-answer_ok_570:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_571
-        j fail
-answer_ok_571:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_572
-        j fail
-answer_ok_572:
-        li gp, 144
-        li t0, 0x8f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_573
-        j fail
-answer_ok_573:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_574
-        j fail
-answer_ok_574:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_575
-        j fail
-answer_ok_575:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_576
-        j fail
-answer_ok_576:
-        li gp, 145
-        li t0, 0x90
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_577
-        j fail
-answer_ok_577:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_578
-        j fail
-answer_ok_578:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_579
-        j fail
-answer_ok_579:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_580
-        j fail
-answer_ok_580:
-        li gp, 146
-        li t0, 0x91
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_581
-        j fail
-answer_ok_581:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_582
-        j fail
-answer_ok_582:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_583
-        j fail
-answer_ok_583:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_584
-        j fail
-answer_ok_584:
-        li gp, 147
-        li t0, 0x92
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_585
-        j fail
-answer_ok_585:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_586
-        j fail
-answer_ok_586:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_587
-        j fail
-answer_ok_587:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_588
-        j fail
-answer_ok_588:
-        li gp, 148
-        li t0, 0x93
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_589
-        j fail
-answer_ok_589:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_590
-        j fail
-answer_ok_590:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_591
-        j fail
-answer_ok_591:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_592
-        j fail
-answer_ok_592:
-        li gp, 149
-        li t0, 0x94
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_593
-        j fail
-answer_ok_593:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_594
-        j fail
-answer_ok_594:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_595
-        j fail
-answer_ok_595:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_596
-        j fail
-answer_ok_596:
-        li gp, 150
-        li t0, 0x95
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_597
-        j fail
-answer_ok_597:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_598
-        j fail
-answer_ok_598:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_599
-        j fail
-answer_ok_599:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_600
-        j fail
-answer_ok_600:
-        li gp, 151
-        li t0, 0x96
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_601
-        j fail
-answer_ok_601:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_602
-        j fail
-answer_ok_602:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_603
-        j fail
-answer_ok_603:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_604
-        j fail
-answer_ok_604:
-        li gp, 152
-        li t0, 0x97
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_605
-        j fail
-answer_ok_605:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_606
-        j fail
-answer_ok_606:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_607
-        j fail
-answer_ok_607:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_608
-        j fail
-answer_ok_608:
-        li gp, 153
-        li t0, 0x98
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_609
-        j fail
-answer_ok_609:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_610
-        j fail
-answer_ok_610:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_611
-        j fail
-answer_ok_611:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_612
-        j fail
-answer_ok_612:
-        li gp, 154
-        li t0, 0x99
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_613
-        j fail
-answer_ok_613:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_614
-        j fail
-answer_ok_614:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_615
-        j fail
-answer_ok_615:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_616
-        j fail
-answer_ok_616:
-        li gp, 155
-        li t0, 0x9a
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_617
-        j fail
-answer_ok_617:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_618
-        j fail
-answer_ok_618:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_619
-        j fail
-answer_ok_619:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_620
-        j fail
-answer_ok_620:
-        li gp, 156
-        li t0, 0x9b
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_621
-        j fail
-answer_ok_621:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_622
-        j fail
-answer_ok_622:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_623
-        j fail
-answer_ok_623:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_624
-        j fail
-answer_ok_624:
-        li gp, 157
-        li t0, 0x9c
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_625
-        j fail
-answer_ok_625:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_626
-        j fail
-answer_ok_626:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_627
-        j fail
-answer_ok_627:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_628
-        j fail
-answer_ok_628:
-        li gp, 158
-        li t0, 0x9d
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_629
-        j fail
-answer_ok_629:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_630
-        j fail
-answer_ok_630:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_631
-        j fail
-answer_ok_631:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_632
-        j fail
-answer_ok_632:
-        li gp, 159
-        li t0, 0x9e
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_633
-        j fail
-answer_ok_633:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_634
-        j fail
-answer_ok_634:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_635
-        j fail
-answer_ok_635:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_636
-        j fail
-answer_ok_636:
-        li gp, 160
-        li t0, 0x9f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_637
-        j fail
-answer_ok_637:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_638
-        j fail
-answer_ok_638:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_639
-        j fail
-answer_ok_639:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_640
-        j fail
-answer_ok_640:
-        li gp, 161
-        li t0, 0xa0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_641
-        j fail
-answer_ok_641:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_642
-        j fail
-answer_ok_642:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_643
-        j fail
-answer_ok_643:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_644
-        j fail
-answer_ok_644:
-        li gp, 162
-        li t0, 0xa1
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_645
-        j fail
-answer_ok_645:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_646
-        j fail
-answer_ok_646:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_647
-        j fail
-answer_ok_647:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_648
-        j fail
-answer_ok_648:
-        li gp, 163
-        li t0, 0xa2
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_649
-        j fail
-answer_ok_649:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_650
-        j fail
-answer_ok_650:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_651
-        j fail
-answer_ok_651:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_652
-        j fail
-answer_ok_652:
-        li gp, 164
-        li t0, 0xa3
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_653
-        j fail
-answer_ok_653:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_654
-        j fail
-answer_ok_654:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_655
-        j fail
-answer_ok_655:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_656
-        j fail
-answer_ok_656:
-        li gp, 165
-        li t0, 0xa4
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_657
-        j fail
-answer_ok_657:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_658
-        j fail
-answer_ok_658:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_659
-        j fail
-answer_ok_659:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_660
-        j fail
-answer_ok_660:
-        li gp, 166
-        li t0, 0xa5
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_661
-        j fail
-answer_ok_661:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_662
-        j fail
-answer_ok_662:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_663
-        j fail
-answer_ok_663:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_664
-        j fail
-answer_ok_664:
-        li gp, 167
-        li t0, 0xa6
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_665
-        j fail
-answer_ok_665:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_666
-        j fail
-answer_ok_666:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_667
-        j fail
-answer_ok_667:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_668
-        j fail
-answer_ok_668:
-        li gp, 168
-        li t0, 0xa7
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_669
-        j fail
-answer_ok_669:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_670
-        j fail
-answer_ok_670:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_671
-        j fail
-answer_ok_671:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_672
-        j fail
-answer_ok_672:
-        li gp, 169
-        li t0, 0xa8
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_673
-        j fail
-answer_ok_673:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_674
-        j fail
-answer_ok_674:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_675
-        j fail
-answer_ok_675:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_676
-        j fail
-answer_ok_676:
-        li gp, 170
-        li t0, 0xa9
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_677
-        j fail
-answer_ok_677:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_678
-        j fail
-answer_ok_678:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_679
-        j fail
-answer_ok_679:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_680
-        j fail
-answer_ok_680:
-        li gp, 171
-        li t0, 0xaa
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_681
-        j fail
-answer_ok_681:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_682
-        j fail
-answer_ok_682:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_683
-        j fail
-answer_ok_683:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_684
-        j fail
-answer_ok_684:
-        li gp, 172
-        li t0, 0xab
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_685
-        j fail
-answer_ok_685:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_686
-        j fail
-answer_ok_686:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_687
-        j fail
-answer_ok_687:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_688
-        j fail
-answer_ok_688:
-        li gp, 173
-        li t0, 0xac
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_689
-        j fail
-answer_ok_689:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_690
-        j fail
-answer_ok_690:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_691
-        j fail
-answer_ok_691:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_692
-        j fail
-answer_ok_692:
-        li gp, 174
-        li t0, 0xad
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_693
-        j fail
-answer_ok_693:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_694
-        j fail
-answer_ok_694:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_695
-        j fail
-answer_ok_695:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_696
-        j fail
-answer_ok_696:
-        li gp, 175
-        li t0, 0xae
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_697
-        j fail
-answer_ok_697:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_698
-        j fail
-answer_ok_698:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_699
-        j fail
-answer_ok_699:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_700
-        j fail
-answer_ok_700:
-        li gp, 176
-        li t0, 0xaf
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_701
-        j fail
-answer_ok_701:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_702
-        j fail
-answer_ok_702:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_703
-        j fail
-answer_ok_703:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_704
-        j fail
-answer_ok_704:
-        li gp, 177
-        li t0, 0xb0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_705
-        j fail
-answer_ok_705:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_706
-        j fail
-answer_ok_706:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_707
-        j fail
-answer_ok_707:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_708
-        j fail
-answer_ok_708:
-        li gp, 178
-        li t0, 0xb1
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_709
-        j fail
-answer_ok_709:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_710
-        j fail
-answer_ok_710:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_711
-        j fail
-answer_ok_711:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_712
-        j fail
-answer_ok_712:
-        li gp, 179
-        li t0, 0xb2
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_713
-        j fail
-answer_ok_713:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_714
-        j fail
-answer_ok_714:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_715
-        j fail
-answer_ok_715:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_716
-        j fail
-answer_ok_716:
-        li gp, 180
-        li t0, 0xb3
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_717
-        j fail
-answer_ok_717:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_718
-        j fail
-answer_ok_718:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_719
-        j fail
-answer_ok_719:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_720
-        j fail
-answer_ok_720:
-        li gp, 181
-        li t0, 0xb4
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_721
-        j fail
-answer_ok_721:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_722
-        j fail
-answer_ok_722:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_723
-        j fail
-answer_ok_723:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_724
-        j fail
-answer_ok_724:
-        li gp, 182
-        li t0, 0xb5
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_725
-        j fail
-answer_ok_725:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_726
-        j fail
-answer_ok_726:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_727
-        j fail
-answer_ok_727:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_728
-        j fail
-answer_ok_728:
-        li gp, 183
-        li t0, 0xb6
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_729
-        j fail
-answer_ok_729:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_730
-        j fail
-answer_ok_730:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_731
-        j fail
-answer_ok_731:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_732
-        j fail
-answer_ok_732:
-        li gp, 184
-        li t0, 0xb7
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_733
-        j fail
-answer_ok_733:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_734
-        j fail
-answer_ok_734:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_735
-        j fail
-answer_ok_735:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_736
-        j fail
-answer_ok_736:
-        li gp, 185
-        li t0, 0xb8
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_737
-        j fail
-answer_ok_737:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_738
-        j fail
-answer_ok_738:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_739
-        j fail
-answer_ok_739:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_740
-        j fail
-answer_ok_740:
-        li gp, 186
-        li t0, 0xb9
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_741
-        j fail
-answer_ok_741:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_742
-        j fail
-answer_ok_742:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_743
-        j fail
-answer_ok_743:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_744
-        j fail
-answer_ok_744:
-        li gp, 187
-        li t0, 0xba
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_745
-        j fail
-answer_ok_745:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_746
-        j fail
-answer_ok_746:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_747
-        j fail
-answer_ok_747:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_748
-        j fail
-answer_ok_748:
-        li gp, 188
-        li t0, 0xbb
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_749
-        j fail
-answer_ok_749:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_750
-        j fail
-answer_ok_750:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_751
-        j fail
-answer_ok_751:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_752
-        j fail
-answer_ok_752:
-        li gp, 189
-        li t0, 0xbc
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_753
-        j fail
-answer_ok_753:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_754
-        j fail
-answer_ok_754:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_755
-        j fail
-answer_ok_755:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_756
-        j fail
-answer_ok_756:
-        li gp, 190
-        li t0, 0xbd
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_757
-        j fail
-answer_ok_757:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_758
-        j fail
-answer_ok_758:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_759
-        j fail
-answer_ok_759:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_760
-        j fail
-answer_ok_760:
-        li gp, 191
-        li t0, 0xbe
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_761
-        j fail
-answer_ok_761:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_762
-        j fail
-answer_ok_762:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_763
-        j fail
-answer_ok_763:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_764
-        j fail
-answer_ok_764:
-        li gp, 192
-        li t0, 0xbf
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_765
-        j fail
-answer_ok_765:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_766
-        j fail
-answer_ok_766:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_767
-        j fail
-answer_ok_767:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_768
-        j fail
-answer_ok_768:
-        li gp, 193
-        li t0, 0xc0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_769
-        j fail
-answer_ok_769:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_770
-        j fail
-answer_ok_770:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_771
-        j fail
-answer_ok_771:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_772
-        j fail
-answer_ok_772:
-        li gp, 194
-        li t0, 0xc1
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_773
-        j fail
-answer_ok_773:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_774
-        j fail
-answer_ok_774:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_775
-        j fail
-answer_ok_775:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_776
-        j fail
-answer_ok_776:
-        li gp, 195
-        li t0, 0xc2
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_777
-        j fail
-answer_ok_777:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_778
-        j fail
-answer_ok_778:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_779
-        j fail
-answer_ok_779:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_780
-        j fail
-answer_ok_780:
-        li gp, 196
-        li t0, 0xc3
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_781
-        j fail
-answer_ok_781:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_782
-        j fail
-answer_ok_782:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_783
-        j fail
-answer_ok_783:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_784
-        j fail
-answer_ok_784:
-        li gp, 197
-        li t0, 0xc4
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_785
-        j fail
-answer_ok_785:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_786
-        j fail
-answer_ok_786:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_787
-        j fail
-answer_ok_787:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_788
-        j fail
-answer_ok_788:
-        li gp, 198
-        li t0, 0xc5
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_789
-        j fail
-answer_ok_789:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_790
-        j fail
-answer_ok_790:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_791
-        j fail
-answer_ok_791:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_792
-        j fail
-answer_ok_792:
-        li gp, 199
-        li t0, 0xc6
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_793
-        j fail
-answer_ok_793:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_794
-        j fail
-answer_ok_794:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_795
-        j fail
-answer_ok_795:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_796
-        j fail
-answer_ok_796:
-        li gp, 200
-        li t0, 0xc7
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_797
-        j fail
-answer_ok_797:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_798
-        j fail
-answer_ok_798:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_799
-        j fail
-answer_ok_799:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_800
-        j fail
-answer_ok_800:
-        li gp, 201
-        li t0, 0xc8
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_801
-        j fail
-answer_ok_801:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_802
-        j fail
-answer_ok_802:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_803
-        j fail
-answer_ok_803:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_804
-        j fail
-answer_ok_804:
-        li gp, 202
-        li t0, 0xc9
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_805
-        j fail
-answer_ok_805:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_806
-        j fail
-answer_ok_806:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_807
-        j fail
-answer_ok_807:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_808
-        j fail
-answer_ok_808:
-        li gp, 203
-        li t0, 0xca
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_809
-        j fail
-answer_ok_809:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_810
-        j fail
-answer_ok_810:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_811
-        j fail
-answer_ok_811:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_812
-        j fail
-answer_ok_812:
-        li gp, 204
-        li t0, 0xcb
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_813
-        j fail
-answer_ok_813:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_814
-        j fail
-answer_ok_814:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_815
-        j fail
-answer_ok_815:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_816
-        j fail
-answer_ok_816:
-        li gp, 205
-        li t0, 0xcc
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_817
-        j fail
-answer_ok_817:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_818
-        j fail
-answer_ok_818:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_819
-        j fail
-answer_ok_819:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_820
-        j fail
-answer_ok_820:
-        li gp, 206
-        li t0, 0xcd
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_821
-        j fail
-answer_ok_821:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_822
-        j fail
-answer_ok_822:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_823
-        j fail
-answer_ok_823:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_824
-        j fail
-answer_ok_824:
-        li gp, 207
-        li t0, 0xce
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_825
-        j fail
-answer_ok_825:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_826
-        j fail
-answer_ok_826:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_827
-        j fail
-answer_ok_827:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_828
-        j fail
-answer_ok_828:
-        li gp, 208
-        li t0, 0xcf
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_829
-        j fail
-answer_ok_829:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_830
-        j fail
-answer_ok_830:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_831
-        j fail
-answer_ok_831:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_832
-        j fail
-answer_ok_832:
-        li gp, 209
-        li t0, 0xd0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_833
-        j fail
-answer_ok_833:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_834
-        j fail
-answer_ok_834:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_835
-        j fail
-answer_ok_835:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_836
-        j fail
-answer_ok_836:
-        li gp, 210
-        li t0, 0xd1
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_837
-        j fail
-answer_ok_837:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_838
-        j fail
-answer_ok_838:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_839
-        j fail
-answer_ok_839:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_840
-        j fail
-answer_ok_840:
-        li gp, 211
-        li t0, 0xd2
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_841
-        j fail
-answer_ok_841:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_842
-        j fail
-answer_ok_842:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_843
-        j fail
-answer_ok_843:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_844
-        j fail
-answer_ok_844:
-        li gp, 212
-        li t0, 0xd3
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_845
-        j fail
-answer_ok_845:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_846
-        j fail
-answer_ok_846:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_847
-        j fail
-answer_ok_847:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_848
-        j fail
-answer_ok_848:
-        li gp, 213
-        li t0, 0xd4
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_849
-        j fail
-answer_ok_849:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_850
-        j fail
-answer_ok_850:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_851
-        j fail
-answer_ok_851:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_852
-        j fail
-answer_ok_852:
-        li gp, 214
-        li t0, 0xd5
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_853
-        j fail
-answer_ok_853:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_854
-        j fail
-answer_ok_854:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_855
-        j fail
-answer_ok_855:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_856
-        j fail
-answer_ok_856:
-        li gp, 215
-        li t0, 0xd6
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_857
-        j fail
-answer_ok_857:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_858
-        j fail
-answer_ok_858:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_859
-        j fail
-answer_ok_859:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_860
-        j fail
-answer_ok_860:
-        li gp, 216
-        li t0, 0xd7
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_861
-        j fail
-answer_ok_861:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_862
-        j fail
-answer_ok_862:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_863
-        j fail
-answer_ok_863:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_864
-        j fail
-answer_ok_864:
-        li gp, 217
-        li t0, 0xd8
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_865
-        j fail
-answer_ok_865:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_866
-        j fail
-answer_ok_866:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_867
-        j fail
-answer_ok_867:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_868
-        j fail
-answer_ok_868:
-        li gp, 218
-        li t0, 0xd9
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_869
-        j fail
-answer_ok_869:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_870
-        j fail
-answer_ok_870:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_871
-        j fail
-answer_ok_871:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_872
-        j fail
-answer_ok_872:
-        li gp, 219
-        li t0, 0xda
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_873
-        j fail
-answer_ok_873:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_874
-        j fail
-answer_ok_874:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_875
-        j fail
-answer_ok_875:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_876
-        j fail
-answer_ok_876:
-        li gp, 220
-        li t0, 0xdb
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_877
-        j fail
-answer_ok_877:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_878
-        j fail
-answer_ok_878:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_879
-        j fail
-answer_ok_879:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_880
-        j fail
-answer_ok_880:
-        li gp, 221
-        li t0, 0xdc
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_881
-        j fail
-answer_ok_881:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_882
-        j fail
-answer_ok_882:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_883
-        j fail
-answer_ok_883:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_884
-        j fail
-answer_ok_884:
-        li gp, 222
-        li t0, 0xdd
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_885
-        j fail
-answer_ok_885:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_886
-        j fail
-answer_ok_886:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_887
-        j fail
-answer_ok_887:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_888
-        j fail
-answer_ok_888:
-        li gp, 223
-        li t0, 0xde
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_889
-        j fail
-answer_ok_889:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_890
-        j fail
-answer_ok_890:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_891
-        j fail
-answer_ok_891:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_892
-        j fail
-answer_ok_892:
-        li gp, 224
-        li t0, 0xdf
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_893
-        j fail
-answer_ok_893:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_894
-        j fail
-answer_ok_894:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_895
-        j fail
-answer_ok_895:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_896
-        j fail
-answer_ok_896:
-        li gp, 225
-        li t0, 0xe0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_897
-        j fail
-answer_ok_897:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_898
-        j fail
-answer_ok_898:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_899
-        j fail
-answer_ok_899:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_900
-        j fail
-answer_ok_900:
-        li gp, 226
-        li t0, 0xe1
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_901
-        j fail
-answer_ok_901:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_902
-        j fail
-answer_ok_902:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_903
-        j fail
-answer_ok_903:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_904
-        j fail
-answer_ok_904:
-        li gp, 227
-        li t0, 0xe2
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_905
-        j fail
-answer_ok_905:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_906
-        j fail
-answer_ok_906:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_907
-        j fail
-answer_ok_907:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_908
-        j fail
-answer_ok_908:
-        li gp, 228
-        li t0, 0xe3
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_909
-        j fail
-answer_ok_909:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_910
-        j fail
-answer_ok_910:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_911
-        j fail
-answer_ok_911:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_912
-        j fail
-answer_ok_912:
-        li gp, 229
-        li t0, 0xe4
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_913
-        j fail
-answer_ok_913:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_914
-        j fail
-answer_ok_914:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_915
-        j fail
-answer_ok_915:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_916
-        j fail
-answer_ok_916:
-        li gp, 230
-        li t0, 0xe5
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_917
-        j fail
-answer_ok_917:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_918
-        j fail
-answer_ok_918:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_919
-        j fail
-answer_ok_919:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_920
-        j fail
-answer_ok_920:
-        li gp, 231
-        li t0, 0xe6
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_921
-        j fail
-answer_ok_921:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_922
-        j fail
-answer_ok_922:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_923
-        j fail
-answer_ok_923:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_924
-        j fail
-answer_ok_924:
-        li gp, 232
-        li t0, 0xe7
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_925
-        j fail
-answer_ok_925:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_926
-        j fail
-answer_ok_926:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_927
-        j fail
-answer_ok_927:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_928
-        j fail
-answer_ok_928:
-        li gp, 233
-        li t0, 0xe8
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_929
-        j fail
-answer_ok_929:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_930
-        j fail
-answer_ok_930:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_931
-        j fail
-answer_ok_931:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_932
-        j fail
-answer_ok_932:
-        li gp, 234
-        li t0, 0xe9
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_933
-        j fail
-answer_ok_933:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_934
-        j fail
-answer_ok_934:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_935
-        j fail
-answer_ok_935:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_936
-        j fail
-answer_ok_936:
-        li gp, 235
-        li t0, 0xea
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_937
-        j fail
-answer_ok_937:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_938
-        j fail
-answer_ok_938:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_939
-        j fail
-answer_ok_939:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_940
-        j fail
-answer_ok_940:
-        li gp, 236
-        li t0, 0xeb
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_941
-        j fail
-answer_ok_941:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_942
-        j fail
-answer_ok_942:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_943
-        j fail
-answer_ok_943:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_944
-        j fail
-answer_ok_944:
-        li gp, 237
-        li t0, 0xec
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_945
-        j fail
-answer_ok_945:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_946
-        j fail
-answer_ok_946:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_947
-        j fail
-answer_ok_947:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_948
-        j fail
-answer_ok_948:
-        li gp, 238
-        li t0, 0xed
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_949
-        j fail
-answer_ok_949:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_950
-        j fail
-answer_ok_950:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_951
-        j fail
-answer_ok_951:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_952
-        j fail
-answer_ok_952:
-        li gp, 239
-        li t0, 0xee
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_953
-        j fail
-answer_ok_953:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_954
-        j fail
-answer_ok_954:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_955
-        j fail
-answer_ok_955:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_956
-        j fail
-answer_ok_956:
-        li gp, 240
-        li t0, 0xef
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_957
-        j fail
-answer_ok_957:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_958
-        j fail
-answer_ok_958:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_959
-        j fail
-answer_ok_959:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_960
-        j fail
-answer_ok_960:
-        li gp, 241
-        li t0, 0xf0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_961
-        j fail
-answer_ok_961:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_962
-        j fail
-answer_ok_962:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_963
-        j fail
-answer_ok_963:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_964
-        j fail
-answer_ok_964:
-        li gp, 242
-        li t0, 0xf1
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_965
-        j fail
-answer_ok_965:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_966
-        j fail
-answer_ok_966:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_967
-        j fail
-answer_ok_967:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_968
-        j fail
-answer_ok_968:
-        li gp, 243
-        li t0, 0xf2
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_969
-        j fail
-answer_ok_969:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_970
-        j fail
-answer_ok_970:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_971
-        j fail
-answer_ok_971:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_972
-        j fail
-answer_ok_972:
-        li gp, 244
-        li t0, 0xf3
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_973
-        j fail
-answer_ok_973:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_974
-        j fail
-answer_ok_974:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_975
-        j fail
-answer_ok_975:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_976
-        j fail
-answer_ok_976:
-        li gp, 245
-        li t0, 0xf4
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_977
-        j fail
-answer_ok_977:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_978
-        j fail
-answer_ok_978:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_979
-        j fail
-answer_ok_979:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_980
-        j fail
-answer_ok_980:
-        li gp, 246
-        li t0, 0xf5
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_981
-        j fail
-answer_ok_981:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_982
-        j fail
-answer_ok_982:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_983
-        j fail
-answer_ok_983:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_984
-        j fail
-answer_ok_984:
-        li gp, 247
-        li t0, 0xf6
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_985
-        j fail
-answer_ok_985:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_986
-        j fail
-answer_ok_986:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_987
-        j fail
-answer_ok_987:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_988
-        j fail
-answer_ok_988:
-        li gp, 248
-        li t0, 0xf7
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_989
-        j fail
-answer_ok_989:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_990
-        j fail
-answer_ok_990:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_991
-        j fail
-answer_ok_991:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_992
-        j fail
-answer_ok_992:
-        li gp, 249
-        li t0, 0xf8
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_993
-        j fail
-answer_ok_993:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_994
-        j fail
-answer_ok_994:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_995
-        j fail
-answer_ok_995:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_996
-        j fail
-answer_ok_996:
-        li gp, 250
-        li t0, 0xf9
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_997
-        j fail
-answer_ok_997:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_998
-        j fail
-answer_ok_998:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_999
-        j fail
-answer_ok_999:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1000
-        j fail
-answer_ok_1000:
-        li gp, 251
-        li t0, 0xfa
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1001
-        j fail
-answer_ok_1001:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1002
-        j fail
-answer_ok_1002:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1003
-        j fail
-answer_ok_1003:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1004
-        j fail
-answer_ok_1004:
-        li gp, 252
-        li t0, 0xfb
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1005
-        j fail
-answer_ok_1005:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1006
-        j fail
-answer_ok_1006:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1007
-        j fail
-answer_ok_1007:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1008
-        j fail
-answer_ok_1008:
-        li gp, 253
-        li t0, 0xfc
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1009
-        j fail
-answer_ok_1009:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1010
-        j fail
-answer_ok_1010:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1011
-        j fail
-answer_ok_1011:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1012
-        j fail
-answer_ok_1012:
-        li gp, 254
-        li t0, 0xfd
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1013
-        j fail
-answer_ok_1013:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1014
-        j fail
-answer_ok_1014:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1015
-        j fail
-answer_ok_1015:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1016
-        j fail
-answer_ok_1016:
-        li gp, 255
-        li t0, 0xfe
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1017
-        j fail
-answer_ok_1017:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1018
-        j fail
-answer_ok_1018:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1019
-        j fail
-answer_ok_1019:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1020
-        j fail
-answer_ok_1020:
-        li gp, 256
-        li t0, 0xff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1021
-        j fail
-answer_ok_1021:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1022
-        j fail
-answer_ok_1022:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1023
-        j fail
-answer_ok_1023:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1024
-        j fail
-answer_ok_1024:
+        cincoffsetimm c12, c12, 16
+        addi t3, t3, -1
+        bnez t3, values_e8
         li gp, 257
         li t0, 0x0
         vmv.v.x v16, t0
         vclz.v v16, v16
         vmv.x.s t1, v16
         li t2, 8
-        beq t1, t2, answer_ok_1025
+        beq t1, t2, answer_ok_5
         j fail
-answer_ok_1025:
+answer_ok_5:
         li t0, 0x0
         vmv.v.x v16, t0
         vctz.v v16, v16
         vmv.x.s t1, v16
         li t2, 8
-        beq t1, t2, answer_ok_1026
+        beq t1, t2, answer_ok_6
         j fail
-answer_ok_1026:
+answer_ok_6:
         li t0, 0x0
         vmv.v.x v16, t0
         vcpop.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_1027
+        beq t1, t2, answer_ok_7
         j fail
-answer_ok_1027:
+answer_ok_7:
         li gp, 258
         li t0, 0x80
         vmv.v.x v16, t0
         vclz.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_1028
+        beq t1, t2, answer_ok_8
         j fail
-answer_ok_1028:
+answer_ok_8:
         li t0, 0x80
         vmv.v.x v16, t0
         vctz.v v16, v16
         vmv.x.s t1, v16
         li t2, 7
-        beq t1, t2, answer_ok_1029
+        beq t1, t2, answer_ok_9
         j fail
-answer_ok_1029:
+answer_ok_9:
         li t0, 0x80
         vmv.v.x v16, t0
         vcpop.v v16, v16
         vmv.x.s t1, v16
         li t2, 1
-        beq t1, t2, answer_ok_1030
+        beq t1, t2, answer_ok_10
         j fail
-answer_ok_1030:
+answer_ok_10:
         li gp, 259
         li t0, 0xff
         vmv.v.x v16, t0
         vclz.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_1031
+        beq t1, t2, answer_ok_11
         j fail
-answer_ok_1031:
+answer_ok_11:
         li t0, 0xff
         vmv.v.x v16, t0
         vctz.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_1032
+        beq t1, t2, answer_ok_12
         j fail
-answer_ok_1032:
+answer_ok_12:
         li t0, 0xff
         vmv.v.x v16, t0
         vcpop.v v16, v16
         vmv.x.s t1, v16
         li t2, 8
-        beq t1, t2, answer_ok_1033
+        beq t1, t2, answer_ok_13
         j fail
-answer_ok_1033:
+answer_ok_13:
         li gp, 260
         vsetvli s2, zero, 0
         vmv.v.i v16, -1
@@ -9067,9 +150,9 @@ lanes_260:
         bgeu a2, s3, inactive_260
         li t2, 8
 inactive_260:
-        beq t1, t2, answer_ok_1034
+        beq t1, t2, answer_ok_14
         j fail
-answer_ok_1034:
+answer_ok_14:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_260
@@ -9099,9 +182,9 @@ lanes_261:
         bgeu a2, s3, inactive_261
         li t2, 0
 inactive_261:
-        beq t1, t2, answer_ok_1035
+        beq t1, t2, answer_ok_15
         j fail
-answer_ok_1035:
+answer_ok_15:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_261
@@ -9128,9 +211,9 @@ lanes_262:
         bgeu a2, s3, inactive_262
         li t2, 0
 inactive_262:
-        beq t1, t2, answer_ok_1036
+        beq t1, t2, answer_ok_16
         j fail
-answer_ok_1036:
+answer_ok_16:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_262
@@ -9155,9 +238,9 @@ lanes_263:
         bgeu a2, s3, inactive_263
         li t2, 8
 inactive_263:
-        beq t1, t2, answer_ok_1037
+        beq t1, t2, answer_ok_17
         j fail
-answer_ok_1037:
+answer_ok_17:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_263
@@ -9187,9 +270,9 @@ lanes_264:
         bgeu a2, s3, inactive_264
         li t2, 0
 inactive_264:
-        beq t1, t2, answer_ok_1038
+        beq t1, t2, answer_ok_18
         j fail
-answer_ok_1038:
+answer_ok_18:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_264
@@ -9216,9 +299,9 @@ lanes_265:
         bgeu a2, s3, inactive_265
         li t2, 0
 inactive_265:
-        beq t1, t2, answer_ok_1039
+        beq t1, t2, answer_ok_19
         j fail
-answer_ok_1039:
+answer_ok_19:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_265
@@ -9243,9 +326,9 @@ lanes_266:
         bgeu a2, s3, inactive_266
         li t2, 0
 inactive_266:
-        beq t1, t2, answer_ok_1040
+        beq t1, t2, answer_ok_20
         j fail
-answer_ok_1040:
+answer_ok_20:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_266
@@ -9275,9 +358,9 @@ lanes_267:
         bgeu a2, s3, inactive_267
         li t2, 8
 inactive_267:
-        beq t1, t2, answer_ok_1041
+        beq t1, t2, answer_ok_21
         j fail
-answer_ok_1041:
+answer_ok_21:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_267
@@ -9304,9 +387,9 @@ lanes_268:
         bgeu a2, s3, inactive_268
         li t2, 8
 inactive_268:
-        beq t1, t2, answer_ok_1042
+        beq t1, t2, answer_ok_22
         j fail
-answer_ok_1042:
+answer_ok_22:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_268
@@ -9331,9 +414,9 @@ lanes_269:
         bgeu a2, s3, inactive_269
         li t2, 8
 inactive_269:
-        beq t1, t2, answer_ok_1043
+        beq t1, t2, answer_ok_23
         j fail
-answer_ok_1043:
+answer_ok_23:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_269
@@ -9363,9 +446,9 @@ lanes_270:
         bgeu a2, s3, inactive_270
         li t2, 0
 inactive_270:
-        beq t1, t2, answer_ok_1044
+        beq t1, t2, answer_ok_24
         j fail
-answer_ok_1044:
+answer_ok_24:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_270
@@ -9392,9 +475,9 @@ lanes_271:
         bgeu a2, s3, inactive_271
         li t2, 0
 inactive_271:
-        beq t1, t2, answer_ok_1045
+        beq t1, t2, answer_ok_25
         j fail
-answer_ok_1045:
+answer_ok_25:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_271
@@ -9419,9 +502,9 @@ lanes_272:
         bgeu a2, s3, inactive_272
         li t2, 8
 inactive_272:
-        beq t1, t2, answer_ok_1046
+        beq t1, t2, answer_ok_26
         j fail
-answer_ok_1046:
+answer_ok_26:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_272
@@ -9451,9 +534,9 @@ lanes_273:
         bgeu a2, s3, inactive_273
         li t2, 0
 inactive_273:
-        beq t1, t2, answer_ok_1047
+        beq t1, t2, answer_ok_27
         j fail
-answer_ok_1047:
+answer_ok_27:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_273
@@ -9480,9 +563,9 @@ lanes_274:
         bgeu a2, s3, inactive_274
         li t2, 0
 inactive_274:
-        beq t1, t2, answer_ok_1048
+        beq t1, t2, answer_ok_28
         j fail
-answer_ok_1048:
+answer_ok_28:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_274
@@ -9507,9 +590,9 @@ lanes_275:
         bgeu a2, s3, inactive_275
         li t2, 0
 inactive_275:
-        beq t1, t2, answer_ok_1049
+        beq t1, t2, answer_ok_29
         j fail
-answer_ok_1049:
+answer_ok_29:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_275
@@ -9539,9 +622,9 @@ lanes_276:
         bgeu a2, s3, inactive_276
         li t2, 8
 inactive_276:
-        beq t1, t2, answer_ok_1050
+        beq t1, t2, answer_ok_30
         j fail
-answer_ok_1050:
+answer_ok_30:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_276
@@ -9568,9 +651,9 @@ lanes_277:
         bgeu a2, s3, inactive_277
         li t2, 8
 inactive_277:
-        beq t1, t2, answer_ok_1051
+        beq t1, t2, answer_ok_31
         j fail
-answer_ok_1051:
+answer_ok_31:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_277
@@ -9595,9 +678,9 @@ lanes_278:
         bgeu a2, s3, inactive_278
         li t2, 8
 inactive_278:
-        beq t1, t2, answer_ok_1052
+        beq t1, t2, answer_ok_32
         j fail
-answer_ok_1052:
+answer_ok_32:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_278
@@ -9627,9 +710,9 @@ lanes_279:
         bgeu a2, s3, inactive_279
         li t2, 0
 inactive_279:
-        beq t1, t2, answer_ok_1053
+        beq t1, t2, answer_ok_33
         j fail
-answer_ok_1053:
+answer_ok_33:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_279
@@ -9656,9 +739,9 @@ lanes_280:
         bgeu a2, s3, inactive_280
         li t2, 0
 inactive_280:
-        beq t1, t2, answer_ok_1054
+        beq t1, t2, answer_ok_34
         j fail
-answer_ok_1054:
+answer_ok_34:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_280
@@ -9683,9 +766,9 @@ lanes_281:
         bgeu a2, s3, inactive_281
         li t2, 8
 inactive_281:
-        beq t1, t2, answer_ok_1055
+        beq t1, t2, answer_ok_35
         j fail
-answer_ok_1055:
+answer_ok_35:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_281
@@ -9715,9 +798,9 @@ lanes_282:
         bgeu a2, s3, inactive_282
         li t2, 0
 inactive_282:
-        beq t1, t2, answer_ok_1056
+        beq t1, t2, answer_ok_36
         j fail
-answer_ok_1056:
+answer_ok_36:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_282
@@ -9744,9 +827,9 @@ lanes_283:
         bgeu a2, s3, inactive_283
         li t2, 0
 inactive_283:
-        beq t1, t2, answer_ok_1057
+        beq t1, t2, answer_ok_37
         j fail
-answer_ok_1057:
+answer_ok_37:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_283
@@ -9771,9 +854,9 @@ lanes_284:
         bgeu a2, s3, inactive_284
         li t2, 0
 inactive_284:
-        beq t1, t2, answer_ok_1058
+        beq t1, t2, answer_ok_38
         j fail
-answer_ok_1058:
+answer_ok_38:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_284
@@ -9803,9 +886,9 @@ lanes_285:
         bgeu a2, s3, inactive_285
         li t2, 8
 inactive_285:
-        beq t1, t2, answer_ok_1059
+        beq t1, t2, answer_ok_39
         j fail
-answer_ok_1059:
+answer_ok_39:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_285
@@ -9832,9 +915,9 @@ lanes_286:
         bgeu a2, s3, inactive_286
         li t2, 8
 inactive_286:
-        beq t1, t2, answer_ok_1060
+        beq t1, t2, answer_ok_40
         j fail
-answer_ok_1060:
+answer_ok_40:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_286
@@ -9859,9 +942,9 @@ lanes_287:
         bgeu a2, s3, inactive_287
         li t2, 8
 inactive_287:
-        beq t1, t2, answer_ok_1061
+        beq t1, t2, answer_ok_41
         j fail
-answer_ok_1061:
+answer_ok_41:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_287
@@ -9891,9 +974,9 @@ lanes_288:
         bgeu a2, s3, inactive_288
         li t2, 0
 inactive_288:
-        beq t1, t2, answer_ok_1062
+        beq t1, t2, answer_ok_42
         j fail
-answer_ok_1062:
+answer_ok_42:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_288
@@ -9920,9 +1003,9 @@ lanes_289:
         bgeu a2, s3, inactive_289
         li t2, 0
 inactive_289:
-        beq t1, t2, answer_ok_1063
+        beq t1, t2, answer_ok_43
         j fail
-answer_ok_1063:
+answer_ok_43:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_289
@@ -9947,9 +1030,9 @@ lanes_290:
         bgeu a2, s3, inactive_290
         li t2, 8
 inactive_290:
-        beq t1, t2, answer_ok_1064
+        beq t1, t2, answer_ok_44
         j fail
-answer_ok_1064:
+answer_ok_44:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_290
@@ -9979,9 +1062,9 @@ lanes_291:
         bgeu a2, s3, inactive_291
         li t2, 0
 inactive_291:
-        beq t1, t2, answer_ok_1065
+        beq t1, t2, answer_ok_45
         j fail
-answer_ok_1065:
+answer_ok_45:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_291
@@ -10008,9 +1091,9 @@ lanes_292:
         bgeu a2, s3, inactive_292
         li t2, 0
 inactive_292:
-        beq t1, t2, answer_ok_1066
+        beq t1, t2, answer_ok_46
         j fail
-answer_ok_1066:
+answer_ok_46:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_292
@@ -10035,9 +1118,9 @@ lanes_293:
         bgeu a2, s3, inactive_293
         li t2, 0
 inactive_293:
-        beq t1, t2, answer_ok_1067
+        beq t1, t2, answer_ok_47
         j fail
-answer_ok_1067:
+answer_ok_47:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_293
@@ -10067,9 +1150,9 @@ lanes_294:
         bgeu a2, s3, inactive_294
         li t2, 8
 inactive_294:
-        beq t1, t2, answer_ok_1068
+        beq t1, t2, answer_ok_48
         j fail
-answer_ok_1068:
+answer_ok_48:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_294
@@ -10096,9 +1179,9 @@ lanes_295:
         bgeu a2, s3, inactive_295
         li t2, 8
 inactive_295:
-        beq t1, t2, answer_ok_1069
+        beq t1, t2, answer_ok_49
         j fail
-answer_ok_1069:
+answer_ok_49:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_295
@@ -10123,9 +1206,9 @@ lanes_296:
         bgeu a2, s3, inactive_296
         li t2, 8
 inactive_296:
-        beq t1, t2, answer_ok_1070
+        beq t1, t2, answer_ok_50
         j fail
-answer_ok_1070:
+answer_ok_50:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_296
@@ -10155,9 +1238,9 @@ lanes_297:
         bgeu a2, s3, inactive_297
         li t2, 0
 inactive_297:
-        beq t1, t2, answer_ok_1071
+        beq t1, t2, answer_ok_51
         j fail
-answer_ok_1071:
+answer_ok_51:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_297
@@ -10184,9 +1267,9 @@ lanes_298:
         bgeu a2, s3, inactive_298
         li t2, 0
 inactive_298:
-        beq t1, t2, answer_ok_1072
+        beq t1, t2, answer_ok_52
         j fail
-answer_ok_1072:
+answer_ok_52:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_298
@@ -10211,9 +1294,9 @@ lanes_299:
         bgeu a2, s3, inactive_299
         li t2, 8
 inactive_299:
-        beq t1, t2, answer_ok_1073
+        beq t1, t2, answer_ok_53
         j fail
-answer_ok_1073:
+answer_ok_53:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_299
@@ -10243,9 +1326,9 @@ lanes_300:
         bgeu a2, s3, inactive_300
         li t2, 0
 inactive_300:
-        beq t1, t2, answer_ok_1074
+        beq t1, t2, answer_ok_54
         j fail
-answer_ok_1074:
+answer_ok_54:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_300
@@ -10272,9 +1355,9 @@ lanes_301:
         bgeu a2, s3, inactive_301
         li t2, 0
 inactive_301:
-        beq t1, t2, answer_ok_1075
+        beq t1, t2, answer_ok_55
         j fail
-answer_ok_1075:
+answer_ok_55:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_301
@@ -10299,9 +1382,9 @@ lanes_302:
         bgeu a2, s3, inactive_302
         li t2, 0
 inactive_302:
-        beq t1, t2, answer_ok_1076
+        beq t1, t2, answer_ok_56
         j fail
-answer_ok_1076:
+answer_ok_56:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_302
@@ -10331,9 +1414,9 @@ lanes_303:
         bgeu a2, s3, inactive_303
         li t2, 8
 inactive_303:
-        beq t1, t2, answer_ok_1077
+        beq t1, t2, answer_ok_57
         j fail
-answer_ok_1077:
+answer_ok_57:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_303
@@ -10360,9 +1443,9 @@ lanes_304:
         bgeu a2, s3, inactive_304
         li t2, 8
 inactive_304:
-        beq t1, t2, answer_ok_1078
+        beq t1, t2, answer_ok_58
         j fail
-answer_ok_1078:
+answer_ok_58:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_304
@@ -10387,9 +1470,9 @@ lanes_305:
         bgeu a2, s3, inactive_305
         li t2, 8
 inactive_305:
-        beq t1, t2, answer_ok_1079
+        beq t1, t2, answer_ok_59
         j fail
-answer_ok_1079:
+answer_ok_59:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_305
@@ -10419,9 +1502,9 @@ lanes_306:
         bgeu a2, s3, inactive_306
         li t2, 0
 inactive_306:
-        beq t1, t2, answer_ok_1080
+        beq t1, t2, answer_ok_60
         j fail
-answer_ok_1080:
+answer_ok_60:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_306
@@ -10448,9 +1531,9 @@ lanes_307:
         bgeu a2, s3, inactive_307
         li t2, 0
 inactive_307:
-        beq t1, t2, answer_ok_1081
+        beq t1, t2, answer_ok_61
         j fail
-answer_ok_1081:
+answer_ok_61:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_307
@@ -10475,9 +1558,9 @@ lanes_308:
         bgeu a2, s3, inactive_308
         li t2, 8
 inactive_308:
-        beq t1, t2, answer_ok_1082
+        beq t1, t2, answer_ok_62
         j fail
-answer_ok_1082:
+answer_ok_62:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_308
@@ -10507,9 +1590,9 @@ lanes_309:
         bgeu a2, s3, inactive_309
         li t2, 0
 inactive_309:
-        beq t1, t2, answer_ok_1083
+        beq t1, t2, answer_ok_63
         j fail
-answer_ok_1083:
+answer_ok_63:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_309
@@ -10536,9 +1619,9 @@ lanes_310:
         bgeu a2, s3, inactive_310
         li t2, 0
 inactive_310:
-        beq t1, t2, answer_ok_1084
+        beq t1, t2, answer_ok_64
         j fail
-answer_ok_1084:
+answer_ok_64:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_310
@@ -10563,9 +1646,9 @@ lanes_311:
         bgeu a2, s3, inactive_311
         li t2, 0
 inactive_311:
-        beq t1, t2, answer_ok_1085
+        beq t1, t2, answer_ok_65
         j fail
-answer_ok_1085:
+answer_ok_65:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_311
@@ -10595,9 +1678,9 @@ lanes_312:
         bgeu a2, s3, inactive_312
         li t2, 8
 inactive_312:
-        beq t1, t2, answer_ok_1086
+        beq t1, t2, answer_ok_66
         j fail
-answer_ok_1086:
+answer_ok_66:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_312
@@ -10624,9 +1707,9 @@ lanes_313:
         bgeu a2, s3, inactive_313
         li t2, 8
 inactive_313:
-        beq t1, t2, answer_ok_1087
+        beq t1, t2, answer_ok_67
         j fail
-answer_ok_1087:
+answer_ok_67:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_313
@@ -10651,9 +1734,9 @@ lanes_314:
         bgeu a2, s3, inactive_314
         li t2, 8
 inactive_314:
-        beq t1, t2, answer_ok_1088
+        beq t1, t2, answer_ok_68
         j fail
-answer_ok_1088:
+answer_ok_68:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_314
@@ -10683,9 +1766,9 @@ lanes_315:
         bgeu a2, s3, inactive_315
         li t2, 0
 inactive_315:
-        beq t1, t2, answer_ok_1089
+        beq t1, t2, answer_ok_69
         j fail
-answer_ok_1089:
+answer_ok_69:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_315
@@ -10712,9 +1795,9 @@ lanes_316:
         bgeu a2, s3, inactive_316
         li t2, 0
 inactive_316:
-        beq t1, t2, answer_ok_1090
+        beq t1, t2, answer_ok_70
         j fail
-answer_ok_1090:
+answer_ok_70:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_316
@@ -10739,9 +1822,9 @@ lanes_317:
         bgeu a2, s3, inactive_317
         li t2, 8
 inactive_317:
-        beq t1, t2, answer_ok_1091
+        beq t1, t2, answer_ok_71
         j fail
-answer_ok_1091:
+answer_ok_71:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_317
@@ -10771,9 +1854,9 @@ lanes_318:
         bgeu a2, s3, inactive_318
         li t2, 0
 inactive_318:
-        beq t1, t2, answer_ok_1092
+        beq t1, t2, answer_ok_72
         j fail
-answer_ok_1092:
+answer_ok_72:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_318
@@ -10800,9 +1883,9 @@ lanes_319:
         bgeu a2, s3, inactive_319
         li t2, 0
 inactive_319:
-        beq t1, t2, answer_ok_1093
+        beq t1, t2, answer_ok_73
         j fail
-answer_ok_1093:
+answer_ok_73:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_319
@@ -10827,9 +1910,9 @@ lanes_320:
         bgeu a2, s3, inactive_320
         li t2, 0
 inactive_320:
-        beq t1, t2, answer_ok_1094
+        beq t1, t2, answer_ok_74
         j fail
-answer_ok_1094:
+answer_ok_74:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_320
@@ -10859,9 +1942,9 @@ lanes_321:
         bgeu a2, s3, inactive_321
         li t2, 8
 inactive_321:
-        beq t1, t2, answer_ok_1095
+        beq t1, t2, answer_ok_75
         j fail
-answer_ok_1095:
+answer_ok_75:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_321
@@ -10888,38 +1971,43 @@ lanes_322:
         bgeu a2, s3, inactive_322
         li t2, 8
 inactive_322:
-        beq t1, t2, answer_ok_1096
+        beq t1, t2, answer_ok_76
         j fail
-answer_ok_1096:
+answer_ok_76:
         cincoffsetimm c11, c11, 1
         addi a2, a2, 1
         bltu a2, s2, lanes_322
         li t0, 1
         vsetvli t1, t0, 8
-        li gp, 323
-        li t0, 0x0
+        li gp, 322
+        li t0, cases_e16
+        csetaddr c12, c8, t0
+        li t3, 48
+values_e16:
+        addi gp, gp, 1
+        ld t0, 0(c12)
         vmv.v.x v8, t0
         vmv.v.i v16, -1
         vclz.v v16, v8
         vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1097
+        lbu t2, 8(c12)
+        beq t1, t2, answer_ok_77
         j fail
-answer_ok_1097:
+answer_ok_77:
         vmv.v.i v16, -1
         vctz.v v16, v8
         vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1098
+        lbu t2, 9(c12)
+        beq t1, t2, answer_ok_78
         j fail
-answer_ok_1098:
+answer_ok_78:
         vmv.v.i v16, -1
         vcpop.v v16, v8
         vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1099
+        lbu t2, 10(c12)
+        beq t1, t2, answer_ok_79
         j fail
-answer_ok_1099:
+answer_ok_79:
         li t2, 1
         vsub.vx v16, v8, t2
         li t2, -1
@@ -10927,1730 +2015,88 @@ answer_ok_1099:
         vand.vv v16, v16, v17
         vcpop.v v16, v16
         vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1100
-        j fail
-answer_ok_1100:
-        li gp, 324
-        li t0, 0x1
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1101
-        j fail
-answer_ok_1101:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1102
-        j fail
-answer_ok_1102:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1103
-        j fail
-answer_ok_1103:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1104
-        j fail
-answer_ok_1104:
-        li gp, 325
-        li t0, 0x2
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1105
-        j fail
-answer_ok_1105:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1106
-        j fail
-answer_ok_1106:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1107
-        j fail
-answer_ok_1107:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1108
-        j fail
-answer_ok_1108:
-        li gp, 326
-        li t0, 0x3
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1109
-        j fail
-answer_ok_1109:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1110
-        j fail
-answer_ok_1110:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1111
-        j fail
-answer_ok_1111:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1112
-        j fail
-answer_ok_1112:
-        li gp, 327
-        li t0, 0x4
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1113
-        j fail
-answer_ok_1113:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1114
-        j fail
-answer_ok_1114:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1115
-        j fail
-answer_ok_1115:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1116
-        j fail
-answer_ok_1116:
-        li gp, 328
-        li t0, 0x7
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1117
-        j fail
-answer_ok_1117:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1118
-        j fail
-answer_ok_1118:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1119
-        j fail
-answer_ok_1119:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1120
-        j fail
-answer_ok_1120:
-        li gp, 329
-        li t0, 0x8
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1121
-        j fail
-answer_ok_1121:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1122
-        j fail
-answer_ok_1122:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1123
-        j fail
-answer_ok_1123:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1124
-        j fail
-answer_ok_1124:
-        li gp, 330
-        li t0, 0xf
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1125
-        j fail
-answer_ok_1125:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1126
-        j fail
-answer_ok_1126:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1127
-        j fail
-answer_ok_1127:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1128
-        j fail
-answer_ok_1128:
-        li gp, 331
-        li t0, 0x10
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1129
-        j fail
-answer_ok_1129:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1130
-        j fail
-answer_ok_1130:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1131
-        j fail
-answer_ok_1131:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1132
-        j fail
-answer_ok_1132:
-        li gp, 332
-        li t0, 0x1f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1133
-        j fail
-answer_ok_1133:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1134
-        j fail
-answer_ok_1134:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1135
-        j fail
-answer_ok_1135:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1136
-        j fail
-answer_ok_1136:
-        li gp, 333
-        li t0, 0x20
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1137
-        j fail
-answer_ok_1137:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1138
-        j fail
-answer_ok_1138:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1139
-        j fail
-answer_ok_1139:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1140
-        j fail
-answer_ok_1140:
-        li gp, 334
-        li t0, 0x3f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1141
-        j fail
-answer_ok_1141:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1142
-        j fail
-answer_ok_1142:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1143
-        j fail
-answer_ok_1143:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1144
-        j fail
-answer_ok_1144:
-        li gp, 335
-        li t0, 0x40
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1145
-        j fail
-answer_ok_1145:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1146
-        j fail
-answer_ok_1146:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1147
-        j fail
-answer_ok_1147:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1148
-        j fail
-answer_ok_1148:
-        li gp, 336
-        li t0, 0x7f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1149
-        j fail
-answer_ok_1149:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1150
-        j fail
-answer_ok_1150:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1151
-        j fail
-answer_ok_1151:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1152
-        j fail
-answer_ok_1152:
-        li gp, 337
-        li t0, 0x80
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1153
-        j fail
-answer_ok_1153:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1154
-        j fail
-answer_ok_1154:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1155
-        j fail
-answer_ok_1155:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1156
-        j fail
-answer_ok_1156:
-        li gp, 338
-        li t0, 0xff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1157
-        j fail
-answer_ok_1157:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1158
-        j fail
-answer_ok_1158:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1159
-        j fail
-answer_ok_1159:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1160
-        j fail
-answer_ok_1160:
-        li gp, 339
-        li t0, 0x100
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1161
-        j fail
-answer_ok_1161:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1162
-        j fail
-answer_ok_1162:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1163
-        j fail
-answer_ok_1163:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1164
-        j fail
-answer_ok_1164:
-        li gp, 340
-        li t0, 0x1ff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1165
-        j fail
-answer_ok_1165:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1166
-        j fail
-answer_ok_1166:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1167
-        j fail
-answer_ok_1167:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1168
-        j fail
-answer_ok_1168:
-        li gp, 341
-        li t0, 0x200
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1169
-        j fail
-answer_ok_1169:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1170
-        j fail
-answer_ok_1170:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1171
-        j fail
-answer_ok_1171:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1172
-        j fail
-answer_ok_1172:
-        li gp, 342
-        li t0, 0x3ff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1173
-        j fail
-answer_ok_1173:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1174
-        j fail
-answer_ok_1174:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1175
-        j fail
-answer_ok_1175:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1176
-        j fail
-answer_ok_1176:
-        li gp, 343
-        li t0, 0x400
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1177
-        j fail
-answer_ok_1177:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1178
-        j fail
-answer_ok_1178:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1179
-        j fail
-answer_ok_1179:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1180
-        j fail
-answer_ok_1180:
-        li gp, 344
-        li t0, 0x7ff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1181
-        j fail
-answer_ok_1181:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1182
-        j fail
-answer_ok_1182:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1183
-        j fail
-answer_ok_1183:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1184
-        j fail
-answer_ok_1184:
-        li gp, 345
-        li t0, 0x800
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1185
-        j fail
-answer_ok_1185:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1186
-        j fail
-answer_ok_1186:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1187
-        j fail
-answer_ok_1187:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1188
-        j fail
-answer_ok_1188:
-        li gp, 346
-        li t0, 0xfff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1189
-        j fail
-answer_ok_1189:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1190
-        j fail
-answer_ok_1190:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1191
-        j fail
-answer_ok_1191:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1192
-        j fail
-answer_ok_1192:
-        li gp, 347
-        li t0, 0x1000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1193
-        j fail
-answer_ok_1193:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1194
-        j fail
-answer_ok_1194:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1195
-        j fail
-answer_ok_1195:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1196
-        j fail
-answer_ok_1196:
-        li gp, 348
-        li t0, 0x1fff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1197
-        j fail
-answer_ok_1197:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1198
-        j fail
-answer_ok_1198:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1199
-        j fail
-answer_ok_1199:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1200
-        j fail
-answer_ok_1200:
-        li gp, 349
-        li t0, 0x2000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1201
-        j fail
-answer_ok_1201:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1202
-        j fail
-answer_ok_1202:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1203
-        j fail
-answer_ok_1203:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1204
-        j fail
-answer_ok_1204:
-        li gp, 350
-        li t0, 0x3fff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1205
-        j fail
-answer_ok_1205:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1206
-        j fail
-answer_ok_1206:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1207
-        j fail
-answer_ok_1207:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1208
-        j fail
-answer_ok_1208:
-        li gp, 351
-        li t0, 0x4000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1209
-        j fail
-answer_ok_1209:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1210
-        j fail
-answer_ok_1210:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1211
-        j fail
-answer_ok_1211:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1212
-        j fail
-answer_ok_1212:
-        li gp, 352
-        li t0, 0x5555
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1213
-        j fail
-answer_ok_1213:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1214
-        j fail
-answer_ok_1214:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1215
-        j fail
-answer_ok_1215:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1216
-        j fail
-answer_ok_1216:
-        li gp, 353
-        li t0, 0x7fff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1217
-        j fail
-answer_ok_1217:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1218
-        j fail
-answer_ok_1218:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1219
-        j fail
-answer_ok_1219:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1220
-        j fail
-answer_ok_1220:
-        li gp, 354
-        li t0, 0x8000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1221
-        j fail
-answer_ok_1221:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1222
-        j fail
-answer_ok_1222:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1223
-        j fail
-answer_ok_1223:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1224
-        j fail
-answer_ok_1224:
-        li gp, 355
-        li t0, 0xaaaa
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1225
-        j fail
-answer_ok_1225:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1226
-        j fail
-answer_ok_1226:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1227
-        j fail
-answer_ok_1227:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1228
-        j fail
-answer_ok_1228:
-        li gp, 356
-        li t0, 0xc000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1229
-        j fail
-answer_ok_1229:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1230
-        j fail
-answer_ok_1230:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1231
-        j fail
-answer_ok_1231:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1232
-        j fail
-answer_ok_1232:
-        li gp, 357
-        li t0, 0xe000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1233
-        j fail
-answer_ok_1233:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1234
-        j fail
-answer_ok_1234:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1235
-        j fail
-answer_ok_1235:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1236
-        j fail
-answer_ok_1236:
-        li gp, 358
-        li t0, 0xf000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1237
-        j fail
-answer_ok_1237:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1238
-        j fail
-answer_ok_1238:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1239
-        j fail
-answer_ok_1239:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1240
-        j fail
-answer_ok_1240:
-        li gp, 359
-        li t0, 0xf800
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1241
-        j fail
-answer_ok_1241:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1242
-        j fail
-answer_ok_1242:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1243
-        j fail
-answer_ok_1243:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1244
-        j fail
-answer_ok_1244:
-        li gp, 360
-        li t0, 0xfc00
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1245
-        j fail
-answer_ok_1245:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1246
-        j fail
-answer_ok_1246:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1247
-        j fail
-answer_ok_1247:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1248
-        j fail
-answer_ok_1248:
-        li gp, 361
-        li t0, 0xfe00
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1249
-        j fail
-answer_ok_1249:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1250
-        j fail
-answer_ok_1250:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1251
-        j fail
-answer_ok_1251:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1252
-        j fail
-answer_ok_1252:
-        li gp, 362
-        li t0, 0xff00
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1253
-        j fail
-answer_ok_1253:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1254
-        j fail
-answer_ok_1254:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1255
-        j fail
-answer_ok_1255:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1256
-        j fail
-answer_ok_1256:
-        li gp, 363
-        li t0, 0xff80
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1257
-        j fail
-answer_ok_1257:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1258
-        j fail
-answer_ok_1258:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1259
-        j fail
-answer_ok_1259:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1260
-        j fail
-answer_ok_1260:
-        li gp, 364
-        li t0, 0xffc0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1261
-        j fail
-answer_ok_1261:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1262
-        j fail
-answer_ok_1262:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1263
-        j fail
-answer_ok_1263:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1264
-        j fail
-answer_ok_1264:
-        li gp, 365
-        li t0, 0xffe0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1265
-        j fail
-answer_ok_1265:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1266
-        j fail
-answer_ok_1266:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1267
-        j fail
-answer_ok_1267:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1268
-        j fail
-answer_ok_1268:
-        li gp, 366
-        li t0, 0xfff0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1269
-        j fail
-answer_ok_1269:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1270
-        j fail
-answer_ok_1270:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1271
-        j fail
-answer_ok_1271:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1272
-        j fail
-answer_ok_1272:
-        li gp, 367
-        li t0, 0xfff8
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1273
-        j fail
-answer_ok_1273:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1274
-        j fail
-answer_ok_1274:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1275
-        j fail
-answer_ok_1275:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1276
-        j fail
-answer_ok_1276:
-        li gp, 368
-        li t0, 0xfffc
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1277
-        j fail
-answer_ok_1277:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1278
-        j fail
-answer_ok_1278:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1279
-        j fail
-answer_ok_1279:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1280
-        j fail
-answer_ok_1280:
-        li gp, 369
-        li t0, 0xfffe
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1281
-        j fail
-answer_ok_1281:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1282
-        j fail
-answer_ok_1282:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1283
-        j fail
-answer_ok_1283:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1284
-        j fail
-answer_ok_1284:
-        li gp, 370
-        li t0, 0xffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1285
-        j fail
-answer_ok_1285:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1286
-        j fail
-answer_ok_1286:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1287
-        j fail
-answer_ok_1287:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1288
-        j fail
-answer_ok_1288:
+        lbu t2, 9(c12)
+        beq t1, t2, answer_ok_80
+        j fail
+answer_ok_80:
+        cincoffsetimm c12, c12, 16
+        addi t3, t3, -1
+        bnez t3, values_e16
         li gp, 371
         li t0, 0x0
         vmv.v.x v16, t0
         vclz.v v16, v16
         vmv.x.s t1, v16
         li t2, 16
-        beq t1, t2, answer_ok_1289
+        beq t1, t2, answer_ok_81
         j fail
-answer_ok_1289:
+answer_ok_81:
         li t0, 0x0
         vmv.v.x v16, t0
         vctz.v v16, v16
         vmv.x.s t1, v16
         li t2, 16
-        beq t1, t2, answer_ok_1290
+        beq t1, t2, answer_ok_82
         j fail
-answer_ok_1290:
+answer_ok_82:
         li t0, 0x0
         vmv.v.x v16, t0
         vcpop.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_1291
+        beq t1, t2, answer_ok_83
         j fail
-answer_ok_1291:
+answer_ok_83:
         li gp, 372
         li t0, 0x8000
         vmv.v.x v16, t0
         vclz.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_1292
+        beq t1, t2, answer_ok_84
         j fail
-answer_ok_1292:
+answer_ok_84:
         li t0, 0x8000
         vmv.v.x v16, t0
         vctz.v v16, v16
         vmv.x.s t1, v16
         li t2, 15
-        beq t1, t2, answer_ok_1293
+        beq t1, t2, answer_ok_85
         j fail
-answer_ok_1293:
+answer_ok_85:
         li t0, 0x8000
         vmv.v.x v16, t0
         vcpop.v v16, v16
         vmv.x.s t1, v16
         li t2, 1
-        beq t1, t2, answer_ok_1294
+        beq t1, t2, answer_ok_86
         j fail
-answer_ok_1294:
+answer_ok_86:
         li gp, 373
         li t0, 0xffff
         vmv.v.x v16, t0
         vclz.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_1295
+        beq t1, t2, answer_ok_87
         j fail
-answer_ok_1295:
+answer_ok_87:
         li t0, 0xffff
         vmv.v.x v16, t0
         vctz.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_1296
+        beq t1, t2, answer_ok_88
         j fail
-answer_ok_1296:
+answer_ok_88:
         li t0, 0xffff
         vmv.v.x v16, t0
         vcpop.v v16, v16
         vmv.x.s t1, v16
         li t2, 16
-        beq t1, t2, answer_ok_1297
+        beq t1, t2, answer_ok_89
         j fail
-answer_ok_1297:
+answer_ok_89:
         li gp, 374
         vsetvli s2, zero, 8
         vmv.v.i v16, -1
@@ -12672,9 +2118,9 @@ lanes_374:
         bgeu a2, s3, inactive_374
         li t2, 16
 inactive_374:
-        beq t1, t2, answer_ok_1298
+        beq t1, t2, answer_ok_90
         j fail
-answer_ok_1298:
+answer_ok_90:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_374
@@ -12704,9 +2150,9 @@ lanes_375:
         bgeu a2, s3, inactive_375
         li t2, 0
 inactive_375:
-        beq t1, t2, answer_ok_1299
+        beq t1, t2, answer_ok_91
         j fail
-answer_ok_1299:
+answer_ok_91:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_375
@@ -12733,9 +2179,9 @@ lanes_376:
         bgeu a2, s3, inactive_376
         li t2, 0
 inactive_376:
-        beq t1, t2, answer_ok_1300
+        beq t1, t2, answer_ok_92
         j fail
-answer_ok_1300:
+answer_ok_92:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_376
@@ -12760,9 +2206,9 @@ lanes_377:
         bgeu a2, s3, inactive_377
         li t2, 16
 inactive_377:
-        beq t1, t2, answer_ok_1301
+        beq t1, t2, answer_ok_93
         j fail
-answer_ok_1301:
+answer_ok_93:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_377
@@ -12792,9 +2238,9 @@ lanes_378:
         bgeu a2, s3, inactive_378
         li t2, 0
 inactive_378:
-        beq t1, t2, answer_ok_1302
+        beq t1, t2, answer_ok_94
         j fail
-answer_ok_1302:
+answer_ok_94:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_378
@@ -12821,9 +2267,9 @@ lanes_379:
         bgeu a2, s3, inactive_379
         li t2, 0
 inactive_379:
-        beq t1, t2, answer_ok_1303
+        beq t1, t2, answer_ok_95
         j fail
-answer_ok_1303:
+answer_ok_95:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_379
@@ -12848,9 +2294,9 @@ lanes_380:
         bgeu a2, s3, inactive_380
         li t2, 0
 inactive_380:
-        beq t1, t2, answer_ok_1304
+        beq t1, t2, answer_ok_96
         j fail
-answer_ok_1304:
+answer_ok_96:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_380
@@ -12880,9 +2326,9 @@ lanes_381:
         bgeu a2, s3, inactive_381
         li t2, 16
 inactive_381:
-        beq t1, t2, answer_ok_1305
+        beq t1, t2, answer_ok_97
         j fail
-answer_ok_1305:
+answer_ok_97:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_381
@@ -12909,9 +2355,9 @@ lanes_382:
         bgeu a2, s3, inactive_382
         li t2, 16
 inactive_382:
-        beq t1, t2, answer_ok_1306
+        beq t1, t2, answer_ok_98
         j fail
-answer_ok_1306:
+answer_ok_98:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_382
@@ -12936,9 +2382,9 @@ lanes_383:
         bgeu a2, s3, inactive_383
         li t2, 16
 inactive_383:
-        beq t1, t2, answer_ok_1307
+        beq t1, t2, answer_ok_99
         j fail
-answer_ok_1307:
+answer_ok_99:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_383
@@ -12968,9 +2414,9 @@ lanes_384:
         bgeu a2, s3, inactive_384
         li t2, 0
 inactive_384:
-        beq t1, t2, answer_ok_1308
+        beq t1, t2, answer_ok_100
         j fail
-answer_ok_1308:
+answer_ok_100:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_384
@@ -12997,9 +2443,9 @@ lanes_385:
         bgeu a2, s3, inactive_385
         li t2, 0
 inactive_385:
-        beq t1, t2, answer_ok_1309
+        beq t1, t2, answer_ok_101
         j fail
-answer_ok_1309:
+answer_ok_101:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_385
@@ -13024,9 +2470,9 @@ lanes_386:
         bgeu a2, s3, inactive_386
         li t2, 16
 inactive_386:
-        beq t1, t2, answer_ok_1310
+        beq t1, t2, answer_ok_102
         j fail
-answer_ok_1310:
+answer_ok_102:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_386
@@ -13056,9 +2502,9 @@ lanes_387:
         bgeu a2, s3, inactive_387
         li t2, 0
 inactive_387:
-        beq t1, t2, answer_ok_1311
+        beq t1, t2, answer_ok_103
         j fail
-answer_ok_1311:
+answer_ok_103:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_387
@@ -13085,9 +2531,9 @@ lanes_388:
         bgeu a2, s3, inactive_388
         li t2, 0
 inactive_388:
-        beq t1, t2, answer_ok_1312
+        beq t1, t2, answer_ok_104
         j fail
-answer_ok_1312:
+answer_ok_104:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_388
@@ -13112,9 +2558,9 @@ lanes_389:
         bgeu a2, s3, inactive_389
         li t2, 0
 inactive_389:
-        beq t1, t2, answer_ok_1313
+        beq t1, t2, answer_ok_105
         j fail
-answer_ok_1313:
+answer_ok_105:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_389
@@ -13144,9 +2590,9 @@ lanes_390:
         bgeu a2, s3, inactive_390
         li t2, 16
 inactive_390:
-        beq t1, t2, answer_ok_1314
+        beq t1, t2, answer_ok_106
         j fail
-answer_ok_1314:
+answer_ok_106:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_390
@@ -13173,9 +2619,9 @@ lanes_391:
         bgeu a2, s3, inactive_391
         li t2, 16
 inactive_391:
-        beq t1, t2, answer_ok_1315
+        beq t1, t2, answer_ok_107
         j fail
-answer_ok_1315:
+answer_ok_107:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_391
@@ -13200,9 +2646,9 @@ lanes_392:
         bgeu a2, s3, inactive_392
         li t2, 16
 inactive_392:
-        beq t1, t2, answer_ok_1316
+        beq t1, t2, answer_ok_108
         j fail
-answer_ok_1316:
+answer_ok_108:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_392
@@ -13232,9 +2678,9 @@ lanes_393:
         bgeu a2, s3, inactive_393
         li t2, 0
 inactive_393:
-        beq t1, t2, answer_ok_1317
+        beq t1, t2, answer_ok_109
         j fail
-answer_ok_1317:
+answer_ok_109:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_393
@@ -13261,9 +2707,9 @@ lanes_394:
         bgeu a2, s3, inactive_394
         li t2, 0
 inactive_394:
-        beq t1, t2, answer_ok_1318
+        beq t1, t2, answer_ok_110
         j fail
-answer_ok_1318:
+answer_ok_110:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_394
@@ -13288,9 +2734,9 @@ lanes_395:
         bgeu a2, s3, inactive_395
         li t2, 16
 inactive_395:
-        beq t1, t2, answer_ok_1319
+        beq t1, t2, answer_ok_111
         j fail
-answer_ok_1319:
+answer_ok_111:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_395
@@ -13320,9 +2766,9 @@ lanes_396:
         bgeu a2, s3, inactive_396
         li t2, 0
 inactive_396:
-        beq t1, t2, answer_ok_1320
+        beq t1, t2, answer_ok_112
         j fail
-answer_ok_1320:
+answer_ok_112:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_396
@@ -13349,9 +2795,9 @@ lanes_397:
         bgeu a2, s3, inactive_397
         li t2, 0
 inactive_397:
-        beq t1, t2, answer_ok_1321
+        beq t1, t2, answer_ok_113
         j fail
-answer_ok_1321:
+answer_ok_113:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_397
@@ -13376,9 +2822,9 @@ lanes_398:
         bgeu a2, s3, inactive_398
         li t2, 0
 inactive_398:
-        beq t1, t2, answer_ok_1322
+        beq t1, t2, answer_ok_114
         j fail
-answer_ok_1322:
+answer_ok_114:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_398
@@ -13408,9 +2854,9 @@ lanes_399:
         bgeu a2, s3, inactive_399
         li t2, 16
 inactive_399:
-        beq t1, t2, answer_ok_1323
+        beq t1, t2, answer_ok_115
         j fail
-answer_ok_1323:
+answer_ok_115:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_399
@@ -13437,9 +2883,9 @@ lanes_400:
         bgeu a2, s3, inactive_400
         li t2, 16
 inactive_400:
-        beq t1, t2, answer_ok_1324
+        beq t1, t2, answer_ok_116
         j fail
-answer_ok_1324:
+answer_ok_116:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_400
@@ -13464,9 +2910,9 @@ lanes_401:
         bgeu a2, s3, inactive_401
         li t2, 16
 inactive_401:
-        beq t1, t2, answer_ok_1325
+        beq t1, t2, answer_ok_117
         j fail
-answer_ok_1325:
+answer_ok_117:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_401
@@ -13496,9 +2942,9 @@ lanes_402:
         bgeu a2, s3, inactive_402
         li t2, 0
 inactive_402:
-        beq t1, t2, answer_ok_1326
+        beq t1, t2, answer_ok_118
         j fail
-answer_ok_1326:
+answer_ok_118:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_402
@@ -13525,9 +2971,9 @@ lanes_403:
         bgeu a2, s3, inactive_403
         li t2, 0
 inactive_403:
-        beq t1, t2, answer_ok_1327
+        beq t1, t2, answer_ok_119
         j fail
-answer_ok_1327:
+answer_ok_119:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_403
@@ -13552,9 +2998,9 @@ lanes_404:
         bgeu a2, s3, inactive_404
         li t2, 16
 inactive_404:
-        beq t1, t2, answer_ok_1328
+        beq t1, t2, answer_ok_120
         j fail
-answer_ok_1328:
+answer_ok_120:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_404
@@ -13584,9 +3030,9 @@ lanes_405:
         bgeu a2, s3, inactive_405
         li t2, 0
 inactive_405:
-        beq t1, t2, answer_ok_1329
+        beq t1, t2, answer_ok_121
         j fail
-answer_ok_1329:
+answer_ok_121:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_405
@@ -13613,9 +3059,9 @@ lanes_406:
         bgeu a2, s3, inactive_406
         li t2, 0
 inactive_406:
-        beq t1, t2, answer_ok_1330
+        beq t1, t2, answer_ok_122
         j fail
-answer_ok_1330:
+answer_ok_122:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_406
@@ -13640,9 +3086,9 @@ lanes_407:
         bgeu a2, s3, inactive_407
         li t2, 0
 inactive_407:
-        beq t1, t2, answer_ok_1331
+        beq t1, t2, answer_ok_123
         j fail
-answer_ok_1331:
+answer_ok_123:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_407
@@ -13672,9 +3118,9 @@ lanes_408:
         bgeu a2, s3, inactive_408
         li t2, 16
 inactive_408:
-        beq t1, t2, answer_ok_1332
+        beq t1, t2, answer_ok_124
         j fail
-answer_ok_1332:
+answer_ok_124:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_408
@@ -13701,9 +3147,9 @@ lanes_409:
         bgeu a2, s3, inactive_409
         li t2, 16
 inactive_409:
-        beq t1, t2, answer_ok_1333
+        beq t1, t2, answer_ok_125
         j fail
-answer_ok_1333:
+answer_ok_125:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_409
@@ -13728,9 +3174,9 @@ lanes_410:
         bgeu a2, s3, inactive_410
         li t2, 16
 inactive_410:
-        beq t1, t2, answer_ok_1334
+        beq t1, t2, answer_ok_126
         j fail
-answer_ok_1334:
+answer_ok_126:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_410
@@ -13760,9 +3206,9 @@ lanes_411:
         bgeu a2, s3, inactive_411
         li t2, 0
 inactive_411:
-        beq t1, t2, answer_ok_1335
+        beq t1, t2, answer_ok_127
         j fail
-answer_ok_1335:
+answer_ok_127:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_411
@@ -13789,9 +3235,9 @@ lanes_412:
         bgeu a2, s3, inactive_412
         li t2, 0
 inactive_412:
-        beq t1, t2, answer_ok_1336
+        beq t1, t2, answer_ok_128
         j fail
-answer_ok_1336:
+answer_ok_128:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_412
@@ -13816,9 +3262,9 @@ lanes_413:
         bgeu a2, s3, inactive_413
         li t2, 16
 inactive_413:
-        beq t1, t2, answer_ok_1337
+        beq t1, t2, answer_ok_129
         j fail
-answer_ok_1337:
+answer_ok_129:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_413
@@ -13848,9 +3294,9 @@ lanes_414:
         bgeu a2, s3, inactive_414
         li t2, 0
 inactive_414:
-        beq t1, t2, answer_ok_1338
+        beq t1, t2, answer_ok_130
         j fail
-answer_ok_1338:
+answer_ok_130:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_414
@@ -13877,9 +3323,9 @@ lanes_415:
         bgeu a2, s3, inactive_415
         li t2, 0
 inactive_415:
-        beq t1, t2, answer_ok_1339
+        beq t1, t2, answer_ok_131
         j fail
-answer_ok_1339:
+answer_ok_131:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_415
@@ -13904,9 +3350,9 @@ lanes_416:
         bgeu a2, s3, inactive_416
         li t2, 0
 inactive_416:
-        beq t1, t2, answer_ok_1340
+        beq t1, t2, answer_ok_132
         j fail
-answer_ok_1340:
+answer_ok_132:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_416
@@ -13936,9 +3382,9 @@ lanes_417:
         bgeu a2, s3, inactive_417
         li t2, 16
 inactive_417:
-        beq t1, t2, answer_ok_1341
+        beq t1, t2, answer_ok_133
         j fail
-answer_ok_1341:
+answer_ok_133:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_417
@@ -13965,9 +3411,9 @@ lanes_418:
         bgeu a2, s3, inactive_418
         li t2, 16
 inactive_418:
-        beq t1, t2, answer_ok_1342
+        beq t1, t2, answer_ok_134
         j fail
-answer_ok_1342:
+answer_ok_134:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_418
@@ -13992,9 +3438,9 @@ lanes_419:
         bgeu a2, s3, inactive_419
         li t2, 16
 inactive_419:
-        beq t1, t2, answer_ok_1343
+        beq t1, t2, answer_ok_135
         j fail
-answer_ok_1343:
+answer_ok_135:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_419
@@ -14024,9 +3470,9 @@ lanes_420:
         bgeu a2, s3, inactive_420
         li t2, 0
 inactive_420:
-        beq t1, t2, answer_ok_1344
+        beq t1, t2, answer_ok_136
         j fail
-answer_ok_1344:
+answer_ok_136:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_420
@@ -14053,9 +3499,9 @@ lanes_421:
         bgeu a2, s3, inactive_421
         li t2, 0
 inactive_421:
-        beq t1, t2, answer_ok_1345
+        beq t1, t2, answer_ok_137
         j fail
-answer_ok_1345:
+answer_ok_137:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_421
@@ -14080,9 +3526,9 @@ lanes_422:
         bgeu a2, s3, inactive_422
         li t2, 16
 inactive_422:
-        beq t1, t2, answer_ok_1346
+        beq t1, t2, answer_ok_138
         j fail
-answer_ok_1346:
+answer_ok_138:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_422
@@ -14112,9 +3558,9 @@ lanes_423:
         bgeu a2, s3, inactive_423
         li t2, 0
 inactive_423:
-        beq t1, t2, answer_ok_1347
+        beq t1, t2, answer_ok_139
         j fail
-answer_ok_1347:
+answer_ok_139:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_423
@@ -14141,9 +3587,9 @@ lanes_424:
         bgeu a2, s3, inactive_424
         li t2, 0
 inactive_424:
-        beq t1, t2, answer_ok_1348
+        beq t1, t2, answer_ok_140
         j fail
-answer_ok_1348:
+answer_ok_140:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_424
@@ -14168,9 +3614,9 @@ lanes_425:
         bgeu a2, s3, inactive_425
         li t2, 0
 inactive_425:
-        beq t1, t2, answer_ok_1349
+        beq t1, t2, answer_ok_141
         j fail
-answer_ok_1349:
+answer_ok_141:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_425
@@ -14200,9 +3646,9 @@ lanes_426:
         bgeu a2, s3, inactive_426
         li t2, 16
 inactive_426:
-        beq t1, t2, answer_ok_1350
+        beq t1, t2, answer_ok_142
         j fail
-answer_ok_1350:
+answer_ok_142:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_426
@@ -14229,38 +3675,43 @@ lanes_427:
         bgeu a2, s3, inactive_427
         li t2, 16
 inactive_427:
-        beq t1, t2, answer_ok_1351
+        beq t1, t2, answer_ok_143
         j fail
-answer_ok_1351:
+answer_ok_143:
         cincoffsetimm c11, c11, 2
         addi a2, a2, 1
         bltu a2, s2, lanes_427
         li t0, 1
         vsetvli t1, t0, 16
-        li gp, 428
-        li t0, 0x0
+        li gp, 427
+        li t0, cases_e32
+        csetaddr c12, c8, t0
+        li t3, 96
+values_e32:
+        addi gp, gp, 1
+        ld t0, 0(c12)
         vmv.v.x v8, t0
         vmv.v.i v16, -1
         vclz.v v16, v8
         vmv.x.s t1, v16
-        li t2, 32
-        beq t1, t2, answer_ok_1352
+        lbu t2, 8(c12)
+        beq t1, t2, answer_ok_144
         j fail
-answer_ok_1352:
+answer_ok_144:
         vmv.v.i v16, -1
         vctz.v v16, v8
         vmv.x.s t1, v16
-        li t2, 32
-        beq t1, t2, answer_ok_1353
+        lbu t2, 9(c12)
+        beq t1, t2, answer_ok_145
         j fail
-answer_ok_1353:
+answer_ok_145:
         vmv.v.i v16, -1
         vcpop.v v16, v8
         vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1354
+        lbu t2, 10(c12)
+        beq t1, t2, answer_ok_146
         j fail
-answer_ok_1354:
+answer_ok_146:
         li t2, 1
         vsub.vx v16, v8, t2
         li t2, -1
@@ -14268,3410 +3719,88 @@ answer_ok_1354:
         vand.vv v16, v16, v17
         vcpop.v v16, v16
         vmv.x.s t1, v16
-        li t2, 32
-        beq t1, t2, answer_ok_1355
+        lbu t2, 9(c12)
+        beq t1, t2, answer_ok_147
         j fail
-answer_ok_1355:
-        li gp, 429
-        li t0, 0x1
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 31
-        beq t1, t2, answer_ok_1356
-        j fail
-answer_ok_1356:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1357
-        j fail
-answer_ok_1357:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1358
-        j fail
-answer_ok_1358:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1359
-        j fail
-answer_ok_1359:
-        li gp, 430
-        li t0, 0x2
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_1360
-        j fail
-answer_ok_1360:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1361
-        j fail
-answer_ok_1361:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1362
-        j fail
-answer_ok_1362:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1363
-        j fail
-answer_ok_1363:
-        li gp, 431
-        li t0, 0x3
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_1364
-        j fail
-answer_ok_1364:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1365
-        j fail
-answer_ok_1365:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1366
-        j fail
-answer_ok_1366:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1367
-        j fail
-answer_ok_1367:
-        li gp, 432
-        li t0, 0x4
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_1368
-        j fail
-answer_ok_1368:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1369
-        j fail
-answer_ok_1369:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1370
-        j fail
-answer_ok_1370:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1371
-        j fail
-answer_ok_1371:
-        li gp, 433
-        li t0, 0x7
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_1372
-        j fail
-answer_ok_1372:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1373
-        j fail
-answer_ok_1373:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1374
-        j fail
-answer_ok_1374:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1375
-        j fail
-answer_ok_1375:
-        li gp, 434
-        li t0, 0x8
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_1376
-        j fail
-answer_ok_1376:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1377
-        j fail
-answer_ok_1377:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1378
-        j fail
-answer_ok_1378:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1379
-        j fail
-answer_ok_1379:
-        li gp, 435
-        li t0, 0xf
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_1380
-        j fail
-answer_ok_1380:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1381
-        j fail
-answer_ok_1381:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1382
-        j fail
-answer_ok_1382:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1383
-        j fail
-answer_ok_1383:
-        li gp, 436
-        li t0, 0x10
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_1384
-        j fail
-answer_ok_1384:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1385
-        j fail
-answer_ok_1385:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1386
-        j fail
-answer_ok_1386:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1387
-        j fail
-answer_ok_1387:
-        li gp, 437
-        li t0, 0x1f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_1388
-        j fail
-answer_ok_1388:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1389
-        j fail
-answer_ok_1389:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1390
-        j fail
-answer_ok_1390:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1391
-        j fail
-answer_ok_1391:
-        li gp, 438
-        li t0, 0x20
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_1392
-        j fail
-answer_ok_1392:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1393
-        j fail
-answer_ok_1393:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1394
-        j fail
-answer_ok_1394:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1395
-        j fail
-answer_ok_1395:
-        li gp, 439
-        li t0, 0x3f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_1396
-        j fail
-answer_ok_1396:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1397
-        j fail
-answer_ok_1397:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1398
-        j fail
-answer_ok_1398:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1399
-        j fail
-answer_ok_1399:
-        li gp, 440
-        li t0, 0x40
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_1400
-        j fail
-answer_ok_1400:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1401
-        j fail
-answer_ok_1401:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1402
-        j fail
-answer_ok_1402:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1403
-        j fail
-answer_ok_1403:
-        li gp, 441
-        li t0, 0x7f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_1404
-        j fail
-answer_ok_1404:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1405
-        j fail
-answer_ok_1405:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1406
-        j fail
-answer_ok_1406:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1407
-        j fail
-answer_ok_1407:
-        li gp, 442
-        li t0, 0x80
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_1408
-        j fail
-answer_ok_1408:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1409
-        j fail
-answer_ok_1409:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1410
-        j fail
-answer_ok_1410:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1411
-        j fail
-answer_ok_1411:
-        li gp, 443
-        li t0, 0xff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_1412
-        j fail
-answer_ok_1412:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1413
-        j fail
-answer_ok_1413:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1414
-        j fail
-answer_ok_1414:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1415
-        j fail
-answer_ok_1415:
-        li gp, 444
-        li t0, 0x100
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_1416
-        j fail
-answer_ok_1416:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1417
-        j fail
-answer_ok_1417:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1418
-        j fail
-answer_ok_1418:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1419
-        j fail
-answer_ok_1419:
-        li gp, 445
-        li t0, 0x1ff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_1420
-        j fail
-answer_ok_1420:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1421
-        j fail
-answer_ok_1421:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1422
-        j fail
-answer_ok_1422:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1423
-        j fail
-answer_ok_1423:
-        li gp, 446
-        li t0, 0x200
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_1424
-        j fail
-answer_ok_1424:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1425
-        j fail
-answer_ok_1425:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1426
-        j fail
-answer_ok_1426:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1427
-        j fail
-answer_ok_1427:
-        li gp, 447
-        li t0, 0x3ff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_1428
-        j fail
-answer_ok_1428:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1429
-        j fail
-answer_ok_1429:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1430
-        j fail
-answer_ok_1430:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1431
-        j fail
-answer_ok_1431:
-        li gp, 448
-        li t0, 0x400
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_1432
-        j fail
-answer_ok_1432:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1433
-        j fail
-answer_ok_1433:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1434
-        j fail
-answer_ok_1434:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1435
-        j fail
-answer_ok_1435:
-        li gp, 449
-        li t0, 0x7ff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_1436
-        j fail
-answer_ok_1436:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1437
-        j fail
-answer_ok_1437:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1438
-        j fail
-answer_ok_1438:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1439
-        j fail
-answer_ok_1439:
-        li gp, 450
-        li t0, 0x800
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_1440
-        j fail
-answer_ok_1440:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1441
-        j fail
-answer_ok_1441:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1442
-        j fail
-answer_ok_1442:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1443
-        j fail
-answer_ok_1443:
-        li gp, 451
-        li t0, 0xfff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_1444
-        j fail
-answer_ok_1444:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1445
-        j fail
-answer_ok_1445:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1446
-        j fail
-answer_ok_1446:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1447
-        j fail
-answer_ok_1447:
-        li gp, 452
-        li t0, 0x1000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_1448
-        j fail
-answer_ok_1448:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1449
-        j fail
-answer_ok_1449:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1450
-        j fail
-answer_ok_1450:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1451
-        j fail
-answer_ok_1451:
-        li gp, 453
-        li t0, 0x1fff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_1452
-        j fail
-answer_ok_1452:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1453
-        j fail
-answer_ok_1453:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1454
-        j fail
-answer_ok_1454:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1455
-        j fail
-answer_ok_1455:
-        li gp, 454
-        li t0, 0x2000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_1456
-        j fail
-answer_ok_1456:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1457
-        j fail
-answer_ok_1457:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1458
-        j fail
-answer_ok_1458:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1459
-        j fail
-answer_ok_1459:
-        li gp, 455
-        li t0, 0x3fff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_1460
-        j fail
-answer_ok_1460:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1461
-        j fail
-answer_ok_1461:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1462
-        j fail
-answer_ok_1462:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1463
-        j fail
-answer_ok_1463:
-        li gp, 456
-        li t0, 0x4000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_1464
-        j fail
-answer_ok_1464:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1465
-        j fail
-answer_ok_1465:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1466
-        j fail
-answer_ok_1466:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1467
-        j fail
-answer_ok_1467:
-        li gp, 457
-        li t0, 0x7fff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_1468
-        j fail
-answer_ok_1468:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1469
-        j fail
-answer_ok_1469:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1470
-        j fail
-answer_ok_1470:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1471
-        j fail
-answer_ok_1471:
-        li gp, 458
-        li t0, 0x8000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1472
-        j fail
-answer_ok_1472:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1473
-        j fail
-answer_ok_1473:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1474
-        j fail
-answer_ok_1474:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1475
-        j fail
-answer_ok_1475:
-        li gp, 459
-        li t0, 0xffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1476
-        j fail
-answer_ok_1476:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1477
-        j fail
-answer_ok_1477:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1478
-        j fail
-answer_ok_1478:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1479
-        j fail
-answer_ok_1479:
-        li gp, 460
-        li t0, 0x10000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1480
-        j fail
-answer_ok_1480:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1481
-        j fail
-answer_ok_1481:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1482
-        j fail
-answer_ok_1482:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1483
-        j fail
-answer_ok_1483:
-        li gp, 461
-        li t0, 0x1ffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1484
-        j fail
-answer_ok_1484:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1485
-        j fail
-answer_ok_1485:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_1486
-        j fail
-answer_ok_1486:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1487
-        j fail
-answer_ok_1487:
-        li gp, 462
-        li t0, 0x20000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1488
-        j fail
-answer_ok_1488:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_1489
-        j fail
-answer_ok_1489:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1490
-        j fail
-answer_ok_1490:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_1491
-        j fail
-answer_ok_1491:
-        li gp, 463
-        li t0, 0x3ffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1492
-        j fail
-answer_ok_1492:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1493
-        j fail
-answer_ok_1493:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_1494
-        j fail
-answer_ok_1494:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1495
-        j fail
-answer_ok_1495:
-        li gp, 464
-        li t0, 0x40000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1496
-        j fail
-answer_ok_1496:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_1497
-        j fail
-answer_ok_1497:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1498
-        j fail
-answer_ok_1498:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_1499
-        j fail
-answer_ok_1499:
-        li gp, 465
-        li t0, 0x7ffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1500
-        j fail
-answer_ok_1500:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1501
-        j fail
-answer_ok_1501:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_1502
-        j fail
-answer_ok_1502:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1503
-        j fail
-answer_ok_1503:
-        li gp, 466
-        li t0, 0x80000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1504
-        j fail
-answer_ok_1504:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_1505
-        j fail
-answer_ok_1505:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1506
-        j fail
-answer_ok_1506:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_1507
-        j fail
-answer_ok_1507:
-        li gp, 467
-        li t0, 0xfffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1508
-        j fail
-answer_ok_1508:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1509
-        j fail
-answer_ok_1509:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_1510
-        j fail
-answer_ok_1510:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1511
-        j fail
-answer_ok_1511:
-        li gp, 468
-        li t0, 0x100000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1512
-        j fail
-answer_ok_1512:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_1513
-        j fail
-answer_ok_1513:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1514
-        j fail
-answer_ok_1514:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_1515
-        j fail
-answer_ok_1515:
-        li gp, 469
-        li t0, 0x1fffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1516
-        j fail
-answer_ok_1516:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1517
-        j fail
-answer_ok_1517:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_1518
-        j fail
-answer_ok_1518:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1519
-        j fail
-answer_ok_1519:
-        li gp, 470
-        li t0, 0x200000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1520
-        j fail
-answer_ok_1520:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_1521
-        j fail
-answer_ok_1521:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1522
-        j fail
-answer_ok_1522:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_1523
-        j fail
-answer_ok_1523:
-        li gp, 471
-        li t0, 0x3fffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1524
-        j fail
-answer_ok_1524:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1525
-        j fail
-answer_ok_1525:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_1526
-        j fail
-answer_ok_1526:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1527
-        j fail
-answer_ok_1527:
-        li gp, 472
-        li t0, 0x400000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1528
-        j fail
-answer_ok_1528:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_1529
-        j fail
-answer_ok_1529:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1530
-        j fail
-answer_ok_1530:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_1531
-        j fail
-answer_ok_1531:
-        li gp, 473
-        li t0, 0x7fffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1532
-        j fail
-answer_ok_1532:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1533
-        j fail
-answer_ok_1533:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_1534
-        j fail
-answer_ok_1534:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1535
-        j fail
-answer_ok_1535:
-        li gp, 474
-        li t0, 0x800000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1536
-        j fail
-answer_ok_1536:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_1537
-        j fail
-answer_ok_1537:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1538
-        j fail
-answer_ok_1538:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_1539
-        j fail
-answer_ok_1539:
-        li gp, 475
-        li t0, 0xffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1540
-        j fail
-answer_ok_1540:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1541
-        j fail
-answer_ok_1541:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_1542
-        j fail
-answer_ok_1542:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1543
-        j fail
-answer_ok_1543:
-        li gp, 476
-        li t0, 0x1000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1544
-        j fail
-answer_ok_1544:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_1545
-        j fail
-answer_ok_1545:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1546
-        j fail
-answer_ok_1546:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_1547
-        j fail
-answer_ok_1547:
-        li gp, 477
-        li t0, 0x1ffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1548
-        j fail
-answer_ok_1548:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1549
-        j fail
-answer_ok_1549:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_1550
-        j fail
-answer_ok_1550:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1551
-        j fail
-answer_ok_1551:
-        li gp, 478
-        li t0, 0x2000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1552
-        j fail
-answer_ok_1552:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_1553
-        j fail
-answer_ok_1553:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1554
-        j fail
-answer_ok_1554:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_1555
-        j fail
-answer_ok_1555:
-        li gp, 479
-        li t0, 0x3ffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1556
-        j fail
-answer_ok_1556:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1557
-        j fail
-answer_ok_1557:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_1558
-        j fail
-answer_ok_1558:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1559
-        j fail
-answer_ok_1559:
-        li gp, 480
-        li t0, 0x4000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1560
-        j fail
-answer_ok_1560:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_1561
-        j fail
-answer_ok_1561:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1562
-        j fail
-answer_ok_1562:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_1563
-        j fail
-answer_ok_1563:
-        li gp, 481
-        li t0, 0x7ffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1564
-        j fail
-answer_ok_1564:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1565
-        j fail
-answer_ok_1565:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_1566
-        j fail
-answer_ok_1566:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1567
-        j fail
-answer_ok_1567:
-        li gp, 482
-        li t0, 0x8000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1568
-        j fail
-answer_ok_1568:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_1569
-        j fail
-answer_ok_1569:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1570
-        j fail
-answer_ok_1570:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_1571
-        j fail
-answer_ok_1571:
-        li gp, 483
-        li t0, 0xfffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1572
-        j fail
-answer_ok_1572:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1573
-        j fail
-answer_ok_1573:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_1574
-        j fail
-answer_ok_1574:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1575
-        j fail
-answer_ok_1575:
-        li gp, 484
-        li t0, 0x10000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1576
-        j fail
-answer_ok_1576:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_1577
-        j fail
-answer_ok_1577:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1578
-        j fail
-answer_ok_1578:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_1579
-        j fail
-answer_ok_1579:
-        li gp, 485
-        li t0, 0x1fffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1580
-        j fail
-answer_ok_1580:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1581
-        j fail
-answer_ok_1581:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_1582
-        j fail
-answer_ok_1582:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1583
-        j fail
-answer_ok_1583:
-        li gp, 486
-        li t0, 0x20000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1584
-        j fail
-answer_ok_1584:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_1585
-        j fail
-answer_ok_1585:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1586
-        j fail
-answer_ok_1586:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_1587
-        j fail
-answer_ok_1587:
-        li gp, 487
-        li t0, 0x3fffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1588
-        j fail
-answer_ok_1588:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1589
-        j fail
-answer_ok_1589:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_1590
-        j fail
-answer_ok_1590:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1591
-        j fail
-answer_ok_1591:
-        li gp, 488
-        li t0, 0x40000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1592
-        j fail
-answer_ok_1592:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_1593
-        j fail
-answer_ok_1593:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1594
-        j fail
-answer_ok_1594:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_1595
-        j fail
-answer_ok_1595:
-        li gp, 489
-        li t0, 0x55555555
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1596
-        j fail
-answer_ok_1596:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1597
-        j fail
-answer_ok_1597:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1598
-        j fail
-answer_ok_1598:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1599
-        j fail
-answer_ok_1599:
-        li gp, 490
-        li t0, 0x7fffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1600
-        j fail
-answer_ok_1600:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1601
-        j fail
-answer_ok_1601:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 31
-        beq t1, t2, answer_ok_1602
-        j fail
-answer_ok_1602:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1603
-        j fail
-answer_ok_1603:
-        li gp, 491
-        li t0, 0x80000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1604
-        j fail
-answer_ok_1604:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 31
-        beq t1, t2, answer_ok_1605
-        j fail
-answer_ok_1605:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1606
-        j fail
-answer_ok_1606:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 31
-        beq t1, t2, answer_ok_1607
-        j fail
-answer_ok_1607:
-        li gp, 492
-        li t0, 0xaaaaaaaa
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1608
-        j fail
-answer_ok_1608:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1609
-        j fail
-answer_ok_1609:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1610
-        j fail
-answer_ok_1610:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1611
-        j fail
-answer_ok_1611:
-        li gp, 493
-        li t0, 0xc0000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1612
-        j fail
-answer_ok_1612:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_1613
-        j fail
-answer_ok_1613:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1614
-        j fail
-answer_ok_1614:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_1615
-        j fail
-answer_ok_1615:
-        li gp, 494
-        li t0, 0xe0000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1616
-        j fail
-answer_ok_1616:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_1617
-        j fail
-answer_ok_1617:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1618
-        j fail
-answer_ok_1618:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_1619
-        j fail
-answer_ok_1619:
-        li gp, 495
-        li t0, 0xf0000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1620
-        j fail
-answer_ok_1620:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_1621
-        j fail
-answer_ok_1621:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1622
-        j fail
-answer_ok_1622:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_1623
-        j fail
-answer_ok_1623:
-        li gp, 496
-        li t0, 0xf8000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1624
-        j fail
-answer_ok_1624:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_1625
-        j fail
-answer_ok_1625:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1626
-        j fail
-answer_ok_1626:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_1627
-        j fail
-answer_ok_1627:
-        li gp, 497
-        li t0, 0xfc000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1628
-        j fail
-answer_ok_1628:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_1629
-        j fail
-answer_ok_1629:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1630
-        j fail
-answer_ok_1630:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_1631
-        j fail
-answer_ok_1631:
-        li gp, 498
-        li t0, 0xfe000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1632
-        j fail
-answer_ok_1632:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_1633
-        j fail
-answer_ok_1633:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1634
-        j fail
-answer_ok_1634:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_1635
-        j fail
-answer_ok_1635:
-        li gp, 499
-        li t0, 0xff000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1636
-        j fail
-answer_ok_1636:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_1637
-        j fail
-answer_ok_1637:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1638
-        j fail
-answer_ok_1638:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_1639
-        j fail
-answer_ok_1639:
-        li gp, 500
-        li t0, 0xff800000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1640
-        j fail
-answer_ok_1640:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_1641
-        j fail
-answer_ok_1641:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1642
-        j fail
-answer_ok_1642:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_1643
-        j fail
-answer_ok_1643:
-        li gp, 501
-        li t0, 0xffc00000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1644
-        j fail
-answer_ok_1644:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_1645
-        j fail
-answer_ok_1645:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1646
-        j fail
-answer_ok_1646:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_1647
-        j fail
-answer_ok_1647:
-        li gp, 502
-        li t0, 0xffe00000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1648
-        j fail
-answer_ok_1648:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_1649
-        j fail
-answer_ok_1649:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1650
-        j fail
-answer_ok_1650:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_1651
-        j fail
-answer_ok_1651:
-        li gp, 503
-        li t0, 0xfff00000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1652
-        j fail
-answer_ok_1652:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_1653
-        j fail
-answer_ok_1653:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1654
-        j fail
-answer_ok_1654:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_1655
-        j fail
-answer_ok_1655:
-        li gp, 504
-        li t0, 0xfff80000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1656
-        j fail
-answer_ok_1656:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_1657
-        j fail
-answer_ok_1657:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1658
-        j fail
-answer_ok_1658:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_1659
-        j fail
-answer_ok_1659:
-        li gp, 505
-        li t0, 0xfffc0000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1660
-        j fail
-answer_ok_1660:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_1661
-        j fail
-answer_ok_1661:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1662
-        j fail
-answer_ok_1662:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_1663
-        j fail
-answer_ok_1663:
-        li gp, 506
-        li t0, 0xfffe0000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1664
-        j fail
-answer_ok_1664:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_1665
-        j fail
-answer_ok_1665:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1666
-        j fail
-answer_ok_1666:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_1667
-        j fail
-answer_ok_1667:
-        li gp, 507
-        li t0, 0xffff0000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1668
-        j fail
-answer_ok_1668:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1669
-        j fail
-answer_ok_1669:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1670
-        j fail
-answer_ok_1670:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1671
-        j fail
-answer_ok_1671:
-        li gp, 508
-        li t0, 0xffff8000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1672
-        j fail
-answer_ok_1672:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1673
-        j fail
-answer_ok_1673:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_1674
-        j fail
-answer_ok_1674:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1675
-        j fail
-answer_ok_1675:
-        li gp, 509
-        li t0, 0xffffc000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1676
-        j fail
-answer_ok_1676:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1677
-        j fail
-answer_ok_1677:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_1678
-        j fail
-answer_ok_1678:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1679
-        j fail
-answer_ok_1679:
-        li gp, 510
-        li t0, 0xffffe000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1680
-        j fail
-answer_ok_1680:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1681
-        j fail
-answer_ok_1681:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_1682
-        j fail
-answer_ok_1682:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1683
-        j fail
-answer_ok_1683:
-        li gp, 511
-        li t0, 0xfffff000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1684
-        j fail
-answer_ok_1684:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1685
-        j fail
-answer_ok_1685:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_1686
-        j fail
-answer_ok_1686:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1687
-        j fail
-answer_ok_1687:
-        li gp, 512
-        li t0, 0xfffff800
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1688
-        j fail
-answer_ok_1688:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1689
-        j fail
-answer_ok_1689:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_1690
-        j fail
-answer_ok_1690:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1691
-        j fail
-answer_ok_1691:
-        li gp, 513
-        li t0, 0xfffffc00
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1692
-        j fail
-answer_ok_1692:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1693
-        j fail
-answer_ok_1693:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_1694
-        j fail
-answer_ok_1694:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1695
-        j fail
-answer_ok_1695:
-        li gp, 514
-        li t0, 0xfffffe00
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1696
-        j fail
-answer_ok_1696:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1697
-        j fail
-answer_ok_1697:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_1698
-        j fail
-answer_ok_1698:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1699
-        j fail
-answer_ok_1699:
-        li gp, 515
-        li t0, 0xffffff00
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1700
-        j fail
-answer_ok_1700:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1701
-        j fail
-answer_ok_1701:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_1702
-        j fail
-answer_ok_1702:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1703
-        j fail
-answer_ok_1703:
-        li gp, 516
-        li t0, 0xffffff80
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1704
-        j fail
-answer_ok_1704:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1705
-        j fail
-answer_ok_1705:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_1706
-        j fail
-answer_ok_1706:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1707
-        j fail
-answer_ok_1707:
-        li gp, 517
-        li t0, 0xffffffc0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1708
-        j fail
-answer_ok_1708:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1709
-        j fail
-answer_ok_1709:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_1710
-        j fail
-answer_ok_1710:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1711
-        j fail
-answer_ok_1711:
-        li gp, 518
-        li t0, 0xffffffe0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1712
-        j fail
-answer_ok_1712:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1713
-        j fail
-answer_ok_1713:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_1714
-        j fail
-answer_ok_1714:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1715
-        j fail
-answer_ok_1715:
-        li gp, 519
-        li t0, 0xfffffff0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1716
-        j fail
-answer_ok_1716:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1717
-        j fail
-answer_ok_1717:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_1718
-        j fail
-answer_ok_1718:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1719
-        j fail
-answer_ok_1719:
-        li gp, 520
-        li t0, 0xfffffff8
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1720
-        j fail
-answer_ok_1720:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1721
-        j fail
-answer_ok_1721:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_1722
-        j fail
-answer_ok_1722:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1723
-        j fail
-answer_ok_1723:
-        li gp, 521
-        li t0, 0xfffffffc
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1724
-        j fail
-answer_ok_1724:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1725
-        j fail
-answer_ok_1725:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_1726
-        j fail
-answer_ok_1726:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1727
-        j fail
-answer_ok_1727:
-        li gp, 522
-        li t0, 0xfffffffe
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1728
-        j fail
-answer_ok_1728:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1729
-        j fail
-answer_ok_1729:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 31
-        beq t1, t2, answer_ok_1730
-        j fail
-answer_ok_1730:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1731
-        j fail
-answer_ok_1731:
-        li gp, 523
-        li t0, 0xffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1732
-        j fail
-answer_ok_1732:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1733
-        j fail
-answer_ok_1733:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 32
-        beq t1, t2, answer_ok_1734
-        j fail
-answer_ok_1734:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1735
-        j fail
-answer_ok_1735:
+answer_ok_147:
+        cincoffsetimm c12, c12, 16
+        addi t3, t3, -1
+        bnez t3, values_e32
         li gp, 524
         li t0, 0x0
         vmv.v.x v16, t0
         vclz.v v16, v16
         vmv.x.s t1, v16
         li t2, 32
-        beq t1, t2, answer_ok_1736
+        beq t1, t2, answer_ok_148
         j fail
-answer_ok_1736:
+answer_ok_148:
         li t0, 0x0
         vmv.v.x v16, t0
         vctz.v v16, v16
         vmv.x.s t1, v16
         li t2, 32
-        beq t1, t2, answer_ok_1737
+        beq t1, t2, answer_ok_149
         j fail
-answer_ok_1737:
+answer_ok_149:
         li t0, 0x0
         vmv.v.x v16, t0
         vcpop.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_1738
+        beq t1, t2, answer_ok_150
         j fail
-answer_ok_1738:
+answer_ok_150:
         li gp, 525
         li t0, 0x80000000
         vmv.v.x v16, t0
         vclz.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_1739
+        beq t1, t2, answer_ok_151
         j fail
-answer_ok_1739:
+answer_ok_151:
         li t0, 0x80000000
         vmv.v.x v16, t0
         vctz.v v16, v16
         vmv.x.s t1, v16
         li t2, 31
-        beq t1, t2, answer_ok_1740
+        beq t1, t2, answer_ok_152
         j fail
-answer_ok_1740:
+answer_ok_152:
         li t0, 0x80000000
         vmv.v.x v16, t0
         vcpop.v v16, v16
         vmv.x.s t1, v16
         li t2, 1
-        beq t1, t2, answer_ok_1741
+        beq t1, t2, answer_ok_153
         j fail
-answer_ok_1741:
+answer_ok_153:
         li gp, 526
         li t0, 0xffffffff
         vmv.v.x v16, t0
         vclz.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_1742
+        beq t1, t2, answer_ok_154
         j fail
-answer_ok_1742:
+answer_ok_154:
         li t0, 0xffffffff
         vmv.v.x v16, t0
         vctz.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_1743
+        beq t1, t2, answer_ok_155
         j fail
-answer_ok_1743:
+answer_ok_155:
         li t0, 0xffffffff
         vmv.v.x v16, t0
         vcpop.v v16, v16
         vmv.x.s t1, v16
         li t2, 32
-        beq t1, t2, answer_ok_1744
+        beq t1, t2, answer_ok_156
         j fail
-answer_ok_1744:
+answer_ok_156:
         li gp, 527
         vsetvli s2, zero, 16
         vmv.v.i v16, -1
@@ -17693,9 +3822,9 @@ lanes_527:
         bgeu a2, s3, inactive_527
         li t2, 32
 inactive_527:
-        beq t1, t2, answer_ok_1745
+        beq t1, t2, answer_ok_157
         j fail
-answer_ok_1745:
+answer_ok_157:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_527
@@ -17725,9 +3854,9 @@ lanes_528:
         bgeu a2, s3, inactive_528
         li t2, 0
 inactive_528:
-        beq t1, t2, answer_ok_1746
+        beq t1, t2, answer_ok_158
         j fail
-answer_ok_1746:
+answer_ok_158:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_528
@@ -17754,9 +3883,9 @@ lanes_529:
         bgeu a2, s3, inactive_529
         li t2, 0
 inactive_529:
-        beq t1, t2, answer_ok_1747
+        beq t1, t2, answer_ok_159
         j fail
-answer_ok_1747:
+answer_ok_159:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_529
@@ -17781,9 +3910,9 @@ lanes_530:
         bgeu a2, s3, inactive_530
         li t2, 32
 inactive_530:
-        beq t1, t2, answer_ok_1748
+        beq t1, t2, answer_ok_160
         j fail
-answer_ok_1748:
+answer_ok_160:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_530
@@ -17813,9 +3942,9 @@ lanes_531:
         bgeu a2, s3, inactive_531
         li t2, 0
 inactive_531:
-        beq t1, t2, answer_ok_1749
+        beq t1, t2, answer_ok_161
         j fail
-answer_ok_1749:
+answer_ok_161:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_531
@@ -17842,9 +3971,9 @@ lanes_532:
         bgeu a2, s3, inactive_532
         li t2, 0
 inactive_532:
-        beq t1, t2, answer_ok_1750
+        beq t1, t2, answer_ok_162
         j fail
-answer_ok_1750:
+answer_ok_162:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_532
@@ -17869,9 +3998,9 @@ lanes_533:
         bgeu a2, s3, inactive_533
         li t2, 0
 inactive_533:
-        beq t1, t2, answer_ok_1751
+        beq t1, t2, answer_ok_163
         j fail
-answer_ok_1751:
+answer_ok_163:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_533
@@ -17901,9 +4030,9 @@ lanes_534:
         bgeu a2, s3, inactive_534
         li t2, 32
 inactive_534:
-        beq t1, t2, answer_ok_1752
+        beq t1, t2, answer_ok_164
         j fail
-answer_ok_1752:
+answer_ok_164:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_534
@@ -17930,9 +4059,9 @@ lanes_535:
         bgeu a2, s3, inactive_535
         li t2, 32
 inactive_535:
-        beq t1, t2, answer_ok_1753
+        beq t1, t2, answer_ok_165
         j fail
-answer_ok_1753:
+answer_ok_165:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_535
@@ -17957,9 +4086,9 @@ lanes_536:
         bgeu a2, s3, inactive_536
         li t2, 32
 inactive_536:
-        beq t1, t2, answer_ok_1754
+        beq t1, t2, answer_ok_166
         j fail
-answer_ok_1754:
+answer_ok_166:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_536
@@ -17989,9 +4118,9 @@ lanes_537:
         bgeu a2, s3, inactive_537
         li t2, 0
 inactive_537:
-        beq t1, t2, answer_ok_1755
+        beq t1, t2, answer_ok_167
         j fail
-answer_ok_1755:
+answer_ok_167:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_537
@@ -18018,9 +4147,9 @@ lanes_538:
         bgeu a2, s3, inactive_538
         li t2, 0
 inactive_538:
-        beq t1, t2, answer_ok_1756
+        beq t1, t2, answer_ok_168
         j fail
-answer_ok_1756:
+answer_ok_168:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_538
@@ -18045,9 +4174,9 @@ lanes_539:
         bgeu a2, s3, inactive_539
         li t2, 32
 inactive_539:
-        beq t1, t2, answer_ok_1757
+        beq t1, t2, answer_ok_169
         j fail
-answer_ok_1757:
+answer_ok_169:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_539
@@ -18077,9 +4206,9 @@ lanes_540:
         bgeu a2, s3, inactive_540
         li t2, 0
 inactive_540:
-        beq t1, t2, answer_ok_1758
+        beq t1, t2, answer_ok_170
         j fail
-answer_ok_1758:
+answer_ok_170:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_540
@@ -18106,9 +4235,9 @@ lanes_541:
         bgeu a2, s3, inactive_541
         li t2, 0
 inactive_541:
-        beq t1, t2, answer_ok_1759
+        beq t1, t2, answer_ok_171
         j fail
-answer_ok_1759:
+answer_ok_171:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_541
@@ -18133,9 +4262,9 @@ lanes_542:
         bgeu a2, s3, inactive_542
         li t2, 0
 inactive_542:
-        beq t1, t2, answer_ok_1760
+        beq t1, t2, answer_ok_172
         j fail
-answer_ok_1760:
+answer_ok_172:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_542
@@ -18165,9 +4294,9 @@ lanes_543:
         bgeu a2, s3, inactive_543
         li t2, 32
 inactive_543:
-        beq t1, t2, answer_ok_1761
+        beq t1, t2, answer_ok_173
         j fail
-answer_ok_1761:
+answer_ok_173:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_543
@@ -18194,9 +4323,9 @@ lanes_544:
         bgeu a2, s3, inactive_544
         li t2, 32
 inactive_544:
-        beq t1, t2, answer_ok_1762
+        beq t1, t2, answer_ok_174
         j fail
-answer_ok_1762:
+answer_ok_174:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_544
@@ -18221,9 +4350,9 @@ lanes_545:
         bgeu a2, s3, inactive_545
         li t2, 32
 inactive_545:
-        beq t1, t2, answer_ok_1763
+        beq t1, t2, answer_ok_175
         j fail
-answer_ok_1763:
+answer_ok_175:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_545
@@ -18253,9 +4382,9 @@ lanes_546:
         bgeu a2, s3, inactive_546
         li t2, 0
 inactive_546:
-        beq t1, t2, answer_ok_1764
+        beq t1, t2, answer_ok_176
         j fail
-answer_ok_1764:
+answer_ok_176:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_546
@@ -18282,9 +4411,9 @@ lanes_547:
         bgeu a2, s3, inactive_547
         li t2, 0
 inactive_547:
-        beq t1, t2, answer_ok_1765
+        beq t1, t2, answer_ok_177
         j fail
-answer_ok_1765:
+answer_ok_177:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_547
@@ -18309,9 +4438,9 @@ lanes_548:
         bgeu a2, s3, inactive_548
         li t2, 32
 inactive_548:
-        beq t1, t2, answer_ok_1766
+        beq t1, t2, answer_ok_178
         j fail
-answer_ok_1766:
+answer_ok_178:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_548
@@ -18341,9 +4470,9 @@ lanes_549:
         bgeu a2, s3, inactive_549
         li t2, 0
 inactive_549:
-        beq t1, t2, answer_ok_1767
+        beq t1, t2, answer_ok_179
         j fail
-answer_ok_1767:
+answer_ok_179:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_549
@@ -18370,9 +4499,9 @@ lanes_550:
         bgeu a2, s3, inactive_550
         li t2, 0
 inactive_550:
-        beq t1, t2, answer_ok_1768
+        beq t1, t2, answer_ok_180
         j fail
-answer_ok_1768:
+answer_ok_180:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_550
@@ -18397,9 +4526,9 @@ lanes_551:
         bgeu a2, s3, inactive_551
         li t2, 0
 inactive_551:
-        beq t1, t2, answer_ok_1769
+        beq t1, t2, answer_ok_181
         j fail
-answer_ok_1769:
+answer_ok_181:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_551
@@ -18429,9 +4558,9 @@ lanes_552:
         bgeu a2, s3, inactive_552
         li t2, 32
 inactive_552:
-        beq t1, t2, answer_ok_1770
+        beq t1, t2, answer_ok_182
         j fail
-answer_ok_1770:
+answer_ok_182:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_552
@@ -18458,9 +4587,9 @@ lanes_553:
         bgeu a2, s3, inactive_553
         li t2, 32
 inactive_553:
-        beq t1, t2, answer_ok_1771
+        beq t1, t2, answer_ok_183
         j fail
-answer_ok_1771:
+answer_ok_183:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_553
@@ -18485,9 +4614,9 @@ lanes_554:
         bgeu a2, s3, inactive_554
         li t2, 32
 inactive_554:
-        beq t1, t2, answer_ok_1772
+        beq t1, t2, answer_ok_184
         j fail
-answer_ok_1772:
+answer_ok_184:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_554
@@ -18517,9 +4646,9 @@ lanes_555:
         bgeu a2, s3, inactive_555
         li t2, 0
 inactive_555:
-        beq t1, t2, answer_ok_1773
+        beq t1, t2, answer_ok_185
         j fail
-answer_ok_1773:
+answer_ok_185:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_555
@@ -18546,9 +4675,9 @@ lanes_556:
         bgeu a2, s3, inactive_556
         li t2, 0
 inactive_556:
-        beq t1, t2, answer_ok_1774
+        beq t1, t2, answer_ok_186
         j fail
-answer_ok_1774:
+answer_ok_186:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_556
@@ -18573,9 +4702,9 @@ lanes_557:
         bgeu a2, s3, inactive_557
         li t2, 32
 inactive_557:
-        beq t1, t2, answer_ok_1775
+        beq t1, t2, answer_ok_187
         j fail
-answer_ok_1775:
+answer_ok_187:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_557
@@ -18605,9 +4734,9 @@ lanes_558:
         bgeu a2, s3, inactive_558
         li t2, 0
 inactive_558:
-        beq t1, t2, answer_ok_1776
+        beq t1, t2, answer_ok_188
         j fail
-answer_ok_1776:
+answer_ok_188:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_558
@@ -18634,9 +4763,9 @@ lanes_559:
         bgeu a2, s3, inactive_559
         li t2, 0
 inactive_559:
-        beq t1, t2, answer_ok_1777
+        beq t1, t2, answer_ok_189
         j fail
-answer_ok_1777:
+answer_ok_189:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_559
@@ -18661,9 +4790,9 @@ lanes_560:
         bgeu a2, s3, inactive_560
         li t2, 0
 inactive_560:
-        beq t1, t2, answer_ok_1778
+        beq t1, t2, answer_ok_190
         j fail
-answer_ok_1778:
+answer_ok_190:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_560
@@ -18693,9 +4822,9 @@ lanes_561:
         bgeu a2, s3, inactive_561
         li t2, 32
 inactive_561:
-        beq t1, t2, answer_ok_1779
+        beq t1, t2, answer_ok_191
         j fail
-answer_ok_1779:
+answer_ok_191:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_561
@@ -18722,9 +4851,9 @@ lanes_562:
         bgeu a2, s3, inactive_562
         li t2, 32
 inactive_562:
-        beq t1, t2, answer_ok_1780
+        beq t1, t2, answer_ok_192
         j fail
-answer_ok_1780:
+answer_ok_192:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_562
@@ -18749,9 +4878,9 @@ lanes_563:
         bgeu a2, s3, inactive_563
         li t2, 32
 inactive_563:
-        beq t1, t2, answer_ok_1781
+        beq t1, t2, answer_ok_193
         j fail
-answer_ok_1781:
+answer_ok_193:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_563
@@ -18781,9 +4910,9 @@ lanes_564:
         bgeu a2, s3, inactive_564
         li t2, 0
 inactive_564:
-        beq t1, t2, answer_ok_1782
+        beq t1, t2, answer_ok_194
         j fail
-answer_ok_1782:
+answer_ok_194:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_564
@@ -18810,9 +4939,9 @@ lanes_565:
         bgeu a2, s3, inactive_565
         li t2, 0
 inactive_565:
-        beq t1, t2, answer_ok_1783
+        beq t1, t2, answer_ok_195
         j fail
-answer_ok_1783:
+answer_ok_195:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_565
@@ -18837,9 +4966,9 @@ lanes_566:
         bgeu a2, s3, inactive_566
         li t2, 32
 inactive_566:
-        beq t1, t2, answer_ok_1784
+        beq t1, t2, answer_ok_196
         j fail
-answer_ok_1784:
+answer_ok_196:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_566
@@ -18869,9 +4998,9 @@ lanes_567:
         bgeu a2, s3, inactive_567
         li t2, 0
 inactive_567:
-        beq t1, t2, answer_ok_1785
+        beq t1, t2, answer_ok_197
         j fail
-answer_ok_1785:
+answer_ok_197:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_567
@@ -18898,9 +5027,9 @@ lanes_568:
         bgeu a2, s3, inactive_568
         li t2, 0
 inactive_568:
-        beq t1, t2, answer_ok_1786
+        beq t1, t2, answer_ok_198
         j fail
-answer_ok_1786:
+answer_ok_198:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_568
@@ -18925,9 +5054,9 @@ lanes_569:
         bgeu a2, s3, inactive_569
         li t2, 0
 inactive_569:
-        beq t1, t2, answer_ok_1787
+        beq t1, t2, answer_ok_199
         j fail
-answer_ok_1787:
+answer_ok_199:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_569
@@ -18957,9 +5086,9 @@ lanes_570:
         bgeu a2, s3, inactive_570
         li t2, 32
 inactive_570:
-        beq t1, t2, answer_ok_1788
+        beq t1, t2, answer_ok_200
         j fail
-answer_ok_1788:
+answer_ok_200:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_570
@@ -18986,38 +5115,43 @@ lanes_571:
         bgeu a2, s3, inactive_571
         li t2, 32
 inactive_571:
-        beq t1, t2, answer_ok_1789
+        beq t1, t2, answer_ok_201
         j fail
-answer_ok_1789:
+answer_ok_201:
         cincoffsetimm c11, c11, 4
         addi a2, a2, 1
         bltu a2, s2, lanes_571
         li t0, 1
         vsetvli t1, t0, 24
-        li gp, 572
-        li t0, 0x0
+        li gp, 571
+        li t0, cases_e64
+        csetaddr c12, c8, t0
+        li t3, 192
+values_e64:
+        addi gp, gp, 1
+        ld t0, 0(c12)
         vmv.v.x v8, t0
         vmv.v.i v16, -1
         vclz.v v16, v8
         vmv.x.s t1, v16
-        li t2, 64
-        beq t1, t2, answer_ok_1790
+        lbu t2, 8(c12)
+        beq t1, t2, answer_ok_202
         j fail
-answer_ok_1790:
+answer_ok_202:
         vmv.v.i v16, -1
         vctz.v v16, v8
         vmv.x.s t1, v16
-        li t2, 64
-        beq t1, t2, answer_ok_1791
+        lbu t2, 9(c12)
+        beq t1, t2, answer_ok_203
         j fail
-answer_ok_1791:
+answer_ok_203:
         vmv.v.i v16, -1
         vcpop.v v16, v8
         vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1792
+        lbu t2, 10(c12)
+        beq t1, t2, answer_ok_204
         j fail
-answer_ok_1792:
+answer_ok_204:
         li t2, 1
         vsub.vx v16, v8, t2
         li t2, -1
@@ -19025,6770 +5159,88 @@ answer_ok_1792:
         vand.vv v16, v16, v17
         vcpop.v v16, v16
         vmv.x.s t1, v16
-        li t2, 64
-        beq t1, t2, answer_ok_1793
+        lbu t2, 9(c12)
+        beq t1, t2, answer_ok_205
         j fail
-answer_ok_1793:
-        li gp, 573
-        li t0, 0x1
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 63
-        beq t1, t2, answer_ok_1794
-        j fail
-answer_ok_1794:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1795
-        j fail
-answer_ok_1795:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1796
-        j fail
-answer_ok_1796:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1797
-        j fail
-answer_ok_1797:
-        li gp, 574
-        li t0, 0x2
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 62
-        beq t1, t2, answer_ok_1798
-        j fail
-answer_ok_1798:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1799
-        j fail
-answer_ok_1799:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1800
-        j fail
-answer_ok_1800:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1801
-        j fail
-answer_ok_1801:
-        li gp, 575
-        li t0, 0x3
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 62
-        beq t1, t2, answer_ok_1802
-        j fail
-answer_ok_1802:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1803
-        j fail
-answer_ok_1803:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1804
-        j fail
-answer_ok_1804:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1805
-        j fail
-answer_ok_1805:
-        li gp, 576
-        li t0, 0x4
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 61
-        beq t1, t2, answer_ok_1806
-        j fail
-answer_ok_1806:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1807
-        j fail
-answer_ok_1807:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1808
-        j fail
-answer_ok_1808:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_1809
-        j fail
-answer_ok_1809:
-        li gp, 577
-        li t0, 0x7
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 61
-        beq t1, t2, answer_ok_1810
-        j fail
-answer_ok_1810:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1811
-        j fail
-answer_ok_1811:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1812
-        j fail
-answer_ok_1812:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1813
-        j fail
-answer_ok_1813:
-        li gp, 578
-        li t0, 0x8
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 60
-        beq t1, t2, answer_ok_1814
-        j fail
-answer_ok_1814:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1815
-        j fail
-answer_ok_1815:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1816
-        j fail
-answer_ok_1816:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_1817
-        j fail
-answer_ok_1817:
-        li gp, 579
-        li t0, 0xf
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 60
-        beq t1, t2, answer_ok_1818
-        j fail
-answer_ok_1818:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1819
-        j fail
-answer_ok_1819:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1820
-        j fail
-answer_ok_1820:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1821
-        j fail
-answer_ok_1821:
-        li gp, 580
-        li t0, 0x10
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 59
-        beq t1, t2, answer_ok_1822
-        j fail
-answer_ok_1822:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1823
-        j fail
-answer_ok_1823:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1824
-        j fail
-answer_ok_1824:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_1825
-        j fail
-answer_ok_1825:
-        li gp, 581
-        li t0, 0x1f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 59
-        beq t1, t2, answer_ok_1826
-        j fail
-answer_ok_1826:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1827
-        j fail
-answer_ok_1827:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1828
-        j fail
-answer_ok_1828:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1829
-        j fail
-answer_ok_1829:
-        li gp, 582
-        li t0, 0x20
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 58
-        beq t1, t2, answer_ok_1830
-        j fail
-answer_ok_1830:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1831
-        j fail
-answer_ok_1831:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1832
-        j fail
-answer_ok_1832:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_1833
-        j fail
-answer_ok_1833:
-        li gp, 583
-        li t0, 0x3f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 58
-        beq t1, t2, answer_ok_1834
-        j fail
-answer_ok_1834:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1835
-        j fail
-answer_ok_1835:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1836
-        j fail
-answer_ok_1836:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1837
-        j fail
-answer_ok_1837:
-        li gp, 584
-        li t0, 0x40
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 57
-        beq t1, t2, answer_ok_1838
-        j fail
-answer_ok_1838:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1839
-        j fail
-answer_ok_1839:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1840
-        j fail
-answer_ok_1840:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_1841
-        j fail
-answer_ok_1841:
-        li gp, 585
-        li t0, 0x7f
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 57
-        beq t1, t2, answer_ok_1842
-        j fail
-answer_ok_1842:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1843
-        j fail
-answer_ok_1843:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1844
-        j fail
-answer_ok_1844:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1845
-        j fail
-answer_ok_1845:
-        li gp, 586
-        li t0, 0x80
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 56
-        beq t1, t2, answer_ok_1846
-        j fail
-answer_ok_1846:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1847
-        j fail
-answer_ok_1847:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1848
-        j fail
-answer_ok_1848:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_1849
-        j fail
-answer_ok_1849:
-        li gp, 587
-        li t0, 0xff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 56
-        beq t1, t2, answer_ok_1850
-        j fail
-answer_ok_1850:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1851
-        j fail
-answer_ok_1851:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1852
-        j fail
-answer_ok_1852:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1853
-        j fail
-answer_ok_1853:
-        li gp, 588
-        li t0, 0x100
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 55
-        beq t1, t2, answer_ok_1854
-        j fail
-answer_ok_1854:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1855
-        j fail
-answer_ok_1855:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1856
-        j fail
-answer_ok_1856:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_1857
-        j fail
-answer_ok_1857:
-        li gp, 589
-        li t0, 0x1ff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 55
-        beq t1, t2, answer_ok_1858
-        j fail
-answer_ok_1858:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1859
-        j fail
-answer_ok_1859:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1860
-        j fail
-answer_ok_1860:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1861
-        j fail
-answer_ok_1861:
-        li gp, 590
-        li t0, 0x200
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 54
-        beq t1, t2, answer_ok_1862
-        j fail
-answer_ok_1862:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1863
-        j fail
-answer_ok_1863:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1864
-        j fail
-answer_ok_1864:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_1865
-        j fail
-answer_ok_1865:
-        li gp, 591
-        li t0, 0x3ff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 54
-        beq t1, t2, answer_ok_1866
-        j fail
-answer_ok_1866:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1867
-        j fail
-answer_ok_1867:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1868
-        j fail
-answer_ok_1868:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1869
-        j fail
-answer_ok_1869:
-        li gp, 592
-        li t0, 0x400
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 53
-        beq t1, t2, answer_ok_1870
-        j fail
-answer_ok_1870:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1871
-        j fail
-answer_ok_1871:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1872
-        j fail
-answer_ok_1872:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_1873
-        j fail
-answer_ok_1873:
-        li gp, 593
-        li t0, 0x7ff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 53
-        beq t1, t2, answer_ok_1874
-        j fail
-answer_ok_1874:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1875
-        j fail
-answer_ok_1875:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1876
-        j fail
-answer_ok_1876:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1877
-        j fail
-answer_ok_1877:
-        li gp, 594
-        li t0, 0x800
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 52
-        beq t1, t2, answer_ok_1878
-        j fail
-answer_ok_1878:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1879
-        j fail
-answer_ok_1879:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1880
-        j fail
-answer_ok_1880:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_1881
-        j fail
-answer_ok_1881:
-        li gp, 595
-        li t0, 0xfff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 52
-        beq t1, t2, answer_ok_1882
-        j fail
-answer_ok_1882:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1883
-        j fail
-answer_ok_1883:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1884
-        j fail
-answer_ok_1884:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1885
-        j fail
-answer_ok_1885:
-        li gp, 596
-        li t0, 0x1000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 51
-        beq t1, t2, answer_ok_1886
-        j fail
-answer_ok_1886:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1887
-        j fail
-answer_ok_1887:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1888
-        j fail
-answer_ok_1888:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_1889
-        j fail
-answer_ok_1889:
-        li gp, 597
-        li t0, 0x1fff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 51
-        beq t1, t2, answer_ok_1890
-        j fail
-answer_ok_1890:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1891
-        j fail
-answer_ok_1891:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1892
-        j fail
-answer_ok_1892:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1893
-        j fail
-answer_ok_1893:
-        li gp, 598
-        li t0, 0x2000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 50
-        beq t1, t2, answer_ok_1894
-        j fail
-answer_ok_1894:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1895
-        j fail
-answer_ok_1895:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1896
-        j fail
-answer_ok_1896:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_1897
-        j fail
-answer_ok_1897:
-        li gp, 599
-        li t0, 0x3fff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 50
-        beq t1, t2, answer_ok_1898
-        j fail
-answer_ok_1898:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1899
-        j fail
-answer_ok_1899:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1900
-        j fail
-answer_ok_1900:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1901
-        j fail
-answer_ok_1901:
-        li gp, 600
-        li t0, 0x4000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 49
-        beq t1, t2, answer_ok_1902
-        j fail
-answer_ok_1902:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1903
-        j fail
-answer_ok_1903:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1904
-        j fail
-answer_ok_1904:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_1905
-        j fail
-answer_ok_1905:
-        li gp, 601
-        li t0, 0x7fff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 49
-        beq t1, t2, answer_ok_1906
-        j fail
-answer_ok_1906:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1907
-        j fail
-answer_ok_1907:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1908
-        j fail
-answer_ok_1908:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1909
-        j fail
-answer_ok_1909:
-        li gp, 602
-        li t0, 0x8000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 48
-        beq t1, t2, answer_ok_1910
-        j fail
-answer_ok_1910:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1911
-        j fail
-answer_ok_1911:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1912
-        j fail
-answer_ok_1912:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_1913
-        j fail
-answer_ok_1913:
-        li gp, 603
-        li t0, 0xffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 48
-        beq t1, t2, answer_ok_1914
-        j fail
-answer_ok_1914:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1915
-        j fail
-answer_ok_1915:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1916
-        j fail
-answer_ok_1916:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1917
-        j fail
-answer_ok_1917:
-        li gp, 604
-        li t0, 0x10000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 47
-        beq t1, t2, answer_ok_1918
-        j fail
-answer_ok_1918:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1919
-        j fail
-answer_ok_1919:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1920
-        j fail
-answer_ok_1920:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_1921
-        j fail
-answer_ok_1921:
-        li gp, 605
-        li t0, 0x1ffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 47
-        beq t1, t2, answer_ok_1922
-        j fail
-answer_ok_1922:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1923
-        j fail
-answer_ok_1923:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_1924
-        j fail
-answer_ok_1924:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1925
-        j fail
-answer_ok_1925:
-        li gp, 606
-        li t0, 0x20000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 46
-        beq t1, t2, answer_ok_1926
-        j fail
-answer_ok_1926:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_1927
-        j fail
-answer_ok_1927:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1928
-        j fail
-answer_ok_1928:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_1929
-        j fail
-answer_ok_1929:
-        li gp, 607
-        li t0, 0x3ffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 46
-        beq t1, t2, answer_ok_1930
-        j fail
-answer_ok_1930:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1931
-        j fail
-answer_ok_1931:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_1932
-        j fail
-answer_ok_1932:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1933
-        j fail
-answer_ok_1933:
-        li gp, 608
-        li t0, 0x40000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 45
-        beq t1, t2, answer_ok_1934
-        j fail
-answer_ok_1934:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_1935
-        j fail
-answer_ok_1935:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1936
-        j fail
-answer_ok_1936:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_1937
-        j fail
-answer_ok_1937:
-        li gp, 609
-        li t0, 0x7ffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 45
-        beq t1, t2, answer_ok_1938
-        j fail
-answer_ok_1938:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1939
-        j fail
-answer_ok_1939:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_1940
-        j fail
-answer_ok_1940:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1941
-        j fail
-answer_ok_1941:
-        li gp, 610
-        li t0, 0x80000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 44
-        beq t1, t2, answer_ok_1942
-        j fail
-answer_ok_1942:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_1943
-        j fail
-answer_ok_1943:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1944
-        j fail
-answer_ok_1944:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_1945
-        j fail
-answer_ok_1945:
-        li gp, 611
-        li t0, 0xfffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 44
-        beq t1, t2, answer_ok_1946
-        j fail
-answer_ok_1946:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1947
-        j fail
-answer_ok_1947:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_1948
-        j fail
-answer_ok_1948:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1949
-        j fail
-answer_ok_1949:
-        li gp, 612
-        li t0, 0x100000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 43
-        beq t1, t2, answer_ok_1950
-        j fail
-answer_ok_1950:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_1951
-        j fail
-answer_ok_1951:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1952
-        j fail
-answer_ok_1952:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_1953
-        j fail
-answer_ok_1953:
-        li gp, 613
-        li t0, 0x1fffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 43
-        beq t1, t2, answer_ok_1954
-        j fail
-answer_ok_1954:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1955
-        j fail
-answer_ok_1955:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_1956
-        j fail
-answer_ok_1956:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1957
-        j fail
-answer_ok_1957:
-        li gp, 614
-        li t0, 0x200000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 42
-        beq t1, t2, answer_ok_1958
-        j fail
-answer_ok_1958:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_1959
-        j fail
-answer_ok_1959:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1960
-        j fail
-answer_ok_1960:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_1961
-        j fail
-answer_ok_1961:
-        li gp, 615
-        li t0, 0x3fffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 42
-        beq t1, t2, answer_ok_1962
-        j fail
-answer_ok_1962:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1963
-        j fail
-answer_ok_1963:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_1964
-        j fail
-answer_ok_1964:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1965
-        j fail
-answer_ok_1965:
-        li gp, 616
-        li t0, 0x400000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 41
-        beq t1, t2, answer_ok_1966
-        j fail
-answer_ok_1966:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_1967
-        j fail
-answer_ok_1967:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1968
-        j fail
-answer_ok_1968:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_1969
-        j fail
-answer_ok_1969:
-        li gp, 617
-        li t0, 0x7fffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 41
-        beq t1, t2, answer_ok_1970
-        j fail
-answer_ok_1970:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1971
-        j fail
-answer_ok_1971:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_1972
-        j fail
-answer_ok_1972:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1973
-        j fail
-answer_ok_1973:
-        li gp, 618
-        li t0, 0x800000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 40
-        beq t1, t2, answer_ok_1974
-        j fail
-answer_ok_1974:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_1975
-        j fail
-answer_ok_1975:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1976
-        j fail
-answer_ok_1976:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_1977
-        j fail
-answer_ok_1977:
-        li gp, 619
-        li t0, 0xffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 40
-        beq t1, t2, answer_ok_1978
-        j fail
-answer_ok_1978:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1979
-        j fail
-answer_ok_1979:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_1980
-        j fail
-answer_ok_1980:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1981
-        j fail
-answer_ok_1981:
-        li gp, 620
-        li t0, 0x1000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 39
-        beq t1, t2, answer_ok_1982
-        j fail
-answer_ok_1982:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_1983
-        j fail
-answer_ok_1983:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1984
-        j fail
-answer_ok_1984:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_1985
-        j fail
-answer_ok_1985:
-        li gp, 621
-        li t0, 0x1ffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 39
-        beq t1, t2, answer_ok_1986
-        j fail
-answer_ok_1986:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1987
-        j fail
-answer_ok_1987:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_1988
-        j fail
-answer_ok_1988:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1989
-        j fail
-answer_ok_1989:
-        li gp, 622
-        li t0, 0x2000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 38
-        beq t1, t2, answer_ok_1990
-        j fail
-answer_ok_1990:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_1991
-        j fail
-answer_ok_1991:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_1992
-        j fail
-answer_ok_1992:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_1993
-        j fail
-answer_ok_1993:
-        li gp, 623
-        li t0, 0x3ffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 38
-        beq t1, t2, answer_ok_1994
-        j fail
-answer_ok_1994:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1995
-        j fail
-answer_ok_1995:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_1996
-        j fail
-answer_ok_1996:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_1997
-        j fail
-answer_ok_1997:
-        li gp, 624
-        li t0, 0x4000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 37
-        beq t1, t2, answer_ok_1998
-        j fail
-answer_ok_1998:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_1999
-        j fail
-answer_ok_1999:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2000
-        j fail
-answer_ok_2000:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_2001
-        j fail
-answer_ok_2001:
-        li gp, 625
-        li t0, 0x7ffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 37
-        beq t1, t2, answer_ok_2002
-        j fail
-answer_ok_2002:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2003
-        j fail
-answer_ok_2003:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_2004
-        j fail
-answer_ok_2004:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2005
-        j fail
-answer_ok_2005:
-        li gp, 626
-        li t0, 0x8000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 36
-        beq t1, t2, answer_ok_2006
-        j fail
-answer_ok_2006:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_2007
-        j fail
-answer_ok_2007:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2008
-        j fail
-answer_ok_2008:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_2009
-        j fail
-answer_ok_2009:
-        li gp, 627
-        li t0, 0xfffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 36
-        beq t1, t2, answer_ok_2010
-        j fail
-answer_ok_2010:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2011
-        j fail
-answer_ok_2011:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_2012
-        j fail
-answer_ok_2012:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2013
-        j fail
-answer_ok_2013:
-        li gp, 628
-        li t0, 0x10000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 35
-        beq t1, t2, answer_ok_2014
-        j fail
-answer_ok_2014:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_2015
-        j fail
-answer_ok_2015:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2016
-        j fail
-answer_ok_2016:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_2017
-        j fail
-answer_ok_2017:
-        li gp, 629
-        li t0, 0x1fffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 35
-        beq t1, t2, answer_ok_2018
-        j fail
-answer_ok_2018:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2019
-        j fail
-answer_ok_2019:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_2020
-        j fail
-answer_ok_2020:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2021
-        j fail
-answer_ok_2021:
-        li gp, 630
-        li t0, 0x20000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 34
-        beq t1, t2, answer_ok_2022
-        j fail
-answer_ok_2022:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_2023
-        j fail
-answer_ok_2023:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2024
-        j fail
-answer_ok_2024:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_2025
-        j fail
-answer_ok_2025:
-        li gp, 631
-        li t0, 0x3fffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 34
-        beq t1, t2, answer_ok_2026
-        j fail
-answer_ok_2026:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2027
-        j fail
-answer_ok_2027:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_2028
-        j fail
-answer_ok_2028:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2029
-        j fail
-answer_ok_2029:
-        li gp, 632
-        li t0, 0x40000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 33
-        beq t1, t2, answer_ok_2030
-        j fail
-answer_ok_2030:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_2031
-        j fail
-answer_ok_2031:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2032
-        j fail
-answer_ok_2032:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_2033
-        j fail
-answer_ok_2033:
-        li gp, 633
-        li t0, 0x7fffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 33
-        beq t1, t2, answer_ok_2034
-        j fail
-answer_ok_2034:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2035
-        j fail
-answer_ok_2035:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 31
-        beq t1, t2, answer_ok_2036
-        j fail
-answer_ok_2036:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2037
-        j fail
-answer_ok_2037:
-        li gp, 634
-        li t0, 0x80000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 32
-        beq t1, t2, answer_ok_2038
-        j fail
-answer_ok_2038:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 31
-        beq t1, t2, answer_ok_2039
-        j fail
-answer_ok_2039:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2040
-        j fail
-answer_ok_2040:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 31
-        beq t1, t2, answer_ok_2041
-        j fail
-answer_ok_2041:
-        li gp, 635
-        li t0, 0xffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 32
-        beq t1, t2, answer_ok_2042
-        j fail
-answer_ok_2042:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2043
-        j fail
-answer_ok_2043:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 32
-        beq t1, t2, answer_ok_2044
-        j fail
-answer_ok_2044:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2045
-        j fail
-answer_ok_2045:
-        li gp, 636
-        li t0, 0x100000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 31
-        beq t1, t2, answer_ok_2046
-        j fail
-answer_ok_2046:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 32
-        beq t1, t2, answer_ok_2047
-        j fail
-answer_ok_2047:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2048
-        j fail
-answer_ok_2048:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 32
-        beq t1, t2, answer_ok_2049
-        j fail
-answer_ok_2049:
-        li gp, 637
-        li t0, 0x1ffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 31
-        beq t1, t2, answer_ok_2050
-        j fail
-answer_ok_2050:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2051
-        j fail
-answer_ok_2051:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 33
-        beq t1, t2, answer_ok_2052
-        j fail
-answer_ok_2052:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2053
-        j fail
-answer_ok_2053:
-        li gp, 638
-        li t0, 0x200000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_2054
-        j fail
-answer_ok_2054:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 33
-        beq t1, t2, answer_ok_2055
-        j fail
-answer_ok_2055:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2056
-        j fail
-answer_ok_2056:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 33
-        beq t1, t2, answer_ok_2057
-        j fail
-answer_ok_2057:
-        li gp, 639
-        li t0, 0x3ffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_2058
-        j fail
-answer_ok_2058:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2059
-        j fail
-answer_ok_2059:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 34
-        beq t1, t2, answer_ok_2060
-        j fail
-answer_ok_2060:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2061
-        j fail
-answer_ok_2061:
-        li gp, 640
-        li t0, 0x400000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_2062
-        j fail
-answer_ok_2062:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 34
-        beq t1, t2, answer_ok_2063
-        j fail
-answer_ok_2063:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2064
-        j fail
-answer_ok_2064:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 34
-        beq t1, t2, answer_ok_2065
-        j fail
-answer_ok_2065:
-        li gp, 641
-        li t0, 0x7ffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_2066
-        j fail
-answer_ok_2066:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2067
-        j fail
-answer_ok_2067:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 35
-        beq t1, t2, answer_ok_2068
-        j fail
-answer_ok_2068:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2069
-        j fail
-answer_ok_2069:
-        li gp, 642
-        li t0, 0x800000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_2070
-        j fail
-answer_ok_2070:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 35
-        beq t1, t2, answer_ok_2071
-        j fail
-answer_ok_2071:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2072
-        j fail
-answer_ok_2072:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 35
-        beq t1, t2, answer_ok_2073
-        j fail
-answer_ok_2073:
-        li gp, 643
-        li t0, 0xfffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_2074
-        j fail
-answer_ok_2074:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2075
-        j fail
-answer_ok_2075:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 36
-        beq t1, t2, answer_ok_2076
-        j fail
-answer_ok_2076:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2077
-        j fail
-answer_ok_2077:
-        li gp, 644
-        li t0, 0x1000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_2078
-        j fail
-answer_ok_2078:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 36
-        beq t1, t2, answer_ok_2079
-        j fail
-answer_ok_2079:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2080
-        j fail
-answer_ok_2080:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 36
-        beq t1, t2, answer_ok_2081
-        j fail
-answer_ok_2081:
-        li gp, 645
-        li t0, 0x1fffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_2082
-        j fail
-answer_ok_2082:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2083
-        j fail
-answer_ok_2083:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 37
-        beq t1, t2, answer_ok_2084
-        j fail
-answer_ok_2084:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2085
-        j fail
-answer_ok_2085:
-        li gp, 646
-        li t0, 0x2000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_2086
-        j fail
-answer_ok_2086:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 37
-        beq t1, t2, answer_ok_2087
-        j fail
-answer_ok_2087:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2088
-        j fail
-answer_ok_2088:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 37
-        beq t1, t2, answer_ok_2089
-        j fail
-answer_ok_2089:
-        li gp, 647
-        li t0, 0x3fffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_2090
-        j fail
-answer_ok_2090:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2091
-        j fail
-answer_ok_2091:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 38
-        beq t1, t2, answer_ok_2092
-        j fail
-answer_ok_2092:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2093
-        j fail
-answer_ok_2093:
-        li gp, 648
-        li t0, 0x4000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_2094
-        j fail
-answer_ok_2094:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 38
-        beq t1, t2, answer_ok_2095
-        j fail
-answer_ok_2095:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2096
-        j fail
-answer_ok_2096:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 38
-        beq t1, t2, answer_ok_2097
-        j fail
-answer_ok_2097:
-        li gp, 649
-        li t0, 0x7fffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_2098
-        j fail
-answer_ok_2098:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2099
-        j fail
-answer_ok_2099:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 39
-        beq t1, t2, answer_ok_2100
-        j fail
-answer_ok_2100:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2101
-        j fail
-answer_ok_2101:
-        li gp, 650
-        li t0, 0x8000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_2102
-        j fail
-answer_ok_2102:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 39
-        beq t1, t2, answer_ok_2103
-        j fail
-answer_ok_2103:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2104
-        j fail
-answer_ok_2104:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 39
-        beq t1, t2, answer_ok_2105
-        j fail
-answer_ok_2105:
-        li gp, 651
-        li t0, 0xffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_2106
-        j fail
-answer_ok_2106:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2107
-        j fail
-answer_ok_2107:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 40
-        beq t1, t2, answer_ok_2108
-        j fail
-answer_ok_2108:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2109
-        j fail
-answer_ok_2109:
-        li gp, 652
-        li t0, 0x10000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_2110
-        j fail
-answer_ok_2110:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 40
-        beq t1, t2, answer_ok_2111
-        j fail
-answer_ok_2111:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2112
-        j fail
-answer_ok_2112:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 40
-        beq t1, t2, answer_ok_2113
-        j fail
-answer_ok_2113:
-        li gp, 653
-        li t0, 0x1ffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_2114
-        j fail
-answer_ok_2114:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2115
-        j fail
-answer_ok_2115:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 41
-        beq t1, t2, answer_ok_2116
-        j fail
-answer_ok_2116:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2117
-        j fail
-answer_ok_2117:
-        li gp, 654
-        li t0, 0x20000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_2118
-        j fail
-answer_ok_2118:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 41
-        beq t1, t2, answer_ok_2119
-        j fail
-answer_ok_2119:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2120
-        j fail
-answer_ok_2120:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 41
-        beq t1, t2, answer_ok_2121
-        j fail
-answer_ok_2121:
-        li gp, 655
-        li t0, 0x3ffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_2122
-        j fail
-answer_ok_2122:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2123
-        j fail
-answer_ok_2123:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 42
-        beq t1, t2, answer_ok_2124
-        j fail
-answer_ok_2124:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2125
-        j fail
-answer_ok_2125:
-        li gp, 656
-        li t0, 0x40000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_2126
-        j fail
-answer_ok_2126:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 42
-        beq t1, t2, answer_ok_2127
-        j fail
-answer_ok_2127:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2128
-        j fail
-answer_ok_2128:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 42
-        beq t1, t2, answer_ok_2129
-        j fail
-answer_ok_2129:
-        li gp, 657
-        li t0, 0x7ffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_2130
-        j fail
-answer_ok_2130:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2131
-        j fail
-answer_ok_2131:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 43
-        beq t1, t2, answer_ok_2132
-        j fail
-answer_ok_2132:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2133
-        j fail
-answer_ok_2133:
-        li gp, 658
-        li t0, 0x80000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_2134
-        j fail
-answer_ok_2134:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 43
-        beq t1, t2, answer_ok_2135
-        j fail
-answer_ok_2135:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2136
-        j fail
-answer_ok_2136:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 43
-        beq t1, t2, answer_ok_2137
-        j fail
-answer_ok_2137:
-        li gp, 659
-        li t0, 0xfffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_2138
-        j fail
-answer_ok_2138:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2139
-        j fail
-answer_ok_2139:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 44
-        beq t1, t2, answer_ok_2140
-        j fail
-answer_ok_2140:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2141
-        j fail
-answer_ok_2141:
-        li gp, 660
-        li t0, 0x100000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_2142
-        j fail
-answer_ok_2142:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 44
-        beq t1, t2, answer_ok_2143
-        j fail
-answer_ok_2143:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2144
-        j fail
-answer_ok_2144:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 44
-        beq t1, t2, answer_ok_2145
-        j fail
-answer_ok_2145:
-        li gp, 661
-        li t0, 0x1fffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_2146
-        j fail
-answer_ok_2146:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2147
-        j fail
-answer_ok_2147:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 45
-        beq t1, t2, answer_ok_2148
-        j fail
-answer_ok_2148:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2149
-        j fail
-answer_ok_2149:
-        li gp, 662
-        li t0, 0x200000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_2150
-        j fail
-answer_ok_2150:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 45
-        beq t1, t2, answer_ok_2151
-        j fail
-answer_ok_2151:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2152
-        j fail
-answer_ok_2152:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 45
-        beq t1, t2, answer_ok_2153
-        j fail
-answer_ok_2153:
-        li gp, 663
-        li t0, 0x3fffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_2154
-        j fail
-answer_ok_2154:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2155
-        j fail
-answer_ok_2155:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 46
-        beq t1, t2, answer_ok_2156
-        j fail
-answer_ok_2156:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2157
-        j fail
-answer_ok_2157:
-        li gp, 664
-        li t0, 0x400000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_2158
-        j fail
-answer_ok_2158:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 46
-        beq t1, t2, answer_ok_2159
-        j fail
-answer_ok_2159:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2160
-        j fail
-answer_ok_2160:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 46
-        beq t1, t2, answer_ok_2161
-        j fail
-answer_ok_2161:
-        li gp, 665
-        li t0, 0x7fffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_2162
-        j fail
-answer_ok_2162:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2163
-        j fail
-answer_ok_2163:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 47
-        beq t1, t2, answer_ok_2164
-        j fail
-answer_ok_2164:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2165
-        j fail
-answer_ok_2165:
-        li gp, 666
-        li t0, 0x800000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_2166
-        j fail
-answer_ok_2166:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 47
-        beq t1, t2, answer_ok_2167
-        j fail
-answer_ok_2167:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2168
-        j fail
-answer_ok_2168:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 47
-        beq t1, t2, answer_ok_2169
-        j fail
-answer_ok_2169:
-        li gp, 667
-        li t0, 0xffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_2170
-        j fail
-answer_ok_2170:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2171
-        j fail
-answer_ok_2171:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 48
-        beq t1, t2, answer_ok_2172
-        j fail
-answer_ok_2172:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2173
-        j fail
-answer_ok_2173:
-        li gp, 668
-        li t0, 0x1000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_2174
-        j fail
-answer_ok_2174:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 48
-        beq t1, t2, answer_ok_2175
-        j fail
-answer_ok_2175:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2176
-        j fail
-answer_ok_2176:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 48
-        beq t1, t2, answer_ok_2177
-        j fail
-answer_ok_2177:
-        li gp, 669
-        li t0, 0x1ffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_2178
-        j fail
-answer_ok_2178:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2179
-        j fail
-answer_ok_2179:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 49
-        beq t1, t2, answer_ok_2180
-        j fail
-answer_ok_2180:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2181
-        j fail
-answer_ok_2181:
-        li gp, 670
-        li t0, 0x2000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_2182
-        j fail
-answer_ok_2182:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 49
-        beq t1, t2, answer_ok_2183
-        j fail
-answer_ok_2183:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2184
-        j fail
-answer_ok_2184:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 49
-        beq t1, t2, answer_ok_2185
-        j fail
-answer_ok_2185:
-        li gp, 671
-        li t0, 0x3ffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_2186
-        j fail
-answer_ok_2186:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2187
-        j fail
-answer_ok_2187:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 50
-        beq t1, t2, answer_ok_2188
-        j fail
-answer_ok_2188:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2189
-        j fail
-answer_ok_2189:
-        li gp, 672
-        li t0, 0x4000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_2190
-        j fail
-answer_ok_2190:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 50
-        beq t1, t2, answer_ok_2191
-        j fail
-answer_ok_2191:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2192
-        j fail
-answer_ok_2192:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 50
-        beq t1, t2, answer_ok_2193
-        j fail
-answer_ok_2193:
-        li gp, 673
-        li t0, 0x7ffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_2194
-        j fail
-answer_ok_2194:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2195
-        j fail
-answer_ok_2195:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 51
-        beq t1, t2, answer_ok_2196
-        j fail
-answer_ok_2196:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2197
-        j fail
-answer_ok_2197:
-        li gp, 674
-        li t0, 0x8000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_2198
-        j fail
-answer_ok_2198:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 51
-        beq t1, t2, answer_ok_2199
-        j fail
-answer_ok_2199:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2200
-        j fail
-answer_ok_2200:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 51
-        beq t1, t2, answer_ok_2201
-        j fail
-answer_ok_2201:
-        li gp, 675
-        li t0, 0xfffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_2202
-        j fail
-answer_ok_2202:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2203
-        j fail
-answer_ok_2203:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 52
-        beq t1, t2, answer_ok_2204
-        j fail
-answer_ok_2204:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2205
-        j fail
-answer_ok_2205:
-        li gp, 676
-        li t0, 0x10000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_2206
-        j fail
-answer_ok_2206:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 52
-        beq t1, t2, answer_ok_2207
-        j fail
-answer_ok_2207:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2208
-        j fail
-answer_ok_2208:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 52
-        beq t1, t2, answer_ok_2209
-        j fail
-answer_ok_2209:
-        li gp, 677
-        li t0, 0x1fffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_2210
-        j fail
-answer_ok_2210:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2211
-        j fail
-answer_ok_2211:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 53
-        beq t1, t2, answer_ok_2212
-        j fail
-answer_ok_2212:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2213
-        j fail
-answer_ok_2213:
-        li gp, 678
-        li t0, 0x20000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_2214
-        j fail
-answer_ok_2214:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 53
-        beq t1, t2, answer_ok_2215
-        j fail
-answer_ok_2215:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2216
-        j fail
-answer_ok_2216:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 53
-        beq t1, t2, answer_ok_2217
-        j fail
-answer_ok_2217:
-        li gp, 679
-        li t0, 0x3fffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_2218
-        j fail
-answer_ok_2218:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2219
-        j fail
-answer_ok_2219:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 54
-        beq t1, t2, answer_ok_2220
-        j fail
-answer_ok_2220:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2221
-        j fail
-answer_ok_2221:
-        li gp, 680
-        li t0, 0x40000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_2222
-        j fail
-answer_ok_2222:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 54
-        beq t1, t2, answer_ok_2223
-        j fail
-answer_ok_2223:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2224
-        j fail
-answer_ok_2224:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 54
-        beq t1, t2, answer_ok_2225
-        j fail
-answer_ok_2225:
-        li gp, 681
-        li t0, 0x7fffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_2226
-        j fail
-answer_ok_2226:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2227
-        j fail
-answer_ok_2227:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 55
-        beq t1, t2, answer_ok_2228
-        j fail
-answer_ok_2228:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2229
-        j fail
-answer_ok_2229:
-        li gp, 682
-        li t0, 0x80000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_2230
-        j fail
-answer_ok_2230:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 55
-        beq t1, t2, answer_ok_2231
-        j fail
-answer_ok_2231:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2232
-        j fail
-answer_ok_2232:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 55
-        beq t1, t2, answer_ok_2233
-        j fail
-answer_ok_2233:
-        li gp, 683
-        li t0, 0xffffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_2234
-        j fail
-answer_ok_2234:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2235
-        j fail
-answer_ok_2235:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 56
-        beq t1, t2, answer_ok_2236
-        j fail
-answer_ok_2236:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2237
-        j fail
-answer_ok_2237:
-        li gp, 684
-        li t0, 0x100000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_2238
-        j fail
-answer_ok_2238:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 56
-        beq t1, t2, answer_ok_2239
-        j fail
-answer_ok_2239:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2240
-        j fail
-answer_ok_2240:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 56
-        beq t1, t2, answer_ok_2241
-        j fail
-answer_ok_2241:
-        li gp, 685
-        li t0, 0x1ffffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_2242
-        j fail
-answer_ok_2242:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2243
-        j fail
-answer_ok_2243:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 57
-        beq t1, t2, answer_ok_2244
-        j fail
-answer_ok_2244:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2245
-        j fail
-answer_ok_2245:
-        li gp, 686
-        li t0, 0x200000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_2246
-        j fail
-answer_ok_2246:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 57
-        beq t1, t2, answer_ok_2247
-        j fail
-answer_ok_2247:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2248
-        j fail
-answer_ok_2248:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 57
-        beq t1, t2, answer_ok_2249
-        j fail
-answer_ok_2249:
-        li gp, 687
-        li t0, 0x3ffffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_2250
-        j fail
-answer_ok_2250:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2251
-        j fail
-answer_ok_2251:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 58
-        beq t1, t2, answer_ok_2252
-        j fail
-answer_ok_2252:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2253
-        j fail
-answer_ok_2253:
-        li gp, 688
-        li t0, 0x400000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_2254
-        j fail
-answer_ok_2254:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 58
-        beq t1, t2, answer_ok_2255
-        j fail
-answer_ok_2255:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2256
-        j fail
-answer_ok_2256:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 58
-        beq t1, t2, answer_ok_2257
-        j fail
-answer_ok_2257:
-        li gp, 689
-        li t0, 0x7ffffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_2258
-        j fail
-answer_ok_2258:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2259
-        j fail
-answer_ok_2259:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 59
-        beq t1, t2, answer_ok_2260
-        j fail
-answer_ok_2260:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2261
-        j fail
-answer_ok_2261:
-        li gp, 690
-        li t0, 0x800000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_2262
-        j fail
-answer_ok_2262:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 59
-        beq t1, t2, answer_ok_2263
-        j fail
-answer_ok_2263:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2264
-        j fail
-answer_ok_2264:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 59
-        beq t1, t2, answer_ok_2265
-        j fail
-answer_ok_2265:
-        li gp, 691
-        li t0, 0xfffffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_2266
-        j fail
-answer_ok_2266:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2267
-        j fail
-answer_ok_2267:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 60
-        beq t1, t2, answer_ok_2268
-        j fail
-answer_ok_2268:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2269
-        j fail
-answer_ok_2269:
-        li gp, 692
-        li t0, 0x1000000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_2270
-        j fail
-answer_ok_2270:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 60
-        beq t1, t2, answer_ok_2271
-        j fail
-answer_ok_2271:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2272
-        j fail
-answer_ok_2272:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 60
-        beq t1, t2, answer_ok_2273
-        j fail
-answer_ok_2273:
-        li gp, 693
-        li t0, 0x1fffffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_2274
-        j fail
-answer_ok_2274:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2275
-        j fail
-answer_ok_2275:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 61
-        beq t1, t2, answer_ok_2276
-        j fail
-answer_ok_2276:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2277
-        j fail
-answer_ok_2277:
-        li gp, 694
-        li t0, 0x2000000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_2278
-        j fail
-answer_ok_2278:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 61
-        beq t1, t2, answer_ok_2279
-        j fail
-answer_ok_2279:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2280
-        j fail
-answer_ok_2280:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 61
-        beq t1, t2, answer_ok_2281
-        j fail
-answer_ok_2281:
-        li gp, 695
-        li t0, 0x3fffffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_2282
-        j fail
-answer_ok_2282:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2283
-        j fail
-answer_ok_2283:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 62
-        beq t1, t2, answer_ok_2284
-        j fail
-answer_ok_2284:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2285
-        j fail
-answer_ok_2285:
-        li gp, 696
-        li t0, 0x4000000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2286
-        j fail
-answer_ok_2286:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 62
-        beq t1, t2, answer_ok_2287
-        j fail
-answer_ok_2287:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2288
-        j fail
-answer_ok_2288:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 62
-        beq t1, t2, answer_ok_2289
-        j fail
-answer_ok_2289:
-        li gp, 697
-        li t0, 0x5555555555555555
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2290
-        j fail
-answer_ok_2290:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2291
-        j fail
-answer_ok_2291:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 32
-        beq t1, t2, answer_ok_2292
-        j fail
-answer_ok_2292:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2293
-        j fail
-answer_ok_2293:
-        li gp, 698
-        li t0, 0x7fffffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2294
-        j fail
-answer_ok_2294:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2295
-        j fail
-answer_ok_2295:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 63
-        beq t1, t2, answer_ok_2296
-        j fail
-answer_ok_2296:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2297
-        j fail
-answer_ok_2297:
-        li gp, 699
-        li t0, 0x8000000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2298
-        j fail
-answer_ok_2298:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 63
-        beq t1, t2, answer_ok_2299
-        j fail
-answer_ok_2299:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2300
-        j fail
-answer_ok_2300:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 63
-        beq t1, t2, answer_ok_2301
-        j fail
-answer_ok_2301:
-        li gp, 700
-        li t0, 0xaaaaaaaaaaaaaaaa
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2302
-        j fail
-answer_ok_2302:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2303
-        j fail
-answer_ok_2303:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 32
-        beq t1, t2, answer_ok_2304
-        j fail
-answer_ok_2304:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2305
-        j fail
-answer_ok_2305:
-        li gp, 701
-        li t0, 0xc000000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2306
-        j fail
-answer_ok_2306:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 62
-        beq t1, t2, answer_ok_2307
-        j fail
-answer_ok_2307:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_2308
-        j fail
-answer_ok_2308:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 62
-        beq t1, t2, answer_ok_2309
-        j fail
-answer_ok_2309:
-        li gp, 702
-        li t0, 0xe000000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2310
-        j fail
-answer_ok_2310:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 61
-        beq t1, t2, answer_ok_2311
-        j fail
-answer_ok_2311:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_2312
-        j fail
-answer_ok_2312:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 61
-        beq t1, t2, answer_ok_2313
-        j fail
-answer_ok_2313:
-        li gp, 703
-        li t0, 0xf000000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2314
-        j fail
-answer_ok_2314:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 60
-        beq t1, t2, answer_ok_2315
-        j fail
-answer_ok_2315:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_2316
-        j fail
-answer_ok_2316:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 60
-        beq t1, t2, answer_ok_2317
-        j fail
-answer_ok_2317:
-        li gp, 704
-        li t0, 0xf800000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2318
-        j fail
-answer_ok_2318:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 59
-        beq t1, t2, answer_ok_2319
-        j fail
-answer_ok_2319:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_2320
-        j fail
-answer_ok_2320:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 59
-        beq t1, t2, answer_ok_2321
-        j fail
-answer_ok_2321:
-        li gp, 705
-        li t0, 0xfc00000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2322
-        j fail
-answer_ok_2322:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 58
-        beq t1, t2, answer_ok_2323
-        j fail
-answer_ok_2323:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_2324
-        j fail
-answer_ok_2324:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 58
-        beq t1, t2, answer_ok_2325
-        j fail
-answer_ok_2325:
-        li gp, 706
-        li t0, 0xfe00000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2326
-        j fail
-answer_ok_2326:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 57
-        beq t1, t2, answer_ok_2327
-        j fail
-answer_ok_2327:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_2328
-        j fail
-answer_ok_2328:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 57
-        beq t1, t2, answer_ok_2329
-        j fail
-answer_ok_2329:
-        li gp, 707
-        li t0, 0xff00000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2330
-        j fail
-answer_ok_2330:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 56
-        beq t1, t2, answer_ok_2331
-        j fail
-answer_ok_2331:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_2332
-        j fail
-answer_ok_2332:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 56
-        beq t1, t2, answer_ok_2333
-        j fail
-answer_ok_2333:
-        li gp, 708
-        li t0, 0xff80000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2334
-        j fail
-answer_ok_2334:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 55
-        beq t1, t2, answer_ok_2335
-        j fail
-answer_ok_2335:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_2336
-        j fail
-answer_ok_2336:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 55
-        beq t1, t2, answer_ok_2337
-        j fail
-answer_ok_2337:
-        li gp, 709
-        li t0, 0xffc0000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2338
-        j fail
-answer_ok_2338:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 54
-        beq t1, t2, answer_ok_2339
-        j fail
-answer_ok_2339:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_2340
-        j fail
-answer_ok_2340:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 54
-        beq t1, t2, answer_ok_2341
-        j fail
-answer_ok_2341:
-        li gp, 710
-        li t0, 0xffe0000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2342
-        j fail
-answer_ok_2342:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 53
-        beq t1, t2, answer_ok_2343
-        j fail
-answer_ok_2343:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_2344
-        j fail
-answer_ok_2344:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 53
-        beq t1, t2, answer_ok_2345
-        j fail
-answer_ok_2345:
-        li gp, 711
-        li t0, 0xfff0000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2346
-        j fail
-answer_ok_2346:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 52
-        beq t1, t2, answer_ok_2347
-        j fail
-answer_ok_2347:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_2348
-        j fail
-answer_ok_2348:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 52
-        beq t1, t2, answer_ok_2349
-        j fail
-answer_ok_2349:
-        li gp, 712
-        li t0, 0xfff8000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2350
-        j fail
-answer_ok_2350:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 51
-        beq t1, t2, answer_ok_2351
-        j fail
-answer_ok_2351:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_2352
-        j fail
-answer_ok_2352:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 51
-        beq t1, t2, answer_ok_2353
-        j fail
-answer_ok_2353:
-        li gp, 713
-        li t0, 0xfffc000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2354
-        j fail
-answer_ok_2354:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 50
-        beq t1, t2, answer_ok_2355
-        j fail
-answer_ok_2355:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_2356
-        j fail
-answer_ok_2356:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 50
-        beq t1, t2, answer_ok_2357
-        j fail
-answer_ok_2357:
-        li gp, 714
-        li t0, 0xfffe000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2358
-        j fail
-answer_ok_2358:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 49
-        beq t1, t2, answer_ok_2359
-        j fail
-answer_ok_2359:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_2360
-        j fail
-answer_ok_2360:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 49
-        beq t1, t2, answer_ok_2361
-        j fail
-answer_ok_2361:
-        li gp, 715
-        li t0, 0xffff000000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2362
-        j fail
-answer_ok_2362:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 48
-        beq t1, t2, answer_ok_2363
-        j fail
-answer_ok_2363:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_2364
-        j fail
-answer_ok_2364:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 48
-        beq t1, t2, answer_ok_2365
-        j fail
-answer_ok_2365:
-        li gp, 716
-        li t0, 0xffff800000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2366
-        j fail
-answer_ok_2366:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 47
-        beq t1, t2, answer_ok_2367
-        j fail
-answer_ok_2367:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_2368
-        j fail
-answer_ok_2368:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 47
-        beq t1, t2, answer_ok_2369
-        j fail
-answer_ok_2369:
-        li gp, 717
-        li t0, 0xffffc00000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2370
-        j fail
-answer_ok_2370:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 46
-        beq t1, t2, answer_ok_2371
-        j fail
-answer_ok_2371:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_2372
-        j fail
-answer_ok_2372:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 46
-        beq t1, t2, answer_ok_2373
-        j fail
-answer_ok_2373:
-        li gp, 718
-        li t0, 0xffffe00000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2374
-        j fail
-answer_ok_2374:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 45
-        beq t1, t2, answer_ok_2375
-        j fail
-answer_ok_2375:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_2376
-        j fail
-answer_ok_2376:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 45
-        beq t1, t2, answer_ok_2377
-        j fail
-answer_ok_2377:
-        li gp, 719
-        li t0, 0xfffff00000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2378
-        j fail
-answer_ok_2378:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 44
-        beq t1, t2, answer_ok_2379
-        j fail
-answer_ok_2379:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_2380
-        j fail
-answer_ok_2380:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 44
-        beq t1, t2, answer_ok_2381
-        j fail
-answer_ok_2381:
-        li gp, 720
-        li t0, 0xfffff80000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2382
-        j fail
-answer_ok_2382:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 43
-        beq t1, t2, answer_ok_2383
-        j fail
-answer_ok_2383:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_2384
-        j fail
-answer_ok_2384:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 43
-        beq t1, t2, answer_ok_2385
-        j fail
-answer_ok_2385:
-        li gp, 721
-        li t0, 0xfffffc0000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2386
-        j fail
-answer_ok_2386:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 42
-        beq t1, t2, answer_ok_2387
-        j fail
-answer_ok_2387:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_2388
-        j fail
-answer_ok_2388:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 42
-        beq t1, t2, answer_ok_2389
-        j fail
-answer_ok_2389:
-        li gp, 722
-        li t0, 0xfffffe0000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2390
-        j fail
-answer_ok_2390:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 41
-        beq t1, t2, answer_ok_2391
-        j fail
-answer_ok_2391:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_2392
-        j fail
-answer_ok_2392:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 41
-        beq t1, t2, answer_ok_2393
-        j fail
-answer_ok_2393:
-        li gp, 723
-        li t0, 0xffffff0000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2394
-        j fail
-answer_ok_2394:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 40
-        beq t1, t2, answer_ok_2395
-        j fail
-answer_ok_2395:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_2396
-        j fail
-answer_ok_2396:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 40
-        beq t1, t2, answer_ok_2397
-        j fail
-answer_ok_2397:
-        li gp, 724
-        li t0, 0xffffff8000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2398
-        j fail
-answer_ok_2398:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 39
-        beq t1, t2, answer_ok_2399
-        j fail
-answer_ok_2399:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_2400
-        j fail
-answer_ok_2400:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 39
-        beq t1, t2, answer_ok_2401
-        j fail
-answer_ok_2401:
-        li gp, 725
-        li t0, 0xffffffc000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2402
-        j fail
-answer_ok_2402:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 38
-        beq t1, t2, answer_ok_2403
-        j fail
-answer_ok_2403:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_2404
-        j fail
-answer_ok_2404:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 38
-        beq t1, t2, answer_ok_2405
-        j fail
-answer_ok_2405:
-        li gp, 726
-        li t0, 0xffffffe000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2406
-        j fail
-answer_ok_2406:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 37
-        beq t1, t2, answer_ok_2407
-        j fail
-answer_ok_2407:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_2408
-        j fail
-answer_ok_2408:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 37
-        beq t1, t2, answer_ok_2409
-        j fail
-answer_ok_2409:
-        li gp, 727
-        li t0, 0xfffffff000000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2410
-        j fail
-answer_ok_2410:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 36
-        beq t1, t2, answer_ok_2411
-        j fail
-answer_ok_2411:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_2412
-        j fail
-answer_ok_2412:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 36
-        beq t1, t2, answer_ok_2413
-        j fail
-answer_ok_2413:
-        li gp, 728
-        li t0, 0xfffffff800000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2414
-        j fail
-answer_ok_2414:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 35
-        beq t1, t2, answer_ok_2415
-        j fail
-answer_ok_2415:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_2416
-        j fail
-answer_ok_2416:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 35
-        beq t1, t2, answer_ok_2417
-        j fail
-answer_ok_2417:
-        li gp, 729
-        li t0, 0xfffffffc00000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2418
-        j fail
-answer_ok_2418:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 34
-        beq t1, t2, answer_ok_2419
-        j fail
-answer_ok_2419:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_2420
-        j fail
-answer_ok_2420:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 34
-        beq t1, t2, answer_ok_2421
-        j fail
-answer_ok_2421:
-        li gp, 730
-        li t0, 0xfffffffe00000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2422
-        j fail
-answer_ok_2422:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 33
-        beq t1, t2, answer_ok_2423
-        j fail
-answer_ok_2423:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 31
-        beq t1, t2, answer_ok_2424
-        j fail
-answer_ok_2424:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 33
-        beq t1, t2, answer_ok_2425
-        j fail
-answer_ok_2425:
-        li gp, 731
-        li t0, 0xffffffff00000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2426
-        j fail
-answer_ok_2426:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 32
-        beq t1, t2, answer_ok_2427
-        j fail
-answer_ok_2427:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 32
-        beq t1, t2, answer_ok_2428
-        j fail
-answer_ok_2428:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 32
-        beq t1, t2, answer_ok_2429
-        j fail
-answer_ok_2429:
-        li gp, 732
-        li t0, 0xffffffff80000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2430
-        j fail
-answer_ok_2430:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 31
-        beq t1, t2, answer_ok_2431
-        j fail
-answer_ok_2431:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 33
-        beq t1, t2, answer_ok_2432
-        j fail
-answer_ok_2432:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 31
-        beq t1, t2, answer_ok_2433
-        j fail
-answer_ok_2433:
-        li gp, 733
-        li t0, 0xffffffffc0000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2434
-        j fail
-answer_ok_2434:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_2435
-        j fail
-answer_ok_2435:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 34
-        beq t1, t2, answer_ok_2436
-        j fail
-answer_ok_2436:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 30
-        beq t1, t2, answer_ok_2437
-        j fail
-answer_ok_2437:
-        li gp, 734
-        li t0, 0xffffffffe0000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2438
-        j fail
-answer_ok_2438:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_2439
-        j fail
-answer_ok_2439:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 35
-        beq t1, t2, answer_ok_2440
-        j fail
-answer_ok_2440:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 29
-        beq t1, t2, answer_ok_2441
-        j fail
-answer_ok_2441:
-        li gp, 735
-        li t0, 0xfffffffff0000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2442
-        j fail
-answer_ok_2442:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_2443
-        j fail
-answer_ok_2443:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 36
-        beq t1, t2, answer_ok_2444
-        j fail
-answer_ok_2444:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 28
-        beq t1, t2, answer_ok_2445
-        j fail
-answer_ok_2445:
-        li gp, 736
-        li t0, 0xfffffffff8000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2446
-        j fail
-answer_ok_2446:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_2447
-        j fail
-answer_ok_2447:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 37
-        beq t1, t2, answer_ok_2448
-        j fail
-answer_ok_2448:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 27
-        beq t1, t2, answer_ok_2449
-        j fail
-answer_ok_2449:
-        li gp, 737
-        li t0, 0xfffffffffc000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2450
-        j fail
-answer_ok_2450:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_2451
-        j fail
-answer_ok_2451:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 38
-        beq t1, t2, answer_ok_2452
-        j fail
-answer_ok_2452:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 26
-        beq t1, t2, answer_ok_2453
-        j fail
-answer_ok_2453:
-        li gp, 738
-        li t0, 0xfffffffffe000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2454
-        j fail
-answer_ok_2454:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_2455
-        j fail
-answer_ok_2455:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 39
-        beq t1, t2, answer_ok_2456
-        j fail
-answer_ok_2456:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 25
-        beq t1, t2, answer_ok_2457
-        j fail
-answer_ok_2457:
-        li gp, 739
-        li t0, 0xffffffffff000000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2458
-        j fail
-answer_ok_2458:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_2459
-        j fail
-answer_ok_2459:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 40
-        beq t1, t2, answer_ok_2460
-        j fail
-answer_ok_2460:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 24
-        beq t1, t2, answer_ok_2461
-        j fail
-answer_ok_2461:
-        li gp, 740
-        li t0, 0xffffffffff800000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2462
-        j fail
-answer_ok_2462:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_2463
-        j fail
-answer_ok_2463:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 41
-        beq t1, t2, answer_ok_2464
-        j fail
-answer_ok_2464:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 23
-        beq t1, t2, answer_ok_2465
-        j fail
-answer_ok_2465:
-        li gp, 741
-        li t0, 0xffffffffffc00000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2466
-        j fail
-answer_ok_2466:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_2467
-        j fail
-answer_ok_2467:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 42
-        beq t1, t2, answer_ok_2468
-        j fail
-answer_ok_2468:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 22
-        beq t1, t2, answer_ok_2469
-        j fail
-answer_ok_2469:
-        li gp, 742
-        li t0, 0xffffffffffe00000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2470
-        j fail
-answer_ok_2470:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_2471
-        j fail
-answer_ok_2471:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 43
-        beq t1, t2, answer_ok_2472
-        j fail
-answer_ok_2472:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 21
-        beq t1, t2, answer_ok_2473
-        j fail
-answer_ok_2473:
-        li gp, 743
-        li t0, 0xfffffffffff00000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2474
-        j fail
-answer_ok_2474:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_2475
-        j fail
-answer_ok_2475:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 44
-        beq t1, t2, answer_ok_2476
-        j fail
-answer_ok_2476:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 20
-        beq t1, t2, answer_ok_2477
-        j fail
-answer_ok_2477:
-        li gp, 744
-        li t0, 0xfffffffffff80000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2478
-        j fail
-answer_ok_2478:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_2479
-        j fail
-answer_ok_2479:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 45
-        beq t1, t2, answer_ok_2480
-        j fail
-answer_ok_2480:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 19
-        beq t1, t2, answer_ok_2481
-        j fail
-answer_ok_2481:
-        li gp, 745
-        li t0, 0xfffffffffffc0000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2482
-        j fail
-answer_ok_2482:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_2483
-        j fail
-answer_ok_2483:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 46
-        beq t1, t2, answer_ok_2484
-        j fail
-answer_ok_2484:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 18
-        beq t1, t2, answer_ok_2485
-        j fail
-answer_ok_2485:
-        li gp, 746
-        li t0, 0xfffffffffffe0000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2486
-        j fail
-answer_ok_2486:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_2487
-        j fail
-answer_ok_2487:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 47
-        beq t1, t2, answer_ok_2488
-        j fail
-answer_ok_2488:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 17
-        beq t1, t2, answer_ok_2489
-        j fail
-answer_ok_2489:
-        li gp, 747
-        li t0, 0xffffffffffff0000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2490
-        j fail
-answer_ok_2490:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_2491
-        j fail
-answer_ok_2491:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 48
-        beq t1, t2, answer_ok_2492
-        j fail
-answer_ok_2492:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 16
-        beq t1, t2, answer_ok_2493
-        j fail
-answer_ok_2493:
-        li gp, 748
-        li t0, 0xffffffffffff8000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2494
-        j fail
-answer_ok_2494:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_2495
-        j fail
-answer_ok_2495:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 49
-        beq t1, t2, answer_ok_2496
-        j fail
-answer_ok_2496:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 15
-        beq t1, t2, answer_ok_2497
-        j fail
-answer_ok_2497:
-        li gp, 749
-        li t0, 0xffffffffffffc000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2498
-        j fail
-answer_ok_2498:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_2499
-        j fail
-answer_ok_2499:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 50
-        beq t1, t2, answer_ok_2500
-        j fail
-answer_ok_2500:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 14
-        beq t1, t2, answer_ok_2501
-        j fail
-answer_ok_2501:
-        li gp, 750
-        li t0, 0xffffffffffffe000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2502
-        j fail
-answer_ok_2502:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_2503
-        j fail
-answer_ok_2503:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 51
-        beq t1, t2, answer_ok_2504
-        j fail
-answer_ok_2504:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 13
-        beq t1, t2, answer_ok_2505
-        j fail
-answer_ok_2505:
-        li gp, 751
-        li t0, 0xfffffffffffff000
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2506
-        j fail
-answer_ok_2506:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_2507
-        j fail
-answer_ok_2507:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 52
-        beq t1, t2, answer_ok_2508
-        j fail
-answer_ok_2508:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 12
-        beq t1, t2, answer_ok_2509
-        j fail
-answer_ok_2509:
-        li gp, 752
-        li t0, 0xfffffffffffff800
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2510
-        j fail
-answer_ok_2510:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_2511
-        j fail
-answer_ok_2511:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 53
-        beq t1, t2, answer_ok_2512
-        j fail
-answer_ok_2512:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 11
-        beq t1, t2, answer_ok_2513
-        j fail
-answer_ok_2513:
-        li gp, 753
-        li t0, 0xfffffffffffffc00
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2514
-        j fail
-answer_ok_2514:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_2515
-        j fail
-answer_ok_2515:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 54
-        beq t1, t2, answer_ok_2516
-        j fail
-answer_ok_2516:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 10
-        beq t1, t2, answer_ok_2517
-        j fail
-answer_ok_2517:
-        li gp, 754
-        li t0, 0xfffffffffffffe00
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2518
-        j fail
-answer_ok_2518:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_2519
-        j fail
-answer_ok_2519:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 55
-        beq t1, t2, answer_ok_2520
-        j fail
-answer_ok_2520:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 9
-        beq t1, t2, answer_ok_2521
-        j fail
-answer_ok_2521:
-        li gp, 755
-        li t0, 0xffffffffffffff00
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2522
-        j fail
-answer_ok_2522:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_2523
-        j fail
-answer_ok_2523:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 56
-        beq t1, t2, answer_ok_2524
-        j fail
-answer_ok_2524:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 8
-        beq t1, t2, answer_ok_2525
-        j fail
-answer_ok_2525:
-        li gp, 756
-        li t0, 0xffffffffffffff80
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2526
-        j fail
-answer_ok_2526:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_2527
-        j fail
-answer_ok_2527:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 57
-        beq t1, t2, answer_ok_2528
-        j fail
-answer_ok_2528:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 7
-        beq t1, t2, answer_ok_2529
-        j fail
-answer_ok_2529:
-        li gp, 757
-        li t0, 0xffffffffffffffc0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2530
-        j fail
-answer_ok_2530:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_2531
-        j fail
-answer_ok_2531:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 58
-        beq t1, t2, answer_ok_2532
-        j fail
-answer_ok_2532:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 6
-        beq t1, t2, answer_ok_2533
-        j fail
-answer_ok_2533:
-        li gp, 758
-        li t0, 0xffffffffffffffe0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2534
-        j fail
-answer_ok_2534:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_2535
-        j fail
-answer_ok_2535:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 59
-        beq t1, t2, answer_ok_2536
-        j fail
-answer_ok_2536:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 5
-        beq t1, t2, answer_ok_2537
-        j fail
-answer_ok_2537:
-        li gp, 759
-        li t0, 0xfffffffffffffff0
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2538
-        j fail
-answer_ok_2538:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_2539
-        j fail
-answer_ok_2539:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 60
-        beq t1, t2, answer_ok_2540
-        j fail
-answer_ok_2540:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 4
-        beq t1, t2, answer_ok_2541
-        j fail
-answer_ok_2541:
-        li gp, 760
-        li t0, 0xfffffffffffffff8
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2542
-        j fail
-answer_ok_2542:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_2543
-        j fail
-answer_ok_2543:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 61
-        beq t1, t2, answer_ok_2544
-        j fail
-answer_ok_2544:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 3
-        beq t1, t2, answer_ok_2545
-        j fail
-answer_ok_2545:
-        li gp, 761
-        li t0, 0xfffffffffffffffc
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2546
-        j fail
-answer_ok_2546:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_2547
-        j fail
-answer_ok_2547:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 62
-        beq t1, t2, answer_ok_2548
-        j fail
-answer_ok_2548:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 2
-        beq t1, t2, answer_ok_2549
-        j fail
-answer_ok_2549:
-        li gp, 762
-        li t0, 0xfffffffffffffffe
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2550
-        j fail
-answer_ok_2550:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2551
-        j fail
-answer_ok_2551:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 63
-        beq t1, t2, answer_ok_2552
-        j fail
-answer_ok_2552:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 1
-        beq t1, t2, answer_ok_2553
-        j fail
-answer_ok_2553:
-        li gp, 763
-        li t0, 0xffffffffffffffff
-        vmv.v.x v8, t0
-        vmv.v.i v16, -1
-        vclz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2554
-        j fail
-answer_ok_2554:
-        vmv.v.i v16, -1
-        vctz.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2555
-        j fail
-answer_ok_2555:
-        vmv.v.i v16, -1
-        vcpop.v v16, v8
-        vmv.x.s t1, v16
-        li t2, 64
-        beq t1, t2, answer_ok_2556
-        j fail
-answer_ok_2556:
-        li t2, 1
-        vsub.vx v16, v8, t2
-        li t2, -1
-        vxor.vx v17, v8, t2
-        vand.vv v16, v16, v17
-        vcpop.v v16, v16
-        vmv.x.s t1, v16
-        li t2, 0
-        beq t1, t2, answer_ok_2557
-        j fail
-answer_ok_2557:
+answer_ok_205:
+        cincoffsetimm c12, c12, 16
+        addi t3, t3, -1
+        bnez t3, values_e64
         li gp, 764
         li t0, 0x0
         vmv.v.x v16, t0
         vclz.v v16, v16
         vmv.x.s t1, v16
         li t2, 64
-        beq t1, t2, answer_ok_2558
+        beq t1, t2, answer_ok_206
         j fail
-answer_ok_2558:
+answer_ok_206:
         li t0, 0x0
         vmv.v.x v16, t0
         vctz.v v16, v16
         vmv.x.s t1, v16
         li t2, 64
-        beq t1, t2, answer_ok_2559
+        beq t1, t2, answer_ok_207
         j fail
-answer_ok_2559:
+answer_ok_207:
         li t0, 0x0
         vmv.v.x v16, t0
         vcpop.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_2560
+        beq t1, t2, answer_ok_208
         j fail
-answer_ok_2560:
+answer_ok_208:
         li gp, 765
         li t0, 0x8000000000000000
         vmv.v.x v16, t0
         vclz.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_2561
+        beq t1, t2, answer_ok_209
         j fail
-answer_ok_2561:
+answer_ok_209:
         li t0, 0x8000000000000000
         vmv.v.x v16, t0
         vctz.v v16, v16
         vmv.x.s t1, v16
         li t2, 63
-        beq t1, t2, answer_ok_2562
+        beq t1, t2, answer_ok_210
         j fail
-answer_ok_2562:
+answer_ok_210:
         li t0, 0x8000000000000000
         vmv.v.x v16, t0
         vcpop.v v16, v16
         vmv.x.s t1, v16
         li t2, 1
-        beq t1, t2, answer_ok_2563
+        beq t1, t2, answer_ok_211
         j fail
-answer_ok_2563:
+answer_ok_211:
         li gp, 766
         li t0, 0xffffffffffffffff
         vmv.v.x v16, t0
         vclz.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_2564
+        beq t1, t2, answer_ok_212
         j fail
-answer_ok_2564:
+answer_ok_212:
         li t0, 0xffffffffffffffff
         vmv.v.x v16, t0
         vctz.v v16, v16
         vmv.x.s t1, v16
         li t2, 0
-        beq t1, t2, answer_ok_2565
+        beq t1, t2, answer_ok_213
         j fail
-answer_ok_2565:
+answer_ok_213:
         li t0, 0xffffffffffffffff
         vmv.v.x v16, t0
         vcpop.v v16, v16
         vmv.x.s t1, v16
         li t2, 64
-        beq t1, t2, answer_ok_2566
+        beq t1, t2, answer_ok_214
         j fail
-answer_ok_2566:
+answer_ok_214:
         li gp, 767
         vsetvli s2, zero, 24
         vmv.v.i v16, -1
@@ -25810,9 +5262,9 @@ lanes_767:
         bgeu a2, s3, inactive_767
         li t2, 64
 inactive_767:
-        beq t1, t2, answer_ok_2567
+        beq t1, t2, answer_ok_215
         j fail
-answer_ok_2567:
+answer_ok_215:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_767
@@ -25842,9 +5294,9 @@ lanes_768:
         bgeu a2, s3, inactive_768
         li t2, 0
 inactive_768:
-        beq t1, t2, answer_ok_2568
+        beq t1, t2, answer_ok_216
         j fail
-answer_ok_2568:
+answer_ok_216:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_768
@@ -25871,9 +5323,9 @@ lanes_769:
         bgeu a2, s3, inactive_769
         li t2, 0
 inactive_769:
-        beq t1, t2, answer_ok_2569
+        beq t1, t2, answer_ok_217
         j fail
-answer_ok_2569:
+answer_ok_217:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_769
@@ -25898,9 +5350,9 @@ lanes_770:
         bgeu a2, s3, inactive_770
         li t2, 64
 inactive_770:
-        beq t1, t2, answer_ok_2570
+        beq t1, t2, answer_ok_218
         j fail
-answer_ok_2570:
+answer_ok_218:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_770
@@ -25930,9 +5382,9 @@ lanes_771:
         bgeu a2, s3, inactive_771
         li t2, 0
 inactive_771:
-        beq t1, t2, answer_ok_2571
+        beq t1, t2, answer_ok_219
         j fail
-answer_ok_2571:
+answer_ok_219:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_771
@@ -25959,9 +5411,9 @@ lanes_772:
         bgeu a2, s3, inactive_772
         li t2, 0
 inactive_772:
-        beq t1, t2, answer_ok_2572
+        beq t1, t2, answer_ok_220
         j fail
-answer_ok_2572:
+answer_ok_220:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_772
@@ -25986,9 +5438,9 @@ lanes_773:
         bgeu a2, s3, inactive_773
         li t2, 0
 inactive_773:
-        beq t1, t2, answer_ok_2573
+        beq t1, t2, answer_ok_221
         j fail
-answer_ok_2573:
+answer_ok_221:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_773
@@ -26018,9 +5470,9 @@ lanes_774:
         bgeu a2, s3, inactive_774
         li t2, 64
 inactive_774:
-        beq t1, t2, answer_ok_2574
+        beq t1, t2, answer_ok_222
         j fail
-answer_ok_2574:
+answer_ok_222:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_774
@@ -26047,9 +5499,9 @@ lanes_775:
         bgeu a2, s3, inactive_775
         li t2, 64
 inactive_775:
-        beq t1, t2, answer_ok_2575
+        beq t1, t2, answer_ok_223
         j fail
-answer_ok_2575:
+answer_ok_223:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_775
@@ -26074,9 +5526,9 @@ lanes_776:
         bgeu a2, s3, inactive_776
         li t2, 64
 inactive_776:
-        beq t1, t2, answer_ok_2576
+        beq t1, t2, answer_ok_224
         j fail
-answer_ok_2576:
+answer_ok_224:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_776
@@ -26106,9 +5558,9 @@ lanes_777:
         bgeu a2, s3, inactive_777
         li t2, 0
 inactive_777:
-        beq t1, t2, answer_ok_2577
+        beq t1, t2, answer_ok_225
         j fail
-answer_ok_2577:
+answer_ok_225:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_777
@@ -26135,9 +5587,9 @@ lanes_778:
         bgeu a2, s3, inactive_778
         li t2, 0
 inactive_778:
-        beq t1, t2, answer_ok_2578
+        beq t1, t2, answer_ok_226
         j fail
-answer_ok_2578:
+answer_ok_226:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_778
@@ -26162,9 +5614,9 @@ lanes_779:
         bgeu a2, s3, inactive_779
         li t2, 64
 inactive_779:
-        beq t1, t2, answer_ok_2579
+        beq t1, t2, answer_ok_227
         j fail
-answer_ok_2579:
+answer_ok_227:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_779
@@ -26194,9 +5646,9 @@ lanes_780:
         bgeu a2, s3, inactive_780
         li t2, 0
 inactive_780:
-        beq t1, t2, answer_ok_2580
+        beq t1, t2, answer_ok_228
         j fail
-answer_ok_2580:
+answer_ok_228:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_780
@@ -26223,9 +5675,9 @@ lanes_781:
         bgeu a2, s3, inactive_781
         li t2, 0
 inactive_781:
-        beq t1, t2, answer_ok_2581
+        beq t1, t2, answer_ok_229
         j fail
-answer_ok_2581:
+answer_ok_229:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_781
@@ -26250,9 +5702,9 @@ lanes_782:
         bgeu a2, s3, inactive_782
         li t2, 0
 inactive_782:
-        beq t1, t2, answer_ok_2582
+        beq t1, t2, answer_ok_230
         j fail
-answer_ok_2582:
+answer_ok_230:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_782
@@ -26282,9 +5734,9 @@ lanes_783:
         bgeu a2, s3, inactive_783
         li t2, 64
 inactive_783:
-        beq t1, t2, answer_ok_2583
+        beq t1, t2, answer_ok_231
         j fail
-answer_ok_2583:
+answer_ok_231:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_783
@@ -26311,9 +5763,9 @@ lanes_784:
         bgeu a2, s3, inactive_784
         li t2, 64
 inactive_784:
-        beq t1, t2, answer_ok_2584
+        beq t1, t2, answer_ok_232
         j fail
-answer_ok_2584:
+answer_ok_232:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_784
@@ -26338,9 +5790,9 @@ lanes_785:
         bgeu a2, s3, inactive_785
         li t2, 64
 inactive_785:
-        beq t1, t2, answer_ok_2585
+        beq t1, t2, answer_ok_233
         j fail
-answer_ok_2585:
+answer_ok_233:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_785
@@ -26370,9 +5822,9 @@ lanes_786:
         bgeu a2, s3, inactive_786
         li t2, 0
 inactive_786:
-        beq t1, t2, answer_ok_2586
+        beq t1, t2, answer_ok_234
         j fail
-answer_ok_2586:
+answer_ok_234:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_786
@@ -26399,9 +5851,9 @@ lanes_787:
         bgeu a2, s3, inactive_787
         li t2, 0
 inactive_787:
-        beq t1, t2, answer_ok_2587
+        beq t1, t2, answer_ok_235
         j fail
-answer_ok_2587:
+answer_ok_235:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_787
@@ -26426,9 +5878,9 @@ lanes_788:
         bgeu a2, s3, inactive_788
         li t2, 64
 inactive_788:
-        beq t1, t2, answer_ok_2588
+        beq t1, t2, answer_ok_236
         j fail
-answer_ok_2588:
+answer_ok_236:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_788
@@ -26458,9 +5910,9 @@ lanes_789:
         bgeu a2, s3, inactive_789
         li t2, 0
 inactive_789:
-        beq t1, t2, answer_ok_2589
+        beq t1, t2, answer_ok_237
         j fail
-answer_ok_2589:
+answer_ok_237:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_789
@@ -26487,9 +5939,9 @@ lanes_790:
         bgeu a2, s3, inactive_790
         li t2, 0
 inactive_790:
-        beq t1, t2, answer_ok_2590
+        beq t1, t2, answer_ok_238
         j fail
-answer_ok_2590:
+answer_ok_238:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_790
@@ -26514,9 +5966,9 @@ lanes_791:
         bgeu a2, s3, inactive_791
         li t2, 0
 inactive_791:
-        beq t1, t2, answer_ok_2591
+        beq t1, t2, answer_ok_239
         j fail
-answer_ok_2591:
+answer_ok_239:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_791
@@ -26546,9 +5998,9 @@ lanes_792:
         bgeu a2, s3, inactive_792
         li t2, 64
 inactive_792:
-        beq t1, t2, answer_ok_2592
+        beq t1, t2, answer_ok_240
         j fail
-answer_ok_2592:
+answer_ok_240:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_792
@@ -26575,9 +6027,9 @@ lanes_793:
         bgeu a2, s3, inactive_793
         li t2, 64
 inactive_793:
-        beq t1, t2, answer_ok_2593
+        beq t1, t2, answer_ok_241
         j fail
-answer_ok_2593:
+answer_ok_241:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_793
@@ -26602,9 +6054,9 @@ lanes_794:
         bgeu a2, s3, inactive_794
         li t2, 64
 inactive_794:
-        beq t1, t2, answer_ok_2594
+        beq t1, t2, answer_ok_242
         j fail
-answer_ok_2594:
+answer_ok_242:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_794
@@ -26634,9 +6086,9 @@ lanes_795:
         bgeu a2, s3, inactive_795
         li t2, 0
 inactive_795:
-        beq t1, t2, answer_ok_2595
+        beq t1, t2, answer_ok_243
         j fail
-answer_ok_2595:
+answer_ok_243:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_795
@@ -26663,9 +6115,9 @@ lanes_796:
         bgeu a2, s3, inactive_796
         li t2, 0
 inactive_796:
-        beq t1, t2, answer_ok_2596
+        beq t1, t2, answer_ok_244
         j fail
-answer_ok_2596:
+answer_ok_244:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_796
@@ -26690,9 +6142,9 @@ lanes_797:
         bgeu a2, s3, inactive_797
         li t2, 64
 inactive_797:
-        beq t1, t2, answer_ok_2597
+        beq t1, t2, answer_ok_245
         j fail
-answer_ok_2597:
+answer_ok_245:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_797
@@ -26722,9 +6174,9 @@ lanes_798:
         bgeu a2, s3, inactive_798
         li t2, 0
 inactive_798:
-        beq t1, t2, answer_ok_2598
+        beq t1, t2, answer_ok_246
         j fail
-answer_ok_2598:
+answer_ok_246:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_798
@@ -26751,9 +6203,9 @@ lanes_799:
         bgeu a2, s3, inactive_799
         li t2, 0
 inactive_799:
-        beq t1, t2, answer_ok_2599
+        beq t1, t2, answer_ok_247
         j fail
-answer_ok_2599:
+answer_ok_247:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_799
@@ -26778,9 +6230,9 @@ lanes_800:
         bgeu a2, s3, inactive_800
         li t2, 0
 inactive_800:
-        beq t1, t2, answer_ok_2600
+        beq t1, t2, answer_ok_248
         j fail
-answer_ok_2600:
+answer_ok_248:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_800
@@ -26810,9 +6262,9 @@ lanes_801:
         bgeu a2, s3, inactive_801
         li t2, 64
 inactive_801:
-        beq t1, t2, answer_ok_2601
+        beq t1, t2, answer_ok_249
         j fail
-answer_ok_2601:
+answer_ok_249:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_801
@@ -26839,9 +6291,9 @@ lanes_802:
         bgeu a2, s3, inactive_802
         li t2, 64
 inactive_802:
-        beq t1, t2, answer_ok_2602
+        beq t1, t2, answer_ok_250
         j fail
-answer_ok_2602:
+answer_ok_250:
         cincoffsetimm c11, c11, 8
         addi a2, a2, 1
         bltu a2, s2, lanes_802
@@ -26864,3 +6316,1196 @@ tohost:
         .align 6
 output:
         .space 4096
+        .align 3
+cases_e8:
+oracle_e8_zero:
+        .dword 0x0000000000000000
+        .dword 0x0000000000000808
+        .dword 0x0000000000000001
+        .dword 0x0000000000010007
+        .dword 0x0000000000000002
+        .dword 0x0000000000010106
+        .dword 0x0000000000000003
+        .dword 0x0000000000020006
+        .dword 0x0000000000000004
+        .dword 0x0000000000010205
+        .dword 0x0000000000000005
+        .dword 0x0000000000020005
+        .dword 0x0000000000000006
+        .dword 0x0000000000020105
+        .dword 0x0000000000000007
+        .dword 0x0000000000030005
+        .dword 0x0000000000000008
+        .dword 0x0000000000010304
+        .dword 0x0000000000000009
+        .dword 0x0000000000020004
+        .dword 0x000000000000000a
+        .dword 0x0000000000020104
+        .dword 0x000000000000000b
+        .dword 0x0000000000030004
+        .dword 0x000000000000000c
+        .dword 0x0000000000020204
+        .dword 0x000000000000000d
+        .dword 0x0000000000030004
+        .dword 0x000000000000000e
+        .dword 0x0000000000030104
+        .dword 0x000000000000000f
+        .dword 0x0000000000040004
+        .dword 0x0000000000000010
+        .dword 0x0000000000010403
+        .dword 0x0000000000000011
+        .dword 0x0000000000020003
+        .dword 0x0000000000000012
+        .dword 0x0000000000020103
+        .dword 0x0000000000000013
+        .dword 0x0000000000030003
+        .dword 0x0000000000000014
+        .dword 0x0000000000020203
+        .dword 0x0000000000000015
+        .dword 0x0000000000030003
+        .dword 0x0000000000000016
+        .dword 0x0000000000030103
+        .dword 0x0000000000000017
+        .dword 0x0000000000040003
+        .dword 0x0000000000000018
+        .dword 0x0000000000020303
+        .dword 0x0000000000000019
+        .dword 0x0000000000030003
+        .dword 0x000000000000001a
+        .dword 0x0000000000030103
+        .dword 0x000000000000001b
+        .dword 0x0000000000040003
+        .dword 0x000000000000001c
+        .dword 0x0000000000030203
+        .dword 0x000000000000001d
+        .dword 0x0000000000040003
+        .dword 0x000000000000001e
+        .dword 0x0000000000040103
+        .dword 0x000000000000001f
+        .dword 0x0000000000050003
+        .dword 0x0000000000000020
+        .dword 0x0000000000010502
+        .dword 0x0000000000000021
+        .dword 0x0000000000020002
+        .dword 0x0000000000000022
+        .dword 0x0000000000020102
+        .dword 0x0000000000000023
+        .dword 0x0000000000030002
+        .dword 0x0000000000000024
+        .dword 0x0000000000020202
+        .dword 0x0000000000000025
+        .dword 0x0000000000030002
+        .dword 0x0000000000000026
+        .dword 0x0000000000030102
+        .dword 0x0000000000000027
+        .dword 0x0000000000040002
+        .dword 0x0000000000000028
+        .dword 0x0000000000020302
+        .dword 0x0000000000000029
+        .dword 0x0000000000030002
+        .dword 0x000000000000002a
+        .dword 0x0000000000030102
+        .dword 0x000000000000002b
+        .dword 0x0000000000040002
+        .dword 0x000000000000002c
+        .dword 0x0000000000030202
+        .dword 0x000000000000002d
+        .dword 0x0000000000040002
+        .dword 0x000000000000002e
+        .dword 0x0000000000040102
+        .dword 0x000000000000002f
+        .dword 0x0000000000050002
+        .dword 0x0000000000000030
+        .dword 0x0000000000020402
+        .dword 0x0000000000000031
+        .dword 0x0000000000030002
+        .dword 0x0000000000000032
+        .dword 0x0000000000030102
+        .dword 0x0000000000000033
+        .dword 0x0000000000040002
+        .dword 0x0000000000000034
+        .dword 0x0000000000030202
+        .dword 0x0000000000000035
+        .dword 0x0000000000040002
+        .dword 0x0000000000000036
+        .dword 0x0000000000040102
+        .dword 0x0000000000000037
+        .dword 0x0000000000050002
+        .dword 0x0000000000000038
+        .dword 0x0000000000030302
+        .dword 0x0000000000000039
+        .dword 0x0000000000040002
+        .dword 0x000000000000003a
+        .dword 0x0000000000040102
+        .dword 0x000000000000003b
+        .dword 0x0000000000050002
+        .dword 0x000000000000003c
+        .dword 0x0000000000040202
+        .dword 0x000000000000003d
+        .dword 0x0000000000050002
+        .dword 0x000000000000003e
+        .dword 0x0000000000050102
+        .dword 0x000000000000003f
+        .dword 0x0000000000060002
+        .dword 0x0000000000000040
+        .dword 0x0000000000010601
+        .dword 0x0000000000000041
+        .dword 0x0000000000020001
+        .dword 0x0000000000000042
+        .dword 0x0000000000020101
+        .dword 0x0000000000000043
+        .dword 0x0000000000030001
+        .dword 0x0000000000000044
+        .dword 0x0000000000020201
+        .dword 0x0000000000000045
+        .dword 0x0000000000030001
+        .dword 0x0000000000000046
+        .dword 0x0000000000030101
+        .dword 0x0000000000000047
+        .dword 0x0000000000040001
+        .dword 0x0000000000000048
+        .dword 0x0000000000020301
+        .dword 0x0000000000000049
+        .dword 0x0000000000030001
+        .dword 0x000000000000004a
+        .dword 0x0000000000030101
+        .dword 0x000000000000004b
+        .dword 0x0000000000040001
+        .dword 0x000000000000004c
+        .dword 0x0000000000030201
+        .dword 0x000000000000004d
+        .dword 0x0000000000040001
+        .dword 0x000000000000004e
+        .dword 0x0000000000040101
+        .dword 0x000000000000004f
+        .dword 0x0000000000050001
+        .dword 0x0000000000000050
+        .dword 0x0000000000020401
+        .dword 0x0000000000000051
+        .dword 0x0000000000030001
+        .dword 0x0000000000000052
+        .dword 0x0000000000030101
+        .dword 0x0000000000000053
+        .dword 0x0000000000040001
+        .dword 0x0000000000000054
+        .dword 0x0000000000030201
+        .dword 0x0000000000000055
+        .dword 0x0000000000040001
+        .dword 0x0000000000000056
+        .dword 0x0000000000040101
+        .dword 0x0000000000000057
+        .dword 0x0000000000050001
+        .dword 0x0000000000000058
+        .dword 0x0000000000030301
+        .dword 0x0000000000000059
+        .dword 0x0000000000040001
+        .dword 0x000000000000005a
+        .dword 0x0000000000040101
+        .dword 0x000000000000005b
+        .dword 0x0000000000050001
+        .dword 0x000000000000005c
+        .dword 0x0000000000040201
+        .dword 0x000000000000005d
+        .dword 0x0000000000050001
+        .dword 0x000000000000005e
+        .dword 0x0000000000050101
+        .dword 0x000000000000005f
+        .dword 0x0000000000060001
+        .dword 0x0000000000000060
+        .dword 0x0000000000020501
+        .dword 0x0000000000000061
+        .dword 0x0000000000030001
+        .dword 0x0000000000000062
+        .dword 0x0000000000030101
+        .dword 0x0000000000000063
+        .dword 0x0000000000040001
+        .dword 0x0000000000000064
+        .dword 0x0000000000030201
+        .dword 0x0000000000000065
+        .dword 0x0000000000040001
+        .dword 0x0000000000000066
+        .dword 0x0000000000040101
+        .dword 0x0000000000000067
+        .dword 0x0000000000050001
+        .dword 0x0000000000000068
+        .dword 0x0000000000030301
+        .dword 0x0000000000000069
+        .dword 0x0000000000040001
+        .dword 0x000000000000006a
+        .dword 0x0000000000040101
+        .dword 0x000000000000006b
+        .dword 0x0000000000050001
+        .dword 0x000000000000006c
+        .dword 0x0000000000040201
+        .dword 0x000000000000006d
+        .dword 0x0000000000050001
+        .dword 0x000000000000006e
+        .dword 0x0000000000050101
+        .dword 0x000000000000006f
+        .dword 0x0000000000060001
+        .dword 0x0000000000000070
+        .dword 0x0000000000030401
+        .dword 0x0000000000000071
+        .dword 0x0000000000040001
+        .dword 0x0000000000000072
+        .dword 0x0000000000040101
+        .dword 0x0000000000000073
+        .dword 0x0000000000050001
+        .dword 0x0000000000000074
+        .dword 0x0000000000040201
+        .dword 0x0000000000000075
+        .dword 0x0000000000050001
+        .dword 0x0000000000000076
+        .dword 0x0000000000050101
+        .dword 0x0000000000000077
+        .dword 0x0000000000060001
+        .dword 0x0000000000000078
+        .dword 0x0000000000040301
+        .dword 0x0000000000000079
+        .dword 0x0000000000050001
+        .dword 0x000000000000007a
+        .dword 0x0000000000050101
+        .dword 0x000000000000007b
+        .dword 0x0000000000060001
+        .dword 0x000000000000007c
+        .dword 0x0000000000050201
+        .dword 0x000000000000007d
+        .dword 0x0000000000060001
+        .dword 0x000000000000007e
+        .dword 0x0000000000060101
+        .dword 0x000000000000007f
+        .dword 0x0000000000070001
+        .dword 0x0000000000000080
+        .dword 0x0000000000010700
+        .dword 0x0000000000000081
+        .dword 0x0000000000020000
+        .dword 0x0000000000000082
+        .dword 0x0000000000020100
+        .dword 0x0000000000000083
+        .dword 0x0000000000030000
+        .dword 0x0000000000000084
+        .dword 0x0000000000020200
+        .dword 0x0000000000000085
+        .dword 0x0000000000030000
+        .dword 0x0000000000000086
+        .dword 0x0000000000030100
+        .dword 0x0000000000000087
+        .dword 0x0000000000040000
+        .dword 0x0000000000000088
+        .dword 0x0000000000020300
+        .dword 0x0000000000000089
+        .dword 0x0000000000030000
+        .dword 0x000000000000008a
+        .dword 0x0000000000030100
+        .dword 0x000000000000008b
+        .dword 0x0000000000040000
+        .dword 0x000000000000008c
+        .dword 0x0000000000030200
+        .dword 0x000000000000008d
+        .dword 0x0000000000040000
+        .dword 0x000000000000008e
+        .dword 0x0000000000040100
+        .dword 0x000000000000008f
+        .dword 0x0000000000050000
+        .dword 0x0000000000000090
+        .dword 0x0000000000020400
+        .dword 0x0000000000000091
+        .dword 0x0000000000030000
+        .dword 0x0000000000000092
+        .dword 0x0000000000030100
+        .dword 0x0000000000000093
+        .dword 0x0000000000040000
+        .dword 0x0000000000000094
+        .dword 0x0000000000030200
+        .dword 0x0000000000000095
+        .dword 0x0000000000040000
+        .dword 0x0000000000000096
+        .dword 0x0000000000040100
+        .dword 0x0000000000000097
+        .dword 0x0000000000050000
+        .dword 0x0000000000000098
+        .dword 0x0000000000030300
+        .dword 0x0000000000000099
+        .dword 0x0000000000040000
+        .dword 0x000000000000009a
+        .dword 0x0000000000040100
+        .dword 0x000000000000009b
+        .dword 0x0000000000050000
+        .dword 0x000000000000009c
+        .dword 0x0000000000040200
+        .dword 0x000000000000009d
+        .dword 0x0000000000050000
+        .dword 0x000000000000009e
+        .dword 0x0000000000050100
+        .dword 0x000000000000009f
+        .dword 0x0000000000060000
+        .dword 0x00000000000000a0
+        .dword 0x0000000000020500
+        .dword 0x00000000000000a1
+        .dword 0x0000000000030000
+        .dword 0x00000000000000a2
+        .dword 0x0000000000030100
+        .dword 0x00000000000000a3
+        .dword 0x0000000000040000
+        .dword 0x00000000000000a4
+        .dword 0x0000000000030200
+        .dword 0x00000000000000a5
+        .dword 0x0000000000040000
+        .dword 0x00000000000000a6
+        .dword 0x0000000000040100
+        .dword 0x00000000000000a7
+        .dword 0x0000000000050000
+        .dword 0x00000000000000a8
+        .dword 0x0000000000030300
+        .dword 0x00000000000000a9
+        .dword 0x0000000000040000
+        .dword 0x00000000000000aa
+        .dword 0x0000000000040100
+        .dword 0x00000000000000ab
+        .dword 0x0000000000050000
+        .dword 0x00000000000000ac
+        .dword 0x0000000000040200
+        .dword 0x00000000000000ad
+        .dword 0x0000000000050000
+        .dword 0x00000000000000ae
+        .dword 0x0000000000050100
+        .dword 0x00000000000000af
+        .dword 0x0000000000060000
+        .dword 0x00000000000000b0
+        .dword 0x0000000000030400
+        .dword 0x00000000000000b1
+        .dword 0x0000000000040000
+        .dword 0x00000000000000b2
+        .dword 0x0000000000040100
+        .dword 0x00000000000000b3
+        .dword 0x0000000000050000
+        .dword 0x00000000000000b4
+        .dword 0x0000000000040200
+        .dword 0x00000000000000b5
+        .dword 0x0000000000050000
+        .dword 0x00000000000000b6
+        .dword 0x0000000000050100
+        .dword 0x00000000000000b7
+        .dword 0x0000000000060000
+        .dword 0x00000000000000b8
+        .dword 0x0000000000040300
+        .dword 0x00000000000000b9
+        .dword 0x0000000000050000
+        .dword 0x00000000000000ba
+        .dword 0x0000000000050100
+        .dword 0x00000000000000bb
+        .dword 0x0000000000060000
+        .dword 0x00000000000000bc
+        .dword 0x0000000000050200
+        .dword 0x00000000000000bd
+        .dword 0x0000000000060000
+        .dword 0x00000000000000be
+        .dword 0x0000000000060100
+        .dword 0x00000000000000bf
+        .dword 0x0000000000070000
+        .dword 0x00000000000000c0
+        .dword 0x0000000000020600
+        .dword 0x00000000000000c1
+        .dword 0x0000000000030000
+        .dword 0x00000000000000c2
+        .dword 0x0000000000030100
+        .dword 0x00000000000000c3
+        .dword 0x0000000000040000
+        .dword 0x00000000000000c4
+        .dword 0x0000000000030200
+        .dword 0x00000000000000c5
+        .dword 0x0000000000040000
+        .dword 0x00000000000000c6
+        .dword 0x0000000000040100
+        .dword 0x00000000000000c7
+        .dword 0x0000000000050000
+        .dword 0x00000000000000c8
+        .dword 0x0000000000030300
+        .dword 0x00000000000000c9
+        .dword 0x0000000000040000
+        .dword 0x00000000000000ca
+        .dword 0x0000000000040100
+        .dword 0x00000000000000cb
+        .dword 0x0000000000050000
+        .dword 0x00000000000000cc
+        .dword 0x0000000000040200
+        .dword 0x00000000000000cd
+        .dword 0x0000000000050000
+        .dword 0x00000000000000ce
+        .dword 0x0000000000050100
+        .dword 0x00000000000000cf
+        .dword 0x0000000000060000
+        .dword 0x00000000000000d0
+        .dword 0x0000000000030400
+        .dword 0x00000000000000d1
+        .dword 0x0000000000040000
+        .dword 0x00000000000000d2
+        .dword 0x0000000000040100
+        .dword 0x00000000000000d3
+        .dword 0x0000000000050000
+        .dword 0x00000000000000d4
+        .dword 0x0000000000040200
+        .dword 0x00000000000000d5
+        .dword 0x0000000000050000
+        .dword 0x00000000000000d6
+        .dword 0x0000000000050100
+        .dword 0x00000000000000d7
+        .dword 0x0000000000060000
+        .dword 0x00000000000000d8
+        .dword 0x0000000000040300
+        .dword 0x00000000000000d9
+        .dword 0x0000000000050000
+        .dword 0x00000000000000da
+        .dword 0x0000000000050100
+        .dword 0x00000000000000db
+        .dword 0x0000000000060000
+        .dword 0x00000000000000dc
+        .dword 0x0000000000050200
+        .dword 0x00000000000000dd
+        .dword 0x0000000000060000
+        .dword 0x00000000000000de
+        .dword 0x0000000000060100
+        .dword 0x00000000000000df
+        .dword 0x0000000000070000
+        .dword 0x00000000000000e0
+        .dword 0x0000000000030500
+        .dword 0x00000000000000e1
+        .dword 0x0000000000040000
+        .dword 0x00000000000000e2
+        .dword 0x0000000000040100
+        .dword 0x00000000000000e3
+        .dword 0x0000000000050000
+        .dword 0x00000000000000e4
+        .dword 0x0000000000040200
+        .dword 0x00000000000000e5
+        .dword 0x0000000000050000
+        .dword 0x00000000000000e6
+        .dword 0x0000000000050100
+        .dword 0x00000000000000e7
+        .dword 0x0000000000060000
+        .dword 0x00000000000000e8
+        .dword 0x0000000000040300
+        .dword 0x00000000000000e9
+        .dword 0x0000000000050000
+        .dword 0x00000000000000ea
+        .dword 0x0000000000050100
+        .dword 0x00000000000000eb
+        .dword 0x0000000000060000
+        .dword 0x00000000000000ec
+        .dword 0x0000000000050200
+        .dword 0x00000000000000ed
+        .dword 0x0000000000060000
+        .dword 0x00000000000000ee
+        .dword 0x0000000000060100
+        .dword 0x00000000000000ef
+        .dword 0x0000000000070000
+        .dword 0x00000000000000f0
+        .dword 0x0000000000040400
+        .dword 0x00000000000000f1
+        .dword 0x0000000000050000
+        .dword 0x00000000000000f2
+        .dword 0x0000000000050100
+        .dword 0x00000000000000f3
+        .dword 0x0000000000060000
+        .dword 0x00000000000000f4
+        .dword 0x0000000000050200
+        .dword 0x00000000000000f5
+        .dword 0x0000000000060000
+        .dword 0x00000000000000f6
+        .dword 0x0000000000060100
+        .dword 0x00000000000000f7
+        .dword 0x0000000000070000
+        .dword 0x00000000000000f8
+        .dword 0x0000000000050300
+        .dword 0x00000000000000f9
+        .dword 0x0000000000060000
+        .dword 0x00000000000000fa
+        .dword 0x0000000000060100
+        .dword 0x00000000000000fb
+        .dword 0x0000000000070000
+        .dword 0x00000000000000fc
+        .dword 0x0000000000060200
+        .dword 0x00000000000000fd
+        .dword 0x0000000000070000
+        .dword 0x00000000000000fe
+        .dword 0x0000000000070100
+        .dword 0x00000000000000ff
+        .dword 0x0000000000080000
+        .align 3
+cases_e16:
+        .dword 0x0000000000000000
+        .dword 0x0000000000001010
+        .dword 0x0000000000000001
+        .dword 0x000000000001000f
+        .dword 0x0000000000000002
+        .dword 0x000000000001010e
+        .dword 0x0000000000000003
+        .dword 0x000000000002000e
+        .dword 0x0000000000000004
+        .dword 0x000000000001020d
+        .dword 0x0000000000000007
+        .dword 0x000000000003000d
+        .dword 0x0000000000000008
+        .dword 0x000000000001030c
+        .dword 0x000000000000000f
+        .dword 0x000000000004000c
+        .dword 0x0000000000000010
+        .dword 0x000000000001040b
+        .dword 0x000000000000001f
+        .dword 0x000000000005000b
+        .dword 0x0000000000000020
+        .dword 0x000000000001050a
+        .dword 0x000000000000003f
+        .dword 0x000000000006000a
+        .dword 0x0000000000000040
+        .dword 0x0000000000010609
+        .dword 0x000000000000007f
+        .dword 0x0000000000070009
+        .dword 0x0000000000000080
+        .dword 0x0000000000010708
+        .dword 0x00000000000000ff
+        .dword 0x0000000000080008
+        .dword 0x0000000000000100
+        .dword 0x0000000000010807
+        .dword 0x00000000000001ff
+        .dword 0x0000000000090007
+        .dword 0x0000000000000200
+        .dword 0x0000000000010906
+        .dword 0x00000000000003ff
+        .dword 0x00000000000a0006
+        .dword 0x0000000000000400
+        .dword 0x0000000000010a05
+        .dword 0x00000000000007ff
+        .dword 0x00000000000b0005
+        .dword 0x0000000000000800
+        .dword 0x0000000000010b04
+        .dword 0x0000000000000fff
+        .dword 0x00000000000c0004
+        .dword 0x0000000000001000
+        .dword 0x0000000000010c03
+        .dword 0x0000000000001fff
+        .dword 0x00000000000d0003
+        .dword 0x0000000000002000
+        .dword 0x0000000000010d02
+        .dword 0x0000000000003fff
+        .dword 0x00000000000e0002
+        .dword 0x0000000000004000
+        .dword 0x0000000000010e01
+        .dword 0x0000000000005555
+        .dword 0x0000000000080001
+        .dword 0x0000000000007fff
+        .dword 0x00000000000f0001
+        .dword 0x0000000000008000
+        .dword 0x0000000000010f00
+        .dword 0x000000000000aaaa
+        .dword 0x0000000000080100
+        .dword 0x000000000000c000
+        .dword 0x0000000000020e00
+        .dword 0x000000000000e000
+        .dword 0x0000000000030d00
+        .dword 0x000000000000f000
+        .dword 0x0000000000040c00
+        .dword 0x000000000000f800
+        .dword 0x0000000000050b00
+        .dword 0x000000000000fc00
+        .dword 0x0000000000060a00
+        .dword 0x000000000000fe00
+        .dword 0x0000000000070900
+        .dword 0x000000000000ff00
+        .dword 0x0000000000080800
+        .dword 0x000000000000ff80
+        .dword 0x0000000000090700
+        .dword 0x000000000000ffc0
+        .dword 0x00000000000a0600
+        .dword 0x000000000000ffe0
+        .dword 0x00000000000b0500
+        .dword 0x000000000000fff0
+        .dword 0x00000000000c0400
+        .dword 0x000000000000fff8
+        .dword 0x00000000000d0300
+        .dword 0x000000000000fffc
+        .dword 0x00000000000e0200
+        .dword 0x000000000000fffe
+        .dword 0x00000000000f0100
+        .dword 0x000000000000ffff
+        .dword 0x0000000000100000
+        .align 3
+cases_e32:
+        .dword 0x0000000000000000
+        .dword 0x0000000000002020
+        .dword 0x0000000000000001
+        .dword 0x000000000001001f
+        .dword 0x0000000000000002
+        .dword 0x000000000001011e
+        .dword 0x0000000000000003
+        .dword 0x000000000002001e
+        .dword 0x0000000000000004
+        .dword 0x000000000001021d
+        .dword 0x0000000000000007
+        .dword 0x000000000003001d
+        .dword 0x0000000000000008
+        .dword 0x000000000001031c
+        .dword 0x000000000000000f
+        .dword 0x000000000004001c
+        .dword 0x0000000000000010
+        .dword 0x000000000001041b
+        .dword 0x000000000000001f
+        .dword 0x000000000005001b
+        .dword 0x0000000000000020
+        .dword 0x000000000001051a
+        .dword 0x000000000000003f
+        .dword 0x000000000006001a
+        .dword 0x0000000000000040
+        .dword 0x0000000000010619
+        .dword 0x000000000000007f
+        .dword 0x0000000000070019
+        .dword 0x0000000000000080
+        .dword 0x0000000000010718
+        .dword 0x00000000000000ff
+        .dword 0x0000000000080018
+        .dword 0x0000000000000100
+        .dword 0x0000000000010817
+        .dword 0x00000000000001ff
+        .dword 0x0000000000090017
+        .dword 0x0000000000000200
+        .dword 0x0000000000010916
+        .dword 0x00000000000003ff
+        .dword 0x00000000000a0016
+        .dword 0x0000000000000400
+        .dword 0x0000000000010a15
+        .dword 0x00000000000007ff
+        .dword 0x00000000000b0015
+        .dword 0x0000000000000800
+        .dword 0x0000000000010b14
+        .dword 0x0000000000000fff
+        .dword 0x00000000000c0014
+        .dword 0x0000000000001000
+        .dword 0x0000000000010c13
+        .dword 0x0000000000001fff
+        .dword 0x00000000000d0013
+        .dword 0x0000000000002000
+        .dword 0x0000000000010d12
+        .dword 0x0000000000003fff
+        .dword 0x00000000000e0012
+        .dword 0x0000000000004000
+        .dword 0x0000000000010e11
+        .dword 0x0000000000007fff
+        .dword 0x00000000000f0011
+        .dword 0x0000000000008000
+        .dword 0x0000000000010f10
+        .dword 0x000000000000ffff
+        .dword 0x0000000000100010
+        .dword 0x0000000000010000
+        .dword 0x000000000001100f
+        .dword 0x000000000001ffff
+        .dword 0x000000000011000f
+        .dword 0x0000000000020000
+        .dword 0x000000000001110e
+        .dword 0x000000000003ffff
+        .dword 0x000000000012000e
+        .dword 0x0000000000040000
+        .dword 0x000000000001120d
+        .dword 0x000000000007ffff
+        .dword 0x000000000013000d
+        .dword 0x0000000000080000
+        .dword 0x000000000001130c
+        .dword 0x00000000000fffff
+        .dword 0x000000000014000c
+        .dword 0x0000000000100000
+        .dword 0x000000000001140b
+        .dword 0x00000000001fffff
+        .dword 0x000000000015000b
+        .dword 0x0000000000200000
+        .dword 0x000000000001150a
+        .dword 0x00000000003fffff
+        .dword 0x000000000016000a
+        .dword 0x0000000000400000
+        .dword 0x0000000000011609
+        .dword 0x00000000007fffff
+        .dword 0x0000000000170009
+        .dword 0x0000000000800000
+        .dword 0x0000000000011708
+        .dword 0x0000000000ffffff
+        .dword 0x0000000000180008
+        .dword 0x0000000001000000
+        .dword 0x0000000000011807
+        .dword 0x0000000001ffffff
+        .dword 0x0000000000190007
+        .dword 0x0000000002000000
+        .dword 0x0000000000011906
+        .dword 0x0000000003ffffff
+        .dword 0x00000000001a0006
+        .dword 0x0000000004000000
+        .dword 0x0000000000011a05
+        .dword 0x0000000007ffffff
+        .dword 0x00000000001b0005
+        .dword 0x0000000008000000
+        .dword 0x0000000000011b04
+        .dword 0x000000000fffffff
+        .dword 0x00000000001c0004
+        .dword 0x0000000010000000
+        .dword 0x0000000000011c03
+        .dword 0x000000001fffffff
+        .dword 0x00000000001d0003
+        .dword 0x0000000020000000
+        .dword 0x0000000000011d02
+        .dword 0x000000003fffffff
+        .dword 0x00000000001e0002
+        .dword 0x0000000040000000
+        .dword 0x0000000000011e01
+        .dword 0x0000000055555555
+        .dword 0x0000000000100001
+        .dword 0x000000007fffffff
+        .dword 0x00000000001f0001
+        .dword 0x0000000080000000
+        .dword 0x0000000000011f00
+        .dword 0x00000000aaaaaaaa
+        .dword 0x0000000000100100
+        .dword 0x00000000c0000000
+        .dword 0x0000000000021e00
+        .dword 0x00000000e0000000
+        .dword 0x0000000000031d00
+        .dword 0x00000000f0000000
+        .dword 0x0000000000041c00
+        .dword 0x00000000f8000000
+        .dword 0x0000000000051b00
+        .dword 0x00000000fc000000
+        .dword 0x0000000000061a00
+        .dword 0x00000000fe000000
+        .dword 0x0000000000071900
+        .dword 0x00000000ff000000
+        .dword 0x0000000000081800
+        .dword 0x00000000ff800000
+        .dword 0x0000000000091700
+        .dword 0x00000000ffc00000
+        .dword 0x00000000000a1600
+        .dword 0x00000000ffe00000
+        .dword 0x00000000000b1500
+        .dword 0x00000000fff00000
+        .dword 0x00000000000c1400
+        .dword 0x00000000fff80000
+        .dword 0x00000000000d1300
+        .dword 0x00000000fffc0000
+        .dword 0x00000000000e1200
+        .dword 0x00000000fffe0000
+        .dword 0x00000000000f1100
+        .dword 0x00000000ffff0000
+        .dword 0x0000000000101000
+        .dword 0x00000000ffff8000
+        .dword 0x0000000000110f00
+        .dword 0x00000000ffffc000
+        .dword 0x0000000000120e00
+        .dword 0x00000000ffffe000
+        .dword 0x0000000000130d00
+        .dword 0x00000000fffff000
+        .dword 0x0000000000140c00
+        .dword 0x00000000fffff800
+        .dword 0x0000000000150b00
+        .dword 0x00000000fffffc00
+        .dword 0x0000000000160a00
+        .dword 0x00000000fffffe00
+        .dword 0x0000000000170900
+        .dword 0x00000000ffffff00
+        .dword 0x0000000000180800
+        .dword 0x00000000ffffff80
+        .dword 0x0000000000190700
+        .dword 0x00000000ffffffc0
+        .dword 0x00000000001a0600
+        .dword 0x00000000ffffffe0
+        .dword 0x00000000001b0500
+        .dword 0x00000000fffffff0
+        .dword 0x00000000001c0400
+        .dword 0x00000000fffffff8
+        .dword 0x00000000001d0300
+        .dword 0x00000000fffffffc
+        .dword 0x00000000001e0200
+        .dword 0x00000000fffffffe
+        .dword 0x00000000001f0100
+        .dword 0x00000000ffffffff
+        .dword 0x0000000000200000
+        .align 3
+cases_e64:
+        .dword 0x0000000000000000
+        .dword 0x0000000000004040
+        .dword 0x0000000000000001
+        .dword 0x000000000001003f
+        .dword 0x0000000000000002
+        .dword 0x000000000001013e
+        .dword 0x0000000000000003
+        .dword 0x000000000002003e
+        .dword 0x0000000000000004
+        .dword 0x000000000001023d
+        .dword 0x0000000000000007
+        .dword 0x000000000003003d
+        .dword 0x0000000000000008
+        .dword 0x000000000001033c
+        .dword 0x000000000000000f
+        .dword 0x000000000004003c
+        .dword 0x0000000000000010
+        .dword 0x000000000001043b
+        .dword 0x000000000000001f
+        .dword 0x000000000005003b
+        .dword 0x0000000000000020
+        .dword 0x000000000001053a
+        .dword 0x000000000000003f
+        .dword 0x000000000006003a
+        .dword 0x0000000000000040
+        .dword 0x0000000000010639
+        .dword 0x000000000000007f
+        .dword 0x0000000000070039
+        .dword 0x0000000000000080
+        .dword 0x0000000000010738
+        .dword 0x00000000000000ff
+        .dword 0x0000000000080038
+        .dword 0x0000000000000100
+        .dword 0x0000000000010837
+        .dword 0x00000000000001ff
+        .dword 0x0000000000090037
+        .dword 0x0000000000000200
+        .dword 0x0000000000010936
+        .dword 0x00000000000003ff
+        .dword 0x00000000000a0036
+        .dword 0x0000000000000400
+        .dword 0x0000000000010a35
+        .dword 0x00000000000007ff
+        .dword 0x00000000000b0035
+        .dword 0x0000000000000800
+        .dword 0x0000000000010b34
+        .dword 0x0000000000000fff
+        .dword 0x00000000000c0034
+        .dword 0x0000000000001000
+        .dword 0x0000000000010c33
+        .dword 0x0000000000001fff
+        .dword 0x00000000000d0033
+        .dword 0x0000000000002000
+        .dword 0x0000000000010d32
+        .dword 0x0000000000003fff
+        .dword 0x00000000000e0032
+        .dword 0x0000000000004000
+        .dword 0x0000000000010e31
+        .dword 0x0000000000007fff
+        .dword 0x00000000000f0031
+        .dword 0x0000000000008000
+        .dword 0x0000000000010f30
+        .dword 0x000000000000ffff
+        .dword 0x0000000000100030
+        .dword 0x0000000000010000
+        .dword 0x000000000001102f
+        .dword 0x000000000001ffff
+        .dword 0x000000000011002f
+        .dword 0x0000000000020000
+        .dword 0x000000000001112e
+        .dword 0x000000000003ffff
+        .dword 0x000000000012002e
+        .dword 0x0000000000040000
+        .dword 0x000000000001122d
+        .dword 0x000000000007ffff
+        .dword 0x000000000013002d
+        .dword 0x0000000000080000
+        .dword 0x000000000001132c
+        .dword 0x00000000000fffff
+        .dword 0x000000000014002c
+        .dword 0x0000000000100000
+        .dword 0x000000000001142b
+        .dword 0x00000000001fffff
+        .dword 0x000000000015002b
+        .dword 0x0000000000200000
+        .dword 0x000000000001152a
+        .dword 0x00000000003fffff
+        .dword 0x000000000016002a
+        .dword 0x0000000000400000
+        .dword 0x0000000000011629
+        .dword 0x00000000007fffff
+        .dword 0x0000000000170029
+        .dword 0x0000000000800000
+        .dword 0x0000000000011728
+        .dword 0x0000000000ffffff
+        .dword 0x0000000000180028
+        .dword 0x0000000001000000
+        .dword 0x0000000000011827
+        .dword 0x0000000001ffffff
+        .dword 0x0000000000190027
+        .dword 0x0000000002000000
+        .dword 0x0000000000011926
+        .dword 0x0000000003ffffff
+        .dword 0x00000000001a0026
+        .dword 0x0000000004000000
+        .dword 0x0000000000011a25
+        .dword 0x0000000007ffffff
+        .dword 0x00000000001b0025
+        .dword 0x0000000008000000
+        .dword 0x0000000000011b24
+        .dword 0x000000000fffffff
+        .dword 0x00000000001c0024
+        .dword 0x0000000010000000
+        .dword 0x0000000000011c23
+        .dword 0x000000001fffffff
+        .dword 0x00000000001d0023
+        .dword 0x0000000020000000
+        .dword 0x0000000000011d22
+        .dword 0x000000003fffffff
+        .dword 0x00000000001e0022
+        .dword 0x0000000040000000
+        .dword 0x0000000000011e21
+        .dword 0x000000007fffffff
+        .dword 0x00000000001f0021
+        .dword 0x0000000080000000
+        .dword 0x0000000000011f20
+        .dword 0x00000000ffffffff
+        .dword 0x0000000000200020
+        .dword 0x0000000100000000
+        .dword 0x000000000001201f
+        .dword 0x00000001ffffffff
+        .dword 0x000000000021001f
+        .dword 0x0000000200000000
+        .dword 0x000000000001211e
+        .dword 0x00000003ffffffff
+        .dword 0x000000000022001e
+        .dword 0x0000000400000000
+        .dword 0x000000000001221d
+        .dword 0x00000007ffffffff
+        .dword 0x000000000023001d
+        .dword 0x0000000800000000
+        .dword 0x000000000001231c
+        .dword 0x0000000fffffffff
+        .dword 0x000000000024001c
+        .dword 0x0000001000000000
+        .dword 0x000000000001241b
+        .dword 0x0000001fffffffff
+        .dword 0x000000000025001b
+        .dword 0x0000002000000000
+        .dword 0x000000000001251a
+        .dword 0x0000003fffffffff
+        .dword 0x000000000026001a
+        .dword 0x0000004000000000
+        .dword 0x0000000000012619
+        .dword 0x0000007fffffffff
+        .dword 0x0000000000270019
+        .dword 0x0000008000000000
+        .dword 0x0000000000012718
+        .dword 0x000000ffffffffff
+        .dword 0x0000000000280018
+        .dword 0x0000010000000000
+        .dword 0x0000000000012817
+        .dword 0x000001ffffffffff
+        .dword 0x0000000000290017
+        .dword 0x0000020000000000
+        .dword 0x0000000000012916
+        .dword 0x000003ffffffffff
+        .dword 0x00000000002a0016
+        .dword 0x0000040000000000
+        .dword 0x0000000000012a15
+        .dword 0x000007ffffffffff
+        .dword 0x00000000002b0015
+        .dword 0x0000080000000000
+        .dword 0x0000000000012b14
+        .dword 0x00000fffffffffff
+        .dword 0x00000000002c0014
+        .dword 0x0000100000000000
+        .dword 0x0000000000012c13
+        .dword 0x00001fffffffffff
+        .dword 0x00000000002d0013
+        .dword 0x0000200000000000
+        .dword 0x0000000000012d12
+        .dword 0x00003fffffffffff
+        .dword 0x00000000002e0012
+        .dword 0x0000400000000000
+        .dword 0x0000000000012e11
+        .dword 0x00007fffffffffff
+        .dword 0x00000000002f0011
+        .dword 0x0000800000000000
+        .dword 0x0000000000012f10
+        .dword 0x0000ffffffffffff
+        .dword 0x0000000000300010
+        .dword 0x0001000000000000
+        .dword 0x000000000001300f
+        .dword 0x0001ffffffffffff
+        .dword 0x000000000031000f
+        .dword 0x0002000000000000
+        .dword 0x000000000001310e
+        .dword 0x0003ffffffffffff
+        .dword 0x000000000032000e
+        .dword 0x0004000000000000
+        .dword 0x000000000001320d
+        .dword 0x0007ffffffffffff
+        .dword 0x000000000033000d
+        .dword 0x0008000000000000
+        .dword 0x000000000001330c
+        .dword 0x000fffffffffffff
+        .dword 0x000000000034000c
+        .dword 0x0010000000000000
+        .dword 0x000000000001340b
+        .dword 0x001fffffffffffff
+        .dword 0x000000000035000b
+        .dword 0x0020000000000000
+        .dword 0x000000000001350a
+        .dword 0x003fffffffffffff
+        .dword 0x000000000036000a
+        .dword 0x0040000000000000
+        .dword 0x0000000000013609
+        .dword 0x007fffffffffffff
+        .dword 0x0000000000370009
+        .dword 0x0080000000000000
+        .dword 0x0000000000013708
+        .dword 0x00ffffffffffffff
+        .dword 0x0000000000380008
+        .dword 0x0100000000000000
+        .dword 0x0000000000013807
+        .dword 0x01ffffffffffffff
+        .dword 0x0000000000390007
+        .dword 0x0200000000000000
+        .dword 0x0000000000013906
+        .dword 0x03ffffffffffffff
+        .dword 0x00000000003a0006
+        .dword 0x0400000000000000
+        .dword 0x0000000000013a05
+        .dword 0x07ffffffffffffff
+        .dword 0x00000000003b0005
+        .dword 0x0800000000000000
+        .dword 0x0000000000013b04
+        .dword 0x0fffffffffffffff
+        .dword 0x00000000003c0004
+        .dword 0x1000000000000000
+        .dword 0x0000000000013c03
+        .dword 0x1fffffffffffffff
+        .dword 0x00000000003d0003
+        .dword 0x2000000000000000
+        .dword 0x0000000000013d02
+        .dword 0x3fffffffffffffff
+        .dword 0x00000000003e0002
+        .dword 0x4000000000000000
+        .dword 0x0000000000013e01
+        .dword 0x5555555555555555
+        .dword 0x0000000000200001
+        .dword 0x7fffffffffffffff
+        .dword 0x00000000003f0001
+        .dword 0x8000000000000000
+        .dword 0x0000000000013f00
+        .dword 0xaaaaaaaaaaaaaaaa
+        .dword 0x0000000000200100
+        .dword 0xc000000000000000
+        .dword 0x0000000000023e00
+        .dword 0xe000000000000000
+        .dword 0x0000000000033d00
+        .dword 0xf000000000000000
+        .dword 0x0000000000043c00
+        .dword 0xf800000000000000
+        .dword 0x0000000000053b00
+        .dword 0xfc00000000000000
+        .dword 0x0000000000063a00
+        .dword 0xfe00000000000000
+        .dword 0x0000000000073900
+        .dword 0xff00000000000000
+        .dword 0x0000000000083800
+        .dword 0xff80000000000000
+        .dword 0x0000000000093700
+        .dword 0xffc0000000000000
+        .dword 0x00000000000a3600
+        .dword 0xffe0000000000000
+        .dword 0x00000000000b3500
+        .dword 0xfff0000000000000
+        .dword 0x00000000000c3400
+        .dword 0xfff8000000000000
+        .dword 0x00000000000d3300
+        .dword 0xfffc000000000000
+        .dword 0x00000000000e3200
+        .dword 0xfffe000000000000
+        .dword 0x00000000000f3100
+        .dword 0xffff000000000000
+        .dword 0x0000000000103000
+        .dword 0xffff800000000000
+        .dword 0x0000000000112f00
+        .dword 0xffffc00000000000
+        .dword 0x0000000000122e00
+        .dword 0xffffe00000000000
+        .dword 0x0000000000132d00
+        .dword 0xfffff00000000000
+        .dword 0x0000000000142c00
+        .dword 0xfffff80000000000
+        .dword 0x0000000000152b00
+        .dword 0xfffffc0000000000
+        .dword 0x0000000000162a00
+        .dword 0xfffffe0000000000
+        .dword 0x0000000000172900
+        .dword 0xffffff0000000000
+        .dword 0x0000000000182800
+        .dword 0xffffff8000000000
+        .dword 0x0000000000192700
+        .dword 0xffffffc000000000
+        .dword 0x00000000001a2600
+        .dword 0xffffffe000000000
+        .dword 0x00000000001b2500
+        .dword 0xfffffff000000000
+        .dword 0x00000000001c2400
+        .dword 0xfffffff800000000
+        .dword 0x00000000001d2300
+        .dword 0xfffffffc00000000
+        .dword 0x00000000001e2200
+        .dword 0xfffffffe00000000
+        .dword 0x00000000001f2100
+        .dword 0xffffffff00000000
+        .dword 0x0000000000202000
+        .dword 0xffffffff80000000
+        .dword 0x0000000000211f00
+        .dword 0xffffffffc0000000
+        .dword 0x0000000000221e00
+        .dword 0xffffffffe0000000
+        .dword 0x0000000000231d00
+        .dword 0xfffffffff0000000
+        .dword 0x0000000000241c00
+        .dword 0xfffffffff8000000
+        .dword 0x0000000000251b00
+        .dword 0xfffffffffc000000
+        .dword 0x0000000000261a00
+        .dword 0xfffffffffe000000
+        .dword 0x0000000000271900
+        .dword 0xffffffffff000000
+        .dword 0x0000000000281800
+        .dword 0xffffffffff800000
+        .dword 0x0000000000291700
+        .dword 0xffffffffffc00000
+        .dword 0x00000000002a1600
+        .dword 0xffffffffffe00000
+        .dword 0x00000000002b1500
+        .dword 0xfffffffffff00000
+        .dword 0x00000000002c1400
+        .dword 0xfffffffffff80000
+        .dword 0x00000000002d1300
+        .dword 0xfffffffffffc0000
+        .dword 0x00000000002e1200
+        .dword 0xfffffffffffe0000
+        .dword 0x00000000002f1100
+        .dword 0xffffffffffff0000
+        .dword 0x0000000000301000
+        .dword 0xffffffffffff8000
+        .dword 0x0000000000310f00
+        .dword 0xffffffffffffc000
+        .dword 0x0000000000320e00
+        .dword 0xffffffffffffe000
+        .dword 0x0000000000330d00
+        .dword 0xfffffffffffff000
+        .dword 0x0000000000340c00
+        .dword 0xfffffffffffff800
+        .dword 0x0000000000350b00
+        .dword 0xfffffffffffffc00
+        .dword 0x0000000000360a00
+        .dword 0xfffffffffffffe00
+        .dword 0x0000000000370900
+        .dword 0xffffffffffffff00
+        .dword 0x0000000000380800
+        .dword 0xffffffffffffff80
+        .dword 0x0000000000390700
+        .dword 0xffffffffffffffc0
+        .dword 0x00000000003a0600
+        .dword 0xffffffffffffffe0
+        .dword 0x00000000003b0500
+        .dword 0xfffffffffffffff0
+        .dword 0x00000000003c0400
+        .dword 0xfffffffffffffff8
+        .dword 0x00000000003d0300
+        .dword 0xfffffffffffffffc
+        .dword 0x00000000003e0200
+        .dword 0xfffffffffffffffe
+        .dword 0x00000000003f0100
+        .dword 0xffffffffffffffff
+        .dword 0x0000000000400000

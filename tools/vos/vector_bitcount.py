@@ -189,17 +189,21 @@ def emit_corpus(root: Path) -> str:
         put("vmv.x.s t1, v16", f"li t2, {expected}", "bne t1, t2, fail")
 
     for width in WIDTHS:
-        put("li t0, 1", f"vsetvli t1, t0, {_vtype(width, 0)}")
-        for value in values(width):
-            check()
-            put(f"li t0, 0x{value:x}", "vmv.v.x v8, t0")
-            expected = counts(width, value)
-            for operation, count in zip(OPERATIONS, expected, strict=True):
-                put("vmv.v.i v16, -1", f"{operation} v16, v8")
-                answer(count)
-            put("li t2, 1", "vsub.vx v16, v8, t2", "li t2, -1",
-                "vxor.vx v17, v8, t2", "vand.vv v16, v16, v17", "vcpop.v v16, v16")
-            answer(expected[1])
+        # One instruction body walks independently generated expected bytes.
+        # c12 is dead before geometry uses a2; the two alias in the merged file.
+        put("li t0, 1", f"vsetvli t1, t0, {_vtype(width, 0)}",
+            f"li gp, {serial}", f"li t0, cases_e{width}", "csetaddr c12, c8, t0",
+            f"li t3, {len(values(width))}")
+        lines.append(f"values_e{width}:")
+        put("addi gp, gp, 1", "ld t0, 0(c12)", "vmv.v.x v8, t0")
+        for offset, operation in enumerate(OPERATIONS, 8):
+            put("vmv.v.i v16, -1", f"{operation} v16, v8", "vmv.x.s t1, v16",
+                f"lbu t2, {offset}(c12)", "bne t1, t2, fail")
+        put("li t2, 1", "vsub.vx v16, v8, t2", "li t2, -1",
+            "vxor.vx v17, v8, t2", "vand.vv v16, v16, v17", "vcpop.v v16, v16",
+            "vmv.x.s t1, v16", "lbu t2, 9(c12)", "bne t1, t2, fail",
+            "cincoffsetimm c12, c12, 16", "addi t3, t3, -1", f"bnez t3, values_e{width}")
+        serial += len(values(width))
         for value in (0, 1 << (width - 1), (1 << width) - 1):
             check()
             for operation, count in zip(OPERATIONS, counts(width, value), strict=True):
@@ -247,6 +251,15 @@ def emit_corpus(root: Path) -> str:
     put(".dword 0", ".align 6")
     lines.append("output:")
     put(f".space {OUTPUT_BYTES}")
+    for width in WIDTHS:
+        put(".align 3")
+        lines.append(f"cases_e{width}:")
+        for value in values(width):
+            if width == 8 and value == 0:
+                lines.append("oracle_e8_zero:")
+            clz, ctz, pop = counts(width, value)
+            packed = clz | (ctz << 8) | (pop << 16)
+            put(f".dword 0x{value:016x}", f".dword 0x{packed:016x}")
     return "\n".join(lines) + "\n"
 
 

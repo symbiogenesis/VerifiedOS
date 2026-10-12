@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """Independent oracle landmarks, deterministic generation and byte-drift refusals."""
 
+import struct
 import tempfile
+from itertools import pairwise
 from pathlib import Path
 
 from tests.harness import TOOLS, Case, ensure
-from vos import asm, vector_bitcount
+from vos import asm, image, vector_bitcount
 
 ROOT = TOOLS.parent
 
@@ -67,6 +69,47 @@ def _generated() -> None:
                "generated decoded-instruction corpus did not assemble")
 
 
+def _disjoint_load_segments(raw: bytes) -> None:
+    """Read actual ELF program headers; assembler success alone misses overlap."""
+    offset = struct.unpack_from("<Q", raw, 32)[0]
+    size, count = struct.unpack_from("<HH", raw, 54)
+    extents = []
+    for index in range(count):
+        header = struct.unpack_from("<IIQQQQQQ", raw, offset + index * size)
+        if header[0] == image.PT_LOAD:
+            extents.append((header[4], header[4] + header[6]))
+    extents.sort()
+    ensure(len(extents) == 2, "expected the assembler's text and data load segments")
+    ensure(all(left[1] <= right[0] for left, right in pairwise(extents)),
+           "loadable ELF segments overlap")
+
+
+def _layout() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-bitcount-layout-") as temporary:
+        root = Path(temporary)
+        source = root / "bitcount.s"
+        source.write_text(vector_bitcount.emit_corpus(ROOT), encoding="utf-8", newline="\n")
+        elf = root / "bitcount.elf"
+        asm.assemble_file(source, elf)
+        _disjoint_load_segments(elf.read_bytes())
+        sections, _, _ = asm.Assembler(source.read_text(encoding="utf-8")).assemble()
+        text = next(section for section in sections if section.name == ".text")
+        ensure(text.addr + len(text.data) < asm.DATA_BASE,
+               "generated text reached the assembler's fixed data base")
+        # Reproduce the original failure: a successfully assembled text segment
+        # extends through data. The ELF observation must reject it.
+        source.write_text(f".text\n_start:\n.space {asm.DATA_BASE - asm.TEXT_BASE + 4}\n"
+                          ".data\n.dword 0\n", encoding="utf-8", newline="\n")
+        asm.assemble_file(source, elf)
+        try:
+            _disjoint_load_segments(elf.read_bytes())
+        except AssertionError as exc:
+            ensure("overlap" in str(exc), f"wrong layout refusal: {exc}")
+        else:
+            raise AssertionError("the original overlapping ELF layout was accepted")
+
+
 def cases() -> list[Case]:
     return [Case("fixed-width independent oracle and domain", _oracle),
-            Case("generated artifacts, drift and decoded words", _generated)]
+            Case("generated artifacts, drift and decoded words", _generated),
+            Case("actual ELF load segments remain disjoint", _layout)]
