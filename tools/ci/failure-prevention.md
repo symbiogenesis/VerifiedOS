@@ -29,6 +29,13 @@ members; an encoder or source change requires a separately reviewed baseline upd
 Normal checks never rewrite baselines. Controls cover additions, removals, changed
 sources and changed encoded images.
 
+Checker mutation seeds select holder citations and landing declarations by their
+documented structure rather than an item's incidental completion prose. Removing
+or reordering narrative text must not leave these controls unseeded. Focused
+acceptance checks both missing and unregistered holders after such edits, and
+refuses a seed when its required declaration is absent; the checker conditions
+and the requirement that every selected mutant actually applies remain intact.
+
 ## Retained evidence
 
 A retention producer copies explicitly selected files into a new contained bundle,
