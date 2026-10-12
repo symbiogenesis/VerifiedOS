@@ -173,6 +173,170 @@ def _declaration_is_the_owner() -> None:
             _refused(capture, expected, root)
 
 
+def _two_world_fixture(root: Path, *, scale: int = 1, start: int = 0,
+                       reverse_worlds: bool = False, reverse_rings: bool = False
+                       ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    declaration = json.loads((corpus.find_root() / ring_owner.DECLARATION).read_text(encoding="utf-8"))
+    worlds = declaration["worlds"]
+    names = [world["world"] for world in worlds]
+    operations = [operation["name"] for operation in worlds[0]["operations"][:2]]
+    for index, world in enumerate(worlds):
+        world["ring"].update(capacity=5 - 3 * index, max_batch_size=3 - index,
+                             slot_budget=(31 - 2 * index) * scale)
+        fields = world["operation_record_fields"]
+        for operation, name in zip(world["operations"][:2], operations, strict=True):
+            operation["name"] = name
+            bounds = dict(zip(fields, operation["record"], strict=True))
+            bounds.update(validation_cost=(2 + index) * scale,
+                          device_service_bound=(3 + index) * scale,
+                          cancellation_cleanup_cost=(4 + index) * scale,
+                          completion_publication_cost=(5 + index) * scale,
+                          max_payload_bytes=6 + index, max_segment_count=3 + index,
+                          max_notifications=(2 + index) * scale, max_requests_drained=3 - index)
+            operation["record"] = [bounds[field] for field in fields]
+        # Reorder each world's fields with its values. A positional second table
+        # or a record borrowed from another world must fail the checks below.
+        order = list(reversed(fields)) if index == 0 else fields[3:] + fields[:3]
+        for operation in world["operations"]:
+            bounds = dict(zip(fields, operation["record"], strict=True))
+            operation["record"] = [bounds[field] for field in order]
+        world["operation_record_fields"] = order
+    if reverse_worlds:
+        worlds.reverse()
+    (root / ring_owner.DECLARATION).write_text(json.dumps(declaration), encoding="utf-8", newline="")
+    capture, expected = _fixture(root)
+    capture["window"].update(start_tick=start, end_tick=start + 100)
+    first = capture["rings"][0]
+    first.update(ring_id="first-ring", world=names[0])
+    for activation in first["activations"]:
+        activation["tick"] += start
+        activation["notifications"] *= scale
+        activation["activation_overhead_cost"] *= scale
+        for request in activation["requests"]:
+            for field in (*COST_FIELDS, "notifications"):
+                request[field] *= scale
+    request = copy.deepcopy(first["activations"][0]["requests"][0])
+    second = {"ring_id": "second-ring", "world": names[1], "activations": [
+        {"tick": start + 20, "queue_high_water": 2, "notifications": 2 * scale,
+         "activation_overhead_cost": 9 * scale,
+         "requests": [request, {**request, "operation": operations[1]}]},
+        {"tick": start + 60, "queue_high_water": 0, "notifications": 3 * scale,
+         "activation_overhead_cost": 0, "requests": []}]}
+    capture["rings"].append(second)
+    if reverse_rings:
+        capture["rings"].reverse()
+    return capture, expected, declaration
+
+
+def _independent_multi_world_accounting() -> None:
+    # Sixteen deterministic captures cross both orderings, an integer translation
+    # and charges above float precision. Their totals come from the fixed witness:
+    # first (10 + 4 + 5, 2), second (10 + 10 + 9, 0), never analyzer helpers.
+    with sandbox_tree({ring_owner.DECLARATION: "{}"}) as root:
+        for scale in (1, 2**54 + 1):
+            for start in (0, 2**54 + 1):
+                for reverse_worlds in (False, True):
+                    for reverse_rings in (False, True):
+                        capture, expected, _ = _two_world_fixture(
+                            root, scale=scale, start=start, reverse_worlds=reverse_worlds,
+                            reverse_rings=reverse_rings)
+                        result = _run(capture, expected, root)
+                        ensure(result.verdict == "within_limits", "independent two-world witness passes")
+                        summaries = {ring.ring_id: ring for ring in result.rings}
+                        witnesses = (("first-ring", 5, 3, 31, 19, 2, 4, 30, 20, 14, 15),
+                                     ("second-ring", 2, 2, 29, 29, 0, 5, 60, 40, 7, 12))
+                        for index, (name, capacity, batch, budget, cost, empty_cost, hints,
+                                    span, gap, numerator, denominator) in enumerate(witnesses):
+                            ring = summaries[name]
+                            ensure((ring.capacity, ring.max_batch_size, ring.slot_budget)
+                                   == (capacity, batch, budget * scale), "each ring owns its world limits")
+                            ensure((ring.queue_high_water, ring.batch_high_water, ring.request_count)
+                                   == (capacity, 2, 2), "queue and batch maxima stay local to each ring")
+                            ensure((ring.max_activation_cost, ring.activations[0].remaining_budget,
+                                    ring.activations[1].cost)
+                                   == (cost * scale, (budget - cost) * scale, empty_cost * scale),
+                                   "per-ring charges and overhead retain exact integer arithmetic")
+                            ensure((ring.observed_notifications, ring.generated_notifications)
+                                   == (hints * scale, 2 * scale), "observed and generated hints stay distinct")
+                            ensure((ring.observed_interval_ticks, ring.activation_gaps_ticks,
+                                    ring.unmeasured_tail_ticks) == (span, (gap,), 100 - span),
+                                   "cadence excludes each ring's own unmeasured tail")
+                            rate = ring.observed_notifications_per_second
+                            ensure(rate is not None, "positive observed interval supplies a rate")
+                            if rate is not None:
+                                ensure(rate.numerator * denominator
+                                       == numerator * scale * rate.denominator,
+                                       "exact cadence agrees with the independent rational witness")
+                            for request in ring.activations[0].requests:
+                                ensure(request.declared_bounds["validation_cost"] == (2 + index) * scale
+                                       and request.declared_bounds["max_payload_bytes"] == 6 + index
+                                       and request.declared_bounds["max_requests_drained"] == 3 - index,
+                                       "same operation spelling selects the world's reordered record")
+
+
+def _multi_world_limit_isolation() -> None:
+    with sandbox_tree({ring_owner.DECLARATION: "{}"}) as root:
+        capture, expected, declaration = _two_world_fixture(root, reverse_worlds=True, reverse_rings=True)
+        base = copy.deepcopy(capture)
+        for ring in base["rings"]:
+            world = next(world for world in declaration["worlds"] if world["world"] == ring["world"])
+            activation = ring["activations"][0]
+            # Put both activations on their own exact budget before one-past tests.
+            activation["activation_overhead_cost"] = world["ring"]["slot_budget"] - sum(
+                request[field] for request in activation["requests"] for field in COST_FIELDS)
+        ensure(not _run(base, expected, root).findings, "both worlds' exact slot budgets pass together")
+        for index, ring in enumerate(base["rings"]):
+            world = next(world for world in declaration["worlds"] if world["world"] == ring["world"])
+            location = f"{ring['ring_id']}/activations/0"
+            for field in ("queue_high_water", "activation_overhead_cost", *REQUEST_BOUNDS):
+                changed = copy.deepcopy(base)
+                activation = changed["rings"][index]["activations"][0]
+                if field in ("queue_high_water", "activation_overhead_cost"):
+                    activation[field] += 1
+                    suffix = "queue_high_water" if field == "queue_high_water" else "activation_cost"
+                else:
+                    bounds = dict(zip(world["operation_record_fields"], world["operations"][0]["record"],
+                                      strict=True))
+                    activation["requests"][0][field] = bounds[REQUEST_BOUNDS[field]] + 1
+                    suffix = f"requests/0/{field}"
+                result = _run(changed, expected, root)
+                ensure(any(f"{location}/{suffix}:" in finding for finding in result.findings),
+                       f"the selected world's one-past {field} is detected")
+                ensure(all(finding.startswith(location + "/") for finding in result.findings),
+                       "one ring's excess cannot contaminate another ring's findings")
+            changed = copy.deepcopy(base)
+            activation = changed["rings"][index]["activations"][0]
+            empty_request = {**activation["requests"][0], **dict.fromkeys(REQUEST_BOUNDS, 0)}
+            activation["activation_overhead_cost"] = 0
+            activation["requests"] = [copy.deepcopy(empty_request)
+                                      for _ in range(world["ring"]["max_batch_size"])]
+            ensure(not _run(changed, expected, root).findings,
+                   "each world's batch equality passes independently of slot charges")
+            activation["requests"].append(copy.deepcopy(empty_request))
+            findings = _run(changed, expected, root).findings
+            ensure(any(finding.startswith(location + "/batch_size:") for finding in findings)
+                   and all(finding.startswith(location + "/") for finding in findings),
+                   "each world's batch one-past fails without leaking to the other ring")
+            changed_declaration = copy.deepcopy(declaration)
+            changed_world = next(member for member in changed_declaration["worlds"]
+                                 if member["world"] == ring["world"])
+            position = changed_world["operation_record_fields"].index("max_requests_drained")
+            changed_world["operations"][1]["record"][position] = 1
+            path = root / ring_owner.DECLARATION
+            path.write_text(json.dumps(changed_declaration), encoding="utf-8", newline="")
+            changed = copy.deepcopy(base)
+            changed["declaration_sha256"] = _hash(path.read_bytes())
+            findings = _run(changed, expected, root).findings
+            ensure(len(findings) == 1 and findings[0].startswith(location + "/")
+                   and "/max_requests_drained:" in findings[0],
+                   "mixed batch uses the whole batch against each world's represented operation")
+            path.write_text(json.dumps(declaration), encoding="utf-8", newline="")
+        changed = copy.deepcopy(base)
+        first_world_only = declaration["worlds"][1]["operations"][2]["name"]
+        changed["rings"][0]["activations"][0]["requests"][0]["operation"] = first_world_only
+        _refused(changed, expected, root)
+
+
 def _identities_and_chronology() -> None:
     base, expected = _fixture()
     for field in ("roster_revision", "image_sha256", "composition_sha256"):
@@ -396,6 +560,8 @@ def cases() -> list[Case]:
     return [Case("hand-computed-mixed-and-empty-accounting", _hand_accounting),
             Case("declared-boundary-equality-and-one-past", _declared_boundaries),
             Case("declaration-driven-drain-and-schema", _declaration_is_the_owner),
+            Case("independent-multi-world-accounting", _independent_multi_world_accounting),
+            Case("multi-world-limit-isolation", _multi_world_limit_isolation),
             Case("ambiguous-declaration-is-refused", _ambiguous_declaration_is_refused),
             Case("declaration-bound-numeric-domains", _declaration_numeric_domains),
             Case("identity-bindings-and-chronology", _identities_and_chronology),
