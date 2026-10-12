@@ -334,6 +334,8 @@ def _result(raw: dict[str, Any], request: dict[str, Any], *, code: int) -> None:
         raise ValueError("driver result lacks validation status")
     if actions["kernel"] == "reused" and set(actions.values()) != {"reused"}:
         raise ValueError("whole-set kernel reuse must reuse all qualification phases")
+    if request["fresh"] and "reused" in actions.values():
+        raise ValueError("fresh request reused earlier execution")
     if "reused" in actions.values():
         basis = raw.get("basis")
         if not isinstance(basis, dict) or basis.get("source_revision") != request["source_revision"]:
@@ -363,8 +365,6 @@ def _result(raw: dict[str, Any], request: dict[str, Any], *, code: int) -> None:
     if raw["outcome"] == "complete":
         if code != 0 or raw["inputs_stable"] is not True or "not_run" in actions.values():
             raise ValueError("complete result has no stable successful whole operation")
-        if request["fresh"] and set(actions.values()) != {"executed"}:
-            raise ValueError("fresh request reused earlier execution")
         if request["profile"] and actions["kernel"] != "executed":
             raise ValueError("new profile output requires kernel execution")
         if actions["kernel"] == "executed" and any(actions[name] != "executed"

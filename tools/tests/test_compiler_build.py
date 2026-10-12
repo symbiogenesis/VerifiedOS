@@ -32,6 +32,11 @@ actions = {n: ('reused' if complete or n == 'compile' and compile_reuse else 'ex
 outcome = 'complete'
 if explicit_bad or mode == 'refused' or mode == 'audit-failure' and r['operation'] == 'build':
     actions = {n:'not_run' for n in actions}; outcome = 'refused'
+if mode == 'failed-fresh-reuse':
+    candidate = p(r['source']) / 'compilation.json'
+    prior = json.loads(candidate.read_text())
+    actions = {n:'reused' if n == 'compile' else 'not_run' for n in actions}
+    outcome = 'refused'
 if r['operation'] == 'status' and outcome != 'refused':
     actions = {n: ('reused' if complete or n == 'compile' and compile_reuse else 'not_run') for n in actions}
     outcome = 'status' if prior else 'unavailable'
@@ -134,6 +139,29 @@ def _fresh_and_profile() -> None:
         ensure(profiled["phases"]["compile"]["action"] == "reused" and profiled["phases"]["kernel"]["action"] == "executed", "profile executes new audit")
         fresh = cb.run(replace(settings, out=settings.lane_root / "fresh", fresh=True), checkout)
         ensure(all(p["action"] == "executed" for p in fresh["phases"].values()), "fresh bypasses both tiers")
+
+
+def _failed_fresh_reuse() -> None:
+    with _session("audit-failure") as (settings, checkout):
+        report = cb.run(replace(settings, fresh=True), checkout)
+        ensure(report["outcome"] == "refused"
+               and all(phase["action"] == "not_run" for phase in report["phases"].values()),
+               "a failed fresh operation may truthfully report no completed phase")
+        ensure((settings.out / "controller-result.json").is_file()
+               and not (settings.cache / "index.json").exists(),
+               "truthful failure is recorded without a reusable index entry")
+    with _session("failed-fresh-reuse") as (settings, checkout):
+        _compilation_fixture(settings)
+        try:
+            cb.run(replace(settings, fresh=True), checkout)
+        except ValueError as error:
+            ensure(str(error) == "fresh request reused earlier execution",
+                   "failed fresh reuse is refused by its cold-policy contradiction")
+        else:
+            raise AssertionError("failed fresh operation claimed compilation reuse")
+        ensure(not (settings.out / "controller-result.json").exists()
+               and not (settings.cache / "index.json").exists(),
+               "cold-policy refusal precedes controller evidence and index publication")
 
 
 def _unmeasured_and_current_timings() -> None:
@@ -367,6 +395,7 @@ def cases() -> list[Case]:
     return [Case("default-warm-and-job-change", _default_warm),
             Case("unmeasured-history-and-current-timing", _unmeasured_and_current_timings),
             Case("fresh-and-new-profile", _fresh_and_profile),
+            Case("failed-fresh-reuse-before-publication", _failed_fresh_reuse),
             Case("pending-compile-only-and-explicit-refusal", _pending_and_explicit),
             Case("index-poison-and-lock-drift", _index_poison_and_stale),
             Case("status-read-only", _status_read_only),
