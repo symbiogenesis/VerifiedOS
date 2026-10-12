@@ -40,6 +40,14 @@ the object system, which M5.4 defers past the M8a gate. The supervisor's
 [static typed C manifest](../../../supervisor/src/manifest.c) supplies its proposed M8a
 source. Binding that manifest to the admitted image and target handoff remains open.
 
+The final shared M7.1 target capture and re-staged producer manifests consume
+Q39's qualified locked compiler identity. Q43 demonstrates genuine unchanged
+reuse before repeated final builds. Component authoring and focused development
+runs may continue with their recorded producer identities, but interrupted audit
+prefixes cannot authorize final acceptance. The accepted capture binds the
+actual compiler receipt and all source/model inputs; a changed producer refreshes
+the evidence that depends on it.
+
 ## 2. The roster
 
 | Member | Kind | Rank | Status | Executable owner | Reference | Entry and handoff |

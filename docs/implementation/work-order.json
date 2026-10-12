@@ -96,7 +96,9 @@
       "Q3c",
       "Q4b",
       "Q5b",
-      "Q6",
+      "Q6a",
+      "Q6b",
+      "Q34j",
       "Q8",
       "Q22e",
       "Q30b",
@@ -242,6 +244,14 @@
       ],
       "unmet": [],
       "join": [
+        {
+          "item": "Q39",
+          "output": "qualified locked compiler identity for the final shared target capture"
+        },
+        {
+          "item": "Q43",
+          "output": "genuine unchanged compiler reuse before repeated final builds"
+        },
         {
           "item": "M3.5b",
           "output": "RoT and M-mode target stages, authenticated handoff, reset observations and shared C layout"

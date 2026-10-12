@@ -41,12 +41,29 @@ source-correspondence obligations.
 
 Interface-ready host, producer, protocol and adapter work can proceed beside
 their proof foundations, with actual implementations required at integration.
-Targeted optimization ablations avoid a combinatorial measurement project while
-retaining semantic interaction checks and the selected combined proof. Optional
+Q34f/g/h establish the complete minimal Wasm workflow before Q34j selects any
+optional acceleration against a recorded workload need. Every shipped form
+retains the complete language, both engine theorems and native resource/yield
+bounds, and the final product limits remain release requirements. A minimal
+checkpoint records a performance miss rather than concealing it or requiring
+every speculative optimization in advance. The conditional allowance is moved
+out of baseline work without claiming measured engineering savings. Optional
 module, ensemble, browser and next-standard work stays priced but does not hold
 the software MVP or acquire a first-release dependency. The bounded CIC
 foundation and the complete Wasm proof remain large open obligations: no new
 drop-in proof found in this review justifies discounting their theorem work.
+
+Q6a's credible supply decision precedes broad laptop-specific implementation,
+while the existing scalar MVP tracks continue. An adverse verdict returns to
+Q10 without silently reducing the workload or physical threat claims. Q39's
+qualified producer identity and Q43's genuine reuse precede the final shared
+M7 target capture, preventing another identity-bound replay. The first actual
+consumer proof exercises each shared foundation before its clients multiply;
+Q35d and Q34g's collector client are the existing scoped consumers. Dependency
+compatibility work retains the locked safe prover and audits exact assumptions.
+The guest-producer and shared-lowering alternatives remain future reviews at
+their owning contracts and language requirements, with concessions stated before
+any adoption.
 
 ### The three objections
 
