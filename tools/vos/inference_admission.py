@@ -7,7 +7,7 @@ admission, measured token rate or parser correspondence is established here.
 
 from dataclasses import dataclass
 
-from vos.inference_contract import Ceiling, Refusal, Shape, natural
+from vos.inference_contract import Ceiling, Refusal, Shape, natural, require_record
 from vos.inference_grant import KvPlacement, admitted_rate, grant_refusal, per_token_bytes
 from vos.inference_residency import residency_refusal
 
@@ -20,6 +20,7 @@ class Server:
     session_capacity: int
 
     def __post_init__(self) -> None:
+        require_record(self, Server)
         natural(self.slot, "slot")
         natural(self.pool_bytes, "pool_bytes")
         natural(self.session_capacity, "session_capacity")
@@ -39,6 +40,8 @@ class Step:
 
 def why_refused(ceiling: Ceiling, shape: Shape) -> Refusal | None:
     """Use the six ceiling predicates and their exact Gallina precedence."""
+    require_record(ceiling, Ceiling)
+    require_record(shape, Shape)
     checks = (
         (shape.resident_bytes <= ceiling.max_resident_bytes,
          Refusal.RESIDENT_BYTES_ABOVE_CEILING),
@@ -56,6 +59,9 @@ def opening(shape: Shape, ceiling: Ceiling, residency: tuple[bool, ...],
             placement: KvPlacement, server: Server, sessions_open: int,
             requested_rate: int) -> Step:
     """Preserve resources and change occupancy only after every check succeeds."""
+    require_record(shape, Shape)
+    require_record(ceiling, Ceiling)
+    require_record(server, Server)
     natural(sessions_open, "sessions_open")
     natural(requested_rate, "requested_rate")
     traffic = per_token_bytes(shape, placement)

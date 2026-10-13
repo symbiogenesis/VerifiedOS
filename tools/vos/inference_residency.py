@@ -9,7 +9,7 @@ claim, and this module implements no session, resource or descriptor pipeline.
 
 from dataclasses import dataclass
 
-from vos.inference_contract import Costs, Refusal, Shape, natural
+from vos.inference_contract import Costs, Refusal, Shape, natural, require_record
 
 type Residency = tuple[bool, ...]
 type Routing = tuple[int, ...]
@@ -26,12 +26,14 @@ def _resident(res: Residency, expert: int) -> bool:
 
 def all_experts_resident(shape: Shape, res: Residency) -> bool:
     """Decide the entire declared expert prefix, including the empty prefix."""
+    require_record(shape, Shape)
     _validate_residency(res)
     return len(res) >= shape.expert_count and all(res[:shape.expert_count])
 
 
 def residency_refusal(shape: Shape, res: Residency) -> Refusal | None:
     """The residency/top-k guards of the single composition_opening wrapper."""
+    require_record(shape, Shape)
     if not all_experts_resident(shape, res):
         return Refusal.EXPERT_NOT_RESIDENT
     if shape.top_k > shape.expert_count:
@@ -41,6 +43,7 @@ def residency_refusal(shape: Shape, res: Residency) -> Refusal | None:
 
 def routing_ok(shape: Shape, route: Routing) -> bool:
     """Gallina's exact length and expert-index predicates; repeats are valid."""
+    require_record(shape, Shape)
     if type(route) is not tuple or len(route) != shape.top_k:
         return False
     try:
@@ -61,6 +64,8 @@ def checked_routed_work(shape: Shape, costs: Costs, res: Residency,
     guard mirrors checked_routed_work, which is separate from the admission
     wrapper's top-k/count guard and does not impose route uniqueness.
     """
+    require_record(shape, Shape)
+    require_record(costs, Costs)
     if not routing_ok(shape, route) or not all_experts_resident(shape, res):
         return None
     return costs.dense_work_per_token + sum(costs.expert_work_per_token for _ in route)

@@ -9,6 +9,12 @@ from dataclasses import dataclass, fields
 from enum import StrEnum
 
 
+def require_record(record: object, expected: type[object]) -> None:
+    """Refuse derived or mutable record containers without reading their fields."""
+    if type(record) is not expected:
+        raise ValueError(f"input must be the exact frozen {expected.__name__} record")
+
+
 def natural(value: int, name: str) -> int:
     """Refuse Python values outside Gallina's natural-number input domain."""
     if type(value) is not int or value < 0:
@@ -31,6 +37,7 @@ class Shape:
     kv_bytes_per_token: int
 
     def __post_init__(self) -> None:
+        require_record(self, Shape)
         _natural_fields(self)
 
 
@@ -45,6 +52,7 @@ class Ceiling:
     ceiling_grant: int
 
     def __post_init__(self) -> None:
+        require_record(self, Ceiling)
         for item in fields(self):
             if item.name != "admitted_formats":
                 natural(getattr(self, item.name), item.name)
@@ -61,6 +69,7 @@ class Costs:
     fetch_penalty: int
 
     def __post_init__(self) -> None:
+        require_record(self, Costs)
         _natural_fields(self)
 
 
