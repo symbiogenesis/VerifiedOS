@@ -79,6 +79,13 @@ descriptor and derivation sources are also rechecked before projection or build
 bindings publish. Projection binding follows descriptor expansion, so a source
 substitution during that work cannot retain an earlier source identity.
 
+Roster membership, ranks and executable status use one exact contract-byte
+snapshot throughout validation, projections and build records. Publication
+rechecks that snapshot's digest rather than hashing a new roster read. A rank or
+status substitution after validation receives a `stale source binding` refusal;
+unchanged roster semantics with different formatting remain accepted and bind
+their own exact bytes.
+
 `python tools/run.py composer check-project` regenerates and compares every
 checked-in projection byte. A changed member, source, producer, relation,
 placement or derivation reference invalidates the projections. The focused

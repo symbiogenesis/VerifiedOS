@@ -255,10 +255,11 @@ def parse_json_roster(data: bytes, source: str) -> Roster:
     return _checked(members, source)
 
 
-def load_roster(root: Path, relative: str) -> Roster:
+def load_roster(root: Path, relative: str, *, snapshot: bytes | None = None) -> Roster:
+    """Parse the roster file or a caller's checked byte snapshot."""
     path = root / relative
     try:
-        data = path.read_bytes()
+        data = path.read_bytes() if snapshot is None else snapshot
     except OSError as exc:
         raise RecipeError(f"{relative}: {exc}") from None
     if relative.endswith(".md"):
