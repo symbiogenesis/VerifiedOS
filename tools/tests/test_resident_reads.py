@@ -190,6 +190,69 @@ def _integral_handle_fields() -> None:
                    "integral handle guard added common per-read writes")
 
 
+def _canonical_handle_container() -> None:
+    class HandleAlias(rr.Handle):
+        pass
+
+    class HandleSpoof(rr.Handle):
+        __hash__ = object.__hash__
+
+        @override
+        def __eq__(self, other: object) -> bool:
+            return True
+
+        @override
+        def __ne__(self, other: object) -> bool:
+            return False
+
+    for kind in ("system-image", "user-data"):
+        for changed_field in ("token", "start", "length", "window", "alias"):
+            service, identity, handles = rr.fixture(kind)
+            ensure(service.close(handles[0]), "handle-container control could not release its holder")
+            handle = service.reserve(0, 7, identity, 4, 8)
+            if handle is None:
+                raise AssertionError("handle-container control lacked its admitted subwindow")
+            token = 15 if changed_field == "token" else handle.token
+            start = 0 if changed_field in ("start", "window") else handle.start
+            length = 16 if changed_field in ("length", "window") else handle.length
+            container = HandleAlias if changed_field == "alias" else HandleSpoof
+            supplied = container(token, handle.boot, handle.holder, handle.slot, identity, start, length)
+            if changed_field != "alias":
+                ensure(supplied == handle and handle == supplied and not (handle != supplied),
+                       "handle equality-spoof control did not execute")
+            ensure((handle.token, handle.start, handle.length) == (3, 4, 8),
+                   "canonical reservation changed the independent token/window expectation")
+            ensure(service.read(handle, 7, identity, 0, 8) == b"456789AB",
+                   "canonical subwindow did not return independently expected bytes")
+            before = len(service.writes)
+            ensure(service.read(supplied, 7, identity, 0, 1) is None
+                   and service.read(supplied, 7, identity, 0, 16) is None
+                   and not service.renew(supplied) and not service.close(supplied),
+                   f"{changed_field} handle subclass bypassed its reservation or window")
+            ensure(len(service.writes) == before and service.response(0) == b"456789AB",
+                   "handle-container refusal wrote stored state or erased a canonical response")
+
+            ensure(service.begin(handle, 7, identity, 0, 8)
+                   and service.begin(handles[1], 7, identity, 0, 16),
+                   "handle-container control lacked two independent accepted transfers")
+            pending = (service.pending(0), service.pending(1))
+            held = service.reservation(0)
+            before = len(service.writes)
+            ensure(service.read(supplied, 7, identity, 0, 16) is None
+                   and not service.renew(supplied) and not service.close(supplied),
+                   "handle subclass changed authority beside accepted transfers")
+            ensure((service.pending(0), service.pending(1)) == pending
+                   and service.reservation(0) == held and len(service.writes) == before,
+                   "handle-container refusal disturbed accepted transfers or renewal state")
+            ensure(service.finish(0) == b"456789AB"
+                   and service.finish(1) == b"0123456789ABCDEF",
+                   "handle-container refusal lost subwindow or independent-holder payload")
+            ensure(service.renew(handle) and service.revoke(0) and service.close(handle),
+                   "handle-container refusal prevented canonical renewal or revoked close")
+            ensure(service.traffic()["common"] == 0 and service.safe_backing(),
+                   "handle-container guard added common read writes or lost retained backing")
+
+
 def _integral_supplied_identities() -> None:
     payload = b"0123456789ABCDEF"
     cyclic: list[object] = []
@@ -880,6 +943,7 @@ def cases() -> list[Case]:
             Case("resident exact identity and every-read authentication", _identity_and_authentication),
             Case("resident integral intervals and holder refusals", _integral_read_intervals),
             Case("resident integral handle fields preserve accepted transfers", _integral_handle_fields),
+            Case("resident canonical handles refuse equality-spoofing containers", _canonical_handle_container),
             Case("resident integral supplied identities and caller domains", _integral_supplied_identities),
             Case("resident canonical root identities preserve accepted transfers", _canonical_root_fields),
             Case("resident current authority and admitted-transfer cuts", _authority_and_lifecycle_cuts),

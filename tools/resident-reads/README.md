@@ -62,6 +62,11 @@ canonical publication retries; an equality-spoofing digest cannot stand in for
 authenticated bytes. This input shape
 belongs to the finite host reference. The executed omitted-root-check control uses a
 different well-formed digest so its rejection still checks exact root binding.
+Handles also require the exact declared container before read, renewal or close.
+Equality-spoofing handle subclasses cannot forge a reservation token, widen its
+byte window or cancel an accepted transfer. Both root-kind controls preserve
+canonical subwindow and independent-holder payloads, renewal, and close after
+revocation, without adding common per-read writes.
 Refused requests preserve an already accepted transfer.
 Stop, retirement and resident lookup require an in-range integer backing slot.
 String aliases and other malformed slots refuse before stored-state changes, preserving
