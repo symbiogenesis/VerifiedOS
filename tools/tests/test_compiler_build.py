@@ -379,6 +379,71 @@ def _containment_and_lock() -> None:
         _refuses(lambda: cb.run(settings, checkout))
 
 
+def _native_input_isolation() -> None:
+    with _session() as (settings, checkout):
+        settings.opam_root.mkdir()
+        shared_lane = settings.source.parent
+        cb.run(replace(settings, lane_root=shared_lane), checkout)
+        before = {str(path): path.read_bytes() for path in shared_lane.rglob('*') if path.is_file()}
+        for name in ("source", "driver_root", "opam_root"):
+            protected = getattr(settings, name)
+            for destination in ("out", "cache"):
+                for relation in ("equal", "inside"):
+                    misplaced = protected if relation == "equal" else protected / "misplaced-output"
+                    attempted = replace(settings, lane_root=shared_lane, out=misplaced) if destination == "out" else replace(
+                        settings, lane_root=shared_lane, out=shared_lane / "attempted", cache=misplaced)
+                    with (patch.object(env, "hold_lock", side_effect=AssertionError("input isolation attempted a lock")),
+                          patch.object(cb.subprocess, "run", side_effect=AssertionError("input isolation launched the driver"))):
+                        try:
+                            cb.run(attempted, checkout)
+                        except ValueError as error:
+                            ensure(str(error) == "output and cache roots overlap native compiler inputs",
+                                   "native input overlap refuses at the containment boundary")
+                        else:
+                            raise AssertionError("output/cache overlapped a native compiler input")
+        after = {str(path): path.read_bytes() for path in shared_lane.rglob('*') if path.is_file()}
+        ensure(before == after, "native input refusals preserve original inputs and the useful index")
+        ensure(not (shared_lane / "attempted").exists(), "native input refusal precedes output creation")
+        warm = cb.run(replace(settings, lane_root=shared_lane, out=shared_lane / "warm"), checkout)
+        ensure(warm["effective_policy"] == "complete-reuse", "sibling native inputs and outputs retain normal reuse")
+
+
+def _native_input_inside_cache() -> None:
+    with _session() as (settings, checkout):
+        native = settings.opam_root / "existing-switch-root"
+        native.mkdir(parents=True)
+        marker = native / "retained-input"
+        marker.write_text("private toolchain input")
+        attempted = replace(settings, lane_root=settings.source.parent,
+                            cache=settings.opam_root, opam_root=native)
+        with patch.object(env, "hold_lock", side_effect=AssertionError("ancestor cache attempted a lock")):
+            _refuses(lambda: cb.run(attempted, checkout))
+        ensure(marker.read_text() == "private toolchain input" and not settings.out.exists()
+               and not (settings.opam_root / "index.json").exists(),
+               "a cache containing native inputs supplies no output or index writes")
+
+
+def _input_artifact_isolation() -> None:
+    for name in ("lock", "configuration", "driver_manifest", "reuse_from"):
+        for placement in ("cache", "operation-lock"):
+            with _session() as (settings, checkout):
+                if placement == "cache":
+                    settings.cache.mkdir()
+                    protected = settings.cache / "index.json"
+                else:
+                    protected = settings.out.with_name(settings.out.name + ".lock")
+                original = getattr(settings, name)
+                protected.write_bytes(original.read_bytes() if original is not None else b'{"pending":true}')
+                before = {str(path): path.read_bytes() for path in settings.lane_root.rglob('*') if path.is_file()}
+                attempted = replace(settings, **{name: protected})
+                with (patch.object(env, "hold_lock", side_effect=AssertionError("input artifact attempted a lock")),
+                      patch.object(cb.subprocess, "run", side_effect=AssertionError("input artifact launched the driver"))):
+                    _refuses(lambda attempted=attempted: cb.run(attempted, checkout))
+                after = {str(path): path.read_bytes() for path in settings.lane_root.rglob('*') if path.is_file()}
+                ensure(before == after and not settings.out.exists(),
+                       "input artifact bytes survive cache and operation-lock collision refusal")
+
+
 def _json_and_manifest() -> None:
     with _session() as (settings, checkout):
         for payload in ('{"x":1,"x":2}', '{"x":NaN}', '{"x":1e999}', '[1]'):
@@ -562,6 +627,9 @@ def cases() -> list[Case]:
             Case("prime-original-basis-and-tier-refusal", _prime_basis_and_tier_refusal),
             Case("compilation-hint-poison-and-damage", _compilation_hint_poison_and_damage),
             Case("native-containment-collision-lock", _containment_and_lock),
+            Case("native-input-output-isolation-before-writes", _native_input_isolation),
+            Case("native-input-inside-cache-before-writes", _native_input_inside_cache),
+            Case("input-artifact-isolation-before-lock-index-writes", _input_artifact_isolation),
             Case("json-and-manifest-refusal", _json_and_manifest),
             Case("unreviewed-imports-before-launch", _unreviewed_imports),
             Case("import-fromlist-closure-before-launch", _import_fromlist_closure),

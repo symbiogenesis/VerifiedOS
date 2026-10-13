@@ -66,6 +66,15 @@ and publish records atomically. Read-only status does not build, audit, repair o
 rewrite prior evidence. Disposable requests and process working directories use
 unique absolute Temp paths; preserve inherited system/profile variables.
 
+Output and cache roots must neither contain nor lie inside the original source,
+reviewed helper or opam roots, and must not equal them. Their sibling operation
+lock paths must also be disjoint from those roots. Output/cache roots and operation
+locks must not overlap a required lock, configuration, driver-manifest file or
+explicit reuse candidate. A common assigned lane parent with sibling input and
+output trees remains supported. Refuse an overlap before taking a lock, creating
+output directories, launching the driver or publishing index hints; preserve the
+previous useful basis.
+
 ## Default reuse policy
 
 Normal builds consult a versioned lane-local index of this controller's earlier

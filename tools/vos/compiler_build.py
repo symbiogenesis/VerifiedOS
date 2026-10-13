@@ -237,18 +237,31 @@ class Settings:
         out, cache = contained(self.out, lane), contained(self.cache, lane)
         if out == cache or out.is_relative_to(cache) or cache.is_relative_to(out):
             raise ValueError("output and cache roots must be separate")
+        mutable = (out, cache, *(contained(path.with_name(path.name + ".lock"), lane)
+                                 for path in (out, cache)))
         for path in (lane, self.source, self.driver_root, self.opam_root):
             actual = _absolute(path)
             if actual.is_relative_to(checkout.resolve()):
                 raise ValueError("native compiler paths must remain outside this checkout")
+        for path in (self.source, self.driver_root, self.opam_root):
+            protected = _absolute(path)
+            if any(protected.is_relative_to(destination) or destination.is_relative_to(protected)
+                   for destination in mutable):
+                raise ValueError("output and cache roots overlap native compiler inputs")
         for path in (self.lock, self.configuration, self.driver_manifest):
-            _absolute(path)
+            protected = _absolute(path)
             if not path.is_file():
                 raise ValueError("required input artifact is absent")
+            if any(protected.is_relative_to(destination) or destination.is_relative_to(protected)
+                   for destination in mutable):
+                raise ValueError("output, cache or operation lock overlaps a required input artifact")
         if not self.source.is_dir() or not self.driver_root.is_dir():
             raise ValueError("source and driver roots must exist")
         if self.reuse_from is not None:
-            _absolute(self.reuse_from)
+            protected = _absolute(self.reuse_from)
+            if any(protected.is_relative_to(destination) or destination.is_relative_to(protected)
+                   for destination in mutable):
+                raise ValueError("output, cache or operation lock overlaps the explicit reuse candidate")
         if not status and out.exists():
             raise ValueError("output collision; choose a new owned output directory")
 
