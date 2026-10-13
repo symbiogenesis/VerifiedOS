@@ -102,10 +102,18 @@ Retirement closes admission, cancels accepted private transfers, removes held
 reservations, performs a modeled barrier, zeroizes and releases backing. Its
 bound is independent of holder acknowledgment. When the barrier is unavailable,
 it refuses after cancellation and retains closed backing inside the charged
-quarantine. The backing safety oracle checks the exact resident identity for every
-live reservation and accepted transfer. Repopulating a prematurely freed slot with
-replacement bytes cannot satisfy that oracle merely because the slot is occupied;
-the same-slot reuse control fails beside a valid retained-predecessor control.
+quarantine. The backing safety oracle checks the exact resident identity and fixture-root
+binding of its actual bytes for every live reservation and accepted transfer.
+Repopulating a prematurely freed slot with replacement bytes cannot satisfy that
+oracle merely because the slot is occupied. Mutating or zeroizing retained backing
+while leaving its identity unchanged also fails. The executed premature-zeroization
+control runs the retirement cut before cancelling two accepted transfers; both root
+kinds reject it beside lawful holder-independent retirement. Separate reservation
+and transfer controls check retained-window payloads independently. Correctly rooted
+zero-valued backing and empty boundary reads remain accepted. This read-only harness
+oracle supplies no modeled stores, concrete storage authentication or universal proof.
+It checks retained state at explicit observation cuts; it does not replay every
+transient stored state or establish complete writer-order acceptance.
 Crash clears volatile reservations, grants and replies; retained data
 does not recreate old authority. The scalar producer's existing fresh-replacement
 observations cannot authorize this model's physical reuse. Correspondence to
@@ -140,7 +148,7 @@ classification; relabeling a common counter as statistics is insufficient.
 The executed Python controls add common increment/decrement, replacement touch
 and hidden reacquisition while still returning the correct bytes. Their traffic
 predicate fails. Other executed controls omit domain/root/authentication checks,
-rebind an old handle, free backing with accepted transfers, wrap tokens or exceed
+rebind an old handle, free or zeroize backing with live retention, wrap tokens or exceed
 the holder-independent retirement bound, or complete a successor request through
 a stale completion sequence. Every control has a passing counterpart
 and its independently checked refusal, payload, uniqueness or lifetime oracle.
