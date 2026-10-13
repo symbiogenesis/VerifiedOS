@@ -218,7 +218,8 @@ def _canonical_handle_container() -> None:
             container = HandleAlias if changed_field == "alias" else HandleSpoof
             supplied = container(token, handle.boot, handle.holder, handle.slot, identity, start, length)
             if changed_field != "alias":
-                ensure(supplied == handle and handle == supplied and not (handle != supplied),
+                inequality = handle != supplied
+                ensure(supplied == handle and handle == supplied and inequality is False,
                        "handle equality-spoof control did not execute")
             ensure((handle.token, handle.start, handle.length) == (3, 4, 8),
                    "canonical reservation changed the independent token/window expectation")

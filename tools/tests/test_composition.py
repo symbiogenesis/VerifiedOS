@@ -231,7 +231,7 @@ def _stale_inputs_and_projections() -> None:
 
 def _configuration_snapshot_binding() -> None:
     with _sandbox() as (root, raw):
-        path = root / raw["configuration"]["path"]
+        path = root / str(raw["configuration"]["path"])
         original = path.read_bytes()
         regions = boot.regions(path)
         outside = max(region.base + region.size for region in regions) + 4096
@@ -255,12 +255,13 @@ def _configuration_snapshot_binding() -> None:
                     reads += 1
                     return original if reads == 1 else substituted
                 return read_bytes(candidate)
-            def transient_text(candidate: Path, *args: Any, **kwargs: Any) -> str:
+            def transient_text(candidate: Path, encoding: str | None = None,
+                               errors: str | None = None, newline: str | None = None) -> str:
                 nonlocal reads
                 if candidate == path:
                     reads += 1
                     return substituted.decode("utf-8")
-                return read_text(candidate, *args, **kwargs)
+                return read_text(candidate, encoding=encoding, errors=errors, newline=newline)
             with patch.object(Path, "read_bytes", transient_bytes), patch.object(Path, "read_text", transient_text):
                 _refused(lambda consume=consume: consume(root), "stale source binding")
             ensure(reads >= 2, "control reaches configuration parsing after digest validation")
@@ -421,7 +422,7 @@ def _build_composition_snapshot_binding() -> None:
             ensure(json.loads(composer.canonical_bytes(record))["binding"]["input"] ==
                    {"path": c.EXAMPLE, "sha256": c.digest(data)},
                    "build record binds the same exact input snapshot as its projections")
-        configuration = root / raw["configuration"]["path"]
+        configuration = root / str(raw["configuration"]["path"])
         config_bytes = configuration.read_bytes()
         changed_config = config_bytes + b"\n// substituted configuration identity\n"
         read_text = Path.read_text
@@ -436,12 +437,13 @@ def _build_composition_snapshot_binding() -> None:
                         reads += 1
                         return config_bytes if reads <= unchanged_reads else changed_config
                     return read_bytes(candidate)
-                def config_text(candidate: Path, *args: Any, **kwargs: Any) -> str:
+                def config_text(candidate: Path, encoding: str | None = None,
+                                errors: str | None = None, newline: str | None = None) -> str:
                     nonlocal reads
                     if candidate == configuration:
                         reads += 1
                         return changed_config.decode("utf-8")
-                    return read_text(candidate, *args, **kwargs)
+                    return read_text(candidate, encoding=encoding, errors=errors, newline=newline)
                 with patch.object(Path, "read_bytes", config_read), patch.object(Path, "read_text", config_text):
                     _refused(consume, "stale source binding")
                 ensure(reads > stable_reads, "configuration drift refuses before projection or build publication")
