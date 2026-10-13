@@ -7,6 +7,7 @@ from itertools import product
 from operator import setitem
 from pathlib import Path
 from typing import cast
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import elastic_pool as p
@@ -358,6 +359,27 @@ def bounded_sequences_satisfy_the_four_observers() -> None:
                f"generated history violated its contract: {history}")
 
 
+def campaign_depth_is_an_exact_bounded_integer() -> None:
+    # Fractional depths never reach the recursive zero case. Refuse every
+    # malformed budget before constructing a pool or exploring any prefix.
+    with patch.object(p, "fixture", side_effect=AssertionError("invalid budget started a campaign")):
+        for invalid in (-1, 6, False, True, 0.0, 1.0, 0.5, 5.0,
+                        float("nan"), float("inf"), "1", None):
+            refused(lambda invalid=invalid: p.generated_histories(cast(int, invalid)),
+                    "finite budget")
+    ensure(p.generated_histories(0) == [[]], "zero budget omitted the empty command word")
+    histories = p.generated_histories(5)
+    ensure(len(histories) == p.COMMANDS ** 5, "maximum budget omitted command words")
+    for word in ((0, 0, 0, 0, 0), (0, 2, 3, 4, 5), (1, 2, 3, 4, 6), (6, 6, 6, 6, 6)):
+        pool = p.fixture()
+        index = 0
+        for command in word:
+            index = index * p.COMMANDS + command
+            p.apply_command(pool, command)
+        ensure(histories[index] == pool.history,
+               "maximum budget changed replay or lexicographic order")
+
+
 def forked_prefixes_replay_each_word() -> None:
     # The generator runs each prefix once and forks the pool it left; every word's
     # history must still be the one replaying the word on a fresh fixture records, in
@@ -425,6 +447,7 @@ def cases() -> list[Case]:
         physical_pool_extents_are_disjoint,
         heap_narrowing_and_lifetime_are_exclusive,
         bounded_sequences_satisfy_the_four_observers,
+        campaign_depth_is_an_exact_bounded_integer,
         forked_prefixes_replay_each_word,
         each_named_refutation_is_detected,
         no_counter_wrap,

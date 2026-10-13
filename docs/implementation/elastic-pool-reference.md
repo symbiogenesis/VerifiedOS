@@ -96,6 +96,8 @@ producer also has no bounded runtime memory or cost claim.
 [elastic_pool_campaign.py](../../tools/vos/elastic_pool_campaign.py) generates
 actual finite allocator histories, including all command words of length four,
 repeated reuse at both classes and both barrier orderings during an active sweep.
+Campaign depth is an exact integer from zero through five; booleans, fractional
+values and other malformed budgets are refused before pool creation or recursion.
 It checks an independent Python observer, deduplicates identical histories and
 emits [ElasticPoolCampaign.v](../../proofs/ElasticPoolCampaign.v). Each generated
 history is checked directly against `PoolGuarantees`; it is not passed through
