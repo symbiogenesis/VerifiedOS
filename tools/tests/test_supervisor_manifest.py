@@ -12,9 +12,8 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-from vos import boot, composer, composition, supervisor, toolenv
-
 from tests.harness import TOOLS, Case, ensure
+from vos import boot, composer, composition, supervisor, toolenv
 
 ROOT = TOOLS.parent
 

@@ -50,7 +50,7 @@ def _input_collision() -> None:
             (root / source).parent.mkdir(parents=True, exist_ok=True)
             (root / source).write_bytes((root / c.EXAMPLE).read_bytes())
             before = _snapshot(root)
-            _refused(lambda: c.emit(root, source, OUTPUT), "overwrite a composition source")
+            _refused(lambda source=source: c.emit(root, source, OUTPUT), "overwrite a composition source")
             ensure(_snapshot(root) == before,
                    "input collision refuses before replacing any earlier projection")
 

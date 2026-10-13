@@ -65,9 +65,10 @@ the manifest, typed graph input, recipe members and admission request skeleton.
 Each projection binds the same input bytes, roster, configuration and projection
 producer sources. The C manifest binds that identity in its generated comment;
 the JSON manifest carries its full source bindings. Numeric policy fields have
-the existing C manifest's meanings and capacity bounds. This output supplies the
-manifest's source, without changing the handwritten manifest currently compiled
-by the supervisor's host implementation.
+the existing C manifest's meanings and capacity bounds. The bounded supervisor
+host implementation revalidates and compiles this generated manifest. Its scalar
+target retains the handwritten comparison manifest; generated-manifest target
+integration remains open.
 
 `composer project` preflights every projection destination before creating or
 writing outputs. Resolved leaves must remain inside the selected output directory,
