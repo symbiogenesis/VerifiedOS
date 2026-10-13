@@ -59,6 +59,16 @@ admissions or widen the allowed assumptions. All sources, patches, tools,
 logical mappings and results are hash-bound in its assigned native lane;
 shared switch exports must remain byte-identical.
 
+The strict source selection is the paired release's complete `src-stdpp`
+module set. Stdlib, stdpp and bitvector retain their unchanged locked package
+build settings; this trial commissions no dependency-source compatibility port.
+Cold carriage must actually build the selected dependency packages, record
+their complete resolution, source, flags and object identities, and include
+every loaded dependency in the recursive kernel and exact-assumption checks.
+Reports distinguish strict support-source compilation from dependency package
+compilation and never claim that all installed sources passed the consumer's
+strict flags.
+
 Before a syntax repair, record the affected public declarations' elaborated
 types, universes and executable definitions from the package's original build
 settings, retaining its warnings. Those baseline outputs establish the reading
