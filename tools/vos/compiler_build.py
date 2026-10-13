@@ -101,7 +101,7 @@ def _import_fromlist(node: ast.Call) -> list[str]:
     if members is None or (isinstance(members, ast.Constant) and members.value is None):
         return []
     if not isinstance(members, (ast.List, ast.Tuple)):
-        raise ValueError("dynamic driver import fromlist is unsupported")
+        raise TypeError("dynamic driver import fromlist is unsupported")
     result: list[str] = []
     for member in members.elts:
         if (not isinstance(member, ast.Constant) or not isinstance(member.value, str)
