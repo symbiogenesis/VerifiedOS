@@ -1003,6 +1003,66 @@ def _frozen_composition() -> None:
            "declared wider read counter failed to refuse at its own limit")
 
 
+def _canonical_composition() -> None:
+    class DerivedBounds(rr.Bounds):
+        pass
+
+    overrides: dict[str, int] = {}
+    touched: list[str] = []
+    bound_fields = set(asdict(rr.Bounds()))
+
+    class DynamicBounds(rr.Bounds):
+        @override
+        def __getattribute__(self, name: str) -> object:
+            if name in bound_fields:
+                touched.append(name)
+                if name in overrides:
+                    return overrides[name]
+            return object.__getattribute__(self, name)
+
+    fixed = rr.Bounds(counter_limit=2, retention=1, renewals=0)
+    dynamic = DynamicBounds(counter_limit=2, retention=1, renewals=0)
+    ensure(dynamic.counter_limit == 2 and dynamic.renewals == 0,
+           "dynamic composition lacked its initially admitted limits")
+    overrides.update(counter_limit=3, renewals=1, holders=3)
+    ensure(dynamic.counter_limit == 3 and dynamic.renewals == 1 and dynamic.holders == 3,
+           "getter-backed composition did not widen its limits without replacing the container")
+
+    for kind in ("system-image", "user-data"):
+        service, identity, handles = rr.fixture(kind, bounds=fixed)
+        ensure(service.begin(handles[0], 7, identity, 0, 16)
+               and service.begin(handles[1], 7, identity, 4, 8),
+               "canonical composition control lacked independent accepted transfers")
+        pending = (service.pending(0), service.pending(1))
+        held = (service.reservation(0), service.reservation(1))
+        before = len(service.writes)
+        classes = dict(service.classes)
+        for supplied in (dynamic, DerivedBounds(), asdict(fixed), None, object()):
+            touched.clear()
+            try:
+                rr.Service(cast("rr.Bounds", supplied))
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("noncanonical composition declared a stored inventory")
+            ensure(not touched, "composition refusal evaluated an overridden bound getter")
+        ensure(service.bounds is fixed and dict(service.classes) == classes
+               and len(service.writes) == before
+               and (service.pending(0), service.pending(1)) == pending
+               and (service.reservation(0), service.reservation(1)) == held,
+               "refused composition changed fixed bounds, stored inventory or accepted transfers")
+        ensure(service.finish(0) == b"0123456789ABCDEF"
+               and service.finish(1) == b"456789AB" and not service.renew(handles[0]),
+               "fixed composition lost exact payloads or widened its exhausted renewal policy")
+        ensure(service.read(handles[0], 7, identity, 15, 1) == b"F"
+               and service.read(handles[0], 7, identity, 15, 1) is None
+               and service._integer("sequence.0") == 2,
+               "getter-backed composition widened the canonical service's admitted read limit")
+        ensure(service.reserve(2, 7, identity, 0, 16) is None
+               and service.traffic()["common"] == 0 and service.safe_backing(),
+               "composition refusal changed holder inventory, read traffic or retained backing")
+
+
 def _source_bound_cli() -> None:
     output = StringIO()
     with redirect_stdout(output):
@@ -1036,4 +1096,5 @@ def cases() -> list[Case]:
             Case("resident executed defects and complete modeled observer", _executed_controls_and_observer),
             Case("resident frozen stored inventory refuses hidden writers", _frozen_stored_inventory),
             Case("resident fixed composition preserves admitted resource limits", _frozen_composition),
+            Case("resident canonical composition refuses getter-backed limits", _canonical_composition),
             Case("resident source-bound CLI scope and evidence", _source_bound_cli)]
