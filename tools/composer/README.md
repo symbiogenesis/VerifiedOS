@@ -136,6 +136,25 @@ relative path aliases cannot substitute one member's file for another. Distinct
 files may carry identical bytes. The skeleton contains no final image digest or certificate,
 and generated derivation references supply no proof evidence. Neither the byte
 binding API nor the generated files perform the M7.1c derivation checks.
+
+`composer build-record INPUT --projections PROJECTION_DIRECTORY --artifacts ARTIFACT_PATHS --graph GRAPH --image IMAGE --output out/build-record.json`
+publishes the build binding as canonical JSON after consuming the actual projection
+files and produced bytes. `ARTIFACT_PATHS` is a JSON object mapping every runtime
+artifact slot to its checkout-relative file path, for example
+`"storage-artifact": "out/products/storage.elf"`. The command computes each file's
+digest; the path map does not supply digests or admission claims. All input paths
+stay inside the checkout. Output belongs under `out/` and cannot replace a consumed
+input, product or transitively bound source. The checked-in projection directory
+is the default when `--projections` is omitted.
+
+`composer check-build-record INPUT --projections PROJECTION_DIRECTORY --record RECORD --graph GRAPH --image IMAGE`
+revalidates a saved record against those published projections, the current runtime
+artifacts, graph and final image. It writes no files. Changed projections, produced
+bytes or source bindings refuse; an unresolved graph also prevents record generation.
+Both operations retain `production_admission: false`. The focused
+`test --only test_composition_build_cli` covers the canonical round trip, publication
+and byte substitutions, malformed path maps, output aliases and unresolved inputs.
+
 `composer promote INPUT` refuses the roster's incomplete members and the absent
 production admission implementation. M7.1a placement/image construction, M7.1b
 manifest admission and target execution, real producer/descriptor adapters,

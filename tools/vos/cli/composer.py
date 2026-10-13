@@ -20,6 +20,58 @@ def _output(root: Path, relative: str, data: bytes) -> None:
     path.write_bytes(data)
 
 
+def _artifacts(root: Path, relative: str) -> dict[str, dict[str, str]]:
+    """Resolve the producer's slot-to-path map without accepting reported digests."""
+    value = production._json(production._path(root, relative))
+    if not isinstance(value, dict):
+        raise production.CompositionError("artifact paths: expected an object mapping slots to paths")
+    result: dict[str, dict[str, str]] = {}
+    for slot, path in value.items():
+        if not isinstance(slot, str) or not isinstance(path, str):
+            raise production.CompositionError("artifact paths: expected string slots and paths")
+        result[slot] = production.reference(root, path)
+    return result
+
+
+def _reference_paths(value: object) -> list[str]:
+    """Collect existing source references without reproducing composition fields."""
+    if isinstance(value, dict):
+        if set(value) == {"path", "sha256"} and isinstance(value["path"], str):
+            return [value["path"]]
+        return [path for child in value.values() for path in _reference_paths(child)]
+    if isinstance(value, list):
+        return [path for child in value for path in _reference_paths(child)]
+    return []
+
+
+def _build_record(root: Path, args: argparse.Namespace) -> None:
+    """Bind or check the actual published projections and produced byte files."""
+    projection_paths = [f"{args.projections}/{name}" for name in production.OUTPUTS]
+    outputs = {name: production._path(root, relative).read_bytes()
+               for name, relative in zip(production.OUTPUTS, projection_paths, strict=True)}
+    graph = production._path(root, args.graph).read_bytes()
+    image = production.reference(root, args.image)
+    if args.command == "check-build-record":
+        record = production._json(production._path(root, args.record))
+        production.validate_build_record(root, args.source, record, outputs, graph, image)
+        print("ok composer: production build record binds current bytes; admission remains open")
+        return
+    artifacts = _artifacts(root, args.artifacts)
+    record = production.build_record(root, args.source, outputs, artifacts, image, graph)
+    bound_source = production._json(production._path(root, args.source),
+                                    json.loads(outputs["manifest.json"])["binding"]["input"]["sha256"])
+    # Publishing a record must not replace one of the products it just bound.
+    inputs = [args.source, args.artifacts, args.image, args.graph, *projection_paths,
+              *(ref["path"] for ref in artifacts.values()),
+              *_reference_paths(record["binding"]), *_reference_paths(bound_source)]
+    if production._path(root, args.output) in {production._path(root, path) for path in inputs}:
+        raise production.CompositionError("build record output would overwrite an input or product")
+    _output(root, args.output, composer.canonical_bytes(record))
+    print(json.dumps({"output": args.output, "image_sha256": image["sha256"],
+                      "graph_sha256": record["graph_sha256"],
+                      "production_admission": False}, indent=2))
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -34,6 +86,19 @@ def main(argv: list[str] | None = None) -> int:
     check_project = commands.add_parser("check-project", help="regenerate and compare production projections")
     check_project.add_argument("source", nargs="?", default=production.EXAMPLE)
     check_project.add_argument("--output", default=production.GENERATED)
+    for command, help_text in (
+            ("build-record", "bind published projections and produced artifacts to the final image"),
+            ("check-build-record", "revalidate a saved production build record against current bytes")):
+        build = commands.add_parser(command, help=help_text)
+        build.add_argument("source")
+        build.add_argument("--projections", default=production.GENERATED)
+        build.add_argument("--graph", required=True)
+        build.add_argument("--image", required=True)
+        if command == "build-record":
+            build.add_argument("--artifacts", required=True, help="JSON object mapping runtime slots to paths")
+            build.add_argument("--output", required=True)
+        else:
+            build.add_argument("--record", required=True)
     promote = commands.add_parser("promote", help="check production admission readiness (currently refused)")
     promote.add_argument("source")
     commands.add_parser("compare", help="compare the executable filter with source predicate readings")
@@ -41,6 +106,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     root = corpus.find_root()
     try:
+        if args.command in ("build-record", "check-build-record"):
+            _build_record(root, args)
+            return 0
         if args.command == "project":
             result = production.emit(root, args.source, args.output)
             print(json.dumps({"output": args.output, "projections": result,

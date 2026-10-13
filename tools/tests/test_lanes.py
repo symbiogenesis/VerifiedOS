@@ -189,6 +189,44 @@ def _production_fixture(action: str, scratch: Path) -> list[str]:
     return [production.EXAMPLE, "--output", "out/production-projections"]
 
 
+def _production_build_fixture(action: str, scratch: Path) -> list[str]:
+    """Drive the file-backed handler with explicitly synthetic byte products."""
+    _production_fixture("project", scratch)
+    raw = json.loads((scratch / production.EXAMPLE).read_bytes())
+    relative = f"out/lane-{action}"
+    directory = scratch / relative
+    directory.mkdir(parents=True)
+    raw["graph"] = {"type_count": 0, "intent_count": 0, "world_count": 0,
+                    "inventory": [], "verified_parsers": [], "ring_depth_ceiling": 0}
+    artifacts = {}
+    for member in raw["members"]:
+        descriptor = f"{relative}/{member['id']}.json"
+        (scratch / descriptor).write_bytes(composer.canonical_bytes({
+            "package_id": member["package_id"], "desc_manifest": 0, "desc_edges": []}))
+        member["descriptor"] = production.reference(scratch, descriptor)
+        if member["id"] not in {"composer", "admission"}:
+            path = f"{relative}/{member['id']}.bin"
+            (scratch / path).write_bytes(f"test-only lane bytes for {member['id']}".encode())
+            artifacts[member["artifact_slot"]] = path
+    (scratch / production.EXAMPLE).write_bytes(composer.canonical_bytes(raw))
+    outputs = production.emit(scratch, production.EXAMPLE, f"{relative}/projections")
+    graph_input = json.loads((directory / "projections/graph-input.json").read_bytes())["payload"]["document"]
+    graph = composer.graph_bytes(composer.parse_document(graph_input))
+    (directory / "graph.json").write_bytes(graph)
+    (directory / "image.bin").write_bytes(b"test-only lane image")
+    (directory / "artifact-paths.json").write_bytes(composer.canonical_bytes(artifacts))
+    args = [production.EXAMPLE, "--projections", f"{relative}/projections",
+            "--graph", f"{relative}/graph.json", "--image", f"{relative}/image.bin"]
+    if action == "build-record":
+        return [*args, "--artifacts", f"{relative}/artifact-paths.json", "--output", f"{relative}/record.json"]
+    record = production.build_record(scratch, production.EXAMPLE,
+        {name: (directory / "projections" / name).read_bytes() for name in outputs},
+        {slot: production.reference(scratch, path) for slot, path in artifacts.items()},
+        production.reference(scratch, f"{relative}/image.bin"), graph)
+    (directory / "record.json").write_bytes(composer.canonical_bytes(record))
+    return [*args, "--record", f"{relative}/record.json"]
+
+
 def _admission_fixture(scratch: Path) -> list[str]:
     shutil.copytree(_ROOT / "tools" / "boot", scratch / "tools" / "boot", dirs_exist_ok=True)
     _attached_recipe(scratch)
@@ -274,6 +312,8 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("composer", "compare"): lambda _: [],
     ("composer", "project"): partial(_production_fixture, "project"),
     ("composer", "check-project"): partial(_production_fixture, "check-project"),
+    ("composer", "build-record"): partial(_production_build_fixture, "build-record"),
+    ("composer", "check-build-record"): partial(_production_build_fixture, "check-build-record"),
     ("composer", "promote"): partial(_production_fixture, "promote"),
     ("admission", "record"): _admission_fixture,
     ("admission", "emit-reference"): lambda scratch: ["--out", str(scratch / "AdmissionComparison.v")],
