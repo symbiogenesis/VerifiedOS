@@ -450,6 +450,95 @@ def _build_composition_snapshot_binding() -> None:
         c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image)
 
 
+def _declared_source_drift_case(kind: str) -> None:
+    with _sandbox() as (root, raw):
+        relative = "sources/declared.txt"
+        path = root / relative
+        path.parent.mkdir()
+        original = b"independent declared source bytes\n"
+        path.write_bytes(original)
+        ref = {"path": relative, "sha256": c.digest(original)}
+        member = raw["members"][5]
+        if kind == "member":
+            member["sources"].append(ref)
+        elif kind == "producer":
+            raw["producers"].append({"id": "test-producer", "sources": [ref]})
+            member["producer"] = "test-producer"
+        else:
+            member["derivation"]["source"] = ref
+        graph = _resolve_descriptors(root, raw)
+        directory = root / "products"
+        directory.mkdir()
+        artifacts = {}
+        for runtime in raw["members"]:
+            if runtime["id"] in ("composer", "admission"):
+                continue
+            product = f"products/{runtime['id']}.bin"
+            (root / product).write_bytes(runtime["id"].encode("utf-8"))
+            artifacts[runtime["artifact_slot"]] = c.reference(root, product)
+        (directory / "image.bin").write_bytes(b"test-only composed image")
+        image = c.reference(root, "products/image.bin")
+        outputs = c.projections(root)
+        record = c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph)
+        c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image)
+        ensure(record["projections"] == {name: c.digest(data) for name, data in outputs.items()},
+               "build record binds every projection carrying the declared source")
+        recipe = json.loads(outputs["recipe-members.json"])
+        storage = next(item for item in recipe["payload"]["members"] if item["id"] == "storage")
+        if kind == "member":
+            ensure(ref in storage["sources"], "projection retains the independently bound member source")
+        elif kind == "producer":
+            expected = {"id": "test-producer", "sources": [ref]}
+            ensure(expected in recipe["binding"]["member_producers"],
+                   "projection retains the independently bound producer source")
+            ensure(expected in record["binding"]["member_producers"],
+                   "build record retains the independently bound producer source")
+        else:
+            request = json.loads(outputs["admission-request.json"])
+            admitted = next(item for item in request["payload"]["members"] if item["member"] == "storage")
+            ensure(admitted["derivation"]["source"] == ref,
+                   "request retains the independently bound derivation source without certifying it")
+        read_bytes = Path.read_bytes
+        consumers = (lambda: c.projections(root),
+                     lambda: c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph),
+                     lambda: c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image))
+        for position, consume in enumerate(consumers):
+            for stable_reads in ((1,) if position == 0 else (1, 2)):
+                reads = 0
+                def transient_read(candidate: Path, unchanged_reads: int = stable_reads) -> bytes:
+                    nonlocal reads
+                    if candidate == path:
+                        reads += 1
+                        return original if reads <= unchanged_reads else original + b"substitution\n"
+                    return read_bytes(candidate)
+                with patch.object(Path, "read_bytes", transient_read):
+                    _refused(consume, "stale source binding")
+                ensure(reads > stable_reads, "declared source is rechecked before publication")
+            consume()
+        graph_builder = c._graph
+        graphs = 0
+        def substitute_after_graph(checkout: Path, declaration: dict[str, Any]) -> composer.CompositionInput | None:
+            nonlocal graphs
+            result = graph_builder(checkout, declaration)
+            graphs += 1
+            if graphs == 2:
+                path.write_bytes(original + b"substitution after graph expansion\n")
+            return result
+        try:
+            with patch.object(c, "_graph", substitute_after_graph):
+                _refused(lambda: c.projections(root), "stale source binding")
+            ensure(graphs == 2, "publication recheck follows the projection's graph expansion")
+        finally:
+            path.write_bytes(original)
+        ensure(c.projections(root) == outputs, "unchanged declarations retain every projection byte")
+        c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image)
+
+
+def _declared_source_drift() -> None:
+    for kind in ("member", "producer", "derivation"):
+        _declared_source_drift_case(kind)
+
+
 def _partial_graph_edge_refusals() -> None:
     # An unresolved peer withholds the graph, not checks whose inputs are known.
     with _sandbox() as (root, raw):
@@ -634,6 +723,7 @@ def cases() -> list[Case]:
             Case("descriptor-snapshot-binding", _descriptor_snapshot_binding),
             Case("composition-snapshot-binding", _composition_snapshot_binding),
             Case("build-composition-snapshot-binding", _build_composition_snapshot_binding),
+            Case("declared-source-drift", _declared_source_drift),
             Case("partial-typed-handler-refusals", _partial_graph_edge_refusals),
             Case("post-build-byte-bindings", _build_bindings),
             Case("artifact-path-substitutions", _artifact_path_substitutions),

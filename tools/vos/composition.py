@@ -250,6 +250,13 @@ def _binding(root: Path, raw: dict[str, Any], input_binding: dict[str, str]) -> 
     # could otherwise bind declarations derived from different input bytes.
     _bound(root, input_binding)
     _bound(root, raw["configuration"])
+    for producer in raw["producers"]:
+        for ref in producer["sources"]:
+            _bound(root, ref)
+    for member in raw["members"]:
+        for ref in (*member["sources"], member["descriptor"], member["derivation"]["source"]):
+            if ref is not None:
+                _bound(root, ref)
     return {"input": input_binding, "roster": reference(root, boot.CONTRACT),
             "projection_producers": [reference(root, path) for path in PRODUCERS],
             "member_producers": raw["producers"], "configuration": raw["configuration"]}
@@ -283,12 +290,12 @@ def _manifest_c(binding: dict[str, object], manifest: dict[str, Any]) -> bytes:
 
 def _projections(root: Path, raw: dict[str, Any], input_binding: dict[str, str]) -> dict[str, bytes]:
     roster = boot.load_roster(root, boot.CONTRACT)
-    binding = _binding(root, raw, input_binding)
     def envelope(kind: str, payload: object) -> bytes:
         return composer.canonical_bytes({"schema_version": 1, "kind": kind, "binding": binding,
                                          "production_admission": False, "payload": payload})
     manifest = _manifest(raw)
     graph = _graph(root, raw)
+    binding = _binding(root, raw, input_binding)
     image = [m for m in raw["members"] if roster.by_id()[m["id"]].kind == "image"]
     runtime = [m for m in raw["members"] if roster.by_id()[m["id"]].kind != "offline"]
     return {"manifest.json": envelope("supervisor-manifest", manifest),
