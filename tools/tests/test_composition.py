@@ -491,7 +491,8 @@ def _declared_source_drift_case(kind: str) -> None:
             expected = {"id": "test-producer", "sources": [ref]}
             ensure(expected in recipe["binding"]["member_producers"],
                    "projection retains the independently bound producer source")
-            ensure(expected in record["binding"]["member_producers"],
+            binding = record["binding"]
+            ensure(isinstance(binding, dict) and expected in binding["member_producers"],
                    "build record retains the independently bound producer source")
         else:
             request = json.loads(outputs["admission-request.json"])
