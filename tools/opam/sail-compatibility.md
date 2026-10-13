@@ -188,6 +188,9 @@ not been installed or accepted by this trial.
 
 ## Focused strict-source result
 
+[Strict support source bundle](../../docs/implementation/retained-evidence/q35n-20261013/manifest.json), SHA256 `00881c60c8d4a33b67350a5cc3cd5881125bbb755f940d61840d618ad333ed91`,
+binds all retained source-derived readings, probes, transcripts and identities.
+
 Q35n's 2026-10-13 private trial, at `07e2724f`, compiles all 29 selected
 `src-stdpp` modules without diagnostics under the consumer's strict settings.
 Its [receipt](../../docs/implementation/retained-evidence/q35n-20261013/receipt.json)
@@ -246,3 +249,20 @@ The actual canonical consumer has a separate [semantic compile refusal](../../do
 A successful source-only cold package/export/import campaign does not qualify
 that consumer, authorize production carriage or permit a proof-switch lock
 change while the refusal remains. Q35n's production-carriage part stays open.
+
+## Standalone hosted source campaign
+
+[The hosted workflow](../../.github/workflows/sail-support-qualification.yml)
+executes the immutable [source recipe](sail-support-qualification.json) only at
+its guarded full `main` revision. Two fresh runners build the selected dependency
+closure and reviewed support source, run package tests, repeat frozen readings,
+strict support compilation, exact declaration assumptions and recursive controls.
+The first exports a full frozen snapshot with its exact BSD notices and patches;
+the second imports that same-run snapshot into an empty root, repeats acceptance
+and must re-export identical bytes. The join refuses missing commands, diagnostics,
+changed evidence, a skipped job or a different revision/run/attempt. It retains
+timeout diagnostics and supplies no passed verdict on an incomplete campaign.
+
+This source campaign qualifies a support candidate's portability only. The
+project lock and production carriage still require Q35p's semantic agreement,
+Q35o's emission compatibility and Q35b's actual canonical consumer acceptance.

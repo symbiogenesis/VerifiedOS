@@ -1,0 +1,58 @@
+{
+  "files": {
+    "CHERI-LICENSE": {
+      "bytes": 2649,
+      "encoding": "identity",
+      "path": "CHERI-LICENSE",
+      "sha256": "f5ef0b3be793e83d91e1451a8309a9731ce4fed9b7eae84d4b2e0c13f8638feb"
+    },
+    "Model-LICENSE": {
+      "bytes": 3363,
+      "encoding": "identity",
+      "path": "Model-LICENSE",
+      "sha256": "14cfdf5bfb57ba19f57f31c4a79b3712ede0fda06b1674cb40dec393f8694185"
+    },
+    "compile-receipt.json": {
+      "bytes": 29821,
+      "encoding": "identity",
+      "path": "compile-receipt.json",
+      "sha256": "57c4d6074cb9c1e0318388ced8462fef23b49fcdab444f90473cb83751459aae"
+    },
+    "receipt.json": {
+      "bytes": 25632,
+      "encoding": "identity",
+      "path": "receipt.json",
+      "sha256": "e4bc964f8845abf777fa87815538595e69c6a235024dfd0e31c073d3933f440e"
+    },
+    "refusal.json": {
+      "bytes": 27542,
+      "encoding": "identity",
+      "path": "refusal.json",
+      "sha256": "687b25c890592e551eac10f5906d456defb82f5cd49a7d246aa3823b4c2b3732"
+    },
+    "riscv_extras.v.compile.log": {
+      "bytes": 694,
+      "encoding": "identity",
+      "path": "riscv_extras.v.compile.log",
+      "sha256": "960bebdccdfae1fcc314e5e2249d161df51dc45a1095c80a406b76cb66d7d6b0"
+    },
+    "rv64d.v.compile.log": {
+      "bytes": 1169,
+      "encoding": "identity",
+      "path": "rv64d.v.compile.log",
+      "sha256": "ddf3b8358a5a09c640030065f763691ad31a70ca8ccbde90a893edba5d83bfba"
+    },
+    "rv64d_types.v.compile.log": {
+      "bytes": 237118,
+      "encoding": "identity",
+      "path": "rv64d_types.v.compile.log",
+      "sha256": "c026138f82a72c6df91e5806aac9b9a521c80cb12868a18e319c793b44bee4d0"
+    },
+    "write-tag-fragment.txt": {
+      "bytes": 522,
+      "encoding": "identity",
+      "path": "write-tag-fragment.txt",
+      "sha256": "5c220c24ae21ad116bca9da947a044a1f0118611aaac1c9cf0ea81c9244836a2"
+    }
+  }
+}

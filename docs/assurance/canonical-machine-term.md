@@ -294,6 +294,9 @@ The target binds the frozen profile and the model-side removals have landed, so 
 
 ## 9. The whole-term compile refusal
 
+[Canonical compile refusal bundle](../implementation/retained-evidence/q35o-20261013/manifest.json), SHA256 `a673461478bb2b157d6c61a7e14f1c7faa7d0403a5fdcfc2ff9fc786e74620f2`,
+binds every retained generation record, diagnostic, fragment and notice.
+
 The 2026-10-13 emission uses the locked Sail 0.20.3 and the unchanged frozen
 primary-composition model. Its retained
 [generation receipt](../implementation/retained-evidence/q35o-20261013/receipt.json)
@@ -332,7 +335,8 @@ also needs the generation identity to bind the plugin Sail actually loads;
 the current identity helper names the installed default plugin. No private
 backend adaptation was started.
 
-The next owner act is a separate, bounded semantic compatibility delivery. It
+The next owner act is Q35p's separately priced, bounded semantic compatibility delivery in
+[the checklist](../implementation/implementation-checklist.md#q-assessment-actions). It
 must inventory all five Q35f emulator-memory definitions in
 [phys_mem_interface.sail](../../model/model/core/phys_mem_interface.sail), both
 tag primitives and their emitted monads. It must preserve the existing Sail

@@ -410,21 +410,21 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,617.4 |
-| Total estimate range h | 2,994.3–6,240.5 |
+| Total estimate midpoint h | 4,625.4 |
+| Total estimate range h | 2,998.3–6,252.5 |
 | Completed scope h | 864.9 |
 | Complete by estimate % | 18.7 |
-| Remaining h | 3,752.5 |
+| Remaining h | 3,760.5 |
 | Committed remaining h | 2,331.5 |
 | Open class I h | 796.5 |
-| Open class X h | 2,956 |
+| Open class X h | 2,964 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,627.9 |
+| Calibrated total h | 5,639.3 |
 | Committed M8a open h | 85 |
 | Committed M8b open h | 105.5 |
 | Other committed open h | 2,141 |
-| Conditional open h | 1,007 |
+| Conditional open h | 1,015 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
 | Committed M8a open range h | 55–115 |
@@ -1264,7 +1264,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,776.9 h · 60% · 252.9 h complete · open range 1,451–3,597 h.
+**Q subtotal:** 2,784.9 h · 60% · 252.9 h complete · open range 1,455–3,609 h.
 
 ### M0 · Hardware reference
 
