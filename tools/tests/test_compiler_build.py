@@ -446,7 +446,7 @@ def _import_fromlist_closure() -> None:
             settings.driver_manifest.write_text(json.dumps(manifest))
             attempted = replace(settings, out=settings.lane_root / "unreviewed")
             with patch.object(cb.subprocess, "run", side_effect=AssertionError("unreviewed fromlist driver launched")):
-                _refuses(lambda: cb.run(attempted, checkout))
+                _refuses(lambda attempted=attempted: cb.run(attempted, checkout))
             ensure(not attempted.out.exists() and not marker.exists(),
                    "fromlist import closure refuses before output creation or launch")
 
