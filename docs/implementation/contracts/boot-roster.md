@@ -36,9 +36,13 @@ this roster keeps it as an image member (section 2). Executable admission is tak
 this roster.
 
 The plan's init-system section has the supervisor read its configuration generation from
-the object system, which M5.4 defers past the M8a gate. The supervisor's
-[static typed C manifest](../../../supervisor/src/manifest.c) supplies its proposed M8a
-source. Binding that manifest to the admitted image and target handoff remains open.
+the object system, which M5.4 defers past the M8a gate. Production composition emits
+the supervisor's [immutable typed C manifest](../../../tools/composer/generated/manifest.c).
+The bounded host consumer regenerates its expected C and JSON projections, checks their
+published bytes and source bindings, and compiles the checked C snapshot. Its native
+controls check the declared service order and current-epoch start/restart grants.
+The scalar target still uses the [handwritten comparison manifest](../../../supervisor/src/manifest.c).
+Binding the generated manifest to the admitted image and target handoff remains open.
 
 The final shared M7.1 target capture and re-staged producer manifests consume
 Q39's qualified locked compiler identity. Q43 demonstrates genuine unchanged
@@ -262,8 +266,9 @@ projection and the admission request skeleton from it. M7.1b owns manifest
 validation and target execution, M7.1a owns placement and image construction, and
 M7.1c owns the actual derivation checks and final admission record. Generated
 derivation references supply no proof evidence. These projections extend the
-existing composer and harness; their current fixture schemas and handwritten
-manifest are not yet this production interface.
+existing composer and harness. The bounded host supervisor consumes the checked
+production manifest; the scalar target's handwritten manifest and the fixture
+graph/admission schemas retain their separate comparison scope.
 
 Construction proceeds from descriptors and choices to the checked graph and
 manifest, then to built member bytes and the final image, and finally to the
@@ -273,6 +278,13 @@ its own final digest in the input that generates it. Bind each projection to
 the same input and producer identities and the build record to those projections. A
 changed member, relation, placement, artifact or producer invalidates every
 dependent output; no earlier admission result survives different image bytes.
+Projection publication checks every destination before creating directories or
+writing files. Destinations must name distinct files inside the permitted output tree and
+must not alias the composition, roster, configuration, projection producers or
+declared member, producer, descriptor and derivation sources. Containment and
+alias refusals preserve all existing projection and input bytes; a later forbidden destination cannot
+leave earlier projections partially replaced. These checks supply a host
+publication boundary, not an atomic filesystem snapshot.
 Build-record construction rechecks each produced runtime artifact and the final
 image after constructing the declared-source binding, before returning the record.
 Focused controls substitute each runtime slot and the image after the initial
