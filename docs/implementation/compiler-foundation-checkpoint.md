@@ -173,13 +173,16 @@ results introduce no additional assumptions.
 
 The source-profile, typed lowering, installed graph, return-copy retirement and
 cleanup joins implement the selected bounded scalar composition. The final
-recursive retirement kernel passes; hosted validation remains pending at
-publication. Their exact receipt identities and qualification limits are recorded in the
+recursive retirement kernel passes. Their exact receipt identities and
+qualification limits are recorded in the
 [source and memory landing](completion-log.md#m12g-ii-integrate-capability-values-with-source-operations-and-emitted-memory-traffic),
 [lowering landing](completion-log.md#m12d-ii-realize-typed-frame-call-and-primitive-lowering)
 and [narrowing landing](completion-log.md#m12e-ii-enforce-plan-provenance-at-every-emitted-narrowing).
-M1.2f continues to own the complete backend acceptance loop, including the
-Gallina component's Wasm-to-purecap comparison. This implementation does not
+[M1.2f's accepted backend loop](completion-log.md#m12f-close-the-acceptance-loop-both-ends)
+joins these outputs to generated programs and the component's Wasm-to-purecap
+comparison at its recorded finite scope. The current checklist records the
+completed source-value, lowering and narrowing roll-ups; the settled batch owns
+the public hosted handoff. This implementation does not
 supply a whole-program compiler-pass simulation, universal Sail refinement,
 arbitrary future-write or repeated-activation safety, physical timing proof or
 authenticated measured-boot chain. Those obligations remain with their

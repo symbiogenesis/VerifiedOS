@@ -2039,6 +2039,18 @@ Calibration: original midpoint 6 h, range 4–8, class X; retained planning weig
 
 Landed: Tier A. The technical acceptance and unavailable-actual accounting are reviewed judgments. The settled integration batch supplies the host validation; no repository rule replays the historical contained compiler campaign.
 
+#### M1.2g · Author the capability value carrier and the tagged memval in common/
+
+The contained capability carrier and tagged block-memory representation satisfy the selected scalar scope through [inhabited logical-memory qualification](#m12g-i-exercise-inhabited-capability-memory-semantics) and [source-value and emitted-memory integration](#m12g-ii-integrate-capability-values-with-source-operations-and-emitted-memory-traffic). Their actual source operations, typed memory injection and physical byte/tag effects join the [integrated backend comparison](#m12f-close-the-acceptance-loop-both-ends).
+
+The retained source/memory receipt SHA256 `0b996e6cb93cbb97b9baa343dd077554a1d3f074b29c4dbca8fa985b424544c1` reports successful compilation, recursive kernel checking and its named-theorem assumption audit. Its scope is separate from Q39's whole-environment audit. Validity, initialization, lifetime and placement remain premises; pass-level preservation remains R-05-024's deferred obligation. Heap allocation, legacy `cheririscV/` allocation constructors and non-RV64 consumers remain outside the qualified scalar build.
+
+* Finding: **At the pin `common/Events.v` declares the axiom `ec_public_first_order`, which implies `False` and which nothing uses.** An unused axiom is invisible to `Print Assumptions` on the compiler's theorems and appears only in a whole-environment summary such as `coqchk -o` (`rocqchk -o` from Rocq 9); [SECOMP#27](https://github.com/secure-compilation/SECOMP/pull/27) removes it with the one definition only it uses. M1.2b left the contained `common/` unmodified and this item's children edit it, so whether the contained file still declares the axiom is unread here. The retained receipts do not read the whole environment: their kernel steps run `coqchk` without `-o`, and their assumption readings are per theorem. Open: Q39 reads the contained `Events.v`, removes the axiom as #27 does where it stands, and states each contained proof receipt's audit scope. F-522.
+
+Q39 retains the locked rebuild, complete environment qualification and interrupted-candidate decisions. The child entries own their detailed evidence, actuals and retained planning weights.
+
+Landed: Tier A, by the integrator's full read and independent review of the child predicates, retained source/memory evidence, integrated backend join and audit limits at `56b0f672`. The settled documentation batch supplies the required public hosted handoff.
+
 ##### M1.2g-i · Exercise inhabited capability-memory semantics
 
 Contained `4edef3bc2daa75e24c94abb9557c6ed28aa40495` qualifies [inhabited capability memory](contracts/compiler-prerequisites.md#1-inhabited-capability-memory). Generated specimens use allocated memory and actual access decisions. Supported chunk pairs preserve complete values; overlap, destructive writes, restoration, alignment and malformed-fragment cases establish their explicit outcomes. Incomplete encodings yield integer zero or `Vundef`, never a capability.
@@ -2078,6 +2090,20 @@ Calibration: historical midpoint 7 h, range 4–10, class X; retained estimate, 
 
 Landed: Tier A. The helper acceptance is read against its model owners, and the settled integration batch supplies the host validation. No new contained compiler replay is claimed.
 
+#### M1.2d · Author the frame layout and the calling convention against the slot plan
+
+The [scalar ABI](contracts/purecap-abi.md) is realized at the selected bounded acyclic scalar composition. [M1.2d-i](#m12d-i-locate-lost-capability-kinds-and-state-the-lowering-prerequisites) identifies the kind-loss boundary and assigns the required interfaces; [M1.2d-ii](#m12d-ii-realize-typed-frame-call-and-primitive-lowering) carries typed kinds through actual compiler passes and emits frames, spills, stack arguments, sentry calls and exact-profile primitives. Its target, installation, cleanup and recursive retirement evidence supplies the accepted boundary joins. [M1.2f](#m12f-close-the-acceptance-loop-both-ends) closes the integrated generated-program, final-image narrowing and source-bound component comparisons at its recorded scope.
+
+The target receipt SHA256 `02e4ad3a9b93a9cc14fb2d8e19827c33bd75ea0abac4a7781f1b0445354b6ce0` reports successful Sail execution. Cleanup receipt SHA256 `4cfd7a477e16fe0202ab1ca176ee9788c0eb737edae688f228756d60ba75c45a` and retirement receipt SHA256 `5a81cdd7b634095107dacbc702c8617b6cc52bf08f2d6a9a871481d672724027` record successful recursive kernel checking. The child entries own the replay paths, assumptions, controls, source identities and planning weights.
+
+Installed-writable-authority, machine-correspondence and return-copy-confinement premises remain explicit. Production floating/vector/variadic conventions, universal compiler/Sail refinement, repeated activation, arbitrary future writes, physical timing and downstream authenticated installation retain their existing owners. The printer and allocator findings below retain Q39 and their conditional owner.
+
+* Two findings.
+  * **At the pin `riscV/TargetPrinter.ml` has no arm for `Pld_arg`, the load `Asmgen` emits for `Mgetparam`'s read of a stack-passed parameter, so `ccomp` fails with `Failure "not implemented"` on any function that reads one.** [The purecap ABI](contracts/purecap-abi.md) passes argument 8 and later in stack slots, a function with twelve pointer arguments meets the same failure in M1.2's `-S` baseline above, and [SECOMP#31](https://github.com/secure-compilation/SECOMP/pull/31) adds the arm. M1.2b's float deletion edited this file. M1.2d-ii's 270-argument call was emitted by `ccomp -S -fverifiedos-typed`, as the producer receipt its retained target replay binds by digest, [`/root/build/lane-unblock-20260921-lowering/large-final-d1d70bd-1/result.json`](retained-evidence/root/build/lane-unblock-20260921-lowering/large-final-d1d70bd-1/result.json), SHA256 `d5e162ebe337c44f1446d79707a16418d2c36d75aa5a116b7ef12dcc49c474bb`, records, and its callee reads parameters past the eighth; which printer that route takes is unrecorded. Open: Q39 reads the contained printer at the accepted revision for the arm that emits a stack-passed parameter's load, where it has none names the printer the typed route takes and adds #31's arm merged against M1.2b's edit, and replays through its rebuilt compiler a call that reads a parameter past the eighth, M1.2d-ii's 270-argument call being the candidate; a rebase onto a SECOMP revision carrying #31 reconciles its arm with the contained one. F-523.
+  * **At the pin `backend/Regalloc.ml` requires every argument of a builtin other than an annotation or debug record in a register, so a builtin of an external or runtime function with more arguments than the allocatable registers fails an assertion.** Such builtins arise only under `-interp` and `-interp-asm` and in the back-translation, and only the last two reach the allocator, since `-interp` interprets C without compiling it. Compiled output carries none, and `riscV/Asmexpand.ml`, which runs after the allocator, would fail an assertion on one, its builtin expansion ending in `| _ -> assert false`; [SECOMP#32](https://github.com/secure-compilation/SECOMP/pull/32) lets their arguments stay in stack slots. M1.2b's float deletion edited this file. Open, owed only if the contained compiler takes `-interp-asm` or the back-translation, or rebases onto a SECOMP revision carrying #32: that change merged against M1.2b's edit. F-524.
+
+Landed: Tier A, by the integrator's full read and independent review of the ABI and kind contracts, child landing evidence, retained target and recursive proof receipts, integrated acceptance and remaining owners at `56b0f672`. The settled documentation batch supplies the required public hosted handoff.
+
 ##### M1.2d-i · Locate lost capability kinds and state the lowering prerequisites
 
 The [kind handoff](contracts/compiler-kind-handoff.md) satisfies the [diagnostic predicate](contracts/compiler-prerequisites.md). Contained `f5a55d4cfa84b311a425d0c354e8a8439a3d33a6` retains the source/tool/configuration-bound campaign under `test/verifiedos-m12d/`, using compiler source `cd1d3adbea95b9d7e1a25d335c4dd48e22435a6d`.
@@ -2112,6 +2138,14 @@ Retained: [`/root/build/lane-unblock-20260921-values/retirement-final-2/result.j
 Calibration: original midpoint 7.5 h, range 5–10; retained planning weight, cumulative actual n/a. Interrupted/shared integration intervals cannot be reconstructed.
 
 Landed: Tier A, with final hosted validation pending at publication, by the integrator's full read of typed lowering, source and primitive boundaries, final target observations, sealed-authority graph, return/cleanup proofs and their explicit premises.
+
+#### M1.2e · Land the exactly-representable narrowing side condition
+
+[M1.2e-i's total plan-relative decision](#m12e-i-check-plan-relative-narrowing-requests) and [M1.2e-ii's mandatory emitter/provenance checks](#m12e-ii-enforce-plan-provenance-at-every-emitted-narrowing) close the selected scalar reference narrowing contract. [M1.2f's integrated acceptance](#m12f-close-the-acceptance-loop-both-ends) supplies the complete nonempty final-image census and actual-local operand join, including refusal of a statically valid request displaced from its declared local. The compiler-positive, Handle-positive and integrated kernel receipts bind matching narrowing decision, provenance and layout-audit sources.
+
+The integrated kernel receipt SHA256 `878ddd52bd79f50e2e84c785f92b3f2678787c4ef1f75d403785f116c92849d2` reports successful compilation and recursive checking with unchanged inputs; its bound proof receipt is SHA256 `83d5a3ab8a46ff93709163a2c43ad4ed9317ce65ffaa70c75c04617b787cfe9b`. The child entries own their detailed evidence and planning weights; M1.2f records the settled compiler campaign. Acceptance establishes exact-image census, checked operands and rooted ancestry at that finite boundary. Universal compiler/Sail preservation and production completeness retain their existing owners. R-15-007k remains the normative owner, with `CRAM`, `CRRL` and `CSetBoundsExact` unadmitted.
+
+Landed: Tier A, by the integrator's full read and independent review of the child predicates, retained receipts, matching source bindings and integrated narrowing join at `56b0f672`. The settled documentation batch supplies the required public hosted handoff.
 
 ##### M1.2e-i · Check plan-relative narrowing requests
 

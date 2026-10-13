@@ -119,15 +119,19 @@ wrong-kind and wrong-form refusals belong to the compiler acceptance.
 
 The [selected switcher protocol](purecap-abi.md#4-calls-and-returns) owns
 edge identity, protected saved state, bounded nesting, scrubbing and authority
-transfer. It also identifies the sealing-aware firmware refinement and
-crash-only timer-cut cleanup the real producer must establish, including the
-explicitly missing timer/trap model behavior needed by its target campaign.
-The one-time firmware handoff is not that producer. M1.2d-ii consumes the reviewed agreement;
-its cross-compartment implementation and proof joins remain open.
+transfer. M1.2d-ii's actual compiler, selected firmware-boundary, timer-cut cleanup
+and recursive retirement results are recorded in the
+[implementation checkpoint](../compiler-foundation-checkpoint.md#kinds-and-source-types).
+Their installed-authority, machine-correspondence and return-copy-confinement
+premises remain explicit. Universal refinement, repeated activation, physical
+timing and downstream authenticated installation retain their existing owners.
 
 ## 4. Implementation ownership and decisive evidence
 
-| Owner | Remaining join |
+The checklist and completion log record the accepted bounded scalar results
+and the remaining obligations for these owners.
+
+| Owner | Owned join |
 | --- | --- |
 | M1.2g-ii | Source-value and address-operation semantics, cast authority, inhabited memory traffic, and the selected abstract/concrete value boundary |
 | M1.2d-ii | Kind propagation through backend operations and typed slots, frame and ordinary-call emission, global authority materialization, primitives, and the reviewed cross-compartment protocol |
