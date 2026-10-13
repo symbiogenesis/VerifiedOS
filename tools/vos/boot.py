@@ -458,10 +458,11 @@ def _hex_value(value: jsonc.Json, where: str) -> int:
     return int(spelled, 16)
 
 
-def regions(configuration: Path) -> list[Region]:
-    """The composition's main-memory regions, read from the file the emulator reads."""
+def regions(configuration: Path, *, snapshot: bytes | None = None) -> list[Region]:
+    """Main-memory regions from the emulator file or a caller's checked byte snapshot."""
     try:
-        raw = jsonc.load(configuration)
+        raw = (jsonc.load(configuration) if snapshot is None else
+               cast("jsonc.Json", json.loads(jsonc.strip_comments(snapshot.decode("utf-8")))))
     except (OSError, ValueError) as exc:
         raise RecipeError(f"{configuration}: {exc}") from None
     where = f"{configuration}: memory.regions"
