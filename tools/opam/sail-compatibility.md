@@ -241,3 +241,8 @@ actual term compile, exact closure or compiled size.
 The notation client instantiates the new spelling and proves by reflexivity that
 its result is the original record-field expansion; its kernel context names no
 axiom. This catches an accepted but incorrectly spelled syntax template.
+
+The actual canonical consumer has a separate [semantic compile refusal](../../docs/assurance/canonical-machine-term.md#9-the-whole-term-compile-refusal).
+A successful source-only cold package/export/import campaign does not qualify
+that consumer, authorize production carriage or permit a proof-switch lock
+change while the refusal remains. Q35n's production-carriage part stays open.
