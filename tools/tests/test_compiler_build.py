@@ -466,6 +466,48 @@ def _unsupported_import_fromlists() -> None:
             ensure(not settings.out.exists(), "unsupported import arguments refuse before output creation or launch")
 
 
+def _wildcard_import_closure() -> None:
+    with _session() as (settings, checkout):
+        package = settings.driver_root / "helpers"
+        package.mkdir()
+        initializer = package / "__init__.py"
+        initializer.write_text("__all__ = ['hidden']\n")
+        helper = package / "hidden.py"
+        helper.write_text("from pathlib import Path\n(Path(__file__).parent / 'imported').write_text('executed')\n")
+        marker = package / "imported"
+        driver = settings.driver_root / "build.py"
+        original = driver.read_text()
+        driver.write_text("from helpers import hidden\n" + original)
+        manifest = cb.read_json(settings.driver_manifest)
+        manifest["files"].update({"build.py": cb.digest(driver),
+                                  "helpers/__init__.py": cb.digest(initializer),
+                                  "helpers/hidden.py": cb.digest(helper)})
+        settings.driver_manifest.write_text(json.dumps(manifest))
+        report = cb.run(settings, checkout)
+        ensure(report["outcome"] == "complete" and marker.read_text() == "executed",
+               "declared literal helper import executes successfully")
+        marker.unlink()
+        driver.write_text("from helpers import *\n" + original)
+        manifest["files"]["build.py"] = cb.digest(driver)
+        del manifest["files"]["helpers/hidden.py"]
+        index = settings.cache / "index.json"
+        retained_index = index.read_bytes()
+        for declared in (False, True):
+            if declared:
+                manifest["files"]["helpers/hidden.py"] = cb.digest(helper)
+            settings.driver_manifest.write_text(json.dumps(manifest))
+            attempted = replace(settings, out=settings.lane_root / ("declared-wildcard" if declared else "wildcard"))
+            try:
+                cb.run(attempted, checkout)
+            except ValueError as error:
+                ensure(str(error) == "wildcard driver imports are unsupported",
+                       "wildcard closure is refused explicitly before execution")
+            else:
+                raise AssertionError("wildcard driver accepted; undeclared helper executed: " + str(marker.exists()))
+            ensure(not attempted.out.exists() and not marker.exists() and index.read_bytes() == retained_index,
+                   "wildcard closure refuses before output creation, helper execution or index publication")
+
+
 def cases() -> list[Case]:
     return [Case("default-warm-and-job-change", _default_warm),
             Case("unmeasured-history-and-current-timing", _unmeasured_and_current_timings),
@@ -487,6 +529,7 @@ def cases() -> list[Case]:
             Case("unreviewed-imports-before-launch", _unreviewed_imports),
             Case("import-fromlist-closure-before-launch", _import_fromlist_closure),
             Case("unsupported-import-fromlists-before-launch", _unsupported_import_fromlists),
+            Case("wildcard-import-closure-before-launch", _wildcard_import_closure),
             *[Case("oversized-" + surface + "-timing", lambda surface=surface: _oversized_timing(surface))
               for surface in ("phase", "history", "validation", "operation")],
             *[Case(mode, lambda mode=mode: _framing(mode)) for mode in

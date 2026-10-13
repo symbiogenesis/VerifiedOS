@@ -130,11 +130,12 @@ def _review_imports(root: Path, files: dict[str, str]) -> None:
             elif isinstance(node, ast.ImportFrom):
                 if node.level or node.module is None:
                     raise ValueError("relative driver imports are unsupported")
+                if any(alias.name == "*" for alias in node.names):
+                    raise ValueError("wildcard driver imports are unsupported")
                 if node.module.split(".")[0] == "importlib":
                     raise ValueError("dynamic driver import tooling is unsupported")
                 modules.append(node.module)
-                modules.extend(node.module + "." + alias.name for alias in node.names
-                               if alias.name != "*")
+                modules.extend(node.module + "." + alias.name for alias in node.names)
             elif isinstance(node, ast.Call) and (
                     (isinstance(node.func, ast.Name) and node.func.id == "__import__")
                     or (isinstance(node.func, ast.Attribute) and node.func.attr == "import_module")):
