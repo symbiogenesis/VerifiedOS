@@ -84,7 +84,9 @@ over those exact sources and patches, repeating the package build, frozen
 readings, strict closure and controls. Production carriage retains the existing
 passing hosted, snapshot export and independent re-import requirements above;
 `rocq.lock` stays unchanged until they hold. Q35o owns the canonical emitter's
-unused `Real` import and generated proof-syntax compatibility; Q35b retains the
+unused `Real` import, generated proof syntax and the matching record-update
+spelling in support and backend. A grammar repair must retain its exact
+notation expansion and frozen declaration readings. Q35b retains the
 actual term compile, exact closure, compiled size and classification of its
 already recorded floating-point axioms. Neither a support probe nor a pending
 hosted result completes Q35b.

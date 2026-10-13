@@ -416,11 +416,11 @@ These figures sum the full priced reference-build, assessment and named hardenin
 | Complete by estimate % | 18.7 |
 | Remaining h | 3,752.5 |
 | Committed remaining h | 2,331.5 |
-| Open class I h | 799.5 |
-| Open class X h | 2,953 |
+| Open class I h | 796.5 |
+| Open class X h | 2,956 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,625.8 |
+| Calibrated total h | 5,627.9 |
 | Committed M8a open h | 85 |
 | Committed M8b open h | 105.5 |
 | Other committed open h | 2,141 |
@@ -1154,8 +1154,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
   * [ ] **Q35n · Trial strict Sail support at the locked prover** · 8 h, range 4–12 · X
     * **Dispatch. Start:** the paired-release package result and [strict-source continuation contract](../../tools/opam/sail-compatibility.md#strict-source-continuation-contract), Q35g's recorded patch, and the unchanged locked dependency resolution. **Owns:** the private strict-source compatibility trial, its frozen declaration readings, exact assumption and recursive kernel controls, and, after focused success, the deterministic hosted cold carriage campaign with exported and independently re-imported snapshot. **Check:** the contract's complete strict closure and positive controls, or its bounded first-incompatibility refusal with retained evidence and the missing act named; a refusal supplies no production carriage. **Join:** the opam guide's unchanged production acceptance rule and Q35b's actual canonical consumer. No shared switch or lock changes before passing carriage evidence.
     * **Estimate basis:** strict syntax and frozen-reading work 2–6 h; exact closure, controls and review 1–3 h; hosted recipe, export and independent re-import 1–3 h. This new prerequisite is separate from Q35b's consumer compile and Q35g's accepted patch authoring; unattended hosted runtime is not measured authoring time.
-  * [ ] **Q35o · Qualify canonical Rocq emission compatibility** · 3 h, range 2–4 · I
-    * **Dispatch. Start:** Q35g's alternate-module probe, Q35b's generation identity, F-777 and F-484, and Q35n's frozen-reading discipline. **Owns:** the canonical target's alternate module set excluding unused `Real` and generated interactive proof syntax at the locked prover, preserving emitted statements and executable definitions. **Check:** exact before/after elaborated readings over unchanged declarations, deterministic identity and output regeneration, and focused strict compilation; stop and retain the first unsupported emitter or semantic change rather than post-edit canonical definitions. A necessary immutable Sail plugin syntax patch is bound to the paired release, receives the same source and hosted qualification, and changes no acceptance compiler. **Join:** Q35n's qualified support and Q35b's complete consumer compile, closure and size. The already classified floating-point axioms remain F-480's review-gate duty.
+  * [ ] **Q35o · Qualify canonical Rocq emission compatibility** · 3 h, range 2–4 · X
+    * **Dispatch. Start:** Q35g's alternate-module probe, Q35b's generation identity, F-777 and F-484, and Q35n's frozen-reading discipline. **Owns:** the canonical target's alternate module set excluding unused `Real`, generated interactive proof syntax and the matching support/backend record-update spelling at the locked prover, preserving notation expansions, emitted statements and executable definitions. **Check:** exact before/after elaborated readings over unchanged declarations, deterministic identity and output regeneration, and focused strict compilation; stop and retain the first unsupported emitter or semantic change rather than post-edit canonical definitions. A necessary immutable Sail plugin syntax patch is bound to the paired release, receives the same source and hosted qualification, and changes no acceptance compiler. **Join:** Q35n's qualified support and Q35b's complete consumer compile, closure and size. The already classified floating-point axioms remain F-480's review-gate duty.
     * **Estimate basis:** target and syntax adaptation 1–2 h; identity, frozen-reading controls and review 1–2 h. This prices emission compatibility alone, without repeating Q35b's consumer acceptance or Q35n's library carriage.
 * [x] **Q36 · Upgrade the proof switch to Rocq 9.3.0** · 1.6 h actual
   * The proof switch locks Rocq 9.3.0, whose compiler refuses the guard-checker counterexamples Rocq 9.2.0 accepted, and the gate's pin, kernel-summary parse, test fixtures and current-state statements follow it. ([note](completion-log.md#q36-upgrade-the-proof-switch-to-rocq-930))
