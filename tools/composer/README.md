@@ -104,6 +104,11 @@ name its own package.
 Image entries may be unresolved; a declared entry follows the boot contract's
 `_start` rule. Planned text/data extents must fit executable/writable MainMemory,
 with no overlap with each other, the graph reservation or aligned HTIF word.
+Placement checks parse the exact configuration byte snapshot whose digest matches
+the declared source binding. A valid memory-map substitution after an earlier
+digest read receives a `stale source binding` refusal; configuration drift is also
+rechecked before projections and build records publish their bindings. Unchanged
+and differently formatted bound JSONC configurations remain accepted.
 They reserve space rather than proving the size or identity of a built image.
 
 `vos.composition.build_record` resolves runtime artifact slots to actual file

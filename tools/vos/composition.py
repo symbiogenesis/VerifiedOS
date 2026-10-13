@@ -73,7 +73,11 @@ def _bound(root: Path, ref: object) -> None:
 
 
 def _placements(root: Path, raw: dict[str, Any], roster: boot.Roster) -> None:
-    memory = boot.regions(_path(root, raw["configuration"]["path"]))
+    configuration = _path(root, raw["configuration"]["path"])
+    snapshot = configuration.read_bytes()
+    if digest(snapshot) != raw["configuration"]["sha256"]:
+        raise CompositionError(f"stale source binding: {raw['configuration']['path']}")
+    memory = boot.regions(configuration, snapshot=snapshot)
     extents: list[tuple[str, int, int]] = []
     for member in raw["members"]:
         placement = member["placement"]
@@ -245,6 +249,7 @@ def _binding(root: Path, raw: dict[str, Any], input_binding: dict[str, str]) -> 
     # Rechecking the parsed snapshot refuses drift; hashing a fresh read here
     # could otherwise bind declarations derived from different input bytes.
     _bound(root, input_binding)
+    _bound(root, raw["configuration"])
     return {"input": input_binding, "roster": reference(root, boot.CONTRACT),
             "projection_producers": [reference(root, path) for path in PRODUCERS],
             "member_producers": raw["producers"], "configuration": raw["configuration"]}

@@ -13,7 +13,7 @@ from typing import Any
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from vos import boot, composer
+from vos import boot, composer, jsonc
 from vos import composition as c
 from vos.cli import composer as cli
 
@@ -229,6 +229,53 @@ def _stale_inputs_and_projections() -> None:
         _refused(lambda: c.check(root, c.EXAMPLE, "out/project"), "stale generated projection")
 
 
+def _configuration_snapshot_binding() -> None:
+    with _sandbox() as (root, raw):
+        path = root / raw["configuration"]["path"]
+        original = path.read_bytes()
+        regions = boot.regions(path)
+        outside = max(region.base + region.size for region in regions) + 4096
+        raw["members"][1]["placement"] = {
+            "text_base": hex(outside), "text_bytes": 16,
+            "data_base": hex(outside + 32), "data_bytes": 16}
+        _write(root, raw)
+        _refused(lambda: c.load(root), "misplaced extent")
+        changed = json.loads(jsonc.strip_comments(original.decode("utf-8")))
+        region = next(region for region in changed["memory"]["regions"]
+                      if region["attributes"]["mem_type"] == "MainMemory")
+        region["base"]["value"] = hex(outside)
+        region["size"]["value"] = "0x10000"
+        substituted = composer.canonical_bytes(changed)
+        read_bytes, read_text = Path.read_bytes, Path.read_text
+        for consume in (c.load, c.projections):
+            reads = 0
+            def transient_bytes(candidate: Path) -> bytes:
+                nonlocal reads
+                if candidate == path:
+                    reads += 1
+                    return original if reads == 1 else substituted
+                return read_bytes(candidate)
+            def transient_text(candidate: Path, *args: Any, **kwargs: Any) -> str:
+                nonlocal reads
+                if candidate == path:
+                    reads += 1
+                    return substituted.decode("utf-8")
+                return read_text(candidate, *args, **kwargs)
+            with patch.object(Path, "read_bytes", transient_bytes), patch.object(Path, "read_text", transient_text):
+                _refused(lambda consume=consume: consume(root), "stale source binding")
+            ensure(reads >= 2, "control reaches configuration parsing after digest validation")
+        for data in (substituted, ("// reformatted bound configuration\n" +
+                                  json.dumps(changed, indent=3)).encode("utf-8")):
+            path.write_bytes(data)
+            raw["configuration"] = c.reference(root, raw["configuration"]["path"])
+            _write(root, raw)
+            c.load(root)
+            recipe = json.loads(c.projections(root)["recipe-members.json"])
+            ensure(recipe["binding"]["configuration"]["sha256"] == c.digest(data),
+                   "accepted placements bind exact configuration bytes, including JSONC formatting")
+            ensure(boot.regions(path)[0].base == outside, "direct region callers retain JSONC parsing")
+
+
 def _resolve_descriptors(root: Path, raw: dict[str, Any]) -> bytes:
     raw["graph"] = {"type_count": 1, "intent_count": 1, "world_count": 1,
                     "inventory": [0], "verified_parsers": [0], "ring_depth_ceiling": 1}
@@ -374,6 +421,31 @@ def _build_composition_snapshot_binding() -> None:
             ensure(json.loads(composer.canonical_bytes(record))["binding"]["input"] ==
                    {"path": c.EXAMPLE, "sha256": c.digest(data)},
                    "build record binds the same exact input snapshot as its projections")
+        configuration = root / raw["configuration"]["path"]
+        config_bytes = configuration.read_bytes()
+        changed_config = config_bytes + b"\n// substituted configuration identity\n"
+        read_text = Path.read_text
+        for stable_reads in (1, 2):
+            for consume in (lambda: c.projections(root),
+                            lambda: c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph),
+                            lambda: c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image)):
+                reads = 0
+                def config_read(candidate: Path, unchanged_reads: int = stable_reads) -> bytes:
+                    nonlocal reads
+                    if candidate == configuration:
+                        reads += 1
+                        return config_bytes if reads <= unchanged_reads else changed_config
+                    return read_bytes(candidate)
+                def config_text(candidate: Path, *args: Any, **kwargs: Any) -> str:
+                    nonlocal reads
+                    if candidate == configuration:
+                        reads += 1
+                        return changed_config.decode("utf-8")
+                    return read_text(candidate, *args, **kwargs)
+                with patch.object(Path, "read_bytes", config_read), patch.object(Path, "read_text", config_text):
+                    _refused(consume, "stale source binding")
+                ensure(reads > stable_reads, "configuration drift refuses before projection or build publication")
+        c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image)
 
 
 def _partial_graph_edge_refusals() -> None:
@@ -555,6 +627,7 @@ def cases() -> list[Case]:
             Case("partial-descriptor-refusals", _partial_descriptor_refusals),
             Case("placement-refusals", _placement_refusals),
             Case("stale-inputs-and-projections", _stale_inputs_and_projections),
+            Case("configuration-snapshot-binding", _configuration_snapshot_binding),
             Case("typed-handler-owner", _graph_owner_boundary),
             Case("descriptor-snapshot-binding", _descriptor_snapshot_binding),
             Case("composition-snapshot-binding", _composition_snapshot_binding),
