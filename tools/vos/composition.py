@@ -156,7 +156,7 @@ def _graph(root: Path, raw: dict[str, Any]) -> composer.CompositionInput | None:
     return result
 
 
-def _load(root: Path, source: str) -> tuple[dict[str, Any], dict[str, str]]:
+def _load(root: Path, source: str) -> tuple[dict[str, Any], dict[str, str], boot.Roster, dict[str, str]]:
     """Validate declarations and retain their exact input byte identity."""
     schema = _json(_path(root, SCHEMA))
     if not isinstance(schema, dict):
@@ -175,7 +175,9 @@ def _load(root: Path, source: str) -> tuple[dict[str, Any], dict[str, str]]:
     # The schema version is a const, so the integer type checker does not see it.
     if type(raw["schema_version"]) is not int:
         raise CompositionError("composition schema: $.schema_version: expected an integer")
-    roster = boot.load_roster(root, boot.CONTRACT)
+    roster_data = _path(root, boot.CONTRACT).read_bytes()
+    roster = boot.load_roster(root, boot.CONTRACT, snapshot=roster_data)
+    roster_binding = {"path": boot.CONTRACT, "sha256": digest(roster_data)}
     names = [m["id"] for m in raw["members"]]
     if names != [m.id for m in roster.members]:
         raise CompositionError("members must match the real roster once each, in declaration order")
@@ -237,7 +239,7 @@ def _load(root: Path, source: str) -> tuple[dict[str, Any], dict[str, str]]:
         raise CompositionError("supervisor policy violates the immutable C manifest bounds")
     _placements(root, raw, roster)
     _graph(root, raw)
-    return raw, {"path": source, "sha256": digest(data)}
+    return raw, {"path": source, "sha256": digest(data)}, roster, roster_binding
 
 
 def load(root: Path, source: str = EXAMPLE) -> dict[str, Any]:
@@ -245,10 +247,12 @@ def load(root: Path, source: str = EXAMPLE) -> dict[str, Any]:
     return _load(root, source)[0]
 
 
-def _binding(root: Path, raw: dict[str, Any], input_binding: dict[str, str]) -> dict[str, object]:
+def _binding(root: Path, raw: dict[str, Any], input_binding: dict[str, str],
+             roster_binding: dict[str, str]) -> dict[str, object]:
     # Rechecking the parsed snapshot refuses drift; hashing a fresh read here
     # could otherwise bind declarations derived from different input bytes.
     _bound(root, input_binding)
+    _bound(root, roster_binding)
     _bound(root, raw["configuration"])
     for producer in raw["producers"]:
         for ref in producer["sources"]:
@@ -257,7 +261,7 @@ def _binding(root: Path, raw: dict[str, Any], input_binding: dict[str, str]) -> 
         for ref in (*member["sources"], member["descriptor"], member["derivation"]["source"]):
             if ref is not None:
                 _bound(root, ref)
-    return {"input": input_binding, "roster": reference(root, boot.CONTRACT),
+    return {"input": input_binding, "roster": roster_binding,
             "projection_producers": [reference(root, path) for path in PRODUCERS],
             "member_producers": raw["producers"], "configuration": raw["configuration"]}
 
@@ -288,14 +292,14 @@ def _manifest_c(binding: dict[str, object], manifest: dict[str, Any]) -> bytes:
             f"    {len(manifest['units'])}, {arrays},\n    {trailer}\n}};\n").encode()
 
 
-def _projections(root: Path, raw: dict[str, Any], input_binding: dict[str, str]) -> dict[str, bytes]:
-    roster = boot.load_roster(root, boot.CONTRACT)
+def _projections(root: Path, raw: dict[str, Any], input_binding: dict[str, str],
+                 roster: boot.Roster, roster_binding: dict[str, str]) -> dict[str, bytes]:
     def envelope(kind: str, payload: object) -> bytes:
         return composer.canonical_bytes({"schema_version": 1, "kind": kind, "binding": binding,
                                          "production_admission": False, "payload": payload})
     manifest = _manifest(raw)
     graph = _graph(root, raw)
-    binding = _binding(root, raw, input_binding)
+    binding = _binding(root, raw, input_binding, roster_binding)
     image = [m for m in raw["members"] if roster.by_id()[m["id"]].kind == "image"]
     runtime = [m for m in raw["members"] if roster.by_id()[m["id"]].kind != "offline"]
     return {"manifest.json": envelope("supervisor-manifest", manifest),
@@ -318,8 +322,8 @@ def _projections(root: Path, raw: dict[str, Any], input_binding: dict[str, str])
 
 def projections(root: Path, source: str = EXAMPLE) -> dict[str, bytes]:
     """Emit the immutable manifest and skeletons without invented target products."""
-    raw, input_binding = _load(root, source)
-    return _projections(root, raw, input_binding)
+    raw, input_binding, roster, roster_binding = _load(root, source)
+    return _projections(root, raw, input_binding, roster, roster_binding)
 
 
 def emit(root: Path, source: str, output: str) -> dict[str, str]:
@@ -345,14 +349,13 @@ def check(root: Path, source: str = EXAMPLE, output: str = GENERATED) -> None:
 def build_record(root: Path, source: str, outputs: dict[str, bytes],
                  artifacts: dict[str, dict[str, str]], image: dict[str, str], graph: bytes) -> dict[str, object]:
     """Resolve produced artifact slots separately; this is byte binding, not admission."""
-    raw, input_binding = _load(root, source)
-    expected = _projections(root, raw, input_binding)
+    raw, input_binding, roster, roster_binding = _load(root, source)
+    expected = _projections(root, raw, input_binding, roster, roster_binding)
     if outputs != expected:
         raise CompositionError("build record: stale projection bindings")
     composed = _graph(root, raw)
     if composed is None or composer.graph_bytes(composed) != graph:
         raise CompositionError("build record: stale or missing graph binding")
-    roster = boot.load_roster(root, boot.CONTRACT)
     slots = {m["artifact_slot"] for m in raw["members"] if roster.by_id()[m["id"]].kind != "offline"}
     if not isinstance(artifacts, dict):
         raise CompositionError("build record: malformed artifact map: expected an object")
@@ -363,7 +366,7 @@ def build_record(root: Path, source: str, outputs: dict[str, bytes],
     if len({_path(root, ref["path"]) for ref in artifacts.values()}) != len(slots):
         raise CompositionError("build record: runtime members share a substituted artifact")
     return {"schema_version": 1, "kind": "production-composition-build-bindings",
-            "binding": _binding(root, raw, input_binding), "production_admission": False,
+            "binding": _binding(root, raw, input_binding, roster_binding), "production_admission": False,
             "projections": {name: digest(data) for name, data in outputs.items()},
             "artifacts": artifacts, "image": image, "graph_sha256": digest(graph)}
 
