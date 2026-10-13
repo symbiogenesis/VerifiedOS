@@ -218,8 +218,8 @@ class Service:
                     identity.version, identity.root.generation)))
 
     def _integral_handle(self, handle: Handle) -> bool:
-        # Dataclass equality otherwise aliases bool/float fields to integer authority.
-        return (isinstance(handle, Handle) and self._integral_identity(handle.identity)
+        # Subclasses can override equality; numeric aliases also spoof exact authority.
+        return (type(handle) is Handle and self._integral_identity(handle.identity)
                 and all(type(value) is int for value in (
                     handle.token, handle.boot, handle.holder, handle.slot, handle.start, handle.length)))
 
