@@ -49,6 +49,46 @@ refusal naming the first incompatibility and its separately scoped next action.
 Neither endpoint claims the canonical term, machine logic or binary theorem
 complete.
 
+## Strict-source continuation contract
+
+Q35n owns the next bounded trial over the same immutable paired release and
+locked dependency versions. It may apply Q35g's recorded axiom-removal patch
+and repair source syntax that the existing strict settings refuse. It may not
+change compiler flags, suppress diagnostics, downgrade dependencies, add
+admissions or widen the allowed assumptions. All sources, patches, tools,
+logical mappings and results are hash-bound in its assigned native lane;
+shared switch exports must remain byte-identical.
+
+Before a syntax repair, record the affected public declarations' elaborated
+types, universes and executable definitions from the package's original build
+settings, retaining its warnings. Those baseline outputs establish the reading
+only, not strict acceptance. Compare the candidate reading byte for byte.
+Q35g's previously approved import and proof changes use that patch's own
+baseline, retaining its exact changed-declaration inventory and unchanged
+executable-consumer readings. Any unexpected changed statement or executable
+definition stops the trial and returns to its owner.
+
+The focused endpoint is either a complete selected support closure compiled
+without diagnostics under the consumer's existing settings, with exact
+assumption and recursive kernel checks, or a retained refusal naming the first
+incompatibility and a separately scoped next action. The term-import probe
+without `Real` must exclude the five previously measured Stdlib axioms; the
+`Eqdep` and `Real` positive controls must still report their independently
+expected assumptions. A failed or partial closure supplies no carriage evidence.
+The repair budget is twelve candidate strict checks or thirty active minutes,
+whichever comes first, for this coherent repair; finish the current check at
+the limit and retain its diagnostics before replanning.
+
+Only a successful focused endpoint opens a deterministic hosted cold campaign
+over those exact sources and patches, repeating the package build, frozen
+readings, strict closure and controls. Production carriage retains the existing
+passing hosted, snapshot export and independent re-import requirements above;
+`rocq.lock` stays unchanged until they hold. Q35o owns the canonical emitter's
+unused `Real` import and generated proof-syntax compatibility; Q35b retains the
+actual term compile, exact closure, compiled size and classification of its
+already recorded floating-point axioms. Neither a support probe nor a pending
+hosted result completes Q35b.
+
 ## Trial result
 
 The 2026-10-12 trial starts at repository revision
