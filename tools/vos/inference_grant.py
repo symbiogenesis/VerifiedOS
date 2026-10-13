@@ -10,7 +10,7 @@ session state, and target throughput, kernel timing and DSE evidence remain open
 
 from enum import StrEnum
 
-from vos.inference_contract import Refusal, Shape, natural
+from vos.inference_contract import Refusal, Shape, natural, require_record
 
 
 class KvPlacement(StrEnum):
@@ -24,6 +24,7 @@ def per_token_bytes(shape: Shape, placement: KvPlacement) -> int:
     Context length belongs to a separate footprint bound. It is not a multiplier
     in either PerTokenBytes definition. Neither arm is a physical qualification.
     """
+    require_record(shape, Shape)
     if placement is KvPlacement.BANK:
         return shape.resident_bytes + shape.kv_bytes_per_token
     if placement is KvPlacement.OUTSIDE_BANK:
