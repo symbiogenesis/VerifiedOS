@@ -379,6 +379,35 @@ def _containment_and_lock() -> None:
         _refuses(lambda: cb.run(settings, checkout))
 
 
+def _operation_lock_isolation() -> None:
+    with _session() as (settings, checkout):
+        cb.run(settings, checkout)
+        before = {str(path): path.read_bytes() for path in settings.lane_root.rglob('*') if path.is_file()}
+        directories = {str(path) for path in settings.lane_root.rglob('*') if path.is_dir()}
+        root = settings.lane_root / "attempted"
+        lock = root.with_name(root.name + ".lock")
+        for out, cache in ((root, lock), (lock, root),
+                           (root, lock / "nested"), (lock / "nested", root),
+                           (root.parent / "alias" / ".." / root.name, lock),
+                           (root / "alias" / "..", settings.cache),
+                           (root, settings.cache / "alias" / "..")):
+            attempted = replace(settings, out=out, cache=cache)
+            with (patch.object(env, "hold_lock", side_effect=AssertionError("overlap attempted a lock")),
+                  patch.object(cb.subprocess, "run", side_effect=AssertionError("overlap launched the driver"))):
+                try:
+                    cb.run(attempted, checkout)
+                except ValueError as error:
+                    ensure(str(error) == "output/cache roots and operation locks must be separate",
+                           "root/lock overlap refuses after absolute path resolution")
+                else:
+                    raise AssertionError("output/cache root overlapped an operation lock")
+            ensure(before == {str(path): path.read_bytes() for path in settings.lane_root.rglob('*') if path.is_file()}
+                   and directories == {str(path) for path in settings.lane_root.rglob('*') if path.is_dir()},
+                   "root/lock refusal preserves useful evidence without creating files or directories")
+        warm = cb.run(replace(settings, out=settings.lane_root / "warm"), checkout)
+        ensure(warm["effective_policy"] == "complete-reuse", "disjoint sibling roots and locks retain reuse")
+
+
 def _native_input_isolation() -> None:
     with _session() as (settings, checkout):
         settings.opam_root.mkdir()
@@ -627,6 +656,7 @@ def cases() -> list[Case]:
             Case("prime-original-basis-and-tier-refusal", _prime_basis_and_tier_refusal),
             Case("compilation-hint-poison-and-damage", _compilation_hint_poison_and_damage),
             Case("native-containment-collision-lock", _containment_and_lock),
+            Case("output-cache-operation-lock-isolation-before-writes", _operation_lock_isolation),
             Case("native-input-output-isolation-before-writes", _native_input_isolation),
             Case("native-input-inside-cache-before-writes", _native_input_inside_cache),
             Case("input-artifact-isolation-before-lock-index-writes", _input_artifact_isolation),
