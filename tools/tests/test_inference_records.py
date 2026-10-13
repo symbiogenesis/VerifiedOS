@@ -20,12 +20,12 @@ SERVER = admission.Server(7, (3, 5), 4096, 2)
 RECORDS: tuple[type[Shape] | type[Ceiling] | type[Costs] | type[admission.Server], ...] = (
     Shape, Ceiling, Costs, admission.Server)
 FIELD_NAMES: frozenset[str] = frozenset(item.name for record in RECORDS for item in fields(record))
-READS: list[str] = []
+reads: list[str] = []
 
 
 def _observe(record: object, name: str) -> object:
     if name in FIELD_NAMES:
-        READS.append(name)
+        reads.append(name)
     return object.__getattribute__(record, name)
 
 
@@ -64,7 +64,7 @@ class _Mutable(_Observed):
 
 
 def _refused_without_reads(action: Callable[[], object]) -> None:
-    READS.clear()
+    reads.clear()
     # Observe canonical peers too: a malformed Server cannot allow Shape traffic
     # calculation, and a malformed Costs cannot allow route predicates to run.
     with ExitStack() as stack:
@@ -76,12 +76,12 @@ def _refused_without_reads(action: Callable[[], object]) -> None:
             pass
         else:
             raise AssertionError("malformed record reached a semantic result")
-    ensure(READS == [], f"record fields read before malformed-container refusal: {READS}")
+    ensure(reads == [], f"record fields read before malformed-container refusal: {reads}")
 
 
 def _getter_control(record: object, field: str, expected: object) -> None:
-    READS.clear()
-    ensure(getattr(record, field) == expected and READS == [field],
+    reads.clear()
+    ensure(getattr(record, field) == expected and reads == [field],
            "hostile record getter observation did not execute")
 
 
@@ -115,19 +115,19 @@ def _shape_consumers_refuse_getters_and_mutable_lookalikes() -> None:
         _getter_control(record, "expert_count", 4)
         shape = cast(Shape, record)
         actions: tuple[Callable[[], object], ...] = (
-            lambda: residency.all_experts_resident(shape, (True,) * 4),
-            lambda: residency.all_experts_resident(shape, ()),
-            lambda: residency.residency_refusal(shape, (False,) * 4),
-            lambda: residency.routing_ok(shape, (0, 2)),
-            lambda: residency.routing_ok(shape, ()),
-            lambda: residency.checked_routed_work(shape, COSTS, (True,) * 4, (0, 2)),
-            lambda: residency.checked_routed_work(shape, COSTS, (False,) * 4, ()),
-            lambda: grant.per_token_bytes(shape, grant.KvPlacement.BANK),
-            lambda: grant.per_token_bytes(shape, grant.KvPlacement.OUTSIDE_BANK),
-            lambda: admission.why_refused(CEILING, shape),
-            lambda: admission.opening(shape, CEILING, (True,) * 4,
+            lambda shape=shape: residency.all_experts_resident(shape, (True,) * 4),
+            lambda shape=shape: residency.all_experts_resident(shape, ()),
+            lambda shape=shape: residency.residency_refusal(shape, (False,) * 4),
+            lambda shape=shape: residency.routing_ok(shape, (0, 2)),
+            lambda shape=shape: residency.routing_ok(shape, ()),
+            lambda shape=shape: residency.checked_routed_work(shape, COSTS, (True,) * 4, (0, 2)),
+            lambda shape=shape: residency.checked_routed_work(shape, COSTS, (False,) * 4, ()),
+            lambda shape=shape: grant.per_token_bytes(shape, grant.KvPlacement.BANK),
+            lambda shape=shape: grant.per_token_bytes(shape, grant.KvPlacement.OUTSIDE_BANK),
+            lambda shape=shape: admission.why_refused(CEILING, shape),
+            lambda shape=shape: admission.opening(shape, CEILING, (True,) * 4,
                                       grant.KvPlacement.BANK, SERVER, 0, 4),
-            lambda: admission.opening(shape, CEILING, (False,) * 4,
+            lambda shape=shape: admission.opening(shape, CEILING, (False,) * 4,
                                       grant.KvPlacement.BANK, SERVER, 2, 5),
         )
         for action in actions:
@@ -143,7 +143,7 @@ def _cost_consumers_refuse_before_invalid_routes_or_missing_residency() -> None:
         for flags, route in (((True,) * 4, (0, 2)), ((True,) * 4, ()),
                              ((False,) * 4, (0, 2)), ((False,) * 4, (4, 4))):
             _refused_without_reads(
-                lambda flags=flags, route=route:
+                lambda flags=flags, route=route, costs=costs:
                 residency.checked_routed_work(SHAPE, costs, flags, route))
 
 
@@ -153,11 +153,11 @@ def _ceiling_and_server_refuse_before_opening_field_reads() -> None:
     for record in (ceiling_getter, _Mutable(CEILING)):
         _getter_control(record, "ceiling_grant", 200)
         ceiling = cast(Ceiling, record)
-        _refused_without_reads(lambda: admission.why_refused(ceiling, SHAPE))
+        _refused_without_reads(lambda ceiling=ceiling: admission.why_refused(ceiling, SHAPE))
         for flags, occupancy, requested in (((True,) * 4, 0, 4),
                                             ((False,) * 4, 2, 5)):
             _refused_without_reads(
-                lambda flags=flags, occupancy=occupancy, requested=requested:
+                lambda flags=flags, occupancy=occupancy, requested=requested, ceiling=ceiling:
                 admission.opening(SHAPE, ceiling, flags, grant.KvPlacement.BANK,
                                   SERVER, occupancy, requested))
     for record in (server_getter, _Mutable(SERVER)):
@@ -166,7 +166,7 @@ def _ceiling_and_server_refuse_before_opening_field_reads() -> None:
         for flags, occupancy, requested in (((True,) * 4, 0, 4),
                                             ((False,) * 4, 2, 5)):
             _refused_without_reads(
-                lambda flags=flags, occupancy=occupancy, requested=requested:
+                lambda flags=flags, occupancy=occupancy, requested=requested, server=server:
                 admission.opening(SHAPE, CEILING, flags, grant.KvPlacement.BANK,
                                   server, occupancy, requested))
 
