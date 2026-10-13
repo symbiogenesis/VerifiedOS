@@ -99,6 +99,14 @@ nonnegative integers; Python booleans, negative numbers and coercions are refuse
 The executable input is an already decoded shape. This interface supplies no wire
 parser or Narcissus correspondence.
 
+Every public consumer requires the exact frozen `Shape`, `Ceiling`, `Costs` or
+`Server` record type it reads. Subclasses and mutable lookalikes refuse as malformed
+host inputs before any record field is read, including paths that would otherwise
+return an early semantic refusal. Focused controls use observable getters to
+check this ordering and preserve canonical retries, independently expected routed
+work and both KV placements' grant arithmetic. They establish the host record
+boundary only; target correspondence and physical qualification remain open.
+
 The residency adapter represents the total residency function by an immutable
 tuple of exact booleans, with absent indices nonresident. Admission checks the
 complete finite expert prefix before the `top_k <= expert_count` guard, in

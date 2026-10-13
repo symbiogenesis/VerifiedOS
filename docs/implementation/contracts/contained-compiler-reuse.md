@@ -51,6 +51,15 @@ source revision and original producer identity are distinct from the current
 controller/driver identity; changing a driver never relabels an old compilation.
 Malformed framing, driver drift or an unsupported protocol refuses the operation.
 
+The reviewed import syntax admits a direct literal `__import__` call with its
+checked fromlist. Attribute access to `__import__`, importing that member from
+`builtins` under any name, and storing or passing a bare `__import__` reference are
+unsupported and refuse before driver launch or output publication. Focused
+fixtures check these forms, preserve an existing useful index, and retain valid
+direct literal imports with complete local closure. This is a syntax boundary
+for reviewed drivers, not a Python sandbox or a completeness claim about
+arbitrary reflective code.
+
 Output and cache roots must lie in the explicitly assigned native lane. Hold an
 exclusive operation lock, refuse output collisions and escaping/symlink paths,
 and publish records atomically. Read-only status does not build, audit, repair or

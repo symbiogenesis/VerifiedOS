@@ -273,6 +273,13 @@ its own final digest in the input that generates it. Bind each projection to
 the same input and producer identities and the build record to those projections. A
 changed member, relation, placement, artifact or producer invalidates every
 dependent output; no earlier admission result survives different image bytes.
+Build-record construction rechecks each produced runtime artifact and the final
+image after constructing the declared-source binding, before returning the record.
+Focused controls substitute each runtime slot and the image after the initial
+byte checks and require a named stale-source refusal from construction and
+validation. Unchanged, distinct artifact paths remain accepted, including files
+whose bytes match. These checks establish the host publication boundary, not an
+atomic filesystem snapshot or target admission.
 M6.10 consumes this same input and production operations for its host/device
 comparison rather than independently reconstructing the roster.
 
