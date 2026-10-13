@@ -122,7 +122,16 @@ def _review_imports(root: Path, files: dict[str, str]) -> None:
             syntax = ast.parse(path.read_text(encoding="utf-8"))
         except SyntaxError as error:
             raise ValueError("driver closure contains invalid Python") from error
+        direct_imports = {node.func for node in ast.walk(syntax) if isinstance(node, ast.Call)
+                          and isinstance(node.func, ast.Name) and node.func.id == "__import__"}
         for node in ast.walk(syntax):
+            # Keep the supported primitive at its literal call site, where the
+            # target and fromlist are read; indirect references lose that binding.
+            if ((isinstance(node, ast.Name) and node.id == "__import__" and node not in direct_imports)
+                    or (isinstance(node, ast.Attribute) and node.attr == "__import__")
+                    or (isinstance(node, ast.ImportFrom) and node.module == "builtins"
+                        and any(alias.name == "__import__" for alias in node.names))):
+                raise ValueError("indirect driver imports are unsupported")
             if isinstance(node, ast.Import):
                 if any(alias.name.split(".")[0] == "importlib" for alias in node.names):
                     raise ValueError("dynamic driver import tooling is unsupported")
