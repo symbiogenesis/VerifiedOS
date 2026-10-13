@@ -185,3 +185,55 @@ After source qualification, the immutable candidate pin is
 with the paired version 0.20.3. Apply it only in the private qualification
 recipe, retaining the locked dependency resolution. The candidate pin has
 not been installed or accepted by this trial.
+
+## Focused strict-source result
+
+Q35n's 2026-10-13 private trial, at `07e2724f`, compiles all 29 selected
+`src-stdpp` modules without diagnostics under the consumer's strict settings.
+Its [receipt](../../docs/implementation/retained-evidence/q35n-20261013/receipt.json)
+records eight syntax candidates, exact frozen comparisons and the selected
+kernel controls. The dependency libraries retain their own recorded package
+flags; this result claims no strict-source port of Stdlib, stdpp or bitvector.
+No shared switch or snapshot changed, and production carriage remains open.
+
+The immutable [syntax patch](../../docs/implementation/retained-evidence/q35n-20261013/sail-support-strict.patch),
+SHA-256 `fceb199b312582b567d812c245871f5c95c434cf93885426a38ebc2c64ce6f87`,
+applies after Q35g's recorded patch to the paired release. It preserves the
+release's source symlinks and adds explicit original first-goal selection,
+current abbreviation syntax, both kinds of hint database declarations and
+nested-type induction registrations. It removes Values' unused deprecated
+`Zeuclid` export. Record-update syntax uses the distinct `sail_update (r with
+field := e)` keyword at level 0; the original bracket spelling conflicts with
+stdpp's notation prefixes at level 0, while level 1 is refused by the strict
+closed-notation diagnostic. The expansions and executable definitions stay
+unchanged. Q35o owns the matching canonical backend spelling.
+
+The [frozen-query inventory](../../docs/implementation/retained-evidence/q35n-20261013/frozen-query-inventory.json)
+names the queries and public declarations. Its
+[comparison](../../docs/implementation/retained-evidence/q35n-20261013/frozen-comparison.json)
+records byte-identical elaborated types, universes and transparent bodies for
+823 declarations across 21 modules, including Inhabited's two aliases.
+Those are the inventory's counts; neither source-name enumeration nor a
+frozen reading supplies proof acceptance by itself.
+
+All three probes compile without diagnostics and their recursive checker runs
+exit 0. The kernel-context parser used by the proof gate reads exactly:
+
+- `TermProbe`, which loads the canonical support imports without `Real`: no axioms.
+- `ControlEqdep`: `Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq` alone.
+- `ControlReal`: `Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep`,
+  `Stdlib.Reals.ClassicalDedekindReals.sig_not_dec`,
+  `Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec` and
+  `Stdlib.Logic.Classical_Prop.classic`.
+
+The positive controls retain those assumptions deliberately; they are not an
+addition to the project's allowed set. Source, object, tool and switch bytes
+are bound in the retained identities and logs. The first baseline reproduction
+also invoked the package's full `@runtest` locally by mistake. Its exit 0 is
+retained as a diagnostic observation with no acceptance credit; subsequent
+local work used builds and these selected controls only.
+
+This focused endpoint opens the separately required hosted cold package,
+controls, portable snapshot export and independent re-import campaign. It
+neither installs the library into the shared proof switch nor completes Q35b's
+actual term compile, exact closure or compiled size.

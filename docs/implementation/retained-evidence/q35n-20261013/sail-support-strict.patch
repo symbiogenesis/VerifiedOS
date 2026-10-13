@@ -1,0 +1,4762 @@
+--- a/src-stdpp/ConcurrencyInterfaceTypes.v
++++ b/src-stdpp/ConcurrencyInterfaceTypes.v
+@@ -47,16 +47,16 @@
+   Explicit_access_kind_strength : Access_strength;
+ }.
+ Arguments Explicit_access_kind : clear implicits.
+-Notation "{[ r 'with' 'Explicit_access_kind_variety' := e ]}" :=
+-  match r with Build_Explicit_access_kind _ f1 => Build_Explicit_access_kind e f1 end.
+-Notation "{[ r 'with' 'Explicit_access_kind_strength' := e ]}" :=
+-  match r with Build_Explicit_access_kind f0 _ => Build_Explicit_access_kind f0 e end.
++Notation "\'sail_update\' \'(\' r 'with' 'Explicit_access_kind_variety' := e \')\'" :=
++  match r with Build_Explicit_access_kind _ f1 => Build_Explicit_access_kind e f1 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Explicit_access_kind_strength' := e \')\'" :=
++  match r with Build_Explicit_access_kind f0 _ => Build_Explicit_access_kind f0 e end (at level 0).
+ #[export] Instance Decidable_eq_Explicit_access_kind : EqDecision Explicit_access_kind.
+ Proof.
+-  intros [x0 x1]; intros [y0 y1].
+-  cmp_record_field x0 y0.
+-  cmp_record_field x1 y1.
+-  left; subst; reflexivity.
++  1: intros [x0 x1]; intros [y0 y1].
++  1: cmp_record_field x0 y0.
++  1: cmp_record_field x1 y1.
++  1: left; subst; reflexivity.
+ Defined.
+ #[export]
+ Instance dummy_Explicit_access_kind :
+@@ -99,7 +99,7 @@
+ #[export]
+ Instance Decidable_eq_Access_kind `{EqDecision arch_ak} : EqDecision (Access_kind arch_ak).
+ Proof.
+-  refine (fun x y =>
++  1: refine (fun x y =>
+     match x,y with
+     | AK_explicit akx, AK_explicit aky => match decide (akx = aky) with left _ => left _ | right _ => right _ end
+     | AK_ifetch tt, AK_ifetch tt => left _
+@@ -118,11 +118,11 @@
+ #[export]
+ Instance Countable_Access_kind `{Countable arch_ak} : Countable (Access_kind arch_ak).
+ Proof.
+-  refine {|
++  1: refine {|
+     encode x := encode match x with AK_explicit ak => (1, encode ak) | AK_ifetch u => (2, encode u) | AK_ttw u => (3, encode u) | AK_arch ak => (4, encode ak) end%positive;
+     decode x := match decode x with Some (1, ak) => AK_explicit <$> decode ak | Some (2, u) => AK_ifetch <$> decode u | Some (3, u) => AK_ttw <$> decode u | Some (4, ak) => AK_arch <$> decode ak | _ => None end%positive
+   |}.
+-  intros [x| | |x]; rewrite !decode_encode; reflexivity.
++  1: intros [x| | |x]; rewrite !decode_encode; reflexivity.
+ Defined.
+ #[export]
+ Instance GenericUpdate_Access_kind `{GenericUpdate arch_ak} `{Inhabited arch_ak} : GenericUpdate (Access_kind arch_ak) := {
+@@ -153,24 +153,24 @@
+   Mem_read_request_tag : bool;
+ }.
+ Arguments Mem_read_request : clear implicits.
+-Notation "{[ r 'with' 'Mem_read_request_access_kind' := e ]}" :=
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_read_request_access_kind' := e \')\'" :=
+   match r with Build_Mem_read_request _ _ _ _ _ _ f1 f2 f3 f4 f5 =>
+-    Build_Mem_read_request _ _ _ _ _ e f1 f2 f3 f4 f5 end.
+-Notation "{[ r 'with' 'Mem_read_request_va' := e ]}" :=
++    Build_Mem_read_request _ _ _ _ _ e f1 f2 f3 f4 f5 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_read_request_va' := e \')\'" :=
+   match r with Build_Mem_read_request _ _ _ _ _ f0 _ f2 f3 f4 f5 =>
+-    Build_Mem_read_request _ _ _ _ _ f0 e f2 f3 f4 f5 end.
+-Notation "{[ r 'with' 'Mem_read_request_pa' := e ]}" :=
++    Build_Mem_read_request _ _ _ _ _ f0 e f2 f3 f4 f5 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_read_request_pa' := e \')\'" :=
+   match r with Build_Mem_read_request _ _ _ _ _ f0 f1 _ f3 f4 f5 =>
+-    Build_Mem_read_request _ _ _ _ _ f0 f1 e f3 f4 f5 end.
+-Notation "{[ r 'with' 'Mem_read_request_translation' := e ]}" :=
++    Build_Mem_read_request _ _ _ _ _ f0 f1 e f3 f4 f5 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_read_request_translation' := e \')\'" :=
+   match r with Build_Mem_read_request _ _ _ _ _ f0 f1 f2 _ f4 f5 =>
+-    Build_Mem_read_request _ _ _ _ _ f0 f1 f2 e f4 f5 end.
+-Notation "{[ r 'with' 'Mem_read_request_size' := e ]}" :=
++    Build_Mem_read_request _ _ _ _ _ f0 f1 f2 e f4 f5 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_read_request_size' := e \')\'" :=
+   match r with Build_Mem_read_request _ _ _ _ _ f0 f1 f2 f3 _ f5 =>
+-    Build_Mem_read_request _ _ _ _ _ f0 f1 f2 f3 e f5 end.
+-Notation "{[ r 'with' 'Mem_read_request_tag' := e ]}" :=
++    Build_Mem_read_request _ _ _ _ _ f0 f1 f2 f3 e f5 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_read_request_tag' := e \')\'" :=
+   match r with Build_Mem_read_request _ _ _ _ _ f0 f1 f2 f3 f4 _ =>
+-    Build_Mem_read_request _ _ _ _ _ f0 f1 f2 f3 f4 e end.
++    Build_Mem_read_request _ _ _ _ _ f0 f1 f2 f3 f4 e end (at level 0).
+ #[export]
+ Instance dummy_Mem_read_request {n : Z} {vasize : Z} {pa : Type} {ts : Type} {arch_ak : Type}
+   (*n >? 0*) `{Inhabited pa} `{Inhabited ts} `{Inhabited arch_ak} :
+@@ -198,27 +198,27 @@
+ }.
+ Arguments Mem_write_request : clear implicits.
+ Arguments Build_Mem_write_request &.
+-Notation "{[ r 'with' 'Mem_write_request_access_kind' := e ]}" :=
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_write_request_access_kind' := e \')\'" :=
+   match r with Build_Mem_write_request _ _ _ _ _ _ f1 f2 f3 f4 f5 f6 =>
+-    Build_Mem_write_request _ _ _ _ _ e f1 f2 f3 f4 f5 f6 end.
+-Notation "{[ r 'with' 'Mem_write_request_va' := e ]}" :=
++    Build_Mem_write_request _ _ _ _ _ e f1 f2 f3 f4 f5 f6 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_write_request_va' := e \')\'" :=
+   match r with Build_Mem_write_request _ _ _ _ _ f0 _ f2 f3 f4 f5 f6 =>
+-    Build_Mem_write_request _ _ _ _ _ f0 e f2 f3 f4 f5 f6 end.
+-Notation "{[ r 'with' 'Mem_write_request_pa' := e ]}" :=
++    Build_Mem_write_request _ _ _ _ _ f0 e f2 f3 f4 f5 f6 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_write_request_pa' := e \')\'" :=
+   match r with Build_Mem_write_request _ _ _ _ _ f0 f1 _ f3 f4 f5 f6 =>
+-    Build_Mem_write_request _ _ _ _ _ f0 f1 e f3 f4 f5 f6 end.
+-Notation "{[ r 'with' 'Mem_write_request_translation' := e ]}" :=
++    Build_Mem_write_request _ _ _ _ _ f0 f1 e f3 f4 f5 f6 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_write_request_translation' := e \')\'" :=
+   match r with Build_Mem_write_request _ _ _ _ _ f0 f1 f2 _ f4 f5 f6 =>
+-    Build_Mem_write_request _ _ _ _ _ f0 f1 f2 e f4 f5 f6 end.
+-Notation "{[ r 'with' 'Mem_write_request_size' := e ]}" :=
++    Build_Mem_write_request _ _ _ _ _ f0 f1 f2 e f4 f5 f6 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_write_request_size' := e \')\'" :=
+   match r with Build_Mem_write_request _ _ _ _ _ f0 f1 f2 f3 _ f5 f6 =>
+-    Build_Mem_write_request _ _ _ _ _ f0 f1 f2 f3 e f5 f6 end.
+-Notation "{[ r 'with' 'Mem_write_request_value' := e ]}" :=
++    Build_Mem_write_request _ _ _ _ _ f0 f1 f2 f3 e f5 f6 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_write_request_value' := e \')\'" :=
+   match r with Build_Mem_write_request _ _ _ _ _ f0 f1 f2 f3 f4 _ f6 =>
+-    Build_Mem_write_request _ _ _ _ _ f0 f1 f2 f3 f4 e f6 end.
+-Notation "{[ r 'with' 'Mem_write_request_tag' := e ]}" :=
++    Build_Mem_write_request _ _ _ _ _ f0 f1 f2 f3 f4 e f6 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_write_request_tag' := e \')\'" :=
+   match r with Build_Mem_write_request _ _ _ _ _ f0 f1 f2 f3 f4 f5 _ =>
+-    Build_Mem_write_request _ _ _ _ _ f0 f1 f2 f3 f4 f5 e end.
++    Build_Mem_write_request _ _ _ _ _ f0 f1 f2 f3 f4 f5 e end (at level 0).
+ #[export]
+ Instance dummy_Mem_write_request {n : Z} {vasize : Z} {pa : Type} {ts : Type} {arch_ak : Type}
+   (*n >? 0*) `{Inhabited pa} `{Inhabited ts} `{Inhabited arch_ak} :
+--- a/src-stdpp/ConcurrencyInterfaceTypesV2.v
++++ b/src-stdpp/ConcurrencyInterfaceTypesV2.v
+@@ -23,45 +23,45 @@
+   {mem_acc : Type} (*(n >=? 0) && ((nt >=? 0) && (addr_size >? 0))*) `{EqDecision addr_space}
+   `{EqDecision mem_acc} : EqDecision (Mem_request n nt addr_size addr_space mem_acc).
+ Proof.
+-  intros [x0 x1 x2 x3 x4].
+-  intros [y0 y1 y2 y3 y4].
+-  cmp_record_field x0 y0.
+-  cmp_record_field x1 y1.
+-  cmp_record_field x2 y2.
+-  cmp_record_field x3 y3.
+-  cmp_record_field x4 y4.
+-  left; subst; reflexivity.
++  1: intros [x0 x1 x2 x3 x4].
++  1: intros [y0 y1 y2 y3 y4].
++  1: cmp_record_field x0 y0.
++  1: cmp_record_field x1 y1.
++  1: cmp_record_field x2 y2.
++  1: cmp_record_field x3 y3.
++  1: cmp_record_field x4 y4.
++  1: left; subst; reflexivity.
+ Defined.
+ #[export]
+ Instance Countable_Mem_request {n : Z} {nt : Z} {addr_size : Z} {addr_space : Type}
+   {mem_acc : Type} (*(n >=? 0) && ((nt >=? 0) && (addr_size >? 0))*) `{Countable addr_space}
+   `{Countable mem_acc} : Countable (Mem_request n nt addr_size addr_space mem_acc).
+ Proof.
+-  refine {|
++  1: refine {|
+     encode x := encode (Mem_request_access_kind x, Mem_request_address x, Mem_request_address_space x, Mem_request_size x, Mem_request_num_tag x);
+     decode x := '(x0, x1, x2, x3, x4) ← decode x;
+                 mret (Build_Mem_request n nt addr_size addr_space mem_acc x0 x1 x2 x3 x4)
+   |}.
+-  abstract (
++  1: abstract (
+     intros [x0 x1 x2 x3 x4];
+     rewrite decode_encode;
+     reflexivity).
+ Defined.
+-Notation "{[ r 'with' 'Mem_request_access_kind' := e ]}" :=
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_request_access_kind' := e \')\'" :=
+   match r with Build_Mem_request _ _ _ _ _ _ (_ as f1) (_ as f2) (_ as f3) (_ as f4) =>
+-    Build_Mem_request _ _ _ _ _ e f1 f2 f3 f4 end (at level 1).
+-Notation "{[ r 'with' 'Mem_request_address' := e ]}" :=
++    Build_Mem_request _ _ _ _ _ e f1 f2 f3 f4 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_request_address' := e \')\'" :=
+   match r with Build_Mem_request _ _ _ _ _ (_ as f0) _ (_ as f2) (_ as f3) (_ as f4) =>
+-    Build_Mem_request _ _ _ _ _ f0 e f2 f3 f4 end (at level 1).
+-Notation "{[ r 'with' 'Mem_request_address_space' := e ]}" :=
++    Build_Mem_request _ _ _ _ _ f0 e f2 f3 f4 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_request_address_space' := e \')\'" :=
+   match r with Build_Mem_request _ _ _ _ _ (_ as f0) (_ as f1) _ (_ as f3) (_ as f4) =>
+-    Build_Mem_request _ _ _ _ _ f0 f1 e f3 f4 end (at level 1).
+-Notation "{[ r 'with' 'Mem_request_size' := e ]}" :=
++    Build_Mem_request _ _ _ _ _ f0 f1 e f3 f4 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_request_size' := e \')\'" :=
+   match r with Build_Mem_request _ _ _ _ _ (_ as f0) (_ as f1) (_ as f2) _ (_ as f4) =>
+-    Build_Mem_request _ _ _ _ _ f0 f1 f2 e f4 end (at level 1).
+-Notation "{[ r 'with' 'Mem_request_num_tag' := e ]}" :=
++    Build_Mem_request _ _ _ _ _ f0 f1 f2 e f4 end (at level 0).
++Notation "\'sail_update\' \'(\' r 'with' 'Mem_request_num_tag' := e \')\'" :=
+   match r with Build_Mem_request _ _ _ _ _ (_ as f0) (_ as f1) (_ as f2) (_ as f3) _ =>
+-    Build_Mem_request _ _ _ _ _ f0 f1 f2 f3 e end (at level 1).
++    Build_Mem_request _ _ _ _ _ f0 f1 f2 f3 e end (at level 0).
+ #[export]
+ Instance dummy_Mem_request {n : Z} {nt : Z} {addr_size : Z} {addr_space : Type}
+   {mem_acc : Type} (*(n >=? 0) && ((nt >=? 0) && (addr_size >? 0))*) `{Inhabited addr_space}
+--- a/src/GenericValue.v
++++ b/src/GenericValue.v
+@@ -6,6 +6,9 @@
+ 
+ (** A simple datastructure to represent values taken from a toml file, and machinery for updating
+     types using them, and for converting to them. *)
++
++Scheme All for list.
++Scheme All for prod.
+ 
+ Inductive generic_value :=
+ | GVNumber (z : Z)
+@@ -260,18 +263,18 @@
+   update_vec_aux l (projT1 prev) = Ok l' ->
+   List.length l' = Z.to_nat n.
+ Proof.
+-  destruct prev as [prev <-].
+-  revert l l'.
+-  induction prev as [ | p ps]; intros l l'.
+-  - destruct l; simpl; inversion 1; reflexivity.
+-  - destruct l as [ | gv gvs].
+-    + simpl. inversion 1; subst. reflexivity.
+-    + simpl. intros EQ.
+-      destruct (result_bind_inv _ _ _ EQ) as [v [EQ1 EQ2]].
+-      destruct (result_bind_inv _ _ _ EQ2) as [vs [EQ3 [= <-]]].
+-      apply IHps in EQ3.
+-      rewrite <- EQ3.
+-      reflexivity.
++  1: destruct prev as [prev <-].
++  1: revert l l'.
++  1: induction prev as [ | p ps]; intros l l'.
++  - 1: destruct l; simpl; inversion 1; reflexivity.
++  - 1: destruct l as [ | gv gvs].
++    + 1: simpl. 1: inversion 1; subst. 1: reflexivity.
++    + 1: simpl. 1: intros EQ.
++      1: destruct (result_bind_inv _ _ _ EQ) as [v [EQ1 EQ2]].
++      1: destruct (result_bind_inv _ _ _ EQ2) as [vs [EQ3 [= <-]]].
++      1: apply IHps in EQ3.
++      1: rewrite <- EQ3.
++      1: reflexivity.
+ Qed.
+ 
+ #[export] Instance update_vec {T n} `{GenericUpdate T} : GenericUpdate (vec T n) := {
+--- a/src/Hoare.v
++++ b/src/Hoare.v
+@@ -103,10 +103,10 @@
+   (forall v s, B v s -> Q v s) ->
+   PrePost P f Q.
+ Proof.
+-  intros Triple PA BQ.
+-  intros s Pre r cs s' cs' IN.
+-  specialize (Triple s).
+-  eauto.
++  1: intros Triple PA BQ.
++  1: intros s Pre r cs s' cs' IN.
++  1: specialize (Triple s).
++  1: eauto.
+ Qed.
+ 
+ Lemma PrePost_strengthen_pre Regs X E (A B : predS Regs) (f : monadS Regs X E) (C : result X E -> predS Regs) :
+@@ -114,7 +114,7 @@
+   (forall s, B s -> A s) ->
+   PrePost B f C.
+ Proof.
+-  eauto using PrePost_consequence.
++  1: eauto using PrePost_consequence.
+ Qed.
+ 
+ Lemma PrePost_weaken_post Regs X E (A : predS Regs) (f : monadS Regs X E) (B C : result X E -> predS Regs) :
+@@ -122,29 +122,29 @@
+   (forall v s, B v s -> C v s) ->
+   PrePost A f C.
+ Proof.
+-  eauto using PrePost_consequence.
++  1: eauto using PrePost_consequence.
+ Qed.
+ 
+ Lemma PrePost_True_post (*[PrePost_atomI, intro, simp]:*) Regs A E (P : predS Regs) (m : monadS Regs A E) :
+   PrePost P m (fun _ _ => True).
+ Proof.
+-  unfold PrePost. auto.
++  1: unfold PrePost. 1: auto.
+ Qed.
+ 
+ Lemma PrePost_any Regs A E (m : monadS Regs A E) (Q : result A E -> predS Regs) :
+   PrePost (fun s => forall r cs s' cs', List.In (r, s', cs') (m s cs) -> Q r s') m Q.
+ Proof.
+-  unfold PrePost. auto.
++  1: unfold PrePost. 1: auto.
+ Qed.
+ 
+ Lemma PrePost_returnS (*[intro, PrePost_atomI]:*) Regs A E  (P : result A E -> predS Regs) (x : A) :
+   PrePost (P (Value x)) (returnS x) P.
+ Proof.
+-  unfold PrePost, returnS.
+-  intros s p r cs s' cs' IN.
+-  simpl in IN.
+-  destruct IN as [[=] | []].
+-  subst; auto.
++  1: unfold PrePost, returnS.
++  1: intros s p r cs s' cs' IN.
++  1: simpl in IN.
++  1: destruct IN as [[=] | []].
++  1: subst; auto.
+ Qed.
+ 
+ Lemma PrePost_bindS (*[intro, PrePost_compositeI]:*) Regs A B E (m : monadS Regs A E) (f : A -> monadS Regs B E) (P : predS Regs) (Q : result B E -> predS Regs) (R : A -> predS Regs) :
+@@ -152,11 +152,11 @@
+   (PrePost P m (fun r => match r with Value a => R a | Ex e => Q (Ex e) end)) ->
+   PrePost P (bindS m f) Q.
+ Proof.
+-  intros F M s Pre r cs s' cs' IN.
+-  destruct (bindS_cases IN) as [(a & a' & s'' & cs'' & [= ->] & IN' & IN'') | [(e & [= ->] & IN') | (e & a & s'' & cs'' & [= ->] & IN' & IN'')]].
+-  * eapply F. apply IN'. specialize (M s Pre (Value a') cs s'' cs'' IN'). apply M. eassumption.
+-  * specialize (M _ Pre _ _ _ _ IN'). apply M.
+-  * specialize (M _ Pre _ _ _ _ IN'). simpl in M. eapply F; eauto.
++  1: intros F M s Pre r cs s' cs' IN.
++  1: destruct (bindS_cases IN) as [(a & a' & s'' & cs'' & [= ->] & IN' & IN'') | [(e & [= ->] & IN') | (e & a & s'' & cs'' & [= ->] & IN' & IN'')]].
++  * 1: eapply F. 1: apply IN'. 1: specialize (M s Pre (Value a') cs s'' cs'' IN'). 1: apply M. 1: eassumption.
++  * 1: specialize (M _ Pre _ _ _ _ IN'). 1: apply M.
++  * 1: specialize (M _ Pre _ _ _ _ IN'). 1: simpl in M. 1: eapply F; eauto.
+ Qed.
+ 
+ Lemma PrePost_bindS_ignore Regs A B E (m : monadS Regs A E) (f : monadS Regs B E) (P : predS Regs) (Q : result B E -> predS Regs) (R : predS Regs) :
+@@ -164,10 +164,10 @@
+   PrePost P m (fun r => match r with Value a => R | Ex e => Q (Ex e) end) ->
+   PrePost P (bindS m (fun _ => f)) Q.
+ Proof.
+-  intros F M.
+-  eapply PrePost_bindS; eauto.
+-  * intros. apply F.
+-  * apply M.
++  1: intros F M.
++  1: eapply PrePost_bindS; eauto.
++  * 1: intros. 1: apply F.
++  * 1: apply M.
+ Qed.
+ 
+ Lemma PrePost_bindS_unit Regs B E (m : monadS Regs unit E) (f : unit -> monadS Regs B E) P Q R :
+@@ -175,10 +175,10 @@
+   PrePost P m (fun r => match r with Value a => R | Ex e => Q (Ex e) end) ->
+   PrePost P (bindS m f) Q.
+ Proof.
+-  intros F M.
+-  eapply PrePost_bindS with (R := fun _ => R).
+-  * intros. destruct a. apply F.
+-  * apply M.
++  1: intros F M.
++  1: eapply PrePost_bindS with (R := fun _ => R).
++  * 1: intros. 1: destruct a. 1: apply F.
++  * 1: apply M.
+ Qed.
+ 
+ Lemma PrePost_seqS Regs B E (m : monadS Regs unit E) (m' : monadS Regs B E) P Q R :
+@@ -186,28 +186,28 @@
+   PrePost P m (fun r => match r with Value a => R | Ex e => Q (Ex e) end) ->
+   PrePost P (seqS m m') Q.
+ Proof.
+-  intros F M.
+-  eapply PrePost_bindS with (R := fun _ => R).
+-  * intros. destruct a. apply F.
+-  * apply M.
++  1: intros F M.
++  1: eapply PrePost_bindS with (R := fun _ => R).
++  * 1: intros. 1: destruct a. 1: apply F.
++  * 1: apply M.
+ Qed.
+ 
+ Lemma PrePost_readS (*[intro, PrePost_atomI]:*) Regs A E (P : result A E -> predS Regs) f :
+   PrePost (fun s => P (Value (f s)) s) (readS f) P.
+ Proof.
+-  unfold PrePost, readS, returnS.
+-  intros s Pre r cs s' cs' [H | []].
+-  inversion H; subst.
+-  assumption.
++  1: unfold PrePost, readS, returnS.
++  1: intros s Pre r cs s' cs' [H | []].
++  1: inversion H; subst.
++  1: assumption.
+ Qed.
+ 
+ Lemma PrePost_updateS (*[intro, PrePost_atomI]:*) Regs E (P : result unit E -> predS Regs) f :
+   PrePost (fun s => P (Value tt) (f s)) (updateS f) P.
+ Proof.
+-  unfold PrePost, readS, returnS.
+-  intros s Pre r cs s' cs' [H | []].
+-  inversion H; subst.
+-  assumption.
++  1: unfold PrePost, readS, returnS.
++  1: intros s Pre r cs s' cs' [H | []].
++  1: inversion H; subst.
++  1: assumption.
+ Qed.
+ 
+ Lemma PrePost_if Regs A E b (f g : monadS Regs A E) P Q :
+@@ -215,8 +215,8 @@
+   (b = false -> PrePost P g Q) ->
+   PrePost P (if b then f else g) Q.
+ Proof.
+-  intros T F.
+-  destruct b; auto.
++  1: intros T F.
++  1: destruct b; auto.
+ Qed.
+ 
+ Lemma PrePost_if_branch (*[PrePost_compositeI]:*) Regs A E b (f g : monadS Regs A E) Pf Pg Q :
+@@ -224,7 +224,7 @@
+   (b = false -> PrePost Pg g Q) ->
+   PrePost (if b then Pf else Pg) (if b then f else g) Q.
+ Proof.
+-  destruct b; auto.
++  1: destruct b; auto.
+ Qed.
+ 
+ Lemma PrePost_if_then Regs A E b (f g : monadS Regs A E) P Q :
+@@ -232,7 +232,7 @@
+   PrePost P f Q ->
+   PrePost P (if b then f else g) Q.
+ Proof.
+-  intros; subst; auto.
++  1: intros; subst; auto.
+ Qed.
+ 
+ Lemma PrePost_if_else Regs A E b (f g : monadS Regs A E) P Q :
+@@ -240,14 +240,14 @@
+   PrePost P g Q ->
+   PrePost P (if b then f else g) Q.
+ Proof.
+-  intros; subst; auto.
++  1: intros; subst; auto.
+ Qed.
+ 
+ Lemma PrePost_prod_cases (*[PrePost_compositeI]:*) Regs A B E (f : A -> B -> monadS Regs A E) P Q x :
+   PrePost P (f (fst x) (snd x)) Q ->
+   PrePost P (match x with (a, b) => f a b end) Q.
+ Proof.
+-  destruct x; auto.
++  1: destruct x; auto.
+ Qed.
+ 
+ Lemma PrePost_option_cases (*[PrePost_compositeI]:*) Regs A B E x (s : A -> monadS Regs B E) n PS PN Q :
+@@ -255,14 +255,14 @@
+   PrePost PN n Q ->
+   PrePost (match x with Some a => PS a | None => PN end) (match x with Some a => s a | None => n end) Q.
+ Proof.
+-  destruct x; auto.
++  1: destruct x; auto.
+ Qed.
+ 
+ Lemma PrePost_let (*[intro, PrePost_compositeI]:*) Regs A B E y (m : A -> monadS Regs B E) P Q :
+   PrePost P (m y) Q ->
+   PrePost P (let x := y in m x) Q.
+ Proof.
+-  auto.
++  1: auto.
+ Qed.
+ 
+ Lemma PrePost_and_boolS (*[PrePost_compositeI]:*) Regs E (l r : monadS Regs bool E) P Q R :
+@@ -270,15 +270,15 @@
+   PrePost P l (fun r => match r with Value true => R | _ => Q r end) ->
+   PrePost P (and_boolS l r) Q.
+ Proof.
+-  intros Hr Hl.
+-  unfold and_boolS.
+-  eapply PrePost_bindS.
++  1: intros Hr Hl.
++  1: unfold and_boolS.
++  1: eapply PrePost_bindS.
+   2: { instantiate (1 := fun a => if a then R else Q (Value false)).
+-       eapply PrePost_weaken_post.
+-       apply Hl.
+-       intros [[|] | ] s H; auto. }
+-  * intros. destruct a; eauto.
+-    apply PrePost_returnS.
++       1: eapply PrePost_weaken_post.
++       1: apply Hl.
++       1: intros [[|] | ] s H; auto. }
++  * 1: intros. 1: destruct a; eauto.
++    1: apply PrePost_returnS.
+ Qed.
+ 
+ Lemma PrePost_or_boolS (*[PrePost_compositeI]:*) Regs E (l r : monadS Regs bool E) P Q R :
+@@ -286,64 +286,64 @@
+   PrePost P l (fun r => match r with Value false => R | _ => Q r end) ->
+   PrePost P (or_boolS l r) Q.
+ Proof.
+-  intros Hr Hl.
+-  unfold or_boolS.
+-  eapply PrePost_bindS.
+-  * intros.
+-    instantiate (1 := fun a => if a then Q (Value true) else R).
+-    destruct a; eauto.
+-    apply PrePost_returnS.
+-  * eapply PrePost_weaken_post.
+-    apply Hl.
+-    intros [[|] | ] s H; auto.
++  1: intros Hr Hl.
++  1: unfold or_boolS.
++  1: eapply PrePost_bindS.
++  * 1: intros.
++    1: instantiate (1 := fun a => if a then Q (Value true) else R).
++    1: destruct a; eauto.
++    1: apply PrePost_returnS.
++  * 1: eapply PrePost_weaken_post.
++    1: apply Hl.
++    1: intros [[|] | ] s H; auto.
+ Qed.
+ 
+ Lemma PrePost_failS (*[intro, PrePost_atomI]:*) Regs A E msg (Q : result A E -> predS Regs) :
+   PrePost (Q (Ex (Failure msg))) (failS msg) Q.
+ Proof.
+-  intros s Pre r cs s' cs' [[= <- <-] | []].
+-  assumption.
++  1: intros s Pre r cs s' cs' [[= <- <-] | []].
++  1: assumption.
+ Qed.
+ 
+ Lemma PrePost_assert_expS (*[intro, PrePost_atomI]:*) Regs E (c : bool) m (P : result unit E -> predS Regs) :
+   PrePost (if c then P (Value tt) else P (Ex (Failure m))) (assert_expS c m) P.
+ Proof.
+-  destruct c; simpl.
+-  * apply PrePost_returnS.
+-  * apply PrePost_failS. 
++  1: destruct c; simpl.
++  * 1: apply PrePost_returnS.
++  * 1: apply PrePost_failS. 
+ Qed.
+ 
+ Lemma PrePost_choose_listS (*[intro, PrePost_atomI]:*) Regs A E xs (Q : result A E -> predS Regs) :
+   PrePost (fun s => forall x, List.In x xs -> Q (Value x) s) (choose_listS xs) Q.
+ Proof.
+-  unfold PrePost, chooseS.
+-  intros s IN r cs s' cs' IN'.
+-  apply List.in_map_iff in IN'.
+-  destruct IN' as (x & [= <- <-] & IN').
+-  auto.
++  1: unfold PrePost, chooseS.
++  1: intros s IN r cs s' cs' IN'.
++  1: apply List.in_map_iff in IN'.
++  1: destruct IN' as (x & [= <- <-] & IN').
++  1: auto.
+ Qed.
+ 
+ Lemma PrePost_chooseS (*[intro, PrePost_atomI]:*) Regs E ty (Q : result (choose_type ty) E -> predS Regs) :
+   PrePost (fun s => forall x, Q (Value x) s) (chooseS ty) Q.
+ Proof.
+-  unfold PrePost, chooseS.
+-  intros s Pre r cs s' cs' IN'.
+-  destruct (choose cs ty).
+-  destruct IN' as [[= <- <- <-] | [] ].
+-  auto.
++  1: unfold PrePost, chooseS.
++  1: intros s Pre r cs s' cs' IN'.
++  1: destruct (choose cs ty).
++  1: destruct IN' as [[= <- <- <-] | [] ].
++  1: auto.
+ Qed.
+ 
+ 
+ Lemma case_result_combine (*[simp]:*) A E X r (Q : result A E -> X) :
+   (match r with Value a => Q (Value a) | Ex e => Q (Ex e) end) = Q r.
+ Proof.
+-  destruct r; auto.
++  1: destruct r; auto.
+ Qed.
+ 
+ Lemma PrePost_foreachS_Nil (*[intro, simp, PrePost_atomI]:*) Regs A Vars E vars body (Q : result Vars E -> predS Regs) :
+   PrePost (Q (Value vars)) (foreachS (A := A) nil vars body) Q.
+ Proof.
+-  simpl. apply PrePost_returnS.
++  1: simpl. 1: apply PrePost_returnS.
+ Qed.
+ 
+ Lemma PrePost_foreachS_Cons Regs A Vars E (x : A) xs vars body (Q : result Vars E -> predS Regs) :
+@@ -351,26 +351,26 @@
+   PrePost (Q (Value vars)) (body x vars) Q ->
+   PrePost (Q (Value vars)) (foreachS (x :: xs) vars body) Q.
+ Proof.
+-  intros XS X.
+-  simpl.
+-  eapply PrePost_bindS.
+-  * apply XS.
+-  * apply PrePost_weaken_post with (B := Q).
+-    assumption.
+-    intros; rewrite case_result_combine.
+-    assumption.
++  1: intros XS X.
++  1: simpl.
++  1: eapply PrePost_bindS.
++  * 1: apply XS.
++  * 1: apply PrePost_weaken_post with (B := Q).
++    1: assumption.
++    1: intros; rewrite case_result_combine.
++    1: assumption.
+ Qed.
+ 
+ Lemma PrePost_foreachS_invariant Regs A Vars E (xs : list A) vars body (Q : result Vars E -> predS Regs) :
+   (forall x vars, List.In x xs -> PrePost (Q (Value vars)) (body x vars) Q) ->
+   PrePost (Q (Value vars)) (foreachS xs vars body) Q.
+ Proof.
+-  revert vars.
+-  induction xs.
+-  * intros. apply PrePost_foreachS_Nil.
+-  * intros. apply PrePost_foreachS_Cons.
+-    + auto with datatypes.
+-    + apply H. auto with datatypes.
++  1: revert vars.
++  1: induction xs.
++  * 1: intros. 1: apply PrePost_foreachS_Nil.
++  * 1: intros. 1: apply PrePost_foreachS_Cons.
++    + 1: auto with datatypes.
++    + 1: apply H. 1: auto with datatypes.
+ Qed.
+ 
+ (*subsection \<open>Hoare quadruples\<close>
+@@ -396,16 +396,16 @@
+   (forall s cs e s' cs', P s -> List.In (Ex e, s', cs') (f s cs) -> E e s') ->
+   PrePostE P f Q E.
+ Proof.
+-  intros. unfold PrePostE.
+-  unfold PrePost.
+-  intros s Pre [a | e] s' IN; eauto.
++  1: intros. 1: unfold PrePostE.
++  1: unfold PrePost.
++  1: intros s Pre [a | e] s' IN; eauto.
+ Qed.
+ 
+ Lemma PrePostE_PrePost Regs A Ety P m (Q : A -> predS Regs) (E : ex Ety -> predS Regs) :
+   PrePost P m (fun v => match v with Value a => Q a | Ex e => E e end) ->
+   PrePostE P m Q E.
+ Proof.
+-  auto.
++  1: auto.
+ Qed.
+ 
+ Lemma PrePostE_elim Regs A Ety P f r s cs s' cs' (Q : A -> predS Regs) (E : ex Ety -> predS Regs) :
+@@ -415,9 +415,9 @@
+   (exists v, r = Value v /\ Q v s') \/
+   (exists e, r = Ex e /\ E e s').
+ Proof.
+-  intros PP Pre IN.
+-  specialize (PP _ Pre _ _ _ _ IN).
+-  destruct r; eauto.
++  1: intros PP Pre IN.
++  1: specialize (PP _ Pre _ _ _ _ IN).
++  1: destruct r; eauto.
+ Qed.
+ 
+ Lemma PrePostE_consequence Regs Aty Ety (P : predS Regs) f A B C (Q : Aty -> predS Regs) (E : ex Ety -> predS Regs) :
+@@ -427,12 +427,12 @@
+   (forall e s, C e s -> E e s) ->
+   PrePostE P f Q E.
+ Proof.
+-  intros PP PA BQ CE.
+-  intros s Pre [a | e] cs s' cs' IN.
+-  * apply BQ. specialize (PP _ (PA _ Pre) _ _ _ _ IN).
+-    apply PP.
+-  * apply CE. specialize (PP _ (PA _ Pre) _ _ _ _ IN).
+-    apply PP.
++  1: intros PP PA BQ CE.
++  1: intros s Pre [a | e] cs s' cs' IN.
++  * 1: apply BQ. 1: specialize (PP _ (PA _ Pre) _ _ _ _ IN).
++    1: apply PP.
++  * 1: apply CE. 1: specialize (PP _ (PA _ Pre) _ _ _ _ IN).
++    1: apply PP.
+ Qed.
+ 
+ Lemma PrePostE_strengthen_pre Regs Aty Ety (P : predS Regs) f R (Q : Aty -> predS Regs) (E : ex Ety -> predS Regs) :
+@@ -440,8 +440,8 @@
+   (forall s, P s -> R s) ->
+   PrePostE P f Q E.
+ Proof.
+-  intros PP PR.
+-  eapply PrePostE_consequence; eauto.
++  1: intros PP PR.
++  1: eapply PrePostE_consequence; eauto.
+ Qed.
+ 
+ Lemma PrePostE_weaken_post Regs Aty Ety (A : predS Regs) f (B C : Aty -> predS Regs) (E : ex Ety -> predS Regs) :
+@@ -449,8 +449,8 @@
+   (forall v s, B v s -> C v s) ->
+   PrePostE A f C E.
+ Proof.
+-  intros PP BC.
+-  eauto using PrePostE_consequence.
++  1: intros PP BC.
++  1: eauto using PrePostE_consequence.
+ Qed.
+ 
+ Lemma PrePostE_weaken_Epost Regs Aty Ety (A : predS Regs) f (B : Aty -> predS Regs) (E F : ex Ety -> predS Regs) :
+@@ -458,8 +458,8 @@
+   (forall v s, E v s -> F v s) ->
+   PrePostE A f B F.
+ Proof.
+-  intros PP EF.
+-  eauto using PrePostE_consequence.
++  1: intros PP EF.
++  1: eauto using PrePostE_consequence.
+ Qed.
+ (*named_theorems PrePostE_compositeI
+ named_theorems PrePostE_atomI*)
+@@ -469,18 +469,18 @@
+   PrePostE P2 m Q2 E2 ->
+   PrePostE (fun s => P1 s /\ P2 s) m (fun r s => Q1 r s /\ Q2 r s) (fun e s => E1 e s /\ E2 e s).
+ Proof.
+-  intros H1 H2.
+-  apply PrePostE_I.
+-  * intros s cs a s' cs' [p1 p2] IN.
+-    specialize (H1 _ p1 _ _ _ _ IN).
+-    specialize (H2 _ p2 _ _ _ _ IN).
+-    simpl in *.
+-    auto.
+-  * intros s cs a s' cs' [p1 p2] IN.
+-    specialize (H1 _ p1 _ _ _ _ IN).
+-    specialize (H2 _ p2 _ _ _ _ IN).
+-    simpl in *.
+-    auto.
++  1: intros H1 H2.
++  1: apply PrePostE_I.
++  * 1: intros s cs a s' cs' [p1 p2] IN.
++    1: specialize (H1 _ p1 _ _ _ _ IN).
++    1: specialize (H2 _ p2 _ _ _ _ IN).
++    1: simpl in *.
++    1: auto.
++  * 1: intros s cs a s' cs' [p1 p2] IN.
++    1: specialize (H1 _ p1 _ _ _ _ IN).
++    1: specialize (H2 _ p2 _ _ _ _ IN).
++    1: simpl in *.
++    1: auto.
+ Qed.
+ 
+ (*lemmas PrePostE_conj_conds_consequence = PrePostE_conj_conds[THEN PrePostE_consequence]*)
+@@ -490,9 +490,9 @@
+   PrePostE P m (fun r s => Q' r s -> Q r s) E ->
+   PrePostE P m Q E.
+ Proof.
+-  intros H1 H2.
+-  eapply PrePostE_conj_conds in H1. 2: apply H2.
+-  eapply PrePostE_consequence. apply H1. all: simpl; intuition.
++  1: intros H1 H2.
++  1: eapply PrePostE_conj_conds in H1. 2: apply H2.
++  1: eapply PrePostE_consequence. 1: apply H1. all: simpl; intuition.
+ Qed.
+ 
+ Lemma PrePostE_cong Regs Aty Ety (P1 P2 : predS Regs) m1 m2 (Q1 Q2 : Aty -> predS Regs) (E1 E2 : ex Ety -> predS Regs) :
+@@ -502,35 +502,35 @@
+   (forall e s, E1 e s <-> E2 e s) ->
+   PrePostE P1 m1 Q1 E1 <-> PrePostE P2 m2 Q2 E2.
+ Proof.
+-  intros P12 m12 Q12 E12.
+-  unfold PrePostE, PrePost.
+-  split.
+-  * intros. apply P12 in H0. rewrite <- m12 in H1; auto. specialize (H _ H0 _ _ _ _ H1).
+-    destruct r; [ apply Q12 | apply E12]; auto.
+-  * intros. rewrite m12 in H1; auto. apply P12 in H0. specialize (H _ H0 _ _ _ _ H1).
+-    destruct r; [ apply Q12 | apply E12]; auto.
++  1: intros P12 m12 Q12 E12.
++  1: unfold PrePostE, PrePost.
++  1: split.
++  * 1: intros. 1: apply P12 in H0. 1: rewrite <- m12 in H1; auto. 1: specialize (H _ H0 _ _ _ _ H1).
++    1: destruct r; [ apply Q12 | apply E12]; auto.
++  * 1: intros. 1: rewrite m12 in H1; auto. 1: apply P12 in H0. 1: specialize (H _ H0 _ _ _ _ H1).
++    1: destruct r; [ apply Q12 | apply E12]; auto.
+ Qed.
+ 
+ Lemma PrePostE_True_post (*[PrePostE_atomI, intro, simp]:*) Regs A E P (m : monadS Regs A E) :
+   PrePostE P m (fun _ _ => True) (fun _ _ => True).
+ Proof.
+-  intros s Pre [a | e]; auto.
++  1: intros s Pre [a | e]; auto.
+ Qed.
+ 
+ Lemma PrePostE_any Regs A Ety m (Q : result A Ety -> predS Regs) E :
+   PrePostE (Ety := Ety) (fun s => forall r cs s' cs', List.In (r, s', cs') (m s cs) -> match r with Value a => Q a s' | Ex e => E e s' end) m Q E.
+ Proof.
+-  apply PrePostE_I.
+-  intros. apply (H (Value a) cs _ cs'); auto.
+-  intros. apply (H (Ex e) cs _ cs'); auto.
++  1: apply PrePostE_I.
++  1: intros. 1: apply (H (Value a) cs _ cs'); auto.
++  1: intros. 1: apply (H (Ex e) cs _ cs'); auto.
+ Qed.
+ 
+ Lemma PrePostE_returnS (*[PrePostE_atomI, intro, simp]:*) Regs A Ety Q (x : A) (E : ex Ety -> predS Regs) :
+   PrePostE (Q x) (returnS x) Q E.
+ Proof.
+-  unfold PrePostE, PrePost.
+-  intros s Pre r cs s' cs' [[= <- <-] | []].
+-  assumption.
++  1: unfold PrePostE, PrePost.
++  1: intros s Pre r cs s' cs' [[= <- <-] | []].
++  1: assumption.
+ Qed.
+ 
+ (* Unlike the Isabelle library, avoid the overhead of remembering that [a] came
+@@ -540,9 +540,9 @@
+   PrePostE P m R E ->
+   PrePostE P (bindS m f) Q E.
+ Proof.
+-  intros.
+-  unfold PrePostE in *.
+-  eauto using PrePost_bindS.
++  1: intros.
++  1: unfold PrePostE in *.
++  1: eauto using PrePost_bindS.
+ Qed.
+ 
+ Lemma PrePostE_bindS_ignore Regs A B Ety (P : predS Regs) (m : monadS Regs A Ety) (f : monadS Regs B Ety) R Q E :
+@@ -550,7 +550,7 @@
+   PrePostE P m (fun _ => R) E ->
+   PrePostE P (bindS m (fun _ => f)) Q E.
+ Proof.
+-  apply PrePost_bindS_ignore.
++  1: apply PrePost_bindS_ignore.
+ Qed.
+ 
+ Lemma PrePostE_bindS_unit Regs A Ety (P : predS Regs) (m : monadS Regs unit Ety) (f : unit -> monadS Regs A Ety) Q R E :
+@@ -558,7 +558,7 @@
+   PrePostE P m (fun _ => R) E ->
+   PrePostE P (bindS m f) Q E.
+ Proof.
+-  apply PrePost_bindS_unit.
++  1: apply PrePost_bindS_unit.
+ Qed.
+ 
+ Lemma PrePostE_seqS Regs A Ety (P : predS Regs) (m : monadS Regs unit Ety) (m' : monadS Regs A Ety) Q R E :
+@@ -566,22 +566,22 @@
+   PrePostE P m (fun _ => R) E ->
+   PrePostE P (seqS m m') Q E.
+ Proof.
+-  apply PrePost_seqS.
++  1: apply PrePost_seqS.
+ Qed.
+ 
+ Lemma PrePostE_readS (*[PrePostE_atomI, intro]:*) Regs A Ety f (Q : A -> predS Regs) E :
+   PrePostE (Ety := Ety) (fun s => Q (f s) s) (readS f) Q E.
+ Proof.
+-  unfold PrePostE, PrePost, readS.
+-  intros s Pre [a | e] cs s' cs' [[= <- <-] | []].
+-  assumption.
++  1: unfold PrePostE, PrePost, readS.
++  1: intros s Pre [a | e] cs s' cs' [[= <- <-] | []].
++  1: assumption.
+ Qed.
+ 
+ Lemma PrePostE_updateS (*[PrePostE_atomI, intro]:*) Regs Ety f (Q : unit -> predS Regs) (E : ex Ety -> predS Regs) :
+   PrePostE (fun s => Q tt (f s)) (updateS f) Q E.
+ Proof.
+-  intros s Pre [a | e] cs s' cs' [[= <- <-] | []].
+-  assumption.
++  1: intros s Pre [a | e] cs s' cs' [[= <- <-] | []].
++  1: assumption.
+ Qed.
+ 
+ Lemma PrePostE_if_branch (*[PrePostE_compositeI]:*) Regs A Ety (b : bool) (f g : monadS Regs A Ety) Pf Pg Q E :
+@@ -589,7 +589,7 @@
+   (b = false -> PrePostE Pg g Q E) ->
+   PrePostE (fun s => if b then Pf s else Pg s) (if b then f else g) Q E.
+ Proof.
+-  destruct b; auto.
++  1: destruct b; auto.
+ Qed.
+ 
+ Lemma PrePostE_if_sum_branch (*[PrePostE_compositeI]:*) Regs A Ety X Y (b : sumbool X Y) (f g : monadS Regs A Ety) Pf Pg Q E :
+@@ -597,10 +597,10 @@
+   (forall H : Y, b = right H -> PrePostE Pg g Q E) ->
+   PrePostE (fun s => if b then Pf s else Pg s) (if b then f else g) Q E.
+ Proof.
+-  intros HX HY.
+-  destruct b as [H | H].
+-  * apply (HX H). reflexivity. 
+-  * apply (HY H). reflexivity. 
++  1: intros HX HY.
++  1: destruct b as [H | H].
++  * 1: apply (HX H). 1: reflexivity. 
++  * 1: apply (HY H). 1: reflexivity. 
+ Qed.
+ 
+ Lemma PrePostE_match_sum_branch (*[PrePostE_compositeI]:*) Regs A Ety X Y (b : sumbool X Y) (f : X -> monadS Regs A Ety) (g : Y -> monadS Regs A Ety) Pf Pg Q E :
+@@ -608,10 +608,10 @@
+   (forall H : Y, b = right H -> PrePostE (Pg H) (g H) Q E) ->
+   PrePostE (fun s => match b with left H => Pf H s | right H => Pg H s end) (match b with left H => f H | right H => g H end) Q E.
+ Proof.
+-  intros HX HY.
+-  destruct b as [H | H].
+-  * apply (HX H). reflexivity. 
+-  * apply (HY H). reflexivity. 
++  1: intros HX HY.
++  1: destruct b as [H | H].
++  * 1: apply (HX H). 1: reflexivity. 
++  * 1: apply (HY H). 1: reflexivity. 
+ Qed.
+ 
+ Lemma PrePostE_if Regs A Ety (b : bool) (f g : monadS Regs A Ety) P Q E :
+@@ -619,7 +619,7 @@
+   (b = false -> PrePostE P g Q E) ->
+   PrePostE P (if b then f else g) Q E.
+ Proof.
+-  destruct b; auto.
++  1: destruct b; auto.
+ Qed.
+ 
+ Lemma PrePostE_if_then Regs A Ety (b : bool) (f g : monadS Regs A Ety) P Q E :
+@@ -627,7 +627,7 @@
+   PrePostE P f Q E ->
+   PrePostE P (if b then f else g) Q E.
+ Proof.
+-  intros; subst; auto.
++  1: intros; subst; auto.
+ Qed.
+ 
+ Lemma PrePostE_if_else Regs A Ety (b : bool) (f g : monadS Regs A Ety) P Q E :
+@@ -635,14 +635,14 @@
+   PrePostE P g Q E ->
+   PrePostE P (if b then f else g) Q E.
+ Proof.
+-  intros; subst; auto.
++  1: intros; subst; auto.
+ Qed.
+ 
+ Lemma PrePostE_prod_cases (*[PrePostE_compositeI]:*) Regs A B C Ety x (f : A -> B -> monadS Regs C Ety) P Q E :
+   PrePostE P (f (fst x) (snd x)) Q E ->
+   PrePostE P (match x with (a, b) => f a b end) Q E.
+ Proof.
+-  destruct x; auto.
++  1: destruct x; auto.
+ Qed.
+ 
+ Lemma PrePostE_option_cases (*[PrePostE_compositeI]:*) Regs A B Ety x (s : option A -> monadS Regs B Ety) n PS PN Q E :
+@@ -650,7 +650,7 @@
+   PrePostE PN n Q E ->
+   PrePostE (match x with Some a => PS a | None => PN end) (match x with Some a => s a | None => n end) Q E.
+ Proof.
+-  apply PrePost_option_cases.
++  1: apply PrePost_option_cases.
+ Qed.
+ 
+ Lemma PrePostE_sum_cases (*[PrePostE_compositeI]:*) Regs A B C Ety x (l : A -> monadS Regs C Ety) (r : B -> monadS Regs C Ety) Pl Pr Q E :
+@@ -658,14 +658,14 @@
+   (forall b, PrePostE (Pr b) (r b) Q E) ->
+   PrePostE (match x with inl a => Pl a | inr b => Pr b end) (match x with inl a => l a | inr b => r b end) Q E.
+ Proof.
+-  intros; destruct x; auto.
++  1: intros; destruct x; auto.
+ Qed.
+ 
+ Lemma PrePostE_let (*[PrePostE_compositeI]:*) Regs A B Ety y (m : A -> monadS Regs B Ety) P Q E :
+   PrePostE P (m y) Q E ->
+   PrePostE P (let x := y in m x) Q E.
+ Proof.
+-  auto.
++  1: auto.
+ Qed.
+ 
+ Lemma PrePostE_and_boolS (*[PrePostE_compositeI]:*) Regs Ety (l r : monadS Regs bool Ety) P Q R E :
+@@ -673,14 +673,14 @@
+   PrePostE P l (fun r s => if r then R s else Q false s) E ->
+   PrePostE P (and_boolS l r) Q E.
+ Proof.
+-  intros Hr Hl.
+-  unfold and_boolS.
+-  eapply PrePostE_bindS.
+-  * intros.
+-    instantiate (1 := fun a s => if a then R s else Q false s).
+-    destruct a; eauto.
+-    apply PrePostE_returnS.
+-  * assumption.
++  1: intros Hr Hl.
++  1: unfold and_boolS.
++  1: eapply PrePostE_bindS.
++  * 1: intros.
++    1: instantiate (1 := fun a s => if a then R s else Q false s).
++    1: destruct a; eauto.
++    1: apply PrePostE_returnS.
++  * 1: assumption.
+ Qed.
+ 
+ (* In the first hypothesis I originally had
+@@ -694,71 +694,71 @@
+   PrePostE P l (fun r s => if r then Q true s else R s) E ->
+   PrePostE P (or_boolS l r) Q E.
+ Proof.
+-  intros Hr Hl.
+-  unfold or_boolS.
+-  eapply PrePostE_bindS.
+-  * intros.
+-    instantiate (1 := fun a s => if a then Q true s else R s).
+-    destruct a; eauto.
+-    apply PrePostE_returnS.
+-  * assumption.
++  1: intros Hr Hl.
++  1: unfold or_boolS.
++  1: eapply PrePostE_bindS.
++  * 1: intros.
++    1: instantiate (1 := fun a s => if a then Q true s else R s).
++    1: destruct a; eauto.
++    1: apply PrePostE_returnS.
++  * 1: assumption.
+ Qed.
+ 
+ Lemma PrePostE_failS (*[PrePostE_atomI, intro]:*) Regs A Ety msg (Q : A -> predS Regs) (E : ex Ety -> predS Regs) :
+   PrePostE (E (Failure msg)) (failS msg) Q E.
+ Proof.
+-  unfold PrePostE, PrePost, failS.
+-  intros s Pre r cs s' cs' [[= <- <-] | []].
+-  assumption.
++  1: unfold PrePostE, PrePost, failS.
++  1: intros s Pre r cs s' cs' [[= <- <-] | []].
++  1: assumption.
+ Qed.
+ 
+ Lemma PrePostE_assert_expS (*[PrePostE_atomI, intro]:*) Regs Ety (c : bool) m P (Q : ex Ety -> predS Regs) :
+   PrePostE (fun s => if c then P tt s else Q (Failure m) s) (assert_expS c m) P Q.
+ Proof.
+-  unfold assert_expS.
+-  destruct c; auto using PrePostE_returnS, PrePostE_failS.
++  1: unfold assert_expS.
++  1: destruct c; auto using PrePostE_returnS, PrePostE_failS.
+ Qed.
+ 
+ Lemma PrePostE_assert_expS' (*[PrePostE_atomI, intro]:*) Regs Ety (c : bool) m (P : c = true -> predS Regs) (Q : ex Ety -> predS Regs) :
+   PrePostE (fun s => if c then (forall pf, P pf s) else Q (Failure m) s) (assert_expS' c m) P Q.
+ Proof.
+-  unfold assert_expS'.
+-  destruct c. 
+-  * eapply PrePostE_strengthen_pre. eapply PrePostE_returnS. 
+-    auto.
+-  * auto using PrePostE_failS.
++  1: unfold assert_expS'.
++  1: destruct c. 
++  * 1: eapply PrePostE_strengthen_pre. 1: eapply PrePostE_returnS. 
++    1: auto.
++  * 1: auto using PrePostE_failS.
+ Qed.
+ 
+ Lemma PrePostE_maybe_failS (*[PrePostE_atomI]:*) Regs A Ety msg v (Q : A -> predS Regs) (E : ex Ety -> predS Regs) :
+   PrePostE (fun s => match v with Some v => Q v s | None => E (Failure msg) s end) (maybe_failS msg v) Q E.
+ Proof.
+-  unfold maybe_failS.
+-  destruct v; auto using PrePostE_returnS, PrePostE_failS.
++  1: unfold maybe_failS.
++  1: destruct v; auto using PrePostE_returnS, PrePostE_failS.
+ Qed.
+ 
+ Lemma PrePostE_exitS (*[PrePostE_atomI, intro]:*) Regs A Ety msg (Q : A -> predS Regs) (E : ex Ety -> predS Regs) :
+   PrePostE (E (Failure "exit")) (exitS msg) Q E.
+ Proof.
+-  unfold exitS.
+-  apply PrePostE_failS.
++  1: unfold exitS.
++  1: apply PrePostE_failS.
+ Qed.
+ 
+ Lemma PrePostE_chooseS (*[intro, PrePostE_atomI]:*) Regs Ety ty (Q : choose_type ty -> predS Regs) (E : ex Ety -> predS Regs) :
+   PrePostE (fun s => forall x, Q x s) (chooseS ty) Q E.
+ Proof.
+-  unfold chooseS.
+-  intros s IN r cs s' cs' IN'.
+-  destruct (choose cs ty).
+-  destruct IN' as [[= <- <- <-] | []].
+-  auto.
++  1: unfold chooseS.
++  1: intros s IN r cs s' cs' IN'.
++  1: destruct (choose cs ty).
++  1: destruct IN' as [[= <- <- <-] | []].
++  1: auto.
+ Qed.
+ 
+ Lemma PrePostE_throwS (*[PrePostE_atomI]:*) Regs A Ety e (Q : A -> predS Regs) (E : ex Ety -> predS Regs) :
+   PrePostE (E (Throw e)) (throwS e) Q E.
+ Proof.
+-  unfold throwS.
+-  intros s Pre r cs s' cs' [[= <- <-] | []].
+-  assumption.
++  1: unfold throwS.
++  1: intros s Pre r cs s' cs' [[= <- <-] | []].
++  1: assumption.
+ Qed.
+ 
+ Lemma PrePostE_try_catchS (*[PrePostE_compositeI]:*) Regs A E1 E2 m h P (Ph : E1 -> predS Regs) (Q : A -> predS Regs) (E : ex E2 -> predS Regs) :
+@@ -766,42 +766,42 @@
+   PrePostE P m Q (fun ex => match ex with Throw e => Ph e | Failure msg => E (Failure msg) end) ->
+   PrePostE P (try_catchS m h) Q E.
+ Proof.
+-  intros.
+-  intros s Pre r cs s' cs' IN.
+-  destruct (try_catchS_cases IN) as [(a' & [= ->] & IN') | [(msg & [= ->] & IN') | (e & s'' & cs'' & IN1 & IN2)]].
+-  * specialize (H0 _ Pre _ _ _ _ IN'). apply H0.
+-  * specialize (H0 _ Pre _ _ _ _ IN'). apply H0.
+-  * specialize (H _ _ _ _ _ IN1). specialize (H0 _ Pre _ _ _ _ IN1). simpl in *.
+-      specialize (H _ H0 _ _ _ _ IN2). apply H.
++  1: intros.
++  1: intros s Pre r cs s' cs' IN.
++  1: destruct (try_catchS_cases IN) as [(a' & [= ->] & IN') | [(msg & [= ->] & IN') | (e & s'' & cs'' & IN1 & IN2)]].
++  * 1: specialize (H0 _ Pre _ _ _ _ IN'). 1: apply H0.
++  * 1: specialize (H0 _ Pre _ _ _ _ IN'). 1: apply H0.
++  * 1: specialize (H _ _ _ _ _ IN1). 1: specialize (H0 _ Pre _ _ _ _ IN1). 1: simpl in *.
++      1: specialize (H _ H0 _ _ _ _ IN2). 1: apply H.
+ Qed.
+ 
+ Lemma PrePostE_catch_early_returnS (*[PrePostE_compositeI]:*) Regs A Ety m P (Q : A -> predS Regs) (E : ex Ety -> predS Regs) :
+   PrePostE P m Q (fun ex => match ex with Throw (inl a) => Q a | Throw (inr e) => E (Throw e) | Failure msg => E (Failure msg) end) ->
+   PrePostE P (catch_early_returnS m) Q E.
+ Proof.
+-  unfold catch_early_returnS.
+-  intro H.
+-  apply PrePostE_try_catchS with (Ph := fun e => match e with inl a => Q a | inr e => E (Throw e) end).
+-  * intros. destruct e.
+-    + apply PrePostE_returnS.
+-    + apply PrePostE_throwS.
+-  * apply H.
++  1: unfold catch_early_returnS.
++  1: intro H.
++  1: apply PrePostE_try_catchS with (Ph := fun e => match e with inl a => Q a | inr e => E (Throw e) end).
++  * 1: intros. 1: destruct e.
++    + 1: apply PrePostE_returnS.
++    + 1: apply PrePostE_throwS.
++  * 1: apply H.
+ Qed.
+ 
+ Lemma PrePostE_early_returnS (*[PrePostE_atomI]:*) Regs A E1 E2 r (Q : A -> predS Regs) (E : ex (E1 + E2) -> predS Regs) :
+   PrePostE (E (Throw (inl r))) (early_returnS r) Q E.
+ Proof.
+-  unfold early_returnS.
+-  apply PrePostE_throwS.
++  1: unfold early_returnS.
++  1: apply PrePostE_throwS.
+ Qed.
+ 
+ Lemma PrePostE_liftRS (*[PrePostE_compositeI]:*) Regs A E1 E2 m P (Q : A -> predS Regs) (E : ex (E1 + E2) -> predS Regs) :
+   PrePostE P m Q (fun ex => match ex with Throw e => E (Throw (inr e)) | Failure msg => E (Failure msg) end) ->
+   PrePostE P (liftRS m) Q E.
+ Proof.
+-  unfold liftRS.
+-  apply PrePostE_try_catchS.
+-  auto using PrePostE_throwS.
++  1: unfold liftRS.
++  1: apply PrePostE_try_catchS.
++  1: auto using PrePostE_throwS.
+ Qed.
+ 
+ Lemma PrePostE_foreachS_Cons Regs A Vars Ety (x : A) xs vars body (Q : Vars -> predS Regs) (E : ex Ety -> predS Regs) :
+@@ -809,62 +809,62 @@
+   PrePostE (Q vars) (body x vars) Q E ->
+   PrePostE (Q vars) (foreachS (x :: xs) vars body) Q E.
+ Proof.
+-  intros.
+-  simpl.
+-  apply PrePostE_bindS with (R := Q); auto.
++  1: intros.
++  1: simpl.
++  1: apply PrePostE_bindS with (R := Q); auto.
+ Qed.
+ 
+ Lemma PrePostE_foreachS_invariant Regs A Vars Ety (xs : list A) vars body (Q : Vars -> predS Regs) (E : ex Ety -> predS Regs) :
+   (forall x vars, List.In x xs -> PrePostE (Q vars) (body x vars) Q E) ->
+   PrePostE (Q vars) (foreachS xs vars body) Q E.
+ Proof.
+-  unfold PrePostE.
+-  intros H.
+-  apply PrePost_foreachS_invariant with (Q := fun v => match v with Value a => Q a | Ex e => E e end).
+-  auto.
++  1: unfold PrePostE.
++  1: intros H.
++  1: apply PrePost_foreachS_invariant with (Q := fun v => match v with Value a => Q a | Ex e => E e end).
++  1: auto.
+ Qed.
+ 
+ Lemma PrePostE_foreach_ZS_up_invariant Regs Vars Ety from to step vars body (Q : Vars -> predS Regs) (E : ex Ety -> predS Regs) :
+   (forall i vars, PrePostE (Q vars) (body i vars) Q E) ->
+   PrePostE (Q vars) (foreach_ZS_up from to step vars body) Q E.
+ Proof.
+-  intro INV.
+-  unfold foreach_ZS_up.
+-  generalize 0%Z as off.
+-  revert vars.
+-  induction (S (Z.abs_nat (from - to))); intros.
+-  * simpl. destruct (Sumbool.sumbool_of_bool (from + off <=? to)%Z); apply PrePostE_returnS.
+-  * simpl. destruct (Sumbool.sumbool_of_bool (from + off <=? to)%Z). 
+-    + eapply PrePostE_bindS.
+-      - intro. apply IHn.
+-      - apply INV.
+-    + apply PrePostE_returnS.
++  1: intro INV.
++  1: unfold foreach_ZS_up.
++  1: generalize 0%Z as off.
++  1: revert vars.
++  1: induction (S (Z.abs_nat (from - to))); intros.
++  * 1: simpl. 1: destruct (Sumbool.sumbool_of_bool (from + off <=? to)%Z); apply PrePostE_returnS.
++  * 1: simpl. 1: destruct (Sumbool.sumbool_of_bool (from + off <=? to)%Z). 
++    + 1: eapply PrePostE_bindS.
++      - 1: intro. 1: apply IHn.
++      - 1: apply INV.
++    + 1: apply PrePostE_returnS.
+ Qed.
+ 
+ Lemma PrePostE_foreach_ZS_down_invariant Regs Vars Ety from to step vars body (Q : Vars -> predS Regs) (E : ex Ety -> predS Regs) :
+   (forall i vars, PrePostE (Q vars) (body i vars) Q E) ->
+   PrePostE (Q vars) (foreach_ZS_down from to step vars body) Q E.
+ Proof.
+-  intro INV.
+-  unfold foreach_ZS_down.
+-  generalize 0%Z as off.
+-  revert vars.
+-  induction (S (Z.abs_nat (from - to))); intros.
+-  * simpl. destruct (Sumbool.sumbool_of_bool (to <=? from + off)%Z); apply PrePostE_returnS.
+-  * simpl. destruct (Sumbool.sumbool_of_bool (to <=? from + off)%Z). 
+-    + eapply PrePostE_bindS.
+-      - intro. apply IHn.
+-      - apply INV.
+-    + apply PrePostE_returnS.
++  1: intro INV.
++  1: unfold foreach_ZS_down.
++  1: generalize 0%Z as off.
++  1: revert vars.
++  1: induction (S (Z.abs_nat (from - to))); intros.
++  * 1: simpl. 1: destruct (Sumbool.sumbool_of_bool (to <=? from + off)%Z); apply PrePostE_returnS.
++  * 1: simpl. 1: destruct (Sumbool.sumbool_of_bool (to <=? from + off)%Z). 
++    + 1: eapply PrePostE_bindS.
++      - 1: intro. 1: apply IHn.
++      - 1: apply INV.
++    + 1: apply PrePostE_returnS.
+ Qed.
+ 
+ Lemma PrePostE_use_pre Regs A Ety m (P : predS Regs) (Q : A -> predS Regs) (E : ex Ety -> predS Regs) :
+   (forall s, P s -> PrePostE P m Q E) ->
+   PrePostE P m Q E.
+ Proof.
+-  unfold PrePostE, PrePost.
+-  intros H s p r s' IN.
+-  eapply H; eauto.
++  1: unfold PrePostE, PrePost.
++  1: intros H s p r s' IN.
++  1: eapply H; eauto.
+ Qed.
+ 
+ Local Open Scope Z.
+@@ -879,57 +879,57 @@
+   (forall vars s, Inv Q vars s -> measure vars >= 0) ->
+   PrePostE (Inv Q vars) (untilST vars measure cond body) Q E.
+ Proof.
+-  intros Hcond Hbody Hmeasure.
+-  unfold untilST.
+-  apply PrePostE_use_pre. intros s0 Pre0.
+-  assert (measure vars >= 0) as Hlimit_0 by eauto. clear s0 Pre0.
+-  remember (measure vars) as limit eqn: Heqlimit in Hlimit_0 |- *.
+-  assert (measure vars <= limit) as Hlimit by lia. clear Heqlimit.
+-  generalize (Prompt.Zwf_guarded limit).
+-  revert vars Hlimit.
+-  apply Wf_Z.natlike_ind with (x := limit).
+-  * intros vars Hmeasure_limit [acc]. simpl.
+-    eapply PrePostE_bindS; [ | apply Hbody ].
+-    intros vars'.
+-    eapply PrePostE_bindS with (R := (fun c s' => (Inv Q vars' s' /\ (c = true -> Q vars' s')) /\ measure vars' < measure vars)).
++  1: intros Hcond Hbody Hmeasure.
++  1: unfold untilST.
++  1: apply PrePostE_use_pre. 1: intros s0 Pre0.
++  1: assert (measure vars >= 0) as Hlimit_0 by eauto. 1: clear s0 Pre0.
++  1: remember (measure vars) as limit eqn: Heqlimit in Hlimit_0 |- *.
++  1: assert (measure vars <= limit) as Hlimit by lia. 1: clear Heqlimit.
++  1: generalize (Prompt.Zwf_guarded limit).
++  1: revert vars Hlimit.
++  1: apply Wf_Z.natlike_ind with (x := limit).
++  * 1: intros vars Hmeasure_limit [acc]. 1: simpl.
++    1: eapply PrePostE_bindS; [ | apply Hbody ].
++    1: intros vars'.
++    1: eapply PrePostE_bindS with (R := (fun c s' => (Inv Q vars' s' /\ (c = true -> Q vars' s')) /\ measure vars' < measure vars)).
+     2: {
+       apply PrePostE_weaken_Epost with (E := (fun e s' => E e s' /\ measure vars' < measure vars)). 2: tauto.
+-      eapply PrePostE_conj_conds.
+-      apply Hcond.
+-      apply PrePostE_I; tauto.
++      1: eapply PrePostE_conj_conds.
++      1: apply Hcond.
++      1: apply PrePostE_I; tauto.
+     }
+-    intros.
+-    destruct a.
+-    - eapply PrePostE_strengthen_pre; try apply PrePostE_returnS.
+-      intros ? [[? ?] ?]; auto.
+-    - apply PrePostE_I;
++    1: intros.
++    1: destruct a.
++    - 1: eapply PrePostE_strengthen_pre; try apply PrePostE_returnS.
++      1: intros ? [[? ?] ?]; auto.
++    - 1: apply PrePostE_I;
+       intros ? ? ? ? ? [[Pre ?] ?] ?; exfalso;
+       specialize (Hmeasure _ _ Pre); lia.
+-  * intros limit' Hlimit' IH vars Hmeasure_limit [acc].
+-    simpl.
+-    destruct (Z_ge_dec _ _). 2: lia.
+-    eapply PrePostE_bindS; [ | apply Hbody].
+-    intros vars'.
+-    eapply PrePostE_bindS with (R := (fun c s' => (Inv Q vars' s' /\ (c = true -> Q vars' s')) /\ measure vars' < measure vars)).
++  * 1: intros limit' Hlimit' IH vars Hmeasure_limit [acc].
++    1: simpl.
++    1: destruct (Z_ge_dec _ _). 2: lia.
++    1: eapply PrePostE_bindS; [ | apply Hbody].
++    1: intros vars'.
++    1: eapply PrePostE_bindS with (R := (fun c s' => (Inv Q vars' s' /\ (c = true -> Q vars' s')) /\ measure vars' < measure vars)).
+     2: {
+       apply PrePostE_weaken_Epost with (E := (fun e s' => E e s' /\ measure vars' < measure vars)). 2: tauto.
+-      eapply PrePostE_conj_conds.
+-      apply Hcond.
+-      apply PrePostE_I; tauto.
++      1: eapply PrePostE_conj_conds.
++      1: apply Hcond.
++      1: apply PrePostE_I; tauto.
+     }
+-    intros.
+-    destruct a.
+-    - eapply PrePostE_strengthen_pre; try apply PrePostE_returnS.
+-      intros ? [[? ?] ?]; auto.
+-    - gen_reduces.
+-      replace (Z.succ limit' - 1) with limit'; [ | lia].
+-      intro acc'.
+-      apply PrePostE_use_pre. intros sx [[Pre _] Hreduces].
+-      apply Hmeasure in Pre.
+-      eapply PrePostE_strengthen_pre; [apply IH | ].
+-      + lia.
+-      + tauto.
+-  * lia.
++    1: intros.
++    1: destruct a.
++    - 1: eapply PrePostE_strengthen_pre; try apply PrePostE_returnS.
++      1: intros ? [[? ?] ?]; auto.
++    - 1: gen_reduces.
++      1: replace (Z.succ limit' - 1) with limit'; [ | lia].
++      1: intro acc'.
++      1: apply PrePostE_use_pre. 1: intros sx [[Pre _] Hreduces].
++      1: apply Hmeasure in Pre.
++      1: eapply PrePostE_strengthen_pre; [apply IH | ].
++      + 1: lia.
++      + 1: tauto.
++  * 1: lia.
+ Qed.
+ 
+ 
+@@ -938,14 +938,14 @@
+   (forall vars s, Inv Q vars s -> measure vars >= 0) ->
+   (PrePostE (Inv Q vars) (untilST vars measure (fun vars => returnS (cond vars)) body) Q E).
+ Proof.
+-  intros Hbody Hmeasure.
+-  apply PrePostE_untilST with (Inv' := fun Q vars s => Inv Q vars s /\ (cond vars = true -> Q vars s)).
+-  * intro.
+-    apply PrePostE_returnS with (Q := fun c s' => Inv Q vars0 s' /\ (c = true -> Q vars0 s')).
+-  * intro.
+-    eapply PrePost_weaken_post; [ apply Hbody | ].
+-    simpl. intros [a |e]; eauto. tauto.
+-  * apply Hmeasure.
++  1: intros Hbody Hmeasure.
++  1: apply PrePostE_untilST with (Inv' := fun Q vars s => Inv Q vars s /\ (cond vars = true -> Q vars s)).
++  * 1: intro.
++    1: apply PrePostE_returnS with (Q := fun c s' => Inv Q vars0 s' /\ (c = true -> Q vars0 s')).
++  * 1: intro.
++    1: eapply PrePost_weaken_post; [ apply Hbody | ].
++    1: simpl. 1: intros [a |e]; eauto. 1: tauto.
++  * 1: apply Hmeasure.
+ Qed.
+ 
+ Local Close Scope Z.
+@@ -1022,25 +1022,25 @@
+ Lemma nth_error_exists {A} {l : list A} {n} :
+   (n < Datatypes.length l)%nat -> exists x, List.In x l /\ List.nth_error l n = Some x.
+ Proof.
+-  revert n. induction l.
+-  * simpl. intros. apply PeanoNat.Nat.nlt_0_r in H. destruct H.
+-  * intros. destruct n.
+-    + exists a. auto with datatypes.
+-    + simpl in H. apply Nat.succ_lt_mono in H.
+-      destruct (IHl n H) as [x H1].
+-      intuition eauto with datatypes.
++  1: revert n. 1: induction l.
++  * 1: simpl. 1: intros. 1: apply PeanoNat.Nat.nlt_0_r in H. 1: destruct H.
++  * 1: intros. 1: destruct n.
++    + 1: exists a. 1: auto with datatypes.
++    + 1: simpl in H. 1: apply Nat.succ_lt_mono in H.
++      1: destruct (IHl n H) as [x H1].
++      1: intuition eauto with datatypes.
+ Qed.
+ 
+ Lemma nth_error_modulo {A} {xs : list A} n :
+   xs <> nil ->
+   exists x, List.In x xs /\ List.nth_error xs (PeanoNat.Nat.modulo n (Datatypes.length xs)) = Some x.
+ Proof.
+-  intro notnil.
+-  assert ((Datatypes.length xs <> 0)%nat) by (rewrite List.length_zero_iff_nil; auto).
+-  assert ((PeanoNat.Nat.modulo n (Datatypes.length xs) < Datatypes.length xs)%nat) by auto using PeanoNat.Nat.mod_upper_bound.
+-  destruct (nth_error_exists H0) as [x [H1 H2]].
+-  exists x.
+-  auto.
++  1: intro notnil.
++  1: assert ((Datatypes.length xs <> 0)%nat) by (rewrite List.length_zero_iff_nil; auto).
++  1: assert ((PeanoNat.Nat.modulo n (Datatypes.length xs) < Datatypes.length xs)%nat) by auto using PeanoNat.Nat.mod_upper_bound.
++  1: destruct (nth_error_exists H0) as [x [H1 H2]].
++  1: exists x.
++  1: auto.
+ Qed.
+ (*
+ Lemma PrePostE_internal_pick Regs A Ety (xs : list A) (Q : A -> predS Regs) (E : ex Ety -> predS Regs) :
+@@ -1113,21 +1113,21 @@
+   with signature eq ==> equiv ==> eq ==> iff
+   as PrePost_morphism.
+ Proof.
+-  intros.
+-  unfold PrePost.
+-  split; intros H' s PRE r cs s' cs'.
+-  * rewrite <- (H s). apply H'. apply PRE.
+-  * rewrite -> (H s). apply H'. apply PRE.
++  1: intros.
++  1: unfold PrePost.
++  1: split; intros H' s PRE r cs s' cs'.
++  * 1: rewrite <- (H s). 1: apply H'. 1: apply PRE.
++  * 1: rewrite -> (H s). 1: apply H'. 1: apply PRE.
+ Qed.
+ 
+ Add Parametric Morphism {Regs A Ety} : (@PrePostE Regs A Ety)
+   with signature eq ==> equiv ==> eq ==> eq ==> iff
+   as PrePostE_morphism.
+ Proof.
+-  intros.
+-  unfold PrePostE.
+-  rewrite H.
+-  reflexivity.
++  1: intros.
++  1: unfold PrePostE.
++  1: rewrite H.
++  1: reflexivity.
+ Qed.
+ 
+ (* Applying rewrites in a Hoare quadruple.  For example, [PrePostE_rewrite liftState]
+@@ -1138,9 +1138,9 @@
+   PrePostE P m' Q E ->
+   PrePostE P m  Q E.
+ Proof.
+-  intro H.
+-  rewrite H.
+-  auto.
++  1: intro H.
++  1: rewrite H.
++  1: auto.
+ Qed.
+ 
+ Ltac PrePostE_rewrite db := (eapply PrePostE_code_rw; [ statecong db | ]).
+@@ -1150,6 +1150,7 @@
+    a metavariable for the precondition. *)
+ 
+ Create HintDb PrePostE_specs.
++Create Rewrite HintDb PrePostE_specs.
+ 
+ Ltac PrePostE_step :=
+   match goal with
+--- a/src-stdpp/Inhabited.v
++++ b/src-stdpp/Inhabited.v
+@@ -9,7 +9,7 @@
+ 
+ (* Here, we can just use the existing stdpp one. *)
+ 
+-Notation Inhabited := base.Inhabited.
+-Notation inhabitant := base.inhabitant.
++Abbreviation Inhabited := base.Inhabited.
++Abbreviation inhabitant := base.inhabitant.
+ 
+ (* The default instances are all provided by stdpp. *)
+--- a/src-stdpp/Instances.v
++++ b/src-stdpp/Instances.v
+@@ -74,23 +74,23 @@
+ Definition generic_neq {T:Type} (x y:T) `{EqDecision T} := negb (bool_decide (x = y)).
+ Lemma generic_eq_true {T} {x y:T} `{EqDecision T} : generic_eq x y = true -> x = y.
+ Proof.
+-  apply bool_decide_eq_true.
++  1: apply bool_decide_eq_true.
+ Qed.
+ Lemma generic_eq_false {T} {x y:T} `{EqDecision T} : generic_eq x y = false -> x <> y.
+ Proof.
+-  apply bool_decide_eq_false.
++  1: apply bool_decide_eq_false.
+ Qed.
+ Lemma generic_neq_true {T} {x y:T} `{EqDecision T} : generic_neq x y = true -> x <> y.
+ Proof.
+-  unfold generic_neq.
+-  rewrite negb_true_iff.
+-  apply bool_decide_eq_false_1.
++  1: unfold generic_neq.
++  1: rewrite negb_true_iff.
++  1: apply bool_decide_eq_false_1.
+ Qed.
+ Lemma generic_neq_false {T} {x y:T} `{EqDecision T} : generic_neq x y = false -> x = y.
+ Proof.
+-  unfold generic_neq.
+-  rewrite negb_false_iff.
+-  apply bool_decide_eq_true_1.
++  1: unfold generic_neq.
++  1: rewrite negb_false_iff.
++  1: apply bool_decide_eq_true_1.
+ Qed.
+ 
+ Definition generic_dec {T:Type} (x y:T) `{EqDecision T} : {x = y} + {x <> y} := decide (x = y).
+@@ -186,12 +186,12 @@
+ 
+ #[export] Instance Countable_vec {n} `{Countable T} : Countable (vec T n).
+ Proof.
+-  refine {|
++  1: refine {|
+     encode v := encode (projT1 v);
+     decode p := l ← decode p;
+                 vec_of_list n l
+   |}.
+-  abstract
++  1: abstract
+     (intros [l pf];
+     rewrite decode_encode;
+     simpl;
+@@ -200,23 +200,23 @@
+ 
+ #[export] Instance Decidable_eq_sigT {T} {P : T -> Type} `{ET : EqDecision T} `{Peq : forall t, EqDecision (P t)} : EqDecision (sigT P).
+ Proof.
+-  refine (fun '(@existT _ _ x p) '(@existT _ _ y q) =>
++  1: refine (fun '(@existT _ _ x p) '(@existT _ _ y q) =>
+             match decide (x = y) with
+             | left e => _
+             | right ne => right _
+             end).
+-  contradict ne. apply (eq_sigT_fst ne).
++  1: contradict ne. 1: apply (eq_sigT_fst ne).
+ Defined.
+ 
+ #[export] Instance Countable_eq_sigT {T} {P : T -> Type} `{EqDecision T} `{forall t, EqDecision (P t)} `{CT : Countable T} `{CPt : forall t, Countable (P t)} : Countable (sigT P).
+ Proof.
+-  refine {|
++  1: refine {|
+     encode x := encode (projT1 x, encode (projT2 x));
+     decode p := match decode p with Some (t, q) => match decode q with Some v => Some (@existT _ _ t v) | None => None end | None => None end
+   |}.
+-  intros [t v].
+-  rewrite !decode_encode.
+-  reflexivity.
++  1: intros [t v].
++  1: rewrite !decode_encode.
++  1: reflexivity.
+ Defined.
+ 
+ Definition Decidable_eq_from_dec {T : Type} (eqdec : forall x y : T, {x = y} + {x <> y}) :
+@@ -226,9 +226,9 @@
+ 
+ #[export] Instance Countable_mword {n} : Countable (mword n).
+ Proof.
+-  refine {|
++  1: refine {|
+     encode := match n with Zpos _ => encode | _ => encode end;
+     decode p := match n return option (mword n) with Zpos _ => decode p | _ => decode p end;
+   |}.
+-  abstract (destruct n; apply decode_encode).
+-Defined.
++  1: abstract (destruct n; apply decode_encode).
++Defined.
+--- a/src-stdpp/MachineWord.v
++++ b/src-stdpp/MachineWord.v
+@@ -23,33 +23,33 @@
+ 
+ Lemma Z_idx_Z n : n = Z_idx (idx_Z n).
+ Proof.
+-  simpl.
+-  rewrite N2Z.id.
+-  reflexivity.
++  1: simpl.
++  1: rewrite N2Z.id.
++  1: reflexivity.
+ Qed.
+ Lemma idx_Z_idx z : (z >= 0)%Z -> idx_Z (Z_idx z) = z.
+ Proof.
+-  intro GE.
+-  simpl.
+-  rewrite Z2N.id; auto with zarith.
++  1: intro GE.
++  1: simpl.
++  1: rewrite Z2N.id; auto with zarith.
+ Qed.
+ Lemma nat_idx_Z n : nat_idx n = Z_idx (Z.of_nat n).
+ Proof.
+-  simpl.
+-  rewrite <- Z_nat_N.
+-  rewrite Nat2Z.id.
+-  reflexivity.
++  1: simpl.
++  1: rewrite <- Z_nat_N.
++  1: rewrite Nat2Z.id.
++  1: reflexivity.
+ Qed.
+ Lemma idx_N_Z_idx z : idx_N (Z_idx z) = Z.to_N z.
+ Proof.
+-  simpl.
+-  reflexivity.
++  1: simpl.
++  1: reflexivity.
+ Qed.
+ 
+ Definition cast_idx {T m n} := @TypeCasts.cast_N T m n.
+ Lemma cast_idx_refl n T (x : T n) (e : n = n) : cast_idx x e = x.
+ Proof.
+-  apply TypeCasts.cast_N_refl.
++  1: apply TypeCasts.cast_N_refl.
+ Qed.
+ 
+ Definition idx_S := N.succ.
+@@ -61,15 +61,15 @@
+ Arguments idx_mul /.
+ Lemma Z_idx_S z : (z >= 0)%Z -> Z_idx (Z.succ z) = idx_S (Z_idx z).
+ Proof.
+-  simpl.
+-  intro GE.
+-  apply Z2N.inj_succ; lia.
++  1: simpl.
++  1: intro GE.
++  1: apply Z2N.inj_succ; lia.
+ Qed.
+ 
+ Lemma idx_Z_idx_mul x y : idx_Z (idx_mul x y) = (idx_Z x * idx_Z y)%Z.
+ Proof.
+-  unfold idx_Z, idx_mul.
+-  apply N2Z.inj_mul.
++  1: unfold idx_Z, idx_mul.
++  1: apply N2Z.inj_mul.
+ Qed.
+ 
+ Definition word := bv.
+@@ -80,28 +80,28 @@
+ 
+ Lemma word_0_eq : forall w w' : word (Z_idx 0), w = w'.
+ Proof.
+-  simpl.
+-  intros.
+-  apply bv_eq.
+-  rewrite !bv_unsigned_N_0.
+-  reflexivity.
++  1: simpl.
++  1: intros.
++  1: apply bv_eq.
++  1: rewrite !bv_unsigned_N_0.
++  1: reflexivity.
+ Qed.
+ 
+ Lemma get_bit_eq_nat : forall [n] (w v : word (nat_idx n)),
+   (forall i, i < n -> get_bit w (nat_idx i) = get_bit v (nat_idx i)) -> w = v.
+ Proof.
+-  intros n w v H.
+-  apply bv_eq.
+-  unfold get_bit in *.
+-  apply Z.bits_inj'.
+-  intros m LE.
+-  destruct (Z_lt_dec m (Z.of_nat n)).
+-  * rewrite <- (Z2Nat.id m LE).
+-    rewrite <- nat_N_Z.
+-    apply H.
+-    Lia.lia.
+-  * unfold nat_idx in *.
+-    rewrite !bv_unsigned_spec_high; auto; Lia.lia.
++  1: intros n w v H.
++  1: apply bv_eq.
++  1: unfold get_bit in *.
++  1: apply Z.bits_inj'.
++  1: intros m LE.
++  1: destruct (Z_lt_dec m (Z.of_nat n)).
++  * 1: rewrite <- (Z2Nat.id m LE).
++    1: rewrite <- nat_N_Z.
++    1: apply H.
++    1: Lia.lia.
++  * 1: unfold nat_idx in *.
++    1: rewrite !bv_unsigned_spec_high; auto; Lia.lia.
+ Qed.
+ 
+ Definition word_to_Z [n] (w : word n) : Z := bv_signed w.
+@@ -111,43 +111,43 @@
+ 
+ Lemma word_to_N_range : forall [n] (w : word n), (word_to_N w < 2 ^ idx_N n)%N.
+ Proof.
+-  unfold idx_N.
+-  intros.
+-  specialize (bv_unsigned_in_range _ w).
+-  unfold bv_modulus.
+-  intros [LE LT].
+-
+-  unfold word_to_N.
+-  rewrite <- (N2Z.id (2 ^ n)).
+-  rewrite <- Z2N.inj_lt;  Lia.lia.
++  1: unfold idx_N.
++  1: intros.
++  1: specialize (bv_unsigned_in_range _ w).
++  1: unfold bv_modulus.
++  1: intros [LE LT].
++
++  1: unfold word_to_N.
++  1: rewrite <- (N2Z.id (2 ^ n)).
++  1: rewrite <- Z2N.inj_lt;  Lia.lia.
+ Qed.
+ 
+ (* TODO: this proof is generic, should be shared *)
+ Lemma testbit_word_to_N_high : forall [n] (w: word n) i, (i >= n)%N ->
+   N.testbit (word_to_N w) i = false.
+ Proof.
+-  intros.
+-  specialize (word_to_N_range w).
+-  generalize (word_to_N w) as m.
+-  unfold idx_N.
+-  intros.
+-  destruct (N.testbit_spec m i) as [l [h [H1 H2]]].
+-  destruct (N.testbit m i).
+-  * simpl (N.b2n true) in H2. subst.
+-    assert (l + (1 + 2 * h) * 2 ^ i >= 2 ^ i)%N by Lia.lia.
+-    specialize (N.pow_le_mono_r 2 n i).
+-    Lia.lia.
+-  * reflexivity.
++  1: intros.
++  1: specialize (word_to_N_range w).
++  1: generalize (word_to_N w) as m.
++  1: unfold idx_N.
++  1: intros.
++  1: destruct (N.testbit_spec m i) as [l [h [H1 H2]]].
++  1: destruct (N.testbit m i).
++  * 1: simpl (N.b2n true) in H2. 1: subst.
++    1: assert (l + (1 + 2 * h) * 2 ^ i >= 2 ^ i)%N by Lia.lia.
++    1: specialize (N.pow_le_mono_r 2 n i).
++    1: Lia.lia.
++  * 1: reflexivity.
+ Qed.
+ 
+ Lemma word_to_Z_range : forall [n] (w : word (N.succ n)), (- 2 ^ idx_Z n <= word_to_Z w < 2 ^ idx_Z n)%Z.
+ Proof.
+-  unfold idx_Z.
+-  intros.
+-  specialize (bv_signed_in_range _ w ltac:(Lia.lia)).
+-  unfold bv_half_modulus, bv_modulus, word_to_Z.
+-  rewrite N2Z.inj_succ.
+-  rewrite Z.pow_succ_r; auto with zarith.
++  1: unfold idx_Z.
++  1: intros.
++  1: specialize (bv_signed_in_range _ w ltac:(Lia.lia)).
++  1: unfold bv_half_modulus, bv_modulus, word_to_Z.
++  1: rewrite N2Z.inj_succ.
++  1: rewrite Z.pow_succ_r; auto with zarith.
+ Qed.
+ 
+ Definition ones n : word n := Z_to_bv _ (-1).
+@@ -157,152 +157,152 @@
+ 
+ Lemma word_to_bools_length : forall [n] (w : word n), List.length (word_to_bools w) = idx_nat n.
+ Proof.
+-  intros.
+-  unfold idx_nat.
+-  unfold word_to_bools.
+-  rewrite List.length_rev.
++  1: intros.
++  1: unfold idx_nat.
++  1: unfold word_to_bools.
++  1: rewrite List.length_rev.
+   (* Renamed in recent stdpp *)
+-  first [rewrite bv_to_bits_length | rewrite length_bv_to_bits].
+-  reflexivity.
++  1: first [rewrite bv_to_bits_length | rewrite length_bv_to_bits].
++  1: reflexivity.
+ Qed.
+ 
+ Lemma nth_error_lookup {A} (l : list A) (i : nat) :
+   base.lookup i l = List.nth_error l i.
+ Proof.
+-  destruct (List.nth_error l i) eqn:H.
+-  * assert (i < Datatypes.length l) as LEN. {
+-      apply List.nth_error_Some.
+-      congruence.
++  1: destruct (List.nth_error l i) eqn:H.
++  * 1: assert (i < Datatypes.length l) as LEN. {
++      1: apply List.nth_error_Some.
++      1: congruence.
+     }
+-    destruct (nth_lookup_or_length l i a) as [E|E].
+-    - rewrite (List.nth_error_nth l i a H) in E.
+-      assumption.
+-    - contradict E.
+-      Lia.lia.
+-  * apply lookup_ge_None.
+-    apply List.nth_error_None.
+-    assumption.
++    1: destruct (nth_lookup_or_length l i a) as [E|E].
++    - 1: rewrite (List.nth_error_nth l i a H) in E.
++      1: assumption.
++    - 1: contradict E.
++      1: Lia.lia.
++  * 1: apply lookup_ge_None.
++    1: apply List.nth_error_None.
++    1: assumption.
+ Qed.
+ 
+ Lemma nth_error_rev A (l : list A) i x :
+   List.nth_error l i = Some x <-> List.nth_error (List.rev l) (List.length l - i - 1) = Some x /\ i < List.length l.
+ Proof.
+-  destruct (lt_dec i (List.length l)) as [H|H].
+-  * rewrite List.nth_error_nth' with (d := x); auto.
+-    rewrite List.nth_error_nth' with (d := x). 2: {
++  1: destruct (lt_dec i (List.length l)) as [H|H].
++  * 1: rewrite List.nth_error_nth' with (d := x); auto.
++    1: rewrite List.nth_error_nth' with (d := x). 2: {
+       rewrite List.length_rev.
+-      Lia.lia.
++      1: Lia.lia.
+     }
+-    rewrite List.rev_nth. 2: Lia.lia.
+-    replace (List.length l - S (List.length l - i - 1)) with i by Lia.lia.
+-    tauto.
+-  * apply not_lt in H.
+-    specialize (List.nth_error_None l i) as H'.
+-    intuition; solve [congruence | Lia.lia].
++    1: rewrite List.rev_nth. 2: Lia.lia.
++    1: replace (List.length l - S (List.length l - i - 1)) with i by Lia.lia.
++    1: tauto.
++  * 1: apply not_lt in H.
++    1: specialize (List.nth_error_None l i) as H'.
++    1: intuition; solve [congruence | Lia.lia].
+ Qed.
+ 
+ Lemma word_to_bools_get_bit : forall [n] (w : word n) (i : nat) x,
+   List.nth_error (word_to_bools w) i = Some x <-> get_bit w (nat_idx (idx_nat n - i - 1)) = x /\ i < idx_nat n.
+ Proof.
+-  unfold nat_idx, idx_nat.
+-  intros.
+-  unfold word_to_bools, get_bit.
+-  specialize (bv_to_bits_lookup_Some w (N.to_nat n - i - 1) x).
+-  rewrite nth_error_lookup.
+-  intro H.
+-  rewrite nth_error_rev.
+-  rewrite List.rev_involutive, List.length_rev.
++  1: unfold nat_idx, idx_nat.
++  1: intros.
++  1: unfold word_to_bools, get_bit.
++  1: specialize (bv_to_bits_lookup_Some w (N.to_nat n - i - 1) x).
++  1: rewrite nth_error_lookup.
++  1: intro H.
++  1: rewrite nth_error_rev.
++  1: rewrite List.rev_involutive, List.length_rev.
+   (* Renamed in recent stdpp *)
+-  first [rewrite bv_to_bits_length | rewrite length_bv_to_bits].
+-  rewrite H.
+-  rewrite nat_N_Z.
+-  firstorder.
+-  Lia.lia.
++  1: first [rewrite bv_to_bits_length | rewrite length_bv_to_bits].
++  1: rewrite H.
++  1: rewrite nat_N_Z.
++  1: firstorder.
++  1: Lia.lia.
+ Qed.
+ 
+ Lemma word_to_bools_nth_Some : forall [n] (w : word n) (i : nat) x, idx_nat n > 0 ->
+   List.nth_error (word_to_bools w) i = Some x <-> x = N.testbit (word_to_N w) (N.of_nat (idx_nat n - i - 1)) /\ i < idx_nat n.
+ Proof.
+-  unfold idx_nat.
+-  intros.
+-  rewrite word_to_bools_get_bit.
+-  unfold get_bit, word_to_N.
+-  rewrite <- (Z2N.id (bv_unsigned w)) at 1.
+-  rewrite Z.testbit_of_N.
+-  intuition.
+-  firstorder using bv_unsigned_in_range.
++  1: unfold idx_nat.
++  1: intros.
++  1: rewrite word_to_bools_get_bit.
++  1: unfold get_bit, word_to_N.
++  1: rewrite <- (Z2N.id (bv_unsigned w)) at 1.
++  1: rewrite Z.testbit_of_N.
++  1: intuition.
++  1: firstorder using bv_unsigned_in_range.
+ Qed.
+ 
+ Lemma N_of_digits_limit l :
+   (Ascii.N_of_digits l < 2 ^ N.of_nat (List.length l))%N.
+ Proof.
+-  induction l.
+-  * simpl. Lia.lia.
+-  * simpl (List.length _).
+-    rewrite Nnat.Nat2N.inj_succ.
+-    rewrite N.pow_succ_r'.
+-    simpl (Ascii.N_of_digits _).
+-    destruct (Ascii.N_of_digits l); destruct a; Lia.lia.
++  1: induction l.
++  * 1: simpl. 1: Lia.lia.
++  * 1: simpl (List.length _).
++    1: rewrite Nnat.Nat2N.inj_succ.
++    1: rewrite N.pow_succ_r'.
++    1: simpl (Ascii.N_of_digits _).
++    1: destruct (Ascii.N_of_digits l); destruct a; Lia.lia.
+ Qed.
+ 
+ Local Lemma nth_error_N_of_digits l i b :
+   List.nth_error l i = Some b <-> N.testbit (Ascii.N_of_digits l) (N.of_nat i) = b /\ i < List.length l.
+ Proof.
+-  revert i.
+-  induction l.
+-  * intros. simpl. split.
+-    - intro H. apply List.nth_error_In in H. inversion H.
+-    - intros [_ H]. inversion H.
+-  * destruct i.
+-    - destruct a; simpl; destruct (Ascii.N_of_digits l); simpl; intuition; auto using Nat.lt_0_succ; congruence.
+-    - rewrite Nnat.Nat2N.inj_succ.
+-      replace (Ascii.N_of_digits (a::l)) with (2 * Ascii.N_of_digits l + N.b2n a)%N. 2: {
++  1: revert i.
++  1: induction l.
++  * 1: intros. 1: simpl. 1: split.
++    - 1: intro H. 1: apply List.nth_error_In in H. 1: inversion H.
++    - 1: intros [_ H]. 1: inversion H.
++  * 1: destruct i.
++    - 1: destruct a; simpl; destruct (Ascii.N_of_digits l); simpl; intuition; auto using Nat.lt_0_succ; congruence.
++    - 1: rewrite Nnat.Nat2N.inj_succ.
++      1: replace (Ascii.N_of_digits (a::l)) with (2 * Ascii.N_of_digits l + N.b2n a)%N. 2: {
+         simpl Ascii.N_of_digits at 2.
+-        destruct (Ascii.N_of_digits l).
+-        + destruct a; simpl; Lia.lia.
+-        + destruct a; simpl; Lia.lia.
++        1: destruct (Ascii.N_of_digits l).
++        + 1: destruct a; simpl; Lia.lia.
++        + 1: destruct a; simpl; Lia.lia.
+       }
+-      rewrite N.testbit_succ_r.
+-      specialize (IHl i).
+-      simpl.
+-      rewrite IHl.
+-      intuition; Lia.lia.
++      1: rewrite N.testbit_succ_r.
++      1: specialize (IHl i).
++      1: simpl.
++      1: rewrite IHl.
++      1: intuition; Lia.lia.
+ Qed.
+ 
+ Lemma bools_to_word_get_bit : forall l i b,
+   List.nth_error l i = Some b <-> get_bit (bools_to_word l) (nat_idx (List.length l - i - 1)) = b /\ i < List.length l.
+ Proof.
+-  unfold nat_idx.
+-  intros.
+-  unfold bools_to_word, get_bit, N_to_word.
+-  rewrite Z_to_bv_unsigned.
+-  rewrite bv_wrap_small. 2: {
++  1: unfold nat_idx.
++  1: intros.
++  1: unfold bools_to_word, get_bit, N_to_word.
++  1: rewrite Z_to_bv_unsigned.
++  1: rewrite bv_wrap_small. 2: {
+     split; [Lia.lia|].
+-    unfold bv_modulus.
+-    specialize (N_of_digits_limit (List.rev l)).
+-    rewrite List.length_rev.
+-    Lia.lia.
++    1: unfold bv_modulus.
++    1: specialize (N_of_digits_limit (List.rev l)).
++    1: rewrite List.length_rev.
++    1: Lia.lia.
+   }
+-  rewrite Z.testbit_of_N.
+-  rewrite nth_error_rev.
+-  specialize (nth_error_N_of_digits (List.rev l) (List.length l - i - 1) b).
+-  rewrite List.length_rev.
+-  assert (i < Datatypes.length l -> Datatypes.length l - i - 1 < Datatypes.length l) by Lia.lia.
+-  intuition.
++  1: rewrite Z.testbit_of_N.
++  1: rewrite nth_error_rev.
++  1: specialize (nth_error_N_of_digits (List.rev l) (List.length l - i - 1) b).
++  1: rewrite List.length_rev.
++  1: assert (i < Datatypes.length l -> Datatypes.length l - i - 1 < Datatypes.length l) by Lia.lia.
++  1: intuition.
+ Qed.
+ 
+ Lemma bools_to_word_nth_Some : forall (l : list bool) i b,
+   List.nth_error l i = Some b <-> b = N.testbit (word_to_N (bools_to_word l)) (N.of_nat (List.length l - i - 1)) /\ i < List.length l.
+ Proof.
+-  intros.
+-  rewrite bools_to_word_get_bit.
+-  unfold get_bit, word_to_N.
+-  rewrite <- (Z2N.id (bv_unsigned (bools_to_word l))) at 1. 2: {
++  1: intros.
++  1: rewrite bools_to_word_get_bit.
++  1: unfold get_bit, word_to_N.
++  1: rewrite <- (Z2N.id (bv_unsigned (bools_to_word l))) at 1. 2: {
+     specialize (bv_unsigned_in_range _ (bools_to_word l)).
+-    intuition.
++    1: intuition.
+   }
+-  rewrite Z.testbit_of_N.
+-  intuition.
++  1: rewrite Z.testbit_of_N.
++  1: intuition.
+ Qed.
+ 
+ Definition slice {m} n (w : word m) i : word n := bv_extract i _ w.
+@@ -340,8 +340,8 @@
+ Definition eqb [n] (w v : word n) := bool_decide (w = v).
+ Lemma eqb_true_iff {n} (w v : word n) : eqb w v = true <-> w = v.
+ Proof.
+-  unfold eqb.
+-  case_bool_decide; split; congruence.
++  1: unfold eqb.
++  1: case_bool_decide; split; congruence.
+ Qed.
+ 
+ Definition reverse_endian [n] (w : word n) : word n :=
+@@ -355,11 +355,11 @@
+ 
+ Local Lemma list_concat_base n : 0%N = (n * N.of_nat (List.length (A := word n) []))%N.
+ Proof.
+-  simpl. lia.
++  1: simpl. 1: lia.
+ Qed.
+ Local Lemma list_concat_step n l (w : word n) : (n + n * N.of_nat (List.length l))%N = (n * N.of_nat (List.length (w :: l)))%N.
+ Proof.
+-  simpl. lia.
++  1: simpl. 1: lia.
+ Qed.
+ 
+ Definition word_list_concat [n] (l : list (word n)) : word (idx_mul n (nat_idx (List.length l))) :=
+--- a/src/Operators_mwords.v
++++ b/src/Operators_mwords.v
+@@ -138,19 +138,19 @@
+ (* Demonstrate that uint has the range expected by the Sail type. *)
+ Lemma uint_range {a} (x : mword a) : a >= 0 -> 0 <= uint x <= 2 ^ a - 1.
+ Proof.
+-  intro a_ge_0.
+-  split.
+-  * apply N2Z.is_nonneg.
+-  * unfold uint.
+-    assert (LELT: forall x y, x <= y - 1 <-> x < y) by lia.
+-    rewrite LELT.
+-    replace (2 ^ a) with (Z.of_N (2 ^ (Z.to_N a))). 2: {
++  1: intro a_ge_0.
++  1: split.
++  * 1: apply N2Z.is_nonneg.
++  * 1: unfold uint.
++    1: assert (LELT: forall x y, x <= y - 1 <-> x < y) by lia.
++    1: rewrite LELT.
++    1: replace (2 ^ a) with (Z.of_N (2 ^ (Z.to_N a))). 2: {
+       rewrite N2Z.inj_pow.
+-      rewrite Z2N.id; auto with zarith.
++      1: rewrite Z2N.id; auto with zarith.
+     }
+-    apply N2Z.inj_lt.
+-    rewrite <- (MachineWord.idx_N_Z_idx a).
+-    apply MachineWord.word_to_N_range.
++    1: apply N2Z.inj_lt.
++    1: rewrite <- (MachineWord.idx_N_Z_idx a).
++    1: apply MachineWord.word_to_N_range.
+ Qed.
+ 
+ Definition sint {a} (x : mword a) : Z := MachineWord.word_to_Z x.
+@@ -158,36 +158,36 @@
+ (* Demonstrate that sint has the range expected by the Sail type. *)
+ Lemma sint_range {a} (x : mword a) : a > 0 -> -(2^(a-1)) <= sint x <= 2 ^ (a-1) - 1.
+ Proof.
+-  intro a_gt_0.
+-  revert x.
+-  unfold mword, sint.
+-  replace a with (Z.succ (a - 1)) by lia.
+-  rewrite MachineWord.Z_idx_S; [ | lia].
+-  intro x.
+-  replace (Z.succ (a - 1) - 1) with (a - 1) by lia.
+-  rewrite <- (MachineWord.idx_Z_idx (a - 1)) at 1 4 by lia.
+-
+-  assert (LELT: forall x y, x <= y - 1 <-> x < y) by lia.
+-  rewrite LELT.
+-
+-  apply MachineWord.word_to_Z_range.
++  1: intro a_gt_0.
++  1: revert x.
++  1: unfold mword, sint.
++  1: replace a with (Z.succ (a - 1)) by lia.
++  1: rewrite MachineWord.Z_idx_S; [ | lia].
++  1: intro x.
++  1: replace (Z.succ (a - 1) - 1) with (a - 1) by lia.
++  1: rewrite <- (MachineWord.idx_Z_idx (a - 1)) at 1 4 by lia.
++
++  1: assert (LELT: forall x y, x <= y - 1 <-> x < y) by lia.
++  1: rewrite LELT.
++
++  1: apply MachineWord.word_to_Z_range.
+ Qed.
+ 
+ Lemma length_list_pos : forall {A} {l:list A}, 0 <= Z.of_nat (List.length l).
+ Proof.
+-  unfold length_list.
+-  auto with zarith.
++  1: unfold length_list.
++  1: auto with zarith.
+ Qed.
+ #[export] Hint Resolve length_list_pos : sail.
+ 
+ Local Lemma vec_of_bits_idx (l : list (mword 1)) :
+   MachineWord.idx_Z (MachineWord.idx_mul (MachineWord.Z_idx 1) (MachineWord.nat_idx (length l))) = length_list l.
+ Proof.
+-  rewrite MachineWord.nat_idx_Z.
+-  rewrite MachineWord.idx_Z_idx_mul.
+-  rewrite !MachineWord.idx_Z_idx; [|lia|lia].
+-  rewrite Z.mul_1_l.
+-  reflexivity.
++  1: rewrite MachineWord.nat_idx_Z.
++  1: rewrite MachineWord.idx_Z_idx_mul.
++  1: rewrite !MachineWord.idx_Z_idx; [|lia|lia].
++  1: rewrite Z.mul_1_l.
++  1: reflexivity.
+ Qed.
+ 
+ Definition vec_of_bits (l:list (mword 1)) : mword (length_list l) :=
+@@ -229,15 +229,15 @@
+ Lemma eq_vec_true_iff {n} (v w : mword n) :
+   eq_vec v w = true <-> v = w.
+ Proof.
+-  unfold eq_vec.
+-  apply MachineWord.eqb_true_iff.
++  1: unfold eq_vec.
++  1: apply MachineWord.eqb_true_iff.
+ Qed.
+ 
+ Lemma eq_vec_false_iff {n} (v w : mword n) :
+   eq_vec v w = false <-> v <> w.
+ Proof.
+-  specialize (eq_vec_true_iff v w).
+-  destruct (eq_vec v w); intuition congruence.
++  1: specialize (eq_vec_true_iff v w).
++  1: destruct (eq_vec v w); intuition congruence.
+ Qed.
+ 
+ Definition reverse_endianness {n} (bits : mword n) := MachineWord.reverse_endian bits.
+@@ -264,7 +264,7 @@
+ 
+ Lemma get_slice_int_eta len n lo : get_slice_int len n lo = get_slice_int' len n lo.
+ Proof.
+-  destruct n; reflexivity.
++  1: destruct n; reflexivity.
+ Qed.
+ 
+ Definition set_slice n m (v : mword n) x (w : mword m) : mword n :=
+@@ -285,11 +285,11 @@
+                   (H1 : 0 <= lo) (H2 : 0 < len) (H3: lo + len < m) :
+   slice v lo len = autocast (subrange_vec_dec v (lo + len - 1) lo).
+ Proof.
+-  unfold slice, subrange_vec_dec.
+-  replace (lo + len - 1 - lo + 1) with len by lia.
+-  rewrite autocast_refl.
+-  apply to_word_idx_cast.
+-  lia.
++  1: unfold slice, subrange_vec_dec.
++  1: replace (lo + len - 1 - lo + 1) with len by lia.
++  1: rewrite autocast_refl.
++  1: apply to_word_idx_cast.
++  1: lia.
+ Qed.
+ 
+ Import ListNotations.
+--- a/src/Prompt.v
++++ b/src/Prompt.v
+@@ -170,17 +170,17 @@
+ (* For termination of recursive functions. *)
+ Definition _limit_reduces {_limit} (_acc:Acc (Zwf 0) _limit) (H : _limit >= 0) : Acc (Zwf 0) (_limit - 1).
+ Proof.
+-  refine (Acc_inv _acc _).
+-  unbool_comparisons.
+-  red.
+-  lia.
++  1: refine (Acc_inv _acc _).
++  1: unbool_comparisons.
++  1: red.
++  1: lia.
+ Defined.
+ 
+ Definition _limit_reduces_bool {_limit} (_acc:Acc (Zwf 0) _limit) (H: (_limit >=? 0) = true) : Acc (Zwf 0) (_limit - 1).
+ Proof.
+-  refine (_limit_reduces _acc _).
+-  apply Z.geb_ge.
+-  assumption.
++  1: refine (_limit_reduces _acc _).
++  1: apply Z.geb_ge.
++  1: assumption.
+ Defined.
+ 
+ (* A version of well-foundedness of measures with a guard to ensure that
+--- a/src/Prompt_monad.v
++++ b/src/Prompt_monad.v
+@@ -135,8 +135,8 @@
+   Choose s ty x = Choose s ty y ->
+   x = y.
+ Proof.
+-  intros [=].
+-  assumption.
++  1: intros [=].
++  1: assumption.
+ Qed.
+ 
+ Inductive event :=
+--- a/src/Real.v
++++ b/src/Real.v
+@@ -117,18 +117,18 @@
+   0 < m -> 0 < n ->
+   (IZR (m / n) <= IZR m / IZR n)%R.
+ Proof.
+-  intros.
+-  apply Rmult_le_reg_l with (r := IZR n).
+-  auto using IZR_lt.
+-  unfold Rdiv.
+-  rewrite <- Rmult_assoc.
+-  rewrite Rinv_r_simpl_m.
+-  rewrite <- mult_IZR.
+-  apply IZR_le.
+-  apply Z.mul_div_le.
+-  assumption.
+-  discrR.
+-  lia.
++  1: intros.
++  1: apply Rmult_le_reg_l with (r := IZR n).
++  1: auto using IZR_lt.
++  1: unfold Rdiv.
++  1: rewrite <- Rmult_assoc.
++  1: rewrite Rinv_r_simpl_m.
++  1: rewrite <- mult_IZR.
++  1: apply IZR_le.
++  1: apply Z.mul_div_le.
++  1: assumption.
++  1: discrR.
++  1: lia.
+ Qed.
+ 
+ (* One annoying use of reals in the ARM spec I've been looking at. *)
+@@ -136,49 +136,49 @@
+   0 < m -> 0 < n ->
+   round_up (div_real (to_real m) (to_real n)) = (m + n - 1) / n.
+ Proof.
+-  intros.
+-  unfold round_up, round_down, div_real, to_real.
+-  apply Z.eq_opp_l.
+-  apply Z.sub_move_r.
+-  symmetry.
+-  apply up_tech.
++  1: intros.
++  1: unfold round_up, round_down, div_real, to_real.
++  1: apply Z.eq_opp_l.
++  1: apply Z.sub_move_r.
++  1: symmetry.
++  1: apply up_tech.
+ 
+-  rewrite Ropp_Ropp_IZR.
+-  apply Ropp_le_contravar.
+-  apply Rmult_le_reg_l with (r := IZR n).
+-  auto using IZR_lt.
+-  unfold Rdiv.
+-  rewrite <- Rmult_assoc.
+-  rewrite Rinv_r_simpl_m.
+-  rewrite <- mult_IZR.
+-  apply IZR_le.
+-  assert (diveq : n*((m+n-1)/n) = (m+n-1) - (m+n-1) mod n).
+-  apply Zplus_minus_eq.
+-  rewrite (Z.add_comm ((m+n-1) mod n)).
+-  apply Z.div_mod.
+-  lia.
+-  rewrite diveq.
+-  assert (modmax : (m+n-1) mod n < n).
+-  specialize (Z.mod_pos_bound (m+n-1) n). intuition.
+-  lia.
++  1: rewrite Ropp_Ropp_IZR.
++  1: apply Ropp_le_contravar.
++  1: apply Rmult_le_reg_l with (r := IZR n).
++  1: auto using IZR_lt.
++  1: unfold Rdiv.
++  1: rewrite <- Rmult_assoc.
++  1: rewrite Rinv_r_simpl_m.
++  1: rewrite <- mult_IZR.
++  1: apply IZR_le.
++  1: assert (diveq : n*((m+n-1)/n) = (m+n-1) - (m+n-1) mod n).
++  1: apply Zplus_minus_eq.
++  1: rewrite (Z.add_comm ((m+n-1) mod n)).
++  1: apply Z.div_mod.
++  1: lia.
++  1: rewrite diveq.
++  1: assert (modmax : (m+n-1) mod n < n).
++  1: specialize (Z.mod_pos_bound (m+n-1) n). 1: intuition.
++  1: lia.
+ 
+-  discrR; lia.
++  1: discrR; lia.
+ 
+-  rewrite <- Z.opp_sub_distr.
+-  rewrite Ropp_Ropp_IZR.
+-  apply Ropp_lt_contravar.
+-  apply Rmult_lt_reg_l with (r := IZR n).
+-  auto using IZR_lt.
+-  unfold Rdiv.
+-  rewrite <- Rmult_assoc.
+-  rewrite Rinv_r_simpl_m.
+-  2: { discrR. lia. }
+-  rewrite <- mult_IZR.
+-  apply IZR_lt.
+-  rewrite Z.mul_sub_distr_l.
+-  apply Z.le_lt_trans with (m := m+n-1-n*1).
+-  apply Z.sub_le_mono_r.
+-  apply Z.mul_div_le.
+-  assumption.
+-  lia.
++  1: rewrite <- Z.opp_sub_distr.
++  1: rewrite Ropp_Ropp_IZR.
++  1: apply Ropp_lt_contravar.
++  1: apply Rmult_lt_reg_l with (r := IZR n).
++  1: auto using IZR_lt.
++  1: unfold Rdiv.
++  1: rewrite <- Rmult_assoc.
++  1: rewrite Rinv_r_simpl_m.
++  2: { discrR. 1: lia. }
++  1: rewrite <- mult_IZR.
++  1: apply IZR_lt.
++  1: rewrite Z.mul_sub_distr_l.
++  1: apply Z.le_lt_trans with (m := m+n-1-n*1).
++  1: apply Z.sub_le_mono_r.
++  1: apply Z.mul_div_le.
++  1: assumption.
++  1: lia.
+ Qed.
+--- a/src/State_lemmas.v
++++ b/src/State_lemmas.v
+@@ -80,59 +80,59 @@
+   m2 === m2' ->
+   m1 >>$ m2 === m1' >>$ m2'.
+ Proof.
+-  unfold seqS.
+-  auto using bindS_cong.
++  1: unfold seqS.
++  1: auto using bindS_cong.
+ Qed.
+ 
+ Lemma foreachS_cong {A RV Vars E} xs vars f f' :
+   (forall a vars, f a vars === f' a vars) ->
+   @foreachS A RV Vars E xs vars f === foreachS xs vars f'.
+ Proof.
+-  intro H.
+-  revert vars.
+-  induction xs.
+-  * reflexivity.
+-  * intros. simpl.
+-    rewrite H.
+-    apply bindS_cong; auto.
++  1: intro H.
++  1: revert vars.
++  1: induction xs.
++  * 1: reflexivity.
++  * 1: intros. 1: simpl.
++    1: rewrite H.
++    1: apply bindS_cong; auto.
+ Qed.
+ 
+ Add Parametric Morphism {Regs A Vars E : Type} : (@foreachS A Regs Vars E)
+   with signature eq ==> eq ==> equiv ==> equiv as foreachS_morphism.
+ Proof.
+-  apply foreachS_cong.
++  1: apply foreachS_cong.
+ Qed.
+ 
+ Lemma foreach_ZS_up_cong rv e Vars from to step vars body body' :
+   (forall a vars, body a vars === body' a vars) ->
+   @foreach_ZS_up rv e Vars from to step vars body === foreach_ZS_up from to step vars body'.
+ Proof.
+-  intro EQ.
+-  unfold foreach_ZS_up.
+-  generalize 0 as off.
+-  revert vars.
+-  induction (S (Z.abs_nat (from - to))); intros; simpl.
+-  * reflexivity.
+-  * destruct (sumbool_of_bool (from + off <=? to)); auto.
+-    rewrite EQ.
+-    setoid_rewrite IHn.
+-    reflexivity.
++  1: intro EQ.
++  1: unfold foreach_ZS_up.
++  1: generalize 0 as off.
++  1: revert vars.
++  1: induction (S (Z.abs_nat (from - to))); intros; simpl.
++  * 1: reflexivity.
++  * 1: destruct (sumbool_of_bool (from + off <=? to)); auto.
++    1: rewrite EQ.
++    1: setoid_rewrite IHn.
++    1: reflexivity.
+ Qed.
+ 
+ Lemma foreach_ZS_down_cong rv e Vars from to step vars body body' :
+   (forall a vars, body a vars === body' a vars) ->
+   @foreach_ZS_down rv e Vars from to step vars body === foreach_ZS_down from to step vars body'.
+ Proof.
+-  intro EQ.
+-  unfold foreach_ZS_down.
+-  generalize 0 as off.
+-  revert vars.
+-  induction (S (Z.abs_nat (from - to))); intros; simpl.
+-  * reflexivity.
+-  * destruct (sumbool_of_bool (to <=? from + off)); auto.
+-    rewrite EQ.
+-    setoid_rewrite IHn.
+-    reflexivity.
++  1: intro EQ.
++  1: unfold foreach_ZS_down.
++  1: generalize 0 as off.
++  1: revert vars.
++  1: induction (S (Z.abs_nat (from - to))); intros; simpl.
++  * 1: reflexivity.
++  * 1: destruct (sumbool_of_bool (to <=? from + off)); auto.
++    1: rewrite EQ.
++    1: setoid_rewrite IHn.
++    1: reflexivity.
+ Qed.
+ 
+ Local Opaque _limit_reduces.
+@@ -144,34 +144,34 @@
+   (forall vars, body vars === body' vars) ->
+   @whileST RV Vars E vars measure cond body === whileST vars measure cond' body'.
+ Proof.
+-  intros Econd Ebody.
+-  unfold whileST.
+-  generalize (measure vars) as limit. intro.
+-  revert vars.
+-  destruct (Z.le_decidable 0 limit).
+-  * generalize (Zwf_guarded limit) as acc.
+-    apply Wf_Z.natlike_ind with (x := limit).
+-    + intros [acc] *; simpl.
+-      apply bindS_cong; auto.
+-      intros [|]; auto.
+-      apply bindS_cong; auto.
+-      intros. destruct (_limit_reduces _). simpl.
+-      reflexivity.
+-    + clear limit H.
+-      intros limit H IH [acc] vars s. simpl.
+-      destruct (Z_ge_dec _ _). 2: lia.
+-      apply bindS_cong; auto.
+-      intros [|]; auto.
+-      apply bindS_cong; auto.
+-      intros.
+-      gen_reduces.
+-      replace (Z.succ limit - 1) with limit. 2: lia. intro acc'.
+-      apply IH.
+-    + assumption.
+-  * intros. simpl.
+-    destruct (Z_ge_dec _ _).
+-    + lia.
+-    + reflexivity.
++  1: intros Econd Ebody.
++  1: unfold whileST.
++  1: generalize (measure vars) as limit. 1: intro.
++  1: revert vars.
++  1: destruct (Z.le_decidable 0 limit).
++  * 1: generalize (Zwf_guarded limit) as acc.
++    1: apply Wf_Z.natlike_ind with (x := limit).
++    + 1: intros [acc] *; simpl.
++      1: apply bindS_cong; auto.
++      1: intros [|]; auto.
++      1: apply bindS_cong; auto.
++      1: intros. 1: destruct (_limit_reduces _). 1: simpl.
++      1: reflexivity.
++    + 1: clear limit H.
++      1: intros limit H IH [acc] vars s. 1: simpl.
++      1: destruct (Z_ge_dec _ _). 2: lia.
++      1: apply bindS_cong; auto.
++      1: intros [|]; auto.
++      1: apply bindS_cong; auto.
++      1: intros.
++      1: gen_reduces.
++      1: replace (Z.succ limit - 1) with limit. 2: lia. 1: intro acc'.
++      1: apply IH.
++    + 1: assumption.
++  * 1: intros. 1: simpl.
++    1: destruct (Z_ge_dec _ _).
++    + 1: lia.
++    + 1: reflexivity.
+ Qed.
+ 
+ Lemma untilST_cong RV Vars E measure vars cond cond' (body body' : Vars -> monadS RV Vars E) :
+@@ -179,51 +179,51 @@
+   (forall vars, body vars === body' vars) ->
+   untilST vars measure cond body === untilST vars measure cond' body'.
+ Proof.
+-  intros Econd Ebody.
+-  unfold untilST.
+-  generalize (measure vars) as limit. intro.
+-  revert vars.
+-  destruct (Z.le_decidable 0 limit).
+-  * generalize (Zwf_guarded limit) as acc.
+-    apply Wf_Z.natlike_ind with (x := limit).
+-    + intros [acc] * s; simpl.
+-      apply bindS_cong; auto.
+-      intros. apply bindS_cong; auto.
+-      intros [|]; auto.
+-      destruct (_limit_reduces _). simpl.
+-      reflexivity.
+-    + clear limit H.
+-      intros limit H IH [acc] vars s. simpl.
+-      destruct (Z_ge_dec _ _). 2: lia.
+-      apply bindS_cong; auto.
+-      intros. apply bindS_cong; auto.
+-      intros [|]; auto.
+-      gen_reduces.
+-      replace (Z.succ limit - 1) with limit. 2: lia. intro acc'.
+-      apply IH.
+-    + assumption.
+-  * intros. simpl.
+-    destruct (Z_ge_dec _ _).
+-    + lia.
+-    + reflexivity.
++  1: intros Econd Ebody.
++  1: unfold untilST.
++  1: generalize (measure vars) as limit. 1: intro.
++  1: revert vars.
++  1: destruct (Z.le_decidable 0 limit).
++  * 1: generalize (Zwf_guarded limit) as acc.
++    1: apply Wf_Z.natlike_ind with (x := limit).
++    + 1: intros [acc] * s; simpl.
++      1: apply bindS_cong; auto.
++      1: intros. 1: apply bindS_cong; auto.
++      1: intros [|]; auto.
++      1: destruct (_limit_reduces _). 1: simpl.
++      1: reflexivity.
++    + 1: clear limit H.
++      1: intros limit H IH [acc] vars s. 1: simpl.
++      1: destruct (Z_ge_dec _ _). 2: lia.
++      1: apply bindS_cong; auto.
++      1: intros. 1: apply bindS_cong; auto.
++      1: intros [|]; auto.
++      1: gen_reduces.
++      1: replace (Z.succ limit - 1) with limit. 2: lia. 1: intro acc'.
++      1: apply IH.
++    + 1: assumption.
++  * 1: intros. 1: simpl.
++    1: destruct (Z_ge_dec _ _).
++    + 1: lia.
++    + 1: reflexivity.
+ Qed.
+ 
+ Lemma genlistS_cong {A RV E} f f' n :
+   (forall i, f i === f' i) ->
+   @genlistS A RV E f n === genlistS f' n.
+ Proof.
+-  intro H.
+-  apply foreachS_cong.
+-  intros. rewrite H.
+-  reflexivity.
++  1: intro H.
++  1: apply foreachS_cong.
++  1: intros. 1: rewrite H.
++  1: reflexivity.
+ Qed.
+ 
+ Add Parametric Morphism {A RV E : Type} : (@genlistS A RV E)
+   with signature equiv ==> eq ==> equiv as genlistS_morphism.
+ Proof.
+-  intros f g EQ n.
+-  apply genlistS_cong.
+-  auto.
++  1: intros f g EQ n.
++  1: apply genlistS_cong.
++  1: auto.
+ Qed.
+ 
+ Lemma and_boolS_cong {RV E} x x' y y' :
+@@ -231,10 +231,10 @@
+   y === y' ->
+   @and_boolS RV E x y === and_boolS x' y'.
+ Proof.
+-  intros E1 E2.
+-  unfold and_boolS.
+-  apply bindS_cong; auto.
+-  intros [|]; auto.
++  1: intros E1 E2.
++  1: unfold and_boolS.
++  1: apply bindS_cong; auto.
++  1: intros [|]; auto.
+ Qed.
+ 
+ Lemma or_boolS_cong {RV E} x x' y y' :
+@@ -242,24 +242,25 @@
+   y === y' ->
+   @or_boolS RV E x y === or_boolS x' y'.
+ Proof.
+-  intros E1 E2.
+-  unfold or_boolS.
+-  apply bindS_cong; auto.
+-  intros [|]; auto.
++  1: intros E1 E2.
++  1: unfold or_boolS.
++  1: apply bindS_cong; auto.
++  1: intros [|]; auto.
+ Qed.
+ 
+ Lemma liftRS_cong {A R Regs E} m m' :
+   m === m' ->
+   @liftRS A R Regs E m === liftRS m'.
+ Proof.
+-  intros E1.
+-  unfold liftRS.
+-  apply try_catchS_cong; auto.
++  1: intros E1.
++  1: unfold liftRS.
++  1: apply try_catchS_cong; auto.
+ Qed.
+ 
+ (* Monad lifting *)
+ 
+ Create HintDb liftState.
++Create Rewrite HintDb liftState.
+ (* Requires Rocq 9.3
+ Create Rewrite HintDb liftState.
+ *)
+@@ -267,7 +268,7 @@
+ Lemma liftState_bind Reg RegType Regs A B E {r : Values.register_accessors Regs Reg RegType} {m : @monad Reg RegType A E} {f : A -> @monad Reg RegType B E} :
+   liftState r (bind m f) === bindS (liftState r m) (fun x => liftState r (f x)).
+ Proof.
+-  induction m; simpl; autorewrite with state; auto using bindS_cong.
++  1: induction m; simpl; autorewrite with state; auto using bindS_cong.
+ Qed.
+ #[export] Hint Rewrite liftState_bind : liftState.
+ #[export] Hint Resolve liftState_bind : liftState.
+@@ -275,7 +276,7 @@
+ Lemma liftState_bind0 Reg RegType Regs B E {r : Values.register_accessors Regs Reg RegType} {m : @monad Reg RegType unit E} {m' : @monad Reg RegType B E} :
+   liftState r (bind0 m m') === seqS (liftState r m) (liftState r m').
+ Proof.
+-  induction m; simpl; autorewrite with state; auto using bindS_cong.
++  1: induction m; simpl; autorewrite with state; auto using bindS_cong.
+ Qed.
+ #[export] Hint Rewrite liftState_bind0 : liftState.
+ #[export] Hint Resolve liftState_bind0 : liftState.
+@@ -296,8 +297,8 @@
+ Lemma eq_equiv A R (x y : A) (H : Equivalence R) :
+   x = y -> @equiv A R H x y.
+ Proof.
+-  intro EQ; subst.
+-  auto.
++  1: intro EQ; subst.
++  1: auto.
+ Qed.
+ 
+ Local Ltac tryrw db :=
+@@ -308,8 +309,8 @@
+   y === y' ->
+   (if c then x else y) === if c then x' else y'.
+ Proof.
+-  intros E1 E2.
+-  destruct c; auto. 
++  1: intros E1 E2.
++  1: destruct c; auto. 
+ Qed.
+ 
+ Lemma if_sumbool_cong A P Q (R : relation A) `{H:Equivalence _ R} (x x' y y' : A) (c : sumbool P Q) :
+@@ -317,8 +318,8 @@
+   y === y' ->
+   (if c then x else y) === if c then x' else y'.
+ Proof.
+-  intros E1 E2.
+-  destruct c; auto. 
++  1: intros E1 E2.
++  1: destruct c; auto. 
+ Qed.
+ 
+ Ltac statecong db :=
+@@ -384,7 +385,7 @@
+ Lemma liftState_return Reg RegType Regs A E {r : Values.register_accessors Regs Reg RegType} {a :A} :
+   liftState (E:=E) r (returnm a) = returnS a.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite liftState_return : liftState.
+ #[export] Hint Resolve liftState_return : liftState.
+@@ -402,7 +403,7 @@
+ Lemma liftState_if_distrib Regs Reg RegType A E {r x y} {c : bool} :
+   @liftState Regs Reg RegType A E r (if c then x else y) = if c then liftState r x else liftState r y.
+ Proof.
+-  destruct c; reflexivity.
++  1: destruct c; reflexivity.
+ Qed.
+ #[export] Hint Resolve liftState_if_distrib : liftState.
+ (* TODO: try to find a way to make the above hint work when an alias is used for the
+@@ -412,7 +413,7 @@
+ Lemma liftState_if_distrib_sumbool {Regs Reg RegType A E P Q r x y} {c : sumbool P Q} :
+   @liftState Regs Reg RegType A E r (if c then x else y) = if c then liftState r x else liftState r y.
+ Proof.
+-  destruct c; reflexivity.
++  1: destruct c; reflexivity.
+ Qed.
+ #[export] Hint Resolve liftState_if_distrib_sumbool : liftState.
+ (* As above, but simple apply doesn't seem to work (again, due to unification problems
+@@ -429,7 +430,7 @@
+ Lemma liftState_match_distrib_sumbool {Regs Reg RegType A E P Q r x y} {c : sumbool P Q} :
+   @liftState Regs Reg RegType A E r (match c with left H => x H | right H => y H end) = match c with left H => liftState r (x H) | right H => liftState r (y H) end.
+ Proof.
+-  destruct c; reflexivity.
++  1: destruct c; reflexivity.
+ Qed.
+ (* As above, but also need to beta reduce H into x and y. *)
+ #[export] Hint Extern 0 (liftState _ ?t = _) =>
+@@ -444,8 +445,8 @@
+   @liftState Regs Reg RegType A E r (let '(y, z) := x in M y z) =
+   let '(y, z) := x in liftState r (M y z).
+ Proof.
+-  destruct x.
+-  reflexivity.
++  1: destruct x.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Extern 0 (liftState _ (let '(x,y) := _ in _) = _) =>
+   (rewrite liftState_let_pair; reflexivity) : liftState.
+@@ -454,8 +455,8 @@
+   @liftState Regs Reg RegType A E r (let '(@existT _ _ y z) := x in M y z) =
+   let '(@existT _ _ y z) := x in liftState r (M y z).
+ Proof.
+-  destruct x.
+-  reflexivity.
++  1: destruct x.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Extern 0 (liftState _ (let '(@existT _ _ x y) := _ in _) = _) =>
+   (rewrite liftState_let_Tpair; reflexivity) : liftState.
+@@ -464,7 +465,7 @@
+   @liftState Regs Reg RegType B E r (match x with None => m | Some v => f v end) =
+   match x with None => liftState r m | Some v => liftState r (f v) end.
+ Proof.
+-  destruct x; reflexivity.
++  1: destruct x; reflexivity.
+ Qed.
+ #[export] Hint Extern 0 (liftState _ (match _ with None => _ | Some _ => _ end) = _) =>
+   (rewrite liftState_opt_match; reflexivity) : liftState.
+@@ -472,83 +473,83 @@
+ Lemma Value_bindS_iff {Regs A B E} {f : A -> monadS Regs B E} {b m s cs s'' cs''} :
+   List.In (Value b, s'', cs'') (bindS m f s cs) <-> (exists a s' cs', List.In (Value a, s', cs') (m s cs) /\ List.In (Value b, s'', cs'') (f a s' cs')).
+ Proof.
+-  split.
+-  * intro H.
+-    apply bindS_cases in H.
+-    destruct H as [(? & ? & ? & ? & [= <-] & ? & ?) | [(? & [= <-] & ?) | (? & ? & ? & ? & [= <-] & ? & ?)]];
++  1: split.
++  * 1: intro H.
++    1: apply bindS_cases in H.
++    1: destruct H as [(? & ? & ? & ? & [= <-] & ? & ?) | [(? & [= <-] & ?) | (? & ? & ? & ? & [= <-] & ? & ?)]];
+     eauto.
+-  * intros (? & ? & ? & ? & ?).
+-    eauto with bindS_intros.
++  * 1: intros (? & ? & ? & ? & ?).
++    1: eauto with bindS_intros.
+ Qed.
+ 
+ Lemma Ex_bindS_iff {Regs A B E} {f : A -> monadS Regs B E} {m e s cs s'' cs''} :
+   List.In (Ex e, s'', cs'') (bindS m f s cs) <-> List.In (Ex e, s'', cs'') (m s cs) \/ (exists a s' cs', List.In (Value a, s', cs') (m s cs) /\ List.In (Ex e, s'', cs'') (f a s' cs')).
+ Proof.
+-  split.
+-  * intro H.
+-    apply bindS_cases in H.
+-    destruct H as [(? & ? & ? & ? & [= <-] & ? & ?) | [(? & [= <-] & ?) | (? & ? & ? & ? & [= <-] & ? & ?)]];
++  1: split.
++  * 1: intro H.
++    1: apply bindS_cases in H.
++    1: destruct H as [(? & ? & ? & ? & [= <-] & ? & ?) | [(? & [= <-] & ?) | (? & ? & ? & ? & [= <-] & ? & ?)]];
+     eauto 10.
+-  * intros [H | (? & ? & ? & H1 & H2)];
++  * 1: intros [H | (? & ? & ? & H1 & H2)];
+     eauto with bindS_intros.
+ Qed.
+ 
+ Lemma liftState_throw Regs Reg RegType A E {r} {e : E} :
+   @liftState Regs Reg RegType A E r (throw e) = throwS e.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ Lemma liftState_assert Regs Reg RegType E {r c msg} :
+   @liftState Regs Reg RegType _ E r (assert_exp c msg) = assert_expS c msg.
+ Proof.
+-  destruct c; reflexivity.
++  1: destruct c; reflexivity.
+ Qed.
+ Lemma liftState_assert' Regs Reg RegType E {r c msg} :
+   @liftState Regs Reg RegType _ E r (assert_exp' c msg) = assert_expS' c msg.
+ Proof.
+-  destruct c; reflexivity.
++  1: destruct c; reflexivity.
+ Qed.
+ Lemma liftState_exit Regs Reg RegType A E r :
+   @liftState Regs Reg RegType A E r (exit tt) = exitS tt.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ Lemma liftState_exclResult Regs Reg RegType E r :
+   @liftState Regs Reg RegType _ E r (excl_result tt) = excl_resultS tt.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ Lemma liftState_barrier Regs Reg RegType E r bk :
+   @liftState Regs Reg RegType _ E r (barrier bk) = returnS tt.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ Lemma liftState_footprint Regs Reg RegType E r :
+   @liftState Regs Reg RegType _ E r (footprint tt) = returnS tt.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ Lemma liftState_maybe_fail Regs Reg RegType A E r msg x :
+   @liftState Regs Reg RegType A E r (maybe_fail msg x) = maybe_failS msg x.
+ Proof.
+-  destruct x; reflexivity.
++  1: destruct x; reflexivity.
+ Qed.
+ Lemma liftState_and_boolM Regs Reg RegType E r x y :
+   @liftState Regs Reg RegType _ E r (and_boolM x y) === and_boolS (liftState r x) (liftState r y).
+ Proof.
+-  unfold and_boolM, and_boolS.
+-  rewrite_liftState.
+-  reflexivity.
++  1: unfold and_boolM, and_boolS.
++  1: rewrite_liftState.
++  1: reflexivity.
+ Qed.
+ 
+ Lemma liftState_or_boolM Regs Reg RegType E r x y :
+   @liftState Regs Reg RegType _ E r (or_boolM x y) === or_boolS (liftState r x) (liftState r y).
+ Proof.
+-  unfold or_boolM, or_boolS.
+-  rewrite liftState_bind.
+-  apply bindS_cong; auto.
+-  intros. rewrite liftState_if_distrib.
+-  reflexivity.
++  1: unfold or_boolM, or_boolS.
++  1: rewrite liftState_bind.
++  1: apply bindS_cong; auto.
++  1: intros. 1: rewrite liftState_if_distrib.
++  1: reflexivity.
+ Qed.
+ 
+ #[export] Hint Rewrite liftState_throw liftState_assert liftState_assert' liftState_exit
+@@ -567,7 +568,7 @@
+ Lemma liftState_try_catch Regs Reg RegType A E1 E2 r m h :
+   @liftState Regs Reg RegType A E2 r (try_catch (E1 := E1) m h) === try_catchS (liftState r m) (fun e => liftState r (h e)).
+ Proof.
+-  induction m; intros; simpl; autorewrite with state;
++  1: induction m; intros; simpl; autorewrite with state;
+   solve
+   [ auto
+   | erewrite try_catchS_bindS_no_throw; intros;
+@@ -581,7 +582,7 @@
+ Lemma liftState_early_return Regs Reg RegType A R E r x :
+   liftState (Regs := Regs) r (@early_return Reg RegType A R E x) = early_returnS x.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite liftState_early_return : liftState.
+ #[export] Hint Resolve liftState_early_return : liftState.
+@@ -589,10 +590,10 @@
+ Lemma liftState_catch_early_return (*[liftState_simp]:*) Regs Reg RegType A E r m :
+   liftState (Regs := Regs) r (@catch_early_return Reg RegType A E m) === catch_early_returnS (liftState r m).
+ Proof.
+-  unfold catch_early_return, catch_early_returnS.
+-  rewrite_liftState.
+-  apply try_catchS_cong; auto.
+-  intros [a | e] s' cs'; auto.
++  1: unfold catch_early_return, catch_early_returnS.
++  1: rewrite_liftState.
++  1: apply try_catchS_cong; auto.
++  1: intros [a | e] s' cs'; auto.
+ Qed.
+ #[export] Hint Rewrite liftState_catch_early_return : liftState.
+ #[export] Hint Resolve liftState_catch_early_return : liftState.
+@@ -600,9 +601,9 @@
+ Lemma liftState_liftR Regs Reg RegType A R E r m :
+   liftState (Regs := Regs) r (@liftR Reg RegType A R E m) === liftRS (liftState r m).
+ Proof.
+-  unfold liftR, liftRS.
+-  rewrite_liftState.
+-  reflexivity.
++  1: unfold liftR, liftRS.
++  1: rewrite_liftState.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite liftState_liftR : liftState.
+ #[export] Hint Resolve liftState_liftR : liftState.
+@@ -610,9 +611,9 @@
+ Lemma liftState_try_catchR Regs Reg RegType A R E1 E2 r m h :
+   liftState (Regs := Regs) r (@try_catchR Reg RegType A R E1 E2 m h) === try_catchRS (liftState r m) (fun x => liftState r (h x)).
+ Proof.
+-  unfold try_catchR, try_catchRS. rewrite_liftState.
+-  apply try_catchS_cong; auto.
+-  intros [r' | e] s' cs'; auto.
++  1: unfold try_catchR, try_catchRS. 1: rewrite_liftState.
++  1: apply try_catchS_cong; auto.
++  1: intros [r' | e] s' cs'; auto.
+ Qed.
+ #[export] Hint Rewrite liftState_try_catchR : liftState.
+ #[export] Hint Resolve liftState_try_catchR : liftState.
+@@ -620,10 +621,10 @@
+ Lemma liftState_read_memt Regs Reg RegType A E rk a sz r :
+   liftState (Regs := Regs) r (@read_memt Reg RegType A E rk a sz) === read_memtS rk a sz.
+ Proof.
+-  unfold read_memt, read_memt_bytes, read_memtS, maybe_failS. simpl.
+-  apply bindS_cong; auto.
+-  intros [byte bit].
+-  auto.
++  1: unfold read_memt, read_memt_bytes, read_memtS, maybe_failS. 1: simpl.
++  1: apply bindS_cong; auto.
++  1: intros [byte bit].
++  1: auto.
+ Qed.
+ #[export] Hint Rewrite liftState_read_memt : liftState.
+ #[export] Hint Resolve liftState_read_memt : liftState.
+@@ -631,14 +632,14 @@
+ Lemma liftState_read_mem Regs Reg RegType A E rk asz a sz r :
+   liftState (Regs := Regs) r (@read_mem Reg RegType A E rk asz a sz) === read_memS rk a sz.
+ Proof.
+-  unfold read_mem, read_memS, read_memtS. simpl.
+-  unfold read_mem_bytesS, read_memt_bytesS.
+-  repeat rewrite bindS_assoc.
+-  apply bindS_cong; auto.
+-  intros [ bytes | ]; auto. simpl.
+-  apply bindS_cong; auto.
+-  intros [byte bit].
+-  rewrite bindS_returnS_left. auto.
++  1: unfold read_mem, read_memS, read_memtS. 1: simpl.
++  1: unfold read_mem_bytesS, read_memt_bytesS.
++  1: repeat rewrite bindS_assoc.
++  1: apply bindS_cong; auto.
++  1: intros [ bytes | ]; auto. 1: simpl.
++  1: apply bindS_cong; auto.
++  1: intros [byte bit].
++  1: rewrite bindS_returnS_left. 1: auto.
+ Qed.
+ #[export] Hint Rewrite liftState_read_mem : liftState.
+ #[export] Hint Resolve liftState_read_mem : liftState.
+@@ -646,7 +647,7 @@
+ Lemma liftState_write_mem_ea Regs Reg RegType A E rk asz a sz r :
+   liftState (Regs := Regs) r (@write_mem_ea Reg RegType A E rk asz a sz) = returnS tt.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite liftState_write_mem_ea : liftState.
+ #[export] Hint Resolve liftState_write_mem_ea : liftState.
+@@ -654,8 +655,8 @@
+ Lemma liftState_write_memt Regs Reg RegType A E wk addr sz v t r :
+   liftState (Regs := Regs) r (@write_memt Reg RegType A E wk addr sz v t) = write_memtS wk addr sz v t.
+ Proof.
+-  unfold write_memt, write_memtS.
+-  auto.
++  1: unfold write_memt, write_memtS.
++  1: auto.
+ Qed.
+ #[export] Hint Rewrite liftState_write_memt : liftState.
+ #[export] Hint Resolve liftState_write_memt : liftState.
+@@ -663,8 +664,8 @@
+ Lemma liftState_write_mem Regs Reg RegType A E wk addrsize addr sz v r :
+   liftState (Regs := Regs) r (@write_mem Reg RegType A E wk addrsize addr sz v) = write_memS wk addr sz v.
+ Proof.
+-  unfold write_mem, write_memS, write_memtS.
+-  auto.
++  1: unfold write_mem, write_memS, write_memtS.
++  1: auto.
+ Qed.
+ #[export] Hint Rewrite liftState_write_mem : liftState.
+ #[export] Hint Resolve liftState_write_mem : liftState.
+@@ -673,16 +674,16 @@
+   m1 s cs = m2 s cs ->
+   bindS m1 f s cs = bindS m2 f s cs.
+ Proof.
+-  intro H. unfold bindS. rewrite H. reflexivity.
++  1: intro H. 1: unfold bindS. 1: rewrite H. 1: reflexivity.
+ Qed.
+ 
+ Lemma liftState_read_reg_readS Regs reg_type A E reg get_regval' set_regval' :
+   liftState (Regs := Regs) (get_regval', set_regval') (@read_reg reg_type A E reg) === readS (fun x => get_regval' reg (ss_regstate x)).
+ Proof.
+-  intros.
+-  unfold read_reg. simpl. unfold readS.
+-  rewrite bindS_returnS_right.
+-  reflexivity.
++  1: intros.
++  1: unfold read_reg. 1: simpl. 1: unfold readS.
++  1: rewrite bindS_returnS_right.
++  1: reflexivity.
+ Qed.
+ 
+ #[export] Hint Rewrite liftState_read_reg_readS : liftState.
+@@ -706,7 +707,7 @@
+ Lemma liftState_write_reg_updateS Regs reg_type A E get_regval' set_regval' (reg : reg_type A) (v : A) :
+   liftState (Regs := Regs) (E := E) (get_regval', set_regval') (write_reg reg v) === updateS (fun s => {| ss_regstate := (set_regval' reg v s.(ss_regstate)); ss_memstate := s.(ss_memstate); ss_tagstate := s.(ss_tagstate); ss_output := s.(ss_output) |}).
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ (*
+ Lemma liftState_iter_aux Regs Reg RegType A E :
+@@ -727,12 +728,12 @@
+ Lemma liftState_foreachM Regs Reg RegType A Vars E (xs : list A) (vars : Vars) (body : A -> Vars -> @monad Reg RegType Vars E) r :
+   liftState (Regs := Regs) r (foreachM xs vars body) === foreachS xs vars (fun x vars => liftState r (body x vars)).
+ Proof.
+-  revert vars.
+-  induction xs as [ | h t].
+-  * reflexivity.
+-  * intros vars. simpl.
+-    rewrite_liftState.
+-    apply bindS_cong; auto.
++  1: revert vars.
++  1: induction xs as [ | h t].
++  * 1: reflexivity.
++  * 1: intros vars. 1: simpl.
++    1: rewrite_liftState.
++    1: apply bindS_cong; auto.
+ Qed.
+ #[export] Hint Rewrite liftState_foreachM : liftState.
+ #[export] Hint Resolve liftState_foreachM : liftState.
+@@ -742,16 +743,16 @@
+     (@foreach_ZM_up Reg RegType E Vars from to step vars body) ===
+      foreach_ZS_up from to step vars (fun z a => liftState r (body z a)).
+ Proof.
+-  unfold foreach_ZM_up, foreach_ZS_up.
+-  generalize 0 as off.
+-  revert vars.
+-  induction (S (Z.abs_nat (from - to))); intros.
+-  * simpl.
+-    rewrite_liftState.
+-    reflexivity.
+-  * simpl.
+-    rewrite_liftState.
+-    destruct (sumbool_of_bool (from + off <=? to)); auto.
++  1: unfold foreach_ZM_up, foreach_ZS_up.
++  1: generalize 0 as off.
++  1: revert vars.
++  1: induction (S (Z.abs_nat (from - to))); intros.
++  * 1: simpl.
++    1: rewrite_liftState.
++    1: reflexivity.
++  * 1: simpl.
++    1: rewrite_liftState.
++    1: destruct (sumbool_of_bool (from + off <=? to)); auto.
+ Qed.
+ #[export] Hint Rewrite liftState_foreach_ZM_up : liftState.
+ #[export] Hint Resolve liftState_foreach_ZM_up : liftState.
+@@ -761,16 +762,16 @@
+     (@foreach_ZM_down Reg RegType E Vars from to step vars body) ===
+      foreach_ZS_down from to step vars (fun z a => liftState r (body z a)).
+ Proof.
+-  unfold foreach_ZM_down, foreach_ZS_down.
+-  generalize 0 as off.
+-  revert vars.
+-  induction (S (Z.abs_nat (from - to))); intros.
+-  * simpl.
+-    rewrite_liftState.
+-    reflexivity.
+-  * simpl.
+-    rewrite_liftState.
+-    destruct (sumbool_of_bool (to <=? from + off)); auto.
++  1: unfold foreach_ZM_down, foreach_ZS_down.
++  1: generalize 0 as off.
++  1: revert vars.
++  1: induction (S (Z.abs_nat (from - to))); intros.
++  * 1: simpl.
++    1: rewrite_liftState.
++    1: reflexivity.
++  * 1: simpl.
++    1: rewrite_liftState.
++    1: destruct (sumbool_of_bool (to <=? from + off)); auto.
+ Qed.
+ #[export] Hint Rewrite liftState_foreach_ZM_down : liftState.
+ #[export] Hint Resolve liftState_foreach_ZM_down : liftState.
+@@ -778,9 +779,9 @@
+ Lemma liftState_genlistM Regs Reg RegType A E r f n :
+   liftState (Regs := Regs) r (@genlistM Reg RegType A E f n) === genlistS (fun x => liftState r (f x)) n.
+ Proof.
+-  unfold genlistM, genlistS.
+-  rewrite_liftState.
+-  reflexivity.
++  1: unfold genlistM, genlistS.
++  1: rewrite_liftState.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite liftState_genlistM : liftState.
+ #[export] Hint Resolve liftState_genlistM : liftState.
+@@ -788,33 +789,33 @@
+ Lemma liftRS_returnS (*[simp]:*) A R Regs E x :
+   @liftRS A R Regs E (returnS x) = returnS x.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ 
+ Lemma concat_singleton A (xs : list A) :
+   concat (xs::nil) = xs.
+ Proof.
+-  simpl.
+-  rewrite app_nil_r.
+-  reflexivity.
++  1: simpl.
++  1: rewrite app_nil_r.
++  1: reflexivity.
+ Qed.
+ 
+ Lemma liftRS_bindS Regs A B R E (m : monadS Regs A E) (f : A -> monadS Regs B E) :
+   @liftRS B R Regs E (bindS m f) === bindS (liftRS m) (fun x => liftRS (f x)).
+ Proof.
+-  intros s cs.
+-  unfold liftRS, try_catchS, bindS, throwS, returnS.
+-  induction (m s cs) as [ | [[[a | [msg | e]] t] cs']].
+-  * reflexivity.
+-  * simpl. rewrite flat_map_app. rewrite IHl. reflexivity.
+-  * simpl. rewrite IHl. reflexivity.
+-  * simpl. rewrite IHl. reflexivity.
++  1: intros s cs.
++  1: unfold liftRS, try_catchS, bindS, throwS, returnS.
++  1: induction (m s cs) as [ | [[[a | [msg | e]] t] cs']].
++  * 1: reflexivity.
++  * 1: simpl. 1: rewrite flat_map_app. 1: rewrite IHl. 1: reflexivity.
++  * 1: simpl. 1: rewrite IHl. 1: reflexivity.
++  * 1: simpl. 1: rewrite IHl. 1: reflexivity.
+ Qed.
+ 
+ Lemma liftRS_assert_expS_True (*[simp]:*) Regs R E msg :
+   @liftRS _ R Regs E (assert_expS true msg) = returnS tt.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ 
+ (*
+@@ -910,36 +911,36 @@
+ Lemma liftState_whileM Regs Reg RegType Vars E r measure vars cond (body : Vars -> @monad Reg RegType Vars E) :
+   liftState (Regs := Regs) r (whileMT vars measure cond body) === whileST vars measure (fun vars => liftState r (cond vars)) (fun vars => liftState r (body vars)).
+ Proof.
+-  unfold whileMT, whileST.
+-  generalize (measure vars) as limit. intro.
+-  revert vars.
+-  destruct (Z.le_decidable 0 limit).
+-  * generalize (Zwf_guarded limit) at 1 as acc1.
+-    generalize (Zwf_guarded limit) at 1 as acc2.
+-    apply Wf_Z.natlike_ind with (x := limit).
+-    + intros [acc1] [acc2] *; simpl.
+-      rewrite_liftState.
+-      apply bindS_cong; auto.
+-      intros [|]; auto.
+-      apply bindS_cong; auto.
+-      intros. repeat destruct (_limit_reduces _). simpl.
+-      reflexivity.
+-    + clear limit H.
+-      intros limit H IH [acc1] [acc2] vars s cs. simpl.
+-      destruct (Z_ge_dec _ _). 2: lia.
+-      rewrite_liftState.
+-      apply bindS_cong; auto.
+-      intros [|]; auto.
+-      apply bindS_cong; auto.
+-      intros.
+-      repeat gen_reduces.
+-      replace (Z.succ limit - 1) with limit. 2: lia. intros acc1' acc2'.
+-      apply IH.
+-    + assumption.
+-  * intros. simpl.
+-    destruct (Z_ge_dec _ _).
+-    + lia.
+-    + reflexivity.
++  1: unfold whileMT, whileST.
++  1: generalize (measure vars) as limit. 1: intro.
++  1: revert vars.
++  1: destruct (Z.le_decidable 0 limit).
++  * 1: generalize (Zwf_guarded limit) at 1 as acc1.
++    1: generalize (Zwf_guarded limit) at 1 as acc2.
++    1: apply Wf_Z.natlike_ind with (x := limit).
++    + 1: intros [acc1] [acc2] *; simpl.
++      1: rewrite_liftState.
++      1: apply bindS_cong; auto.
++      1: intros [|]; auto.
++      1: apply bindS_cong; auto.
++      1: intros. 1: repeat destruct (_limit_reduces _). 1: simpl.
++      1: reflexivity.
++    + 1: clear limit H.
++      1: intros limit H IH [acc1] [acc2] vars s cs. 1: simpl.
++      1: destruct (Z_ge_dec _ _). 2: lia.
++      1: rewrite_liftState.
++      1: apply bindS_cong; auto.
++      1: intros [|]; auto.
++      1: apply bindS_cong; auto.
++      1: intros.
++      1: repeat gen_reduces.
++      1: replace (Z.succ limit - 1) with limit. 2: lia. 1: intros acc1' acc2'.
++      1: apply IH.
++    + 1: assumption.
++  * 1: intros. 1: simpl.
++    1: destruct (Z_ge_dec _ _).
++    + 1: lia.
++    + 1: reflexivity.
+ Qed.
+ #[export] Hint Resolve liftState_whileM : liftState.
+ 
+@@ -985,35 +986,35 @@
+ Lemma liftState_untilM Regs Reg RegType Vars E r measure vars cond (body : Vars -> @monad Reg RegType Vars E) :
+   liftState (Regs := Regs) r (untilMT vars measure cond body) === untilST vars measure (fun vars => liftState r (cond vars)) (fun vars => liftState r (body vars)).
+ Proof.
+-  unfold untilMT, untilST.
+-  generalize (measure vars) as limit. intro.
+-  revert vars.
+-  destruct (Z.le_decidable 0 limit).
+-  * generalize (Zwf_guarded limit) at 1 as acc1.
+-    generalize (Zwf_guarded limit) at 1 as acc2.
+-    apply Wf_Z.natlike_ind with (x := limit).
+-    + intros [acc1] [acc2] * s cs; simpl.
+-      rewrite_liftState.
+-      apply bindS_cong; auto.
+-      intros. apply bindS_cong; auto.
+-      intros [|]; auto.
+-      repeat destruct (_limit_reduces _). simpl.
+-      reflexivity.
+-    + clear limit H.
+-      intros limit H IH [acc1] [acc2] vars s cs. simpl.
+-      destruct (Z_ge_dec _ _). 2: lia.
+-      rewrite_liftState.
+-      apply bindS_cong; auto.
+-      intros. apply bindS_cong; auto.
+-      intros [|]; auto.
+-      repeat gen_reduces.
+-      replace (Z.succ limit - 1) with limit. 2: lia. intros acc1' acc2'.
+-      apply IH.
+-    + assumption.
+-  * intros. simpl.
+-    destruct (Z_ge_dec _ _).
+-    + lia.
+-    + reflexivity.
++  1: unfold untilMT, untilST.
++  1: generalize (measure vars) as limit. 1: intro.
++  1: revert vars.
++  1: destruct (Z.le_decidable 0 limit).
++  * 1: generalize (Zwf_guarded limit) at 1 as acc1.
++    1: generalize (Zwf_guarded limit) at 1 as acc2.
++    1: apply Wf_Z.natlike_ind with (x := limit).
++    + 1: intros [acc1] [acc2] * s cs; simpl.
++      1: rewrite_liftState.
++      1: apply bindS_cong; auto.
++      1: intros. 1: apply bindS_cong; auto.
++      1: intros [|]; auto.
++      1: repeat destruct (_limit_reduces _). 1: simpl.
++      1: reflexivity.
++    + 1: clear limit H.
++      1: intros limit H IH [acc1] [acc2] vars s cs. 1: simpl.
++      1: destruct (Z_ge_dec _ _). 2: lia.
++      1: rewrite_liftState.
++      1: apply bindS_cong; auto.
++      1: intros. 1: apply bindS_cong; auto.
++      1: intros [|]; auto.
++      1: repeat gen_reduces.
++      1: replace (Z.succ limit - 1) with limit. 2: lia. 1: intros acc1' acc2'.
++      1: apply IH.
++    + 1: assumption.
++  * 1: intros. 1: simpl.
++    1: destruct (Z_ge_dec _ _).
++    + 1: lia.
++    + 1: reflexivity.
+ Qed.
+ #[export] Hint Resolve liftState_untilM : liftState.
+ 
+--- a/src/State_monad_lemmas.v
++++ b/src/State_monad_lemmas.v
+@@ -77,7 +77,9 @@
+    statecong in State_lemmas, and PrePostE_rewrite in Hoare. *)
+ 
+ Create HintDb state.
++Create Rewrite HintDb state.
+ (* Requires Rocq 9.3
++Create HintDb state.
+ Create Rewrite HintDb state.
+ *)
+ 
+@@ -87,12 +89,12 @@
+ #[export] Instance monadS_equivalence {Regs A E} :
+   Equivalence (pointwise_relation (sequential_state Regs) (pointwise_relation ChoiceSource (@eq (list (result A E * sequential_state Regs * ChoiceSource))))) | 9.
+ Proof.
+-  split; apply _.
++  1: split; apply _.
+ Qed.
+ 
+ #[export] Instance refl_eq_subrelation {A : Type} {R : A -> A -> Prop} `{Reflexive A R} : subrelation eq R.
+ Proof.
+-  intros x y EQ. subst. reflexivity.
++  1: intros x y EQ. 1: subst. 1: reflexivity.
+ Qed.
+ 
+ #[export] Hint Extern 4 (_ === _) => reflexivity : core.
+@@ -107,13 +109,13 @@
+   (forall a s' cs', List.In (Value a, s', cs') (m2 s cs) -> f1 a s' cs' = f2 a s' cs') ->
+   bindS m1 f1 s cs = bindS m2 f2 s cs.
+ Proof.
+-  intros.
+-  unfold bindS.
+-  rewrite H.
+-  rewrite !List.flat_map_concat_map.
+-  f_equal.
+-  apply List.map_ext_in.
+-  intros [[[a|a] s'] cs'] H_in; auto.
++  1: intros.
++  1: unfold bindS.
++  1: rewrite H.
++  1: rewrite !List.flat_map_concat_map.
++  1: f_equal.
++  1: apply List.map_ext_in.
++  1: intros [[[a|a] s'] cs'] H_in; auto.
+ Qed.
+ 
+ (* Weaker than the Isabelle version, but avoids talking about individual states *)
+@@ -122,25 +124,25 @@
+   (forall a, f1 a === f2 a) ->
+   bindS m1 f1 === bindS m2 f2.
+ Proof.
+-  intros M F s cs.
+-  apply bindS_ext_cong; intros; auto.
+-  apply M.
+-  apply F.
++  1: intros M F s cs.
++  1: apply bindS_ext_cong; intros; auto.
++  1: apply M.
++  1: apply F.
+ Qed.
+ 
+ Add Parametric Morphism {Regs A B E : Type} : (@bindS Regs A B E)
+   with signature equiv ==> equiv ==> equiv as bindS_morphism.
+ Proof.
+-  auto using bindS_cong.
++  1: auto using bindS_cong.
+ Qed.
+ 
+ Lemma bindS_returnS_left Regs A B E {x : A} {f : A -> monadS Regs B E} :
+  bindS (returnS x) f === f x.
+ Proof.
+-  intros s cs.
+-  unfold returnS, bindS.
+-  simpl.
+-  auto using List.app_nil_r.
++  1: intros s cs.
++  1: unfold returnS, bindS.
++  1: simpl.
++  1: auto using List.app_nil_r.
+ Qed.
+ #[export] Hint Rewrite bindS_returnS_left : state.
+ #[export] Hint Resolve bindS_returnS_left : state.
+@@ -148,9 +150,9 @@
+ Lemma bindS_returnS_right Regs A E {m : monadS Regs A E} :
+  bindS m returnS === m.
+ Proof.
+-  intros s cs.
+-  unfold returnS, bindS.
+-  induction (m s cs) as [|[[[a|a] s'] cs'] t]; auto;
++  1: intros s cs.
++  1: unfold returnS, bindS.
++  1: induction (m s cs) as [|[[[a|a] s'] cs'] t]; auto;
+   simpl;
+   rewrite IHt;
+   reflexivity.
+@@ -161,27 +163,27 @@
+ Lemma bindS_readS {Regs A E} {f} {m : A -> monadS Regs A E} {s cs} :
+   bindS (readS f) m s cs = m (f s) s cs.
+ Proof.
+-  unfold readS, bindS.
+-  simpl.
+-  rewrite List.app_nil_r.
+-  reflexivity.
++  1: unfold readS, bindS.
++  1: simpl.
++  1: rewrite List.app_nil_r.
++  1: reflexivity.
+ Qed.
+ 
+ Lemma bindS_updateS {Regs A E} {f : sequential_state Regs -> sequential_state Regs} {m : unit -> monadS Regs A E} {s cs} :
+   bindS (updateS f) m s cs = m tt (f s) cs.
+ Proof.
+-  unfold updateS, bindS.
+-  simpl.
+-  auto using List.app_nil_r.
++  1: unfold updateS, bindS.
++  1: simpl.
++  1: auto using List.app_nil_r.
+ Qed.
+ 
+ Lemma bindS_assertS_true Regs A E msg {f : unit -> monadS Regs A E} :
+   bindS (assert_expS true msg) f === f tt.
+ Proof.
+-  intros s cs.
+-  unfold assert_expS, bindS.
+-  simpl.
+-  auto using List.app_nil_r.
++  1: intros s cs.
++  1: unfold assert_expS, bindS.
++  1: simpl.
++  1: auto using List.app_nil_r.
+ Qed.
+ #[export] Hint Rewrite bindS_assertS_true : state.
+ #[export] Hint Resolve bindS_assertS_true : state.
+@@ -189,11 +191,11 @@
+ Lemma bindS_choose_listS_returnS (*[simp]:*) Regs A B E {xs : list A} {f : A -> B} :
+   bindS (Regs := Regs) (E := E) (choose_listS xs) (fun x => returnS (f x)) === choose_listS (List.map f xs).
+ Proof.
+-  intros s cs.
+-  unfold chooseS, bindS, returnS.
+-  induction xs; auto.
+-  simpl. rewrite IHxs.
+-  reflexivity.
++  1: intros s cs.
++  1: unfold chooseS, bindS, returnS.
++  1: induction xs; auto.
++  1: simpl. 1: rewrite IHxs.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite bindS_choose_listS_returnS : state.
+ #[export] Hint Resolve bindS_choose_listS_returnS : state.
+@@ -204,9 +206,9 @@
+   (forall msg, P (Ex (Failure msg))) ->
+   forall r, P r.
+ Proof.
+-  intros.
+-  destruct r; auto.
+-  destruct e; auto.
++  1: intros.
++  1: destruct r; auto.
++  1: destruct e; auto.
+ Qed.
+ 
+ Lemma result_state_cases {A E S} {P : result A E * S -> Prop} :
+@@ -215,8 +217,8 @@
+   (forall msg s, P (Ex (Failure msg), s)) ->
+   forall rs, P rs.
+ Proof.
+-  intros.
+-  destruct rs as [[a|[e|msg]] s]; auto.
++  1: intros.
++  1: destruct rs as [[a|[e|msg]] s]; auto.
+ Qed.
+ 
+ (* TODO: needs sets, not lists
+@@ -245,55 +247,56 @@
+   (exists e, r = Ex e /\ List.In (Ex e, s', cs') (m s cs)) \/
+   (exists e a s'' cs'', r = Ex e /\ List.In (Value a, s'', cs'') (m s cs) /\ List.In (Ex e, s', cs') (f a s'' cs'')).
+ Proof.
+-  unfold bindS.
+-  intro IN.
+-  apply List.in_flat_map in IN.
+-  destruct IN as [[[r' s''] cs''] [INr' INr]].
+-  destruct r' as [a'|e'].
+-  * destruct r as [a|e].
+-    + left. eauto 10.
+-    + right; right. eauto 10.
+-  * right; left. simpl in INr. destruct INr as [|[]]. inversion H. subst. eauto 10.
++  1: unfold bindS.
++  1: intro IN.
++  1: apply List.in_flat_map in IN.
++  1: destruct IN as [[[r' s''] cs''] [INr' INr]].
++  1: destruct r' as [a'|e'].
++  * 1: destruct r as [a|e].
++    + 1: left. 1: eauto 10.
++    + 1: right; right. 1: eauto 10.
++  * 1: right; left. 1: simpl in INr. 1: destruct INr as [|[]]. 1: inversion H. 1: subst. 1: eauto 10.
+ Qed.
+ 
+ Lemma bindS_intro_Value {Regs A B E} {m} {f : A -> monadS Regs B E} {s cs a s' cs' a' s'' cs''} :
+  List.In (Value a', s'', cs'') (m s cs) -> List.In (Value a, s', cs') (f a' s'' cs'') -> List.In (Value a, s', cs') (bindS m f s cs).
+ Proof.
+-  intros; unfold bindS.
+-  apply List.in_flat_map.
+-  eauto.
++  1: intros; unfold bindS.
++  1: apply List.in_flat_map.
++  1: eauto.
+ Qed.
+ Lemma bindS_intro_Ex_left {Regs A B E} {m} {f : A -> monadS Regs B E} {s cs e s' cs'} :
+   List.In (Ex e, s', cs') (m s cs) -> List.In (Ex e, s', cs') (bindS m f s cs).
+ Proof.
+-  intros; unfold bindS.
+-  apply List.in_flat_map.
+-  exists (Ex e, s', cs').
+-  auto with datatypes.
++  1: intros; unfold bindS.
++  1: apply List.in_flat_map.
++  1: exists (Ex e, s', cs').
++  1: auto with datatypes.
+ Qed.
+ Lemma bindS_intro_Ex_right {Regs A B E} {m} {f : A -> monadS Regs B E} {s cs e s' cs' a s'' cs''} :
+   List.In (Ex e, s', cs') (f a s'' cs'') -> List.In (Value a, s'', cs'') (m s cs) -> List.In (Ex e, s', cs') (bindS m f s cs).
+ Proof.
+-  intros; unfold bindS.
+-  apply List.in_flat_map.
+-  eauto.
++  1: intros; unfold bindS.
++  1: apply List.in_flat_map.
++  1: eauto.
+ Qed.
+ Create HintDb bindS_intros.
++Create Rewrite HintDb bindS_intros.
+ #[export] Hint Resolve bindS_intro_Value bindS_intro_Ex_left bindS_intro_Ex_right : bindS_intros.
+ 
+ Lemma bindS_assoc Regs A B C E {m} {f : A -> monadS Regs B E} {g : B -> monadS Regs C E} :
+   bindS (bindS m f) g === bindS m (fun x => bindS (f x) g).
+ Proof.
+-  intros s cs.
+-  unfold bindS.
+-  induction (m s cs) as [ | [[[a | e] t] cs']].
+-  * reflexivity.
+-  * simpl. rewrite <- IHl.
+-    rewrite !List.flat_map_concat_map.
+-    rewrite List.map_app.
+-    rewrite List.concat_app.
+-    reflexivity.
+-  * simpl. rewrite IHl. reflexivity.
++  1: intros s cs.
++  1: unfold bindS.
++  1: induction (m s cs) as [ | [[[a | e] t] cs']].
++  * 1: reflexivity.
++  * 1: simpl. 1: rewrite <- IHl.
++    1: rewrite !List.flat_map_concat_map.
++    1: rewrite List.map_app.
++    1: rewrite List.concat_app.
++    1: reflexivity.
++  * 1: simpl. 1: rewrite IHl. 1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite bindS_assoc : state.
+ #[export] Hint Resolve bindS_assoc : state.
+@@ -301,7 +304,7 @@
+ Lemma bindS_failS Regs A B E {msg} {f : A -> monadS Regs B E} :
+   bindS (failS msg) f = failS msg.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite bindS_failS : state.
+ #[export] Hint Resolve bindS_failS : state.
+@@ -309,7 +312,7 @@
+ Lemma bindS_throwS Regs A B E {e} {f : A -> monadS Regs B E} :
+   bindS (throwS e) f = throwS e.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite bindS_throwS : state.
+ #[export] Hint Resolve bindS_throwS : state.
+@@ -318,7 +321,7 @@
+ Lemma seqS_def Regs A E m (m' : monadS Regs A E) :
+   m >>$ m' = m >>$= (fun _ => m').
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite seqS_def : state.
+ #[export] Hint Resolve seqS_def : state.
+@@ -327,10 +330,10 @@
+   List.In (Value a, s', cs') (bindS m f s cs) ->
+   exists s'' cs'' a', List.In (Value a', s'', cs'') (m s cs) /\ List.In (Value a, s', cs') (f a' s'' cs'').
+ Proof.
+-  intro H.
+-  apply bindS_cases in H.
+-  destruct H as [(a0 & a' & s'' & cs'' & [= <-] & [*]) | [(e & [= ] & _) | (_ & _ & _ & _ & [= ] & _)]].
+-  eauto.
++  1: intro H.
++  1: apply bindS_cases in H.
++  1: destruct H as [(a0 & a' & s'' & cs'' & [= <-] & [*]) | [(e & [= ] & _) | (_ & _ & _ & _ & [= ] & _)]].
++  1: eauto.
+ Qed.
+ 
+ Lemma Ex_bindS_elim {Regs A B E} {e m s cs s' cs'} {f : A -> monadS Regs B E} :
+@@ -338,33 +341,33 @@
+   List.In (Ex e, s', cs') (m s cs) \/
+   exists s'' cs'' a', List.In (Value a', s'', cs'') (m s cs) /\ List.In (Ex e, s', cs') (f a' s'' cs'').
+ Proof.
+-  intro H.
+-  apply bindS_cases in H.
+-  destruct H as [(? & ? & ? & ? & [= ] & _) | [(? & [= <-] & X) | (? & ? & ? & ? & [= <-] & X)]];
++  1: intro H.
++  1: apply bindS_cases in H.
++  1: destruct H as [(? & ? & ? & ? & [= ] & _) | [(? & [= <-] & X) | (? & ? & ? & ? & [= <-] & X)]];
+   eauto.
+ Qed.
+ 
+ Lemma try_catchS_returnS Regs A E1 E2 {a} {h : E1 -> monadS Regs A E2}:
+   try_catchS (returnS a) h = returnS a.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite try_catchS_returnS : state.
+ #[export] Hint Resolve try_catchS_returnS : state.
+ Lemma try_catchS_failS Regs A E1 E2 {msg} {h : E1 -> monadS Regs A E2}:
+   try_catchS (failS msg) h = failS msg.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite try_catchS_failS : state.
+ #[export] Hint Resolve try_catchS_failS : state.
+ Lemma try_catchS_throwS Regs A E1 E2 {e} {h : E1 -> monadS Regs A E2}:
+   try_catchS (throwS e) h === h e.
+ Proof.
+-  intros s cs.
+-  unfold try_catchS, throwS.
+-  simpl.
+-  auto using List.app_nil_r.
++  1: intros s cs.
++  1: unfold try_catchS, throwS.
++  1: simpl.
++  1: auto using List.app_nil_r.
+ Qed.
+ #[export] Hint Rewrite try_catchS_throwS : state.
+ #[export] Hint Resolve try_catchS_throwS : state.
+@@ -374,28 +377,28 @@
+   (forall e, h1 e === h2 e) ->
+   try_catchS m1 h1 === try_catchS m2 h2.
+ Proof.
+-  intros H1 H2 s cs.
+-  unfold try_catchS.
+-  rewrite H1.
+-  rewrite !List.flat_map_concat_map.
+-  f_equal.
+-  apply List.map_ext_in.
+-  intros [[[a|[e|msg]] s'] cs'] H_in; auto. apply H2.
++  1: intros H1 H2 s cs.
++  1: unfold try_catchS.
++  1: rewrite H1.
++  1: rewrite !List.flat_map_concat_map.
++  1: f_equal.
++  1: apply List.map_ext_in.
++  1: intros [[[a|[e|msg]] s'] cs'] H_in; auto. 1: apply H2.
+ Qed.
+ 
+ Add Parametric Morphism {Regs A E1 E2 : Type} : (@try_catchS Regs A E1 E2)
+   with signature equiv ==> equiv ==> equiv as try_catchS_morphism.
+ Proof.
+-  intros. auto using try_catchS_cong.
++  1: intros. 1: auto using try_catchS_cong.
+ Qed.
+ 
+ Add Parametric Morphism {Regs A E : Type} : (@catch_early_returnS Regs A E)
+   with signature equiv ==> equiv as catch_early_returnS_morphism.
+ Proof.
+-  intros.
+-  unfold catch_early_returnS.
+-  rewrite H.
+-  reflexivity.
++  1: intros.
++  1: unfold catch_early_returnS.
++  1: rewrite H.
++  1: reflexivity.
+ Qed.
+ 
+ Lemma try_catchS_cases {Regs A E1 E2 m} {h : E1 -> monadS Regs A E2} {r s cs s' cs'} :
+@@ -404,14 +407,14 @@
+   (exists msg, r = Ex (Failure msg) /\ List.In (Ex (Failure msg), s', cs') (m s cs)) \/
+   (exists e s'' cs'', List.In (Ex (Throw e), s'', cs'') (m s cs) /\ List.In (r, s', cs') (h e s'' cs'')).
+ Proof.
+-  unfold try_catchS.
+-  intro IN.
+-  apply List.in_flat_map in IN.
+-  destruct IN as [[[r' s''] cs''] [INr' INr]].
+-  destruct r' as [a'|[e'|msg]].
+-  * left. simpl in INr. destruct INr as [[= <- <- <-] | []]. eauto 10.
+-  * simpl in INr. destruct INr as [[= <- <- <-] | []]. eauto 10.
+-  * eauto 10.
++  1: unfold try_catchS.
++  1: intro IN.
++  1: apply List.in_flat_map in IN.
++  1: destruct IN as [[[r' s''] cs''] [INr' INr]].
++  1: destruct r' as [a'|[e'|msg]].
++  * 1: left. 1: simpl in INr. 1: destruct INr as [[= <- <- <-] | []]. 1: eauto 10.
++  * 1: simpl in INr. 1: destruct INr as [[= <- <- <-] | []]. 1: eauto 10.
++  * 1: eauto 10.
+ Qed.
+ 
+ Lemma try_catchS_intros {Regs A E1 E2} {m} {h : E1 -> monadS Regs A E2} :
+@@ -419,11 +422,11 @@
+   (forall s cs msg s' cs', List.In (Ex (Failure msg), s', cs') (m s cs) -> List.In (Ex (Failure msg), s', cs') (try_catchS m h s cs)) /\
+   (forall s cs e s'' cs'' r s' cs', List.In (Ex (Throw e), s'', cs'') (m s cs) -> List.In (r, s', cs') (h e s'' cs'') -> List.In (r, s', cs') (try_catchS m h s cs)).
+ Proof.
+-  repeat split; unfold try_catchS; intros;
++  1: repeat split; unfold try_catchS; intros;
+   apply List.in_flat_map.
+-  * eexists; split; [ apply H | ]. simpl. auto.
+-  * eexists; split; [ apply H | ]. simpl. auto.
+-  * eexists; split; [ apply H | ]. simpl. auto.
++  * 1: eexists; split; [ apply H | ]. 1: simpl. 1: auto.
++  * 1: eexists; split; [ apply H | ]. 1: simpl. 1: auto.
++  * 1: eexists; split; [ apply H | ]. 1: simpl. 1: auto.
+ Qed.
+ 
+ Lemma no_Ex_basic_builtins (*[simp]:*) {Regs E} {s s' : sequential_state Regs} {cs cs'} {e : ex E} :
+@@ -432,13 +435,13 @@
+   (forall f, ~ List.In (Ex e, s', cs') (updateS f s cs)) /\
+   (forall A (xs : list A), ~ List.In (Ex e, s', cs') (choose_listS xs s cs)).
+ Proof.
+-  repeat split; intros;
++  1: repeat split; intros;
+   unfold returnS, readS, updateS, chooseS; simpl;
+   try intuition congruence.
+-  * intro H.
+-    apply List.in_map_iff in H.
+-    destruct H as [x [X _]].
+-    congruence.
++  * 1: intro H.
++    1: apply List.in_map_iff in H.
++    1: destruct H as [x [X _]].
++    1: congruence.
+ Qed.
+ 
+ Import List.ListNotations.
+@@ -455,10 +458,10 @@
+   m1 === m2 ->
+   ignore_throw (E2 := E2) m1 === ignore_throw m2.
+ Proof.
+-  intros H s cs.
+-  unfold ignore_throw.
+-  rewrite H.
+-  reflexivity.
++  1: intros H s cs.
++  1: unfold ignore_throw.
++  1: rewrite H.
++  1: reflexivity.
+ Qed.
+ 
+ Lemma ignore_throw_aux_member_simps (*[simp]:*) {A E1 E2 S CS} {s' : S} (cs' : CS) {ms} :
+@@ -466,7 +469,7 @@
+   (forall e, ~ List.In (Ex (E := E2) (Throw e), s', cs') (ignore_throw_aux ms)) /\
+   (forall msg, List.In (Ex (E := E2) (Failure msg), s', cs') (ignore_throw_aux ms) <-> ms = (Ex (Failure msg), s', cs')).
+ Proof.
+-  destruct ms as [[[a' | [e' | msg']] s] cs]; simpl;
++  1: destruct ms as [[[a' | [e' | msg']] s] cs]; simpl;
+   intuition congruence.
+ Qed.
+ 
+@@ -476,8 +479,8 @@
+   (forall e, ~ List.In (Ex (E := E2) (Throw e), s', cs') (ignore_throw m s cs)) /\
+   (forall {msg}, List.In (Ex (E := E2) (Failure msg), s', cs') (ignore_throw m s cs) <-> List.In (Ex (Failure msg), s', cs') (m s cs)).
+ Proof.
+-  unfold ignore_throw.
+-  repeat apply conj; intros; try apply conj;
++  1: unfold ignore_throw.
++  1: repeat apply conj; intros; try apply conj;
+   rewrite ?List.in_flat_map;
+   solve
+   [ intros [x [H1 H2]]; apply ignore_throw_aux_member_simps in H2; congruence
+@@ -490,36 +493,38 @@
+   (exists a, r = Value a) \/
+   (exists msg, r = Ex (Failure msg)).
+ Proof.
+-  destruct r as [a | [e | msg]]; eauto.
+-  * intros H1 H2. rewrite <- H1 in H2.
+-    apply ignore_throw_member_simps in H2.
+-    destruct H2.
++  1: destruct r as [a | [e | msg]]; eauto.
++  * 1: intros H1 H2. 1: rewrite <- H1 in H2.
++    1: apply ignore_throw_member_simps in H2.
++    1: destruct H2.
+ Qed.
+ 
+ (* *** *)
+ Lemma flat_map_app {A B} {f : A -> list B} {l1 l2} :
+   List.flat_map f (l1 ++ l2) = (List.flat_map f l1 ++ List.flat_map f l2)%list.
+ Proof.
+-  rewrite !List.flat_map_concat_map.
+-  rewrite List.map_app, List.concat_app.
+-  reflexivity.
++  1: rewrite !List.flat_map_concat_map.
++  1: rewrite List.map_app, List.concat_app.
++  1: reflexivity.
+ Qed.
+ 
+ Lemma ignore_throw_bindS (*[simp]:*) Regs A B E E2 {m} {f : A -> monadS Regs B E} :
+   ignore_throw (E2 := E2) (bindS m f) === bindS (ignore_throw m) (fun s => ignore_throw (f s)).
+ Proof.
+-  intros s cs.
+-  unfold bindS, ignore_throw.
+-  induction (m s cs) as [ | [[[a | [e | msg]] t] cs']].
+-  * reflexivity.
+-  * simpl. rewrite <- IHl. rewrite flat_map_app. reflexivity.
+-  * simpl. rewrite <- IHl. reflexivity.
+-  * simpl. apply IHl.
++  1: intros s cs.
++  1: unfold bindS, ignore_throw.
++  1: induction (m s cs) as [ | [[[a | [e | msg]] t] cs']].
++  * 1: reflexivity.
++  * 1: simpl. 1: rewrite <- IHl. 1: rewrite flat_map_app. 1: reflexivity.
++  * 1: simpl. 1: rewrite <- IHl. 1: reflexivity.
++  * 1: simpl. 1: apply IHl.
+ Qed.
+ (* Requires Rocq 9.3
++Create HintDb ignore_throw.
+ Create Rewrite HintDb ignore_throw.
+ *)
+ Create HintDb ignore_throw.
++Create Rewrite HintDb ignore_throw.
+ #[export] Hint Rewrite ignore_throw_bindS : ignore_throw.
+ #[export] Hint Resolve ignore_throw_bindS : ignore_throw.
+ 
+@@ -528,62 +533,62 @@
+   ignore_throw m1 === m2 ->
+   try_catchS (bindS m1 f) h === bindS m2 (fun a => try_catchS (f a) h).
+ Proof.
+-  intros Ignore1 Ignore2.
+-  transitivity ((ignore_throw m1 >>$= (fun a => try_catchS (f a) h))).
+-  * intros s cs.
+-    unfold bindS, try_catchS, ignore_throw.
+-    specialize (Ignore1 s cs). revert Ignore1. unfold ignore_throw.
+-    induction (m1 s cs) as [ | [[[a | [e | msg]] t] cs']]; auto.
+-    + intro Ig. simpl. rewrite flat_map_app. rewrite IHl. auto. injection Ig. auto.
+-    + intro Ig. simpl. rewrite IHl. reflexivity. injection Ig. auto.
+-    + intro Ig. exfalso. clear -Ig.
+-      assert (List.In (Ex (Throw msg), t, cs') (List.flat_map ignore_throw_aux l)).
+-      simpl in Ig. rewrite Ig. simpl. auto.
+-      apply List.in_flat_map in H.
+-      destruct H as [x [H1 H2]].
+-      apply ignore_throw_aux_member_simps in H2.
+-      assumption.
+-  * apply bindS_cong; auto.
++  1: intros Ignore1 Ignore2.
++  1: transitivity ((ignore_throw m1 >>$= (fun a => try_catchS (f a) h))).
++  * 1: intros s cs.
++    1: unfold bindS, try_catchS, ignore_throw.
++    1: specialize (Ignore1 s cs). 1: revert Ignore1. 1: unfold ignore_throw.
++    1: induction (m1 s cs) as [ | [[[a | [e | msg]] t] cs']]; auto.
++    + 1: intro Ig. 1: simpl. 1: rewrite flat_map_app. 1: rewrite IHl. 1: auto. 1: injection Ig. 1: auto.
++    + 1: intro Ig. 1: simpl. 1: rewrite IHl. 1: reflexivity. 1: injection Ig. 1: auto.
++    + 1: intro Ig. 1: exfalso. 1: clear -Ig.
++      1: assert (List.In (Ex (Throw msg), t, cs') (List.flat_map ignore_throw_aux l)).
++      1: simpl in Ig. 1: rewrite Ig. 1: simpl. 1: auto.
++      1: apply List.in_flat_map in H.
++      1: destruct H as [x [H1 H2]].
++      1: apply ignore_throw_aux_member_simps in H2.
++      1: assumption.
++  * 1: apply bindS_cong; auto.
+ Qed.
+ 
+ Lemma concat_map_singleton {A B} {f : A -> B} {a : list A} :
+   List.concat (List.map (fun x => [f x]%list) a) = List.map f a.
+ Proof.
+-  induction a; simpl; try rewrite IHa; auto with datatypes.
++  1: induction a; simpl; try rewrite IHa; auto with datatypes.
+ Qed.
+ 
+ (*lemma no_throw_basic_builtins[simp]:*)
+ Lemma no_throw_basic_builtins_1 Regs A E E2 {a : A} :
+   ignore_throw (E1 := E2) (returnS a) = @returnS Regs A E a.
+-Proof. reflexivity. Qed.
++Proof. 1: reflexivity. Qed.
+ Lemma no_throw_basic_builtins_2 Regs A E E2 {f : sequential_state Regs -> A} :
+   ignore_throw (E1 := E) (E2 := E2) (readS f) = readS f.
+-Proof. reflexivity. Qed.
++Proof. 1: reflexivity. Qed.
+ Lemma no_throw_basic_builtins_3 Regs E E2 {f : sequential_state Regs -> sequential_state Regs} :
+   ignore_throw (E1 := E) (E2 := E2) (updateS f) = updateS f.
+-Proof. reflexivity. Qed.
++Proof. 1: reflexivity. Qed.
+ Lemma no_throw_basic_builtins_4 Regs A E1 E2 {xs : list A} :
+   ignore_throw (E1 := E1) (choose_listS xs) === @choose_listS Regs A E2 xs.
+ Proof.
+-  intros s cs.
+-  unfold ignore_throw, choose_listS.
+-  rewrite List.flat_map_concat_map, List.map_map. simpl.
+-  rewrite concat_map_singleton.
+-  reflexivity.
++  1: intros s cs.
++  1: unfold ignore_throw, choose_listS.
++  1: rewrite List.flat_map_concat_map, List.map_map. 1: simpl.
++  1: rewrite concat_map_singleton.
++  1: reflexivity.
+ Qed.
+ Lemma no_throw_basic_builtins_5 Regs E1 E2 ty :
+   ignore_throw (E1 := E1) (chooseS ty) === @chooseS Regs E2 ty.
+ Proof.
+-  intros s cs.
+-  unfold ignore_throw, chooseS.
+-  destruct (choose cs ty); reflexivity.
++  1: intros s cs.
++  1: unfold ignore_throw, chooseS.
++  1: destruct (choose cs ty); reflexivity.
+ Qed.
+ Lemma no_throw_basic_builtins_6 Regs A E1 E2 msg :
+   ignore_throw (E1 := E1) (failS msg) = @failS Regs A E2 msg.
+-Proof. reflexivity. Qed.
++Proof. 1: reflexivity. Qed.
+ Lemma no_throw_basic_builtins_7 Regs A E1 E2 msg x :
+   ignore_throw (E1 := E1) (maybe_failS msg x) = @maybe_failS Regs A E2 msg x. 
+-Proof. destruct x; reflexivity. Qed.
++Proof. 1: destruct x; reflexivity. Qed.
+ 
+ #[export] Hint Rewrite no_throw_basic_builtins_1 no_throw_basic_builtins_2
+              no_throw_basic_builtins_3 no_throw_basic_builtins_4
+@@ -598,95 +603,95 @@
+   ignore_throw (E2 := E2) (match c s with None => n | Some b => f b end) s =
+     match c s with None => ignore_throw n s | Some b => ignore_throw (f b) s end.
+ Proof.
+-  destruct (c s); auto.
++  1: destruct (c s); auto.
+ Qed.
+ Lemma ignore_throw_option_case_distrib_2 Regs B C E1 E2 (c : option B) (n : monadS Regs C E1) (f : B -> monadS Regs C E1) :
+   ignore_throw (E2 := E2) (match c with None => n | Some b => f b end) =
+     match c with None => ignore_throw n | Some b => ignore_throw (f b) end.
+ Proof.
+-  destruct c; auto.
++  1: destruct c; auto.
+ Qed.
+ 
+ Lemma ignore_throw_let_distrib Regs A B E1 E2 (y : A) (f : A -> monadS Regs B E1) :
+   ignore_throw (E2 := E2) (let x := y in f x) = (let x := y in ignore_throw (f x)).
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ 
+ Lemma no_throw_mem_builtins_1 Regs E1 E2 rk a sz :
+   ignore_throw (E2 := E2) (@read_memt_bytesS Regs E1 rk a sz) === read_memt_bytesS rk a sz.
+ Proof.
+-  unfold read_memt_bytesS. autorewrite with ignore_throw.
+-  apply bindS_cong; auto. intros.  autorewrite with ignore_throw. reflexivity.
++  1: unfold read_memt_bytesS. 1: autorewrite with ignore_throw.
++  1: apply bindS_cong; auto. 1: intros.  1: autorewrite with ignore_throw. 1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite no_throw_mem_builtins_1 : ignore_throw.
+ #[export] Hint Resolve no_throw_mem_builtins_1 : ignore_throw.
+ Lemma no_throw_mem_builtins_2 Regs E1 E2 rk a sz :
+   ignore_throw (E2 := E2) (@read_mem_bytesS Regs E1 rk a sz) === read_mem_bytesS rk a sz.
+ Proof.
+-  unfold read_mem_bytesS. autorewrite with ignore_throw.
+-  apply bindS_cong; intros; autorewrite with ignore_throw; auto.
+-  destruct a0; reflexivity.
++  1: unfold read_mem_bytesS. 1: autorewrite with ignore_throw.
++  1: apply bindS_cong; intros; autorewrite with ignore_throw; auto.
++  1: destruct a0; reflexivity.
+ Qed.
+ #[export] Hint Rewrite no_throw_mem_builtins_2 : ignore_throw.
+ #[export] Hint Resolve no_throw_mem_builtins_2 : ignore_throw.
+ Lemma no_throw_mem_builtins_3 Regs A E1 E2 a :
+   ignore_throw (E2 := E2) (@read_tagS Regs A E1 a) === read_tagS a.
+-Proof. reflexivity. Qed.
++Proof. 1: reflexivity. Qed.
+ #[export] Hint Rewrite no_throw_mem_builtins_3 : ignore_throw.
+ #[export] Hint Resolve no_throw_mem_builtins_3 : ignore_throw.
+ Lemma no_throw_mem_builtins_4 Regs A E1 E2 rk a sz :
+   ignore_throw (E2 := E2) (@read_memtS Regs E1 A rk a sz) === read_memtS rk a sz.
+ Proof.
+-  unfold read_memtS. autorewrite with ignore_throw.
+-  apply bindS_cong; intros; autorewrite with ignore_throw.
+-  reflexivity. destruct a0; simpl. autorewrite with ignore_throw.
+-  reflexivity.
++  1: unfold read_memtS. 1: autorewrite with ignore_throw.
++  1: apply bindS_cong; intros; autorewrite with ignore_throw.
++  1: reflexivity. 1: destruct a0; simpl. 1: autorewrite with ignore_throw.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite no_throw_mem_builtins_4 : ignore_throw.
+ #[export] Hint Resolve no_throw_mem_builtins_4 : ignore_throw.
+ Lemma no_throw_mem_builtins_5 Regs A E1 E2 rk a sz :
+   ignore_throw (E2 := E2) (@read_memS Regs E1 A rk a sz) === read_memS rk a sz.
+ Proof.
+-  unfold read_memS. autorewrite with ignore_throw.
+-  apply bindS_cong; intros; autorewrite with ignore_throw; auto.
+-  destruct a0; auto.
++  1: unfold read_memS. 1: autorewrite with ignore_throw.
++  1: apply bindS_cong; intros; autorewrite with ignore_throw; auto.
++  1: destruct a0; auto.
+ Qed.
+ #[export] Hint Rewrite no_throw_mem_builtins_5 : ignore_throw.
+ #[export] Hint Resolve no_throw_mem_builtins_5 : ignore_throw.
+ Lemma no_throw_mem_builtins_6 Regs E1 E2 wk addr sz v t :
+   ignore_throw (E2 := E2) (@write_memt_bytesS Regs E1 wk addr sz v t) === write_memt_bytesS wk addr sz v t.
+ Proof.
+-  unfold write_memt_bytesS. unfold seqS. autorewrite with ignore_throw.
+-  reflexivity.
++  1: unfold write_memt_bytesS. 1: unfold seqS. 1: autorewrite with ignore_throw.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite no_throw_mem_builtins_6 : ignore_throw.
+ #[export] Hint Resolve no_throw_mem_builtins_6 : ignore_throw.
+ Lemma no_throw_mem_builtins_7 Regs E1 E2 wk addr sz v :
+   ignore_throw (E2 := E2) (@write_mem_bytesS Regs E1 wk addr sz v) === write_mem_bytesS wk addr sz v.
+ Proof.
+-  unfold write_mem_bytesS. autorewrite with ignore_throw. reflexivity.
++  1: unfold write_mem_bytesS. 1: autorewrite with ignore_throw. 1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite no_throw_mem_builtins_7 : ignore_throw.
+ #[export] Hint Resolve no_throw_mem_builtins_7 : ignore_throw.
+ Lemma no_throw_mem_builtins_8 Regs E1 E2 A wk addr sz v t :
+   ignore_throw (E2 := E2) (@write_memtS Regs E1 A wk addr sz v t) === write_memtS wk addr sz v t.
+ Proof.
+-  unfold write_memtS. apply no_throw_mem_builtins_6.
++  1: unfold write_memtS. 1: apply no_throw_mem_builtins_6.
+ Qed.
+ #[export] Hint Rewrite no_throw_mem_builtins_8 : ignore_throw.
+ #[export] Hint Resolve no_throw_mem_builtins_8 : ignore_throw.
+ Lemma no_throw_mem_builtins_9 Regs E1 E2 A wk addr sz v :
+   ignore_throw (E2 := E2) (@write_memS Regs E1 A wk addr sz v) === write_memS wk addr sz v.
+ Proof.
+-  unfold write_memS. autorewrite with ignore_throw; auto.
++  1: unfold write_memS. 1: autorewrite with ignore_throw; auto.
+ Qed.
+ #[export] Hint Rewrite no_throw_mem_builtins_9 : ignore_throw.
+ #[export] Hint Resolve no_throw_mem_builtins_9 : ignore_throw.
+ Lemma no_throw_mem_builtins_10 Regs E1 E2 :
+   ignore_throw (E2 := E2) (@excl_resultS Regs E1 tt) === excl_resultS tt.
+ Proof.
+-  reflexivity.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite no_throw_mem_builtins_10 : ignore_throw.
+ #[export] Hint Resolve no_throw_mem_builtins_10 : ignore_throw.
+@@ -700,8 +705,8 @@
+ Lemma no_throw_read_regvalS Regs reg_type A E1 E2 r reg_name :
+   ignore_throw (E2 := E2) (@read_regvalS Regs reg_type A E1 r reg_name) === read_regvalS r reg_name.
+ Proof.
+-  destruct r; simpl. autorewrite with ignore_throw.
+-  reflexivity.
++  1: destruct r; simpl. 1: autorewrite with ignore_throw.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite no_throw_read_regvalS : ignore_throw.
+ #[export] Hint Resolve no_throw_read_regvalS : ignore_throw.
+@@ -709,8 +714,8 @@
+ Lemma no_throw_write_regvalS Regs reg_type A E1 E2 r reg_name v :
+   ignore_throw (E2 := E2) (@write_regvalS Regs reg_type A E1 r reg_name v) === write_regvalS r reg_name v.
+ Proof.
+-  destruct r; simpl. autorewrite with ignore_throw.
+-  reflexivity.
++  1: destruct r; simpl. 1: autorewrite with ignore_throw.
++  1: reflexivity.
+ Qed.
+ #[export] Hint Rewrite no_throw_write_regvalS : ignore_throw.
+ #[export] Hint Resolve no_throw_write_regvalS : ignore_throw.
+--- a/src/Values.v
++++ b/src/Values.v
+@@ -66,7 +66,7 @@
+ (*==========================================================================*)
+ 
+ (* Zeuclid will be removed once the Sail backend stops generating it.  The replacement definition is below. *)
+-From Stdlib Require Export ZArith String List Sumbool Zeuclid.
++From Stdlib Require Export ZArith String List Sumbool.
+ From Stdlib Require Import Ascii Eqdep_dec Lia.
+ From Stdlib Require BinaryString HexString.
+ Import ListNotations.
+@@ -82,6 +82,7 @@
+    can be added to, and a typeclass to wrap constraint arguments in to
+    trigger automatic solving. *)
+ Create HintDb sail.
++Create Rewrite HintDb sail.
+ 
+ 
+ Notation "x <=? y <=? z" := ((x <=? y) && (y <=? z)) (at level 70, y at next level) : Z_scope.
+@@ -110,10 +111,10 @@
+ Lemma result_bind_inv {A B E} (f : A -> result B E) (a : result A E) (b : B) :
+   result_bind f a = Ok b -> exists a', a = Ok a' /\ f a' = Ok b.
+ Proof.
+-  intros EQ.
+-  destruct a as [a' | err].
+-  * exists a'. auto.
+-  * simpl in EQ. congruence.
++  1: intros EQ.
++  1: destruct a as [a' | err].
++  * 1: exists a'. 1: auto.
++  * 1: simpl in EQ. 1: congruence.
+ Qed.
+ 
+ Definition result_bind_pf {A B E} (a : result A E) (f : forall a', a = Ok a' -> result B E) : result B E :=
+@@ -130,10 +131,10 @@
+ 
+ Lemma Z_geb_ge n m : (n >=? m) = true <-> n >= m.
+ Proof.
+-  rewrite Z.geb_leb.
+-  split.
+-  * intro. apply Z.le_ge, Z.leb_le. assumption.
+-  * intro. apply Z.ge_le in H. apply Z.leb_le. assumption.
++  1: rewrite Z.geb_leb.
++  1: split.
++  * 1: intro. 1: apply Z.le_ge, Z.leb_le. 1: assumption.
++  * 1: intro. 1: apply Z.ge_le in H. 1: apply Z.leb_le. 1: assumption.
+ Qed.
+ 
+ Definition neq l r := (negb (l =? r)). (* Z only *)
+@@ -169,18 +170,18 @@
+ 
+ Lemma e_modulo_pos a b : b > 0 -> e_modulo a b = Z.modulo a b.
+ Proof.
+-  intro H.
+-  unfold e_modulo.
+-  rewrite Z.abs_eq by lia.
+-  reflexivity.
++  1: intro H.
++  1: unfold e_modulo.
++  1: rewrite Z.abs_eq by lia.
++  1: reflexivity.
+ Qed.
+ 
+ Lemma e_div_pos a b : b > 0 -> e_div a b = Z.div a b.
+ Proof.
+-  intro H.
+-  unfold e_div.
+-  rewrite Z.abs_eq, Z.sgn_pos by lia.
+-  lia.
++  1: intro H.
++  1: unfold e_div.
++  1: rewrite Z.abs_eq, Z.sgn_pos by lia.
++  1: lia.
+ Qed.
+ 
+ 
+@@ -191,11 +192,11 @@
+   end.
+ Lemma repeat'_length {a} {xs : list a} {n : nat} : List.length (repeat' xs n) = (n * List.length xs)%nat.
+ Proof.
+-  induction n.
+-  * reflexivity.
+-  * simpl.
+-    rewrite length_app.
+-    auto with arith.
++  1: induction n.
++  * 1: reflexivity.
++  * 1: simpl.
++    1: rewrite length_app.
++    1: auto with arith.
+ Qed.
+ Definition repeat {a} (xs : list a) (n : Z) :=
+   if n <? 0 then []
+@@ -203,26 +204,26 @@
+ 
+ Lemma repeat_length {a} {xs : list a} {n : Z} (H : n >= 0) : (List.length (repeat xs n) = (Z.to_nat n) * List.length xs)%nat.
+ Proof.
+-  unfold repeat.
+-  apply Z.ge_le in H.
+-  rewrite <- Z.ltb_ge in H.
+-  rewrite H.
+-  apply repeat'_length.
++  1: unfold repeat.
++  1: apply Z.ge_le in H.
++  1: rewrite <- Z.ltb_ge in H.
++  1: rewrite H.
++  1: apply repeat'_length.
+ Qed.
+ 
+ Lemma repeat_length_list {a} {xs : list a} {n : Z} (H : n >= 0) : length_list (repeat xs n) = n * length_list xs.
+ Proof.
+-  unfold length_list, repeat.
+-  destruct n.
+-  + reflexivity. 
+-  + simpl (List.length _).
+-    rewrite repeat'_length.
+-    rewrite Nat2Z.inj_mul.
+-    unfold Z.to_nat.
+-    rewrite positive_nat_Z.
+-    reflexivity.  
+-  + exfalso.
+-    auto with zarith.
++  1: unfold length_list, repeat.
++  1: destruct n.
++  + 1: reflexivity. 
++  + 1: simpl (List.length _).
++    1: rewrite repeat'_length.
++    1: rewrite Nat2Z.inj_mul.
++    1: unfold Z.to_nat.
++    1: rewrite positive_nat_Z.
++    1: reflexivity.  
++  + 1: exfalso.
++    1: auto with zarith.
+ Qed.
+ 
+ 
+@@ -240,29 +241,29 @@
+ Lemma just_list_length {A} : forall (l : list (option A)) (l' : list A),
+   Some l' = just_list l -> List.length l = List.length l'.
+ Proof.
+-  induction l.
+-  * intros.
+-    simpl in H.
+-    inversion H.
+-    reflexivity.
+-  * intros.
+-    destruct a; simplify_eq H.
+-    simpl in *.
+-    destruct (just_list l); simplify_eq H.
+-    intros.
+-    subst.
+-    simpl.
+-    f_equal.
+-    apply IHl.
+-    reflexivity.
++  1: induction l.
++  * 1: intros.
++    1: simpl in H.
++    1: inversion H.
++    1: reflexivity.
++  * 1: intros.
++    1: destruct a; simplify_eq H.
++    1: simpl in *.
++    1: destruct (just_list l); simplify_eq H.
++    1: intros.
++    1: subst.
++    1: simpl.
++    1: f_equal.
++    1: apply IHl.
++    1: reflexivity.
+ Qed.
+ 
+ Lemma just_list_length_Z {A} : forall (l : list (option A)) l', Some l' = just_list l -> length_list l = length_list l'.
+ Proof.
+-  unfold length_list.
+-  intros.
+-  f_equal.
+-  auto using just_list_length.
++  1: unfold length_list.
++  1: intros.
++  1: f_equal.
++  1: auto using just_list_length.
+ Qed.
+ 
+ Fixpoint member_Z_list (x : Z) (l : list Z) : bool :=
+@@ -273,13 +274,13 @@
+ 
+ Lemma member_Z_list_In {x l} : member_Z_list x l = true <-> In x l.
+ Proof.
+-  induction l.
+-  * simpl. split. congruence. tauto.
+-  * simpl. destruct (x =? a) eqn:H.
+-    + rewrite Z.eqb_eq in H. subst. tauto.
+-    + rewrite Z.eqb_neq in H. split.
+-      - intro Heq. right. apply IHl. assumption.
+-      - intros [bad | good]. congruence. apply IHl. assumption.
++  1: induction l.
++  * 1: simpl. 1: split. 1: congruence. 1: tauto.
++  * 1: simpl. 1: destruct (x =? a) eqn:H.
++    + 1: rewrite Z.eqb_eq in H. 1: subst. 1: tauto.
++    + 1: rewrite Z.eqb_neq in H. 1: split.
++      - 1: intro Heq. 1: right. 1: apply IHl. 1: assumption.
++      - 1: intros [bad | good]. 1: congruence. 1: apply IHl. 1: assumption.
+ Qed.
+ 
+ (*** Bool lists ***)
+@@ -368,36 +369,36 @@
+ Open Scope nat.
+ Fixpoint nth_in_range {A} (n:nat) (l:list A) : n < length l -> A.
+ Proof.
+-  refine 
++  1: refine 
+     (match n, l with
+     | O, h::_ => fun _ => h
+     | S m, _::t => fun H => nth_in_range A m t _
+     | _,_ => fun H => _
+     end).
+-  exfalso. inversion H.
+-  exfalso. inversion H.
+-  simpl in H. lia.
++  1: exfalso. 1: inversion H.
++  1: exfalso. 1: inversion H.
++  1: simpl in H. 1: lia.
+ Defined.
+ 
+ Lemma nth_in_range_is_nth : forall A n (l : list A) d (H : n < length l),
+   nth_in_range n l H = nth n l d.
+ Proof.
+-  intros until d. revert n.
+-  induction l; intros n H.
+-  * inversion H.
+-  * destruct n.
+-    + reflexivity.
+-    + apply IHl.
++  1: intros until d. 1: revert n.
++  1: induction l; intros n H.
++  * 1: inversion H.
++  * 1: destruct n.
++    + 1: reflexivity.
++    + 1: apply IHl.
+ Qed.
+ 
+ Lemma nth_Z_nat {A} {n} {xs : list A} :
+   (0 <= n)%Z -> (n < length_list xs)%Z -> Z.to_nat n < length xs.
+ Proof.
+-  unfold length_list.
+-  intros nonneg bounded.
+-  rewrite Z2Nat.inj_lt in bounded; auto using Zle_0_nat.
+-  rewrite Nat2Z.id in bounded.
+-  assumption.
++  1: unfold length_list.
++  1: intros nonneg bounded.
++  1: rewrite Z2Nat.inj_lt in bounded; auto using Zle_0_nat.
++  1: rewrite Nat2Z.id in bounded.
++  1: assumption.
+ Qed.
+ 
+ Close Scope nat.
+@@ -455,9 +456,9 @@
+    equalities over them can be eliminated without Eqdep's axiom. *)
+ Definition idx_eq_dec (m n : idx) : {m = n} + {m <> n}.
+ Proof.
+-  destruct (Z.eq_dec (idx_Z m) (idx_Z n)) as [E|NE].
+-  - left. rewrite (Z_idx_Z m), (Z_idx_Z n), E. reflexivity.
+-  - right. intros ->. apply NE. reflexivity.
++  1: destruct (Z.eq_dec (idx_Z m) (idx_Z n)) as [E|NE].
++  - 1: left. 1: rewrite (Z_idx_Z m), (Z_idx_Z n), E. 1: reflexivity.
++  - 1: right. 1: intros ->. 1: apply NE. 1: reflexivity.
+ Defined.
+ 
+ Definition to_word_idx {n} (w : word n) : mword (idx_Z n) :=
+@@ -469,37 +470,37 @@
+ 
+ Lemma cast_idx_eq_dep T m n o (x : T m) (y : T n) EQ : EqdepFacts.eq_dep _ _ _ x _ y -> EqdepFacts.eq_dep _ _ _ x o (cast_idx y EQ).
+ Proof.
+-  intros.
+-  subst.
+-  rewrite cast_idx_refl.
+-  assumption.
++  1: intros.
++  1: subst.
++  1: rewrite cast_idx_refl.
++  1: assumption.
+ Qed.
+ 
+ Lemma Z_idx_eq_dep T m n (x : T (Z_idx m)) (y : T (Z_idx n)) : m > 0 -> n > 0 -> EqdepFacts.eq_dep idx T _ x _ y -> EqdepFacts.eq_dep Z (fun n => T (Z_idx n)) _ x _ y.
+ Proof.
+-  intros M N EQ.
+-  assert (m = n). {
+-    inversion EQ.
+-    apply Z2Nat.inj; auto with zarith.
++  1: intros M N EQ.
++  1: assert (m = n). {
++    1: inversion EQ.
++    1: apply Z2Nat.inj; auto with zarith.
+   }
+-  subst.
+-  apply (Eqdep_dec.eq_dep_eq_dec idx_eq_dec) in EQ.
+-  subst.
+-  constructor.
++  1: subst.
++  1: apply (Eqdep_dec.eq_dep_eq_dec idx_eq_dec) in EQ.
++  1: subst.
++  1: constructor.
+ Qed.
+ 
+ Lemma to_word_idx_cast n (w : mword n) :
+   n > 0 ->
+   w = autocast (to_word_idx w).
+ Proof.
+-  intros.
+-  change (word (Z_idx n)) with (mword n).
+-  apply Eqdep_dec.eq_dep_eq_dec; auto using Z.eq_dec.
+-  eapply EqdepFacts.eq_dep_trans. 2: apply autocast_eq_dep. 2: (apply idx_Z_idx; lia).
+-  unfold to_word_idx.
+-  apply Z_idx_eq_dep; [ assumption | rewrite idx_Z_idx; lia | ].
+-  apply cast_idx_eq_dep.
+-  constructor.
++  1: intros.
++  1: change (word (Z_idx n)) with (mword n).
++  1: apply Eqdep_dec.eq_dep_eq_dec; auto using Z.eq_dec.
++  1: eapply EqdepFacts.eq_dep_trans. 2: apply autocast_eq_dep. 2: (apply idx_Z_idx; lia).
++  1: unfold to_word_idx.
++  1: apply Z_idx_eq_dep; [ assumption | rewrite idx_Z_idx; lia | ].
++  1: apply cast_idx_eq_dep.
++  1: constructor.
+ Qed.
+ 
+ Definition length_mword {n} (w : mword n) := n.
+@@ -535,17 +536,17 @@
+ Lemma word_to_N_cast_idx {m n w} {E : m = n} :
+   word_to_N (cast_idx w E) = word_to_N w.
+ Proof.
+-  subst.
+-  rewrite cast_idx_refl.
+-  reflexivity.
++  1: subst.
++  1: rewrite cast_idx_refl.
++  1: reflexivity.
+ Qed.
+ 
+ Lemma mword_to_N_cast_Z {m n w} {E : m = n} :
+   mword_to_N (cast_Z w E) = mword_to_N w.
+ Proof.
+-  subst.
+-  rewrite cast_Z_refl.
+-  reflexivity.
++  1: subst.
++  1: rewrite cast_Z_refl.
++  1: reflexivity.
+ Qed.
+ 
+ Definition mword_to_bools {n} (w : mword n) : list bool := word_to_bools w.
+@@ -561,10 +562,10 @@
+ Local Lemma mword_of_bytes_idx (bs : list (mword 8)) :
+   idx_Z (idx_mul (Z_idx 8) (nat_idx (Datatypes.length bs))) = 8 * length_list bs.
+ Proof.
+-  rewrite idx_Z_idx_mul, nat_idx_Z, !idx_Z_idx.
+-  * reflexivity.
+-  * apply Z.le_ge. apply Nat2Z.is_nonneg.
+-  * lia.
++  1: rewrite idx_Z_idx_mul, nat_idx_Z, !idx_Z_idx.
++  * 1: reflexivity.
++  * 1: apply Z.le_ge. 1: apply Nat2Z.is_nonneg.
++  * 1: lia.
+ Qed.
+ 
+ Definition mword_of_bytes (bs : list (mword 8)) : mword (8 * length_list bs) :=
+@@ -572,11 +573,11 @@
+ 
+ Local Lemma bytes_of_mword_idx n : n >= 0 -> Z_idx (8 * n) = idx_mul (Z_idx 8) (Z_idx n).
+ Proof.
+-  intro.
+-  rewrite Z_idx_Z.
+-  f_equal.
+-  rewrite idx_Z_idx_mul.
+-  rewrite !idx_Z_idx; lia.
++  1: intro.
++  1: rewrite Z_idx_Z.
++  1: f_equal.
++  1: rewrite idx_Z_idx_mul.
++  1: rewrite !idx_Z_idx; lia.
+ Qed.
+ 
+ Definition bytes_of_mword [n] (w : mword (8 * n)) : list (mword 8) :=
+@@ -599,10 +600,10 @@
+   (l = r -> exists x, P x) ->
+   (exists x, l = r -> P x).
+ Proof.
+-  intro H.
+-  destruct (Bool.bool_dec l r) as [e | ne].
+-  * destruct (H e) as [x H']; eauto.
+-  * exists true; tauto.
++  1: intro H.
++  1: destruct (Bool.bool_dec l r) as [e | ne].
++  * 1: destruct (H e) as [x H']; eauto.
++  * 1: exists true; tauto.
+ Qed.
+ 
+ Ltac dump_context :=
+@@ -615,7 +616,7 @@
+ 
+ Lemma unit_comparison_lemma : true = true <-> True.
+ Proof.
+-  intuition.
++  1: intuition.
+ Qed.
+ #[export] Hint Resolve unit_comparison_lemma : sail.
+ 
+@@ -701,7 +702,7 @@
+ (* NB: this only works because we don't enforce choose_prop here. *)
+ #[export] Instance choose_type_inhabited {ty} : Inhabited (choose_type ty).
+ Proof.
+-  destruct ty; simpl; constructor; apply inhabitant.
++  1: destruct ty; simpl; constructor; apply inhabitant.
+ Defined.
+ 
+ (*** Loop combinators *)
+@@ -776,18 +777,18 @@
+    so define an opaque default value for them so that it's obvious when one appears. *)
+ Definition dodgy_vec {T:Type} n (NEG: (n >=? 0) = false) : vec T n.
+ Proof.
+-  refine (@existT _ _ [] _).
+-  destruct n; try discriminate.
+-  reflexivity.
++  1: refine (@existT _ _ [] _).
++  1: destruct n; try discriminate.
++  1: reflexivity.
+ Qed.
+ 
+ Lemma vec_init_ok {T} {n} {t : T} : (n >=? 0) = true -> Datatypes.length (repeat [t] n) = Z.to_nat n.
+ Proof.
+-  intro GE.
+-  rewrite repeat_length.
+-  - simpl.
+-    apply Nat.mul_1_r.
+-  - auto with zarith.
++  1: intro GE.
++  1: rewrite repeat_length.
++  - 1: simpl.
++    1: apply Nat.mul_1_r.
++  - 1: auto with zarith.
+ Qed.
+ 
+ Definition vector_init {T} (n : Z) (t : T) : vec T n :=
+@@ -807,9 +808,9 @@
+ Lemma list_init_length T n (f : Z -> T) :
+   length (list_init n f) = n.
+ Proof.
+-  induction n.
+-  - reflexivity.
+-  - simpl. auto.
++  1: induction n.
++  - 1: reflexivity.
++  - 1: simpl. 1: auto.
+ Qed.
+ 
+ Definition vec_init_fn {T} n (f : Z -> T) : vec T n :=
+@@ -820,56 +821,56 @@
+ 
+ Definition vec_concat {T m n} `{Inhabited T} (v : vec T m) (w : vec T n) : vec T (m + n).
+ Proof.
+-  refine (
++  1: refine (
+     if sumbool_of_bool ((m >=? 0) && (n >=? 0)) then
+        @existT _ _ (projT1 v ++ projT1 w) _
+     else dummy_value).
+-  destruct v,w.
+-  rewrite length_app.
+-  rewrite Z2Nat.inj_add; auto with zarith.
++  1: destruct v,w.
++  1: rewrite length_app.
++  1: rewrite Z2Nat.inj_add; auto with zarith.
+ Defined.
+ 
+ Lemma skipn_length {A n} {l: list A} : (n <= List.length l -> List.length (skipn n l) = List.length l - n)%nat.
+ Proof.
+-  revert l.
+-  induction n.
+-  * simpl. auto with arith.
+-  * intros l H.
+-    destruct l.
+-    + inversion H.
+-    + simpl in H.
+-      simpl.
+-      rewrite IHn; auto with arith.
++  1: revert l.
++  1: induction n.
++  * 1: simpl. 1: auto with arith.
++  * 1: intros l H.
++    1: destruct l.
++    + 1: inversion H.
++    + 1: simpl in H.
++      1: simpl.
++      1: rewrite IHn; auto with arith.
+ Qed.
+ Lemma update_list_inc_length {T} {l:list T} {m x} : 0 <= m < length_list l -> List.length (update_list_inc l m x) = List.length l.
+ Proof.
+-  unfold update_list_inc, list_update.
+-  intro H.
+-  assert ((0 <= Z.to_nat m < Datatypes.length l)%nat).
+-  { destruct H as [H1 H2].
+-    split.
+-    + change 0%nat with (Z.to_nat 0).
+-      apply Z2Nat.inj_le; auto with zarith.
+-    + rewrite <- Nat2Z.id.
+-      apply Z2Nat.inj_lt; auto with zarith.
++  1: unfold update_list_inc, list_update.
++  1: intro H.
++  1: assert ((0 <= Z.to_nat m < Datatypes.length l)%nat).
++  { 1: destruct H as [H1 H2].
++    1: split.
++    + 1: change 0%nat with (Z.to_nat 0).
++      1: apply Z2Nat.inj_le; auto with zarith.
++    + 1: rewrite <- Nat2Z.id.
++      1: apply Z2Nat.inj_lt; auto with zarith.
+   }
+-  rewrite length_app.
+-  rewrite firstn_length_le; only 2:lia.
+-  cbn -[skipn].
+-  rewrite skipn_length;
++  1: rewrite length_app.
++  1: rewrite firstn_length_le; only 2:lia.
++  1: cbn -[skipn].
++  1: rewrite skipn_length;
+   lia.
+ Qed.
+ 
+ Lemma vec_update_dec_lemma {T n} {v : vec T n} {m t} : (0 <=? m <? n) = true -> length (update_list_dec (projT1 v) m t) = Z.to_nat n.
+ Proof.
+-  intro.
+-  unfold update_list_dec.
+-  destruct v as [v' L].
+-  rewrite update_list_inc_length.
+-  + apply L.
+-  + simpl.
+-    unfold length_list.
+-    lia.
++  1: intro.
++  1: unfold update_list_dec.
++  1: destruct v as [v' L].
++  1: rewrite update_list_inc_length.
++  + 1: apply L.
++  + 1: simpl.
++    1: unfold length_list.
++    1: lia.
+ Qed.
+ 
+ Definition vec_update_dec {T n} `{Inhabited T} (v : vec T n) (m : Z) (t : T) : vec T n :=
+@@ -880,13 +881,13 @@
+ 
+ Lemma vec_update_inc_lemma {T n} {v : vec T n} {m t} : (0 <=? m <? n) = true -> length (update_list_inc (projT1 v) m t) = Z.to_nat n.
+ Proof.
+-  intro e.
+-  destruct v as [v' L].
+-  rewrite update_list_inc_length.
+-  + apply L.
+-  + unfold length_list.
+-    simpl.
+-    lia.
++  1: intro e.
++  1: destruct v as [v' L].
++  1: rewrite update_list_inc_length.
++  + 1: apply L.
++  + 1: unfold length_list.
++    1: simpl.
++    1: lia.
+ Qed.
+ 
+ Definition vec_update_inc {T n} `{Inhabited T} (v : vec T n) (m : Z) (t : T) : vec T n :=
+@@ -897,12 +898,12 @@
+ 
+ Definition vec_map {S T} (f : S -> T) {n} (v : vec S n) : vec T n.
+ Proof.
+-  refine (@existT _ _ (List.map f (projT1 v)) _).
+-  destruct v as [l H].
+-  cbn.
+-  unfold length_list.
+-  rewrite length_map.
+-  apply H.
++  1: refine (@existT _ _ (List.map f (projT1 v)) _).
++  1: destruct v as [l H].
++  1: cbn.
++  1: unfold length_list.
++  1: rewrite length_map.
++  1: apply H.
+ Defined.
+ 
+ #[local] Obligation Tactic := idtac.
+@@ -925,42 +926,42 @@
+ Definition vec_eq_dec {T n} (D : forall x y : T, {x = y} + {x <> y}) (x y : vec T n) :
+   {x = y} + {x <> y}.
+ Proof.
+-  refine (if List.list_eq_dec D (projT1 x) (projT1 y) then left _ else right _).
+-  * apply eq_sigT_hprop; auto using UIP_nat.
+-  * contradict n0. rewrite n0. reflexivity.
++  1: refine (if List.list_eq_dec D (projT1 x) (projT1 y) then left _ else right _).
++  * 1: apply eq_sigT_hprop; auto using UIP_nat.
++  * 1: contradict n0. 1: rewrite n0. 1: reflexivity.
+ Defined.
+ 
+ Definition vec_of_list {A} n (l : list A) : option (vec A n).
+ Proof.
+-  refine (
++  1: refine (
+     match sumbool_of_bool (List.length l =? Z.to_nat n)%nat with
+     | left H => Some (@existT _ _ l _)
+     | right _ => None
+     end
+   ).
+-  apply Nat.eqb_eq.
+-  exact H.
++  1: apply Nat.eqb_eq.
++  1: exact H.
+ Defined.
+ 
+ Lemma vec_of_list_eq {A n l} pf :
+   @vec_of_list A n l = Some (@existT _ _ l pf).
+ Proof.
+-  simpl in pf.
+-  unfold vec_of_list.
+-  destruct (sumbool_of_bool (Datatypes.length l =? Z.to_nat n)%nat) as [e|e].
+-  * do 2 f_equal.
+-    apply UIP_nat.
+-  * exfalso.
+-    apply Nat.eqb_neq in e.
+-    congruence.
++  1: simpl in pf.
++  1: unfold vec_of_list.
++  1: destruct (sumbool_of_bool (Datatypes.length l =? Z.to_nat n)%nat) as [e|e].
++  * 1: do 2 f_equal.
++    1: apply UIP_nat.
++  * 1: exfalso.
++    1: apply Nat.eqb_neq in e.
++    1: congruence.
+ Qed.
+ 
+ Definition vec_of_list_len {A} (l : list A) : vec A (length_list l). 
+ Proof.
+-  refine (@existT _ _ l _).
+-  unfold length_list.
+-  rewrite Nat2Z.id.
+-  reflexivity.
++  1: refine (@existT _ _ l _).
++  1: unfold length_list.
++  1: rewrite Nat2Z.id.
++  1: reflexivity.
+ Defined.
+ 
+ Definition map_bind {A B} (f : A -> option B) (a : option A) : option B :=
+@@ -973,19 +974,19 @@
+ 
+ Lemma Z_rem_really_nonneg : forall a b : Z, 0 <= a -> 0 <= Z.rem a b.
+ Proof.
+-  intros.
+-  destruct (Z.eq_dec b 0).
+-  + subst. rewrite Zquot.Zrem_0_r. assumption.
+-  + auto using Z.rem_nonneg.
++  1: intros.
++  1: destruct (Z.eq_dec b 0).
++  + 1: subst. 1: rewrite Zquot.Zrem_0_r. 1: assumption.
++  + 1: auto using Z.rem_nonneg.
+ Qed.
+ 
+ Lemma Z_rem_pow_upper_bound : forall x x0 l,
+ 0 <= x -> 2 ^ l <= x0 -> x0 <= 2 ^ l -> 0 <= l -> Z.rem x x0 < 2 ^ l.
+ Proof.
+-  intros.
+-  assert (x0 = 2 ^ l). auto with zarith.
+-  subst.
+-  apply Z.rem_bound_pos; auto with zarith.
++  1: intros.
++  1: assert (x0 = 2 ^ l). 1: auto with zarith.
++  1: subst.
++  1: apply Z.rem_bound_pos; auto with zarith.
+ Qed.
+ 
+ #[export] Hint Resolve Z_rem_really_nonneg Z_rem_pow_upper_bound : sail.
+@@ -996,7 +997,7 @@
+ Lemma sail_lt_ge (x y : Z) :
+   x < y <-> y >= x +1.
+ Proof.
+-  lia.
++  1: lia.
+ Qed.
+ #[export] Hint Resolve sail_lt_ge : sail.
+ 
+@@ -1006,17 +1007,17 @@
+   (forall x, g (f x) = Some x) ->
+   forall x y, f x = f y -> x = y.
+ Proof.
+-  intros H x y ?.
+-  enough (Some x = Some y); congruence.
++  1: intros H x y ?.
++  1: enough (Some x = Some y); congruence.
+ Qed.
+ Definition decode_encode_eq_dec {T} (f : T -> positive) (g : positive -> option T)
+   (H : forall x, g (f x) = Some x) (x y : T) : {x = y} + {x <> y}.
+ Proof.
+-  refine (match Pos.eq_dec (f x) (f y) with
++  1: refine (match Pos.eq_dec (f x) (f y) with
+   | left e => left (decode_encode_inj f g H x y e)
+   | right ne => right _
+   end).
+-  congruence.
++  1: congruence.
+ Defined.
+ 
+ (* If we can pick arbitrary inhabitants for the elements of a dependent pair,
+--- a/src/Values_lemmas.v
++++ b/src/Values_lemmas.v
+@@ -91,17 +91,17 @@
+   xs <> [] ->
+   (List.length (skipn n xs) < List.length xs)%nat.
+ Proof.
+-  revert n.
+-  induction xs.
+-  * congruence.
+-  * destruct n.
+-    + congruence.
+-    + intros _ _. simpl.
+-      destruct xs.
+-      - destruct n; simpl; auto.
+-      - destruct n; auto.
+-        apply Nat.lt_lt_succ_r.
+-        apply IHxs; congruence.
++  1: revert n.
++  1: induction xs.
++  * 1: congruence.
++  * 1: destruct n.
++    + 1: congruence.
++    + 1: intros _ _. 1: simpl.
++      1: destruct xs.
++      - 1: destruct n; simpl; auto.
++      - 1: destruct n; auto.
++        1: apply Nat.lt_lt_succ_r.
++        1: apply IHxs; congruence.
+ Qed.
+ 
+ (* If we're using stdpp bitvectors then it will have changed the default. *)

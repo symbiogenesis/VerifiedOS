@@ -1,0 +1,16 @@
+Abbreviation Inhabited := base.Inhabited
+
+Record Inhabited (A : Type@{base.Inhabited.u0}) : Type@{base.Inhabited.u0} := populate { inhabitant : A }.
+
+Arguments base.Inhabited A%_type_scope
+Arguments base.populate {A}%_type_scope inhabitant
+Arguments base.inhabitant {A}%_type_scope {Inhabited}
+Abbreviation inhabitant := @base.inhabitant
+
+base.inhabitant = fun (A : Type@{base.Inhabited.u0}) (Inhabited : base.Inhabited A) => match Inhabited return A with
+                                                                                       | @base.populate _ inhabitant => inhabitant
+                                                                                       end
+     : forall {A : Type@{base.Inhabited.u0}} {_ : base.Inhabited A}, A
+
+base.inhabitant is a projection of base.Inhabited
+Arguments base.inhabitant {A}%_type_scope {Inhabited}
