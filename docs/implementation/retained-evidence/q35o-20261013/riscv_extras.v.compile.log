@@ -1,0 +1,10 @@
+File "/root/build/lane-close3-20261013-machine/canonical-baseline/riscv_extras.v", line 10, characters 15-19:
+Warning: Loading Stdlib without prefix is deprecated.
+Use "From Stdlib Require List" or the deprecated "From Coq Require List"
+for compatibility with older Coq versions.
+[deprecated-missing-stdlib,deprecated-since-9.0,deprecated,default]
+File "/root/build/lane-close3-20261013-machine/canonical-baseline/riscv_extras.v", line 11, characters 15-18:
+Warning: Loading Stdlib without prefix is deprecated.
+Use "From Stdlib Require Lia" or the deprecated "From Coq Require Lia"
+for compatibility with older Coq versions.
+[deprecated-missing-stdlib,deprecated-since-9.0,deprecated,default]

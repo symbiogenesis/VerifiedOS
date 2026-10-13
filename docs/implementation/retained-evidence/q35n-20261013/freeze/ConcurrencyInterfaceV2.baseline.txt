@@ -1,0 +1,3 @@
+Inductive empOutcome (R : Type@{empOutcome.u0}) : Prop :=  .
+
+Arguments empOutcome R%_type_scope

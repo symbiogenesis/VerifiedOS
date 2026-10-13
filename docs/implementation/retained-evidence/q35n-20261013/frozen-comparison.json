@@ -1,0 +1,208 @@
+{
+  "mappings": [
+    "-boot",
+    "-R",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+    "Corelib",
+    "-Q",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+    "Stdlib",
+    "-Q",
+    "/root/build/lane-close3-20261013-machine/support-baseline/private/lib/coq/user-contrib/stdpp",
+    "stdpp",
+    "-R",
+    "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g",
+    "SailStdpp"
+  ],
+  "rows": [
+    {
+      "module": "ConcurrencyInterface",
+      "declarations": 1,
+      "exit": 0,
+      "identical": true,
+      "baseline": "26f3c96ebe6de34dbe16bc20910dae05472205f9f9496aa69d1a0c1ff0db6cec",
+      "candidate": "26f3c96ebe6de34dbe16bc20910dae05472205f9f9496aa69d1a0c1ff0db6cec",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/ConcurrencyInterface.candidate.txt"
+    },
+    {
+      "module": "ConcurrencyInterfaceTypes",
+      "declarations": 29,
+      "exit": 0,
+      "identical": true,
+      "baseline": "fd78683beafeeec59ffa3941927bb75c88ea9b5bb926b5da16ca1119db94d267",
+      "candidate": "fd78683beafeeec59ffa3941927bb75c88ea9b5bb926b5da16ca1119db94d267",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/ConcurrencyInterfaceTypes.candidate.txt"
+    },
+    {
+      "module": "ConcurrencyInterfaceTypesV2",
+      "declarations": 4,
+      "exit": 0,
+      "identical": true,
+      "baseline": "126f922c4bf66c0e32ae8be28d204ecde4ac39bebc56fd0d6b0d76e4483fa177",
+      "candidate": "126f922c4bf66c0e32ae8be28d204ecde4ac39bebc56fd0d6b0d76e4483fa177",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/ConcurrencyInterfaceTypesV2.candidate.txt"
+    },
+    {
+      "module": "ConcurrencyInterfaceV2",
+      "declarations": 1,
+      "exit": 0,
+      "identical": true,
+      "baseline": "26f3c96ebe6de34dbe16bc20910dae05472205f9f9496aa69d1a0c1ff0db6cec",
+      "candidate": "26f3c96ebe6de34dbe16bc20910dae05472205f9f9496aa69d1a0c1ff0db6cec",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/ConcurrencyInterfaceV2.candidate.txt"
+    },
+    {
+      "module": "GenericValue",
+      "declarations": 33,
+      "exit": 0,
+      "identical": true,
+      "baseline": "316c0d6933ea9c564ba2f65f1221df4893ce5859bd5f05537c8e5566f418f77a",
+      "candidate": "316c0d6933ea9c564ba2f65f1221df4893ce5859bd5f05537c8e5566f418f77a",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/GenericValue.candidate.txt"
+    },
+    {
+      "module": "Hoare",
+      "declarations": 84,
+      "exit": 0,
+      "identical": true,
+      "baseline": "d3e6e5feb522c5796d3f12299fa615124e371460ce09d7d23bb00a1ef0096617",
+      "candidate": "d3e6e5feb522c5796d3f12299fa615124e371460ce09d7d23bb00a1ef0096617",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/Hoare.candidate.txt"
+    },
+    {
+      "module": "Instances",
+      "declarations": 14,
+      "exit": 0,
+      "identical": true,
+      "baseline": "6df1189f064a2eb1c79c09529bcae11c032a6acd2f53efd3d2c9cb2453c16e58",
+      "candidate": "6df1189f064a2eb1c79c09529bcae11c032a6acd2f53efd3d2c9cb2453c16e58",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/Instances.candidate.txt"
+    },
+    {
+      "module": "MachineWord",
+      "declarations": 68,
+      "exit": 0,
+      "identical": true,
+      "baseline": "f64ef14152ea6cfb1e1209e5b1e6a8179ab8460c818aa2d31e36c228583b5c2c",
+      "candidate": "f64ef14152ea6cfb1e1209e5b1e6a8179ab8460c818aa2d31e36c228583b5c2c",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/MachineWord.candidate.txt"
+    },
+    {
+      "module": "Operators_mwords",
+      "declarations": 57,
+      "exit": 0,
+      "identical": true,
+      "baseline": "ac0d9e6c193539028be823f0aa8846c5eaad7b3a9ce6664fb4bf02ab04fd25ff",
+      "candidate": "ac0d9e6c193539028be823f0aa8846c5eaad7b3a9ce6664fb4bf02ab04fd25ff",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/Operators_mwords.candidate.txt"
+    },
+    {
+      "module": "Prompt",
+      "declarations": 31,
+      "exit": 0,
+      "identical": true,
+      "baseline": "b809405c35a62a6d95378459ace53aa2c24385c1a12ce60de59b125ed9166c44",
+      "candidate": "b809405c35a62a6d95378459ace53aa2c24385c1a12ce60de59b125ed9166c44",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/Prompt.candidate.txt"
+    },
+    {
+      "module": "Prompt_monad",
+      "declarations": 55,
+      "exit": 0,
+      "identical": true,
+      "baseline": "e59a64354ec017fa654eed6478c125f1173f5c6b356d34f5962314f2b969746b",
+      "candidate": "e59a64354ec017fa654eed6478c125f1173f5c6b356d34f5962314f2b969746b",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/Prompt_monad.candidate.txt"
+    },
+    {
+      "module": "Real",
+      "declarations": 25,
+      "exit": 0,
+      "identical": true,
+      "baseline": "d6b72d62401e39c26ae55b39fc8c99fedce16103a03ee309b028721395ab38f5",
+      "candidate": "d6b72d62401e39c26ae55b39fc8c99fedce16103a03ee309b028721395ab38f5",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/Real.candidate.txt"
+    },
+    {
+      "module": "State",
+      "declarations": 15,
+      "exit": 0,
+      "identical": true,
+      "baseline": "2ee0817e3e16ef04cddf42d7853711e6c53149d0af56d8c47f7382fb0086d2e0",
+      "candidate": "2ee0817e3e16ef04cddf42d7853711e6c53149d0af56d8c47f7382fb0086d2e0",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/State.candidate.txt"
+    },
+    {
+      "module": "State_lemmas",
+      "declarations": 57,
+      "exit": 0,
+      "identical": true,
+      "baseline": "7e281772442acb7ea0518d419cba2f3f421136835ec59bac69a4e78c647e8bbb",
+      "candidate": "7e281772442acb7ea0518d419cba2f3f421136835ec59bac69a4e78c647e8bbb",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/State_lemmas.candidate.txt"
+    },
+    {
+      "module": "State_lifting",
+      "declarations": 1,
+      "exit": 0,
+      "identical": true,
+      "baseline": "a252c4601d15a387801ef80cdd4291c84a4601370e6e32974c157cf933466a5f",
+      "candidate": "a252c4601d15a387801ef80cdd4291c84a4601370e6e32974c157cf933466a5f",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/State_lifting.candidate.txt"
+    },
+    {
+      "module": "State_monad",
+      "declarations": 57,
+      "exit": 0,
+      "identical": true,
+      "baseline": "1e5ff51906ff27a48b0221755bf4ad77c0c58ae405ee44238654ee64ae681ec0",
+      "candidate": "1e5ff51906ff27a48b0221755bf4ad77c0c58ae405ee44238654ee64ae681ec0",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/State_monad.candidate.txt"
+    },
+    {
+      "module": "State_monad_lemmas",
+      "declarations": 61,
+      "exit": 0,
+      "identical": true,
+      "baseline": "0c7a5dfaeecd6b2615df0cbd7b6915314440f1aeb986053c7aa77f636f371bd3",
+      "candidate": "0c7a5dfaeecd6b2615df0cbd7b6915314440f1aeb986053c7aa77f636f371bd3",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/State_monad_lemmas.candidate.txt"
+    },
+    {
+      "module": "String",
+      "declarations": 73,
+      "exit": 0,
+      "identical": true,
+      "baseline": "dd24d6b019a7597371dbf0bd386bc76b3b4a4891b2f3e95df76ab5cefb8283d4",
+      "candidate": "dd24d6b019a7597371dbf0bd386bc76b3b4a4891b2f3e95df76ab5cefb8283d4",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/String.candidate.txt"
+    },
+    {
+      "module": "Values",
+      "declarations": 154,
+      "exit": 0,
+      "identical": true,
+      "baseline": "858207b83a8c4d3feb26695232972103362f9bffd19f05c5d65d5dc9bb78504d",
+      "candidate": "858207b83a8c4d3feb26695232972103362f9bffd19f05c5d65d5dc9bb78504d",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/Values.candidate.txt"
+    },
+    {
+      "module": "Values_lemmas",
+      "declarations": 1,
+      "exit": 0,
+      "identical": true,
+      "baseline": "dc795b13a00d274cf6015bdc990a90d3d53f2b03c3d487ce45761162af937cca",
+      "candidate": "dc795b13a00d274cf6015bdc990a90d3d53f2b03c3d487ce45761162af937cca",
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/freeze/Values_lemmas.candidate.txt"
+    },
+    {
+      "module": "Inhabited",
+      "declarations": 2,
+      "exit": 0,
+      "identical": true,
+      "baseline": "27fe262866d0209b2ec57afd1d7a7885b78f43ef12032fb72c4624944f754693",
+      "candidate": "27fe262866d0209b2ec57afd1d7a7885b78f43ef12032fb72c4624944f754693",
+      "log": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close3-20261013-machine/docs/implementation/retained-evidence/q35n-20261013/freeze/Inhabited.candidate.txt"
+    }
+  ]
+}

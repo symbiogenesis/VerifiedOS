@@ -1,0 +1,9 @@
+7183: Definition __WriteRAM_Meta (addr : mword 64) (width : Z) (meta : bool)
+7184: (*(1 <=? width) && (width <=? 4096)*)
+7185: : M (unit) :=
+7186:    let first := uint ((addr_to_tag_addr (addr))) in
+7187:    let last := uint ((addr_to_tag_addr ((add_vec_int (addr) ((Z.sub (width) (1))))))) in
+7188:    let '(loop_i_lower) := first in
+7189:    let '(loop_i_upper) := last in
+7190:    (foreach_ZM_up loop_i_lower loop_i_upper 1 tt
+7191:      (fun i _ => (write_tag_bool ((to_bits_truncate (64) (i))) (meta))  : M (unit))).

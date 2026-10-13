@@ -1,0 +1,26 @@
+{
+  "revision": "52a10ade7ac2491480a733f0d81ff30f3053f2df",
+  "strict_modules": 29,
+  "diagnostics": 0,
+  "syntax_candidates": 9,
+  "frozen_modules": 21,
+  "frozen_declarations": 823,
+  "all_frozen_identical": true,
+  "kernel_axioms": {
+    "TermProbe": [],
+    "ControlEqdep": [
+      "Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq"
+    ],
+    "ControlReal": [
+      "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep",
+      "Stdlib.Reals.ClassicalDedekindReals.sig_not_dec",
+      "Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec",
+      "Stdlib.Logic.Classical_Prop.classic"
+    ],
+    "NotationProbe": []
+  },
+  "shared_switch_equal": true,
+  "production_carriage": false,
+  "hosted_carriage": "not run",
+  "native_lane": "/root/build/lane-close3-20261013-machine/support-baseline"
+}

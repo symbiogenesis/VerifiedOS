@@ -1,0 +1,5 @@
+File "/root/build/lane-close3-20261013-machine/support-baseline/strict/Inhabited.v", line 2, characters 0-39:
+Error: Required library base matches several files in path (found
+/root/build/lane-close3-20261013-machine/support-baseline/private/lib/coq/user-contrib/stdpp/base.vo and
+/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/stdpp/base.vo).
+
