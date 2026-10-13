@@ -1,0 +1,57 @@
+{
+  "acceptance": false,
+  "capture_utc": "2026-10-13T05:13:46.194975+00:00",
+  "files": [
+    {
+      "decoded_bytes": 1966080,
+      "decoded_sha256": "8c94cb050a02d47b08f9462402becf57fe236acf184b65e24d1119da8eee1d09",
+      "encoding": "gzip",
+      "original_native_path": "/tmp/vos-close3-q39-profile-mu2lp0sv/parser-profile.json",
+      "path": "profile-fragment.log.gz",
+      "stored_bytes": 130814,
+      "stored_sha256": "5b61b85cd6a954e560a26ad73e26f3c17eb4139ac3be75e7b1b88a4d31336677"
+    },
+    {
+      "decoded_bytes": 296645,
+      "decoded_sha256": "cca6c9316c564bebb4998e2cada749fdde41a1ce095e322f411f82aefe28987c",
+      "encoding": "gzip",
+      "original_native_path": "/tmp/vos-close3-q39-profile-mu2lp0sv/parser-profile.log",
+      "path": "parser.log.gz",
+      "stored_bytes": 16105,
+      "stored_sha256": "36145f40dc4f302cd3798cbba8957319bfb3578d2936c1d35e63f94aa96027b0"
+    },
+    {
+      "decoded_bytes": 2543150,
+      "decoded_sha256": "8d98d85d3a3f22125100f07be7ac07bb4008da2c6b82bf151f051d65413b2e3a",
+      "encoding": "gzip",
+      "original_native_path": "/tmp/vos-close3-q39-profile-mu2lp0sv/bindings.json",
+      "path": "bindings.json.gz",
+      "stored_bytes": 636732,
+      "stored_sha256": "cf2446db80e536efa857b392b8a2a4b9b700c3a57036f34e0040e58b13be46de"
+    },
+    {
+      "decoded_bytes": 3372,
+      "decoded_sha256": "6fd43884e92d8d651840b820dcdb41a4c0434076ab0d9aa5b4ca78fecb3c7815",
+      "encoding": "identity",
+      "original_native_path": "/tmp/vos-close3-q39-profile-mu2lp0sv/result.json",
+      "path": "operation.json",
+      "stored_bytes": 3372,
+      "stored_sha256": "6fd43884e92d8d651840b820dcdb41a4c0434076ab0d9aa5b4ca78fecb3c7815"
+    },
+    {
+      "decoded_bytes": 2835,
+      "decoded_sha256": "d248f53a4e3c9b5c65dcb7635f9b4b8b966f2dd808108e7225ed93a54305a614",
+      "encoding": "identity",
+      "original_native_path": "/tmp/vos-close3-q39-profile-mu2lp0sv/observation.json",
+      "path": "observation.json",
+      "stored_bytes": 2835,
+      "stored_sha256": "d248f53a4e3c9b5c65dcb7635f9b4b8b966f2dd808108e7225ed93a54305a614"
+    }
+  ],
+  "native_retention": "/tmp/vos-close3-q39-profile-mu2lp0sv",
+  "private_content": "Names, hashes, tool identities and diagnostic events only; no compiler source, proof object or executable.",
+  "public_base_revision": "3d04cbb77b1156258db1a09d867d383855aa0b1b",
+  "qualification": false,
+  "schema": "q39-bounded-parser-profile-bundle/1",
+  "source_revision": "6409d0ed65fd07de4fb37aa9c8f7a9d5c317cc9d"
+}

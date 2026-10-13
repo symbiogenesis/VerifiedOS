@@ -1,0 +1,100 @@
+{
+  "complete_event_count": 6063,
+  "decoded_prefix_characters": 1965759,
+  "decoder_error": {
+    "position": 1966080,
+    "reason": "Expecting ',' delimiter"
+  },
+  "last_complete_event": {
+    "args": {
+      "name": "compcert.cparser.Parser.MenhirLibParser.Complete.Valid.is_validator_forall_lookahead_set"
+    },
+    "name": "check_constant",
+    "ph": "B",
+    "pid": 16748,
+    "tid": 16748,
+    "ts": 1791868252783081
+  },
+  "last_log_line": "  checking cst:compcert.cparser.Parser.MenhirLibParser.Complete.Valid.is_validator_forall_items",
+  "limitation": "The channel buffer was not flushed on default SIGINT termination; omitted buffered events may include later begins and ends. An unclosed prefix event is not proof of current checker activity. No root cause, infinite loop, completed Parser check or Q39 acceptance is established.",
+  "longest_completed_constant_events": [
+    {
+      "begin_index": 320,
+      "constant": "compcert.cparser.Parser.Aut.noninitstateNum_obligation_1",
+      "end_index": 321,
+      "name": "check_constant",
+      "seconds": 0.161769
+    },
+    {
+      "begin_index": 5772,
+      "constant": "compcert.cparser.Parser.MenhirLibParser.Complete.Valid.StateProdPosMap.Raw.Proofs.bal_mapsto",
+      "end_index": 5773,
+      "name": "check_constant",
+      "seconds": 0.090984
+    },
+    {
+      "begin_index": 322,
+      "constant": "compcert.cparser.Parser.Aut.noninitstateNum_obligation_2",
+      "end_index": 323,
+      "name": "check_constant",
+      "seconds": 0.08985
+    },
+    {
+      "begin_index": 394,
+      "constant": "compcert.cparser.Parser.Aut.goto_table",
+      "end_index": 395,
+      "name": "check_constant",
+      "seconds": 0.083043
+    },
+    {
+      "begin_index": 392,
+      "constant": "compcert.cparser.Parser.Aut.action_table",
+      "end_index": 393,
+      "name": "check_constant",
+      "seconds": 0.057845
+    }
+  ],
+  "schema": "q39-truncated-profile-observation/1",
+  "unclosed_prefix_events": [
+    {
+      "event": {
+        "args": {
+          "fname": "parser-profile.json"
+        },
+        "name": "process",
+        "ph": "B",
+        "pid": 16748,
+        "tid": 16748,
+        "ts": 1791868247322523
+      },
+      "index": 0
+    },
+    {
+      "event": {
+        "args": {
+          "name": "compcert.cparser.Parser"
+        },
+        "name": "check_module",
+        "ph": "B",
+        "pid": 16748,
+        "tid": 16748,
+        "ts": 1791868249234602
+      },
+      "index": 3
+    },
+    {
+      "event": {
+        "args": {
+          "name": "compcert.cparser.Parser.MenhirLibParser.Complete.Valid.is_validator_forall_lookahead_set"
+        },
+        "name": "check_constant",
+        "ph": "B",
+        "pid": 16748,
+        "tid": 16748,
+        "ts": 1791868252783081
+      },
+      "index": 6062
+    }
+  ],
+  "valid_complete_json": false
+}
