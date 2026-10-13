@@ -144,9 +144,11 @@ refusing boolean/integer/float type substitutions and malformed JSON content.
 Artifact maps and runtime/image references also receive closed-shape and string-field
 validation before their filesystem binding. Malformed containers, missing or extra
 reference fields and non-string paths or digests return named composition refusals.
-Runtime slots must name distinct resolved artifact paths;
-relative path aliases cannot substitute one member's file for another. Distinct
-files may carry identical bytes. The skeleton contains no final image digest or certificate,
+Each runtime slot must name a distinct file. Relative path aliases and hardlinks
+cannot substitute one member's file for another.
+File identity is rechecked after the final declared-source binding, even when a
+substitution preserves every byte digest. Distinct files may carry identical bytes.
+The skeleton contains no final image digest or certificate,
 and generated derivation references supply no proof evidence. Neither the byte
 binding API nor the generated files perform the M7.1c derivation checks.
 
@@ -157,7 +159,11 @@ artifact slot to its checkout-relative file path, for example
 `"storage-artifact": "out/products/storage.elf"`. The command computes each file's
 digest; the path map does not supply digests or admission claims. All input paths
 stay inside the checkout. Output belongs under `out/` and cannot replace a consumed
-input, product or transitively bound source. The checked-in projection directory
+input, product or transitively bound source through a path alias or hardlink.
+All such refusals preserve the previous output and consumed bytes. The focused
+`test --only test_composition_artifacts` covers runtime and output hardlinks,
+publication-time runtime aliases, and independent files with equal bytes.
+The checked-in projection directory
 is the default when `--projections` is omitted.
 
 `composer check-build-record INPUT --projections PROJECTION_DIRECTORY --record RECORD --graph GRAPH --image IMAGE`

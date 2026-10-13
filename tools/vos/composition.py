@@ -371,6 +371,14 @@ def check(root: Path, source: str = EXAMPLE, output: str = GENERATED) -> None:
             raise CompositionError(f"stale generated projection: {name}")
 
 
+def _distinct_artifacts(root: Path, artifacts: dict[str, dict[str, str]]) -> None:
+    """Distinct paths can still name the same physical product through hardlinks."""
+    paths = [_path(root, ref["path"]) for ref in artifacts.values()]
+    for index, path in enumerate(paths):
+        if any(path == other or path.samefile(other) for other in paths[:index]):
+            raise CompositionError("build record: runtime members share a substituted artifact")
+
+
 def build_record(root: Path, source: str, outputs: dict[str, bytes],
                  artifacts: dict[str, dict[str, str]], image: dict[str, str], graph: bytes) -> dict[str, object]:
     """Resolve produced artifact slots separately; this is byte binding, not admission."""
@@ -388,13 +396,13 @@ def build_record(root: Path, source: str, outputs: dict[str, bytes],
         raise CompositionError("build record: artifact slots differ from the runtime roster")
     for ref in [*artifacts.values(), image]:
         _bound(root, ref)
-    if len({_path(root, ref["path"]) for ref in artifacts.values()}) != len(slots):
-        raise CompositionError("build record: runtime members share a substituted artifact")
+    _distinct_artifacts(root, artifacts)
     binding = _binding(root, raw, input_binding, roster_binding)
     # Produced bytes can drift while source bindings are constructed. Recheck
     # their declared identities at this publication boundary as well.
     for ref in [*artifacts.values(), image]:
         _bound(root, ref)
+    _distinct_artifacts(root, artifacts)
     return {"schema_version": 1, "kind": "production-composition-build-bindings",
             "binding": binding, "production_admission": False,
             "projections": {name: digest(data) for name, data in outputs.items()},
