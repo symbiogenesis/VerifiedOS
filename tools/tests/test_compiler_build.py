@@ -508,6 +508,43 @@ def _wildcard_import_closure() -> None:
                    "wildcard closure refuses before output creation, helper execution or index publication")
 
 
+def _indirect_builtin_imports() -> None:
+    expressions = (
+        "import builtins\nbuiltins.__import__('hidden')",
+        "import builtins as runtime\nruntime.__import__('hidden')",
+        "from builtins import __import__\n__import__('hidden')",
+        "from builtins import __import__ as load\nload('hidden')",
+        "load = __import__\nload('hidden')",
+        "def load(importer=__import__):\n    return importer('hidden')\nload()",
+        "(lambda importer: importer('hidden'))(__import__)",
+    )
+    with _session() as (settings, checkout):
+        cb.run(settings, checkout)
+        index = settings.cache / "index.json"
+        retained_index = index.read_bytes()
+        driver = settings.driver_root / "build.py"
+        original = driver.read_text()
+        marker = settings.driver_root / "indirect-imported"
+        (settings.driver_root / "hidden.py").write_text(
+            "from pathlib import Path\nPath(__file__).with_name('indirect-imported').write_text('executed')\n")
+        manifest = cb.read_json(settings.driver_manifest)
+        for number, expression in enumerate(expressions):
+            driver.write_text(expression + "\n" + original)
+            manifest["files"]["build.py"] = cb.digest(driver)
+            settings.driver_manifest.write_text(json.dumps(manifest))
+            attempted = replace(settings, out=settings.lane_root / f"indirect-{number}")
+            with patch.object(cb.subprocess, "run", side_effect=AssertionError("indirect driver launched")):
+                try:
+                    cb.run(attempted, checkout)
+                except ValueError as error:
+                    ensure(str(error) == "indirect driver imports are unsupported",
+                           "indirect primitive access refuses with its own syntax verdict")
+                else:
+                    raise AssertionError("indirect import syntax was accepted")
+            ensure(not attempted.out.exists() and not marker.exists() and index.read_bytes() == retained_index,
+                   "indirect syntax refuses before output, helper execution or useful index changes")
+
+
 def cases() -> list[Case]:
     return [Case("default-warm-and-job-change", _default_warm),
             Case("unmeasured-history-and-current-timing", _unmeasured_and_current_timings),
@@ -530,6 +567,7 @@ def cases() -> list[Case]:
             Case("import-fromlist-closure-before-launch", _import_fromlist_closure),
             Case("unsupported-import-fromlists-before-launch", _unsupported_import_fromlists),
             Case("wildcard-import-closure-before-launch", _wildcard_import_closure),
+            Case("indirect-builtin-imports-before-launch", _indirect_builtin_imports),
             *[Case("oversized-" + surface + "-timing", lambda surface=surface: _oversized_timing(surface))
               for surface in ("phase", "history", "validation", "operation")],
             *[Case(mode, lambda mode=mode: _framing(mode)) for mode in
