@@ -73,17 +73,22 @@ def main():
     root = Path(__file__).resolve().parent
     manifest = json.loads((root / "manifest.json").read_bytes())
     decoded = {}
-    for row in manifest["files"]:
-        stored = (root / row["path"]).read_bytes()
+    for name, row in manifest["files"].items():
+        path = row.get("path", name)
+        stored = (root / path).read_bytes()
         data = gzip.decompress(stored) if row["encoding"] == "gzip" else stored
         if (
-            len(stored) != row["stored_bytes"]
-            or hashlib.sha256(stored).hexdigest() != row["stored_sha256"]
-            or len(data) != row["decoded_bytes"]
-            or hashlib.sha256(data).hexdigest() != row["decoded_sha256"]
+            len(stored) != row.get("stored_bytes", row["bytes"])
+            or hashlib.sha256(stored).hexdigest()
+            != row.get("stored_sha256", row["sha256"])
+            or len(data) != row["bytes"]
+            or hashlib.sha256(data).hexdigest() != row["sha256"]
         ):
-            raise ValueError("retained-byte mismatch: " + row["path"])
-        decoded[row["path"]] = data
+            raise ValueError("retained-byte mismatch: " + path)
+        decoded[path] = data
+    if set(decoded) != {path.name for path in root.iterdir() if path.is_file()
+                        and path.name != "manifest.json"}:
+        raise ValueError("bundle member inventory differs")
     profile = decoded["profile-fragment.log.gz"].decode("utf-8")
     try:
         json.loads(profile)
@@ -102,9 +107,9 @@ def main():
             raise ValueError("input digest population differs: " + side)
         if operation[side]["paths"] != len(bindings) or operation[side]["mismatches"]:
             raise ValueError("historical input population mismatch: " + side)
-    if operation["profile_sha256"] != manifest["files"][0]["decoded_sha256"]:
+    if operation["profile_sha256"] != manifest["files"]["profile-fragment.log.gz"]["sha256"]:
         raise ValueError("operation profile binding differs")
-    if operation["log_sha256"] != manifest["files"][1]["decoded_sha256"]:
+    if operation["log_sha256"] != manifest["files"]["parser.log.gz"]["sha256"]:
         raise ValueError("operation log binding differs")
     if args.show_observation:
         print(json.dumps(generated, indent=2, sort_keys=True))
