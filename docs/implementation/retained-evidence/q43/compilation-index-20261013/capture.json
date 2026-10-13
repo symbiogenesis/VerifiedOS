@@ -1,0 +1,60 @@
+{
+  "schema": "verifiedos-contained-compilation-index-capture/1",
+  "captured_at_utc": "2026-10-13T05:12:19.327255+00:00",
+  "public_revision": "3d04cbb77b1156258db1a09d867d383855aa0b1b",
+  "private_driver_revision": "e604e260f74022f0e9aa2d4c9dbf33a5b8cee939",
+  "scope": "Actual authenticated compilation-only prime and default read-only index revalidation. No compilation, query, kernel or classification executed. Original complete qualification remains unsuccessful; no Q39 or whole-set Q43 acceptance.",
+  "original_receipt_before": {
+    "receipt": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler/build-result.json",
+    "sha256": "fdd3e16a7268cf07338ce44df6d0c91a8838e2ad7a496ad459be266b0f79577b",
+    "overall_passed": false
+  },
+  "original_receipt_after": {
+    "receipt": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler/build-result.json",
+    "sha256": "fdd3e16a7268cf07338ce44df6d0c91a8838e2ad7a496ad459be266b0f79577b",
+    "overall_passed": false
+  },
+  "lane_bytes_before_default_status": {
+    "/root/build/lane-close3-20261013-reuse/q43-prime-20261013/controller-compilation.json": "d678aa6e2e20e694edab0f1dbae43cb787c1b33a039f18e9fd21a794ecf8be2e",
+    "/root/build/lane-close3-20261013-reuse/q43-cache-20261013/index.json": "8e6ee14ef189098db6b5aeb7eee19eece62da4e9d4b15564c38d9e5a73e9f303"
+  },
+  "lane_bytes_after_default_status": {
+    "/root/build/lane-close3-20261013-reuse/q43-prime-20261013/controller-compilation.json": "d678aa6e2e20e694edab0f1dbae43cb787c1b33a039f18e9fd21a794ecf8be2e",
+    "/root/build/lane-close3-20261013-reuse/q43-cache-20261013/index.json": "8e6ee14ef189098db6b5aeb7eee19eece62da4e9d4b15564c38d9e5a73e9f303"
+  },
+  "controller_context_sha256": "9b9cecd52a1848c81ec733fc29858722cd888ce717213013c2c3240fcdea598c",
+  "index_tiers": [
+    "compilation"
+  ],
+  "native_retention": {
+    "controller-compilation.json": "/root/build/lane-close3-20261013-reuse/q43-prime-20261013/controller-compilation.json",
+    "index.json": "/root/build/lane-close3-20261013-reuse/q43-cache-20261013/index.json"
+  },
+  "retirement": "Archive the owned lane, then restore these unchanged metadata files at their exact native_retention paths if keeping this lookup usable. Keep every original basis.retention_paths entry unchanged. Temp manifest/configuration inputs can be rematerialized from the retained exact copies.",
+  "files": {
+    "configuration.json": {
+      "sha256": "566576e89592115731dfccedc811d64475fedb4e670bf9dcadd3e347a8523400",
+      "bytes": 33
+    },
+    "controller-compilation.json": {
+      "sha256": "d678aa6e2e20e694edab0f1dbae43cb787c1b33a039f18e9fd21a794ecf8be2e",
+      "bytes": 4595
+    },
+    "default-status-observation.json": {
+      "sha256": "5668b3c80f93009936890e48b982be6d686479c7f8ddf273867e51247b678b4b",
+      "bytes": 5882
+    },
+    "driver-manifest.json": {
+      "sha256": "57a1157ec44ca334aff7bddce06a8bb5dd20c68b68f9928827145f6c552f7b83",
+      "bytes": 510
+    },
+    "index.json": {
+      "sha256": "8e6ee14ef189098db6b5aeb7eee19eece62da4e9d4b15564c38d9e5a73e9f303",
+      "bytes": 358
+    },
+    "prime-observation.json": {
+      "sha256": "99c3ddf78a5a4b250d6e85471d910bef43581928a653d7efeaeff2de5394269f",
+      "bytes": 6117
+    }
+  }
+}

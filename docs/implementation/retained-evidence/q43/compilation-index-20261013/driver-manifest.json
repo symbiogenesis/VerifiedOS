@@ -1,0 +1,10 @@
+{
+  "schema": "verifiedos-contained-compiler-driver/1",
+  "helper_root": "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/test/verifiedos-q39",
+  "files": {
+    "build.py": "54942b2c3899c8a51ba363dd46fbb6d15b3ac4bf41dee5bf40ec0737bce79f51",
+    "qualify.py": "9ebe3aebddc0f8c4104e8ef3ee523b99860c397628ebbad99642c55691de34f3",
+    "audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+    "reuse.py": "4de09b4a5b48d601e9a4fa75f34a7816680883b88d0273afb8ec33673a3996b2"
+  }
+}

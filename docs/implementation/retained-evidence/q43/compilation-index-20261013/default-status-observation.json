@@ -1,0 +1,129 @@
+{
+  "operation": "status",
+  "started_at_utc": "2026-10-13T05:10:18.8282153+00:00",
+  "ended_at_utc": "2026-10-13T05:10:57.8766083+00:00",
+  "exit_code": 0,
+  "argv": [
+    "tools/run.py",
+    "compiler-build",
+    "status",
+    "--source",
+    "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011",
+    "--source-revision",
+    "6409d0ed65fd07de4fb37aa9c8f7a9d5c317cc9d",
+    "--lane-root",
+    "/root/build/lane-close3-20261013-reuse",
+    "--out",
+    "/root/build/lane-close3-20261013-reuse/q43-prime-20261013",
+    "--cache",
+    "/root/build/lane-close3-20261013-reuse/q43-cache-20261013",
+    "--driver-root",
+    "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/test/verifiedos-q39",
+    "--driver-manifest",
+    "/tmp/vos-q43-close3-20261013-ucwig1e6/manifest.json",
+    "--opam-root",
+    "/root/build/lane-checklist-20261010-c/q39/opam-root",
+    "--switch",
+    "q39-port",
+    "--lock",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261010-c/tools/opam/contained-compiler.lock",
+    "--configuration",
+    "/tmp/vos-q43-close3-20261013-ucwig1e6/configuration.json",
+    "--kernel-profile",
+    "vm",
+    "--json"
+  ],
+  "report": {
+    "basis": {
+      "original": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1",
+      "producer_manifest": {
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/build.py": "621bf3f2f2150ee709cb8b9017b270a5eaeab4f78b80c17ec6245bcd0e5a2058",
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/qualify.py": "d95a8997c9b9fb2d2c6e78e761138ff01719d61b868257ae3c1a356c9105d645"
+      },
+      "qualification_seconds": null,
+      "receipt": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler/build-result.json",
+      "receipt_sha256": "fdd3e16a7268cf07338ce44df6d0c91a8838e2ad7a496ad459be266b0f79577b",
+      "retention_paths": [
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261010-c/tools/opam/contained-compiler.lock",
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/audit.py",
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/build.py",
+        "/mnt/c/Users/symbi/source/repos/verifiedos-cheri-compcert/.worktrees/checklist-q39-vm-20261011/test/verifiedos-q39/qualify.py",
+        "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-port/bin/coqc",
+        "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-port/bin/coqchk",
+        "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-port/bin/coqtop",
+        "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-port/bin/menhir",
+        "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-port/bin/ocamlc.opt",
+        "/root/build/lane-checklist-20261010-c/q39/opam-root/q39-port/lib",
+        "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1",
+        "/usr/bin/make",
+        "/usr/local/bin/opam"
+      ],
+      "source_revision": "6409d0ed65fd07de4fb37aa9c8f7a9d5c317cc9d"
+    },
+    "cache_candidate": null,
+    "candidate_reason": "default: prior validated compilation requires backend revalidation",
+    "compiler": "/root/build/lane-checklist-20261010-c/q39/vm-clean-rebuild-1/compiler/ccomp",
+    "context_sha256": "9b9cecd52a1848c81ec733fc29858722cd888ce717213013c2c3240fcdea598c",
+    "controller_operation_seconds": 36.09873086799996,
+    "controller_policy": "default",
+    "driver_identity": {
+      "audit.py": "61c8f0f67c1975b3f4a1b73828dd40b9e2562c1ac8656f066fb692b5e1502138",
+      "build.py": "54942b2c3899c8a51ba363dd46fbb6d15b3ac4bf41dee5bf40ec0737bce79f51",
+      "manifest_sha256": "57a1157ec44ca334aff7bddce06a8bb5dd20c68b68f9928827145f6c552f7b83",
+      "qualify.py": "9ebe3aebddc0f8c4104e8ef3ee523b99860c397628ebbad99642c55691de34f3",
+      "reuse.py": "4de09b4a5b48d601e9a4fa75f34a7816680883b88d0273afb8ec33673a3996b2"
+    },
+    "driver_manifest_sha256": "57a1157ec44ca334aff7bddce06a8bb5dd20c68b68f9928827145f6c552f7b83",
+    "effective_policy": "compilation-reuse",
+    "fresh_requested": false,
+    "inputs_stable": true,
+    "operation": "status",
+    "operation_seconds": 34.48253473800003,
+    "outcome": "status",
+    "phases": {
+      "classification": {
+        "action": "not_run",
+        "basis": null,
+        "original_seconds": null,
+        "seconds": 0,
+        "status": "not_run"
+      },
+      "compile": {
+        "action": "reused",
+        "basis": "fdd3e16a7268cf07338ce44df6d0c91a8838e2ad7a496ad459be266b0f79577b",
+        "original_seconds": 385.9873900159946,
+        "seconds": 0,
+        "status": "passed"
+      },
+      "kernel": {
+        "action": "not_run",
+        "basis": null,
+        "original_seconds": null,
+        "seconds": 0,
+        "status": "not_run"
+      },
+      "queries": {
+        "action": "not_run",
+        "basis": null,
+        "original_seconds": null,
+        "seconds": 0,
+        "status": "not_run"
+      }
+    },
+    "policy": "default",
+    "profile_requested": false,
+    "protocol": "verifiedos-contained-compiler-build/1",
+    "qualification_receipt": null,
+    "receipt": null,
+    "requested_configuration": {
+      "ignore_coq_version": true
+    },
+    "requested_jobs": 1,
+    "requested_kernel_profile": "vm",
+    "reuse_reason": "no complete qualification",
+    "source_revision": "6409d0ed65fd07de4fb37aa9c8f7a9d5c317cc9d",
+    "status": "status",
+    "validation_seconds": 34.48253473800003
+  }
+}
