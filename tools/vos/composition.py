@@ -365,8 +365,13 @@ def build_record(root: Path, source: str, outputs: dict[str, bytes],
         _bound(root, ref)
     if len({_path(root, ref["path"]) for ref in artifacts.values()}) != len(slots):
         raise CompositionError("build record: runtime members share a substituted artifact")
+    binding = _binding(root, raw, input_binding, roster_binding)
+    # Produced bytes can drift while source bindings are constructed. Recheck
+    # their declared identities at this publication boundary as well.
+    for ref in [*artifacts.values(), image]:
+        _bound(root, ref)
     return {"schema_version": 1, "kind": "production-composition-build-bindings",
-            "binding": _binding(root, raw, input_binding, roster_binding), "production_admission": False,
+            "binding": binding, "production_admission": False,
             "projections": {name: digest(data) for name, data in outputs.items()},
             "artifacts": artifacts, "image": image, "graph_sha256": digest(graph)}
 

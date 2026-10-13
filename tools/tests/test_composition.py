@@ -669,6 +669,67 @@ def _build_bindings() -> None:
                  "stale projection bindings")
 
 
+def _build_artifact_publication_drift() -> None:
+    with _sandbox() as (root, raw):
+        graph = _resolve_descriptors(root, raw)
+        directory = root / "products"
+        directory.mkdir()
+        artifacts = {}
+        for member in raw["members"]:
+            if member["id"] in ("composer", "admission"):
+                continue
+            relative = f"products/{member['id']}.bin"
+            (root / relative).write_bytes(b"identical test-only payload")
+            artifacts[member["artifact_slot"]] = c.reference(root, relative)
+        (directory / "image.bin").write_bytes(b"test-only composed image")
+        image = c.reference(root, "products/image.bin")
+        outputs = c.projections(root)
+        record = c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph)
+        c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image)
+        ensure(len({ref["sha256"] for ref in artifacts.values()}) == 1,
+               "unchanged distinct artifact paths with equal bytes remain accepted")
+        ensure(record["artifacts"] == artifacts and record["image"] == image,
+               "build publication preserves independently supplied produced-byte references")
+        read_bytes = Path.read_bytes
+        bind = c._binding
+        for ref in (*artifacts.values(), image):
+            path = root / ref["path"]
+            original = path.read_bytes()
+            changed = original + b"publication substitution\n"
+            consumers = (lambda: c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph),
+                         lambda: c.validate_build_record(root, c.EXAMPLE, record, outputs, graph, image))
+            for consume in consumers:
+                reads = 0
+                def transient_read(candidate: Path, target: Path = path,
+                                   initial: bytes = original, substituted: bytes = changed) -> bytes:
+                    nonlocal reads
+                    if candidate == target:
+                        reads += 1
+                        return initial if reads == 1 else substituted
+                    return read_bytes(candidate)
+                with patch.object(Path, "read_bytes", transient_read):
+                    _refused(consume, "stale source binding")
+                ensure(reads >= 2, "produced bytes are rechecked after their initial validation")
+                bindings = 0
+                def substitute_after_binding(checkout: Path, declaration: dict[str, Any],
+                                             input_binding: dict[str, str],
+                                             roster_binding: dict[str, str],
+                                             target: Path = path, substituted: bytes = changed) -> dict[str, object]:
+                    nonlocal bindings
+                    result = bind(checkout, declaration, input_binding, roster_binding)
+                    bindings += 1
+                    if bindings == 2:
+                        target.write_bytes(substituted)
+                    return result
+                try:
+                    with patch.object(c, "_binding", substitute_after_binding):
+                        _refused(consume, "stale source binding")
+                    ensure(bindings == 2, "control substitutes after the final source binding is constructed")
+                finally:
+                    path.write_bytes(original)
+                consume()
+
+
 def _artifact_path_substitutions() -> None:
     with _sandbox() as (root, raw):
         graph = _resolve_descriptors(root, raw)
@@ -727,5 +788,6 @@ def cases() -> list[Case]:
             Case("declared-source-drift", _declared_source_drift),
             Case("partial-typed-handler-refusals", _partial_graph_edge_refusals),
             Case("post-build-byte-bindings", _build_bindings),
+            Case("build-artifact-publication-drift", _build_artifact_publication_drift),
             Case("artifact-path-substitutions", _artifact_path_substitutions),
             Case("production-project-cli", _cli)]
