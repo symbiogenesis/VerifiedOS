@@ -413,6 +413,59 @@ def _unreviewed_imports() -> None:
             ensure(not settings.out.exists(), "import closure refuses before creating output or launching")
 
 
+def _import_fromlist_closure() -> None:
+    for module, expression in (("helpers", "__import__('helpers', fromlist=['hidden'])"),
+                               ("helpers", "__import__('helpers', {}, {}, ('hidden',))"),
+                               ("helpers.nested", "__import__('helpers.nested', fromlist=['hidden'])"),
+                               ("helpers.nested", "__import__('helpers', fromlist=['nested.hidden'])")):
+        with _session() as (settings, checkout):
+            outer = settings.driver_root / "helpers"
+            outer.mkdir()
+            (outer / "__init__.py").write_text("# reviewed outer package\n")
+            package = settings.driver_root.joinpath(*module.split("."))
+            if package != outer:
+                package.mkdir()
+            (package / "__init__.py").write_text("# reviewed package\n")
+            marker = package / "imported"
+            (package / "hidden.py").write_text(
+                "from pathlib import Path\n(Path(__file__).parent / 'imported').write_text('executed')\n")
+            driver = settings.driver_root / "build.py"
+            driver.write_text(expression + "\n" + driver.read_text())
+            manifest = cb.read_json(settings.driver_manifest)
+            member = package.relative_to(settings.driver_root).as_posix()
+            manifest["files"].update({"build.py": cb.digest(driver),
+                                      "helpers/__init__.py": cb.digest(outer / "__init__.py"),
+                                      member + "/__init__.py": cb.digest(package / "__init__.py"),
+                                      member + "/hidden.py": cb.digest(package / "hidden.py")})
+            settings.driver_manifest.write_text(json.dumps(manifest))
+            report = cb.run(settings, checkout)
+            ensure(report["outcome"] == "complete" and marker.read_text() == "executed",
+                   "reviewed fromlist member actually executes in the fixture driver")
+            marker.unlink()
+            del manifest["files"][member + "/hidden.py"]
+            settings.driver_manifest.write_text(json.dumps(manifest))
+            attempted = replace(settings, out=settings.lane_root / "unreviewed")
+            with patch.object(cb.subprocess, "run", side_effect=AssertionError("unreviewed fromlist driver launched")):
+                _refuses(lambda: cb.run(attempted, checkout))
+            ensure(not attempted.out.exists() and not marker.exists(),
+                   "fromlist import closure refuses before output creation or launch")
+
+
+def _unsupported_import_fromlists() -> None:
+    for arguments in ("fromlist=members", "fromlist=['*']", "fromlist=[member]",
+                      "fromlist=['hidden'], level=1", "{}, {}, ('hidden',), 1",
+                      "**{'fromlist':['hidden']}"):
+        with _session() as (settings, checkout):
+            driver = settings.driver_root / "build.py"
+            driver.write_text("__import__('helpers', " + arguments + ")\n" + driver.read_text())
+            manifest = cb.read_json(settings.driver_manifest)
+            manifest["files"]["build.py"] = cb.digest(driver)
+            settings.driver_manifest.write_text(json.dumps(manifest))
+            with patch.object(cb.subprocess, "run", side_effect=AssertionError("unsupported fromlist driver launched")):
+                _refuses(lambda: cb.run(settings, checkout))
+            ensure(not settings.out.exists(), "unsupported import arguments refuse before output creation or launch")
+
+
 def cases() -> list[Case]:
     return [Case("default-warm-and-job-change", _default_warm),
             Case("unmeasured-history-and-current-timing", _unmeasured_and_current_timings),
@@ -432,6 +485,8 @@ def cases() -> list[Case]:
             Case("native-containment-collision-lock", _containment_and_lock),
             Case("json-and-manifest-refusal", _json_and_manifest),
             Case("unreviewed-imports-before-launch", _unreviewed_imports),
+            Case("import-fromlist-closure-before-launch", _import_fromlist_closure),
+            Case("unsupported-import-fromlists-before-launch", _unsupported_import_fromlists),
             *[Case("oversized-" + surface + "-timing", lambda surface=surface: _oversized_timing(surface))
               for surface in ("phase", "history", "validation", "operation")],
             *[Case(mode, lambda mode=mode: _framing(mode)) for mode in

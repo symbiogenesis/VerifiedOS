@@ -83,6 +83,34 @@ def _atomic(path: Path, value: dict[str, Any]) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def _import_fromlist(node: ast.Call) -> list[str]:
+    """Account for submodules Python loads for a literal __import__ fromlist."""
+    names = ("name", "globals", "locals", "fromlist", "level")
+    if len(node.args) > len(names) or any(isinstance(arg, ast.Starred) for arg in node.args):
+        raise ValueError("unsupported driver import arguments")
+    arguments = {names[index]: value for index, value in enumerate(node.args)}
+    for keyword in node.keywords:
+        if keyword.arg is None or keyword.arg not in names or keyword.arg in arguments:
+            raise ValueError("unsupported driver import arguments")
+        arguments[keyword.arg] = keyword.value
+    level = arguments.get("level")
+    if level is not None and not (isinstance(level, ast.Constant)
+                                  and type(level.value) is int and level.value == 0):
+        raise ValueError("relative driver imports are unsupported")
+    members = arguments.get("fromlist")
+    if members is None or (isinstance(members, ast.Constant) and members.value is None):
+        return []
+    if not isinstance(members, (ast.List, ast.Tuple)):
+        raise ValueError("dynamic driver import fromlist is unsupported")
+    result: list[str] = []
+    for member in members.elts:
+        if (not isinstance(member, ast.Constant) or not isinstance(member.value, str)
+                or not member.value or member.value == "*" or member.value.startswith(".")):
+            raise ValueError("unsupported driver import fromlist member")
+        result.append(member.value)
+    return result
+
+
 def _review_imports(root: Path, files: dict[str, str]) -> None:
     """Refuse undeclared local modules, packages and dynamic import targets before launch."""
     for name in files:
@@ -115,6 +143,9 @@ def _review_imports(root: Path, files: dict[str, str]) -> None:
                         or node.args[0].value.startswith(".")):
                     raise ValueError("dynamic driver import target is unsupported")
                 modules.append(node.args[0].value)
+                if isinstance(node.func, ast.Name):
+                    modules.extend(node.args[0].value + "." + member
+                                   for member in _import_fromlist(node))
         for module in modules:
             parts = module.split(".")
             for length in range(1, len(parts) + 1):
