@@ -64,7 +64,10 @@ def _build_record(root: Path, args: argparse.Namespace) -> None:
     inputs = [args.source, args.artifacts, args.image, args.graph, *projection_paths,
               *(ref["path"] for ref in artifacts.values()),
               *_reference_paths(record["binding"]), *_reference_paths(bound_source)]
-    if production._path(root, args.output) in {production._path(root, path) for path in inputs}:
+    destination = production._path(root, args.output)
+    protected = {production._path(root, path) for path in inputs}
+    if destination in protected or (destination.exists() and any(
+            destination.samefile(path) for path in protected)):
         raise production.CompositionError("build record output would overwrite an input or product")
     _output(root, args.output, composer.canonical_bytes(record))
     print(json.dumps({"output": args.output, "image_sha256": image["sha256"],
