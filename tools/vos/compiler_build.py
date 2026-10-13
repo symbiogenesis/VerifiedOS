@@ -239,6 +239,9 @@ class Settings:
             raise ValueError("output and cache roots must be separate")
         mutable = (out, cache, *(contained(path.with_name(path.name + ".lock"), lane)
                                  for path in (out, cache)))
+        if any(left.is_relative_to(right) or right.is_relative_to(left)
+               for index, left in enumerate(mutable) for right in mutable[index + 1:]):
+            raise ValueError("output/cache roots and operation locks must be separate")
         for path in (lane, self.source, self.driver_root, self.opam_root):
             actual = _absolute(path)
             if actual.is_relative_to(checkout.resolve()):
