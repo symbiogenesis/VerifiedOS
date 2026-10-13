@@ -73,9 +73,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sail-support-build-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/sail-build/upload/
-            ${{ runner.temp }}/sail-build/failure.json
+          path: ${{ runner.temp }}/sail-build/upload/
           if-no-files-found: warn
   import:
     needs: [plan, build]
@@ -107,9 +105,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sail-support-import-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/sail-import/upload/
-            ${{ runner.temp }}/sail-import/failure.json
+          path: ${{ runner.temp }}/sail-import/upload/
           if-no-files-found: warn
   join:
     needs: [plan, build, import]

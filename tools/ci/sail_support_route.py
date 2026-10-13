@@ -13,6 +13,7 @@ import os
 import platform
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tarfile
@@ -179,14 +180,33 @@ class Campaign:
     def run(self, label: str, argv: list[str], cwd: Path, *, strict: bool = False,
             timeout: int = 10800) -> subprocess.CompletedProcess[str]:
         start = time.monotonic()
-        result = subprocess.run(argv, cwd=cwd, env=self.environment, stdin=subprocess.DEVNULL,
-                                capture_output=True, text=True, encoding="utf-8", errors="replace",
-                                check=False, timeout=timeout)
+        with subprocess.Popen(argv, cwd=cwd, env=self.environment, stdin=subprocess.DEVNULL,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                              encoding="utf-8", errors="replace", start_new_session=sys.platform == "linux") as process:
+            limited = False
+            try:
+                stdout, stderr = process.communicate(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                limited = True
+                if sys.platform == "linux":
+                    os.killpg(process.pid, signal.SIGTERM)
+                else:
+                    process.terminate()
+                try:
+                    stdout, stderr = process.communicate(timeout=60)
+                except subprocess.TimeoutExpired:
+                    if sys.platform == "linux":
+                        os.killpg(process.pid, signal.SIGKILL)
+                    else:
+                        process.kill()
+                    stdout, stderr = process.communicate()
+            result = subprocess.CompletedProcess(argv, 124 if limited else process.returncode, stdout, stderr)
         log = self.upload / (label + ".log")
         log.write_text(result.stdout + result.stderr, encoding="utf-8", newline="")
         self.report["commands"].append({"label": label, "argv": argv, "cwd": str(cwd),
             "exit": result.returncode, "seconds": time.monotonic() - start,
-            "log": log.name, "log_sha256": receipts.digest(log), "strict": strict})
+            "log": log.name, "log_sha256": receipts.digest(log), "strict": strict,
+            "timed_out": limited})
         self.save()
         if result.returncode or (strict and (result.stdout.strip() or result.stderr.strip())):
             raise ValueError("command failed or strict diagnostic: " + label)
@@ -212,6 +232,7 @@ def identity_tree(roots: list[Path]) -> dict[str, str]:
 
 def qualify(campaign: Campaign, found: dict[str, Any], imported: Path | None) -> None:
     root, side = campaign.root, campaign.side
+    os.chdir(root)
     bootstrap_instrument.system_packages(True)
     (root / "bin").mkdir()
     opam_client.install(root / "bin/opam", platform.machine())
@@ -285,6 +306,10 @@ def qualify(campaign: Campaign, found: dict[str, Any], imported: Path | None) ->
             campaign.run("patch-" + str(index) + "-" + tree.parent.name,
                          ["patch", "--fuzz=0", "-p1", "-i", str(patch)], tree)
     installed = root / "opam" / SWITCH
+    native_metadata = installed / ".opam-switch/packages/rocq-sail-stdpp.0.20.3/opam"
+    metadata_bytes = native_metadata.read_bytes()
+    snapshot_metadata(metadata_bytes.decode("utf-8"), extra_files, found["source"]["sha256"])
+    (campaign.upload / "package-metadata.txt").write_bytes(metadata_bytes)
     lib = Path(campaign.opam("lib", ["var", "lib", "--switch=" + SWITCH]).stdout.strip())
     where = Path(campaign.run("where", campaign.executable(["rocq", "c", "-where"]), root).stdout.strip())
     stdpp = lib / "coq/user-contrib/stdpp"
@@ -372,9 +397,28 @@ def qualify(campaign: Campaign, found: dict[str, Any], imported: Path | None) ->
     snapshot_metadata(exported.read_text(encoding="utf-8"), extra_files, found["source"]["sha256"])
     if imported is not None and imported.read_bytes() != exported.read_bytes():
         raise ValueError("independent full frozen re-export is not byte-identical")
+    evidence = {name: {"sha256": receipts.digest(campaign.upload / name),
+                       "bytes": (campaign.upload / name).stat().st_size}
+                for name in ("input-identities.json", "native-assumptions.json", "package-metadata.txt",
+                             "Sail-Support-LICENSE", "sail-support.lock")}
     campaign.report.update(status="passed", export_sha256=receipts.digest(exported),
-                           export_bytes=exported.stat().st_size, reexport_identical=imported is not None)
+                           export_bytes=exported.stat().st_size, reexport_identical=imported is not None,
+                           evidence=evidence)
     campaign.save()
+
+
+def required_labels(phase: str, frozen_count: int) -> set[str]:
+    phases = {"build": {"base-import", "package-build-tests", "repository", "repositories"},
+              "import": {"snapshot-import", "imported-package-tests"}}
+    if phase not in phases:
+        raise ValueError("unsupported campaign phase")
+    return {"create", "invariant", "closure", "baseline-build", "dependency-order", "where", "lib",
+            "kernel-support", "kernel-term", "kernel-eqdep", "kernel-real", "kernel-notation", "export",
+            *("probe-compile-" + name for name in ("term", "eqdep", "real", "notation")),
+            *(label + str(index) for index in range(29)
+              for label in ("strict-", "inventory-", "assumptions-")),
+            *("frozen-" + str(index) + "-" + side_name for index in range(frozen_count)
+              for side_name in ("baseline", "candidate")), *phases[phase]}
 
 
 def join(artifacts: Path | None, side: Path, revision: str, root: Path) -> None:
@@ -384,12 +428,13 @@ def join(artifacts: Path | None, side: Path, revision: str, root: Path) -> None:
     if any(needs.get(name, {}).get("result") != "success" for name in ("plan", "build", "import")):
         raise ValueError("campaign job failed, skipped or supplied no success verdict")
     found = load(side / RECIPE)
+    frozen_count = len(load(asset(side, found["frozen_inventory"]))["queries"])
     expected_contexts = {"support": found["support_axioms"],
                          **{name: entry["expected_axioms"] for name, entry in found["probes"].items()}}
     reports: list[dict[str, Any]] = []
     for path in artifacts.glob("*/receipt.json"):
         row = load(path)
-        if (row["status"] != "passed" or row["revision"] != revision
+        if (row["status"] != "passed" or row.get("cold") is not True or row["revision"] != revision
                 or row["dispatch_revision"] != os.environ["GITHUB_SHA"]
                 or row["run_id"] != os.environ["GITHUB_RUN_ID"]
                 or row["run_attempt"] != os.environ["GITHUB_RUN_ATTEMPT"]
@@ -397,13 +442,25 @@ def join(artifacts: Path | None, side: Path, revision: str, root: Path) -> None:
             raise ValueError("artifact does not bind this passing campaign")
         if receipts.digest(path.parent / "sail-support.lock") != row["export_sha256"]:
             raise ValueError("artifact snapshot differs from recorded export")
+        evidence = row.get("evidence")
+        expected_files = {"input-identities.json", "native-assumptions.json", "package-metadata.txt",
+                          "Sail-Support-LICENSE", "sail-support.lock"}
+        if not isinstance(evidence, dict) or set(evidence) != expected_files:
+            raise ValueError("artifact lacks its complete source/tool/object identity evidence")
+        for name, identity in evidence.items():
+            retained = path.parent / name
+            if (receipts.digest(retained) != identity["sha256"]
+                    or retained.stat().st_size != identity["bytes"]):
+                raise ValueError("artifact evidence bytes differ")
+        if receipts.digest(path.parent / "Sail-Support-LICENSE") != found["source_license_sha256"]:
+            raise ValueError("artifact license differs from the original source notice")
+        identities = load(path.parent / "input-identities.json")
+        if not identities or any(not isinstance(value, str) or SHA256.fullmatch(value) is None
+                                 for value in identities.values()):
+            raise ValueError("artifact input identity population is empty or malformed")
         commands = row["commands"]
         labels = [entry["label"] for entry in commands]
-        required = {"kernel-support", "kernel-term", "kernel-eqdep", "kernel-real", "kernel-notation", "export",
-                    *(label + str(index) for index in range(29)
-                      for label in ("strict-", "inventory-", "assumptions-")),
-                    *("frozen-" + str(index) + "-" + side_name for index in range(21)
-                      for side_name in ("baseline", "candidate"))}
+        required = required_labels(row["phase"], frozen_count)
         if len(labels) != len(set(labels)) or not required <= set(labels):
             raise ValueError("artifact lacks complete strict/recursive checks")
         for command in commands:
@@ -461,7 +518,8 @@ def main(argv: list[str] | None = None) -> int:
             campaign.report.update(status="failed", reason=str(error))
             campaign.save()
         else:
-            write(args.root / "failure.json", {"schema": SCHEMA, "status": "failed", "reason": str(error)})
+            write(args.root / ("failure.json" if args.command in {"plan", "join"} else "upload/failure.json"),
+                  {"schema": SCHEMA, "status": "failed", "reason": str(error)})
         print("FAIL sail-support-carriage: " + str(error), file=sys.stderr)
         return 1
     return 0
