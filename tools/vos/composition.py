@@ -331,10 +331,35 @@ def emit(root: Path, source: str, output: str) -> dict[str, str]:
     destination = _path(root, output)
     if output != GENERATED and not destination.is_relative_to((root / "out").resolve()):
         raise CompositionError("projection output belongs under out/ or tools/composer/generated")
-    outputs = projections(root, source)
+    raw, input_binding, roster, roster_binding = _load(root, source)
+    outputs = _projections(root, raw, input_binding, roster, roster_binding)
+    sources = {source, boot.CONTRACT, *PRODUCERS, raw["configuration"]["path"]}
+    for producer in raw["producers"]:
+        sources.update(ref["path"] for ref in producer["sources"])
+    for member in raw["members"]:
+        sources.update(ref["path"] for ref in
+                       (*member["sources"], member["descriptor"], member["derivation"]["source"])
+                       if ref is not None)
+    protected = {_path(root, path) for path in sources}
+    targets: dict[str, Path] = {}
+    # Preflight every leaf before writing anything: a later collision must not
+    # destroy an earlier useful projection or one of the consumed source files.
+    for name in outputs:
+        try:
+            target = _path(root, f"{output}/{name}")
+        except CompositionError as error:
+            raise CompositionError(f"projection output escapes its directory: {name}") from error
+        if not target.is_relative_to(destination):
+            raise CompositionError(f"projection output escapes its directory: {name}")
+        if target in protected or (target.exists() and any(target.samefile(path) for path in protected)):
+            raise CompositionError(f"projection output would overwrite a composition source: {name}")
+        if target in targets.values() or (target.exists() and any(
+                path.exists() and target.samefile(path) for path in targets.values())):
+            raise CompositionError(f"projection outputs share a file: {name}")
+        targets[name] = target
     destination.mkdir(parents=True, exist_ok=True)
     for name, data in outputs.items():
-        (destination / name).write_bytes(data)
+        targets[name].write_bytes(data)
     return {name: digest(data) for name, data in outputs.items()}
 
 
