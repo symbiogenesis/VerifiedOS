@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
-from vos import env, gallina
+from vos import composition, env, gallina
 
 DETECTORS: Final = (
     "PoolLow", "PoolExhausted", "OldestWaiterPastBound", "QuarantineBacklogPastBound",
@@ -30,13 +30,15 @@ ACTIONS: Final = (
     "StepDownPopulationRung", "DisableNonessentialService", "RestartOwningSubtree",
     "FailStopOwningSubsystem", "EscalateToRotReset",
 )
-SOURCES: Final = ("src/supervisor.c", "src/manifest.c", "src/effects.c",
+SOURCES: Final = ("src/supervisor.c", "src/effects.c",
                   "test/host.c", "test/effects.c")
+MANIFESTS: Final = ("manifest.c", "manifest.json")
 KERNEL_SOURCES: Final = ("src/context.c",)
 KERNEL_HEADERS: Final = ("include/vos_kernel.h", "include/vos_platform.h")
 CFLAGS: Final = ("-std=c11", "-O1", "-Wall", "-Wextra", "-Werror", "-pedantic")
-WAITS: Final = ("Host C/reference agreement only; M1.2f's accepted backend, M4.4's "
-               "kernel effect bindings and M7.1a's target boot remain open.")
+WAITS: Final = ("Finite host C/reference and generated-manifest consumer agreement; "
+               "authenticated target handoff, production admission and full-roster "
+               "boot/fault observations remain open.")
 
 
 @dataclass(frozen=True)
@@ -119,16 +121,45 @@ def c_compiler() -> str | None:
     return shutil.which("cc") or shutil.which("gcc") or shutil.which("clang")
 
 
+def checked_manifest(root: Path) -> dict[str, bytes]:
+    """Consume the bound production projections, retaining their checked bytes.
+
+    Regeneration checks the declared source and producer identities. Equality of
+    both projections checks the actual published C and its JSON binding rather
+    than trusting a reported digest or silently rebuilding a stale projection.
+    This host boundary supplies no image admission or target qualification.
+    """
+    expected = composition.projections(root)
+    snapshots: dict[str, bytes] = {}
+    for name in MANIFESTS:
+        path = root / composition.GENERATED / name
+        try:
+            data = path.read_bytes()
+        except OSError as error:
+            raise composition.CompositionError(f"unreadable supervisor projection: {name}") from error
+        if data != expected[name]:
+            raise composition.CompositionError(f"stale supervisor projection: {name}")
+        snapshots[name] = data
+    return snapshots
+
+
 def build_host(source: Path, binary: Path, compiler: str) -> subprocess.CompletedProcess[str]:
     binary.parent.mkdir(parents=True, exist_ok=True)
-    return subprocess.run(
+    snapshot = checked_manifest(source.parent)
+    manifest = binary.parent / f"{binary.name}-manifest.c"
+    manifest.write_bytes(snapshot["manifest.c"])
+    built = subprocess.run(
         [compiler, *CFLAGS, "-I", str(source / "include"),
          "-I", str(source.parent / "kernel" / "include"),
+         str(manifest),
          *(str(source / name) for name in SOURCES),
          *(str(source.parent / "kernel" / name) for name in KERNEL_SOURCES),
          "-o", str(binary)],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
-        timeout=60, check=False)
+        timeout=60, check=False, cwd=binary.parent.resolve())
+    if checked_manifest(source.parent) != snapshot or manifest.read_bytes() != snapshot["manifest.c"]:
+        raise composition.CompositionError("supervisor manifest changed during compilation")
+    return built
 
 
 def _digest(path: Path) -> str:
@@ -149,22 +180,32 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
     found = gallina.prover(env.ROCQ_SWITCH)
     if compiler is None or found is None:
         return 1, [f"FAIL requires native C compiler and locked switch {env.ROCQ_SWITCH}", WAITS]
+    try:
+        manifest_before = checked_manifest(root)
+    except (ValueError, OSError) as error:
+        return 1, [f"FAIL supervisor manifest: {error}", WAITS]
     identities = [root / "proofs" / "SupervisionTree.v",
                   root / "tools" / "vos" / "supervisor.py",
                   root / "supervisor" / "include" / "vos_supervisor.h",
                   root / "supervisor" / "include" / "vos_supervisor_effects.h",
+                  root / composition.EXAMPLE,
+                  *(root / composition.GENERATED / name for name in MANIFESTS),
                   *(root / "kernel" / name for name in (*KERNEL_SOURCES, *KERNEL_HEADERS)),
                   *(root / "supervisor" / name for name in SOURCES)]
     inputs_before = {path.relative_to(root).as_posix(): _digest(path) for path in identities}
     compiler_before = _digest(Path(compiler))
     prover_before = _digest(Path(found.argv[0]))
     binary = work / "supervisor-host"
-    built = build_host(root / "supervisor", binary, compiler)
+    try:
+        built = build_host(root / "supervisor", binary, compiler)
+    except (ValueError, OSError) as error:
+        return 1, [f"FAIL supervisor manifest: {error}", WAITS]
     (logs / "compile.log").write_text(built.stdout + built.stderr, encoding="utf-8", newline="")
     if built.returncode:
         return 1, ["FAIL supervisor C compile", built.stderr, WAITS]
     controls = subprocess.run([str(binary), "controls"], capture_output=True,
-                              text=True, encoding="utf-8", timeout=60, check=False)
+                              text=True, encoding="utf-8", timeout=60, check=False,
+                              cwd=work.resolve())
     (logs / "controls.log").write_text(controls.stdout + controls.stderr,
                                        encoding="utf-8", newline="")
     if controls.returncode:
@@ -174,7 +215,8 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
     inputs = "\n".join(" ".join(map(str, case.inputs)) for case in cases) + "\n"
     (work / "inputs.txt").write_text(inputs, encoding="utf-8", newline="")
     answers = subprocess.run([str(binary)], input=inputs, capture_output=True,
-                             text=True, encoding="utf-8", timeout=60, check=False)
+                             text=True, encoding="utf-8", timeout=60, check=False,
+                             cwd=work.resolve())
     (work / "answers.txt").write_text(answers.stdout, encoding="utf-8", newline="")
     if answers.returncode:
         return 1, ["FAIL C input/answer harness", answers.stderr, WAITS]
@@ -199,7 +241,12 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
             if compiled.returncode:
                 return 1, [f"FAIL locked Gallina comparison at {artifact.name}",
                            compiled.stderr, WAITS]
-    if (inputs_before != {path.relative_to(root).as_posix(): _digest(path) for path in identities}
+    try:
+        manifest_after = checked_manifest(root)
+    except (ValueError, OSError) as error:
+        return 1, [f"FAIL supervisor manifest: {error}", WAITS]
+    if (manifest_before != manifest_after
+            or inputs_before != {path.relative_to(root).as_posix(): _digest(path) for path in identities}
             or compiler_before != _digest(Path(compiler))
             or prover_before != _digest(Path(found.argv[0]))):
         return 1, ["FAIL source or tool bytes changed during the comparison", WAITS]
@@ -209,6 +256,9 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
         "prover": gallina.version(found), "prover_sha256": prover_before,
         "compiler": compiler, "compiler_sha256": compiler_before, "cflags": CFLAGS,
         "inputs": inputs_before, "logs": str(logs),
+        "production_manifest": {name: composition.digest(data)
+                                for name, data in manifest_before.items()},
+        "production_admission": False,
         "binary_sha256": _digest(binary), "answers_sha256": _digest(work / "answers.txt"),
         "effect_controls": controls.stderr.strip(),
         "comparison_sha256": _digest(work / "SupervisorComparison.v"),

@@ -48,6 +48,15 @@ static int controls(void)
     request = plan.starts[0];
     request.grants = 4;
     CHECK(!vos_supervisor_request_current(&m, &epoch, 8, &request));
+    epoch.number = UINT64_C(0x100000008);
+    CHECK(vos_supervisor_plan(&m, &epoch, epoch.number, 1, 0, &plan));
+    CHECK(plan.starts[1].epoch == epoch.number && plan.starts[1].grants == 0);
+    CHECK(vos_supervisor_request_current(&m, &epoch, epoch.number, &plan.starts[1]));
+    before = plan;
+    CHECK(!vos_supervisor_plan(&m, &epoch, 8, 1, 0, &plan));
+    CHECK(memcmp(&before, &plan, sizeof(plan)) == 0);
+    CHECK(!vos_supervisor_request_current(&m, &epoch, 8, &plan.starts[1]));
+    epoch.number = 8;
     CHECK(vos_supervisor_plan(&m, &epoch, 8, 1, UINT32_MAX, &plan));
     CHECK(plan.delay == m.ceiling);
     m.restart_members = 6;
