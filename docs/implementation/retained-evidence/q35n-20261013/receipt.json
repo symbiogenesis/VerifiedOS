@@ -1,8 +1,8 @@
 {
-  "revision": "07e2724ff8ca2a620a0bae3cc50fc05ac2c1f91b",
+  "revision": "52a10ade7ac2491480a733f0d81ff30f3053f2df",
   "strict_modules": 29,
   "diagnostics": 0,
-  "syntax_candidates": 8,
+  "syntax_candidates": 9,
   "frozen_modules": 21,
   "frozen_declarations": 823,
   "all_frozen_identical": true,
@@ -16,7 +16,8 @@
       "Stdlib.Reals.ClassicalDedekindReals.sig_not_dec",
       "Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec",
       "Stdlib.Logic.Classical_Prop.classic"
-    ]
+    ],
+    "NotationProbe": []
   },
   "shared_switch_equal": true,
   "production_carriage": false,

@@ -1,0 +1,88 @@
+(cd _build/default && /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq compile -q -w -deprecated-native-compiler-option -w -native-compiler-disabled -native-compiler ondemand -boot -R /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories Corelib -Q /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib Stdlib -Q /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/stdpp stdpp -R stdpp_bitvector stdpp.bitvector stdpp_bitvector/definitions.v)
+File "./stdpp_bitvector/definitions.v", line 217, characters 12-35:
+Warning: Reference Znumtheory.Zmod_div_mod is deprecated since Stdlib 9.1.
+Use Z.mod_mod_divide instead.
+[deprecated-reference-since-Stdlib-9.1,deprecated-since-Stdlib-9.1,deprecated-reference,deprecated,default]
+File "./stdpp_bitvector/definitions.v", line 217, characters 12-35:
+Warning: Reference Znumtheory.Zmod_div_mod is deprecated since Stdlib 9.1.
+Use Z.mod_mod_divide instead.
+[deprecated-reference-since-Stdlib-9.1,deprecated-since-Stdlib-9.1,deprecated-reference,deprecated,default]
+File "./stdpp_bitvector/definitions.v", line 217, characters 12-35:
+Warning: Reference Znumtheory.Zmod_div_mod is deprecated since Stdlib 9.1.
+Use Z.mod_mod_divide instead.
+[deprecated-reference-since-Stdlib-9.1,deprecated-since-Stdlib-9.1,deprecated-reference,deprecated,default]
+File "./stdpp_bitvector/definitions.v", line 217, characters 12-35:
+Warning: Reference Znumtheory.Zmod_div_mod is deprecated since Stdlib 9.1.
+Use Z.mod_mod_divide instead.
+[deprecated-reference-since-Stdlib-9.1,deprecated-since-Stdlib-9.1,deprecated-reference,deprecated,default]
+File "./stdpp_bitvector/definitions.v", line 217, characters 12-35:
+Warning: Reference Znumtheory.Zmod_div_mod is deprecated since Stdlib 9.1.
+Use Z.mod_mod_divide instead.
+[deprecated-reference-since-Stdlib-9.1,deprecated-since-Stdlib-9.1,deprecated-reference,deprecated,default]
+File "./stdpp_bitvector/definitions.v", line 217, characters 12-35:
+Warning: Reference Znumtheory.Zmod_div_mod is deprecated since Stdlib 9.1.
+Use Z.mod_mod_divide instead.
+[deprecated-reference-since-Stdlib-9.1,deprecated-since-Stdlib-9.1,deprecated-reference,deprecated,default]
+File "./stdpp_bitvector/definitions.v", line 554, characters 12-20:
+Warning: Reference Zdiv_0_r is deprecated since Stdlib 9.1.
+Use Z.div_0_r instead.
+[deprecated-reference-since-Stdlib-9.1,deprecated-since-Stdlib-9.1,deprecated-reference,deprecated,default]
+File "./stdpp_bitvector/definitions.v", line 554, characters 12-20:
+Warning: Reference Zdiv_0_r is deprecated since Stdlib 9.1.
+Use Z.div_0_r instead.
+[deprecated-reference-since-Stdlib-9.1,deprecated-since-Stdlib-9.1,deprecated-reference,deprecated,default]
+File "./stdpp_bitvector/definitions.v", line 554, characters 12-20:
+Warning: Reference Zdiv_0_r is deprecated since Stdlib 9.1.
+Use Z.div_0_r instead.
+[deprecated-reference-since-Stdlib-9.1,deprecated-since-Stdlib-9.1,deprecated-reference,deprecated,default]
+File "./stdpp_bitvector/definitions.v", line 564, characters 12-20:
+Warning: Reference Zmod_0_r is deprecated since Stdlib 9.1.
+Use Z.mod_0_r instead.
+[deprecated-reference-since-Stdlib-9.1,deprecated-since-Stdlib-9.1,deprecated-reference,deprecated,default]
+File "./stdpp_bitvector/definitions.v", line 564, characters 12-20:
+Warning: Reference Zmod_0_r is deprecated since Stdlib 9.1.
+Use Z.mod_0_r instead.
+[deprecated-reference-since-Stdlib-9.1,deprecated-since-Stdlib-9.1,deprecated-reference,deprecated,default]
+File "./stdpp_bitvector/definitions.v", line 564, characters 12-20:
+Warning: Reference Zmod_0_r is deprecated since Stdlib 9.1.
+Use Z.mod_0_r instead.
+[deprecated-reference-since-Stdlib-9.1,deprecated-since-Stdlib-9.1,deprecated-reference,deprecated,default]
+File "./stdpp_bitvector/definitions.v", line 1122, characters 15-38:
+Warning: No such hypothesis: H0. [clear-no-such-hyp,tactics,default]
+File "./stdpp_bitvector/definitions.v", line 1122, characters 15-38:
+Warning: No such hypothesis: H. [clear-no-such-hyp,tactics,default]
+File "./stdpp_bitvector/definitions.v", line 1344, characters 34-51:
+Warning: No such hypothesis: H. [clear-no-such-hyp,tactics,default]
+File "./stdpp_bitvector/definitions.v", line 1379, characters 42-55:
+Warning: No such hypothesis: H. [clear-no-such-hyp,tactics,default]
+File "./stdpp_bitvector/definitions.v", line 1380, characters 42-55:
+Warning: No such hypothesis: H. [clear-no-such-hyp,tactics,default]
+(cd _build/default && /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq compile -q -w -deprecated-native-compiler-option -w -native-compiler-disabled -native-compiler ondemand -boot -R /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories Corelib -Q /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib Stdlib -Q /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/stdpp stdpp -R stdpp_bitvector stdpp.bitvector stdpp_bitvector/tactics.v)
+File "./stdpp_bitvector/tactics.v", line 95, characters 0-58:
+Warning: Implicitly declaring Rewrite hint databases is deprecated. Please
+explicitly create "bv_simplify"
+[implicit-create-rewrite-hint-db,deprecated-since-9.2,deprecated,default]
+File "./stdpp_bitvector/tactics.v", line 111, characters 0-8:
+Warning: Use of "Notation" keyword for abbreviations is deprecated, use
+"Abbreviation" instead.
+[notation-for-abbreviation,deprecated-since-9.2,deprecated,default]
+File "./stdpp_bitvector/tactics.v", line 333, characters 56-64:
+Warning: In term, tolerating this expression at a higher level than expected
+by the notation continuing on the right (which is not left-associative). This
+tolerance will be eventually removed. Insert parentheses or try to lower the
+level at which the top symbol of this expression is parsed.
+[level-tolerance,deprecated-since-9.2,deprecated,parsing,default]
+File "./stdpp_bitvector/tactics.v", line 344, characters 56-64:
+Warning: In term, tolerating this expression at a higher level than expected
+by the notation continuing on the right (which is not left-associative). This
+tolerance will be eventually removed. Insert parentheses or try to lower the
+level at which the top symbol of this expression is parsed.
+[level-tolerance,deprecated-since-9.2,deprecated,parsing,default]
+File "./stdpp_bitvector/tactics.v", line 425, characters 0-76:
+Warning: Implicitly declaring Rewrite hint databases is deprecated. Please
+explicitly create "bv_unfolded_simplify"
+[implicit-create-rewrite-hint-db,deprecated-since-9.2,deprecated,default]
+File "./stdpp_bitvector/tactics.v", line 435, characters 0-56:
+Warning: Implicitly declaring Rewrite hint databases is deprecated. Please
+explicitly create "bv_unfolded_to_arith"
+[implicit-create-rewrite-hint-db,deprecated-since-9.2,deprecated,default]

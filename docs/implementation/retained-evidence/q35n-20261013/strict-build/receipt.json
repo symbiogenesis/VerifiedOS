@@ -1,5 +1,5 @@
 {
-  "revision": "97ea305ed8e8a8b6e14d93e5c4770c78c48d76ac",
+  "revision": "52a10ade7ac2491480a733f0d81ff30f3053f2df",
   "records": [
     {
       "argv": [
@@ -13,8 +13,8 @@
       ],
       "cwd": "/root/build/lane-close3-20261013-machine/support-baseline/coq-sail-q35g",
       "exit": 0,
-      "seconds": 0.07549810399996204,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/q35g-package-build.log",
+      "seconds": 0.1765439939999851,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/q35g-package-build.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -58,10 +58,10 @@
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Values.v",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Values_lemmas.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.045616302999860636,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/q35g-sort.log",
+      "seconds": 0.05559839800002919,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/q35g-sort.log",
       "sha256": "49b5ed35fbc06c0c362ef65e4846cca502d1fa8c8e206ca10d70942ff684a902"
     },
     {
@@ -89,10 +89,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Inhabited.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.6427947399999994,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-Inhabited.log",
+      "seconds": 1.0131352629998673,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-Inhabited.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -120,10 +120,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/TypeCasts.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.6766413410000496,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-TypeCasts.log",
+      "seconds": 0.7379964730000665,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-TypeCasts.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -151,10 +151,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/MachineWordInterface.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.3895656230001805,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-MachineWordInterface.log",
+      "seconds": 0.47806018300002506,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-MachineWordInterface.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -182,10 +182,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/MachineWord.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.9433164580000266,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-MachineWord.log",
+      "seconds": 1.0748475780001172,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-MachineWord.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -213,10 +213,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Values.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.8334897510001156,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-Values.log",
+      "seconds": 1.1871433240000897,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-Values.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -244,10 +244,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Values_lemmas.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.6326567390001401,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-Values_lemmas.log",
+      "seconds": 0.7526930870001252,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-Values_lemmas.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -275,10 +275,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Instr_kinds.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.3817309230000774,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-Instr_kinds.log",
+      "seconds": 0.3926951419998659,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-Instr_kinds.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -306,10 +306,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Instances.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.7581133470000623,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-Instances.log",
+      "seconds": 0.7619446860001062,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-Instances.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -337,10 +337,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Prompt_monad.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.6661128400000962,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-Prompt_monad.log",
+      "seconds": 0.8760633700001108,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-Prompt_monad.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -368,10 +368,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/String.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.6187000380000427,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-String.log",
+      "seconds": 0.8609644719999778,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-String.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -399,10 +399,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Prompt.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.6479431390000627,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-Prompt.log",
+      "seconds": 0.7953333820000807,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-Prompt.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -430,10 +430,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Undefined.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.583284735999996,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-Undefined.log",
+      "seconds": 0.7075003939999078,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-Undefined.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -461,10 +461,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/State_monad.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.6477973389999079,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-State_monad.log",
+      "seconds": 0.8539500730000782,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-State_monad.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -492,10 +492,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/State_monad_lemmas.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 2.143376031000116,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-State_monad_lemmas.log",
+      "seconds": 2.966521092999983,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-State_monad_lemmas.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -523,10 +523,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/State_lifting.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.572933735000106,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-State_lifting.log",
+      "seconds": 0.7381621760000598,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-State_lifting.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -554,10 +554,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/State.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.6732215409999753,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-State.log",
+      "seconds": 0.7636259750001955,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-State.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -585,10 +585,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/State_lemmas.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 4.450674071000094,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-State_lemmas.log",
+      "seconds": 5.7457786459999625,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-State_lemmas.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -616,10 +616,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Real.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.6377824390001479,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-Real.log",
+      "seconds": 0.9121578280000904,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-Real.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -647,10 +647,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Operators_mwords.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.6353432389998943,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-Operators_mwords.log",
+      "seconds": 0.7728646239997943,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-Operators_mwords.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -678,10 +678,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Impl_base.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.0672281039999234,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-Impl_base.log",
+      "seconds": 0.07639130200004729,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-Impl_base.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -709,10 +709,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Hoare.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 1.0092600619998393,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-Hoare.log",
+      "seconds": 1.251496237999845,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-Hoare.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -740,10 +740,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/GenericValue.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.820016250000208,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-GenericValue.log",
+      "seconds": 0.988490031000083,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-GenericValue.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -771,10 +771,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/Base.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.6592366400000174,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-Base.log",
+      "seconds": 0.6600589199999831,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-Base.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -802,10 +802,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/ConcurrencyInterfaceTypes.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.9695479590000105,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-ConcurrencyInterfaceTypes.log",
+      "seconds": 1.1259560339999553,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-ConcurrencyInterfaceTypes.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -833,10 +833,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/ConcurrencyInterfaceV2.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.7085014439999213,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-ConcurrencyInterfaceV2.log",
+      "seconds": 0.943816274000028,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-ConcurrencyInterfaceV2.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -864,10 +864,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/ConcurrencyInterfaceTypesV2.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.6210442379999677,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-ConcurrencyInterfaceTypesV2.log",
+      "seconds": 0.9710297819999596,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-ConcurrencyInterfaceTypesV2.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -895,10 +895,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/ConcurrencyInterfaceBuiltinsV2.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.7338113450000492,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-ConcurrencyInterfaceBuiltinsV2.log",
+      "seconds": 0.952239180000106,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-ConcurrencyInterfaceBuiltinsV2.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -926,10 +926,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/ConcurrencyInterface.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.6563684400000511,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-ConcurrencyInterface.log",
+      "seconds": 0.795174667000083,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-ConcurrencyInterface.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -957,10 +957,10 @@
         "SailStdpp",
         "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/ConcurrencyInterfaceBuiltins.v"
       ],
-      "cwd": "/tmp/vos-q35n-strict-hdy5jq5k",
+      "cwd": "/tmp/vos-q35n-strict-7ur7jgcn",
       "exit": 0,
-      "seconds": 0.6973741429999336,
-      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869208143668210/strict-ConcurrencyInterfaceBuiltins.log",
+      "seconds": 1.000481685000068,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/strict-attempts/1791869666969138498/strict-ConcurrencyInterfaceBuiltins.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
   ],
@@ -1021,5 +1021,5 @@
     "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/ConcurrencyInterface.v",
     "/root/build/lane-close3-20261013-machine/support-baseline/strict-q35g/ConcurrencyInterfaceBuiltins.v"
   ],
-  "scratch": "/tmp/vos-q35n-strict-hdy5jq5k"
+  "scratch": "/tmp/vos-q35n-strict-7ur7jgcn"
 }

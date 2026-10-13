@@ -999,13 +999,13 @@
       "module": "ConcurrencyInterfaceTypes",
       "path": "src-stdpp/ConcurrencyInterfaceTypes.v",
       "baseline_sha256": "99c14a3dd83453a311a146febe6308947176ef20a587a0ce17867735f985e5ea",
-      "candidate_sha256": "5627c59bcd578c484a8847ffc11edc7218e847fff9f5955670ef7163aa456a66"
+      "candidate_sha256": "3d7bcdd1233c87c43bac1cdc2aefde2a7f5c431c1584c34bf4402dc518f6dca5"
     },
     {
       "module": "ConcurrencyInterfaceTypesV2",
       "path": "src-stdpp/ConcurrencyInterfaceTypesV2.v",
       "baseline_sha256": "0315efc5f6f2e7235e774579af9fab38197a23470b195002868ad0d4f2975926",
-      "candidate_sha256": "49fccda4da4df8516f3b4f372e964e1b741de84b561153dcb7b840e90213c8bd"
+      "candidate_sha256": "4912a82f8e12dd7858c4a3ad1598f06a45bf84cb29a886c452de4384882e8224"
     },
     {
       "module": "GenericValue",

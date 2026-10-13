@@ -191,13 +191,13 @@ not been installed or accepted by this trial.
 Q35n's 2026-10-13 private trial, at `07e2724f`, compiles all 29 selected
 `src-stdpp` modules without diagnostics under the consumer's strict settings.
 Its [receipt](../../docs/implementation/retained-evidence/q35n-20261013/receipt.json)
-records eight syntax candidates, exact frozen comparisons and the selected
+records nine syntax candidates, exact frozen comparisons and the selected
 kernel controls. The dependency libraries retain their own recorded package
 flags; this result claims no strict-source port of Stdlib, stdpp or bitvector.
 No shared switch or snapshot changed, and production carriage remains open.
 
 The immutable [syntax patch](../../docs/implementation/retained-evidence/q35n-20261013/sail-support-strict.patch),
-SHA-256 `fceb199b312582b567d812c245871f5c95c434cf93885426a38ebc2c64ce6f87`,
+SHA-256 `cee3710ee8b21c439885190e30cf0618fe68fb3a4071dd9991c2f5db37122477`,
 applies after Q35g's recorded patch to the paired release. It preserves the
 release's source symlinks and adds explicit original first-goal selection,
 current abbreviation syntax, both kinds of hint database declarations and
@@ -216,7 +216,7 @@ records byte-identical elaborated types, universes and transparent bodies for
 Those are the inventory's counts; neither source-name enumeration nor a
 frozen reading supplies proof acceptance by itself.
 
-All three probes compile without diagnostics and their recursive checker runs
+The three assumption probes and notation client compile without diagnostics and their recursive checker runs
 exit 0. The kernel-context parser used by the proof gate reads exactly:
 
 - `TermProbe`, which loads the canonical support imports without `Real`: no axioms.
@@ -237,3 +237,7 @@ This focused endpoint opens the separately required hosted cold package,
 controls, portable snapshot export and independent re-import campaign. It
 neither installs the library into the shared proof switch nor completes Q35b's
 actual term compile, exact closure or compiled size.
+
+The notation client instantiates the new spelling and proves by reflexivity that
+its result is the original record-field expansion; its kernel context names no
+axiom. This catches an accepted but incorrectly spelled syntax template.

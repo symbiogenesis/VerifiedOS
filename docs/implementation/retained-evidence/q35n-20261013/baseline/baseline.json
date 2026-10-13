@@ -1,0 +1,109 @@
+{
+  "revision": "3d04cbb77b1156258db1a09d867d383855aa0b1b",
+  "commands": [
+    {
+      "argv": [
+        "opam",
+        "switch",
+        "export",
+        "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+        "/root/build/lane-close3-20261013-machine/support-baseline/switch-before.export"
+      ],
+      "cwd": "/tmp/vos-q35b-baseline-4vtm85_b",
+      "exit": 0,
+      "seconds": 0.40233313199999543,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/baseline-00.log",
+      "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+    },
+    {
+      "argv": [
+        "dune",
+        "build",
+        "-p",
+        "rocq-stdpp-bitvector",
+        "-j",
+        "2",
+        "@install"
+      ],
+      "cwd": "/root/build/lane-close3-20261013-machine/support-baseline/stdpp-1.13.0",
+      "exit": 0,
+      "seconds": 4.454689751000018,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/baseline-01.log",
+      "sha256": "2b275e2099a805e02b3ae41375d80d841c7adcf083f44dfe00d477e683bbf9ab"
+    },
+    {
+      "argv": [
+        "dune",
+        "install",
+        "rocq-stdpp-bitvector",
+        "--prefix=/root/build/lane-close3-20261013-machine/support-baseline/private",
+        "--libdir=/root/build/lane-close3-20261013-machine/support-baseline/private/lib"
+      ],
+      "cwd": "/root/build/lane-close3-20261013-machine/support-baseline/stdpp-1.13.0",
+      "exit": 0,
+      "seconds": 0.03962369799998555,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/baseline-02.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "dune",
+        "build",
+        "-p",
+        "rocq-sail-stdpp",
+        "-j",
+        "2",
+        "@install",
+        "@runtest"
+      ],
+      "cwd": "/root/build/lane-close3-20261013-machine/support-baseline/coq-sail-0.20.3",
+      "exit": 0,
+      "seconds": 27.944887211999998,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/baseline-03.log",
+      "sha256": "2e59ccc908ea637c9b20f5d8c1f931879ab046f4cf0ec9458660b13002441f5c"
+    },
+    {
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-q",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "-Q",
+        "/root/build/lane-close3-20261013-machine/support-baseline/private/lib/coq/user-contrib/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-close3-20261013-machine/support-baseline/coq-sail-0.20.3/_build/default/src-stdpp",
+        "SailStdpp",
+        "-R",
+        "/root/build/lane-close3-20261013-machine/support-baseline/strict",
+        "SailStdpp",
+        "/root/build/lane-close3-20261013-machine/support-baseline/strict/Inhabited.v"
+      ],
+      "cwd": "/tmp/vos-q35b-baseline-4vtm85_b",
+      "exit": 1,
+      "seconds": 0.5015834200000029,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/baseline-04.log",
+      "sha256": "bea91dceee322c23120d15e1cfbb10bce5e199e7fe57956b13c6525964b661f2"
+    },
+    {
+      "argv": [
+        "opam",
+        "switch",
+        "export",
+        "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+        "/root/build/lane-close3-20261013-machine/support-baseline/switch-after.export"
+      ],
+      "cwd": "/tmp/vos-q35b-baseline-4vtm85_b",
+      "exit": 0,
+      "seconds": 0.2074496090000082,
+      "log": "/root/build/lane-close3-20261013-machine/support-baseline/baseline-05.log",
+      "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+    }
+  ],
+  "switch_equal": true,
+  "scratch": "/tmp/vos-q35b-baseline-4vtm85_b"
+}
