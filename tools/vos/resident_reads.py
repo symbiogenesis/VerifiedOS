@@ -245,6 +245,9 @@ class Service:
     def publish(self, resident: Resident) -> int | None:
         """Fresh version only. Replacement retains predecessor bytes and identity."""
         self.operation = "replacement"
+        # A derived container can supply different bytes to charging, hashing and copying.
+        if type(resident) is not Resident:
+            return None
         # Retain only immutable byte values whose length and slicing cannot be overridden.
         # Mutable buffers would let callers change backing and its charge outside _put.
         if type(resident.payload) is not bytes or not self._integral_identity(resident.identity):
