@@ -69,6 +69,18 @@ the existing C manifest's meanings and capacity bounds. This output supplies the
 manifest's source, without changing the handwritten manifest currently compiled
 by the supervisor's host implementation.
 
+`composer project` preflights every projection destination before creating or
+writing outputs. Resolved leaves must remain inside the selected output directory,
+and no output may alias another output or a consumed composition input, roster,
+configuration, projection producer, or declared member, producer, descriptor or
+derivation source. The checks include hardlinked files. A forbidden later output
+preserves the earlier projection files and all consumed bytes; this host preflight
+does not establish an atomic filesystem snapshot. Normal regeneration remains
+supported under `out/` and the documented checked-in projection directory.
+The focused `test --only test_composition_publication` covers permitted regeneration,
+input and transitive source collisions, file aliases and named CLI refusals;
+the Linux lane also exercises real escaped leaf symlinks.
+
 The input digest names the exact byte snapshot parsed and validated for those
 projections, including its JSON formatting. A valid substitution between parsing
 and binding receives a `stale source binding` refusal, rather than binding one
