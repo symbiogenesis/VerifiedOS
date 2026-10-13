@@ -237,8 +237,9 @@ class Settings:
         out, cache = contained(self.out, lane), contained(self.cache, lane)
         if out == cache or out.is_relative_to(cache) or cache.is_relative_to(out):
             raise ValueError("output and cache roots must be separate")
-        mutable = (out, cache, *(contained(path.with_name(path.name + ".lock"), lane)
-                                 for path in (out, cache)))
+        # hold_lock derives its sibling path before resolving the supplied target.
+        mutable = (out, cache, *(contained(path.parent / (path.name + ".lock"), lane)
+                                 for path in (self.out, self.cache)))
         if any(left.is_relative_to(right) or right.is_relative_to(left)
                for index, left in enumerate(mutable) for right in mutable[index + 1:]):
             raise ValueError("output/cache roots and operation locks must be separate")

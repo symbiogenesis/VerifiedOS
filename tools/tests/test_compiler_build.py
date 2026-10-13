@@ -388,7 +388,9 @@ def _operation_lock_isolation() -> None:
         lock = root.with_name(root.name + ".lock")
         for out, cache in ((root, lock), (lock, root),
                            (root, lock / "nested"), (lock / "nested", root),
-                           (root.parent / "alias" / ".." / root.name, lock)):
+                           (root.parent / "alias" / ".." / root.name, lock),
+                           (root / "alias" / "..", settings.cache),
+                           (root, settings.cache / "alias" / "..")):
             attempted = replace(settings, out=out, cache=cache)
             with (patch.object(env, "hold_lock", side_effect=AssertionError("overlap attempted a lock")),
                   patch.object(cb.subprocess, "run", side_effect=AssertionError("overlap launched the driver"))):
