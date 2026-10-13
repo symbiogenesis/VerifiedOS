@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Independent payload/refusal/lifecycle oracles for the bounded resident reference."""
 
+import hashlib
 import json
 import operator
 from contextlib import redirect_stdout
@@ -581,6 +582,82 @@ def _immutable_backing_publication() -> None:
                    "canonical immutable backing retry lost payload, traffic or lifetime safety")
 
 
+def _stable_resident_container() -> None:
+    class DerivedResident(rr.Resident):
+        pass
+
+    class SwitchingResident(rr.Resident):
+        def arm(self) -> None:
+            object.__setattr__(self, "payload_reads", 0)
+
+        @override
+        def __getattribute__(self, name: str) -> object:
+            if name == "payload":
+                reads = object.__getattribute__(self, "payload_reads")
+                object.__setattr__(self, "payload_reads", reads + 1)
+                if reads:
+                    return b"UNAUTHENTICATED!!"
+            return object.__getattribute__(self, name)
+
+    payload = b"0123456789ABCDEF"
+    successor_payload = b"abcdefghijklmnop"
+    for kind in ("system-image", "user-data"):
+        identity = rr.Identity(1, 7, 1, 1, rr.authenticated_root(kind, 1, payload))
+        successor = replace(identity, version=2,
+                            root=rr.authenticated_root(kind, 1, successor_payload))
+        switching = SwitchingResident(identity, payload)
+        switching.arm()
+        ensure(hashlib.sha256(switching.payload).hexdigest() == identity.root.digest
+               and switching.payload[:16] == b"UNAUTHENTICATED!",
+               "derived resident control did not change bytes between authentication and copying")
+        for container in (DerivedResident, SwitchingResident):
+            service = rr.Service()
+            supplied = container(identity, payload)
+            replacement = container(successor, successor_payload)
+            if isinstance(supplied, SwitchingResident):
+                supplied.arm()
+            if isinstance(replacement, SwitchingResident):
+                replacement.arm()
+            before = list(service.writes)
+            ensure(service.publish(supplied) is None and service.writes == before
+                   and service._integer("last-version") == 0
+                   and all(service.resident(slot) is None for slot in range(service.bounds.residents)),
+                   "derived resident consumed backing or version state during initial publication")
+            ensure(service.publish(rr.Resident(identity, payload)) == 0,
+                   "refused derived resident prevented a canonical same-version retry")
+            first = service.reserve(0, 7, identity, 4, 8)
+            second = service.reserve(1, 7, identity, 0, 16)
+            if first is None or second is None:
+                raise AssertionError("canonical resident retry lacked independent reservations")
+            ensure(service.begin(first, 7, identity, 1, 2)
+                   and service.begin(second, 7, identity, 15, 1),
+                   "derived replacement refusal lacked independent accepted transfers")
+            held = (service.reservation(0), service.reservation(1))
+            pending = (service.pending(0), service.pending(1))
+            before = list(service.writes)
+            ensure(service.publish(replacement) is None and service.writes == before
+                   and service._integer("last-version") == 1 and service.resident(1) is None
+                   and (service.reservation(0), service.reservation(1)) == held
+                   and (service.pending(0), service.pending(1)) == pending,
+                   "derived replacement changed backing, version or accepted transfers")
+            if isinstance(supplied, SwitchingResident) and isinstance(replacement, SwitchingResident):
+                ensure(object.__getattribute__(supplied, "payload_reads") == 0
+                       and object.__getattribute__(replacement, "payload_reads") == 0,
+                       "publication inspected the derived payload before refusing its container")
+            ensure(service.publish(rr.Resident(successor, successor_payload)) == 1,
+                   "derived replacement refusal consumed the canonical successor's version")
+            ensure(service.finish(0) == b"56" and service.finish(1) == b"F",
+                   "derived publication or canonical replacement redirected retained transfers")
+            ensure(service.close(first), "canonical predecessor close refused")
+            current = service.reserve(0, 7, successor, 0, 16)
+            if current is None:
+                raise AssertionError("canonical successor retry lacked a reservation")
+            ensure(service.read(current, 7, successor, 0, 16) == successor_payload
+                   and service.read(second, 7, identity, 0, 16) == payload
+                   and service.safe_backing() and service.traffic()["common"] == 0,
+                   "canonical resident retries lost authenticated version bytes or traffic safety")
+
+
 def _replacement_and_bounded_retirement() -> None:
     service, identity, handles = rr.fixture()
     ensure(service.begin(handles[0], 7, identity, 0, 16), "replacement cut lacked transfer")
@@ -950,6 +1027,7 @@ def cases() -> list[Case]:
             Case("resident current authority and admitted-transfer cuts", _authority_and_lifecycle_cuts),
             Case("resident exact integer backing slots preserve accepted transfers", _integral_backing_slots),
             Case("resident immutable backing refuses aliases before publication", _immutable_backing_publication),
+            Case("resident stable containers preserve authenticated retained bytes", _stable_resident_container),
             Case("resident retained version and holder-independent retirement", _replacement_and_bounded_retirement),
             Case("resident finite metadata backing transfer and counter refusals", _resource_limits),
             Case("resident exact integer composition and finite boundary controls", _integral_composition),
