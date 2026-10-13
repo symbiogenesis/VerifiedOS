@@ -51,6 +51,8 @@ if mode == 'fresh-lie': phases['kernel'].update(action='reused',basis='a'*64,sec
 if mode == 'pending-lie': phases['kernel'].update(action='not_run',status='not_run',seconds=0)
 if mode == 'timing-lie': phases['compile']['seconds'] = 99
 if mode == 'bool-seconds': phases['compile']['seconds'] = True
+if mode == 'oversized-phase': phases['compile']['seconds'] = 10**400
+if mode == 'oversized-history' and complete: phases['compile']['original_seconds'] = 10**400
 if mode == 'status-lie' and r['operation'] == 'status':
     phases['queries'].update(action='not_run',status='not_run',basis=None,seconds=0,original_seconds=None)
 if mode == 'basis-lie': basis = 'c'*64
@@ -71,6 +73,8 @@ result.update(outcome=outcome,effective_policy=effective,phases=phases,compiler=
               validation_seconds=0.25,operation_seconds=1.5)
 if outcome == 'refused' or mode == 'unmeasured-current': result['validation_seconds'] = None
 if mode == 'protocol-lie': result['protocol'] = 'unsupported'
+if mode == 'oversized-validation': result['validation_seconds'] = 10**400
+if mode == 'oversized-operation': result['operation_seconds'] = 10**400
 if r['operation'] == 'build' and outcome == 'complete': receipt.write_text(json.dumps(result))
 if mode == 'driver-drift': (p(__file__).parent/'reuse.py').write_text('drift')
 p(r['response_json']).write_text(json.dumps(result))
@@ -345,6 +349,24 @@ def _framing(mode: str) -> None:
         ensure(not (settings.cache / "index.json").exists(), "refusal publishes no reusable success")
 
 
+def _oversized_timing(surface: str) -> None:
+    with _session("oversized-" + surface) as (settings, checkout):
+        index = settings.cache / "index.json"
+        previous: tuple[bytes, bytes] | None = None
+        if surface == "history":
+            cb.run(settings, checkout)
+            previous = index.read_bytes(), (settings.out / "controller-result.json").read_bytes()
+        attempted = replace(settings, out=settings.lane_root / "oversized")
+        _refuses(lambda: cb.run(attempted, checkout))
+        ensure(not (attempted.out / "controller-result.json").exists(),
+               "oversized timing refuses before publishing current controller evidence")
+        if previous is None:
+            ensure(not index.exists(), "oversized timing supplies no reusable index entry")
+        else:
+            ensure(previous == (index.read_bytes(), (settings.out / "controller-result.json").read_bytes()),
+                   "oversized historical timing preserves the previous useful basis")
+
+
 def _containment_and_lock() -> None:
     with _session() as (settings, checkout):
         _refuses(lambda: cb.run(replace(settings, out=settings.source / 'escape'), checkout))
@@ -410,5 +432,7 @@ def cases() -> list[Case]:
             Case("native-containment-collision-lock", _containment_and_lock),
             Case("json-and-manifest-refusal", _json_and_manifest),
             Case("unreviewed-imports-before-launch", _unreviewed_imports),
+            *[Case("oversized-" + surface + "-timing", lambda surface=surface: _oversized_timing(surface))
+              for surface in ("phase", "history", "validation", "operation")],
             *[Case(mode, lambda mode=mode: _framing(mode)) for mode in
               ("protocol-lie", "fresh-lie", "pending-lie", "driver-drift", "bool-seconds", "unmeasured-current")]]
