@@ -943,6 +943,83 @@ def _reused_slot_identity() -> None:
                "old reservation returned replacement bytes")
 
 
+def _retained_byte_safety() -> None:
+    for kind in ("system-image", "user-data"):
+        for outstanding in (False, True):
+            for construction in ("none", "premature-zeroize"):
+                service, identity, handles = rr.fixture(kind, construction)
+                for handle, offset, expected in ((handles[0], 1, b"12"), (handles[1], 14, b"EF")):
+                    ensure(service.read(handle, 7, identity, offset, 2) == expected,
+                           "zeroization control failed its independent retained-window payload")
+                    if outstanding:
+                        ensure(service.begin(handle, 7, identity, offset, 2),
+                               "zeroization control lacked independent accepted transfers")
+                ensure(service.safe_backing(), "unchanged retained version reported unsafe backing")
+                complete, steps = service.retire(handles[0].slot, cooperative_holder=False)
+                ensure(complete and steps <= service.bounds.retirement_steps,
+                       "zeroization control failed to execute its bounded retirement cut")
+                if construction == "none":
+                    ensure(service.resident(handles[0].slot) is None and service.safe_backing()
+                           and all(service.reservation(holder) is None and service.pending(holder) is None
+                                   for holder in range(service.bounds.holders)),
+                           "lawful retirement did not cancel authority before zeroization")
+                else:
+                    resident = service.resident(handles[0].slot)
+                    ensure(resident is not None and resident.identity == identity
+                           and resident.payload == bytes(16),
+                           "premature zeroization did not retain identity while changing version bytes")
+                    ensure(all(service.reservation(holder) is not None
+                               for holder in range(service.bounds.holders)),
+                           "zeroization defect omitted live reservation authority")
+                    if outstanding:
+                        # Isolate accepted-transfer retention from the reservation oracle.
+                        service.operation = "external-control"
+                        for holder in range(service.bounds.holders):
+                            service._put(f"reservation.{holder}", None)
+                        ensure(all(service.pending(holder) is not None
+                                   for holder in range(service.bounds.holders)),
+                               "zeroization defect omitted independent accepted transfers")
+                    ensure(not service.safe_backing(),
+                           "unchanged identity hid zeroization of a still-retained immutable version")
+                ensure(service.traffic()["common"] == 0,
+                       "retained-byte observation added common per-read writes")
+
+        service, identity, handles = rr.fixture(kind)
+        ensure(service.begin(handles[0], 7, identity, 16, 0)
+               and service.begin(handles[1], 7, identity, 14, 2),
+               "mutation control lacked empty and nonempty accepted transfers")
+        resident = service.resident(handles[0].slot)
+        if resident is None:
+            raise AssertionError("mutation control lacked retained backing")
+        service.operation = "external-control"
+        service._put(f"backing.{handles[0].slot}", replace(resident, payload=b"0123456789ABCDE!"))
+        ensure(not service.safe_backing(), "same-identity mutation escaped the retention oracle")
+        ensure(_finish(service, 0) is None and _finish(service, 1) is None
+               and service.response(0) is None and service.response(1) is None,
+               "mutated version returned an empty or nonempty payload")
+
+        # Zero-valued backing is lawful when its independently supplied root binds those bytes.
+        service = rr.Service()
+        zero_bytes = bytes(16)
+        zero_identity = rr.Identity(1, 7, 1, 1, rr.authenticated_root(kind, 1, zero_bytes))
+        ensure(service.publish(rr.Resident(zero_identity, zero_bytes)) is not None,
+               "correctly authenticated zero-valued version refused publication")
+        for holder in range(service.bounds.holders):
+            handle = service.reserve(holder, 7, zero_identity, 0, 16)
+            if handle is None:
+                raise AssertionError("zero-valued control lacked independent holders")
+            ensure(service.read(handle, 7, zero_identity, 0, 16) == bytes(16)
+                   and service.read(handle, 7, zero_identity, 16, 0) == b""
+                   and service.begin(handle, 7, zero_identity, 16, 0),
+                   "zero-valued version lost its exact payload or empty boundary read")
+        before = len(service.writes)
+        ensure(service.safe_backing() and len(service.writes) == before
+               and service.traffic()["common"] == 0,
+               "read-only lifetime oracle rejected zero-valued bytes or added a modeled store")
+        ensure(_finish(service, 0) == b"" and _finish(service, 1) == b"",
+               "zero-valued version lost independently accepted empty completions")
+
+
 def _closed_predecessor_capacity() -> None:
     payloads = (b"0123456789ABCDEF", b"abcdefghijklmnop", b"ABCDEFGHIJKLMNOP")
     for predecessors in (0, 1):
@@ -991,7 +1068,7 @@ def _executed_controls_and_observer() -> None:
     controls = rr.controls()
     ensure(set(controls) == {"common-counter", "replacement-touch", "hidden-reacquire",
                             "wrong-domain", "wrong-root", "no-auth", "old-rebind",
-                            "premature-reuse", "counter-wrap", "holder-wait", "completion-rebind"},
+                            "premature-reuse", "premature-zeroize", "counter-wrap", "holder-wait", "completion-rebind"},
            "control campaign omitted a required defect class")
     ensure(all(controls.values()), f"executed defect survived its intended oracle: {controls}")
     service, identity, handles = rr.fixture(defect="common-counter")
@@ -1169,7 +1246,7 @@ def _source_bound_cli() -> None:
         code = cli.main(["--json"])
     report = json.loads(output.getvalue())
     ensure(code == 0 and report["scope"] == "finite Python host reference", "CLI scope or verdict differs")
-    ensure(len(report["witnesses"]) == 8 and len(report["executed_python_controls"]) == 11,
+    ensure(len(report["witnesses"]) == 8 and len(report["executed_python_controls"]) == 12,
            "CLI omitted executed witnesses or controls")
     ensure("tools/vos/cli/resident_reads.py" in report["sources"]
            and len(report["runtime"]["sha256"]) == 64 and report["remaining"],
@@ -1193,6 +1270,7 @@ def cases() -> list[Case]:
             Case("resident finite metadata backing transfer and counter refusals", _resource_limits),
             Case("resident exact integer composition and finite boundary controls", _integral_composition),
             Case("resident reused slot preserves exact backing identity", _reused_slot_identity),
+            Case("resident retained version refuses premature zeroization", _retained_byte_safety),
             Case("resident closed predecessor capacity and bounded recovery", _closed_predecessor_capacity),
             Case("resident executed defects and complete modeled observer", _executed_controls_and_observer),
             Case("resident frozen stored inventory refuses hidden writers", _frozen_stored_inventory),

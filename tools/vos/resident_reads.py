@@ -23,7 +23,7 @@ type Kind = Literal["system-image", "user-data"]
 type WriteClass = Literal["common", "session-private", "spsc"]
 type Defect = Literal["none", "common-counter", "replacement-touch", "hidden-reacquire",
                       "wrong-domain", "wrong-root", "no-auth", "old-rebind",
-                      "premature-reuse", "counter-wrap", "holder-wait", "completion-rebind"]
+                      "premature-reuse", "premature-zeroize", "counter-wrap", "holder-wait", "completion-rebind"]
 
 
 @dataclass(frozen=True)
@@ -445,6 +445,10 @@ class Service:
         if self.defect == "premature-reuse":
             self._put(f"backing.{slot}", None)
             return True, steps
+        if self.defect == "premature-zeroize":
+            self._put(f"backing.{slot}", replace(resident, accepting=False,
+                                                 payload=bytes(len(resident.payload))))
+            return True, steps + 1
         for holder in range(self.bounds.holders):
             request = self.pending(holder)
             if request is not None and request.handle.slot == slot:
@@ -485,10 +489,11 @@ class Service:
         return True
 
     def safe_backing(self) -> bool:
-        """Live metadata and transfers retain the exact identity at their backing slot."""
+        """Live metadata and transfers retain exact identity and authenticated version bytes."""
         def retained(handle: Handle) -> bool:
             resident = self.resident(handle.slot)
-            return resident is not None and resident.identity == handle.identity
+            return (resident is not None and resident.identity == handle.identity
+                    and hashlib.sha256(resident.payload).hexdigest() == handle.identity.root.digest)
 
         return all((held is None or retained(held.handle))
                    and (request is None or retained(request.handle))
@@ -580,6 +585,24 @@ def controls() -> dict[str, bool]:
                 observations.append(complete and steps <= service.bounds.retirement_steps
                                     and service.safe_backing())
         verdicts[defect] = observations == [True, False]
+    zeroization_controls: list[bool] = []
+    for kind in ("system-image", "user-data"):
+        for construction in ("none", "premature-zeroize"):
+            service, identity, handles = fixture(kind, construction)
+            for handle, offset, expected in ((handles[0], 1, b"12"), (handles[1], 14, b"EF")):
+                if service.read(handle, 7, identity, offset, 2) != expected:
+                    raise ValueError("zeroization control failed its independent payload")
+                if not service.begin(handle, 7, identity, offset, 2):
+                    raise ValueError("zeroization control lacked two accepted transfers")
+            complete, steps = service.retire(handles[0].slot, cooperative_holder=False)
+            if construction == "premature-zeroize":
+                retained = service.resident(handles[0].slot)
+                if (retained is None or retained.identity != identity or retained.payload != bytes(16)
+                        or service.pending(0) is None or service.pending(1) is None):
+                    raise ValueError("premature zeroization control did not execute its lifetime cut")
+            zeroization_controls.append(complete and steps <= service.bounds.retirement_steps
+                                        and service.safe_backing() and service.traffic()["common"] == 0)
+    verdicts["premature-zeroize"] = zeroization_controls == [True, False, True, False]
     unique: list[bool] = []
     for construction in ("none", "counter-wrap"):
         bounds = Bounds(counter_limit=2, retention=1)
