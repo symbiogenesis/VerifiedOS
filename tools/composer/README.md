@@ -74,7 +74,10 @@ projections, including its JSON formatting. A valid substitution between parsing
 and binding receives a `stale source binding` refusal, rather than binding one
 composition's manifest or relations to another composition's bytes. Build-record
 generation and validation use the same checked snapshot for their projections
-and final input binding, and refuse subsequent drift.
+and final input binding, and refuse subsequent drift. Declared member, producer,
+descriptor and derivation sources are also rechecked before projection or build
+bindings publish. Projection binding follows descriptor expansion, so a source
+substitution during that work cannot retain an earlier source identity.
 
 `python tools/run.py composer check-project` regenerates and compares every
 checked-in projection byte. A changed member, source, producer, relation,

@@ -35,6 +35,11 @@ each holder has one outstanding transfer/request SPSC slot. Read length, retaine
 predecessors, expiration, renewal count, tokens, read sequences, version numbers,
 clock and boot/generation epochs have finite limits with explicit refusal.
 The reference never wraps identifiers or silently pins another backing range.
+Publication requires the exact frozen `Resident` container before reading its
+fields. Derived containers refuse before publication stores, preventing overridden
+getters from supplying different payload bytes during authentication and copying.
+Both root kinds retain canonical retries, independent accepted transfers and
+predecessor bytes after initial or replacement refusal.
 Publication accepts exact immutable `bytes` backing. Mutable buffers, memory views
 and byte subclasses refuse before any backing, current-version or version-counter
 store. This keeps caller aliases and overridden length or slicing operations from
