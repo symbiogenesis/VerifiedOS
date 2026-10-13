@@ -417,7 +417,7 @@ def generated_histories(depth: int = 4) -> list[list[Event]]:
     forks the pool its prefix left, so each word's history is the one replaying the word
     on a fresh fixture records.
     """
-    if not 0 <= depth <= 5:
+    if not _naturals(depth) or depth > 5:
         raise PoolError("campaign depth outside finite budget")
     histories: list[list[Event]] = []
 
