@@ -134,6 +134,9 @@ class Service:
     __slots__ = ("_bounds", "_cells", "_classes", "defect", "operation", "writes")
 
     def __init__(self, bounds: Bounds = DEFAULT_BOUNDS, defect: Defect = "none") -> None:
+        # Derived getters can change composition after its stored inventory is declared.
+        if type(bounds) is not Bounds:
+            raise ValueError("composition requires the exact frozen Bounds container")
         self._bounds = bounds
         self.defect = defect
         self._cells: dict[str, Value] = {}

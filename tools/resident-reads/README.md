@@ -26,7 +26,12 @@ Merkle-tree implementation. A changed system-image generation refuses old reads;
 replacing user data preserves a still-authorized predecessor's bytes and identity.
 
 `Bounds` owns the finite composition and remains fixed after the stored inventory
-is declared. The public service configuration refuses replacement during execution;
+is declared. Construction requires the exact frozen `Bounds` container before
+reading its fields or declaring stored cells. Derived containers and mutable
+configuration objects refuse; overridden getters cannot widen exhausted counters,
+renewal limits or holder inventory after admission. Both root-kind controls retain
+independent accepted transfers, exact payloads and canonical finite exhaustion.
+The public service configuration refuses replacement during execution;
 focused controls preserve an accepted transfer, the admitted renewal and read-counter
 limits, and the declared holder inventory beside wider bounds admitted at initialization.
 Backing bytes include current, predecessors
