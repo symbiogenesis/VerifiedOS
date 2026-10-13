@@ -17,6 +17,12 @@ if TYPE_CHECKING:
     from collections.abc import MutableMapping
 
 
+def _finish(service: rr.Service, holder: int) -> bytes | None:
+    """Synchronous fixture caller obtains the admitted sequence before completion."""
+    request = service.pending(holder)
+    return service.finish(holder, 0 if request is None else request.sequence)
+
+
 def _inhabited_traffic() -> None:
     for kind in ("system-image", "user-data"):
         for count in (1, 2, 4, 8):
@@ -66,7 +72,7 @@ def _identity_and_authentication() -> None:
         raise AssertionError("missing backing")
     service.operation = "external-corruption"
     service._put(f"backing.{handle.slot}", replace(resident, payload=b"X" * 16))
-    ensure(service.finish(0) is None and service.response(0) is None,
+    ensure(_finish(service, 0) is None and service.response(0) is None,
            "admission authentication replaced every-read authentication")
 
 
@@ -86,7 +92,7 @@ def _integral_read_intervals() -> None:
             before = len(service.writes)
             index = cast("int", holder)
             ensure(service.reserve(index, 7, identity, 0, 8) is None
-                   and service.finish(index) is None and not service.revoke(index),
+                   and service.finish(index, 0) is None and not service.revoke(index),
                    "non-integral holder accessed the declared inventory")
             ensure(len(service.writes) == before, "malformed holder changed stored state")
 
@@ -110,7 +116,7 @@ def _integral_read_intervals() -> None:
             ensure(not service.begin(handle, 7, identity, cast("int", offset), cast("int", length))
                    and service.pending(0) == pending,
                    "malformed byte request displaced an accepted transfer")
-        ensure(service.finish(0) == b"56"
+        ensure(_finish(service, 0) == b"56"
                and service.read(handles[1], 7, identity, 15, 1) == b"F",
                "malformed inputs lost accepted payload or independent-holder authority")
         ensure(service.close(handle), "handle-alias control could not release its holder")
@@ -142,7 +148,7 @@ def _integral_handle_fields() -> None:
     malformed_window = {"start": 0.0}
     ensure(not service.close(replace(handle, **malformed_window)),
            "numerically equal non-integral window cancelled a live reservation")
-    ensure(service.finish(0) == b"0123456789ABCDEF",
+    ensure(_finish(service, 0) == b"0123456789ABCDEF",
            "malformed-close refusal lost the independently expected transfer")
 
     cyclic: list[object] = []
@@ -183,7 +189,7 @@ def _integral_handle_fields() -> None:
             ensure(service.pending(0) == pending and service.reservation(0) == held
                    and len(service.writes) == before,
                    f"malformed handle {field} disturbed an accepted transfer")
-            ensure(service.finish(0) == b"0123456789ABCDEF" and service.renew(handle),
+            ensure(_finish(service, 0) == b"0123456789ABCDEF" and service.renew(handle),
                    "integral handle refused its independent payload or renewal control")
             ensure(service.revoke(0) and service.close(handle),
                    "integral close failed to discharge a revoked reservation")
@@ -246,8 +252,8 @@ def _canonical_handle_container() -> None:
             ensure((service.pending(0), service.pending(1)) == pending
                    and service.reservation(0) == held and len(service.writes) == before,
                    "handle-container refusal disturbed accepted transfers or renewal state")
-            ensure(service.finish(0) == b"456789AB"
-                   and service.finish(1) == b"0123456789ABCDEF",
+            ensure(_finish(service, 0) == b"456789AB"
+                   and _finish(service, 1) == b"0123456789ABCDEF",
                    "handle-container refusal lost subwindow or independent-holder payload")
             ensure(service.renew(handle) and service.revoke(0) and service.close(handle),
                    "handle-container refusal prevented canonical renewal or revoked close")
@@ -308,7 +314,7 @@ def _integral_supplied_identities() -> None:
                    and not service.renew(changed_handle) and not service.close(changed_handle)
                    and service.pending(0) == pending and len(service.writes) == before,
                    "malformed nested handle identity disturbed an accepted transfer")
-            ensure(service.finish(0) == payload and service.close(handle),
+            ensure(_finish(service, 0) == payload and service.close(handle),
                    "malformed identity lost canonical payload or releasable authority")
             ensure(service.traffic()["common"] == 0 and service.safe_backing(),
                    "supplied identity checks added common read writes or lost backing")
@@ -334,7 +340,7 @@ def _integral_supplied_identities() -> None:
             ensure(not service.begin(handle, cast("int", malformed), identity, 0, 16)
                    and service.pending(0) == pending and len(service.writes) == before,
                    "non-integral caller domain disturbed an accepted transfer")
-        ensure(service.finish(0) == payload
+        ensure(_finish(service, 0) == payload
                and service.read(handles[1], 7, identity, 15, 1) == b"F",
                "domain refusal lost accepted or independent-holder payload")
 
@@ -423,7 +429,7 @@ def _canonical_root_fields() -> None:
                    and len(service.writes) == before and service._integer("last-version") == 1
                    and (service.pending(0), service.pending(1)) == pending,
                    "malformed replacement root disturbed version or accepted transfers")
-            ensure(service.finish(0) == payload and service.finish(1) == payload,
+            ensure(_finish(service, 0) == payload and _finish(service, 1) == payload,
                    "malformed root lost independently expected accepted payloads")
             ensure(service.publish(rr.Resident(replace(identity, version=2), payload)) == 1
                    and service.read(first, 7, identity, 15, 1) == b"F",
@@ -450,7 +456,7 @@ def _authority_and_lifecycle_cuts() -> None:
             service.crash()
         else:
             service.stop(handles[0].slot)
-        ensure(service.finish(0) is None and service.response(0) is None,
+        ensure(_finish(service, 0) is None and service.response(0) is None,
                f"{cut} returned payload under stale authority")
         ensure(service.read(handles[0], 7, identity, 0, 16) is None,
                f"{cut} accepted a new read")
@@ -460,8 +466,102 @@ def _authority_and_lifecycle_cuts() -> None:
         service.begin(handles[0], 7, identity, 0, 16)
         service.generation_change()
         expected = None if kind == "system-image" else b"0123456789ABCDEF"
-        ensure(service.finish(0) == expected, "generation identity or user-data independence lost")
+        ensure(_finish(service, 0) == expected, "generation identity or user-data independence lost")
         ensure(service.reserve(2, 7, identity, 0, 16) is None, "unknown holder accepted")
+
+
+def _completion_request_binding() -> None:
+    for kind in ("system-image", "user-data"):
+        for cut in ("repeat", "close", "replacement", "retirement"):
+            service, identity, handles = rr.fixture(kind)
+            ensure(service.begin(handles[0], 7, identity, 1, 2)
+                   and service.begin(handles[1], 7, identity, 14, 2),
+                   "completion cut lacked two admitted requests")
+            old = service.pending(0)
+            if old is None:
+                raise AssertionError("missing predecessor completion identity")
+            if cut == "repeat":
+                ensure(service.finish(0, old.sequence) == b"12", "predecessor completion refused")
+                current_handle, current_identity = handles[0], identity
+                offset, length, expected, other_expected = 16, 0, b"", b"EF"
+            elif cut == "close":
+                ensure(service.close(handles[0]), "close did not cancel predecessor transfer")
+                admitted = service.reserve(0, 7, identity, 4, 8)
+                if admitted is None:
+                    raise AssertionError("successor subwindow reservation refused")
+                current_handle, current_identity = admitted, identity
+                offset, length, expected, other_expected = 1, 2, b"56", b"EF"
+            else:
+                successor_payload = b"abcdefghijklmno!"
+                current_identity = replace(identity, version=2,
+                                           root=rr.authenticated_root(kind, 1, successor_payload))
+                if cut == "replacement":
+                    ensure(service.close(handles[0]), "replacement did not cancel predecessor transfer")
+                else:
+                    complete, steps = service.retire(handles[0].slot, cooperative_holder=False)
+                    ensure(complete and steps <= service.bounds.retirement_steps,
+                           "completion cut could not retire without its holders")
+                slot = service.publish(rr.Resident(current_identity, successor_payload))
+                ensure(slot is not None, "successor resident refused")
+                if cut == "retirement":
+                    ensure(slot == handles[0].slot, "retirement control did not reuse the backing slot")
+                    other = service.reserve(1, 7, current_identity, 0, 16)
+                    ensure(other is not None, "independent successor reservation refused")
+                    if other is None:
+                        raise AssertionError("missing independent successor")
+                    ensure(service.begin(other, 7, current_identity, 14, 2),
+                           "independent successor transfer refused")
+                admitted = service.reserve(0, 7, current_identity, 0, 16)
+                if admitted is None:
+                    raise AssertionError("successor reservation refused")
+                current_handle = admitted
+                offset, length, expected = 1, 2, b"bc"
+                other_expected = b"o!" if cut == "retirement" else b"EF"
+            ensure(service.begin(current_handle, 7, current_identity, offset, length),
+                   "successor transfer refused")
+            current, independent = service.pending(0), service.pending(1)
+            if current is None or independent is None:
+                raise AssertionError("missing successor or independent completion identity")
+            ensure(current.sequence > old.sequence, "holder reuse reset its request identifier")
+            before = len(service.writes)
+            for delayed in (old.sequence, current.sequence + 1):
+                ensure(service.finish(0, delayed) is None and len(service.writes) == before
+                       and service.pending(0) == current and service.pending(1) == independent,
+                       "delayed or foreign completion consumed a current accepted transfer")
+            ensure(service.finish(0, current.sequence) == expected and service.response(0) == expected,
+                   "matching successor completion lost its exact authenticated window")
+            before = len(service.writes)
+            for replay in (old.sequence, current.sequence):
+                ensure(service.finish(0, replay) is None and len(service.writes) == before
+                       and service.response(0) == expected and service.pending(1) == independent,
+                       "replayed completion cleared a newer reply or independent transfer")
+            ensure(service.finish(1, independent.sequence) == other_expected
+                   and service.traffic()["common"] == 0 and service.safe_backing(),
+                   "completion binding lost independent payload, traffic or backing safety")
+        service, identity, handles = rr.fixture(kind, bounds=rr.Bounds(counter_limit=2, retention=1))
+        ensure(service.begin(handles[0], 7, identity, 0, 1), "finite first request refused")
+        first = service.pending(0)
+        if first is None:
+            raise AssertionError("missing finite first completion identity")
+        ensure(service.finish(0, first.sequence) == b"0"
+               and service.begin(handles[0], 7, identity, 16, 0),
+               "finite last request refused")
+        last = service.pending(0)
+        if last is None:
+            raise AssertionError("missing finite last completion identity")
+        before = len(service.writes)
+        ensure(last.sequence == 2 and service.finish(0, first.sequence) is None
+               and service.pending(0) == last and len(service.writes) == before,
+               "stale completion consumed the last finite request")
+        ensure(service.finish(0, last.sequence) == b""
+               and not service.begin(handles[0], 7, identity, 0, 1)
+               and service.pending(0) is None and service._integer("sequence.0") == 2,
+               "exhaustion wrapped a completion identifier")
+        ensure(service.crash() and service._integer("sequence.0") == 2,
+               "crash reset a completion identifier")
+        before = len(service.writes)
+        ensure(service.finish(0, last.sequence) is None and len(service.writes) == before,
+               "crash resurrected a canceled completion")
 
 
 def _integral_backing_slots() -> None:
@@ -498,7 +598,7 @@ def _integral_backing_slots() -> None:
                    and (service.resident(0), service.resident(1)) == backing
                    and service.safe_backing(),
                    "refused backing slot changed stored state or displaced an accepted transfer")
-        ensure(service.finish(0) == b"12" and service.finish(1) == b"bc",
+        ensure(_finish(service, 0) == b"12" and _finish(service, 1) == b"bc",
                "malformed slot requests lost exact retained-version payloads")
         ensure(service.begin(handles[0], 7, identity, 0, 16)
                and service.begin(second, 7, successor, 0, 16),
@@ -513,7 +613,7 @@ def _integral_backing_slots() -> None:
         ensure(complete and steps <= service.bounds.retirement_steps
                and service.resident(handles[0].slot) is None and service.safe_backing(),
                "integer slot failed holder-independent bounded retirement")
-        ensure(service.finish(1) == successor_payload,
+        ensure(_finish(service, 1) == successor_payload,
                "retiring a predecessor disturbed the successor transfer")
         ensure(service.stop(second.slot), "integer final-slot stop control refused")
         complete, steps = service.retire(second.slot, cooperative_holder=False)
@@ -569,7 +669,7 @@ def _immutable_backing_publication() -> None:
                    "noncanonical replacement consumed capacity or displaced accepted transfers")
             ensure(service.publish(rr.Resident(successor, successor_payload)) == 1,
                    "replacement refusal consumed its version or blocked a canonical retry")
-            ensure(service.finish(0) == payload and service.finish(1) == payload,
+            ensure(_finish(service, 0) == payload and _finish(service, 1) == payload,
                    "refused backing or successor publication changed retained transfer bytes")
             if handles[0] is None:
                 raise AssertionError("missing releasable predecessor reservation")
@@ -646,7 +746,7 @@ def _stable_resident_container() -> None:
                        "publication inspected the derived payload before refusing its container")
             ensure(service.publish(rr.Resident(successor, successor_payload)) == 1,
                    "derived replacement refusal consumed the canonical successor's version")
-            ensure(service.finish(0) == b"56" and service.finish(1) == b"F",
+            ensure(_finish(service, 0) == b"56" and _finish(service, 1) == b"F",
                    "derived publication or canonical replacement redirected retained transfers")
             ensure(service.close(first), "canonical predecessor close refused")
             current = service.reserve(0, 7, successor, 0, 16)
@@ -665,7 +765,7 @@ def _replacement_and_bounded_retirement() -> None:
                         root=rr.authenticated_root("user-data", 1, b"abcdefghijklmnop"))
     new_slot = service.publish(rr.Resident(successor, b"abcdefghijklmnop"))
     ensure(new_slot is not None and new_slot != handles[0].slot, "replacement reused retained slot")
-    ensure(service.finish(0) == b"0123456789ABCDEF", "accepted transfer rebound to new bytes")
+    ensure(_finish(service, 0) == b"0123456789ABCDEF", "accepted transfer rebound to new bytes")
     ensure(service.read(handles[1], 7, identity, 0, 16) == b"0123456789ABCDEF",
            "old retained handle identity changed after replacement")
     ensure(service.publish(rr.Resident(replace(successor, version=3), b"abcdefghijklmnop")) is None,
@@ -705,7 +805,7 @@ def _resource_limits() -> None:
     ensure(service.begin(handles[0], 7, identity, 0, 16), "first transfer refused")
     ensure(not service.begin(handles[0], 7, identity, 0, 16), "private SPSC capacity exceeded")
     ensure(service.begin(handles[1], 7, identity, 0, 16), "second independent transfer refused")
-    ensure(service.finish(0) == b"0123456789ABCDEF" and service.finish(1) == b"0123456789ABCDEF",
+    ensure(_finish(service, 0) == b"0123456789ABCDEF" and _finish(service, 1) == b"0123456789ABCDEF",
            "capacity refusal destroyed an accepted transfer")
     for _ in range(service.bounds.counter_limit - 1):
         ensure(service.read(handles[0], 7, identity, 0, 1) == b"0", "premature read counter refusal")
@@ -810,7 +910,7 @@ def _reused_slot_identity() -> None:
         ensure(slot is not None and slot != handles[0].slot and service.safe_backing(),
                "valid retained predecessor reported unsafe backing")
         if outstanding:
-            ensure(service.finish(0) == b"0123456789ABCDEF",
+            ensure(_finish(service, 0) == b"0123456789ABCDEF",
                    "valid predecessor transfer changed identity")
         else:
             ensure(service.read(handles[0], 7, identity, 0, 16) == b"0123456789ABCDEF",
@@ -837,7 +937,7 @@ def _reused_slot_identity() -> None:
                 bad._put(f"reservation.{holder}", None)
         ensure(not bad.safe_backing(), "slot presence hid old metadata bound to a replacement identity")
         if outstanding:
-            ensure(bad.finish(0) is None and bad.response(0) is None,
+            ensure(_finish(bad, 0) is None and bad.response(0) is None,
                    "old transfer returned replacement bytes")
         ensure(bad.read(bad_handles[0], 7, bad_identity, 0, 16) is None,
                "old reservation returned replacement bytes")
@@ -865,7 +965,7 @@ def _closed_predecessor_capacity() -> None:
             ensure(not complete and steps <= service.bounds.retirement_steps
                    and service.resident(slot) is not None and service.safe_backing(),
                    "unavailable barrier failed to keep closed backing charged")
-            ensure(service.finish(0) is None and service.read(handle, 7, identity, 0, 16) is None,
+            ensure(_finish(service, 0) is None and service.read(handle, 7, identity, 0, 16) is None,
                    "quarantine retained live read authority")
             closed_slots.append(slot)
 
@@ -891,7 +991,7 @@ def _executed_controls_and_observer() -> None:
     controls = rr.controls()
     ensure(set(controls) == {"common-counter", "replacement-touch", "hidden-reacquire",
                             "wrong-domain", "wrong-root", "no-auth", "old-rebind",
-                            "premature-reuse", "counter-wrap", "holder-wait"},
+                            "premature-reuse", "counter-wrap", "holder-wait", "completion-rebind"},
            "control campaign omitted a required defect class")
     ensure(all(controls.values()), f"executed defect survived its intended oracle: {controls}")
     service, identity, handles = rr.fixture(defect="common-counter")
@@ -976,7 +1076,7 @@ def _frozen_composition() -> None:
     ensure(service.bounds == bounds and dict(service.classes) == classes
            and service.writes == writes and service.pending(0) == pending,
            "refused composition replacement changed state, observation or an accepted transfer")
-    ensure(service.finish(0) == b"0123456789ABCDEF" and not service.renew(handle),
+    ensure(_finish(service, 0) == b"0123456789ABCDEF" and not service.renew(handle),
            "refused composition replacement lost payload or widened the renewal policy")
     for _ in range(bounds.counter_limit - 1):
         ensure(service.read(handle, 7, identity, 0, 1) == b"0",
@@ -1051,8 +1151,8 @@ def _canonical_composition() -> None:
                and (service.pending(0), service.pending(1)) == pending
                and (service.reservation(0), service.reservation(1)) == held,
                "refused composition changed fixed bounds, stored inventory or accepted transfers")
-        ensure(service.finish(0) == b"0123456789ABCDEF"
-               and service.finish(1) == b"456789AB" and not service.renew(handles[0]),
+        ensure(_finish(service, 0) == b"0123456789ABCDEF"
+               and _finish(service, 1) == b"456789AB" and not service.renew(handles[0]),
                "fixed composition lost exact payloads or widened its exhausted renewal policy")
         ensure(service.read(handles[0], 7, identity, 15, 1) == b"F"
                and service.read(handles[0], 7, identity, 15, 1) is None
@@ -1069,7 +1169,7 @@ def _source_bound_cli() -> None:
         code = cli.main(["--json"])
     report = json.loads(output.getvalue())
     ensure(code == 0 and report["scope"] == "finite Python host reference", "CLI scope or verdict differs")
-    ensure(len(report["witnesses"]) == 8 and len(report["executed_python_controls"]) == 10,
+    ensure(len(report["witnesses"]) == 8 and len(report["executed_python_controls"]) == 11,
            "CLI omitted executed witnesses or controls")
     ensure("tools/vos/cli/resident_reads.py" in report["sources"]
            and len(report["runtime"]["sha256"]) == 64 and report["remaining"],
@@ -1085,6 +1185,7 @@ def cases() -> list[Case]:
             Case("resident integral supplied identities and caller domains", _integral_supplied_identities),
             Case("resident canonical root identities preserve accepted transfers", _canonical_root_fields),
             Case("resident current authority and admitted-transfer cuts", _authority_and_lifecycle_cuts),
+            Case("resident exact request completions preserve successor transfers", _completion_request_binding),
             Case("resident exact integer backing slots preserve accepted transfers", _integral_backing_slots),
             Case("resident immutable backing refuses aliases before publication", _immutable_backing_publication),
             Case("resident stable containers preserve authenticated retained bytes", _stable_resident_container),

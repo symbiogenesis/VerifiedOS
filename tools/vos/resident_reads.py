@@ -23,7 +23,7 @@ type Kind = Literal["system-image", "user-data"]
 type WriteClass = Literal["common", "session-private", "spsc"]
 type Defect = Literal["none", "common-counter", "replacement-touch", "hidden-reacquire",
                       "wrong-domain", "wrong-root", "no-auth", "old-rebind",
-                      "premature-reuse", "counter-wrap", "holder-wait"]
+                      "premature-reuse", "counter-wrap", "holder-wait", "completion-rebind"]
 
 
 @dataclass(frozen=True)
@@ -335,15 +335,18 @@ class Service:
         self._put(f"request.{holder}", request)
         return True
 
-    def finish(self, holder: int) -> bytes | None:
-        """Recheck current authority and authenticate actual bytes before publication."""
+    def finish(self, holder: int, sequence: int) -> bytes | None:
+        """Complete the exact accepted request, then recheck authority and actual bytes."""
         self.operation = "read"
-        if not self._holder(holder):
+        if not self._holder(holder) or type(sequence) is not int:
             return None
         request = self.pending(holder)
-        self._put(f"response.{holder}", None)
-        if request is None:
+        # A delayed handler must not consume a successor that reused this holder slot.
+        # Sequences are finite, never reset on close or reuse, and refuse exhaustion.
+        if (request is None
+                or (request.sequence != sequence and self.defect != "completion-rebind")):
             return None
+        self._put(f"response.{holder}", None)
         self._put(f"pending.{holder}", None)
         self._put(f"request.{holder}", None)
         if not self._valid(request.handle, request.caller_domain, request.identity):
@@ -365,7 +368,8 @@ class Service:
 
     def read(self, handle: Handle, domain: int, identity: Identity,
              offset: int, length: int) -> bytes | None:
-        return self.finish(handle.holder) if self.begin(handle, domain, identity, offset, length) else None
+        return (self.finish(handle.holder, self._integer(f"sequence.{handle.holder}"))
+                if self.begin(handle, domain, identity, offset, length) else None)
 
     def renew(self, handle: Handle) -> bool:
         self.operation = "renewal"
@@ -591,6 +595,36 @@ def controls() -> dict[str, bool]:
                 service.close(handle)
         unique.append(len(tokens) == len(set(tokens)))
     verdicts["counter-wrap"] = unique == [True, False]
+    completion_controls: list[bool] = []
+    for kind in ("system-image", "user-data"):
+        for construction in ("none", "completion-rebind"):
+            service, identity, handles = fixture(kind, construction)
+            if not service.begin(handles[0], 7, identity, 0, 16):
+                raise ValueError("completion control lacked an accepted predecessor transfer")
+            old = service.pending(0)
+            if old is None or not service.close(handles[0]):
+                raise ValueError("completion control did not cancel its predecessor")
+            successor = replace(identity, version=2,
+                                root=authenticated_root(kind, 1, b"X" * 16))
+            if service.publish(Resident(successor, b"X" * 16)) is None:
+                raise ValueError("completion control did not publish its successor")
+            replacement = service.reserve(0, 7, successor, 0, 16)
+            if (replacement is None or not service.begin(replacement, 7, successor, 1, 2)
+                    or not service.begin(handles[1], 7, identity, 14, 2)):
+                raise ValueError("completion control lacked two independent accepted transfers")
+            current = service.pending(0)
+            independent = service.pending(1)
+            if current is None or independent is None:
+                raise ValueError("completion control lost its admitted requests")
+            writes = len(service.writes)
+            refused = service.finish(0, old.sequence) is None
+            preserved = service.pending(0) == current and len(service.writes) == writes
+            current_payload = service.finish(0, current.sequence)
+            independent_payload = service.finish(1, independent.sequence)
+            payloads = current_payload == b"XX" and independent_payload == b"EF"
+            completion_controls.append(refused and preserved and payloads
+                                       and service.traffic()["common"] == 0)
+    verdicts["completion-rebind"] = completion_controls == [True, False, True, False]
     return verdicts
 
 

@@ -78,6 +78,17 @@ byte window or cancel an accepted transfer. Both root-kind controls preserve
 canonical subwindow and independent-holder payloads, renewal, and close after
 revocation, without adding common per-read writes.
 Refused requests preserve an already accepted transfer.
+Completion requires the admitted holder and finite request sequence. Closing a
+reservation, finishing a read or retiring and reusing its backing slot does not
+reset that holder's sequence; exhaustion refuses another request and crash retains
+the exhausted counter. A delayed, foreign or duplicate completion refuses before
+any stored write, preserving the successor transfer, its published reply and the
+independent holder. Matching completions still recheck current authority and
+authenticate actual bytes before returning the exact admitted window, including
+an accepted empty read. Both root kinds exercise repeat, close, replacement and
+same-slot retirement/reuse cuts. The executed completion-rebind defect consumes
+successor bytes in response to an old sequence and fails the request-identity
+oracle beside an accepted two-holder control.
 Stop, retirement and resident lookup require an in-range integer backing slot.
 String aliases and other malformed slots refuse before stored-state changes, preserving
 live admission and independent accepted transfers. Valid integer retirement still
@@ -130,7 +141,8 @@ The executed Python controls add common increment/decrement, replacement touch
 and hidden reacquisition while still returning the correct bytes. Their traffic
 predicate fails. Other executed controls omit domain/root/authentication checks,
 rebind an old handle, free backing with accepted transfers, wrap tokens or exceed
-the holder-independent retirement bound. Every control has a passing counterpart
+the holder-independent retirement bound, or complete a successor request through
+a stale completion sequence. Every control has a passing counterpart
 and its independently checked refusal, payload, uniqueness or lifetime oracle.
 These controls execute as Python constructions; they are not compiled target
 mutants and provide no compiled-control acceptance evidence.
