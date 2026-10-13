@@ -1,0 +1,11 @@
+{
+  "entries": {
+    "9b9cecd52a1848c81ec733fc29858722cd888ce717213013c2c3240fcdea598c": {
+      "compilation": {
+        "out": "/root/build/lane-close3-20261013-reuse/q43-prime-20261013",
+        "receipt_sha256": "d678aa6e2e20e694edab0f1dbae43cb787c1b33a039f18e9fd21a794ecf8be2e"
+      }
+    }
+  },
+  "protocol": "verifiedos-contained-compiler-index/2"
+}

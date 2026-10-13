@@ -1,0 +1,139 @@
+# SPDX-License-Identifier: Apache-2.0
+# Standalone cold source carriage. Every checkout is the dispatch's main revision;
+# no source/switch/download cache or private compiler is used. Guest CI is separate.
+name: sail-support-qualification
+run-name: ${{ format('sail-support:{0}', inputs.title || github.sha) }}
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Exact full main commit at dispatch (empty selects dispatch SHA)
+        type: string
+        default: ""
+      title:
+        description: Optional human-readable run label
+        type: string
+        default: ""
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+defaults:
+  run:
+    shell: bash
+env:
+  PYTHONUTF8: "1"
+  PYTHONUNBUFFERED: "1"
+  TESTED_REVISION: ${{ inputs.revision || github.sha }}
+jobs:
+  plan:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+      - name: Verify exact main revision and immutable source recipe
+        run: python3 tools/ci/sail_support_route.py plan --side "$GITHUB_WORKSPACE" --root "$RUNNER_TEMP/sail-plan"
+      - name: Retain plan or refusal
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sail-support-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/sail-plan/
+          if-no-files-found: warn
+  build:
+    needs: plan
+    runs-on: ubuntu-26.04
+    timeout-minutes: 355
+    outputs:
+      snapshot_sha256: ${{ steps.build.outputs.snapshot_sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+      - name: Cold package tests, strict sources, frozen readings and recursive checks
+        id: build
+        run: python3 tools/ci/sail_support_route.py build --side "$GITHUB_WORKSPACE" --root "$RUNNER_TEMP/sail-build"
+      - name: Retain cold build evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sail-support-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/sail-build/upload/
+          if-no-files-found: warn
+  import:
+    needs: [plan, build]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 355
+    env:
+      SNAPSHOT_SHA256: ${{ needs.build.outputs.snapshot_sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sail-support-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/sail-input
+      - name: Independent fresh import, rebuild and exact re-export
+        run: |
+          python3 tools/ci/sail_support_route.py import --side "$GITHUB_WORKSPACE" \
+            --root "$RUNNER_TEMP/sail-import" --snapshot "$RUNNER_TEMP/sail-input/sail-support.lock" \
+            --expected-sha256 "$SNAPSHOT_SHA256"
+      - name: Retain independent import evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sail-support-import-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/sail-import/upload/
+          if-no-files-found: warn
+  join:
+    needs: [plan, build, import]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env:
+      CAMPAIGN_NEEDS: ${{ toJSON(needs) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: sail-support-*
+          path: ${{ runner.temp }}/sail-artifacts
+      - name: Require both independent cold verdicts and matching artifacts
+        run: python3 tools/ci/sail_support_route.py join --side "$GITHUB_WORKSPACE" --root "$RUNNER_TEMP/sail-join" --artifacts "$RUNNER_TEMP/sail-artifacts"
+      - name: Retain joined verdict
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sail-support-join-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/sail-join/
+          if-no-files-found: warn

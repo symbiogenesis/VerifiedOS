@@ -1,0 +1,110 @@
+{
+  "base_lock": {
+    "path": "tools/opam/rocq.lock",
+    "sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32"
+  },
+  "dependency_source_settings": "Original locked package build settings; no strict dependency source port.",
+  "frozen_inventory": {
+    "path": "docs/implementation/retained-evidence/q35n-20261013/frozen-query-inventory.json",
+    "sha256": "0158b79df7a5d131b187abf8954c362ec04ab532d1a113a711b74fa477a12a8e"
+  },
+  "package_metadata_source_sha256": "5580097144c3599d12095104f56217f036f06fdaf9e6fbf1156483b09fa404fc",
+  "package_tests": "Original dune build -p rocq-sail-stdpp -j jobs @install @runtest, under opam --with-test; hosted only.",
+  "patches": [
+    {
+      "path": "docs/implementation/retained-evidence/root/build/lane-q35g-20261003/q35g/coq-sail-reals-eqdep.patch",
+      "sha256": "a74749c56f38127371cb748de26ffcc1d1f0bf65bbcbb8ab1d0e9c278ba202a5",
+      "stage": "axiom"
+    },
+    {
+      "path": "docs/implementation/retained-evidence/q35n-20261013/sail-support-strict.patch",
+      "sha256": "cee3710ee8b21c439885190e30cf0618fe68fb3a4071dd9991c2f5db37122477",
+      "stage": "syntax"
+    }
+  ],
+  "probes": {
+    "eqdep": {
+      "expected_axioms": [
+        "Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq"
+      ],
+      "path": "docs/implementation/retained-evidence/q35n-20261013/ControlEqdep.v",
+      "sha256": "6e2bbe34571f04b9694761ed0724a4dd797e24d4225bc541b7771cbd4fcd961b"
+    },
+    "notation": {
+      "expected_axioms": [],
+      "path": "docs/implementation/retained-evidence/q35n-20261013/NotationProbe.v",
+      "sha256": "07b6ae14106429b749934e8a36c2838bd95f190df1449b8efed4ceaf1514dd33"
+    },
+    "real": {
+      "expected_axioms": [
+        "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep",
+        "Stdlib.Reals.ClassicalDedekindReals.sig_not_dec",
+        "Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec",
+        "Stdlib.Logic.Classical_Prop.classic"
+      ],
+      "path": "docs/implementation/retained-evidence/q35n-20261013/ControlReal.v",
+      "sha256": "ae02976fae523473c4ef564feb09c38b33f66937e7e2eb96f1460b9ec5d769a6"
+    },
+    "term": {
+      "expected_axioms": [],
+      "path": "docs/implementation/retained-evidence/q35n-20261013/TermProbe.v",
+      "sha256": "c28f6147793d28f20b1f8deda58e4583d3db4678cd8d67eb44f162aaf777bfce"
+    }
+  },
+  "schema": "verifiedos-sail-support-qualification/1",
+  "snapshot": "Full frozen package metadata and embedded checksum-bound patch/license bytes; independent import/rebuild and byte-identical re-export required.",
+  "source": {
+    "git_revision": "e7b914cddc032e3676eebd87a808229828013e9c",
+    "sha256": "1a0e226608ac84add6cd1f61a11637ea9db5e00e1551b2070945310078c9e031",
+    "url": "https://github.com/rems-project/coq-sail/archive/refs/tags/0.20.3.tar.gz",
+    "version": "0.20.3"
+  },
+  "source_endpoint_revision": "2986b14acd78715f8316faf098bcfe84d3395794",
+  "source_license_sha256": "9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0",
+  "strict_flags": [
+    "-q",
+    "-w",
+    "+default,-abstract-large-number",
+    "-set",
+    "Default Goal Selector=!",
+    "-disallow-sprop"
+  ],
+  "strict_support_modules": 29,
+  "support_axioms": [
+    "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep",
+    "Stdlib.Reals.ClassicalDedekindReals.sig_not_dec",
+    "Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec",
+    "Stdlib.Logic.Classical_Prop.classic"
+  ],
+  "support_modules": [
+    "Base",
+    "ConcurrencyInterface",
+    "ConcurrencyInterfaceBuiltins",
+    "ConcurrencyInterfaceBuiltinsV2",
+    "ConcurrencyInterfaceTypes",
+    "ConcurrencyInterfaceTypesV2",
+    "ConcurrencyInterfaceV2",
+    "GenericValue",
+    "Hoare",
+    "Impl_base",
+    "Inhabited",
+    "Instances",
+    "Instr_kinds",
+    "MachineWord",
+    "MachineWordInterface",
+    "Operators_mwords",
+    "Prompt",
+    "Prompt_monad",
+    "Real",
+    "State",
+    "State_lemmas",
+    "State_lifting",
+    "State_monad",
+    "State_monad_lemmas",
+    "String",
+    "TypeCasts",
+    "Undefined",
+    "Values",
+    "Values_lemmas"
+  ]
+}
