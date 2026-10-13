@@ -361,6 +361,9 @@ full frozen snapshot containing the two reviewed BSD-2-Clause patches and that
 notice. It distributes no dependency source tree or compiled library object.
 Its authored probes and qualification controller follow the original-file map.
 The project proof-switch lock remains unchanged until actual consumer acceptance.
+Q35o retains only the generated tag-loop fragment and its diagnostics, with the
+exact RISC-V and CHERI model notices, re-read on 2026-10-13. The fragment keeps
+BSD-2-Clause terms; no complete emitted term is distributed by that evidence.
 
 Tools used to observe, execute, or accelerate a build do not automatically license its output. Non-commercial restrictions also govern use, even where nothing is distributed.
 
