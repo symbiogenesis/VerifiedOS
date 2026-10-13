@@ -932,3 +932,16 @@ not passed. A resumed effort needs a bounded diagnostic and a new complete
 qualification attempt under the unchanged acceptance predicate. A changed prover
 or compiler requires separately qualified source/toolchain identities rather than
 reuse of the interrupted in-memory environment.
+
+## Bounded Parser diagnostic
+
+[Bounded Parser diagnostic](retained-evidence/q39/bounded-parser-profile-20261013/manifest.json), SHA256 `813cb9697c5284b13ff8686e99d03441de54baae658db32b4919901470a31d8e`,
+retains the one 2026-10-13 isolated profiling attempt and its verifier. The
+checker received SIGINT after 85 seconds and exited at -2 after 85.034 seconds.
+All 14,490 sealed input identities matched before and after. The last printed
+declaration was again `Complete.Valid.is_validator_forall_items`; buffered,
+truncated profiling output cannot identify the active unfinished event or
+establish a cause, forward progress or nontermination. This diagnostic supplies
+no kernel acceptance and justifies no further unbounded restart. A separately
+scoped diagnosis and a new complete qualified pair remain required before the
+classification, final stability, target replays and re-staging can proceed.

@@ -20,6 +20,8 @@ Copyright 2026 Edward Miller.
 | `docs/implementation/retained-evidence/root/build/lane-q35g-20261003/tagtree/LICENSE` | the upstream library's own terms | Verbatim coq-sail 0.20.3 license and copyright notice retained for the library diff. |
 | `docs/implementation/retained-evidence/rocq-compat-20261012/sail.LICENSE` | the upstream library's own terms | Verbatim coq-sail 0.20.3 BSD-2-Clause license and copyright notice retained with the compatibility trial. |
 | `docs/implementation/retained-evidence/rocq-compat-20261012/stdpp.LICENSE` | the upstream library's own terms | Verbatim stdpp 1.13.0 BSD-3-Clause license and copyright notice retained with the compatibility trial. |
+| `docs/implementation/retained-evidence/q35n-20261013/sail-support-strict.patch`, `freeze/*.txt` and `rocq-sail-stdpp.opam` beneath that bundle | `BSD-2-Clause`, in that bundle's `Sail-Support-LICENSE` | Syntax-only changes, printed upstream declarations and verbatim package metadata from coq-sail 0.20.3. Authored modifications are offered on the upstream terms. |
+| `docs/implementation/retained-evidence/q35n-20261013/Sail-Support-LICENSE` | the upstream library's own terms | Verbatim coq-sail 0.20.3 license and copyright notice accompanying the source-derived evidence. |
 | [LICENSE.md](LICENSE.md), [LICENSE-docs.md](LICENSE-docs.md) | the stewards' own terms | Verbatim license texts. Apache's appendix placeholder is filled in as Apache's own instructions direct; nothing else is changed in either file. |
 
 The split is decidable by path and extension alone. The named upstream patch and
@@ -30,6 +32,11 @@ records the package names, versions, sources and checksums a resolver chose,
 each package keeping its own terms. That includes
 [tools/sail-isla/isla.Cargo.lock](tools/sail-isla/isla.Cargo.lock), upstream
 Isla's Cargo-generated lock with two package entries changed.
+
+A full frozen opam snapshot can embed upstream patch bytes as extra files. Those
+bytes retain their upstream terms; Q35n's standalone hosted snapshot carries its
+BSD-2-Clause patches and the exact `Sail-Support-LICENSE` together. This exception
+does not make the resolver's remaining metadata authored source.
 
 ## Marking a new file
 

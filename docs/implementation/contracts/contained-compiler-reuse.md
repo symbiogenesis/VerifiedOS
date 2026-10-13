@@ -288,9 +288,20 @@ index migration and failed-audit preservation.
 
 An interrupted kernel check supplies no resumable checkpoint or kernel credit.
 The dated catalog and its status observations remain unchanged; no live candidate
-was primed or newly qualified by this checkpoint. Automatic indexing of newly
+was primed or newly qualified by that earlier checkpoint. Automatic indexing of newly
 completed compilation after a failed fresh audit still needs the private driver's
 truthful partial-result protocol, whose bounded implementation replan is owed
 before construction. Genuine Q39-qualified whole-set/default reuse remains open.
 Neither fixture priming nor this catalog closes Q39, clears the firmware
 provenance blockers, or supplies successful hosted qualification.
+
+[Actual compilation-index bundle](../retained-evidence/q43/compilation-index-20261013/manifest.json), SHA256 `2b7605ceca6fe2ddbf5c92329fa8126139258e51cc6ec5e3530887fc4ad15828`,
+records the later actual `compiler-build prime` and default read-only `status`
+operations. Both returned 0 on the historical `vm-clean-rebuild-1` compilation
+basis; default status authenticated that indexed basis and reported compile
+`reused`, `input_stable: true`, and queries, kernel and classification `not_run`.
+The original failed qualification receipt stayed byte-identical and
+`passed: false`. This establishes genuine default-index compilation reuse only.
+Complete-tier priming and unchanged all-phase default reuse still need a newly
+qualified Q39 pair. Native retained basis paths and the two exact index/controller
+metadata paths in the bundle remain part of the reproducibility boundary.
