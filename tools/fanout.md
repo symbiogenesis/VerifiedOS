@@ -6,21 +6,10 @@ conflict resolution, co-reads and acceptance checks outside the workflows.
 
 ## Publication and completion invariant
 
-All session work must reach local `main` and remote `main` before completion.
-Worker and integration worktrees are temporary local isolation only. Run batch
-completion from the checkout holding `main`, selecting any temporary integration
-worktree as a worker to merge and retire. Only `refs/heads/main` may be published;
-never push a work branch or create a publication tag. Old non-main journals cannot
-authorize completion: initialize a new batch on `main` instead.
-
-Both workflows dispatch from `main` with an explicit settled revision input, so
-checkout stays pinned even if another session advances the remote branch. Require
-that revision to be on remote `main` before dispatch, bind hosted evidence to the
-checked-out revision, and refuse a changed local integration revision. Completion
-requires all selected owned handoffs to be merged into `main`, published, validated
-by Host CI, handed to every Guest CI lane, and retired with their outputs retained.
-Tests must demonstrate refusal off `main`, publication of only `main`, rejection of
-old branch/tag journals, exact-revision dispatch and preserved retirement behavior.
+The [shared publication rule](../AGENTS.md#worktree-isolation-and-ownership) and
+[validation handoff](../AGENTS.md#tool-execution-and-validation) define session
+completion. The [required behavior below](#required-behavior) states how `fanout`
+enforces them, including exact-revision evidence and refusal of old non-main journals.
 
 ## Usage
 

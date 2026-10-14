@@ -815,11 +815,9 @@ against. The run says so on its first line.
 
 ## Worktree isolation during fan-out
 
-**Every subagent in a fan-out performs all repository work inside its own dedicated
-Git worktree.** This includes implementation, document work, read-only scouting,
-review, repair and nested subagents, including several agents on the same item.
-The integration checkout belongs to the integrator; workers return changes and
-focused evidence for integration there.
+Apply the [shared isolation and ownership rules](../AGENTS.md#worktree-isolation-and-ownership)
+to every worker. The procedure below owns provisioning, verification and handoff
+of those dedicated worktrees.
 
 **The repository provisions worktrees under the primary checkout's `.worktrees/`,
 independent of OS, model or instruction filename.** The [worktree command](vos/cli/worktree.py)
@@ -897,36 +895,18 @@ outside the lane to the integrator, who resolves ownership before integration.
 If isolation cannot be established, keep the worker undispatched. Nested fan-outs
 follow the same procedure, with a distinct checkout per child.
 
-Retire only lanes owned by this batch. Inspect `git -C <worktree> status --short`,
-preserve needed local outputs, and confirm the lane's commits are integrated with
-`git merge-base --is-ancestor <lane-branch> <integration-revision>`. Then use
-`git worktree remove <absolute-worktree>` and `git branch -d <lane-branch>` from the
-integration checkout. A retired lane's guest outputs, `/root/build/lane-<name>` and its
-`/root/logs/*-<name>.log` files, go with it once nothing cites them; `run.py worktree
-list --json` names that directory as `lane_root` while the registration stands, so read
-it off the listing before the removal. A refusal leaves the lane or branch for review; do not force
-removal or reset a branch to reuse its name. A squash or cherry-pick may require a
-separate equivalence review. Host-managed checkout cleanup belongs to that host;
-do not rename or remove another active session's worktree.
-
-Every session finishes with all its work merged into local and remote `main`.
-Work branches are local isolation only; never push them or publication tags. Run
-[`run.py fanout`](fanout.md) from the checkout holding `main` to carry out completion
-and retirement. Include any temporary integration worktree as a selected worker.
-Its batch
-journal names the selected worktrees and freezes their handoff revisions; it never
-selects unrelated lanes by age or branch prefix. `fanout finish` preserves local
-outputs, removes eligible worktrees and branches without force, and retains
-host-managed checkouts. Conflicts, changed handoffs and unsafe retirement paths
-stop for integrator judgment. The same command resumes pending Host CI and partial
-retirement; `fanout status` reads local evidence without querying Guest CI.
+After the workers stop, complete integration, publication and retirement through
+[`run.py fanout`](fanout.md#usage). Its [completion contract](fanout.md#required-behavior)
+owns handoff freezing, revision-bound evidence, output retention, retirement checks
+and resumable refusals. Follow the [shared validation handoff](../AGENTS.md#tool-execution-and-validation)
+for the settled batch.
 
 ## Check scheduling during fan-out
 
 **One integrator schedules validation for each stable integration batch.** A batch
-is the set of lane outputs being accepted together on one settled tree. Each brief
-names the lane's dedicated worktree, owned files, focused checks and deferred
-integration checks, following [worktree isolation](#worktree-isolation-during-fan-out).
+is the set of lane outputs being accepted together on one settled tree. Prepare
+each brief under [the worktree handoff procedure](#worktree-isolation-during-fan-out),
+including its focused and deferred integration checks.
 Read-only scouts inspect sources in their own worktrees without running gates.
 Workers check a coherent change when the result can guide their next edit; they
 do not run the complete wave after every file, tool call or handoff. In the
@@ -978,11 +958,8 @@ The integrator closes the batch in this order:
    after the batch's authored inputs settle; repeat only if new input changes or
    findings require it. An intermediate merge needs a targeted check only when its
    answer affects the next integration decision.
-3. Follow the [validation handoff](../AGENTS.md#tool-execution-and-validation) to
-   merge all session work into `main`, publish only `main`, require Host CI,
-   dispatch every Guest CI lane and
-   record their revision-bound status without waiting for Guest CI. Required
-   experiments and measurements outside the [Guest CI contract](ci/README.md)
+3. Complete the [validation handoff](../AGENTS.md#tool-execution-and-validation).
+   Required experiments and measurements outside the [Guest CI contract](ci/README.md)
    retain their separate acceptance checks.
 4. Reuse evidence for unchanged inputs. Refresh affected evidence when later edits
    invalidate it; rerun hosted validation for a new batch or when the affected

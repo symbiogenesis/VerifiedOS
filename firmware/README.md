@@ -30,48 +30,20 @@ runs the release host-compiled in place of the RoT hart and says so in every
 report. The two assembly programs run on the golden emulator, the M-mode stage
 and fixture under `verifiedos.json` and the probe under `verifiedos-rot.json`.
 
-**Checks.** `python tools/run.py boot-handoff run` builds everything with
-warnings as errors and both sanitizers, and runs the contract's cases against the
-golden emulator. `--signature-scheme slh256s` binds the actual SLH verifier to
-the same cases, including the racing input control. OpenSSL creates disposable
-signing keys and signatures in the native output lane; the firmware verifier
-makes each release decision. The default `fixture` mode remains separately named.
-An explicit `--simulator` requires its `--build-receipt`, checked against the
-current model sources; otherwise the command uses the lane's model build and its
-successful build receipt. A crash cannot supply a release or refusal verdict.
-`python tools/run.py
-boot-handoff layout` checks the contract's layout, case and permission tables and
-the assembled image against `vos_boot.h`, the harness and the image's constants
-without a toolchain, and the contract's chain tables against `chain/vos_chain.h`
-and the model's boot-control door declarations.
+**Checks.** The [boot-handoff harness contract](../docs/implementation/contracts/boot-handoff.md#7-the-harness)
+owns `boot-handoff run` and `layout`; its
+[verifier binding and execution limits](../docs/implementation/contracts/boot-handoff.md#8-open-joins-and-findings)
+distinguish the fixture, real signature verification and `release-target`.
+The [signature-verifier guide](crypto/README.md) owns the bounded
+`signature-target` trial and the cryptographic comparison campaigns.
 
-`boot_handoff.scheduled_mmode` emits the reviewed scheduled composition's exact
-timer windows and ASR-free partition execute roots before the final handoff.
-The kernel supplies the nonempty descriptor and validates the actual capabilities.
-The fixture and its empty descriptor retain their own predicate.
-
-`python tools/run.py boot-handoff signature-target --help` describes the bounded
-RoT-profile verifier trial. It requires a real signed boot image, its raw public
-key, an explicit contained compiler and a successful model build receipt. The
-positive must complete with HTIF success before the corrupt-signature and
-wrong-root controls run. A cutoff or timeout records no verdict and leaves those
-controls unexecuted. Target code and data stay in the native output lane. The
-complete RoT stage still needs its release mechanism, policy lowering and boot
-chain joins.
-
-`boot-handoff release-target` compiles the preparation body with the real SLH
-verifier through the contained backend. Trusted assembly reads the actual RoT
-inputs and supplies bounded buffers; the compiled body exports its verdict,
-measurement, placed image and handoff record. Completed attempts use HTIF
-success so the emulator saves that capture, while the capture's verdict decides
-release or refusal. The harness compares every output byte with the host stage
-and starts the main-die fixture only from an accepted target capture. Its finite
-campaign covers a valid image, bad magic, an over-length payload field, a version
-below the floor, a corrupt signature, a wrong root and a corrupt payload. It does not establish the complete
-boot-handoff predicate above: MMIO access and terminal observation use assembly,
-and the release callback, item-6 request and remaining firmware stages still
-need their compiler and model joins. Timeouts and missing captures fail the
-campaign.
+Use `python tools/run.py boot-handoff <subcommand> --help` for command inputs.
+Follow the [tool guide's filesystem placement](../tools/README.md#where-a-file-lives-and-which-lane-touches-it)
+for native outputs and disposable signing material.
+The [kernel-entry contract](../docs/implementation/contracts/boot-handoff.md#6-the-kernel-entry-and-initial-capability-handoff)
+owns the scheduled composition and its initialization descriptor; the
+[target-chain contract](../docs/implementation/contracts/boot-handoff.md#9-the-target-chain)
+owns the composed firmware campaign.
 
 The C is written to stay within what the target will need: no allocation, no
 library call in the source and no loop bound read from the image beyond a length

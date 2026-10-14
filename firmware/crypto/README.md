@@ -33,8 +33,13 @@ the algorithm, 24-round count or input bounds. Local storage fits the accepted
 purecap compiler's scalar-global profile.
 The [target translation unit](../harness/slh_target.c) and `boot-handoff
 signature-target` retain a bounded RoT-profile trial with real header inputs.
-Compilation or an instruction-limited run without an HTIF verdict supplies no
-signature target acceptance.
+Use `python tools/run.py boot-handoff signature-target --help` for inputs: a real
+signed boot image, its raw public key, an explicit contained compiler and a
+successful model build receipt. The positive must complete with HTIF success
+before the corrupt-signature and wrong-root controls run. A cutoff or timeout
+records no verdict and leaves those controls unexecuted. Compilation or an
+instruction-limited run without an HTIF verdict supplies no signature target
+acceptance. Target code and data stay in the native output lane.
 
 The campaign compiles host C with warnings as errors, freestanding options and
 AddressSanitizer/UndefinedBehaviorSanitizer. It compares every applicable
