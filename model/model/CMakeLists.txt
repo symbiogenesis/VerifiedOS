@@ -325,6 +325,7 @@ foreach (xlen IN ITEMS 64)
             --drocq-undef-axioms
             --rocq
             --rocq-lib riscv_extras
+            --rocq-alt-modules "SailStdpp.Base SailStdpp.ConcurrencyInterfaceTypes SailStdpp.ConcurrencyInterface SailStdpp.ConcurrencyInterfaceBuiltins"
             --rocq-output-dir "${CMAKE_BINARY_DIR}/rocq"
             # The prefix of the output files.
             -o "${arch}"
