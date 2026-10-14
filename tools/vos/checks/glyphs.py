@@ -15,7 +15,9 @@ file's bytes and not of its prose, so a comment in Sail, in assembly, or in Java
 carries it exactly as a paragraph does, and a rule stated with no carve-out that
 silently stopped at one suffix would be a carve-out nobody had to audit. A file the
 index carries that is not UTF-8 is skipped rather than reported, because the fault
-cannot be stated over bytes that are not text. Submodule contents never arrive here at
+cannot be stated over bytes that are not text. Retained gzip evidence is expanded
+before that reading, so compression preserves checks on its original text.
+Submodule contents never arrive here at
 all: a gitlink carries no file of its own, so an upstream's bytes are out of reach by
 construction rather than by an exemption.
 

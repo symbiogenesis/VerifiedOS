@@ -61,7 +61,7 @@ Struck IDs are never reused. Rows in the `retired` group identify former checks;
 | K-38 | tables | every table row is the width its header declares | the counts above read cells by position |
 | K-39 | tables | every table row belongs to a table with a header rule | the same; a ruleless run renders as prose and is read by nothing |
 | ~~K-40~~ | retired | n/a | Retired with the em-dash house-style ban. K-41 still reads the whole index for encoding damage. |
-| K-41 | glyphs | no tracked file carries mojibake or a replacement character | encoding damage survives a rendered read, and a comment carries it as readily as a paragraph |
+| K-41 | glyphs | no tracked text, including expanded retained gzip evidence, carries mojibake or a replacement character | encoding damage survives a rendered read, and a comment carries it as readily as a paragraph |
 | K-42 | bindings | the field-bindings view carries exactly the apex record's Prop fields, in declaration order | R-18-031 |
 | K-43 | bindings | every consumer cell restates what the statement does with its field | R-18-031, R-05-160, R-05-161 |
 | K-44 | bindings | every instantiation cell is 'none yet' or a link to the instantiating artifact | R-18-031 |

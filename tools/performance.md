@@ -91,6 +91,20 @@ the index shortcut. Sandbox mutations still unlink before writing, repair
 sandboxes still use private copies, and checker mutants still execute in fresh
 processes.
 
+The selftest compiles checker modules into checked-hash bytecode once per immutable
+template. Fresh child interpreters require hash validation against their own source
+and suppress cache writes, retaining source-mutant isolation even when an edit keeps
+its size and timestamp. Sandbox construction overlaps the baseline's read-only run
+against the template; a repair-only run constructs no case sandbox.
+
+Large retained proof readings use the manifest's lossless gzip representation.
+Content hashes and byte counts still bind the original reading. Repository-wide
+encoding, pin and interim scans read its expanded contents. Pin scanning skips the
+object-id search only when no upstream-name substring is present, and streams source
+texts rather than retaining the expanded corpus. Hosted gate timings record the
+bytecode and sandbox phases beside the baseline, cases and repair path; complete
+timing runs and benchmarks stay on CI.
+
 The behavioral tests cover
 [source snapshots](tests/test_gallina.py),
 [witness decisions](tests/test_proofs.py),

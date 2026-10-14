@@ -95,8 +95,13 @@ shard, but every shard runs it with the cases at its own stride through that lis
 so each of its cases still runs once and a shard's share may be empty.
 Every mutation runs the checker in a fresh process and private sandbox, through the
 group that decides its rule (`check.py --through`); a survivor runs the whole checker.
-Each shard checks its pristine baseline and registry coverage, and every one of its
-sandboxes runs cases. Beside the shards, one unpartitioned job per OS runs what no
+The template compiles checker modules once into checked-hash bytecode outside its
+index. Every child validates those hashes against its own source and disables cache
+writes, so a source mutant still loads its changed code. A compilation refusal leaves
+that module uncached for the child to diagnose. Each shard checks its immutable
+template baseline while its case sandboxes are built, then checks registry coverage.
+The repair-only run builds only its private repair sandbox. Beside the shards, one
+unpartitioned job per OS runs what no
 partition holds: the ordinary checker, typecheck and the complete repair path, beside a
 pristine baseline of its own; Ubuntu's also analyzes the workflows as
 [workflow analysis](#workflow-analysis) describes. A
