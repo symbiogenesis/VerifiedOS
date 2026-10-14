@@ -25,9 +25,11 @@ very damage this module reports into the file that reports it.
 """
 
 import re
+import zlib
 from collections.abc import Iterable, Iterator
 from typing import TYPE_CHECKING
 
+from vos import corpus
 from vos.report import sites
 
 # `Context` lives in this package's __init__, which imports this module in turn.
@@ -99,8 +101,13 @@ def _texts(ctx: Context) -> Iterator[tuple[str, str]]:
             yield rel, doc.raw
             continue
         try:
-            yield rel, (ctx.corpus.root / rel).read_text(encoding="utf-8")
-        except (UnicodeDecodeError, OSError):
+            blob = corpus.scan_bytes(ctx.corpus.root, rel)
+            # Every damage marker is non-ASCII. This also avoids allocating a
+            # decoded copy of a large, undamaged ASCII proof reading.
+            if blob.isascii():
+                continue
+            yield rel, blob.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+        except (UnicodeDecodeError, OSError, EOFError, ValueError, zlib.error):
             continue
 
 

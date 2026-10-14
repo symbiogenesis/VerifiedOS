@@ -14,6 +14,7 @@ reports are the same, arrived at in one pass instead of many.
 """
 
 import bisect
+import gzip
 import os
 import re
 import subprocess
@@ -22,6 +23,25 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from vos import proofenv
+
+# Retained text may have a lossless compressed representation. Scanners read its
+# original bytes so a storage change does not hide a citation or encoding defect.
+COMPRESSED_EVIDENCE = "docs/implementation/retained-evidence/"
+
+
+def gzip_contents(blob: bytes) -> bytes:
+    """Require a gzip member rather than accepting empty or plaintext evidence."""
+    if not blob.startswith(b"\x1f\x8b"):
+        raise ValueError("missing gzip header")
+    return gzip.decompress(blob)
+
+
+def scan_bytes(root: Path, rel: str) -> bytes:
+    """Read one indexed surface, expanding retained gzip evidence losslessly."""
+    blob = (root / rel).read_bytes()
+    if rel.startswith(COMPRESSED_EVIDENCE) and rel.endswith(".gz"):
+        return gzip_contents(blob)
+    return blob
 
 # The line-anchored patterns here are matched against one line rather than scanned
 # across the whole text with `(?m)^`. The two decide the same lines, but a multiline
