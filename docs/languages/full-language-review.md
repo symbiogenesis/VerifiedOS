@@ -1,6 +1,6 @@
 # Full-language composition review
 
-> **Execution status:** Q19c/Q20b/Q20c are canceled optional experiments. Their named roles in this design remain frozen proposal roles under the [workflow contract's re-entry conditions](workflow-contract.md#commissioning-disposition), not commissioned work. Required compiler, proof and production-artifact duties retain their existing owners.
+> **Execution status:** [The workflow contract's commissioning disposition](workflow-contract.md#commissioning-disposition) governs the canceled experiments, retained proposal roles and re-entry conditions used here.
 
 > Non-normative Q25d integration record. The requirements register remains
 > authoritative. The source rules are design proposals; no implemented language,

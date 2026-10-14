@@ -2,7 +2,7 @@
 
 *Normative as a **view**. This document is the artifact **R-15-100a** mandates and R-15-021, R-15-100, and R-15-107 depend on: the enumerated register of microarchitectural absences with a discharge recorded against each. It is **derived from** [requirements-register.md](../requirements-register.md), which remains the audited artifact per R-05-152.*
 
-> **Precedence.** Where this document and the register disagree, **the register wins and this document is defective.** Every row cites the requirement that governs it. This document adds no obligation of its own.
+> **Precedence.** [The register's rules for derived views](../requirements-register.md#how-to-read-this) apply. Every row cites its governing requirement.
 
 ## Why this document exists
 
@@ -82,19 +82,15 @@ The contract closes differently depending on who authored the block, and the dif
 | **Kôika / Kami-authored**, the net-new blocks with no legacy RTL: the capability- and tag-carrying DMA fabric, the TDM NoC, the fixed-function sequencers | A **structural predicate over the Coq term**, checked in the same prover as the refinement | In-prover. Adds **no semantic anchor**: the predicate is over an existing artifact, not a new semantics | R-15-092, R-15-102 |
 | **Imported SystemVerilog**: CHERI-CVA6 front end, Ara, Gemmini | A **state-enumeration and structural check over the elaborated netlist**, plus **synthesis-configuration provenance** | A structural **audit, not a theorem**, and stated honestly as such | R-15-090, R-15-103 |
 
-The imported-core check covers, by name: predictor arrays, reorder buffer and reservation stations, prefetch engine, cache data/tag/valid arrays, a second hardware thread context, and load-, activity- or temperature-driven frequency control paths, the divider and PLL inputs read for any source other than the composed schedule (R-15-103).
+The imported-core check covers the complete state and control-path inventory named by R-15-103 in [the register](../requirements-register.md); [the specification](../spec.md#r-15-103) explains that audit boundary.
 
 **Honest ceiling.** The strongest microarchitectural claims about imported cores rest on the evidence tier, not the Coq close. The residual is not cost but *where it closes* (R-17-040, R-15-107).
 
 ## 5. The decision rule: table-freeness
 
-The one boundary that could otherwise be argued case by case is fixed by rule (R-15-104):
+Apply R-15-104's table-freeness rule in [the register](../requirements-register.md) to each fetch-path state element. [The specification's boundary explanation](../spec.md#r-15-104) distinguishes permitted static-path fetching from prefetching driven by execution history. The static-path fetch buffer passes this rule (R-15-022, R-15-104).
 
-> A state element in the fetch path whose **write data depends on a prior execution** is a **prefetcher** and fails the contract. One whose contents are a **function of the fetched stream** is **fetch pipelining** and passes.
-
-The boundary is decided by table-freeness, **not** by size and **not** by run-ahead depth. The audit is therefore a table search, not a judgment call. The static-path fetch buffer passes on this rule (R-15-022, R-15-104).
-
-Its admitted range is a separate issue-time constraint (R-15-104a): every byte read by a run-ahead request, including alignment or burst rounding, must lie within the currently executing tagged, unsealed, execute-permitted PCC and within declared executable memory under the composed map's existing attributes, without address wraparound. A failed or unresolved check issues no traffic and raises no architectural exception solely for that run-ahead refusal. Checking only the first byte fails the rule. A PCC authority change, including one at an unchanged cursor, invalidates queued authorization; buffered or in-flight responses are discarded or revalidated against current authority and the current static path before use, while issued requests remain timing and drain obligations until completion or cancellation. Device regions receive no run-ahead request because their executable attribute is clear (R-15-002d). A bundle crossing the PCC boundary waits for architectural demand under the existing fetch checks, so the rule changes no capability alignment. The register imposes no independent depth cap: every finite implementation still owes the stream-dependence, timing and pipeline-drain obligations, and a range check supplies no outstanding-fetch completion bound. This is a constraint on the retained structure, with no claimed absence and no added row in §3.
+Its admitted range follows R-15-104a's [issue-time authority contract](../spec.md#r-15-104a), separately from the table-freeness test. This constrains the retained structure, with no claimed absence and no added row in §3.
 
 ## 6. The `fence.t` completeness claim
 

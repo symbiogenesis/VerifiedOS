@@ -71,7 +71,7 @@ The unit is the bank because the bank is the unit that has a driver sized for it
 
 ### 3.2 The completion indication
 
-Discharge completion is a fixed worst-corner dwell followed by a single read of a fail-stop completion indication, with no poll-until-done loop, no retry, and no discharge-speed-dependent timing on either path (R-15-247f). The macro supplies the indication as follows:
+Apply R-15-247f's [completion timing contract](../spec.md#r-15-247f). The macro supplies the indication as follows:
 
 - **What is read.** A witness set: a set of row positions fixed at composition, at least one per subarray of every bank in the phase, read through the ordinary read port after the dwell and compared against the landing state. The indication is positive where every witness reads the landing state and negative otherwise.
 - **Why the set is fixed.** The witnesses are chosen at composition and depend on nothing observed, which is R-15-247r applied to the read: a witness set chosen by what the bank held, by temperature, or by a prior reading would make the indication a function of a runtime measure.
