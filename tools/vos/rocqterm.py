@@ -39,6 +39,7 @@ import os
 import re
 import shlex
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import NotRequired, TypedDict
 
@@ -373,8 +374,9 @@ def _relative(path: Path, root: Path) -> str:
 
 
 def _output(argv: list[str]) -> str:
-    done = subprocess.run(argv, capture_output=True, encoding="utf-8", errors="replace",
-                          check=False, timeout=120)
+    with tempfile.TemporaryDirectory(prefix="vos-rocq-term-query-") as temporary:
+        done = subprocess.run(argv, cwd=Path(temporary).resolve(), capture_output=True,
+                              encoding="utf-8", errors="replace", check=False, timeout=120)
     if done.returncode != 0:
         raise TermError(f"{argv[0]} {' '.join(argv[1:])} exited {done.returncode}")
     return done.stdout

@@ -13,6 +13,7 @@ import hashlib
 import io
 import json
 import os
+import subprocess
 import tempfile
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
@@ -366,10 +367,30 @@ def _relative_library_directory() -> None:
                     raise AssertionError("a relative library query must refuse")
 
 
+def _metadata_query_working_directory() -> None:
+    directories: list[Path] = []
+
+    def run(argv: list[str], **options: object) -> subprocess.CompletedProcess[str]:
+        directory = options["cwd"]
+        ensure(isinstance(directory, Path) and directory.is_absolute() and directory.is_dir(),
+               "native metadata queries use an existing absolute temporary directory")
+        ensure("env" not in options, "metadata queries preserve the inherited environment")
+        if isinstance(directory, Path):
+            directories.append(directory)
+        return subprocess.CompletedProcess(argv, 0, "version line\n", "")
+
+    with patch.object(rocqterm.subprocess, "run", side_effect=run):
+        ensure(rocqterm._output(["sail", "--version"]) == "version line\n",
+               "query output is unchanged")
+    ensure(len(directories) == 1 and not directories[0].exists(),
+           "the uniquely owned query scratch is retired after reading")
+
+
 def cases() -> list[Case]:
     return [Case("selected-plugin-identity", _selected_plugin_identity),
             Case("unsupported-plugin-selection", _unsupported_plugin_selection),
             Case("relative-library-directory", _relative_library_directory),
+            Case("metadata-query-working-directory", _metadata_query_working_directory),
             Case("positive-emission", _positive_emission),
             Case("missing-configuration", _missing_configuration),
             Case("stale-configuration", _stale_configuration),
