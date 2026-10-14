@@ -303,15 +303,12 @@ custody, as the TLS part's traffic keys carry it where its public exporter carri
 equality alone; the fixture's derived string is no key material, derives no key and
 reduces to no primitive.
 
-The session keys live in the crypto core, which seals and verifies every frame and
-has no export path; the endpoint holds no key and no cipher and moves frames only. A
-frame's associated data is the link, the session epoch and the schedule's own count
-of that link's slots, a value both ends derive from the schedule and neither from the
-wire. A frame therefore verifies only in the slot named for it: one replayed or
-reordered into another slot fails its tag and fail-stops the link, while delay inside
-its own slot leaves the count unadvanced and the tag valid, a statement of the
-construction rather than one this model decides, its frames carrying a slot and no
-arrival. The receive window admits at most one frame per slot. The counterexample for
+The fixture follows the ensemble link contract's
+[crypto-core ownership](../hardware/ensemble-link-contract.md#31-what-is-a-register-of-this-endpoint-and-what-is-not)
+and [schedule-derived associated data](../hardware/ensemble-link-contract.md#13-ff-1-and-ff-2-the-established-session-message-block).
+Its frames carry a slot and no arrival, so it does not decide whether delay inside
+that slot leaves a tag valid. The receive window admits at most one frame per slot.
+The counterexample for
 the schedule-derived clause is an endpoint that reads the count from the frame instead:
 it accepts the replay, which is why the count is not a wire field and why the frame
 grammar Q23b authors carries none.

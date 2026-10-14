@@ -199,15 +199,13 @@ percentage is applied to an item or to the checklist total.
 6. When a candidate closes, take its frozen reading and compare it with the base
    reading byte for byte. Any difference ends the repair and returns to the
    requirement owner. Then inspect the complete diff against the frozen statement,
-   definitions and assumptions. Publish the settled revision and dispatch Guest CI
-   with `cold: true`. Its proofs lane runs `python3 tools/run.py proofs --fresh` to compile, audit
-   native assumptions and kernel-check. Complete the applicable requirement/non-vacuity
-   review and require Host CI under the repository's commit and check schedule.
-   Record the Guest CI run URL or identifier, revision and pending status, then
-   finish without polling or waiting for its verdict. The user monitors the run
-   and will report any issues. Its retained receipt must match the exact inputs
-   before it can establish proof acceptance; pending is not passing evidence.
-   Local proof runs are reserved for focused debugging or a hosted-service outage.
+   definitions and assumptions. Complete the applicable requirement/non-vacuity
+   review, then follow the repository's
+   [validation handoff](../../AGENTS.md#tool-execution-and-validation) with
+   `cold: true` for the fresh proof check defined by the
+   [Guest CI contract](../../tools/ci/README.md#inputs-and-execution).
+   Its retained receipt must match the exact inputs before it can establish proof
+   acceptance.
 
 The retry numbers are operating limits, not measurements of the best search policy.
 Active repair time includes candidate editing and candidate-check waits; record the
