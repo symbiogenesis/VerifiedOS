@@ -40,10 +40,10 @@ Its acceptance predicates are:
   locations, ordering and bounds, stale sources with unchanged timestamps,
   malformed inputs and path escape, no partial JSON, and the output schema.
   Real-bundle smoke tests, Python type checks and Windows/Ubuntu Host CI validate
-  the integrated tool. The integrator also dispatches Guest CI for the settled
-  revision with `cold: true`, including the bundle comparison and fresh proof gate
-  affected by shared dispatcher registration. Record the run and finish without
-  waiting for its verdict; the user will report any issues.
+  the integrated tool. Complete the repository's
+  [validation handoff](../../AGENTS.md#tool-execution-and-validation) with
+  `cold: true`, including the bundle comparison and fresh proof gate affected by
+  shared dispatcher registration.
 
 This delivery makes no measured productivity or model-success claim. It changes
 no Sail semantics, compiler pin, device behavior or proof-acceptance policy.
@@ -133,20 +133,16 @@ the behavior the requirements specify.
    waits; the final acceptance run is recorded separately. These are operating
    defaults enforced by the journal, not measured optimal limits.
 5. Regenerate the bundle when sources settle. Inspect the source diff and generated
-   diff, then publish the settled inputs and dispatch Guest CI for its required
-   model, bundle, proof and standalone RTL gates. A behavior change needs
+   diff. A behavior change needs
    the model build and applicable unit, property, oracle, differential, profile and
    negative-control checks under [the model tool guide](../../tools/README.md).
    Checks outside the [Guest CI contract](../../tools/ci/README.md) remain separate.
-   Local gate runs are for focused debugging or a hosted-service outage; use
-   `model build --background` and `model wait` for a needed local long build,
-   preserving the command's final verdict. `model smt` results have their existing
+   Follow the guide's [local check schedule](../../tools/README.md#check-scheduling-during-fan-out)
+   and [build waiting rules](../../tools/README.md#one-toolchain-several-checkouts).
+   `model smt` results have their existing
    scope; they do not become Rocq proof terms by passing through an agent.
-6. Retain decisions and durable evidence in their repository owners, commit the
-   settled change and obtain green Windows/Ubuntu Host CI. Dispatch every Guest CI
-   lane on GitHub Actions, record the run URL or identifier, revision and pending
-   status, and finish without polling or waiting for its verdict. The user monitors
-   Guest CI and will report any issues; pending is not passing evidence. A planned
+6. Retain decisions and durable evidence in their repository owners and follow the
+   [validation handoff](../../AGENTS.md#tool-execution-and-validation). A planned
    specification change returns to its owning requirement and acceptance contract;
    it is not a repair to make the old contract pass.
 
@@ -270,11 +266,10 @@ The committed extension contract has these acceptance predicates:
    are tracked in this repository. No model account, agent SDK, editor configuration
    or global skill is needed. Selected upstream licenses are read before source is
    incorporated, and intended use/distribution is recorded in THIRD-PARTY.md.
-   Focused behavioral tests, real native qualification and green Host CI and Guest CI
-   on GitHub Actions validate the settled integration revision. Guest CI includes
-   the proof gate; select `cold: true` for the required fresh proof check.
-   Agents record the Guest CI run and finish without waiting for its verdict;
-   the user will report any issues, and pending results remain unverified.
+   Focused behavioral tests and real native qualification validate the integration
+   alongside the repository's
+   [validation handoff](../../AGENTS.md#tool-execution-and-validation), using
+   `cold: true` for the required fresh proof check.
    Optional native qualification remains a separate check.
 
 Qualification reports retain failed capabilities and
@@ -396,5 +391,5 @@ each differential comparison; its peak RSS is a child-process metric, not total
 parallel memory. No observation establishes a productivity improvement or proof
 of universal equivalence. Fresh proof evidence remains in its existing
 `proofs/proof-evidence.json` owner and Guest CI's retained proof artifact. Host CI
-and Guest CI supply the final host and guest verdicts on GitHub Actions. Agents
-finish with Guest CI pending under the handoff above; the user monitors its verdict.
+and Guest CI supply the hosted verdicts under the
+[validation handoff](../../AGENTS.md#tool-execution-and-validation).

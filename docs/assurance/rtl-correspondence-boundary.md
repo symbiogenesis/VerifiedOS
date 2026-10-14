@@ -22,11 +22,9 @@ owner.
 
 ## 1. Why the worked examples are not Kami blocks
 
-Route (a) is not open. [The absence contract's
-§8](../hardware/absence-contract.md#8-running-it-on-day-one) states it outright: for
-Kôika and Kami blocks the six audit steps become one structural predicate over the Coq
-term under R-15-102, and those blocks do not exist yet. The plan's §11 owes nothing on
-that route before the co-simulation gate.
+No route-(a) block exists yet; its audit is owned by [the absence contract's
+§8](../hardware/absence-contract.md#8-running-it-on-day-one). The plan's §11 owes
+nothing on that route before the co-simulation gate.
 
 So the representative blocks are chosen from what exists, and both are authored or
 generated SystemVerilog standing where a route-(a) theorem will stand. Example A's
