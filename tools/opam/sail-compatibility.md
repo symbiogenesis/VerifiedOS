@@ -325,7 +325,7 @@ a completion forecast. The contract must land before adapter implementation.
 [The bounded native diagnosis](../../docs/implementation/q35q-native-inventory.md)
 resolves the first shortened TypeCasts spelling through native `Locate` and
 establishes Inhabited's empty kernel-declaration body and abbreviation provenance.
-Its next signature-field assumption lookup refuses. A separately scoped
-module-signature and abstract-functor census contract is required before a reader
-can qualify those shapes. The common inventory guard and allowed contexts remain
+Its next signature-field assumption lookup refuses. The separately scoped
+[module-signature and abstract-functor census contract](../../docs/implementation/contracts/sail-support-census.md)
+governs qualification of those shapes before a reader is implemented. The common inventory guard and allowed contexts remain
 unchanged; Q35q's complete native and hosted recursive-kernel qualification is open.

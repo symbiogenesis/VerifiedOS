@@ -410,21 +410,21 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,629.4 |
-| Total estimate range h | 3,000.3–6,258.5 |
+| Total estimate midpoint h | 4,635.4 |
+| Total estimate range h | 3,003.3–6,267.5 |
 | Completed scope h | 864.9 |
 | Complete by estimate % | 18.7 |
-| Remaining h | 3,764.5 |
+| Remaining h | 3,770.5 |
 | Committed remaining h | 2,331.5 |
 | Open class I h | 796.5 |
-| Open class X h | 2,968 |
+| Open class X h | 2,974 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,645 |
+| Calibrated total h | 5,653.5 |
 | Committed M8a open h | 85 |
 | Committed M8b open h | 105.5 |
 | Other committed open h | 2,141 |
-| Conditional open h | 1,019 |
+| Conditional open h | 1,025 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
 | Committed M8a open range h | 55–115 |
@@ -1164,10 +1164,11 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
   * [ ] **Q35p · Qualify the canonical memory and tag primitive bindings** · 8 h, range 4–12 · X
     * **Dispatch. Start:** Q35b's retained whole-term refusal, Q35f's five emulator-memory definitions, the model's two tag primitives and Q35n's immutable support candidate. **Owns:** the generated bindings, monads, results and callers of `read_mem#`, `read_mem_ifetch#`, `read_mem_exclusive#`, `write_mem#`, `write_mem_exclusive#`, `__read_tag` and `__write_tag`; an explicit agreement for any target-only adapter with the existing Sail/emulator behavior. Preserve granule-indexed tags, clearing every overwritten granule, metadata writes only after successful data writes and every existing refusal. **Check:** a minimal emitted reproducer and all seven binding readings, unchanged non-Rocq output, no new assumption or weakened definition, followed by Q35o's syntax/identity checks and Q35b's actual strict whole-term compile, exact closure and compiled size. Stop after twelve candidate checks or thirty active minutes, retaining the current diagnostic; the first unexpected semantic incompatibility returns to its requirement owner rather than becoming a proof repair. **Join:** Q35o and the unchanged production-carriage acceptance; no proof-switch lock change on an isolated adapter result.
     * **Estimate basis:** semantic inventory and agreement 2–6 h; bounded target adapter and focused controls 1–3 h; independent review and whole-term handoff 1–3 h. This prices the newly exposed semantic prerequisite, without repeating Q35o's syntax, Q35b's consumer acceptance or Q35n's hosted source carriage.
-  * [ ] **Q35q · Qualify the native Sail support declaration inventory** · 4 h, range 2–6 · X
+  * [ ] **Q35q · Qualify the native Sail support declaration inventory** · 10 h, range 5–15 · X
+    * **Census prerequisite:** [The module census contract](contracts/sail-support-census.md) commissions complete native signature and abstract-functor classification, explicit interface obligations and concrete implementation connections before assumption queries. Its positive/refusal controls preserve the common guard and exact allowed contexts; complete native and hosted qualification remain required.
     * **Native provenance checkpoint:** [The bounded native diagnosis](q35q-native-inventory.md) establishes Inhabited's empty kernel-declaration body and abbreviation provenance, resolves the first TypeCasts spelling canonically, and identifies its sealed functor result. The next actual signature-field assumption lookup refuses and names the separately scoped module-signature and abstract-functor census prerequisite. Complete census, exact assumptions, refusal controls and hosted recursive-kernel qualification remain open.
     * **Dispatch. Start:** Q35n's retained hosted inventory refusal, its exact 29-module recipe and [the native inventory contract](../../tools/opam/sail-compatibility.md#native-support-inventory-prerequisite). **Owns:** a native canonical-name and module-membership census and the narrowly qualified support adapter; explicit alias, functor-result, sealed-field and empty-module provenance. **Check:** every printed row is accounted for, every owned declaration receives its exact assumption audit, and real hosted inputs join the recursive kernel check; valid owned and proven alias-only/zero-declaration controls pass, while foreign, ambiguous, missing, duplicate and unproved-empty cases refuse. Keep the common inventory guard, strict flags, exact allowed axioms, locked packages, source semantics, prover and project lock unchanged; do not manufacture a prefix or drop an unrecognized row. Stop after three candidate checks or twenty active minutes at the first unsupported native lookup, retain the refusal and return to a further owner act. **Join:** Q35n's cold export/import qualification and Q35b's independently owed canonical consumer acceptance.
-    * **Estimate basis:** bounded native provenance diagnosis 1–3 h; adapter and refusal controls 0.5–1.5 h; independent review and hosted handoff 0.5–1.5 h. This prices the bounded prerequisite alone; unattended runtime, further incompatibilities and Q35n's snapshot campaign remain outside this estimate.
+    * **Estimate basis:** bounded native provenance diagnosis 1–3 h; adapter and refusal controls 0.5–1.5 h; independent review and hosted handoff 0.5–1.5 h; the module census extension adds native grammar/classification 1–3 h, canonical implementation connections 1–3 h and controls/evidence 1–3 h. The combined range is 5–15 h. Unattended runtime, further unsupported forms and Q35n's snapshot campaign remain outside this estimate; a retained refusal does not close the item.
 * [x] **Q36 · Upgrade the proof switch to Rocq 9.3.0** · 1.6 h actual
   * The proof switch locks Rocq 9.3.0, whose compiler refuses the guard-checker counterexamples Rocq 9.2.0 accepted, and the gate's pin, kernel-summary parse, test fixtures and current-state statements follow it. ([note](completion-log.md#q36-upgrade-the-proof-switch-to-rocq-930))
 * [x] **Q37 · Upgrade the Sail switch to Sail 0.20.3** · 0.9 h actual
@@ -1269,7 +1270,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,788.9 h · 60% · 252.9 h complete · open range 1,457–3,615 h.
+**Q subtotal:** 2,794.9 h · 60% · 252.9 h complete · open range 1,460–3,624 h.
 
 ### M0 · Hardware reference
 
